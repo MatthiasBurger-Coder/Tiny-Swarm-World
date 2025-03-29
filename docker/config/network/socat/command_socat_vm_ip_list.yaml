@@ -1,7 +1,7 @@
 commands:
   - index: 1
     description: "Getting current ips of each vm"
-    command: "multipass exec  {vm_instance} -- docker network ls --format '{{.Name}} {{.Driver}}' | awk '$2 == \"bridge\" { print $1 }'"
+    command: "multipass exec  {vm_instance} -- bash -c \"docker network inspect {docker_bridge} | jq -r '.[0].IPAM.Config[0].Gateway'\""
     runner: "async"
     command_type: "hostos"
     vm_type:

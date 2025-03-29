@@ -4,7 +4,6 @@ from domain.network.ip_extractor.strategies.IpExtractorSwarmNodeIpList import Ip
 from domain.network.ip_extractor.strategies.ip_extractor_gateway import IpExtractorGateway
 from domain.network.ip_extractor.strategies.ip_extractor_swarm_manager import IpExtractorSwarmManager
 from domain.network.ip_extractor.strategies.ip_extstractor_types import IpExtractorTypes
-from domain.network.ip_value import IpValue
 from infrastructure.logging.logger_factory import LoggerFactory
 
 

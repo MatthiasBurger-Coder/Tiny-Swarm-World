@@ -6,3 +6,4 @@ class ParameterType(str, Enum):
     SWARM_MANAGER_PORT = "swarm_manager_port"
     SWARM_TOKEN = "swarm_token"
     VM_INSTANCE = "vm_instance"
+    DOCKER_BRIDGE = "docker_bridge"

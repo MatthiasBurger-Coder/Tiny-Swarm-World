@@ -4,7 +4,7 @@ from infrastructure.adapters.ui.command_async_runner_ui import AsyncCommandRunne
 from infrastructure.logging.logger_factory import LoggerFactory
 
 
-class NetworkService:
+class NetworkSetupNetplan:
     def __init__(self):
         self.ui = None
         self.command_execute = None
@@ -13,7 +13,7 @@ class NetworkService:
     async def run(self):
         self.logger.info("initialisation of network")
 
-        multipass_command_repository = PortCommandRepositoryYaml(filename="command_network_setup_yaml.yaml")
+        multipass_command_repository = PortCommandRepositoryYaml(filename="command_netplant_setup_yaml.yaml")
         command_builder: CommandBuilder = CommandBuilder(command_repository=multipass_command_repository)
         command_list = command_builder.get_command_list()
 

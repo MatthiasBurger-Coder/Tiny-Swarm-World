@@ -23,7 +23,7 @@ class NetworkPrepareNetplan:
     async def run(self):
         self.logger.info("Setup cloud-init-manager.yaml")
 
-        multipass_command_repository = PortCommandRepositoryYaml(filename="command_network_ip_yaml.yaml")
+        multipass_command_repository = PortCommandRepositoryYaml(filename="command_netplant_ip_yaml.yaml")
         command_builder: CommandBuilder = CommandBuilder(command_repository=multipass_command_repository)
         command_list = command_builder.get_command_list()
 
