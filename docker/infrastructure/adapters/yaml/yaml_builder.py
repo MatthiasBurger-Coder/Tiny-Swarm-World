@@ -5,12 +5,14 @@ from ruamel.yaml.compat import StringIO
 
 from infrastructure.adapters.yaml.yaml_node import YAMLNode
 from infrastructure.adapters.yaml.yaml_value import YamlValue
+from infrastructure.logging.logger_factory import LoggerFactory
 
 
 class FluentYAMLBuilder:
     """Fluent API Builder for constructing properly formatted YAML structures using ruamel.yaml."""
 
     def __init__(self, root_name: Optional[str] = None):
+        self.logger = LoggerFactory.get_logger(self.__class__)
         self.root = YAMLNode(root_name) if root_name else None
         self.current = self.root
 
@@ -26,32 +28,30 @@ class FluentYAMLBuilder:
         return self
 
     def navigate_to(self, path: List[str]) -> "FluentYAMLBuilder":
-        """Navigate to a specific entry by path."""
+        """Navigate to a specific entry by path. Supports navigation into list items using string indexes."""
         node = self.root
-        traversed_path = []  # Hält den erfolgreichen Navigationspfad
-
+        traversed_path = []  # Holds the successfully traversed path
+        self.logger.info(f"Navigating to path: {path}")
         for key in path:
             child = node.find_child(key)
-            if child:  # Wenn ein Kind gefunden wurde, navigiere weiter
+            if child:  # If a child is found, navigate further
                 node = child
-                traversed_path.append(key)  # Füge den Schlüssel dem navigierten Pfad hinzu
+                traversed_path.append(key)
             else:
-                # Gebe detaillierte Fehlermeldung zu dem Punkt aus, an dem der Fehler auftritt
                 raise KeyError(
                     f"Path not found at segment '{key}' after traversing: {'/'.join(traversed_path)}"
                 )
 
-        self.current = node  # Aktualisiere den aktuellen Knoten
+        self.current = node
         return self
 
     def navigate_to_recursively(self, name: str) -> "FluentYAMLBuilder":
         """Recursively find a node by its name, starting from the root."""
-
         def recursive_search(node, name_rc):
             if node.name == name_rc:
                 return node
             for child in node.children:
-                result_rc = recursive_search(child, name)
+                result_rc = recursive_search(child, name_rc)
                 if result_rc:
                     return result_rc
             return None
@@ -69,6 +69,7 @@ class FluentYAMLBuilder:
             parent.remove_child(self.current.name)
             self.current = parent
         else:
+            self.logger.error("Cannot delete root node")
             raise ValueError("Cannot delete root node")
         return self
 
@@ -95,7 +96,7 @@ class FluentYAMLBuilder:
         return self
 
     def build(self):
-        """Constructs the YAML dictionary, ensuring scalar values are stored correctly."""
+        """Constructs the YAML dictionary."""
         return self.to_dict()
 
     def to_dict(self, node: Optional[YAMLNode] = None) -> Dict[str, Any]:
@@ -140,7 +141,7 @@ class FluentYAMLBuilder:
     def load_from_string(self, yaml_content: str) -> "FluentYAMLBuilder":
         """Parses a YAML-formatted string and builds a corresponding tree structure using add_child()."""
         yaml = YAML()
-        data = yaml.load(yaml_content) or {}  # Ensure at least an empty dictionary
+        data = yaml.load(yaml_content) or {}
 
         if not isinstance(data, dict):
             raise ValueError("Invalid YAML format, expected a dictionary with a root key.")
@@ -148,16 +149,13 @@ class FluentYAMLBuilder:
         # Extract the first root key dynamically
         root_key = next(iter(data.keys()))
         if self.root is None:
-            # Set root only if it doesn't exist yet
             self.add_child(root_key, stay=True)
         else:
-            # Abort if the existing root doesn't match the YAML root
             if self.root.name != root_key:
                 raise ValueError(f"Root mismatch! Expected '{self.root.name}', but found '{root_key}' in YAML.")
 
-        # Insert only the contents under the existing root
+        # Insert the contents under the existing root
         self._parse_dict_to_tree(data[root_key])
-
         return self
 
     def _parse_dict_to_tree(self,  data: Any):

@@ -1,9 +1,8 @@
 import platform
 
 from application.ports.ui.port_ui import PortUI
-from infrastructure.adapters.ui.linux_ui import LinuxUI
 from infrastructure.os_types import OsTypes
-from infrastructure.adapters.ui.windows_ui import WindowsUi
+
 
 
 class FactoryUI:
@@ -13,6 +12,8 @@ class FactoryUI:
 
     def get_ui(self, **kwargs) -> PortUI:
         if self.os_type == OsTypes.WINDOWS:
+            from infrastructure.adapters.ui.windows_ui import WindowsUi
             return WindowsUi(**kwargs)
         else :
+            from infrastructure.adapters.ui.linux_ui import LinuxUI
             return LinuxUI(**kwargs)
