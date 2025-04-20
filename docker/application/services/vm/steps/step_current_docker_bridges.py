@@ -33,7 +33,7 @@ class StepCurrentDockerBridges:
             self.parameter[ParameterType.DOCKER_BRIDGE] = bridge
 
             self.logger.info(f"docker bridge: {bridge}")
-            multipass_command_repository = PortCommandRepositoryYaml(filename="command_vm_ip_list.yaml")
+            multipass_command_repository = PortCommandRepositoryYaml(filename="command_vm_docker_bridge_list.yaml")
             command_builder: CommandBuilder = CommandBuilder(command_repository=multipass_command_repository,
                                                              parameter=self.parameter)
             command_list = command_builder.get_command_list()

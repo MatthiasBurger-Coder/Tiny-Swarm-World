@@ -33,10 +33,9 @@ class VmIpList:
         self.logger.info(f"docker ip list: {self.docker_ip_list}")
         vm_list: List[VmEntity] =self.vm_repository.get_all_vms()
         for vm in vm_list:
-            self.logger.info(f"vm: {vm}, update with ip list: {self.docker_ip_list}")
-
             vm.gateway = str(self.docker_ip_list.gateway)
             vm.external_ip = str(self.docker_ip_list.external_ip)
             vm.docker_bridge_ip = str(self.docker_ip_list.docker_bridge_ip)
             vm.docker_overlay_ip = str(self.docker_ip_list.docker_overlay_ip)
+            self.logger.info(f"vm: {vm}, update with ip list: {self.docker_ip_list}")
             self.vm_repository.update_vm(vm)

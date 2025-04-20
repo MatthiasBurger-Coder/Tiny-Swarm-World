@@ -3,11 +3,11 @@ from typing import List, Optional
 
 from ruamel.yaml import YAML
 
-from infrastructure.adapters.file_management.file_manager import FileManager
-from infrastructure.adapters.yaml.yaml_builder import FluentYAMLBuilder
+from application.ports.repositories.port_vm_repository import PortVmRepository
 from domain.multipass.vm_entity import VmEntity
 from domain.multipass.vm_type import VmType
-from application.ports.repositories.port_vm_repository import PortVmRepository
+from infrastructure.adapters.file_management.file_manager import FileManager
+from infrastructure.adapters.yaml.yaml_builder import FluentYAMLBuilder
 from infrastructure.dependency_injection.infra_core_di_container import infra_core_container
 from infrastructure.logging.logger_factory import LoggerFactory
 
@@ -28,7 +28,7 @@ class PortVmRepositoryYaml(PortVmRepository):
     def save(self) -> None:
         """Saves the YAML configuration file."""
         try:
-            self.file_manager.save(path=self.config_path,data=self.yaml_builder.to_yaml())
+            self.file_manager.save(self.config_path, self.yaml_builder.to_yaml())
         except Exception as e:
             self.logger.exception(f"Error saving YAML file: {str(e)}")
             raise Exception(f"Error saving YAML file: {str(e)}")
@@ -74,30 +74,23 @@ class PortVmRepositoryYaml(PortVmRepository):
         raise ValueError(f"VM {name} not found.")
 
     def update_vm(self, vm: VmEntity) -> None:
-        """Updates an existing VM based on vm_instance as the unique key."""
+        """Updates an existing VM by replacing its entire YAML entry if it matches by vm_instance."""
         self.logger.info(f"Updating VM: {vm}")
-        # Navigiere zum "vms"-Knoten, der die Liste aller VMs enthält.
-        vms_nodes = self.get_all_vms()
-        found = False
 
-        # Durchlaufe alle Listeneinträge (die numerischen Knoten unter "vms")
-        for list_item in vms_nodes:
-            # Suche im aktuellen Listeneintrag nach dem Kind "vm_instance"
-            vm_instance_node = list_item.find_child("vm_instance")
-            if vm_instance_node and vm_instance_node.value and vm_instance_node.value.data == vm.vm_instance:
-                # Treffer: Bestehende Daten überschreiben.
-                # Lösche zunächst alle bestehenden Kinder des Listeneintrags.
-                list_item.children = []
-                # Füge dann für jeden Attribut-Wert des VmEntity einen neuen Kindknoten hinzu.
-                for key, value in vm.model_dump().items():
-                    list_item.add_child(key, value)
-                found = True
+        updated = False
+        vms_list = self.get_all_vms()
+        self.logger.info(f"To be updated VM-List: {vms_list}")
+        # Search for the existing VM entry by vm_instance and replace it
+        for index, existing_vm in enumerate(vms_list):
+            if existing_vm.vm_instance == vm.vm_instance:
+                vms_list[index] = vm
+                updated = True
                 break
-
-        if not found:
+        self.logger.info(f"Updated VM-List: {vms_list}")
+        if not updated:
             raise ValueError(f"VM {vm.vm_instance} not found for update.")
 
-        # Speichere die aktualisierte YAML-Struktur
+        self.yaml_builder.add_child("vms", vms_list, stay=True).build()
         self.save()
 
     def find_all_vms(self) -> List[VmEntity]:
@@ -121,4 +114,3 @@ class PortVmRepositoryYaml(PortVmRepository):
             for vm in self.loaded_data.get("vms", [])
             if vm.get("vm_type") == vm_type.value and vm.get("vm_instance") is not None
         ]
-
