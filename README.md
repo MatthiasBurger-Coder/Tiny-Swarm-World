@@ -71,6 +71,10 @@ This runs the example application entry point and prints VM IPs (if configured):
 
 - python .\docker\tiny_swarm_world.py
 
+Note (WSL2):
+- In a WSL2 environment, you must start the system with elevated privileges:
+- sudo python3 tiny_swarm_world.py
+
 If this is your very first run and no VMs exist, proceed with the provisioning steps below.
 
 ---
@@ -156,6 +160,9 @@ You can also run specific test files, for example:
 ## Contributing
 
 Contributions are welcome. Please open an issue or a PR with a clear description. Keep changes small and well-tested.
+
+Code style guidelines:
+- Only English comments are allowed in the source code. Please use English for inline comments, docstrings, and annotations.
 
 ---
 
