@@ -10,6 +10,7 @@ from infrastructure.adapters.file_management.file_saver import FileSaver
 from infrastructure.adapters.file_management.path_normalizer import PathNormalizer
 from infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from infrastructure.dependency_injection.infra_core_di_annotations import inject
+from infrastructure.logging.logger_factory import LoggerFactory
 
 
 class FileManager(PortFileManager):
@@ -22,7 +23,7 @@ class FileManager(PortFileManager):
         """
         Initializes the FileManager with locator, loader, saver, and creator instances.
         """
-
+        self.logger = LoggerFactory.get_logger(self.__class__)
         self.path_factory = path_factory
         # Use lambdas to defer instantiation with required dependencies
         self.locator = lambda filename: FileLocator(
@@ -53,6 +54,7 @@ class FileManager(PortFileManager):
             path (Path): The file path.
             data (Any): The data to be saved.
         """
+        self.logger.info(f"Save to {path} with : {data}")
         file_saver = self.saver(path)
         file_saver.save(data)
 
@@ -65,7 +67,6 @@ class FileManager(PortFileManager):
             data (Any): The data to be stored.
         """
         self.creator().create(path, data)
-
 
     def delete(self, path: Path) -> bool:
         """

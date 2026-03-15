@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import AsyncMock, patch, MagicMock
-from application.services.network.network_service import NetworkService
+from application.services.network.netplant.network_setup_netplan import NetworkService
 from domain.network.ip_value import IpValue
 
 

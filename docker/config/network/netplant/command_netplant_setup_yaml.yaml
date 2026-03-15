@@ -54,11 +54,3 @@ commands:
     command_type: "hostos"
     vm_type:
       - "manager"
-
-  - index: 8
-    description: "Apply netplan"
-    command: "multipass exec {vm_instance} -- sudo netplan apply"
-    runner: "async"
-    command_type: "hostos"
-    vm_type:
-      - "manager"
