@@ -1,11 +1,11 @@
 
 from abc import ABC, abstractmethod
-from infrastructure.adapters.yaml.yaml_builder import FluentYAMLBuilder
+
+from domain.deployment.stack_definition import StackDefinition
 
 
 class PortComposeFileRepository(ABC):
-
     @abstractmethod
-    def get_compose_of(self) -> FluentYAMLBuilder:
-        """ Returns the compose file."""
+    def get_compose_of(self, stack_name: str) -> StackDefinition:
+        """Returns the compose content for the requested stack."""
         pass

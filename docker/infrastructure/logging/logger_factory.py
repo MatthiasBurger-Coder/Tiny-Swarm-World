@@ -32,6 +32,7 @@ class LoggerFactory:
             for handler in logger.handlers[:]:  # Copy the list to iterate safely
                 if isinstance(handler, logging.FileHandler):
                     logger.removeHandler(handler)
+                    handler.close()
 
         # Add file handler if none exists
         file_handler = logging.FileHandler(log_file, mode="a")
