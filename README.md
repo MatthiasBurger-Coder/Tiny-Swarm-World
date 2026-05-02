@@ -69,7 +69,7 @@ source .venv/bin/activate
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt -r docker/requirements.txt
+python -m pip install -r requirements.txt
 python -m pip install ruff mypy import-linter
 ```
 
@@ -171,7 +171,7 @@ Prepare a local environment:
 - `python3 -m venv .venv`
 - `source .venv/bin/activate`
 - `python -m pip install --upgrade pip`
-- `python -m pip install -r requirements.txt -r docker/requirements.txt`
+- `python -m pip install -r requirements.txt`
 - `python -m pip install ruff mypy import-linter`
 
 Run the full gate before handing off a change:
@@ -227,5 +227,4 @@ Add your license information here (e.g., Apache-2.0, MIT). If a LICENSE file exi
 - Portainer: https://www.portainer.io/
 - Multipass: https://multipass.run/
 - Docker Swarm: https://docs.docker.com/engine/swarm/
-
 
