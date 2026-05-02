@@ -51,6 +51,9 @@ automation architecture.
   adapters.
 - Infrastructure adapters implement ports and contain technology-specific
   details.
+- Keep standard runtime wiring in
+  `src/tiny_swarm_world/infrastructure/composition.py`; do not move concrete
+  adapter construction into application services.
 - Entry-point code such as `src/tiny_swarm_world/__main__.py` should stay thin:
   compose dependencies, invoke application services, and report progress.
 - Prefer small services with explicit dependencies over global lookups. Where

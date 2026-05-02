@@ -13,6 +13,8 @@ Additional scope for `src/tiny_swarm_world/`:
   dependencies through `application/ports`.
 - Put new interfaces under `application/ports` and concrete implementations
   under `infrastructure/adapters`.
+- Put standard runtime wiring in `infrastructure/composition.py` and keep
+  `__main__.py` as a thin entry point.
 - Keep command, VM, network, deployment, and service-stack behavior testable
   without running Multipass, Docker Swarm, netplan, or live service bootstrap
   commands.

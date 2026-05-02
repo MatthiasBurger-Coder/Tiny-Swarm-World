@@ -112,6 +112,13 @@ In `src/tiny_swarm_world/__main__.py` you can see which infrastructure steps are
 PYTHONPATH=src python -m tiny_swarm_world
 ```
 
+Application services are constructed through the infrastructure composition
+root in `src/tiny_swarm_world/infrastructure/composition.py`. Services such as
+`VmIpList`, `MultipassInitVms`, and `NetworkPrepareNetplan` require explicit
+ports and repository dependencies; direct no-argument construction from the old
+`docker` layout is no longer supported. Use `build_application_services()` for
+the standard local wiring, or pass compatible port implementations in tests.
+
 Portainer setup is prepared from the repository root with:
 
 ```bash

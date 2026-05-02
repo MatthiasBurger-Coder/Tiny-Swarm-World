@@ -15,6 +15,13 @@ Tiny Swarm World now separates three repository roles explicitly.
 The canonical development import root is `src`, and commands that execute the
 Python package use `PYTHONPATH=src`.
 
+`src/tiny_swarm_world/infrastructure/composition.py` is the local composition
+root for the Python automation. It wires concrete infrastructure adapters into
+application services and keeps `src/tiny_swarm_world/__main__.py` thin. Services
+such as `VmIpList`, `MultipassInitVms`, and `NetworkPrepareNetplan` are
+constructed with explicit ports and repositories instead of creating
+infrastructure adapters inside the application layer.
+
 === Infrastructure Assets
 
 `infra` contains infrastructure and deployment assets that are not Python
