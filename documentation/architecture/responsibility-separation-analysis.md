@@ -95,6 +95,7 @@ cluster substrate.
 - `infra/config/vm`
 - `infra/swarm`
 - `infra/platform/README.md` as target boundary marker
+- `infra/swarm/README.md` documents the current legacy helper status
 
 ### Tests and Documentation
 
@@ -162,6 +163,8 @@ Portainer stack APIs, and service lifecycle through Portainer or Docker Swarm.
   - `infra/compose/jenkins`
   - `infra/compose/swagger`
 - `infra/prepare/portainer`
+- `infra/prepare/portainer/README.md` documents the supported live script and
+  the transitional duplicate setup script
 - Portainer stack compose files under `infra/config/compose/portainer`
 - service stack compose files under `infra/config/compose/nexus`,
   `infra/config/compose/rabbitmq`, and `infra/config/compose/sonarqube`
