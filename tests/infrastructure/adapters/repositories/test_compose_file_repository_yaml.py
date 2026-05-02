@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from infrastructure.adapters.repositories.compose_file_repository_yaml import ComposeFileRepositoryYaml
+from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import ComposeFileRepositoryYaml
 
 
 class TestComposeFileRepositoryYaml(unittest.TestCase):

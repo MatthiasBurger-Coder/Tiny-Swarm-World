@@ -2,7 +2,7 @@ import asyncio
 import unittest
 from unittest.mock import patch, MagicMock
 
-from infrastructure.adapters.ui.linux_ui import LinuxUI
+from tiny_swarm_world.infrastructure.adapters.ui.linux_ui import LinuxUI
 
 
 class TestLinuxUI(unittest.TestCase):
@@ -74,9 +74,9 @@ class TestLinuxUI(unittest.TestCase):
         self.assertEqual(self.ui.status["Instance1"]["result"], "Success")
         self.assertEqual(self.ui.status["Instance2"]["result"], "Error")
 
-    @patch("infrastructure.adapters.ui.linux_ui.curses.curs_set")
-    @patch("infrastructure.adapters.ui.linux_ui.curses.initscr")
-    @patch("infrastructure.adapters.ui.linux_ui.curses.endwin")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.curs_set")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.initscr")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.endwin")
     def test_draw_ui_basic_execution(self, mock_endwin, mock_initscr, mock_curs_set):
         def stdscr_mock(*args, **kwargs):
             pass
@@ -100,9 +100,9 @@ class TestLinuxUI(unittest.TestCase):
         mock_stdscr.nodelay.assert_called_once_with(True)
         mock_stdscr.timeout.assert_called_once_with(500)
 
-    @patch("infrastructure.adapters.ui.linux_ui.curses.curs_set")
-    @patch("infrastructure.adapters.ui.linux_ui.curses.initscr")
-    @patch("infrastructure.adapters.ui.linux_ui.curses.endwin")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.curs_set")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.initscr")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.endwin")
     def test_draw_ui_content_check(self, mock_endwin, mock_initscr, mock_curs_set):
         # Mock for `stdscr`
         mock_stdscr = MagicMock()
@@ -129,9 +129,9 @@ class TestLinuxUI(unittest.TestCase):
         mock_stdscr.addstr.assert_any_call(3, 40, "Step: Installing")  # Content for second instance
         mock_stdscr.addstr.assert_any_call(4, 40, "Status: In Progress")  # Status for second instance
 
-    @patch("infrastructure.adapters.ui.linux_ui.curses.curs_set")
-    @patch("infrastructure.adapters.ui.linux_ui.curses.initscr")
-    @patch("infrastructure.adapters.ui.linux_ui.curses.endwin")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.curs_set")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.initscr")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.endwin")
     def test_draw_ui_terminates_on_completion(self, mock_endwin, mock_initscr, mock_curs_set):
         mock_stdscr = MagicMock()
         mock_stdscr.getmaxyx.return_value = (24, 80)

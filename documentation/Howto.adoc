@@ -9,21 +9,21 @@ Run the full project gate from the repository root:
 
 [source,bash]
 ----
-./bin/python docker/quality_gate.py quality
+python3 tools/quality_gate.py quality
 ----
 
-If `./bin/python` is not available:
+If a virtual environment is active:
 
 [source,bash]
 ----
-python3 docker/quality_gate.py quality
+python tools/quality_gate.py quality
 ----
 
 == Run The Current Python Entrypoint
 
 [source,bash]
 ----
-PYTHONPATH=docker python3 docker/tiny_swarm_world.py
+PYTHONPATH=src python3 -m tiny_swarm_world
 ----
 
 The current active path lists VM IP information. Provisioning steps are present
@@ -36,7 +36,7 @@ Portainer preparation is available through:
 
 [source,bash]
 ----
-cd docker/prepare
+cd infra/prepare
 ./prepare.sh
 ----
 
@@ -49,7 +49,7 @@ Nexus bootstrap is implemented in Python:
 
 [source,bash]
 ----
-python3 docker/prepare/nexus/setup.py
+python3 infra/prepare/nexus/setup.py
 ----
 
 Prefer explicit credentials through environment variables:
@@ -62,7 +62,7 @@ TSW_PORTAINER_PASSWORD='<portainer-password>' \
 TSW_NEXUS_URL=http://localhost:8081 \
 TSW_NEXUS_ADMIN_USERNAME=admin \
 TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-password>' \
-python3 docker/prepare/nexus/setup.py
+python3 infra/prepare/nexus/setup.py
 ----
 
 The script deploys or updates the Nexus stack through Portainer, waits for
@@ -74,7 +74,7 @@ Bulk stack upload is handled by:
 
 [source,bash]
 ----
-cd docker/compose
+cd infra/compose
 ./upload_all_stacks.sh -u admin -p '<portainer-password>'
 ----
 

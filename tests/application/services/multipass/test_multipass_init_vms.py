@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from application.services.multipass.multipass_init_vms import MultipassInitVms
+from tiny_swarm_world.application.services.multipass.multipass_init_vms import MultipassInitVms
 
 
 class TestMultipassInitVms(unittest.IsolatedAsyncioTestCase):  # For asyncio-compatible tests in Python 3.8+
@@ -21,9 +21,9 @@ class TestMultipassInitVms(unittest.IsolatedAsyncioTestCase):  # For asyncio-com
 
 
     @unittest.skip("Test is temporarily disabled")
-    @patch('application.services.multipass.multipass_init_vms.PortCommandRepositoryYaml')
-    @patch('application.services.multipass.multipass_init_vms.FileManager')
-    @patch('application.services.multipass.multipass_init_vms.CommandRunnerUI')
+    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.PortCommandRepositoryYaml')
+    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.FileManager')
+    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.CommandRunnerUI')
     async def test_run(self, mock_command_runner_ui, mock_yaml_file_manager, mock_command_repository_yaml):
         # # Configure mocks
         # mock_runner_ui_instance = AsyncMock()  # For `await runner_ui.run()`
@@ -50,9 +50,9 @@ class TestMultipassInitVms(unittest.IsolatedAsyncioTestCase):  # For asyncio-com
         pass
 
     @unittest.skip("Test is temporarily disabled")
-    @patch('application.services.multipass.multipass_init_vms.PortCommandRepositoryYaml')
-    @patch('application.services.multipass.multipass_init_vms.FileManager')
-    @patch('application.services.multipass.multipass_init_vms.CommandBuilder')
+    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.PortCommandRepositoryYaml')
+    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.FileManager')
+    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.CommandBuilder')
     def test_setup_commands_init(self, mock_command_builder, mock_file_manager, mock_command_repository_yaml):
         # # Configure mocks
         # mock_command_builder_instance = MagicMock()

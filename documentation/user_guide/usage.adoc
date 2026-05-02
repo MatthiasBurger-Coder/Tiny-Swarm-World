@@ -15,22 +15,23 @@ Run the full gate before handing off changes:
 
 [source,bash]
 ----
-./bin/python docker/quality_gate.py quality
+python3 tools/quality_gate.py quality
 ----
 
 Available subcommands:
 
 [source,bash]
 ----
-./bin/python docker/quality_gate.py lint
-./bin/python docker/quality_gate.py arch-lint
-./bin/python docker/quality_gate.py arch-tests
-./bin/python docker/quality_gate.py typecheck
-./bin/python docker/quality_gate.py test
+python3 tools/quality_gate.py lint
+python3 tools/quality_gate.py arch-lint
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py typecheck
+python3 tools/quality_gate.py test
 ----
 
 The gate runs Ruff, import-linter, architecture tests, mypy, and unittest
-discovery against the `docker/` source tree and root `tests/` directory.
+discovery against the `src/tiny_swarm_world` source tree and root `tests/`
+directory.
 
 == Main Python Entrypoint
 
@@ -38,11 +39,11 @@ The current main script is:
 
 [source,bash]
 ----
-PYTHONPATH=docker python3 docker/tiny_swarm_world.py
+PYTHONPATH=src python3 -m tiny_swarm_world
 ----
 
 At the moment, the active path lists VM IP information. Additional provisioning
-steps in `docker/tiny_swarm_world.py` are present but commented. Uncomment and
+steps in `src/tiny_swarm_world/__main__.py` are present but commented. Uncomment and
 run those steps only when you intentionally want to modify local infrastructure.
 
 == Service Preparation
@@ -51,7 +52,7 @@ The preparation shell entrypoint is:
 
 [source,bash]
 ----
-cd docker/prepare
+cd infra/prepare
 ./prepare.sh
 ----
 
@@ -65,7 +66,7 @@ adapters. Run it from the repository root or from its script directory:
 
 [source,bash]
 ----
-python3 docker/prepare/nexus/setup.py
+python3 infra/prepare/nexus/setup.py
 ----
 
 Configuration can be supplied with environment variables or CLI flags:
@@ -78,7 +79,7 @@ TSW_PORTAINER_PASSWORD='<portainer-password>' \
 TSW_NEXUS_URL=http://localhost:8081 \
 TSW_NEXUS_ADMIN_USERNAME=admin \
 TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-password>' \
-python3 docker/prepare/nexus/setup.py
+python3 infra/prepare/nexus/setup.py
 ----
 
 Important variables:
@@ -105,7 +106,7 @@ Bulk stack upload to Portainer is handled by:
 
 [source,bash]
 ----
-cd docker/compose
+cd infra/compose
 ./upload_all_stacks.sh -u admin -p '<password>'
 ----
 

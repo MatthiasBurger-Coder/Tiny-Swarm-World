@@ -1,0 +1,43 @@
+from typing import Dict, Optional
+
+from tiny_swarm_world.application.ports.repositories.port_command_repository import PortCommandRepository
+from tiny_swarm_world.domain.command.command_builder.vm_parameter.parameter_type import ParameterType
+from tiny_swarm_world.domain.command.command_builder.vm_parameter.strategies.manager_strategy import ManagerStrategy
+from tiny_swarm_world.domain.command.command_builder.vm_parameter.strategies.none_strategy import NoneStrategy
+from tiny_swarm_world.domain.command.command_builder.vm_parameter.strategies.worker_strategy import WorkerStrategy
+from tiny_swarm_world.domain.command.command_executer.excecuteable_commands import ExecutableCommandEntity
+from tiny_swarm_world.domain.multipass.vm_type import VmType
+from tiny_swarm_world.infrastructure.adapters.command_runner.command_runner_factory import CommandRunnerFactory
+from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
+
+
+class CommandBuilder:
+    executable_commands: Dict[str, Dict[int, ExecutableCommandEntity]]
+
+    def __init__(self,
+                 command_repository: PortCommandRepository, parameter: Optional[Dict[ParameterType,str]]=None):
+        """
+        :param command_repository: command repository of multipass init process
+        """
+        self.vm_repository = PortVmRepositoryYaml()
+        self.command_runner_factory = CommandRunnerFactory()
+        self.command_repository = command_repository
+        self.executable_commands = {}
+        self.parameter = parameter or {}
+
+        self.STRATEGY_MAP = {
+            VmType.MANAGER: ManagerStrategy(vm_type=VmType.MANAGER, command_runner_factory=self.command_runner_factory),
+            VmType.WORKER: WorkerStrategy(vm_type=VmType.WORKER, command_runner_factory=self.command_runner_factory),
+            VmType.NONE: NoneStrategy(vm_type=VmType.NONE, command_runner_factory=self.command_runner_factory),
+        }
+
+    def get_command_list(self) -> Dict[str, Dict[int, ExecutableCommandEntity]]:
+        command_dict = self.command_repository.get_all_commands()
+
+        for key, command in command_dict.items():
+            for vm_type in command.vm_type:
+                strategy = self.STRATEGY_MAP.get(vm_type)
+                if strategy is None:
+                    raise ValueError(f"Unsupported VM type: {vm_type}")
+                strategy.categorize(command, self.executable_commands,self.parameter)
+        return self.executable_commands

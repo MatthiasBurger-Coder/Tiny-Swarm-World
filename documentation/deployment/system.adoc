@@ -13,9 +13,9 @@ This project is developed and operated from WSL or Linux shells. Windows-specifi
 
 The repository separates deployment work into three areas:
 
-* `docker/tiny_swarm_world.py` contains the Python entry point for infrastructure orchestration.
-* `docker/prepare` contains one-off preparation scripts for services such as Portainer and Nexus.
-* `docker/compose` contains compose stacks and upload helpers for Portainer-managed stack deployment.
+* `src/tiny_swarm_world/__main__.py` contains the Python entry point for infrastructure orchestration.
+* `infra/prepare` contains one-off preparation scripts for services such as Portainer and Nexus.
+* `infra/compose` contains compose stacks and upload helpers for Portainer-managed stack deployment.
 
 The active Python entry point currently registers the dependency container and lists Multipass VM IP addresses through `VmIpList`. Infrastructure-changing steps for VM creation, Docker installation, Swarm initialization, network changes, and service deployment are present in the code but commented. Enable those steps deliberately only when the target environment is ready.
 
@@ -25,7 +25,7 @@ Run the development quality gate before changing deployment-related code:
 
 [source,bash]
 ----
-python3 docker/quality_gate.py quality
+python3 tools/quality_gate.py quality
 ----
 
 When a virtual environment is active, `python` can be used instead of `python3`.
@@ -38,21 +38,21 @@ Portainer preparation is started from the repository root:
 
 [source,bash]
 ----
-cd docker/prepare
+cd infra/prepare
 ./prepare.sh
 ----
 
-`prepare.sh` currently delegates to the Portainer preparation script. Review `docker/prepare/portainer/prepare.sh` before running it against a live environment because it initializes the Portainer administrator account.
+`prepare.sh` currently delegates to the Portainer preparation script. Review `infra/prepare/portainer/prepare.sh` before running it against a live environment because it initializes the Portainer administrator account.
 
 == Nexus bootstrap
 
-Nexus setup is implemented in Python under `docker/prepare/nexus/setup.py`. It creates or starts the Nexus stack through Portainer, reads the initial admin password from the container, changes the admin password, and configures the Docker bearer token realm.
+Nexus setup is implemented in Python under `infra/prepare/nexus/setup.py`. It creates or starts the Nexus stack through Portainer, reads the initial admin password from the container, changes the admin password, and configures the Docker bearer token realm.
 
 Run it from the repository root:
 
 [source,bash]
 ----
-python3 docker/prepare/nexus/setup.py
+python3 infra/prepare/nexus/setup.py
 ----
 
 Important environment variables:
@@ -79,11 +79,11 @@ Compose stacks can be uploaded through Portainer with:
 
 [source,bash]
 ----
-cd docker/compose
+cd infra/compose
 ./upload_all_stacks.sh -u admin -p '<password>'
 ----
 
-The script uploads the stack definitions from `docker/compose`. It requires a reachable Portainer instance and valid credentials.
+The script uploads the stack definitions from `infra/compose`. It requires a reachable Portainer instance and valid credentials.
 
 == Verification
 

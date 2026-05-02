@@ -1,3 +1,36 @@
 == Building Blocks
 
-The key components of the system.
+Tiny Swarm World now separates three repository roles explicitly.
+
+=== Python Automation
+
+`src/tiny_swarm_world` contains the Python orchestration code.
+
+* `domain` contains core command, VM, network, deployment, and Nexus concepts.
+* `application` contains use cases, orchestration services, and ports.
+* `infrastructure` contains adapters for command execution, HTTP clients,
+  repositories, YAML handling, dependency wiring, logging, and local file
+  access.
+
+The canonical development import root is `src`, and commands that execute the
+Python package use `PYTHONPATH=src`.
+
+=== Infrastructure Assets
+
+`infra` contains infrastructure and deployment assets that are not Python
+application code.
+
+* `infra/config` contains command, VM, network, and compose configuration.
+* `infra/compose` contains compose stacks and stack upload helpers.
+* `infra/prepare` contains one-off preparation scripts for local services.
+* `infra/swarm` contains Swarm and Multipass helper scripts.
+
+Live infrastructure scripts can modify VMs, networking, Docker Swarm state,
+service stacks, and credentials. They are not part of the normal development
+quality gate.
+
+=== Deployment Example Application
+
+`src/main/java` is a Java example application intended to be built and deployed
+into the prepared Tiny Swarm World environment. It is intentionally separate
+from the Python automation architecture.

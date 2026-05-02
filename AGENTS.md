@@ -8,8 +8,9 @@ Multipass virtual machines and ships ready-to-use service stacks such as
 Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX.
 
 The project is primarily a Python automation codebase using a hexagonal
-architecture. Java code under `src/main/java` is auxiliary and must not drive
-the architecture.
+architecture. Java code under `src/main/java` is a deployment example
+application for the finished local system and must not drive the Python
+automation architecture.
 
 ## Operating Assumptions
 
@@ -24,16 +25,16 @@ the architecture.
 
 ## Repository Map
 
-- `docker/domain`: core business concepts and rules.
-- `docker/application`: use cases, orchestration services, and ports.
-- `docker/application/ports`: interfaces for commands, repositories, file
+- `src/tiny_swarm_world/domain`: core business concepts and rules.
+- `src/tiny_swarm_world/application`: use cases, orchestration services, and ports.
+- `src/tiny_swarm_world/application/ports`: interfaces for commands, repositories, file
   management, UI, and external clients.
-- `docker/infrastructure`: concrete adapters, dependency wiring, logging,
+- `src/tiny_swarm_world/infrastructure`: concrete adapters, dependency wiring, logging,
   YAML handling, command runners, UI adapters, and file management.
-- `docker/config`: YAML command, VM, network, and compose configuration data.
-- `docker/compose`: compose stacks and related Dockerfiles.
-- `docker/prepare`: one-off preparation scripts for local services.
-- `docker/swarm`: swarm setup and helper scripts.
+- `infra/config`: YAML command, VM, network, and compose configuration data.
+- `infra/compose`: compose stacks and related Dockerfiles.
+- `infra/prepare`: one-off preparation scripts for local services.
+- `infra/swarm`: swarm setup and helper scripts.
 - `tests`: unit tests organized by architecture layer.
 - `documentation`: arc42, deployment, system, and user guide documentation.
 
@@ -48,16 +49,17 @@ the architecture.
   embed low-level shell, filesystem, HTTP, curses, or Docker details directly.
 - Infrastructure adapters implement ports and contain technology-specific
   details.
-- Entry-point code such as `docker/tiny_swarm_world.py` should stay thin:
+- Entry-point code such as `src/tiny_swarm_world/__main__.py` should stay thin:
   compose dependencies, invoke application services, and report progress.
 - Prefer small services with explicit dependencies over global lookups. Where
   the current container is used, keep registrations clear and local.
 
 ## Python Conventions
 
-- Run Python code from the repository root with `PYTHONPATH=docker` when needed.
+- Run Python code from the repository root with `PYTHONPATH=src` when needed.
 - Use package imports in the existing style, for example
-  `from application.services...` and `from infrastructure.adapters...`.
+  `from tiny_swarm_world.application.services...` and
+  `from tiny_swarm_world.infrastructure.adapters...`.
 - Keep source comments, docstrings, and annotations in English.
 - Keep code compatible with Python 3.12 unless a task explicitly changes the
   supported version.
@@ -69,15 +71,15 @@ the architecture.
 
 ## Configuration And YAML
 
-- Treat files under `docker/config` as part of the product behavior, not as
+- Treat files under `infra/config` as part of the product behavior, not as
   throwaway examples.
 - Use structured YAML APIs or existing YAML adapter helpers instead of ad hoc
   string manipulation.
 - Keep command templates readable and deterministic.
 - Avoid embedding host-specific absolute paths, user names, IP addresses, or
   secrets in committed configuration.
-- Preserve service stack boundaries under `docker/config/compose` and
-  `docker/compose`.
+- Preserve service stack boundaries under `infra/config/compose` and
+  `infra/compose`.
 
 ## External System Safety
 
@@ -98,15 +100,15 @@ inspection.
 ## Testing
 
 - Preferred quality gate from the repository root:
-  `python3 docker/quality_gate.py quality`
+  `python3 tools/quality_gate.py quality`
 - During development, run the nearest relevant sub-gate first:
-  `python3 docker/quality_gate.py lint`,
-  `python3 docker/quality_gate.py typecheck`, or
-  `python3 docker/quality_gate.py test`
+  `python3 tools/quality_gate.py lint`,
+  `python3 tools/quality_gate.py typecheck`, or
+  `python3 tools/quality_gate.py test`
 - For targeted changes, run the nearest relevant test file, for example:
-  `PYTHONPATH=docker python -m unittest tests.infrastructure.adapters.ui.test_linux_ui`
-- The quality gate sets `PYTHONPATH=docker` automatically. Manual Python test
-  commands still need `PYTHONPATH=docker`.
+  `PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_linux_ui`
+- The quality gate sets `PYTHONPATH=src` automatically. Manual Python test
+  commands still need `PYTHONPATH=src`.
 - `arch-lint` requires `.importlinter`; `arch-tests` requires
   `tests.architecture.test_hexagonal_imports`.
 - Add or update tests when changing domain behavior, application orchestration,

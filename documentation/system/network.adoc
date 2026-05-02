@@ -20,8 +20,8 @@ Multipass output.
 
 Network-related command templates live under:
 
-* `docker/config/network/netplant`
-* `docker/application/services/network`
+* `infra/config/network/netplant`
+* `src/tiny_swarm_world/application/services/network`
 
 Manual netplan commands for inspection inside a VM include:
 

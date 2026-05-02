@@ -28,7 +28,7 @@ The current library exhibits mixed styles and patterns that are not consistently
 - Rewriting modules that already conform to Pythonic patterns.
 
 ## Scope
-- Public modules in `docker/` and core utilities impacting consumers.
+- Public modules in `src/tiny_swarm_world/` and core utilities impacting consumers.
 - Internal adapters and services where readability and API hygiene can be improved without changing behavior.
 - Documentation updates to reflect idiomatic usage examples.
 

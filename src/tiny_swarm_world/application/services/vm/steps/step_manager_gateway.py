@@ -1,0 +1,37 @@
+import re
+from typing import Dict
+
+from tiny_swarm_world.domain.command.command_builder.vm_parameter.command_builder import CommandBuilder
+from tiny_swarm_world.domain.command.command_builder.vm_parameter.parameter_type import ParameterType
+from tiny_swarm_world.domain.network.ip_value import IpValue
+from tiny_swarm_world.domain.network.socat.docker_ip_list import DockerIpList
+from tiny_swarm_world.infrastructure.adapters.command_runner.command_runner_factory import CommandRunnerFactory
+from tiny_swarm_world.infrastructure.adapters.repositories.command_multipass_init_repository_yaml import PortCommandRepositoryYaml
+from tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui import AsyncCommandRunnerUI
+from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+
+
+class StepManagerGateway:
+    def __init__(self, docker_ip_list: DockerIpList):
+        self.docker_ip_list = docker_ip_list
+        self.command_runner_factory = CommandRunnerFactory()
+        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.parameter: Dict[ParameterType, str] = {}
+
+    async def run(self):
+        self.logger.info("Getting Manager Gateway")
+        multipass_command_repository = PortCommandRepositoryYaml(
+            filename="command_vm_gateway_yaml.yaml")
+        command_builder: CommandBuilder = CommandBuilder(command_repository=multipass_command_repository)
+        command_list = command_builder.get_command_list()
+        runner_ui = AsyncCommandRunnerUI(command_list)
+        result = await runner_ui.run()
+        self.logger.info(f"Getting Manager Gateway: {result}")
+
+        text = list(result[0].values())[0]
+
+        match = re.search(r'default via ([\d.]+)', text)
+        if match:
+            ip_address = match.group(1)
+            self.docker_ip_list.gateway = IpValue(ip_address=ip_address)
+            self.logger.info(f"extracted ip address: {ip_address}")

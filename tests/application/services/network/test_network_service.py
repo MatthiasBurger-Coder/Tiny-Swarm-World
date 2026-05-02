@@ -1,20 +1,20 @@
 import unittest
 from unittest.mock import AsyncMock, patch, MagicMock
-from application.services.network.netplant.network_setup_netplan import NetworkSetupNetplan
-from domain.network.ip_value import IpValue
+from tiny_swarm_world.application.services.network.netplant.network_setup_netplan import NetworkSetupNetplan
+from tiny_swarm_world.domain.network.ip_value import IpValue
 
 
 class TestNetworkService(unittest.IsolatedAsyncioTestCase):
     """Unit tests for the NetworkService class."""
 
     @unittest.skip("Test is temporarily disabled")
-    @patch("application.services.network.network_service.LoggerFactory")
-    @patch("application.services.network.network_service.IpExtractorBuilder")
-    @patch("application.services.network.network_service.CommandBuilder")
-    @patch("application.services.network.network_service.PortVmRepositoryYaml")
-    @patch("application.services.network.network_service.CommandRunnerUI")
-    @patch("application.services.network.network_service.PortCommandRepositoryYaml")
-    @patch("application.services.network.network_service.PortNetplanRepositoryYaml")
+    @patch("tiny_swarm_world.application.services.network.network_service.LoggerFactory")
+    @patch("tiny_swarm_world.application.services.network.network_service.IpExtractorBuilder")
+    @patch("tiny_swarm_world.application.services.network.network_service.CommandBuilder")
+    @patch("tiny_swarm_world.application.services.network.network_service.PortVmRepositoryYaml")
+    @patch("tiny_swarm_world.application.services.network.network_service.CommandRunnerUI")
+    @patch("tiny_swarm_world.application.services.network.network_service.PortCommandRepositoryYaml")
+    @patch("tiny_swarm_world.application.services.network.network_service.PortNetplanRepositoryYaml")
     async def test_run_calls_setup_commands_init_twice_and_returns_command_list(
         self,
         mock_netplan_repo_yaml,

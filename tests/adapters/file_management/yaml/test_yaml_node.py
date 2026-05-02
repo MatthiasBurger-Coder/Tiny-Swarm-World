@@ -1,6 +1,6 @@
 import unittest
 
-from infrastructure.adapters.yaml.yaml_builder import YAMLNode, YamlValue
+from tiny_swarm_world.infrastructure.adapters.yaml.yaml_builder import YAMLNode, YamlValue
 
 
 class TestYAMLNode(unittest.TestCase):

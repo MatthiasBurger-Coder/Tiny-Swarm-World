@@ -29,7 +29,7 @@ The system follows a hexagonal architecture and provides async Python automation
   - RabbitMQ (message broker)
   - SonarQube (static code analysis)
   - Swagger + NGINX (API documentation)
-- Modular infrastructure in `docker/prepare` and `docker/compose`.
+- Modular infrastructure in `infra/prepare` and `infra/compose`.
 - WSL2 networking support via socat and netplan helpers.
 - Rich test suite and clear separation between domain, application, and infrastructure layers.
 
@@ -76,13 +76,13 @@ python -m pip install ruff mypy import-linter
 4. Run the development quality gate
 
 ```bash
-python docker/quality_gate.py quality
+python tools/quality_gate.py quality
 ```
 
 5. Run the current application entry point
 
 ```bash
-PYTHONPATH=docker python docker/tiny_swarm_world.py
+PYTHONPATH=src python -m tiny_swarm_world
 ```
 
 The entry point currently lists configured Multipass VM IP addresses. Live provisioning steps exist in code, but are intentionally commented until a developer enables the required infrastructure actions.
@@ -100,34 +100,34 @@ The repository contains Python services to prepare your local swarm cluster on M
 - Deploy optional service stacks (Portainer, Nexus, Jenkins, etc.)
 
 Where to find the scripts/services:
-- `docker/application/services/multipass`
-- `docker/application/services/network`
-- `docker/swarm`
-- `docker/compose`
+- `src/tiny_swarm_world/application/services/multipass`
+- `src/tiny_swarm_world/application/services/network`
+- `infra/swarm`
+- `infra/compose`
 
-In `docker/tiny_swarm_world.py` you can see which infrastructure steps are invoked. Many actions are present but commented. Enable only the steps you need, for example Multipass initialization, Docker installation, or Swarm initialization, then run:
+In `src/tiny_swarm_world/__main__.py` you can see which infrastructure steps are invoked. Many actions are present but commented. Enable only the steps you need, for example Multipass initialization, Docker installation, or Swarm initialization, then run:
 
 ```bash
-PYTHONPATH=docker python docker/tiny_swarm_world.py
+PYTHONPATH=src python -m tiny_swarm_world
 ```
 
 Portainer setup is prepared from the repository root with:
 
 ```bash
-cd docker/prepare
+cd infra/prepare
 ./prepare.sh
 ```
 
 Nexus bootstrap can be run directly when Portainer and the target endpoint are available:
 
 ```bash
-python3 docker/prepare/nexus/setup.py
+python3 infra/prepare/nexus/setup.py
 ```
 
 Deploying all compose stacks through Portainer is handled by:
 
 ```bash
-cd docker/compose
+cd infra/compose
 ./upload_all_stacks.sh -u admin -p '<password>'
 ```
 
@@ -135,23 +135,23 @@ cd docker/compose
 
 ## Configuration
 
-- Compose files and service configurations live under `docker/compose` and `docker/config`.
-- Networking helpers and netplan templates: `docker/config/network`.
-- VM definitions and templates: `docker/config/vm`.
-- Logs: `docker/logs` and `logs`.
+- Compose files and service configurations live under `infra/compose` and `infra/config`.
+- Networking helpers and netplan templates: `infra/config/network`.
+- VM definitions and templates: `infra/config/vm`.
+- Logs: `infra/logs`.
 - Python settings can be provided via environment variables or `.env` when supported by specific modules.
 
 ---
 
 ## Project Structure (high-level)
 
-- `docker/domain`, `docker/application`, `docker/infrastructure` - hexagonal architecture layers
-- `docker/prepare` - one-off preparation artifacts, for example Nexus and Portainer
-- `docker/compose` - docker-compose stacks ready for deployment
-- `docker/swarm` - swarm-related scripts/config
+- `src/tiny_swarm_world/domain`, `src/tiny_swarm_world/application`, `src/tiny_swarm_world/infrastructure` - hexagonal architecture layers
+- `infra/prepare` - one-off preparation artifacts, for example Nexus and Portainer
+- `infra/compose` - docker-compose stacks ready for deployment
+- `infra/swarm` - swarm-related scripts/config
 - `documentation` - arc42, user guides, deployment notes
 - `tests` - unit and integration tests for adapters, services, and domain logic
-- `src/main/java` - auxiliary Java code if needed by the ecosystem
+- `src/main/java` - example application that can be built and deployed into the prepared local system
 
 Explore documentation for deeper architecture details:
 - `documentation/arc42`
@@ -163,7 +163,7 @@ Explore documentation for deeper architecture details:
 
 ## Development Quality Gate
 
-The development quality gate is provided by `docker/quality_gate.py`. Run it
+The development quality gate is provided by `tools/quality_gate.py`. Run it
 from a Linux or WSL shell at the repository root.
 
 Prepare a local environment:
@@ -176,19 +176,19 @@ Prepare a local environment:
 
 Run the full gate before handing off a change:
 
-- `python3 docker/quality_gate.py quality`
+- `python3 tools/quality_gate.py quality`
 
 Run individual gates while developing:
 
-- `python3 docker/quality_gate.py lint`
-- `python3 docker/quality_gate.py arch-lint`
-- `python3 docker/quality_gate.py arch-tests`
-- `python3 docker/quality_gate.py typecheck`
-- `python3 docker/quality_gate.py test`
+- `python3 tools/quality_gate.py lint`
+- `python3 tools/quality_gate.py arch-lint`
+- `python3 tools/quality_gate.py arch-tests`
+- `python3 tools/quality_gate.py typecheck`
+- `python3 tools/quality_gate.py test`
 
 Notes:
 
-- The runner sets `PYTHONPATH=docker` automatically and uses the repository-root
+- The runner sets `PYTHONPATH=src` automatically and uses the repository-root
   `tests/` directory.
 - `arch-lint` expects an `.importlinter` configuration.
 - `arch-tests` expects the architecture test module
@@ -202,8 +202,8 @@ Notes:
 
 - Multipass not found: Ensure Multipass is installed and accessible on `PATH`.
 - Docker connection issues: Verify Docker Engine or the Docker CLI target is available and your user has permission to access the Docker socket.
-- WSL2 networking/ports: Install `socat` and review `docker/config/network` for port-forwarding helpers.
-- Python import errors: Run commands from the repository root and set `PYTHONPATH=docker` for direct script execution.
+- WSL2 networking/ports: Install `socat` and review `infra/config/network` for port-forwarding helpers.
+- Python import errors: Run commands from the repository root and set `PYTHONPATH=src` for direct script execution.
 
 ---
 
@@ -227,4 +227,3 @@ Add your license information here (e.g., Apache-2.0, MIT). If a LICENSE file exi
 - Portainer: https://www.portainer.io/
 - Multipass: https://multipass.run/
 - Docker Swarm: https://docs.docker.com/engine/swarm/
-

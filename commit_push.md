@@ -54,11 +54,12 @@ convention, use it.
 For this project, prefer running from the repository root:
 
 ```bash
-./bin/python docker/quality_gate.py quality
+python3 tools/quality_gate.py quality
 ```
 
-If `./bin/python` is unavailable, fall back to the repository's documented
-Python command and explain the fallback.
+If `python3` is unavailable but an activated virtual environment provides
+`python`, use the repository's documented Python command and explain the
+fallback.
 
 Collect the full output of the quality gate, identify concrete failures, fix
 all failures caused by the current codebase that are realistically fixable in

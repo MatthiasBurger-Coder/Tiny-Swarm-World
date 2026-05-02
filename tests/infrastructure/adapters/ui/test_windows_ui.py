@@ -2,7 +2,7 @@ import asyncio
 import unittest
 from unittest.mock import patch, MagicMock
 
-from infrastructure.adapters.ui.windows_ui import WindowsUi
+from tiny_swarm_world.infrastructure.adapters.ui.windows_ui import WindowsUi
 
 
 class TestWindowsUI(unittest.TestCase):

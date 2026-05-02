@@ -81,6 +81,6 @@ multipass info swarm-manager
 
 === Destructive Operations
 
-Some commands in `docker/config/multipass` delete and purge VMs. Treat reset
+Some commands in `infra/config/multipass` delete and purge VMs. Treat reset
 commands as destructive and run them only when you intentionally want to remove
 local VM state.

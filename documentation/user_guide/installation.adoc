@@ -32,8 +32,8 @@ python -m pip install -r requirements.txt
 python -m pip install ruff mypy import-linter
 ----
 
-Some existing local environments use the repository-local interpreter at
-`./bin/python`. If it exists, the project quality gate can use it directly.
+Use the active virtual environment or the system `python3` interpreter for the
+project quality gate.
 
 == Verify The Development Setup
 
@@ -41,17 +41,17 @@ Run the full quality gate from the repository root:
 
 [source,bash]
 ----
-./bin/python docker/quality_gate.py quality
+python3 tools/quality_gate.py quality
 ----
 
-If `./bin/python` does not exist, use the active Python interpreter:
+If a virtual environment is active, `python` can be used instead:
 
 [source,bash]
 ----
-python3 docker/quality_gate.py quality
+python tools/quality_gate.py quality
 ----
 
-The quality gate sets `PYTHONPATH=docker` automatically.
+The quality gate sets `PYTHONPATH=src` automatically.
 
 == Multipass Baseline
 
@@ -78,21 +78,22 @@ multipass info
 
 == Repository Runtime Model
 
-Python source code under `docker/` uses top-level imports such as
-`application...`, `domain...`, and `infrastructure...`. Manual Python commands
-therefore need `PYTHONPATH=docker` unless they are run through
-`docker/quality_gate.py`.
+Python source code lives under `src/tiny_swarm_world` and uses package imports
+such as `tiny_swarm_world.application...`,
+`tiny_swarm_world.domain...`, and `tiny_swarm_world.infrastructure...`.
+Manual Python commands therefore need `PYTHONPATH=src` unless they are run
+through `tools/quality_gate.py`.
 
 Example:
 
 [source,bash]
 ----
-PYTHONPATH=docker python3 docker/tiny_swarm_world.py
+PYTHONPATH=src python3 -m tiny_swarm_world
 ----
 
 == Live Infrastructure Warning
 
-Commands in `docker/application/services/multipass`, `docker/prepare`,
-`docker/compose`, and `docker/swarm` can create or delete virtual machines,
+Commands in `src/tiny_swarm_world/application/services/multipass`, `infra/prepare`,
+`infra/compose`, and `infra/swarm` can create or delete virtual machines,
 change networking, install Docker, or deploy stacks. Run them only when you
 intend to change local infrastructure state.

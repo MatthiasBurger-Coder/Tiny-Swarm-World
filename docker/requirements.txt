@@ -1,2 +1,0 @@
-# Compatibility include for callers that install from docker/requirements.txt.
--r ../requirements.txt

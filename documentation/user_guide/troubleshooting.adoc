@@ -14,16 +14,16 @@ Then rerun:
 
 [source,bash]
 ----
-./bin/python docker/quality_gate.py quality
+python3 tools/quality_gate.py quality
 ----
 
-== Import Errors For application/domain/infrastructure
+== Import Errors For tiny_swarm_world
 
-Manual Python commands need the `docker/` directory on `PYTHONPATH`:
+Manual Python commands need the `src/` directory on `PYTHONPATH`:
 
 [source,bash]
 ----
-PYTHONPATH=docker python3 -m unittest discover -s tests -t .
+PYTHONPATH=src python3 -m unittest discover -s tests -t .
 ----
 
 The quality gate configures this automatically.
@@ -31,7 +31,7 @@ The quality gate configures this automatically.
 == import-linter Cannot Find Configuration
 
 The architecture lint gate expects `.importlinter` in the repository root.
-Run the gate from the repository root, not from `docker/` or `tests/`.
+Run the gate from the repository root, not from a source or test subdirectory.
 
 == Multipass Is Not Available
 
@@ -71,7 +71,7 @@ Provide explicit credentials instead of relying on defaults:
 TSW_PORTAINER_USERNAME=admin \
 TSW_PORTAINER_PASSWORD='<portainer-password>' \
 TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-admin-password>' \
-python3 docker/prepare/nexus/setup.py
+python3 infra/prepare/nexus/setup.py
 ----
 
 If Nexus is still starting, increase:

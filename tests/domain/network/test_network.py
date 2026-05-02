@@ -1,8 +1,8 @@
 import unittest
 import uuid
 
-from domain.network.ip_value import IpValue
-from domain.network.network import Network
+from tiny_swarm_world.domain.network.ip_value import IpValue
+from tiny_swarm_world.domain.network.network import Network
 
 
 class TestNetwork(unittest.TestCase):

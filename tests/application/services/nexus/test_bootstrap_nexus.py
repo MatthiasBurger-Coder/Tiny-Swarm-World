@@ -1,13 +1,13 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from application.services.nexus.bootstrap_nexus import BootstrapNexus
-from application.services.nexus.enable_nexus_anonymous_access import EnableNexusAnonymousAccess
-from application.services.nexus.ensure_nexus_admin_access import EnsureNexusAdminAccess
-from application.services.nexus.ensure_nexus_stack import EnsureNexusStack
-from application.services.nexus.wait_for_nexus_ready import WaitForNexusReady
-from domain.deployment.stack_definition import StackDefinition
-from domain.nexus.nexus_user import NexusUser
+from tiny_swarm_world.application.services.nexus.bootstrap_nexus import BootstrapNexus
+from tiny_swarm_world.application.services.nexus.enable_nexus_anonymous_access import EnableNexusAnonymousAccess
+from tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access import EnsureNexusAdminAccess
+from tiny_swarm_world.application.services.nexus.ensure_nexus_stack import EnsureNexusStack
+from tiny_swarm_world.application.services.nexus.wait_for_nexus_ready import WaitForNexusReady
+from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
+from tiny_swarm_world.domain.nexus.nexus_user import NexusUser
 
 
 class TestEnsureNexusStack(unittest.TestCase):
@@ -43,7 +43,7 @@ class TestEnsureNexusStack(unittest.TestCase):
 
 
 class TestWaitForNexusReady(unittest.TestCase):
-    @patch("application.services.nexus.wait_for_nexus_ready.time.sleep")
+    @patch("tiny_swarm_world.application.services.nexus.wait_for_nexus_ready.time.sleep")
     def test_retries_until_nexus_is_ready(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.is_available.side_effect = [False, False, True]
@@ -53,7 +53,7 @@ class TestWaitForNexusReady(unittest.TestCase):
 
         self.assertEqual(nexus_client.is_available.call_count, 3)
 
-    @patch("application.services.nexus.wait_for_nexus_ready.time.sleep")
+    @patch("tiny_swarm_world.application.services.nexus.wait_for_nexus_ready.time.sleep")
     def test_raises_timeout_when_nexus_never_becomes_ready(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.is_available.return_value = False
@@ -65,7 +65,7 @@ class TestWaitForNexusReady(unittest.TestCase):
 
 
 class TestEnsureNexusAdminAccess(unittest.TestCase):
-    @patch("application.services.nexus.ensure_nexus_admin_access.time.sleep")
+    @patch("tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access.time.sleep")
     def test_skips_rotation_when_credentials_are_already_valid(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.can_authenticate.return_value = True
@@ -86,7 +86,7 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
         container_runtime.find_container_names.assert_not_called()
         nexus_client.change_password.assert_not_called()
 
-    @patch("application.services.nexus.ensure_nexus_admin_access.time.sleep")
+    @patch("tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access.time.sleep")
     def test_activates_admin_and_rotates_password(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.can_authenticate.side_effect = [False, True]

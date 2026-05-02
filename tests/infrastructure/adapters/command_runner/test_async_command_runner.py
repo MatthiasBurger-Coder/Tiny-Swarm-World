@@ -3,8 +3,8 @@ import unittest
 from asyncio import TimeoutError, Lock
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from infrastructure.adapters.command_runner.async_command_runner import AsyncPortCommandRunner
-from infrastructure.adapters.exceptions.exception_command_execution import CommandExecutionError
+from tiny_swarm_world.infrastructure.adapters.command_runner.async_command_runner import AsyncPortCommandRunner
+from tiny_swarm_world.infrastructure.adapters.exceptions.exception_command_execution import CommandExecutionError
 
 
 class TestAsyncCommandRunner(unittest.IsolatedAsyncioTestCase):

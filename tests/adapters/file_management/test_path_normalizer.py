@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from infrastructure.adapters.file_management.path_normalizer import PathNormalizer
+from tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer import PathNormalizer
 
 
 class TestPathNormalizer(unittest.TestCase):
@@ -11,7 +11,9 @@ class TestPathNormalizer(unittest.TestCase):
         self.test_path = Path("test/directory/../file.txt").resolve().as_posix()
 
         # Patch PathFactory globally for all test methods
-        self.path_factory_patcher = patch("infrastructure.adapters.file_management.path_normalizer.PathFactory")
+        self.path_factory_patcher = patch(
+            "tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.PathFactory"
+        )
         self.mock_path_factory_class = self.path_factory_patcher.start()
         self.addCleanup(self.path_factory_patcher.stop)  # ensures cleanup after each test
 
@@ -74,8 +76,8 @@ class TestPathNormalizer(unittest.TestCase):
 
         self.assertEqual(parent_directory, expected_parent)
 
-    @patch("infrastructure.adapters.file_management.path_normalizer.Path.mkdir")
-    @patch("infrastructure.adapters.file_management.path_normalizer.Path.exists", return_value=False)
+    @patch("tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.mkdir")
+    @patch("tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.exists", return_value=False)
     def test_ensure_directory_creates_if_not_exists(self, mock_exists, mock_mkdir):
         """
         Test that ensure_directory() calls mkdir when the directory does not exist.
@@ -86,8 +88,8 @@ class TestPathNormalizer(unittest.TestCase):
         mock_exists.assert_called_once()
         mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 
-    @patch("infrastructure.adapters.file_management.path_normalizer.Path.mkdir")
-    @patch("infrastructure.adapters.file_management.path_normalizer.Path.exists", return_value=True)
+    @patch("tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.mkdir")
+    @patch("tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.exists", return_value=True)
     def test_ensure_directory_skips_creation_if_exists(self, mock_exists, mock_mkdir):
         """
         Test that ensure_directory() does not call mkdir if directory already exists.

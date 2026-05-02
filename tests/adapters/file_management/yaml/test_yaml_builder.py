@@ -1,6 +1,6 @@
 import unittest
 
-from infrastructure.adapters.yaml.yaml_builder import FluentYAMLBuilder, YAMLNode
+from tiny_swarm_world.infrastructure.adapters.yaml.yaml_builder import FluentYAMLBuilder, YAMLNode
 
 
 class TestFluentYAMLBuilder(unittest.TestCase):
