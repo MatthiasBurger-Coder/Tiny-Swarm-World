@@ -132,3 +132,7 @@ inspection.
 - Preserve user changes already present in the working tree.
 - Before removing a legacy adapter or config file, verify no tests, scripts, or
   docs still reference it.
+
+## Command Shortcuts
+
+- If the user sends exactly `cc`, execute the workflow in `commit_push.md`.
