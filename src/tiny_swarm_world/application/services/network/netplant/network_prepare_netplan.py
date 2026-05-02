@@ -1,34 +1,32 @@
-from tiny_swarm_world.domain.command.command_builder.vm_parameter.command_builder import CommandBuilder
+import logging
+
+from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
+from tiny_swarm_world.application.ports.repositories.port_vm_repository import PortVmRepository
+from tiny_swarm_world.application.ports.repositories.port_yaml_repository import PortYamlRepository
 from tiny_swarm_world.domain.multipass.vm_type import VmType
 from tiny_swarm_world.domain.network.ip_extractor.ip_extractor_builder import IpExtractorBuilder
 from tiny_swarm_world.domain.network.ip_extractor.strategies.ip_extstractor_types import IpExtractorTypes
 from tiny_swarm_world.domain.network.network import Network
-from tiny_swarm_world.infrastructure.adapters.command_runner.command_runner_factory import CommandRunnerFactory
-from tiny_swarm_world.infrastructure.adapters.repositories.command_multipass_init_repository_yaml import PortCommandRepositoryYaml
-from tiny_swarm_world.infrastructure.adapters.repositories.netplan_repository import PortNetplanRepositoryYaml
-from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
-from tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui import AsyncCommandRunnerUI
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class NetworkPrepareNetplan:
-    def __init__(self, command_runner_factory=None):
-        self.command_runner_factory = command_runner_factory or CommandRunnerFactory()
-        self.vm_repository = PortVmRepositoryYaml()
-        self.ui = None
-        self.command_execute = None
-        self.ip_extractor_builder = IpExtractorBuilder()
-        self.logger = LoggerFactory.get_logger(self.__class__)
+    def __init__(
+        self,
+        command_workflow: PortCommandWorkflow,
+        vm_repository: PortVmRepository,
+        netplan_repository: PortYamlRepository,
+        ip_extractor_builder: IpExtractorBuilder | None = None,
+    ):
+        self.command_workflow = command_workflow
+        self.vm_repository = vm_repository
+        self.netplan_repository = netplan_repository
+        self.ip_extractor_builder = ip_extractor_builder or IpExtractorBuilder()
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self):
         self.logger.info("Setup cloud-init-manager.yaml")
 
-        multipass_command_repository = PortCommandRepositoryYaml(filename="command_netplant_ip_yaml.yaml")
-        command_builder: CommandBuilder = CommandBuilder(command_repository=multipass_command_repository)
-        command_list = command_builder.get_command_list()
-
-        runner_ui = AsyncCommandRunnerUI(command_list)
-        result = await runner_ui.run()
+        result = await self.command_workflow.run_async("command_netplant_ip_yaml.yaml")
         self.logger.info(f"multipass clean up result: {result}")
 
         # getting the necessary IPs
@@ -41,7 +39,7 @@ class NetworkPrepareNetplan:
         network_data = Network(vm_instance=vm_instance_names[0], ip_address=ip, gateway=gateway_ip)
         self.logger.info("creating network data")
 
-        data = PortNetplanRepositoryYaml()
+        data = self.netplan_repository
         data.create(network_data)
         self.logger.info("saving network data")
         data.save()

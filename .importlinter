@@ -10,17 +10,6 @@ source_modules =
 forbidden_modules =
     tiny_swarm_world.infrastructure
 allow_indirect_imports = True
-ignore_imports =
-    tiny_swarm_world.domain.command.command_builder.vm_parameter.command_builder -> tiny_swarm_world.infrastructure.adapters.command_runner.command_runner_factory
-    tiny_swarm_world.domain.command.command_builder.vm_parameter.command_builder -> tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml
-    tiny_swarm_world.domain.command.command_builder.vm_parameter.strategies.manager_strategy -> tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml
-    tiny_swarm_world.domain.command.command_builder.vm_parameter.strategies.manager_strategy -> tiny_swarm_world.infrastructure.logging.logger_factory
-    tiny_swarm_world.domain.command.command_builder.vm_parameter.strategies.worker_strategy -> tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml
-    tiny_swarm_world.domain.command.command_executer.command_executer -> tiny_swarm_world.infrastructure.logging.logger_factory
-    tiny_swarm_world.domain.network.ip_extractor.ip_extractor_builder -> tiny_swarm_world.infrastructure.logging.logger_factory
-    tiny_swarm_world.domain.network.ip_extractor.strategies.IpExtractorSwarmNodeIpList -> tiny_swarm_world.infrastructure.logging.logger_factory
-    tiny_swarm_world.domain.network.ip_extractor.strategies.ip_extractor_gateway -> tiny_swarm_world.infrastructure.logging.logger_factory
-    tiny_swarm_world.domain.network.ip_extractor.strategies.ip_extractor_swarm_manager -> tiny_swarm_world.infrastructure.logging.logger_factory
 
 [importlinter:contract:domain_no_application_imports]
 name = Domain layer does not import application
@@ -30,9 +19,12 @@ source_modules =
 forbidden_modules =
     tiny_swarm_world.application
 allow_indirect_imports = True
-ignore_imports =
-    tiny_swarm_world.domain.command.command_builder.vm_parameter.command_builder -> tiny_swarm_world.application.ports.repositories.port_command_repository
-    tiny_swarm_world.domain.command.command_builder.vm_parameter.strategies.command_builder_strategy -> tiny_swarm_world.application.ports.commands.port_command_runner_factory
-    tiny_swarm_world.domain.command.command_executer.command_executer -> tiny_swarm_world.application.ports.ui.port_ui
-    tiny_swarm_world.domain.command.command_executer.excecuteable_commands -> tiny_swarm_world.application.ports.commands.port_command_runner
-    tiny_swarm_world.domain.task.tasks -> tiny_swarm_world.application.ports.commands.port_command_runner
+
+[importlinter:contract:application_no_infrastructure_imports]
+name = Application layer does not import infrastructure
+type = forbidden
+source_modules =
+    tiny_swarm_world.application
+forbidden_modules =
+    tiny_swarm_world.infrastructure
+allow_indirect_imports = True

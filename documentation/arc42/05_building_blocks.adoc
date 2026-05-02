@@ -7,7 +7,7 @@ Tiny Swarm World now separates three repository roles explicitly.
 `src/tiny_swarm_world` contains the Python orchestration code.
 
 * `domain` contains core command, VM, network, deployment, and Nexus concepts.
-* `application` contains use cases, orchestration services, and ports.
+* `application` contains use cases, command orchestration services, and ports.
 * `infrastructure` contains adapters for command execution, HTTP clients,
   repositories, YAML handling, dependency wiring, logging, and local file
   access.

@@ -5,13 +5,9 @@ from tiny_swarm_world.domain.command.command_entity import CommandEntity
 
 
 class PortCommandRepository(ABC):
-    """
-    Interface for a task repository.
-    """
+    """Interface for command repositories."""
 
     @abstractmethod
     def get_all_commands(self) -> Dict[int, CommandEntity]:
-        """
-        Returns all saved tasks.
-        """
+        """Returns all configured commands."""
         pass

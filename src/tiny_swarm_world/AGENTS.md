@@ -8,7 +8,9 @@ Additional scope for `src/tiny_swarm_world/`:
   `from tiny_swarm_world.application...`,
   `from tiny_swarm_world.domain...`, and
   `from tiny_swarm_world.infrastructure...`.
-- Keep domain modules free of new infrastructure imports.
+- Keep domain modules free of application and infrastructure imports.
+- Keep application modules free of concrete infrastructure imports; inject
+  dependencies through `application/ports`.
 - Put new interfaces under `application/ports` and concrete implementations
   under `infrastructure/adapters`.
 - Keep command, VM, network, deployment, and service-stack behavior testable

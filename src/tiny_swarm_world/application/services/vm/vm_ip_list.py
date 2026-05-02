@@ -1,27 +1,26 @@
+import logging
 from typing import Dict, List
 
+from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
+from tiny_swarm_world.application.ports.repositories.port_vm_repository import PortVmRepository
 from tiny_swarm_world.application.services.vm.steps.step_current_docker_bridges import StepCurrentDockerBridges
 from tiny_swarm_world.application.services.vm.steps.step_manager_gateway import StepManagerGateway
 from tiny_swarm_world.application.services.vm.steps.step_manager_ip import StepManagerIp
-from tiny_swarm_world.domain.command.command_builder.vm_parameter.parameter_type import ParameterType
+from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.parameter_type import ParameterType
 from tiny_swarm_world.domain.multipass.vm_entity import VmEntity
 from tiny_swarm_world.domain.network.socat.docker_ip_list import DockerIpList
-from tiny_swarm_world.infrastructure.adapters.command_runner.command_runner_factory import CommandRunnerFactory
-from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class VmIpList:
-    def __init__(self):
-        self.command_runner_factory = CommandRunnerFactory()
-        self.command_execute = None
-        self.logger = LoggerFactory.get_logger(self.__class__)
+    def __init__(self, command_workflow: PortCommandWorkflow, vm_repository: PortVmRepository):
+        self.command_workflow = command_workflow
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.parameter: Dict[ParameterType, str] = {}
         self.docker_ip_list = DockerIpList()
-        self.step_current_docker_bridges = StepCurrentDockerBridges(self.docker_ip_list)
-        self.step_manager_ip = StepManagerIp(self.docker_ip_list)
-        self.step_manager_gateway = StepManagerGateway(self.docker_ip_list)
-        self.vm_repository = PortVmRepositoryYaml()
+        self.step_current_docker_bridges = StepCurrentDockerBridges(self.docker_ip_list, command_workflow)
+        self.step_manager_ip = StepManagerIp(self.docker_ip_list, command_workflow)
+        self.step_manager_gateway = StepManagerGateway(self.docker_ip_list, command_workflow)
+        self.vm_repository = vm_repository
 
     async def run(self):
         self.logger.info("starting vm ip list")

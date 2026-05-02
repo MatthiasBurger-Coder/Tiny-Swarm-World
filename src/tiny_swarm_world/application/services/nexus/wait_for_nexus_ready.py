@@ -1,7 +1,7 @@
+import logging
 import time
 
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class WaitForNexusReady:
@@ -9,7 +9,7 @@ class WaitForNexusReady:
         self.nexus_client = nexus_client
         self.max_attempts = max_attempts
         self.wait_seconds = wait_seconds
-        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def run(self) -> None:
         for attempt in range(1, self.max_attempts + 1):

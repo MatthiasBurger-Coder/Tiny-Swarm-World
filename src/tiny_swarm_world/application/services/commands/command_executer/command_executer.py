@@ -1,10 +1,10 @@
+import logging
 from typing import Dict
 
 import asyncio
 
+from tiny_swarm_world.application.services.commands.command_executer.excecuteable_commands import ExecutableCommandEntity
 from tiny_swarm_world.application.ports.ui.port_ui import PortUI
-from tiny_swarm_world.domain.command.command_executer.excecuteable_commands import ExecutableCommandEntity
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class CommandExecuter:
@@ -12,7 +12,7 @@ class CommandExecuter:
 
     def __init__(self, ui: PortUI):
         self.ui = ui
-        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     async def execute(self, commands: dict[int, ExecutableCommandEntity]):
         self.logger.info("Command execution started with %d commands.", len(commands))

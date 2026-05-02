@@ -1,16 +1,16 @@
+import logging
 import re
 from typing import Union, Any
 
 from tiny_swarm_world.domain.network.ip_extractor.strategies.ip_extractor_strategy import ExtractionStrategy
 from tiny_swarm_world.domain.network.ip_value import IpValue
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class IpExtractorGateway(ExtractionStrategy):
     """Strategy for extracting the gateway IP using regex."""
 
     def __init__(self):
-        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def extract(self, result: Union[dict, list]) -> Any:
         """

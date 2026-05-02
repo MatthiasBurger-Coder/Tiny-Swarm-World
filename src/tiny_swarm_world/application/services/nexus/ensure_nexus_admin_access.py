@@ -1,8 +1,8 @@
+import logging
 import time
 
 from tiny_swarm_world.application.ports.clients.port_container_runtime import PortContainerRuntime
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class EnsureNexusAdminAccess:
@@ -25,7 +25,7 @@ class EnsureNexusAdminAccess:
         self.initial_password_path = initial_password_path
         self.max_attempts = max_attempts
         self.wait_seconds = wait_seconds
-        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def run(self) -> None:
         if self.nexus_client.can_authenticate(self.admin_username, self.admin_password):

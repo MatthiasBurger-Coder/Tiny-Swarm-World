@@ -1,15 +1,15 @@
+import logging
 from typing import Any
 
 from tiny_swarm_world.domain.network.ip_extractor.strategies.ip_extractor_strategy import ExtractionStrategy
 from tiny_swarm_world.domain.network.ip_value import IpValue
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class IpExtractorSwarmManager(ExtractionStrategy):
     """Strategie zur Extraktion der Swarm-Manager-IP."""
 
     def __init__(self):
-        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def extract(self, result) -> Any:
         self.logger.info(f"Extracting swarm-manager IP from: {result}")

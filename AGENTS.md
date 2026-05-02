@@ -41,12 +41,14 @@ automation architecture.
 ## Architecture Rules
 
 - Preserve the existing hexagonal architecture.
-- Keep domain code independent from infrastructure concerns.
+- Keep domain code independent from application and infrastructure concerns.
 - Domain modules must not import command runners, file managers, HTTP clients,
   Docker clients, UI adapters, YAML parsers, logging setup, or dependency
   injection containers.
 - Application services may orchestrate ports and domain objects, but should not
   embed low-level shell, filesystem, HTTP, curses, or Docker details directly.
+- Application services must depend on ports, not concrete infrastructure
+  adapters.
 - Infrastructure adapters implement ports and contain technology-specific
   details.
 - Entry-point code such as `src/tiny_swarm_world/__main__.py` should stay thin:

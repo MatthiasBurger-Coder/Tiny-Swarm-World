@@ -31,7 +31,7 @@ The system follows a hexagonal architecture and provides async Python automation
   - Swagger + NGINX (API documentation)
 - Modular infrastructure in `infra/prepare` and `infra/compose`.
 - WSL2 networking support via socat and netplan helpers.
-- Rich test suite and clear separation between domain, application, and infrastructure layers.
+- Rich test suite and enforced separation between domain, application, and infrastructure layers.
 
 ---
 
@@ -102,6 +102,7 @@ The repository contains Python services to prepare your local swarm cluster on M
 Where to find the scripts/services:
 - `src/tiny_swarm_world/application/services/multipass`
 - `src/tiny_swarm_world/application/services/network`
+- `src/tiny_swarm_world/application/services/commands`
 - `infra/swarm`
 - `infra/compose`
 

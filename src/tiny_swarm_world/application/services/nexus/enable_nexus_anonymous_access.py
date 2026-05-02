@@ -1,5 +1,6 @@
+import logging
+
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class EnableNexusAnonymousAccess:
@@ -7,7 +8,7 @@ class EnableNexusAnonymousAccess:
         self.nexus_client = nexus_client
         self.admin_username = admin_username
         self.admin_password = admin_password
-        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def run(self) -> None:
         self.logger.info("Enabling anonymous access in Nexus.")

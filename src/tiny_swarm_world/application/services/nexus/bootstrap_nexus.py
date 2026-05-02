@@ -1,4 +1,4 @@
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+import logging
 
 
 class BootstrapNexus:
@@ -13,7 +13,7 @@ class BootstrapNexus:
         self.wait_for_nexus_ready = wait_for_nexus_ready
         self.ensure_nexus_admin_access = ensure_nexus_admin_access
         self.enable_nexus_anonymous_access = enable_nexus_anonymous_access
-        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def run(self) -> None:
         self.logger.info("Starting Nexus bootstrap.")

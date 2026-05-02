@@ -1,8 +1,8 @@
 import asyncio
 from typing import Dict
 
-from tiny_swarm_world.domain.command.command_executer.command_executer import CommandExecuter
-from tiny_swarm_world.domain.command.command_executer.excecuteable_commands import ExecutableCommandEntity
+from tiny_swarm_world.application.services.commands.command_executer.command_executer import CommandExecuter
+from tiny_swarm_world.application.services.commands.command_executer.excecuteable_commands import ExecutableCommandEntity
 from tiny_swarm_world.infrastructure.adapters.ui.command_runner_ui import CommandRunnerUi
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI

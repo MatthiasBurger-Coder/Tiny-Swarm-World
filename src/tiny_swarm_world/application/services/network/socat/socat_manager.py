@@ -1,9 +1,9 @@
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+import logging
 
 
 class SocatManager:
     def __init__(self):
-        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def set_service_socat_ports(self):
         pass

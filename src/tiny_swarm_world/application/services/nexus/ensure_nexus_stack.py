@@ -1,6 +1,7 @@
+import logging
+
 from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import PortComposeFileRepository
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class EnsureNexusStack:
@@ -15,7 +16,7 @@ class EnsureNexusStack:
         self.portainer_client = portainer_client
         self.stack_name = stack_name
         self.endpoint_name = endpoint_name
-        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def run(self) -> None:
         stack_definition = self.compose_repository.get_compose_of(self.stack_name)

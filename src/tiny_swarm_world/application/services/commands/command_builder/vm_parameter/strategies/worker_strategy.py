@@ -1,20 +1,26 @@
 from typing import Dict, Optional
 
-from tiny_swarm_world.domain.command.command_builder.vm_parameter.parameter_type import ParameterType
-from tiny_swarm_world.domain.command.command_builder.vm_parameter.strategies.command_builder_strategy import CommandBuilderStrategy
-from tiny_swarm_world.domain.command.command_builder.vm_parameter.strategies.command_parameter_builder import CommandParameterBuilder
+from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.parameter_type import ParameterType
+from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.strategies.command_builder_strategy import CommandBuilderStrategy
+from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.strategies.command_parameter_builder import CommandParameterBuilder
 from tiny_swarm_world.domain.command.command_entity import CommandEntity
-from tiny_swarm_world.domain.command.command_executer.excecuteable_commands import ExecutableCommandEntity
+from tiny_swarm_world.application.services.commands.command_executer.excecuteable_commands import ExecutableCommandEntity
 from tiny_swarm_world.domain.command.command_runner_type_enum import CommandRunnerType
 from tiny_swarm_world.domain.multipass.vm_type import VmType
-from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
+from tiny_swarm_world.application.ports.commands.port_command_runner_factory import PortCommandRunnerFactory
+from tiny_swarm_world.application.ports.repositories.port_vm_repository import PortVmRepository
 
 
 class WorkerStrategy(CommandBuilderStrategy):
 
-    def __init__(self, vm_type: VmType, command_runner_factory=None):
+    def __init__(
+        self,
+        vm_type: VmType,
+        command_runner_factory: PortCommandRunnerFactory,
+        vm_repository: PortVmRepository,
+    ):
         super().__init__(vm_type=vm_type, command_runner_factory=command_runner_factory)
-        self.vm_repository = PortVmRepositoryYaml()
+        self.vm_repository = vm_repository
         self.command_parameter_builder = CommandParameterBuilder()
 
     def categorize(self, command: CommandEntity, executable_commands: Dict[str, Dict[int, ExecutableCommandEntity]],
