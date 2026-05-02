@@ -12,7 +12,7 @@ from infrastructure.adapters.repositories.vm_repository_yaml import PortVmReposi
 
 
 class CommandBuilder:
-    executable_commands: [dict[str, dict[int, ExecutableCommandEntity]]]
+    executable_commands: Dict[str, Dict[int, ExecutableCommandEntity]]
 
     def __init__(self,
                  command_repository: PortCommandRepository, parameter: Optional[Dict[ParameterType,str]]=None):
@@ -36,6 +36,8 @@ class CommandBuilder:
 
         for key, command in command_dict.items():
             for vm_type in command.vm_type:
-                strategy = self.STRATEGY_MAP.get(vm_type.value)
+                strategy = self.STRATEGY_MAP.get(vm_type)
+                if strategy is None:
+                    raise ValueError(f"Unsupported VM type: {vm_type}")
                 strategy.categorize(command, self.executable_commands,self.parameter)
         return self.executable_commands

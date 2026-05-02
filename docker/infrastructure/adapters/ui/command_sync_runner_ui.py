@@ -1,4 +1,3 @@
-import asyncio
 from typing import Dict
 
 from domain.command.command_executer.command_executer import CommandExecuter

@@ -2,7 +2,7 @@ import random
 import threading
 import time
 
-from linux_ui import LinuxUI
+from infrastructure.adapters.ui.linux_ui import LinuxUI
 
 # Instanzen definieren
 instances = ["VM1", "VM2", "VM3","VM4"]

@@ -18,7 +18,10 @@ class ToDictAction(YAMLBuilderAction):
         """
         node = self.node
 
-        result = {}
+        if node is None:
+            raise ValueError("Cannot convert an empty YAML builder to a dictionary")
+
+        result: Dict[str, Any] = {}
 
         # If the node holds a list value, return it directly
         if isinstance(node.value, list):

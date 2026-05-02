@@ -1,3 +1,5 @@
+from typing import Optional
+
 from ruamel.yaml.error import YAMLError
 from ruamel.yaml.parser import ParserError
 
@@ -6,7 +8,7 @@ class YAMLHandlingError(Exception):
     Custom exception for errors occurring during the loading of YAML file_management.
     """
 
-    def __init__(self, file_name: str, error: Exception = None):
+    def __init__(self, file_name: str, error: Optional[Exception] = None):
         """
         Constructor for the YAMLHandlingError class.
 

@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 
 from domain.command.command_builder.vm_parameter.parameter_type import ParameterType
 from domain.command.command_builder.vm_parameter.strategies.command_builder_strategy import CommandBuilderStrategy
@@ -18,7 +18,7 @@ class WorkerStrategy(CommandBuilderStrategy):
         self.command_parameter_builder = CommandParameterBuilder()
 
     def categorize(self, command: CommandEntity, executable_commands: Dict[str, Dict[int, ExecutableCommandEntity]],
-                   parameter: Dict[ParameterType, str] = None):
+                   parameter: Optional[Dict[ParameterType, str]] = None):
         vm_instance_names = self.vm_repository.find_vm_instances_by_type(self.vm_type)
         if vm_instance_names:
             for vm_instance_name in vm_instance_names:

@@ -15,10 +15,10 @@ class CommandEntity(BaseModel):
     :param command_type: Command type (HOSTOS, VM, ...)
     :param vm_type: VM types (worker, manager, ...)
     """
-    index: int = Field(default=None)
+    index: int = Field(default=0)
     description: str = Field(default="")
     command: str = Field(default="")
-    runner: str = Field(default=None)
+    runner: str = Field(default="")
     command_type: CommandType = Field(default=CommandType.HOSTOS)
     vm_type: List[VmType] = Field(default_factory=lambda: [VmType.NONE])
 

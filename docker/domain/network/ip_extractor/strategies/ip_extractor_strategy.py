@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from typing import Any
 
 class ExtractionStrategy(ABC):
     """Abstrakte Basis für verschiedene Extraktionsstrategien."""

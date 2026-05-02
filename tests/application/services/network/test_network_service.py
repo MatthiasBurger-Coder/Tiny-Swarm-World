@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import AsyncMock, patch, MagicMock
-from application.services.network.netplant.network_setup_netplan import NetworkService
+from application.services.network.netplant.network_setup_netplan import NetworkSetupNetplan
 from domain.network.ip_value import IpValue
 
 
@@ -71,7 +71,7 @@ class TestNetworkService(unittest.IsolatedAsyncioTestCase):
         mock_command_repo_yaml.return_value = mock_command_repo_instance
 
         # Test NetworkService
-        service = NetworkService()
+        service = NetworkSetupNetplan()
         await service.run()
 
         # Assertions

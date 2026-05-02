@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from infrastructure.adapters.file_management.path_normalizer import PathNormalizer
 from infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
@@ -13,11 +13,11 @@ class FileCreator:
     def __init__(self, file_path: Path , path_factory: PathFactory):
         """Initializes the YAML file creator."""
         self.path_factory = path_factory
-        self._path = Path(file_path) if file_path else None
-        self.path_normalizer = PathNormalizer(self._path)
+        self._path: Optional[Path] = Path(file_path) if file_path else None
+        self.path_normalizer = PathNormalizer(self._path, self.path_factory)
 
     @property
-    def path(self) -> Path:
+    def path(self) -> Optional[Path]:
         """Returns the path of the YAML file."""
         return self._path
 
@@ -26,10 +26,10 @@ class FileCreator:
         """Returns the name of the file."""
         return self._path.name if self._path else ""
 
-    @path.setter
-    def path(self, path: Path) -> None:
+    @path.setter  # type: ignore[attr-defined, no-redef]
+    def path(self, file_path: Path) -> None:
         """Sets the file path."""
-        self._path = path
+        self._path = file_path
         self.path_normalizer = PathNormalizer(self._path,self.path_factory)
 
     def create(self, path: Path, data: Any) -> Path:

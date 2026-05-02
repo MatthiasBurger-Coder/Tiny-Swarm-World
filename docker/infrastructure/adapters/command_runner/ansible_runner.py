@@ -1,5 +1,4 @@
 import asyncio
-from sys import stdout
 
 from application.ports.commands.port_command_runner import PortCommandRunner
 
@@ -20,4 +19,4 @@ class AnsiblePortCommandRunner(PortCommandRunner):
         async with self.lock:
             self.status["result"] = "Success"
 
-        return stdout.decode('utf-8').strip()
+        return ""

@@ -41,7 +41,6 @@ class WindowsUi(PortUI):
             print(header)
             print("-" * len(header))
 
-            changed = False
             with self.lock:
                 rows = []
                 for instance in self.instances:
@@ -52,7 +51,6 @@ class WindowsUi(PortUI):
                     if (previous_status[instance]["current_step"] != current_step or
                             previous_status[instance]["result"] != current_result or
                             previous_status[instance]["current_task"] != current_task):
-                        changed = True
                         previous_status[instance]["current_task"] = current_task
                         previous_status[instance]["current_step"] = current_step
                         previous_status[instance]["result"] = current_result

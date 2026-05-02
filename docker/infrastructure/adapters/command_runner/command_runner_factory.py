@@ -7,14 +7,11 @@ from infrastructure.adapters.command_runner.rest_api_runner import RestApiPortCo
 
 
 class CommandRunnerFactory(PortCommandRunnerFactory):
-    _runner_map = {
-        CommandRunnerType.ASYNC: AsyncPortCommandRunner,
-        CommandRunnerType.REST: RestApiPortCommandRunner,
-        CommandRunnerType.ANSIBLE: AnsiblePortCommandRunner,
-    }
-
     def get_runner(self, runner_type: CommandRunnerType) -> PortCommandRunner:
-        runner_class = CommandRunnerFactory._runner_map.get(runner_type)
-        if not runner_class:
-            raise ValueError(f"Unsupported runner type: {runner_type}")
-        return runner_class()
+        if runner_type == CommandRunnerType.ASYNC:
+            return AsyncPortCommandRunner()
+        if runner_type == CommandRunnerType.REST:
+            return RestApiPortCommandRunner()
+        if runner_type == CommandRunnerType.ANSIBLE:
+            return AnsiblePortCommandRunner()
+        raise ValueError(f"Unsupported runner type: {runner_type}")

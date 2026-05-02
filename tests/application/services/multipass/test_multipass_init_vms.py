@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch, MagicMock
 
 from application.services.multipass.multipass_init_vms import MultipassInitVms
 

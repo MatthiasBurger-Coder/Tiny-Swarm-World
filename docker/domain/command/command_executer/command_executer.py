@@ -1,3 +1,5 @@
+from typing import Dict
+
 import asyncio
 
 from application.ports.ui.port_ui import PortUI
@@ -6,7 +8,7 @@ from infrastructure.logging.logger_factory import LoggerFactory
 
 
 class CommandExecuter:
-    executable_commands: [dict[str, dict[int, ExecutableCommandEntity]]]
+    executable_commands: Dict[str, Dict[int, ExecutableCommandEntity]]
 
     def __init__(self, ui: PortUI):
         self.ui = ui
@@ -22,6 +24,8 @@ class CommandExecuter:
                              executable_command.description)
             try:
                 self.logger.info("Before runner '%s'.", current_vm)
+                if executable_command.runner is None or executable_command.command is None:
+                    raise ValueError("Executable command is missing runner or command text")
                 run_result[key] = await executable_command.runner.run(executable_command.command)
                 self.logger.info("Command executed successfully on VM '%s'.", current_vm)
 

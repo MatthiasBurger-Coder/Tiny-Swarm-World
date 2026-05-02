@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from infrastructure.dependency_injection.infra_core_di_annotations import inject
@@ -10,7 +11,11 @@ class PathNormalizer:
     """
 
     @inject
-    def __init__(self, input_path: Path | str , path_factory: PathFactory):
+    def __init__(self, input_path: Any, path_factory: Any = None):
+        if hasattr(input_path, "get_strategy") and path_factory is not None:
+            input_path, path_factory = path_factory, input_path
+        if path_factory is None:
+            path_factory = PathFactory()
         self.strategy = path_factory.get_strategy()
         self.raw_path = Path(input_path) if isinstance(input_path, str) else input_path
 

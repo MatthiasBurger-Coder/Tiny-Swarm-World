@@ -9,7 +9,10 @@ from infrastructure.adapters.yaml.yaml_builder_actions.navigate_to_recursively_a
 from infrastructure.adapters.yaml.yaml_builder_actions.to_dict_action import ToDictAction
 from infrastructure.adapters.yaml.yaml_builder_actions.to_yaml_action import ToYAMLAction
 from infrastructure.adapters.yaml.yaml_node import YAMLNode
+from infrastructure.adapters.yaml.yaml_value import YamlValue
 from infrastructure.logging.logger_factory import LoggerFactory
+
+__all__ = ["FluentYAMLBuilder", "YAMLNode", "YamlValue"]
 
 
 class FluentYAMLBuilder:
@@ -38,6 +41,8 @@ class FluentYAMLBuilder:
 
     def insert_at_current(self, name: str, value: Any = None) -> "FluentYAMLBuilder":
         """Inserts a new node at the current position."""
+        if self.current is None:
+            raise ValueError("No current YAML node selected")
         self.current.add_child(name, value)
         return self
 
@@ -47,11 +52,13 @@ class FluentYAMLBuilder:
 
     def find_all_entries(self) -> List[Dict[str, Any]]:
         """Returns all entries as a list of dictionaries."""
+        if self.root is None:
+            return []
         return [self.to_dict(child) for child in self.root.children]
 
     def up(self) -> "FluentYAMLBuilder":
         """Moves up one level in the tree if a parent exists."""
-        if self.current.parent:
+        if self.current is not None and self.current.parent:
             self.current = self.current.parent
         return self
 

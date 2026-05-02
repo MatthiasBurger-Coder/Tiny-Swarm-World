@@ -135,16 +135,40 @@ Explore documentation for deeper architecture details:
 
 ---
 
-## Running Tests
+## Development Quality Gate
 
-The project ships with a comprehensive test suite. From an activated venv:
+The development quality gate is provided by `docker/quality_gate.py`. Run it
+from a Linux or WSL shell at the repository root.
 
-- pip install -r requirements.txt
-- pip install pytest
-- python -m pytest -q
+Prepare a local environment:
 
-You can also run specific test files, for example:
-- python -m pytest tests\infrastructure\adapters\ui\test_windows_ui.py -q
+- `python3 -m venv .venv`
+- `source .venv/bin/activate`
+- `python -m pip install --upgrade pip`
+- `python -m pip install -r requirements.txt -r docker/requirements.txt`
+- `python -m pip install ruff mypy import-linter`
+
+Run the full gate before handing off a change:
+
+- `python3 docker/quality_gate.py quality`
+
+Run individual gates while developing:
+
+- `python3 docker/quality_gate.py lint`
+- `python3 docker/quality_gate.py arch-lint`
+- `python3 docker/quality_gate.py arch-tests`
+- `python3 docker/quality_gate.py typecheck`
+- `python3 docker/quality_gate.py test`
+
+Notes:
+
+- The runner sets `PYTHONPATH=docker` automatically and uses the repository-root
+  `tests/` directory.
+- `arch-lint` expects an `.importlinter` configuration.
+- `arch-tests` expects the architecture test module
+  `tests.architecture.test_hexagonal_imports`.
+- Do not run live Multipass, Docker Swarm, netplan, or service-bootstrap
+  commands as part of the development quality gate.
 
 ---
 

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 from application.ports.commands.port_command_runner import PortCommandRunner
@@ -12,11 +14,11 @@ class ExecutableCommandEntity(BaseModel):
     :param runner: CommandRunner type (async, multipass, ...)
     """
 
-    index: int = Field(default=None)
-    vm_instance_name: str = Field(default=None)
-    description: str = Field(default=None)
-    command: str = Field(default=None)
-    runner: PortCommandRunner = Field(default=None)
+    index: Optional[int] = Field(default=None)
+    vm_instance_name: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
+    command: Optional[str] = Field(default=None)
+    runner: Optional[PortCommandRunner] = Field(default=None)
 
     # Model configuration to allow arbitrary types
     model_config = {
