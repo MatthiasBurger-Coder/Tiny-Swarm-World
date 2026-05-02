@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from tiny_swarm_world.application.services.multipass.multipass_docker_install import MultipassDockerInstall
-from tiny_swarm_world.application.services.multipass.multipass_docker_swarm_init import MultipassDockerSwarmInit
-from tiny_swarm_world.application.services.multipass.multipass_init_vms import MultipassInitVms
-from tiny_swarm_world.application.services.multipass.multipass_restart_vms import MultipassRestartVMs
-from tiny_swarm_world.application.services.network.netplant.network_prepare_netplan import NetworkPrepareNetplan
-from tiny_swarm_world.application.services.network.netplant.network_setup_netplan import NetworkSetupNetplan
-from tiny_swarm_world.application.services.network.socat.socat_manager import SocatManager
-from tiny_swarm_world.application.services.vm.vm_ip_list import VmIpList
+from tiny_swarm_world.application.services.platform import (
+    MultipassDockerInstall,
+    MultipassDockerSwarmInit,
+    MultipassInitVms,
+    MultipassRestartVMs,
+    NetworkPrepareNetplan,
+    NetworkSetupNetplan,
+    SocatManager,
+    VmIpList,
+)
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
@@ -19,7 +21,7 @@ from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_containe
 
 
 @dataclass(frozen=True)
-class ApplicationServices:
+class PlatformServices:
     command_workflow: CommandWorkflow
     vm_repository: PortVmRepositoryYaml
     netplan_repository: PortNetplanRepositoryYaml
@@ -33,19 +35,22 @@ class ApplicationServices:
     socat_manager: SocatManager
 
 
+ApplicationServices = PlatformServices
+
+
 def configure_infrastructure_container() -> None:
     infra_core_container.register(PathFactory)
     infra_core_container.register(FileManager)
 
 
-def build_application_services() -> ApplicationServices:
+def build_platform_services() -> PlatformServices:
     configure_infrastructure_container()
 
     vm_repository = PortVmRepositoryYaml()
     netplan_repository = PortNetplanRepositoryYaml()
     command_workflow = CommandWorkflow(vm_repository=vm_repository)
 
-    return ApplicationServices(
+    return PlatformServices(
         command_workflow=command_workflow,
         vm_repository=vm_repository,
         netplan_repository=netplan_repository,
@@ -62,3 +67,7 @@ def build_application_services() -> ApplicationServices:
         vm_ip_list=VmIpList(command_workflow=command_workflow, vm_repository=vm_repository),
         socat_manager=SocatManager(),
     )
+
+
+def build_application_services() -> ApplicationServices:
+    return build_platform_services()

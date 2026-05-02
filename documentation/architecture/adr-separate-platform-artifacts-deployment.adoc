@@ -1,0 +1,276 @@
+= ADR: Separate Platform, Artifacts, Deployment, and Shared Responsibilities
+
+Status: Proposed
+
+Date: 2026-05-02
+
+== Context
+
+Tiny Swarm World provisions and operates a production-like local Docker Swarm
+environment on Linux/WSL. The repository currently combines multiple concerns:
+
+* Multipass VM lifecycle, VM IP discovery, netplan, socat, Docker daemon
+  installation, and Docker Swarm initialization.
+* Dockerfile generation, image build/tag/push, Nexus Docker registry setup,
+  Nexus Maven repository setup, and artifact publication.
+* Compose stack definitions, Portainer stack upload, and deployment of services
+  such as Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX.
+* Shared command execution, YAML handling, file/path handling, logging, and
+  dependency wiring.
+
+The code already has a hexagonal layer split under `src/tiny_swarm_world`:
+
+* `domain`
+* `application`
+* `infrastructure`
+
+The import-linter rules currently enforce:
+
+* domain does not import infrastructure
+* domain does not import application
+* application does not import infrastructure
+
+The responsibility split must preserve these rules.
+
+== Decision
+
+Use the following target responsibility names:
+
+* `platform`
+* `artifacts`
+* `deployment`
+* `shared`
+
+These names are chosen as bounded responsibility areas inside the existing
+hexagonal architecture, not as a replacement for the architecture layers.
+
+The long-term source layout should move toward this shape:
+
+[source,text]
+----
+src/tiny_swarm_world/domain/platform
+src/tiny_swarm_world/domain/artifacts
+src/tiny_swarm_world/domain/deployment
+src/tiny_swarm_world/domain/shared
+
+src/tiny_swarm_world/application/services/platform
+src/tiny_swarm_world/application/services/artifacts
+src/tiny_swarm_world/application/services/deployment
+src/tiny_swarm_world/application/services/shared
+
+src/tiny_swarm_world/application/ports/platform
+src/tiny_swarm_world/application/ports/artifacts
+src/tiny_swarm_world/application/ports/deployment
+src/tiny_swarm_world/application/ports/shared
+
+src/tiny_swarm_world/infrastructure/adapters/platform
+src/tiny_swarm_world/infrastructure/adapters/artifacts
+src/tiny_swarm_world/infrastructure/adapters/deployment
+src/tiny_swarm_world/infrastructure/adapters/shared
+----
+
+The long-term infra asset layout should move toward this shape:
+
+[source,text]
+----
+infra/platform
+infra/artifacts
+infra/deployment
+infra/shared
+----
+
+This should be migrated in small compatibility-preserving steps. Existing paths
+should not be moved in a big bang.
+
+== Responsibility Definitions
+
+`platform` owns the local cluster substrate:
+
+* Multipass VM creation, restart, deletion, and discovery
+* WSL/Linux network setup
+* netplan generation and application
+* socat forwarding
+* Docker daemon installation on VMs
+* Docker Swarm init and join
+* VM and cluster state discovery
+
+`artifacts` owns build and publication:
+
+* Dockerfile generation
+* Docker image build, tag, login, push, and logout workflows
+* Docker registry configuration
+* Maven repository configuration
+* Nexus repository and artifact publishing behavior
+
+`deployment` owns service rollout:
+
+* Compose stack definitions
+* Compose file repository behavior
+* Portainer stack create/update/upload
+* Service stack lifecycle for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+  Swagger/NGINX, and future stacks
+
+`shared` owns reusable infrastructure:
+
+* command execution abstractions
+* command workflow primitives
+* YAML handling
+* file/path handling
+* logging
+* dependency injection
+* composition root
+* quality tooling
+
+== Rejected Alternatives
+
+=== Option 2: provisioning / registry / stacks / shared
+
+Rejected because the names are too implementation-specific. `registry` is too
+narrow for Maven repositories and future artifact publication. `stacks` is too
+narrow for deployment workflows that may include readiness checks, service
+metadata, or Portainer endpoint handling.
+
+=== Option 3: control-plane / artifact-plane / deployment-plane / shared
+
+Rejected because the names are too abstract for the current project. They make
+the repository harder to navigate for contributors who need to find Multipass,
+Nexus, or compose behavior quickly.
+
+=== Technology-based directories
+
+Examples: `multipass`, `docker`, `nexus`, `portainer`, `compose`.
+
+Rejected as the primary organization because these names mix business
+responsibility with implementation technology. Technology names can still exist
+inside a responsibility area as adapter or config details.
+
+== Consequences for the Domain Layer
+
+Domain concepts should be grouped by responsibility:
+
+* Platform domain: VM, network, IP extraction, Docker bridge information.
+* Artifact domain: Nexus users, future repository definitions, published image
+  references, Maven repository definitions.
+* Deployment domain: stack definitions, service deployment descriptors, endpoint
+  identities.
+* Shared domain: command descriptions and small reusable value objects only
+  when they are not specific to one responsibility.
+
+Domain must continue to avoid imports from application and infrastructure.
+
+== Consequences for Application Services
+
+Application services should express use cases by responsibility:
+
+* Platform use cases: prepare VMs, prepare network, install Docker, initialize
+  Swarm, inspect cluster state.
+* Artifact use cases: prepare Nexus repositories, publish Docker images,
+  configure Maven mirror/repository behavior.
+* Deployment use cases: deploy/update stacks, upload all stacks, deploy
+  Portainer, deploy Nexus stack as a deployment precondition.
+
+Application services must depend on ports, not concrete infrastructure
+adapters.
+
+== Consequences for Ports
+
+Ports should move toward responsibility-specific namespaces:
+
+* platform ports: VM repository, netplan repository, platform command catalog.
+* artifact ports: Nexus client, container runtime access needed for artifact
+  bootstrap, image build/publish interfaces.
+* deployment ports: Portainer client, compose file repository, stack deployment
+  gateway.
+* shared ports: command runner, file manager, UI.
+
+This can be done with compatibility imports first, then direct imports can be
+migrated in later slices.
+
+== Consequences for Infrastructure Adapters
+
+Adapters should implement ports in the same responsibility area:
+
+* platform adapters for VM/netplan repositories and platform command catalogs.
+* artifact adapters for Nexus HTTP, Docker registry interactions, and image
+  publishing.
+* deployment adapters for Portainer HTTP and compose repositories.
+* shared adapters for command runners, YAML, file management, UI, and logging.
+
+`src/tiny_swarm_world/infrastructure/composition.py` remains the wiring root.
+It may expose boundary-specific builder functions such as
+`build_platform_services`, `build_artifact_services`, and
+`build_deployment_services`, while `__main__.py` remains thin.
+
+== Consequences for `infra/`
+
+The target structure should become:
+
+* `infra/platform`: Multipass, VM, network, netplan, Docker daemon install,
+  Swarm init/join.
+* `infra/artifacts`: Dockerfile generation, image build/push, Nexus repository
+  setup, Maven repository setup.
+* `infra/deployment`: compose files, Portainer bootstrap, stack upload, service
+  deployment metadata.
+* `infra/shared`: reusable shell helpers.
+
+Existing script paths should be migrated in slices with compatibility shims or
+documentation updates. Scripts that run live infrastructure must remain clearly
+marked as live operations.
+
+== Consequences for Documentation
+
+Documentation should stop describing the project only by technologies. It should
+describe user workflows through the three responsibility areas:
+
+* prepare platform
+* prepare artifacts
+* deploy stacks
+
+arc42 building blocks, runtime view, deployment view, risks/debt, and glossary
+should be updated after the first implementation slice.
+
+== Consequences for Tests
+
+The current architecture tests protect hexagonal imports. Additional tests
+should protect responsibility ownership:
+
+* application platform services must not import artifact or deployment adapters.
+* artifact services must not deploy stacks directly after the deployment split.
+* deployment services must not own Multipass or netplan behavior.
+* shell scripts should be inspected by static tests for known live command
+  usage, not executed by default quality gates.
+
+No test should run live Multipass, Docker Swarm, netplan, socat, Portainer, or
+Nexus commands unless explicitly marked as an integration test and invoked
+manually.
+
+== Compatibility with `.importlinter`
+
+The proposed responsibility split is compatible with the current import-linter
+rules because it preserves the layer boundaries:
+
+* `domain/*` remains independent from application and infrastructure.
+* `application/*` depends on domain and ports only.
+* `infrastructure/*` implements ports and is wired only in composition.
+
+Future import-linter contracts can be added after package moves begin. The first
+new contracts should be conservative and should not require a big-bang move.
+
+== Risks
+
+* Moving files too early can break imports and tests without changing behavior.
+* Portainer and Nexus are both platform services from an operator perspective,
+  but their code responsibilities differ. Portainer stack deployment belongs to
+  Deployment. Nexus repository configuration belongs to Artifacts.
+* Existing scripts include destructive commands such as Docker prune, stack
+  removal, VM deletion, and socat/iptables changes. They must not be executed
+  during static refactoring.
+* Some transitional scripts appear broken or duplicate active Python services.
+  They should be quarantined before removal.
+
+== Migration Impact
+
+The first implementation slice should be documentation and structure only. Code
+moves should happen later in small, test-backed slices with compatibility
+imports where needed. No public workflow should change until a replacement path
+is documented and tested.
