@@ -52,3 +52,20 @@ build/
 /.venv/
 /bin/
 /lib/
+
+### Python caches and build artifacts ###
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.import_linter_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+### Python debugger artifacts ###
+_pydevd_bundle/
+_pydevd_frame_eval/
+pydevd_attach_to_process/
