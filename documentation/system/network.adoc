@@ -1,9 +1,71 @@
-= networking in multipass
+= Networking
 
-/etc/netplan
+Tiny Swarm World uses Multipass VMs and Docker Swarm networking. WSL does not
+provide a dedicated port-forwarding daemon, so local access can require
+explicit forwarding with `socat`, netplan, or Docker/Portainer published ports.
 
+== Inspect VM Addresses
+
+[source,bash]
+----
+multipass list
+multipass info swarm-manager
 hostname -I
+----
 
-sudo netplan status sudo netplan try -timeout sudo netplan apply sudo netplan generate
+Do not hard-code addresses from examples. Use the current VM addresses from
+Multipass output.
 
-renderer: networkd
+== Netplan Helpers
+
+Network-related command templates live under:
+
+* `docker/config/network/netplant`
+* `docker/application/services/network`
+
+Manual netplan commands for inspection inside a VM include:
+
+[source,bash]
+----
+sudo netplan status
+sudo netplan generate
+sudo netplan try
+sudo netplan apply
+----
+
+Run netplan changes only when you intend to modify VM networking.
+
+== WSL Port Forwarding
+
+Install `socat` when forwarding is required:
+
+[source,bash]
+----
+sudo apt update
+sudo apt install -y socat
+----
+
+Example pattern:
+
+[source,bash]
+----
+socat TCP-LISTEN:<local-port>,fork TCP:<vm-ip>:<target-port>
+----
+
+Replace `<vm-ip>` and ports with values from the active Multipass and Docker
+state. Avoid committing host-specific IP addresses.
+
+== Verification
+
+Use these checks before debugging application services:
+
+[source,bash]
+----
+docker info
+docker node ls
+docker service ls
+curl -s http://localhost:9000
+----
+
+`docker node ls` and `docker service ls` require a Docker Swarm manager
+context.

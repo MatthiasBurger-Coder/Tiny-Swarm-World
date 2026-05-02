@@ -1,144 +1,93 @@
-== Setup docker swarm on local ubuntu system
+== HowTo
 
-Bevor das Setup laufen kann, müssen am wsl subsystem einige Einstellungen vorgenommen werden.
-In diesem Installationsprozess wird **multipass** verwendet.
-Dieses Programm ermöglicht es, dass virtuelle Instanzen, des aktuellen Linux-Systems erstellt werden.
+This page collects operational entry points for the current implementation.
+Use it together with the user guide pages under `documentation/user_guide`.
 
-Das mulitpass wird mit
+== Safe Development Checks
 
+Run the full project gate from the repository root:
+
+[source,bash]
 ----
-sudo snap install multipass
-----
-
-installiert.
-
-----
-sudo apt update && sudo apt install -y socat
+./bin/python docker/quality_gate.py quality
 ----
 
-----
-sudo socat TCP-LISTEN:80,fork TCP:10.34.157.122:80
-nohup sudo socat TCP-LISTEN:80,fork TCP:10.34.157.122:80 &
-----
+If `./bin/python` is not available:
 
+[source,bash]
 ----
-netsh interface portproxy delete v4tov4 listenport=80 listenaddress=0.0.0.0
-netsh interface portproxy add v4tov4 listenport=80 listenaddress=0.0.0.0 connectport=80 connectaddress=172.25.81.206
-powershell.exe -Command "schtasks /Create /TN RunNetsh /TR 'powershell -ExecutionPolicy Bypass -Command netsh interface portproxy add v4tov4 listenport=8080 listenaddress=0.0.0.0 connectport=8080 connectaddress=192.168.64.2' /SC ONCE /ST 00:00 /RL HIGHEST /F && schtasks /Run /TN RunNetsh && schtasks /Delete /TN RunNetsh /F"
-
-
+python3 docker/quality_gate.py quality
 ----
 
-Im setup.sh wird dann der docker Ordner auf das Linux-Subsystem in ein echtes ext4-Format kopiert.
+== Run The Current Python Entrypoint
 
-To generate within the intellij console, you have to run intellij as administrator oder sudo
-
-Run the setup.sh script below swarm.
-To Join into multipass shell swarm-manager
-
-to clean up multipass stop <vm-name> multipass delete <vm-name> multipass purge
-
-multipass delete swarm-worker-1 swarm-worker-2 swarm-manager | multipass purge | multipass list multipass stop swarm-worker-1 swarm-worker-2 swarm-manager multipass delete swarm-worker-1 swarm-worker-2 swarm-manager | multipass purge
-
-multipass purge
-
-multipass info swarm-manager | grep "IPv4"
-
-multipass launch --name swarm-manager --cloud-init ./cloud-config.yaml multipass launch --name swarm-worker-1 --cloud-init ./cloud-config.yaml multipass launch --name swarm-worker-2 --cloud-init ./cloud-config.yaml
-
-== Install the portainer
-
-The portainer app is the local webinterface to have an overview of the installed system.
-See documentation of portainer. +
-
-At first run this script und the portainer will be installed on your docker system.
-
+[source,bash]
 ----
- ./docker/prepare/prepare_portainer.sh
+PYTHONPATH=docker python3 docker/tiny_swarm_world.py
 ----
 
-Open the portainer the first time and create the admin user.
-The password and the user have to be set after open portainer the first time. +
-If you do not want to change this values, keep the defaults.
+The current active path lists VM IP information. Provisioning steps are present
+in the file but commented. Enable those steps only when you intentionally want
+to create VMs, change networking, install Docker, or initialize Swarm.
 
+== Prepare Portainer
+
+Portainer preparation is available through:
+
+[source,bash]
 ----
- USER = admin
- PASSWORD = admin1234567890
-----
-
-After that you have got a fresh portainer system running without any other stuff.
-Next step is to get life into the portainer.
-
-== Terraforming light :)
-
-If you have changed the user and password for your needs you got 2 ways to get the upload-script running.
-At the first you use the parameter of the script:
-
-----
- ./docker/compose/upload_all_stacks.sh
+cd docker/prepare
+./prepare.sh
 ----
 
-----
- -u username: Optional. Current is 'admin'.
- -p password: Optional. Current is 'admin1234567890'.
-----
+This script can prune Docker objects and deploy the Portainer stack. Review the
+target Docker context before running it.
 
-or you open the script and change the default values.
+== Bootstrap Nexus
 
-----
-USERNAME="admin"
-PASSWORD="admin1234567890"
-----
+Nexus bootstrap is implemented in Python:
 
-and then happy running
+[source,bash]
 ----
- .docker/upload_all_stacks.sh
+python3 docker/prepare/nexus/setup.py
 ----
 
-== The ports:
+Prefer explicit credentials through environment variables:
 
-=== Portainer
-
-http://localhost:9000[localhost:9000 portainer start]
-
-USER: admin PASSWORD: admin1234567890
-
-=== nexus
-
-- https://help.sonatype.com/en/rest-apis.html[RestApi Help]
-- http://localhost:8081/[localhost:8081/ nexus]
-- http://localhost:8085/[localhost:8085/ nexus api]
-
-For the password you have to log in into the docker container:
-
+[source,bash]
 ----
-docker exec -it nexus-nexus-1 /bin/sh
-cat /nexus-data/admin.password
+TSW_PORTAINER_URL=http://localhost:9000 \
+TSW_PORTAINER_USERNAME=admin \
+TSW_PORTAINER_PASSWORD='<portainer-password>' \
+TSW_NEXUS_URL=http://localhost:8081 \
+TSW_NEXUS_ADMIN_USERNAME=admin \
+TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-password>' \
+python3 docker/prepare/nexus/setup.py
 ----
 
-User = admin Password = 4d4ac9ff-7daa-4b93-9cfa-fe391d94f100 (in my case)
+The script deploys or updates the Nexus stack through Portainer, waits for
+Nexus readiness, rotates the admin password, and enables anonymous access.
 
-=== swagger
+== Upload Compose Stacks
 
-- http://localhost:8082/[localhost:8082/ swagger-editor]
-- http://localhost:8083/[localhost:8083/ swagger-ui ]
+Bulk stack upload is handled by:
 
-=== sonarqube
+[source,bash]
+----
+cd docker/compose
+./upload_all_stacks.sh -u admin -p '<portainer-password>'
+----
 
-- http://localhost:9001/[localhost:9001/ sonarqube ]
+This command can delete and recreate stacks in Portainer.
 
-USER: admin
-PASSWORD: admin1
+== Service Ports
 
-To run on linux or windows subsystem
-echo 'vm.max_map_count=262144' | sudo tee -a /etc/sysctl.conf
-sudo sysctl -p
+Common local ports after stack deployment:
 
-echo '{"insecure-registries": ["127.0.0.1:5000"]}' | sudo tee /etc/docker/daemon.json > /dev/null sudo systemctl restart docker
+* Portainer: `http://localhost:9000`
+* Nexus: `http://localhost:8081`
+* Swagger editor/UI: `http://localhost:8082`, `http://localhost:8083`
+* SonarQube: `http://localhost:9001`
+* RabbitMQ: `http://localhost:15672`
 
-=== Rabbit MQ
-
-- http://localhost:5672/[localhost:5672/ rabbit api communication]
-- http://localhost:15672/[localhost:15672/ rabbit UI  ]
-
-USER: guest PASSWORD: guest
+Published ports depend on the active compose files and local forwarding setup.

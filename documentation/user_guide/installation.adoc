@@ -1,3 +1,98 @@
 = Installation
 
-How to install the system.
+Tiny Swarm World is developed and operated from a Linux or WSL shell.
+Host-specific Windows commands are legacy notes and are not the supported
+default path.
+
+== Prerequisites
+
+Install these tools before running project automation:
+
+* Python 3.12 or a compatible Python 3 version
+* Git
+* Multipass with the QEMU driver
+* Docker CLI access from the shell that will run the scripts
+* `socat`, when WSL port forwarding is needed
+
+Optional tools for service preparation:
+
+* `curl`
+* `jq`
+
+== Python Environment
+
+From the repository root:
+
+[source,bash]
+----
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -r docker/requirements.txt
+python -m pip install ruff mypy import-linter
+----
+
+Some existing local environments use the repository-local interpreter at
+`./bin/python`. If it exists, the project quality gate can use it directly.
+
+== Verify The Development Setup
+
+Run the full quality gate from the repository root:
+
+[source,bash]
+----
+./bin/python docker/quality_gate.py quality
+----
+
+If `./bin/python` does not exist, use the active Python interpreter:
+
+[source,bash]
+----
+python3 docker/quality_gate.py quality
+----
+
+The quality gate sets `PYTHONPATH=docker` automatically.
+
+== Multipass Baseline
+
+Check the Multipass driver:
+
+[source,bash]
+----
+multipass get local.driver
+----
+
+The expected driver for WSL/Linux usage is `qemu`. If needed:
+
+[source,bash]
+----
+multipass set local.driver=qemu
+----
+
+Check access:
+
+[source,bash]
+----
+multipass info
+----
+
+== Repository Runtime Model
+
+Python source code under `docker/` uses top-level imports such as
+`application...`, `domain...`, and `infrastructure...`. Manual Python commands
+therefore need `PYTHONPATH=docker` unless they are run through
+`docker/quality_gate.py`.
+
+Example:
+
+[source,bash]
+----
+PYTHONPATH=docker python3 docker/tiny_swarm_world.py
+----
+
+== Live Infrastructure Warning
+
+Commands in `docker/application/services/multipass`, `docker/prepare`,
+`docker/compose`, and `docker/swarm` can create or delete virtual machines,
+change networking, install Docker, or deploy stacks. Run them only when you
+intend to change local infrastructure state.

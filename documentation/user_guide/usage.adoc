@@ -1,3 +1,119 @@
 = Usage
 
-How to operate the system.
+Tiny Swarm World contains two different kinds of workflows:
+
+* development workflows that are safe to run during normal coding
+* live infrastructure workflows that change Multipass, Docker, Portainer,
+  Nexus, networking, or service stacks
+
+Use a Linux or WSL shell from the repository root unless a command explicitly
+states otherwise.
+
+== Development Quality Gate
+
+Run the full gate before handing off changes:
+
+[source,bash]
+----
+./bin/python docker/quality_gate.py quality
+----
+
+Available subcommands:
+
+[source,bash]
+----
+./bin/python docker/quality_gate.py lint
+./bin/python docker/quality_gate.py arch-lint
+./bin/python docker/quality_gate.py arch-tests
+./bin/python docker/quality_gate.py typecheck
+./bin/python docker/quality_gate.py test
+----
+
+The gate runs Ruff, import-linter, architecture tests, mypy, and unittest
+discovery against the `docker/` source tree and root `tests/` directory.
+
+== Main Python Entrypoint
+
+The current main script is:
+
+[source,bash]
+----
+PYTHONPATH=docker python3 docker/tiny_swarm_world.py
+----
+
+At the moment, the active path lists VM IP information. Additional provisioning
+steps in `docker/tiny_swarm_world.py` are present but commented. Uncomment and
+run those steps only when you intentionally want to modify local infrastructure.
+
+== Service Preparation
+
+The preparation shell entrypoint is:
+
+[source,bash]
+----
+cd docker/prepare
+./prepare.sh
+----
+
+The current `prepare.sh` invokes Portainer preparation. Nexus preparation is
+available separately and can be enabled intentionally.
+
+== Nexus Bootstrap
+
+Nexus setup has been moved from a large shell script into Python services and
+adapters. Run it from the repository root or from its script directory:
+
+[source,bash]
+----
+python3 docker/prepare/nexus/setup.py
+----
+
+Configuration can be supplied with environment variables or CLI flags:
+
+[source,bash]
+----
+TSW_PORTAINER_URL=http://localhost:9000 \
+TSW_PORTAINER_USERNAME=admin \
+TSW_PORTAINER_PASSWORD='<portainer-password>' \
+TSW_NEXUS_URL=http://localhost:8081 \
+TSW_NEXUS_ADMIN_USERNAME=admin \
+TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-password>' \
+python3 docker/prepare/nexus/setup.py
+----
+
+Important variables:
+
+* `TSW_PORTAINER_URL`
+* `TSW_PORTAINER_USERNAME`
+* `TSW_PORTAINER_PASSWORD`
+* `TSW_PORTAINER_ENDPOINT`
+* `TSW_NEXUS_STACK_NAME`
+* `TSW_NEXUS_URL`
+* `TSW_NEXUS_ADMIN_USERNAME`
+* `TSW_NEXUS_ADMIN_PASSWORD`
+* `TSW_NEXUS_INITIAL_PASSWORD_PATH`
+* `TSW_NEXUS_MAX_ATTEMPTS`
+* `TSW_NEXUS_WAIT_SECONDS`
+
+The repository still contains insecure local defaults for legacy compatibility.
+For real local work, provide explicit values through environment variables or
+flags.
+
+== Stack Uploads
+
+Bulk stack upload to Portainer is handled by:
+
+[source,bash]
+----
+cd docker/compose
+./upload_all_stacks.sh -u admin -p '<password>'
+----
+
+This command talks to Portainer and can delete/recreate stacks. Review the
+script and target environment before running it.
+
+== Commit And Push Shortcut
+
+For Codex-assisted repository maintenance, the user command `cc` executes the
+workflow documented in `commit_push.md`: repository inspection, quality gate,
+diff review, commit creation, and push.

@@ -1,3 +1,101 @@
 = Troubleshooting
 
-Common issues and solutions.
+== Quality Gate Fails: Missing Tool
+
+If Ruff, mypy, or import-linter is missing, install the development tools in
+the active Python environment:
+
+[source,bash]
+----
+python -m pip install ruff mypy import-linter
+----
+
+Then rerun:
+
+[source,bash]
+----
+./bin/python docker/quality_gate.py quality
+----
+
+== Import Errors For application/domain/infrastructure
+
+Manual Python commands need the `docker/` directory on `PYTHONPATH`:
+
+[source,bash]
+----
+PYTHONPATH=docker python3 -m unittest discover -s tests -t .
+----
+
+The quality gate configures this automatically.
+
+== import-linter Cannot Find Configuration
+
+The architecture lint gate expects `.importlinter` in the repository root.
+Run the gate from the repository root, not from `docker/` or `tests/`.
+
+== Multipass Is Not Available
+
+Verify Multipass installation and driver state:
+
+[source,bash]
+----
+multipass version
+multipass get local.driver
+multipass info
+----
+
+For WSL/Linux usage, use the QEMU driver.
+
+== Docker Or Portainer Calls Fail
+
+Check that Docker is reachable from the same shell:
+
+[source,bash]
+----
+docker info
+----
+
+Check Portainer manually before running stack upload or Nexus bootstrap:
+
+[source,bash]
+----
+curl -s http://localhost:9000
+----
+
+== Nexus Bootstrap Cannot Authenticate
+
+Provide explicit credentials instead of relying on defaults:
+
+[source,bash]
+----
+TSW_PORTAINER_USERNAME=admin \
+TSW_PORTAINER_PASSWORD='<portainer-password>' \
+TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-admin-password>' \
+python3 docker/prepare/nexus/setup.py
+----
+
+If Nexus is still starting, increase:
+
+* `TSW_NEXUS_MAX_ATTEMPTS`
+* `TSW_NEXUS_WAIT_SECONDS`
+
+== Git Shows Generated Python Files
+
+Generated files such as `__pycache__/`, `.ruff_cache/`, `.mypy_cache/`, and
+PyCharm debugger folders are ignored by `.gitignore`. If they still appear,
+verify that the current branch includes the repository `.gitignore` changes and
+run:
+
+[source,bash]
+----
+git status --ignored --short
+----
+
+== Git Shows Line Ending Only Changes
+
+The repository uses `.gitattributes` to normalize text files to LF. If a large
+number of files appears modified after switching between Windows Git and WSL,
+refresh the checkout with Git after saving any real work.
+
+Do not commit line-ending-only changes unless the change is an intentional
+normalization commit.

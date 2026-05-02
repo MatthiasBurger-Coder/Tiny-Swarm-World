@@ -12,7 +12,7 @@ Use Tiny Swarm World to:
 - Develop and test distributed systems with real Docker Swarm orchestration.
 - Deploy multiple docker-compose stacks into a managed Swarm cluster.
 - Manage and observe services via Portainer.
-- Recreate cloud-like environments locally (on Windows via WSL2 or on Linux) without cloud costs.
+- Recreate cloud-like environments locally from a WSL2 or Linux shell without cloud costs.
 
 The system follows a hexagonal architecture and provides async Python automation for provisioning and orchestration.
 
@@ -37,45 +37,55 @@ The system follows a hexagonal architecture and provides async Python automation
 
 ## Prerequisites
 
-- Python 3.10 or newer
-- Windows 10/11 with WSL2 enabled, or a Linux host
-- Multipass (QEMU backend on Windows)
-- Docker Desktop (Windows) or Docker Engine/CLI (Linux)
-- socat (if using WSL2 port-forwarding)
+- Linux host or WSL2 shell on Windows
+- Python 3.12 recommended; Python 3.10+ may work if the installed dependencies support it
+- Git
+- Multipass with the QEMU backend
+- Docker Engine or Docker CLI access to the target Docker/Swarm environment
+- socat if using WSL2 port-forwarding
 
 Optional but recommended:
-- Git
 - An IDE such as PyCharm or IntelliJ IDEA
 
 ---
 
-## Quick Start (Windows PowerShell)
+## Quick Start (Linux or WSL shell)
 
-1) Clone the repository
+1. Clone the repository
 
-- git clone https://github.com/your-org/Tiny-Swarm-World.git
-- cd Tiny-Swarm-World
+```bash
+git clone https://github.com/your-org/Tiny-Swarm-World.git
+cd Tiny-Swarm-World
+```
 
-2) Create and activate a virtual environment
+2. Create and activate a virtual environment
 
-- python -m venv .venv
-- .\.venv\Scripts\Activate.ps1
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
 
-3) Install dependencies
+3. Install dependencies
 
-- pip install -r requirements.txt
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -r docker/requirements.txt
+python -m pip install ruff mypy import-linter
+```
 
-4) Run a first task (list VM IPs)
+4. Run the development quality gate
 
-This runs the example application entry point and prints VM IPs (if configured):
+```bash
+python docker/quality_gate.py quality
+```
 
-- python .\docker\tiny_swarm_world.py
+5. Run the current application entry point
 
-Note (WSL2):
-- In a WSL2 environment, you must start the system with elevated privileges:
-- sudo python3 tiny_swarm_world.py
+```bash
+PYTHONPATH=docker python docker/tiny_swarm_world.py
+```
 
-If this is your very first run and no VMs exist, proceed with the provisioning steps below.
+The entry point currently lists configured Multipass VM IP addresses. Live provisioning steps exist in code, but are intentionally commented until a developer enables the required infrastructure actions.
 
 ---
 
@@ -90,48 +100,64 @@ The repository contains Python services to prepare your local swarm cluster on M
 - Deploy optional service stacks (Portainer, Nexus, Jenkins, etc.)
 
 Where to find the scripts/services:
-- docker\application\services\multipass
-- docker\application\services\network
-- docker\swarm
-- docker\compose
+- `docker/application/services/multipass`
+- `docker/application/services/network`
+- `docker/swarm`
+- `docker/compose`
 
-Note: In docker\tiny_swarm_world.py you can see which steps are invoked. Many actions are present but commented—uncomment the steps you need (e.g., Multipass init, Docker install, Swarm init) and run again.
+In `docker/tiny_swarm_world.py` you can see which infrastructure steps are invoked. Many actions are present but commented. Enable only the steps you need, for example Multipass initialization, Docker installation, or Swarm initialization, then run:
 
-Example (PowerShell):
-- Open docker\tiny_swarm_world.py
-- Uncomment the sections you need (e.g., MultipassDockerInstall, MultipassDockerSwarmInit)
-- Run: python .\docker\tiny_swarm_world.py
+```bash
+PYTHONPATH=docker python docker/tiny_swarm_world.py
+```
 
-Portainer
-- After deploying Portainer (see docker\compose\portainer and docker\config\compose\portainer), open the Portainer UI in your browser at the published address.
+Portainer setup is prepared from the repository root with:
+
+```bash
+cd docker/prepare
+./prepare.sh
+```
+
+Nexus bootstrap can be run directly when Portainer and the target endpoint are available:
+
+```bash
+python3 docker/prepare/nexus/setup.py
+```
+
+Deploying all compose stacks through Portainer is handled by:
+
+```bash
+cd docker/compose
+./upload_all_stacks.sh -u admin -p '<password>'
+```
 
 ---
 
 ## Configuration
 
-- Compose files and service configurations live under docker\compose and docker\config.
-- Networking helpers and netplan templates: docker\config\network
-- VM definitions and templates: docker\config\vm
-- Logs: docker\logs and logs\
-- Python settings via environment variables or .env if supported by specific modules (see python-dotenv in requirements).
+- Compose files and service configurations live under `docker/compose` and `docker/config`.
+- Networking helpers and netplan templates: `docker/config/network`.
+- VM definitions and templates: `docker/config/vm`.
+- Logs: `docker/logs` and `logs`.
+- Python settings can be provided via environment variables or `.env` when supported by specific modules.
 
 ---
 
 ## Project Structure (high-level)
 
-- docker\domain, docker\application, docker\infrastructure — hexagonal architecture layers
-- docker\prepare — one-off preparation artifacts (e.g., Nexus, Portainer)
-- docker\compose — docker-compose stacks ready for deployment
-- docker\swarm — swarm-related scripts/config
-- documentation\ — arc42, user guides, deployment notes
-- tests\ — unit and integration tests for adapters, services, and domain logic
-- src\main\java — auxiliary Java code if needed by the ecosystem
+- `docker/domain`, `docker/application`, `docker/infrastructure` - hexagonal architecture layers
+- `docker/prepare` - one-off preparation artifacts, for example Nexus and Portainer
+- `docker/compose` - docker-compose stacks ready for deployment
+- `docker/swarm` - swarm-related scripts/config
+- `documentation` - arc42, user guides, deployment notes
+- `tests` - unit and integration tests for adapters, services, and domain logic
+- `src/main/java` - auxiliary Java code if needed by the ecosystem
 
 Explore documentation for deeper architecture details:
-- documentation\arc42
-- documentation\system
-- documentation\user_guide
-- documentation\deployment
+- `documentation/arc42`
+- `documentation/system`
+- `documentation/user_guide`
+- `documentation/deployment`
 
 ---
 
@@ -174,10 +200,10 @@ Notes:
 
 ## Troubleshooting
 
-- Multipass not found: Ensure Multipass is installed and accessible on PATH. On Windows, use the QEMU backend.
-- Docker connection issues: Verify Docker Desktop (Windows) is running or Docker Engine (Linux) is installed and your user has permission to access the Docker socket.
-- WSL2 networking/ports: Install socat and review docker\config\network for port-forwarding helpers.
-- Permissions or path issues on Windows PowerShell: Use backslashes in paths and run PowerShell as Administrator if required for networking changes.
+- Multipass not found: Ensure Multipass is installed and accessible on `PATH`.
+- Docker connection issues: Verify Docker Engine or the Docker CLI target is available and your user has permission to access the Docker socket.
+- WSL2 networking/ports: Install `socat` and review `docker/config/network` for port-forwarding helpers.
+- Python import errors: Run commands from the repository root and set `PYTHONPATH=docker` for direct script execution.
 
 ---
 
@@ -201,6 +227,5 @@ Add your license information here (e.g., Apache-2.0, MIT). If a LICENSE file exi
 - Portainer: https://www.portainer.io/
 - Multipass: https://multipass.run/
 - Docker Swarm: https://docs.docker.com/engine/swarm/
-
 
 

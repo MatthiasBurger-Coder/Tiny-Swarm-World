@@ -1,1 +1,3 @@
 include::multipass-setup.adoc[]
+
+include::network.adoc[]

@@ -1,122 +1,86 @@
-== Setup mulipass on wsdl2 subsystem
+== Multipass Setup On WSL Or Linux
 
-=== qemu Install Multipass in WSL2 with -Backend
+Tiny Swarm World expects Multipass to be operated from a Linux or WSL shell.
+Use QEMU as the Multipass driver.
 
-If you haven’t already done so, install Multipass:
+=== Install Multipass
 
+[source,bash]
 ----
 sudo snap install multipass
 ----
 
-Check if Multipass is qemu running:
+Verify the installation:
 
+[source,bash]
+----
+multipass version
+multipass info
+----
+
+=== Configure The QEMU Driver
+
+[source,bash]
 ----
 multipass get local.driver
-
->qemu
 ----
 
-If qemu not set:
+If the driver is not `qemu`, set it explicitly:
 
+[source,bash]
 ----
 multipass set local.driver=qemu
+----
 
+Restart Multipass-managed instances if needed:
+
+[source,bash]
+----
 multipass stop --all
 multipass start --all
 ----
 
-After installing the vms check the correct user and if not exits
+=== Socket Permissions
 
+If the current user cannot access the Multipass socket, ensure the group exists
+and add the user:
+
+[source,bash]
 ----
-getent group multipass
-
-> multipass:x:1001:currentUser
-----
-
-If not add the group and add the currentUser to the group
-
-----
-sudo groupadd multipass
+getent group multipass || sudo groupadd multipass
 sudo usermod -aG multipass "$USER"
 ----
 
-Setting correct permissions for Multipass socket
+Then set socket permissions:
 
+[source,bash]
 ----
 sudo chown root:multipass /var/run/multipass_socket || true
 sudo chmod 660 /var/run/multipass_socket || true
-sudo multipass set local.passphrase="YourSecurePassword"
 ----
 
-If this done the wsl2 has to be restarted on the PowerShell with administration access.
+Restart the WSL distribution or log out and back in so group membership is
+refreshed.
 
+=== VM Names Used By The Project
+
+The existing configuration expects these VM names:
+
+* `swarm-manager`
+* `swarm-worker-1`
+* `swarm-worker-2`
+
+The project can create VMs through the configured command repositories, but
+manual inspection is useful:
+
+[source,bash]
 ----
-wsl --shutdown
-----
-
-Restart your wsl subsystem again.
-
-To check if multipass is running
-
-----
-multipass info
-----
-
-=== prepere the 3 multipass instances
-
-==== installing
-
-Having a swarm, there is a need of three multipass instances having installed.
-The configuration of this vm has to be VM_MEMORY="2G" and VM_DISK="10G".
-
-----
-multipass launch --name swarm-manager  --memory 2G --disk 10G
-multipass launch --name swarm-worker-1 --memory 2G --disk 10G
-multipass launch --name swarm-worker-2 --memory 2G --disk 10G
+multipass list
+multipass info swarm-manager
 ----
 
-Afterward the multipass should be running, to check this call this
+=== Destructive Operations
 
-----
-mulitpass list
-----
-
-Output like this:
-
-----
-Name                    State             IPv4             Image
-swarm-manager           Running           10.34.157.130    Ubuntu 24.04 LTS
-                                          172.18.0.1
-                                          172.17.0.1
-swarm-worker-1          Running           10.34.157.207    Ubuntu 24.04 LTS
-                                          172.18.0.1
-                                          172.17.0.1
-swarm-worker-2          Running           10.34.157.86     Ubuntu 24.04 LTS
-                                          172.18.0.1
-                                          172.17.0.1
-----
-
-==== prepare networking
-
-The problem is that WSL2 doesn't have its own port forwarding daemon.
-First of all the socat has to be installed:
-
-----
-sudo apt update && sudo apt install -y socat
-----
-
-nohup sudo socat TCP-LISTEN:9000,fork TCP:10.34.157.130:9000 & sudo pkill socat sudo iptables -t nat -A PREROUTING -p tcp --dport 9000 -j DNAT --to-destination 10.34.157.130:9000
-
-1. Enforce WSL2 to mulipass port forwarding
-
-----
-sudo netstat -tulpn | grep :80
-----
-
-If there no result then:
-
-----
-sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j DNAT --to-destination  10.34.157.130:80
-----
-
-
+Some commands in `docker/config/multipass` delete and purge VMs. Treat reset
+commands as destructive and run them only when you intentionally want to remove
+local VM state.
