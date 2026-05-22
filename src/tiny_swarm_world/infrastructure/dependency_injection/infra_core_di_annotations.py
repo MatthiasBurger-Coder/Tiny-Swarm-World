@@ -1,10 +1,11 @@
 import inspect
 import threading
+from typing import Any
 
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
 
 # Storage for singleton instances
-_singleton_instances = {}
+_singleton_instances: dict[type[Any], Any] = {}
 _singleton_lock = threading.Lock()  # Lock for thread safety
 
 
