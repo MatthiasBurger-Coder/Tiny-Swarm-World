@@ -120,7 +120,7 @@ Rollback reference:
 
 Checkpoint commit:
 
-- Pending until the Slice 01 checkpoint commit is created.
+- `31f6e12`
 
 arc42 update status:
 
@@ -136,4 +136,5 @@ ADR update status:
 
 Push result:
 
-- Pending until the Slice 01 checkpoint commit is pushed.
+- `git push origin HEAD:docs/workflow-installation-integration-test-20260523`:
+  pass
