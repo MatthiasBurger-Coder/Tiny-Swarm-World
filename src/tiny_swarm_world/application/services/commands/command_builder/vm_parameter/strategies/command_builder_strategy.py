@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
 
-from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.parameter_type import ParameterType
+from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.domain.command.command_entity import CommandEntity
-from tiny_swarm_world.application.services.commands.command_executer.excecuteable_commands import ExecutableCommandEntity
+from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 from tiny_swarm_world.domain.multipass.vm_type import VmType
 from tiny_swarm_world.application.ports.commands.port_command_runner_factory import PortCommandRunnerFactory
 

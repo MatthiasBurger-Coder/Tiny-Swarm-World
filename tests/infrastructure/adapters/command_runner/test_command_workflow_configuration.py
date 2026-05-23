@@ -1,6 +1,6 @@
 import unittest
 
-from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.parameter_type import ParameterType
+from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory

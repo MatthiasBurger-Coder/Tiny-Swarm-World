@@ -1,6 +1,6 @@
 from typing import Dict
 
-from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.parameter_type import ParameterType
+from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 
 
 class CommandParameterBuilder:

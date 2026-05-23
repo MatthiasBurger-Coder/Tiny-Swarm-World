@@ -1,9 +1,4 @@
-from enum import Enum
+from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 
 
-class ParameterType(str, Enum):
-    SWARM_MANAGER_IP = "swarm_manager_ip"
-    SWARM_MANAGER_PORT = "swarm_manager_port"
-    SWARM_TOKEN = "swarm_token"
-    VM_INSTANCE = "vm_instance"
-    DOCKER_BRIDGE = "docker_bridge"
+__all__ = ["ParameterType"]

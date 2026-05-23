@@ -5,8 +5,8 @@ from tiny_swarm_world.application.ports.commands.port_command_runner_factory imp
 from tiny_swarm_world.application.ports.repositories.port_command_repository import PortCommandRepository
 from tiny_swarm_world.application.ports.repositories.port_vm_repository import PortVmRepository
 from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.command_builder import CommandBuilder
-from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.parameter_type import ParameterType
-from tiny_swarm_world.application.services.commands.command_executer.excecuteable_commands import ExecutableCommandEntity
+from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
+from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_runner_factory import CommandRunnerFactory
 from tiny_swarm_world.infrastructure.adapters.repositories.command_multipass_init_repository_yaml import (
     PortCommandRepositoryYaml,

@@ -2,8 +2,8 @@ import logging
 from typing import Dict, Optional
 
 from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
-from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.parameter_type import ParameterType
-from tiny_swarm_world.application.services.commands.command_executer.excecuteable_commands import ExecutableCommandEntity
+from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
+from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 
 
 class MultipassDockerSwarmInit:

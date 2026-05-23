@@ -1,7 +1,7 @@
 from typing import Dict
 
 from tiny_swarm_world.application.services.commands.command_executer.command_executer import CommandExecuter
-from tiny_swarm_world.application.services.commands.command_executer.excecuteable_commands import ExecutableCommandEntity
+from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 from tiny_swarm_world.infrastructure.adapters.ui.command_runner_ui import CommandRunnerUi
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI
@@ -32,31 +32,36 @@ class SyncCommandRunnerUI(CommandRunnerUi):
         # Start the UI in a separate thread
         self.logger.info("start ui")
         self.ui.start_in_thread()
+        failure: BaseException | None = None
+        results = []
 
         try:
             # Starte die parallele Ausführung der Befehle für jede VM
-            results = []
             for vm in self.instances:
-                result = await self.command_execute.execute(self.command_list[vm])
-                results.append(result)
-
-            # Fehlerhandling für einzelne VMs
-            for vm, result in zip(self.instances, results):
-                if isinstance(result, Exception):
-                    self.logger.error(f"Execution failed for {vm}: {result}")
+                try:
+                    result = await self.command_execute.execute(self.command_list[vm])
+                except Exception as exc:
+                    failure = exc
+                    self.logger.error(f"Execution failed for {vm}: {exc}")
                     self.ui.update_status(task="failed", step="execution", result="error", instance=vm)
+                    break
                 else:
+                    results.append(result)
                     self.logger.info(f"Execution successful for {vm}")
                     self.ui.update_status(task="completed", step="execution", result="success", instance=vm)
 
         finally:
             # Aktualisiere die UI mit Abschlussstatus
-            self.ui.update_status(task="finished", step="execution", result="success", instance="all")
+            final_result = "error" if failure else "success"
+            self.ui.update_status(task="finished", step="execution", result=final_result, instance="all")
 
             # Warte auf das Ende des UI-Threads
             self.logger.info("Waiting for UI thread to close...")
             await self.ui.ui_thread
 
             self.logger.info("Execution complete.")
+
+        if failure:
+            raise failure
 
         return results

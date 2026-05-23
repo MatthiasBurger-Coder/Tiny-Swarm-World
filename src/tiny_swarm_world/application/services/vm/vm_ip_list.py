@@ -6,7 +6,7 @@ from tiny_swarm_world.application.ports.repositories.port_vm_repository import P
 from tiny_swarm_world.application.services.vm.steps.step_current_docker_bridges import StepCurrentDockerBridges
 from tiny_swarm_world.application.services.vm.steps.step_manager_gateway import StepManagerGateway
 from tiny_swarm_world.application.services.vm.steps.step_manager_ip import StepManagerIp
-from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.parameter_type import ParameterType
+from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.domain.multipass.vm_entity import VmEntity
 from tiny_swarm_world.domain.network.socat.docker_ip_list import DockerIpList
 

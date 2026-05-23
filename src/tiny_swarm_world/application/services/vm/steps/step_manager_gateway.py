@@ -3,7 +3,7 @@ import re
 from typing import Dict
 
 from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
-from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.parameter_type import ParameterType
+from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.domain.network.ip_value import IpValue
 from tiny_swarm_world.domain.network.socat.docker_ip_list import DockerIpList
 
