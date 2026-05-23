@@ -15,6 +15,7 @@ workflow file.
 ## Active Workflow
 
 - Workflow file: `documentation/workflow/workflow.md`
+- Workflow version: `system-unification-v1.0.0`
 - Branch: `codex/workflow-system-unification-20260524`
 - Date created: `2026-05-24`
 - Process strand: `system-unification`

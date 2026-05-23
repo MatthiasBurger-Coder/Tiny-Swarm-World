@@ -2,6 +2,7 @@
   "workflow": {
     "name": "Unify Tiny Swarm World System Boundaries",
     "file": "documentation/workflow/workflow.md",
+    "workflowVersion": "system-unification-v1.0.0",
     "branch": "codex/workflow-system-unification-20260524",
     "date_created": "2026-05-24",
     "process_strand": "system-unification",

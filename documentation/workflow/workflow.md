@@ -39,6 +39,12 @@ specific areas:
 
 ### Verified Baseline At Workflow Creation
 
+- Active workflow version:
+
+```text
+system-unification-v1.0.0
+```
+
 - Active workflow branch:
 
 ```bash
