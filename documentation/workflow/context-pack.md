@@ -1,217 +1,135 @@
-# Workflow Context Pack
-
-## Workflow Identity
-
-- Workflow version: `init-safety-boundary-separation-20260523`
-- Workflow branch: `architecture/workflow-init-service-boundaries-20260523`
-- Process strand: `workflow create`
-- Execution profile: `FULL_PATH`
-- Created on: `2026-05-23`
-
-## Execution Precedence
-
-This context pack belongs to the broader roadmap workflow. On branch
-`docs/workflow-init-safety-first-control-plane-20260523`,
-`documentation/workflow/workflow-init-safety-first-control-plane.md` is the
-active workflow-execute authority because `workflow.md` explicitly gives that
-file execution precedence before broader roadmap work.
+# Workflow Context Pack: Tiny Swarm Skills And Agents
 
 ## Purpose
 
-This context pack records the governing inputs used to create the workflow for
-non-destructive init, separated reconcile/reset/destroy workflows, real
-Platform/Artifacts/Deployment service boundaries, workflow-level CLI, Nexus
-stack deployment extraction, typed command YAMLs, state/inventory modeling and
-verify-after-apply enforcement.
+This context pack is the navigation aid for the active workflow:
 
-It is a navigation aid only. Root `AGENTS.md`, `QUALITY.md`, ADRs, arc42,
-repository source and workflow files remain authoritative.
+```text
+Consolidate Tiny Swarm World Skills and Agents
+```
 
-## Requirement Source
+It does not replace root `AGENTS.md`, root `QUALITY.md`, arc42 documentation,
+`.agents/`, `.codex/`, or the active workflow file.
 
-The workflow was created from the user request:
+## Active Workflow
 
-- remove destructive VM cleanup from normal init;
-- introduce reconcile/reset/destroy as separate workflows;
-- truly separate PlatformServices, ArtifactServices and DeploymentServices;
-- rebuild the CLI around workflow-level commands;
-- extract Nexus stack deployment from Artifacts/Nexus;
-- strengthen command YAML typing;
-- introduce a state/inventory model;
-- force verify steps after every apply;
-- use subagent review during workflow creation.
+- Workflow file: `documentation/workflow/workflow.md`
+- Branch: `feature/workflow-tiny-swarm-skills-agents-20260523`
+- Date created: `2026-05-23`
+- Process strand: `skills-agents`
+- Execution profile: `FULL_PATH`
+- Release status: `READY_FOR_WORKFLOW_EXECUTE`
 
-No dedicated EPIC exists under `documentation/epics`. The temporary baseline is
-the user request, `AGENTS.md`, `QUALITY.md`, subagent review output, current
-architecture docs, arc42 and the Platform/Artifacts/Deployment responsibility
-ADR. That ADR is now accepted as a responsibility direction and partially
-implemented.
+## Governing Files Checked
 
-## Verified Baseline At Workflow Creation
+| File | SHA-256 |
+| --- | --- |
+| `AGENTS.md` | `6C0995195E99A2A748AD63D065706C35341977388D3C1C4402A548B388A4755E` |
+| `QUALITY.md` | `D327E4060FF1729F17FFDE844B1A2D6208FE203E149AE9D1AF185BEF0AED2155` |
+| `README.md` | `7FCC747AC8E97C54839F44F19F021CC811DAF98163AFA2429579DEBC5B835A8F` |
+| `documentation/arc42/05_building_blocks.adoc` | `29460A5324C6675DF4F731686733A4369828C42DE2AC485967D25B5A8429BE32` |
+| `documentation/arc42/10_quality_requirements.adoc` | `687988FCBC74CF6573136570486E22E9CC9E6573B11385307BBEFBE1436AD144` |
 
-This baseline is historical. It records the state used to create the broader
-roadmap workflow before the safety-first workflow execution branch applied
-Slices 01 through 09.
-
-- Default quality gate: `python3 tools/quality_gate.py quality`.
-- Default quality gate must not run live infrastructure.
-- Normal init currently calls the Multipass cleanup command YAML.
-- The cleanup command YAML contains `multipass delete --all` and
-  `multipass purge`.
-- Composition currently exposes platform services only.
-- At workflow creation, the CLI exposed low-level service choices.
-- Nexus stack deployment currently lives under Nexus service code.
-- At workflow creation, command YAML validation was not yet a typed schema
-  contract.
-- At workflow creation, desired inventory and observed runtime state were not
-  yet separated.
-- Netplan apply has no mandatory typed verification gate.
-
-## Safety-First Execution Status
-
-On branch `docs/workflow-init-safety-first-control-plane-20260523`, the
-safety-first workflow is the active execution authority. Checkpoint commits
-through Slice 09 have implemented:
-
-* non-destructive normal init;
-* workflow taxonomy and workflow-level CLI routing;
-* Platform, Artifacts, and Deployment service bundles;
-* Deployment namespace ownership for `EnsureNexusStack`, with deployment
-  workflow composition still pending;
-* typed command YAML contracts and workflow allow-lists;
-* desired inventory, observed inventory, and verification evidence separation;
-* verify-after-apply behavior for mutating platform workflows.
-
-This context pack remains a navigation aid, not the current execution status
-report.
+This context pack is stale when any listed hash changes, when governance files
+change, when `.agents/` or `.codex/` structure changes, or when a conflict is
+detected during workflow execution.
 
 ## Affected Areas
 
-- `documentation/workflow`
-- `documentation/architecture`
-- `documentation/arc42`
-- `README.md`
-- `documentation/user_guide`
-- `src/tiny_swarm_world/__main__.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
-- `src/tiny_swarm_world/domain`
-- `src/tiny_swarm_world/application`
-- `src/tiny_swarm_world/infrastructure/adapters`
-- `infra/config`
-- `infra/compose`
-- `infra/prepare`
-- `infra/swarm`
-- `tests`
+- Root agent and subagent governance.
+- `.agents/skills/` target structure.
+- `.agents/roles/` references.
+- `.agents/prompts/` and `.agents/orchestrator/` process routing references.
+- `.codex/agents/`, `.codex/subagents/`, `.codex/skills/`, and
+  `.codex/workflow/` references.
+- `AGENTS.md`, `README.md`, `documentation/process/`,
+  `documentation/skill-audit/`, and `documentation/`.
 
-## Forbidden Areas Without Refinement
+## Forbidden Areas
 
-- `src/main/java/**`
-- Windows-native runtime support
-- default CI execution of live Multipass or Docker Swarm
-- committed secrets, observed runtime state, local evidence or host-specific
-  absolute paths
-- implicit VM deletion or purge in `init` or `reconcile`
-- treating Platform, Artifacts and Deployment as independently deployable
-  microservices without runtime evidence
-- live Multipass, Docker Swarm, netplan, socat, compose, Portainer, Nexus,
-  Jenkins, RabbitMQ, SonarQube or Swagger/NGINX commands
+- Runtime Python source under `src/tiny_swarm_world/**`.
+- Java deployment example under `src/main/java/**`.
+- Infrastructure assets under `infra/**`.
+- Runtime scripts, Dockerfiles, compose files, stack files, `tools/**`,
+  `requirements.txt`, `setup.py`, and `pom.xml`.
+
+Only non-executable metadata reference corrections may cross this boundary,
+and only when recorded by the executing slice. Executable Python source,
+`tools/**`, `requirements.txt`, or `setup.py` changes require a STOP and a
+separate implementation workflow.
 
 ## Required Roles
 
-- Senior Requirement Engineer
-- Senior System Architect
-- Senior Python Automation Developer
-- Senior React Frontend Developer
-- Senior Tester
-- Senior Security Sandbox Engineer
-- Senior Documentation Engineer
-- Senior Workflow Architect
+- `senior_workflow_architect`
+- `senior_requirement_engineer`
+- `senior_system_architect`
+- `senior_python_automation_developer`
+- `senior_react_frontend` with read-only scope limited to frontend exclusion
+  and console-status UI clarification
+- `senior_documentation_engineer`
+- `senior_tester`
 
 ## Conditional Roles
 
-- Senior DevOps Engineer for shell/script and live-operation safety review.
-- Release and Branch Governance before commit, push or PR.
-- Security Threat Modeling if reset/destroy confirmation or secret handling is
-  changed.
+- `git_commit_reviewer`
+- `git_commit_operator`
+- `quality_reviewer`
+- `security_reviewer` when secret/config skill text changes
+- `senior_devops` when Docker Swarm or setup/bootstrap responsibilities need
+  operational review
 
 ## Quality Commands
 
-Workflow creation:
+Minimum:
 
 ```bash
+git status
+find .agents -type f | sort
+find .codex -type f | sort
+find .agents/skills -name SKILL.md -type f | sort
+grep -R "spring-boot-expert\|forensic-analytics-expert\|react-developer" AGENTS.md README.md documentation .agents .codex || true
+grep -R "python-senior-developer\|python-pip-packaging-expert\|setup-bootstrap-expert" .agents AGENTS.md documentation .codex README.md || true
+grep -R "^## Purpose\|^## Responsibilities\|^## Inputs\|^## Outputs\|^## Boundaries\|STOP" .agents/skills || true
+grep -R "documentation/agents\|documentation/skill-audit\|Organigramm Maintainer\|Process Governance Maintainer\|Typed Error Router" .agents documentation .codex AGENTS.md README.md || true
 git diff --check
-python3 -m json.tool documentation/workflow/context-pack.json
 ```
 
-Targeted development gates:
-
-```bash
-python3 tools/quality_gate.py lint
-python3 tools/quality_gate.py arch-lint
-python3 tools/quality_gate.py arch-tests
-python3 tools/quality_gate.py typecheck
-python3 tools/quality_gate.py test
-```
-
-Final implementation gate:
+Preferred full gate:
 
 ```bash
 python3 tools/quality_gate.py quality
 ```
 
+## Stop Rules
+
+Stop when:
+
+- active branch is not `feature/workflow-tiny-swarm-skills-agents-20260523`;
+- unrelated or unclear changes exist;
+- confidence drops below 95 percent;
+- `.agents/` or `AGENTS.md` is missing;
+- a skill deletion candidate is still referenced with no safe replacement;
+- registry, organigramm, Root Architect, or Typed Error Router ownership is
+  still ambiguous after Slice 01;
+- skill-file format remains ambiguous between grouped `.md` files and
+  `<skill>/SKILL.md` entrypoints after Slice 01;
+- executable Python source, `tools/**`, `requirements.txt`, or `setup.py`
+  would need to change;
+- `frontend-developer` work would require `package.json`, React, Vite, Next.js,
+  browser routes, API clients, `.tsx`, or `.jsx` files;
+- documentation and actual skill files disagree;
+- execution would require live infrastructure commands or product source
+  changes.
+
 ## Slice Summary
 
-| Slice | Name | Dependencies |
+| Slice | Owner | Purpose |
 | --- | --- | --- |
-| 01 | Requirement And Safety Contract | none |
-| 02 | ADR And arc42 Baseline | 01 |
-| 03 | Typed Command YAML Contract | 01, 02 |
-| 04 | State And Inventory Model | 01, 02 |
-| 05 | Workflow Taxonomy And Non-Destructive Init | 03, 04 |
-| 06 | Service Wiring Separation | 02, 04 |
-| 07 | Nexus Stack Deployment Extraction | 06 |
-| 08 | Workflow-Level CLI | 05, 06, 07 |
-| 09 | Verify After Every Apply | 03, 04, 05, 07, 08 |
-| 10 | Documentation, Quality Sync, And Legacy Quarantine | 02-09 |
-
-## Governing Hashes
-
-| Path | SHA-256 |
-| --- | --- |
-| `AGENTS.md` | `6c0995195e99a2a748ad63d065706c35341977388d3c1c4402a548b388a4755e` |
-| `QUALITY.md` | `d327e4060ff1729f17ffde844b1a2d6208fe203e149ae9d1af185bef0aed2155` |
-| `.agents/skills/workflow-authoring/SKILL.md` | `087658240296e3b1ec74205c60a96a9a4c67a17cf653f7867e6f316bd9afa94e` |
-| `.agents/skills/three-amigos-requirement-gatekeeper/SKILL.md` | `23de7d9aac9d2694eae26fac2765d65f369c101ac348dac24d5f3bbe9e2d3ba4` |
-| `.agents/skills/swarm-coordination/SKILL.md` | `8e6d032e4b609212ad7229b26fe1aa72af4afc0d6594a01cc945053a0b3e9ba7` |
-| `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc` | `e93d07dc6ce9485208a40d77b6a2c52a5d5442f36845192eac0963a86dc00297` |
-| `documentation/architecture/migration-plan.md` | `dbf5618e62b96935b669cf880b3be84710c8a29ba7ce9a4f4aaf08ccf5a21e2f` |
-| `documentation/architecture/responsibility-separation-analysis.md` | `38b08d772951f87b168f9432a8aadbd8b3705d5fedd2cc8511c8ad4a36eec078` |
-| `src/tiny_swarm_world/__main__.py` | `5cf743ac4c186418a2e649458965b917e52f9cd78605c2eb3cf55febd7e7f4e3` |
-| `src/tiny_swarm_world/infrastructure/composition.py` | `67aae1f2cf4a769500b16e27d2551981568a01fc24cc3b39d26eee05e111339a` |
-| `src/tiny_swarm_world/application/services/multipass/multipass_init_vms.py` | `bc65b41f859e99eb7ff5ce8d6d59c33e062d1358a89588eb133735383f149b79` |
-| `infra/config/multipass/command_multipass_clean_repository_yaml.yaml` | `bb483b476e21b225971051c07515948b33ab53a1778bbe1a2d62761361ed2deb` |
-| `infra/config/network/netplant/command_netplant_setup_yaml.yaml` | `614f6206b97de2cd0e31c60986cddc5ef5dba759c2856ca8f6eb0e730c4670e4` |
-| `tests/architecture/test_hexagonal_imports.py` | `1d9a78e08bc3f8f893ca0343d3bd2aaf544c997e09278345f5472b70114cc0be` |
-| `tests/architecture/test_infra_responsibility_boundaries.py` | `973b13559bf11304a0023713a4cf842d223962309198660f710598d37bd97ba8` |
-
-## Worktree Caveat
-
-During workflow creation, uncommitted source/preflight changes appeared outside
-`documentation/workflow/**`. This workflow authoring step did not edit those
-files. Workflow execution must inspect and resolve ownership before any slice
-touches overlapping paths.
-
-## Staleness Rules
-
-This context pack is stale when:
-
-- any recorded governing hash changes;
-- `AGENTS.md` or `QUALITY.md` changes;
-- the responsibility ADR is accepted, superseded or edited;
-- command YAML schema, destructive-operation policy, inventory model or CLI
-  workflow contract changes;
-- `documentation/workflow/**` changes outside the active workflow branch;
-- source/preflight worktree changes overlap an implementation slice without a
-  recorded handoff;
-- arc42 runtime, deployment, concept, quality or risk sections change without
-  checking this workflow.
+| 01 | `senior_requirement_engineer` | Inspect existing skill and agent landscape |
+| 02 | `senior_python_automation_developer` | Create missing required skills |
+| 03 | `senior_system_architect` | Update retained skills |
+| 04 | `senior_workflow_architect` | Remove unrelated skills after reference checks |
+| 05 | `senior_documentation_engineer` | Update root `AGENTS.md` |
+| 06 | `senior_documentation_engineer` | Update workflow, README, workplan, and Codex docs |
+| 07 | `senior_tester` | Execute quality gate |
+| 08 | `senior_workflow_architect` | Write final report |

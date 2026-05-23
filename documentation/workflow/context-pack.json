@@ -1,311 +1,168 @@
 {
-  "workflowVersion": "init-safety-boundary-separation-20260523",
-  "workflowBranch": "architecture/workflow-init-service-boundaries-20260523",
-  "processStrand": "workflow create",
-  "executionProfile": "FULL_PATH",
-  "createdDate": "2026-05-23",
-  "executionPrecedence": "This context pack describes the broader roadmap workflow. On branch docs/workflow-init-safety-first-control-plane-20260523, documentation/workflow/workflow-init-safety-first-control-plane.md is the active workflow-execute authority before broader roadmap work.",
-  "requirement": {
-    "summary": "Create a workflow for non-destructive init, separate reconcile/reset/destroy workflows, real Platform/Artifacts/Deployment service separation, workflow-level CLI, Nexus stack deployment extraction, typed command YAMLs, state/inventory modeling, and verify-after-apply enforcement.",
-    "decision": "READY_FOR_WORKFLOW",
-    "confidence": 91,
-    "epicTraceability": "No documentation/epics source exists; temporary baseline is the user request plus AGENTS.md, QUALITY.md, architecture docs, arc42, ADR and subagent reviews.",
-    "acceptedAssumptions": [
-      "init creates or prepares missing managed resources without deletion",
-      "reconcile converges existing managed resources non-destructively",
-      "reset explicitly reinitializes selected managed runtime resources after confirmation",
-      "destroy explicitly tears down selected managed runtime resources after confirmation",
-      "verify inspects state without mutation",
-      "desired inventory belongs to committed product configuration",
-      "observed runtime inventory and evidence belong under ignored local state/evidence roots"
-    ]
+  "workflow": {
+    "name": "Consolidate Tiny Swarm World Skills and Agents",
+    "file": "documentation/workflow/workflow.md",
+    "branch": "feature/workflow-tiny-swarm-skills-agents-20260523",
+    "date_created": "2026-05-23",
+    "process_strand": "skills-agents",
+    "execution_profile": "FULL_PATH",
+    "status": "READY_FOR_WORKFLOW_EXECUTE"
   },
-  "baseline": {
-    "context": "Historical baseline captured during workflow creation before safety-first workflow execution.",
-    "defaultQualityGate": "python3 tools/quality_gate.py quality",
-    "liveInfrastructureInDefaultGate": false,
-    "normalInitCurrentlyDestructive": true,
-    "cleanupYamlContainsDeleteAllAndPurge": true,
-    "compositionCurrentlyPlatformOnly": true,
-    "cliCurrentlyServiceLevel": true,
-    "nexusStackCurrentlyUnderNexus": true,
-    "typedCommandYamlContractExists": false,
-    "stateInventoryModelExists": false,
-    "verifyAfterApplyEnforced": false
-  },
-  "safetyFirstExecutionStatus": {
-    "activeBranch": "docs/workflow-init-safety-first-control-plane-20260523",
-    "activeWorkflow": "documentation/workflow/workflow-init-safety-first-control-plane.md",
-    "status": "Checkpoint commits through Slice 09 have implemented non-destructive init, workflow taxonomy, service bundles, workflow-level CLI routing, deployment namespace ownership for EnsureNexusStack, typed command YAML contracts, inventory/evidence separation, and verify-after-apply for mutating platform workflows.",
-    "limitations": [
-      "Artifact and deployment workflow command names are declared but remain blocked until wiring lands.",
-      "DeploymentServices is an explicit empty composition boundary.",
-      "Reset and destroy confirmation contracts are implemented, but destructive retention and teardown steps remain blocked until policy exists.",
-      "No live infrastructure validation was performed by the default quality gates."
-    ]
-  },
-  "affectedAreas": [
-    "documentation/workflow",
-    "documentation/architecture",
-    "documentation/arc42",
+  "governing_files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "6C0995195E99A2A748AD63D065706C35341977388D3C1C4402A548B388A4755E"
+    },
+    {
+      "path": "QUALITY.md",
+      "sha256": "D327E4060FF1729F17FFDE844B1A2D6208FE203E149AE9D1AF185BEF0AED2155"
+    },
+    {
+      "path": "README.md",
+      "sha256": "7FCC747AC8E97C54839F44F19F021CC811DAF98163AFA2429579DEBC5B835A8F"
+    },
+    {
+      "path": "documentation/arc42/05_building_blocks.adoc",
+      "sha256": "29460A5324C6675DF4F731686733A4369828C42DE2AC485967D25B5A8429BE32"
+    },
+    {
+      "path": "documentation/arc42/10_quality_requirements.adoc",
+      "sha256": "687988FCBC74CF6573136570486E22E9CC9E6573B11385307BBEFBE1436AD144"
+    }
+  ],
+  "affected_areas": [
+    "AGENTS.md",
     "README.md",
-    "documentation/user_guide",
-    "src/tiny_swarm_world/__main__.py",
-    "src/tiny_swarm_world/infrastructure/composition.py",
-    "src/tiny_swarm_world/domain",
-    "src/tiny_swarm_world/application",
-    "src/tiny_swarm_world/infrastructure/adapters",
-    "infra/config",
-    "infra/compose",
-    "infra/prepare",
-    "infra/swarm",
-    "tests"
+    "documentation/workflow",
+    "documentation/workplan",
+    "documentation/process",
+    "documentation/skill-audit",
+    ".agents/prompts",
+    ".agents/orchestrator",
+    ".agents",
+    ".codex"
   ],
-  "forbiddenAreasWithoutRefinement": [
-    "src/main/java/**",
-    "Windows-native runtime support",
-    "default CI execution of live Multipass or Docker Swarm",
-    "committed secrets, observed runtime state, local evidence or host-specific absolute paths",
-    "implicit VM deletion or purge in init or reconcile",
-    "microservice claims for Platform, Artifacts and Deployment without runtime independence evidence",
-    "live Multipass, Docker Swarm, netplan, socat, compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or Swagger/NGINX commands"
+  "forbidden_areas": [
+    "src/tiny_swarm_world",
+    "src/main/java",
+    "infra",
+    "docker",
+    "bin",
+    "tools",
+    "requirements.txt",
+    "setup.py",
+    "pom.xml",
+    "Dockerfiles",
+    "compose files",
+    "stack files",
+    "runtime scripts"
   ],
-  "requiredRoles": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior React Frontend Developer",
-    "Senior Tester",
-    "Senior Security Sandbox Engineer",
-    "Senior Documentation Engineer",
-    "Senior Workflow Architect"
+  "required_roles": [
+    "senior_workflow_architect",
+    "senior_requirement_engineer",
+    "senior_system_architect",
+    "senior_python_automation_developer",
+    "senior_react_frontend",
+    "senior_documentation_engineer",
+    "senior_tester"
   ],
-  "conditionalRoles": [
-    "Senior DevOps Engineer",
-    "Release and Branch Governance",
-    "Security Threat Modeling"
+  "conditional_roles": [
+    "git_commit_reviewer",
+    "git_commit_operator",
+    "quality_reviewer",
+    "security_reviewer",
+    "senior_devops"
   ],
-  "subagentReviews": [
-    {
-      "role": "Senior Requirement Engineer",
-      "status": "completed"
-    },
-    {
-      "role": "Senior System Architect",
-      "status": "completed"
-    },
-    {
-      "role": "Senior Python Automation Developer",
-      "status": "completed"
-    },
-    {
-      "role": "Senior React Frontend Developer",
-      "status": "completed"
-    },
-    {
-      "role": "Senior Tester",
-      "status": "completed"
-    }
-  ],
-  "qualityCommands": {
-    "workflowCreation": [
-      "git diff --check",
-      "python3 -m json.tool documentation/workflow/context-pack.json"
+  "quality_commands": {
+    "minimum": [
+      "git status",
+      "find .agents -type f | sort",
+      "find .codex -type f | sort",
+      "find .agents/skills -name SKILL.md -type f | sort",
+      "grep -R \"spring-boot-expert\\|forensic-analytics-expert\\|react-developer\" AGENTS.md README.md documentation .agents .codex || true",
+      "grep -R \"python-senior-developer\\|python-pip-packaging-expert\\|setup-bootstrap-expert\" .agents AGENTS.md documentation .codex README.md || true",
+      "grep -R \"^## Purpose\\|^## Responsibilities\\|^## Inputs\\|^## Outputs\\|^## Boundaries\\|STOP\" .agents/skills || true",
+      "grep -R \"documentation/agents\\|documentation/skill-audit\\|Organigramm Maintainer\\|Process Governance Maintainer\\|Typed Error Router\" .agents documentation .codex AGENTS.md README.md || true",
+      "git diff --check"
     ],
-    "targeted": [
-      "python3 tools/quality_gate.py lint",
-      "python3 tools/quality_gate.py arch-lint",
-      "python3 tools/quality_gate.py arch-tests",
-      "python3 tools/quality_gate.py typecheck",
-      "python3 tools/quality_gate.py test"
-    ],
-    "final": [
-      "python3 tools/quality_gate.py quality"
-    ],
-    "liveInfrastructure": {
-      "allowedDuringWorkflowCreation": false,
-      "includedInDefaultQualityGate": false
-    }
+    "preferred_full_gate": "python3 tools/quality_gate.py quality"
   },
   "slices": [
     {
       "id": "01",
-      "name": "Requirement And Safety Contract",
-      "dependencies": [],
-      "parallelGroup": "A"
+      "owner": "senior_requirement_engineer",
+      "purpose": "Inspect existing skill and agent landscape",
+      "dependencies": []
     },
     {
       "id": "02",
-      "name": "ADR And arc42 Baseline",
+      "owner": "senior_python_automation_developer",
+      "purpose": "Create missing required skills",
       "dependencies": [
         "01"
-      ],
-      "parallelGroup": "B"
+      ]
     },
     {
       "id": "03",
-      "name": "Typed Command YAML Contract",
+      "owner": "senior_system_architect",
+      "purpose": "Update retained skills",
       "dependencies": [
-        "01",
-        "02"
-      ],
-      "parallelGroup": "C"
+        "01"
+      ]
     },
     {
       "id": "04",
-      "name": "State And Inventory Model",
+      "owner": "senior_workflow_architect",
+      "purpose": "Remove unrelated skills after reference checks",
       "dependencies": [
-        "01",
-        "02"
-      ],
-      "parallelGroup": "C"
+        "02",
+        "03"
+      ]
     },
     {
       "id": "05",
-      "name": "Workflow Taxonomy And Non-Destructive Init",
+      "owner": "senior_documentation_engineer",
+      "purpose": "Update root AGENTS.md",
       "dependencies": [
-        "03",
         "04"
-      ],
-      "parallelGroup": "D"
+      ]
     },
     {
       "id": "06",
-      "name": "Service Wiring Separation",
+      "owner": "senior_documentation_engineer",
+      "purpose": "Update workflow, README, workplan, and Codex docs",
       "dependencies": [
-        "02",
-        "04"
-      ],
-      "parallelGroup": "D"
+        "05"
+      ]
     },
     {
       "id": "07",
-      "name": "Nexus Stack Deployment Extraction",
+      "owner": "senior_tester",
+      "purpose": "Execute quality gate",
       "dependencies": [
         "06"
-      ],
-      "parallelGroup": "E"
+      ]
     },
     {
       "id": "08",
-      "name": "Workflow-Level CLI",
+      "owner": "senior_workflow_architect",
+      "purpose": "Write final report",
       "dependencies": [
-        "05",
-        "06",
         "07"
-      ],
-      "parallelGroup": "F"
-    },
-    {
-      "id": "09",
-      "name": "Verify After Every Apply",
-      "dependencies": [
-        "03",
-        "04",
-        "05",
-        "07",
-        "08"
-      ],
-      "parallelGroup": "G"
-    },
-    {
-      "id": "10",
-      "name": "Documentation, Quality Sync, And Legacy Quarantine",
-      "dependencies": [
-        "02",
-        "03",
-        "04",
-        "05",
-        "06",
-        "07",
-        "08",
-        "09"
-      ],
-      "parallelGroup": "H"
+      ]
     }
   ],
-  "governingHashes": [
-    {
-      "path": "AGENTS.md",
-      "sha256": "6c0995195e99a2a748ad63d065706c35341977388d3c1c4402a548b388a4755e"
-    },
-    {
-      "path": "QUALITY.md",
-      "sha256": "d327e4060ff1729f17ffde844b1a2d6208fe203e149ae9d1af185bef0aed2155"
-    },
-    {
-      "path": ".agents/skills/workflow-authoring/SKILL.md",
-      "sha256": "087658240296e3b1ec74205c60a96a9a4c67a17cf653f7867e6f316bd9afa94e"
-    },
-    {
-      "path": ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md",
-      "sha256": "23de7d9aac9d2694eae26fac2765d65f369c101ac348dac24d5f3bbe9e2d3ba4"
-    },
-    {
-      "path": ".agents/skills/swarm-coordination/SKILL.md",
-      "sha256": "8e6d032e4b609212ad7229b26fe1aa72af4afc0d6594a01cc945053a0b3e9ba7"
-    },
-    {
-      "path": "documentation/architecture/adr-separate-platform-artifacts-deployment.adoc",
-      "sha256": "e93d07dc6ce9485208a40d77b6a2c52a5d5442f36845192eac0963a86dc00297"
-    },
-    {
-      "path": "documentation/architecture/migration-plan.md",
-      "sha256": "dbf5618e62b96935b669cf880b3be84710c8a29ba7ce9a4f4aaf08ccf5a21e2f"
-    },
-    {
-      "path": "documentation/architecture/responsibility-separation-analysis.md",
-      "sha256": "38b08d772951f87b168f9432a8aadbd8b3705d5fedd2cc8511c8ad4a36eec078"
-    },
-    {
-      "path": "src/tiny_swarm_world/__main__.py",
-      "sha256": "5cf743ac4c186418a2e649458965b917e52f9cd78605c2eb3cf55febd7e7f4e3"
-    },
-    {
-      "path": "src/tiny_swarm_world/infrastructure/composition.py",
-      "sha256": "67aae1f2cf4a769500b16e27d2551981568a01fc24cc3b39d26eee05e111339a"
-    },
-    {
-      "path": "src/tiny_swarm_world/application/services/multipass/multipass_init_vms.py",
-      "sha256": "bc65b41f859e99eb7ff5ce8d6d59c33e062d1358a89588eb133735383f149b79"
-    },
-    {
-      "path": "infra/config/multipass/command_multipass_clean_repository_yaml.yaml",
-      "sha256": "bb483b476e21b225971051c07515948b33ab53a1778bbe1a2d62761361ed2deb"
-    },
-    {
-      "path": "infra/config/network/netplant/command_netplant_setup_yaml.yaml",
-      "sha256": "614f6206b97de2cd0e31c60986cddc5ef5dba759c2856ca8f6eb0e730c4670e4"
-    },
-    {
-      "path": "tests/architecture/test_hexagonal_imports.py",
-      "sha256": "1d9a78e08bc3f8f893ca0343d3bd2aaf544c997e09278345f5472b70114cc0be"
-    },
-    {
-      "path": "tests/architecture/test_infra_responsibility_boundaries.py",
-      "sha256": "973b13559bf11304a0023713a4cf842d223962309198660f710598d37bd97ba8"
-    }
-  ],
-  "worktreeCaveat": {
-    "nonWorkflowSourceChangesObserved": true,
-    "workflowAuthoringTouchedOnly": [
-      "documentation/workflow/workflow.md",
-      "documentation/workflow/context-pack.md",
-      "documentation/workflow/context-pack.json",
-      "documentation/workflow/execution-report.md"
-    ],
-    "executionInstruction": "Resolve ownership of existing source/preflight changes before executing slices with overlapping file locks."
-  },
-  "staleWhen": [
-    "any recorded governing hash changes",
-    "AGENTS.md or QUALITY.md changes",
-    "responsibility ADR is accepted, superseded or edited",
-    "command YAML schema changes",
-    "destructive-operation policy changes",
-    "state/inventory model changes",
-    "workflow-level CLI contract changes",
-    "documentation/workflow/** changes outside the active workflow branch",
-    "source/preflight worktree changes overlap an implementation slice without a handoff",
-    "arc42 runtime, deployment, concept, quality or risk sections change without checking this workflow"
+  "stop_rules": [
+    "active branch is not feature/workflow-tiny-swarm-skills-agents-20260523",
+    "unrelated or unclear changes exist",
+    "confidence drops below 95 percent",
+    ".agents or AGENTS.md is missing",
+    "a skill deletion candidate is still referenced with no safe replacement",
+    "registry, organigramm, Root Architect, or Typed Error Router ownership is ambiguous after Slice 01",
+    "skill-file format remains ambiguous between grouped .md files and <skill>/SKILL.md entrypoints after Slice 01",
+    "executable Python source, tools/**, requirements.txt, or setup.py would need to change",
+    "frontend-developer work would require package.json, React, Vite, Next.js, browser routes, API clients, .tsx, or .jsx files",
+    "documentation and actual skill files disagree",
+    "execution would require live infrastructure commands or product source changes"
   ]
 }
