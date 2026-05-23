@@ -1,41 +1,60 @@
 {
-  "workflowVersion": "tasklist-remediation-20260523",
-  "workflowBranch": "architecture/workflow-tasklist-remediation-20260523",
+  "workflowVersion": "installation-integration-verification-20260523",
+  "workflowBranch": "docs/workflow-installation-integration-test-20260523",
   "processStrand": "workflow create",
   "executionProfile": "FULL_PATH",
   "createdDate": "2026-05-23",
-  "convertedSources": [
-    {
-      "path": "TASKLIST.md",
-      "status": "converted-and-deleted",
-      "sha256": "96295c760ceaee6217e7987ff0b7bbd034479332d3f3d8341d2bcc4e55df9f48"
-    },
-    {
-      "path": "AUDIT_REPORT.md",
-      "status": "retained-as-audit-evidence",
-      "sha256": "b6714f0898a5ae2eca750516e920a1f412584f43ebc6e195b5d5d61c741c0816"
-    }
-  ],
+  "requirement": {
+    "summary": "Create a workflow for an opt-in integration test that verifies full installation and full functionality.",
+    "blockerPolicy": "Self-remediate blockers when confidence is at least 90 percent; otherwise start Three Amigos Q&A.",
+    "temporaryBaseline": [
+      "user request",
+      "AGENTS.md",
+      "QUALITY.md",
+      "AUDIT_REPORT.md",
+      "OPERATIONAL_READINESS_CHECKLIST.md",
+      "active workflow requirement record",
+      "documentation/architecture/adr-separate-platform-artifacts-deployment.adoc"
+    ],
+    "decision": "READY_FOR_WORKFLOW",
+    "confidence": 92
+  },
+  "baseline": {
+    "defaultQualityGate": "python3 tools/quality_gate.py quality",
+    "liveInfrastructureInDefaultGate": false,
+    "liveEvidenceGapRecordedIn": "AUDIT_REPORT.md",
+    "readinessChecklist": "OPERATIONAL_READINESS_CHECKLIST.md",
+    "slice01Contracts": [
+      "live-run-consent",
+      "refusal-before-live-command",
+      "evidence-bundle",
+      "redaction",
+      "credential-source-validation",
+      "resource-gated-result-semantics"
+    ]
+  },
   "affectedAreas": [
     "documentation/workflow",
-    "src/tiny_swarm_world",
-    "infra",
-    "tests",
+    "OPERATIONAL_READINESS_CHECKLIST.md",
     "README.md",
     "documentation",
-    "QUALITY.md when explicitly changed by a slice",
-    "tools/quality_gate.py when explicitly changed by a slice"
+    "src/tiny_swarm_world",
+    "infra/config",
+    "infra/compose",
+    "infra/prepare",
+    "tools",
+    "tests"
   ],
   "forbiddenAreasWithoutRefinement": [
     "src/main/java/**",
-    "live Multipass execution",
-    "live Docker Swarm execution",
-    "compose deployments",
-    "netplan mutation",
-    "socat forwarding",
-    "service bootstrap scripts",
-    "frontend package/tooling creation",
-    "restoring TASKLIST.md as an active planning artifact"
+    "Windows-native runtime support",
+    "default CI execution of live Multipass or Docker Swarm",
+    "committed secrets or hardcoded credentials",
+    "implicit destructive VM, stack or network cleanup",
+    "live Multipass execution before explicit live-run approval",
+    "live Docker Swarm execution before explicit live-run approval",
+    "netplan or socat mutation before explicit live-run approval",
+    "service bootstrap before explicit live-run approval"
   ],
   "requiredRoles": [
     "Senior Requirement Engineer",
@@ -44,20 +63,20 @@
     "Senior React Frontend Developer",
     "Senior Tester",
     "Senior DevOps Engineer",
+    "Senior Security Sandbox Engineer",
     "Senior Documentation Engineer"
   ],
   "conditionalRoles": [
-    "Senior Security Sandbox Engineer",
-    "Senior Bash Specialist when available"
+    "Senior Workflow Architect",
+    "Release and Branch Governance",
+    "Security Threat Modeling"
   ],
   "qualityCommands": {
     "workflowCreation": [
       "git diff --check",
-      "python3 -m json.tool documentation/workflow/context-pack.json",
-      "python3 tools/quality_gate.py arch-tests"
+      "python3 -m json.tool documentation/workflow/context-pack.json"
     ],
     "targeted": [
-      "git diff --check",
       "python3 tools/quality_gate.py lint",
       "python3 tools/quality_gate.py arch-lint",
       "python3 tools/quality_gate.py arch-tests",
@@ -67,10 +86,69 @@
     "final": [
       "python3 tools/quality_gate.py quality"
     ],
-    "optionalShellSyntax": [
-      "find infra -name '*.sh' -print0 | xargs -0 bash -n"
-    ]
+    "liveIntegration": {
+      "status": "planned-artifact",
+      "includedInDefaultQualityGate": false
+    }
   },
+  "slices": [
+    {
+      "id": "01",
+      "name": "Integration Test Contract",
+      "dependencies": []
+    },
+    {
+      "id": "02",
+      "name": "Preflight And Configuration Validation",
+      "dependencies": [
+        "01"
+      ]
+    },
+    {
+      "id": "03",
+      "name": "Canonical Full-Installation Plan",
+      "dependencies": [
+        "01",
+        "02"
+      ]
+    },
+    {
+      "id": "04",
+      "name": "Platform Runtime Readiness Probes",
+      "dependencies": [
+        "03"
+      ]
+    },
+    {
+      "id": "05",
+      "name": "Deployment And Service Readiness Probes",
+      "dependencies": [
+        "03"
+      ]
+    },
+    {
+      "id": "06",
+      "name": "Live Integration Runner And Evidence Bundle",
+      "dependencies": [
+        "04",
+        "05"
+      ]
+    },
+    {
+      "id": "07",
+      "name": "Documentation And Readiness Synchronization",
+      "dependencies": [
+        "06"
+      ]
+    },
+    {
+      "id": "08",
+      "name": "Controlled Live Verification",
+      "dependencies": [
+        "07"
+      ]
+    }
+  ],
   "governingHashes": [
     {
       "path": "AGENTS.md",
@@ -85,8 +163,8 @@
       "sha256": "b6714f0898a5ae2eca750516e920a1f412584f43ebc6e195b5d5d61c741c0816"
     },
     {
-      "path": ".agents/orchestrator/routing-rules.md",
-      "sha256": "a524843f96fa91adc56cbe8b02156abc56a299b263eb8ad6715204bee52cfd31"
+      "path": "OPERATIONAL_READINESS_CHECKLIST.md",
+      "sha256": "d8e54cd328674c8ce4e6237abadf86346f5f00a0e6333677e2214881e159ddd7"
     },
     {
       "path": ".agents/skills/workflow-authoring/SKILL.md",
@@ -97,31 +175,25 @@
       "sha256": "23de7d9aac9d2694eae26fac2765d65f369c101ac348dac24d5f3bbe9e2d3ba4"
     },
     {
-      "path": ".agents/skills/execution-profile-router/SKILL.md",
-      "sha256": "a1e1195387d55b8ba3baa6b5a891aac982f6ffc734a80c1ab32dc594d4cfc51b"
+      "path": ".agents/skills/quality-gate-orchestrator/SKILL.md",
+      "sha256": "3f9ef8278091f7781eacd58d000675fa6a996d81f96802a0abd37cc2a821d40f"
     },
     {
-      "path": ".agents/skills/quality-gate/SKILL.md",
-      "sha256": "90fe1c9de050f21cb8635fab1b498b93439fffdc050d3b7ceb04bd8d2deea174"
+      "path": "documentation/architecture/adr-separate-platform-artifacts-deployment.adoc",
+      "sha256": "e93d07dc6ce9485208a40d77b6a2c52a5d5442f36845192eac0963a86dc00297"
     },
     {
-      "path": ".agents/skills/quality-architecture-validation/SKILL.md",
-      "sha256": "a00a8e7e2ea24c4878533272f0f98b687156e0279a8fa84f67676248b8000e78"
-    },
-    {
-      "path": ".importlinter",
-      "sha256": "4c5c879ddc20bf7ccb8adca2b907538264f9c3cf9c1c54e3076e7c008f1a62b4"
-    },
-    {
-      "path": "tools/quality_gate.py",
-      "sha256": "89425bfc2348fcbc9948a6f654d00fa80aeaa03ce46403912fbb207d137fe0ea"
+      "path": "src/tiny_swarm_world/__main__.py",
+      "sha256": "543c594c9df79faf04e83abcdc1182f05771c16494d48dd5a30cee73a05d2947"
     }
   ],
   "staleWhen": [
     "any recorded governing hash changes",
-    "documentation/workflow/** changes outside the active slice",
+    "documentation/workflow/** changes outside the active workflow branch",
     "AGENTS.md or QUALITY.md changes",
-    "a deleted TASKLIST.md entry cannot be traced through the workflow",
-    "workflow execution changes architecture, quality, live-infra or secret handling policy without updating the workflow"
+    "live integration commands are implemented without updating this workflow",
+    "mandatory service scope changes",
+    "secret handling or destructive cleanup policy changes",
+    "arc42 runtime, deployment, quality or risk sections are updated without checking this workflow"
   ]
 }
