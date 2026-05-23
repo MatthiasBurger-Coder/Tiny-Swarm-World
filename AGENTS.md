@@ -140,6 +140,131 @@ inspection.
 - Before removing a legacy adapter or config file, verify no tests, scripts, or
   docs still reference it.
 
+## Skill And Agent Governance
+
+Root agent: `tiny-swarm-world-lead-architect`.
+
+This is the repository governance identity for Tiny Swarm World agent and skill
+work. It is not a new callable role file. It applies root `AGENTS.md`,
+`QUALITY.md`, the active workflow, and the owner map before specialist routing.
+
+Tiny Swarm World is currently Docker Swarm first. Tiny Swarm World must remain
+Kubernetes-aware but not Kubernetes-first.
+
+Tiny Swarm World is not `forensic_analytics`.
+Tiny Swarm World is not forensic analytics.
+Tiny Swarm World is not a Spring Boot application.
+Tiny Swarm World is not a React frontend project.
+
+### Governance Hierarchy
+
+```text
+tiny-swarm-world-lead-architect
+|
++-- Agent Workflow Orchestrator / Senior Swarm Orchestrator
++-- Workflow Executor Skill
++-- Senior System Architect
++-- Senior Workflow Architect
++-- Senior Requirement Engineer
++-- Senior Documentation Engineer
++-- Senior Tester
++-- Senior DevOps Engineer
++-- Senior Python Automation Developer
++-- Console/status UI skills
++-- Service-boundary and contract-governance skills
+```
+
+### Registry And Owner Map
+
+Canonical audit and navigation paths:
+
+- `documentation/skill-audit/skill-registry.md`
+- `documentation/skill-audit/skill-registry.json`
+- `documentation/skill-audit/organigramm.md`
+- `documentation/skill-audit/owner-map.md`
+
+Repository files remain authoritative. The registry and organigramm are audit,
+navigation, and coordination artifacts.
+
+Owner mapping:
+
+- Organigramm Maintainer: Senior Documentation Engineer, reviewed by Skill
+  Registry Conflict Auditor, Senior Workflow Architect, and Senior System
+  Architect when hierarchy changes affect architecture governance.
+- Process Governance Maintainer: Senior Workflow Architect, reviewed by Senior
+  Requirement Engineer, Senior Tester, and Engineering Governance.
+- Root Architect: Senior System Architect escalation, with requirement,
+  security, DevOps, data, contract, release, or quality owners brought in when
+  those concerns are primary.
+- Typed Error Router: Workflow Executor / Senior Workflow Architect, with
+  Senior Execution Orchestrator for lock conflicts and Senior Tester plus
+  Quality Gate Orchestrator for quality failures.
+- Service Boundary Governance: Senior System Architect plus
+  `service-decomposition-bounded-context`,
+  `microservice-runtime-readiness-expert`,
+  `microservice-migration-safety-gate`, and `contract-governance-expert`.
+
+### Skill Groups
+
+- Governance and documentation: `engineering-governance`,
+  `documentation-sync`, `requirement-engineering`,
+  `arc42-architecture-governance`, `adr-steward`,
+  `skill-registry-conflict-auditor`, and
+  `tiny-swarm-world-system-architecture`.
+- Workflow execution: `workflow-executor`, `workflow-slice`,
+  `workflow-slice-execution`, `workflow-orchestration`,
+  `execution-profile-router`, and `s3d-execution-orchestrator`.
+- Python automation and quality: `python-automation`,
+  `python-senior-developer`, `python-cli-automation`,
+  `python-test-automation`, `python-pip-packaging-expert`, `quality-gate`,
+  `quality-gate-orchestrator`, `platform-quality-gates`, `tdd-expert`,
+  `bdd-expert`, and `acceptance-checks`.
+- Platform and runtime: `setup-bootstrap-expert`,
+  `linux-host-preparation`, `multipass-vm-provisioning`,
+  `network-topology-design`, `docker-engine-installation`,
+  `docker-swarm-initialization`, `swarm-node-management`,
+  `swarm-stack-deployment`, `swarm-volume-network-governance`,
+  `registry-infrastructure`, `image-build-publish`,
+  `image-versioning-tagging`, `image-verification`, and service bootstrap
+  skills.
+- Console/status UI: `frontend-developer`,
+  `console-status-ui-developer`, and `terminal-status-dashboard`. These are
+  terminal and console skills, not browser or React frontend authority.
+- Service boundaries and contracts: `service-decomposition-bounded-context`,
+  `microservice-runtime-readiness-expert`,
+  `microservice-migration-safety-gate`, `contract-governance-expert`,
+  `contract-first-api-steward`, `protobuf-contracts`, `grpc-ingestion`, and
+  `grpc-streaming-specialist`.
+
+Do not route Tiny Swarm World work to unrelated Spring Boot, browser React,
+forensic analytics, generic backend/frontend, database/vector/graph analytics,
+JavaParser scanner, Joern scanner, BTM generation, or removed
+`microservice-senior-expert` roles unless a later explicit workflow verifies
+that scope from repository evidence.
+
+Project skills are discoverable only as `.agents/skills/<skill-name>/SKILL.md`
+unless local skill discovery rules change. Grouped `.md` files are not
+authoritative skill entrypoints.
+
+### Workflow Execution Rules
+
+- Exact `workflow execute` uses `.agents/skills/workflow-executor/SKILL.md`.
+- Verify the active workflow, branch, slice metadata, locks, and quality gates
+  before any write-capable work.
+- Use S3/S3D preflight for workflow execution.
+- Keep slice edits inside the workflow's allowed files and locks.
+- Run targeted checks first, then required `QUALITY.md` gates.
+- Classify failures through the Typed Error Router before retries.
+- Slice checkpoint push is not `push auto` and must not create or merge a pull
+  request.
+
+Stop and report when documented behavior cannot be verified from repository
+evidence, governance documents conflict, ownership or quality authority would
+require guessing, planned behavior would be documented as implemented behavior,
+a workflow would touch product implementation outside its declared scope, live
+infrastructure commands would be required without explicit approval, or an
+architecture decision or ADR is needed before continuing.
+
 ## Command Shortcuts
 
 - If the user sends exactly `cc`, execute the workflow in `commit_push.md`.

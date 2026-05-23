@@ -94,8 +94,8 @@ Return a concise record with:
 ## Collaboration Rules
 
 - Consult Senior System Architect for architecture boundaries.
-- Consult Microservice Senior Expert for service autonomy and deployment
-  expectations.
+- Consult Microservice Runtime Readiness Expert for deployment and
+  runtime-independence expectations.
 - Consult Data Ownership And Persistence Steward for owned data and projections.
 - Consult Contract Governance Expert or Contract-First API Steward for REST,
   gRPC, protobuf or event contract concerns.

@@ -6,7 +6,7 @@ Use these rules to select roles for a slice. Prefer the smallest set that covers
 
 ## Exact Command Routing
 
-- Exact `skills update` routes to the skills-agents strand, Skill Registry Conflict Auditor, Senior Documentation Engineer, Organigramm Maintainer and Process Governance Maintainer.
+- Exact `skills update` routes to the skills-agents strand, Skill Registry Conflict Auditor, Senior Documentation Engineer as Organigramm Maintainer, and Senior Workflow Architect as Process Governance Maintainer.
 - Exact `workflow create` routes to workflow create.
 - Exact `workflow execute` routes to workflow execute.
 
@@ -23,10 +23,10 @@ gates. Unclear impact defaults to `FULL_PATH`.
 
 - Python domain, application, ports, infrastructure adapters, YAML handling, command construction, VM/network automation or repository behavior routes to `roles/senior-python-automation-developer.md`.
 - Java code under `src/main/java` routes to `roles/senior-java-backend.md` only when the task explicitly targets the deployment example.
-- React, frontend state, API client integration or UI component work routes to `roles/senior-react-frontend.md`.
+- Tiny Swarm World console/status UI work routes to `skills/frontend-developer/SKILL.md`, `skills/console-status-ui-developer/SKILL.md`, and `skills/terminal-status-dashboard/SKILL.md`. Browser React, frontend state, API client integration or UI component work stops unless a separate frontend workflow verifies a frontend module, package tooling and quality gates; only then route to `roles/senior-react-frontend.md`.
 - Information architecture, accessibility, visualization UX or user-flow work routes to `roles/senior-ux-designer.md`.
 - Cross-module design, package boundaries, architecture tests or module restructuring routes to `roles/senior-system-architect.md`.
-- Microservice boundaries, service autonomy, independent deployability or no-shared-code service reviews route to `roles/microservice-senior-expert.md`.
+- Service-boundary, bounded-context, independent-runtime, deployment-readiness or no-shared-implementation reviews route by concern: bounded context to `skills/service-decomposition-bounded-context/SKILL.md`, runtime readiness to `skills/microservice-runtime-readiness-expert/SKILL.md`, migration safety to `skills/microservice-migration-safety-gate/SKILL.md`, contract governance to `skills/contract-governance-expert/SKILL.md`, and architecture ambiguity to `roles/senior-system-architect.md`.
 - Bounded-context service decomposition and "technical module is not a microservice" decisions route to `skills/service-decomposition-bounded-context/SKILL.md`.
 - Cross-service REST/OpenAPI, gRPC/protobuf or event contract governance routes to `skills/contract-governance-expert/SKILL.md`.
 - Production microservice migration safety, rollback, strangler strategy or multi-service risk gates route to `skills/microservice-migration-safety-gate/SKILL.md`.
