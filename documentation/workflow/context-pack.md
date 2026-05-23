@@ -2,49 +2,61 @@
 
 ## Workflow Identity
 
-- Workflow version: `tasklist-remediation-20260523`
-- Workflow branch: `architecture/workflow-tasklist-remediation-20260523`
+- Workflow version: `installation-integration-verification-20260523`
+- Workflow branch: `docs/workflow-installation-integration-test-20260523`
 - Process strand: `workflow create`
 - Execution profile: `FULL_PATH`
 - Created on: `2026-05-23`
 
 ## Purpose
 
-This context pack records the governing inputs used to convert `TASKLIST.md`
-into the active remediation workflow and remove the stale task-list artifact.
-It is a navigation aid only. Root `AGENTS.md`, `QUALITY.md`, the active workflow
-and repository files remain authoritative.
+This context pack records the governing inputs used to create the full
+installation integration-verification workflow. It is a navigation aid only.
+Root `AGENTS.md`, `QUALITY.md`, ADRs, arc42 and repository files remain
+authoritative.
 
-## Converted Source Artifacts
+## Requirement Source
 
-| Artifact | Status | SHA-256 |
-|---|---|---|
-| `TASKLIST.md` | converted and deleted | `96295c760ceaee6217e7987ff0b7bbd034479332d3f3d8341d2bcc4e55df9f48` |
-| `AUDIT_REPORT.md` | retained as audit evidence | `b6714f0898a5ae2eca750516e920a1f412584f43ebc6e195b5d5d61c741c0816` |
+The workflow was created from the user request to define an integration test
+workflow that verifies complete installation and complete functionality, with
+self-remediation for blockers that are at least 90 percent solvable and Three
+Amigos Q&A escalation otherwise.
+
+## Verified Baseline
+
+- The default quality gate is `python3 tools/quality_gate.py quality`.
+- The default quality gate must not run live infrastructure.
+- `AUDIT_REPORT.md` records missing live Multipass/Docker/Swarm evidence.
+- `OPERATIONAL_READINESS_CHECKLIST.md` records open readiness checks for host,
+  VM, network, Docker, Swarm, stack deployment, service reachability, smoke
+  tests, observability and documentation.
+- The current entrypoint exposes explicit service-level commands, not a proven
+  full-installation command.
 
 ## Affected Areas
 
 - `documentation/workflow`
-- `src/tiny_swarm_world`
-- `infra`
-- `tests`
+- `OPERATIONAL_READINESS_CHECKLIST.md`
 - `README.md`
 - `documentation`
-- `QUALITY.md` only if a later slice explicitly changes quality policy
-- `tools/quality_gate.py` only if a later slice explicitly changes gate
-  behavior
+- `src/tiny_swarm_world`
+- `infra/config`
+- `infra/compose`
+- `infra/prepare`
+- `tools`
+- `tests`
 
 ## Forbidden Areas Without Refinement
 
 - `src/main/java/**`
-- live Multipass execution
-- live Docker Swarm execution
-- compose deployments
-- netplan mutation
-- `socat` forwarding
-- service bootstrap scripts
-- frontend package/tooling creation
-- restoring `TASKLIST.md` as an active planning artifact
+- Windows-native runtime support
+- default CI execution of live Multipass or Docker Swarm
+- committed secrets or hardcoded credentials
+- implicit destructive VM, stack or network cleanup
+- live Multipass execution before explicit live-run approval
+- live Docker Swarm execution before explicit live-run approval
+- netplan or socat mutation before explicit live-run approval
+- service bootstrap before explicit live-run approval
 
 ## Required Roles
 
@@ -54,13 +66,15 @@ and repository files remain authoritative.
 - Senior React Frontend Developer
 - Senior Tester
 - Senior DevOps Engineer
+- Senior Security Sandbox Engineer
 - Senior Documentation Engineer
 
 ## Conditional Roles
 
-- Senior Security Sandbox Engineer for secret handling and live-infra safety.
-- Senior Bash Specialist if the previous Bash specialist workflow has been
-  executed and the role exists.
+- Senior Workflow Architect when slice dependency changes are requested.
+- Release and Branch Governance before commit, push or PR.
+- Security Threat Modeling if secret handling or exposed service defaults
+  change.
 
 ## Quality Commands
 
@@ -74,11 +88,15 @@ python3 tools/quality_gate.py test
 python3 tools/quality_gate.py quality
 ```
 
-Optional shell syntax check for shell slices:
+Workflow-creation checks:
 
 ```bash
-find infra -name '*.sh' -print0 | xargs -0 bash -n
+git diff --check
+python3 -m json.tool documentation/workflow/context-pack.json
 ```
+
+Live integration commands are planned artifacts and are not current quality-gate
+commands until their implementation slice adds them.
 
 ## Governing Hashes
 
@@ -87,22 +105,22 @@ find infra -name '*.sh' -print0 | xargs -0 bash -n
 | `AGENTS.md` | `6c0995195e99a2a748ad63d065706c35341977388d3c1c4402a548b388a4755e` |
 | `QUALITY.md` | `d327e4060ff1729f17ffde844b1a2d6208fe203e149ae9d1af185bef0aed2155` |
 | `AUDIT_REPORT.md` | `b6714f0898a5ae2eca750516e920a1f412584f43ebc6e195b5d5d61c741c0816` |
-| `.agents/orchestrator/routing-rules.md` | `a524843f96fa91adc56cbe8b02156abc56a299b263eb8ad6715204bee52cfd31` |
+| `OPERATIONAL_READINESS_CHECKLIST.md` | `bcc8dd6c332e94405d8f8aa471134b4cb319058fcc837cfc597d262ac561a94d` |
 | `.agents/skills/workflow-authoring/SKILL.md` | `087658240296e3b1ec74205c60a96a9a4c67a17cf653f7867e6f316bd9afa94e` |
 | `.agents/skills/three-amigos-requirement-gatekeeper/SKILL.md` | `23de7d9aac9d2694eae26fac2765d65f369c101ac348dac24d5f3bbe9e2d3ba4` |
-| `.agents/skills/execution-profile-router/SKILL.md` | `a1e1195387d55b8ba3baa6b5a891aac982f6ffc734a80c1ab32dc594d4cfc51b` |
-| `.agents/skills/quality-gate/SKILL.md` | `90fe1c9de050f21cb8635fab1b498b93439fffdc050d3b7ceb04bd8d2deea174` |
-| `.agents/skills/quality-architecture-validation/SKILL.md` | `a00a8e7e2ea24c4878533272f0f98b687156e0279a8fa84f67676248b8000e78` |
-| `.importlinter` | `4c5c879ddc20bf7ccb8adca2b907538264f9c3cf9c1c54e3076e7c008f1a62b4` |
-| `tools/quality_gate.py` | `89425bfc2348fcbc9948a6f654d00fa80aeaa03ce46403912fbb207d137fe0ea` |
+| `.agents/skills/quality-gate-orchestrator/SKILL.md` | `3f9ef8278091f7781eacd58d000675fa6a996d81f96802a0abd37cc2a821d40f` |
+| `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc` | `e93d07dc6ce9485208a40d77b6a2c52a5d5442f36845192eac0963a86dc00297` |
+| `src/tiny_swarm_world/__main__.py` | `543c594c9df79faf04e83abcdc1182f05771c16494d48dd5a30cee73a05d2947` |
 
 ## Staleness Rules
 
 This context pack is stale when:
 
 - any recorded governing hash changes;
-- `documentation/workflow/**` changes outside the active slice;
+- `documentation/workflow/**` changes outside the active workflow branch;
 - `AGENTS.md` or `QUALITY.md` changes;
-- a deleted `TASKLIST.md` entry cannot be traced through the workflow;
-- workflow execution changes architecture, quality, live-infra or secret
-  handling policy without updating the workflow.
+- live integration commands are implemented without updating this workflow;
+- mandatory service scope changes;
+- secret handling or destructive cleanup policy changes;
+- arc42 runtime, deployment, quality or risk sections are updated without
+  checking this workflow.

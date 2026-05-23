@@ -1,77 +1,66 @@
 # Workflow Execution Report
 
-Workflow version: `tasklist-remediation-20260523`
-Workflow branch: `architecture/workflow-tasklist-remediation-20260523`
+## Status
 
-## Slice 01: Baseline, Entrypoint And Failure Semantics
+- Workflow: `installation-integration-verification-20260523`
+- Branch: `docs/workflow-installation-integration-test-20260523`
+- Status: `CREATED_NOT_EXECUTED`
+- Created on: `2026-05-23`
 
-Status: `completed`
+## Creation Summary
 
-Responsible role:
+The active workflow was regenerated to define a full installation integration
+verification path. No live Multipass, Docker Swarm, netplan, socat, compose
+deployment or service bootstrap command was executed during workflow creation.
 
-- Senior Python Automation Developer
+## Requirement Gate Decision
 
-Subagent reviews:
+```text
+READY_FOR_WORKFLOW
+```
 
-- Senior Swarm Orchestrator: S3D metadata and ordering reviewed.
-- Senior System Architect: architecture-sensitive Slice 01 repair reviewed.
-- Senior Python Automation Developer: smallest safe implementation reviewed.
-- Senior Tester: Slice 01 test strategy reviewed.
+Confidence:
 
-Changed files:
+- 92 percent for workflow creation.
+- Live execution remains gated because host state, secrets, resource policy and
+  cleanup consent are environment-specific.
 
-- `README.md`
-- `src/tiny_swarm_world/__main__.py`
-- `src/tiny_swarm_world/application/ports/commands/executable_command.py`
-- `src/tiny_swarm_world/application/ports/commands/parameter_type.py`
-- `src/tiny_swarm_world/application/ports/commands/port_command_workflow.py`
-- `src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/**`
-- `src/tiny_swarm_world/application/services/commands/command_executer/**`
-- `src/tiny_swarm_world/application/services/multipass/multipass_docker_swarm_init.py`
-- `src/tiny_swarm_world/application/services/vm/**`
-- `src/tiny_swarm_world/infrastructure/adapters/command_runner/command_workflow.py`
-- `src/tiny_swarm_world/infrastructure/adapters/ui/command_async_runner_ui.py`
-- `src/tiny_swarm_world/infrastructure/adapters/ui/command_sync_runner_ui.py`
-- `tests/architecture/test_hexagonal_imports.py`
-- `tests/application/services/commands/test_command_executer.py`
-- `tests/infrastructure/adapters/command_runner/test_command_workflow_configuration.py`
-- `tests/infrastructure/adapters/ui/test_command_runner_ui_failure_semantics.py`
-- `tests/test_package_entrypoint.py`
+## Created Artifacts
 
-Quality-gate commands:
+- `documentation/workflow/workflow.md`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/execution-report.md`
 
-- `PYTHONPATH=src python3 -m tiny_swarm_world`: pass
-- `PYTHONPATH=src python3 -m tiny_swarm_world --list-services`: pass
-- `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.application.services.commands.test_command_executer tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics tests.infrastructure.test_composition tests.infrastructure.adapters.command_runner.test_async_command_runner tests.infrastructure.adapters.command_runner.test_command_workflow_configuration tests.application.services.platform.test_platform_service_exports tests.architecture.test_legacy_surface_documentation tests.architecture.test_hexagonal_imports`: pass
-- `git diff --check`: pass
-- `/tmp/tiny-swarm-world-quality-venv/bin/python tools/quality_gate.py lint`: pass
-- `/tmp/tiny-swarm-world-quality-venv/bin/python tools/quality_gate.py arch-lint`: pass
-- `/tmp/tiny-swarm-world-quality-venv/bin/python tools/quality_gate.py arch-tests`: pass
-- `/tmp/tiny-swarm-world-quality-venv/bin/python tools/quality_gate.py typecheck`: pass
-- `/tmp/tiny-swarm-world-quality-venv/bin/python tools/quality_gate.py test`: pass
-- `/tmp/tiny-swarm-world-quality-venv/bin/python tools/quality_gate.py quality`: pass
+## Commands To Verify Creation
 
-Quality-gate result: `pass`
+```bash
+git diff --check
+python3 -m json.tool documentation/workflow/context-pack.json
+```
 
-Rollback reference:
+Result:
 
-- Previous checkpoint before Slice 01: `adf7065`
-- Checkpoint commit: recorded by Git history for this slice checkpoint.
+- `git diff --check`: passed.
+- `python3 -m json.tool documentation/workflow/context-pack.json`: passed.
 
-arc42 update status:
+## Live Execution Status
 
-- `not changed`
-- Rationale: Slice 01 verifies and repairs entrypoint/failure semantics and
-  preserves existing architecture boundaries. No new runtime topology or
-  deployment behavior was introduced.
+Live execution has not started. Workflow execution must complete Slices 01
+through 07 and obtain explicit live-run approval before Slice 08 can run.
 
-ADR update status:
+## Blockers
 
-- `not required`
-- Rationale: The entrypoint now requires explicit service selection, and
-  command failures propagate instead of being hidden. This refines existing
-  behavior without changing an architectural decision.
+No blockers remain for workflow creation.
 
-Push result:
+Potential blockers for future execution:
 
-- Pending until Slice 01 checkpoint commit is pushed.
+- missing Multipass or Docker on the host;
+- insufficient CPU, memory or disk for all services;
+- missing secrets or unsafe default credentials;
+- ambiguous mandatory service scope under constrained host resources;
+- non-idempotent VM, Swarm or stack behavior discovered during implementation.
+
+If a future blocker cannot be solved with at least 90 percent confidence, the
+executor must stop and record Three Amigos questions in this report before
+continuing.
