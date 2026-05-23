@@ -7,6 +7,13 @@
 - Status: `CREATED_NOT_EXECUTED`
 - Created on: `2026-05-23`
 
+## Execution Precedence
+
+This report records the broader roadmap workflow creation. On branch
+`docs/workflow-init-safety-first-control-plane-20260523`,
+`documentation/workflow/workflow-init-safety-first-control-plane.md` is the
+active workflow-execute authority before broader roadmap work.
+
 ## Creation Summary
 
 The active workflow was regenerated for the user request to remove destructive

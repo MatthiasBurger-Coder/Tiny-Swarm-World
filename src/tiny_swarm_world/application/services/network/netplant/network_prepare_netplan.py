@@ -3,6 +3,7 @@ import logging
 from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
 from tiny_swarm_world.application.ports.repositories.port_vm_repository import PortVmRepository
 from tiny_swarm_world.application.ports.repositories.port_yaml_repository import PortYamlRepository
+from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
 from tiny_swarm_world.domain.multipass.vm_type import VmType
 from tiny_swarm_world.domain.network.ip_extractor.ip_extractor_builder import IpExtractorBuilder
 from tiny_swarm_world.domain.network.ip_extractor.strategies.ip_extstractor_types import IpExtractorTypes
@@ -26,7 +27,10 @@ class NetworkPrepareNetplan:
     async def run(self):
         self.logger.info("Setup cloud-init-manager.yaml")
 
-        result = await self.command_workflow.run_async("command_netplant_ip_yaml.yaml")
+        result = await self.command_workflow.run_async(
+            "command_netplant_ip_yaml.yaml",
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+        )
         self.logger.info(f"multipass clean up result: {result}")
 
         # getting the necessary IPs

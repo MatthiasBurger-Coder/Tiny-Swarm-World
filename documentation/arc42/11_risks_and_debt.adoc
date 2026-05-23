@@ -1,3 +1,16 @@
 ==  Risks & Technical Debt
 
 Potential challenges and risks.
+
+=== Remaining Command Execution Risk
+
+The command catalog now classifies command metadata and enforces workflow
+allow-lists before command building. The underlying runner still uses shell
+execution for the existing command templates because the current operational
+catalog is shell-oriented. Shell command replacement with argv-style execution
+remains future hardening work and must preserve current Linux/WSL behavior.
+
+Command parameters are constrained by type-specific patterns before
+substitution, and runner logs no longer include the full raw command string.
+Further redaction policy for command output and runtime evidence belongs to the
+state/evidence and verify-after-apply slices.

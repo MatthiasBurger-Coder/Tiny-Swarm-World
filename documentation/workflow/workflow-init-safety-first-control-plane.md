@@ -956,6 +956,34 @@ Validation must reject:
 - mutating commands without verify spec;
 - commands used by workflows not listed in `allowed_workflows`.
 
+Implemented contract notes:
+
+- Domain command entities own parser-independent validation for command
+  identity, safety class, declared effects, verification, and workflow
+  allow-list checks.
+- YAML repository loading now rejects malformed root data, unsupported root
+  fields, non-dictionary command entries, duplicate command IDs, duplicate
+  execution indexes, missing typed metadata, unknown enum values, destructive
+  shell strings without destructive classification, and mutating commands
+  without verification.
+- Command workflow ports now require an explicit workflow identifier. Command
+  building validates `allowed_workflows` before executable command strings are
+  created.
+- All existing `infra/config/**/command_*.yaml` files are migrated to typed
+  entries with `id`, `intent`, `execution_mode`, `safety_class`, `scope`,
+  `allowed_workflows`, `parameters`, `effects`, and `verify` metadata.
+- Runner logs no longer include the full raw command string, and command
+  parameter substitution rejects values outside the configured parameter
+  patterns.
+- ADR need was checked. No new ADR is added in Slice 07 because this slice's
+  file locks do not include `documentation/architecture/**`; arc42 records the
+  implemented contract and Slice 10 can add an ADR/index update if the project
+  keeps this as a standalone architecture decision record.
+- The safety-first workflow file is the active execution authority for this
+  branch. `documentation/workflow/workflow.md`, `context-pack.*`, and
+  `execution-report.md` describe the broader roadmap or workflow-creation
+  context and must not override this Slice 07 ordering.
+
 Verification commands:
 
 ```bash

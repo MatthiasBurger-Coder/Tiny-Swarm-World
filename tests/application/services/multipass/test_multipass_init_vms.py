@@ -8,6 +8,7 @@ from tiny_swarm_world.application.ports.commands.executable_command import (
 from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
 from tiny_swarm_world.application.services.multipass.multipass_init_vms import MultipassInitVms
+from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
 
 
 DESTRUCTIVE_CONFIG_FILES = {
@@ -39,6 +40,10 @@ class TestMultipassInitVms(unittest.IsolatedAsyncioTestCase):
 
         requested_config_files = [call.config_file for call in command_workflow.async_calls]
         self.assertEqual(1, requested_config_files.count(INIT_CONFIG_FILE))
+        self.assertEqual(
+            [CommandWorkflowId.PLATFORM_INIT.value],
+            [call.workflow_id for call in command_workflow.async_calls],
+        )
 
 
 def _destructive_or_reset_like_config_files(config_files: list[str]) -> list[str]:
@@ -61,24 +66,30 @@ class _RecordingCommandWorkflow(PortCommandWorkflow):
         self,
         config_file: str,
         parameter: dict[ParameterType, str] | None = None,
+        *,
+        workflow_id: str,
     ) -> dict[str, dict[int, ExecutableCommandEntity]]:
-        self.build_calls.append(_WorkflowCall(config_file, parameter))
+        self.build_calls.append(_WorkflowCall(config_file, parameter, workflow_id))
         return {}
 
     async def run_async(
         self,
         config_file: str,
         parameter: dict[ParameterType, str] | None = None,
+        *,
+        workflow_id: str,
     ) -> Any:
-        self.async_calls.append(_WorkflowCall(config_file, parameter))
+        self.async_calls.append(_WorkflowCall(config_file, parameter, workflow_id))
         return f"ran {config_file}"
 
     async def run_sync(
         self,
         config_file: str,
         parameter: dict[ParameterType, str] | None = None,
+        *,
+        workflow_id: str,
     ) -> Any:
-        self.sync_calls.append(_WorkflowCall(config_file, parameter))
+        self.sync_calls.append(_WorkflowCall(config_file, parameter, workflow_id))
         return f"ran {config_file}"
 
 
@@ -86,6 +97,7 @@ class _RecordingCommandWorkflow(PortCommandWorkflow):
 class _WorkflowCall:
     config_file: str
     parameter: dict[ParameterType, str] | None
+    workflow_id: str
 
 
 if __name__ == "__main__":

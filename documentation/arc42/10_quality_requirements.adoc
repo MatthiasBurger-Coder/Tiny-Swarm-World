@@ -1,3 +1,19 @@
 == Quality Requirements
 
 Critical quality aspects and non-functional requirements.
+
+=== Command Catalog Safety
+
+The command catalog must fail closed before command execution:
+
+* every command YAML entry has a stable `id` and complete typed metadata;
+* duplicate command IDs or duplicate execution indexes are rejected;
+* destructive command strings without `safety_class: destructive` are rejected;
+* mutating commands without a verification specification are rejected;
+* command usage is rejected when the active workflow is not listed in
+  `allowed_workflows`.
+
+The default quality gate must validate this contract without executing live
+infrastructure commands. Regression coverage includes domain model validation,
+YAML repository validation, workflow allow-list enforcement, and static checks
+that destructive command patterns are reset/destroy only.

@@ -2,6 +2,8 @@ import ast
 import unittest
 from pathlib import Path
 
+from ruamel.yaml import YAML
+
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_ROOT = REPOSITORY_ROOT / "infra" / "config"
@@ -22,6 +24,7 @@ DESTRUCTIVE_COMMAND_PATTERNS = (
 DESTRUCTIVE_COMMAND_YAML_FILES = {
     "infra/config/multipass/command_multipass_clean_repository_yaml.yaml",
 }
+DESTRUCTIVE_WORKFLOWS = {"platform:reset", "platform:destroy"}
 
 
 class TestInitSafetyContracts(unittest.TestCase):
@@ -33,6 +36,24 @@ class TestInitSafetyContracts(unittest.TestCase):
         }
 
         self.assertEqual(DESTRUCTIVE_COMMAND_YAML_FILES, destructive_files)
+
+    def test_destructive_patterns_are_classified_and_reset_destroy_only(self):
+        violations = {}
+        yaml = YAML()
+
+        for path in CONFIG_ROOT.rglob("command_*.yaml"):
+            catalog = yaml.load(path.read_text(encoding="utf-8")) or {}
+            for command in catalog.get("commands", []):
+                command_text = command.get("command", "")
+                if not _contains_any(command_text, DESTRUCTIVE_COMMAND_PATTERNS):
+                    continue
+                allowed_workflows = set(command.get("allowed_workflows", []))
+                if command.get("safety_class") != "destructive":
+                    violations[command["id"]] = "missing destructive safety class"
+                elif not allowed_workflows or allowed_workflows - DESTRUCTIVE_WORKFLOWS:
+                    violations[command["id"]] = sorted(allowed_workflows)
+
+        self.assertEqual({}, violations)
 
     def test_init_application_service_does_not_reference_destructive_yaml(self):
         selected_config_files = _run_async_config_file_literals(MULTIPASS_INIT_SERVICE)

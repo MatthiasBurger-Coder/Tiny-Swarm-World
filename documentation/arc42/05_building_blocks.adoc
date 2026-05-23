@@ -45,6 +45,34 @@ Compatibility properties on `ApplicationServices` keep the existing
 service-level accessors available for migration, but the public Python
 entrypoint now routes through workflow-level commands.
 
+=== Typed Command Catalog
+
+Command YAML files under `infra/config/**/command_*.yaml` are product
+configuration and are loaded as typed command catalog entries.
+
+The domain command model owns parser-independent metadata and safety rules:
+
+* stable command `id`
+* command `intent`
+* `execution_mode`
+* `safety_class`
+* owned `scope`
+* `allowed_workflows`
+* template `parameters`
+* declared `effects`
+* `verify` specification
+
+The infrastructure YAML repository parses files and maps them to domain
+command entities. Application command building receives an explicit workflow
+identifier and rejects commands whose `allowed_workflows` do not include the
+active workflow before executable command strings are built.
+
+The supported safety classes are `safe_read`, `safe_mutation`, `destructive`,
+`credential_mutation`, and `network_mutation`. Destructive command patterns
+such as Multipass delete or purge are accepted only when classified as
+`destructive` and limited to reset or destroy workflows. Mutating commands
+must declare a verification specification.
+
 === Infrastructure Assets
 
 `infra` contains infrastructure and deployment assets that are not Python

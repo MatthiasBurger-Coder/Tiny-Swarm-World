@@ -1,3 +1,27 @@
 == Cross-cutting Concepts
 
 Architectural principles and security concepts.
+
+=== Command Safety Contract
+
+Command execution is governed by a typed catalog before command strings reach
+runner adapters. Each command entry declares identity, intent, execution mode,
+safety class, scope, allowed workflows, parameters, effects, and verification.
+
+Safety classification is fail-closed:
+
+* missing IDs, duplicate IDs, unknown metadata, and malformed YAML are rejected;
+* destructive shell patterns require `safety_class: destructive`;
+* destructive commands are allowed only in reset or destroy workflows;
+* mutating commands require a non-empty verification specification;
+* a workflow cannot build commands that do not list its workflow identifier in
+  `allowed_workflows`.
+
+The domain owns the metadata model and parser-independent invariants.
+Infrastructure owns YAML parsing and file lookup. Application command building
+passes the active workflow identifier through the command port and validates
+catalog entries before runner-specific executable commands are created.
+
+Tests and quality gates parse and validate command YAML without running live
+Multipass, Docker Swarm, netplan, socat, compose, Portainer, Nexus, Jenkins,
+RabbitMQ, SonarQube, or Swagger/NGINX commands.

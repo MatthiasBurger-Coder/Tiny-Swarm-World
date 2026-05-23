@@ -11,6 +11,8 @@ class PortCommandWorkflow(ABC):
         self,
         config_file: str,
         parameter: Optional[Dict[ParameterType, str]] = None,
+        *,
+        workflow_id: str,
     ) -> Dict[str, Dict[int, ExecutableCommandEntity]]:
         pass
 
@@ -19,6 +21,8 @@ class PortCommandWorkflow(ABC):
         self,
         config_file: str,
         parameter: Optional[Dict[ParameterType, str]] = None,
+        *,
+        workflow_id: str,
     ) -> Any:
         pass
 
@@ -27,5 +31,7 @@ class PortCommandWorkflow(ABC):
         self,
         config_file: str,
         parameter: Optional[Dict[ParameterType, str]] = None,
+        *,
+        workflow_id: str,
     ) -> Any:
         pass

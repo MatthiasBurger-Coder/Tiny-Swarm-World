@@ -1,15 +1,43 @@
 commands:
-  - index: 1
-    description: "Creating {vm_instance}"
+  - id: multipass_init_repository.001
+    index: 1
+    description: Creating {vm_instance}
+    intent: creating_vm_instance
+    execution_mode: shell
+    safety_class: safe_mutation
+    scope: multipass
+    allowed_workflows:
+      - platform:init
+    parameters:
+      - vm_instance
+    effects:
+      - create
+    verify:
+      type: manual
+      description: 'Verify after command: Creating {vm_instance}'
     command: "multipass launch -n {vm_instance} --memory 4G --disk 50G"
     runner: "async"
     command_type: "hostos"
-    vm_type: 
+    vm_type:
       - "manager"
       - "worker"
 
-  - index: 2
-    description: "Getting the IP address of {vm_instance}"
+  - id: multipass_init_repository.002
+    index: 2
+    description: Getting the IP address of {vm_instance}
+    intent: getting_the_ip_address_of_vm_instance
+    execution_mode: shell
+    safety_class: safe_read
+    scope: multipass
+    allowed_workflows:
+      - platform:init
+    parameters:
+      - vm_instance
+    effects:
+      - read
+    verify:
+      type: none
+      description: Read-only command.
     command: "multipass exec {vm_instance} -- ip -4 route show default"
     runner: "async"
     command_type: "hostos"

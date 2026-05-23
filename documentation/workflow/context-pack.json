@@ -4,6 +4,7 @@
   "processStrand": "workflow create",
   "executionProfile": "FULL_PATH",
   "createdDate": "2026-05-23",
+  "executionPrecedence": "This context pack describes the broader roadmap workflow. On branch docs/workflow-init-safety-first-control-plane-20260523, documentation/workflow/workflow-init-safety-first-control-plane.md is the active workflow-execute authority before broader roadmap work.",
   "requirement": {
     "summary": "Create a workflow for non-destructive init, separate reconcile/reset/destroy workflows, real Platform/Artifacts/Deployment service separation, workflow-level CLI, Nexus stack deployment extraction, typed command YAMLs, state/inventory modeling, and verify-after-apply enforcement.",
     "decision": "READY_FOR_WORKFLOW",

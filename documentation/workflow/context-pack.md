@@ -8,6 +8,14 @@
 - Execution profile: `FULL_PATH`
 - Created on: `2026-05-23`
 
+## Execution Precedence
+
+This context pack belongs to the broader roadmap workflow. On branch
+`docs/workflow-init-safety-first-control-plane-20260523`,
+`documentation/workflow/workflow-init-safety-first-control-plane.md` is the
+active workflow-execute authority because `workflow.md` explicitly gives that
+file execution precedence before broader roadmap work.
+
 ## Purpose
 
 This context pack records the governing inputs used to create the workflow for
