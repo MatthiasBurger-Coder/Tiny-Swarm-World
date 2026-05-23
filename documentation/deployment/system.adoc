@@ -17,7 +17,18 @@ The repository separates deployment work into three areas:
 * `infra/prepare` contains one-off preparation scripts for services such as Portainer and Nexus.
 * `infra/compose` contains compose stacks and upload helpers for Portainer-managed stack deployment.
 
-The active Python entry point currently registers the dependency container and lists Multipass VM IP addresses through `VmIpList`. Infrastructure-changing steps for VM creation, Docker installation, Swarm initialization, network changes, and service deployment are present in the code but commented. Enable those steps deliberately only when the target environment is ready.
+The active Python entry point exposes workflow-level commands. Running without
+arguments does not execute infrastructure commands, and `--list-workflows`
+returns the declared workflow list without building application services.
+Static preflight is available through `--preflight`.
+
+Implemented platform workflows are `platform init`, `platform reconcile`,
+`platform verify`, `platform reset`, and `platform destroy`. Mutating platform
+workflows require live consent before service construction. Reset and destroy
+also require exact confirmation and currently block after confirmation until
+retention and teardown semantics are implemented. Artifact and deployment
+workflow names are declared by the CLI contract but remain blocked until their
+workflow wiring lands.
 
 == Development gate before deployment work
 
@@ -30,7 +41,9 @@ python3 tools/quality_gate.py quality
 
 When a virtual environment is active, `python` can be used instead of `python3`.
 
-The quality gate covers linting, import architecture checks, architecture tests, type checks, and the pytest suite. It does not start Multipass VMs, initialize Docker Swarm, or deploy live services.
+The quality gate covers linting, import architecture checks, architecture
+tests, type checks, and unittest discovery. It does not start Multipass VMs,
+initialize Docker Swarm, or deploy live services.
 
 == Portainer preparation
 
@@ -43,6 +56,10 @@ cd infra/prepare
 ----
 
 `prepare.sh` currently delegates to the Portainer preparation script. Review `infra/prepare/portainer/prepare.sh` before running it against a live environment because it initializes the Portainer administrator account.
+
+Direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm` are
+outside the workflow-level CLI consent guard. Treat them as live operator
+actions, not development quality-gate commands.
 
 == Nexus bootstrap
 
@@ -84,6 +101,7 @@ cd infra/compose
 ----
 
 The script uploads the stack definitions from `infra/compose`. It requires a reachable Portainer instance and valid credentials.
+It can delete or recreate stacks and must be reviewed before use.
 
 == Verification
 
@@ -102,3 +120,7 @@ Service-specific web interfaces depend on the published stack ports. Typical loc
 == Operational caution
 
 Deployment scripts can create or modify virtual machines, Docker configuration, Swarm state, network settings, and service credentials. Review the enabled script sections and environment variables before running them against an existing local environment.
+
+Legacy helper areas such as `infra/swarm/**`, old Nexus shell helpers, and
+direct Portainer upload scripts remain documented as transitional or
+unsupported until a dedicated cleanup slice verifies replacement parity.

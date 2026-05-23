@@ -1,84 +1,103 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from dataclasses import dataclass
+from typing import Any
 
+from tiny_swarm_world.application.ports.commands.executable_command import (
+    ExecutableCommandEntity,
+)
+from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
+from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
 from tiny_swarm_world.application.services.multipass.multipass_init_vms import MultipassInitVms
+from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
 
 
-class TestMultipassInitVms(unittest.IsolatedAsyncioTestCase):  # For asyncio-compatible tests in Python 3.8+
-    def setUp(self):
-        # `setUp` initializes mocked dependencies
-        self.mock_vm_repository = MagicMock()
-        self.mock_command_runner_factory = MagicMock()
-        self.mock_logger = MagicMock()
+DESTRUCTIVE_CONFIG_FILES = {
+    "command_multipass_clean_repository_yaml.yaml",
+}
+INIT_CONFIG_FILE = "command_multipass_init_repository_yaml.yaml"
 
-        # Instance of the `MultipassInitVms` class with mock objects
-        self.multipass_init_vms = MultipassInitVms(
 
-            command_runner_factory=self.mock_command_runner_factory
+class TestMultipassInitVms(unittest.IsolatedAsyncioTestCase):
+    async def test_run_does_not_select_destructive_cleanup_yaml(self):
+        command_workflow = _RecordingCommandWorkflow()
+
+        await MultipassInitVms(command_workflow).run()
+
+        requested_config_files = [call.config_file for call in command_workflow.async_calls]
+        self.assertNotIn(
+            "command_multipass_clean_repository_yaml.yaml",
+            requested_config_files,
         )
-        # Add mock logger
-        self.multipass_init_vms.logger = self.mock_logger
+        self.assertFalse(
+            _destructive_or_reset_like_config_files(requested_config_files),
+            requested_config_files,
+        )
+
+    async def test_run_executes_init_repository_once(self):
+        command_workflow = _RecordingCommandWorkflow()
+
+        await MultipassInitVms(command_workflow).run()
+
+        requested_config_files = [call.config_file for call in command_workflow.async_calls]
+        self.assertEqual(1, requested_config_files.count(INIT_CONFIG_FILE))
+        self.assertEqual(
+            [CommandWorkflowId.PLATFORM_INIT.value],
+            [call.workflow_id for call in command_workflow.async_calls],
+        )
 
 
-    @unittest.skip("Test is temporarily disabled")
-    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.PortCommandRepositoryYaml')
-    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.FileManager')
-    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.CommandRunnerUI')
-    async def test_run(self, mock_command_runner_ui, mock_yaml_file_manager, mock_command_repository_yaml):
-        # # Configure mocks
-        # mock_runner_ui_instance = AsyncMock()  # For `await runner_ui.run()`
-        # mock_runner_ui_instance.run.return_value = "success"
-        # mock_command_runner_ui.return_value = mock_runner_ui_instance
-        # mock_command_repository_yaml.return_value = MagicMock()
-        #
-        # # Mock YamlFileManager behavior
-        # mock_yaml_file_manager_instance = mock_yaml_file_manager.return_value
-        # mock_yaml_file_manager_instance.load.return_value = {"mock": "data"}
-        # mock_yaml_file_manager_instance.save = MagicMock()
-        #
-        # # Call `run` (asynchronous)
-        # await self.multipass_init_vms.run()
-        #
-        # # Verify logger calls
-        # self.mock_logger.info.assert_any_call("init clean up")
-        # self.mock_logger.info.assert_any_call("initialisation of multipass")
-        # self.mock_logger.info.assert_any_call("multipass clean up result: success")
-        # self.mock_logger.info.assert_any_call("initialisation of multipass: success")
-        #
-        # # Verify that `runner_ui.run` was executed twice
-        # self.assertEqual(mock_runner_ui_instance.run.call_count, 2)
-        pass
+def _destructive_or_reset_like_config_files(config_files: list[str]) -> list[str]:
+    unsafe_terms = ("clean", "delete", "purge", "destroy", "reset")
+    return [
+        config_file
+        for config_file in config_files
+        if config_file in DESTRUCTIVE_CONFIG_FILES
+        or any(term in config_file.lower() for term in unsafe_terms)
+    ]
 
-    @unittest.skip("Test is temporarily disabled")
-    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.PortCommandRepositoryYaml')
-    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.FileManager')
-    @patch('tiny_swarm_world.application.services.multipass.multipass_init_vms.CommandBuilder')
-    def test_setup_commands_init(self, mock_command_builder, mock_file_manager, mock_command_repository_yaml):
-        # # Configure mocks
-        # mock_command_builder_instance = MagicMock()
-        # mock_command_builder.return_value = mock_command_builder_instance
-        # mock_command_list = {"command_group": {0: MagicMock()}}
-        # mock_command_builder_instance.get_command_list.return_value = mock_command_list
-        #
-        # # Mock YamlFileManager behavior
-        # mock_yaml_file_manager_instance = mock_file_manager.return_value
-        # mock_yaml_file_manager_instance.load.return_value = {"mock": "data"}
-        # mock_yaml_file_manager_instance.save = MagicMock()
-        #
-        # # Execute `_setup_commands_init`
-        # config_file = "mock/path/to/config.yaml"
-        #
-        # # Verify that CommandBuilder methods were called correctly
-        # mock_command_builder.assert_called_once_with(
-        #     vm_repository=self.mock_vm_repository,
-        #     command_repository=mock_command_repository_yaml.return_value,
-        #     command_runner_factory=self.mock_command_runner_factory
-        # )
-        # mock_command_builder_instance.get_command_list.assert_called_once()
-        #
-        # # Verify the result
-        # self.assertEqual(result, mock_command_list)
-        pass
+
+class _RecordingCommandWorkflow(PortCommandWorkflow):
+    def __init__(self) -> None:
+        self.async_calls: list[_WorkflowCall] = []
+        self.sync_calls: list[_WorkflowCall] = []
+        self.build_calls: list[_WorkflowCall] = []
+
+    def build_command_list(
+        self,
+        config_file: str,
+        parameter: dict[ParameterType, str] | None = None,
+        *,
+        workflow_id: str,
+    ) -> dict[str, dict[int, ExecutableCommandEntity]]:
+        self.build_calls.append(_WorkflowCall(config_file, parameter, workflow_id))
+        return {}
+
+    async def run_async(
+        self,
+        config_file: str,
+        parameter: dict[ParameterType, str] | None = None,
+        *,
+        workflow_id: str,
+    ) -> Any:
+        self.async_calls.append(_WorkflowCall(config_file, parameter, workflow_id))
+        return f"ran {config_file}"
+
+    async def run_sync(
+        self,
+        config_file: str,
+        parameter: dict[ParameterType, str] | None = None,
+        *,
+        workflow_id: str,
+    ) -> Any:
+        self.sync_calls.append(_WorkflowCall(config_file, parameter, workflow_id))
+        return f"ran {config_file}"
+
+
+@dataclass(frozen=True)
+class _WorkflowCall:
+    config_file: str
+    parameter: dict[ParameterType, str] | None
+    workflow_id: str
 
 
 if __name__ == "__main__":

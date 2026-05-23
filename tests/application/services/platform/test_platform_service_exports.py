@@ -28,9 +28,29 @@ from tiny_swarm_world.application.services.platform import (
     MultipassRestartVMs,
     NetworkPrepareNetplan,
     NetworkSetupNetplan,
+    PlatformDestroyWorkflow,
+    PlatformInitWorkflow,
+    PlatformReconcileWorkflow,
+    PlatformResetWorkflow,
+    PlatformVerifyWorkflow,
     PreflightService,
     SocatManager,
     VmIpList,
+)
+from tiny_swarm_world.application.services.platform.workflows import (
+    PlatformDestroyWorkflow as ExistingPlatformDestroyWorkflow,
+)
+from tiny_swarm_world.application.services.platform.workflows import (
+    PlatformInitWorkflow as ExistingPlatformInitWorkflow,
+)
+from tiny_swarm_world.application.services.platform.workflows import (
+    PlatformReconcileWorkflow as ExistingPlatformReconcileWorkflow,
+)
+from tiny_swarm_world.application.services.platform.workflows import (
+    PlatformResetWorkflow as ExistingPlatformResetWorkflow,
+)
+from tiny_swarm_world.application.services.platform.workflows import (
+    PlatformVerifyWorkflow as ExistingPlatformVerifyWorkflow,
 )
 from tiny_swarm_world.application.services.platform.preflight_service import (
     PreflightService as ExistingPreflightService,
@@ -46,6 +66,11 @@ class TestPlatformServiceExports(unittest.TestCase):
         self.assertIs(MultipassRestartVMs, ExistingMultipassRestartVMs)
         self.assertIs(NetworkPrepareNetplan, ExistingNetworkPrepareNetplan)
         self.assertIs(NetworkSetupNetplan, ExistingNetworkSetupNetplan)
+        self.assertIs(PlatformDestroyWorkflow, ExistingPlatformDestroyWorkflow)
+        self.assertIs(PlatformInitWorkflow, ExistingPlatformInitWorkflow)
+        self.assertIs(PlatformReconcileWorkflow, ExistingPlatformReconcileWorkflow)
+        self.assertIs(PlatformResetWorkflow, ExistingPlatformResetWorkflow)
+        self.assertIs(PlatformVerifyWorkflow, ExistingPlatformVerifyWorkflow)
         self.assertIs(PreflightService, ExistingPreflightService)
         self.assertIs(SocatManager, ExistingSocatManager)
         self.assertIs(VmIpList, ExistingVmIpList)

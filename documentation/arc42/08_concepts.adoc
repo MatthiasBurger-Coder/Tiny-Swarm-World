@@ -1,3 +1,78 @@
 == Cross-cutting Concepts
 
 Architectural principles and security concepts.
+
+=== Command Safety Contract
+
+Command execution is governed by a typed catalog before command strings reach
+runner adapters. Each command entry declares identity, intent, execution mode,
+safety class, scope, allowed workflows, parameters, effects, and verification.
+
+Safety classification is fail-closed:
+
+* missing IDs, duplicate IDs, unknown metadata, and malformed YAML are rejected;
+* destructive shell patterns require `safety_class: destructive`;
+* destructive commands are allowed only in reset or destroy workflows;
+* mutating commands require a non-empty verification specification;
+* a workflow cannot build commands that do not list its workflow identifier in
+  `allowed_workflows`.
+
+The domain owns the metadata model and parser-independent invariants.
+Infrastructure owns YAML parsing and file lookup. Application command building
+passes the active workflow identifier through the command port and validates
+catalog entries before runner-specific executable commands are created.
+
+Tests and quality gates parse and validate command YAML without running live
+Multipass, Docker Swarm, netplan, socat, compose, Portainer, Nexus, Jenkins,
+RabbitMQ, SonarQube, or Swagger/NGINX commands.
+
+=== Desired Inventory, Observed State, And Evidence
+
+Tiny Swarm World separates intended state from runtime facts.
+
+Desired inventory is the operator-approved target view. It is represented by
+`DesiredInventory` and VM desired-state entries and may be loaded from
+committed product configuration.
+
+Observed inventory is the local runtime view collected by adapters. It contains
+typed VM, network, Docker, Swarm, stack, and artifact registry state. Observed
+inventory is written only below `.tiny-swarm-world/` and must remain ignored by
+Git.
+
+Verification evidence is represented by `VerificationResult` with one of these
+statuses:
+
+* `not_checked`
+* `verified`
+* `failed_to_apply`
+* `failed_to_verify`
+* `blocked`
+* `refused`
+
+Verification evidence is stored as structured summary data, not as raw command
+payloads. Evidence keys that would store raw command strings, stdout, stderr,
+environment data, tokens, passwords, or secrets are rejected by the domain
+model before local persistence.
+
+This separation lets apply workflows report apply failure and verify failure
+separately without treating generated logs or command output as validated
+runtime evidence.
+
+=== Verify After Apply
+
+Mutating workflow continuation is fail-closed. A step that can change platform
+state must provide verification evidence before the workflow can continue to
+the next mutating step.
+
+The workflow result distinguishes:
+
+* `failed_to_apply` when the apply part raises or explicitly reports failed
+  application;
+* `failed_to_verify` when apply succeeded but verification fails;
+* `blocked` when the step lacks a verification path or verified evidence is
+  missing.
+
+Evidence values are sanitized as well as evidence keys. Raw command payloads,
+stdout/stderr labels, shell-like command strings, token/password/secret
+markers, multi-line payloads, and PEM-like blocks are rejected before evidence
+can be persisted.

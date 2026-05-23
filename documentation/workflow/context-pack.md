@@ -8,6 +8,14 @@
 - Execution profile: `FULL_PATH`
 - Created on: `2026-05-23`
 
+## Execution Precedence
+
+This context pack belongs to the broader roadmap workflow. On branch
+`docs/workflow-init-safety-first-control-plane-20260523`,
+`documentation/workflow/workflow-init-safety-first-control-plane.md` is the
+active workflow-execute authority because `workflow.md` explicitly gives that
+file execution precedence before broader roadmap work.
+
 ## Purpose
 
 This context pack records the governing inputs used to create the workflow for
@@ -35,9 +43,15 @@ The workflow was created from the user request:
 
 No dedicated EPIC exists under `documentation/epics`. The temporary baseline is
 the user request, `AGENTS.md`, `QUALITY.md`, subagent review output, current
-architecture docs, arc42 and the proposed Platform/Artifacts/Deployment ADR.
+architecture docs, arc42 and the Platform/Artifacts/Deployment responsibility
+ADR. That ADR is now accepted as a responsibility direction and partially
+implemented.
 
-## Verified Baseline
+## Verified Baseline At Workflow Creation
+
+This baseline is historical. It records the state used to create the broader
+roadmap workflow before the safety-first workflow execution branch applied
+Slices 01 through 09.
 
 - Default quality gate: `python3 tools/quality_gate.py quality`.
 - Default quality gate must not run live infrastructure.
@@ -45,11 +59,31 @@ architecture docs, arc42 and the proposed Platform/Artifacts/Deployment ADR.
 - The cleanup command YAML contains `multipass delete --all` and
   `multipass purge`.
 - Composition currently exposes platform services only.
-- CLI currently exposes low-level service choices.
+- At workflow creation, the CLI exposed low-level service choices.
 - Nexus stack deployment currently lives under Nexus service code.
-- Command YAML validation is not yet a typed schema contract.
-- Desired inventory and observed runtime state are not yet separated.
+- At workflow creation, command YAML validation was not yet a typed schema
+  contract.
+- At workflow creation, desired inventory and observed runtime state were not
+  yet separated.
 - Netplan apply has no mandatory typed verification gate.
+
+## Safety-First Execution Status
+
+On branch `docs/workflow-init-safety-first-control-plane-20260523`, the
+safety-first workflow is the active execution authority. Checkpoint commits
+through Slice 09 have implemented:
+
+* non-destructive normal init;
+* workflow taxonomy and workflow-level CLI routing;
+* Platform, Artifacts, and Deployment service bundles;
+* Deployment namespace ownership for `EnsureNexusStack`, with deployment
+  workflow composition still pending;
+* typed command YAML contracts and workflow allow-lists;
+* desired inventory, observed inventory, and verification evidence separation;
+* verify-after-apply behavior for mutating platform workflows.
+
+This context pack remains a navigation aid, not the current execution status
+report.
 
 ## Affected Areas
 

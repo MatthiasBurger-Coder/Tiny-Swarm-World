@@ -1,3 +1,38 @@
 == Context & Scope
 
-Describes the interaction with external systems.
+Tiny Swarm World runs as a local automation application from a Linux or WSL
+shell. Operators interact with the Python entry point and, when explicitly
+approved, with live local infrastructure.
+
+== External Systems
+
+The following systems are outside the Python process and are treated as live
+infrastructure:
+
+* Multipass and the managed virtual machines;
+* Docker Engine and Docker Swarm inside or outside the VMs;
+* netplan and host/VM networking;
+* socat and WSL port-forwarding helpers;
+* Portainer and its API;
+* Nexus and its API;
+* Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, and other deployed stacks;
+* shell scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`.
+
+The default development quality gate does not call these systems. Tests use
+mocks, static inspection, architecture checks, and typed configuration
+validation unless a future live-infrastructure workflow explicitly approves
+integration execution.
+
+== Supported Boundary
+
+The supported operator entry point is:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world
+----
+
+Direct scripts under `infra/swarm`, legacy Nexus shell helpers, and direct
+Portainer upload scripts are quarantined or transitional live-operation
+surfaces. They remain documented for operators who intentionally inspect and
+run them, but they are not default workflow entry points.

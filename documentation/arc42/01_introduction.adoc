@@ -1,3 +1,27 @@
 == Introduction & Goals
 
-This document describes the architecture of Docker Swarm with Multipass.
+Tiny Swarm World is a Linux/WSL-only Python automation project for operating a
+production-like local Docker Swarm environment on Multipass virtual machines.
+It provides workflow-level commands for platform preparation and verification,
+plus infrastructure assets for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+and Swagger/NGINX.
+
+The current architecture goals are:
+
+* keep normal `platform init` and `platform reconcile` non-destructive;
+* require explicit live-infrastructure consent before mutating local
+  infrastructure;
+* keep `platform reset` and `platform destroy` behind exact confirmation
+  contracts;
+* preserve hexagonal dependency direction between domain, application, and
+  infrastructure;
+* classify command YAML entries through typed safety metadata and workflow
+  allow-lists;
+* store observed runtime state and verification evidence only under the
+  ignored `.tiny-swarm-world/` local state root;
+* require verify-after-apply behavior for mutating workflow steps;
+* keep live Multipass, Docker Swarm, netplan, socat, compose, and service
+  bootstrap commands out of the default quality gate.
+
+The Java code under `src/main/java` is a deployment example for the prepared
+local system. It does not define the Python automation architecture.

@@ -3,6 +3,7 @@ from typing import Dict
 
 from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
 from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
+from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
 from tiny_swarm_world.domain.network.ip_value import IpValue
 from tiny_swarm_world.domain.network.socat.docker_bridge_type import DockerBridgeType
 from tiny_swarm_world.domain.network.socat.docker_ip_list import DockerIpList
@@ -17,7 +18,10 @@ class StepCurrentDockerBridges:
 
     async def run(self):
         self.logger.info("Getting current docker bridges")
-        result = await self.command_workflow.run_async("command_vm_bridge_list.yaml")
+        result = await self.command_workflow.run_async(
+            "command_vm_bridge_list.yaml",
+            workflow_id=CommandWorkflowId.PLATFORM_RECONCILE.value,
+        )
         self.logger.info(f"Getting current docker bridges: {result}")
         bridge_list = result[0][1].split('\n')
 
@@ -26,7 +30,11 @@ class StepCurrentDockerBridges:
             self.parameter[ParameterType.DOCKER_BRIDGE] = bridge
 
             self.logger.info(f"docker bridge: {bridge}")
-            result = await self.command_workflow.run_async("command_vm_docker_bridge_list.yaml", self.parameter)
+            result = await self.command_workflow.run_async(
+                "command_vm_docker_bridge_list.yaml",
+                self.parameter,
+                workflow_id=CommandWorkflowId.PLATFORM_RECONCILE.value,
+            )
             self.logger.info(f"docker bridge {bridge} ip: {result}")
 
             match bridge:

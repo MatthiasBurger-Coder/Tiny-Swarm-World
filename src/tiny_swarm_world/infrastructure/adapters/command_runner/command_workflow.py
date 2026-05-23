@@ -34,6 +34,8 @@ class CommandWorkflow(PortCommandWorkflow):
         self,
         config_file: str,
         parameter: Optional[Dict[ParameterType, str]] = None,
+        *,
+        workflow_id: str,
     ) -> Dict[str, Dict[int, ExecutableCommandEntity]]:
         command_repository = self.command_repository_factory(config_file)
         command_builder = CommandBuilder(
@@ -41,6 +43,7 @@ class CommandWorkflow(PortCommandWorkflow):
             command_runner_factory=self.command_runner_factory,
             vm_repository=self.vm_repository,
             parameter=parameter,
+            workflow_id=workflow_id,
         )
         return command_builder.get_command_list()
 
@@ -48,15 +51,23 @@ class CommandWorkflow(PortCommandWorkflow):
         self,
         config_file: str,
         parameter: Optional[Dict[ParameterType, str]] = None,
+        *,
+        workflow_id: str,
     ) -> Any:
-        return await AsyncCommandRunnerUI(self.build_command_list(config_file, parameter)).run()
+        return await AsyncCommandRunnerUI(
+            self.build_command_list(config_file, parameter, workflow_id=workflow_id)
+        ).run()
 
     async def run_sync(
         self,
         config_file: str,
         parameter: Optional[Dict[ParameterType, str]] = None,
+        *,
+        workflow_id: str,
     ) -> Any:
-        return await SyncCommandRunnerUI(self.build_command_list(config_file, parameter)).run()
+        return await SyncCommandRunnerUI(
+            self.build_command_list(config_file, parameter, workflow_id=workflow_id)
+        ).run()
 
     @staticmethod
     def _command_repository(config_file: str) -> PortCommandRepository:

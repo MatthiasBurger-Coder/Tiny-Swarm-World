@@ -1,8 +1,25 @@
 = ADR: Separate Platform, Artifacts, Deployment, and Shared Responsibilities
 
-Status: Proposed
+Status: Accepted as responsibility direction; partially implemented
 
 Date: 2026-05-02
+
+== Implementation Status
+
+The safety-first workflow has accepted the responsibility names and implemented
+the initial composition split:
+
+* `ApplicationServices` now aggregates `PlatformServices`, `ArtifactServices`,
+  and `DeploymentServices`.
+* Platform workflows are the active wired workflows for init, reconcile,
+  verify, reset, and destroy semantics.
+* `EnsureNexusStack` is owned by the deployment service namespace, with the old
+  Nexus import kept as a compatibility facade.
+
+The package layout and `infra/` directory migration described below remain a
+target direction. `ArtifactServices` and `DeploymentServices` are explicit
+composition boundaries, but their workflow wiring is not complete and must not
+be documented as independently deployable services.
 
 == Context
 
@@ -246,7 +263,7 @@ manually.
 
 == Compatibility with `.importlinter`
 
-The proposed responsibility split is compatible with the current import-linter
+The accepted responsibility split is compatible with the current import-linter
 rules because it preserves the layer boundaries:
 
 * `domain/*` remains independent from application and infrastructure.

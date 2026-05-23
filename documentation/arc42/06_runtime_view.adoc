@@ -1,3 +1,68 @@
 == Runtime View
 
 Processes and workflows during execution.
+
+=== Application Composition
+
+`src/tiny_swarm_world/__main__.py` remains a thin entry point. It parses
+operator arguments, lists workflow-level commands without constructing
+services, checks live-infrastructure consent for mutating workflows, verifies
+destructive workflow confirmation before service construction, builds
+application services through `src/tiny_swarm_world/infrastructure/composition.py`,
+and delegates platform execution to composed workflow objects.
+
+The composition root builds `ApplicationServices` as an aggregate of three
+service bundles:
+
+* `platform` for current VM, network, Docker, Swarm, preflight, VM IP, and
+  socat automation.
+* `artifacts` for future artifact registry and publishing workflows.
+* `deployment` for stack lifecycle behavior, starting with Nexus stack
+  create/update ownership in the application service namespace. Composition
+  wiring for deployment commands remains planned for later workflow slices.
+
+At this stage, Artifacts and Deployment are composition boundaries inside the
+same Python automation process, not independently deployable microservices.
+Their bundles are side-effect free when constructed. The public CLI no longer
+dispatches low-level service names through `--run`; transitional
+`ApplicationServices` properties remain only for migration and internal
+compatibility. Artifact and deployment workflow command names are declared by
+the CLI contract and report blocked results until later slices wire their
+runtime behavior.
+
+=== Inventory And Evidence Runtime Flow
+
+Desired inventory is a committed product configuration concern and can be read
+from `infra/config` through an application repository port. Observed inventory
+and verification evidence are local runtime facts. They are persisted by
+infrastructure adapters under `.tiny-swarm-world/` and are not committed.
+
+The local observed-state adapters resolve every target path under the repository
+local-state root and reject absolute paths, traversal outside that root, and
+targets under `infra/config`. Verification evidence stores typed summaries
+through `VerificationResult`; raw command strings, stdout, stderr, environment
+payloads, and keys that imply secrets are rejected before persistence.
+
+No live Multipass, Docker Swarm, netplan, socat, Portainer, Nexus, Jenkins,
+RabbitMQ, SonarQube, compose, or stack deployment command is required to create
+or round-trip these inventory artifacts in tests.
+
+=== Verify After Apply Runtime Gate
+
+Mutating platform workflows now execute application-level steps through an
+apply-then-verify gate. A mutating step must expose a verification path before
+the workflow runs it. If that path is missing, the workflow returns `blocked`
+and does not apply the step.
+
+Continuation requires both parts:
+
+* apply succeeds;
+* verify returns `VerificationStatus.verified` evidence.
+
+Apply exceptions and explicit failed apply results return
+`failed_to_apply`. Verification exceptions, failed verification results, or
+non-verified evidence return `failed_to_verify`, while missing evidence returns
+`blocked`. Later mutating steps are not run after any of these outcomes.
+
+When a verification evidence repository is configured, the workflow appends
+the typed verification result before making the continuation decision.

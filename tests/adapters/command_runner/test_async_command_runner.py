@@ -1,7 +1,7 @@
 import subprocess
 import unittest
 from asyncio import TimeoutError, Lock
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from tiny_swarm_world.infrastructure.adapters.command_runner.async_command_runner import AsyncPortCommandRunner
 from tiny_swarm_world.infrastructure.adapters.exceptions.exception_command_execution import CommandExecutionError
@@ -42,12 +42,11 @@ class TestAsyncCommandRunner(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(CommandExecutionError) as context:
             await self.command_runner.run(command)
 
-        self.assertIn(
-            "Command 'exit 1' failed with return code 1",
-            str(context.exception)
-        )
+        self.assertIn("return code 1", str(context.exception))
+        self.assertNotIn(command, str(context.exception))
+        self.assertNotIn("Error occurred", str(context.exception))
         self.assertEqual(context.exception.stdout, "")
-        self.assertIn("Error occurred", context.exception.stderr)
+        self.assertEqual("<redacted>", context.exception.stderr)
 
     @patch("asyncio.wait_for", side_effect=TimeoutError())
     @patch("asyncio.create_subprocess_shell")
@@ -63,7 +62,8 @@ class TestAsyncCommandRunner(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(CommandExecutionError) as context:
             await self.command_runner.run(command, timeout=timeout)
 
-        self.assertIn(f"Command timed out after {timeout} seconds.", str(context.exception))
+        self.assertIn("return code -1", str(context.exception))
+        self.assertNotIn(command, str(context.exception))
         mock_wait_for.assert_called_once()
 
     @patch("asyncio.create_subprocess_shell")
@@ -75,7 +75,45 @@ class TestAsyncCommandRunner(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(CommandExecutionError) as context:
             await self.command_runner.run(command)
 
-        self.assertIn("An unexpected error occurred: Unexpected error", str(context.exception))
+        self.assertIn("return code -1", str(context.exception))
+        self.assertNotIn("Unexpected error", str(context.exception))
 
     def test_lock_initialization(self):
         self.assertIsInstance(self.command_runner.lock, Lock)
+
+    @patch("asyncio.create_subprocess_shell")
+    async def test_run_does_not_log_raw_command(self, mock_subprocess):
+        secret_command = "docker swarm join --token secret-token 10.0.0.1:2377"
+        mock_process = AsyncMock()
+        mock_process.communicate.return_value = (b"ok", b"")
+        mock_process.returncode = 0
+        mock_subprocess.return_value = mock_process
+
+        with patch.object(self.command_runner.logger, "info") as log_info:
+            await self.command_runner.run(secret_command)
+
+        logged_messages = [str(call.args[0]) for call in log_info.call_args_list if call.args]
+        self.assertFalse(
+            any(secret_command in message for message in logged_messages),
+            logged_messages,
+        )
+
+    @patch("asyncio.create_subprocess_shell")
+    async def test_run_does_not_log_raw_stdout_or_stderr(self, mock_subprocess):
+        mock_process = AsyncMock()
+        mock_process.communicate.return_value = (b"secret stdout", b"secret stderr")
+        mock_process.returncode = 1
+        mock_subprocess.return_value = mock_process
+
+        with patch.object(self.command_runner.logger, "info") as log_info:
+            with patch.object(self.command_runner.logger, "error") as log_error:
+                with self.assertRaises(CommandExecutionError):
+                    await self.command_runner.run("exit 1")
+
+        logged_messages = [
+            str(call.args[0])
+            for call in (*log_info.call_args_list, *log_error.call_args_list)
+            if call.args
+        ]
+        self.assertFalse(any("secret stdout" in message for message in logged_messages))
+        self.assertFalse(any("secret stderr" in message for message in logged_messages))

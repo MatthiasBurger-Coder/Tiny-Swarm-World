@@ -1,3 +1,55 @@
 == Glossary
 
-Definitions of key terms.
+`init`::
+Creates or prepares missing managed platform resources. Normal init is
+non-destructive and must not select VM delete/purge cleanup commands.
+
+`reconcile`::
+Converges existing managed resources non-destructively.
+
+`verify`::
+Inspects or validates state without mutating local infrastructure.
+
+`reset`::
+Explicit destructive reinitialization workflow. It requires
+`RESET_TINY_SWARM_PLATFORM` and currently blocks until retention semantics are
+implemented.
+
+`destroy`::
+Explicit destructive teardown workflow. It requires
+`DESTROY_TINY_SWARM_PLATFORM` and currently blocks until teardown semantics are
+implemented.
+
+Live infrastructure consent::
+The combination of `--live`,
+`TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`,
+and the typed phrase `RUN TINY SWARM WORLD LIVE INSTALLATION`.
+
+Command catalog::
+Typed YAML configuration under `infra/config/**/command_*.yaml` that declares
+command identity, intent, safety class, workflow allow-list, parameters,
+effects, and verification metadata.
+
+Desired inventory::
+Operator-approved target state. It may live in committed configuration under
+`infra/config`.
+
+Observed inventory::
+Runtime facts discovered from the local environment. It is stored only under
+the ignored `.tiny-swarm-world/` local state root.
+
+Verification evidence::
+Typed summaries proving an apply or verify result. Evidence must not contain
+raw command payloads, stdout, stderr, secrets, tokens, passwords, or multiline
+diagnostic dumps.
+
+Service bundle::
+An in-process composition boundary such as `PlatformServices`,
+`ArtifactServices`, or `DeploymentServices`. These bundles are not independent
+microservices.
+
+Legacy quarantine::
+Documentation state for transitional scripts that may still exist but are not
+supported workflow entry points. Quarantined scripts must not run in default
+quality gates and should be removed or migrated only through explicit cleanup
+slices.

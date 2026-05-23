@@ -6,6 +6,10 @@ from tiny_swarm_world.infrastructure.adapters.file_management.file_manager impor
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
 from tiny_swarm_world.infrastructure.project_paths import config_root
+from tiny_swarm_world.domain.command.command_entity import (
+    CommandCatalogValidationError,
+    CommandWorkflowId,
+)
 
 
 EXPECTED_COMMAND_COUNTS = {
@@ -27,6 +31,25 @@ EXPECTED_COMMAND_COUNTS = {
     "command_vm_ip_list.yaml": 3,
 }
 
+WORKFLOW_BY_COMMAND_FILE = {
+    "command_multipass_clean_repository_yaml.yaml": CommandWorkflowId.PLATFORM_RESET.value,
+    "command_multipass_init_repository_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_multipass_prepare_repository_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_multipass_restart_repository_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_multipass_docker_install_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_multipass_docker_prepare_repository_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_multipass_docker_swarm_join_worker.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_multipass_docker_swarm_manager_init.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_multipass_docker_swarm_manager_ip.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_multipass_docker_swarm_manager_join_token.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_netplant_ip_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_netplant_setup_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_vm_bridge_list.yaml": CommandWorkflowId.PLATFORM_RECONCILE.value,
+    "command_vm_docker_bridge_list.yaml": CommandWorkflowId.PLATFORM_RECONCILE.value,
+    "command_vm_gateway_yaml.yaml": CommandWorkflowId.PLATFORM_RECONCILE.value,
+    "command_vm_ip_list.yaml": CommandWorkflowId.PLATFORM_RECONCILE.value,
+}
+
 
 class TestCommandWorkflowConfiguration(unittest.TestCase):
     @classmethod
@@ -42,7 +65,11 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
 
         for config_file in config_files:
             with self.subTest(config_file=config_file.name):
-                command_list = workflow.build_command_list(config_file.name, _smoke_parameters())
+                command_list = workflow.build_command_list(
+                    config_file.name,
+                    _smoke_parameters(),
+                    workflow_id=WORKFLOW_BY_COMMAND_FILE[config_file.name],
+                )
                 command_count = sum(len(commands) for commands in command_list.values())
 
                 self.assertEqual(EXPECTED_COMMAND_COUNTS[config_file.name], command_count)
@@ -50,7 +77,11 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
 
     def test_netplan_transfer_command_uses_infra_config_path(self):
         workflow = CommandWorkflow()
-        command_list = workflow.build_command_list("command_netplant_setup_yaml.yaml", _smoke_parameters())
+        command_list = workflow.build_command_list(
+            "command_netplant_setup_yaml.yaml",
+            _smoke_parameters(),
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+        )
 
         transfer_command = command_list["swarm-manager"][3].command
 
@@ -58,6 +89,31 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
             "multipass transfer infra/config/cloud-init-manager.yaml swarm-manager:/tmp/netplan.yaml",
             transfer_command,
         )
+
+    def test_built_commands_preserve_verification_metadata(self):
+        workflow = CommandWorkflow()
+        command_list = workflow.build_command_list(
+            "command_multipass_init_repository_yaml.yaml",
+            _smoke_parameters(),
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+        )
+
+        launch_command = command_list["swarm-manager"][1]
+
+        self.assertEqual("multipass_init_repository.001", launch_command.command_id)
+        self.assertTrue(launch_command.mutating)
+        self.assertIsNotNone(launch_command.verify)
+        self.assertEqual("manual", launch_command.verify.type.value)
+
+    def test_destructive_cleanup_commands_are_not_allowed_for_init(self):
+        workflow = CommandWorkflow()
+
+        with self.assertRaises(CommandCatalogValidationError):
+            workflow.build_command_list(
+                "command_multipass_clean_repository_yaml.yaml",
+                _smoke_parameters(),
+                workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            )
 
 
 def _smoke_parameters() -> dict[ParameterType, str]:

@@ -1,6 +1,7 @@
 import logging
 
 from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
+from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
 
 
 class NetworkSetupNetplan:
@@ -11,5 +12,8 @@ class NetworkSetupNetplan:
     async def run(self):
         self.logger.info("initialisation of network")
 
-        result = await self.command_workflow.run_async("command_netplant_setup_yaml.yaml")
+        result = await self.command_workflow.run_async(
+            "command_netplant_setup_yaml.yaml",
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+        )
         self.logger.info(f"initialisation of network : {result}")

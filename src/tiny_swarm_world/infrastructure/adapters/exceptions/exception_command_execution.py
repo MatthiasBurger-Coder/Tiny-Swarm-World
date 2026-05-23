@@ -13,15 +13,19 @@ class CommandExecutionError(Exception):
             stdout (str): The standard output of the command.
             stderr (str): The standard error output of the command.
         """
-        super().__init__(f"Command '{command}' failed with return code {return_code}. Error: {stderr}")
-        self.command = command
+        super().__init__(
+            f"Command failed with return code {return_code}. Diagnostic payload redacted."
+        )
+        self.command = "<redacted>"
         self.returnCode = return_code
-        self.stdout = stdout
-        self.stderr = stderr
+        self.stdout = "<redacted>" if stdout else ""
+        self.stderr = "<redacted>" if stderr else ""
 
     def __str__(self):
         """
         Overrides the __str__() method to provide a meaningful string representation.
         """
-        return (f"CommandExecutionError: Command '{self.command}' failed with return code {self.returnCode}\n"
-                f"Stdout: {self.stdout}\nStderr: {self.stderr}")
+        return (
+            f"CommandExecutionError: command failed with return code {self.returnCode}. "
+            "Diagnostic payload redacted."
+        )

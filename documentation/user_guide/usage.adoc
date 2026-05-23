@@ -35,16 +35,76 @@ directory.
 
 == Main Python Entrypoint
 
-The current main script is:
+The main workflow entry point is:
 
 [source,bash]
 ----
 PYTHONPATH=src python3 -m tiny_swarm_world
 ----
 
-At the moment, the active path lists VM IP information. Additional provisioning
-steps in `src/tiny_swarm_world/__main__.py` are present but commented. Uncomment and
-run those steps only when you intentionally want to modify local infrastructure.
+Running without arguments does not execute infrastructure commands. List the
+workflow-level commands first:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+----
+
+Static preflight remains available without live-infrastructure consent:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+----
+
+Non-mutating workflow checks can be selected explicitly:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform verify
+----
+
+Mutating platform workflows require live-infrastructure consent before services
+are constructed:
+
+[source,bash]
+----
+export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
+PYTHONPATH=src python3 -m tiny_swarm_world platform init --live
+----
+
+The command also prompts for the exact phrase:
+
+[source,text]
+----
+RUN TINY SWARM WORLD LIVE INSTALLATION
+----
+
+Without the environment value and typed phrase, the entry point reports
+`REFUSED_LIVE_CONSENT_MISSING` before application services are constructed.
+
+Destructive platform workflows also require the exact confirmation phrase:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --confirm RESET_TINY_SWARM_PLATFORM --live
+PYTHONPATH=src python3 -m tiny_swarm_world platform destroy --confirm DESTROY_TINY_SWARM_PLATFORM --live
+----
+
+Reset and destroy are explicit confirmation contracts. Their destructive
+execution steps are not wired yet; after confirmation they currently block
+until retention and teardown semantics are implemented.
+
+Artifact and deployment workflow command names are reserved by the CLI contract
+and report a blocked result until their workflow wiring lands in later slices.
+
+== Verification Scope
+
+The workflow safety behavior is verified through unit tests, architecture
+checks, import-linter contracts, type checks, and static command catalog
+validation. The default quality gate does not run live Multipass, Docker Swarm,
+compose, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or
+Swagger/NGINX commands.
 
 == Service Preparation
 
@@ -58,6 +118,27 @@ cd infra/prepare
 
 The current `prepare.sh` invokes Portainer preparation. Nexus preparation is
 available separately and can be enabled intentionally.
+
+== Legacy And Direct Scripts
+
+The workflow-level CLI is the supported operator entry point. Direct scripts
+under `infra/prepare`, `infra/compose`, and `infra/swarm` are live operations
+or transitional helpers and are not protected by the CLI consent gate.
+
+[options="header"]
+|===
+| Path | Status
+| `infra/swarm/**` | Legacy live-infrastructure surface; not a supported workflow entry point.
+| `infra/prepare/portainer/portain_setup.py` | Transitional script with live Docker, Multipass, socat, and networking behavior.
+| `infra/prepare/nexus/addLocalDockerRepository.sh` | Legacy Nexus shell helper with direct Portainer/Nexus calls.
+| `infra/prepare/nexus/addMavenMirror.sh` | Legacy Nexus shell helper with direct Nexus calls.
+| `infra/prepare/nexus/prepare.sh` and `test.sh` | Legacy shell paths; prefer `setup.py` for intentional Nexus bootstrap.
+| `infra/compose/create_dockerfiles.sh` | Direct image build/push helper outside the default quality gate.
+| `infra/compose/upload_all_stacks.sh` | Direct Portainer uploader that can delete or recreate stacks.
+|===
+
+Do not remove or re-enable legacy scripts without a dedicated cleanup slice,
+tests, and rollback notes.
 
 == Nexus Bootstrap
 

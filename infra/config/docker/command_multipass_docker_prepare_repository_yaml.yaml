@@ -1,15 +1,44 @@
 commands:
-  - index: 1
-    description: "Ensuring Docker group exists"
-    command: "multipass exec {vm_instance} -- sudo sh -c 'getent group docker || groupadd docker'"
+  - id: multipass_docker_prepare_repository.001
+    index: 1
+    description: Ensuring Docker group exists
+    intent: ensuring_docker_group_exists
+    execution_mode: shell
+    safety_class: safe_mutation
+    scope: docker
+    allowed_workflows:
+      - platform:init
+    parameters:
+      - vm_instance
+    effects:
+      - permission_change
+    verify:
+      type: manual
+      description: 'Verify after command: Ensuring Docker group exists'
+    command: "multipass exec {vm_instance} -- sudo sh -c 'getent group docker || groupadd\
+      \ docker'"
     runner: "async"
     command_type: "vm"
     vm_type:
       - "manager"
       - "worker"
 
-  - index: 2
-    description: "Adding user 'ubuntu' to Docker group"
+  - id: multipass_docker_prepare_repository.002
+    index: 2
+    description: Adding user 'ubuntu' to Docker group
+    intent: adding_user_ubuntu_to_docker_group
+    execution_mode: shell
+    safety_class: safe_mutation
+    scope: docker
+    allowed_workflows:
+      - platform:init
+    parameters:
+      - vm_instance
+    effects:
+      - permission_change
+    verify:
+      type: manual
+      description: "Verify after command: Adding user 'ubuntu' to Docker group"
     command: "multipass exec {vm_instance} -- sudo sh -c 'usermod -aG docker ubuntu'"
     runner: "async"
     command_type: "vm"

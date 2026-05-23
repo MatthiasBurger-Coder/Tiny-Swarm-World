@@ -4,8 +4,19 @@
 
 - Workflow: `init-safety-boundary-separation-20260523`
 - Branch: `architecture/workflow-init-service-boundaries-20260523`
-- Status: `CREATED_NOT_EXECUTED`
+- Status: `HISTORICAL_WORKFLOW_CREATION_RECORD`
 - Created on: `2026-05-23`
+
+## Execution Precedence
+
+This report records the broader roadmap workflow creation. On branch
+`docs/workflow-init-safety-first-control-plane-20260523`,
+`documentation/workflow/workflow-init-safety-first-control-plane.md` is the
+active workflow-execute authority before broader roadmap work.
+
+This file is not the current safety-first execution status. The safety-first
+branch records execution through slice checkpoint commits and the active
+workflow file.
 
 ## Creation Summary
 
@@ -116,9 +127,12 @@ python3 tools/quality_gate.py quality
 
 ## Live Execution Status
 
-Live execution has not started. Workflow execution must not run live
-infrastructure commands unless the user explicitly approves live infrastructure
-work in a later turn.
+The original broader roadmap workflow creation did not start live execution.
+The safety-first workflow execution also uses unit, static, architecture, type,
+and quality gates only; it must not claim live Multipass, Docker Swarm,
+netplan, socat, compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or
+Swagger/NGINX validation unless a later live workflow explicitly approves and
+records it.
 
 ## Blockers
 

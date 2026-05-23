@@ -1,5 +1,15 @@
 # Workflow: Init Safety and Boundary Separation
 
+## Execution Precedence
+
+Before executing this broader roadmap, execute
+`documentation/workflow/workflow-init-safety-first-control-plane.md`.
+
+That safety-first workflow preserves this file as the broader target roadmap,
+but moves the critical fix ahead of the rest: normal init must stop reaching
+destructive Multipass cleanup before typed YAML, service-boundary, state model,
+or CLI work starts.
+
 ## Executive Summary
 
 This workflow defines the governed implementation path for making Tiny Swarm
@@ -20,7 +30,11 @@ receives explicit live infrastructure approval.
 
 ## Target Picture
 
-### Verified Baseline
+### Verified Baseline At Workflow Creation
+
+This baseline is historical. The safety-first execution branch has since
+implemented the critical init safety, workflow taxonomy, service-boundary,
+typed command, inventory, CLI, and verify-after-apply slices.
 
 - Root `AGENTS.md` defines Tiny Swarm World as a Linux/WSL-only Python
   automation project with hexagonal architecture.
@@ -175,12 +189,15 @@ Non-goals:
 Risks:
 
 - Current normal init can delete and purge all Multipass VMs.
-- Some existing tests are skipped or stale around Multipass init behavior.
+- After the safety-first workflow execution, Multipass init safety regression
+  tests are active. The known skipped test is a legacy network-service test at
+  `tests/application/services/network/test_network_service.py`.
 - Command workflow execution is filename-driven and currently coupled to UI
   runner adapters.
 - Nexus bootstrap combines stack deployment, readiness, admin access and
   anonymous access.
-- The proposed responsibility ADR is still `Status: Proposed`.
+- The responsibility ADR is accepted as a direction and partially implemented;
+  package moves and deployment/artifact workflow wiring remain pending.
 - arc42 runtime, deployment, decision, quality and risk pages are currently
   sparse and need synchronization when behavior changes.
 - A dirty worktree was detected during workflow creation with source/preflight
@@ -433,8 +450,8 @@ python3 -m json.tool documentation/workflow/context-pack.json
 
 Purpose:
 
-- Accept or supersede the proposed Platform/Artifacts/Deployment ADR and align
-  arc42 baseline sections before boundary-moving slices.
+- Keep the accepted Platform/Artifacts/Deployment responsibility ADR aligned
+  with arc42 baseline sections before further boundary-moving slices.
 
 ```yaml
 slice_id: "02"
@@ -864,6 +881,7 @@ affected_files:
   - "tests/application/services/artifacts/**"
   - "tests/application/services/nexus/**"
   - "tests/architecture/**"
+  - "documentation/arc42/**"
 affected_modules:
   - "tiny_swarm_world.application.services.deployment"
   - "tiny_swarm_world.application.services.artifacts"
@@ -884,6 +902,7 @@ file_locks:
   - "tests/application/services/artifacts/**"
   - "tests/application/services/nexus/**"
   - "tests/architecture/**"
+  - "documentation/arc42/**"
 contract_locks:
   - "nexus-stack-deployment-boundary"
 architecture_locks:
@@ -908,6 +927,7 @@ stop_conditions:
 Allowed write scope:
 
 - Deployment/artifact/Nexus application services, relevant ports and tests.
+- arc42 documentation for stack lifecycle ownership.
 
 Done criteria:
 
@@ -947,6 +967,7 @@ affected_files:
   - "tests/infrastructure/test_composition.py"
   - "README.md"
   - "documentation/user_guide/**"
+  - "documentation/arc42/**"
 affected_modules:
   - "tiny_swarm_world.__main__"
   - "tiny_swarm_world.infrastructure.composition"
@@ -966,6 +987,7 @@ file_locks:
   - "tests/infrastructure/test_composition.py"
   - "README.md"
   - "documentation/user_guide/**"
+  - "documentation/arc42/**"
 contract_locks:
   - "workflow-level-cli"
 architecture_locks:
@@ -979,12 +1001,15 @@ quality_gates:
   required:
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "update runtime view"
+  arc42: "update building blocks and runtime view"
   adr: "not required unless public CLI compatibility decision is architectural"
 stop_conditions:
   - "__main__.py embeds low-level orchestration logic"
+  - "workflow CLI wiring requires concrete adapter construction outside infrastructure/composition.py"
+  - "composition changes create live infrastructure side effects during construction"
   - "list/help paths construct live services"
   - "destroy or reset can run without explicit confirmation"
+  - "arc42 building-block and runtime-view updates would describe unimplemented behavior as implemented"
 ```
 
 Allowed write scope:
@@ -1164,6 +1189,15 @@ Allowed write scope:
 
 - Documentation, architecture tests and explicitly approved legacy quarantine
   files only.
+
+Current execution note:
+
+- The safety-first Slice 10 in
+  `documentation/workflow/workflow-init-safety-first-control-plane.md` is a
+  documentation-only checkpoint. The broader roadmap scope above lists
+  architecture tests and legacy script areas for future cleanup, but this
+  safety-first execution must not edit `tests/**`, `infra/swarm/**`, or
+  `infra/prepare/**` without explicit approval outside the doc-only slice.
 
 Done criteria:
 

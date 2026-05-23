@@ -4,6 +4,7 @@
   "processStrand": "workflow create",
   "executionProfile": "FULL_PATH",
   "createdDate": "2026-05-23",
+  "executionPrecedence": "This context pack describes the broader roadmap workflow. On branch docs/workflow-init-safety-first-control-plane-20260523, documentation/workflow/workflow-init-safety-first-control-plane.md is the active workflow-execute authority before broader roadmap work.",
   "requirement": {
     "summary": "Create a workflow for non-destructive init, separate reconcile/reset/destroy workflows, real Platform/Artifacts/Deployment service separation, workflow-level CLI, Nexus stack deployment extraction, typed command YAMLs, state/inventory modeling, and verify-after-apply enforcement.",
     "decision": "READY_FOR_WORKFLOW",
@@ -20,6 +21,7 @@
     ]
   },
   "baseline": {
+    "context": "Historical baseline captured during workflow creation before safety-first workflow execution.",
     "defaultQualityGate": "python3 tools/quality_gate.py quality",
     "liveInfrastructureInDefaultGate": false,
     "normalInitCurrentlyDestructive": true,
@@ -30,6 +32,17 @@
     "typedCommandYamlContractExists": false,
     "stateInventoryModelExists": false,
     "verifyAfterApplyEnforced": false
+  },
+  "safetyFirstExecutionStatus": {
+    "activeBranch": "docs/workflow-init-safety-first-control-plane-20260523",
+    "activeWorkflow": "documentation/workflow/workflow-init-safety-first-control-plane.md",
+    "status": "Checkpoint commits through Slice 09 have implemented non-destructive init, workflow taxonomy, service bundles, workflow-level CLI routing, deployment namespace ownership for EnsureNexusStack, typed command YAML contracts, inventory/evidence separation, and verify-after-apply for mutating platform workflows.",
+    "limitations": [
+      "Artifact and deployment workflow command names are declared but remain blocked until wiring lands.",
+      "DeploymentServices is an explicit empty composition boundary.",
+      "Reset and destroy confirmation contracts are implemented, but destructive retention and teardown steps remain blocked until policy exists.",
+      "No live infrastructure validation was performed by the default quality gates."
+    ]
   },
   "affectedAreas": [
     "documentation/workflow",

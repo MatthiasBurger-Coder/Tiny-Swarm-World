@@ -22,6 +22,74 @@ such as `VmIpList`, `MultipassInitVms`, and `NetworkPrepareNetplan` are
 constructed with explicit ports and repositories instead of creating
 infrastructure adapters inside the application layer.
 
+The composition root now exposes separate application service bundles:
+
+* `PlatformServices` contains the current platform automation for Multipass,
+  network setup, Docker installation, Swarm initialization, preflight checks,
+  VM IP discovery, socat management, and workflow objects for platform
+  `init`, `reconcile`, `verify`, `reset`, and `destroy` commands.
+* `ArtifactServices` is the explicit artifacts boundary. It is currently an
+  empty bundle until Nexus and publishing services are wired in later slices.
+* `DeploymentServices` is the explicit deployment boundary. The deployment
+  service namespace now owns `EnsureNexusStack` for compose lookup and
+  Portainer stack create/update operations. The current composition bundle is
+  still empty and side-effect free; deployment workflow wiring remains pending.
+* `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
+  instead of aliasing `PlatformServices`.
+
+The empty Artifacts bundle and currently unwired Deployment bundle are
+intentional transitional building blocks. They create stable composition
+boundaries while service ownership moves in dedicated workflow slices.
+Compatibility properties on `ApplicationServices` keep the existing
+service-level accessors available for migration, but the public Python
+entrypoint now routes through workflow-level commands.
+
+=== Typed Command Catalog
+
+Command YAML files under `infra/config/**/command_*.yaml` are product
+configuration and are loaded as typed command catalog entries.
+
+The domain command model owns parser-independent metadata and safety rules:
+
+* stable command `id`
+* command `intent`
+* `execution_mode`
+* `safety_class`
+* owned `scope`
+* `allowed_workflows`
+* template `parameters`
+* declared `effects`
+* `verify` specification
+
+The infrastructure YAML repository parses files and maps them to domain
+command entities. Application command building receives an explicit workflow
+identifier and rejects commands whose `allowed_workflows` do not include the
+active workflow before executable command strings are built.
+
+The supported safety classes are `safe_read`, `safe_mutation`, `destructive`,
+`credential_mutation`, and `network_mutation`. Destructive command patterns
+such as Multipass delete or purge are accepted only when classified as
+`destructive` and limited to reset or destroy workflows. Mutating commands
+must declare a verification specification.
+
+=== Inventory And Verification Evidence
+
+The domain now contains parser-independent inventory and verification concepts
+under `tiny_swarm_world.domain.inventory`.
+
+* `DesiredInventory` and `VmDesiredState` describe intended product state.
+* `ObservedInventory`, VM, network, Docker, Swarm, stack, and artifact registry
+  observed-state types describe runtime facts collected by adapters.
+* `VerificationResult` and `VerificationStatus` model typed verification
+  evidence separately from raw command output.
+
+Application repository ports define the desired inventory, observed inventory,
+and verification evidence contracts. Infrastructure adapters own YAML parsing,
+JSON persistence, and path validation. Observed inventory and verification
+evidence use dedicated local-state adapters instead of the generic file
+manager so raw evidence is not logged and file lookup cannot drift into
+`infra/config`.
+
 === Infrastructure Assets
 
 `infra` contains infrastructure and deployment assets that are not Python
@@ -30,7 +98,11 @@ application code.
 * `infra/config` contains command, VM, network, and compose configuration.
 * `infra/compose` contains compose stacks and stack upload helpers.
 * `infra/prepare` contains one-off preparation scripts for local services.
-* `infra/swarm` contains Swarm and Multipass helper scripts.
+* `infra/swarm` contains legacy Swarm and Multipass helper scripts. This area
+  is quarantined as transitional live-infrastructure surface, not a supported
+  workflow entry point. It must not run in default quality gates, and files
+  should be removed or migrated only in an explicit cleanup slice with tests
+  and rollback notes.
 
 Live infrastructure scripts can modify VMs, networking, Docker Swarm state,
 service stacks, and credentials. They are not part of the normal development

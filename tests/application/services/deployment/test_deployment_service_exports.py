@@ -1,11 +1,11 @@
 import unittest
 
 from tiny_swarm_world.application.services.deployment import EnsureNexusStack
-from tiny_swarm_world.application.services.nexus.ensure_nexus_stack import (
-    EnsureNexusStack as ExistingEnsureNexusStack,
+from tiny_swarm_world.application.services.deployment.ensure_nexus_stack import (
+    EnsureNexusStack as DeploymentEnsureNexusStack,
 )
 
 
 class TestDeploymentServiceExports(unittest.TestCase):
-    def test_deployment_namespace_exports_existing_stack_deployment_service(self):
-        self.assertIs(EnsureNexusStack, ExistingEnsureNexusStack)
+    def test_deployment_namespace_exports_deployment_stack_service(self):
+        self.assertIs(EnsureNexusStack, DeploymentEnsureNexusStack)

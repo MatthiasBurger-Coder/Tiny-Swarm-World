@@ -1,7 +1,22 @@
 commands:
-  - index: 1
-    description: "Restart multipass"
-    command: "multipass list | awk '$1 ~ /^swarm-/ {{print $1}}' | xargs -r multipass restart"
+  - id: multipass_restart_repository.001
+    index: 1
+    description: Restart multipass
+    intent: restart_multipass
+    execution_mode: shell
+    safety_class: safe_read
+    scope: multipass
+    allowed_workflows:
+      - platform:init
+    parameters: []
+    effects:
+      - read
+      - runtime_change
+    verify:
+      type: none
+      description: Read-only command.
+    command: "multipass list | awk '$1 ~ /^swarm-/ {{print $1}}' | xargs -r multipass\
+      \ restart"
     runner: "async"
     command_type: "hostos"
     vm_type:

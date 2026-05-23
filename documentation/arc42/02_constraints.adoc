@@ -1,3 +1,30 @@
-==  Constraints
+== Constraints
 
-Defines the technical and organizational constraints.
+Tiny Swarm World is constrained by the repository safety and architecture
+rules.
+
+* The supported operator shell is Linux or WSL. Documentation and examples use
+  POSIX paths and commands.
+* Domain code must not import application or infrastructure modules.
+* Application services depend on ports and domain objects, not concrete
+  adapters.
+* `src/tiny_swarm_world/infrastructure/composition.py` remains the composition
+  root for concrete adapters.
+* `src/tiny_swarm_world/__main__.py` remains a thin workflow entry point.
+* Normal `platform init` and `platform reconcile` must not select destructive
+  cleanup commands such as Multipass delete or purge.
+* `platform reset` and `platform destroy` require exact confirmation phrases.
+  Their destructive execution remains blocked until retention semantics are
+  implemented.
+* Mutating workflows require live-infrastructure consent before services are
+  constructed.
+* Command YAML under `infra/config/**/command_*.yaml` is product configuration
+  and must carry typed safety metadata, allowed workflows, effects, and
+  verification specifications.
+* Desired inventory may be committed configuration. Observed inventory and
+  verification evidence are local artifacts under `.tiny-swarm-world/` and
+  must not be committed.
+* Mutating workflow steps continue only after apply succeeds and verification
+  returns `verified` evidence.
+* The default quality gate must not create VMs, mutate networking, initialize
+  Docker Swarm, deploy stacks, or bootstrap services.

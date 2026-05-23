@@ -39,7 +39,6 @@ REQUIRED_ARCHITECTURE_DOCUMENTS = (
     "agent-split-plan.md",
 )
 KNOWN_MIXED_BOUNDARY_FILES = (
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_stack.py",
     "src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py",
     "infra/prepare/nexus/setup.py",
     "infra/compose/create_dockerfiles.sh",
@@ -160,6 +159,24 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
         ]
 
         self.assertEqual([], violations)
+
+    def test_deployment_owns_nexus_stack_lifecycle_service(self):
+        deployment_service_file = APPLICATION_SERVICES_ROOT / "deployment" / "ensure_nexus_stack.py"
+        legacy_service_file = APPLICATION_SERVICES_ROOT / "nexus" / "ensure_nexus_stack.py"
+        deployment_imports = {imported for imported, _line_number in _direct_imports(deployment_service_file)}
+        legacy_imports = [imported for imported, _line_number in _direct_imports(legacy_service_file)]
+
+        self.assertTrue(deployment_service_file.is_file())
+        self.assertIn("tiny_swarm_world.application.ports.clients.port_portainer_client", deployment_imports)
+        self.assertIn(
+            "tiny_swarm_world.application.ports.repositories.port_compose_file_repository",
+            deployment_imports,
+        )
+        self.assertNotIn("tiny_swarm_world.application.ports.clients.port_nexus_client", deployment_imports)
+        self.assertEqual(
+            ["tiny_swarm_world.application.services.deployment.ensure_nexus_stack"],
+            legacy_imports,
+        )
 
     def test_artifact_application_services_have_no_platform_or_deployment_imports(self):
         forbidden_prefixes = (

@@ -1,3 +1,27 @@
 == Solution Strategy
 
-The chosen architecture is based on a hexagonal design.
+Tiny Swarm World uses a safety-first hexagonal architecture.
+
+The implementation strategy is:
+
+* route operator intent through workflow-level CLI commands instead of
+  low-level service dispatch;
+* model platform operations as `init`, `reconcile`, `verify`, `reset`, and
+  `destroy` workflows with explicit mutating/destructive semantics;
+* keep destructive behavior isolated to reset/destroy command catalogs and
+  confirmation contracts;
+* separate application composition into Platform, Artifacts, and Deployment
+  service bundles while keeping them in one Python automation application;
+* move stack lifecycle ownership into the Deployment namespace, while leaving
+  deployment workflow composition unwired until later work;
+* treat command YAML as a typed command catalog with safety classes,
+  workflow allow-lists, typed parameters, effects, and verification metadata;
+* keep desired inventory separate from observed runtime state and local
+  verification evidence;
+* fail closed after every mutating apply step unless verification evidence is
+  available and `verified`;
+* document legacy scripts as transitional live-operation surfaces instead of
+  supported default entry points.
+
+Quality gates validate the Python code, architecture boundaries, type checks,
+and tests without running live infrastructure commands.

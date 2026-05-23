@@ -20,6 +20,7 @@ class CommandBuilder:
         command_runner_factory: PortCommandRunnerFactory,
         vm_repository: PortVmRepository,
         parameter: Optional[Dict[ParameterType, str]] = None,
+        workflow_id: str = "",
     ):
         """
         :param command_repository: command repository of multipass init process
@@ -29,6 +30,7 @@ class CommandBuilder:
         self.command_repository = command_repository
         self.executable_commands = {}
         self.parameter = parameter or {}
+        self.workflow_id = workflow_id
 
         self.STRATEGY_MAP = {
             VmType.MANAGER: ManagerStrategy(
@@ -47,7 +49,8 @@ class CommandBuilder:
     def get_command_list(self) -> Dict[str, Dict[int, ExecutableCommandEntity]]:
         command_dict = self.command_repository.get_all_commands()
 
-        for key, command in command_dict.items():
+        for command in command_dict.values():
+            command.ensure_allowed_for_workflow(self.workflow_id)
             for vm_type in command.vm_type:
                 strategy = self.STRATEGY_MAP.get(vm_type)
                 if strategy is None:

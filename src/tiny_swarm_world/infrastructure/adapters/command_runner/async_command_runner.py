@@ -23,7 +23,7 @@ class AsyncPortCommandRunner(PortCommandRunner):
         self.logger.info("AsyncCommandRunner initialized")
 
     async def run(self, command: str, timeout: int = 120) -> str:
-        self.logger.info(f"Starting subprocess: {command}")
+        self.logger.info("Starting subprocess")
         process = None
         communicate_task = None
         try:
@@ -38,18 +38,21 @@ class AsyncPortCommandRunner(PortCommandRunner):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
-            self.logger.info(f"Finishing subprocess: {command}")
+            self.logger.info("Finishing subprocess")
             # Wait for subprocess to complete
             communicate_task = asyncio.create_task(process.communicate())
             stdout, stderr = await asyncio.wait_for(communicate_task, timeout=timeout)
-            # Log output
-            self.logger.info(f"Command output: {stdout.decode('utf-8').strip()}")
+            self.logger.info("Command produced stdout (%d bytes).", len(stdout))
 
             # Check process return code
             return_code = process.returncode if process.returncode is not None else -1
             if return_code != 0:
                 error_message = stderr.decode('utf-8').strip()  # Read error from stderr
-                self.logger.error(f"Command failed with return code {return_code}: {error_message}")
+                self.logger.error(
+                    "Command failed with return code %s; stderr redacted (%d bytes).",
+                    return_code,
+                    len(stderr),
+                )
                 async with self.lock:
                     self.status["result"] = "Error"
                 raise CommandExecutionError(
@@ -62,7 +65,7 @@ class AsyncPortCommandRunner(PortCommandRunner):
             # Update status as successful
             async with self.lock:
                 self.status["result"] = "Success"
-            self.logger.info(f"Command completed successfully: {command}")
+            self.logger.info("Command completed successfully")
 
             return stdout.decode('utf-8').strip()
 
@@ -70,7 +73,7 @@ class AsyncPortCommandRunner(PortCommandRunner):
             # Log timeout error
             async with self.lock:
                 self.status["result"] = "Error"
-            self.logger.error(f"Command timed out after {timeout} seconds: {command}")
+            self.logger.error(f"Command timed out after {timeout} seconds")
             if communicate_task is not None:
                 communicate_task.cancel()
                 with suppress(asyncio.CancelledError):
@@ -92,7 +95,7 @@ class AsyncPortCommandRunner(PortCommandRunner):
 
         except Exception as e:
             # Log unexpected errors
-            self.logger.exception(f"An unexpected error occurred while executing the command: {command}")
+            self.logger.exception("An unexpected error occurred while executing the command")
             async with self.lock:
                 self.status["result"] = "Error"
             raise CommandExecutionError(
