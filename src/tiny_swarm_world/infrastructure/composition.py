@@ -38,7 +38,57 @@ class PlatformServices:
     socat_manager: SocatManager
 
 
-ApplicationServices = PlatformServices
+@dataclass(frozen=True)
+class ArtifactServices:
+    pass
+
+
+@dataclass(frozen=True)
+class DeploymentServices:
+    pass
+
+
+@dataclass(frozen=True)
+class ApplicationServices:
+    platform: PlatformServices
+    artifacts: ArtifactServices
+    deployment: DeploymentServices
+
+    @property
+    def multipass_init_vms(self) -> MultipassInitVms:
+        return self.platform.multipass_init_vms
+
+    @property
+    def network_prepare_netplan(self) -> NetworkPrepareNetplan:
+        return self.platform.network_prepare_netplan
+
+    @property
+    def network_setup_netplan(self) -> NetworkSetupNetplan:
+        return self.platform.network_setup_netplan
+
+    @property
+    def multipass_restart_vms(self) -> MultipassRestartVMs:
+        return self.platform.multipass_restart_vms
+
+    @property
+    def multipass_docker_install(self) -> MultipassDockerInstall:
+        return self.platform.multipass_docker_install
+
+    @property
+    def multipass_docker_swarm_init(self) -> MultipassDockerSwarmInit:
+        return self.platform.multipass_docker_swarm_init
+
+    @property
+    def preflight(self) -> PreflightService:
+        return self.platform.preflight
+
+    @property
+    def vm_ip_list(self) -> VmIpList:
+        return self.platform.vm_ip_list
+
+    @property
+    def socat_manager(self) -> SocatManager:
+        return self.platform.socat_manager
 
 
 def configure_infrastructure_container() -> None:
@@ -74,5 +124,17 @@ def build_platform_services() -> PlatformServices:
     )
 
 
+def build_artifact_services() -> ArtifactServices:
+    return ArtifactServices()
+
+
+def build_deployment_services() -> DeploymentServices:
+    return DeploymentServices()
+
+
 def build_application_services() -> ApplicationServices:
-    return build_platform_services()
+    return ApplicationServices(
+        platform=build_platform_services(),
+        artifacts=build_artifact_services(),
+        deployment=build_deployment_services(),
+    )
