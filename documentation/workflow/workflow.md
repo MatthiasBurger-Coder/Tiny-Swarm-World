@@ -172,6 +172,12 @@ EPIC traceability:
 - Answer to "Does the implementation still match the EPIC?": no EPIC source is
   available; this is recorded as a traceability gap, not a workflow-creation
   blocker.
+- Temporary requirement baseline for this workflow: the original user request,
+  root `AGENTS.md`, root `QUALITY.md`, `AUDIT_REPORT.md`,
+  `OPERATIONAL_READINESS_CHECKLIST.md`, this Requirement Clarification Record
+  and `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`.
+  The user request `workflow execute with subagents` on 2026-05-23 accepts this
+  workflow as the execution target until a dedicated EPIC is added.
 
 ## Three Amigos Review
 
@@ -252,6 +258,151 @@ checks pass:
   perform an implicit destructive reset.
 - Evidence: logs, command results, endpoint probe results and readiness summary
   are stored under a deterministic ignored artifact directory.
+
+Run result states:
+
+- `PASS`: all mandatory checks pass, no resource-gated mandatory service is
+  omitted, no live safety refusal occurred and evidence is complete.
+- `PASS_WITH_RESOURCE_GATES`: all non-gated mandatory checks pass, one or more
+  resource-gated services are omitted with recorded Three Amigos approval and
+  evidence is complete. This is not a full-functionality pass.
+- `REFUSED`: the runner stopped before any live command because live consent was
+  missing or invalid.
+- `BLOCKED`: preflight or requirement scope prevents a valid run.
+- `FAIL`: a mandatory check ran and failed.
+
+## Integration Test Contract
+
+Check categories:
+
+- `MANDATORY`: required for `PASS`; failure or missing evidence blocks the run.
+- `RESOURCE_GATED`: normally mandatory, but may be omitted only when host
+  resources are below the full-run threshold and Three Amigos approval records
+  the reduced scope. The best possible result is `PASS_WITH_RESOURCE_GATES`.
+- `OPTIONAL`: diagnostic only; omission must be recorded as `NOT_APPLICABLE`
+  and does not block `PASS`.
+
+Full-run resource threshold:
+
+- At least 4 vCPU available to the Linux/WSL environment.
+- At least 16 GiB RAM available to the Linux/WSL environment.
+- At least 60 GiB free disk in the target Multipass/Docker storage path.
+- If any threshold is not met, deploying Jenkins, SonarQube or the full
+  supporting-service set requires Three Amigos approval before it can be
+  resource-gated.
+
+Contract table:
+
+| Check ID | Phase | Category | Owner | Evidence Required | Failure Classification | Remediation Policy | Pass Condition |
+|---|---|---|---|---|---|---|---|
+| `REQ-BASELINE` | requirement | `MANDATORY` | Senior Requirement Engineer | requirement baseline entry in execution report | product-scope ambiguity | stop for Three Amigos if baseline is disputed | active workflow baseline is accepted or EPIC is added |
+| `LIVE-CONSENT` | safety | `MANDATORY` | Senior Security Sandbox Engineer | consent or refusal JSON | missing live consent | refuse before live command execution | live mode has valid consent, or dry-run mode avoids live commands |
+| `PREFLIGHT` | preflight | `MANDATORY` | Senior DevOps Engineer | `preflight.json` | host prerequisite missing | self-remediate only for deterministic local checks; otherwise ask operator | all mandatory prerequisites pass |
+| `HOST` | preflight | `MANDATORY` | Senior DevOps Engineer | OS, WSL/Linux, Python, Multipass, Docker CLI and port checks | host prerequisite missing | stop with actionable host remediation | host satisfies runtime prerequisites |
+| `PYTHON-ENTRYPOINT` | preflight | `MANDATORY` | Senior Python Automation Developer | command output for service discovery | implementation defect | self-remediate in owning slice when 90 percent clear | canonical entrypoint is discoverable from repo root |
+| `VM-LIFECYCLE` | platform | `MANDATORY` | Senior Python Automation Developer | manager and worker VM state results | runtime/platform failure | retry bounded readiness checks, then classify | expected VMs exist or are created and verified |
+| `NETWORK` | platform | `MANDATORY` | Senior Python Automation Developer | IP, gateway, netplan and forwarding probe results | runtime/platform failure | self-remediate deterministic path/config defects only | network state required for service reachability is verified |
+| `DOCKER` | platform | `MANDATORY` | Senior Python Automation Developer | per-node Docker daemon health results | runtime/platform failure | retry bounded daemon readiness, then fail | Docker daemon is healthy on every node |
+| `SWARM` | platform | `MANDATORY` | Senior Python Automation Developer | manager state, join token and `docker node ls` results | runtime/platform failure | self-remediate idempotency/parsing defects when 90 percent clear | manager active and workers joined |
+| `STACK-PORTAINER` | deployment | `MANDATORY` | Senior Python Automation Developer | stack status and endpoint probe | deployment failure | stop if secrets or stack contract are missing | Portainer stack is deployed and reachable |
+| `STACK-SUPPORTING` | deployment | `RESOURCE_GATED` | Senior Requirement Engineer | stack status for Nexus, Jenkins, RabbitMQ, SonarQube and Swagger/NGINX, plus any gate approval | resource limitation or deployment failure | Three Amigos approval required to omit any service | all services deploy for `PASS`; approved omissions produce `PASS_WITH_RESOURCE_GATES` |
+| `REACHABILITY` | verification | `MANDATORY` | Senior Tester | host endpoint probe results | service reachability failure | retry bounded readiness checks, then fail | mandatory endpoints respond from host |
+| `RERUN-SAFETY` | verification | `MANDATORY` | Senior Tester | second-run state-detection summary | destructive behavior risk | stop on implicit destructive behavior | rerun detects existing state without implicit reset |
+| `EVIDENCE` | evidence | `MANDATORY` | Senior Tester | complete redacted evidence bundle | missing evidence | block until evidence is complete | manifest, summary, phase results, probes, checksums and redaction report exist |
+| `EXTENDED-DIAGNOSTICS` | diagnostics | `OPTIONAL` | Senior DevOps Engineer | optional log tails, timing report or extra probes | diagnostic unavailable | record `NOT_APPLICABLE` | optional evidence is either present or explicitly skipped |
+
+Resource-gated approval record:
+
+- Must be written to the execution report before live deployment begins.
+- Must name the omitted service, measured host resource value, approving roles,
+  reason the service is gated and the resulting maximum status
+  `PASS_WITH_RESOURCE_GATES`.
+- Must not be used when the user requires a strict full-functionality `PASS`.
+
+## Live-Run Consent Contract
+
+Live commands are any commands that can create or delete VMs, change networking,
+install Docker, initialize or mutate Docker Swarm, deploy compose stacks, start
+port forwarding or bootstrap services.
+
+The live runner must require all of the following before any live command is
+handed to a command runner:
+
+- CLI flag: `--live`.
+- Environment variable:
+  `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`.
+- Interactive typed phrase:
+  `RUN TINY SWARM WORLD LIVE INSTALLATION`.
+
+Non-interactive live execution is refused by this workflow. A future workflow
+must explicitly define a separate non-interactive consent contract before CI or
+automation can run live infrastructure commands.
+
+Consent evidence must record:
+
+- UTC timestamp;
+- active git branch and commit;
+- host identifier with user-controlled names redacted when needed;
+- selected cleanup mode;
+- command categories approved for this run;
+- operator identity from the local environment when available, redacted if it
+  contains sensitive data.
+
+Refusal semantics:
+
+- Missing or invalid consent exits non-zero before live command execution.
+- The refusal phase is `REFUSED_LIVE_CONSENT_MISSING`.
+- The refusal report records only blocked command categories, not raw host
+  state or secrets.
+- Refusal must happen before any `multipass`, `docker swarm`, `netplan`,
+  `socat`, compose/stack deployment or service bootstrap command is executed.
+
+## Evidence Bundle Contract
+
+Evidence path:
+
+```text
+.tiny-swarm-world/evidence/live-installation/<run-id>/
+```
+
+`<run-id>` format:
+
+```text
+YYYYMMDDTHHMMSSZ-<short-git-sha>-<mode>
+```
+
+The implementation slice that creates the live runner must also add the
+evidence root to `.gitignore` before any evidence is written.
+
+Required files:
+
+- `manifest.json`: run id, workflow version, branch, commit, host class,
+  started/finished timestamps and command categories.
+- `summary.json`: final status, failed checks, resource-gated checks and next
+  action.
+- `preflight.json`: host, resource, secret-source and port validation.
+- `consent.json` or `refusal.json`: live consent result without secrets.
+- `phases/<phase-id>.json`: per-phase status, owner, timings and retries.
+- `commands/<phase-id>/<ordinal>.json`: command category, node, timeout,
+  exit code and redacted stdout/stderr.
+- `probes/<probe-id>.json`: endpoint, expected result, actual result and
+  timing.
+- `redaction-report.json`: redaction patterns applied and fields withheld.
+- `checksums.sha256`: checksums for evidence files after redaction.
+
+Redaction rules:
+
+- Never write raw secrets, passwords, tokens, join tokens, cookies, HTTP
+  authorization headers, Portainer credentials, Nexus credentials, Jenkins
+  credentials, RabbitMQ credentials, SonarQube credentials or service bootstrap
+  credentials to logs, prompts, evidence or documentation.
+- Secrets must come from environment variables or ignored local files only.
+- Secrets must not be passed as command-line arguments when a safer environment
+  or file-based mechanism is available.
+- Missing secrets fail preflight before stack deployment.
+- Redaction must apply to stdout, stderr, command metadata, URLs, headers,
+  probe results, local env snapshots and failure reports before evidence is
+  written.
 
 ## Scope
 
@@ -399,6 +550,7 @@ affected_files:
   - "documentation/workflow/workflow.md"
   - "documentation/workflow/context-pack.md"
   - "documentation/workflow/context-pack.json"
+  - "documentation/workflow/execution-report.md"
   - "OPERATIONAL_READINESS_CHECKLIST.md"
 affected_modules: []
 affected_contracts:

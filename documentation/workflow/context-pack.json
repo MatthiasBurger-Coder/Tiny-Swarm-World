@@ -7,6 +7,15 @@
   "requirement": {
     "summary": "Create a workflow for an opt-in integration test that verifies full installation and full functionality.",
     "blockerPolicy": "Self-remediate blockers when confidence is at least 90 percent; otherwise start Three Amigos Q&A.",
+    "temporaryBaseline": [
+      "user request",
+      "AGENTS.md",
+      "QUALITY.md",
+      "AUDIT_REPORT.md",
+      "OPERATIONAL_READINESS_CHECKLIST.md",
+      "active workflow requirement record",
+      "documentation/architecture/adr-separate-platform-artifacts-deployment.adoc"
+    ],
     "decision": "READY_FOR_WORKFLOW",
     "confidence": 92
   },
@@ -14,7 +23,15 @@
     "defaultQualityGate": "python3 tools/quality_gate.py quality",
     "liveInfrastructureInDefaultGate": false,
     "liveEvidenceGapRecordedIn": "AUDIT_REPORT.md",
-    "readinessChecklist": "OPERATIONAL_READINESS_CHECKLIST.md"
+    "readinessChecklist": "OPERATIONAL_READINESS_CHECKLIST.md",
+    "slice01Contracts": [
+      "live-run-consent",
+      "refusal-before-live-command",
+      "evidence-bundle",
+      "redaction",
+      "credential-source-validation",
+      "resource-gated-result-semantics"
+    ]
   },
   "affectedAreas": [
     "documentation/workflow",
@@ -147,7 +164,7 @@
     },
     {
       "path": "OPERATIONAL_READINESS_CHECKLIST.md",
-      "sha256": "bcc8dd6c332e94405d8f8aa471134b4cb319058fcc837cfc597d262ac561a94d"
+      "sha256": "d8e54cd328674c8ce4e6237abadf86346f5f00a0e6333677e2214881e159ddd7"
     },
     {
       "path": ".agents/skills/workflow-authoring/SKILL.md",

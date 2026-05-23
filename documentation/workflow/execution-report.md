@@ -64,3 +64,76 @@ Potential blockers for future execution:
 If a future blocker cannot be solved with at least 90 percent confidence, the
 executor must stop and record Three Amigos questions in this report before
 continuing.
+
+## Slice 01: Integration Test Contract
+
+Status: `completed`
+
+Responsible role:
+
+- Senior Requirement Engineer
+
+Subagent reviews:
+
+- Senior Swarm Orchestrator: S3D returned `EXECUTION_PLAN`; Slice 01 is first
+  executable slice, dependency-free, with no lock conflict.
+- Senior Requirement Engineer: follow-up review returned `READY` after the
+  temporary requirement baseline, resource-gated semantics, consent contract,
+  evidence bundle and checklist alignment were documented.
+- Senior System Architect: follow-up review returned `READY`; changes remain
+  inside `documentation/workflow/**` and `OPERATIONAL_READINESS_CHECKLIST.md`.
+- Senior Security Sandbox Engineer: follow-up review returned `READY`; live
+  consent, refusal, redaction, evidence and credential-source rules are
+  concrete.
+- Senior Tester: review returned `READY`; documentation-only gate is sufficient
+  for Slice 01 and the full Python gate is not claimed.
+
+Changed files:
+
+- `OPERATIONAL_READINESS_CHECKLIST.md`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/execution-report.md`
+- `documentation/workflow/workflow.md`
+
+Quality-gate commands:
+
+- `git diff --check`: pass
+- `python3 -m json.tool documentation/workflow/context-pack.json`: pass
+
+Quality-gate result: `pass`
+
+Skipped checks:
+
+- `python3 tools/quality_gate.py quality`: skipped because Slice 01 is
+  documentation/readiness-only and the slice-required D8 gate is
+  `git diff --check`.
+
+Live infrastructure:
+
+- Not run. No Multipass, Docker Swarm, netplan, socat, compose/stack or
+  service bootstrap command was executed.
+
+Rollback reference:
+
+- Previous checkpoint before Slice 01: `2b14c5c`
+
+Checkpoint commit:
+
+- Pending until the Slice 01 checkpoint commit is created.
+
+arc42 update status:
+
+- `checked, not changed`
+- Rationale: Slice 01 clarifies integration-test contracts and live-safety
+  semantics. It does not change runtime topology or architecture decisions.
+
+ADR update status:
+
+- `checked, not changed`
+- Rationale: The existing platform/artifacts/deployment responsibility ADR
+  remains compatible with the Slice 01 contract.
+
+Push result:
+
+- Pending until the Slice 01 checkpoint commit is pushed.
