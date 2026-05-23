@@ -90,7 +90,7 @@ find infra -name '*.sh' -print0 | xargs -0 bash -n
 | `.agents/orchestrator/routing-rules.md` | `a524843f96fa91adc56cbe8b02156abc56a299b263eb8ad6715204bee52cfd31` |
 | `.agents/skills/workflow-authoring/SKILL.md` | `087658240296e3b1ec74205c60a96a9a4c67a17cf653f7867e6f316bd9afa94e` |
 | `.agents/skills/three-amigos-requirement-gatekeeper/SKILL.md` | `23de7d9aac9d2694eae26fac2765d65f369c101ac348dac24d5f3bbe9e2d3ba4` |
-| `.agents/skills/execution-profile-router/SKILL.md` | `a1e1195387d55b8baa6b5a891aac982f6ffc734a80c1ab32dc594d4cfc51b` |
+| `.agents/skills/execution-profile-router/SKILL.md` | `a1e1195387d55b8ba3baa6b5a891aac982f6ffc734a80c1ab32dc594d4cfc51b` |
 | `.agents/skills/quality-gate/SKILL.md` | `90fe1c9de050f21cb8635fab1b498b93439fffdc050d3b7ceb04bd8d2deea174` |
 | `.agents/skills/quality-architecture-validation/SKILL.md` | `a00a8e7e2ea24c4878533272f0f98b687156e0279a8fa84f67676248b8000e78` |
 | `.importlinter` | `4c5c879ddc20bf7ccb8adca2b907538264f9c3cf9c1c54e3076e7c008f1a62b4` |
