@@ -70,6 +70,20 @@ class TestCommandRepositoryYamlContract(unittest.TestCase):
         with self.assertRaises(CommandCatalogValidationError):
             _repository_for(yaml_content).get_all_commands()
 
+    def test_repository_rejects_mutating_command_without_verify_spec(self):
+        yaml_content = _catalog_yaml(
+            _command_yaml(
+                command_id="unsafe-mutation.001",
+                command="echo mutate",
+                safety_class="safe_mutation",
+                effects=("modify",),
+                verify_type="none",
+            )
+        )
+
+        with self.assertRaises(CommandCatalogValidationError):
+            _repository_for(yaml_content).get_all_commands()
+
     def test_repository_loads_all_product_command_yaml_files_with_typed_contract(self):
         command_ids: set[str] = set()
 
@@ -80,6 +94,16 @@ class TestCommandRepositoryYamlContract(unittest.TestCase):
                 for command in commands.values():
                     self.assertNotIn(command.id, command_ids)
                     command_ids.add(command.id)
+
+    def test_command_builder_preserves_verify_metadata_for_mutating_commands(self):
+        commands = PortCommandRepositoryYaml(
+            "command_multipass_init_repository_yaml.yaml"
+        ).get_all_commands()
+
+        mutating_command = commands[1]
+
+        self.assertEqual("safe_mutation", mutating_command.safety_class.value)
+        self.assertEqual("manual", mutating_command.verify.type.value)
 
 
 def _repository_for(yaml_content: str) -> PortCommandRepositoryYaml:
@@ -98,22 +122,26 @@ def _command_yaml(
     command_id: str,
     index: int = 1,
     command: str = "multipass list",
+    safety_class: str = "safe_read",
+    effects: tuple[str, ...] = ("read",),
+    verify_type: str = "none",
 ) -> str:
+    effect_lines = "\n".join(f"      - {effect}" for effect in effects)
     return f"""
   - id: {command_id}
     index: {index}
     description: Test command
     intent: test_command
     execution_mode: shell
-    safety_class: safe_read
+    safety_class: {safety_class}
     scope: host
     allowed_workflows:
       - platform:init
     parameters: []
     effects:
-      - read
+{effect_lines}
     verify:
-      type: none
+      type: {verify_type}
       description: Read-only command.
     command: "{command}"
     runner: "async"

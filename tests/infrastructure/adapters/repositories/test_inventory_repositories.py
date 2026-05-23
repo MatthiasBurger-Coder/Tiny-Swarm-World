@@ -153,6 +153,18 @@ class TestVerificationEvidenceLocalRepository(unittest.TestCase):
             with self.assertRaises(ValueError):
                 repository.append(VerificationResult("command:probe", evidence={"stderr": "raw"}))
 
+    def test_rejects_sensitive_payload_values_before_persistence(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository = VerificationEvidenceLocalRepository(root=Path(temporary_directory))
+
+            with self.assertRaises(ValueError):
+                repository.append(
+                    VerificationResult(
+                        "command:probe",
+                        evidence={"summary": "docker swarm join --token hidden"},
+                    )
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

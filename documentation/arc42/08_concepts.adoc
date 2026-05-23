@@ -54,6 +54,25 @@ payloads. Evidence keys that would store raw command strings, stdout, stderr,
 environment data, tokens, passwords, or secrets are rejected by the domain
 model before local persistence.
 
-This separation lets later apply workflows report apply failure and verify
-failure separately without treating generated logs or command output as
-validated runtime evidence.
+This separation lets apply workflows report apply failure and verify failure
+separately without treating generated logs or command output as validated
+runtime evidence.
+
+=== Verify After Apply
+
+Mutating workflow continuation is fail-closed. A step that can change platform
+state must provide verification evidence before the workflow can continue to
+the next mutating step.
+
+The workflow result distinguishes:
+
+* `failed_to_apply` when the apply part raises or explicitly reports failed
+  application;
+* `failed_to_verify` when apply succeeded but verification fails;
+* `blocked` when the step lacks a verification path or verified evidence is
+  missing.
+
+Evidence values are sanitized as well as evidence keys. Raw command payloads,
+stdout/stderr labels, shell-like command strings, token/password/secret
+markers, multi-line payloads, and PEM-like blocks are rejected before evidence
+can be persisted.

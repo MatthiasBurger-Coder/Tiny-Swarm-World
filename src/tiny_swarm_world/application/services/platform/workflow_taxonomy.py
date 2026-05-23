@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from tiny_swarm_world.domain.inventory import VerificationResult
+
 
 RESET_TINY_SWARM_PLATFORM_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
 DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION = "DESTROY_TINY_SWARM_PLATFORM"
@@ -20,6 +22,8 @@ class PlatformWorkflowStatus(str, Enum):
     COMPLETED = "completed"
     REFUSED = "refused"
     BLOCKED = "blocked"
+    FAILED_TO_APPLY = "failed_to_apply"
+    FAILED_TO_VERIFY = "failed_to_verify"
 
 
 @dataclass(frozen=True)
@@ -38,6 +42,7 @@ class PlatformWorkflowResult:
     status: PlatformWorkflowStatus
     message: str
     executed: bool
+    verification_results: tuple[VerificationResult, ...] = ()
 
     @classmethod
     def completed(
@@ -45,12 +50,14 @@ class PlatformWorkflowResult:
         semantics: PlatformWorkflowSemantics,
         *,
         executed: bool,
+        verification_results: tuple[VerificationResult, ...] = (),
     ) -> PlatformWorkflowResult:
         return cls(
             kind=semantics.kind,
             status=PlatformWorkflowStatus.COMPLETED,
             message=f"{semantics.kind.value} workflow completed.",
             executed=executed,
+            verification_results=verification_results,
         )
 
     @classmethod
@@ -71,12 +78,44 @@ class PlatformWorkflowResult:
         cls,
         semantics: PlatformWorkflowSemantics,
         message: str,
+        verification_results: tuple[VerificationResult, ...] = (),
     ) -> PlatformWorkflowResult:
         return cls(
             kind=semantics.kind,
             status=PlatformWorkflowStatus.BLOCKED,
             message=message,
             executed=False,
+            verification_results=verification_results,
+        )
+
+    @classmethod
+    def failed_to_apply(
+        cls,
+        semantics: PlatformWorkflowSemantics,
+        message: str,
+        verification_results: tuple[VerificationResult, ...],
+    ) -> PlatformWorkflowResult:
+        return cls(
+            kind=semantics.kind,
+            status=PlatformWorkflowStatus.FAILED_TO_APPLY,
+            message=message,
+            executed=True,
+            verification_results=verification_results,
+        )
+
+    @classmethod
+    def failed_to_verify(
+        cls,
+        semantics: PlatformWorkflowSemantics,
+        message: str,
+        verification_results: tuple[VerificationResult, ...],
+    ) -> PlatformWorkflowResult:
+        return cls(
+            kind=semantics.kind,
+            status=PlatformWorkflowStatus.FAILED_TO_VERIFY,
+            message=message,
+            executed=True,
+            verification_results=verification_results,
         )
 
 

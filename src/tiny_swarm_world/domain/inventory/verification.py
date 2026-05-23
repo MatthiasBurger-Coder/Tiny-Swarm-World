@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import re
 from types import MappingProxyType
 from typing import Mapping
 
@@ -28,6 +29,13 @@ RAW_EVIDENCE_KEYS = frozenset(
     }
 )
 SENSITIVE_EVIDENCE_KEY_FRAGMENTS = ("password", "secret", "token")
+RAW_EVIDENCE_VALUE_PATTERNS = (
+    re.compile(r"[\r\n]"),
+    re.compile(r"\b(stdout|stderr)\b", re.IGNORECASE),
+    re.compile(r"\b(multipass|docker|sudo|curl)\s+\S+", re.IGNORECASE),
+    re.compile(r"\b(token|password|secret)\b", re.IGNORECASE),
+    re.compile(r"-----BEGIN [A-Z ]+-----"),
+)
 
 
 @dataclass(frozen=True)
@@ -73,7 +81,10 @@ def _validate_evidence(evidence: Mapping[str, str]) -> dict[str, str]:
             raise ValueError(f"raw verification evidence key is not allowed: {key}")
         if any(fragment in normalized_key for fragment in SENSITIVE_EVIDENCE_KEY_FRAGMENTS):
             raise ValueError(f"sensitive verification evidence key is not allowed: {key}")
-        validated[str(key)] = str(value)
+        string_value = str(value)
+        if any(pattern.search(string_value) for pattern in RAW_EVIDENCE_VALUE_PATTERNS):
+            raise ValueError(f"raw or sensitive verification evidence value is not allowed: {key}")
+        validated[str(key)] = string_value
     return validated
 
 

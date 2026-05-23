@@ -1193,6 +1193,28 @@ Required tests:
 - Failed verify stops workflow.
 - Workflow cannot silently continue after missing verification evidence.
 
+Implemented contract notes:
+
+- Mutating platform workflows now require every configured mutating step to
+  expose a verification path before apply execution.
+- The workflow runs apply first and verify second, then continues only when the
+  verification result status is `verified`.
+- Apply exceptions or explicit `failed_to_apply` results stop the workflow and
+  return workflow status `failed_to_apply`.
+- Verify exceptions or non-verified verification results stop the workflow and
+  return workflow status `failed_to_verify`.
+- Missing verification evidence blocks continuation with workflow status
+  `blocked`.
+- Built executable commands now preserve command ID, safety class, and verify
+  metadata from the typed command catalog.
+- Verification evidence values are sanitized in addition to evidence keys, and
+  command-runner exception/log strings no longer expose raw command, stdout, or
+  stderr payloads.
+- ADR need was checked. arc42 records verify-after-apply as a runtime safety
+  invariant inside the inventory/evidence decision; a standalone ADR can be
+  added in the final documentation slice if the project keeps it as a long-lived
+  policy decision.
+
 Verification commands:
 
 ```bash

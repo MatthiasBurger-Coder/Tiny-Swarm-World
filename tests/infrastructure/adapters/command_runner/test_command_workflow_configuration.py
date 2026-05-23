@@ -90,6 +90,21 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
             transfer_command,
         )
 
+    def test_built_commands_preserve_verification_metadata(self):
+        workflow = CommandWorkflow()
+        command_list = workflow.build_command_list(
+            "command_multipass_init_repository_yaml.yaml",
+            _smoke_parameters(),
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+        )
+
+        launch_command = command_list["swarm-manager"][1]
+
+        self.assertEqual("multipass_init_repository.001", launch_command.command_id)
+        self.assertTrue(launch_command.mutating)
+        self.assertIsNotNone(launch_command.verify)
+        self.assertEqual("manual", launch_command.verify.type.value)
+
     def test_destructive_cleanup_commands_are_not_allowed_for_init(self):
         workflow = CommandWorkflow()
 

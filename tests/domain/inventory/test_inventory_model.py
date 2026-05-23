@@ -64,6 +64,22 @@ class TestVerificationResult(unittest.TestCase):
                 evidence={"password_value": "redacted"},
             )
 
+    def test_result_rejects_raw_or_sensitive_evidence_values(self):
+        raw_values = (
+            "stdout: secret output",
+            "docker swarm join --token hidden",
+            "PASSWORD=value",
+            "line one\nline two",
+        )
+
+        for raw_value in raw_values:
+            with self.subTest(raw_value=raw_value):
+                with self.assertRaises(ValueError):
+                    VerificationResult(
+                        target_id="command:probe",
+                        evidence={"summary": raw_value},
+                    )
+
 
 class TestInventoryModels(unittest.TestCase):
     def test_desired_inventory_contains_vm_desired_state(self):

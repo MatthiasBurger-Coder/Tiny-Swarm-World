@@ -42,14 +42,17 @@ class AsyncPortCommandRunner(PortCommandRunner):
             # Wait for subprocess to complete
             communicate_task = asyncio.create_task(process.communicate())
             stdout, stderr = await asyncio.wait_for(communicate_task, timeout=timeout)
-            # Log output
-            self.logger.info(f"Command output: {stdout.decode('utf-8').strip()}")
+            self.logger.info("Command produced stdout (%d bytes).", len(stdout))
 
             # Check process return code
             return_code = process.returncode if process.returncode is not None else -1
             if return_code != 0:
                 error_message = stderr.decode('utf-8').strip()  # Read error from stderr
-                self.logger.error(f"Command failed with return code {return_code}: {error_message}")
+                self.logger.error(
+                    "Command failed with return code %s; stderr redacted (%d bytes).",
+                    return_code,
+                    len(stderr),
+                )
                 async with self.lock:
                     self.status["result"] = "Error"
                 raise CommandExecutionError(

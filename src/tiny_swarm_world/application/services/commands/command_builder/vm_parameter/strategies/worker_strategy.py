@@ -33,6 +33,9 @@ class WorkerStrategy(CommandBuilderStrategy):
 
                 executable_commands.setdefault(vm_instance_name, {})
                 executable_commands[vm_instance_name][command.index] = ExecutableCommandEntity(
+                    command_id=command.id,
+                    safety_class=command.safety_class,
+                    verify=command.verify,
                     vm_instance_name=vm_instance_name,
                     description=command.description.format(vm_instance=vm_instance_name),
                     command=self.command_parameter_builder.substitute_command(command.command, per_vm_params),

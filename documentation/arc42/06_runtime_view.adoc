@@ -46,3 +46,23 @@ payloads, and keys that imply secrets are rejected before persistence.
 No live Multipass, Docker Swarm, netplan, socat, Portainer, Nexus, Jenkins,
 RabbitMQ, SonarQube, compose, or stack deployment command is required to create
 or round-trip these inventory artifacts in tests.
+
+=== Verify After Apply Runtime Gate
+
+Mutating platform workflows now execute application-level steps through an
+apply-then-verify gate. A mutating step must expose a verification path before
+the workflow runs it. If that path is missing, the workflow returns `blocked`
+and does not apply the step.
+
+Continuation requires both parts:
+
+* apply succeeds;
+* verify returns `VerificationStatus.verified` evidence.
+
+Apply exceptions and explicit failed apply results return
+`failed_to_apply`. Verification exceptions, failed verification results, or
+non-verified evidence return `failed_to_verify`, while missing evidence returns
+`blocked`. Later mutating steps are not run after any of these outcomes.
+
+When a verification evidence repository is configured, the workflow appends
+the typed verification result before making the continuation decision.

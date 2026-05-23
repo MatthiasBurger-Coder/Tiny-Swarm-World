@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from tiny_swarm_world.domain.command.command_entity import (
     CommandCatalogValidationError,
     CommandEntity,
+    CommandSafetyClass,
     CommandWorkflowId,
 )
 
@@ -43,6 +44,30 @@ class TestCommandSpec(unittest.TestCase):
 
         with self.assertRaises(ValidationError):
             CommandEntity(**spec)
+
+    def test_all_mutating_safety_classes_require_verify_spec(self):
+        mutating_classes = (
+            CommandSafetyClass.SAFE_MUTATION.value,
+            CommandSafetyClass.CREDENTIAL_MUTATION.value,
+            CommandSafetyClass.NETWORK_MUTATION.value,
+            CommandSafetyClass.DESTRUCTIVE.value,
+        )
+
+        for safety_class in mutating_classes:
+            with self.subTest(safety_class=safety_class):
+                spec = _command_spec(
+                    safety_class=safety_class,
+                    allowed_workflows=[CommandWorkflowId.PLATFORM_RESET.value]
+                    if safety_class == CommandSafetyClass.DESTRUCTIVE.value
+                    else [CommandWorkflowId.PLATFORM_INIT.value],
+                    command="multipass delete --all"
+                    if safety_class == CommandSafetyClass.DESTRUCTIVE.value
+                    else "echo ok",
+                )
+                spec["verify"] = {"type": "none", "description": "not verified"}
+
+                with self.assertRaises(ValidationError):
+                    CommandEntity(**spec)
 
     def test_destructive_shell_pattern_requires_destructive_safety_class(self):
         spec = _command_spec(

@@ -19,7 +19,8 @@ Consequences:
   HTTP, command-runner, Docker, logging, or infrastructure imports;
 * infrastructure adapters own YAML/JSON parsing, local path resolution, and
   persistence hardening;
-* local evidence stores summaries and rejects raw command payload fields.
+* local evidence stores summaries and rejects raw command payload fields;
+* mutating workflow continuation requires apply success and verified evidence.
 
 No standalone ADR file is added in this slice because the active workflow locks
 the implementation and arc42 update scope. A dedicated ADR can be added during

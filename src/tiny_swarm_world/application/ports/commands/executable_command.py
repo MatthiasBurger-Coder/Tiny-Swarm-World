@@ -3,6 +3,10 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from tiny_swarm_world.application.ports.commands.port_command_runner import PortCommandRunner
+from tiny_swarm_world.domain.command.command_entity import (
+    CommandSafetyClass,
+    CommandVerifySpec,
+)
 
 
 class ExecutableCommandEntity(BaseModel):
@@ -19,7 +23,14 @@ class ExecutableCommandEntity(BaseModel):
     description: Optional[str] = Field(default=None)
     command: Optional[str] = Field(default=None)
     runner: Optional[PortCommandRunner] = Field(default=None)
+    command_id: Optional[str] = Field(default=None)
+    safety_class: Optional[CommandSafetyClass] = Field(default=None)
+    verify: Optional[CommandVerifySpec] = Field(default=None)
 
     model_config = {
         "arbitrary_types_allowed": True,
     }
+
+    @property
+    def mutating(self) -> bool:
+        return self.safety_class is not None and self.safety_class != CommandSafetyClass.SAFE_READ

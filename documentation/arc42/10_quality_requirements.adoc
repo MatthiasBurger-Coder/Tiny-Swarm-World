@@ -17,3 +17,22 @@ The default quality gate must validate this contract without executing live
 infrastructure commands. Regression coverage includes domain model validation,
 YAML repository validation, workflow allow-list enforcement, and static checks
 that destructive command patterns are reset/destroy only.
+
+=== Verify After Apply
+
+Mutating workflows must not silently continue after applying a change.
+
+Quality scenarios:
+
+* a mutating workflow step without a verification path returns `blocked` before
+  the apply step runs;
+* an apply exception or failed apply result returns `failed_to_apply` and stops
+  later steps;
+* a verification exception or failed verification result returns
+  `failed_to_verify` and stops later steps;
+* missing verification evidence returns `blocked`;
+* verified evidence allows the next mutating step to run.
+
+Tests use synthetic workflow steps and mocked repositories. They do not execute
+Multipass, Docker Swarm, compose deployments, netplan, socat, or service
+bootstrap commands.
