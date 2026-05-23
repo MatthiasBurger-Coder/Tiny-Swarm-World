@@ -54,6 +54,12 @@ apply-then-verify gate. A mutating step must expose a verification path before
 the workflow runs it. If that path is missing, the workflow returns `blocked`
 and does not apply the step.
 
+The gate itself is implemented as fail-closed workflow behavior. At the current
+system-unification baseline, some composed mutating platform steps still expose
+only `run()` and do not yet expose concrete verification contracts. Those steps
+therefore block before apply until a later slice wires tested verification
+wrappers or equivalent verifiable step contracts.
+
 Continuation requires both parts:
 
 * apply succeeds;

@@ -22,7 +22,10 @@ such as `VmIpList`, `MultipassInitVms`, and `NetworkPrepareNetplan` are
 constructed with explicit ports and repositories instead of creating
 infrastructure adapters inside the application layer.
 
-The composition root now exposes separate application service bundles:
+The composition root now exposes separate in-process application service
+bundles. These bundles are responsibility boundaries inside the Python
+automation process; they are not independently deployable services or
+microservices:
 
 * `PlatformServices` contains the current platform automation for Multipass,
   network setup, Docker installation, Swarm initialization, preflight checks,
@@ -43,6 +46,10 @@ boundaries while service ownership moves in dedicated workflow slices.
 Compatibility properties on `ApplicationServices` keep the existing
 service-level accessors available for migration, but the public Python
 entrypoint now routes through workflow-level commands.
+
+Console/status UI is also an in-process responsibility surface. It owns
+terminal status rendering, progress feedback and command-runner status
+presentation. It is not a browser React frontend.
 
 === Typed Command Catalog
 

@@ -69,7 +69,7 @@ creation evidence.
 | Slice | Status | Commit | Push | Notes |
 | --- | --- | --- | --- | --- |
 | 01 | `COMPLETED_PUSHED` | `ceffce7bd42011d9fb8e68965d844cf09a63ae6f` | `origin/codex/workflow-system-unification-20260524` | Created EPIC baseline and system completeness baseline report |
-| 02 | `PENDING` | | | ADR and arc42 alignment |
+| 02 | `COMPLETED_PENDING_COMMIT` | | | Preserved ADR location convention and aligned arc42 implementation status |
 | 03 | `PENDING` | | | Responsibility boundary quality coverage |
 | 04 | `PENDING` | | | Command catalog, inventory, and evidence foundation |
 | 05 | `PENDING` | | | Platform verify-after-apply contracts |
