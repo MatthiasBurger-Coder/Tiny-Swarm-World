@@ -1089,6 +1089,30 @@ Storage rules:
 - `.tiny-swarm-world/` must remain ignored by Git.
 - Domain must not import filesystem, YAML, HTTP, or command runners.
 
+Implemented contract notes:
+
+- Domain inventory types now model desired VM state, observed VM, network,
+  Docker, Swarm, stack, and artifact registry state, and typed verification
+  results.
+- `VerificationStatus` values are `not_checked`, `verified`,
+  `failed_to_apply`, `failed_to_verify`, `blocked`, and `refused`.
+- Application repository ports define desired inventory loading, observed
+  inventory persistence, and verification evidence recording.
+- Desired inventory YAML loading is infrastructure-owned and defaults to
+  committed configuration under `infra/config` without adding observed runtime
+  state there.
+- Observed inventory and verification evidence persist through dedicated local
+  JSON adapters under `.tiny-swarm-world/`; absolute paths, traversal outside
+  the local state root, and roots under `infra/config` are rejected.
+- Verification evidence rejects raw command, stdout, stderr, environment,
+  password, token, and secret evidence keys before persistence.
+- `.tiny-swarm-world/` remains ignored by Git, and architecture tests protect
+  the domain inventory package from filesystem, YAML, HTTP, command-runner,
+  application, and infrastructure imports.
+- ADR need was checked. arc42 records the implemented storage-ownership
+  decision; a standalone ADR can be added in the final documentation slice if
+  the project keeps this decision as a long-lived ADR.
+
 Verification commands:
 
 ```bash

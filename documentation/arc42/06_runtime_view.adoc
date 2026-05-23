@@ -29,3 +29,20 @@ dispatches low-level service names through `--run`; transitional
 compatibility. Artifact and deployment workflow command names are declared by
 the CLI contract and report blocked results until later slices wire their
 runtime behavior.
+
+=== Inventory And Evidence Runtime Flow
+
+Desired inventory is a committed product configuration concern and can be read
+from `infra/config` through an application repository port. Observed inventory
+and verification evidence are local runtime facts. They are persisted by
+infrastructure adapters under `.tiny-swarm-world/` and are not committed.
+
+The local observed-state adapters resolve every target path under the repository
+local-state root and reject absolute paths, traversal outside that root, and
+targets under `infra/config`. Verification evidence stores typed summaries
+through `VerificationResult`; raw command strings, stdout, stderr, environment
+payloads, and keys that imply secrets are rejected before persistence.
+
+No live Multipass, Docker Swarm, netplan, socat, Portainer, Nexus, Jenkins,
+RabbitMQ, SonarQube, compose, or stack deployment command is required to create
+or round-trip these inventory artifacts in tests.

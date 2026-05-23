@@ -25,3 +25,35 @@ catalog entries before runner-specific executable commands are created.
 Tests and quality gates parse and validate command YAML without running live
 Multipass, Docker Swarm, netplan, socat, compose, Portainer, Nexus, Jenkins,
 RabbitMQ, SonarQube, or Swagger/NGINX commands.
+
+=== Desired Inventory, Observed State, And Evidence
+
+Tiny Swarm World separates intended state from runtime facts.
+
+Desired inventory is the operator-approved target view. It is represented by
+`DesiredInventory` and VM desired-state entries and may be loaded from
+committed product configuration.
+
+Observed inventory is the local runtime view collected by adapters. It contains
+typed VM, network, Docker, Swarm, stack, and artifact registry state. Observed
+inventory is written only below `.tiny-swarm-world/` and must remain ignored by
+Git.
+
+Verification evidence is represented by `VerificationResult` with one of these
+statuses:
+
+* `not_checked`
+* `verified`
+* `failed_to_apply`
+* `failed_to_verify`
+* `blocked`
+* `refused`
+
+Verification evidence is stored as structured summary data, not as raw command
+payloads. Evidence keys that would store raw command strings, stdout, stderr,
+environment data, tokens, passwords, or secrets are rejected by the domain
+model before local persistence.
+
+This separation lets later apply workflows report apply failure and verify
+failure separately without treating generated logs or command output as
+validated runtime evidence.

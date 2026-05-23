@@ -1,3 +1,27 @@
 == Architectural Decisions
 
 Justification of key technical decisions.
+
+=== Inventory State Storage Ownership
+
+Decision status: implemented in Slice 08, ADR follow-up recommended.
+
+Tiny Swarm World separates committed desired inventory from ignored local
+observed inventory and verification evidence.
+
+Consequences:
+
+* desired inventory remains a product configuration concern and may live under
+  `infra/config`;
+* observed inventory and verification evidence live only under
+  `.tiny-swarm-world/`;
+* the domain owns typed state and evidence concepts without filesystem, YAML,
+  HTTP, command-runner, Docker, logging, or infrastructure imports;
+* infrastructure adapters own YAML/JSON parsing, local path resolution, and
+  persistence hardening;
+* local evidence stores summaries and rejects raw command payload fields.
+
+No standalone ADR file is added in this slice because the active workflow locks
+the implementation and arc42 update scope. A dedicated ADR can be added during
+the final documentation and legacy quarantine slice if the project keeps this
+as a long-lived architecture decision record.

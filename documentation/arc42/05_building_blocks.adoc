@@ -73,6 +73,24 @@ such as Multipass delete or purge are accepted only when classified as
 `destructive` and limited to reset or destroy workflows. Mutating commands
 must declare a verification specification.
 
+=== Inventory And Verification Evidence
+
+The domain now contains parser-independent inventory and verification concepts
+under `tiny_swarm_world.domain.inventory`.
+
+* `DesiredInventory` and `VmDesiredState` describe intended product state.
+* `ObservedInventory`, VM, network, Docker, Swarm, stack, and artifact registry
+  observed-state types describe runtime facts collected by adapters.
+* `VerificationResult` and `VerificationStatus` model typed verification
+  evidence separately from raw command output.
+
+Application repository ports define the desired inventory, observed inventory,
+and verification evidence contracts. Infrastructure adapters own YAML parsing,
+JSON persistence, and path validation. Observed inventory and verification
+evidence use dedicated local-state adapters instead of the generic file
+manager so raw evidence is not logged and file lookup cannot drift into
+`infra/config`.
+
 === Infrastructure Assets
 
 `infra` contains infrastructure and deployment assets that are not Python
