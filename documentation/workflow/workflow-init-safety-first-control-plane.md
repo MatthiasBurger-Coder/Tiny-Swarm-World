@@ -670,6 +670,7 @@ affected_files:
   - "tests/application/services/deployment/**"
   - "tests/architecture/**"
   - "documentation/workflow/**"
+  - "documentation/arc42/**"
 affected_modules:
   - "tiny_swarm_world.application.services.nexus"
   - "tiny_swarm_world.application.services.deployment"
@@ -684,6 +685,7 @@ file_locks:
   - "src/tiny_swarm_world/application/services/deployment/**"
   - "tests/application/services/nexus/**"
   - "tests/application/services/deployment/**"
+  - "documentation/arc42/**"
 contract_locks:
   - "deployment-stack-ownership"
   - "artifact-nexus-boundary"

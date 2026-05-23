@@ -1,11 +1,11 @@
 """Stack and service deployment application service namespace.
 
-This module marks the target Deployment boundary without moving existing
-services yet. `EnsureNexusStack` still lives in the Nexus package for backward
-compatibility, but new code can import it from the deployment namespace.
+Deployment owns stack lifecycle behavior such as ensuring that the Nexus stack
+exists through compose definitions and Portainer stack APIs. The old Nexus
+import path remains as a compatibility facade.
 """
 
-from tiny_swarm_world.application.services.nexus.ensure_nexus_stack import EnsureNexusStack
+from tiny_swarm_world.application.services.deployment.ensure_nexus_stack import EnsureNexusStack
 
 __all__ = [
     "EnsureNexusStack",

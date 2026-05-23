@@ -16,7 +16,9 @@ service bundles:
 * `platform` for current VM, network, Docker, Swarm, preflight, VM IP, and
   socat automation.
 * `artifacts` for future artifact registry and publishing workflows.
-* `deployment` for future stack lifecycle and deployment workflows.
+* `deployment` for stack lifecycle behavior, starting with Nexus stack
+  create/update ownership in the application service namespace. Composition
+  wiring for deployment commands remains planned for later workflow slices.
 
 At this stage, Artifacts and Deployment are composition boundaries inside the
 same Python automation process, not independently deployable microservices.

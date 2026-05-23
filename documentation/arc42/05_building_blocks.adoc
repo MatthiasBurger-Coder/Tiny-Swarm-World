@@ -29,16 +29,20 @@ The composition root now exposes separate application service bundles:
   VM IP discovery, and socat management.
 * `ArtifactServices` is the explicit artifacts boundary. It is currently an
   empty bundle until Nexus and publishing services are wired in later slices.
-* `DeploymentServices` is the explicit deployment boundary. It is currently an
-  empty bundle until stack lifecycle services are wired in later slices.
+* `DeploymentServices` is the explicit deployment boundary. The deployment
+  service namespace now owns stack lifecycle behavior, starting with
+  `EnsureNexusStack` for compose lookup and Portainer stack create/update
+  operations. The composition bundle remains side-effect free until later
+  workflow slices wire deployment commands through it.
 * `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
   instead of aliasing `PlatformServices`.
 
-The empty Artifacts and Deployment bundles are intentional transitional
-building blocks. They create stable composition boundaries without moving Nexus
-or stack deployment behavior before the dedicated workflow slices. Compatibility
-properties on `ApplicationServices` keep the existing service-level CLI working
-until the workflow-level CLI slice replaces those calls.
+The empty Artifacts bundle and currently unwired Deployment bundle are
+intentional transitional building blocks. They create stable composition
+boundaries while service ownership moves in dedicated workflow slices.
+Compatibility properties on `ApplicationServices` keep the existing
+service-level CLI working until the workflow-level CLI slice replaces those
+calls.
 
 === Infrastructure Assets
 

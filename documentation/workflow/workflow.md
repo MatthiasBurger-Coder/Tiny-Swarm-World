@@ -874,6 +874,7 @@ affected_files:
   - "tests/application/services/artifacts/**"
   - "tests/application/services/nexus/**"
   - "tests/architecture/**"
+  - "documentation/arc42/**"
 affected_modules:
   - "tiny_swarm_world.application.services.deployment"
   - "tiny_swarm_world.application.services.artifacts"
@@ -894,6 +895,7 @@ file_locks:
   - "tests/application/services/artifacts/**"
   - "tests/application/services/nexus/**"
   - "tests/architecture/**"
+  - "documentation/arc42/**"
 contract_locks:
   - "nexus-stack-deployment-boundary"
 architecture_locks:
@@ -918,6 +920,7 @@ stop_conditions:
 Allowed write scope:
 
 - Deployment/artifact/Nexus application services, relevant ports and tests.
+- arc42 documentation for stack lifecycle ownership.
 
 Done criteria:
 
