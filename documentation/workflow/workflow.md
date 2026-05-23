@@ -1,5 +1,15 @@
 # Workflow: Init Safety and Boundary Separation
 
+## Execution Precedence
+
+Before executing this broader roadmap, execute
+`documentation/workflow/workflow-init-safety-first-control-plane.md`.
+
+That safety-first workflow preserves this file as the broader target roadmap,
+but moves the critical fix ahead of the rest: normal init must stop reaching
+destructive Multipass cleanup before typed YAML, service-boundary, state model,
+or CLI work starts.
+
 ## Executive Summary
 
 This workflow defines the governed implementation path for making Tiny Swarm
