@@ -7,6 +7,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPOSITORY_ROOT / "src" / "tiny_swarm_world"
 DOMAIN_ROOT = SOURCE_ROOT / "domain"
 APPLICATION_ROOT = SOURCE_ROOT / "application"
+APPLICATION_PORTS_ROOT = APPLICATION_ROOT / "ports"
 APPLICATION_SERVICES_ROOT = APPLICATION_ROOT / "services"
 ARCHITECTURE_DOCUMENTATION_ROOT = REPOSITORY_ROOT / "documentation" / "architecture"
 PACKAGE_NAME = "tiny_swarm_world"
@@ -73,6 +74,14 @@ class TestHexagonalImports(unittest.TestCase):
         violations = _find_forbidden_imports(
             root=APPLICATION_ROOT,
             forbidden_prefix="tiny_swarm_world.infrastructure",
+        )
+
+        self.assertEqual([], violations)
+
+    def test_application_ports_do_not_import_application_services(self):
+        violations = _find_forbidden_imports(
+            root=APPLICATION_PORTS_ROOT,
+            forbidden_prefix="tiny_swarm_world.application.services",
         )
 
         self.assertEqual([], violations)

@@ -79,13 +79,21 @@ python -m pip install ruff mypy import-linter
 python tools/quality_gate.py quality
 ```
 
-5. Run the current application entry point
+5. Inspect the current application entry point
 
 ```bash
-PYTHONPATH=src python -m tiny_swarm_world
+PYTHONPATH=src python -m tiny_swarm_world --list-services
 ```
 
-The entry point currently lists configured Multipass VM IP addresses. Live provisioning steps exist in code, but are intentionally commented until a developer enables the required infrastructure actions.
+Running the module without arguments does not execute infrastructure commands.
+Use an explicit service selection before running live automation:
+
+```bash
+PYTHONPATH=src python -m tiny_swarm_world --run vm-ip-list
+```
+
+Service execution can call Multipass, Docker, networking, or other local
+infrastructure commands depending on the selected service.
 
 ---
 
@@ -106,10 +114,16 @@ Where to find the scripts/services:
 - `infra/swarm`
 - `infra/compose`
 
-In `src/tiny_swarm_world/__main__.py` you can see which infrastructure steps are invoked. Many actions are present but commented. Enable only the steps you need, for example Multipass initialization, Docker installation, or Swarm initialization, then run:
+List the supported entry-point services first:
 
 ```bash
-PYTHONPATH=src python -m tiny_swarm_world
+PYTHONPATH=src python -m tiny_swarm_world --list-services
+```
+
+Run only the service you explicitly intend to execute, for example:
+
+```bash
+PYTHONPATH=src python -m tiny_swarm_world --run vm-ip-list
 ```
 
 Application services are constructed through the infrastructure composition

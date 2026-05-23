@@ -1,9 +1,9 @@
 from typing import Dict, Optional
 
-from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.parameter_type import ParameterType
+from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.strategies.command_builder_strategy import CommandBuilderStrategy
 from tiny_swarm_world.domain.command.command_entity import CommandEntity
-from tiny_swarm_world.application.services.commands.command_executer.excecuteable_commands import ExecutableCommandEntity
+from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 from tiny_swarm_world.domain.command.command_runner_type_enum import CommandRunnerType
 from tiny_swarm_world.domain.multipass.vm_type import VmType
 

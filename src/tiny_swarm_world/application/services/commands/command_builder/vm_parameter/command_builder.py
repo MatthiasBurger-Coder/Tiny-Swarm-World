@@ -1,10 +1,10 @@
 from typing import Dict, Optional
 
-from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.parameter_type import ParameterType
+from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.strategies.manager_strategy import ManagerStrategy
 from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.strategies.none_strategy import NoneStrategy
 from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.strategies.worker_strategy import WorkerStrategy
-from tiny_swarm_world.application.services.commands.command_executer.excecuteable_commands import ExecutableCommandEntity
+from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 from tiny_swarm_world.domain.multipass.vm_type import VmType
 from tiny_swarm_world.application.ports.commands.port_command_runner_factory import PortCommandRunnerFactory
 from tiny_swarm_world.application.ports.repositories.port_command_repository import PortCommandRepository

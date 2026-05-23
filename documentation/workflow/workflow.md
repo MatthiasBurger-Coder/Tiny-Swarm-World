@@ -1,113 +1,126 @@
-# Workflow: Agents, Skills, Python Quality And Bash Specialist Alignment
+# Workflow: Tasklist Remediation Conversion
 
 ## Executive Summary
 
-This workflow plans a governance-only update for Tiny Swarm World agent and
-skill material. The target is to make `.agents/**` and `.codex/**` consistently
-reflect that the repository is a Python 3.12, Linux/WSL-only automation project
-with a hexagonal architecture and Python quality gates from
-`tools/quality_gate.py`.
+This workflow converts `TASKLIST.md` into the active governed remediation
+workflow for Tiny Swarm World. The original task list was derived from
+`AUDIT_REPORT.md`, but it contained stale `docker/` path assumptions,
+duplicated findings and obsolete `pytest -q` verification commands. This
+workflow preserves the useful audit intent, normalizes it to the current
+repository shape and removes `TASKLIST.md` after successful conversion.
 
-The workflow also introduces expert-level Bash specialist coverage for shell
-scripts and shell snippets without adding new required external quality tools
-or running live infrastructure commands.
+The active implementation baseline is Python automation under
+`src/tiny_swarm_world`, infrastructure assets under `infra`, tests under
+`tests`, documentation under `documentation` and quality gates from
+`QUALITY.md`.
+
+## Conversion Status
+
+`TASKLIST.md` was successfully converted into this workflow and then removed
+from the repository so stale task planning does not compete with
+`documentation/workflow/**`.
+
+Original source hash:
+
+```text
+TASKLIST.md sha256=96295c760ceaee6217e7987ff0b7bbd034479332d3f3d8341d2bcc4e55df9f48
+AUDIT_REPORT.md sha256=b6714f0898a5ae2eca750516e920a1f412584f43ebc6e195b5d5d61c741c0816
+```
 
 ## Requirement Clarification Record
 
 Original request:
 
 ```text
-workflow create with subagents:
-Ueberarbeite das agents und skills so, damit dieses mit
-- Python uebereinstimmt
-- Python qualitiy check mit mit quality-gate.py und linter nach hexagonaler Architektur funktion
-- Bash spezialisten expert level entsteht
+workflow create with subagents
+nachdem die Tasklist.md erfolgreich in einen workflow umgewandelt wurde, datei loeschen
 ```
 
 Interpreted intent:
 
-- Create an executable workflow for later `workflow execute` work.
-- Align agent, role, skill, routing and prompt governance with the Python
-  automation architecture.
-- Use `tools/quality_gate.py` as quality authority, including `arch-lint` and
-  `arch-tests` for hexagonal architecture checks.
-- Add Bash specialist ownership and review guidance for shell scripts, shell
-  snippets and shell command examples.
+- Convert `TASKLIST.md` into a complete executable workflow.
+- Preserve audit finding traceability from `AUDIT_REPORT.md`.
+- Normalize stale task assumptions before workflow execution.
+- Delete `TASKLIST.md` after successful conversion.
+- Use subagents for requirement, architecture, Python, testing, frontend and
+  DevOps review.
 
 Change type:
 
-- Governance, workflow and agent/skill metadata change.
+- Workflow creation and documentation governance.
+- Source planning artifact deletion after conversion.
 
 Affected process strand:
 
-- Workflow create.
-- Skills and agents governance.
-- Quality-gate governance.
+- `workflow create`.
 
 Affected architecture area:
 
-- Python hexagonal architecture governance.
-- Agent routing and role ownership.
-- Bash/POSIX shell review ownership.
-- Documentation and arc42 governance alignment.
+- Python hexagonal automation governance.
+- Platform, networking, Docker, Swarm and deployment remediation planning.
+- Documentation and quality-gate governance.
 
 Explicit requirements:
 
-- Revise agents and skills to match Python as the primary architecture.
-- Use Python quality checks with `tools/quality_gate.py`.
-- Include hexagonal architecture linter and architecture-test coverage.
-- Create expert-level Bash specialist coverage.
-- Use subagents for review and planning.
+- Use subagents.
+- Convert `TASKLIST.md` into a workflow.
+- Delete `TASKLIST.md` only after the conversion succeeds.
 
 Implicit requirements:
 
-- Keep root `AGENTS.md` and `QUALITY.md` authoritative.
-- Keep Java material scoped to the deployment example under `src/main/java`.
-- Do not make Gradle, Maven, JUnit or ArchUnit the default project quality
-  path.
-- Do not run live infrastructure commands.
-- Do not add required `shellcheck` or `shfmt` gates unless `QUALITY.md` is
-  explicitly changed by a future requirement.
-- Preserve `.codex` reusable template boundaries while adding project-specific
-  guards where needed.
+- Preserve `AGENTS.md` and `QUALITY.md` authority.
+- Do not copy stale `docker/` and `pytest -q` assumptions into the active
+  workflow.
+- Collapse duplicated task-list entries into executable slices.
+- Keep live infrastructure commands disabled unless explicitly requested.
+- Keep Java deployment-example files out of this workflow unless a slice
+  explicitly targets them.
 
-Assumptions accepted for workflow creation:
+Assumptions:
 
-- No `documentation/epics` source exists in this repository at workflow-create
-  time, so EPIC traceability is recorded as a gap, not a blocker.
-- "Bash specialist" means role, skill, routing, callable agent and durable
-  subagent documentation coverage.
-- `shellcheck` and `shfmt` may be documented as optional diagnostics only.
-- Stale Java/Gradle/JUnit/ArchUnit wording should be constrained to explicit
-  Java deployment-example work, not deleted blindly.
-- The active implementation scope is `.agents/**`, `.codex/**`,
-  `documentation/process/**`, `documentation/arc42/**` and
-  `documentation/workflow/**`.
+- `AUDIT_REPORT.md` and the removed `TASKLIST.md` are intake evidence, not
+  verified current implementation truth.
+- No `documentation/epics` source exists. EPIC traceability is recorded as a
+  gap and does not block this workflow creation.
+- `docker/` is legacy audit context. Active remediation must verify current
+  paths before changing code.
+- The default quality gate is `python3 tools/quality_gate.py quality`.
 
 Non-goals:
 
-- No Python product behavior change.
-- No Java deployment-example implementation change.
-- No live Multipass, Docker Swarm, compose, netplan, Portainer, Nexus, Jenkins,
-  RabbitMQ, SonarQube or bootstrap execution.
-- No new external static-analysis CI configuration.
-- No required shell quality gate added to the default Python quality gate.
+- No runtime implementation during workflow creation.
+- No live Multipass, Docker Swarm, compose deployment, netplan, `socat`,
+  Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or Swagger/NGINX execution.
+- No direct preservation of duplicated task entries.
+- No required use of `pytest`.
+- No cleanup of legacy files before workflow execution proves references and
+  replacement paths.
+
+Risks:
+
+- The audit was written against an older repository shape.
+- Several original tasks referenced findings instead of concrete task or slice
+  IDs.
+- Placeholder commands such as `<canonical_entrypoint>` are not executable
+  acceptance criteria.
+- Live infrastructure behavior cannot be proven without explicit live-run
+  authorization.
+- arc42 runtime, deployment and risk sections remain placeholder-level.
 
 Open questions:
 
-- Which future EPIC should own long-term agent and skill governance?
-- Should optional shell diagnostics become required in a later `QUALITY.md`
-  update?
+- Which future EPIC should own long-term operational-readiness remediation?
+- Which live infrastructure smoke tests should be authorized after mocked and
+  static gates pass?
 
 Blocking questions:
 
-- None for workflow creation. The open questions above are non-blocking because
-  this workflow keeps scope to governance and does not change product runtime
-  behavior or the authoritative quality gate.
+- None for workflow creation. The open questions are recorded as traceability
+  and live-validation gaps for later workflow execution.
 
 Confidence level:
 
-- 86 percent.
+- 84 percent.
 
 Decision:
 
@@ -117,571 +130,129 @@ PROCEED_WITH_ACCEPTED_ASSUMPTIONS
 
 ## Verified Baseline
 
-- Active branch:
-  `architecture/workflow-agents-skills-python-quality-bash-20260523`
-- Repository root: `D:/Projects/Tiny-Swarm-World`
-- `AGENTS.md` says Tiny Swarm World is primarily Python automation with
-  hexagonal architecture.
-- `QUALITY.md` says the default gate is
-  `python3 tools/quality_gate.py quality`.
-- `tools/quality_gate.py` defines the full gate order:
-  `lint`, `arch-lint`, `arch-tests`, `typecheck`, `test`.
-- `.importlinter` defines forbidden dependencies from domain to application or
-  infrastructure and from application to infrastructure.
-- No frontend module or frontend package tooling is present.
-- Shell scripts exist under `infra/**/*.sh`; no dedicated Bash specialist role
-  or skill exists yet.
-- No active `documentation/workflow/workflow.md` existed before this workflow
-  was created.
-- No `documentation/epics` directory was found.
+- Branch:
+  `architecture/workflow-tasklist-remediation-20260523`
+- Repository root:
+  `D:/Projects/Tiny-Swarm-World`
+- Current Python source root:
+  `src/tiny_swarm_world`
+- Current infrastructure asset root:
+  `infra`
+- Current quality gate:
+  `python3 tools/quality_gate.py quality`
+- Current full gate order:
+  `lint`, `arch-lint`, `arch-tests`, `typecheck`, `test`
+- Architecture checks:
+  `.importlinter` and `tests.architecture.test_hexagonal_imports`
+- Frontend package tooling:
+  not present
+- EPIC source:
+  not present
+- Tasklist source:
+  converted and deleted
 
 ## Target Picture
 
-After `workflow execute`, the repository has:
+After workflow execution, Tiny Swarm World should have:
 
-- Python agent and skill wording that names Python 3.12, Linux/WSL-only
-  operation, POSIX paths and `tools/quality_gate.py`.
-- Quality-gate wording that consistently names `lint`, `arch-lint`,
-  `arch-tests`, `typecheck`, `test` and full `quality`.
-- Architecture wording that names `.importlinter`,
-  `tests.architecture.test_hexagonal_imports`,
-  `python3 tools/quality_gate.py arch-lint` and
-  `python3 tools/quality_gate.py arch-tests`.
-- Java/Gradle/JUnit/ArchUnit skills guarded for explicit `src/main/java`
-  deployment-example work only.
-- A Bash specialist skill, project role, callable agent and durable subagent
-  document.
-- Routing that sends Bash/POSIX shell scripts, shell snippets, shellcheck/shfmt
-  policy and `infra/**/*.sh` review to the Bash specialist while keeping broad
-  deployment/build ownership with Senior DevOps.
-- Documentation and arc42 material synchronized with the governance model.
+- one current, supported Python entrypoint and composition root;
+- no stale task-list file outside the governed workflow;
+- safe, non-destructive platform lifecycle behavior;
+- deterministic network and netplan handling;
+- Docker readiness checks before Swarm operations;
+- idempotent Swarm bootstrap and validated parsing;
+- an explicit deployment/compose flow with VM/Swarm-compatible assets;
+- validated configuration and secret handling;
+- reliable tests and architecture gates;
+- operational documentation that distinguishes safe local checks from live
+  infrastructure commands.
 
 ## Scope
 
-In scope:
-
-- `.agents/roles/**`
-- `.agents/skills/**`
-- `.agents/orchestrator/routing-rules.md`
-- `.agents/prompts/**`
-- `.codex/agents/**`
-- `.codex/subagents/**`
-- selected `.codex/skills/**` guards for portable Java skills
-- `documentation/process/**`
-- `documentation/arc42/**`
-- `documentation/workflow/**`
-
-Out of scope:
+In scope for workflow execution:
 
 - `src/tiny_swarm_world/**`
+- `infra/config/**`
+- `infra/compose/**`
+- `infra/prepare/**`
+- `infra/swarm/**`
+- `tests/**`
+- `.importlinter`
+- `tools/quality_gate.py` only when a slice explicitly changes gate behavior
+- `QUALITY.md` only when a slice explicitly changes quality policy
+- `README.md`
+- `documentation/**`
+
+Out of scope unless a slice is refined:
+
 - `src/main/java/**`
-- `infra/**/*.sh` implementation changes
-- `tools/quality_gate.py` behavior changes
-- `QUALITY.md` default gate changes unless a later slice discovers an
-  unavoidable documented conflict and stops for approval.
+- live infrastructure execution
+- new frontend package tooling
+- speculative microservice extraction
+- direct restoration of `TASKLIST.md`
+
+## Converted Task Traceability
+
+| Finding | Original task IDs | Workflow slice |
+|---|---|---|
+| F-001 Python package/import model | T-001, T-004, T-007 | Slice 01 |
+| F-003 active/dead orchestration mix | T-002, T-011 | Slice 01 and Slice 08 |
+| F-014 hidden command failures | T-009, T-021 | Slice 01 and Slice 05 |
+| F-012 test suite readiness | T-005, T-020 | Slice 01 and Slice 08 |
+| F-013 config contracts | T-006, T-019 | Slice 02 and Slice 07 |
+| F-002 destructive VM lifecycle | T-010 | Slice 03 |
+| F-004 netplan path assumptions | T-012 | Slice 04 |
+| F-005 WSL/Linux networking lifecycle | T-013 | Slice 04 |
+| F-006 Docker readiness | T-014 | Slice 05 |
+| F-007 Swarm bootstrap | T-015 | Slice 05 |
+| F-008 missing stack deployment | T-008, T-016 | Slice 06 |
+| F-010 compose/VM context mismatch | T-017 | Slice 06 |
+| F-009 hardcoded credentials | T-018 | Slice 07 |
+| F-011 outdated documentation | T-003, T-022 | Slice 08 |
+| F-015 non-production leftovers | T-023 | Slice 08 |
 
 ## Architecture Constraints
 
-- Preserve Python hexagonal architecture.
-- Domain code must not import application or infrastructure.
-- Application code must not import infrastructure.
-- Concrete adapter construction belongs in
+- Preserve the Python hexagonal architecture.
+- Domain code must remain independent from application and infrastructure.
+- Application services depend on ports and domain objects, not concrete
+  adapters.
+- Infrastructure adapters own command execution, YAML parsing, filesystem
+  access, HTTP clients, Docker, Multipass and shell details.
+- Runtime wiring stays in
   `src/tiny_swarm_world/infrastructure/composition.py`.
-- Java under `src/main/java` remains a deployment example only.
-- Bash guidance must preserve Linux/WSL-only operation, POSIX paths, script
-  locality via `${BASH_SOURCE[0]}`, secret safety and live-infrastructure
-  restrictions.
+- Entry-point code stays thin.
+- Use structured YAML handling or existing YAML adapters.
+- Do not expand Windows-native behavior.
+- Do not run live infrastructure commands without explicit user approval.
 
 ## Python Automation Assessment
 
-Python product code is not changed by this workflow. The workflow changes the
-agent and skill governance that controls future Python automation work. The
-Python Automation Developer owns wording that affects domain, application,
-ports, adapters, YAML handling, command orchestration, path handling and
-infrastructure automation slices.
+The remediation is Python-first. Implementation slices must use current package
+imports under `tiny_swarm_world`, not legacy top-level `application`,
+`domain` or `infrastructure` imports from the old audit baseline.
 
-Required Python alignment points:
-
-- Python 3.12 compatibility.
-- Linux/WSL-only baseline.
-- POSIX paths and bash-style examples.
-- `asyncio` consistency for asynchronous command orchestration.
-- Application services depend on ports, not infrastructure adapters.
-- Quality commands come from `QUALITY.md` and `tools/quality_gate.py`.
+Command orchestration and failure propagation must be modeled through domain
+objects, application ports and infrastructure adapters. Tests must mock external
+commands, VM operations, network mutation, Docker operations and service
+bootstrap calls by default.
 
 ## Frontend Assessment
 
-Status: not applicable for implementation in this workflow.
+Status: not applicable for implementation.
 
-No frontend module, `package.json`, JavaScript or TypeScript tooling, Vite,
-Next, Webpack, Rollup or frontend client module was verified. The Senior React
-Frontend Developer is included for mandatory workflow-create coverage only and
-records a no-impact assessment.
+No frontend module or package tooling is present. The Senior React Frontend
+Developer role is included for mandatory workflow-create coverage only and
+records no implementation impact. Do not add React, TypeScript,
+`package.json`, frontend build tooling, UI components, API client layers or
+frontend tests unless a future requirement introduces a verified frontend
+module and tooling conventions.
 
-Frontend scope is not authorized for this workflow. Do not add React,
-TypeScript, package tooling, frontend build tooling, UI components, API client
-layers or frontend tests unless a future requirement explicitly introduces a
-verified frontend module and its tooling conventions.
-
-Python UI adapters remain Python automation scope, not React frontend scope.
+Python UI adapters remain Python automation and infrastructure adapter scope.
 
 ## Test Strategy
 
-For workflow execution:
-
-- Run `git diff --check` after each governance slice.
-- Run exact Python quality commands from `QUALITY.md`.
-- For architecture-sensitive wording, run:
-
-```bash
-python3 tools/quality_gate.py arch-lint
-python3 tools/quality_gate.py arch-tests
-```
-
-- For final readiness when practical, run:
-
-```bash
-python3 tools/quality_gate.py quality
-```
-
-Do not claim a gate passed unless it actually ran. If the full gate is skipped
-for a governance-only slice, record the reason and do not claim full readiness.
-
-## Resilience Requirements
-
-- Agent and skill instructions must stop instead of guessing quality authority,
-  architecture authority or role ownership.
-- Bash guidance must prefer static review and dry-run reasoning before live
-  infrastructure commands.
-- Shell guidance must call out traps, cleanup, idempotency, environment
-  validation and secret-safe diagnostics as review concerns.
-- Optional diagnostics such as `shellcheck` and `shfmt` must be reported as
-  optional unless `QUALITY.md` makes them required.
-
-## Execution Profile
-
-```text
-executionProfile=FULL_PATH
-reason=The request changes skill, role, agent, routing, process and quality-governance authority.
-requiredFullReviews=Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior React Frontend Developer, Senior Tester, Senior DevOps, Senior Documentation Engineer
-allowedImpactChecks=Senior React Frontend Developer may record N/A implementation impact because no frontend module exists
-requiredQualityChecks=git diff --check; python3 tools/quality_gate.py arch-lint; python3 tools/quality_gate.py arch-tests; python3 tools/quality_gate.py quality when practical for final readiness
-stopConditions=unknown role ownership, stale Java default gates, invented shell required gates, active branch mismatch, dirty unrelated worktree
-```
-
-## Ordered Slices
-
-### Slice 01: Align Python Automation Agents And Skills
-
-Purpose:
-
-Make Python automation roles, callable agents and skills explicitly name the
-Python 3.12, Linux/WSL-only and `tools/quality_gate.py` baseline.
-
-```yaml
-slice_id: "01"
-profile: "FULL_PATH"
-owner: "Senior Python Automation Developer"
-secondary_reviewers:
-  - "Senior System Architect"
-  - "Senior Tester"
-affected_files:
-  - ".agents/roles/senior-python-automation-developer.md"
-  - ".codex/agents/senior_python_automation_developer.toml"
-  - ".agents/skills/python-automation/SKILL.md"
-  - ".codex/subagents/senior-python-automation-developer.md"
-affected_modules:
-  - ".agents"
-  - ".codex"
-affected_contracts: []
-dependencies: []
-parallel_group: "A"
-file_locks:
-  - ".agents/roles/senior-python-automation-developer.md"
-  - ".codex/agents/senior_python_automation_developer.toml"
-  - ".agents/skills/python-automation/SKILL.md"
-  - ".codex/subagents/senior-python-automation-developer.md"
-contract_locks: []
-architecture_locks:
-  - "python-hexagonal-governance"
-quality_gates:
-  targeted:
-    - "git diff --check"
-  required:
-    - "git diff --check"
-documentation:
-  arc42: "checked; no direct product architecture change expected"
-  adr: "not required unless execution changes quality authority"
-stop_conditions:
-  - "Python 3.12 baseline cannot be preserved"
-  - "Linux/WSL-only baseline is weakened"
-  - "Gradle, Maven, JUnit or ArchUnit becomes the Python default gate"
-```
-
-Prerequisites:
-
-- Root `AGENTS.md` and `QUALITY.md` read.
-- Active branch verified.
-
-Allowed write scope:
-
-- Only files listed in `affected_files`.
-
-Done criteria:
-
-- Python role and skill wording names Python 3.12 and Linux/WSL-only operation.
-- Verification wording names `tools/quality_gate.py` gates and full `quality`.
-- No product code changes.
-
-### Slice 02: Replace Java Default Drift In Architecture And Quality Skills
-
-Purpose:
-
-Constrain Java/Gradle/JUnit/ArchUnit language to explicit Java deployment
-example scope and make architecture validation Python import-linter based.
-
-```yaml
-slice_id: "02"
-profile: "FULL_PATH"
-owner: "Senior System Architect"
-secondary_reviewers:
-  - "Senior Tester"
-  - "Senior Python Automation Developer"
-affected_files:
-  - ".agents/skills/analytics-slice-workflow/SKILL.md"
-  - ".agents/skills/architecture-archunit-hexagonal/SKILL.md"
-  - ".agents/skills/architecture-modular-monorepo/SKILL.md"
-  - ".agents/roles/senior-system-architect.md"
-  - ".codex/agents/senior_system_architect.toml"
-  - ".agents/skills/microservice-senior-expert/SKILL.md"
-  - ".codex/agents/microservice_senior_expert.toml"
-  - ".codex/skills/archunit-expert/SKILL.md"
-  - ".codex/skills/junit6-expert/SKILL.md"
-affected_modules:
-  - ".agents"
-  - ".codex"
-affected_contracts: []
-dependencies: []
-parallel_group: "A"
-file_locks:
-  - ".agents/skills/analytics-slice-workflow/SKILL.md"
-  - ".agents/skills/architecture-archunit-hexagonal/SKILL.md"
-  - ".agents/skills/architecture-modular-monorepo/SKILL.md"
-  - ".agents/roles/senior-system-architect.md"
-  - ".codex/agents/senior_system_architect.toml"
-  - ".agents/skills/microservice-senior-expert/SKILL.md"
-  - ".codex/agents/microservice_senior_expert.toml"
-  - ".codex/skills/archunit-expert/SKILL.md"
-  - ".codex/skills/junit6-expert/SKILL.md"
-contract_locks: []
-architecture_locks:
-  - "python-architecture-validation"
-  - "java-deployment-example-boundary"
-quality_gates:
-  targeted:
-    - "git diff --check"
-    - "python3 tools/quality_gate.py arch-lint"
-    - "python3 tools/quality_gate.py arch-tests"
-  required:
-    - "git diff --check"
-    - "python3 tools/quality_gate.py arch-lint"
-    - "python3 tools/quality_gate.py arch-tests"
-documentation:
-  arc42: "check constraints and quality requirements for Python quality authority"
-  adr: "not required unless service runtime policy changes"
-stop_conditions:
-  - "A portable Java skill is changed into a project-specific rule without a Tiny Swarm World guard"
-  - "Microservice wording implies Spring Boot is mandatory for all future services"
-  - "Architecture checks omit import-linter or tests.architecture.test_hexagonal_imports"
-```
-
-Prerequisites:
-
-- Verify whether each Java-oriented reference is portable, project-specific or
-  deployment-example scoped.
-
-Allowed write scope:
-
-- Only files listed in `affected_files`.
-
-Done criteria:
-
-- Analytics and architecture skills reference Python `unittest`,
-  `.importlinter`, `arch-lint` and `arch-tests`.
-- Java deployment-example skills remain available only for explicit Java tasks.
-- Senior System Architect references `quality-architecture-validation` instead
-  of Java ArchUnit as the Python architecture authority.
-
-### Slice 03: Add Expert Bash Specialist Coverage
-
-Purpose:
-
-Create dedicated Bash/POSIX shell governance without changing shell script
-behavior or adding required shell tools to the default quality gate.
-
-```yaml
-slice_id: "03"
-profile: "FULL_PATH"
-owner: "Senior DevOps Engineer"
-secondary_reviewers:
-  - "Senior System Architect"
-  - "Senior Tester"
-  - "Senior Security Sandbox Engineer"
-affected_files:
-  - ".agents/skills/devops-bash/SKILL.md"
-  - ".agents/roles/senior-bash-specialist.md"
-  - ".codex/agents/senior_bash_specialist.toml"
-  - ".codex/subagents/senior-bash-specialist.md"
-  - ".agents/orchestrator/routing-rules.md"
-  - ".agents/roles/senior-devops.md"
-  - ".codex/agents/senior_devops.toml"
-  - ".codex/subagents/senior-devops-engineer.md"
-  - ".codex/AGENTS.md"
-affected_modules:
-  - ".agents"
-  - ".codex"
-affected_contracts: []
-dependencies: []
-parallel_group: "A"
-file_locks:
-  - ".agents/skills/devops-bash/SKILL.md"
-  - ".agents/roles/senior-bash-specialist.md"
-  - ".codex/agents/senior_bash_specialist.toml"
-  - ".codex/subagents/senior-bash-specialist.md"
-  - ".agents/orchestrator/routing-rules.md"
-  - ".agents/roles/senior-devops.md"
-  - ".codex/agents/senior_devops.toml"
-  - ".codex/subagents/senior-devops-engineer.md"
-  - ".codex/AGENTS.md"
-contract_locks: []
-architecture_locks:
-  - "linux-wsl-operating-model"
-  - "live-infrastructure-safety"
-quality_gates:
-  targeted:
-    - "git diff --check"
-  required:
-    - "git diff --check"
-documentation:
-  arc42: "check concepts and risks for shell specialist governance"
-  adr: "not required unless shell checks become mandatory quality policy"
-stop_conditions:
-  - "shellcheck or shfmt is made required without QUALITY.md authority"
-  - "Bash specialist guidance authorizes live infrastructure execution by default"
-  - "Senior DevOps deployment ownership becomes ambiguous"
-```
-
-Prerequisites:
-
-- Existing shell files under `infra/**/*.sh` inventoried for ownership only.
-
-Allowed write scope:
-
-- Only files listed in `affected_files`.
-
-Done criteria:
-
-- New `devops-bash` skill defines mission, responsibilities, forbidden scope,
-  inputs, outputs, collaboration rules and STOP rules.
-- New Senior Bash Specialist role owns shell scripts, Bash/POSIX snippets,
-  shellcheck/shfmt policy and shell commands embedded in YAML or docs.
-- Callable `.codex/agents/senior_bash_specialist.toml` and durable subagent
-  documentation exist.
-- Routing sends shell-specific work to Bash specialist before broad DevOps.
-- `shellcheck` and `shfmt` are optional diagnostics only.
-
-### Slice 04: Normalize Workflow, Executor And Quality-Gate Wording
-
-Purpose:
-
-Make workflow prompts and quality-gate skills use exact Python quality-gate
-names and report architecture-sensitive checks consistently.
-
-```yaml
-slice_id: "04"
-profile: "FULL_PATH"
-owner: "Senior Tester"
-secondary_reviewers:
-  - "Senior Workflow Architect"
-  - "Senior System Architect"
-  - "Senior Python Automation Developer"
-affected_files:
-  - ".agents/prompts/slice-execute.md"
-  - ".agents/prompts/workflow-execute.md"
-  - ".agents/skills/workflow-authoring/SKILL.md"
-  - ".agents/skills/workflow-executor/SKILL.md"
-  - ".agents/skills/quality-gate-governance/SKILL.md"
-  - ".agents/skills/quality-gate-orchestrator/quality-gates.md"
-  - ".agents/roles/senior-tester.md"
-  - ".codex/agents/senior_tester.toml"
-affected_modules:
-  - ".agents"
-  - ".codex"
-affected_contracts: []
-dependencies:
-  - "01"
-  - "02"
-  - "03"
-parallel_group: "B"
-file_locks:
-  - ".agents/prompts/slice-execute.md"
-  - ".agents/prompts/workflow-execute.md"
-  - ".agents/skills/workflow-authoring/SKILL.md"
-  - ".agents/skills/workflow-executor/SKILL.md"
-  - ".agents/skills/quality-gate-governance/SKILL.md"
-  - ".agents/skills/quality-gate-orchestrator/quality-gates.md"
-  - ".agents/roles/senior-tester.md"
-  - ".codex/agents/senior_tester.toml"
-contract_locks: []
-architecture_locks:
-  - "quality-gate-authority"
-quality_gates:
-  targeted:
-    - "git diff --check"
-    - "python3 tools/quality_gate.py arch-lint"
-    - "python3 tools/quality_gate.py arch-tests"
-  required:
-    - "git diff --check"
-    - "python3 tools/quality_gate.py arch-lint"
-    - "python3 tools/quality_gate.py arch-tests"
-documentation:
-  arc42: "quality requirements checked"
-  adr: "not required unless quality policy changes"
-stop_conditions:
-  - "A quality command cannot be verified from QUALITY.md or tools/quality_gate.py"
-  - "Documentation treats git diff --check as a replacement for required Python gates"
-  - "A failed required gate is described as optional"
-```
-
-Prerequisites:
-
-- Slices 01, 02 and 03 complete or explicitly skipped with documented reason.
-
-Allowed write scope:
-
-- Only files listed in `affected_files`.
-
-Done criteria:
-
-- Workflow prompts and quality skills name exact gate commands.
-- Architecture-sensitive slices require `arch-lint` and `arch-tests`.
-- Senior Tester reports whether `lint`, `arch-lint`, `arch-tests`,
-  `typecheck`, `test` or `quality` ran.
-- Java gates are not default Python gates.
-
-### Slice 05: Documentation Sync, arc42 Check And Final Verification
-
-Purpose:
-
-Synchronize process and architecture documentation with the new governance
-model, then run final verification.
-
-```yaml
-slice_id: "05"
-profile: "FULL_PATH"
-owner: "Senior Documentation Engineer"
-secondary_reviewers:
-  - "Senior Requirement Engineer"
-  - "Senior System Architect"
-  - "Senior Tester"
-affected_files:
-  - "documentation/process/skill-agent-creation.md"
-  - "documentation/process/skills-update.md"
-  - "documentation/process/workflow-create.md"
-  - "documentation/arc42/02_constraints.adoc"
-  - "documentation/arc42/08_concepts.adoc"
-  - "documentation/arc42/10_quality_requirements.adoc"
-  - "documentation/arc42/11_risks_and_debt.adoc"
-  - "documentation/workflow/context-pack.md"
-  - "documentation/workflow/context-pack.json"
-  - "documentation/workflow/workflow.md"
-affected_modules:
-  - "documentation"
-affected_contracts: []
-dependencies:
-  - "04"
-parallel_group: "C"
-file_locks:
-  - "documentation/process/skill-agent-creation.md"
-  - "documentation/process/skills-update.md"
-  - "documentation/process/workflow-create.md"
-  - "documentation/arc42/02_constraints.adoc"
-  - "documentation/arc42/08_concepts.adoc"
-  - "documentation/arc42/10_quality_requirements.adoc"
-  - "documentation/arc42/11_risks_and_debt.adoc"
-  - "documentation/workflow/context-pack.md"
-  - "documentation/workflow/context-pack.json"
-  - "documentation/workflow/workflow.md"
-contract_locks: []
-architecture_locks:
-  - "documentation-governance"
-  - "arc42-governance"
-quality_gates:
-  targeted:
-    - "git diff --check"
-    - "python3 tools/quality_gate.py arch-lint"
-    - "python3 tools/quality_gate.py arch-tests"
-  required:
-    - "git diff --check"
-    - "python3 tools/quality_gate.py arch-lint"
-    - "python3 tools/quality_gate.py arch-tests"
-    - "python3 tools/quality_gate.py quality"
-documentation:
-  arc42: "update or explicitly record no-change rationale"
-  adr: "not required unless a new quality or architecture policy is introduced"
-stop_conditions:
-  - "arc42 impact cannot be classified"
-  - "context-pack hashes are stale after final edits"
-  - "full quality gate is skipped without explicit documented reason"
-```
-
-Prerequisites:
-
-- Slices 01 through 04 completed.
-
-Allowed write scope:
-
-- Only files listed in `affected_files`.
-
-Done criteria:
-
-- Process docs and arc42 docs align with agent/skill governance.
-- Context pack hashes are refreshed.
-- Final verification result is recorded.
-- Remaining risks are documented.
-
-## Slice Dependency Graph
-
-```text
-01 --\
-02 ----> 04 --> 05
-03 --/
-```
-
-Parallelization:
-
-- Slices 01, 02 and 03 may run in parallel after S3/S3D verification because
-  their write scopes are disjoint.
-- Slice 04 depends on 01, 02 and 03.
-- Slice 05 depends on 04.
-
-## Role And Subagent Ownership Map
-
-| Area | Owner | Notes |
-|---|---|---|
-| Workflow creation and dependency ordering | Senior Workflow Architect | Current workflow authoring |
-| Requirement and EPIC drift | Senior Requirement Engineer | EPIC source missing, traceability gap recorded |
-| Architecture boundaries and arc42 | Senior System Architect | Python import-linter architecture authority |
-| Python automation wording | Senior Python Automation Developer | Slice 01 |
-| Frontend assessment | Senior React Frontend Developer | N/A implementation impact |
-| Quality-gate validation | Senior Tester | Slice 04 and final verification |
-| Bash specialist creation | Senior DevOps Engineer | Slice 03 creates future Senior Bash Specialist ownership |
-| Documentation consistency | Senior Documentation Engineer | Slice 05 |
-| Security-sensitive shell guidance | Senior Security Sandbox Engineer | Reviewer for Slice 03 |
-
-## Quality-Gate Expectations
-
-Authoritative commands:
+Use `QUALITY.md` as the source of truth:
 
 ```bash
 python3 tools/quality_gate.py lint
@@ -692,116 +263,834 @@ python3 tools/quality_gate.py test
 python3 tools/quality_gate.py quality
 ```
 
-Full gate order:
-
-```text
-lint -> arch-lint -> arch-tests -> typecheck -> test
-```
-
-Governance-only targeted check:
+For documentation-only changes:
 
 ```bash
 git diff --check
 ```
 
-Optional Bash diagnostics:
+Focused Python tests may use `unittest` with `PYTHONPATH=src`, for example:
 
 ```bash
-shellcheck infra/**/*.sh
-shfmt -d infra/**/*.sh
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
 ```
 
-The optional Bash diagnostics are not required by `QUALITY.md` and must not be
-reported as passed unless they actually run.
+Do not use `pytest -q` as the default gate.
+
+## Resilience Requirements
+
+- Destructive VM reset must be explicit, never default.
+- Docker and Swarm flows need readiness checks, retry limits, timeout policy
+  and clear diagnostics.
+- Command failures must fail critical workflows instead of being hidden behind
+  progress UI.
+- Network setup must be idempotent and have cleanup semantics.
+- Deployment checks must distinguish mocked/static verification from live smoke
+  tests.
+- Secret and config validation must fail fast with actionable errors.
+
+## Execution Profile
+
+```text
+executionProfile=FULL_PATH
+reason=The workflow governs product remediation across Python source, infrastructure assets, tests, documentation, quality gates and live-infrastructure safety.
+requiredFullReviews=Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior React Frontend Developer, Senior Tester, Senior DevOps Engineer, Senior Documentation Engineer
+allowedImpactChecks=Senior React Frontend Developer may record N/A implementation impact because no frontend module exists
+requiredQualityChecks=git diff --check; python3 tools/quality_gate.py arch-lint; python3 tools/quality_gate.py arch-tests; python3 tools/quality_gate.py quality when practical
+stopConditions=stale docker paths copied without verification, pytest used as default gate, live infrastructure command executed without approval, slice dependencies unclear
+```
+
+## Ordered Slices
+
+### Slice 01: Baseline, Entrypoint And Failure Semantics
+
+Purpose:
+
+Verify or repair the current Python entrypoint, package/import readiness,
+composition root, dead orchestration classification and command failure
+semantics. This slice also establishes the minimum test baseline used by later
+infrastructure slices.
+
+```yaml
+slice_id: "01"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior System Architect"
+  - "Senior Tester"
+affected_files:
+  - "src/tiny_swarm_world/__main__.py"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/domain/command/**"
+  - "src/tiny_swarm_world/application/ports/commands/**"
+  - "src/tiny_swarm_world/application/services/commands/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
+  - "tests/application/**"
+  - "tests/infrastructure/**"
+  - "tests/architecture/**"
+  - "README.md"
+  - "documentation/**"
+affected_modules:
+  - "src/tiny_swarm_world"
+  - "tests"
+  - "documentation"
+affected_contracts: []
+dependencies: []
+parallel_group: "A"
+file_locks:
+  - "src/tiny_swarm_world/__main__.py"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/domain/command/**"
+  - "src/tiny_swarm_world/application/ports/commands/**"
+  - "src/tiny_swarm_world/application/services/commands/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
+architecture_locks:
+  - "python-hexagonal-boundaries"
+contract_locks: []
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+  required:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+documentation:
+  arc42: "check building blocks and runtime view"
+  adr: "not required unless entrypoint strategy changes materially"
+stop_conditions:
+  - "canonical entrypoint cannot be verified"
+  - "application imports infrastructure"
+  - "command failures would be hidden"
+  - "legacy docker path is treated as current source root without verification"
+```
+
+Task traceability:
+
+- F-001: T-001, T-004, T-007
+- F-003: T-002, T-011
+- F-014: T-009, T-021
+- F-012: T-005, T-020
+
+Done criteria:
+
+- `PYTHONPATH=src python3 -m tiny_swarm_world` is either verified or repaired.
+- `__main__.py` remains thin.
+- Critical command failure policy is explicit and tested.
+- Dead or legacy orchestration surfaces are classified, not silently expanded.
+
+### Slice 02: Configuration Contract Foundation
+
+Purpose:
+
+Create or verify typed configuration contracts, deterministic repository-root
+path handling, YAML validation boundaries and environment override
+expectations before live-infrastructure-facing slices depend on configuration.
+
+```yaml
+slice_id: "02"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior System Architect"
+  - "Senior Tester"
+  - "Senior DevOps Engineer"
+affected_files:
+  - "src/tiny_swarm_world/domain/**"
+  - "src/tiny_swarm_world/application/ports/repositories/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/yaml/**"
+  - "src/tiny_swarm_world/infrastructure/project_paths.py"
+  - "infra/config/**"
+  - "tests/**"
+  - "documentation/**"
+affected_modules:
+  - "src/tiny_swarm_world/domain"
+  - "src/tiny_swarm_world/application"
+  - "src/tiny_swarm_world/infrastructure"
+  - "infra/config"
+affected_contracts:
+  - "configuration schema and override behavior"
+dependencies:
+  - "01"
+parallel_group: "B"
+file_locks:
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/yaml/**"
+  - "infra/config/**"
+architecture_locks:
+  - "configuration-boundary"
+contract_locks:
+  - "configuration-contract"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py typecheck"
+  required:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py typecheck"
+documentation:
+  arc42: "check constraints and concepts"
+  adr: "required only if config authority changes"
+stop_conditions:
+  - "configuration keys cannot be verified"
+  - "host-specific paths or secrets would be committed"
+  - "YAML is modified by ad hoc string manipulation"
+```
+
+Task traceability:
+
+- F-013: T-006, T-019
+
+Done criteria:
+
+- Required configuration contracts are explicit and testable.
+- Path resolution is repository-root aware where needed.
+- Overrides and examples are documented without secrets.
+
+### Slice 03: Multipass Lifecycle Safety
+
+Purpose:
+
+Make VM lifecycle behavior state-aware and non-destructive by default. Any
+reset path must be explicit and separately validated.
+
+```yaml
+slice_id: "03"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior DevOps Engineer"
+  - "Senior Tester"
+  - "Senior Security Sandbox Engineer"
+affected_files:
+  - "src/tiny_swarm_world/domain/multipass/**"
+  - "src/tiny_swarm_world/application/services/multipass/**"
+  - "src/tiny_swarm_world/application/services/vm/**"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/application/ports/repositories/port_vm_repository.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/vm_repository_yaml.py"
+  - "infra/config/multipass/**"
+  - "infra/config/vm/**"
+  - "tests/application/services/multipass/**"
+  - "tests/domain/**"
+  - "documentation/**"
+affected_modules:
+  - "multipass"
+  - "vm"
+  - "platform"
+affected_contracts:
+  - "VM lifecycle command contract"
+dependencies:
+  - "01"
+  - "02"
+parallel_group: "C"
+file_locks:
+  - "src/tiny_swarm_world/domain/multipass/**"
+  - "src/tiny_swarm_world/application/services/multipass/**"
+  - "src/tiny_swarm_world/application/services/vm/**"
+  - "infra/config/multipass/**"
+  - "infra/config/vm/**"
+architecture_locks:
+  - "live-infrastructure-safety"
+contract_locks:
+  - "multipass-command-contract"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.multipass.test_multipass_init_vms"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+  required:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+documentation:
+  arc42: "update runtime and risks when lifecycle behavior changes"
+  adr: "consider if default reset behavior changes"
+stop_conditions:
+  - "multipass command would run live"
+  - "default path still deletes or purges VMs"
+  - "reset behavior lacks explicit user intent"
+```
+
+Task traceability:
+
+- F-002: T-010
+
+Done criteria:
+
+- Default lifecycle behavior does not destroy VMs.
+- Explicit reset path is separated from reconcile/bootstrap behavior.
+- Tests use mocked command execution.
+
+### Slice 04: Networking, WSL2 And Netplan
+
+Purpose:
+
+Make netplan generation, transfer path handling and WSL/Linux networking
+procedures deterministic, idempotent and safe to validate without live network
+mutation.
+
+```yaml
+slice_id: "04"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior DevOps Engineer"
+  - "Senior Tester"
+  - "Senior Security Sandbox Engineer"
+affected_files:
+  - "src/tiny_swarm_world/domain/network/**"
+  - "src/tiny_swarm_world/application/services/network/**"
+  - "src/tiny_swarm_world/application/services/vm/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/netplan_repository.py"
+  - "infra/config/network/**"
+  - "infra/swarm/**"
+  - "tests/application/services/network/**"
+  - "tests/domain/network/**"
+  - "documentation/system/network.adoc"
+  - "documentation/user_guide/troubleshooting.adoc"
+affected_modules:
+  - "network"
+  - "vm"
+  - "infra/config/network"
+affected_contracts:
+  - "netplan artifact and transfer path contract"
+dependencies:
+  - "02"
+  - "03"
+parallel_group: "D"
+file_locks:
+  - "src/tiny_swarm_world/domain/network/**"
+  - "src/tiny_swarm_world/application/services/network/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/netplan_repository.py"
+  - "infra/config/network/**"
+  - "infra/swarm/**"
+architecture_locks:
+  - "network-live-safety"
+contract_locks:
+  - "netplan-contract"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.network.test_network_service"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+  required:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+documentation:
+  arc42: "update runtime view and deployment view when network flow changes"
+  adr: "not required unless network state model changes materially"
+stop_conditions:
+  - "netplan changes would be applied live"
+  - "socat or iptables command would run live"
+  - "generated file path cannot be verified"
+```
+
+Task traceability:
+
+- F-004: T-012
+- F-005: T-013
+
+Done criteria:
+
+- Netplan save and transfer paths resolve to the same deterministic artifact.
+- WSL/Linux networking setup has prepare, verify and cleanup semantics.
+- Live mutation remains opt-in only.
+
+### Slice 05: Docker Readiness And Swarm Bootstrap
+
+Purpose:
+
+Add Docker daemon readiness semantics, robust retry/timeout behavior, state-aware
+Swarm init/join and validated parsing without running Docker or Swarm live by
+default.
+
+```yaml
+slice_id: "05"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior DevOps Engineer"
+  - "Senior Tester"
+affected_files:
+  - "src/tiny_swarm_world/domain/command/**"
+  - "src/tiny_swarm_world/application/services/multipass/**"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
+  - "infra/config/docker/**"
+  - "infra/config/multipass/**"
+  - "tests/application/services/multipass/**"
+  - "tests/infrastructure/adapters/command_runner/**"
+  - "documentation/**"
+affected_modules:
+  - "docker-readiness"
+  - "swarm-bootstrap"
+  - "command-runner"
+affected_contracts:
+  - "Docker readiness command contract"
+  - "Swarm token and node verification contract"
+dependencies:
+  - "03"
+  - "04"
+parallel_group: "E"
+file_locks:
+  - "src/tiny_swarm_world/application/services/multipass/**"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
+  - "infra/config/docker/**"
+architecture_locks:
+  - "docker-swarm-live-safety"
+contract_locks:
+  - "swarm-command-contract"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_workflow_configuration"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+  required:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+documentation:
+  arc42: "update runtime and risks for readiness and bootstrap behavior"
+  adr: "consider if retry/failure policy becomes cross-cutting"
+stop_conditions:
+  - "docker or docker swarm command would run live"
+  - "token parsing remains positional and unvalidated"
+  - "critical command failure still reports success"
+```
+
+Task traceability:
+
+- F-006: T-014
+- F-007: T-015
+- F-014: T-009, T-021
+
+Done criteria:
+
+- Docker install blocks on daemon readiness in mocked tests.
+- Swarm init/join handles already-active states.
+- Token/IP parsing is explicit and validated.
+- Critical failures propagate.
+
+### Slice 06: Deployment Stack And Compose Flow
+
+Purpose:
+
+Separate platform provisioning from stack deployment, integrate deployment into
+the canonical flow or document the handoff, and fix compose assumptions that
+conflict with VM/Swarm execution.
+
+```yaml
+slice_id: "06"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior DevOps Engineer"
+  - "Senior Tester"
+  - "Senior System Architect"
+affected_files:
+  - "src/tiny_swarm_world/domain/deployment/**"
+  - "src/tiny_swarm_world/application/services/deployment/**"
+  - "src/tiny_swarm_world/application/ports/clients/port_portainer_client.py"
+  - "src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py"
+  - "infra/config/compose/**"
+  - "infra/compose/**"
+  - "tests/application/services/deployment/**"
+  - "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py"
+  - "documentation/**"
+affected_modules:
+  - "deployment"
+  - "compose"
+  - "portainer-client"
+affected_contracts:
+  - "deployment stack contract"
+dependencies:
+  - "05"
+parallel_group: "F"
+file_locks:
+  - "src/tiny_swarm_world/domain/deployment/**"
+  - "src/tiny_swarm_world/application/services/deployment/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py"
+  - "infra/config/compose/**"
+  - "infra/compose/**"
+architecture_locks:
+  - "deployment-boundary"
+contract_locks:
+  - "compose-stack-contract"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+  required:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+documentation:
+  arc42: "update deployment view"
+  adr: "consider if canonical deployment strategy changes"
+stop_conditions:
+  - "compose deployment would run live"
+  - "stack deploy command lacks dry-run or mocked verification"
+  - "host-local compose assumptions remain unclassified"
+```
+
+Task traceability:
+
+- F-008: T-008, T-016
+- F-010: T-017
+
+Done criteria:
+
+- Deployment is a deliberate stage with verification.
+- Compose assets are classified as VM/Swarm-compatible or explicitly legacy.
+- No live deployment runs without approval.
+
+### Slice 07: Secrets, Nexus And Configuration Contracts
+
+Purpose:
+
+Remove hardcoded credentials from active automation paths, define secret/config
+inputs and validate Nexus/Portainer/bootstrap configuration without committing
+real secrets.
+
+```yaml
+slice_id: "07"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior DevOps Engineer"
+  - "Senior Security Sandbox Engineer"
+  - "Senior Tester"
+affected_files:
+  - "src/tiny_swarm_world/domain/nexus/**"
+  - "src/tiny_swarm_world/application/services/nexus/**"
+  - "src/tiny_swarm_world/application/services/artifacts/**"
+  - "src/tiny_swarm_world/application/ports/clients/port_nexus_client.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py"
+  - "infra/prepare/nexus/**"
+  - "infra/prepare/portainer/**"
+  - "infra/config/**"
+  - "tests/application/services/nexus/**"
+  - "documentation/**"
+affected_modules:
+  - "nexus"
+  - "artifacts"
+  - "secrets"
+affected_contracts:
+  - "secret and environment input contract"
+dependencies:
+  - "02"
+  - "06"
+parallel_group: "G"
+file_locks:
+  - "src/tiny_swarm_world/domain/nexus/**"
+  - "src/tiny_swarm_world/application/services/nexus/**"
+  - "src/tiny_swarm_world/application/services/artifacts/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py"
+  - "infra/prepare/nexus/**"
+  - "infra/prepare/portainer/**"
+  - "infra/config/**"
+architecture_locks:
+  - "secret-safety"
+contract_locks:
+  - "secret-input-contract"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.nexus.test_bootstrap_nexus"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+  required:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+documentation:
+  arc42: "update concepts and risks for secret handling"
+  adr: "required if secret ownership model changes materially"
+stop_conditions:
+  - "real credential would be committed"
+  - "script defaults to insecure admin credentials"
+  - "bootstrap endpoint is called live"
+```
+
+Task traceability:
+
+- F-009: T-018
+- F-013: T-006, T-019
+
+Done criteria:
+
+- No tracked active automation path embeds real credentials.
+- Missing secrets fail fast.
+- Example templates contain placeholders only.
+
+### Slice 08: Test Gate Cleanup And Operational Documentation
+
+Purpose:
+
+Complete test curation, architecture-gate alignment, operational documentation
+and legacy surface cleanup. This slice updates docs and arc42 after the
+implementation slices establish verified behavior.
+
+```yaml
+slice_id: "08"
+profile: "FULL_PATH"
+owner: "Senior Documentation Engineer"
+secondary_reviewers:
+  - "Senior Tester"
+  - "Senior System Architect"
+  - "Senior Python Automation Developer"
+  - "Senior DevOps Engineer"
+affected_files:
+  - "tests/**"
+  - ".importlinter"
+  - "tools/quality_gate.py"
+  - "QUALITY.md"
+  - "README.md"
+  - "documentation/arc42/**"
+  - "documentation/user_guide/**"
+  - "documentation/system/**"
+  - "documentation/deployment/**"
+  - "documentation/process/**"
+  - "infra/swarm/**"
+  - "infra/prepare/**/README.md"
+affected_modules:
+  - "tests"
+  - "documentation"
+  - "quality-gate"
+  - "legacy-surface"
+affected_contracts:
+  - "quality-gate policy when changed"
+dependencies:
+  - "01"
+  - "02"
+  - "03"
+  - "04"
+  - "05"
+  - "06"
+  - "07"
+parallel_group: "H"
+file_locks:
+  - "tests/**"
+  - ".importlinter"
+  - "tools/quality_gate.py"
+  - "QUALITY.md"
+  - "README.md"
+  - "documentation/**"
+  - "infra/swarm/**"
+architecture_locks:
+  - "documentation-governance"
+  - "quality-gate-authority"
+contract_locks:
+  - "quality-gate-contract"
+quality_gates:
+  targeted:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py test"
+  required:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "update constraints, runtime view, deployment view, quality requirements and risks"
+  adr: "required if quality policy or runtime strategy changes materially"
+stop_conditions:
+  - "quality gate is weakened"
+  - "documentation claims live behavior that was not verified"
+  - "legacy script is removed before references are checked"
+```
+
+Task traceability:
+
+- F-011: T-003, T-022
+- F-012: T-005, T-020
+- F-015: T-023
+- F-003: T-002, T-011
+
+Done criteria:
+
+- `pytest` references are no longer described as the default gate.
+- Documentation provides current safe checks and explicitly marks live
+  infrastructure commands as opt-in.
+- arc42 placeholder sections touched by remediation are updated or have
+  documented no-change rationale.
+- Legacy surfaces are removed only after reference checks or are clearly
+  documented as unsupported.
+
+## Slice Dependency Graph
+
+```text
+01 -> 02 -> 03 -> 04 -> 05 -> 06 -> 07 -> 08
+```
+
+Parallelization:
+
+- This workflow is intentionally sequential. The original task list contained
+  cross-phase duplicate findings and finding-ID dependencies. Sequential
+  execution keeps ownership, evidence and rollback clear.
+
+## Role And Subagent Ownership Map
+
+| Area | Owner | Supporting roles |
+|---|---|---|
+| Workflow conversion | Senior Workflow Architect | Senior Requirement Engineer |
+| Python implementation | Senior Python Automation Developer | Senior System Architect, Senior Tester |
+| Architecture boundaries | Senior System Architect | quality architecture validation |
+| Quality gates | Senior Tester | quality-gate skill |
+| Multipass, Docker, Swarm and shell assets | Senior DevOps Engineer | Security Sandbox Engineer |
+| Secret handling | Senior Security Sandbox Engineer | Senior DevOps, Senior Tester |
+| Documentation and arc42 | Senior Documentation Engineer | Senior System Architect |
+| Frontend assessment | Senior React Frontend Developer | N/A implementation impact |
+
+## Quality-Gate Expectations
+
+All slices:
+
+```bash
+git diff --check
+```
+
+Architecture-sensitive slices:
+
+```bash
+python3 tools/quality_gate.py arch-lint
+python3 tools/quality_gate.py arch-tests
+```
+
+Implementation slices:
+
+```bash
+python3 tools/quality_gate.py test
+```
+
+Final readiness when practical:
+
+```bash
+python3 tools/quality_gate.py quality
+```
+
+Optional static Bash syntax check for shell slices:
+
+```bash
+find infra -name '*.sh' -print0 | xargs -0 bash -n
+```
+
+Do not run `multipass`, `docker swarm`, compose deployments, netplan changes,
+`socat` forwarding or service bootstrap scripts unless the user explicitly
+authorizes live infrastructure execution.
 
 ## Documentation Synchronization Points
 
-- Update `documentation/process/**` only when process wording changes.
-- Update `documentation/arc42/02_constraints.adoc` if constraints change.
-- Update `documentation/arc42/08_concepts.adoc` if governance concepts change.
-- Update `documentation/arc42/10_quality_requirements.adoc` when quality-gate
-  expectations are clarified.
-- Update `documentation/arc42/11_risks_and_debt.adoc` when Bash script risks or
-  stale Java-default risk remains documented.
+- Update `documentation/arc42/02_constraints.adoc` when constraints change.
+- Update `documentation/arc42/06_runtime_view.adoc` when runtime flow changes.
+- Update `documentation/arc42/07_deployment_view.adoc` when deployment flow
+  changes.
+- Update `documentation/arc42/10_quality_requirements.adoc` when quality gates
+  or verification expectations change.
+- Update `documentation/arc42/11_risks_and_debt.adoc` when operational risks
+  change.
+- Update README and user guides only with verified commands and explicit live
+  run caveats.
 
 ## Stop Conditions
 
 Stop workflow execution if:
 
-- The active branch is not
-  `architecture/workflow-agents-skills-python-quality-bash-20260523`.
-- The local branch ref cannot be verified.
-- The working tree contains unrelated or unclear changes.
-- Any slice tries to modify product source, shell script behavior, Java example
-  code or `tools/quality_gate.py` without a workflow refinement.
-- A quality command cannot be verified from `QUALITY.md` or
-  `tools/quality_gate.py`.
-- `shellcheck` or `shfmt` is made mandatory without an explicit `QUALITY.md`
-  change and approval.
-- Java/Gradle/JUnit/ArchUnit becomes the default quality path for Python work.
-- Frontend implementation is introduced without verified frontend tooling and a
-  new explicit requirement.
-- A required subagent or role cannot be verified.
-- File locks overlap without a documented handoff.
+- active branch is not
+  `architecture/workflow-tasklist-remediation-20260523`;
+- a deleted `TASKLIST.md` entry cannot be traced through this workflow;
+- a slice copies stale `docker/` source assumptions without verifying current
+  paths;
+- `pytest` is used as the default gate instead of `tools/quality_gate.py`;
+- live infrastructure commands would run without explicit user approval;
+- quality gates fail or would need to be weakened;
+- architecture boundaries are unclear;
+- a slice cannot map affected files to a single owner;
+- secrets would be committed;
+- documentation claims verified live behavior without live-run evidence.
 
 ## Uncertainty Escalation Rules
 
-- EPIC ownership uncertainty routes to Senior Requirement Engineer.
-- Architecture or quality authority conflict routes to Senior System Architect
-  and Senior Tester.
-- Bash live-infrastructure safety uncertainty routes to Senior DevOps and
-  Senior Security Sandbox Engineer.
-- New required shell quality tools require explicit `QUALITY.md` governance and
-  user approval.
-- Any unresolved governance conflict escalates to Root Architect via Senior
-  System Architect.
+- Missing EPIC ownership routes to Senior Requirement Engineer.
+- Architecture ambiguity routes to Senior System Architect.
+- Quality command ambiguity routes to Senior Tester and `quality-gate`.
+- Live-infrastructure ambiguity routes to Senior DevOps and Security Sandbox
+  Engineer.
+- Secret-handling ambiguity routes to Security Sandbox Engineer.
+- Any unclassified slice routes to Root Architect through Senior System
+  Architect.
 
 ## Commit And Push Plan
 
-This workflow creation does not authorize push, PR creation, merge or cleanup.
-During `workflow execute`, create commits or push only if the user explicitly
-requests that behavior or a later approved workflow amendment authorizes it.
+Workflow creation may be committed and pushed when requested. Workflow execute
+must create slice-scoped commits only after required gates pass or documented
+skip reasons are accepted by the active workflow.
 
-Each executed slice must remain independently reviewable. Do not combine
-unrelated slice changes in one commit.
+Do not combine implementation slices in one commit. Do not push directly to
+`main`. Do not run `push auto` unless explicitly requested and allowed by the
+repository governance.
 
 ## Definition Of Done
 
-- All slices are complete or explicitly skipped with a documented reason.
-- Agent and skill governance consistently reflects Python 3.12, Linux/WSL-only
-  operation and `tools/quality_gate.py`.
-- Hexagonal architecture checks are documented as `arch-lint` and
-  `arch-tests`.
-- Bash specialist role, skill, callable agent, durable subagent and routing
-  coverage exist.
-- Java/Gradle/JUnit/ArchUnit wording is constrained to explicit Java
-  deployment-example work.
-- Process and arc42 documentation are synchronized or checked with a no-change
-  rationale.
-- Required quality gates have exact command evidence.
-- No live infrastructure commands were run.
+- `TASKLIST.md` is deleted after conversion.
+- This workflow and context pack are present.
+- Every original task ID has traceability to a slice.
+- Stale task-list commands and paths are normalized.
+- Required roles and stop conditions are explicit.
+- The workflow can be consumed by `workflow execute`.
+- Documentation and arc42 impact are checked.
+- Required validation for this workflow creation passes.
 
 ## Handoff To Workflow Execute
 
-`workflow execute` may start when:
+`workflow execute` may start after:
 
-- this file and `documentation/workflow/context-pack.*` are present;
-- the active branch is
-  `architecture/workflow-agents-skills-python-quality-bash-20260523`;
-- the working tree status is understood;
-- S3/S3D validates slice metadata and file locks;
-- the executor accepts the non-blocking EPIC traceability gap recorded above.
+- `documentation/workflow/workflow.md` and `context-pack.*` are present;
+- `TASKLIST.md` deletion is visible in git diff;
+- the active branch is verified;
+- S3/S3D validates slice metadata and dependencies;
+- the executor accepts the EPIC traceability gap and stale audit baseline as
+  documented assumptions.
 
-Use the project-specific `.agents/skills/workflow-executor/SKILL.md` as the
-active executor.
+Use `.agents/skills/workflow-executor/SKILL.md` as the active executor.
 
 ## arc42 Check Status
 
-arc42 was checked during workflow creation. Existing arc42 files are placeholder
-level and do not yet describe agent/skill governance in detail. Slice 05 is
-responsible for updating or explicitly recording no-change rationale for:
+arc42 was checked during workflow creation.
 
-- `documentation/arc42/02_constraints.adoc`
-- `documentation/arc42/08_concepts.adoc`
-- `documentation/arc42/10_quality_requirements.adoc`
-- `documentation/arc42/11_risks_and_debt.adoc`
+Current findings:
+
+- `documentation/arc42/05_building_blocks.adoc` already records the current
+  Python automation, infrastructure asset and deployment-example split.
+- `documentation/arc42/06_runtime_view.adoc`,
+  `documentation/arc42/07_deployment_view.adoc`,
+  `documentation/arc42/10_quality_requirements.adoc` and
+  `documentation/arc42/11_risks_and_debt.adoc` remain placeholder-level for
+  this remediation scope.
+
+Slice 08 must update those sections or record explicit no-change rationale
+after implementation evidence exists.

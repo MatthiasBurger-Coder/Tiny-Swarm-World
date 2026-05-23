@@ -3,7 +3,7 @@ from typing import Dict
 
 import asyncio
 
-from tiny_swarm_world.application.services.commands.command_executer.excecuteable_commands import ExecutableCommandEntity
+from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 from tiny_swarm_world.application.ports.ui.port_ui import PortUI
 
 
@@ -33,7 +33,9 @@ class CommandExecuter:
                 self.logger.error("Failed to execute command on VM '%s'. Error: %s", current_vm, str(e))
                 self.ui.update_status(instance=current_vm, task=executable_command.description, step="Error",
                                       result="Failed")
-                continue
+                raise CommandExecutionFailed(
+                    f"Failed to execute command {key} on VM '{current_vm}': {e}"
+                ) from e
 
             self.logger.info("Updating status for VM '%s'.", current_vm)
             runner_status = executable_command.runner.status
@@ -46,7 +48,12 @@ class CommandExecuter:
 
             await asyncio.sleep(2)
 
-        self.ui.update_status(instance=current_vm, task="closing", step="Finishing", result="Success")
-        await asyncio.sleep(2)
+        if current_vm is not None:
+            self.ui.update_status(instance=current_vm, task="closing", step="Finishing", result="Success")
+            await asyncio.sleep(2)
         self.logger.info("All commands executed. Final status updated.")
         return run_result
+
+
+class CommandExecutionFailed(RuntimeError):
+    """Raised when a command workflow step fails and execution must stop."""

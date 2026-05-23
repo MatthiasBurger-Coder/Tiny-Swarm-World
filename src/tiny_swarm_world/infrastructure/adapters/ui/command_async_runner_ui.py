@@ -1,8 +1,9 @@
 import asyncio
+from collections.abc import Sequence
 from typing import Dict
 
 from tiny_swarm_world.application.services.commands.command_executer.command_executer import CommandExecuter
-from tiny_swarm_world.application.services.commands.command_executer.excecuteable_commands import ExecutableCommandEntity
+from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 from tiny_swarm_world.infrastructure.adapters.ui.command_runner_ui import CommandRunnerUi
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI
@@ -33,6 +34,8 @@ class AsyncCommandRunnerUI(CommandRunnerUi):
         # Start the UI in a separate thread
         self.logger.info("start ui")
         self.ui.start_in_thread()
+        results: Sequence[object] = ()
+        failures: list[BaseException] = []
 
         try:
             # Starte die parallele Ausführung der Befehle für jede VM
@@ -47,6 +50,7 @@ class AsyncCommandRunnerUI(CommandRunnerUi):
             # Fehlerhandling für einzelne VMs
             for vm, result in zip(self.instances, results):
                 if isinstance(result, Exception):
+                    failures.append(result)
                     self.logger.error(f"Execution failed for {vm}: {result}")
                     self.ui.update_status(task="failed", step="execution", result="error", instance=vm)
                 else:
@@ -55,12 +59,16 @@ class AsyncCommandRunnerUI(CommandRunnerUi):
 
         finally:
             # Aktualisiere die UI mit Abschlussstatus
-            self.ui.update_status(task="finished", step="execution", result="success", instance="all")
+            final_result = "error" if failures else "success"
+            self.ui.update_status(task="finished", step="execution", result=final_result, instance="all")
 
             # Warte auf das Ende des UI-Threads
             self.logger.info("Waiting for UI thread to close...")
             await self.ui.ui_thread
 
             self.logger.info("Execution complete.")
+
+        if failures:
+            raise failures[0]
 
         return results
