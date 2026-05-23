@@ -1,7 +1,10 @@
+from dataclasses import fields
 import unittest
 from unittest.mock import patch
 
+from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.infrastructure import composition
+from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
 
 
 class TestComposition(unittest.TestCase):
@@ -20,3 +23,21 @@ class TestComposition(unittest.TestCase):
 
         self.assertIs(services, expected_services)
         build_platform_services.assert_called_once_with()
+
+    def test_platform_services_contains_preflight_service(self):
+        field_names = {field.name for field in fields(composition.PlatformServices)}
+
+        self.assertIn("preflight", field_names)
+
+    def test_build_platform_services_wires_preflight_adapter(self):
+        with patch.object(composition, "PortVmRepositoryYaml") as vm_repository_factory:
+            with patch.object(
+                composition,
+                "PortNetplanRepositoryYaml",
+            ) as netplan_repository_factory:
+                services = composition.build_platform_services()
+
+        vm_repository_factory.assert_called_once_with()
+        netplan_repository_factory.assert_called_once_with()
+        self.assertIsInstance(services.preflight, PreflightService)
+        self.assertIsInstance(services.preflight.host_probe, HostPreflightProbe)

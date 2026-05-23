@@ -2,16 +2,40 @@
 
 ## Status
 
-- Workflow: `installation-integration-verification-20260523`
-- Branch: `docs/workflow-installation-integration-test-20260523`
+- Workflow: `init-safety-boundary-separation-20260523`
+- Branch: `architecture/workflow-init-service-boundaries-20260523`
 - Status: `CREATED_NOT_EXECUTED`
 - Created on: `2026-05-23`
 
 ## Creation Summary
 
-The active workflow was regenerated to define a full installation integration
-verification path. No live Multipass, Docker Swarm, netplan, socat, compose
-deployment or service bootstrap command was executed during workflow creation.
+The active workflow was regenerated for the user request to remove destructive
+cleanup from normal init, split reconcile/reset/destroy workflows, separate
+Platform/Artifacts/Deployment services, move the CLI to workflow level, extract
+Nexus stack deployment, type command YAMLs, introduce state/inventory, and
+enforce verify-after-apply.
+
+No live Multipass, Docker Swarm, netplan, socat, compose, Portainer, Nexus,
+Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX command was executed during
+workflow creation.
+
+## Branch Verification
+
+- Dedicated branch created and active:
+  `architecture/workflow-init-service-boundaries-20260523`
+- Local ref verification succeeded before workflow artifacts were written.
+- Active branch verification succeeded before workflow artifacts were written.
+
+## Regenerated Artifacts
+
+- `documentation/workflow/workflow.md`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/execution-report.md`
+
+The previous `documentation/workflow` contents belonged to a different workflow
+version. They were replaced on this workflow branch according to the
+workflow-authoring regeneration rule.
 
 ## Requirement Gate Decision
 
@@ -21,120 +45,99 @@ READY_FOR_WORKFLOW
 
 Confidence:
 
-- 92 percent for workflow creation.
-- Live execution remains gated because host state, secrets, resource policy and
-  cleanup consent are environment-specific.
+- 91 percent for workflow creation.
+- Implementation remains gated by Slice 01 because reset/destroy confirmation
+  and retention semantics must be finalized before destructive code changes.
 
-## Created Artifacts
+EPIC traceability:
 
-- `documentation/workflow/workflow.md`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/execution-report.md`
+- No `documentation/epics` files exist.
+- The workflow records this as a traceability gap and uses the user request,
+  root `AGENTS.md`, root `QUALITY.md`, architecture docs, arc42, ADR and
+  subagent reviews as the temporary baseline.
 
-## Commands To Verify Creation
+## Subagent Reviews
+
+Read-only subagent reviews completed:
+
+- Senior Requirement Engineer: completed.
+- Senior System Architect: completed.
+- Senior Python Automation Developer: completed.
+- Senior React Frontend Developer: completed.
+- Senior Tester: completed.
+
+Subagents reported no live infrastructure execution.
+
+## Worktree Note
+
+During workflow creation, uncommitted source/preflight changes appeared outside
+`documentation/workflow/**`:
+
+- `src/tiny_swarm_world/__main__.py`
+- `src/tiny_swarm_world/application/services/platform/__init__.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `src/tiny_swarm_world/application/ports/preflight/**`
+- `src/tiny_swarm_world/application/services/platform/preflight_service.py`
+- `src/tiny_swarm_world/domain/preflight/**`
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/**`
+- `tools/preflight.py`
+
+This workflow creation step did not edit those files. Workflow execution must
+treat them as existing user or parallel work and resolve ownership before any
+slice touches overlapping paths.
+
+## Ordered Slices
+
+1. Slice 01 - Requirement And Safety Contract
+2. Slice 02 - ADR And arc42 Baseline
+3. Slice 03 - Typed Command YAML Contract
+4. Slice 04 - State And Inventory Model
+5. Slice 05 - Workflow Taxonomy And Non-Destructive Init
+6. Slice 06 - Service Wiring Separation
+7. Slice 07 - Nexus Stack Deployment Extraction
+8. Slice 08 - Workflow-Level CLI
+9. Slice 09 - Verify After Every Apply
+10. Slice 10 - Documentation, Quality Sync, And Legacy Quarantine
+
+## Verification Plan
+
+Workflow creation checks:
 
 ```bash
 git diff --check
 python3 -m json.tool documentation/workflow/context-pack.json
 ```
 
-Result:
+Implementation final gate:
 
-- `git diff --check`: passed.
-- `python3 -m json.tool documentation/workflow/context-pack.json`: passed.
+```bash
+python3 tools/quality_gate.py quality
+```
 
 ## Live Execution Status
 
-Live execution has not started. Workflow execution must complete Slices 01
-through 07 and obtain explicit live-run approval before Slice 08 can run.
+Live execution has not started. Workflow execution must not run live
+infrastructure commands unless the user explicitly approves live infrastructure
+work in a later turn.
 
 ## Blockers
 
-No blockers remain for workflow creation.
+No blocker remains for workflow creation.
 
-Potential blockers for future execution:
+Execution blockers for implementation:
 
-- missing Multipass or Docker on the host;
-- insufficient CPU, memory or disk for all services;
-- missing secrets or unsafe default credentials;
-- ambiguous mandatory service scope under constrained host resources;
-- non-idempotent VM, Swarm or stack behavior discovered during implementation.
+- reset/destroy confirmation and retention semantics must be finalized in
+  Slice 01;
+- the Platform/Artifacts/Deployment ADR must be accepted or superseded before
+  boundary-moving source changes;
+- current source/preflight worktree changes need ownership review before slices
+  touch overlapping paths;
+- no implementation slice may run live infrastructure as a default quality
+  check.
 
-If a future blocker cannot be solved with at least 90 percent confidence, the
-executor must stop and record Three Amigos questions in this report before
-continuing.
-
-## Slice 01: Integration Test Contract
-
-Status: `completed`
-
-Responsible role:
-
-- Senior Requirement Engineer
-
-Subagent reviews:
-
-- Senior Swarm Orchestrator: S3D returned `EXECUTION_PLAN`; Slice 01 is first
-  executable slice, dependency-free, with no lock conflict.
-- Senior Requirement Engineer: follow-up review returned `READY` after the
-  temporary requirement baseline, resource-gated semantics, consent contract,
-  evidence bundle and checklist alignment were documented.
-- Senior System Architect: follow-up review returned `READY`; changes remain
-  inside `documentation/workflow/**` and `OPERATIONAL_READINESS_CHECKLIST.md`.
-- Senior Security Sandbox Engineer: follow-up review returned `READY`; live
-  consent, refusal, redaction, evidence and credential-source rules are
-  concrete.
-- Senior Tester: review returned `READY`; documentation-only gate is sufficient
-  for Slice 01 and the full Python gate is not claimed.
-
-Changed files:
-
-- `OPERATIONAL_READINESS_CHECKLIST.md`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/execution-report.md`
-- `documentation/workflow/workflow.md`
-
-Quality-gate commands:
-
-- `git diff --check`: pass
-- `python3 -m json.tool documentation/workflow/context-pack.json`: pass
-
-Quality-gate result: `pass`
-
-Skipped checks:
-
-- `python3 tools/quality_gate.py quality`: skipped because Slice 01 is
-  documentation/readiness-only and the slice-required D8 gate is
-  `git diff --check`.
-
-Live infrastructure:
-
-- Not run. No Multipass, Docker Swarm, netplan, socat, compose/stack or
-  service bootstrap command was executed.
-
-Rollback reference:
-
-- Previous checkpoint before Slice 01: `2b14c5c`
-
-Checkpoint commit:
-
-- `31f6e12`
-
-arc42 update status:
+## arc42 Update Status
 
 - `checked, not changed`
-- Rationale: Slice 01 clarifies integration-test contracts and live-safety
-  semantics. It does not change runtime topology or architecture decisions.
-
-ADR update status:
-
-- `checked, not changed`
-- Rationale: The existing platform/artifacts/deployment responsibility ADR
-  remains compatible with the Slice 01 contract.
-
-Push result:
-
-- `git push origin HEAD:docs/workflow-installation-integration-test-20260523`:
-  pass
+- Rationale: workflow creation changes planning artifacts only. Slice 02 owns
+  arc42 and ADR synchronization before implementation changes alter runtime or
+  responsibility behavior.

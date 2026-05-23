@@ -75,3 +75,8 @@ htmlcov/
 _pydevd_bundle/
 _pydevd_frame_eval/
 pydevd_attach_to_process/
+
+### Tiny Swarm World local runtime artifacts ###
+/.tiny-swarm-world/
+.env
+.env.local

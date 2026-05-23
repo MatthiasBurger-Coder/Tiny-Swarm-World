@@ -9,12 +9,14 @@ from tiny_swarm_world.application.services.platform import (
     MultipassRestartVMs,
     NetworkPrepareNetplan,
     NetworkSetupNetplan,
+    PreflightService,
     SocatManager,
     VmIpList,
 )
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
+from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
 from tiny_swarm_world.infrastructure.adapters.repositories.netplan_repository import PortNetplanRepositoryYaml
 from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
@@ -31,6 +33,7 @@ class PlatformServices:
     multipass_restart_vms: MultipassRestartVMs
     multipass_docker_install: MultipassDockerInstall
     multipass_docker_swarm_init: MultipassDockerSwarmInit
+    preflight: PreflightService
     vm_ip_list: VmIpList
     socat_manager: SocatManager
 
@@ -49,6 +52,7 @@ def build_platform_services() -> PlatformServices:
     vm_repository = PortVmRepositoryYaml()
     netplan_repository = PortNetplanRepositoryYaml()
     command_workflow = CommandWorkflow(vm_repository=vm_repository)
+    preflight_probe = HostPreflightProbe()
 
     return PlatformServices(
         command_workflow=command_workflow,
@@ -64,6 +68,7 @@ def build_platform_services() -> PlatformServices:
         multipass_restart_vms=MultipassRestartVMs(command_workflow),
         multipass_docker_install=MultipassDockerInstall(command_workflow),
         multipass_docker_swarm_init=MultipassDockerSwarmInit(command_workflow),
+        preflight=PreflightService(preflight_probe),
         vm_ip_list=VmIpList(command_workflow=command_workflow, vm_repository=vm_repository),
         socat_manager=SocatManager(),
     )

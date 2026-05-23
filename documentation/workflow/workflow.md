@@ -1,164 +1,209 @@
-# Workflow: Full Installation Integration Verification
+# Workflow: Init Safety and Boundary Separation
 
 ## Executive Summary
 
-This workflow defines the governed path for creating and running an opt-in
-integration test that proves Tiny Swarm World can perform a complete local
-installation and verify full operational functionality.
+This workflow defines the governed implementation path for making Tiny Swarm
+World safer and more explicit at the workflow level.
 
-The target proof is not a mock-only quality gate. It must verify, with recorded
-evidence, that a Linux/WSL host can bootstrap Multipass VMs, configure
-networking, install Docker, initialize Docker Swarm, join workers, deploy the
-service stacks, and reach the expected services from the host.
+The target change removes destructive VM cleanup from normal initialization,
+introduces separate `reconcile`, `reset`, and `destroy` workflows, separates
+Platform, Artifacts, and Deployment responsibilities, moves the CLI from
+low-level service execution to workflow execution, extracts Nexus stack
+deployment into Deployment ownership, strengthens command YAML typing,
+introduces a state/inventory model, and requires verification after every
+mutating apply step.
 
-The workflow does not execute live infrastructure during workflow creation.
-Live Multipass, Docker Swarm, netplan, socat and stack deployment commands stay
-behind an explicit opt-in gate during workflow execution.
+Workflow creation does not execute live infrastructure. All Multipass, Docker
+Swarm, netplan, socat, compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+and Swagger/NGINX operations remain forbidden unless a later workflow execution
+receives explicit live infrastructure approval.
 
 ## Target Picture
 
 ### Verified Baseline
 
-- The repository default quality gate is `python3 tools/quality_gate.py quality`.
-- The default quality gate must not create VMs, change networking, deploy
-  Docker stacks or bootstrap local services.
-- `AUDIT_REPORT.md` records that full end-to-end operational readiness was not
-  verified and that live Multipass/Docker/Swarm evidence is missing.
-- `OPERATIONAL_READINESS_CHECKLIST.md` records open readiness items for host,
-  VM, network, Docker, Swarm, stack deployment, services, smoke tests,
-  observability and documentation.
-- The current package entrypoint exposes explicit service choices only:
-  `multipass-init-vms`, `network-prepare-netplan`, `network-setup-netplan`,
-  `multipass-restart-vms`, `multipass-docker-install`,
-  `multipass-docker-swarm-init` and `vm-ip-list`.
-- Service stack deployment exists as separate preparation or compose scripts,
-  not as a single verified canonical full-install command.
+- Root `AGENTS.md` defines Tiny Swarm World as a Linux/WSL-only Python
+  automation project with hexagonal architecture.
+- `QUALITY.md` defines the default quality gate as:
+
+```bash
+python3 tools/quality_gate.py quality
+```
+
+- The default quality gate must not create VMs, mutate networking, initialize
+  Docker Swarm, deploy stacks, or bootstrap services.
+- `src/tiny_swarm_world/application/services/multipass/multipass_init_vms.py`
+  currently runs `command_multipass_clean_repository_yaml.yaml` before normal
+  initialization.
+- `infra/config/multipass/command_multipass_clean_repository_yaml.yaml`
+  currently contains `multipass delete --all` and `multipass purge`.
+- `src/tiny_swarm_world/infrastructure/composition.py` currently exposes
+  `PlatformServices` and aliases `ApplicationServices = PlatformServices`.
+- `src/tiny_swarm_world/__main__.py` currently exposes low-level service names
+  through `--run`, not workflow-level commands.
+- Nexus stack deployment behavior currently lives under
+  `application/services/nexus/ensure_nexus_stack.py` while the Deployment
+  namespace re-exports it as a compatibility facade.
+- Command YAML loading validates only indirectly by constructing
+  `CommandEntity` from loose dictionary keys.
+- No durable state/inventory model currently separates desired inventory from
+  observed runtime state.
+- `infra/config/network/netplant/command_netplant_setup_yaml.yaml` ends with
+  `netplan apply` and does not require a typed verification gate afterwards.
+- `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+  already proposes Platform, Artifacts, Deployment, and Shared responsibility
+  boundaries.
 
 ### Target Outcome
 
 The completed workflow must produce:
 
-- a non-destructive live-test contract and preflight gate;
-- a canonical full-installation verification path;
-- deterministic evidence for every installation phase;
-- automated health checks for Docker Swarm and deployed services;
-- explicit remediation loops for blockers that can be solved with at least
-  90 percent confidence;
-- a Three Amigos question-answer escalation path for blockers that require
-  product, architecture or test clarification;
-- documentation that tells an operator how to run the full integration test and
-  interpret failures.
+- a non-destructive normal `init` path;
+- separate `reconcile`, `reset`, `destroy`, and `verify` workflows;
+- explicit destructive-operation policy and tests proving that `init` and
+  `reconcile` cannot execute delete/purge behavior;
+- real `PlatformServices`, `ArtifactServices`, and `DeploymentServices`
+  builders and dataclasses in the composition root;
+- a workflow-level CLI that remains thin and delegates to composed workflows;
+- Nexus stack deployment owned by Deployment, while Nexus repository and
+  artifact behavior stays in Artifacts;
+- typed command YAML contracts with command identity, intent, safety class,
+  parameters, effects, allowed workflows, and verification specs;
+- a state/inventory model that separates desired configuration from observed
+  runtime facts;
+- mandatory verify-after-apply behavior for platform and deployment changes;
+- architecture tests and documentation that protect the new boundaries.
 
 ## Requirement Clarification Record
 
 Original request:
 
 ```text
-Erstelle einen workflow fuer einen Integrationstest, der eine vollstaendige
-Installations prueft, vollstaendige funktionsfaehigkeit. Falls blocker
-entstehen, diese vollstaendig selbst loesen wenn dies zu 90% moeglich ist,
-ansonsten rueckfragen stellen, damit ein 3 Amigo Frage Antwort prozess
-gestartet werden kann.
+Workflow create with subagents:
+1. Destruktive VM-Cleanup-Schritte aus dem normalen Init entfernen
+2. reconcile/reset/destroy als getrennte Workflows einfuehren
+3. PlatformServices, ArtifactServices und DeploymentServices wirklich trennen
+4. CLI auf Workflow-Ebene umbauen
+5. Nexus Stack Deployment aus Artifacts/Nexus herausloesen
+6. Command-YAMLs staerker typisieren
+7. State-/Inventory-Modell einfuehren
+8. Verify-Schritte nach jedem Apply erzwingen
 ```
 
 Interpreted intent:
 
-- Create a repository workflow for an opt-in integration test that proves the
-  full installation and functional readiness of Tiny Swarm World.
-- Include all major operational phases from host readiness through service
-  reachability.
-- Make blocker handling explicit: self-remediate when confidence is at least
-  90 percent, otherwise stop and ask Three Amigos clarification questions.
-- Preserve root `AGENTS.md`, `QUALITY.md`, hexagonal architecture and live
-  infrastructure safety constraints.
+- Create a repository workflow, using subagent review, for an architecture and
+  automation refactoring that makes normal initialization safe, separates
+  explicit workflow intent, and enforces state verification.
+- Treat Platform, Artifacts, and Deployment as responsibility boundaries inside
+  the existing Python automation architecture. This workflow does not claim
+  they are independently deployable microservices.
+- Preserve root `AGENTS.md`, `QUALITY.md`, hexagonal imports, live
+  infrastructure safety, and the Linux/WSL-only operating model.
 
 Change type:
 
-- Workflow creation and verification-governance planning.
-- Future implementation of integration-test harness, preflight checks,
-  live-test evidence capture and documentation.
+- Workflow creation and future implementation planning.
+- Future production-code changes to application services, domain models,
+  ports, infrastructure adapters, command YAMLs, CLI and tests.
+- Future documentation synchronization for arc42, README and user/operator
+  documentation.
 
 Affected process strand:
 
 - `workflow create`.
 
-Affected architecture area:
+Affected architecture areas:
 
-- Platform automation: Multipass, VM lifecycle, network, netplan, socat,
-  Docker install, Docker Swarm init and worker join.
-- Deployment automation: Portainer, compose stack deployment and service
-  reachability.
-- Shared automation: command workflow, YAML handling, logging, failure
-  propagation and evidence capture.
-- Documentation and operational readiness.
+- Platform automation: VM lifecycle, network, Docker install, Swarm init/join,
+  runtime probes and inventory facts.
+- Artifact automation: Nexus repository/user/readiness behavior, Docker/Maven
+  publishing contracts, image build/push contracts.
+- Deployment automation: compose stacks, Portainer stack create/update/upload,
+  Nexus stack deployment and service lifecycle.
+- Shared automation: command catalog, YAML handling, command result evidence,
+  composition root, CLI dispatch and quality gates.
 
 Explicit requirements:
 
-- Create a workflow for a full installation integration test.
-- Verify complete functionality, not only command construction.
-- Resolve blockers completely when the solution path is at least 90 percent
-  clear.
-- Ask clarifying questions and start a Three Amigos Q&A process when blockers
-  cannot be solved confidently.
+- Remove destructive VM cleanup from normal init.
+- Introduce `reconcile`, `reset`, and `destroy` as separate workflows.
+- Truly separate PlatformServices, ArtifactServices and DeploymentServices.
+- Rebuild CLI around workflow-level commands.
+- Extract Nexus stack deployment from Artifacts/Nexus ownership.
+- Strongly type command YAMLs.
+- Introduce a state/inventory model.
+- Force verification steps after every apply.
 
 Implicit requirements:
 
-- Do not run live infrastructure commands during normal development gates.
-- Make the integration test opt-in and visibly live/destructive-risk aware.
-- Separate preflight, dry-run/static checks and live execution.
-- Collect logs, command results and endpoint health evidence.
-- Keep the Python automation architecture hexagonal.
-- Keep `src/main/java` out of scope unless service reachability requires a
-  deployed example application in a later clarified workflow.
+- Keep `__main__.py` thin.
+- Keep concrete adapter construction in `infrastructure/composition.py`.
+- Do not weaken `.importlinter`, architecture tests or quality gates.
+- Do not run live infrastructure during normal development or workflow
+  creation.
+- Keep tests mock-based and deterministic unless a later live workflow
+  explicitly allows integration execution.
+- Update arc42 and user/operator documentation when behavior changes.
 
-Assumptions:
+Assumptions accepted for workflow creation:
 
-- "Complete installation" means the product scope described by the repository:
-  Multipass VMs, Docker Swarm and the supported service stacks.
-- "Complete functionality" means host reachability and runtime health for the
-  deployed local infrastructure services listed in README and AGENTS.md.
-- The integration test may add new opt-in tooling, but must not weaken the
-  default quality gate.
-- Live execution requires an explicit workflow-execution approval before any
-  Multipass, Docker Swarm, netplan, socat or stack deployment command runs.
+- `init` means create or prepare missing managed resources without deletion.
+- `reconcile` means converge existing managed state non-destructively.
+- `reset` means explicit reinitialization of managed runtime resources and may
+  run destructive commands only after a dedicated reset confirmation contract.
+- `destroy` means explicit teardown of managed runtime resources and may run
+  destructive commands only after a dedicated destroy confirmation contract.
+- `verify` means inspect and report current state without mutating resources.
+- Desired inventory is product configuration and may live under committed
+  `infra/config` files.
+- Observed runtime inventory and command evidence must live under an ignored
+  local state/evidence root such as `.tiny-swarm-world/`.
+- Exact reset/destroy retention rules are implementation acceptance criteria in
+  Slice 01 and must be documented before destructive code is changed.
 
 Non-goals:
 
 - No live infrastructure execution during workflow creation.
-- No Java deployment-example changes.
-- No cloud provider support.
-- No Windows-native PowerShell or backslash-path runtime model.
+- No Java example application changes.
+- No Windows-native runtime expansion.
+- No big-bang source tree move.
 - No default CI job that runs live Multipass or Docker Swarm.
-- No secret defaults committed to the repository.
+- No conversion of Platform, Artifacts and Deployment into microservices.
+- No committed secrets, host-specific absolute paths or local state snapshots.
 
 Risks:
 
-- Current orchestration is not proven end-to-end.
-- Some existing setup behavior may be destructive or not idempotent.
-- Stack deployment may require secret handling and Portainer initialization.
-- Network and port-forwarding behavior differs between native Linux and WSL.
-- Full live validation can be slow and host-dependent.
+- Current normal init can delete and purge all Multipass VMs.
+- Some existing tests are skipped or stale around Multipass init behavior.
+- Command workflow execution is filename-driven and currently coupled to UI
+  runner adapters.
+- Nexus bootstrap combines stack deployment, readiness, admin access and
+  anonymous access.
+- The proposed responsibility ADR is still `Status: Proposed`.
+- arc42 runtime, deployment, decision, quality and risk pages are currently
+  sparse and need synchronization when behavior changes.
+- A dirty worktree was detected during workflow creation with source/preflight
+  changes outside the workflow artifact edits. Workflow execution must resolve
+  overlap before editing those files.
 
 Open questions:
 
-- Which services are mandatory for the first "full functionality" proof if a
-  host lacks resources for all stacks?
-- Should the live test require a clean host, or may it reconcile an existing
-  Tiny Swarm World environment?
-- Which cleanup mode is acceptable after a successful live run: preserve,
-  stop-only, or destroy?
+- Which exact CLI flag names and typed phrases should be used for reset and
+  destroy confirmation?
+- Which reset mode preserves Docker images, volumes, stack data and evidence?
+- Which observed state files are retained after destroy?
 
 Blocking questions:
 
-- None for workflow creation. The open questions become live-execution gates
-  and are handled through the Three Amigos escalation path when they affect a
-  concrete run.
+- None for workflow creation. The open questions are execution gates for
+  Slice 01 and stop implementation until answered in that slice.
 
 Confidence level:
 
-- 92 percent for workflow creation.
-- Less than 90 percent for immediate live execution without additional operator
-  approval and environment facts.
+- 91 percent for workflow creation.
+- Less than 90 percent for live execution or implementation without completing
+  Slice 01.
 
 Decision:
 
@@ -168,400 +213,189 @@ READY_FOR_WORKFLOW
 
 EPIC traceability:
 
-- No `documentation/epics` directory exists in the repository.
-- Answer to "Does the implementation still match the EPIC?": no EPIC source is
-  available; this is recorded as a traceability gap, not a workflow-creation
-  blocker.
-- Temporary requirement baseline for this workflow: the original user request,
-  root `AGENTS.md`, root `QUALITY.md`, `AUDIT_REPORT.md`,
-  `OPERATIONAL_READINESS_CHECKLIST.md`, this Requirement Clarification Record
-  and `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`.
-  The user request `workflow execute with subagents` on 2026-05-23 accepts this
-  workflow as the execution target until a dedicated EPIC is added.
+- No `documentation/epics` files are present.
+- Answer to "Does the implementation still match the EPIC?": cannot verify
+  against a dedicated EPIC because no EPIC source exists.
+- Temporary requirement baseline for this workflow: the user request, root
+  `AGENTS.md`, root `QUALITY.md`, the existing architecture documentation,
+  current arc42 files, subagent reviews, and
+  `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`.
 
 ## Three Amigos Review
 
 ### Senior Requirement Engineer
 
-- The requirement is testable when "complete installation" is decomposed into
-  host, Python, VM, network, Docker, Swarm, deployment, service reachability,
-  evidence and rerun checks.
-- The workflow must define mandatory and optional functionality explicitly.
-- Open live-run policy questions are non-blocking for workflow authoring.
+- The requirement is actionable when the workflow defines operation taxonomy,
+  destructive-operation policy, acceptance criteria and stop conditions.
+- Missing EPIC traceability is recorded as a gap, not a workflow-creation
+  blocker.
+- Reset/destroy retention policy must be settled before implementation runs
+  destructive code.
 
 ### Senior System Architect
 
-- The integration test must exercise platform and deployment behavior without
-  moving concrete adapter construction out of `infrastructure/composition.py`.
-- Live-test tooling must remain outside domain code.
-- Stack deployment verification belongs to the Deployment responsibility.
-- VM, network, Docker and Swarm verification belongs to the Platform
-  responsibility.
+- Platform, Artifacts and Deployment are responsibility boundaries in the
+  Python automation, not independent runtime services.
+- `composition.py` remains the wiring root.
+- `__main__.py` remains a thin CLI entrypoint.
+- Nexus stack deployment belongs to Deployment. Nexus repository and artifact
+  behavior belongs to Artifacts.
+- Typed command YAML and state/inventory contracts must precede workflow
+  execution changes.
 
 ### Senior Python Automation Developer
 
-- Preflight, orchestration and probes should be implemented as small
-  application use cases behind ports where behavior becomes reusable.
-- The live runner can live under `tools/` as an operator entrypoint while using
-  application services through composition.
-- Constructors must not execute external commands.
-- Command results must preserve exit code, stdout, stderr, node identity and
-  phase identity.
+- Command YAML should become a typed command catalog with command identity,
+  intent, execution mode, safety class, effects and verification.
+- A state/inventory model should separate desired configuration from observed
+  facts for VMs, network, Docker, Swarm, stacks, services and artifacts.
+- Normal init must not reference the current clean command YAML.
+- Apply workflows must not return success until their verify step passes.
 
 ### Senior React Frontend Developer
 
-- No frontend module exists and this workflow does not introduce one.
-- UI verification is endpoint reachability and HTTP/API readiness only.
-- If later evidence dashboards are requested, that requires a separate
-  frontend workflow.
+- No React or browser frontend module is present.
+- This workflow has no frontend build or UI implementation impact.
+- User experience impact is CLI/operator UX: discoverable workflows, explicit
+  destructive intent, clear refusal messages and actionable verification
+  failures.
+- Future dashboards or evidence viewers require a separate frontend workflow.
 
 ### Senior Tester
 
-- Default tests must remain mock-based and deterministic.
-- Live integration checks must be skipped unless an explicit environment
-  variable and command-line confirmation are both present.
-- The live test must fail on partial installation, hidden command failure,
-  missing health evidence or unreachable mandatory services.
-- The workflow needs a dry-run mode before live execution.
+- Default tests must remain static or mock-based.
+- Required gates must come from `QUALITY.md`.
+- Tests must prove destructive cleanup is unreachable from `init` and
+  `reconcile`.
+- Tests must prove malformed command YAML fails closed.
+- Tests must prove apply/verify result states are distinct.
 
 ### Dependency And Deadlock Validator
 
-- The workflow has one critical chain: preflight -> orchestration contract ->
-  platform readiness -> deployment readiness -> live runner -> docs.
-- Documentation updates can happen late, but must consume actual command names
-  and evidence paths produced by the implementation slices.
-- Live execution is gated after implementation and quality gates, so it does
-  not deadlock default development verification.
+- Typed command YAML and state/inventory are foundational contracts and should
+  precede workflow-level mutation changes.
+- Service wiring separation and Nexus extraction can proceed after the
+  architecture baseline stabilizes.
+- CLI work depends on the workflow taxonomy and service builders.
+- Verify-after-apply depends on typed command specs, inventory state and
+  workflow dispatch.
+- Documentation and legacy cleanup are last to avoid publishing unsupported
+  behavior.
 
-## Complete Functionality Definition
+## Workflow Contracts
 
-The integration test proves complete functionality only when all mandatory
-checks pass:
+### Operation Taxonomy
 
-- Host environment: Linux or WSL detected, Python version supported,
-  dependencies installed, Multipass available, Docker CLI available where
-  required, and required ports not occupied.
-- Python entrypoint: canonical commands are discoverable from repository root.
-- VM lifecycle: manager and worker VMs exist or are created according to the
-  selected mode, and VM state is verified.
-- Network: manager IP, worker IPs, gateway, netplan transfer/application and
-  WSL/Linux forwarding checks are verified.
-- Docker: Docker daemon is installed and healthy on every node.
-- Swarm: manager is active, worker token retrieval succeeds, workers are joined
-  and visible through `docker node ls`.
-- Deployment: Portainer stack deploys and at least Nexus, Jenkins, RabbitMQ,
-  SonarQube and Swagger/NGINX stacks are deployed or explicitly classified as
-  resource-gated with Three Amigos approval.
-- Reachability: mandatory service endpoints respond from the host or produce
-  actionable failure evidence.
-- Rerun safety: a second verification run detects existing state and does not
-  perform an implicit destructive reset.
-- Evidence: logs, command results, endpoint probe results and readiness summary
-  are stored under a deterministic ignored artifact directory.
+| Workflow | Mutation | Destructive commands allowed | Purpose | Required result |
+| --- | --- | --- | --- | --- |
+| `init` | yes | no | create missing managed resources and fail on ambiguous conflicts | applied then verified |
+| `reconcile` | yes | no | converge existing managed resources without deletion | reconciled then verified |
+| `reset` | yes | yes, gated | explicitly reinitialize selected managed resources | reset then verified |
+| `destroy` | yes | yes, gated | explicitly tear down selected managed resources | destroyed then verified absent |
+| `verify` | no | no | inspect desired versus observed state | observed state report |
 
-Run result states:
+### Destructive Operation Policy
 
-- `PASS`: all mandatory checks pass, no resource-gated mandatory service is
-  omitted, no live safety refusal occurred and evidence is complete.
-- `PASS_WITH_RESOURCE_GATES`: all non-gated mandatory checks pass, one or more
-  resource-gated services are omitted with recorded Three Amigos approval and
-  evidence is complete. This is not a full-functionality pass.
-- `REFUSED`: the runner stopped before any live command because live consent was
-  missing or invalid.
-- `BLOCKED`: preflight or requirement scope prevents a valid run.
-- `FAIL`: a mandatory check ran and failed.
+- Commands containing VM deletion, purge, stack deletion, volume removal,
+  Docker prune, netplan deletion, socat teardown or credential reset must be
+  classified as destructive in the typed command catalog.
+- Destructive commands must declare `allowed_workflows` and may only be
+  selected by `reset` or `destroy`.
+- `init` and `reconcile` must fail at validation time if their command plan
+  contains destructive commands.
+- `reset` and `destroy` require explicit CLI intent and a confirmation contract
+  defined in Slice 01 before implementation.
+- Cleanup of generated evidence or local observed-state files is not implied by
+  destroy unless a separate cleanup option is explicitly defined and tested.
 
-## Integration Test Contract
+### Command YAML Contract
 
-Check categories:
+Future command YAML entries must become typed command specs with at least:
 
-- `MANDATORY`: required for `PASS`; failure or missing evidence blocks the run.
-- `RESOURCE_GATED`: normally mandatory, but may be omitted only when host
-  resources are below the full-run threshold and Three Amigos approval records
-  the reduced scope. The best possible result is `PASS_WITH_RESOURCE_GATES`.
-- `OPTIONAL`: diagnostic only; omission must be recorded as `NOT_APPLICABLE`
-  and does not block `PASS`.
+- `id`
+- `description`
+- `intent`
+- `execution_mode`
+- `safety_class`
+- `scope`
+- `allowed_workflows`
+- `parameters`
+- `effects`
+- `verify`
+- `runner`
+- `command_type`
+- `vm_type`
+- `command`
 
-Full-run resource threshold:
+Validation must reject:
 
-- At least 4 vCPU available to the Linux/WSL environment.
-- At least 16 GiB RAM available to the Linux/WSL environment.
-- At least 60 GiB free disk in the target Multipass/Docker storage path.
-- If any threshold is not met, deploying Jenkins, SonarQube or the full
-  supporting-service set requires Three Amigos approval before it can be
-  resource-gated.
+- missing required fields;
+- duplicate indexes or IDs;
+- unknown runner, command type, VM type, intent or safety class;
+- destructive shell strings without destructive classification;
+- command specs without a required verification declaration when they mutate
+  state;
+- workflow plans whose command safety class is not allowed for that workflow.
 
-Contract table:
+### State And Inventory Contract
 
-| Check ID | Phase | Category | Owner | Evidence Required | Failure Classification | Remediation Policy | Pass Condition |
-|---|---|---|---|---|---|---|---|
-| `REQ-BASELINE` | requirement | `MANDATORY` | Senior Requirement Engineer | requirement baseline entry in execution report | product-scope ambiguity | stop for Three Amigos if baseline is disputed | active workflow baseline is accepted or EPIC is added |
-| `LIVE-CONSENT` | safety | `MANDATORY` | Senior Security Sandbox Engineer | consent or refusal JSON | missing live consent | refuse before live command execution | live mode has valid consent, or dry-run mode avoids live commands |
-| `PREFLIGHT` | preflight | `MANDATORY` | Senior DevOps Engineer | `preflight.json` | host prerequisite missing | self-remediate only for deterministic local checks; otherwise ask operator | all mandatory prerequisites pass |
-| `HOST` | preflight | `MANDATORY` | Senior DevOps Engineer | OS, WSL/Linux, Python, Multipass, Docker CLI and port checks | host prerequisite missing | stop with actionable host remediation | host satisfies runtime prerequisites |
-| `PYTHON-ENTRYPOINT` | preflight | `MANDATORY` | Senior Python Automation Developer | command output for service discovery | implementation defect | self-remediate in owning slice when 90 percent clear | canonical entrypoint is discoverable from repo root |
-| `VM-LIFECYCLE` | platform | `MANDATORY` | Senior Python Automation Developer | manager and worker VM state results | runtime/platform failure | retry bounded readiness checks, then classify | expected VMs exist or are created and verified |
-| `NETWORK` | platform | `MANDATORY` | Senior Python Automation Developer | IP, gateway, netplan and forwarding probe results | runtime/platform failure | self-remediate deterministic path/config defects only | network state required for service reachability is verified |
-| `DOCKER` | platform | `MANDATORY` | Senior Python Automation Developer | per-node Docker daemon health results | runtime/platform failure | retry bounded daemon readiness, then fail | Docker daemon is healthy on every node |
-| `SWARM` | platform | `MANDATORY` | Senior Python Automation Developer | manager state, join token and `docker node ls` results | runtime/platform failure | self-remediate idempotency/parsing defects when 90 percent clear | manager active and workers joined |
-| `STACK-PORTAINER` | deployment | `MANDATORY` | Senior Python Automation Developer | stack status and endpoint probe | deployment failure | stop if secrets or stack contract are missing | Portainer stack is deployed and reachable |
-| `STACK-SUPPORTING` | deployment | `RESOURCE_GATED` | Senior Requirement Engineer | stack status for Nexus, Jenkins, RabbitMQ, SonarQube and Swagger/NGINX, plus any gate approval | resource limitation or deployment failure | Three Amigos approval required to omit any service | all services deploy for `PASS`; approved omissions produce `PASS_WITH_RESOURCE_GATES` |
-| `REACHABILITY` | verification | `MANDATORY` | Senior Tester | host endpoint probe results | service reachability failure | retry bounded readiness checks, then fail | mandatory endpoints respond from host |
-| `RERUN-SAFETY` | verification | `MANDATORY` | Senior Tester | second-run state-detection summary | destructive behavior risk | stop on implicit destructive behavior | rerun detects existing state without implicit reset |
-| `EVIDENCE` | evidence | `MANDATORY` | Senior Tester | complete redacted evidence bundle | missing evidence | block until evidence is complete | manifest, summary, phase results, probes, checksums and redaction report exist |
-| `EXTENDED-DIAGNOSTICS` | diagnostics | `OPTIONAL` | Senior DevOps Engineer | optional log tails, timing report or extra probes | diagnostic unavailable | record `NOT_APPLICABLE` | optional evidence is either present or explicitly skipped |
+- Desired inventory describes intended managed resources and belongs to product
+  configuration, currently rooted under `infra/config`.
+- Observed inventory describes discovered runtime facts and must be kept in an
+  ignored local state root, not committed product config.
+- Inventory must distinguish desired VMs, observed VM facts, network facts,
+  Docker daemon facts, Swarm membership, stack deployment facts, service
+  endpoint facts and artifact registry facts.
+- Verification produces typed status: `not_checked`, `verified`,
+  `failed_to_apply`, `failed_to_verify`, `blocked`, or `refused`.
+- Domain models must not import YAML, filesystem, command runners, HTTP clients
+  or infrastructure adapters.
 
-Resource-gated approval record:
+### Verify-After-Apply Contract
 
-- Must be written to the execution report before live deployment begins.
-- Must name the omitted service, measured host resource value, approving roles,
-  reason the service is gated and the resulting maximum status
-  `PASS_WITH_RESOURCE_GATES`.
-- Must not be used when the user requires a strict full-functionality `PASS`.
-
-## Live-Run Consent Contract
-
-Live commands are any commands that can create or delete VMs, change networking,
-install Docker, initialize or mutate Docker Swarm, deploy compose stacks, start
-port forwarding or bootstrap services.
-
-The live runner must require all of the following before any live command is
-handed to a command runner:
-
-- CLI flag: `--live`.
-- Environment variable:
-  `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`.
-- Interactive typed phrase:
-  `RUN TINY SWARM WORLD LIVE INSTALLATION`.
-
-Non-interactive live execution is refused by this workflow. A future workflow
-must explicitly define a separate non-interactive consent contract before CI or
-automation can run live infrastructure commands.
-
-Consent evidence must record:
-
-- UTC timestamp;
-- active git branch and commit;
-- host identifier with user-controlled names redacted when needed;
-- selected cleanup mode;
-- command categories approved for this run;
-- operator identity from the local environment when available, redacted if it
-  contains sensitive data.
-
-Refusal semantics:
-
-- Missing or invalid consent exits non-zero before live command execution.
-- The refusal phase is `REFUSED_LIVE_CONSENT_MISSING`.
-- The refusal report records only blocked command categories, not raw host
-  state or secrets.
-- Refusal must happen before any `multipass`, `docker swarm`, `netplan`,
-  `socat`, compose/stack deployment or service bootstrap command is executed.
-
-## Evidence Bundle Contract
-
-Evidence path:
-
-```text
-.tiny-swarm-world/evidence/live-installation/<run-id>/
-```
-
-`<run-id>` format:
-
-```text
-YYYYMMDDTHHMMSSZ-<short-git-sha>-<mode>
-```
-
-The implementation slice that creates the live runner must also add the
-evidence root to `.gitignore` before any evidence is written.
-
-Required files:
-
-- `manifest.json`: run id, workflow version, branch, commit, host class,
-  started/finished timestamps and command categories.
-- `summary.json`: final status, failed checks, resource-gated checks and next
-  action.
-- `preflight.json`: host, resource, secret-source and port validation.
-- `consent.json` or `refusal.json`: live consent result without secrets.
-- `phases/<phase-id>.json`: per-phase status, owner, timings and retries.
-- `commands/<phase-id>/<ordinal>.json`: command category, node, timeout,
-  exit code and redacted stdout/stderr.
-- `probes/<probe-id>.json`: endpoint, expected result, actual result and
-  timing.
-- `redaction-report.json`: redaction patterns applied and fields withheld.
-- `checksums.sha256`: checksums for evidence files after redaction.
-
-Redaction rules:
-
-- Never write raw secrets, passwords, tokens, join tokens, cookies, HTTP
-  authorization headers, Portainer credentials, Nexus credentials, Jenkins
-  credentials, RabbitMQ credentials, SonarQube credentials or service bootstrap
-  credentials to logs, prompts, evidence or documentation.
-- Secrets must come from environment variables or ignored local files only.
-- Secrets must not be passed as command-line arguments when a safer environment
-  or file-based mechanism is available.
-- Missing secrets fail preflight before stack deployment.
-- Redaction must apply to stdout, stderr, command metadata, URLs, headers,
-  probe results, local env snapshots and failure reports before evidence is
-  written.
-
-## Scope
-
-In scope:
-
-- Workflow and context documentation.
-- Future opt-in live integration test harness.
-- Preflight checks for host, Python, Multipass, Docker, ports, secrets and
-  resource availability.
-- Dry-run command plan verification.
-- Full live install sequence verification.
-- Health probes for platform and service endpoints.
-- Evidence capture and failure reporting.
-- Documentation updates and readiness checklist synchronization.
-
-Out of scope:
-
-- Executing live infrastructure during workflow creation.
-- Running live infrastructure in default CI.
-- Expanding Windows-native support.
-- Refactoring unrelated legacy modules.
-- Changing Java example application behavior.
-
-## Architecture Constraints
-
-- Preserve hexagonal architecture.
-- Domain code must not import application or infrastructure.
-- Application services depend on ports and domain objects, not concrete
-  adapters.
-- Infrastructure adapters implement ports and own technology-specific behavior.
-- Standard runtime wiring remains in `src/tiny_swarm_world/infrastructure/composition.py`.
-- `src/tiny_swarm_world/__main__.py` stays thin.
-- Live-test tooling must make live side effects explicit.
-- Secrets must come from environment or ignored local files, never committed
-  defaults.
-- Linux/WSL and POSIX paths are the only supported runtime model.
-
-## Python Automation Assessment
-
-Expected implementation direction:
-
-- Add a preflight model that validates host/runtime readiness before any live
-  command runs.
-- Add or expose a canonical full-install command sequence without hiding
-  external execution in constructors.
-- Add structured phase results for VM, network, Docker, Swarm, deployment and
-  service probes.
-- Keep command construction deterministic and testable with mocks.
-- Preserve `PYTHONPATH=src` or package execution behavior documented by the
-  repository until packaging is explicitly changed.
-
-## Frontend Assessment
-
-No frontend changes are planned. The integration test checks operational
-endpoints, not browser UX. Any future dashboard, replay UI or evidence viewer
-requires a separate frontend workflow and Three Amigos review.
-
-## Test Strategy
-
-Default verification:
-
-```bash
-python3 tools/quality_gate.py lint
-python3 tools/quality_gate.py arch-lint
-python3 tools/quality_gate.py arch-tests
-python3 tools/quality_gate.py typecheck
-python3 tools/quality_gate.py test
-python3 tools/quality_gate.py quality
-```
-
-Targeted development checks should use the nearest relevant existing gate from
-`QUALITY.md`. New live integration tooling must also include deterministic unit
-tests with mocked command execution and mocked endpoint probes.
-
-Live verification:
-
-- introduced by a later implementation slice;
-- never included in the default quality gate;
-- requires explicit operator confirmation;
-- refuses to run without a successful preflight;
-- stores evidence in an ignored artifact directory;
-- reports every failed phase with owner, command, exit status and remediation
-  classification.
-
-## Resilience Requirements
-
-- Every external command must have a timeout.
-- Retriable readiness checks must have bounded retries and diagnostics.
-- Non-retriable critical failures must abort the live run.
-- Cleanup must be explicit and never implicit after failure.
-- Reruns must detect existing VMs, Docker state, Swarm state and stacks.
-- A failure report must separate host blockers, product defects, configuration
-  gaps, secret gaps and resource limits.
-
-## Blocker Remediation And Three Amigos Q&A
-
-When a blocker appears during workflow execution, use this decision path:
-
-1. Capture evidence: phase, command or probe, expected result, actual result,
-   logs, exit code, stdout, stderr and affected files.
-2. Classify the blocker:
-   - host prerequisite missing;
-   - configuration or secret missing;
-   - deterministic implementation defect;
-   - flaky runtime readiness;
-   - architecture ambiguity;
-   - product-scope ambiguity;
-   - resource limitation.
-3. Self-remediate only when all are true:
-   - root cause confidence is at least 90 percent;
-   - the fix stays inside the active slice write scope;
-   - the fix does not require new product policy;
-   - the fix preserves architecture and safety rules;
-   - verification can prove the fix in the current environment.
-4. Retry at most three targeted remediation loops for the same blocker.
-5. Stop and start Three Amigos Q&A when confidence is below 90 percent, the
-   fix requires scope clarification, the environment decision belongs to the
-   operator, or the third retry fails.
-
-Three Amigos Q&A must ask concise blocking questions with these roles:
-
-- Requirement: what result must count as successful functionality?
-- Architecture: which boundary or runtime behavior is authoritative?
-- Testing: what evidence proves the run is acceptable?
-- Python automation: which command, adapter or workflow owns the fix?
-- Operations: which host, secret, resource or cleanup decision is allowed?
+- Every mutating workflow step must declare a verify step.
+- A workflow may proceed to the next mutating step only after the previous
+  verify step passes.
+- Verification failure is not the same as apply failure and must be reported
+  separately.
+- Automatic retry or repair after failed verification is allowed only when the
+  owning workflow explicitly defines the bounded retry behavior.
+- No workflow may silently continue after missing verification evidence.
 
 ## Ordered Slices
 
-### Slice 01 - Integration Test Contract
+### Slice 01 - Requirement And Safety Contract
 
 Purpose:
 
-- Convert this workflow into a concrete integration-test contract with
-  mandatory checks, optional checks, live-run consent and evidence semantics.
+- Define the operation taxonomy, destructive-operation policy, reset/destroy
+  confirmation contract, inventory ownership assumptions and acceptance
+  criteria before production code changes.
 
 ```yaml
 slice_id: "01"
 profile: "FULL_PATH"
 owner: "Senior Requirement Engineer"
 secondary_reviewers:
-  - "Senior Tester"
   - "Senior System Architect"
+  - "Senior Tester"
+  - "Senior Security Sandbox Engineer"
 affected_files:
-  - "documentation/workflow/workflow.md"
-  - "documentation/workflow/context-pack.md"
-  - "documentation/workflow/context-pack.json"
-  - "documentation/workflow/execution-report.md"
-  - "OPERATIONAL_READINESS_CHECKLIST.md"
+  - "documentation/workflow/**"
+  - "documentation/architecture/**"
 affected_modules: []
 affected_contracts:
-  - "full-installation-integration-test-contract"
+  - "operation-taxonomy"
+  - "destructive-operation-policy"
+  - "reset-destroy-confirmation"
 dependencies: []
 parallel_group: "A"
 file_locks:
   - "documentation/workflow/**"
-  - "OPERATIONAL_READINESS_CHECKLIST.md"
+  - "documentation/architecture/**"
 contract_locks:
-  - "integration-test-success-criteria"
+  - "operation-taxonomy"
+  - "destructive-operation-policy"
 architecture_locks:
   - "live-infrastructure-safety"
 quality_gates:
@@ -570,461 +404,782 @@ quality_gates:
   required:
     - "git diff --check"
 documentation:
-  arc42: "check only"
-  adr: "check ADR platform/artifacts/deployment split"
+  arc42: "check constraints, runtime, quality and risks"
+  adr: "check destructive operation ADR need"
 stop_conditions:
-  - "mandatory functionality cannot be defined without product clarification"
-  - "live-run consent semantics are unclear"
+  - "reset or destroy confirmation semantics are unclear"
+  - "init or reconcile semantics would still allow implicit deletion"
 ```
 
 Allowed write scope:
 
-- Workflow and readiness documentation only.
+- Workflow and architecture documentation only.
 
 Done criteria:
 
-- Mandatory, optional and resource-gated checks are explicit.
-- Live side effects require opt-in consent.
-- Evidence semantics are documented.
+- `init`, `reconcile`, `reset`, `destroy`, and `verify` are defined.
+- Destructive operation policy is explicit.
+- EPIC trace gap is recorded.
+- Implementation slices have testable acceptance criteria.
 
-### Slice 02 - Preflight And Configuration Validation
+Verification commands:
+
+```bash
+git diff --check
+python3 -m json.tool documentation/workflow/context-pack.json
+```
+
+### Slice 02 - ADR And arc42 Baseline
 
 Purpose:
 
-- Add deterministic preflight checks that fail before live side effects when
-  host, dependencies, secrets, ports or resource limits are not ready.
+- Accept or supersede the proposed Platform/Artifacts/Deployment ADR and align
+  arc42 baseline sections before boundary-moving slices.
 
 ```yaml
 slice_id: "02"
 profile: "FULL_PATH"
-owner: "Senior Python Automation Developer"
+owner: "Senior System Architect"
 secondary_reviewers:
-  - "Senior Tester"
-  - "Senior DevOps Engineer"
-  - "Senior Security Sandbox Engineer"
+  - "Senior Documentation Engineer"
+  - "Senior Requirement Engineer"
 affected_files:
-  - "src/tiny_swarm_world/application/**"
-  - "src/tiny_swarm_world/domain/**"
-  - "src/tiny_swarm_world/infrastructure/**"
-  - "tests/**"
-  - "tools/**"
-affected_modules:
-  - "tiny_swarm_world.application"
-  - "tiny_swarm_world.domain"
-  - "tiny_swarm_world.infrastructure"
+  - "documentation/architecture/adr-separate-platform-artifacts-deployment.adoc"
+  - "documentation/arc42/**"
+  - "documentation/architecture/**"
+affected_modules: []
 affected_contracts:
-  - "preflight-result"
-  - "live-run-consent"
+  - "platform-artifacts-deployment-boundaries"
 dependencies:
   - "01"
 parallel_group: "B"
 file_locks:
-  - "src/tiny_swarm_world/**"
-  - "tests/**"
-  - "tools/**"
+  - "documentation/architecture/**"
+  - "documentation/arc42/**"
 contract_locks:
-  - "preflight-result"
+  - "responsibility-boundaries"
 architecture_locks:
-  - "hexagonal-import-boundaries"
-  - "external-command-safety"
+  - "hexagonal-architecture"
+  - "composition-root-wiring"
 quality_gates:
   targeted:
-    - "python3 tools/quality_gate.py test"
-    - "python3 tools/quality_gate.py typecheck"
+    - "git diff --check"
+    - "python3 tools/quality_gate.py arch-tests"
   required:
-    - "python3 tools/quality_gate.py quality"
+    - "git diff --check"
 documentation:
-  arc42: "update if a new preflight concept is introduced"
-  adr: "not required unless responsibility boundaries change"
+  arc42: "update building blocks, runtime, deployment, decisions, quality, risks"
+  adr: "accept or supersede responsibility ADR"
 stop_conditions:
-  - "preflight would need to execute live infrastructure commands"
-  - "secret handling cannot be made explicit"
+  - "Platform/Artifacts/Deployment are described as microservices without runtime evidence"
+  - "ADR status remains ambiguous before source boundary moves"
 ```
 
 Allowed write scope:
 
-- Python preflight code, tests and tool entrypoints needed for preflight only.
+- Architecture documentation, ADRs and arc42 files.
 
 Done criteria:
 
-- Preflight can run without creating VMs or changing networking.
-- Missing prerequisites produce actionable failures.
-- Unit tests cover each preflight outcome.
+- Responsibility boundary decision is accepted or superseded.
+- arc42 documents current and target responsibilities without claiming
+  implementation that does not exist.
 
-### Slice 03 - Canonical Full-Installation Plan
+Verification commands:
+
+```bash
+git diff --check
+python3 tools/quality_gate.py arch-tests
+```
+
+### Slice 03 - Typed Command YAML Contract
 
 Purpose:
 
-- Define a canonical full-installation plan that sequences existing platform
-  services and identifies missing deployment steps before live execution.
+- Introduce typed command catalog models and validation so workflow plans can
+  reject unsafe or malformed command specs before execution.
 
 ```yaml
 slice_id: "03"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior Tester"
+  - "Senior System Architect"
+affected_files:
+  - "src/tiny_swarm_world/domain/command/**"
+  - "src/tiny_swarm_world/application/ports/commands/**"
+  - "src/tiny_swarm_world/application/services/commands/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
+  - "infra/config/**/command_*.yaml"
+  - "tests/domain/command/**"
+  - "tests/infrastructure/adapters/command_runner/**"
+affected_modules:
+  - "tiny_swarm_world.domain.command"
+  - "tiny_swarm_world.application.ports.commands"
+  - "tiny_swarm_world.infrastructure.adapters.command_runner"
+  - "tiny_swarm_world.infrastructure.adapters.repositories"
+affected_contracts:
+  - "typed-command-yaml-schema"
+  - "command-safety-classification"
+  - "command-verification-spec"
+dependencies:
+  - "01"
+  - "02"
+parallel_group: "C"
+file_locks:
+  - "src/tiny_swarm_world/domain/command/**"
+  - "src/tiny_swarm_world/application/ports/commands/**"
+  - "src/tiny_swarm_world/application/services/commands/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
+  - "infra/config/**/command_*.yaml"
+  - "tests/domain/command/**"
+  - "tests/infrastructure/adapters/command_runner/**"
+contract_locks:
+  - "typed-command-yaml-schema"
+  - "destructive-command-classification"
+architecture_locks:
+  - "domain-no-infrastructure-imports"
+  - "application-no-infrastructure-imports"
+quality_gates:
+  targeted:
+    - "python3 tools/quality_gate.py test"
+    - "python3 tools/quality_gate.py typecheck"
+    - "python3 tools/quality_gate.py arch-tests"
+  required:
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "update concepts and quality if schema becomes product contract"
+  adr: "add ADR if typed command YAML is a lasting architecture decision"
+stop_conditions:
+  - "destructive command strings cannot be classified deterministically"
+  - "YAML validation would require ad hoc string parsing instead of structured loading"
+  - "application services would need concrete infrastructure imports"
+```
+
+Allowed write scope:
+
+- Command domain, command ports/services, command YAML repository/runner
+  adapters, command YAML files and matching tests.
+
+Done criteria:
+
+- YAML validation fails closed.
+- Destructive commands declare safety class and allowed workflows.
+- Existing command YAML files are either typed or explicitly bridged by a
+  compatibility adapter with tests.
+- Command workflow no longer relies on raw filename strings as the only
+  application contract.
+
+Verification commands:
+
+```bash
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py typecheck
+python3 tools/quality_gate.py quality
+```
+
+### Slice 04 - State And Inventory Model
+
+Purpose:
+
+- Add the domain and port contracts for desired inventory, observed state and
+  verification evidence without live runtime mutation.
+
+```yaml
+slice_id: "04"
 profile: "FULL_PATH"
 owner: "Senior System Architect"
 secondary_reviewers:
   - "Senior Python Automation Developer"
   - "Senior Tester"
 affected_files:
-  - "src/tiny_swarm_world/application/**"
-  - "src/tiny_swarm_world/infrastructure/composition.py"
-  - "src/tiny_swarm_world/__main__.py"
-  - "tests/**"
-  - "documentation/**"
+  - "src/tiny_swarm_world/domain/**"
+  - "src/tiny_swarm_world/application/ports/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
+  - "infra/config/vm/**"
+  - "tests/domain/**"
+  - "tests/infrastructure/adapters/repositories/**"
 affected_modules:
-  - "tiny_swarm_world.application.services.platform"
-  - "tiny_swarm_world.infrastructure.composition"
+  - "tiny_swarm_world.domain"
+  - "tiny_swarm_world.application.ports"
+  - "tiny_swarm_world.infrastructure.adapters.repositories"
 affected_contracts:
-  - "full-installation-plan"
+  - "desired-inventory"
+  - "observed-state"
+  - "verification-result"
 dependencies:
   - "01"
   - "02"
 parallel_group: "C"
 file_locks:
-  - "src/tiny_swarm_world/application/**"
-  - "src/tiny_swarm_world/infrastructure/composition.py"
-  - "src/tiny_swarm_world/__main__.py"
-  - "tests/**"
-contract_locks:
-  - "full-installation-plan"
-architecture_locks:
-  - "thin-entrypoint"
-  - "composition-root-wiring"
-quality_gates:
-  targeted:
-    - "python3 tools/quality_gate.py arch-tests"
-    - "python3 tools/quality_gate.py test"
-  required:
-    - "python3 tools/quality_gate.py quality"
-documentation:
-  arc42: "runtime and deployment view check"
-  adr: "check ADR platform/artifacts/deployment split"
-stop_conditions:
-  - "canonical sequence cannot be defined from current services"
-  - "entrypoint would need low-level infrastructure imports"
-```
-
-Allowed write scope:
-
-- Full-installation planning use case, composition wiring, thin CLI exposure
-  and matching tests.
-
-Done criteria:
-
-- A dry-run plan lists every phase in order.
-- The plan has no hidden live execution.
-- Tests prove the order and failure propagation.
-
-### Slice 04 - Platform Runtime Readiness Probes
-
-Purpose:
-
-- Implement platform probes for VM state, network readiness, Docker daemon
-  health, Swarm manager state, worker join status and rerun safety.
-
-```yaml
-slice_id: "04"
-profile: "FULL_PATH"
-owner: "Senior Python Automation Developer"
-secondary_reviewers:
-  - "Senior DevOps Engineer"
-  - "Senior Tester"
-  - "Senior System Architect"
-affected_files:
-  - "src/tiny_swarm_world/application/**"
   - "src/tiny_swarm_world/domain/**"
-  - "src/tiny_swarm_world/infrastructure/**"
-  - "infra/config/**"
-  - "tests/**"
-affected_modules:
-  - "tiny_swarm_world.application.services.platform"
-  - "tiny_swarm_world.infrastructure.adapters"
-affected_contracts:
-  - "platform-readiness-result"
-dependencies:
-  - "03"
-parallel_group: "D"
-file_locks:
-  - "src/tiny_swarm_world/**"
-  - "infra/config/**"
-  - "tests/**"
+  - "src/tiny_swarm_world/application/ports/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
+  - "infra/config/vm/**"
+  - "tests/domain/**"
+  - "tests/infrastructure/adapters/repositories/**"
 contract_locks:
-  - "platform-readiness-result"
+  - "state-inventory-model"
 architecture_locks:
-  - "platform-responsibility-boundary"
-  - "command-result-evidence"
+  - "domain-isolation"
+  - "observed-state-not-committed"
 quality_gates:
   targeted:
     - "python3 tools/quality_gate.py test"
     - "python3 tools/quality_gate.py typecheck"
+    - "python3 tools/quality_gate.py arch-tests"
   required:
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "runtime view update if probes become product behavior"
-  adr: "not required unless ownership changes"
+  arc42: "update concepts and runtime view"
+  adr: "add ADR if state persistence authority is established"
 stop_conditions:
-  - "probe requires destructive reset as default behavior"
-  - "Docker or Swarm output parsing is ambiguous"
+  - "observed host state would be committed to product config"
+  - "domain model would import YAML, filesystem, command runner or HTTP details"
+  - "inventory persistence authority remains undefined"
 ```
 
 Allowed write scope:
 
-- Platform readiness code, command result parsing, tests and relevant config
-  validation.
+- State/inventory domain objects, ports, repository adapters, tests and
+  documentation needed to define ownership.
 
 Done criteria:
 
-- Probes are mock-testable.
-- Live probe failures contain node, command and expected state.
-- Rerun safety is explicitly checked.
+- Desired inventory and observed state are separate concepts.
+- Verification status is typed.
+- Observed state storage is ignored or otherwise prevented from being committed.
+- Tests cover missing, stale and conflicting observed state.
 
-### Slice 05 - Deployment And Service Readiness Probes
+Verification commands:
+
+```bash
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py typecheck
+python3 tools/quality_gate.py quality
+```
+
+### Slice 05 - Workflow Taxonomy And Non-Destructive Init
 
 Purpose:
 
-- Implement deployment probes that verify Portainer, stack lifecycle and service
-  endpoint health for the supported service set.
+- Replace destructive normal init behavior with explicit platform workflows for
+  init, reconcile, reset, destroy and verify.
 
 ```yaml
 slice_id: "05"
 profile: "FULL_PATH"
 owner: "Senior Python Automation Developer"
 secondary_reviewers:
-  - "Senior DevOps Engineer"
-  - "Senior Security Sandbox Engineer"
   - "Senior Tester"
+  - "Senior Security Sandbox Engineer"
+  - "Senior System Architect"
 affected_files:
-  - "src/tiny_swarm_world/application/**"
-  - "src/tiny_swarm_world/domain/**"
-  - "src/tiny_swarm_world/infrastructure/**"
-  - "infra/config/compose/**"
-  - "infra/compose/**"
-  - "tests/**"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/application/services/multipass/**"
+  - "src/tiny_swarm_world/application/services/network/**"
+  - "src/tiny_swarm_world/application/services/vm/**"
+  - "src/tiny_swarm_world/application/ports/commands/**"
+  - "infra/config/multipass/**"
+  - "infra/config/docker/**"
+  - "infra/config/network/**"
+  - "tests/application/services/platform/**"
+  - "tests/application/services/multipass/**"
 affected_modules:
-  - "tiny_swarm_world.application.services.deployment"
-  - "tiny_swarm_world.infrastructure.adapters"
+  - "tiny_swarm_world.application.services.platform"
+  - "tiny_swarm_world.application.services.multipass"
+  - "tiny_swarm_world.application.services.network"
+  - "tiny_swarm_world.application.services.vm"
 affected_contracts:
-  - "deployment-readiness-result"
-  - "service-health-probe"
+  - "platform-init"
+  - "platform-reconcile"
+  - "platform-reset"
+  - "platform-destroy"
+  - "platform-verify"
 dependencies:
   - "03"
+  - "04"
 parallel_group: "D"
 file_locks:
-  - "src/tiny_swarm_world/**"
-  - "infra/config/compose/**"
-  - "infra/compose/**"
-  - "tests/**"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/application/services/multipass/**"
+  - "src/tiny_swarm_world/application/services/network/**"
+  - "src/tiny_swarm_world/application/services/vm/**"
+  - "infra/config/multipass/**"
+  - "infra/config/docker/**"
+  - "infra/config/network/**"
+  - "tests/application/services/platform/**"
+  - "tests/application/services/multipass/**"
 contract_locks:
-  - "deployment-readiness-result"
-  - "service-health-probe"
+  - "platform-workflow-taxonomy"
+  - "destructive-operation-policy"
 architecture_locks:
-  - "deployment-responsibility-boundary"
-  - "secret-handling"
+  - "platform-responsibility-boundary"
+  - "external-command-safety"
 quality_gates:
   targeted:
     - "python3 tools/quality_gate.py test"
     - "python3 tools/quality_gate.py typecheck"
+    - "python3 tools/quality_gate.py arch-tests"
   required:
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "deployment view update if deployment behavior changes"
-  adr: "not required unless service ownership changes"
+  arc42: "update runtime view when workflows are implemented"
+  adr: "destructive operation semantics ADR if not already added"
 stop_conditions:
-  - "hardcoded credentials would be required"
-  - "stack manifests are not safe for Swarm validation"
-  - "mandatory service list cannot be satisfied on target resources"
+  - "init still calls command_multipass_clean_repository_yaml.yaml"
+  - "init or reconcile can select multipass delete or purge"
+  - "reset or destroy can run without explicit confirmation contract"
 ```
 
 Allowed write scope:
 
-- Deployment readiness code, service health probes, tests and stack validation
-  support.
+- Platform application workflows, compatibility wrappers, platform command
+  YAML references and tests.
 
 Done criteria:
 
-- Service probes are explicit and timeout-bounded.
-- Missing secrets fail before stack deployment.
-- Portainer and service endpoint failures produce actionable evidence.
+- Normal init does not run clean/delete/purge.
+- `reconcile`, `reset`, `destroy` and `verify` are distinct use cases.
+- Reset/destroy are gated.
+- Tests prove destructive commands are unreachable from init/reconcile.
 
-### Slice 06 - Live Integration Runner And Evidence Bundle
+Verification commands:
+
+```bash
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+```
+
+### Slice 06 - Service Wiring Separation
 
 Purpose:
 
-- Add the opt-in live runner that executes preflight, dry-run plan,
-  full-installation phases, probes and evidence collection.
+- Introduce real `PlatformServices`, `ArtifactServices`, and
+  `DeploymentServices` composition boundaries and remove the platform-only
+  application alias.
 
 ```yaml
 slice_id: "06"
 profile: "FULL_PATH"
-owner: "Senior DevOps Engineer"
+owner: "Senior System Architect"
 secondary_reviewers:
   - "Senior Python Automation Developer"
   - "Senior Tester"
-  - "Senior Security Sandbox Engineer"
 affected_files:
-  - "tools/**"
-  - "src/tiny_swarm_world/**"
-  - "tests/**"
-  - ".gitignore"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/application/services/artifacts/**"
+  - "src/tiny_swarm_world/application/services/deployment/**"
+  - "tests/infrastructure/test_composition.py"
+  - "tests/application/services/platform/**"
+  - "tests/application/services/artifacts/**"
+  - "tests/application/services/deployment/**"
+  - "tests/architecture/**"
 affected_modules:
-  - "tiny_swarm_world.application"
-  - "tiny_swarm_world.infrastructure"
+  - "tiny_swarm_world.infrastructure.composition"
+  - "tiny_swarm_world.application.services.platform"
+  - "tiny_swarm_world.application.services.artifacts"
+  - "tiny_swarm_world.application.services.deployment"
 affected_contracts:
-  - "live-integration-runner"
-  - "evidence-bundle"
+  - "composition-service-builders"
 dependencies:
+  - "02"
   - "04"
-  - "05"
-parallel_group: "E"
+parallel_group: "D"
 file_locks:
-  - "tools/**"
-  - "src/tiny_swarm_world/**"
-  - "tests/**"
-  - ".gitignore"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/application/services/artifacts/**"
+  - "src/tiny_swarm_world/application/services/deployment/**"
+  - "tests/infrastructure/test_composition.py"
+  - "tests/application/services/**"
+  - "tests/architecture/**"
 contract_locks:
-  - "live-integration-runner"
-  - "evidence-bundle"
+  - "composition-service-builders"
 architecture_locks:
-  - "live-infrastructure-safety"
-  - "failure-propagation"
+  - "composition-root-wiring"
+  - "thin-entrypoint"
+  - "responsibility-boundaries"
 quality_gates:
   targeted:
+    - "python3 tools/quality_gate.py arch-tests"
     - "python3 tools/quality_gate.py test"
     - "python3 tools/quality_gate.py typecheck"
   required:
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "runtime view and quality requirements check"
-  adr: "not required unless live-test policy changes"
+  arc42: "update building blocks"
+  adr: "not required unless responsibility ADR changes"
 stop_conditions:
-  - "runner can execute live commands without explicit confirmation"
-  - "evidence artifacts would be committed"
-  - "critical command failures can be hidden"
+  - "application services import concrete infrastructure adapters"
+  - "ApplicationServices remains a platform-only alias"
+  - "service builders create external side effects during construction"
 ```
 
 Allowed write scope:
 
-- Live runner, evidence paths, ignored artifact directories and tests.
+- Composition root, service namespace exports and related tests.
 
 Done criteria:
 
-- The live runner refuses to run without explicit confirmation.
-- Dry-run mode is available.
-- Evidence output is deterministic and ignored by Git.
-- Critical failures produce non-zero exit status.
+- Separate builders and dataclasses exist for Platform, Artifacts and
+  Deployment.
+- Constructors remain side-effect free.
+- `__main__.py` still does not import concrete adapters.
+- Architecture tests protect the split.
 
-### Slice 07 - Documentation And Readiness Synchronization
+Verification commands:
+
+```bash
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+```
+
+### Slice 07 - Nexus Stack Deployment Extraction
 
 Purpose:
 
-- Update operator documentation, troubleshooting and readiness checklist from
-  the implemented integration-test behavior.
+- Move Nexus stack deployment behavior to Deployment ownership while keeping
+  Nexus repository and artifact bootstrap behavior in Artifacts.
 
 ```yaml
 slice_id: "07"
 profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior System Architect"
+  - "Senior Tester"
+affected_files:
+  - "src/tiny_swarm_world/application/services/deployment/**"
+  - "src/tiny_swarm_world/application/services/artifacts/**"
+  - "src/tiny_swarm_world/application/services/nexus/**"
+  - "src/tiny_swarm_world/application/ports/clients/port_portainer_client.py"
+  - "src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py"
+  - "tests/application/services/deployment/**"
+  - "tests/application/services/artifacts/**"
+  - "tests/application/services/nexus/**"
+  - "tests/architecture/**"
+affected_modules:
+  - "tiny_swarm_world.application.services.deployment"
+  - "tiny_swarm_world.application.services.artifacts"
+  - "tiny_swarm_world.application.services.nexus"
+affected_contracts:
+  - "deployment-stack-lifecycle"
+  - "nexus-artifact-bootstrap"
+dependencies:
+  - "06"
+parallel_group: "E"
+file_locks:
+  - "src/tiny_swarm_world/application/services/deployment/**"
+  - "src/tiny_swarm_world/application/services/artifacts/**"
+  - "src/tiny_swarm_world/application/services/nexus/**"
+  - "src/tiny_swarm_world/application/ports/clients/port_portainer_client.py"
+  - "src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py"
+  - "tests/application/services/deployment/**"
+  - "tests/application/services/artifacts/**"
+  - "tests/application/services/nexus/**"
+  - "tests/architecture/**"
+contract_locks:
+  - "nexus-stack-deployment-boundary"
+architecture_locks:
+  - "deployment-responsibility-boundary"
+  - "artifact-responsibility-boundary"
+quality_gates:
+  targeted:
+    - "python3 tools/quality_gate.py test"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py typecheck"
+  required:
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "update deployment view and building blocks"
+  adr: "not required unless responsibility decision changes"
+stop_conditions:
+  - "Nexus artifact services still import Portainer or compose repository ports after extraction"
+  - "deployment service reaches into Nexus repository internals"
+  - "live Portainer or Nexus calls are needed for tests"
+```
+
+Allowed write scope:
+
+- Deployment/artifact/Nexus application services, relevant ports and tests.
+
+Done criteria:
+
+- Stack deployment is generalized or moved under Deployment.
+- Artifact services depend on deployment readiness by explicit input, not by
+  deploying stacks themselves.
+- Tests prove artifact services do not export or import stack deployment.
+
+Verification commands:
+
+```bash
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py quality
+```
+
+### Slice 08 - Workflow-Level CLI
+
+Purpose:
+
+- Replace the public low-level service CLI with workflow-level commands while
+  keeping the entrypoint thin and all wiring in composition.
+
+```yaml
+slice_id: "08"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior Tester"
+  - "Senior UX Designer"
+  - "Senior System Architect"
+affected_files:
+  - "src/tiny_swarm_world/__main__.py"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/application/services/**"
+  - "tests/test_package_entrypoint.py"
+  - "tests/infrastructure/test_composition.py"
+  - "README.md"
+  - "documentation/user_guide/**"
+affected_modules:
+  - "tiny_swarm_world.__main__"
+  - "tiny_swarm_world.infrastructure.composition"
+  - "tiny_swarm_world.application.services"
+affected_contracts:
+  - "workflow-level-cli"
+dependencies:
+  - "05"
+  - "06"
+  - "07"
+parallel_group: "F"
+file_locks:
+  - "src/tiny_swarm_world/__main__.py"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/application/services/**"
+  - "tests/test_package_entrypoint.py"
+  - "tests/infrastructure/test_composition.py"
+  - "README.md"
+  - "documentation/user_guide/**"
+contract_locks:
+  - "workflow-level-cli"
+architecture_locks:
+  - "thin-entrypoint"
+  - "composition-root-wiring"
+quality_gates:
+  targeted:
+    - "python3 tools/quality_gate.py test"
+    - "python3 tools/quality_gate.py typecheck"
+    - "python3 tools/quality_gate.py arch-tests"
+  required:
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "update runtime view"
+  adr: "not required unless public CLI compatibility decision is architectural"
+stop_conditions:
+  - "__main__.py embeds low-level orchestration logic"
+  - "list/help paths construct live services"
+  - "destroy or reset can run without explicit confirmation"
+```
+
+Allowed write scope:
+
+- CLI, composition, workflow dispatch services, CLI tests and CLI docs.
+
+Done criteria:
+
+- CLI exposes workflow-level commands such as platform init/reconcile/reset/
+  destroy/verify and deployment/artifact workflows.
+- Listing workflows does not build services.
+- No command runs by default.
+- Destructive workflow commands require explicit confirmation.
+
+Verification commands:
+
+```bash
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+```
+
+### Slice 09 - Verify After Every Apply
+
+Purpose:
+
+- Enforce verification after every mutating apply step across platform and
+  deployment workflows.
+
+```yaml
+slice_id: "09"
+profile: "FULL_PATH"
+owner: "Senior Tester"
+secondary_reviewers:
+  - "Senior Python Automation Developer"
+  - "Senior System Architect"
+affected_files:
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/application/services/deployment/**"
+  - "src/tiny_swarm_world/application/ports/commands/**"
+  - "src/tiny_swarm_world/domain/**"
+  - "infra/config/**/command_*.yaml"
+  - "tests/application/services/platform/**"
+  - "tests/application/services/deployment/**"
+  - "tests/domain/**"
+  - "tests/infrastructure/adapters/command_runner/**"
+affected_modules:
+  - "tiny_swarm_world.application.services.platform"
+  - "tiny_swarm_world.application.services.deployment"
+  - "tiny_swarm_world.application.ports.commands"
+  - "tiny_swarm_world.domain"
+affected_contracts:
+  - "verify-after-apply"
+  - "verification-evidence"
+dependencies:
+  - "03"
+  - "04"
+  - "05"
+  - "07"
+  - "08"
+parallel_group: "G"
+file_locks:
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/application/services/deployment/**"
+  - "src/tiny_swarm_world/application/ports/commands/**"
+  - "src/tiny_swarm_world/domain/**"
+  - "infra/config/**/command_*.yaml"
+  - "tests/application/services/platform/**"
+  - "tests/application/services/deployment/**"
+  - "tests/domain/**"
+  - "tests/infrastructure/adapters/command_runner/**"
+contract_locks:
+  - "verify-after-apply"
+  - "command-verification-spec"
+architecture_locks:
+  - "failure-propagation"
+  - "evidence-integrity"
+quality_gates:
+  targeted:
+    - "python3 tools/quality_gate.py test"
+    - "python3 tools/quality_gate.py typecheck"
+    - "python3 tools/quality_gate.py arch-tests"
+  required:
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "update runtime and quality requirements"
+  adr: "add ADR if verification semantics become architecture decision"
+stop_conditions:
+  - "mutating command has no verification spec"
+  - "workflow continues after failed verification"
+  - "verification failure is collapsed into generic command failure"
+  - "verification requires live infrastructure during default quality gate"
+```
+
+Allowed write scope:
+
+- Platform/deployment workflow code, verification domain models, command YAML
+  verification specs and tests.
+
+Done criteria:
+
+- Every apply step has an immediate verification step.
+- Verification failures stop workflow execution.
+- Apply failure and verify failure are reported distinctly.
+- Tests prove no mutating workflow can succeed without verification evidence.
+
+Verification commands:
+
+```bash
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py typecheck
+python3 tools/quality_gate.py quality
+```
+
+### Slice 10 - Documentation, Quality Sync, And Legacy Quarantine
+
+Purpose:
+
+- Synchronize documentation, quality evidence and legacy cleanup notes after
+  implementation slices have proven supported replacement workflows.
+
+```yaml
+slice_id: "10"
+profile: "FULL_PATH"
 owner: "Senior Documentation Engineer"
 secondary_reviewers:
   - "Senior Tester"
-  - "Senior DevOps Engineer"
   - "Senior System Architect"
+  - "Senior Python Automation Developer"
 affected_files:
   - "README.md"
   - "documentation/**"
-  - "OPERATIONAL_READINESS_CHECKLIST.md"
+  - "tests/architecture/**"
+  - "infra/swarm/**"
+  - "infra/prepare/**"
 affected_modules: []
 affected_contracts:
   - "operator-runbook"
+  - "legacy-quarantine-policy"
 dependencies:
+  - "02"
+  - "03"
+  - "04"
+  - "05"
   - "06"
-parallel_group: "F"
+  - "07"
+  - "08"
+  - "09"
+parallel_group: "H"
 file_locks:
   - "README.md"
   - "documentation/**"
-  - "OPERATIONAL_READINESS_CHECKLIST.md"
+  - "tests/architecture/**"
+  - "infra/swarm/**"
+  - "infra/prepare/**"
 contract_locks:
   - "operator-runbook"
+  - "legacy-quarantine-policy"
 architecture_locks:
   - "documentation-authority"
+  - "live-infrastructure-safety"
 quality_gates:
   targeted:
     - "git diff --check"
+    - "python3 tools/quality_gate.py arch-tests"
   required:
-    - "git diff --check"
+    - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "update runtime, deployment, quality and risk sections as needed"
-  adr: "not required unless policy changes"
+  arc42: "final synchronization across building blocks, runtime, deployment, concepts, quality and risks"
+  adr: "check all new architecture decisions are listed"
 stop_conditions:
-  - "documentation would claim live validation without evidence"
+  - "documentation claims live validation without evidence"
+  - "legacy scripts are removed before supported replacements are verified"
   - "runbook contains host-specific secrets or absolute paths"
 ```
 
 Allowed write scope:
 
-- README, documentation and readiness checklist only.
+- Documentation, architecture tests and explicitly approved legacy quarantine
+  files only.
 
 Done criteria:
 
-- Runbook has exact commands and prerequisites.
-- Troubleshooting maps common failures to remediation.
-- Readiness checklist reflects implemented and verified behavior.
+- README and user docs describe workflow-level commands.
+- arc42 and ADR index match implemented behavior.
+- Legacy/destructive scripts are marked, quarantined or removed only after
+  replacement workflows and references are proven.
+- Final quality gate result is recorded.
 
-### Slice 08 - Controlled Live Verification
+Verification commands:
 
-Purpose:
-
-- Run the implemented opt-in integration test in a suitable Linux/WSL
-  environment and record the result without weakening default quality gates.
-
-```yaml
-slice_id: "08"
-profile: "FULL_PATH"
-owner: "Senior Tester"
-secondary_reviewers:
-  - "Senior DevOps Engineer"
-  - "Senior Security Sandbox Engineer"
-  - "Senior Requirement Engineer"
-affected_files:
-  - "documentation/workflow/execution-report.md"
-  - "OPERATIONAL_READINESS_CHECKLIST.md"
-affected_modules: []
-affected_contracts:
-  - "live-verification-evidence"
-dependencies:
-  - "07"
-parallel_group: "G"
-file_locks:
-  - "documentation/workflow/execution-report.md"
-  - "OPERATIONAL_READINESS_CHECKLIST.md"
-contract_locks:
-  - "live-verification-evidence"
-architecture_locks:
-  - "live-infrastructure-safety"
-quality_gates:
-  targeted:
-    - "python3 tools/quality_gate.py quality"
-  required:
-    - "python3 tools/quality_gate.py quality"
-documentation:
-  arc42: "check after live evidence"
-  adr: "not required unless live policy changes"
-stop_conditions:
-  - "operator has not explicitly approved live infrastructure execution"
-  - "preflight fails"
-  - "same blocker has failed three targeted remediation attempts"
-  - "confidence is below 90 percent and Three Amigos questions are unresolved"
+```bash
+git diff --check
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py quality
 ```
-
-Allowed write scope:
-
-- Execution report and readiness evidence updates only, unless a blocker is
-  self-remediated with at least 90 percent confidence inside the owning slice.
-
-Done criteria:
-
-- Live test either passes with evidence or stops with a classified blocker.
-- Any self-remediation has targeted verification.
-- Any unresolved blocker has Three Amigos questions recorded.
 
 ## Slice Dependency Graph
 
@@ -1032,41 +1187,63 @@ Done criteria:
 01
   -> 02
       -> 03
-          -> 04
+      -> 04
           -> 05
-              -> 06
-                  -> 07
-                      -> 08
+          -> 06
+              -> 07
+                  -> 08
+                      -> 09
+                          -> 10
 ```
 
 Parallelization:
 
-- Slice 04 and Slice 05 may be implemented in parallel only after Slice 03
-  stabilizes shared result contracts.
-- Slice 07 documentation can draft structure early, but final content depends
-  on Slice 06 command names and evidence paths.
-- Slice 08 is always sequential and gated by live-run approval.
+- Slice 03 and Slice 04 may run in parallel after Slice 02 if write scopes stay
+  disjoint.
+- Slice 05 and Slice 06 may overlap only after their shared contracts are
+  stable and file ownership is split explicitly.
+- Slice 10 can draft documentation structure early, but final content depends
+  on implemented command names, verification states and quality evidence.
 
 ## Role Ownership Map
 
-- Senior Requirement Engineer: requirement contract, acceptance criteria,
-  Three Amigos Q&A and resource-gated service decisions.
-- Senior System Architect: architecture boundaries, responsibility ownership,
-  composition root and arc42 alignment.
-- Senior Python Automation Developer: preflight, command orchestration,
-  readiness probes and testable implementation.
-- Senior DevOps Engineer: live runner, host prerequisites, evidence layout,
-  runtime diagnostics and shell/script interaction.
-- Senior Security Sandbox Engineer: secret handling, destructive command
-  controls and live-run consent.
-- Senior Tester: unit coverage, live verification strategy, failure evidence
-  and final test report.
-- Senior Documentation Engineer: runbook, troubleshooting and readiness
-  checklist synchronization.
+- Senior Workflow Architect: dependency graph, slice metadata and execution
+  readiness.
+- Senior Requirement Engineer: operation taxonomy, destructive policy,
+  acceptance criteria and EPIC traceability.
+- Senior System Architect: responsibility boundaries, ADRs, arc42 and
+  composition constraints.
+- Senior Python Automation Developer: command YAML typing, state/inventory
+  implementation, workflow use cases, service builders and CLI dispatch.
+- Senior Tester: regression tests, architecture tests, verify-after-apply and
+  quality gate evidence.
+- Senior Security Sandbox Engineer: destructive operation gates, live
+  infrastructure refusal and secret/state safety.
+- Senior Documentation Engineer: README, arc42, user guide and legacy
+  quarantine documentation.
+- Senior React Frontend Developer: no implementation role for this workflow;
+  reviews only CLI/operator UX impact.
+
+## Subagent Review Summary
+
+Subagent reviews completed during workflow creation:
+
+- Senior Requirement Engineer: requirement classification, acceptance criteria,
+  non-goals, EPIC trace gap and recommended slices.
+- Senior System Architect: architecture constraints, boundary risks, ADR/arc42
+  needs, affected files and stop conditions.
+- Senior Python Automation Developer: command/YAML, inventory, workflow and
+  service split implementation sequence.
+- Senior React Frontend Developer: confirmed no frontend module and scoped UX
+  impact to CLI/operator behavior.
+- Senior Tester: safe targeted gates, regression tests per slice, acceptance
+  checks and stop conditions.
+
+No subagent was authorized to run live infrastructure commands.
 
 ## Quality-Gate Expectations
 
-Required default gate for implementation slices:
+Required final gate for implementation slices:
 
 ```bash
 python3 tools/quality_gate.py quality
@@ -1088,75 +1265,106 @@ Documentation-only gate:
 git diff --check
 ```
 
-Live integration commands introduced by this workflow are not replacements for
-the default quality gate. They are additional opt-in evidence commands after
-the implementation slices define them.
+Workflow creation checks:
+
+```bash
+git diff --check
+python3 -m json.tool documentation/workflow/context-pack.json
+```
 
 ## Documentation Synchronization Points
 
-- After Slice 01: readiness checklist aligns with success criteria.
-- After Slice 03: README and runtime docs know the canonical plan name.
-- After Slice 06: runbook records exact live runner command, preflight command,
-  dry-run command and evidence path.
-- After Slice 08: execution report records pass/fail evidence and unresolved
-  blockers.
+- After Slice 01: workflow safety and destructive operation semantics are
+  stable enough for implementation.
+- After Slice 02: ADR/arc42 baseline authorizes boundary-moving slices.
+- After Slice 03: command YAML documentation explains typed command specs.
+- After Slice 04: state/inventory documentation explains desired versus
+  observed state.
+- After Slice 05: operator docs no longer describe destructive init as normal.
+- After Slice 08: README and user guide describe workflow-level CLI commands.
+- After Slice 09: runtime and quality docs describe verify-after-apply
+  evidence and failure semantics.
+- After Slice 10: legacy script status and final quality evidence are recorded.
 
 ## Stop Conditions
 
 Stop workflow execution when:
 
-- the active branch is not the workflow branch;
-- unrelated worktree changes conflict with the slice write scope;
+- active branch is not `architecture/workflow-init-service-boundaries-20260523`;
+- unrelated worktree changes overlap the active slice write scope;
+- `init` still implies `multipass delete --all` or `multipass purge`;
+- `reconcile` can run destructive cleanup;
+- `reset` or `destroy` can run without explicit confirmation;
+- typed command YAML, inventory ownership or destructive operation policy is
+  unclear in the active slice;
+- Platform/Artifacts/Deployment are described as microservices without runtime
+  independence evidence;
+- application services import concrete infrastructure adapters;
+- Nexus stack deployment remains artifact-owned after extraction begins;
+- a mutating workflow step lacks a verification spec;
+- a workflow continues after failed verification;
 - a required quality gate fails;
-- a live command would run without explicit approval;
-- a command failure is not propagated;
-- hardcoded secrets would be committed;
-- default behavior would delete VMs or stacks implicitly;
-- a service success criterion is ambiguous;
-- a blocker cannot be solved with at least 90 percent confidence;
-- Three Amigos questions are unresolved.
+- a test is skipped or weakened to make a gate pass;
+- live infrastructure would be needed for a default quality gate;
+- user secrets, host-specific paths or local observed state would be committed.
 
 ## Commit And Push Plan
 
-- Commit only after the relevant required gates pass.
-- Keep workflow creation documentation separate from implementation slices.
-- Do not include generated evidence artifacts, logs, local env files or secrets.
-- Use git commit preparation before committing or pushing.
-- Do not push or open a PR unless explicitly requested.
+- Do not commit or push unless explicitly requested.
+- Commit workflow-creation documentation separately from implementation slices.
+- Each implementation slice should be committed only after its required gates
+  pass or documented blockers are accepted.
+- Do not include generated evidence, local state, logs, virtual environments,
+  caches or secrets.
+- Use the repository git commit preparation workflow before committing or
+  pushing.
 
 ## Definition Of Done
 
 This workflow is done when:
 
-- the live integration test contract is documented;
-- preflight and dry-run modes exist;
-- full live install verification is opt-in and safety-gated;
-- platform, deployment and service health probes are implemented;
-- evidence is deterministic and ignored by Git;
-- default quality gate passes;
-- live verification either passes or stops with classified blockers and Three
-  Amigos questions;
-- README, documentation and readiness checklist match the implemented behavior.
+- normal init is non-destructive;
+- `reconcile`, `reset`, `destroy` and `verify` are separate workflows;
+- PlatformServices, ArtifactServices and DeploymentServices are real
+  composition boundaries;
+- CLI exposes workflows rather than only low-level service names;
+- Nexus stack deployment is Deployment-owned;
+- command YAMLs are typed and safety-classified;
+- desired inventory, observed state and verification evidence are modeled;
+- every mutating apply step is followed by verification;
+- docs and architecture tests reflect implemented behavior;
+- `python3 tools/quality_gate.py quality` passes for implementation slices;
+- no live infrastructure action is part of the default quality gate.
 
 ## Handoff To Workflow Execute
 
-Workflow execute must begin with Slice 01. It must not skip directly to live
-execution. Slice 08 requires explicit live infrastructure approval after
-Slices 01 through 07 have passed their required gates.
+Workflow execution must begin with Slice 01. It must not jump directly to
+source changes or live validation.
+
+Before any implementation slice edits source files, the executor must inspect
+the current worktree and resolve ownership of any existing changes that overlap
+the slice file locks. The workflow authoring step observed source/preflight
+changes outside `documentation/workflow/**`; these must be treated as user or
+parallel work unless the user explicitly says otherwise.
 
 ## arc42 Check Status
 
 Checked files:
 
+- `documentation/arc42/02_constraints.adoc`
+- `documentation/arc42/03_solution_strategy.adoc`
 - `documentation/arc42/05_building_blocks.adoc`
 - `documentation/arc42/06_runtime_view.adoc`
 - `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/08_concepts.adoc`
+- `documentation/arc42/09_architecture_decisions.adoc`
 - `documentation/arc42/10_quality_requirements.adoc`
 - `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/arc42/12_glossary.adoc`
 - `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
 
 Current status:
 
 - No arc42 content was changed during workflow creation.
-- Future slices must update runtime, deployment, quality and risk sections if
-  integration-test behavior becomes product behavior.
+- Slice 02 must update arc42 and ADR status before implementation slices move
+  responsibility boundaries.
