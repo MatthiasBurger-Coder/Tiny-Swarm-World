@@ -9,11 +9,6 @@ class MultipassInitVms:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self):
-        self.logger.info("init clean up")
-
-        result = await self.command_workflow.run_async("command_multipass_clean_repository_yaml.yaml")
-        self.logger.info(f"multipass clean up result: {result}")
-
         self.logger.info("initialisation of multipass")
 
         result = await self.command_workflow.run_async("command_multipass_init_repository_yaml.yaml")
