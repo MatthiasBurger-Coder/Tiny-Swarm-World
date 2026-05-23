@@ -11,6 +11,16 @@ catalog is shell-oriented. Shell command replacement with argv-style execution
 remains future hardening work and must preserve current Linux/WSL behavior.
 
 Command parameters are constrained by type-specific patterns before
-substitution, and runner logs no longer include the full raw command string.
-Further redaction policy for command output and runtime evidence belongs to the
-state/evidence and verify-after-apply slices.
+substitution. Runner logs no longer include the full raw command string,
+stdout, or stderr payloads. Verification evidence rejects raw or sensitive keys
+and values before persistence.
+
+Remaining debt:
+
+* the runner still uses shell execution for the existing shell-oriented command
+  catalog;
+* direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
+  remain live-operation surfaces outside the workflow-level CLI consent guard;
+* reset/destroy retention and teardown semantics are not wired yet;
+* artifact and deployment workflows are declared by the CLI but remain blocked
+  until implementation slices wire them deliberately.

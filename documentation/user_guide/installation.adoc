@@ -27,9 +27,9 @@ From the repository root:
 ----
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m pip install ruff mypy import-linter
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+python3 -m pip install ruff mypy import-linter
 ----
 
 Use the active virtual environment or the system `python3` interpreter for the
@@ -44,11 +44,11 @@ Run the full quality gate from the repository root:
 python3 tools/quality_gate.py quality
 ----
 
-If a virtual environment is active, `python` can be used instead:
+If a virtual environment is active, its interpreter can be used instead:
 
 [source,bash]
 ----
-python tools/quality_gate.py quality
+.venv/bin/python tools/quality_gate.py quality
 ----
 
 The quality gate sets `PYTHONPATH=src` automatically.

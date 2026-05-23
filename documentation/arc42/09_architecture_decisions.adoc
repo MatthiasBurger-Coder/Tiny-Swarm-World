@@ -1,10 +1,58 @@
 == Architectural Decisions
 
-Justification of key technical decisions.
+This section indexes active architecture decisions and implementation decisions
+from the safety-first workflow. Standalone ADR files keep their own history and
+status; arc42 summarizes the current consequences.
+
+=== Platform, Artifacts, Deployment, And Shared Responsibilities
+
+ADR: `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+
+Status: accepted as responsibility direction, partially implemented.
+
+Consequences:
+
+* `ApplicationServices` aggregates `PlatformServices`, `ArtifactServices`, and
+  `DeploymentServices`;
+* Platform workflows own Multipass, netplan, Docker install, Swarm, preflight,
+  and VM/IP behavior;
+* the Deployment namespace owns `EnsureNexusStack`, while deployment workflow
+  composition remains pending;
+* Artifacts remains an explicit empty bundle until artifact workflow wiring is
+  implemented;
+* these bundles are not independently deployable microservices.
+
+=== Workflow Taxonomy And Destructive Operation Policy
+
+Decision status: implemented in the safety-first workflow.
+
+`init`, `reconcile`, `verify`, `reset`, and `destroy` are explicit platform
+workflow semantics. Normal `init` and `reconcile` are non-destructive.
+`reset` and `destroy` require exact confirmation and remain blocked until
+retention/teardown semantics are implemented.
+
+=== Workflow-Level CLI
+
+Decision status: implemented for platform workflows.
+
+The Python entry point lists workflow-level commands, refuses unsupported
+workflow names, and applies live-consent checks before constructing services
+for mutating workflows. Artifact and deployment workflow names are declared but
+blocked until their wiring lands.
+
+=== Typed Command Catalog
+
+Decision status: implemented for existing command YAML files.
+
+Command YAML under `infra/config/**/command_*.yaml` is product configuration.
+Entries include command identity, intent, execution mode, safety class, scope,
+allowed workflows, parameters, effects, and verification specification.
+Application command building receives the active workflow identifier and
+rejects commands outside their allow-list.
 
 === Inventory State Storage Ownership
 
-Decision status: implemented in Slice 08, ADR follow-up recommended.
+Decision status: implemented in Slice 08.
 
 Tiny Swarm World separates committed desired inventory from ignored local
 observed inventory and verification evidence.
@@ -19,10 +67,20 @@ Consequences:
   HTTP, command-runner, Docker, logging, or infrastructure imports;
 * infrastructure adapters own YAML/JSON parsing, local path resolution, and
   persistence hardening;
-* local evidence stores summaries and rejects raw command payload fields;
-* mutating workflow continuation requires apply success and verified evidence.
+* local evidence stores summaries and rejects raw command payload fields.
 
-No standalone ADR file is added in this slice because the active workflow locks
-the implementation and arc42 update scope. A dedicated ADR can be added during
-the final documentation and legacy quarantine slice if the project keeps this
-as a long-lived architecture decision record.
+=== Verify After Apply
+
+Decision status: implemented for mutating platform workflows.
+
+Mutating workflow continuation requires apply success and verified evidence.
+Apply failures return `failed_to_apply`, verification failures return
+`failed_to_verify`, and missing verification paths or missing evidence return
+`blocked`.
+
+=== ADR Backlog
+
+The typed command catalog, inventory/evidence ownership, workflow-level CLI,
+and verify-after-apply decisions are currently recorded in this arc42 index and
+the active workflow. Dedicated standalone ADRs can be added later if the
+project decides these policies need separate long-lived records.

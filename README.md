@@ -68,34 +68,57 @@ source .venv/bin/activate
 3. Install dependencies
 
 ```bash
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m pip install ruff mypy import-linter
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+python3 -m pip install ruff mypy import-linter
 ```
 
 4. Run the development quality gate
 
 ```bash
-python tools/quality_gate.py quality
+python3 tools/quality_gate.py quality
 ```
 
 5. Inspect the current workflow entry point
 
 ```bash
-PYTHONPATH=src python -m tiny_swarm_world --list-workflows
+PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
 ```
 
 Running the module without arguments does not execute infrastructure commands.
 Use an explicit workflow selection before running automation:
 
 ```bash
-PYTHONPATH=src python -m tiny_swarm_world platform verify
+PYTHONPATH=src python3 -m tiny_swarm_world platform verify
 ```
 
 Mutating workflows can call Multipass, Docker, networking, or other local
 infrastructure commands. They require the live-infrastructure consent controls.
 Destructive workflows also require the exact `--confirm` phrase shown by the
 workflow contract.
+
+---
+
+## Operator Safety Model
+
+Normal `platform init` and `platform reconcile` are non-destructive: they do
+not select the Multipass cleanup catalog that contains VM delete/purge
+commands. Mutating workflows are still live infrastructure operations. They
+require all of these controls before application services are constructed:
+
+- `--live`
+- `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`
+- typing `RUN TINY SWARM WORLD LIVE INSTALLATION` at the prompt
+
+`platform reset` and `platform destroy` additionally require
+`RESET_TINY_SWARM_PLATFORM` or `DESTROY_TINY_SWARM_PLATFORM` through
+`--confirm`. The confirmation contracts are implemented, but destructive
+reset/destroy steps remain blocked until retention semantics are implemented.
+
+These behaviors are verified by unit tests, architecture checks, and static
+quality gates. This repository workflow did not run live Multipass, Docker
+Swarm, compose, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ,
+SonarQube, or Swagger/NGINX commands.
 
 ---
 
@@ -119,13 +142,13 @@ Where to find the scripts/services:
 List the supported workflow-level commands first:
 
 ```bash
-PYTHONPATH=src python -m tiny_swarm_world --list-workflows
+PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
 ```
 
 Run only the workflow you explicitly intend to execute, for example:
 
 ```bash
-PYTHONPATH=src python -m tiny_swarm_world platform verify
+PYTHONPATH=src python3 -m tiny_swarm_world platform verify
 ```
 
 Platform workflows are constructed through the infrastructure composition root
@@ -138,6 +161,10 @@ longer supported. Use `build_application_services()` for the standard local
 wiring, or pass compatible port implementations in tests.
 
 Portainer setup is prepared from the repository root with:
+
+Direct scripts under `infra/prepare` and `infra/compose` bypass the
+workflow-level CLI consent guard. Treat them as live operator actions and run
+them only after reviewing the target environment and script contents.
 
 ```bash
 cd infra/prepare
@@ -157,11 +184,27 @@ cd infra/compose
 ./upload_all_stacks.sh -u admin -p '<password>'
 ```
 
+`upload_all_stacks.sh` talks directly to Portainer and can delete or recreate
+stacks.
+
+Legacy and transitional scripts:
+
+| Path | Status |
+| --- | --- |
+| `infra/swarm/**` | Legacy live-infrastructure surface; not a supported workflow entry point. |
+| `infra/prepare/portainer/portain_setup.py` | Transitional script with live Docker, Multipass, socat, and networking behavior. |
+| `infra/prepare/nexus/*.sh` | Legacy shell helpers with local defaults; prefer the Python `setup.py` path when intentionally bootstrapping Nexus. |
+| `infra/compose/create_dockerfiles.sh` | Direct build/push helper; not part of the default quality gate. |
+| `infra/compose/upload_all_stacks.sh` | Direct Portainer uploader; live stack mutation script. |
+
 ---
 
 ## Configuration
 
 - Compose files and service configurations live under `infra/compose` and `infra/config`.
+- Desired product configuration may live under `infra/config`.
+- Observed inventory and verification evidence are local runtime artifacts
+  under `.tiny-swarm-world/`; this path is ignored and must not be committed.
 - Networking helpers and netplan templates: `infra/config/network`.
 - VM definitions and templates: `infra/config/vm`.
 - Logs: `infra/logs`.
@@ -196,9 +239,9 @@ Prepare a local environment:
 
 - `python3 -m venv .venv`
 - `source .venv/bin/activate`
-- `python -m pip install --upgrade pip`
-- `python -m pip install -r requirements.txt`
-- `python -m pip install ruff mypy import-linter`
+- `python3 -m pip install --upgrade pip`
+- `python3 -m pip install -r requirements.txt`
+- `python3 -m pip install ruff mypy import-linter`
 
 Run the full gate before handing off a change:
 

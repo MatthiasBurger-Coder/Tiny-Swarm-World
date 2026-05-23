@@ -31,10 +31,9 @@ The composition root now exposes separate application service bundles:
 * `ArtifactServices` is the explicit artifacts boundary. It is currently an
   empty bundle until Nexus and publishing services are wired in later slices.
 * `DeploymentServices` is the explicit deployment boundary. The deployment
-  service namespace now owns stack lifecycle behavior, starting with
-  `EnsureNexusStack` for compose lookup and Portainer stack create/update
-  operations. The composition bundle remains side-effect free until later
-  workflow slices wire deployment commands through it.
+  service namespace now owns `EnsureNexusStack` for compose lookup and
+  Portainer stack create/update operations. The current composition bundle is
+  still empty and side-effect free; deployment workflow wiring remains pending.
 * `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
   instead of aliasing `PlatformServices`.
 
@@ -99,7 +98,11 @@ application code.
 * `infra/config` contains command, VM, network, and compose configuration.
 * `infra/compose` contains compose stacks and stack upload helpers.
 * `infra/prepare` contains one-off preparation scripts for local services.
-* `infra/swarm` contains Swarm and Multipass helper scripts.
+* `infra/swarm` contains legacy Swarm and Multipass helper scripts. This area
+  is quarantined as transitional live-infrastructure surface, not a supported
+  workflow entry point. It must not run in default quality gates, and files
+  should be removed or migrated only in an explicit cleanup slice with tests
+  and rollback notes.
 
 Live infrastructure scripts can modify VMs, networking, Docker Swarm state,
 service stacks, and credentials. They are not part of the normal development

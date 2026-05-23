@@ -30,7 +30,11 @@ receives explicit live infrastructure approval.
 
 ## Target Picture
 
-### Verified Baseline
+### Verified Baseline At Workflow Creation
+
+This baseline is historical. The safety-first execution branch has since
+implemented the critical init safety, workflow taxonomy, service-boundary,
+typed command, inventory, CLI, and verify-after-apply slices.
 
 - Root `AGENTS.md` defines Tiny Swarm World as a Linux/WSL-only Python
   automation project with hexagonal architecture.
@@ -185,12 +189,15 @@ Non-goals:
 Risks:
 
 - Current normal init can delete and purge all Multipass VMs.
-- Some existing tests are skipped or stale around Multipass init behavior.
+- After the safety-first workflow execution, Multipass init safety regression
+  tests are active. The known skipped test is a legacy network-service test at
+  `tests/application/services/network/test_network_service.py`.
 - Command workflow execution is filename-driven and currently coupled to UI
   runner adapters.
 - Nexus bootstrap combines stack deployment, readiness, admin access and
   anonymous access.
-- The proposed responsibility ADR is still `Status: Proposed`.
+- The responsibility ADR is accepted as a direction and partially implemented;
+  package moves and deployment/artifact workflow wiring remain pending.
 - arc42 runtime, deployment, decision, quality and risk pages are currently
   sparse and need synchronization when behavior changes.
 - A dirty worktree was detected during workflow creation with source/preflight
@@ -443,8 +450,8 @@ python3 -m json.tool documentation/workflow/context-pack.json
 
 Purpose:
 
-- Accept or supersede the proposed Platform/Artifacts/Deployment ADR and align
-  arc42 baseline sections before boundary-moving slices.
+- Keep the accepted Platform/Artifacts/Deployment responsibility ADR aligned
+  with arc42 baseline sections before further boundary-moving slices.
 
 ```yaml
 slice_id: "02"
@@ -1182,6 +1189,15 @@ Allowed write scope:
 
 - Documentation, architecture tests and explicitly approved legacy quarantine
   files only.
+
+Current execution note:
+
+- The safety-first Slice 10 in
+  `documentation/workflow/workflow-init-safety-first-control-plane.md` is a
+  documentation-only checkpoint. The broader roadmap scope above lists
+  architecture tests and legacy script areas for future cleanup, but this
+  safety-first execution must not edit `tests/**`, `infra/swarm/**`, or
+  `infra/prepare/**` without explicit approval outside the doc-only slice.
 
 Done criteria:
 

@@ -7,7 +7,7 @@ the active Python environment:
 
 [source,bash]
 ----
-python -m pip install ruff mypy import-linter
+python3 -m pip install ruff mypy import-linter
 ----
 
 Then rerun:
@@ -90,6 +90,47 @@ run:
 ----
 git status --ignored --short
 ----
+
+== Git Shows .tiny-swarm-world Files
+
+Observed inventory and verification evidence are local runtime artifacts under
+`.tiny-swarm-world/`. The directory is ignored and must not be committed. If
+files below that path appear as tracked changes, stop and verify whether they
+were accidentally added before continuing.
+
+== REFUSED_LIVE_CONSENT_MISSING
+
+Mutating platform workflows require all live-consent controls:
+
+[source,bash]
+----
+export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
+PYTHONPATH=src python3 -m tiny_swarm_world platform init --live
+----
+
+When prompted, type exactly:
+
+[source,text]
+----
+RUN TINY SWARM WORLD LIVE INSTALLATION
+----
+
+The workflow refuses before building application services if `--live`, the
+environment value, or the typed phrase is missing.
+
+== REFUSED_WORKFLOW_CONFIRMATION_MISSING
+
+`platform reset` and `platform destroy` require exact confirmation:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --confirm RESET_TINY_SWARM_PLATFORM --live
+PYTHONPATH=src python3 -m tiny_swarm_world platform destroy --confirm DESTROY_TINY_SWARM_PLATFORM --live
+----
+
+After confirmation, reset and destroy currently return `blocked` until
+retention and teardown semantics are implemented. Do not treat confirmation as
+proof that destructive teardown is wired.
 
 == Git Shows Line Ending Only Changes
 

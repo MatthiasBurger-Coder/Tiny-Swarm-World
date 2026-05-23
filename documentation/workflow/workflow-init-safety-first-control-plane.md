@@ -28,7 +28,11 @@ in this file are complete.
 
 ## Target Picture
 
-### Verified Baseline
+### Initial Verified Baseline
+
+This baseline records the repository state before this safety-first workflow
+was executed. Later `Implemented contract notes` sections record the verified
+checkpoint results.
 
 - Root `AGENTS.md` defines Tiny Swarm World as a Linux/WSL-only Python
   automation project with hexagonal architecture.
@@ -49,7 +53,8 @@ python3 tools/quality_gate.py quality
 - Nexus stack deployment is still owned by Nexus service code instead of
   Deployment-owned service code.
 - Command YAML files do not yet have a strong typed safety contract.
-- Desired inventory and observed runtime state are not yet separated.
+- At workflow start, desired inventory and observed runtime state were not yet
+  separated.
 - Mutating workflows do not consistently require typed verification after
   apply.
 
@@ -152,10 +157,13 @@ Non-goals:
 - No committed local observed state.
 - No weakening of `.importlinter`, architecture tests, or quality gates.
 
-Risks:
+Initial risks:
 
 - The current init path can delete and purge Multipass VMs.
-- Existing tests may be skipped or stale around Multipass init behavior.
+- Multipass init safety coverage must stay active. The current full quality
+  gate reports one skipped legacy network-service test under
+  `tests/application/services/network/test_network_service.py`, not skipped
+  Multipass init regression coverage.
 - File-name-driven command execution can bypass workflow intent if not gated.
 - Boundary refactoring before the safety fix leaves the highest-risk behavior
   active for too long.
@@ -379,8 +387,9 @@ Required tests:
 - Normal init must not reference destructive command YAML files.
 - Destructive YAML files must not be reachable from init or reconcile
   workflows.
-- Existing skipped Multipass init tests must be replaced or explicitly
-  quarantined.
+- Multipass init safety regression tests must be active. Any unrelated skipped
+  legacy tests must be identified by exact test path and not used to weaken
+  the init safety contract.
 
 Verification commands:
 
@@ -1304,6 +1313,25 @@ Required notes:
 - Live commands require consent.
 - Observed state is local and ignored.
 - Legacy scripts are deprecated, quarantined, or documented as unsupported.
+
+Implemented contract notes:
+
+- README, user guide, deployment documentation, arc42, ADR index, and workflow
+  context artifacts are synchronized with the safety-first implementation.
+- Operator documentation records the full live-consent contract: `--live`,
+  `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`,
+  and the typed phrase `RUN TINY SWARM WORLD LIVE INSTALLATION`.
+- Reset and destroy are documented as explicit confirmation contracts whose
+  destructive execution remains blocked until retention and teardown semantics
+  are implemented.
+- `.tiny-swarm-world/` is documented as ignored local observed state and
+  verification evidence storage.
+- Legacy direct scripts under `infra/swarm`, `infra/prepare`, and
+  `infra/compose` are documented as transitional or unsupported live-operation
+  surfaces outside the workflow-level CLI consent guard.
+- The Platform/Artifacts/Deployment ADR is accepted as responsibility
+  direction and marked partially implemented; deployment workflow composition
+  is not claimed as complete.
 
 Verification commands:
 
