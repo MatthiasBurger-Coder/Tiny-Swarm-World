@@ -66,6 +66,8 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(PlatformWorkflowStatus.REFUSED, missing_result.status)
         self.assertEqual(PlatformWorkflowStatus.REFUSED, wrong_result.status)
+        self.assertFalse(missing_result.executed)
+        self.assertFalse(wrong_result.executed)
 
     async def test_destroy_refuses_missing_or_wrong_confirmation_before_running_steps(self):
         destructive_step = _ForbiddenAction()
@@ -76,6 +78,21 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(PlatformWorkflowStatus.REFUSED, missing_result.status)
         self.assertEqual(PlatformWorkflowStatus.REFUSED, wrong_result.status)
+        self.assertFalse(missing_result.executed)
+        self.assertFalse(wrong_result.executed)
+
+    async def test_reset_and_destroy_confirmations_are_not_cross_accepted(self):
+        reset_result = await PlatformResetWorkflow([_ForbiddenAction()]).run(
+            DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION
+        )
+        destroy_result = await PlatformDestroyWorkflow([_ForbiddenAction()]).run(
+            RESET_TINY_SWARM_PLATFORM_CONFIRMATION
+        )
+
+        self.assertEqual(PlatformWorkflowStatus.REFUSED, reset_result.status)
+        self.assertEqual(PlatformWorkflowStatus.REFUSED, destroy_result.status)
+        self.assertFalse(reset_result.executed)
+        self.assertFalse(destroy_result.executed)
 
     async def test_reset_runs_steps_only_after_exact_confirmation(self):
         destructive_step = _RecordingAction("reset")

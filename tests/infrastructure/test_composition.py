@@ -54,6 +54,13 @@ class TestComposition(unittest.TestCase):
 
         self.assertIn("preflight", field_names)
 
+    def test_platform_services_contains_workflow_bundle(self):
+        platform_field_names = {field.name for field in fields(composition.PlatformServices)}
+        workflow_field_names = {field.name for field in fields(composition.PlatformWorkflows)}
+
+        self.assertIn("workflows", platform_field_names)
+        self.assertEqual({"init", "reconcile", "reset", "destroy", "verify"}, workflow_field_names)
+
     def test_artifact_and_deployment_service_bundles_exist(self):
         self.assertEqual([], list(fields(composition.ArtifactServices)))
         self.assertEqual([], list(fields(composition.DeploymentServices)))
@@ -71,6 +78,17 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.preflight, PreflightService)
         self.assertIsInstance(services.preflight.host_probe, HostPreflightProbe)
 
+    def test_build_platform_services_wires_workflow_objects(self):
+        with patch.object(composition, "PortVmRepositoryYaml"):
+            with patch.object(composition, "PortNetplanRepositoryYaml"):
+                services = composition.build_platform_services()
+
+        self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
+        self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
+        self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
+        self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
+        self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
+
     def test_build_application_services_wires_preflight_through_platform_bundle(self):
         with patch.object(composition, "PortVmRepositoryYaml"):
             with patch.object(composition, "PortNetplanRepositoryYaml"):
@@ -78,6 +96,7 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsInstance(services.platform.preflight, PreflightService)
         self.assertIs(services.preflight, services.platform.preflight)
+        self.assertIs(services.platform.workflows.verify.steps[0], services.platform.preflight)
 
     def test_build_application_services_does_not_run_constructed_services(self):
         with patch.object(composition.MultipassInitVms, "run", side_effect=AssertionError):

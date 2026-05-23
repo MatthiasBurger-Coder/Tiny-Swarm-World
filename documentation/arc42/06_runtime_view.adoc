@@ -5,10 +5,11 @@ Processes and workflows during execution.
 === Application Composition
 
 `src/tiny_swarm_world/__main__.py` remains a thin entry point. It parses
-operator arguments, checks live-infrastructure consent for mutating service
-runs, builds application services through
-`src/tiny_swarm_world/infrastructure/composition.py`, and delegates execution to
-the selected application service.
+operator arguments, lists workflow-level commands without constructing
+services, checks live-infrastructure consent for mutating workflows, verifies
+destructive workflow confirmation before service construction, builds
+application services through `src/tiny_swarm_world/infrastructure/composition.py`,
+and delegates platform execution to composed workflow objects.
 
 The composition root builds `ApplicationServices` as an aggregate of three
 service bundles:
@@ -22,7 +23,9 @@ service bundles:
 
 At this stage, Artifacts and Deployment are composition boundaries inside the
 same Python automation process, not independently deployable microservices.
-Their bundles are side-effect free when constructed. Existing CLI service
-dispatch remains compatible through transitional `ApplicationServices`
-properties until the workflow-level CLI slice routes commands directly through
-the responsibility bundles.
+Their bundles are side-effect free when constructed. The public CLI no longer
+dispatches low-level service names through `--run`; transitional
+`ApplicationServices` properties remain only for migration and internal
+compatibility. Artifact and deployment workflow command names are declared by
+the CLI contract and report blocked results until later slices wire their
+runtime behavior.

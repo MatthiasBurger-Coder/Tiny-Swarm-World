@@ -79,21 +79,23 @@ python -m pip install ruff mypy import-linter
 python tools/quality_gate.py quality
 ```
 
-5. Inspect the current application entry point
+5. Inspect the current workflow entry point
 
 ```bash
-PYTHONPATH=src python -m tiny_swarm_world --list-services
+PYTHONPATH=src python -m tiny_swarm_world --list-workflows
 ```
 
 Running the module without arguments does not execute infrastructure commands.
-Use an explicit service selection before running live automation:
+Use an explicit workflow selection before running automation:
 
 ```bash
-PYTHONPATH=src python -m tiny_swarm_world --run vm-ip-list
+PYTHONPATH=src python -m tiny_swarm_world platform verify
 ```
 
-Service execution can call Multipass, Docker, networking, or other local
-infrastructure commands depending on the selected service.
+Mutating workflows can call Multipass, Docker, networking, or other local
+infrastructure commands. They require the live-infrastructure consent controls.
+Destructive workflows also require the exact `--confirm` phrase shown by the
+workflow contract.
 
 ---
 
@@ -114,24 +116,26 @@ Where to find the scripts/services:
 - `infra/swarm`
 - `infra/compose`
 
-List the supported entry-point services first:
+List the supported workflow-level commands first:
 
 ```bash
-PYTHONPATH=src python -m tiny_swarm_world --list-services
+PYTHONPATH=src python -m tiny_swarm_world --list-workflows
 ```
 
-Run only the service you explicitly intend to execute, for example:
+Run only the workflow you explicitly intend to execute, for example:
 
 ```bash
-PYTHONPATH=src python -m tiny_swarm_world --run vm-ip-list
+PYTHONPATH=src python -m tiny_swarm_world platform verify
 ```
 
-Application services are constructed through the infrastructure composition
-root in `src/tiny_swarm_world/infrastructure/composition.py`. Services such as
-`VmIpList`, `MultipassInitVms`, and `NetworkPrepareNetplan` require explicit
-ports and repository dependencies; direct no-argument construction from the old
-`docker` layout is no longer supported. Use `build_application_services()` for
-the standard local wiring, or pass compatible port implementations in tests.
+Platform workflows are constructed through the infrastructure composition root
+in `src/tiny_swarm_world/infrastructure/composition.py`. Mutating workflows
+such as `platform init` and `platform reconcile` require live-infrastructure
+consent before services are constructed. `platform reset` and
+`platform destroy` additionally require the exact reset or destroy confirmation
+phrase. Direct no-argument construction from the old `docker` layout is no
+longer supported. Use `build_application_services()` for the standard local
+wiring, or pass compatible port implementations in tests.
 
 Portainer setup is prepared from the repository root with:
 

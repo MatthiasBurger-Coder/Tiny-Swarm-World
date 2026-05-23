@@ -960,6 +960,7 @@ affected_files:
   - "tests/infrastructure/test_composition.py"
   - "README.md"
   - "documentation/user_guide/**"
+  - "documentation/arc42/**"
 affected_modules:
   - "tiny_swarm_world.__main__"
   - "tiny_swarm_world.infrastructure.composition"
@@ -979,6 +980,7 @@ file_locks:
   - "tests/infrastructure/test_composition.py"
   - "README.md"
   - "documentation/user_guide/**"
+  - "documentation/arc42/**"
 contract_locks:
   - "workflow-level-cli"
 architecture_locks:
@@ -992,12 +994,15 @@ quality_gates:
   required:
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "update runtime view"
+  arc42: "update building blocks and runtime view"
   adr: "not required unless public CLI compatibility decision is architectural"
 stop_conditions:
   - "__main__.py embeds low-level orchestration logic"
+  - "workflow CLI wiring requires concrete adapter construction outside infrastructure/composition.py"
+  - "composition changes create live infrastructure side effects during construction"
   - "list/help paths construct live services"
   - "destroy or reset can run without explicit confirmation"
+  - "arc42 building-block and runtime-view updates would describe unimplemented behavior as implemented"
 ```
 
 Allowed write scope:

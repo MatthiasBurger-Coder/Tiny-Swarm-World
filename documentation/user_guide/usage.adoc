@@ -35,16 +35,53 @@ directory.
 
 == Main Python Entrypoint
 
-The current main script is:
+The main workflow entry point is:
 
 [source,bash]
 ----
 PYTHONPATH=src python3 -m tiny_swarm_world
 ----
 
-At the moment, the active path lists VM IP information. Additional provisioning
-steps in `src/tiny_swarm_world/__main__.py` are present but commented. Uncomment and
-run those steps only when you intentionally want to modify local infrastructure.
+Running without arguments does not execute infrastructure commands. List the
+workflow-level commands first:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+----
+
+Static preflight remains available without live-infrastructure consent:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+----
+
+Non-mutating workflow checks can be selected explicitly:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform verify
+----
+
+Mutating platform workflows require live-infrastructure consent before services
+are constructed:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform init --live
+----
+
+Destructive platform workflows also require the exact confirmation phrase:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --confirm RESET_TINY_SWARM_PLATFORM --live
+PYTHONPATH=src python3 -m tiny_swarm_world platform destroy --confirm DESTROY_TINY_SWARM_PLATFORM --live
+----
+
+Artifact and deployment workflow command names are reserved by the CLI contract
+and report a blocked result until their workflow wiring lands in later slices.
 
 == Service Preparation
 

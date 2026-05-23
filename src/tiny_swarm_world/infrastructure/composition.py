@@ -9,6 +9,11 @@ from tiny_swarm_world.application.services.platform import (
     MultipassRestartVMs,
     NetworkPrepareNetplan,
     NetworkSetupNetplan,
+    PlatformDestroyWorkflow,
+    PlatformInitWorkflow,
+    PlatformReconcileWorkflow,
+    PlatformResetWorkflow,
+    PlatformVerifyWorkflow,
     PreflightService,
     SocatManager,
     VmIpList,
@@ -20,6 +25,15 @@ from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProb
 from tiny_swarm_world.infrastructure.adapters.repositories.netplan_repository import PortNetplanRepositoryYaml
 from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
+
+
+@dataclass(frozen=True)
+class PlatformWorkflows:
+    init: PlatformInitWorkflow
+    reconcile: PlatformReconcileWorkflow
+    reset: PlatformResetWorkflow
+    destroy: PlatformDestroyWorkflow
+    verify: PlatformVerifyWorkflow
 
 
 @dataclass(frozen=True)
@@ -36,6 +50,7 @@ class PlatformServices:
     preflight: PreflightService
     vm_ip_list: VmIpList
     socat_manager: SocatManager
+    workflows: PlatformWorkflows
 
 
 @dataclass(frozen=True)
@@ -96,31 +111,60 @@ def configure_infrastructure_container() -> None:
     infra_core_container.register(FileManager)
 
 
+def build_preflight_service() -> PreflightService:
+    return PreflightService(HostPreflightProbe())
+
+
 def build_platform_services() -> PlatformServices:
     configure_infrastructure_container()
 
     vm_repository = PortVmRepositoryYaml()
     netplan_repository = PortNetplanRepositoryYaml()
     command_workflow = CommandWorkflow(vm_repository=vm_repository)
-    preflight_probe = HostPreflightProbe()
+    preflight = build_preflight_service()
+    multipass_init_vms = MultipassInitVms(command_workflow)
+    network_prepare_netplan = NetworkPrepareNetplan(
+        command_workflow=command_workflow,
+        vm_repository=vm_repository,
+        netplan_repository=netplan_repository,
+    )
+    network_setup_netplan = NetworkSetupNetplan(command_workflow)
+    multipass_restart_vms = MultipassRestartVMs(command_workflow)
+    multipass_docker_install = MultipassDockerInstall(command_workflow)
+    multipass_docker_swarm_init = MultipassDockerSwarmInit(command_workflow)
+    vm_ip_list = VmIpList(command_workflow=command_workflow, vm_repository=vm_repository)
+    socat_manager = SocatManager()
+    workflows = PlatformWorkflows(
+        init=PlatformInitWorkflow(
+            (
+                multipass_init_vms,
+                network_prepare_netplan,
+                network_setup_netplan,
+                multipass_restart_vms,
+                multipass_docker_install,
+                multipass_docker_swarm_init,
+            )
+        ),
+        reconcile=PlatformReconcileWorkflow((vm_ip_list,)),
+        reset=PlatformResetWorkflow(),
+        destroy=PlatformDestroyWorkflow(),
+        verify=PlatformVerifyWorkflow((preflight,)),
+    )
 
     return PlatformServices(
         command_workflow=command_workflow,
         vm_repository=vm_repository,
         netplan_repository=netplan_repository,
-        multipass_init_vms=MultipassInitVms(command_workflow),
-        network_prepare_netplan=NetworkPrepareNetplan(
-            command_workflow=command_workflow,
-            vm_repository=vm_repository,
-            netplan_repository=netplan_repository,
-        ),
-        network_setup_netplan=NetworkSetupNetplan(command_workflow),
-        multipass_restart_vms=MultipassRestartVMs(command_workflow),
-        multipass_docker_install=MultipassDockerInstall(command_workflow),
-        multipass_docker_swarm_init=MultipassDockerSwarmInit(command_workflow),
-        preflight=PreflightService(preflight_probe),
-        vm_ip_list=VmIpList(command_workflow=command_workflow, vm_repository=vm_repository),
-        socat_manager=SocatManager(),
+        multipass_init_vms=multipass_init_vms,
+        network_prepare_netplan=network_prepare_netplan,
+        network_setup_netplan=network_setup_netplan,
+        multipass_restart_vms=multipass_restart_vms,
+        multipass_docker_install=multipass_docker_install,
+        multipass_docker_swarm_init=multipass_docker_swarm_init,
+        preflight=preflight,
+        vm_ip_list=vm_ip_list,
+        socat_manager=socat_manager,
+        workflows=workflows,
     )
 
 

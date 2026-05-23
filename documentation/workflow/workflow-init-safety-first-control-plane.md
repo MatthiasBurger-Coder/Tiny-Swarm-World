@@ -762,13 +762,19 @@ secondary_reviewers:
   - "Senior Tester"
 affected_files:
   - "src/tiny_swarm_world/__main__.py"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
   - "src/tiny_swarm_world/application/services/platform/**"
   - "src/tiny_swarm_world/application/services/deployment/**"
   - "src/tiny_swarm_world/application/services/nexus/**"
   - "tests/**"
+  - "README.md"
+  - "documentation/user_guide/usage.adoc"
+  - "documentation/arc42/05_building_blocks.adoc"
+  - "documentation/arc42/06_runtime_view.adoc"
   - "documentation/workflow/**"
 affected_modules:
   - "tiny_swarm_world.__main__"
+  - "tiny_swarm_world.infrastructure.composition"
   - "tiny_swarm_world.application.services.platform"
   - "tiny_swarm_world.application.services.deployment"
 affected_contracts:
@@ -779,13 +785,20 @@ dependencies:
 parallel_group: "F"
 file_locks:
   - "src/tiny_swarm_world/__main__.py"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
   - "tests/**"
+  - "README.md"
+  - "documentation/user_guide/usage.adoc"
+  - "documentation/arc42/05_building_blocks.adoc"
+  - "documentation/arc42/06_runtime_view.adoc"
+  - "documentation/workflow/**"
 contract_locks:
   - "workflow-cli-contract"
   - "reset-destroy-confirmation"
 architecture_locks:
   - "thin-entrypoint"
   - "composition-root"
+  - "composition-root-wiring"
 quality_gates:
   targeted:
     - "python3 tools/quality_gate.py test"
@@ -795,12 +808,16 @@ quality_gates:
     - "python3 tools/quality_gate.py typecheck"
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "update runtime view for workflow-level commands"
+  arc42: "update building blocks and runtime view for workflow-level commands and composition-root wiring"
   adr: "check CLI command contract decision need"
 stop_conditions:
+  - "__main__.py embeds low-level orchestration logic"
+  - "workflow CLI wiring requires concrete adapter construction outside infrastructure/composition.py"
+  - "composition changes create live infrastructure side effects during construction"
   - "listing commands builds live services"
   - "reset or destroy can run without confirmation"
   - "default CLI invocation mutates resources"
+  - "arc42 building-block and runtime-view updates would describe unimplemented behavior as implemented"
 ```
 
 Current CLI style:

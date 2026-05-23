@@ -26,7 +26,8 @@ The composition root now exposes separate application service bundles:
 
 * `PlatformServices` contains the current platform automation for Multipass,
   network setup, Docker installation, Swarm initialization, preflight checks,
-  VM IP discovery, and socat management.
+  VM IP discovery, socat management, and workflow objects for platform
+  `init`, `reconcile`, `verify`, `reset`, and `destroy` commands.
 * `ArtifactServices` is the explicit artifacts boundary. It is currently an
   empty bundle until Nexus and publishing services are wired in later slices.
 * `DeploymentServices` is the explicit deployment boundary. The deployment
@@ -41,8 +42,8 @@ The empty Artifacts bundle and currently unwired Deployment bundle are
 intentional transitional building blocks. They create stable composition
 boundaries while service ownership moves in dedicated workflow slices.
 Compatibility properties on `ApplicationServices` keep the existing
-service-level CLI working until the workflow-level CLI slice replaces those
-calls.
+service-level accessors available for migration, but the public Python
+entrypoint now routes through workflow-level commands.
 
 === Infrastructure Assets
 
