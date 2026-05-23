@@ -89,7 +89,7 @@ Stop and report when:
 - a skill permits commit or push without required quality gates;
 - several skills own the same output but apply incompatible rules;
 - a workflow references a skill, role, prompt or agent that cannot be verified;
-- a cached registry is reused after `.agents/**`, `.codex/**`, `AGENTS.md`, `QUALITY.md`, `documentation/workflow/**`, `documentation/skill-audit/**`, `documentation/agents/**`, `documentation/process/**` or `documentation/governance/**` changed;
+- a cached registry is reused after `.agents/**`, `.codex/**`, `AGENTS.md`, `QUALITY.md`, `documentation/workflow/**`, `documentation/skill-audit/**`, legacy `documentation/agents/**` references, `documentation/process/**` or `documentation/governance/**` changed;
 - the persistent registry marks an unresolved owner or STOP-rule conflict as ready;
 - the persistent registry is treated as the source of truth instead of repository files;
 - a governance decision would require guessing ownership, quality authority, architecture authority or source of truth;

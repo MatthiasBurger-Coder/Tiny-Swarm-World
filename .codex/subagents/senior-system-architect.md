@@ -25,6 +25,9 @@ Use these only when they exist in the target repository.
 
 - Verify package, module, or service boundaries before architecture changes.
 - Keep dependency direction aligned with the project's documented architecture.
-- Route service-boundary questions to the Microservice Senior Expert.
+- Route service-boundary questions through project-specific service-decomposition,
+  contract-governance, runtime-readiness and migration-safety skills when present;
+  otherwise apply `.codex/skills/microservice-architecture-expert/SKILL.md` as a
+  fallback checklist.
 - Require architecture tests for boundary-sensitive changes when the project has architecture-test tooling.
 - Report source, build, or documentation conflicts instead of choosing silently.

@@ -230,6 +230,31 @@ Explore documentation for deeper architecture details:
 
 ---
 
+## Skill And Agent Governance
+
+Tiny Swarm World agent and skill work is governed by root `AGENTS.md`,
+`QUALITY.md`, `.agents/`, `.codex/`, and the audit artifacts under
+`documentation/skill-audit/`.
+
+Canonical governance navigation:
+
+- `documentation/skill-audit/skill-registry.md`
+- `documentation/skill-audit/skill-registry.json`
+- `documentation/skill-audit/organigramm.md`
+- `documentation/skill-audit/owner-map.md`
+
+Project-specific skills live as discoverable
+`.agents/skills/<skill-name>/SKILL.md` files. Grouped `.md` files are not
+authoritative skill entrypoints unless the local discovery rules are changed by
+a later workflow.
+
+The current agent model keeps Tiny Swarm World Docker Swarm first,
+Kubernetes-aware but not Kubernetes-first, Python automation first, and
+console/status UI oriented. It must not be reclassified as forensic analytics,
+a Spring Boot application, or a React frontend project.
+
+---
+
 ## Development Quality Gate
 
 The development quality gate is provided by `tools/quality_gate.py`. Run it

@@ -18,21 +18,43 @@ It does not replace root `AGENTS.md`, root `QUALITY.md`, arc42 documentation,
 - Date created: `2026-05-23`
 - Process strand: `skills-agents`
 - Execution profile: `FULL_PATH`
-- Release status: `READY_FOR_WORKFLOW_EXECUTE`
+- Release status: `WORKFLOW_EXECUTION_COMPLETED`
+
+## Execution Status
+
+| Slice | Status |
+| --- | --- |
+| 01 | `COMPLETED` |
+| 02 | `COMPLETED` |
+| 03 | `COMPLETED_NO_CHANGES_REQUIRED` |
+| 04 | `COMPLETED` |
+| 05 | `COMPLETED` |
+| 06 | `COMPLETED` |
+| 07 | `COMPLETED` |
+| 08 | `COMPLETED` |
 
 ## Governing Files Checked
 
 | File | SHA-256 |
 | --- | --- |
-| `AGENTS.md` | `6C0995195E99A2A748AD63D065706C35341977388D3C1C4402A548B388A4755E` |
+| `AGENTS.md` | `F0FA2387DFA023B968A0F474971BACDA12EBF05FEA4A03B5D6D098F1701D4601` |
 | `QUALITY.md` | `D327E4060FF1729F17FFDE844B1A2D6208FE203E149AE9D1AF185BEF0AED2155` |
-| `README.md` | `7FCC747AC8E97C54839F44F19F021CC811DAF98163AFA2429579DEBC5B835A8F` |
+| `README.md` | `31C6AA7F2907D2C773C4ADD14F31235AB620F3A11B3D9DB913004A69D8650A24` |
 | `documentation/arc42/05_building_blocks.adoc` | `29460A5324C6675DF4F731686733A4369828C42DE2AC485967D25B5A8429BE32` |
+| `documentation/arc42/08_concepts.adoc` | `6736AFC526995312EE33D64D7B9E1853CD5AE509293DF5EB518AF1F200EEA857` |
 | `documentation/arc42/10_quality_requirements.adoc` | `687988FCBC74CF6573136570486E22E9CC9E6573B11385307BBEFBE1436AD144` |
+| `documentation/skill-audit/skill-registry.md` | `E231255A840818A92D3AC49692636FB0BE2F46651E370080AF3196EB529BD3FA` |
+| `documentation/skill-audit/skill-registry.json` | `7628D2FB431880C3CD901433AC6F0B6B82F5565FD4861FAE259E00220F1606C3` |
+| `documentation/skill-audit/organigramm.md` | `542F1E8FC0E9311DEF5B0D456D31F7F19B09B8A17F621CF4F26006CD81CA7190` |
+| `documentation/skill-audit/owner-map.md` | `19E2AE03E5A120E8244A7904A59BB78C53EDA42959428220E101F4CCFAFE1A46` |
 
 This context pack is stale when any listed hash changes, when governance files
 change, when `.agents/` or `.codex/` structure changes, or when a conflict is
 detected during workflow execution.
+
+The baseline notes in `documentation/workflow/workflow.md` describe the
+workflow creation state. The current execution state is recorded here and in
+`documentation/workflow/execution-report.md`.
 
 ## Affected Areas
 

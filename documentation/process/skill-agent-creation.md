@@ -6,11 +6,29 @@ definitions.
 ## Rules
 
 - Skills live under `.agents/skills/<name>/SKILL.md`.
+- Grouped `.md` files are documentation indexes only; they are not
+  authoritative skill entrypoints unless local skill discovery rules change.
+- Every project skill `SKILL.md` must include YAML frontmatter with `name` and
+  `description`.
 - Project roles live under `.agents/roles`.
 - Codex callable-agent definitions live under `.codex/agents`.
 - Root `AGENTS.md` and `QUALITY.md` remain authoritative.
 - New Python implementation roles must preserve the hexagonal architecture and live-infrastructure safety rules.
 - Java roles may cover only the deployment example unless the user explicitly changes the project architecture.
+- Tiny Swarm World is Docker Swarm first and Kubernetes-aware, not
+  Kubernetes-first.
+- Console/status UI skills are terminal-oriented and do not authorize browser
+  React work.
+
+## Canonical Audit Paths
+
+- `documentation/skill-audit/skill-registry.md`
+- `documentation/skill-audit/skill-registry.json`
+- `documentation/skill-audit/organigramm.md`
+- `documentation/skill-audit/owner-map.md`
+
+Repository files remain authoritative. The registry and organigramm are audit,
+navigation, and coordination artifacts.
 
 ## Verification
 

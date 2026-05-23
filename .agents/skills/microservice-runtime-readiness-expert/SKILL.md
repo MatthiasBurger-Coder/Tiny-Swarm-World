@@ -69,7 +69,8 @@ Return a concise record with:
 
 ## Collaboration Rules
 
-- Consult Microservice Senior Expert for service autonomy.
+- Consult Senior System Architect and Service Decomposition And Bounded Context
+  for service autonomy.
 - Consult Senior DevOps Engineer for Python tooling, Docker, CI/CD and deployment
   concerns.
 - Consult DevOps Docker only after Docker files or Docker workflows are

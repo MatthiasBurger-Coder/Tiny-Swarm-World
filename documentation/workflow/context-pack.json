@@ -6,12 +6,22 @@
     "date_created": "2026-05-23",
     "process_strand": "skills-agents",
     "execution_profile": "FULL_PATH",
-    "status": "READY_FOR_WORKFLOW_EXECUTE"
+    "status": "WORKFLOW_EXECUTION_COMPLETED"
+  },
+  "slice_status": {
+    "01": "COMPLETED",
+    "02": "COMPLETED",
+    "03": "COMPLETED_NO_CHANGES_REQUIRED",
+    "04": "COMPLETED",
+    "05": "COMPLETED",
+    "06": "COMPLETED",
+    "07": "COMPLETED",
+    "08": "COMPLETED"
   },
   "governing_files": [
     {
       "path": "AGENTS.md",
-      "sha256": "6C0995195E99A2A748AD63D065706C35341977388D3C1C4402A548B388A4755E"
+      "sha256": "F0FA2387DFA023B968A0F474971BACDA12EBF05FEA4A03B5D6D098F1701D4601"
     },
     {
       "path": "QUALITY.md",
@@ -19,15 +29,35 @@
     },
     {
       "path": "README.md",
-      "sha256": "7FCC747AC8E97C54839F44F19F021CC811DAF98163AFA2429579DEBC5B835A8F"
+      "sha256": "31C6AA7F2907D2C773C4ADD14F31235AB620F3A11B3D9DB913004A69D8650A24"
     },
     {
       "path": "documentation/arc42/05_building_blocks.adoc",
       "sha256": "29460A5324C6675DF4F731686733A4369828C42DE2AC485967D25B5A8429BE32"
     },
     {
+      "path": "documentation/arc42/08_concepts.adoc",
+      "sha256": "6736AFC526995312EE33D64D7B9E1853CD5AE509293DF5EB518AF1F200EEA857"
+    },
+    {
       "path": "documentation/arc42/10_quality_requirements.adoc",
       "sha256": "687988FCBC74CF6573136570486E22E9CC9E6573B11385307BBEFBE1436AD144"
+    },
+    {
+      "path": "documentation/skill-audit/skill-registry.md",
+      "sha256": "E231255A840818A92D3AC49692636FB0BE2F46651E370080AF3196EB529BD3FA"
+    },
+    {
+      "path": "documentation/skill-audit/skill-registry.json",
+      "sha256": "7628D2FB431880C3CD901433AC6F0B6B82F5565FD4861FAE259E00220F1606C3"
+    },
+    {
+      "path": "documentation/skill-audit/organigramm.md",
+      "sha256": "542F1E8FC0E9311DEF5B0D456D31F7F19B09B8A17F621CF4F26006CD81CA7190"
+    },
+    {
+      "path": "documentation/skill-audit/owner-map.md",
+      "sha256": "19E2AE03E5A120E8244A7904A59BB78C53EDA42959428220E101F4CCFAFE1A46"
     }
   ],
   "affected_areas": [

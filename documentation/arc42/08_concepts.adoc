@@ -76,3 +76,28 @@ Evidence values are sanitized as well as evidence keys. Raw command payloads,
 stdout/stderr labels, shell-like command strings, token/password/secret
 markers, multi-line payloads, and PEM-like blocks are rejected before evidence
 can be persisted.
+
+=== Skill And Agent Governance
+
+Tiny Swarm World keeps agent and skill governance separate from product runtime
+architecture. Root `AGENTS.md` remains the authority for repository identity,
+architecture boundaries, safety rules and workflow stop conditions. Root
+`QUALITY.md` remains the authority for local verification commands.
+
+Project-specific skills are discoverable as
+`.agents/skills/<skill-name>/SKILL.md`. The canonical audit and navigation
+artifacts live under `documentation/skill-audit/`:
+
+* `skill-registry.md`
+* `skill-registry.json`
+* `organigramm.md`
+* `owner-map.md`
+
+These artifacts coordinate roles, skill groups and owner mappings. They do not
+replace repository files as the source of truth.
+
+Service-boundary questions are coordinated by the Senior System Architect and
+the dedicated decomposition, runtime-readiness, migration-safety and contract
+governance skills. This preserves future service-boundary review without
+reclassifying Tiny Swarm World as a Spring Boot application, a browser React
+project, forensic analytics, or Kubernetes-first.

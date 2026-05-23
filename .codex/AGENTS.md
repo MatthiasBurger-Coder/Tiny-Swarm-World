@@ -105,7 +105,6 @@ Agent Workflow Orchestrator
     +-- Senior DevOps Engineer
     +-- Senior Tester
     +-- Documentation Engineer
-    +-- Microservice Senior Expert
 ```
 
 ## Default Service Guardrails

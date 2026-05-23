@@ -179,9 +179,10 @@ Use at least these roles when relevant to the slice:
 - Senior Python Automation Developer
 - Senior Tester
 - Senior DevOps Engineer
-- Microservice Senior Expert
 
 Route additional specialist concerns through `.agents/orchestrator/routing-rules.md`.
+For service-boundary work, route through Senior System Architect plus the
+dedicated service-boundary skills named in `.agents/orchestrator/routing-rules.md`.
 
 ## Execution Strands
 
@@ -196,7 +197,13 @@ Python automation work routes through Senior Python Automation Developer, Senior
 
 Java deployment-example work routes through Senior Java Deployment Example Maintainer only when the task explicitly targets `src/main/java`.
 
-Frontend work routes through Senior React Frontend Developer, Senior UX Designer, and Senior DevOps with `devops-docker` when container readiness is affected.
+Current Tiny Swarm World UI work routes through `frontend-developer`,
+`console-status-ui-developer`, and `terminal-status-dashboard` as
+console/status UI. Browser React, frontend state, API client integration or UI
+component work stops unless a separate frontend workflow verifies a frontend
+module, package tooling and quality gates; only then route through Senior React
+Frontend Developer, Senior UX Designer, and Senior DevOps with `devops-docker`
+when container readiness is affected.
 
 ## Typed Error Router
 
