@@ -1,0 +1,1 @@
+"""Preflight infrastructure adapter tests."""

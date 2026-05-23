@@ -1,0 +1,137 @@
+from __future__ import annotations
+
+import hashlib
+import os
+import platform
+import re
+import shutil
+import socket
+import subprocess
+import sys
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+
+from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
+from tiny_swarm_world.infrastructure.project_paths import repository_root
+
+
+SECRET_TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_-]{2,}")
+
+
+class HostPreflightProbe(PortHostPreflightProbe):
+    def __init__(self, root: Path | None = None):
+        self.root = root or repository_root()
+
+    def is_linux_or_wsl(self) -> bool:
+        return platform.system().lower() == "linux"
+
+    def python_version(self) -> str:
+        return ".".join(str(part) for part in sys.version_info[:3])
+
+    def executable_available(self, name: str) -> bool:
+        return shutil.which(name) is not None
+
+    def cpu_count(self) -> int:
+        return os.cpu_count() or 0
+
+    def memory_bytes(self) -> int:
+        meminfo = Path("/proc/meminfo")
+        if not meminfo.exists():
+            return 0
+        for line in meminfo.read_text(encoding="utf-8").splitlines():
+            if line.startswith("MemTotal:"):
+                parts = line.split()
+                if len(parts) >= 2:
+                    return int(parts[1]) * 1024
+        return 0
+
+    def disk_free_bytes(self, path: str) -> int:
+        target = self.root / path
+        return shutil.disk_usage(target).free
+
+    def port_available(self, port: int) -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind(("127.0.0.1", port))
+            except OSError:
+                return False
+        return True
+
+    def secret_available(self, name: str) -> bool:
+        return bool(os.environ.get(name))
+
+    def path_ignored_by_git(self, path: str) -> bool:
+        completed = subprocess.run(
+            ["git", "check-ignore", "-q", "--", path],
+            cwd=self.root,
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return completed.returncode == 0
+
+    def forbidden_tracked_secret_fingerprints(
+        self,
+        fingerprints: Mapping[str, str],
+    ) -> Sequence[str]:
+        found: set[str] = set()
+        for source_file in self._tracked_text_files():
+            text = source_file.read_text(encoding="utf-8", errors="ignore")
+            text_fingerprints = set(_token_fingerprints(text))
+            for identifier, fingerprint in fingerprints.items():
+                if fingerprint in text_fingerprints:
+                    found.add(identifier)
+        return tuple(sorted(found))
+
+    def _tracked_text_files(self) -> tuple[Path, ...]:
+        suffixes = {".py", ".sh", ".yaml", ".yml", ".json", ".md", ".adoc"}
+        completed = subprocess.run(
+            ["git", "ls-files", "--", "src", "infra"],
+            cwd=self.root,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        if completed.returncode == 0:
+            return tuple(
+                path
+                for path in self._paths_from_git_output(completed.stdout)
+                if path.suffix in suffixes
+            )
+
+        roots = (
+            self.root / "src",
+            self.root / "infra",
+        )
+        files: list[Path] = []
+        for root in roots:
+            if not root.exists():
+                continue
+            files.extend(
+                path
+                for path in root.rglob("*")
+                if path.is_file() and path.suffix in suffixes
+            )
+        return tuple(files)
+
+    def _paths_from_git_output(self, output: str) -> tuple[Path, ...]:
+        root = self.root.resolve()
+        paths: list[Path] = []
+        for line in output.splitlines():
+            candidate = (root / line).resolve()
+            try:
+                candidate.relative_to(root)
+            except ValueError:
+                continue
+            if candidate.is_file():
+                paths.append(candidate)
+        return tuple(paths)
+
+
+def _token_fingerprints(text: str) -> tuple[str, ...]:
+    return tuple(
+        hashlib.sha256(match.group(0).encode("utf-8")).hexdigest()
+        for match in SECRET_TOKEN_PATTERN.finditer(text)
+    )

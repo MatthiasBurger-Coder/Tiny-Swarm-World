@@ -17,6 +17,7 @@ from tiny_swarm_world.application.services.multipass.multipass_init_vms import (
 from tiny_swarm_world.application.services.multipass.multipass_restart_vms import (
     MultipassRestartVMs,
 )
+from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.application.services.network.netplant.network_prepare_netplan import (
     NetworkPrepareNetplan,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "MultipassDockerSwarmInit",
     "MultipassInitVms",
     "MultipassRestartVMs",
+    "PreflightService",
     "NetworkPrepareNetplan",
     "NetworkSetupNetplan",
     "SocatManager",

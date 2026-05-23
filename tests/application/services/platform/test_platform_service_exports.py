@@ -28,8 +28,12 @@ from tiny_swarm_world.application.services.platform import (
     MultipassRestartVMs,
     NetworkPrepareNetplan,
     NetworkSetupNetplan,
+    PreflightService,
     SocatManager,
     VmIpList,
+)
+from tiny_swarm_world.application.services.platform.preflight_service import (
+    PreflightService as ExistingPreflightService,
 )
 from tiny_swarm_world.application.services.vm.vm_ip_list import VmIpList as ExistingVmIpList
 
@@ -42,5 +46,6 @@ class TestPlatformServiceExports(unittest.TestCase):
         self.assertIs(MultipassRestartVMs, ExistingMultipassRestartVMs)
         self.assertIs(NetworkPrepareNetplan, ExistingNetworkPrepareNetplan)
         self.assertIs(NetworkSetupNetplan, ExistingNetworkSetupNetplan)
+        self.assertIs(PreflightService, ExistingPreflightService)
         self.assertIs(SocatManager, ExistingSocatManager)
         self.assertIs(VmIpList, ExistingVmIpList)

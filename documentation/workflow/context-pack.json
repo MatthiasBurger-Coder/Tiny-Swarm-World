@@ -1,60 +1,61 @@
 {
-  "workflowVersion": "installation-integration-verification-20260523",
-  "workflowBranch": "docs/workflow-installation-integration-test-20260523",
+  "workflowVersion": "init-safety-boundary-separation-20260523",
+  "workflowBranch": "architecture/workflow-init-service-boundaries-20260523",
   "processStrand": "workflow create",
   "executionProfile": "FULL_PATH",
   "createdDate": "2026-05-23",
   "requirement": {
-    "summary": "Create a workflow for an opt-in integration test that verifies full installation and full functionality.",
-    "blockerPolicy": "Self-remediate blockers when confidence is at least 90 percent; otherwise start Three Amigos Q&A.",
-    "temporaryBaseline": [
-      "user request",
-      "AGENTS.md",
-      "QUALITY.md",
-      "AUDIT_REPORT.md",
-      "OPERATIONAL_READINESS_CHECKLIST.md",
-      "active workflow requirement record",
-      "documentation/architecture/adr-separate-platform-artifacts-deployment.adoc"
-    ],
+    "summary": "Create a workflow for non-destructive init, separate reconcile/reset/destroy workflows, real Platform/Artifacts/Deployment service separation, workflow-level CLI, Nexus stack deployment extraction, typed command YAMLs, state/inventory modeling, and verify-after-apply enforcement.",
     "decision": "READY_FOR_WORKFLOW",
-    "confidence": 92
+    "confidence": 91,
+    "epicTraceability": "No documentation/epics source exists; temporary baseline is the user request plus AGENTS.md, QUALITY.md, architecture docs, arc42, ADR and subagent reviews.",
+    "acceptedAssumptions": [
+      "init creates or prepares missing managed resources without deletion",
+      "reconcile converges existing managed resources non-destructively",
+      "reset explicitly reinitializes selected managed runtime resources after confirmation",
+      "destroy explicitly tears down selected managed runtime resources after confirmation",
+      "verify inspects state without mutation",
+      "desired inventory belongs to committed product configuration",
+      "observed runtime inventory and evidence belong under ignored local state/evidence roots"
+    ]
   },
   "baseline": {
     "defaultQualityGate": "python3 tools/quality_gate.py quality",
     "liveInfrastructureInDefaultGate": false,
-    "liveEvidenceGapRecordedIn": "AUDIT_REPORT.md",
-    "readinessChecklist": "OPERATIONAL_READINESS_CHECKLIST.md",
-    "slice01Contracts": [
-      "live-run-consent",
-      "refusal-before-live-command",
-      "evidence-bundle",
-      "redaction",
-      "credential-source-validation",
-      "resource-gated-result-semantics"
-    ]
+    "normalInitCurrentlyDestructive": true,
+    "cleanupYamlContainsDeleteAllAndPurge": true,
+    "compositionCurrentlyPlatformOnly": true,
+    "cliCurrentlyServiceLevel": true,
+    "nexusStackCurrentlyUnderNexus": true,
+    "typedCommandYamlContractExists": false,
+    "stateInventoryModelExists": false,
+    "verifyAfterApplyEnforced": false
   },
   "affectedAreas": [
     "documentation/workflow",
-    "OPERATIONAL_READINESS_CHECKLIST.md",
+    "documentation/architecture",
+    "documentation/arc42",
     "README.md",
-    "documentation",
-    "src/tiny_swarm_world",
+    "documentation/user_guide",
+    "src/tiny_swarm_world/__main__.py",
+    "src/tiny_swarm_world/infrastructure/composition.py",
+    "src/tiny_swarm_world/domain",
+    "src/tiny_swarm_world/application",
+    "src/tiny_swarm_world/infrastructure/adapters",
     "infra/config",
     "infra/compose",
     "infra/prepare",
-    "tools",
+    "infra/swarm",
     "tests"
   ],
   "forbiddenAreasWithoutRefinement": [
     "src/main/java/**",
     "Windows-native runtime support",
     "default CI execution of live Multipass or Docker Swarm",
-    "committed secrets or hardcoded credentials",
-    "implicit destructive VM, stack or network cleanup",
-    "live Multipass execution before explicit live-run approval",
-    "live Docker Swarm execution before explicit live-run approval",
-    "netplan or socat mutation before explicit live-run approval",
-    "service bootstrap before explicit live-run approval"
+    "committed secrets, observed runtime state, local evidence or host-specific absolute paths",
+    "implicit VM deletion or purge in init or reconcile",
+    "microservice claims for Platform, Artifacts and Deployment without runtime independence evidence",
+    "live Multipass, Docker Swarm, netplan, socat, compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or Swagger/NGINX commands"
   ],
   "requiredRoles": [
     "Senior Requirement Engineer",
@@ -62,14 +63,36 @@
     "Senior Python Automation Developer",
     "Senior React Frontend Developer",
     "Senior Tester",
-    "Senior DevOps Engineer",
     "Senior Security Sandbox Engineer",
-    "Senior Documentation Engineer"
+    "Senior Documentation Engineer",
+    "Senior Workflow Architect"
   ],
   "conditionalRoles": [
-    "Senior Workflow Architect",
+    "Senior DevOps Engineer",
     "Release and Branch Governance",
     "Security Threat Modeling"
+  ],
+  "subagentReviews": [
+    {
+      "role": "Senior Requirement Engineer",
+      "status": "completed"
+    },
+    {
+      "role": "Senior System Architect",
+      "status": "completed"
+    },
+    {
+      "role": "Senior Python Automation Developer",
+      "status": "completed"
+    },
+    {
+      "role": "Senior React Frontend Developer",
+      "status": "completed"
+    },
+    {
+      "role": "Senior Tester",
+      "status": "completed"
+    }
   ],
   "qualityCommands": {
     "workflowCreation": [
@@ -86,67 +109,106 @@
     "final": [
       "python3 tools/quality_gate.py quality"
     ],
-    "liveIntegration": {
-      "status": "planned-artifact",
+    "liveInfrastructure": {
+      "allowedDuringWorkflowCreation": false,
       "includedInDefaultQualityGate": false
     }
   },
   "slices": [
     {
       "id": "01",
-      "name": "Integration Test Contract",
-      "dependencies": []
+      "name": "Requirement And Safety Contract",
+      "dependencies": [],
+      "parallelGroup": "A"
     },
     {
       "id": "02",
-      "name": "Preflight And Configuration Validation",
+      "name": "ADR And arc42 Baseline",
       "dependencies": [
         "01"
-      ]
+      ],
+      "parallelGroup": "B"
     },
     {
       "id": "03",
-      "name": "Canonical Full-Installation Plan",
+      "name": "Typed Command YAML Contract",
       "dependencies": [
         "01",
         "02"
-      ]
+      ],
+      "parallelGroup": "C"
     },
     {
       "id": "04",
-      "name": "Platform Runtime Readiness Probes",
+      "name": "State And Inventory Model",
       "dependencies": [
-        "03"
-      ]
+        "01",
+        "02"
+      ],
+      "parallelGroup": "C"
     },
     {
       "id": "05",
-      "name": "Deployment And Service Readiness Probes",
+      "name": "Workflow Taxonomy And Non-Destructive Init",
       "dependencies": [
-        "03"
-      ]
+        "03",
+        "04"
+      ],
+      "parallelGroup": "D"
     },
     {
       "id": "06",
-      "name": "Live Integration Runner And Evidence Bundle",
+      "name": "Service Wiring Separation",
       "dependencies": [
-        "04",
-        "05"
-      ]
+        "02",
+        "04"
+      ],
+      "parallelGroup": "D"
     },
     {
       "id": "07",
-      "name": "Documentation And Readiness Synchronization",
+      "name": "Nexus Stack Deployment Extraction",
       "dependencies": [
         "06"
-      ]
+      ],
+      "parallelGroup": "E"
     },
     {
       "id": "08",
-      "name": "Controlled Live Verification",
+      "name": "Workflow-Level CLI",
       "dependencies": [
+        "05",
+        "06",
         "07"
-      ]
+      ],
+      "parallelGroup": "F"
+    },
+    {
+      "id": "09",
+      "name": "Verify After Every Apply",
+      "dependencies": [
+        "03",
+        "04",
+        "05",
+        "07",
+        "08"
+      ],
+      "parallelGroup": "G"
+    },
+    {
+      "id": "10",
+      "name": "Documentation, Quality Sync, And Legacy Quarantine",
+      "dependencies": [
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09"
+      ],
+      "parallelGroup": "H"
     }
   ],
   "governingHashes": [
@@ -159,14 +221,6 @@
       "sha256": "d327e4060ff1729f17ffde844b1a2d6208fe203e149ae9d1af185bef0aed2155"
     },
     {
-      "path": "AUDIT_REPORT.md",
-      "sha256": "b6714f0898a5ae2eca750516e920a1f412584f43ebc6e195b5d5d61c741c0816"
-    },
-    {
-      "path": "OPERATIONAL_READINESS_CHECKLIST.md",
-      "sha256": "d8e54cd328674c8ce4e6237abadf86346f5f00a0e6333677e2214881e159ddd7"
-    },
-    {
       "path": ".agents/skills/workflow-authoring/SKILL.md",
       "sha256": "087658240296e3b1ec74205c60a96a9a4c67a17cf653f7867e6f316bd9afa94e"
     },
@@ -175,25 +229,70 @@
       "sha256": "23de7d9aac9d2694eae26fac2765d65f369c101ac348dac24d5f3bbe9e2d3ba4"
     },
     {
-      "path": ".agents/skills/quality-gate-orchestrator/SKILL.md",
-      "sha256": "3f9ef8278091f7781eacd58d000675fa6a996d81f96802a0abd37cc2a821d40f"
+      "path": ".agents/skills/swarm-coordination/SKILL.md",
+      "sha256": "8e6d032e4b609212ad7229b26fe1aa72af4afc0d6594a01cc945053a0b3e9ba7"
     },
     {
       "path": "documentation/architecture/adr-separate-platform-artifacts-deployment.adoc",
       "sha256": "e93d07dc6ce9485208a40d77b6a2c52a5d5442f36845192eac0963a86dc00297"
     },
     {
+      "path": "documentation/architecture/migration-plan.md",
+      "sha256": "dbf5618e62b96935b669cf880b3be84710c8a29ba7ce9a4f4aaf08ccf5a21e2f"
+    },
+    {
+      "path": "documentation/architecture/responsibility-separation-analysis.md",
+      "sha256": "38b08d772951f87b168f9432a8aadbd8b3705d5fedd2cc8511c8ad4a36eec078"
+    },
+    {
       "path": "src/tiny_swarm_world/__main__.py",
-      "sha256": "543c594c9df79faf04e83abcdc1182f05771c16494d48dd5a30cee73a05d2947"
+      "sha256": "5cf743ac4c186418a2e649458965b917e52f9cd78605c2eb3cf55febd7e7f4e3"
+    },
+    {
+      "path": "src/tiny_swarm_world/infrastructure/composition.py",
+      "sha256": "67aae1f2cf4a769500b16e27d2551981568a01fc24cc3b39d26eee05e111339a"
+    },
+    {
+      "path": "src/tiny_swarm_world/application/services/multipass/multipass_init_vms.py",
+      "sha256": "bc65b41f859e99eb7ff5ce8d6d59c33e062d1358a89588eb133735383f149b79"
+    },
+    {
+      "path": "infra/config/multipass/command_multipass_clean_repository_yaml.yaml",
+      "sha256": "bb483b476e21b225971051c07515948b33ab53a1778bbe1a2d62761361ed2deb"
+    },
+    {
+      "path": "infra/config/network/netplant/command_netplant_setup_yaml.yaml",
+      "sha256": "614f6206b97de2cd0e31c60986cddc5ef5dba759c2856ca8f6eb0e730c4670e4"
+    },
+    {
+      "path": "tests/architecture/test_hexagonal_imports.py",
+      "sha256": "1d9a78e08bc3f8f893ca0343d3bd2aaf544c997e09278345f5472b70114cc0be"
+    },
+    {
+      "path": "tests/architecture/test_infra_responsibility_boundaries.py",
+      "sha256": "973b13559bf11304a0023713a4cf842d223962309198660f710598d37bd97ba8"
     }
   ],
+  "worktreeCaveat": {
+    "nonWorkflowSourceChangesObserved": true,
+    "workflowAuthoringTouchedOnly": [
+      "documentation/workflow/workflow.md",
+      "documentation/workflow/context-pack.md",
+      "documentation/workflow/context-pack.json",
+      "documentation/workflow/execution-report.md"
+    ],
+    "executionInstruction": "Resolve ownership of existing source/preflight changes before executing slices with overlapping file locks."
+  },
   "staleWhen": [
     "any recorded governing hash changes",
-    "documentation/workflow/** changes outside the active workflow branch",
     "AGENTS.md or QUALITY.md changes",
-    "live integration commands are implemented without updating this workflow",
-    "mandatory service scope changes",
-    "secret handling or destructive cleanup policy changes",
-    "arc42 runtime, deployment, quality or risk sections are updated without checking this workflow"
+    "responsibility ADR is accepted, superseded or edited",
+    "command YAML schema changes",
+    "destructive-operation policy changes",
+    "state/inventory model changes",
+    "workflow-level CLI contract changes",
+    "documentation/workflow/** changes outside the active workflow branch",
+    "source/preflight worktree changes overlap an implementation slice without a handoff",
+    "arc42 runtime, deployment, concept, quality or risk sections change without checking this workflow"
   ]
 }
