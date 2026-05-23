@@ -1,22 +1,23 @@
 {
   "workflow": {
-    "name": "Consolidate Tiny Swarm World Skills and Agents",
+    "name": "Unify Tiny Swarm World System Boundaries",
     "file": "documentation/workflow/workflow.md",
-    "branch": "feature/workflow-tiny-swarm-skills-agents-20260523",
-    "date_created": "2026-05-23",
-    "process_strand": "skills-agents",
+    "branch": "codex/workflow-system-unification-20260524",
+    "date_created": "2026-05-24",
+    "process_strand": "system-unification",
     "execution_profile": "FULL_PATH",
-    "status": "WORKFLOW_EXECUTION_COMPLETED"
+    "status": "WORKFLOW_CREATED_PENDING_EXECUTION"
   },
   "slice_status": {
-    "01": "COMPLETED",
-    "02": "COMPLETED",
-    "03": "COMPLETED_NO_CHANGES_REQUIRED",
-    "04": "COMPLETED",
-    "05": "COMPLETED",
-    "06": "COMPLETED",
-    "07": "COMPLETED",
-    "08": "COMPLETED"
+    "01": "PENDING",
+    "02": "PENDING",
+    "03": "PENDING",
+    "04": "PENDING",
+    "05": "PENDING",
+    "06": "PENDING",
+    "07": "PENDING",
+    "08": "PENDING",
+    "09": "PENDING"
   },
   "governing_files": [
     {
@@ -32,8 +33,40 @@
       "sha256": "31C6AA7F2907D2C773C4ADD14F31235AB620F3A11B3D9DB913004A69D8650A24"
     },
     {
+      "path": ".importlinter",
+      "sha256": "4C5C879DDC20BF7CCB8ADCA2B907538264F9C3CF9C1C54E3076E7C008F1A62B4"
+    },
+    {
+      "path": ".agents/orchestrator/routing-rules.md",
+      "sha256": "4EE4C2C198471962EB48F66E53A9C4B4F15C40343420C200E7081103820757AB"
+    },
+    {
+      "path": "documentation/process/workflow-create.md",
+      "sha256": "DAE7115594172E159C051C3ECE15C0B535F1570EFBB28FC67440AEF0BBADC9C9"
+    },
+    {
+      "path": "documentation/process/workflow-execute.md",
+      "sha256": "E34ED8E85753002D62D11EDE7DF44C2FC8B84F2D7CD88694633EC0232F4C7FED"
+    },
+    {
+      "path": "documentation/architecture/responsibility-separation-analysis.md",
+      "sha256": "38B08D772951F87B168F9432A8AADBD8B3705D5FEDD2CC8511C8AD4A36EEC078"
+    },
+    {
+      "path": "documentation/architecture/adr-separate-platform-artifacts-deployment.adoc",
+      "sha256": "7DC5D3B510CDA2BFD4ABA0AB57C963FE950CF6D0ACA07D6EC70B8287D78C5526"
+    },
+    {
+      "path": "documentation/architecture/migration-plan.md",
+      "sha256": "DBF5618E62B96935B669CF880B3BE84710C8A29BA7CE9A4F4AAF08CCF5A21E2F"
+    },
+    {
       "path": "documentation/arc42/05_building_blocks.adoc",
       "sha256": "29460A5324C6675DF4F731686733A4369828C42DE2AC485967D25B5A8429BE32"
+    },
+    {
+      "path": "documentation/arc42/06_runtime_view.adoc",
+      "sha256": "DC88271ED400A0FC4D0C40EB94D75B90BC4B060FDE264529D947D3FB6A88FCE2"
     },
     {
       "path": "documentation/arc42/08_concepts.adoc",
@@ -44,48 +77,33 @@
       "sha256": "687988FCBC74CF6573136570486E22E9CC9E6573B11385307BBEFBE1436AD144"
     },
     {
-      "path": "documentation/skill-audit/skill-registry.md",
-      "sha256": "E231255A840818A92D3AC49692636FB0BE2F46651E370080AF3196EB529BD3FA"
-    },
-    {
-      "path": "documentation/skill-audit/skill-registry.json",
-      "sha256": "7628D2FB431880C3CD901433AC6F0B6B82F5565FD4861FAE259E00220F1606C3"
-    },
-    {
-      "path": "documentation/skill-audit/organigramm.md",
-      "sha256": "542F1E8FC0E9311DEF5B0D456D31F7F19B09B8A17F621CF4F26006CD81CA7190"
-    },
-    {
-      "path": "documentation/skill-audit/owner-map.md",
-      "sha256": "19E2AE03E5A120E8244A7904A59BB78C53EDA42959428220E101F4CCFAFE1A46"
+      "path": "documentation/arc42/11_risks_and_debt.adoc",
+      "sha256": "5598E89BDE570135AE852DCA2295C1B4AC6336BF19C315701B4778E02F50BED9"
     }
   ],
   "affected_areas": [
-    "AGENTS.md",
-    "README.md",
+    "documentation/epics",
     "documentation/workflow",
-    "documentation/workplan",
-    "documentation/process",
-    "documentation/skill-audit",
-    ".agents/prompts",
-    ".agents/orchestrator",
-    ".agents",
-    ".codex"
+    "documentation/architecture",
+    "documentation/arc42",
+    "documentation/deployment",
+    "documentation/system",
+    "documentation/user_guide",
+    "README.md",
+    "tests",
+    "src/tiny_swarm_world/domain",
+    "src/tiny_swarm_world/application",
+    "src/tiny_swarm_world/infrastructure",
+    "infra"
   ],
   "forbidden_areas": [
-    "src/tiny_swarm_world",
     "src/main/java",
-    "infra",
-    "docker",
-    "bin",
-    "tools",
-    "requirements.txt",
-    "setup.py",
     "pom.xml",
-    "Dockerfiles",
-    "compose files",
-    "stack files",
-    "runtime scripts"
+    "generated caches",
+    "local virtual environments",
+    "logs",
+    "IDE state",
+    "live infrastructure execution"
   ],
   "required_roles": [
     "senior_workflow_architect",
@@ -93,26 +111,20 @@
     "senior_system_architect",
     "senior_python_automation_developer",
     "senior_react_frontend",
-    "senior_documentation_engineer",
-    "senior_tester"
+    "senior_tester",
+    "senior_documentation_engineer"
   ],
   "conditional_roles": [
+    "senior_devops",
+    "senior_security_sandbox_engineer",
+    "console-status-ui-developer",
+    "resilience-engineering",
+    "adr-steward",
     "git_commit_reviewer",
-    "git_commit_operator",
-    "quality_reviewer",
-    "security_reviewer",
-    "senior_devops"
+    "git_commit_operator"
   ],
   "quality_commands": {
     "minimum": [
-      "git status",
-      "find .agents -type f | sort",
-      "find .codex -type f | sort",
-      "find .agents/skills -name SKILL.md -type f | sort",
-      "grep -R \"spring-boot-expert\\|forensic-analytics-expert\\|react-developer\" AGENTS.md README.md documentation .agents .codex || true",
-      "grep -R \"python-senior-developer\\|python-pip-packaging-expert\\|setup-bootstrap-expert\" .agents AGENTS.md documentation .codex README.md || true",
-      "grep -R \"^## Purpose\\|^## Responsibilities\\|^## Inputs\\|^## Outputs\\|^## Boundaries\\|STOP\" .agents/skills || true",
-      "grep -R \"documentation/agents\\|documentation/skill-audit\\|Organigramm Maintainer\\|Process Governance Maintainer\\|Typed Error Router\" .agents documentation .codex AGENTS.md README.md || true",
       "git diff --check"
     ],
     "preferred_full_gate": "python3 tools/quality_gate.py quality"
@@ -121,78 +133,86 @@
     {
       "id": "01",
       "owner": "senior_requirement_engineer",
-      "purpose": "Inspect existing skill and agent landscape",
+      "purpose": "EPIC baseline and completeness criteria",
       "dependencies": []
     },
     {
       "id": "02",
-      "owner": "senior_python_automation_developer",
-      "purpose": "Create missing required skills",
+      "owner": "senior_system_architect",
+      "purpose": "ADR and arc42 alignment",
       "dependencies": [
         "01"
       ]
     },
     {
       "id": "03",
-      "owner": "senior_system_architect",
-      "purpose": "Update retained skills",
+      "owner": "senior_tester",
+      "purpose": "Responsibility boundary quality coverage",
       "dependencies": [
-        "01"
+        "02"
       ]
     },
     {
       "id": "04",
-      "owner": "senior_workflow_architect",
-      "purpose": "Remove unrelated skills after reference checks",
+      "owner": "senior_python_automation_developer",
+      "purpose": "Command catalog, inventory, and evidence foundation",
       "dependencies": [
-        "02",
         "03"
       ]
     },
     {
       "id": "05",
-      "owner": "senior_documentation_engineer",
-      "purpose": "Update root AGENTS.md",
+      "owner": "senior_python_automation_developer",
+      "purpose": "Platform verify-after-apply contracts",
       "dependencies": [
         "04"
       ]
     },
     {
       "id": "06",
-      "owner": "senior_documentation_engineer",
-      "purpose": "Update workflow, README, workplan, and Codex docs",
+      "owner": "senior_python_automation_developer",
+      "purpose": "Artifact and deployment workflow contracts",
       "dependencies": [
         "05"
       ]
     },
     {
       "id": "07",
-      "owner": "senior_tester",
-      "purpose": "Execute quality gate",
+      "owner": "senior_python_automation_developer",
+      "purpose": "Console status UI consistency",
       "dependencies": [
-        "06"
+        "03"
       ]
     },
     {
       "id": "08",
-      "owner": "senior_workflow_architect",
-      "purpose": "Write final report",
+      "owner": "senior_devops",
+      "purpose": "Legacy live-surface quarantine",
       "dependencies": [
-        "07"
+        "03"
+      ]
+    },
+    {
+      "id": "09",
+      "owner": "senior_documentation_engineer",
+      "purpose": "Documentation sync, quality gate, execution report",
+      "dependencies": [
+        "06",
+        "07",
+        "08"
       ]
     }
   ],
   "stop_rules": [
-    "active branch is not feature/workflow-tiny-swarm-skills-agents-20260523",
+    "active branch is not codex/workflow-system-unification-20260524",
+    "local branch ref is missing",
     "unrelated or unclear changes exist",
-    "confidence drops below 95 percent",
-    ".agents or AGENTS.md is missing",
-    "a skill deletion candidate is still referenced with no safe replacement",
-    "registry, organigramm, Root Architect, or Typed Error Router ownership is ambiguous after Slice 01",
-    "skill-file format remains ambiguous between grouped .md files and <skill>/SKILL.md entrypoints after Slice 01",
-    "executable Python source, tools/**, requirements.txt, or setup.py would need to change",
-    "frontend-developer work would require package.json, React, Vite, Next.js, browser routes, API clients, .tsx, or .jsx files",
-    "documentation and actual skill files disagree",
-    "execution would require live infrastructure commands or product source changes"
+    "workflow or context-pack branch names are stale",
+    "live infrastructure execution would be required",
+    "EPIC baseline cannot align with architecture docs",
+    "ADR convention blocks architecture decision changes",
+    "QUALITY.md commands cannot be verified or documented",
+    "application imports infrastructure",
+    "React/browser, Spring Boot, Kubernetes-first, Java example, or unrelated analytics scope drives Python automation architecture"
   ]
 }
