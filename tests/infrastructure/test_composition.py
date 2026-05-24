@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.infrastructure import composition
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
@@ -88,6 +89,31 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.preflight.host_probe, HostPreflightProbe)
 
     def test_build_platform_services_wires_workflow_objects(self):
+        evidence_repository = _RecordingEvidenceRepository()
+        with patch.object(composition, "PortVmRepositoryYaml"):
+            with patch.object(composition, "PortNetplanRepositoryYaml"):
+                with patch.object(
+                    composition,
+                    "VerificationEvidenceLocalRepository",
+                    return_value=evidence_repository,
+                ):
+                    services = composition.build_platform_services()
+
+        self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
+        self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
+        self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
+        self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
+        self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
+        self.assertIs(
+            evidence_repository,
+            services.workflows.init.verification_evidence_repository,
+        )
+        self.assertIs(
+            evidence_repository,
+            services.workflows.reconcile.verification_evidence_repository,
+        )
+
+    def test_build_platform_services_wires_workflow_types_without_evidence_patch(self):
         with patch.object(composition, "PortVmRepositoryYaml"):
             with patch.object(composition, "PortNetplanRepositoryYaml"):
                 services = composition.build_platform_services()
@@ -132,15 +158,27 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services, composition.ApplicationServices)
 
     def test_composed_init_workflow_blocks_before_live_step_execution(self):
+        evidence_repository = _RecordingEvidenceRepository()
+        blocked_result = _blocked_contract_result("platform:init:multipass-vms")
         with patch.object(composition, "PortVmRepositoryYaml"):
             with patch.object(composition, "PortNetplanRepositoryYaml"):
                 with patch.object(
-                    composition.MultipassInitVms,
-                    "run",
-                    side_effect=AssertionError("init step must not run"),
+                    composition,
+                    "VerificationEvidenceLocalRepository",
+                    return_value=evidence_repository,
                 ):
-                    services = composition.build_platform_services()
-                    result = asyncio.run(services.workflows.init.run())
+                    with patch.object(
+                        composition.CommandWorkflow,
+                        "verify_config_contract",
+                        return_value=blocked_result,
+                    ):
+                        with patch.object(
+                            composition.MultipassInitVms,
+                            "run",
+                            side_effect=AssertionError("init step must not run"),
+                        ):
+                            services = composition.build_platform_services()
+                            result = asyncio.run(services.workflows.init.run())
 
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
@@ -149,20 +187,33 @@ class TestComposition(unittest.TestCase):
             result.verification_results[0].target_id,
         )
         self.assertEqual(
-            "command-backed verification is not configured",
+            "command_backed_verification_missing",
             result.verification_results[0].evidence["reason"],
         )
+        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
     def test_composed_reconcile_workflow_blocks_before_live_step_execution(self):
+        evidence_repository = _RecordingEvidenceRepository()
+        blocked_result = _blocked_contract_result("platform:reconcile:vm-ip-list")
         with patch.object(composition, "PortVmRepositoryYaml"):
             with patch.object(composition, "PortNetplanRepositoryYaml"):
                 with patch.object(
-                    composition.VmIpList,
-                    "run",
-                    side_effect=AssertionError("reconcile step must not run"),
+                    composition,
+                    "VerificationEvidenceLocalRepository",
+                    return_value=evidence_repository,
                 ):
-                    services = composition.build_platform_services()
-                    result = asyncio.run(services.workflows.reconcile.run())
+                    with patch.object(
+                        composition.CommandWorkflow,
+                        "verify_config_contract",
+                        return_value=blocked_result,
+                    ):
+                        with patch.object(
+                            composition.VmIpList,
+                            "run",
+                            side_effect=AssertionError("reconcile step must not run"),
+                        ):
+                            services = composition.build_platform_services()
+                            result = asyncio.run(services.workflows.reconcile.run())
 
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
@@ -171,6 +222,30 @@ class TestComposition(unittest.TestCase):
             result.verification_results[0].target_id,
         )
         self.assertEqual(
-            "command-backed verification is not configured",
+            "command_backed_verification_missing",
             result.verification_results[0].evidence["reason"],
         )
+        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+
+
+def _blocked_contract_result(target_id: str) -> VerificationResult:
+    return VerificationResult(
+        target_id=target_id,
+        status=VerificationStatus.BLOCKED,
+        message="Command-backed verification is not configured.",
+        evidence={
+            "phase": "pre_apply",
+            "reason": "command_backed_verification_missing",
+        },
+    )
+
+
+class _RecordingEvidenceRepository:
+    def __init__(self) -> None:
+        self.results: list[VerificationResult] = []
+
+    def append(self, result: VerificationResult) -> None:
+        self.results.append(result)
+
+    def list_all(self) -> tuple[VerificationResult, ...]:
+        return tuple(self.results)

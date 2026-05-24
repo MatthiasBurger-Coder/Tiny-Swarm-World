@@ -31,6 +31,9 @@ from tiny_swarm_world.infrastructure.adapters.file_management.file_manager impor
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
 from tiny_swarm_world.infrastructure.adapters.repositories.netplan_repository import PortNetplanRepositoryYaml
+from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
+    VerificationEvidenceLocalRepository,
+)
 from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
 
@@ -141,6 +144,7 @@ def build_platform_services() -> PlatformServices:
     vm_repository = PortVmRepositoryYaml()
     netplan_repository = PortNetplanRepositoryYaml()
     command_workflow = CommandWorkflow(vm_repository=vm_repository)
+    verification_evidence_repository = VerificationEvidenceLocalRepository()
     preflight = build_preflight_service()
     multipass_init_vms = MultipassInitVms(command_workflow)
     network_prepare_netplan = NetworkPrepareNetplan(
@@ -163,11 +167,19 @@ def build_platform_services() -> PlatformServices:
                 multipass_restart_vms,
                 multipass_docker_install,
                 multipass_docker_swarm_init,
-            )
+            ),
+            verification_evidence_repository=verification_evidence_repository,
         ),
-        reconcile=PlatformReconcileWorkflow((vm_ip_list,)),
-        reset=PlatformResetWorkflow(),
-        destroy=PlatformDestroyWorkflow(),
+        reconcile=PlatformReconcileWorkflow(
+            (vm_ip_list,),
+            verification_evidence_repository=verification_evidence_repository,
+        ),
+        reset=PlatformResetWorkflow(
+            verification_evidence_repository=verification_evidence_repository,
+        ),
+        destroy=PlatformDestroyWorkflow(
+            verification_evidence_repository=verification_evidence_repository,
+        ),
         verify=PlatformVerifyWorkflow((preflight,)),
     )
 

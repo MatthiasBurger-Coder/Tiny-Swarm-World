@@ -6,7 +6,7 @@ from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
 
 class MultipassDockerInstall:
     verification_target_id = "platform:init:multipass-docker-install"
-    operator_block_reason = "command-backed verification is not configured"
+    operator_block_reason = "post-apply verification is not implemented"
 
     def __init__(self, command_workflow: PortCommandWorkflow):
         self.command_workflow = command_workflow
@@ -15,15 +15,30 @@ class MultipassDockerInstall:
     async def run(self):
         self.logger.info("Install docker on multipass")
 
-        result = await self.command_workflow.run_async(
+        await self.command_workflow.run_async(
             "command_multipass_docker_install_yaml.yaml",
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
         )
-        self.logger.info(f"Install docker on multipass: {result}")
+        self.logger.info("Install docker on multipass completed")
 
         self.logger.info("Setting docker group on multipass")
-        result = await self.command_workflow.run_async(
+        await self.command_workflow.run_async(
             "command_multipass_docker_prepare_repository_yaml.yaml",
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
         )
-        self.logger.info(f"Setting docker group on multipass: {result}")
+        self.logger.info("Setting docker group on multipass completed")
+
+    def verify_pre_apply(self):
+        from tiny_swarm_world.application.services.platform.command_verification import (
+            verify_command_configs,
+        )
+
+        return verify_command_configs(
+            self.command_workflow,
+            target_id=self.verification_target_id,
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            config_files=(
+                "command_multipass_docker_install_yaml.yaml",
+                "command_multipass_docker_prepare_repository_yaml.yaml",
+            ),
+        )

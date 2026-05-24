@@ -23,4 +23,4 @@ class StepManagerIp:
         ipaddress = list(result[0].values())[0].split()[0]
         #ToDo listinig the correct vm ip use command vm_ip_list!!!
         self.docker_ip_list.external_ip = ipaddress
-        self.logger.info(f"Getting Manager IP: {result}")
+        self.logger.info("Manager IP result received")

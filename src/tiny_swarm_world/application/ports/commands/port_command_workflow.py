@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 
 from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
+from tiny_swarm_world.domain.inventory import VerificationResult
 
 
 class PortCommandWorkflow(ABC):
@@ -34,4 +35,15 @@ class PortCommandWorkflow(ABC):
         *,
         workflow_id: str,
     ) -> Any:
+        pass
+
+    @abstractmethod
+    def verify_config_contract(
+        self,
+        config_file: str,
+        parameter: Optional[Dict[ParameterType, str]] = None,
+        *,
+        workflow_id: str,
+        target_id: str,
+    ) -> VerificationResult:
         pass

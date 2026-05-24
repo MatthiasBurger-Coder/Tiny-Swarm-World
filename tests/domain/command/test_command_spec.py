@@ -54,6 +54,22 @@ class TestCommandSpec(unittest.TestCase):
         with self.assertRaises(ValidationError):
             CommandEntity(**spec)
 
+    def test_command_backed_verify_preserves_probe_metadata(self):
+        command = CommandEntity(
+            **_command_spec(
+                safety_class="safe_mutation",
+                verify={
+                    "type": "command",
+                    "description": "verify with a safe probe",
+                    "command": "probe:service-ready",
+                },
+            )
+        )
+
+        self.assertTrue(command.is_command_backed_verification)
+        self.assertFalse(command.is_manual_only_verification)
+        self.assertEqual("probe:service-ready", command.verify.command)
+
     def test_manual_verify_is_metadata_only(self):
         command = CommandEntity(
             **_command_spec(

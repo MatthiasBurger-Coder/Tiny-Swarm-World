@@ -159,6 +159,18 @@ async def _run_mutating_steps(
 ) -> PlatformWorkflowResult:
     verification_results: list[VerificationResult] = []
     for step in steps:
+        pre_apply_verification = _pre_apply_verification(step)
+        if pre_apply_verification is not None:
+            _append_evidence(verification_evidence_repository, pre_apply_verification)
+            verification_results.append(pre_apply_verification)
+            if pre_apply_verification.status != VerificationStatus.VERIFIED:
+                return PlatformWorkflowResult.blocked(
+                    semantics,
+                    f"{semantics.kind.value} step {pre_apply_verification.target_id} "
+                    "is blocked before apply: command-backed verification is not configured",
+                    tuple(verification_results),
+                )
+
         if not _step_has_verification(step):
             target_id = _verification_target_id(step)
             operator_reason = _operator_block_reason(step)
@@ -246,6 +258,16 @@ async def _run_mutating_steps(
 
 def _step_has_verification(step: AsyncWorkflowStep) -> bool:
     return callable(getattr(step, "verify", None))
+
+
+def _pre_apply_verification(step: AsyncWorkflowStep) -> VerificationResult | None:
+    verify_pre_apply = getattr(step, "verify_pre_apply", None)
+    if not callable(verify_pre_apply):
+        return None
+    result = verify_pre_apply()
+    if isinstance(result, VerificationResult):
+        return result
+    return None
 
 
 def _verification_target_id(step: AsyncWorkflowStep) -> str:

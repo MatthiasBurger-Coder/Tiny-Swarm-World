@@ -9,7 +9,7 @@ from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
 
 class MultipassDockerSwarmInit:
     verification_target_id = "platform:init:multipass-docker-swarm-init"
-    operator_block_reason = "command-backed verification is not configured"
+    operator_block_reason = "post-apply verification is not implemented"
 
     def __init__(self, command_workflow: PortCommandWorkflow):
         self.command_workflow = command_workflow
@@ -19,18 +19,18 @@ class MultipassDockerSwarmInit:
     async def run(self):
 
         self.logger.info("Initializing Docker Swarm on Manager")
-        result = await self.command_workflow.run_sync(
+        await self.command_workflow.run_sync(
             "command_multipass_docker_swarm_manager_init.yaml",
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
         )
-        self.logger.info(f"Initializing Docker Swarm on Manager: {result}")
+        self.logger.info("Initializing Docker Swarm on Manager completed")
 
         self.logger.info("Getting join-token for the worker")
-        result = await self.command_workflow.run_sync(
+        await self.command_workflow.run_sync(
             "command_multipass_docker_swarm_manager_join_token.yaml",
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
         )
-        self.logger.info(f"Getting join-token for the worker: {result}")
+        self.logger.info("Getting join-token for the worker completed with redacted output")
 
         self.logger.info("Getting Manager IP")
         result = await self.command_workflow.run_sync(
@@ -40,7 +40,7 @@ class MultipassDockerSwarmInit:
         ipaddress = list(result[0].values())[0].split()[0]
         self.parameter[ParameterType.SWARM_MANAGER_IP] = ipaddress
         self.parameter[ParameterType.SWARM_MANAGER_PORT] = "2377"
-        self.logger.info(f"Getting Manager IP: {result}")
+        self.logger.info("Getting Manager IP completed")
 
         self.logger.info("Getting join token")
         result = await self.command_workflow.run_sync(
@@ -48,16 +48,38 @@ class MultipassDockerSwarmInit:
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
         )
         token = result[0][1]
-        self.parameter[ParameterType.SWARM_TOKEN] = token
-        self.logger.info(f"Getting join token: {token}")
+        self.logger.info("Getting join token completed with redacted output")
 
         self.logger.info("Join worker to Swarm")
-        result = await self.command_workflow.run_sync(
-            "command_multipass_docker_swarm_join_worker.yaml",
-            self.parameter,
-            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+        join_params = dict(self.parameter)
+        join_params[ParameterType.SWARM_TOKEN] = token
+        try:
+            await self.command_workflow.run_sync(
+                "command_multipass_docker_swarm_join_worker.yaml",
+                join_params,
+                workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            )
+        finally:
+            join_params.pop(ParameterType.SWARM_TOKEN, None)
+            self.parameter.pop(ParameterType.SWARM_TOKEN, None)
+        self.logger.info("Join worker to Swarm completed")
+
+    def verify_pre_apply(self):
+        from tiny_swarm_world.application.services.platform.command_verification import (
+            verify_command_configs,
         )
-        self.logger.info(f"Join worker to Swarm: {result}")
+
+        return verify_command_configs(
+            self.command_workflow,
+            target_id=self.verification_target_id,
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            config_files=(
+                "command_multipass_docker_swarm_manager_init.yaml",
+                "command_multipass_docker_swarm_manager_join_token.yaml",
+                "command_multipass_docker_swarm_manager_ip.yaml",
+                "command_multipass_docker_swarm_join_worker.yaml",
+            ),
+        )
 
     def _setup_commands_init(self, config_file: str, parameter: Optional[Dict[ParameterType, str]]) -> Dict[
         str, Dict[int, ExecutableCommandEntity]]:
@@ -71,11 +93,12 @@ class MultipassDockerSwarmInit:
             Dict[str, Dict[int, ExecutableCommandEntity]]: The command list.
         """
         parameter = parameter or {}
-        self.logger.info(f"getting command list from {config_file}")
+        self.logger.info("getting command list from configured catalog")
         command_list = self.command_workflow.build_command_list(
             config_file,
             parameter,
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
         )
-        self.logger.info(f"command builder: {command_list}")
+        command_count = sum(len(commands) for commands in command_list.values())
+        self.logger.info("command list built with %s configured entries", command_count)
         return command_list

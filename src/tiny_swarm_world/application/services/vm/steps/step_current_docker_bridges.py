@@ -22,20 +22,20 @@ class StepCurrentDockerBridges:
             "command_vm_bridge_list.yaml",
             workflow_id=CommandWorkflowId.PLATFORM_RECONCILE.value,
         )
-        self.logger.info(f"Getting current docker bridges: {result}")
+        self.logger.info("Current docker bridge list received")
         bridge_list = result[0][1].split('\n')
 
         for bridge in bridge_list:
 
             self.parameter[ParameterType.DOCKER_BRIDGE] = bridge
 
-            self.logger.info(f"docker bridge: {bridge}")
+            self.logger.info("Inspecting configured docker bridge")
             result = await self.command_workflow.run_async(
                 "command_vm_docker_bridge_list.yaml",
                 self.parameter,
                 workflow_id=CommandWorkflowId.PLATFORM_RECONCILE.value,
             )
-            self.logger.info(f"docker bridge {bridge} ip: {result}")
+            self.logger.info("Docker bridge address received")
 
             match bridge:
                 case DockerBridgeType.BRIDGE.value:

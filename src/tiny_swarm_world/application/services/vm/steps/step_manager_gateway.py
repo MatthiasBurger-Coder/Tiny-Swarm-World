@@ -22,7 +22,7 @@ class StepManagerGateway:
             "command_vm_gateway_yaml.yaml",
             workflow_id=CommandWorkflowId.PLATFORM_RECONCILE.value,
         )
-        self.logger.info(f"Getting Manager Gateway: {result}")
+        self.logger.info("Manager gateway result received")
 
         text = list(result[0].values())[0]
 
@@ -30,4 +30,4 @@ class StepManagerGateway:
         if match:
             ip_address = match.group(1)
             self.docker_ip_list.gateway = IpValue(ip_address=ip_address)
-            self.logger.info(f"extracted ip address: {ip_address}")
+            self.logger.info("Manager gateway address extracted")

@@ -8,8 +8,14 @@ from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_containe
 from tiny_swarm_world.infrastructure.project_paths import config_root
 from tiny_swarm_world.domain.command.command_entity import (
     CommandCatalogValidationError,
+    CommandSafetyClass,
+    CommandVerifySpec,
     CommandWorkflowId,
 )
+from tiny_swarm_world.application.ports.commands.executable_command import (
+    ExecutableCommandEntity,
+)
+from tiny_swarm_world.domain.inventory import VerificationStatus
 
 
 EXPECTED_COMMAND_COUNTS = {
@@ -135,6 +141,100 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
                 workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
             )
 
+    def test_manual_mutating_catalog_blocks_pre_apply_verification(self):
+        workflow = CommandWorkflow()
+
+        result = workflow.verify_config_contract(
+            "command_multipass_init_repository_yaml.yaml",
+            _smoke_parameters(),
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            target_id="platform:init:multipass-vms",
+        )
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("command_backed_verification_missing", result.evidence["reason"])
+        self.assertEqual("3", result.evidence["manual_verify_count"])
+
+    def test_read_only_catalog_verifies_without_running_commands(self):
+        workflow = CommandWorkflow()
+
+        result = workflow.verify_config_contract(
+            "command_vm_gateway_yaml.yaml",
+            _smoke_parameters(),
+            workflow_id=CommandWorkflowId.PLATFORM_RECONCILE.value,
+            target_id="platform:reconcile:vm-ip-list",
+        )
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("0", result.evidence["mutating_count"])
+
+    def test_command_backed_mutating_catalog_verifies_contract(self):
+        workflow = _StaticCommandWorkflow(
+            {
+                "local": {
+                    1: ExecutableCommandEntity(
+                        index=1,
+                        command_id="probe.ready",
+                        safety_class=CommandSafetyClass.SAFE_MUTATION,
+                        verify=CommandVerifySpec(
+                            type="command",
+                            description="safe probe",
+                            command="probe:platform:vm-created",
+                        ),
+                    )
+                }
+            }
+        )
+
+        result = workflow.verify_config_contract(
+            "synthetic.yaml",
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            target_id="platform:init:synthetic",
+        )
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("1", result.evidence["command_backed_verify_count"])
+
+    def test_unknown_command_backed_probe_blocks_contract(self):
+        workflow = _StaticCommandWorkflow(
+            {
+                "local": {
+                    1: ExecutableCommandEntity(
+                        index=1,
+                        command_id="probe.unknown",
+                        safety_class=CommandSafetyClass.SAFE_MUTATION,
+                        verify=CommandVerifySpec(
+                            type="command",
+                            description="unknown probe",
+                            command="probe:unknown",
+                        ),
+                    )
+                }
+            }
+        )
+
+        result = workflow.verify_config_contract(
+            "synthetic.yaml",
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            target_id="platform:init:synthetic",
+        )
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("verification_probe_not_registered", result.evidence["reason"])
+        self.assertEqual("1", result.evidence["unknown_probe_count"])
+
+    def test_invalid_catalog_blocks_pre_apply_verification(self):
+        workflow = _StaticCommandWorkflow(error=CommandCatalogValidationError("invalid"))
+
+        result = workflow.verify_config_contract(
+            "synthetic.yaml",
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            target_id="platform:init:synthetic",
+        )
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("catalog_validation_failed", result.evidence["reason"])
+
 
 def _smoke_parameters() -> dict[ParameterType, str]:
     return {
@@ -143,3 +243,24 @@ def _smoke_parameters() -> dict[ParameterType, str]:
         ParameterType.SWARM_TOKEN: "dummy-token",
         ParameterType.DOCKER_BRIDGE: "bridge",
     }
+
+
+class _StaticCommandWorkflow(CommandWorkflow):
+    def __init__(
+        self,
+        command_list: dict[str, dict[int, ExecutableCommandEntity]] | None = None,
+        error: Exception | None = None,
+    ) -> None:
+        self.command_list = command_list or {}
+        self.error = error
+
+    def build_command_list(
+        self,
+        config_file: str,
+        parameter: dict[ParameterType, str] | None = None,
+        *,
+        workflow_id: str,
+    ) -> dict[str, dict[int, ExecutableCommandEntity]]:
+        if self.error is not None:
+            raise self.error
+        return self.command_list

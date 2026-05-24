@@ -9,6 +9,11 @@ from tiny_swarm_world.domain.command.command_entity import (
     CommandVerifyType,
     CommandWorkflowId,
 )
+from tiny_swarm_world.domain.command.verification_probe import (
+    VerificationProbeContract,
+    get_verification_probe_contract,
+    is_probe_allowed_for_workflow,
+)
 
 __all__ = [
     "CommandCatalogValidationError",
@@ -20,4 +25,7 @@ __all__ = [
     "CommandVerifySpec",
     "CommandVerifyType",
     "CommandWorkflowId",
+    "VerificationProbeContract",
+    "get_verification_probe_contract",
+    "is_probe_allowed_for_workflow",
 ]
