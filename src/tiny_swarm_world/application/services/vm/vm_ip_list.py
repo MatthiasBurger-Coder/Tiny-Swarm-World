@@ -12,6 +12,9 @@ from tiny_swarm_world.domain.network.socat.docker_ip_list import DockerIpList
 
 
 class VmIpList:
+    verification_target_id = "platform:reconcile:vm-ip-list"
+    operator_block_reason = "command-backed verification is not configured"
+
     def __init__(self, command_workflow: PortCommandWorkflow, vm_repository: PortVmRepository):
         self.command_workflow = command_workflow
         self.logger = logging.getLogger(self.__class__.__name__)

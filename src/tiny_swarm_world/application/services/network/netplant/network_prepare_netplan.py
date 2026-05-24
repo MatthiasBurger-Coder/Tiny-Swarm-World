@@ -11,6 +11,9 @@ from tiny_swarm_world.domain.network.network import Network
 
 
 class NetworkPrepareNetplan:
+    verification_target_id = "platform:init:network-prepare-netplan"
+    operator_block_reason = "command-backed verification is not configured"
+
     def __init__(
         self,
         command_workflow: PortCommandWorkflow,

@@ -21,9 +21,9 @@ Remaining debt:
   catalog;
 * command catalog entries mostly declare manual verification, so command-backed
   verification remains planned work;
-* composed mutating platform workflow steps still need concrete verification
-  contracts before the apply-then-verify gate can run them instead of blocking
-  before apply;
+* composed mutating platform workflows now block with explicit target IDs and
+  operator-facing reasons before apply, but still need concrete command-backed
+  verification contracts before they can safely execute live steps;
 * the host-neutral desired inventory baseline is committed, but observed
   inventory collection and reconciliation are not yet wired into platform
   verification workflows;

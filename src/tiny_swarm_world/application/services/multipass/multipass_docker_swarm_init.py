@@ -8,6 +8,9 @@ from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
 
 
 class MultipassDockerSwarmInit:
+    verification_target_id = "platform:init:multipass-docker-swarm-init"
+    operator_block_reason = "command-backed verification is not configured"
+
     def __init__(self, command_workflow: PortCommandWorkflow):
         self.command_workflow = command_workflow
         self.logger = logging.getLogger(self.__class__.__name__)

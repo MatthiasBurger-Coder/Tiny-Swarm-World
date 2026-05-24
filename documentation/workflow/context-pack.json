@@ -14,7 +14,7 @@
     "02": "COMPLETED_PUSHED",
     "03": "COMPLETED_PUSHED",
     "04": "COMPLETED_PUSHED",
-    "05": "PENDING",
+    "05": "COMPLETED_PENDING_COMMIT",
     "06": "PENDING",
     "07": "PENDING",
     "08": "PENDING",
@@ -67,7 +67,7 @@
     },
     {
       "path": "documentation/arc42/06_runtime_view.adoc",
-      "sha256": "DC88271ED400A0FC4D0C40EB94D75B90BC4B060FDE264529D947D3FB6A88FCE2"
+      "sha256": "BDA78D58836E46B648A2203561FD2193FDC7EB443864F19A616DBB7C61062D42"
     },
     {
       "path": "documentation/arc42/08_concepts.adoc",
@@ -79,7 +79,7 @@
     },
     {
       "path": "documentation/arc42/11_risks_and_debt.adoc",
-      "sha256": "F445736A8C94D6CCC2870C6B1A981AF6EBF7BFE6FAB42242BF4EC6320DD06433"
+      "sha256": "21C5651ADD0964462A5F85FA4668A145D4C85B158758DFD874BD4EEDB7FC7BF7"
     }
   ],
   "affected_areas": [

@@ -55,10 +55,13 @@ the workflow runs it. If that path is missing, the workflow returns `blocked`
 and does not apply the step.
 
 The gate itself is implemented as fail-closed workflow behavior. At the current
-system-unification baseline, some composed mutating platform steps still expose
-only `run()` and do not yet expose concrete verification contracts. Those steps
-therefore block before apply until a later slice wires tested verification
-wrappers or equivalent verifiable step contracts.
+system-unification baseline, the composed `platform init` and
+`platform reconcile` steps expose explicit verification target IDs and
+operator-safe block reasons, but they still do not expose concrete
+command-backed verification contracts. These workflows therefore return
+`blocked` before running live steps. This keeps Multipass, Docker Swarm,
+netplan, and VM reconciliation commands from running until later slices add
+tested verification wrappers or equivalent verifiable step contracts.
 
 Continuation requires both parts:
 
@@ -72,3 +75,7 @@ non-verified evidence return `failed_to_verify`, while missing evidence returns
 
 When a verification evidence repository is configured, the workflow appends
 the typed verification result before making the continuation decision.
+
+The non-mutating `platform verify` workflow also interprets preflight results.
+Failed preflight checks now return `failed_to_verify` with summary-only
+verification evidence instead of reporting a completed verify workflow.

@@ -72,7 +72,7 @@ creation evidence.
 | 02 | `COMPLETED_PUSHED` | `40b99ab78d2e853573018289ff7dfa4aae594756` | `origin/codex/workflow-system-unification-20260524` | Preserved ADR location convention and aligned arc42 implementation status |
 | 03 | `COMPLETED_PUSHED` | `56186a4b53a15c59d1e9e39360f74a97150ff9ff` | `origin/codex/workflow-system-unification-20260524` | Added static boundary tests for blocked CLI workflows and console/status UI scope |
 | 04 | `COMPLETED_PUSHED` | `4b3e6e0102a1f70e592f65b88db7af7325efc3c3` | `origin/codex/workflow-system-unification-20260524` | Added command evidence policy, desired inventory baseline, and redaction checks |
-| 05 | `PENDING` | | | Platform verify-after-apply contracts |
+| 05 | `COMPLETED_PENDING_COMMIT` | | | Platform init/reconcile block before apply with explicit reasons; verify fails on failed preflight |
 | 06 | `PENDING` | | | Artifact and deployment workflow contracts |
 | 07 | `PENDING` | | | Console status UI consistency |
 | 08 | `PENDING` | | | Legacy live-surface quarantine |

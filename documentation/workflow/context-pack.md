@@ -30,7 +30,7 @@ workflow file.
 | 02 | `COMPLETED_PUSHED` |
 | 03 | `COMPLETED_PUSHED` |
 | 04 | `COMPLETED_PUSHED` |
-| 05 | `PENDING` |
+| 05 | `COMPLETED_PENDING_COMMIT` |
 | 06 | `PENDING` |
 | 07 | `PENDING` |
 | 08 | `PENDING` |
@@ -51,10 +51,10 @@ workflow file.
 | `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc` | `7DC5D3B510CDA2BFD4ABA0AB57C963FE950CF6D0ACA07D6EC70B8287D78C5526` |
 | `documentation/architecture/migration-plan.md` | `DBF5618E62B96935B669CF880B3BE84710C8A29BA7CE9A4F4AAF08CCF5A21E2F` |
 | `documentation/arc42/05_building_blocks.adoc` | `7C75DD678D9153979979EF7F31759519FD3779F99B106B9EA73758D722140DDD` |
-| `documentation/arc42/06_runtime_view.adoc` | `DC88271ED400A0FC4D0C40EB94D75B90BC4B060FDE264529D947D3FB6A88FCE2` |
+| `documentation/arc42/06_runtime_view.adoc` | `BDA78D58836E46B648A2203561FD2193FDC7EB443864F19A616DBB7C61062D42` |
 | `documentation/arc42/08_concepts.adoc` | `2BC78C86901D5CE98F210AC6F6DA0D3FBDA3F7A59723231C040A0C9919584F51` |
 | `documentation/arc42/10_quality_requirements.adoc` | `DDE1208E83235F36DB22700039B008C84AAEFCA28DFA53E57CF0E936C05BAB9B` |
-| `documentation/arc42/11_risks_and_debt.adoc` | `F445736A8C94D6CCC2870C6B1A981AF6EBF7BFE6FAB42242BF4EC6320DD06433` |
+| `documentation/arc42/11_risks_and_debt.adoc` | `21C5651ADD0964462A5F85FA4668A145D4C85B158758DFD874BD4EEDB7FC7BF7` |
 
 This context pack is stale when any listed hash changes, when
 `documentation/workflow/**` changes outside workflow execution, when
