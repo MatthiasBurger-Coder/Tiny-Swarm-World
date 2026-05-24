@@ -58,16 +58,71 @@ class TestVerificationResult(unittest.TestCase):
             )
 
     def test_result_rejects_sensitive_evidence_key_names(self):
-        with self.assertRaises(ValueError):
-            VerificationResult(
-                target_id="secret:probe",
-                evidence={"password_value": "redacted"},
-            )
+        sensitive_keys = ("password_value", "api_key", "credential_id")
+
+        for sensitive_key in sensitive_keys:
+            with self.subTest(sensitive_key=sensitive_key):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "sensitive verification evidence key",
+                ):
+                    VerificationResult(
+                        target_id="probe:evidence",
+                        evidence={sensitive_key: "redacted"},
+                    )
 
     def test_result_rejects_raw_or_sensitive_evidence_values(self):
         raw_values = (
             "stdout: secret output",
+            "AWS_ACCESS_KEY_ID=hidden",
+            "AWS_SECRET_ACCESS_KEY=hidden",
+            "awsSecretAccessKey=hidden",
+            "awsSecretAccessKey: hidden",
+            "DOCKER_PASSWORD=hidden",
+            "Docker --context default ps",
+            "docker-compose up -d",
+            "GITHUB_TOKEN=hidden",
+            '{"awsSecretAccessKey":"hidden"}',
+            '{"privateKey":"hidden"}',
+            "{'awsSecretAccessKey': 'hidden'}",
+            "'privateKey': hidden",
+            "MONKEY_TOKEN=hidden",
+            "privateKey=hidden",
+            "privateKey: hidden",
+            "PRIVATE_KEY=hidden",
+            "PRIVATE_KEY: hidden",
+            "SSH_DEPLOY_KEY=hidden",
+            "sudo docker ps",
+            "curl -fsSL https://example.invalid",
+            "run docker ps",
+            "docker --context default ps",
+            "docker build .",
+            "docker buildx build .",
+            "docker info",
+            "docker image ls",
+            "docker load -i image.tar",
+            "docker save alpine -o image.tar",
+            "Docker-compose up -d",
+            "docker stop portainer",
+            "docker ps",
+            "docker logs portainer",
             "docker swarm join --token hidden",
+            "multipass alias primary:docker docker",
+            "multipass info tsw-manager-1",
+            "multipass networks",
+            "multipass stop tsw-manager-1",
+            "netplan generate",
+            "bash bootstrap.sh",
+            "netplan apply",
+            "netplan try",
+            "python -m http.server",
+            "python3 -c 'print(1)'",
+            "python3 bootstrap.py",
+            "socat TCP-LISTEN:80",
+            "https://admin:hunter2@nexus.local",
+            "https://token@nexus.local",
+            "https://user%3Ahidden@nexus.local",
+            "Bearer hidden",
             "PASSWORD=value",
             "line one\nline two",
         )
@@ -83,7 +138,52 @@ class TestVerificationResult(unittest.TestCase):
     def test_result_rejects_raw_or_sensitive_messages(self):
         raw_messages = (
             "stdout: raw output",
+            "AWS_ACCESS_KEY_ID=hidden",
+            "AWS_SECRET_ACCESS_KEY=hidden",
+            "awsSecretAccessKey=hidden",
+            "awsSecretAccessKey: hidden",
+            "DOCKER_PASSWORD=hidden",
+            "Docker --context default ps",
+            "docker-compose up -d",
+            "GITHUB_TOKEN=hidden",
+            '{"awsSecretAccessKey":"hidden"}',
+            '{"privateKey":"hidden"}',
+            "{'awsSecretAccessKey': 'hidden'}",
+            "'privateKey': hidden",
+            "MONKEY_TOKEN=hidden",
+            "privateKey=hidden",
+            "privateKey: hidden",
+            "PRIVATE_KEY=hidden",
+            "PRIVATE_KEY: hidden",
+            "SSH_DEPLOY_KEY=hidden",
+            "sudo docker ps",
+            "curl -fsSL https://example.invalid",
+            "run docker ps",
+            "docker --context default ps",
+            "docker build .",
+            "docker buildx build .",
+            "docker info",
+            "docker image ls",
+            "docker load -i image.tar",
+            "docker save alpine -o image.tar",
+            "Docker-compose up -d",
+            "docker stop portainer",
+            "docker ps",
+            "docker logs portainer",
             "docker swarm join --token hidden",
+            "multipass alias primary:docker docker",
+            "multipass info tsw-manager-1",
+            "multipass networks",
+            "multipass stop tsw-manager-1",
+            "netplan generate",
+            "python3 bootstrap.py",
+            "python -m http.server",
+            "python3 -c 'print(1)'",
+            "curl https://example.invalid",
+            "netplan try",
+            "https://admin:hunter2@nexus.local",
+            "https://token@nexus.local",
+            "https://user%3Ahidden@nexus.local",
             "PASSWORD=value",
             "line one\nline two",
         )
@@ -95,6 +195,31 @@ class TestVerificationResult(unittest.TestCase):
                         target_id="command:probe",
                         message=raw_message,
                     )
+
+    def test_result_rejects_invalid_target_ids(self):
+        invalid_target_ids = (
+            "",
+            "AWS_SECRET_ACCESS_KEY=hidden",
+            "command probe",
+            "docker ps",
+            "vm:manager\nstdout",
+            "Platform:Preflight",
+        )
+
+        for target_id in invalid_target_ids:
+            with self.subTest(target_id=target_id):
+                with self.assertRaises(ValueError):
+                    VerificationResult(target_id=target_id)
+
+    def test_result_allows_summary_text_that_mentions_tool_names(self):
+        result = VerificationResult(
+            target_id="command:probe",
+            message="Docker state not checked.",
+            evidence={"summary": "Multipass state unavailable."},
+        )
+
+        self.assertEqual("Docker state not checked.", result.message)
+        self.assertEqual("Multipass state unavailable.", result.evidence["summary"])
 
 
 class TestInventoryModels(unittest.TestCase):
@@ -172,6 +297,55 @@ class TestInventoryModels(unittest.TestCase):
 
         self.assertEqual(inventory, round_tripped)
         self.assertEqual(VerificationStatus.VERIFIED, round_tripped.vms[0].verification.status)
+
+    def test_observed_inventory_rejects_raw_or_sensitive_text(self):
+        cases = (
+            lambda: VmObservedState(name="manager", status="stdout: raw output"),
+            lambda: VmObservedState(name="manager", ip_addresses=("token-value",)),
+            lambda: VmObservedState(name="manager", status="AWS_SECRET_ACCESS_KEY=hidden"),
+            lambda: VmObservedState(name="manager", status='{"privateKey":"hidden"}'),
+            lambda: VmObservedState(
+                name="manager",
+                status="{'awsSecretAccessKey': 'hidden'}",
+            ),
+            lambda: VmObservedState(name="manager", status="'privateKey': hidden"),
+            lambda: VmObservedState(name="manager", status="docker-compose up -d"),
+            lambda: ArtifactRegistryObservedState(
+                name="nexus",
+                endpoint="https://admin:hunter2@nexus.local",
+            ),
+            lambda: ArtifactRegistryObservedState(
+                name="nexus",
+                endpoint="https://token@nexus.local",
+            ),
+            lambda: ArtifactRegistryObservedState(
+                name="nexus",
+                endpoint="https://user%3Ahidden@nexus.local",
+            ),
+            lambda: VmObservedState(name="manager", status="privateKey=hidden"),
+            lambda: VmObservedState(name="manager", status="python3 -c 'print(1)'"),
+            lambda: VmObservedState(name="manager", status="privateKey: hidden"),
+            lambda: VmObservedState(name="manager", status="Docker --context default ps"),
+            lambda: DockerObservedState(version="docker swarm join --token hidden"),
+            lambda: NetworkObservedState(name="control", addresses=("line one\nline two",)),
+            lambda: StackObservedState(name="portainer", services=("bash bootstrap.sh",)),
+            lambda: ArtifactRegistryObservedState(
+                name="nexus",
+                endpoint="Bearer hidden",
+            ),
+        )
+
+        for build in cases:
+            with self.subTest(build=build):
+                with self.assertRaises(ValueError):
+                    build()
+
+    def test_observed_inventory_rejects_unsupported_schema_version(self):
+        with self.assertRaises(ValueError):
+            ObservedInventory(schema_version="GITHUB_TOKEN=hidden")
+
+        with self.assertRaises(ValueError):
+            ObservedInventory.from_dict({"schema_version": "2"})
 
     def test_inventory_collection_fields_reject_plain_strings(self):
         with self.assertRaises(ValueError):

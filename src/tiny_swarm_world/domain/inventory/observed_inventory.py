@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
+from tiny_swarm_world.domain.inventory.safe_text import validate_observed_inventory_text
 from tiny_swarm_world.domain.inventory.verification import VerificationResult
 
 
@@ -19,7 +20,10 @@ class VmObservedState:
     def __post_init__(self) -> None:
         if not self.name:
             raise ValueError("observed VM name must not be empty")
-        object.__setattr__(self, "ip_addresses", _string_tuple(self.ip_addresses))
+        _validate_observed_field("name", self.name)
+        _validate_observed_field("status", self.status)
+        _validate_observed_field("role", self.role)
+        object.__setattr__(self, "ip_addresses", _safe_string_tuple("ip_addresses", self.ip_addresses))
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -53,7 +57,9 @@ class NetworkObservedState:
     def __post_init__(self) -> None:
         if not self.name:
             raise ValueError("observed network name must not be empty")
-        object.__setattr__(self, "addresses", _string_tuple(self.addresses))
+        _validate_observed_field("name", self.name)
+        _validate_observed_field("status", self.status)
+        object.__setattr__(self, "addresses", _safe_string_tuple("addresses", self.addresses))
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -82,6 +88,10 @@ class DockerObservedState:
         default_factory=lambda: VerificationResult("docker", message="Docker state not checked.")
     )
 
+    def __post_init__(self) -> None:
+        _validate_observed_field("version", self.version)
+        _validate_observed_field("status", self.status)
+
     def to_dict(self) -> dict[str, object]:
         return {
             "installed": self.installed,
@@ -109,6 +119,9 @@ class SwarmObservedState:
     verification: VerificationResult = field(
         default_factory=lambda: VerificationResult("swarm", message="Swarm state not checked.")
     )
+
+    def __post_init__(self) -> None:
+        _validate_observed_field("status", self.status)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -142,7 +155,9 @@ class StackObservedState:
     def __post_init__(self) -> None:
         if not self.name:
             raise ValueError("observed stack name must not be empty")
-        object.__setattr__(self, "services", _string_tuple(self.services))
+        _validate_observed_field("name", self.name)
+        _validate_observed_field("status", self.status)
+        object.__setattr__(self, "services", _safe_string_tuple("services", self.services))
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -177,6 +192,9 @@ class ArtifactRegistryObservedState:
     def __post_init__(self) -> None:
         if not self.name:
             raise ValueError("observed artifact registry name must not be empty")
+        _validate_observed_field("name", self.name)
+        _validate_observed_field("endpoint", self.endpoint)
+        _validate_observed_field("status", self.status)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -213,6 +231,8 @@ class ObservedInventory:
     schema_version: str = "1"
 
     def __post_init__(self) -> None:
+        if self.schema_version != "1":
+            raise ValueError("unsupported observed inventory schema version")
         object.__setattr__(self, "vms", tuple(self.vms))
         object.__setattr__(self, "networks", tuple(self.networks))
         object.__setattr__(self, "stacks", tuple(self.stacks))
@@ -271,6 +291,17 @@ def _string_tuple(values: Sequence[object]) -> tuple[str, ...]:
     if isinstance(values, str):
         raise ValueError("inventory collection fields must not be strings")
     return tuple(str(value) for value in values)
+
+
+def _safe_string_tuple(field_name: str, values: Sequence[object]) -> tuple[str, ...]:
+    return tuple(
+        validate_observed_inventory_text(field_name, value)
+        for value in _string_tuple(values)
+    )
+
+
+def _validate_observed_field(field_name: str, value: object) -> None:
+    validate_observed_inventory_text(field_name, str(value))
 
 
 def _object_sequence(value: object) -> tuple[object, ...]:
