@@ -2,7 +2,19 @@ import asyncio
 import unittest
 from unittest.mock import patch, MagicMock
 
-from tiny_swarm_world.application.ports.ui.port_ui import AGGREGATE_INSTANCE
+from tiny_swarm_world.application.ports.ui.port_ui import (
+    AGGREGATE_INSTANCE,
+    SETUP_RECOVERY_ACTIONS,
+    STATUS_BLOCKED,
+    STATUS_FAILED,
+    STATUS_FAILED_TO_APPLY,
+    STATUS_FAILED_TO_PREPARE,
+    STATUS_FAILED_TO_VERIFY,
+    STATUS_NOT_RUN,
+    STATUS_REFUSED,
+    STATUS_RESOURCE_GATED,
+    STATUS_SUCCESS,
+)
 from tiny_swarm_world.infrastructure.adapters.ui.linux_ui import LinuxUI
 
 
@@ -67,11 +79,96 @@ class TestLinuxUI(unittest.TestCase):
         )
 
     def test_terminal_status_contract_accepts_runner_and_executer_values(self):
-        for terminal_result in ("Success", "Error", "Failed", "success", "error", "failed"):
+        terminal_results = (
+            "Success",
+            "completed",
+            "passed",
+            "verified",
+            "Error",
+            "Failed",
+            "success",
+            "error",
+            "failed",
+            STATUS_REFUSED,
+            STATUS_BLOCKED,
+            STATUS_RESOURCE_GATED,
+            STATUS_FAILED_TO_PREPARE,
+            STATUS_FAILED_TO_APPLY,
+            STATUS_FAILED_TO_VERIFY,
+            STATUS_NOT_RUN,
+            "refused",
+            "blocked",
+            "resource_gated",
+            "resource-gated",
+            "failed_to_prepare",
+            "failed-to-prepare",
+            "failed_to_apply",
+            "failed-to-apply",
+            "failed_to_verify",
+            "failed-to-verify",
+            "not_run",
+            "not-run",
+        )
+        for terminal_result in terminal_results:
             with self.subTest(result=terminal_result):
                 self.assertTrue(self.ui.is_terminal_result(terminal_result))
 
         self.assertFalse(self.ui.is_terminal_result("Pending"))
+
+    def test_setup_terminal_states_report_errors_with_recovery_actions(self):
+        cases = (
+            (STATUS_REFUSED, SETUP_RECOVERY_ACTIONS["refused"]),
+            (STATUS_BLOCKED, SETUP_RECOVERY_ACTIONS["blocked"]),
+            (STATUS_RESOURCE_GATED, SETUP_RECOVERY_ACTIONS["resource_gated"]),
+            (STATUS_FAILED_TO_PREPARE, SETUP_RECOVERY_ACTIONS["failed_to_prepare"]),
+            (STATUS_FAILED_TO_APPLY, SETUP_RECOVERY_ACTIONS["failed_to_apply"]),
+            (STATUS_FAILED_TO_VERIFY, SETUP_RECOVERY_ACTIONS["failed_to_verify"]),
+            (STATUS_FAILED, SETUP_RECOVERY_ACTIONS["failed"]),
+            (STATUS_NOT_RUN, SETUP_RECOVERY_ACTIONS["not_run"]),
+        )
+
+        for result, expected_recovery in cases:
+            with self.subTest(result=result):
+                self.ui.update_status("Instance1", task="setup", step="phase", result=result)
+                self.ui.update_status("Instance2", task="setup", step="phase", result="Success")
+
+                self.assertTrue(self.ui.all_instances_terminal())
+                self.assertEqual("All instances completed with errors", self.ui.completion_summary())
+                self.assertEqual(expected_recovery, self.ui.recovery_action(result))
+
+    def test_setup_success_terminal_states_do_not_report_recovery_actions(self):
+        for result in (STATUS_SUCCESS, "completed", "passed", "verified"):
+            with self.subTest(result=result):
+                self.ui.update_status("Instance1", task="setup", step="phase", result=result)
+                self.ui.update_status("Instance2", task="setup", step="phase", result=STATUS_SUCCESS)
+
+                self.assertTrue(self.ui.all_instances_terminal())
+                self.assertEqual("All instances completed", self.ui.completion_summary())
+                self.assertEqual("", self.ui.recovery_action(result))
+
+    def test_success_update_does_not_overwrite_existing_setup_failure_state(self):
+        self.ui.update_status("Instance1", task="setup", step="verify", result=STATUS_FAILED_TO_VERIFY)
+        self.ui.update_status("Instance1", task="closing", step="Finishing", result=STATUS_SUCCESS)
+        self.ui.update_status(
+            AGGREGATE_INSTANCE,
+            task="finished",
+            step="execution",
+            result=STATUS_SUCCESS,
+        )
+
+        self.assertEqual(STATUS_FAILED_TO_VERIFY, self.ui.status["Instance1"]["result"])
+        self.assertEqual("Error", self.ui.aggregate_status["result"])
+        self.assertEqual("All instances completed with errors", self.ui.completion_summary())
+
+    def test_recovery_action_normalizes_spacing_and_hyphens(self):
+        self.assertEqual(
+            SETUP_RECOVERY_ACTIONS["resource_gated"],
+            self.ui.recovery_action("resource-gated"),
+        )
+        self.assertEqual(
+            SETUP_RECOVERY_ACTIONS["failed_to_verify"],
+            self.ui.recovery_action("failed-to-verify"),
+        )
 
     def test_aggregate_terminal_status_completes_pending_instances(self):
         self.ui.update_status(
@@ -164,6 +261,43 @@ class TestLinuxUI(unittest.TestCase):
         mock_stdscr.addstr.assert_any_call(2, 40, "Task: Task2")  # Content for first instance
         mock_stdscr.addstr.assert_any_call(3, 40, "Step: Installing")  # Content for second instance
         mock_stdscr.addstr.assert_any_call(4, 40, "Status: In Progress")  # Status for second instance
+
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.curs_set")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.initscr")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.endwin")
+    def test_draw_ui_renders_setup_recovery_action(self, mock_endwin, mock_initscr, mock_curs_set):
+        mock_stdscr = MagicMock()
+        mock_stdscr.getmaxyx.return_value = (24, 80)
+        mock_initscr.return_value = mock_stdscr
+        self.ui.status = {
+            "Instance1": {"current_task": "setup", "current_step": "preflight", "result": STATUS_REFUSED},
+            "Instance2": {"current_task": "setup", "current_step": "not run", "result": "Pending"},
+        }
+        self.ui.test_mode = True
+
+        self.ui._draw_ui(mock_stdscr)
+
+        calls = [call.args[2] for call in mock_stdscr.addstr.mock_calls]
+
+        self.assertTrue(any("Status: Refused" in call for call in calls))
+        self.assertTrue(any("Action: Provide --live" in call for call in calls))
+
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.curs_set")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.initscr")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.endwin")
+    def test_draw_ui_renders_aggregate_setup_recovery_action(self, mock_endwin, mock_initscr, mock_curs_set):
+        mock_stdscr = MagicMock()
+        mock_stdscr.getmaxyx.return_value = (24, 80)
+        mock_initscr.return_value = mock_stdscr
+        self.ui.update_status(AGGREGATE_INSTANCE, task="setup", step="preflight", result=STATUS_BLOCKED)
+        self.ui.test_mode = True
+
+        self.ui._draw_ui(mock_stdscr)
+
+        calls = [call.args[2] for call in mock_stdscr.addstr.mock_calls]
+
+        self.assertTrue(any("Overall: Blocked" in call for call in calls))
+        self.assertTrue(any("Action: Resolve the reported blocker" in call for call in calls))
 
     @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.curs_set")
     @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.initscr")

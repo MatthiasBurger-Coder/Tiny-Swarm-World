@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 from tiny_swarm_world.application.ports.commands.port_command_runner import PortCommandRunner
 from tiny_swarm_world.application.ports.ui.port_ui import (
     AGGREGATE_INSTANCE,
+    STATUS_FAILED_TO_VERIFY,
     STATUS_ERROR,
     STATUS_SUCCESS,
     PortUI,
@@ -123,6 +124,44 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
         self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_SUCCESS), ui.updates)
         self.assertEqual(STATUS_SUCCESS, ui.aggregate_status["result"])
 
+    async def test_async_ui_preserves_status_only_failure_as_aggregate_error(self):
+        ui = RecordingUI()
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
+        ) as factory:
+            factory.return_value.get_ui.return_value = ui
+            runner_ui = AsyncCommandRunnerUI(_command_list(StatusOnlyFailureRunner()))
+
+        with patch(
+            "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
+            new=AsyncMock(),
+        ):
+            await runner_ui.run()
+
+        self.assertEqual(STATUS_FAILED_TO_VERIFY, ui.status["swarm-manager"]["result"])
+        self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
+        self.assertNotIn(("swarm-manager", "completed", "execution", STATUS_SUCCESS), ui.updates)
+
+    async def test_sync_ui_preserves_status_only_failure_as_aggregate_error(self):
+        ui = RecordingUI()
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
+        ) as factory:
+            factory.return_value.get_ui.return_value = ui
+            runner_ui = SyncCommandRunnerUI(_command_list(StatusOnlyFailureRunner()))
+
+        with patch(
+            "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
+            new=AsyncMock(),
+        ):
+            await runner_ui.run()
+
+        self.assertEqual(STATUS_FAILED_TO_VERIFY, ui.status["swarm-manager"]["result"])
+        self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
+        self.assertNotIn(("swarm-manager", "completed", "execution", STATUS_SUCCESS), ui.updates)
+
 
 def _command_list(runner: PortCommandRunner):
     return {
@@ -154,6 +193,13 @@ class SuccessfulRunner(PortCommandRunner):
         return "ok"
 
 
+class StatusOnlyFailureRunner(PortCommandRunner):
+    async def run(self, command: str) -> str:
+        self.status["current_step"] = "Verified"
+        self.status["result"] = STATUS_FAILED_TO_VERIFY
+        return "blocked"
+
+
 class RecordingUI(PortUI):
     def __init__(self, instances=None):
         super().__init__(instances or ["swarm-manager"], test_mode=True)
@@ -167,7 +213,14 @@ class RecordingUI(PortUI):
 
     def update_status(self, instance, task, step, result=None):
         super().update_status(instance, task, step, result)
-        self.updates.append((instance, task, step, result))
+        self.updates.append(
+            (
+                instance,
+                task,
+                step,
+                self._status_for_instance(instance)["result"],
+            )
+        )
 
     def start(self):
         pass

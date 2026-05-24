@@ -91,6 +91,21 @@ both aggregate and per-instance status, so failed command runs display
 `All instances completed with errors` instead of the ambiguous success-only
 completion message.
 
+Setup-oriented terminal status extends the same vocabulary without adding a
+browser UI. `Refused`, `Blocked`, `Resource gated`, `Failed to prepare`,
+`Failed to apply`, `Failed to verify`, `Failed`, and `Not run` are terminal
+non-success states. The UI normalizes spacing, underscores, and hyphens for
+these states, keeps later `Success` updates from overwriting an existing
+non-success setup state, and renders a textual `Action:` recovery action when a
+known recovery path exists. Successful setup-style terminal values such as
+`completed`, `passed`, and `verified` remain terminal success states and do
+not render recovery guidance.
+
+When an aggregate setup state is terminal while individual rows are still
+pending, the Linux terminal renderer shows the aggregate status and recovery
+guidance explicitly. This avoids relying on color and prevents refused,
+blocked, resource-gated, or failed states from being presented as success.
+
 No browser frontend, React component, JavaScript build tool, TSX/JSX file, or
 browser state is part of this console/status runtime flow.
 
