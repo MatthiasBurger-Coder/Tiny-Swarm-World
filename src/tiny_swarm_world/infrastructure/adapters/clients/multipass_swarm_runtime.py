@@ -79,11 +79,17 @@ class MultipassSwarmRuntime(PortSwarmStackRuntime):
         if stack_name != "swagger":
             return
         openapi_file = infra_root() / "compose" / "swagger" / "swagger" / "openapi.json"
+        nginx_config = infra_root() / "compose" / "swagger" / "nginx" / "default.conf"
         script = (
             f"set -e; mkdir -p {shlex.quote(remote_dir + '/swagger')}; "
             f"cat > {shlex.quote(remote_dir + '/swagger/openapi.json')}"
         )
         self._run_manager_shell(script, input_text=openapi_file.read_text(encoding="utf-8"))
+        script = (
+            f"set -e; mkdir -p {shlex.quote(remote_dir + '/nginx')}; "
+            f"cat > {shlex.quote(remote_dir + '/nginx/default.conf')}"
+        )
+        self._run_manager_shell(script, input_text=nginx_config.read_text(encoding="utf-8"))
 
     def _run_manager_shell(
         self,

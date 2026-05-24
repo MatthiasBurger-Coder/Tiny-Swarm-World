@@ -35,6 +35,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             "`infra/config/compose/nexus/docker-compose.yml`": "Supported Asset",
             "`infra/config/compose/jenkins/docker-compose.yml`": "Supported Asset",
             "`infra/config/compose/swagger/docker-compose.yml`": "Supported Asset",
+            "`infra/compose/swagger/nginx/default.conf`": "Supported Asset",
             "`infra/swarm/**`": "Legacy",
             "`infra/swarm/prepere.py`": "Legacy",
             "`infra/swarm/network/network_manager.py`": "Legacy",
@@ -45,15 +46,12 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
                 self.assertIn(f"| {path} | {status} |", catalog)
 
     def test_compose_area_has_no_host_side_shell_orchestration(self):
-        allowed_runtime_shell_assets = {
-            "infra/compose/swagger/nginx/wait-for-it.sh",
-        }
         shell_scripts = {
             path.relative_to(REPOSITORY_ROOT).as_posix()
             for path in (REPOSITORY_ROOT / "infra" / "compose").rglob("*.sh")
         }
 
-        self.assertEqual(allowed_runtime_shell_assets, shell_scripts)
+        self.assertEqual(set(), shell_scripts)
 
         forbidden_fragments = (
             "docker build",
@@ -72,6 +70,21 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         }
 
         self.assertEqual({}, violations)
+
+    def test_swagger_nginx_uses_official_image_with_mounted_runtime_config(self):
+        nginx_config = (REPOSITORY_ROOT / "infra" / "compose" / "swagger" / "nginx" / "default.conf").read_text(
+            encoding="utf-8"
+        )
+        compose = (REPOSITORY_ROOT / "infra" / "config" / "compose" / "swagger" / "docker-compose.yml").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertFalse((REPOSITORY_ROOT / "infra" / "compose" / "swagger" / "nginx" / "Dockerfile").exists())
+        self.assertFalse((REPOSITORY_ROOT / "infra" / "compose" / "swagger" / "nginx" / "wait-for-it.sh").exists())
+        self.assertIn("image: nginx:mainline-alpine", compose)
+        self.assertIn("/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro", compose)
+        self.assertIn("resolver 127.0.0.11", nginx_config)
+        self.assertIn("proxy_pass $swagger_api_upstream;", nginx_config)
 
     def test_compose_area_has_no_stack_definitions(self):
         stack_definitions = sorted(

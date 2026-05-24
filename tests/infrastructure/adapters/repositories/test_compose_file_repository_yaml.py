@@ -140,9 +140,16 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
 
         self.assertIn("image: docker.swagger.io/swaggerapi/swagger-editor", compose_content)
         self.assertIn("image: docker.swagger.io/swaggerapi/swagger-ui", compose_content)
+        self.assertIn("image: nginx:mainline-alpine", compose_content)
         self.assertIn("SWAGGER_JSON: /openapi.json", compose_content)
         self.assertIn(
             "${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro",
             compose_content,
         )
+        self.assertIn(
+            "${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro",
+            compose_content,
+        )
+        self.assertNotIn("127.0.0.1:5000/swagger-nginx", compose_content)
+        self.assertNotIn("depends_on", compose_content)
         self.assertNotIn("./swagger/openapi.json:/openapi.json", compose_content)

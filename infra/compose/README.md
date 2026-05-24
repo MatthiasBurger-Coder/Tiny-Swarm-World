@@ -6,9 +6,10 @@ setup command. Stack definitions live under `infra/config/compose`.
 Supported assets:
 
 - service Dockerfiles and service configuration files
-- image-internal runtime helpers such as `swagger/nginx/wait-for-it.sh`.
-  The Swagger NGINX image uses this helper to wait for the API service before
-  starting NGINX; it is not a host-side setup script.
+- service runtime configuration such as `swagger/nginx/default.conf`.
+  The Swagger NGINX service uses the official `nginx:mainline-alpine` image
+  with this mounted config; it does not require a custom image or startup
+  wait script.
 
 Host-side image build, registry push, and stack deployment orchestration is
 owned by `PYTHONPATH=src python3 -m tiny_swarm_world setup run --live`.

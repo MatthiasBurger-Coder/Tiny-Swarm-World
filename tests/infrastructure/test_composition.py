@@ -145,7 +145,6 @@ class TestComposition(unittest.TestCase):
                 "artifacts:nexus-docker-hosted-repository",
                 "artifacts:nexus-maven-proxy-repository",
                 "artifacts:jenkins-image",
-                "artifacts:swagger-nginx-image",
             ),
             tuple(step.verification_target_id for step in services.workflows.prepare.steps),
         )
@@ -159,8 +158,8 @@ class TestComposition(unittest.TestCase):
         nexus_client.assert_called_once_with()
         container_runtime.assert_called_once_with()
         image_publisher.assert_called_once()
-        self.assertEqual(6, len(services.workflows.prepare.steps))
-        self.assertEqual(6, len(services.workflows.verify.checks))
+        self.assertEqual(5, len(services.workflows.prepare.steps))
+        self.assertEqual(5, len(services.workflows.verify.checks))
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
         with patch.object(composition, "ComposeFileRepositoryYaml"):

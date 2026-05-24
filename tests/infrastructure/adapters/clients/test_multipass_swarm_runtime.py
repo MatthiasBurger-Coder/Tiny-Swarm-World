@@ -20,3 +20,14 @@ class TestMultipassSwarmRuntime(unittest.TestCase):
         self.assertIn("TSW_REMOTE_STACK_ROOT=/custom/stacks docker stack deploy", deploy_script)
         self.assertIn("-c /custom/stacks/swagger/docker-compose.yml swagger", deploy_script)
 
+    def test_transfers_swagger_openapi_and_nginx_config_assets(self):
+        runtime = MultipassSwarmRuntime(remote_stack_root="/custom/stacks")
+
+        with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+            runtime._transfer_stack_assets("swagger", "/custom/stacks/swagger")
+
+        scripts = [call.args[0] for call in run_manager_shell.call_args_list]
+        self.assertIn("cat > /custom/stacks/swagger/swagger/openapi.json", scripts[0])
+        self.assertIn("cat > /custom/stacks/swagger/nginx/default.conf", scripts[1])
+        self.assertIn("openapi", run_manager_shell.call_args_list[0].kwargs["input_text"].lower())
+        self.assertIn("resolver 127.0.0.11", run_manager_shell.call_args_list[1].kwargs["input_text"])

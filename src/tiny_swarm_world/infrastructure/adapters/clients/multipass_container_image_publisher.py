@@ -58,7 +58,6 @@ class MultipassContainerImagePublisher(PortContainerImagePublisher):
     def _context_path(self, contract: ContainerImageContract) -> Path:
         contexts = {
             "jenkins": infra_root() / "compose" / "jenkins",
-            "swagger-nginx": infra_root() / "compose" / "swagger" / "nginx",
         }
         try:
             return contexts[contract.build_context]

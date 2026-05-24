@@ -49,9 +49,4 @@ DEFAULT_CONTAINER_IMAGE_CONTRACTS = (
         tag="latest",
         build_context="jenkins",
     ),
-    ContainerImageContract(
-        image_name="127.0.0.1:5000/swagger-nginx",
-        tag="latest",
-        build_context="swagger-nginx",
-    ),
 )

@@ -19,14 +19,14 @@ class TestEnsureContainerImage(unittest.IsolatedAsyncioTestCase):
 
     async def test_verify_confirms_image_availability_without_secret_payloads(self):
         publisher = _FakeImagePublisher(available=True)
-        contract = ContainerImageContract("127.0.0.1:5000/swagger-nginx", "latest", "swagger-nginx")
+        contract = ContainerImageContract("127.0.0.1:5000/jenkins", "latest", "jenkins")
         service = EnsureContainerImage(publisher, contract)
 
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("artifacts:swagger-nginx-image", verification.target_id)
-        self.assertEqual("127.0.0.1:5000/swagger-nginx:latest", verification.evidence["image_ref"])
+        self.assertEqual("artifacts:jenkins-image", verification.target_id)
+        self.assertEqual("127.0.0.1:5000/jenkins:latest", verification.evidence["image_ref"])
         self.assertNotIn("password", str(verification.to_dict()).lower())
 
 
