@@ -31,10 +31,11 @@ microservices:
   network setup, Docker installation, Swarm initialization, preflight checks,
   VM IP discovery, socat management, and workflow objects for platform
   `init`, `reconcile`, `verify`, `reset`, and `destroy` commands.
-* `ArtifactServices` is the explicit artifacts boundary. It owns blocked
-  workflow contracts for `artifacts prepare` and `artifacts verify` so the CLI
-  can report stable operator-facing reasons without wiring live Nexus or
-  registry behavior.
+* `ArtifactServices` is the explicit artifacts boundary. It owns
+  `artifacts prepare` and `artifacts verify` workflow contracts. The default
+  composition remains fail-closed, while the workflow classes can now execute
+  configured Nexus repository and registry-readiness checks only after each
+  step exposes typed verification evidence.
 * `DeploymentServices` is the explicit deployment boundary. The deployment
   service namespace now owns `EnsurePortainerStack` and `EnsureNexusStack`.
   `EnsurePortainerStack` is a post-bootstrap Portainer API contract for
@@ -46,10 +47,11 @@ microservices:
 * `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
   instead of aliasing `PlatformServices`.
 
-The blocked Artifacts and Deployment workflow bundles are intentional
-transitional building blocks. They create stable composition boundaries while
+The default Artifacts and Deployment workflow bundles are intentional
+fail-closed building blocks. They create stable composition boundaries while
 service ownership moves in dedicated workflow slices, and they keep later live
-Nexus, registry, and Portainer work behind explicit contracts.
+Nexus, registry, image publication, and Portainer work behind explicit
+contracts.
 Compatibility properties on `ApplicationServices` keep the existing
 service-level accessors available for migration, but the public Python
 entrypoint now routes through workflow-level commands.

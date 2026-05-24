@@ -30,9 +30,10 @@ Remaining debt:
 * direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
   remain live-operation surfaces outside the workflow-level CLI consent guard;
 * reset/destroy retention and teardown semantics are not wired yet;
-* artifact and deployment workflows are now explicit composition contracts, but
-  they remain blocked until Nexus, registry, Portainer, and observed-state
-  verification ports are wired deliberately;
+* artifact and deployment workflows are now explicit composition contracts;
+  artifact workflows have tested Nexus repository contracts, but default CLI
+  composition remains blocked until live artifact steps, image publication,
+  registry checks, and observed-state verification are wired deliberately;
 * `artifacts prepare` and `deployment apply` are live-consent gated before
   service construction, but the approved live behavior behind those gates is
   still technical debt.
@@ -47,7 +48,8 @@ Remaining debt:
 * no canonical setup command currently installs the full runnable profile;
 * setup preflight and setup manifest contracts still need implementation;
 * command-backed verification remains incomplete for live Platform phases;
-* Artifacts and Deployment readiness still need observed-state contracts;
+* Artifacts readiness still needs image publication and registry observed-state
+  contracts; Deployment readiness still needs service observed-state contracts;
 * Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX service
   readiness must not be claimed until verified through tests or explicit live
   smoke evidence;

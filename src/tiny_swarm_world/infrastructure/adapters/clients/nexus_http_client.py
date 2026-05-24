@@ -1,4 +1,5 @@
 import requests
+from urllib.parse import urlparse
 
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
 from tiny_swarm_world.domain.nexus.nexus_user import NexusUser
@@ -7,6 +8,9 @@ from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 class NexusHttpClient(PortNexusClient):
     def __init__(self, base_url: str, session: requests.Session | None = None):
+        parsed_url = urlparse(base_url)
+        if parsed_url.username or parsed_url.password:
+            raise ValueError("Nexus base URL must not contain credentials.")
         self.base_url = base_url.rstrip("/")
         self.session = session or requests.Session()
         self.logger = LoggerFactory.get_logger(self.__class__)
@@ -65,7 +69,87 @@ class NexusHttpClient(PortNexusClient):
         )
         self._ensure_success(response, "update Nexus anonymous access")
 
+    def repository_exists(self, username: str, password: str, repository_name: str) -> bool:
+        response = self.session.get(
+            f"{self.base_url}/service/rest/v1/repositories",
+            auth=(username, password),
+            timeout=30,
+        )
+        self._ensure_success(response, "list Nexus repositories")
+
+        repositories = response.json()
+        if not isinstance(repositories, list):
+            raise RuntimeError("Nexus repository listing returned an unexpected payload.")
+        return any(repository.get("name") == repository_name for repository in repositories if isinstance(repository, dict))
+
+    def create_docker_hosted_repository(
+        self,
+        username: str,
+        password: str,
+        repository_name: str,
+        http_port: int,
+    ) -> None:
+        response = self.session.post(
+            f"{self.base_url}/service/rest/v1/repositories/docker/hosted",
+            auth=(username, password),
+            json={
+                "name": repository_name,
+                "online": True,
+                "storage": {
+                    "blobStoreName": "default",
+                    "strictContentTypeValidation": True,
+                    "writePolicy": "ALLOW_ONCE",
+                },
+                "docker": {
+                    "v1Enabled": False,
+                    "forceBasicAuth": True,
+                    "httpPort": http_port,
+                },
+            },
+            timeout=30,
+        )
+        self._ensure_success(response, f"create Nexus Docker hosted repository '{repository_name}'")
+
+    def create_maven_proxy_repository(
+        self,
+        username: str,
+        password: str,
+        repository_name: str,
+        remote_url: str,
+    ) -> None:
+        response = self.session.post(
+            f"{self.base_url}/service/rest/v1/repositories/maven/proxy",
+            auth=(username, password),
+            json={
+                "name": repository_name,
+                "online": True,
+                "storage": {
+                    "blobStoreName": "default",
+                    "strictContentTypeValidation": True,
+                },
+                "proxy": {
+                    "remoteUrl": remote_url,
+                    "contentMaxAge": 1440,
+                    "metadataMaxAge": 1440,
+                },
+                "negativeCache": {
+                    "enabled": True,
+                    "timeToLive": 1440,
+                },
+                "httpClient": {
+                    "blocked": False,
+                    "autoBlock": True,
+                },
+                "maven": {
+                    "versionPolicy": "RELEASE",
+                    "layoutPolicy": "STRICT",
+                },
+            },
+            timeout=30,
+        )
+        self._ensure_success(response, f"create Nexus Maven proxy repository '{repository_name}'")
+
     @staticmethod
     def _ensure_success(response: requests.Response, action: str) -> None:
         if response.status_code >= 400:
-            raise RuntimeError(f"Failed to {action}. HTTP {response.status_code}: {response.text}")
+            raise RuntimeError(f"Failed to {action}. HTTP {response.status_code}.")

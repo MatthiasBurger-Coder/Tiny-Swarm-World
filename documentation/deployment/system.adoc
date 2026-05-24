@@ -27,9 +27,11 @@ Implemented platform workflows are `platform init`, `platform reconcile`,
 workflows require live consent before service construction. Reset and destroy
 also require exact confirmation and currently block after confirmation until
 retention and teardown semantics are implemented. Artifact and deployment
-workflow names dispatch to explicit blocked workflow contracts until live
-Nexus, registry, Portainer, and observed-state verification contracts are
-implemented.
+workflow names dispatch to explicit fail-closed workflow contracts until live
+Nexus, registry, Portainer, image publication, and observed-state verification
+contracts are wired in composition. The artifact workflow contracts can now
+run configured Nexus repository checks with typed verification evidence, but
+the default CLI composition still keeps artifact live behavior blocked.
 
 The Deployment boundary now contains a tested post-bootstrap
 `EnsurePortainerStack` application service and a sanitized Portainer HTTP

@@ -242,7 +242,28 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
                 (source_file.relative_to(REPOSITORY_ROOT).as_posix(), term)
                 for term in forbidden_terms
                 if term in text
+        )
+
+        self.assertEqual([], violations)
+
+    def test_nexus_artifact_repository_contracts_do_not_import_deployment_or_infrastructure(self):
+        repository_contract_file = APPLICATION_SERVICES_ROOT / "nexus" / "ensure_nexus_repository.py"
+        forbidden_prefixes = (
+            "tiny_swarm_world.application.services.deployment",
+            "tiny_swarm_world.application.services.nexus.ensure_nexus_stack",
+            "tiny_swarm_world.application.ports.clients.port_portainer_client",
+            "tiny_swarm_world.application.ports.repositories.port_compose_file_repository",
+            "tiny_swarm_world.infrastructure",
+        )
+        violations = [
+            violation
+            for forbidden_prefix in forbidden_prefixes
+            for violation in _find_forbidden_imports(
+                root=repository_contract_file.parent,
+                forbidden_prefix=forbidden_prefix,
             )
+            if violation[0].endswith(".ensure_nexus_repository")
+        ]
 
         self.assertEqual([], violations)
 

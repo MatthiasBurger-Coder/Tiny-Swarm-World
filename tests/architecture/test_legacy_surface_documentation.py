@@ -31,6 +31,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             "`infra/compose/create_dockerfiles.sh`": "Deprecated",
             "`infra/compose/upload_all_stacks.sh`": "Transitional",
             "`infra/config/compose/portainer/docker-compose.yml`": "Supported Asset",
+            "`infra/config/compose/nexus/docker-compose.yml`": "Supported Asset",
             "`infra/compose/jenkins/docker-compose.yml`": "Supported Asset",
             "`infra/compose/swagger/docker-compose.yml`": "Supported Asset",
             "`infra/swarm/**`": "Legacy",

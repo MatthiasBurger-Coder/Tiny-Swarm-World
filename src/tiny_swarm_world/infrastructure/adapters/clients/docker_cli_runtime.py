@@ -5,7 +5,10 @@ from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class DockerCliRuntime(PortContainerRuntime):
-    def __init__(self):
+    def __init__(self, timeout_seconds: int = 30):
+        if timeout_seconds <= 0:
+            raise ValueError("Docker runtime timeout must be positive.")
+        self.timeout_seconds = timeout_seconds
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def find_container_names(self, name_filter: str) -> list[str]:
@@ -24,10 +27,19 @@ class DockerCliRuntime(PortContainerRuntime):
         return result.stdout
 
     def _run_command(self, command: list[str], check: bool) -> subprocess.CompletedProcess[str]:
-        self.logger.info(f"Running docker command: {' '.join(command)}")
-        result = subprocess.run(command, capture_output=True, text=True, check=False)
-        if check and result.returncode != 0:
-            raise RuntimeError(
-                f"Docker command failed with exit code {result.returncode}: {' '.join(command)}\n{result.stderr}"
+        operation = command[1] if len(command) > 1 else "operation"
+        self.logger.info("Running Docker runtime operation '%s'.", operation)
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                check=False,
+                shell=False,
+                timeout=self.timeout_seconds,
             )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("Docker runtime operation timed out.") from exc
+        if check and result.returncode != 0:
+            raise RuntimeError(f"Docker runtime operation failed with exit code {result.returncode}.")
         return result

@@ -1,11 +1,16 @@
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from tiny_swarm_world.application.services.nexus.bootstrap_nexus import BootstrapNexus
 from tiny_swarm_world.application.services.nexus.enable_nexus_anonymous_access import EnableNexusAnonymousAccess
 from tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access import EnsureNexusAdminAccess
+from tiny_swarm_world.application.services.nexus.nexus_bootstrap_configuration import NexusBootstrapConfiguration
 from tiny_swarm_world.application.services.nexus.wait_for_nexus_ready import WaitForNexusReady
 from tiny_swarm_world.domain.nexus.nexus_user import NexusUser
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 
 
 class TestWaitForNexusReady(unittest.TestCase):
@@ -81,7 +86,7 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
 
 
 class TestBootstrapNexus(unittest.TestCase):
-    def test_runs_bootstrap_steps_in_order(self):
+    def test_runs_bootstrap_steps_in_order_without_anonymous_access_by_default(self):
         execution_order: list[str] = []
 
         ensure_nexus_stack = MagicMock()
@@ -101,7 +106,46 @@ class TestBootstrapNexus(unittest.TestCase):
         )
         bootstrapper.run()
 
+        self.assertEqual(execution_order, ["stack", "wait", "admin"])
+        enable_nexus_anonymous_access.run.assert_not_called()
+
+    def test_runs_anonymous_access_step_only_when_enabled(self):
+        execution_order: list[str] = []
+
+        ensure_nexus_stack = MagicMock()
+        ensure_nexus_stack.run.side_effect = lambda: execution_order.append("stack")
+        wait_for_nexus_ready = MagicMock()
+        wait_for_nexus_ready.run.side_effect = lambda: execution_order.append("wait")
+        ensure_nexus_admin_access = MagicMock()
+        ensure_nexus_admin_access.run.side_effect = lambda: execution_order.append("admin")
+        enable_nexus_anonymous_access = MagicMock()
+        enable_nexus_anonymous_access.run.side_effect = lambda: execution_order.append("anonymous")
+
+        bootstrapper = BootstrapNexus(
+            ensure_nexus_stack=ensure_nexus_stack,
+            wait_for_nexus_ready=wait_for_nexus_ready,
+            ensure_nexus_admin_access=ensure_nexus_admin_access,
+            enable_nexus_anonymous_access=enable_nexus_anonymous_access,
+            enable_anonymous_access=True,
+        )
+        bootstrapper.run()
+
         self.assertEqual(execution_order, ["stack", "wait", "admin", "anonymous"])
+
+    def test_bootstrap_configuration_does_not_carry_committed_password_defaults(self):
+        configuration = NexusBootstrapConfiguration()
+
+        self.assertEqual("", configuration.portainer_password)
+        self.assertEqual("", configuration.admin_password)
+        self.assertFalse(configuration.anonymous_access_enabled)
+
+    def test_committed_nexus_compose_matches_initial_password_path(self):
+        compose_text = (
+            REPOSITORY_ROOT / "infra" / "config" / "compose" / "nexus" / "docker-compose.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("nexus-data:/nexus-data", compose_text)
+        self.assertNotIn("nexus-data:/sonatype-work:latest", compose_text)
 
 
 class TestEnableNexusAnonymousAccess(unittest.TestCase):

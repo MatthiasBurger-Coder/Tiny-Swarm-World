@@ -3,6 +3,7 @@ from dataclasses import fields
 import unittest
 from unittest.mock import patch
 
+from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowStatus
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowStatus
 from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
@@ -130,6 +131,26 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.ArtifactVerifyWorkflow)
+
+    def test_build_artifact_services_keeps_workflows_fail_closed_even_with_nexus_environment(self):
+        environment = {
+            "TSW_NEXUS_URL": "http://localhost:8081",
+            "TSW_NEXUS_ADMIN_USERNAME": "admin",
+            "TSW_NEXUS_ADMIN_PASSWORD": "operator-supplied",
+        }
+
+        with patch.dict("os.environ", environment, clear=True):
+            services = composition.build_artifact_services()
+
+        prepare_result = asyncio.run(services.workflows.prepare.run())
+        verify_result = asyncio.run(services.workflows.verify.run())
+
+        self.assertEqual((), services.workflows.prepare.steps)
+        self.assertEqual((), services.workflows.verify.checks)
+        self.assertEqual(ArtifactWorkflowStatus.BLOCKED, prepare_result.status)
+        self.assertEqual(ArtifactWorkflowStatus.BLOCKED, verify_result.status)
+        self.assertFalse(prepare_result.executed)
+        self.assertIn("verified artifact contracts", prepare_result.reason)
 
     def test_build_deployment_services_wires_blocked_workflow_contracts(self):
         with patch.dict("os.environ", {}, clear=True):

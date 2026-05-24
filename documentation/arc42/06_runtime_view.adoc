@@ -34,18 +34,21 @@ the CLI contract and dispatch to blocked workflow objects with stable reasons
 until later slices wire their runtime behavior. Mutating boundary workflows
 such as `artifacts prepare` and `deployment apply` still require live consent
 before their boundary service bundle is constructed, then return `blocked`
-because Nexus, registry, and Portainer contracts are not wired yet.
+because the default composition has no configured live artifact, registry, or
+deployment steps yet.
 
 === Artifact And Deployment Workflow Contract Flow
 
 The current artifact and deployment runtime flow is deliberately fail-closed:
 
-* `artifacts prepare` requires live consent, dispatches to
-  `ArtifactPrepareWorkflow`, and returns `blocked` until image build, image
-  push, and Nexus repository setup contracts exist.
-* `artifacts verify` dispatches without live consent and returns `blocked`
-  until artifact registry observed-state verification is implemented through
-  an application port.
+* `artifacts prepare` requires live consent and dispatches to
+  `ArtifactPrepareWorkflow`. The workflow can run configured artifact steps
+  only when each step provides verify-after-prepare evidence. The default
+  composition still returns `blocked` because no live Nexus, registry, image
+  build, or image push step is wired.
+* `artifacts verify` dispatches without live consent and can evaluate
+  configured artifact verification checks. The default composition still
+  returns `blocked` until registry observed-state checks are wired.
 * `deployment apply` requires live consent, dispatches to
   `DeploymentApplyWorkflow`, and returns `blocked` while stack deployment lacks
   a verified apply-plus-observed-state contract. The tested
@@ -57,10 +60,10 @@ The current artifact and deployment runtime flow is deliberately fail-closed:
   deployment ports.
 
 No Nexus, Docker registry, image build, image push, or service stack side effect
-is run by these workflow contracts. Portainer API behavior is covered by
-isolated adapter and application-service tests with fakes; CLI composition
-remains fail-closed until a later slice owns first-time bootstrap,
-verify-after-apply evidence, and service readiness.
+is run by default CLI composition. Nexus repository and Portainer API behavior
+is covered by isolated adapter and application-service tests with fakes; CLI
+composition remains fail-closed until a later slice owns first-time bootstrap,
+image publication, verify-after-apply evidence, and service readiness.
 
 === Console Status Runtime Flow
 
