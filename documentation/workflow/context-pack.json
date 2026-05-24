@@ -15,7 +15,7 @@
     "03": "COMPLETED_PUSHED",
     "04": "COMPLETED_PUSHED",
     "05": "COMPLETED_PUSHED",
-    "06": "PENDING",
+        "06": "COMPLETED",
     "07": "PENDING",
     "08": "PENDING",
     "09": "PENDING"
@@ -61,14 +61,18 @@
       "path": "documentation/architecture/migration-plan.md",
       "sha256": "DBF5618E62B96935B669CF880B3BE84710C8A29BA7CE9A4F4AAF08CCF5A21E2F"
     },
-    {
-      "path": "documentation/arc42/05_building_blocks.adoc",
-      "sha256": "7C75DD678D9153979979EF7F31759519FD3779F99B106B9EA73758D722140DDD"
-    },
-    {
-      "path": "documentation/arc42/06_runtime_view.adoc",
-      "sha256": "BDA78D58836E46B648A2203561FD2193FDC7EB443864F19A616DBB7C61062D42"
-    },
+        {
+            "path": "documentation/arc42/05_building_blocks.adoc",
+            "sha256": "186CA387CEAE66592B89F6CF02912D43350130639CE5FC08F295274A8D103724"
+        },
+        {
+            "path": "documentation/arc42/06_runtime_view.adoc",
+            "sha256": "97564F4D2B5FF53D0A7CCF6F4BCC875DC30D69E636E2C3A4DABB34AB26742277"
+        },
+        {
+            "path": "documentation/arc42/07_deployment_view.adoc",
+            "sha256": "5A8056C5DFDC9CEF115019A958897205BDCD15795F3BFCBE13FE760E7028A323"
+        },
     {
       "path": "documentation/arc42/08_concepts.adoc",
       "sha256": "2BC78C86901D5CE98F210AC6F6DA0D3FBDA3F7A59723231C040A0C9919584F51"
@@ -77,10 +81,10 @@
       "path": "documentation/arc42/10_quality_requirements.adoc",
       "sha256": "DDE1208E83235F36DB22700039B008C84AAEFCA28DFA53E57CF0E936C05BAB9B"
     },
-    {
-      "path": "documentation/arc42/11_risks_and_debt.adoc",
-      "sha256": "21C5651ADD0964462A5F85FA4668A145D4C85B158758DFD874BD4EEDB7FC7BF7"
-    }
+        {
+            "path": "documentation/arc42/11_risks_and_debt.adoc",
+            "sha256": "B248E43E49321E8B0104F29D5BF02C01FE22646043635325146F6314FF02EDD4"
+        }
   ],
   "affected_areas": [
     "documentation/epics",

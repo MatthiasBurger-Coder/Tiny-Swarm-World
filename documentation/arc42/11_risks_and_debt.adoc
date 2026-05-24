@@ -30,5 +30,9 @@ Remaining debt:
 * direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
   remain live-operation surfaces outside the workflow-level CLI consent guard;
 * reset/destroy retention and teardown semantics are not wired yet;
-* artifact and deployment workflows are declared by the CLI but remain blocked
-  until implementation slices wire them deliberately.
+* artifact and deployment workflows are now explicit composition contracts, but
+  they remain blocked until Nexus, registry, Portainer, and observed-state
+  verification ports are wired deliberately;
+* `artifacts prepare` and `deployment apply` are live-consent gated before
+  service construction, but the approved live behavior behind those gates is
+  still technical debt.

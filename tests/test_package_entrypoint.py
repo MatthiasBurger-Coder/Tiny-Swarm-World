@@ -1,5 +1,6 @@
 import ast
 import io
+import json
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -7,6 +8,16 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from tiny_swarm_world import __main__ as entrypoint
+from tiny_swarm_world.application.services.artifacts import (
+    ArtifactWorkflowKind,
+    ArtifactWorkflowResult,
+    ArtifactWorkflowStatus,
+)
+from tiny_swarm_world.application.services.deployment import (
+    DeploymentWorkflowKind,
+    DeploymentWorkflowResult,
+    DeploymentWorkflowStatus,
+)
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
     RESET_TINY_SWARM_PLATFORM_CONFIRMATION,
@@ -218,17 +229,87 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         workflows.destroy.run.assert_awaited_once_with(DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION)
         workflows.reset.run.assert_not_awaited()
 
-    async def test_declared_unwired_workflow_is_blocked_without_building_services(self):
-        output = io.StringIO()
+    async def test_artifact_and_deployment_mutating_workflows_require_live_consent_before_services(
+        self,
+    ):
+        for command in (["artifacts", "prepare"], ["deployment", "apply"]):
+            with self.subTest(command=command):
+                output = io.StringIO()
 
-        with patch.object(entrypoint, "build_application_services") as build_services:
-            with redirect_stdout(output):
-                with self.assertRaises(SystemExit) as raised:
-                    await entrypoint.main(["deployment", "apply"])
+                with patch.object(entrypoint, "build_application_services") as build_services:
+                    with patch.object(entrypoint, "build_artifact_services") as build_artifact_services:
+                        with patch.object(entrypoint, "build_deployment_services") as build_deployment_services:
+                            with redirect_stdout(output):
+                                with self.assertRaises(SystemExit) as raised:
+                                    await entrypoint.main(command)
 
-        self.assertEqual(1, raised.exception.code)
-        build_services.assert_not_called()
-        self.assertIn('"status": "blocked"', output.getvalue())
+                self.assertEqual(2, raised.exception.code)
+                build_services.assert_not_called()
+                build_artifact_services.assert_not_called()
+                build_deployment_services.assert_not_called()
+                self.assertIn("REFUSED_LIVE_CONSENT_MISSING", output.getvalue())
+
+    async def test_artifact_and_deployment_workflows_dispatch_to_contract_blocks(self):
+        cases = (
+            ("artifacts", "prepare", True, "live registry and Nexus contracts"),
+            ("artifacts", "verify", False, "observed-state verification"),
+            ("deployment", "apply", True, "Portainer stack changes"),
+            ("deployment", "verify", False, "observed-state verification"),
+        )
+
+        for namespace, action, requires_live, expected_reason in cases:
+            with self.subTest(workflow=f"{namespace} {action}"):
+                artifact_services, deployment_services, runs = _boundary_service_bundles()
+                output = io.StringIO()
+                command = [namespace, action]
+                if requires_live:
+                    command.append("--live")
+
+                with patch.object(
+                    entrypoint,
+                    "build_application_services",
+                    side_effect=AssertionError("boundary workflow must not build platform services"),
+                ) as build_application_services:
+                    with patch.object(
+                        entrypoint,
+                        "build_artifact_services",
+                        return_value=artifact_services,
+                    ) as build_artifact_services:
+                        with patch.object(
+                            entrypoint,
+                            "build_deployment_services",
+                            return_value=deployment_services,
+                        ) as build_deployment_services:
+                            with redirect_stdout(output):
+                                with self.assertRaises(SystemExit) as raised:
+                                    if requires_live:
+                                        with patch.dict(
+                                            "os.environ",
+                                            {
+                                                entrypoint.LIVE_CONSENT_ENVIRONMENT_VARIABLE: (
+                                                    LIVE_CONSENT_ENVIRONMENT_VALUE
+                                                )
+                                            },
+                                        ):
+                                            with patch("builtins.input", return_value=LIVE_CONSENT_PHRASE):
+                                                await entrypoint.main(command)
+                                    else:
+                                        await entrypoint.main(command)
+
+                self.assertEqual(1, raised.exception.code)
+                build_application_services.assert_not_called()
+                if namespace == "artifacts":
+                    build_artifact_services.assert_called_once_with()
+                    build_deployment_services.assert_not_called()
+                else:
+                    build_artifact_services.assert_not_called()
+                    build_deployment_services.assert_called_once_with()
+                runs[(namespace, action)].assert_awaited_once_with()
+                payload = _json_payload_from_output(output.getvalue())
+                self.assertEqual(False, payload["executed"])
+                self.assertEqual("blocked", payload["status"])
+                self.assertEqual(f"{namespace} {action}", payload["workflow"])
+                self.assertIn(expected_reason, str(payload["reason"]))
 
     async def test_static_preflight_runs_without_live_consent(self):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))
@@ -320,3 +401,64 @@ def _workflow_result(kind: PlatformWorkflowKind) -> PlatformWorkflowResult:
         message=f"{kind.value} workflow completed.",
         executed=True,
     )
+
+
+def _boundary_service_bundles():
+    artifact_runs = {
+        "prepare": AsyncMock(
+            return_value=ArtifactWorkflowResult(
+                kind=ArtifactWorkflowKind.PREPARE,
+                status=ArtifactWorkflowStatus.BLOCKED,
+                message="artifacts prepare is blocked.",
+                reason="live registry and Nexus contracts are not wired",
+            )
+        ),
+        "verify": AsyncMock(
+            return_value=ArtifactWorkflowResult(
+                kind=ArtifactWorkflowKind.VERIFY,
+                status=ArtifactWorkflowStatus.BLOCKED,
+                message="artifacts verify is blocked.",
+                reason="observed-state verification is not implemented",
+            )
+        ),
+    }
+    deployment_runs = {
+        "apply": AsyncMock(
+            return_value=DeploymentWorkflowResult(
+                kind=DeploymentWorkflowKind.APPLY,
+                status=DeploymentWorkflowStatus.BLOCKED,
+                message="deployment apply is blocked.",
+                reason="Portainer stack changes require contracts",
+            )
+        ),
+        "verify": AsyncMock(
+            return_value=DeploymentWorkflowResult(
+                kind=DeploymentWorkflowKind.VERIFY,
+                status=DeploymentWorkflowStatus.BLOCKED,
+                message="deployment verify is blocked.",
+                reason="observed-state verification is not implemented",
+            )
+        ),
+    }
+    artifact_services = SimpleNamespace(
+        workflows=SimpleNamespace(
+            prepare=SimpleNamespace(run=artifact_runs["prepare"]),
+            verify=SimpleNamespace(run=artifact_runs["verify"]),
+        )
+    )
+    deployment_services = SimpleNamespace(
+        workflows=SimpleNamespace(
+            apply=SimpleNamespace(run=deployment_runs["apply"]),
+            verify=SimpleNamespace(run=deployment_runs["verify"]),
+        )
+    )
+    return artifact_services, deployment_services, {
+        ("artifacts", "prepare"): artifact_runs["prepare"],
+        ("artifacts", "verify"): artifact_runs["verify"],
+        ("deployment", "apply"): deployment_runs["apply"],
+        ("deployment", "verify"): deployment_runs["verify"],
+    }
+
+
+def _json_payload_from_output(text: str) -> dict[str, object]:
+    return json.loads(text[text.index("{") :])

@@ -31,7 +31,7 @@ workflow file.
 | 03 | `COMPLETED_PUSHED` |
 | 04 | `COMPLETED_PUSHED` |
 | 05 | `COMPLETED_PUSHED` |
-| 06 | `PENDING` |
+| 06 | `COMPLETED` |
 | 07 | `PENDING` |
 | 08 | `PENDING` |
 | 09 | `PENDING` |
@@ -50,11 +50,12 @@ workflow file.
 | `documentation/architecture/responsibility-separation-analysis.md` | `38B08D772951F87B168F9432A8AADBD8B3705D5FEDD2CC8511C8AD4A36EEC078` |
 | `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc` | `7DC5D3B510CDA2BFD4ABA0AB57C963FE950CF6D0ACA07D6EC70B8287D78C5526` |
 | `documentation/architecture/migration-plan.md` | `DBF5618E62B96935B669CF880B3BE84710C8A29BA7CE9A4F4AAF08CCF5A21E2F` |
-| `documentation/arc42/05_building_blocks.adoc` | `7C75DD678D9153979979EF7F31759519FD3779F99B106B9EA73758D722140DDD` |
-| `documentation/arc42/06_runtime_view.adoc` | `BDA78D58836E46B648A2203561FD2193FDC7EB443864F19A616DBB7C61062D42` |
+| `documentation/arc42/05_building_blocks.adoc` | `186CA387CEAE66592B89F6CF02912D43350130639CE5FC08F295274A8D103724` |
+| `documentation/arc42/06_runtime_view.adoc` | `97564F4D2B5FF53D0A7CCF6F4BCC875DC30D69E636E2C3A4DABB34AB26742277` |
+| `documentation/arc42/07_deployment_view.adoc` | `5A8056C5DFDC9CEF115019A958897205BDCD15795F3BFCBE13FE760E7028A323` |
 | `documentation/arc42/08_concepts.adoc` | `2BC78C86901D5CE98F210AC6F6DA0D3FBDA3F7A59723231C040A0C9919584F51` |
 | `documentation/arc42/10_quality_requirements.adoc` | `DDE1208E83235F36DB22700039B008C84AAEFCA28DFA53E57CF0E936C05BAB9B` |
-| `documentation/arc42/11_risks_and_debt.adoc` | `21C5651ADD0964462A5F85FA4668A145D4C85B158758DFD874BD4EEDB7FC7BF7` |
+| `documentation/arc42/11_risks_and_debt.adoc` | `B248E43E49321E8B0104F29D5BF02C01FE22646043635325146F6314FF02EDD4` |
 
 This context pack is stale when any listed hash changes, when
 `documentation/workflow/**` changes outside workflow execution, when

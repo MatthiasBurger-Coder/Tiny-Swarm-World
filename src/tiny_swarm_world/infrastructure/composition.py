@@ -2,6 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from tiny_swarm_world.application.services.artifacts import (
+    ArtifactPrepareWorkflow,
+    ArtifactVerifyWorkflow,
+)
+from tiny_swarm_world.application.services.deployment import (
+    DeploymentApplyWorkflow,
+    DeploymentVerifyWorkflow,
+)
 from tiny_swarm_world.application.services.platform import (
     MultipassDockerInstall,
     MultipassDockerSwarmInit,
@@ -54,13 +62,25 @@ class PlatformServices:
 
 
 @dataclass(frozen=True)
+class ArtifactWorkflows:
+    prepare: ArtifactPrepareWorkflow
+    verify: ArtifactVerifyWorkflow
+
+
+@dataclass(frozen=True)
 class ArtifactServices:
-    pass
+    workflows: ArtifactWorkflows
+
+
+@dataclass(frozen=True)
+class DeploymentWorkflows:
+    apply: DeploymentApplyWorkflow
+    verify: DeploymentVerifyWorkflow
 
 
 @dataclass(frozen=True)
 class DeploymentServices:
-    pass
+    workflows: DeploymentWorkflows
 
 
 @dataclass(frozen=True)
@@ -169,11 +189,21 @@ def build_platform_services() -> PlatformServices:
 
 
 def build_artifact_services() -> ArtifactServices:
-    return ArtifactServices()
+    return ArtifactServices(
+        workflows=ArtifactWorkflows(
+            prepare=ArtifactPrepareWorkflow(),
+            verify=ArtifactVerifyWorkflow(),
+        )
+    )
 
 
 def build_deployment_services() -> DeploymentServices:
-    return DeploymentServices()
+    return DeploymentServices(
+        workflows=DeploymentWorkflows(
+            apply=DeploymentApplyWorkflow(),
+            verify=DeploymentVerifyWorkflow(),
+        )
+    )
 
 
 def build_application_services() -> ApplicationServices:

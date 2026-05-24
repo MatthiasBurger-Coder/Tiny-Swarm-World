@@ -64,8 +64,15 @@ class TestComposition(unittest.TestCase):
         self.assertEqual({"init", "reconcile", "reset", "destroy", "verify"}, workflow_field_names)
 
     def test_artifact_and_deployment_service_bundles_exist(self):
-        self.assertEqual([], list(fields(composition.ArtifactServices)))
-        self.assertEqual([], list(fields(composition.DeploymentServices)))
+        artifact_field_names = {field.name for field in fields(composition.ArtifactServices)}
+        artifact_workflow_names = {field.name for field in fields(composition.ArtifactWorkflows)}
+        deployment_field_names = {field.name for field in fields(composition.DeploymentServices)}
+        deployment_workflow_names = {field.name for field in fields(composition.DeploymentWorkflows)}
+
+        self.assertEqual({"workflows"}, artifact_field_names)
+        self.assertEqual({"prepare", "verify"}, artifact_workflow_names)
+        self.assertEqual({"workflows"}, deployment_field_names)
+        self.assertEqual({"apply", "verify"}, deployment_workflow_names)
 
     def test_build_platform_services_wires_preflight_adapter(self):
         with patch.object(composition, "PortVmRepositoryYaml") as vm_repository_factory:
@@ -90,6 +97,18 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
         self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
+
+    def test_build_artifact_services_wires_blocked_workflow_contracts(self):
+        services = composition.build_artifact_services()
+
+        self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
+        self.assertIsInstance(services.workflows.verify, composition.ArtifactVerifyWorkflow)
+
+    def test_build_deployment_services_wires_blocked_workflow_contracts(self):
+        services = composition.build_deployment_services()
+
+        self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
+        self.assertIsInstance(services.workflows.verify, composition.DeploymentVerifyWorkflow)
 
     def test_build_application_services_wires_preflight_through_platform_bundle(self):
         with patch.object(composition, "PortVmRepositoryYaml"):
