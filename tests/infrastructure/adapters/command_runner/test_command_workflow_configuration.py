@@ -105,6 +105,26 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
         self.assertIsNotNone(launch_command.verify)
         self.assertEqual("manual", launch_command.verify.type.value)
 
+    def test_built_sensitive_output_commands_preserve_evidence_policy(self):
+        workflow = CommandWorkflow()
+        command_list = workflow.build_command_list(
+            "command_multipass_docker_swarm_manager_join_token.yaml",
+            _smoke_parameters(),
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+        )
+
+        join_token_command = command_list["swarm-manager"][1]
+
+        self.assertEqual(
+            "multipass_docker_swarm_manager_join_token.001",
+            join_token_command.command_id,
+        )
+        self.assertTrue(join_token_command.mutating)
+        self.assertEqual("credential_mutation", join_token_command.safety_class.value)
+        self.assertIsNotNone(join_token_command.evidence_policy)
+        self.assertTrue(join_token_command.evidence_policy.redact_output)
+        self.assertFalse(join_token_command.evidence_policy.store_raw_output)
+
     def test_destructive_cleanup_commands_are_not_allowed_for_init(self):
         workflow = CommandWorkflow()
 

@@ -24,8 +24,9 @@ Remaining debt:
 * composed mutating platform workflow steps still need concrete verification
   contracts before the apply-then-verify gate can run them instead of blocking
   before apply;
-* a host-neutral desired inventory baseline is not yet committed under
-  `infra/config/inventory`;
+* the host-neutral desired inventory baseline is committed, but observed
+  inventory collection and reconciliation are not yet wired into platform
+  verification workflows;
 * direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
   remain live-operation surfaces outside the workflow-level CLI consent guard;
 * reset/destroy retention and teardown semantics are not wired yet;

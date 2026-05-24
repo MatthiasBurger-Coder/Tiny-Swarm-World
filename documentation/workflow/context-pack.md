@@ -20,16 +20,16 @@ workflow file.
 - Date created: `2026-05-24`
 - Process strand: `system-unification`
 - Execution profile: `FULL_PATH`
-- Release status: `WORKFLOW_CREATED_PENDING_EXECUTION`
+- Release status: `WORKFLOW_EXECUTION_IN_PROGRESS`
 
 ## Execution Status
 
 | Slice | Status |
 | --- | --- |
-| 01 | `PENDING` |
-| 02 | `PENDING` |
-| 03 | `PENDING` |
-| 04 | `PENDING` |
+| 01 | `COMPLETED_PUSHED` |
+| 02 | `COMPLETED_PUSHED` |
+| 03 | `COMPLETED_PUSHED` |
+| 04 | `COMPLETED_PENDING_COMMIT` |
 | 05 | `PENDING` |
 | 06 | `PENDING` |
 | 07 | `PENDING` |
@@ -50,11 +50,11 @@ workflow file.
 | `documentation/architecture/responsibility-separation-analysis.md` | `38B08D772951F87B168F9432A8AADBD8B3705D5FEDD2CC8511C8AD4A36EEC078` |
 | `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc` | `7DC5D3B510CDA2BFD4ABA0AB57C963FE950CF6D0ACA07D6EC70B8287D78C5526` |
 | `documentation/architecture/migration-plan.md` | `DBF5618E62B96935B669CF880B3BE84710C8A29BA7CE9A4F4AAF08CCF5A21E2F` |
-| `documentation/arc42/05_building_blocks.adoc` | `29460A5324C6675DF4F731686733A4369828C42DE2AC485967D25B5A8429BE32` |
+| `documentation/arc42/05_building_blocks.adoc` | `7C75DD678D9153979979EF7F31759519FD3779F99B106B9EA73758D722140DDD` |
 | `documentation/arc42/06_runtime_view.adoc` | `DC88271ED400A0FC4D0C40EB94D75B90BC4B060FDE264529D947D3FB6A88FCE2` |
-| `documentation/arc42/08_concepts.adoc` | `6736AFC526995312EE33D64D7B9E1853CD5AE509293DF5EB518AF1F200EEA857` |
-| `documentation/arc42/10_quality_requirements.adoc` | `687988FCBC74CF6573136570486E22E9CC9E6573B11385307BBEFBE1436AD144` |
-| `documentation/arc42/11_risks_and_debt.adoc` | `5598E89BDE570135AE852DCA2295C1B4AC6336BF19C315701B4778E02F50BED9` |
+| `documentation/arc42/08_concepts.adoc` | `2BC78C86901D5CE98F210AC6F6DA0D3FBDA3F7A59723231C040A0C9919584F51` |
+| `documentation/arc42/10_quality_requirements.adoc` | `DDE1208E83235F36DB22700039B008C84AAEFCA28DFA53E57CF0E936C05BAB9B` |
+| `documentation/arc42/11_risks_and_debt.adoc` | `F445736A8C94D6CCC2870C6B1A981AF6EBF7BFE6FAB42242BF4EC6320DD06433` |
 
 This context pack is stale when any listed hash changes, when
 `documentation/workflow/**` changes outside workflow execution, when

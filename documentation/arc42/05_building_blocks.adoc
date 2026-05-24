@@ -77,7 +77,10 @@ The supported safety classes are `safe_read`, `safe_mutation`, `destructive`,
 `credential_mutation`, and `network_mutation`. Destructive command patterns
 such as Multipass delete or purge are accepted only when classified as
 `destructive` and limited to reset or destroy workflows. Mutating commands
-must declare a verification specification.
+must declare a verification specification. Commands that declare
+`runtime_change` cannot be classified as `safe_read`. Commands that emit
+credential material must be classified as `credential_mutation` and must
+declare an evidence policy that redacts output and forbids raw output storage.
 
 === Inventory And Verification Evidence
 
@@ -96,6 +99,12 @@ JSON persistence, and path validation. Observed inventory and verification
 evidence use dedicated local-state adapters instead of the generic file
 manager so raw evidence is not logged and file lookup cannot drift into
 `infra/config`.
+
+The default desired inventory baseline is committed at
+`infra/config/inventory/desired_inventory.yaml`. It records host-neutral VM
+names, roles, resource sizes, expected stacks, and artifact registries. It must
+not contain host-specific IP addresses, gateway values, user names, tokens,
+passwords, or secrets.
 
 === Infrastructure Assets
 

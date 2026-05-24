@@ -1,0 +1,53 @@
+schema_version: "1"
+vms:
+  - name: swarm-manager
+    role: manager
+    memory: 4G
+    disk: 20G
+    networks:
+      - control
+    stacks:
+      - portainer
+      - nexus
+      - rabbitmq
+      - sonarqube
+      - jenkins
+      - swagger
+
+  - name: swarm-worker-1
+    role: worker
+    memory: 8G
+    disk: 50G
+    networks:
+      - control
+    stacks:
+      - portainer
+      - nexus
+      - rabbitmq
+      - sonarqube
+      - jenkins
+      - swagger
+
+  - name: swarm-worker-2
+    role: worker
+    memory: 2G
+    disk: 10G
+    networks:
+      - control
+    stacks:
+      - portainer
+      - nexus
+      - rabbitmq
+      - sonarqube
+      - jenkins
+      - swagger
+
+expected_stacks:
+  - portainer
+  - nexus
+  - rabbitmq
+  - sonarqube
+  - jenkins
+  - swagger
+expected_artifact_registries:
+  - nexus

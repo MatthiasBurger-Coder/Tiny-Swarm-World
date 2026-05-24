@@ -4,6 +4,28 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
 
+DESIRED_INVENTORY_FIELDS = frozenset(
+    {
+        "schema_version",
+        "vms",
+        "expected_stacks",
+        "expected_artifact_registries",
+    }
+)
+VM_DESIRED_STATE_FIELDS = frozenset(
+    {
+        "name",
+        "role",
+        "image",
+        "memory",
+        "disk",
+        "cpu_count",
+        "networks",
+        "stacks",
+    }
+)
+
+
 @dataclass(frozen=True)
 class VmDesiredState:
     name: str
@@ -35,6 +57,7 @@ class VmDesiredState:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> "VmDesiredState":
+        _reject_unknown_fields(data, VM_DESIRED_STATE_FIELDS, "desired VM state")
         return cls(
             name=str(data.get("name", "")),
             role=str(data.get("role", "manager")),
@@ -73,6 +96,7 @@ class DesiredInventory:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> "DesiredInventory":
+        _reject_unknown_fields(data, DESIRED_INVENTORY_FIELDS, "desired inventory")
         return cls(
             schema_version=str(data.get("schema_version", "1")),
             vms=tuple(VmDesiredState.from_dict(vm) for vm in _mapping_sequence(data.get("vms", ()))),
@@ -106,6 +130,16 @@ def _mapping_sequence(value: object) -> tuple[Mapping[str, object], ...]:
     if not all(isinstance(item, Mapping) for item in items):
         raise ValueError("inventory state entries must be mappings")
     return tuple(item for item in items if isinstance(item, Mapping))
+
+
+def _reject_unknown_fields(
+    data: Mapping[str, object],
+    allowed_fields: frozenset[str],
+    context: str,
+) -> None:
+    unknown_fields = sorted(str(key) for key in data if str(key) not in allowed_fields)
+    if unknown_fields:
+        raise ValueError(f"{context} contains unsupported fields: {unknown_fields}")
 
 
 def _optional_int(value: object) -> int | None:

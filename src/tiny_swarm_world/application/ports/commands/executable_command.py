@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from tiny_swarm_world.application.ports.commands.port_command_runner import PortCommandRunner
 from tiny_swarm_world.domain.command.command_entity import (
+    CommandEvidencePolicy,
     CommandSafetyClass,
     CommandVerifySpec,
 )
@@ -26,6 +27,7 @@ class ExecutableCommandEntity(BaseModel):
     command_id: Optional[str] = Field(default=None)
     safety_class: Optional[CommandSafetyClass] = Field(default=None)
     verify: Optional[CommandVerifySpec] = Field(default=None)
+    evidence_policy: Optional[CommandEvidencePolicy] = Field(default=None)
 
     model_config = {
         "arbitrary_types_allowed": True,

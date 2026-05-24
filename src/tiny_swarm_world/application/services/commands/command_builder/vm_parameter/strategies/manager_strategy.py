@@ -39,6 +39,7 @@ class ManagerStrategy(CommandBuilderStrategy):
                 command_id=command.id,
                 safety_class=command.safety_class,
                 verify=command.verify,
+                evidence_policy=command.evidence_policy,
                 vm_instance_name=vm_instance_name,
                 description=command.description.format(vm_instance=vm_instance_name),
                 command=self.command_parameter_builder.substitute_command(command.command,active_parameter),
