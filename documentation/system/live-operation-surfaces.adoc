@@ -28,6 +28,7 @@ executing live infrastructure commands.
 | `platform init` and `platform reconcile` | Supported | Mutating workflow names are supported, live-consent gated, and currently block before apply until command-backed verification is wired.
 | `platform reset` and `platform destroy` | Supported | Confirmation contracts are supported, but destructive execution remains blocked until retention and teardown semantics are implemented.
 | `artifacts prepare`, `artifacts verify`, `deployment apply`, `deployment verify` | Supported | Workflow names are supported and return explicit blocked contract results until their live contracts are wired in composition. Slice 06 adds a tested post-bootstrap Portainer API contract. Slice 07 adds tested Nexus repository contracts and sanitized Nexus/Docker client behavior. Slice 08 adds tested default stack-presence contracts without claiming service health. CLI `artifacts prepare` and `deployment apply` remain fail-closed by default.
+| `PYTHONPATH=src python3 -m tiny_swarm_world setup run` | Supported | Canonical autonomous setup orchestrator. It is mutating and non-destructive, refuses missing live consent before setup service construction, and preserves fail-closed phase states across preflight, platform, artifacts, deployment, and final verification.
 |===
 
 == Direct Live Scripts And Assets
@@ -93,3 +94,24 @@ Do not run `multipass`, Docker Swarm, compose deployments, netplan, socat,
 Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX bootstrap, image
 build, image push, or stack upload commands unless the user explicitly requests
 live infrastructure execution.
+
+== Optional Live Smoke Handoff
+
+Optional live smoke validation is an operator action, not a development quality
+gate. It may be considered only after the static and mocked quality gates pass,
+and only on a disposable or recoverable local environment.
+
+[source,bash]
+----
+export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+When prompted, type `RUN TINY SWARM WORLD LIVE INSTALLATION` only after
+confirming that Multipass, Docker Swarm, networking, Portainer, Nexus, Jenkins,
+RabbitMQ, SonarQube, Swagger/NGINX, image, and stack changes are intentional.
+
+Live smoke evidence must stay in ignored local state such as
+`.tiny-swarm-world/`, must be redacted, and must not be committed. A
+resource-gated, blocked, refused, failed-to-apply, or failed-to-verify result
+is not a full runnable pass.

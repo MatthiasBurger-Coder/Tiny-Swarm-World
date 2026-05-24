@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-COMPLETED_PENDING_COMMIT
+COMPLETED
 ```
 
 ## Workflow Context

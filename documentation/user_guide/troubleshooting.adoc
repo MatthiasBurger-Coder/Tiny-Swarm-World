@@ -100,12 +100,14 @@ were accidentally added before continuing.
 
 == REFUSED_LIVE_CONSENT_MISSING
 
-Mutating platform workflows require all live-consent controls:
+Mutating workflow-level commands such as `setup run`, `platform init`,
+`platform reconcile`, `artifacts prepare`, and `deployment apply` require all
+live-consent controls. For the canonical setup path:
 
 [source,bash]
 ----
 export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
-PYTHONPATH=src python3 -m tiny_swarm_world platform init --live
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
 When prompted, type exactly:
@@ -117,6 +119,9 @@ RUN TINY SWARM WORLD LIVE INSTALLATION
 
 The workflow refuses before building application services if `--live`, the
 environment value, or the typed phrase is missing.
+
+This refusal is expected for a plain `setup run` command without consent. It
+does not mean the default quality gate failed.
 
 == REFUSED_WORKFLOW_CONFIRMATION_MISSING
 

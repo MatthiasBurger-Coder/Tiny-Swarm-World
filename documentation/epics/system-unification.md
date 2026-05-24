@@ -65,6 +65,11 @@ Implemented or substantially present:
 - Verify-after-apply workflow foundation.
 - Console/status UI adapters.
 - Explicit blocked workflow contracts for Artifact and Deployment commands.
+- Canonical `setup run` workflow-level orchestration with live-consent refusal
+  before setup service construction.
+- Setup terminal status and recovery output that preserves refused, blocked,
+  resource-gated, failed-to-apply, failed-to-verify, failed, and completed
+  states.
 - Static live-operation surface catalog for guarded, transitional, deprecated,
   legacy, and supported asset surfaces.
 - Documentation that identifies the Platform, Artifacts, Deployment, and
@@ -82,8 +87,10 @@ Planned or incomplete:
 - Legacy direct scripts remain live-operation surfaces outside the CLI consent
   guard and are classified for static review.
 - The autonomous runnable setup requirement baseline exists as an EPIC
-  extension, but the runnable setup implementation remains planned workflow
-  work.
+  extension, and the fail-closed setup orchestrator exists, but full live
+  runnable setup remains incomplete until command-backed platform
+  verification, artifact publication, registry checks, first-time stack
+  bootstrap, and service readiness evidence are wired.
 
 ## Scope
 
@@ -127,8 +134,10 @@ Out of scope:
 - All verification uses repository quality gates and mocked or static checks by
   default.
 - Autonomous setup requirements preserve the Platform, Artifacts, Deployment,
-  Shared, and Console/status UI ownership model and do not present live setup
-  behavior as implemented before later slices verify it.
+  Shared, and Console/status UI ownership model. Documentation may describe
+  the implemented fail-closed `setup run` orchestrator, but must not present
+  full live runnable setup as implemented until later verification evidence
+  proves it.
 
 ## Non-Functional Requirements
 

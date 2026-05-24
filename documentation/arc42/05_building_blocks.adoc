@@ -66,12 +66,13 @@ presentation. It is not a browser React frontend.
 
 === Autonomous Setup Boundary
 
-The autonomous setup workflow is a planned orchestration over the existing
-in-process boundaries. It is not a new deployable service, microservice,
-Spring Boot application, Java example responsibility, or browser frontend.
+The autonomous setup workflow is an implemented fail-closed orchestration over
+the existing in-process boundaries. It is not a new deployable service,
+microservice, Spring Boot application, Java example responsibility, or browser
+frontend.
 
 The setup boundary coordinates Platform, Artifacts, Deployment, Shared, and
-Console/status UI contracts when later slices implement it:
+Console/status UI contracts:
 
 * Platform owns host preflight, Multipass, Docker installation, Docker Swarm,
   network, VM, and resource readiness behavior.
@@ -83,9 +84,11 @@ Console/status UI contracts when later slices implement it:
   configuration loading, and composition wiring.
 * Console/status UI owns terminal-only setup progress and recovery output.
 
-The current repository state is still requirement and safety alignment only for
-end-to-end setup. Later slices must add tested contracts before documentation
-can claim that the setup path installs a runnable system.
+The current repository state includes the canonical `setup run` command,
+live-consent refusal before setup service construction, phase sequencing, and
+terminal recovery states. Lower Platform, Artifacts, and Deployment live
+contracts still need complete observed-state evidence before documentation can
+claim that the setup path installs a full runnable system.
 
 === Typed Command Catalog
 

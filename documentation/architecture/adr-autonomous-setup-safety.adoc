@@ -1,6 +1,6 @@
 = ADR: Autonomous Setup Safety Contract
 
-Status: Accepted as setup-safety contract; implementation planned
+Status: Accepted as setup-safety contract; fail-closed orchestration implemented
 
 Date: 2026-05-24
 
@@ -9,10 +9,12 @@ Date: 2026-05-24
 Slice 01 of the autonomous runnable setup workflow established the requirement
 baseline in `documentation/epics/autonomous-runnable-setup.md`.
 
-This ADR accepts the safety contract that later implementation slices must
-preserve. It does not claim that a canonical end-to-end autonomous setup
-command is implemented. Current Platform, Artifacts, and Deployment behavior
-remains fail-closed where verification contracts are missing.
+This ADR accepts the safety contract that implementation slices must preserve.
+Slice 09 implemented the canonical `setup run` command as a fail-closed,
+live-consent-gated orchestration over setup phases. Current Platform,
+Artifacts, and Deployment behavior remains fail-closed where verification,
+bootstrap, publication, registry, or service-readiness contracts are missing.
+This ADR does not claim that full live runnable installation is verified.
 
 == Context
 

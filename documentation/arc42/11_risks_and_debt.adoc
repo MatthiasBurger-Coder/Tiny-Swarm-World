@@ -40,13 +40,15 @@ Remaining debt:
 
 === Autonomous Setup Safety Debt
 
-The autonomous setup safety contract is accepted, but end-to-end setup remains
-planned work.
+The autonomous setup safety contract is accepted. The canonical `setup run`
+workflow-level orchestrator now exists and fails closed behind live consent,
+but end-to-end full runnable setup remains incomplete.
 
 Remaining debt:
 
-* no canonical setup command currently installs the full runnable profile;
-* setup preflight and setup manifest contracts still need implementation;
+* `setup run` does not yet install and verify the full runnable profile;
+* setup preflight and setup manifest contracts exist, but still need live
+  profile hardening for resource, credential, and readiness handoff detail;
 * command-backed verification remains incomplete for live Platform phases;
 * Artifacts readiness still needs image publication and registry observed-state
   contracts; Deployment readiness has default stack-presence contracts but

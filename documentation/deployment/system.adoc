@@ -48,6 +48,13 @@ returning blocked readiness until required services are observed. They do not
 claim container health or application readiness; those checks remain future
 observed-state contracts.
 
+The canonical autonomous setup command is `setup run`. It is a workflow-level
+orchestrator over preflight, platform, artifacts, deployment, and final
+verification phases. It refuses missing live consent before setup service
+construction and preserves blocked, resource-gated, failed-to-apply, and
+failed-to-verify states instead of reporting full deployment success without
+observed evidence.
+
 == Development gate before deployment work
 
 Run the development quality gate before changing deployment-related code:
@@ -143,6 +150,20 @@ docker service ls
 ----
 
 Service-specific web interfaces depend on the published stack ports. Typical local defaults are documented in `documentation/Howto.adoc`.
+
+Optional live smoke validation is separate from the development quality gate
+and should be run only on a disposable or recoverable local Swarm target:
+
+[source,bash]
+----
+export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+When prompted, type `RUN TINY SWARM WORLD LIVE INSTALLATION` only if the
+operator intentionally accepts local VM, Docker Swarm, networking, service
+bootstrap, image, and stack changes. A live smoke result is evidence for that
+local run only and must not be treated as the default repository quality gate.
 
 == Operational caution
 

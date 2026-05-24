@@ -25,8 +25,10 @@ repository-visible sources:
   `documentation/system/live-operation-surfaces.adoc`;
 - host and evidence readiness items in `OPERATIONAL_READINESS_CHECKLIST.md`.
 
-This EPIC is a requirement baseline. It does not claim that the autonomous
-setup workflow is implemented.
+This EPIC is the requirement baseline for autonomous setup. The canonical
+`setup run` workflow-level orchestrator is implemented as a fail-closed,
+live-consent-gated command, but this EPIC does not claim that the full live
+runnable system is installed successfully.
 
 ## Relationship To System Unification
 
@@ -50,14 +52,17 @@ Does the implementation currently install Tiny Swarm World into the intended
 runnable state?
 
 ```text
-NO, REQUIREMENT BASELINE ONLY
+NO, FAIL-CLOSED ORCHESTRATOR IMPLEMENTED
 ```
 
 The repository contains guarded workflow names, static preflight, command
 safety concepts, inventory/evidence concepts, and blocked Platform,
-Artifact, and Deployment contracts. The end-to-end setup is planned by the
-active workflow and must be implemented in later slices before it can be
-documented as working runtime behavior.
+Artifact, and Deployment contracts. The `setup run` command is listed by the
+CLI, refuses missing live consent before setup service construction, and
+orchestrates preflight, platform, artifact, deployment, and final verification
+phases. Full live runnable setup still depends on later evidence for
+command-backed platform verification, artifact publication, registry checks,
+first-time stack bootstrap, and service readiness.
 
 ## Intent
 
@@ -173,8 +178,10 @@ smoke validation is a separate operator action and requires:
 - Full runnable state and resource-gated state are explicit and testable.
 - The setup preserves Platform, Artifacts, Deployment, Shared, and
   Console/status UI ownership.
-- The setup does not claim live behavior until later workflow slices implement
-  and verify it.
+- The setup documentation may claim the fail-closed `setup run` orchestration
+  behavior that is implemented and tested, but it must not claim full live
+  runnable success until later workflow slices implement and verify that
+  evidence.
 - Preflight failures identify host prerequisite, resource, secret,
   configuration, or consent blockers before mutation.
 - Mutating setup phases use apply-then-verify semantics.

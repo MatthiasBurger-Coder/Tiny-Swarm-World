@@ -38,12 +38,13 @@ itself to avoid a bootstrap cycle. The current checks record stack
 registration context and return blocked readiness until container health or
 application readiness exists as observed-state evidence.
 
-== Planned Autonomous Setup Deployment Contract
+== Autonomous Setup Deployment Contract
 
-The autonomous setup target is a local Linux/WSL Docker Swarm-first
-deployment. Full runnable success is reached only after the selected profile's
-host prerequisites, platform state, artifact registry behavior, service stacks,
-and readiness checks are verified.
+The canonical `setup run` command is the workflow-level setup orchestrator for
+a local Linux/WSL Docker Swarm-first deployment. It is mutating,
+non-destructive, and live-consent gated. Full runnable success is reached only
+after the selected profile's host prerequisites, platform state, artifact
+registry behavior, service stacks, and readiness checks are verified.
 
 Hosts that do not satisfy the full-run resource contract remain
 resource-gated. A resource-gated result must identify omitted services and must
