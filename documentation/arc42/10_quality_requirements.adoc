@@ -9,6 +9,9 @@ The command catalog must fail closed before command execution:
 * every command YAML entry has a stable `id` and complete typed metadata;
 * duplicate command IDs or duplicate execution indexes are rejected;
 * destructive command strings without `safety_class: destructive` are rejected;
+* `runtime_change` command effects are rejected when classified as `safe_read`;
+* `credential_output` command effects are rejected unless the command is
+  `credential_mutation` with redacted, non-raw evidence policy;
 * mutating commands without a verification specification are rejected;
 * command usage is rejected when the active workflow is not listed in
   `allowed_workflows`.
@@ -16,7 +19,9 @@ The command catalog must fail closed before command execution:
 The default quality gate must validate this contract without executing live
 infrastructure commands. Regression coverage includes domain model validation,
 YAML repository validation, workflow allow-list enforcement, and static checks
-that destructive command patterns are reset/destroy only.
+that destructive command patterns are reset/destroy only. Desired inventory
+tests must load the committed host-neutral baseline and reject host-specific or
+secret-bearing fields.
 
 === Verify After Apply
 

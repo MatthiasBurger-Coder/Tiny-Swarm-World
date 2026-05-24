@@ -13,14 +13,7 @@ class WindowsUi(PortUI):
         """
         Updates the status of an instance.
         """
-        with self.lock:
-            if instance in self.status:
-                self.status[instance]["current_task"] = task
-                self.status[instance]["current_step"] = step
-                if result:
-                    self.status[instance]["result"] = result
-
-
+        super().update_status(instance, task, step, result)
 
     def _draw_ui(self):
         """
@@ -69,8 +62,8 @@ class WindowsUi(PortUI):
             time.sleep(0.5)
 
             # Check if all instances are completed
-            if all(self.status[instance]["result"] in ["Success", "Error"] for instance in self.instances):
-                print("\nAll instances completed".center(columns))
+            if self.all_instances_terminal():
+                print(f"\n{self.completion_summary()}".center(columns))
                 time.sleep(2)
                 break
 

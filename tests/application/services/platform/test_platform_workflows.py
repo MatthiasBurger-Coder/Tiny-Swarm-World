@@ -13,6 +13,13 @@ from tiny_swarm_world.application.services.platform import (
     PlatformWorkflowStatus,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.domain.preflight import (
+    PreflightCategory,
+    PreflightCheck,
+    PreflightResult,
+    PreflightSeverity,
+    PreflightStatus,
+)
 
 
 class TestPlatformWorkflowTaxonomy(unittest.TestCase):
@@ -67,6 +74,36 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertFalse(PlatformVerifyWorkflow.semantics.mutating)
         self.assertFalse(PlatformVerifyWorkflow.semantics.destructive)
+
+    async def test_verify_reports_failed_preflight_as_failed_to_verify(self):
+        verify_step = _PreflightAction(
+            PreflightResult(
+                (
+                    PreflightCheck(
+                        check_id="HOST",
+                        category=PreflightCategory.HOST,
+                        status=PreflightStatus.FAILED,
+                        severity=PreflightSeverity.MANDATORY,
+                        message="Host is not ready.",
+                        remediation="Run from Linux or WSL.",
+                    ),
+                )
+            )
+        )
+
+        result = await PlatformVerifyWorkflow([verify_step]).run()
+
+        self.assertEqual(["preflight"], verify_step.calls)
+        self.assertEqual(PlatformWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertTrue(result.executed)
+        self.assertEqual(
+            VerificationStatus.FAILED_TO_VERIFY,
+            result.verification_results[0].status,
+        )
+        self.assertEqual(
+            {"phase": "verify", "failed_check_count": "1"},
+            dict(result.verification_results[0].evidence),
+        )
 
     async def test_reset_refuses_missing_or_wrong_confirmation_before_running_steps(self):
         destructive_step = _ForbiddenAction()
@@ -141,6 +178,14 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([], apply_only_step.calls)
         self.assertEqual([], later_step.calls)
         self.assertEqual(VerificationStatus.BLOCKED, result.verification_results[0].status)
+        self.assertIn(
+            "command-backed verification is not configured",
+            result.message,
+        )
+        self.assertEqual(
+            "command-backed verification is not configured",
+            result.verification_results[0].evidence["reason"],
+        )
 
     async def test_failed_apply_stops_workflow_before_verify_and_later_steps(self):
         failing_step = _FailingApplyAction("failing")
@@ -288,6 +333,16 @@ class _MissingEvidenceAction:
 class _ForbiddenAction:
     async def run(self) -> object:
         raise AssertionError("destructive step must not run without confirmation")
+
+
+class _PreflightAction:
+    def __init__(self, result: PreflightResult):
+        self.result = result
+        self.calls: list[str] = []
+
+    async def run(self) -> PreflightResult:
+        self.calls.append("preflight")
+        return self.result
 
 
 class _RecordingEvidenceRepository:

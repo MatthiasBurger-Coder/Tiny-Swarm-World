@@ -36,6 +36,19 @@ RAW_EVIDENCE_VALUE_PATTERNS = (
     re.compile(r"\b(token|password|secret)\b", re.IGNORECASE),
     re.compile(r"-----BEGIN [A-Z ]+-----"),
 )
+RAW_MESSAGE_VALUE_PATTERNS = (
+    re.compile(r"[\r\n]"),
+    re.compile(r"\b(stdout|stderr)\b", re.IGNORECASE),
+    re.compile(
+        r"\b(multipass|docker|sudo|curl)\s+"
+        r"(exec|swarm|system|volume|stack|run|compose|login|pull|push|network|"
+        r"service|node|secret|config|cp|ssh|launch|delete|purge|restart|list|"
+        r"transfer|set|install|update|sh|bash|curl)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\b(token|password|secret)\b", re.IGNORECASE),
+    re.compile(r"-----BEGIN [A-Z ]+-----"),
+)
 
 
 @dataclass(frozen=True)
@@ -49,6 +62,7 @@ class VerificationResult:
         if not self.target_id:
             raise ValueError("verification target_id must not be empty")
         status = VerificationStatus(self.status)
+        _validate_summary_text("message", self.message, RAW_MESSAGE_VALUE_PATTERNS)
         evidence = _validate_evidence(self.evidence)
         object.__setattr__(self, "status", status)
         object.__setattr__(self, "evidence", MappingProxyType(evidence))
@@ -82,10 +96,18 @@ def _validate_evidence(evidence: Mapping[str, str]) -> dict[str, str]:
         if any(fragment in normalized_key for fragment in SENSITIVE_EVIDENCE_KEY_FRAGMENTS):
             raise ValueError(f"sensitive verification evidence key is not allowed: {key}")
         string_value = str(value)
-        if any(pattern.search(string_value) for pattern in RAW_EVIDENCE_VALUE_PATTERNS):
-            raise ValueError(f"raw or sensitive verification evidence value is not allowed: {key}")
+        _validate_summary_text(key, string_value, RAW_EVIDENCE_VALUE_PATTERNS)
         validated[str(key)] = string_value
     return validated
+
+
+def _validate_summary_text(
+    key: str,
+    value: str,
+    raw_value_patterns: tuple[re.Pattern[str], ...],
+) -> None:
+    if any(pattern.search(value) for pattern in raw_value_patterns):
+        raise ValueError(f"raw or sensitive verification text is not allowed: {key}")
 
 
 def _string_mapping(value: object) -> Mapping[str, str]:

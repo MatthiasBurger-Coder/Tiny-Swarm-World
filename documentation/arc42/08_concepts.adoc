@@ -13,6 +13,9 @@ Safety classification is fail-closed:
 * missing IDs, duplicate IDs, unknown metadata, and malformed YAML are rejected;
 * destructive shell patterns require `safety_class: destructive`;
 * destructive commands are allowed only in reset or destroy workflows;
+* commands that declare `runtime_change` cannot be classified as `safe_read`;
+* credential-output commands require `safety_class: credential_mutation` and a
+  redacted, summary-only evidence policy;
 * mutating commands require a non-empty verification specification;
 * a workflow cannot build commands that do not list its workflow identifier in
   `allowed_workflows`.
@@ -32,7 +35,10 @@ Tiny Swarm World separates intended state from runtime facts.
 
 Desired inventory is the operator-approved target view. It is represented by
 `DesiredInventory` and VM desired-state entries and may be loaded from
-committed product configuration.
+committed product configuration. The committed default
+`infra/config/inventory/desired_inventory.yaml` is host-neutral and rejects
+unknown fields so IP addresses, gateways, user names, tokens, passwords, and
+secrets cannot be silently ignored.
 
 Observed inventory is the local runtime view collected by adapters. It contains
 typed VM, network, Docker, Swarm, stack, and artifact registry state. Observed
@@ -75,7 +81,8 @@ The workflow result distinguishes:
 Evidence values are sanitized as well as evidence keys. Raw command payloads,
 stdout/stderr labels, shell-like command strings, token/password/secret
 markers, multi-line payloads, and PEM-like blocks are rejected before evidence
-can be persisted.
+can be persisted. Verification messages are validated by the same summary-only
+contract before persistence.
 
 === Skill And Agent Governance
 

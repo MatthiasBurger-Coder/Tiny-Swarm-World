@@ -4,6 +4,20 @@ This section indexes active architecture decisions and implementation decisions
 from the safety-first workflow. Standalone ADR files keep their own history and
 status; arc42 summarizes the current consequences.
 
+=== ADR Location Convention
+
+Standalone ADR files currently live under `documentation/architecture/` with
+the naming pattern `adr-<decision-slug>.adoc`.
+
+`documentation/arc42/09_architecture_decisions.adoc` is the active index for
+those decisions. Existing ADR files must not be silently moved, renumbered or
+renamed as part of workflow execution.
+
+The repository does not currently use `documentation/adr/**`. Introducing that
+path requires a separate convention decision, including
+`documentation/adr/README.md`, reference migration, and history-preserving
+links from existing ADR files.
+
 === Platform, Artifacts, Deployment, And Shared Responsibilities
 
 ADR: `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
@@ -16,10 +30,11 @@ Consequences:
   `DeploymentServices`;
 * Platform workflows own Multipass, netplan, Docker install, Swarm, preflight,
   and VM/IP behavior;
-* the Deployment namespace owns `EnsureNexusStack`, while deployment workflow
-  composition remains pending;
-* Artifacts remains an explicit empty bundle until artifact workflow wiring is
+* the Deployment namespace owns `EnsureNexusStack`, and deployment workflow
+  composition owns explicit blocked contracts until live Portainer behavior is
   implemented;
+* Artifacts owns explicit blocked workflow contracts until artifact registry
+  and publishing behavior is implemented;
 * these bundles are not independently deployable microservices.
 
 === Workflow Taxonomy And Destructive Operation Policy
@@ -33,12 +48,13 @@ retention/teardown semantics are implemented.
 
 === Workflow-Level CLI
 
-Decision status: implemented for platform workflows.
+Decision status: implemented for platform workflows and blocked artifact and
+deployment contracts.
 
 The Python entry point lists workflow-level commands, refuses unsupported
 workflow names, and applies live-consent checks before constructing services
-for mutating workflows. Artifact and deployment workflow names are declared but
-blocked until their wiring lands.
+for mutating workflows. Artifact and deployment workflow names dispatch to
+blocked workflow contracts until live behavior lands.
 
 === Typed Command Catalog
 
@@ -52,7 +68,7 @@ rejects commands outside their allow-list.
 
 === Inventory State Storage Ownership
 
-Decision status: implemented in Slice 08.
+Decision status: implemented in Slice 04.
 
 Tiny Swarm World separates committed desired inventory from ignored local
 observed inventory and verification evidence.

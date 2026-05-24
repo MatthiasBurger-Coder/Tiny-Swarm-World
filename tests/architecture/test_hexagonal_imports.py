@@ -24,6 +24,8 @@ DEPLOYMENT_APPLICATION_SERVICE_ROOTS = (
 ARTIFACT_APPLICATION_SERVICE_ROOTS = (
     APPLICATION_SERVICES_ROOT / "artifacts",
 )
+CONSOLE_UI_INFRASTRUCTURE_ROOT = SOURCE_ROOT / "infrastructure" / "adapters" / "ui"
+CLI_ENTRYPOINT = SOURCE_ROOT / "__main__.py"
 ALLOWED_APPLICATION_SERVICE_DIRECTORIES = {
     "commands",
     "multipass",
@@ -198,6 +200,49 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
                 forbidden_prefix=forbidden_prefix,
             )
         ]
+
+        self.assertEqual([], violations)
+
+    def test_artifact_and_deployment_cli_workflows_remain_explicitly_blocked(self):
+        entrypoint_text = CLI_ENTRYPOINT.read_text(encoding="utf-8")
+
+        required_snippets = (
+            'CliWorkflow(namespace="artifacts", action="prepare", mutating=True, destructive=False)',
+            'CliWorkflow(namespace="artifacts", action="verify", mutating=False, destructive=False)',
+            'CliWorkflow(namespace="deployment", action="apply", mutating=True, destructive=False)',
+            'CliWorkflow(namespace="deployment", action="verify", mutating=False, destructive=False)',
+            "platform_kind=kind",
+            "_blocked_workflow_result(workflow)",
+            "is declared but not wired in this workflow slice",
+        )
+
+        missing_snippets = [
+            snippet
+            for snippet in required_snippets
+            if snippet not in entrypoint_text
+        ]
+
+        self.assertEqual([], missing_snippets)
+
+    def test_console_ui_does_not_introduce_browser_frontend_surface(self):
+        forbidden_terms = (
+            "react",
+            "vite",
+            "next",
+            "tsx",
+            "jsx",
+            "package.json",
+            "browser route",
+            "api client ui",
+        )
+        violations = []
+        for source_file in sorted(CONSOLE_UI_INFRASTRUCTURE_ROOT.rglob("*.py")):
+            text = source_file.read_text(encoding="utf-8").lower()
+            violations.extend(
+                (source_file.relative_to(REPOSITORY_ROOT).as_posix(), term)
+                for term in forbidden_terms
+                if term in text
+            )
 
         self.assertEqual([], violations)
 

@@ -97,6 +97,23 @@ class CommandVerifySpec(BaseModel):
             raise ValueError("command verify specs require a command")
         return self
 
+    @property
+    def is_command_backed(self) -> bool:
+        return self.type == CommandVerifyType.COMMAND
+
+    @property
+    def is_manual_only(self) -> bool:
+        return self.type == CommandVerifyType.MANUAL
+
+
+class CommandEvidencePolicy(BaseModel):
+    redact_output: bool = False
+    store_raw_output: bool = False
+
+    model_config = {
+        "extra": "forbid",
+    }
+
 
 class CommandEntity(BaseModel):
     """
@@ -129,6 +146,7 @@ class CommandEntity(BaseModel):
     parameters: List[str]
     effects: List[str]
     verify: CommandVerifySpec
+    evidence_policy: CommandEvidencePolicy | None = None
     command: str = Field(default="")
     runner: str = Field(default="")
     command_type: CommandType = Field(default=CommandType.HOSTOS)
@@ -186,6 +204,22 @@ class CommandEntity(BaseModel):
         if self.safety_class != CommandSafetyClass.SAFE_READ and self.verify.type == CommandVerifyType.NONE:
             raise ValueError("mutating commands require a verify specification")
 
+        if self.evidence_policy and self.evidence_policy.store_raw_output:
+            raise ValueError("command evidence policy must not store raw output")
+
+        if CommandEffect.RUNTIME_CHANGE.value in self.effects and self.safety_class == CommandSafetyClass.SAFE_READ:
+            raise ValueError("runtime_change commands must not use safety_class=safe_read")
+
+        if self.produces_sensitive_output:
+            if self.safety_class != CommandSafetyClass.CREDENTIAL_MUTATION:
+                raise ValueError(
+                    "credential_output commands require safety_class=credential_mutation"
+                )
+            if not self.evidence_policy or not self.evidence_policy.redact_output:
+                raise ValueError(
+                    "credential_output commands require a redacted evidence policy"
+                )
+
         if self.safety_class == CommandSafetyClass.DESTRUCTIVE:
             disallowed = [
                 workflow
@@ -201,6 +235,18 @@ class CommandEntity(BaseModel):
 
     def uses_destructive_shell_pattern(self) -> bool:
         return any(pattern.search(self.command) for pattern in DESTRUCTIVE_COMMAND_PATTERNS)
+
+    @property
+    def produces_sensitive_output(self) -> bool:
+        return CommandEffect.CREDENTIAL_OUTPUT.value in self.effects
+
+    @property
+    def is_command_backed_verification(self) -> bool:
+        return self.verify.is_command_backed
+
+    @property
+    def is_manual_only_verification(self) -> bool:
+        return self.verify.is_manual_only
 
     def ensure_allowed_for_workflow(self, workflow_id: str) -> None:
         if not workflow_id:

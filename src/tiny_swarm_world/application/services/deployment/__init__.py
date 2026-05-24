@@ -6,7 +6,19 @@ import path remains as a compatibility facade.
 """
 
 from tiny_swarm_world.application.services.deployment.ensure_nexus_stack import EnsureNexusStack
+from tiny_swarm_world.application.services.deployment.workflows import (
+    DeploymentApplyWorkflow,
+    DeploymentVerifyWorkflow,
+    DeploymentWorkflowKind,
+    DeploymentWorkflowResult,
+    DeploymentWorkflowStatus,
+)
 
 __all__ = [
+    "DeploymentApplyWorkflow",
+    "DeploymentVerifyWorkflow",
+    "DeploymentWorkflowKind",
+    "DeploymentWorkflowResult",
+    "DeploymentWorkflowStatus",
     "EnsureNexusStack",
 ]

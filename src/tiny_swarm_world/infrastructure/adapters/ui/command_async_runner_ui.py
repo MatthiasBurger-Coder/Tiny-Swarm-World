@@ -4,6 +4,7 @@ from typing import Dict
 
 from tiny_swarm_world.application.services.commands.command_executer.command_executer import CommandExecuter
 from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
+from tiny_swarm_world.application.ports.ui.port_ui import AGGREGATE_INSTANCE, STATUS_ERROR, STATUS_SUCCESS
 from tiny_swarm_world.infrastructure.adapters.ui.command_runner_ui import CommandRunnerUi
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI
@@ -52,15 +53,20 @@ class AsyncCommandRunnerUI(CommandRunnerUi):
                 if isinstance(result, Exception):
                     failures.append(result)
                     self.logger.error(f"Execution failed for {vm}: {result}")
-                    self.ui.update_status(task="failed", step="execution", result="error", instance=vm)
+                    self.ui.update_status(task="failed", step="execution", result=STATUS_ERROR, instance=vm)
                 else:
                     self.logger.info(f"Execution successful for {vm}")
-                    self.ui.update_status(task="completed", step="execution", result="success", instance=vm)
+                    self.ui.update_status(task="completed", step="execution", result=STATUS_SUCCESS, instance=vm)
 
         finally:
             # Aktualisiere die UI mit Abschlussstatus
-            final_result = "error" if failures else "success"
-            self.ui.update_status(task="finished", step="execution", result=final_result, instance="all")
+            final_result = STATUS_ERROR if failures else STATUS_SUCCESS
+            self.ui.update_status(
+                task="finished",
+                step="execution",
+                result=final_result,
+                instance=AGGREGATE_INSTANCE,
+            )
 
             # Warte auf das Ende des UI-Threads
             self.logger.info("Waiting for UI thread to close...")

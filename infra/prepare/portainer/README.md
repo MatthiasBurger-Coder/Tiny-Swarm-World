@@ -2,11 +2,13 @@
 
 This directory contains live Portainer preparation scripts.
 
-Supported live script:
+Transitional supported live script:
 
 - `prepare.sh` deploys and initializes Portainer for a local Swarm environment.
+  It is a direct operator script and is not protected by the workflow-level CLI
+  consent guard.
 
-Transitional duplicate:
+Deprecated duplicate:
 
 - `portain_setup.py` overlaps with platform networking, Multipass access,
   Docker cleanup, Portainer stack deployment, and admin initialization. Treat it
@@ -15,3 +17,5 @@ Transitional duplicate:
 
 Do not run these scripts during normal development quality checks. They can
 modify Docker, Portainer, socat, iptables, volumes, and stack state.
+The canonical classification is maintained in
+`documentation/system/live-operation-surfaces.adoc`.

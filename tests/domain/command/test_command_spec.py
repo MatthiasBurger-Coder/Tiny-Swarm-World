@@ -45,6 +45,26 @@ class TestCommandSpec(unittest.TestCase):
         with self.assertRaises(ValidationError):
             CommandEntity(**spec)
 
+    def test_command_backed_verify_requires_command(self):
+        spec = _command_spec(
+            safety_class="safe_mutation",
+            verify={"type": "command", "description": "verify with command"},
+        )
+
+        with self.assertRaises(ValidationError):
+            CommandEntity(**spec)
+
+    def test_manual_verify_is_metadata_only(self):
+        command = CommandEntity(
+            **_command_spec(
+                safety_class="safe_mutation",
+                verify={"type": "manual", "description": "operator check required"},
+            )
+        )
+
+        self.assertTrue(command.is_manual_only_verification)
+        self.assertFalse(command.is_command_backed_verification)
+
     def test_all_mutating_safety_classes_require_verify_spec(self):
         mutating_classes = (
             CommandSafetyClass.SAFE_MUTATION.value,
@@ -86,6 +106,49 @@ class TestCommandSpec(unittest.TestCase):
             allowed_workflows=[CommandWorkflowId.PLATFORM_INIT.value],
             verify={"type": "manual", "description": "verify purge"},
         )
+
+        with self.assertRaises(ValidationError):
+            CommandEntity(**spec)
+
+    def test_runtime_change_command_cannot_be_safe_read(self):
+        spec = _command_spec(effects=["read", "runtime_change"])
+
+        with self.assertRaises(ValidationError):
+            CommandEntity(**spec)
+
+    def test_credential_output_requires_credential_safety_and_redacted_policy(self):
+        missing_policy = _command_spec(
+            safety_class="credential_mutation",
+            effects=["read", "credential_output"],
+            verify={"type": "manual", "description": "operator check required"},
+        )
+
+        with self.assertRaises(ValidationError):
+            CommandEntity(**missing_policy)
+
+        read_classified = _command_spec(
+            safety_class="safe_read",
+            effects=["read", "credential_output"],
+            verify={"type": "none", "description": "read only"},
+            evidence_policy={"redact_output": True, "store_raw_output": False},
+        )
+
+        with self.assertRaises(ValidationError):
+            CommandEntity(**read_classified)
+
+        command = CommandEntity(
+            **_command_spec(
+                safety_class="credential_mutation",
+                effects=["read", "credential_output"],
+                verify={"type": "manual", "description": "operator check required"},
+                evidence_policy={"redact_output": True, "store_raw_output": False},
+            )
+        )
+
+        self.assertTrue(command.produces_sensitive_output)
+
+    def test_command_evidence_policy_rejects_raw_output_storage(self):
+        spec = _command_spec(evidence_policy={"redact_output": False, "store_raw_output": True})
 
         with self.assertRaises(ValidationError):
             CommandEntity(**spec)

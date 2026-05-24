@@ -4,7 +4,7 @@ commands:
     description: Getting join-token for the worker
     intent: getting_join_token_for_the_worker
     execution_mode: shell
-    safety_class: safe_read
+    safety_class: credential_mutation
     scope: swarm
     allowed_workflows:
       - platform:init
@@ -13,10 +13,12 @@ commands:
     effects:
       - read
       - credential_output
-      - runtime_change
     verify:
-      type: none
-      description: Read-only command.
+      type: manual
+      description: Credential output is consumed in memory; raw token output must not be stored as evidence.
+    evidence_policy:
+      redact_output: true
+      store_raw_output: false
     command: "multipass exec {vm_instance} -- docker swarm join-token -q worker"
     runner: "async"
     command_type: "vm"

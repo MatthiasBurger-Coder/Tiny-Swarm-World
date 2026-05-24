@@ -13,6 +13,7 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PlatformWorkflowSemantics,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.domain.preflight import PreflightResult
 
 
 class AsyncWorkflowStep(Protocol):
@@ -118,13 +119,37 @@ class PlatformVerifyWorkflow:
         self.steps = tuple(steps)
 
     async def run(self) -> PlatformWorkflowResult:
-        await _run_steps(self.steps)
-        return PlatformWorkflowResult.completed(self.semantics, executed=bool(self.steps))
+        verification_results: list[VerificationResult] = []
+        step_results = await _run_steps(self.steps)
+        for step_result in step_results:
+            verification_result = _verification_result_from_verify_output(step_result)
+            if verification_result is None:
+                continue
+            verification_results.append(verification_result)
+            if verification_result.status == VerificationStatus.BLOCKED:
+                return PlatformWorkflowResult.blocked(
+                    self.semantics,
+                    f"{self.semantics.kind.value} verification is blocked.",
+                    tuple(verification_results),
+                )
+            if verification_result.status != VerificationStatus.VERIFIED:
+                return PlatformWorkflowResult.failed_to_verify(
+                    self.semantics,
+                    f"{self.semantics.kind.value} verification failed.",
+                    tuple(verification_results),
+                )
+        return PlatformWorkflowResult.completed(
+            self.semantics,
+            executed=bool(self.steps),
+            verification_results=tuple(verification_results),
+        )
 
 
-async def _run_steps(steps: Sequence[AsyncWorkflowStep]) -> None:
+async def _run_steps(steps: Sequence[AsyncWorkflowStep]) -> tuple[object, ...]:
+    results: list[object] = []
     for step in steps:
-        await step.run()
+        results.append(await step.run())
+    return tuple(results)
 
 
 async def _run_mutating_steps(
@@ -135,16 +160,20 @@ async def _run_mutating_steps(
     verification_results: list[VerificationResult] = []
     for step in steps:
         if not _step_has_verification(step):
+            target_id = _verification_target_id(step)
+            operator_reason = _operator_block_reason(step)
             result = VerificationResult(
-                target_id=_verification_target_id(step),
+                target_id=target_id,
                 status=VerificationStatus.BLOCKED,
-                message="Mutating workflow step has no verification path.",
-                evidence={"phase": "pre_apply"},
+                message=f"Blocked before apply: {operator_reason}",
+                evidence={"phase": "pre_apply", "reason": operator_reason},
             )
+            _append_evidence(verification_evidence_repository, result)
             verification_results.append(result)
             return PlatformWorkflowResult.blocked(
                 semantics,
-                f"{semantics.kind.value} step lacks verification evidence.",
+                f"{semantics.kind.value} step {target_id} is blocked before apply: "
+                f"{operator_reason}",
                 tuple(verification_results),
             )
 
@@ -224,6 +253,37 @@ def _verification_target_id(step: AsyncWorkflowStep) -> str:
     if target_id:
         return str(target_id)
     return step.__class__.__name__
+
+
+def _operator_block_reason(step: AsyncWorkflowStep) -> str:
+    reason = getattr(step, "operator_block_reason", "")
+    if reason:
+        return str(reason)
+    return "command-backed verification is not configured"
+
+
+def _verification_result_from_verify_output(result: object) -> VerificationResult | None:
+    if isinstance(result, VerificationResult):
+        return result
+    if isinstance(result, PreflightResult):
+        return _verification_result_from_preflight(result)
+    return None
+
+
+def _verification_result_from_preflight(result: PreflightResult) -> VerificationResult:
+    if result.passed:
+        return VerificationResult(
+            target_id="platform:preflight",
+            status=VerificationStatus.VERIFIED,
+            message="Preflight checks passed.",
+            evidence={"phase": "verify", "check_count": str(len(result.checks))},
+        )
+    return VerificationResult(
+        target_id="platform:preflight",
+        status=VerificationStatus.FAILED_TO_VERIFY,
+        message="Preflight checks failed.",
+        evidence={"phase": "verify", "failed_check_count": str(len(result.failed_checks))},
+    )
 
 
 def _failed_apply_result(result: object) -> VerificationResult | None:

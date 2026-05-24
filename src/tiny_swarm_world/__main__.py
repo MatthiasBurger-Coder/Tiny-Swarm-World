@@ -4,7 +4,10 @@ import os
 from argparse import ArgumentParser, Namespace
 from collections.abc import Sequence
 from dataclasses import dataclass
+from enum import Enum
 
+from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
+from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PLATFORM_WORKFLOW_TAXONOMY,
     PlatformWorkflowKind,
@@ -18,10 +21,16 @@ from tiny_swarm_world.domain.preflight import (
 )
 from tiny_swarm_world.infrastructure.composition import (
     ApplicationServices,
+    ArtifactServices,
+    DeploymentServices,
     build_application_services,
+    build_artifact_services,
+    build_deployment_services,
     build_preflight_service,
 )
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+
+WorkflowResult = PlatformWorkflowResult | ArtifactWorkflowResult | DeploymentWorkflowResult
 
 
 @dataclass(frozen=True)
@@ -39,7 +48,7 @@ class CliWorkflow:
 
     @property
     def implemented(self) -> bool:
-        return self.platform_kind is not None
+        return self.platform_kind is not None or self.namespace in {"artifacts", "deployment"}
 
 
 PLATFORM_WORKFLOW_ORDER = (
@@ -155,14 +164,29 @@ async def main(argv: Sequence[str] | None = None) -> None:
                 print(f"- {reason}")
             raise SystemExit(2)
 
-    services = build_application_services()
     logger.info("Running workflow: %s", workflow.name)
-    result = await run_platform_workflow(services, workflow.platform_kind, args.confirm)
+    result = await run_cli_workflow(workflow, args.confirm)
     print(json.dumps(_workflow_result_to_dict(result), indent=2, sort_keys=True))
-    if result.status != PlatformWorkflowStatus.COMPLETED:
+    if _workflow_status_value(result) != PlatformWorkflowStatus.COMPLETED.value:
         raise SystemExit(1)
 
     logger.info("Done")
+
+
+async def run_cli_workflow(
+    workflow: CliWorkflow,
+    confirmation: str | None,
+) -> WorkflowResult:
+    if workflow.platform_kind is not None:
+        services = build_application_services()
+        return await run_platform_workflow(services, workflow.platform_kind, confirmation)
+    if workflow.namespace == "artifacts":
+        services = build_artifact_services()
+        return await run_artifact_workflow(services, workflow.action)
+    if workflow.namespace == "deployment":
+        services = build_deployment_services()
+        return await run_deployment_workflow(services, workflow.action)
+    raise ValueError(f"Unsupported workflow: {workflow.name}")
 
 
 async def run_platform_workflow(
@@ -186,13 +210,50 @@ async def run_platform_workflow(
             raise ValueError(f"Unsupported platform workflow: {kind}")
 
 
-def _workflow_result_to_dict(result: PlatformWorkflowResult) -> dict[str, object]:
+async def run_artifact_workflow(
+    services: ArtifactServices,
+    action: str,
+) -> ArtifactWorkflowResult:
+    workflows = services.workflows
+    match action:
+        case "prepare":
+            return await workflows.prepare.run()
+        case "verify":
+            return await workflows.verify.run()
+        case _:
+            raise ValueError(f"Unsupported artifacts workflow: {action}")
+
+
+async def run_deployment_workflow(
+    services: DeploymentServices,
+    action: str,
+) -> DeploymentWorkflowResult:
+    workflows = services.workflows
+    match action:
+        case "apply":
+            return await workflows.apply.run()
+        case "verify":
+            return await workflows.verify.run()
+        case _:
+            raise ValueError(f"Unsupported deployment workflow: {action}")
+
+
+def _workflow_result_to_dict(result: WorkflowResult) -> dict[str, object]:
+    if isinstance(result, ArtifactWorkflowResult | DeploymentWorkflowResult):
+        return result.to_dict()
     return {
         "executed": result.executed,
         "message": result.message,
         "status": result.status.value,
         "workflow": f"platform {result.kind.value}",
     }
+
+
+def _workflow_status_value(result: WorkflowResult) -> str:
+    status = result.status
+    if isinstance(status, Enum):
+        return str(status.value)
+    return str(status)
 
 
 def _blocked_workflow_result(workflow: CliWorkflow) -> dict[str, object]:

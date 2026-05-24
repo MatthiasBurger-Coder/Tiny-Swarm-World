@@ -1,216 +1,212 @@
-# Workflow: Consolidate Tiny Swarm World Skills and Agents
+# Workflow: Unify Tiny Swarm World System Boundaries
 
 ## Executive Summary
 
-This workflow creates the governed execution plan for consolidating the Tiny
-Swarm World skill and agent landscape.
+This workflow creates the governed execution plan for checking Tiny Swarm
+World for completeness and unifying the system around its accepted
+responsibility model: Platform, Artifacts, Deployment, and Shared.
 
-Tiny Swarm World is a Python-based, hexagonally structured local infrastructure
-automation system for Multipass, Docker Swarm, local registry, CI, quality,
-platform services, console status output, and future Kubernetes compatibility.
-The workflow keeps required project skills, adds missing Python, pip and
-setup/bootstrap skills, removes unrelated skills only after reference checks,
-updates `AGENTS.md` and related documentation, and ensures all agent references
-match actual skill files.
+The workflow supersedes the completed skills-and-agents workflow that was
+previously active under `documentation/workflow`. It is a FULL_PATH workflow
+because it may touch product architecture, Python automation, tests,
+documentation, workflow governance, and quality gates. It must not run live
+Multipass, Docker Swarm, compose, netplan, socat, Portainer, Nexus, Jenkins,
+RabbitMQ, SonarQube, or Swagger/NGINX commands.
 
-This workflow is governance and documentation work. It must not implement
-product functionality, run live infrastructure operations, or change Python
-runtime behavior. Direct reference corrections may touch non-executable
-metadata only when they are strictly necessary for skill or agent wiring.
+The subagent review found that the repository was coherent but incomplete in
+specific areas. Workflow execution has since converted several gaps into
+explicit, test-backed boundaries and documented blockers:
+
+- Artifacts and Deployment are declared as boundaries and now expose explicit
+  blocked workflow contracts.
+- CLI entries for `artifacts` and `deployment` dispatch to stable blocked
+  results until live Nexus, registry, Portainer, and observed-state contracts
+  are implemented.
+- Mutating platform workflows are protected by verify-after-apply, but the
+  composed platform steps do not yet expose verification contracts.
+- Command metadata is safety-classified, but command-backed verification is not
+  wired through the catalog; current command specs rely on manual verification
+  declarations.
+- Desired inventory repository support exists and the host-neutral
+  `infra/config/inventory/desired_inventory.yaml` baseline is committed.
+- Responsibility-boundary tests cover broad hexagonal rules plus targeted
+  Platform/Artifacts/Deployment/Shared ownership and live-surface checks.
+- Console/status UI is the only UI surface; no React or browser frontend module
+  exists.
+- Direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
+  remain live-operation surfaces outside the CLI consent guard and are
+  classified by the canonical live-operation surface catalog.
 
 ## Target Picture
 
 ### Verified Baseline At Workflow Creation
 
+- Active workflow version:
+
+```text
+system-unification-v1.0.0
+```
+
 - Active workflow branch:
 
 ```bash
-feature/workflow-tiny-swarm-skills-agents-20260523
+codex/workflow-system-unification-20260524
 ```
 
-- Root `AGENTS.md` exists and defines Tiny Swarm World as a Linux/WSL-only
-  Python automation project with hexagonal architecture.
-- Root `QUALITY.md` exists and defines the preferred quality gate:
+- Root `AGENTS.md` defines Tiny Swarm World as a Linux/WSL-only Python
+  automation project with hexagonal architecture.
+- Root `QUALITY.md` defines the preferred full gate:
 
 ```bash
 python3 tools/quality_gate.py quality
 ```
 
-- Existing active workflow artifacts under `documentation/workflow/` were
-  regenerated for this workflow.
-- This workflow supersedes the previous active init-safety/boundary workflow
-  package in `documentation/workflow/`. The previous workflow was not kept as
-  an active file because the repository workflow-authoring rule requires full
-  regeneration for a new workflow.
-- The repository uses `documentation/` for project documentation. No root
-  `docs/` directory exists at workflow creation time.
-- No `.codex/prompts/` directory exists at workflow creation time.
-- `.codex/skills/hexagonal-architecture-expert/SKILL.md` exists.
-- Exact required project skill names such as `tdd-expert`,
-  `bdd-expert`, `python-senior-developer`,
-  `python-pip-packaging-expert`, and `setup-bootstrap-expert` are missing
-  from `.agents/skills/` at workflow creation time.
-- `.agents/skills/microservice-senior-expert/SKILL.md` exists and is a
-  removal candidate under the target structure.
-- `.codex/agents/`, `.codex/subagents/`, `.agents/roles/`, and
-  `.agents/skills/` contain existing reusable and project-specific role
-  definitions that must be checked before deletion or replacement.
-- `.agents/prompts/skills-update.md` references
-  `documentation/agents/skill-registry.md` and
-  `documentation/agents/organigramm.md`, while
-  `.agents/skills/skill-registry-conflict-auditor/SKILL.md` owns
-  `documentation/skill-audit/skill-registry.md` and
-  `documentation/skill-audit/skill-registry.json`. Neither directory exists at
-  workflow creation time, so execution must resolve this source-of-truth
-  conflict before deleting or renaming skills.
-- `.agents/orchestrator/routing-rules.md` references Organigramm Maintainer,
-  Process Governance Maintainer, Root Architect, and Typed Error Router
-  concepts. Some are escalation concepts or missing named owners rather than
-  existing role files, so execution must create or map ownership explicitly.
-- `documentation/process/skill-agent-creation.md` says project skills live as
-  `.agents/skills/<name>/SKILL.md`, while the requested target tree uses
-  grouped `.md` files such as `.agents/skills/python/python-senior-developer.md`.
-  Execution must resolve this format conflict before creating skills so the
-  final structure is both target-aligned and discoverable by local skill
-  tooling.
-- `documentation/epics/` and `documentation/adr/` are absent at workflow
-  creation time.
-- `documentation/arc42/` exists and was checked for architecture context.
+- `documentation/epics/` is absent at workflow creation time. This workflow
+  treats the user request plus existing architecture documents as the initial
+  requirement source and creates a formal EPIC baseline in Slice 01 before
+  product implementation slices.
+- `documentation/adr/` is absent. ADR-like material currently lives under
+  `documentation/architecture/adr-*.adoc`; the workflow must either preserve
+  that convention explicitly or create an ADR index/path decision before adding
+  new decisions.
+- `src/tiny_swarm_world/infrastructure/composition.py` exposes
+  `PlatformServices`, empty `ArtifactServices`, and empty
+  `DeploymentServices`.
+- `src/tiny_swarm_world/__main__.py` declares `artifacts prepare`,
+  `artifacts verify`, `deployment apply`, and `deployment verify`, but these
+  entries are not implemented and return blocked results.
+- `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+  is accepted as the current responsibility direction and marks implementation
+  as partial.
+- `documentation/arc42/05_building_blocks.adoc`,
+  `documentation/arc42/06_runtime_view.adoc`, and
+  `documentation/arc42/11_risks_and_debt.adoc` already document that
+  artifact/deployment wiring and reset/destroy retention semantics remain
+  planned work.
+- `python` and `python3` are not available from the current PowerShell shell,
+  but WSL is available and reports Python 3.12.3. Workflow execution must
+  document Linux/WSL commands and use `python3` as the authoritative command
+  form from `QUALITY.md`.
 
 ### Target Outcome
 
 The completed workflow must produce:
 
-- a dedicated branch for the workflow;
-- a complete target skill tree under `.agents/skills/`;
-- an explicit skill-file format decision that reconciles the requested grouped
-  `.md` tree with the existing `.agents/skills/<name>/SKILL.md` process rule;
-- a canonical skill registry and organigramm path decision, preferably
-  `documentation/skill-audit/skill-registry.md`,
-  `documentation/skill-audit/skill-registry.json`, and an explicitly chosen
-  organigramm or owner-map path;
-- all required Python, pip and setup/bootstrap skills;
-- retained skills updated for Tiny Swarm World;
-- unrelated skills deleted only when all references are resolved;
-- root `AGENTS.md` updated with the root agent, hierarchy, skill groups,
-  forbidden unrelated skills, stop rules, and execution rules;
-- documentation updated to explain the current skill structure, agent
-  structure, workflow execution rules, skill addition, skill removal, and
-  subagent assignment;
-- `.codex/agents/`, `.codex/subagents/`, `.codex/skills/`, and
-  `.codex/workflow/` references aligned with actual project skills where
-  they remain in scope;
-- `.agents/prompts/` and `.agents/orchestrator/` routing references aligned
-  with the selected registry, organigramm, Root Architect, and Typed Error
-  Router ownership model;
-- no unresolved dead references in `AGENTS.md`, README, documentation,
-  `.agents/`, or `.codex/`;
-- quality checks executed and reported;
-- a final report answering consistency, required-skill, unrelated-skill, and
-  unresolved-reference questions.
+- a formal system-unification EPIC or requirement baseline;
+- a refreshed completeness inventory that distinguishes implemented, planned,
+  blocked, transitional, and legacy surfaces;
+- a resolved ADR storage convention or documented architecture-decision index;
+- stronger static responsibility checks for Platform, Artifacts, Deployment,
+  Shared, and Console/status UI boundaries;
+- mutating Platform workflow steps that either expose verification contracts or
+  remain deliberately blocked with exact reasons;
+- explicit Artifact and Deployment workflow contracts, with wiring or deliberate
+  blocked states backed by tests;
+- console/status UI behavior aligned with runner status values;
+- direct live scripts classified as supported, transitional, deprecated, or
+  quarantined without executing them;
+- README, arc42, architecture docs, user/deployment docs, and workflow reports
+  synchronized with actual behavior;
+- exact targeted and full quality-gate evidence;
+- one slice-scoped checkpoint commit and push per executed slice when required
+  gates pass.
 
 ## Requirement Clarification Record
 
 Original request:
 
 ```text
-workflow create with subagents: create the Tiny Swarm World workflow template
-for consolidating skills and agents, including branch rule, target skill
-structure, agent model, slices, quality gate and final report.
+workflow create with subagents:
+ueberpruefe das system auf vollstaendigkeit und schlage einen workflow vor um
+das system zu vereinheitlichen. Falls der Workflow zu 90% okey ist kannst du
+pushen und danach in den workflow execute with subagents gehen.
 ```
 
 Interpreted intent:
 
-- Create a new active repository workflow for future `workflow execute`.
-- Use delegated subagent review during workflow creation.
-- Preserve Linux/WSL-only, Python automation, hexagonal architecture, Docker
-  Swarm-first runtime, and future Kubernetes-aware constraints.
-- Plan consolidation of `.agents`, `.codex`, `AGENTS.md`, README, and
-  documentation references without executing the consolidation in this turn.
+- Create a new active workflow with delegated subagent review.
+- Check system completeness across code, docs, tests, runtime wiring, workflow
+  governance, and quality gates.
+- Propose an executable unification workflow.
+- If the workflow is at least 90 percent ready, commit/push the workflow branch
+  and release it for `workflow execute with subagents`.
 
 Change type:
 
-- Workflow creation and governance planning.
+- Workflow creation and system-unification planning.
 
 Affected process strand:
 
-- Skills, agents, registry, organigramm, workflow governance, documentation
-  synchronization, process routing, and quality-gate reporting.
+- FULL_PATH system unification: requirements, architecture, Python automation,
+  runtime boundaries, tests, documentation, quality gates, and workflow
+  execution governance.
 
 Affected architecture area:
 
-- Process architecture and repository governance only. Product runtime
-  architecture is not changed by workflow creation.
+- Platform, Artifacts, Deployment, Shared, CLI workflow contracts,
+  verify-after-apply, console/status UI, legacy live-operation surfaces,
+  architecture documentation, and quality boundaries.
 
 Explicit requirements:
 
-- Create and verify the workflow branch before file mutations.
-- Stop if the working tree is dirty before branch creation.
-- Keep required skills.
-- Add missing Python, pip/packaging, setup/bootstrap, and platform skills.
-- Treat `setup-bootstrap-expert` as a core skill.
-- Clarify `frontend-developer` as console status UI responsibility, not a
-  browser-first React role.
-- Remove unrelated skills only after reference checks.
-- Update `AGENTS.md`, documentation, and Codex-related references.
-- Use ordered workflow slices with subagent ownership.
-- Run quality checks and produce a final report.
+- Use subagents.
+- Check the system for completeness.
+- Suggest a workflow to unify the system.
+- Push only if the workflow is at least 90 percent acceptable.
+- Enter workflow execution with subagents after push when release conditions
+  are met.
 
 Implicit requirements:
 
-- Normalize the requested `docs/` paths to this repository's existing
-  `documentation/` path unless execution intentionally creates a new docs
-  structure.
-- Treat `.codex/agents/` and `.codex/subagents/` as active agent-reference
-  surfaces because they exist in the repository.
-- Treat `.agents/prompts/` and `.agents/orchestrator/` as active
-  process-routing surfaces because they exist in the repository.
-- Preserve root `QUALITY.md` as the source for quality commands.
-- Preserve root `AGENTS.md` as the source for architecture and external-system
-  safety.
+- Preserve Linux/WSL-only operation and POSIX command examples.
+- Preserve hexagonal architecture and application-to-port dependencies.
+- Keep concrete adapter construction in
+  `src/tiny_swarm_world/infrastructure/composition.py`.
+- Do not run live infrastructure commands.
+- Use `QUALITY.md` as the quality-command authority.
+- Treat console/status UI as terminal UI, not React/browser frontend.
+- Keep Java under `src/main/java` as deployment example surface only.
 
 Assumptions:
 
-- The user wants workflow authoring now and workflow execution later.
-- The old `documentation/workflow/` package is replaced by this new active
-  workflow according to the local workflow-authoring rule. It can be recovered
-  from Git history if needed.
-- Missing target skills will be created during workflow execution, not during
-  workflow creation.
-- `frontend-developer` remains allowed only as a console status UI skill unless
-  a separate explicit browser-frontend workflow verifies a frontend module,
-  package tooling, and quality gates.
+- "System unification" means completing and aligning the accepted
+  Platform/Artifacts/Deployment/Shared model rather than introducing a new
+  architecture.
+- The missing EPIC is non-blocking for workflow creation because the user
+  explicitly asked for a workflow proposal; Slice 01 must create the EPIC before
+  implementation slices continue.
+- The existing architecture ADR under `documentation/architecture/` is accepted
+  as the current architecture baseline until Slice 02 resolves ADR path
+  governance.
+- Push permission applies only to the workflow branch and only after quality
+  checks for the created workflow artifacts pass or a justified documentation
+  gate limitation is recorded.
 
 Non-goals:
 
-- No product functionality.
-- No runtime Python source changes.
-- No Docker, Multipass, Swarm, compose, netplan, service bootstrap, or port
-  forwarding execution.
-- No speculative Spring Boot, React browser app, database, graph, vector, gRPC,
-  JavaParser, Joern, or forensic analytics ownership.
-- No external static-analysis CI configuration.
+- No live infrastructure execution.
+- No big-bang package move.
+- No Kubernetes-first pivot.
+- No Spring Boot, browser React, forensic analytics, generic microservice
+  extraction, vector database, graph database, JavaParser, or Joern-driven
+  architecture.
+- No weakening of `.importlinter`, architecture tests, or `QUALITY.md`.
+- No direct execution of scripts under `infra/prepare`, `infra/compose`, or
+  `infra/swarm`.
 
 Risks:
 
-- Existing `.codex` agent names include forensic analytics, React frontend,
-  microservice, Java and UX roles that may become dead or misleading after
-  consolidation.
-- Registry and organigramm source-of-truth paths currently conflict between
-  `.agents/prompts/skills-update.md` and the dedicated
-  `skill-registry-conflict-auditor` skill.
-- Organigramm Maintainer and Process Governance Maintainer are referenced
-  routing owners but are not present as role files at workflow creation time.
-- The requested target skill tree uses grouped `.md` files, but the existing
-  local process says skills are directory-based `SKILL.md` entrypoints. A
-  `.md`-only implementation may be invisible to skill discovery unless the
-  process docs and runtime expectations are updated or compatibility wrappers
-  are created.
-- The target skill tree is broad. Parallel execution must use strict file
-  ownership to avoid merge conflicts.
-- Deleting a skill before resolving references would break subagent routing.
-- Creating a parallel `docs/` directory would conflict with the current
-  repository documentation model.
+- Missing `documentation/epics/` lowers traceability until Slice 01 completes.
+- The local shell cannot run `python3`; quality evidence must distinguish the
+  authoritative Linux/WSL command from any environment-specific fallback.
+- Wiring artifact/deployment workflows too early could blur Portainer stack
+  lifecycle and Nexus repository configuration.
+- Adding verification to mutating platform steps may expose missing observed
+  inventory or evidence ports.
+- Legacy live scripts contain destructive or credential-sensitive behavior and
+  must be inspected statically only.
+- Console UI status semantics may hide aggregate failures if not tested against
+  the real adapters.
 
 Open questions:
 
@@ -218,18 +214,46 @@ Open questions:
 
 Blocking questions:
 
-- None.
+- None for workflow creation.
+- Workflow execution must stop after Slice 01 if the EPIC baseline cannot be
+  written or cannot align with the existing architecture decision.
 
 Confidence level:
 
 ```text
-96 percent
+91 percent
 ```
 
 Decision:
 
 ```text
 READY_FOR_WORKFLOW
+```
+
+Rationale:
+
+- The requested goal is broad, but the repository already contains accepted
+  architecture direction, documented risks, tests, and subagent findings that
+  identify a concrete unification path.
+- The missing EPIC is converted into an explicit first slice and is therefore a
+  controlled execution prerequisite rather than an unbounded guess.
+
+## Execution Profile
+
+```text
+executionProfile=FULL_PATH
+reason=The workflow can affect architecture boundaries, runtime workflow wiring,
+quality gates, branch/push behavior, and documentation governance.
+requiredFullReviews=senior_requirement_engineer, senior_system_architect,
+senior_python_automation_developer, senior_react_frontend as console-scope
+guard, senior_tester, senior_workflow_architect
+allowedImpactChecks=senior_react_frontend may report N/A for browser React
+scope only
+requiredQualityChecks=git diff --check, targeted unit/static gates by slice,
+and python3 tools/quality_gate.py quality before release or push when practical
+stopConditions=unverified branch, stale workflow context, live infrastructure
+need, unclear ADR convention, missing quality command evidence, architecture
+contract weakening, or scope drift outside Platform/Artifacts/Deployment/Shared
 ```
 
 ## Scope
@@ -239,1236 +263,858 @@ READY_FOR_WORKFLOW
 The workflow may change:
 
 ```text
-AGENTS.md
-.agents/
-.agents/skills/
-.agents/roles/
-.agents/prompts/
-.agents/orchestrator/
-.codex/
-.codex/agents/
-.codex/skills/
-.codex/subagents/
-.codex/workflow/
-documentation/
-documentation/process/
-documentation/skill-audit/
-documentation/workflow/
-documentation/workplan/
+documentation/epics/**
+documentation/workflow/**
+documentation/architecture/**
+documentation/arc42/**
+documentation/deployment/**
+documentation/system/**
+documentation/user_guide/**
 README.md
+AGENTS.md only if root governance must be corrected
+QUALITY.md only if quality authority is explicitly wrong
+.importlinter only with Senior Tester and Senior System Architect approval
+tests/**
+src/tiny_swarm_world/domain/**
+src/tiny_swarm_world/application/**
+src/tiny_swarm_world/infrastructure/composition.py
+src/tiny_swarm_world/infrastructure/adapters/**
+infra/** only for static classification, README/status docs, compatibility
+metadata, or path-safe non-executed reorganization slices
 ```
-
-The user-supplied `docs/`, `docs/workflows/`, and `docs/workplan/` scope maps
-to `documentation/`, `documentation/workflow/`, and
-`documentation/workplan/` in this repository unless a slice records an explicit
-decision to introduce `docs/`.
 
 ### Forbidden Write Scope
 
 The workflow must not change:
 
 ```text
-src/tiny_swarm_world/**
 src/main/java/**
-infra/**
-docker/**
-bin/**
-tools/**
-requirements.txt
-setup.py
 pom.xml
-Dockerfiles
-docker-compose files
-stack files
-runtime scripts
+external static-analysis CI files
+generated caches
+local virtual environments
+logs
+IDE state
 ```
 
-Exception: a direct reference correction may touch a forbidden area only when
-the target is non-executable metadata, the reference is explicitly about skill
-or agent wiring, the change is minimal, and the slice report documents why no
-allowed-scope file could own it. Any executable Python source, `tools/**`,
-`requirements.txt`, or `setup.py` change requires a STOP and a separate
-implementation workflow.
+Direct modification of live scripts under `infra/prepare`, `infra/compose`, or
+`infra/swarm` is allowed only when the active slice explicitly owns legacy
+quarantine or path compatibility and verification remains static.
 
 ## Architecture Constraints
 
-- Preserve the existing hexagonal architecture.
-- Domain, application, infrastructure, command YAML, and runtime wiring are out
-  of scope.
-- Root `AGENTS.md` must continue to state that Tiny Swarm World is Linux/WSL
-  only, Python automation first, Docker Swarm first, and Kubernetes-aware but
-  not Kubernetes-first.
-- Java under `src/main/java` remains a deployment example and must not drive
-  the Python automation architecture.
-- Skills and agents must not imply that Tiny Swarm World is
-  `forensic_analytics`, a Spring Boot application, a React frontend project,
-  or a generic microservice migration project.
-- Console status UI ownership is terminal/dashboard/status-output oriented.
-- Current runtime ownership remains Docker Swarm. Kubernetes skill ownership is
-  future-runtime review only.
+- Preserve the hexagonal architecture.
+- Domain must not import application or infrastructure.
+- Application services must depend on ports, not concrete adapters.
+- Infrastructure adapters implement ports and contain technology-specific
+  behavior.
+- `src/tiny_swarm_world/infrastructure/composition.py` remains the standard
+  composition root.
+- `src/tiny_swarm_world/__main__.py` remains thin.
+- Platform, Artifacts, Deployment, and Shared are responsibility boundaries
+  inside the Python automation process, not independent microservices.
+- Console/status UI is terminal UI only.
+- Java remains a deployment example.
 
 ## Python Automation Assessment
 
-This workflow does not change Python implementation files. Python-related work
-is limited to skill and agent guidance for:
+Python automation is the primary implementation surface. The workflow must
+address these incomplete areas in small slices:
 
-- Python automation module design;
-- CLI command structure;
-- packaging and pip/venv setup;
-- testable orchestration logic;
-- shell command encapsulation through ports and adapters;
-- error handling and logging rules;
-- setup/bootstrap validation.
+- `PlatformServices` is wired, but mutating steps must expose verification
+  contracts or remain blocked before apply.
+- `ArtifactServices` now owns explicit blocked workflow contracts while
+  artifact behavior remains available through the Nexus namespace and artifact
+  compatibility exports.
+- `DeploymentServices` now owns explicit blocked workflow contracts while
+  `EnsureNexusStack` is implemented in the deployment namespace.
+- CLI workflow declarations for artifacts and deployment dispatch to stable
+  blocked workflow results until live contracts are implemented.
+- Architecture tests now document target responsibility boundaries and protect
+  key ownership and live-surface classifications.
+- Command catalog entries require a verification foundation before they can
+  drive verify-after-apply. A read-classified Swarm join-token command also
+  emits credential material and needs explicit redaction/evidence semantics.
+- Desired inventory support exists in code, and the committed baseline
+  inventory file now provides host-neutral defaults.
 
-Python, pip, and setup/bootstrap skills must encode Linux/WSL-only setup,
-Python 3.12 compatibility, `python3 -m venv .venv`,
-`python3 -m pip install -r requirements.txt`, installation of `ruff`, `mypy`,
-and `import-linter`, manual `PYTHONPATH=src` requirements, and the distinction
-between developer environment bootstrap and service bootstrap scripts.
+## Frontend And Console UI Assessment
 
-Any future execution slice that discovers required Python behavior changes must
-stop and ask for a separate implementation workflow.
+No React or browser frontend exists. The mandatory frontend review role is a
+scope guard and must route implementation only to console/status UI. The
+workflow may address console gaps:
 
-## Frontend Assessment
+- aggregate `instance="all"` updates can be ignored by `PortUI.update_status`
+  when `all` is not a known instance;
+- status values from command-runner UI wrappers use lowercase
+  `success`/`error`, while Linux UI completion checks uppercase
+  `Success`/`Error`;
+- tests currently validate recording calls more than real console adapter
+  completion behavior.
 
-Tiny Swarm World is not currently a browser-first frontend project. The
-retained `frontend-developer` responsibility must be reinterpreted as
-console-status UI work:
+## Test Strategy
 
-- console status output;
-- terminal dashboards;
-- progress visualization;
-- service, node, stack and healthcheck status display;
-- error and recovery guidance.
-
-The mandatory workflow-authoring frontend review role is included only to
-validate that the workflow does not accidentally introduce React or browser UI
-scope.
-
-Any need for `package.json`, React, Vite, Next.js, browser routes, API client
-UI adapters, or `.tsx` or `.jsx` files requires a separate frontend workflow.
+- Start each implementation slice with the nearest focused tests.
+- Keep all live infrastructure effects mocked or statically inspected.
+- Use `python3 tools/quality_gate.py arch-lint`,
+  `python3 tools/quality_gate.py arch-tests`,
+  `python3 tools/quality_gate.py test`, and the full quality gate from
+  `QUALITY.md` as slice risk increases.
+- For documentation-only workflow creation, run `git diff --check` and record
+  any reason the full gate is skipped.
+- Do not claim `python3 tools/quality_gate.py quality` passed unless it was
+  executed successfully in a suitable Python environment.
 
 ## Resilience And Safety Requirements
 
-- Do not run live infrastructure commands.
-- Do not run `multipass`, Docker Swarm mutations, compose deployments,
-  netplan changes, `socat`, or service bootstrap scripts.
-- Do not delete a skill before all references have been searched and resolved.
-- If confidence drops below 95 percent during execution, stop and report.
-- If a skill is still referenced and no safe replacement exists, keep it and
-  report the unresolved reference.
-- Do not invent external tools or absent project structures.
-- Do not merge unrelated cleanups into one undocumented change.
+- No live infrastructure commands during workflow creation or default
+  execution.
+- Mutating workflows must fail closed when verification evidence is missing.
+- Reset/destroy retention semantics require an ADR or explicit decision before
+  implementation.
+- Secret-bearing values must not be committed or captured in verification
+  evidence.
+- Direct scripts must remain clearly marked as live operations unless and until
+  a slice safely replaces them.
 
-## Required Skill Groups
+## Ordered Slices
 
-### Quality And Testing
-
-```text
-tdd-expert
-bdd-expert
-platform-quality-gates
-acceptance-checks
-```
-
-### Architecture And Evolution
-
-```text
-hexagonal-architecture-expert
-mapping-dsl-expert
-strangler-command-adapter-pattern
-sca-migration-expert
-llm-analysis-expert
-kubernetes-expert
-```
-
-### Core Python And Bootstrap
-
-```text
-python-senior-developer
-python-pip-packaging-expert
-setup-bootstrap-expert
-python-cli-automation
-python-test-automation
-```
-
-### Platform-Specific Groups
-
-```text
-tiny-swarm-world-system-architecture
-platform-layout-governance
-workflow-orchestration
-multipass-vm-provisioning
-linux-host-preparation
-network-topology-design
-docker-engine-installation
-docker-swarm-initialization
-swarm-node-management
-swarm-stack-deployment
-swarm-volume-network-governance
-registry-infrastructure
-nexus-bootstrap
-docker-registry-bootstrap
-maven-repository-bootstrap
-image-build-publish
-image-versioning-tagging
-image-verification
-jenkins-bootstrap
-sonarqube-bootstrap
-portainer-bootstrap
-swagger-ui-bootstrap
-reverse-proxy-routing
-platform-verification
-platform-reset-and-recovery
-observability-and-diagnostics
-secrets-and-config-management
-idempotent-platform-automation
-documentation-generation
-```
-
-### Console UI
-
-```text
-frontend-developer
-console-status-ui-developer
-terminal-status-dashboard
-```
-
-## Target Skill Directory Structure
-
-```text
-.agents/skills/
-  tiny-swarm-world/
-    tiny-swarm-world-system-architecture.md
-    platform-layout-governance.md
-    workflow-orchestration.md
-    hexagonal-architecture-expert.md
-  provisioning/
-    multipass-vm-provisioning.md
-    linux-host-preparation.md
-    network-topology-design.md
-    setup-bootstrap-expert.md
-  python/
-    python-senior-developer.md
-    python-pip-packaging-expert.md
-    python-cli-automation.md
-    python-test-automation.md
-  docker-swarm/
-    docker-engine-installation.md
-    docker-swarm-initialization.md
-    swarm-node-management.md
-    swarm-stack-deployment.md
-    swarm-volume-network-governance.md
-  registry/
-    registry-infrastructure.md
-    nexus-bootstrap.md
-    docker-registry-bootstrap.md
-    maven-repository-bootstrap.md
-  images/
-    image-build-publish.md
-    image-versioning-tagging.md
-    image-verification.md
-  services/
-    jenkins-bootstrap.md
-    sonarqube-bootstrap.md
-    portainer-bootstrap.md
-    swagger-ui-bootstrap.md
-    reverse-proxy-routing.md
-  console-ui/
-    frontend-developer.md
-    console-status-ui-developer.md
-    terminal-status-dashboard.md
-  quality/
-    tdd-expert.md
-    bdd-expert.md
-    platform-quality-gates.md
-    acceptance-checks.md
-  architecture/
-    mapping-dsl-expert.md
-    strangler-command-adapter-pattern.md
-    sca-migration-expert.md
-  intelligence/
-    llm-analysis-expert.md
-  future-runtime/
-    kubernetes-expert.md
-  operations/
-    platform-verification.md
-    platform-reset-and-recovery.md
-    observability-and-diagnostics.md
-    secrets-and-config-management.md
-    idempotent-platform-automation.md
-    documentation-generation.md
-```
-
-Each skill file must define:
-
-```text
-Purpose
-Responsibilities
-Inputs
-Outputs
-Boundaries
-STOP conditions
-Collaboration with other skills
-Quality expectations
-```
-
-## Agent Model
-
-### Root Agent
-
-```text
-tiny-swarm-world-lead-architect
-```
-
-Responsibilities:
-
-- owns the full skill and agent structure;
-- decides whether a skill belongs to Tiny Swarm World;
-- prevents project drift;
-- enforces workflow boundaries;
-- coordinates subagents.
-
-### Subagent Hierarchy
-
-```mermaid
-flowchart TD
-    ROOT["tiny-swarm-world-lead-architect"]
-
-    ROOT --> GOV["Governance"]
-    ROOT --> PROV["Provisioning"]
-    ROOT --> PY["Python Automation"]
-    ROOT --> SWARM["Docker Swarm"]
-    ROOT --> REG["Registry & Images"]
-    ROOT --> SVC["Platform Services"]
-    ROOT --> OPS["Operations"]
-    ROOT --> QA["Quality"]
-    ROOT --> EVO["Evolution / Future"]
-
-    GOV --> GOV1["platform-layout-governance-agent"]
-    GOV --> GOV2["workflow-orchestration-agent"]
-    GOV --> GOV3["hexagonal-architecture-agent"]
-
-    PROV --> PROV1["setup-bootstrap-agent"]
-    PROV --> PROV2["multipass-provisioning-agent"]
-    PROV --> PROV3["network-topology-agent"]
-    PROV --> PROV4["linux-host-preparation-agent"]
-
-    PY --> PY1["python-senior-developer-agent"]
-    PY --> PY2["python-packaging-agent"]
-    PY --> PY3["python-cli-automation-agent"]
-    PY --> PY4["python-test-automation-agent"]
-
-    SWARM --> SWARM1["docker-engine-agent"]
-    SWARM --> SWARM2["docker-swarm-agent"]
-    SWARM --> SWARM3["swarm-stack-agent"]
-    SWARM --> SWARM4["swarm-network-volume-agent"]
-
-    REG --> REG1["registry-infrastructure-agent"]
-    REG --> REG2["nexus-bootstrap-agent"]
-    REG --> REG3["docker-registry-agent"]
-    REG --> REG4["maven-repository-agent"]
-    REG --> REG5["image-build-publish-agent"]
-    REG --> REG6["image-verification-agent"]
-
-    SVC --> SVC1["jenkins-bootstrap-agent"]
-    SVC --> SVC2["sonarqube-bootstrap-agent"]
-    SVC --> SVC3["portainer-bootstrap-agent"]
-    SVC --> SVC4["swagger-ui-bootstrap-agent"]
-    SVC --> SVC5["reverse-proxy-routing-agent"]
-
-    OPS --> OPS1["platform-verification-agent"]
-    OPS --> OPS2["platform-reset-recovery-agent"]
-    OPS --> OPS3["observability-diagnostics-agent"]
-    OPS --> OPS4["secrets-config-agent"]
-    OPS --> OPS5["documentation-generation-agent"]
-
-    QA --> QA1["tdd-agent"]
-    QA --> QA2["bdd-agent"]
-    QA --> QA3["acceptance-check-agent"]
-    QA --> QA4["platform-quality-gate-agent"]
-
-    EVO --> EVO1["llm-analysis-agent"]
-    EVO --> EVO2["mapping-dsl-agent"]
-    EVO --> EVO3["sca-migration-agent"]
-    EVO --> EVO4["kubernetes-future-runtime-agent"]
-    EVO --> EVO5["console-status-ui-agent"]
-```
-
-### Current Callable Role Mapping
-
-Until project-specific callable agents are regenerated, use these existing
-callable roles or local role files as reviewers:
-
-| Target responsibility | Existing callable role or file |
-| --- | --- |
-| Workflow creation and dependency ordering | `senior_workflow_architect` |
-| Requirement drift and acceptance criteria | `senior_requirement_engineer` |
-| Architecture boundaries and arc42 | `senior_system_architect` |
-| Python automation constraints | `senior_python_automation_developer` |
-| Frontend scope guard | `senior_react_frontend` as read-only "no React unless a separate frontend workflow verifies it" review |
-| Documentation consistency | `senior_documentation_engineer` |
-| Quality verification | `senior_tester` or `quality_reviewer` |
-| Branch and commit readiness | `git_commit_reviewer` then `git_commit_operator` |
-
-## Subagent Coordination Rules
-
-- Every slice has exactly one accountable owner.
-- Reviewers are read-only unless explicitly assigned a write scope.
-- Parallel slices may run only when file locks, contract locks, and
-  architecture locks do not overlap.
-- Subagents must verify the active branch before modifying files.
-- Subagents must not switch branches.
-- Handoffs must record inputs, outputs, blockers, validation status, and
-  unresolved assumptions.
-- A reviewer must not be the sole implementer of the decision it reviews.
-
-## Slice Dependency Graph
-
-```mermaid
-flowchart LR
-    S01["Slice 01: Inspect Landscape"]
-    S02["Slice 02: Create Missing Skills"]
-    S03["Slice 03: Update Retained Skills"]
-    S04["Slice 04: Remove Unrelated Skills"]
-    S05["Slice 05: Update AGENTS.md"]
-    S06["Slice 06: Update Docs and Codex"]
-    S07["Slice 07: Quality Gate"]
-    S08["Slice 08: Final Report"]
-
-    S01 --> S02
-    S01 --> S03
-    S02 --> S04
-    S03 --> S04
-    S04 --> S05
-    S05 --> S06
-    S06 --> S07
-    S07 --> S08
-```
-
-Parallelization:
-
-- Slices 02 and 03 may run in parallel only if they lock disjoint skill files
-  after Slice 01 produces the inventory.
-- All deletion work in Slice 04 must wait for Slice 02 and Slice 03.
-- Slices 05 and 06 must run after skill path decisions stabilize.
-- Slices 07 and 08 are sequential.
-
-## Workflow Slices
-
-### Slice 01: Inspect Existing Skill And Agent Landscape
+### Slice 01: EPIC Baseline And Completeness Criteria
 
 Purpose:
 
-- Build the authoritative inventory before any skill, agent, or documentation
-  change.
+- Create the system-unification EPIC baseline and acceptance criteria before
+  product implementation.
 
 ```yaml
 slice_id: "01"
 profile: "FULL_PATH"
 owner: "senior_requirement_engineer"
 secondary_reviewers:
-  - "senior_workflow_architect"
   - "senior_system_architect"
+  - "senior_tester"
 affected_files:
-  - ".agents/**"
-  - ".agents/prompts/**"
-  - ".agents/orchestrator/**"
-  - ".codex/**"
-  - "AGENTS.md"
-  - "README.md"
-  - "documentation/**"
+  - "documentation/epics/system-unification.md"
+  - "documentation/workflow/reports/01-system-completeness-baseline.md"
 affected_modules: []
 affected_contracts:
-  - "skill-name references"
-  - "agent-name references"
-  - "skill file format"
-  - "registry and organigramm source of truth"
-  - "routing owner names"
+  - "system-unification-requirement"
 dependencies: []
 parallel_group: "A"
 file_locks:
-  - ".agents/**"
-  - ".codex/**"
-  - "AGENTS.md"
-  - "README.md"
-  - "documentation/**"
+  - "documentation/epics/**"
+  - "documentation/workflow/reports/01-system-completeness-baseline.md"
 contract_locks:
-  - "skill-registry"
-  - "agent-registry"
-  - "skill-file-format"
-  - "organigramm-registry"
+  - "system-unification-requirement"
 architecture_locks:
-  - "process-governance"
+  - "Platform-Artifacts-Deployment-Shared"
 quality_gates:
   targeted:
-    - "git status"
+    - "git diff --check"
   required: []
 documentation:
-  arc42: "check only; update only if governance model changes architecture docs"
-  adr: "not present at workflow creation"
+  arc42: "checked, no update expected unless EPIC contradicts arc42"
+  adr: "checked via documentation/architecture/adr-separate-platform-artifacts-deployment.adoc"
 stop_conditions:
-  - ".agents directory is missing"
-  - "AGENTS.md is missing"
-  - "existing structure is incompatible with this workflow"
-  - "confidence below 95 percent"
+  - "EPIC cannot align with existing architecture decision"
+  - "acceptance criteria remain untestable"
+  - "business goal becomes broader than Platform/Artifacts/Deployment/Shared"
 ```
-
-Tasks:
-
-- Inspect `.agents/`.
-- Inspect `.agents/skills/`.
-- Inspect `.agents/roles/`.
-- Inspect `.agents/prompts/` and `.agents/orchestrator/`.
-- Inspect `.codex/agents/`, `.codex/skills/`, `.codex/subagents/`, and
-  `.codex/workflow/`.
-- Inspect `AGENTS.md`, `README.md`, and `documentation/`.
-- Identify existing skills, agents, duplicates, missing required skills,
-  unrelated skills, and dead references.
-- Decide and document the canonical skill registry and organigramm paths.
-  Preferred registry path:
-
-```text
-documentation/skill-audit/skill-registry.md
-documentation/skill-audit/skill-registry.json
-```
-
-- Map or create explicit ownership for Organigramm Maintainer, Process
-  Governance Maintainer, Root Architect escalation, and Typed Error Router.
-- Decide and document whether target skills will be implemented as grouped
-  `.md` files, existing-style `<skill>/SKILL.md` directories, or both with
-  compatibility wrappers. Stop if the chosen format would break skill
-  discovery or contradict the user's required target structure without an
-  explicit documented exception.
-- Write the inventory to `documentation/workflow/reports/01-skill-agent-inventory.md`.
 
 Done criteria:
 
-- Inventory lists current skills, current agents, required changes, candidate
-  deletions, unresolved references, and exact files searched.
-- Inventory records the registry/organigramm canonical path decision and the
-  owner-map decision for missing named process roles.
-- Inventory records the skill-file format decision and the affected process
-  docs that must be updated.
+- `documentation/epics/system-unification.md` exists.
+- Completeness categories are explicit: implemented, planned, blocked,
+  transitional, legacy, and out of scope.
+- The EPIC answers whether implementation still matches the intended system.
 
-Verification commands:
-
-```bash
-git status
-find .agents -type f | sort
-find .codex -type f | sort
-grep -R "spring-boot-expert\|forensic-analytics-expert\|react-developer" AGENTS.md README.md documentation .agents .codex || true
-grep -R "documentation/agents\|documentation/skill-audit\|Organigramm Maintainer\|Process Governance Maintainer\|Typed Error Router" .agents documentation .codex AGENTS.md README.md || true
-```
-
-### Slice 02: Create Missing Required Skills
+### Slice 02: ADR And arc42 Alignment
 
 Purpose:
 
-- Create missing required and platform-specific skill files in the target
-  `.agents/skills/` structure.
+- Resolve the ADR location convention and align arc42 with the active
+  unification baseline.
 
 ```yaml
 slice_id: "02"
+profile: "FULL_PATH"
+owner: "senior_system_architect"
+secondary_reviewers:
+  - "senior_documentation_engineer"
+  - "adr-steward"
+affected_files:
+  - "documentation/architecture/**"
+  - "documentation/adr/**"
+  - "documentation/arc42/05_building_blocks.adoc"
+  - "documentation/arc42/06_runtime_view.adoc"
+  - "documentation/arc42/09_architecture_decisions.adoc"
+  - "documentation/arc42/11_risks_and_debt.adoc"
+affected_modules: []
+affected_contracts:
+  - "architecture-decision-convention"
+  - "arc42-system-boundary-view"
+dependencies:
+  - "01"
+parallel_group: "B"
+file_locks:
+  - "documentation/architecture/**"
+  - "documentation/adr/**"
+  - "documentation/arc42/**"
+contract_locks:
+  - "architecture-decision-convention"
+architecture_locks:
+  - "Platform-Artifacts-Deployment-Shared"
+quality_gates:
+  targeted:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py arch-tests"
+  required: []
+documentation:
+  arc42: "update if convention or responsibility status changes"
+  adr: "resolve path convention before new ADRs"
+stop_conditions:
+  - "ADR convention cannot be resolved"
+  - "arc42 would document planned behavior as implemented"
+  - "architecture decision requires user approval before implementation"
+```
+
+Done criteria:
+
+- ADR convention is explicit.
+- arc42 accurately distinguishes implemented, planned, and blocked behavior.
+
+### Slice 03: Responsibility Boundary Quality Coverage
+
+Purpose:
+
+- Strengthen tests for Platform, Artifacts, Deployment, Shared, Console/status
+  UI, and legacy live-operation boundaries.
+
+```yaml
+slice_id: "03"
+profile: "FULL_PATH"
+owner: "senior_tester"
+secondary_reviewers:
+  - "senior_system_architect"
+  - "quality_archunit_reviewer"
+affected_files:
+  - "tests/architecture/**"
+  - ".importlinter"
+  - "documentation/architecture/**"
+affected_modules:
+  - "tiny_swarm_world.domain"
+  - "tiny_swarm_world.application"
+  - "tiny_swarm_world.infrastructure"
+affected_contracts:
+  - "hexagonal-import-boundaries"
+  - "responsibility-boundary-tests"
+dependencies:
+  - "02"
+parallel_group: "C"
+file_locks:
+  - "tests/architecture/**"
+  - ".importlinter"
+  - "documentation/architecture/**"
+contract_locks:
+  - "quality-gate"
+  - "hexagonal-import-boundaries"
+architecture_locks:
+  - "Platform-Artifacts-Deployment-Shared"
+quality_gates:
+  targeted:
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+  required:
+    - "python3 tools/quality_gate.py test"
+documentation:
+  arc42: "not expected unless tests change documented responsibility semantics"
+  adr: "not expected"
+stop_conditions:
+  - ".importlinter would be weakened"
+  - "tests require live infrastructure"
+  - "known transitional conflicts cannot be documented precisely"
+```
+
+Done criteria:
+
+- New or updated tests catch responsibility drift without requiring a big-bang
+  move.
+- Existing hexagonal gates still pass.
+
+### Slice 04: Command Catalog, Inventory, And Evidence Foundation
+
+Purpose:
+
+- Establish the command-verification and desired-inventory foundation needed
+  before platform workflow steps can safely continue after apply.
+
+```yaml
+slice_id: "04"
 profile: "FULL_PATH"
 owner: "senior_python_automation_developer"
 secondary_reviewers:
   - "senior_system_architect"
   - "senior_tester"
+  - "observability-runtime-diagnostics"
+  - "secrets-and-config-management"
 affected_files:
-  - ".agents/skills/tiny-swarm-world/**"
-  - ".agents/skills/provisioning/**"
-  - ".agents/skills/python/**"
-  - ".agents/skills/docker-swarm/**"
-  - ".agents/skills/registry/**"
-  - ".agents/skills/images/**"
-  - ".agents/skills/services/**"
-  - ".agents/skills/console-ui/**"
-  - ".agents/skills/quality/**"
-  - ".agents/skills/architecture/**"
-  - ".agents/skills/intelligence/**"
-  - ".agents/skills/future-runtime/**"
-  - ".agents/skills/operations/**"
-affected_modules: []
+  - "src/tiny_swarm_world/domain/command/**"
+  - "src/tiny_swarm_world/domain/inventory/**"
+  - "src/tiny_swarm_world/application/ports/commands/**"
+  - "src/tiny_swarm_world/application/ports/repositories/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
+  - "infra/config/**/command_*.yaml"
+  - "infra/config/inventory/**"
+  - "tests/domain/command/**"
+  - "tests/domain/inventory/**"
+  - "tests/infrastructure/adapters/command_runner/**"
+  - "tests/infrastructure/adapters/repositories/**"
+affected_modules:
+  - "tiny_swarm_world.domain.command"
+  - "tiny_swarm_world.domain.inventory"
+  - "tiny_swarm_world.application.ports.commands"
+  - "tiny_swarm_world.infrastructure.adapters.command_runner"
+  - "tiny_swarm_world.infrastructure.adapters.repositories"
 affected_contracts:
-  - "target skill directory structure"
-  - "skill file format"
+  - "command-verification-contract"
+  - "desired-inventory-contract"
+  - "verification-evidence-redaction"
 dependencies:
-  - "01"
-parallel_group: "B"
-file_locks:
-  - ".agents/skills/**"
-contract_locks:
-  - "skill-registry"
-  - "skill-file-format"
-architecture_locks:
-  - "process-governance"
-quality_gates:
-  targeted:
-    - "find .agents/skills -type f | sort"
-  required: []
-documentation:
-  arc42: "not expected"
-  adr: "not expected"
-stop_conditions:
-  - "a target skill duplicates another skill's responsibility without clear ownership"
-  - "a required skill name conflicts with an existing incompatible file"
-  - "confidence below 95 percent"
-```
-
-Tasks:
-
-- Create `python-senior-developer`.
-- Create `python-pip-packaging-expert`.
-- Create `setup-bootstrap-expert` as a core skill.
-- Create all missing platform skills from the target structure.
-- Follow the Slice 01 skill-file format decision. Do not create `.md`-only
-  skill files if local skill discovery still requires `<skill>/SKILL.md`
-  entrypoints.
-- Ensure every skill contains Purpose, Responsibilities, Inputs, Outputs,
-  Boundaries, STOP conditions, Collaboration with other skills, and Quality
-  expectations.
-
-Done criteria:
-
-- Every required skill file exists in the target structure.
-- Responsibilities are project-specific and do not overlap unnecessarily.
-
-Verification commands:
-
-```bash
-find .agents/skills -type f | sort
-grep -R "python-senior-developer\|python-pip-packaging-expert\|setup-bootstrap-expert" .agents/skills
-```
-
-### Slice 03: Update Existing Retained Skills
-
-Purpose:
-
-- Update retained skills so they match Tiny Swarm World and do not carry
-  unrelated assumptions.
-
-```yaml
-slice_id: "03"
-profile: "FULL_PATH"
-owner: "senior_system_architect"
-secondary_reviewers:
-  - "senior_python_automation_developer"
-  - "senior_tester"
-  - "senior_react_frontend"
-affected_files:
-  - ".agents/skills/**"
-  - ".codex/skills/**"
-affected_modules: []
-affected_contracts:
-  - "retained skill responsibilities"
-dependencies:
-  - "01"
-parallel_group: "B"
-file_locks:
-  - ".agents/skills/**"
-  - ".codex/skills/**"
-contract_locks:
-  - "skill-registry"
-architecture_locks:
-  - "process-governance"
-quality_gates:
-  targeted:
-    - "grep -R \"forensic_analytics\\|Spring Boot\\|React\" .agents/skills .codex/skills || true"
-  required: []
-documentation:
-  arc42: "not expected"
-  adr: "not expected"
-stop_conditions:
-  - "retained skill source cannot be identified"
-  - "frontend-developer cannot be safely constrained to console status UI"
-  - "frontend-developer work would require package.json, React, Vite, Next.js, browser routes, API clients, .tsx, or .jsx files"
-  - "confidence below 95 percent"
-```
-
-Tasks:
-
-- Update retained skills:
-
-```text
-tdd-expert
-bdd-expert
-llm-analysis-expert
-mapping-dsl-expert
-strangler-command-adapter-pattern
-sca-migration-expert
-kubernetes-expert
-hexagonal-architecture-expert
-frontend-developer
-```
-
-- Remove forensic analytics-only assumptions.
-- Remove generic application-development assumptions.
-- Clarify current Docker Swarm ownership and future Kubernetes awareness.
-- Clarify `frontend-developer` as console status UI responsibility.
-- Keep `senior_react_frontend` read-only for this slice; it validates scope
-  exclusion and must not own implementation.
-
-Done criteria:
-
-- Retained skills are Tiny Swarm World-specific.
-- `frontend-developer` is not a React/browser-first role.
-- Confirmed evidence, derived analysis, unresolved gaps, hypotheses and
-  recommendations remain distinct in console-status UI skill guidance.
-
-Verification commands:
-
-```bash
-grep -R "console-status-ui-developer\|Docker Swarm\|Kubernetes-aware" .agents/skills .codex/skills || true
-grep -R "forensic_analytics\|Spring Boot application\|React frontend project" .agents/skills .codex/skills || true
-```
-
-### Slice 04: Remove Unrelated Skills
-
-Purpose:
-
-- Delete unrelated skills and role references only after reference checks.
-
-```yaml
-slice_id: "04"
-profile: "FULL_PATH"
-owner: "senior_workflow_architect"
-secondary_reviewers:
-  - "senior_requirement_engineer"
-  - "senior_system_architect"
-  - "senior_documentation_engineer"
-affected_files:
-  - ".agents/skills/**"
-  - ".agents/roles/**"
-  - ".agents/prompts/**"
-  - ".agents/orchestrator/**"
-  - ".codex/agents/**"
-  - ".codex/subagents/**"
-  - ".codex/skills/**"
-  - ".codex/AGENTS.md"
-  - ".codex/workflow/**"
-affected_modules: []
-affected_contracts:
-  - "skill-registry"
-  - "agent-registry"
-  - "skill-file-format"
-  - "organigramm-registry"
-dependencies:
-  - "02"
   - "03"
-parallel_group: "C"
+parallel_group: "D"
 file_locks:
-  - ".agents/**"
-  - ".codex/**"
+  - "src/tiny_swarm_world/domain/command/**"
+  - "src/tiny_swarm_world/domain/inventory/**"
+  - "src/tiny_swarm_world/application/ports/commands/**"
+  - "src/tiny_swarm_world/application/ports/repositories/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
+  - "infra/config/**/command_*.yaml"
+  - "infra/config/inventory/**"
+  - "tests/domain/command/**"
+  - "tests/domain/inventory/**"
+  - "tests/infrastructure/adapters/command_runner/**"
+  - "tests/infrastructure/adapters/repositories/**"
 contract_locks:
-  - "skill-registry"
-  - "agent-registry"
-  - "organigramm-registry"
+  - "command-verification-contract"
+  - "desired-inventory-contract"
+  - "verification-evidence-redaction"
 architecture_locks:
-  - "process-governance"
+  - "Shared"
+  - "Platform"
+  - "hexagonal-architecture"
 quality_gates:
   targeted:
-    - "grep -R \"spring-boot-expert\\|forensic-analytics-expert\\|react-developer\" AGENTS.md README.md documentation .agents .codex || true"
-  required: []
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_workflow_configuration"
+    - "PYTHONPATH=src python3 -m unittest tests.domain.command.test_command_spec"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_inventory_repositories"
+    - "python3 tools/quality_gate.py arch-tests"
+  required:
+    - "python3 tools/quality_gate.py test"
 documentation:
-  arc42: "not expected unless agent hierarchy changes architecture governance text"
-  adr: "not expected"
+  arc42: "update concepts, quality requirements, and risks if verification semantics change"
+  adr: "new ADR only if command verification semantics change materially"
 stop_conditions:
-  - "a candidate deletion is still referenced with no safe replacement"
-  - "a replacement would invent a missing project structure"
-  - "confidence below 95 percent"
+  - "manual verification would be treated as passed evidence"
+  - "credential-bearing command output would be stored as evidence"
+  - "desired inventory requires host-specific IPs, user names, or secrets"
+  - "verification support would execute live infrastructure in tests"
 ```
-
-Candidate removals:
-
-```text
-spring-boot-expert
-java-spring-developer
-react-developer
-react-usability-expert
-ux-designer
-microservice-senior-expert
-senior-backend-developer
-senior-frontend-developer
-senior-react-developer
-database-expert
-persistence-expert
-grpc-ingestion-expert
-rest-api-expert
-forensic-analytics-expert
-javaparser-scanner-expert
-joern-scanner-expert
-btm-generation-expert
-graph-database-expert
-vector-database-expert
-```
-
-Tasks:
-
-- Search all references before deletion.
-- Replace references where meaningful.
-- Remove obsolete references.
-- Delete only after references are resolved.
-- Report retained candidates that cannot be safely deleted.
-- Update stale `documentation/agents/**` references to the chosen canonical
-  registry and organigramm paths, or create the chosen path if the workflow
-  records that decision.
 
 Done criteria:
 
-- No unresolved project reference points to a deleted skill or agent.
-- Unrelated skills are deleted or explicitly reported as retained blockers.
+- Command verification support is explicit and test-backed, or still blocked
+  with exact reasons.
+- Credential-bearing command outputs have redaction/evidence rules.
+- Desired inventory baseline is either introduced safely or documented as a
+  deliberate blocker.
 
-Verification commands:
-
-```bash
-grep -R "spring-boot-expert\|java-spring-developer\|react-developer\|react-usability-expert\|ux-designer\|microservice-senior-expert\|senior-backend-developer\|senior-frontend-developer\|senior-react-developer\|database-expert\|persistence-expert\|grpc-ingestion-expert\|rest-api-expert\|forensic-analytics-expert\|javaparser-scanner-expert\|joern-scanner-expert\|btm-generation-expert\|graph-database-expert\|vector-database-expert" AGENTS.md README.md documentation .agents .codex || true
-```
-
-### Slice 05: Update AGENTS.md
+### Slice 05: Platform Verify-After-Apply Contracts
 
 Purpose:
 
-- Make root `AGENTS.md` the current authority for the consolidated skill and
-  agent model.
+- Make mutating platform workflows either executable under verify-after-apply
+  or explicitly blocked with tested, operator-safe reasons.
 
 ```yaml
 slice_id: "05"
 profile: "FULL_PATH"
-owner: "senior_documentation_engineer"
+owner: "senior_python_automation_developer"
 secondary_reviewers:
-  - "senior_requirement_engineer"
   - "senior_system_architect"
   - "senior_tester"
+  - "resilience-engineering"
 affected_files:
-  - "AGENTS.md"
-affected_modules: []
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/application/services/multipass/**"
+  - "src/tiny_swarm_world/application/services/network/**"
+  - "src/tiny_swarm_world/application/services/vm/**"
+  - "src/tiny_swarm_world/application/ports/repositories/**"
+  - "src/tiny_swarm_world/domain/inventory/**"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "tests/application/services/platform/**"
+  - "tests/application/services/multipass/**"
+  - "tests/application/services/network/**"
+  - "tests/infrastructure/test_composition.py"
+affected_modules:
+  - "tiny_swarm_world.application.services.platform"
+  - "tiny_swarm_world.application.services.multipass"
+  - "tiny_swarm_world.application.services.network"
+  - "tiny_swarm_world.application.services.vm"
 affected_contracts:
-  - "root agent hierarchy"
-  - "skill group registry"
-  - "registry and organigramm ownership"
+  - "verify-after-apply"
+  - "platform-workflow-contract"
 dependencies:
   - "04"
-parallel_group: "D"
+parallel_group: "E"
 file_locks:
-  - "AGENTS.md"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/application/services/multipass/**"
+  - "src/tiny_swarm_world/application/services/network/**"
+  - "src/tiny_swarm_world/application/services/vm/**"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "tests/application/services/platform/**"
+  - "tests/application/services/multipass/**"
+  - "tests/application/services/network/**"
+  - "tests/infrastructure/test_composition.py"
 contract_locks:
-  - "skill-registry"
-  - "agent-registry"
-  - "organigramm-registry"
+  - "verify-after-apply"
+  - "platform-workflow-contract"
 architecture_locks:
-  - "process-governance"
+  - "hexagonal-architecture"
+  - "Platform"
 quality_gates:
   targeted:
-    - "git diff --check"
-  required: []
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition"
+    - "python3 tools/quality_gate.py arch-tests"
+  required:
+    - "python3 tools/quality_gate.py test"
 documentation:
-  arc42: "check whether process governance text needs sync"
-  adr: "not expected"
+  arc42: "update runtime view and risks if platform execution status changes"
+  adr: "new ADR only if retention or verification semantics change materially"
 stop_conditions:
-  - "AGENTS.md would contradict QUALITY.md"
-  - "AGENTS.md would contradict actual skill files"
-  - "confidence below 95 percent"
-```
-
-Tasks:
-
-- Add the root agent.
-- Add the agent hierarchy.
-- Add skill groups, retained skills, new skills, and forbidden unrelated skills.
-- Add STOP and report rules.
-- Add workflow execution rules.
-- Clearly state:
-
-```text
-Tiny Swarm World is not forensic_analytics.
-Tiny Swarm World is not a Spring Boot application.
-Tiny Swarm World is not a React frontend project.
-Tiny Swarm World is currently Docker Swarm first.
-Tiny Swarm World must remain Kubernetes-aware but not Kubernetes-first.
+  - "implementation requires live Multipass, Docker Swarm, netplan, or socat"
+  - "verification evidence semantics are unclear"
+  - "application service would import infrastructure"
 ```
 
 Done criteria:
 
-- `AGENTS.md` matches actual skill and agent files.
-- `AGENTS.md` names the registry/organigramm source of truth and process owner
-  mapping.
+- Mutating platform workflow behavior is tested without live commands.
+- Any remaining blocked state has an explicit reason and operator-facing test.
 
-Verification commands:
-
-```bash
-grep -n "tiny-swarm-world-lead-architect\|setup-bootstrap-expert\|Docker Swarm first\|Kubernetes-aware" AGENTS.md
-git diff --check
-```
-
-### Slice 06: Update Workflow And Prompt Documentation
+### Slice 06: Artifact And Deployment Workflow Contracts
 
 Purpose:
 
-- Synchronize README, workflow docs, workplan docs, and Codex team references.
+- Turn blocked artifact/deployment CLI entries into explicit contract-backed
+  workflows or keep them blocked with stronger tested reasons.
 
 ```yaml
 slice_id: "06"
 profile: "FULL_PATH"
-owner: "senior_documentation_engineer"
+owner: "senior_python_automation_developer"
 secondary_reviewers:
-  - "senior_workflow_architect"
+  - "senior_system_architect"
+  - "senior_devops"
   - "senior_tester"
 affected_files:
-  - "README.md"
-  - "documentation/workflow/**"
-  - "documentation/process/**"
-  - "documentation/skill-audit/**"
-  - "documentation/workplan/**"
-  - "documentation/arc42/**"
-  - ".codex/**"
-  - ".agents/prompts/**"
-  - ".agents/orchestrator/**"
-affected_modules: []
+  - "src/tiny_swarm_world/__main__.py"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/application/services/artifacts/**"
+  - "src/tiny_swarm_world/application/services/deployment/**"
+  - "src/tiny_swarm_world/application/services/nexus/**"
+  - "src/tiny_swarm_world/application/ports/clients/**"
+  - "src/tiny_swarm_world/application/ports/repositories/**"
+  - "src/tiny_swarm_world/domain/deployment/**"
+  - "src/tiny_swarm_world/domain/nexus/**"
+  - "tests/test_package_entrypoint.py"
+  - "tests/infrastructure/test_composition.py"
+  - "tests/application/services/artifacts/**"
+  - "tests/application/services/deployment/**"
+  - "tests/application/services/nexus/**"
+affected_modules:
+  - "tiny_swarm_world.application.services.artifacts"
+  - "tiny_swarm_world.application.services.deployment"
+  - "tiny_swarm_world.application.services.nexus"
+  - "tiny_swarm_world.infrastructure.composition"
 affected_contracts:
-  - "workflow execution rules"
-  - "subagent assignment rules"
-  - "registry and organigramm paths"
-  - "process owner mapping"
+  - "artifact-workflow-contract"
+  - "deployment-workflow-contract"
+  - "cli-workflow-contract"
 dependencies:
   - "05"
-parallel_group: "E"
+parallel_group: "F"
 file_locks:
-  - "README.md"
-  - "documentation/**"
-  - ".codex/**"
+  - "src/tiny_swarm_world/__main__.py"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/application/services/artifacts/**"
+  - "src/tiny_swarm_world/application/services/deployment/**"
+  - "src/tiny_swarm_world/application/services/nexus/**"
+  - "tests/test_package_entrypoint.py"
+  - "tests/infrastructure/test_composition.py"
+  - "tests/application/services/artifacts/**"
+  - "tests/application/services/deployment/**"
+  - "tests/application/services/nexus/**"
 contract_locks:
-  - "skill-registry"
-  - "agent-registry"
-  - "organigramm-registry"
+  - "artifact-workflow-contract"
+  - "deployment-workflow-contract"
+  - "cli-workflow-contract"
 architecture_locks:
-  - "process-governance"
+  - "Artifacts"
+  - "Deployment"
+  - "hexagonal-architecture"
 quality_gates:
   targeted:
-    - "git diff --check"
-  required: []
+    - "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition"
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.artifacts"
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.deployment"
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.nexus"
+    - "python3 tools/quality_gate.py arch-tests"
+  required:
+    - "python3 tools/quality_gate.py test"
 documentation:
-  arc42: "add or update a short governance/process note if the registry, organigramm, or agent authority model changes"
-  adr: "not expected"
+  arc42: "update building blocks, runtime view, deployment view, and risks if wiring changes"
+  adr: "new ADR only if workflow semantics change beyond accepted split"
 stop_conditions:
-  - "documentation points to missing files"
-  - "new docs directory would conflict with existing documentation model"
-  - "confidence below 95 percent"
+  - "work requires a real Portainer, Nexus, Docker registry, or image push"
+  - "Nexus repository configuration and stack deployment ownership cannot be separated"
+  - "artifact or deployment workflow would bypass live-consent controls"
+  - "application code would depend on infrastructure adapters"
 ```
-
-Tasks:
-
-- Document the current skill structure.
-- Document the current agent structure.
-- Document workflow execution rules.
-- Document how to add a new skill.
-- Document how to remove a skill safely.
-- Document how to assign subagents to slices.
-- Document the canonical skill registry and organigramm paths.
-- Document the owner mapping for Organigramm Maintainer, Process Governance
-  Maintainer, Root Architect escalation, and Typed Error Router.
-- Update `.codex` prompt, agent, subagent, skill, or workflow files that refer
-  to removed or renamed skills.
-- Update `.agents/prompts/` and `.agents/orchestrator/` references that point
-  to stale registry, organigramm, or owner names.
-- If `.codex/prompts/` remains absent, record that no prompt update was needed.
 
 Done criteria:
 
-- Documentation matches actual files, root `AGENTS.md`, routing rules,
-  registry path decisions, and arc42 check/update status.
+- CLI behavior for artifact/deployment workflows is explicit and test-backed.
+- Artifact and Deployment boundaries are clearer than the baseline.
 
-Verification commands:
-
-```bash
-grep -R "tiny-swarm-world-lead-architect\|setup-bootstrap-expert\|console-status-ui-developer" AGENTS.md README.md documentation .codex .agents || true
-grep -R "documentation/agents\|documentation/skill-audit\|Organigramm Maintainer\|Process Governance Maintainer\|Typed Error Router" .agents documentation .codex AGENTS.md README.md || true
-git diff --check
-```
-
-### Slice 07: Quality Gate
+### Slice 07: Console Status UI Consistency
 
 Purpose:
 
-- Verify the governance/documentation change without running live
-  infrastructure.
+- Align console/status UI behavior with command-runner status values and
+  aggregate status updates.
 
 ```yaml
 slice_id: "07"
-profile: "FULL_PATH"
-owner: "senior_tester"
+profile: "NORMAL_PATH"
+owner: "senior_python_automation_developer"
 secondary_reviewers:
-  - "senior_workflow_architect"
-  - "git_commit_reviewer"
+  - "senior_react_frontend"
+  - "console-status-ui-developer"
+  - "senior_tester"
 affected_files:
-  - "AGENTS.md"
-  - "README.md"
-  - "documentation/**"
-  - ".agents/**"
-  - ".codex/**"
-affected_modules: []
+  - "src/tiny_swarm_world/application/ports/ui/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/ui/**"
+  - "tests/infrastructure/adapters/ui/**"
+affected_modules:
+  - "tiny_swarm_world.application.ports.ui"
+  - "tiny_swarm_world.infrastructure.adapters.ui"
 affected_contracts:
-  - "skill-registry"
-  - "agent-registry"
+  - "console-status-contract"
 dependencies:
-  - "06"
+  - "03"
 parallel_group: "F"
-file_locks: []
+file_locks:
+  - "src/tiny_swarm_world/application/ports/ui/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/ui/**"
+  - "tests/infrastructure/adapters/ui/**"
 contract_locks:
-  - "quality-evidence"
+  - "console-status-contract"
 architecture_locks:
-  - "process-governance"
+  - "Console-status-UI"
 quality_gates:
   targeted:
-    - "git status"
-    - "find .agents -type f | sort"
-    - "find .agents/skills -name SKILL.md -type f | sort"
-    - "grep -R \"spring-boot-expert\\|forensic-analytics-expert\\|react-developer\" AGENTS.md README.md documentation .agents .codex || true"
-    - "grep -R \"python-senior-developer\\|python-pip-packaging-expert\\|setup-bootstrap-expert\" .agents AGENTS.md documentation .codex README.md || true"
-    - "grep -R \"^## Purpose\\|^## Responsibilities\\|^## Inputs\\|^## Outputs\\|^## Boundaries\\|STOP\" .agents/skills || true"
-    - "git diff --check"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_linux_ui"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics"
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.commands.test_command_executer"
   required:
-    - "python3 tools/quality_gate.py quality"
+    - "python3 tools/quality_gate.py test"
 documentation:
-  arc42: "check status before final report"
+  arc42: "not expected unless UI evidence semantics change"
   adr: "not expected"
 stop_conditions:
-  - "required skill is missing"
-  - "required skill is not discoverable through the chosen skill-file format"
-  - "required skill headings are missing"
-  - "deleted skill is still referenced"
-  - "AGENTS.md does not match actual files"
-  - "quality command cannot be executed or justified"
+  - "work introduces package.json, React, browser routes, TSX, JSX, or browser state"
+  - "status values collapse verified evidence and recommendations into ambiguous strings"
 ```
-
-Minimum checks:
-
-```bash
-git status
-find .agents -type f | sort
-find .agents/skills -name SKILL.md -type f | sort
-grep -R "spring-boot-expert\|forensic-analytics-expert\|react-developer" AGENTS.md README.md documentation .agents .codex || true
-grep -R "python-senior-developer\|python-pip-packaging-expert\|setup-bootstrap-expert" .agents AGENTS.md documentation .codex README.md || true
-grep -R "^## Purpose\|^## Responsibilities\|^## Inputs\|^## Outputs\|^## Boundaries\|STOP" .agents/skills || true
-git diff --check
-```
-
-Full quality gate:
-
-```bash
-python3 tools/quality_gate.py quality
-```
-
-The full quality gate is required before commit or push when practical. If it
-is skipped for governance-only documentation changes, the final report must
-state the reason and must not claim it passed.
 
 Done criteria:
 
-- No missing required skills.
-- Required skills are discoverable through the chosen skill-file format and
-  include the required headings.
-- No unrelated active skill references, except documented retained blockers.
-- `AGENTS.md` and documentation match actual files.
-- Quality results are exact and recorded.
+- Real console adapters handle aggregate and terminal status consistently.
+- No browser frontend scope is introduced.
 
-### Slice 08: Final Report
+### Slice 08: Legacy Live-Surface Quarantine
 
 Purpose:
 
-- Produce the final workflow execution report and handoff.
+- Classify and, when safe, quarantine direct live-operation scripts without
+  executing them.
 
 ```yaml
 slice_id: "08"
 profile: "FULL_PATH"
-owner: "senior_workflow_architect"
+owner: "senior_devops"
 secondary_reviewers:
-  - "senior_requirement_engineer"
   - "senior_system_architect"
-  - "senior_documentation_engineer"
+  - "senior_security_sandbox_engineer"
   - "senior_tester"
 affected_files:
-  - "documentation/workflow/execution-report.md"
+  - "infra/prepare/**"
+  - "infra/compose/**"
+  - "infra/swarm/**"
+  - "documentation/deployment/**"
+  - "documentation/user_guide/**"
+  - "documentation/system/**"
+  - "README.md"
+  - "tests/architecture/**"
 affected_modules: []
 affected_contracts:
-  - "workflow final report"
+  - "live-operation-surface"
+  - "operator-safety-documentation"
 dependencies:
-  - "07"
+  - "03"
 parallel_group: "G"
 file_locks:
-  - "documentation/workflow/execution-report.md"
+  - "infra/prepare/**"
+  - "infra/compose/**"
+  - "infra/swarm/**"
+  - "documentation/deployment/**"
+  - "documentation/user_guide/**"
+  - "documentation/system/**"
+  - "README.md"
+  - "tests/architecture/**"
 contract_locks:
-  - "quality-evidence"
+  - "live-operation-surface"
 architecture_locks:
-  - "process-governance"
+  - "operator-safety"
 quality_gates:
   targeted:
     - "git diff --check"
-  required: []
+    - "python3 tools/quality_gate.py arch-tests"
+  required:
+    - "python3 tools/quality_gate.py test"
 documentation:
-  arc42: "final checked or updated status must be recorded"
-  adr: "not expected"
+  arc42: "update risks/debt and deployment view if support status changes"
+  adr: "required before removing supported live-operation entry points"
 stop_conditions:
-  - "quality results are missing"
-  - "unresolved references are not reported"
-  - "final consistency questions are unanswered"
-```
-
-Final report must include:
-
-```text
-created skills
-updated skills
-deleted skills
-unresolved references
-modified documentation files
-final agent hierarchy
-quality checks executed
-remaining risks
-```
-
-Final report must explicitly answer:
-
-```text
-Is the Tiny Swarm World skill and agent structure now consistent?
-Are all required skills present?
-Were unrelated skills removed?
-Are there any unresolved references?
+  - "a validation step would run live infrastructure"
+  - "a script removal would break a documented supported workflow"
+  - "credentials or host-specific data would be committed"
 ```
 
 Done criteria:
 
-- `documentation/workflow/execution-report.md` exists.
-- It records exact quality commands and results.
-- It records any retained blocker and why it was kept.
+- Supported, transitional, deprecated, and legacy live surfaces are explicitly
+  classified.
+- No live command is executed.
 
-Verification commands:
+### Slice 09: Documentation Sync, Quality Gate, And Execution Report
 
-```bash
-grep -n "Is the Tiny Swarm World skill and agent structure now consistent?" documentation/workflow/execution-report.md
-git diff --check
+Purpose:
+
+- Synchronize docs and record final workflow execution evidence.
+
+```yaml
+slice_id: "09"
+profile: "FULL_PATH"
+owner: "senior_documentation_engineer"
+secondary_reviewers:
+  - "senior_workflow_architect"
+  - "senior_requirement_engineer"
+  - "senior_system_architect"
+  - "senior_tester"
+  - "git_commit_reviewer"
+affected_files:
+  - "README.md"
+  - "documentation/workflow/**"
+  - "documentation/epics/**"
+  - "documentation/architecture/**"
+  - "documentation/arc42/**"
+  - "documentation/deployment/**"
+  - "documentation/system/**"
+  - "documentation/user_guide/**"
+affected_modules: []
+affected_contracts:
+  - "workflow-execution-report"
+  - "documentation-sync"
+dependencies:
+  - "06"
+  - "07"
+  - "08"
+parallel_group: "H"
+file_locks:
+  - "README.md"
+  - "documentation/**"
+contract_locks:
+  - "documentation-sync"
+  - "quality-evidence"
+architecture_locks:
+  - "Platform-Artifacts-Deployment-Shared"
+quality_gates:
+  targeted:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+  required:
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "final checked or updated status required"
+  adr: "final ADR convention and any new decisions recorded"
+stop_conditions:
+  - "quality results are missing"
+  - "docs claim unimplemented behavior is implemented"
+  - "execution report does not record blockers and skipped gates"
 ```
+
+Done criteria:
+
+- Docs match actual files and behavior.
+- Exact quality commands and results are recorded.
+- Remaining blocked surfaces are named with owners and next actions.
+
+## Slice Dependency Graph
+
+```text
+01 -> 02 -> 03 -> 04 -> 05 -> 06 -> 09
+              \---------------> 07 ------/
+              \---------------> 08 ------/
+```
+
+## Parallelization Opportunities
+
+- Slices 04, 07, and 08 have different primary write scopes after Slice 03,
+  but Slice 05 must wait for the command/evidence foundation in Slice 04.
+- S3D must still verify locks before any parallel work.
+- Default execution should use one write-capable implementation worker at a
+  time unless S3D proves file, contract, and architecture locks are disjoint.
+
+## Role And Subagent Ownership Map
+
+- Senior Workflow Architect: workflow integrity, dependencies, S3/S3D handoff.
+- Senior Requirement Engineer: EPIC baseline and acceptance criteria.
+- Senior System Architect: Platform/Artifacts/Deployment/Shared boundaries,
+  ADR and arc42 governance.
+- Senior Python Automation Developer: Python implementation slices.
+- Senior React Frontend: read-only guard confirming browser/React scope is
+  absent; console UI implementation routes to console/status skills.
+- Senior Tester: tests, quality gates, failure classification.
+- Senior DevOps: live-surface quarantine and Docker/Swarm safety review.
+- Senior Documentation Engineer: README, arc42, deployment/user docs, reports.
+- Security/Sandbox reviewer: scripts, secrets, unsafe defaults.
+- Git reviewers/operators: commit and push readiness only after D8 gates pass.
 
 ## Quality Gate Expectations
 
-Use root `QUALITY.md` as authority.
+Use `QUALITY.md` as authority.
 
-Targeted governance checks:
+Minimum workflow-creation checks:
 
 ```bash
-git status
-find .agents -type f | sort
-find .codex -type f | sort
-find .agents/skills -name SKILL.md -type f | sort
-grep -R "spring-boot-expert\|forensic-analytics-expert\|react-developer" AGENTS.md README.md documentation .agents .codex || true
-grep -R "python-senior-developer\|python-pip-packaging-expert\|setup-bootstrap-expert" .agents AGENTS.md documentation .codex README.md || true
-grep -R "^## Purpose\|^## Responsibilities\|^## Inputs\|^## Outputs\|^## Boundaries\|STOP" .agents/skills || true
 git diff --check
 ```
 
-Preferred full local quality gate:
+Required before implementation checkpoint push when practical:
 
 ```bash
 python3 tools/quality_gate.py quality
 ```
 
-Do not run live infrastructure commands as part of this workflow.
+Targeted gates are listed per slice. If `python3` or tooling is unavailable in
+the current environment, record the exact failure and do not claim the gate
+passed. A local fallback command can be recorded as supplemental evidence only.
 
 ## Documentation Synchronization Points
 
-- `AGENTS.md`: source of project identity, architecture boundaries, skill
-  groups, agent hierarchy, stop rules and execution rules.
-- `README.md`: concise operational overview and pointer to the skill and agent
-  governance documentation.
-- `documentation/workflow/`: active workflow, context pack, inventory reports,
-  quality evidence and final execution report.
-- `documentation/skill-audit/`: preferred canonical skill registry cache and
-  JSON registry generated by the skill-registry conflict audit.
-- `documentation/workplan/`: detailed workplan pages if execution needs
-  persistent planning artifacts beyond the active workflow.
-- `documentation/process/`: workflow, skills update, skill-agent creation, and
-  branch governance process rules.
-- `.agents/prompts/` and `.agents/orchestrator/`: process routing and prompt
-  entrypoints that must match actual role and registry paths.
-- `.codex/AGENTS.md`, `.codex/agents/`, `.codex/subagents/`,
-  `.codex/skills/`, `.codex/workflow/`: reusable team configuration that must
-  not reference deleted or out-of-scope project skills.
-- `.codex/prompts/`: update only if it exists or is intentionally introduced.
-- `documentation/arc42/`: check during execution; add or update a short
-  governance/process note if the skill registry, organigramm, or agent
-  authority model changes architecture documentation.
+- `documentation/epics/system-unification.md`
+- `documentation/workflow/workflow.md`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/execution-report.md`
+- `documentation/architecture/**`
+- `documentation/arc42/**`
+- `documentation/deployment/**`
+- `documentation/system/**`
+- `documentation/user_guide/**`
+- `README.md`
 
 ## Commit And Push Plan
 
-This workflow does not require automatic commit or push.
+The user explicitly authorized push when the workflow is at least 90 percent
+acceptable.
 
-When the user asks to commit or push:
+Workflow creation may be committed and pushed when:
 
-1. Run Slice 07 checks.
-2. Inspect `git status`, `git diff`, and `git diff --check`.
-3. Stage only files changed by this workflow.
-4. Use a workflow-scoped commit message.
-5. Push only `feature/workflow-tiny-swarm-skills-agents-20260523` when asked.
+1. The active branch is `codex/workflow-system-unification-20260524`.
+2. `documentation/workflow/workflow.md` and context-pack files exist.
+3. `git diff --check` passes.
+4. Any skipped full quality gate is documented and justified.
+
+Workflow execution checkpoint pushes must follow the workflow-executor rule:
+one slice-scoped commit and push per completed slice after required quality
+gates pass.
 
 ## Stop Conditions
 
 Stop and report when:
 
-- working tree is dirty before branch creation;
-- active branch is not the workflow branch during execution;
-- `.agents/` or `AGENTS.md` is missing;
-- confidence drops below 95 percent;
-- a required skill conflicts with an existing incompatible file;
-- a deletion candidate is still referenced with no safe replacement;
-- `.codex` references cannot be reconciled with actual skills;
-- documentation source of truth conflicts with root `AGENTS.md` or
-  `QUALITY.md`;
-- any step would require product functionality, runtime source changes, live
-  infrastructure execution, or speculative external tooling.
+- active branch is not `codex/workflow-system-unification-20260524`;
+- working tree contains unrelated or unclear changes;
+- workflow or context-pack branch names are stale;
+- EPIC baseline cannot be created or contradicts the accepted architecture;
+- live infrastructure execution would be required;
+- ADR convention remains unresolved before new decisions;
+- artifact/deployment ownership would require guessing;
+- application code would import infrastructure;
+- quality commands are missing and no documented limitation exists;
+- a slice would weaken `.importlinter`, architecture tests, or `QUALITY.md`;
+- Java, React/browser, Spring Boot, Kubernetes-first, or unrelated analytics
+  concerns start driving the Python automation architecture.
 
 ## Definition Of Done
 
 This workflow is complete when:
 
-- the dedicated branch exists and is active during execution;
-- all required skills are present;
-- `python-senior-developer`, `python-pip-packaging-expert`, and
-  `setup-bootstrap-expert` exist;
-- retained skills are Tiny Swarm World-specific;
-- unrelated skills are removed or explicitly reported as retained blockers;
-- `AGENTS.md` contains the current organigram;
-- documentation is updated;
-- no dead references remain, except documented retained blockers;
-- quality checks have been executed and reported;
-- final report is written.
+- the EPIC baseline exists;
+- Platform, Artifacts, Deployment, Shared, and Console/status UI responsibilities
+  are test-backed;
+- platform verify-after-apply behavior is executable or deliberately blocked
+  with tested reasons;
+- artifact and deployment CLI workflows are explicit and test-backed;
+- legacy live-operation surfaces are classified;
+- README, architecture docs, arc42, user/deployment docs, workflow reports, and
+  quality evidence are synchronized;
+- `python3 tools/quality_gate.py quality` passes or any inability to run it is
+  explicitly recorded as a blocker;
+- final execution report answers what is complete, what remains blocked, and
+  what the next slice or workflow must do.
 
 ## Handoff To Workflow Execute
 
 Workflow execution is released with this entrypoint:
 
 ```text
-workflow execute
+workflow execute with subagents
 ```
 
 Before executing, the executor must verify:
 
 ```bash
-git status
+git status --short --branch
 git branch --show-current
-git show-ref --verify --quiet refs/heads/feature/workflow-tiny-swarm-skills-agents-20260523
+git show-ref --verify --quiet refs/heads/codex/workflow-system-unification-20260524
 ```
 
-Execution may start only when the branch is
-`feature/workflow-tiny-swarm-skills-agents-20260523` and the working tree
-contains no unrelated or unclear changes.
+Execution may start only when the active branch is
+`codex/workflow-system-unification-20260524`, the local branch ref exists, and
+the working tree contains no unrelated or unclear changes.
 
 ## arc42 Check Status
 
-arc42 was checked during workflow creation for project identity, building
-blocks, runtime boundaries, and quality requirements. No arc42 update is
-required for workflow creation itself because no product architecture or
-runtime behavior changed.
-
-During workflow execution, update `documentation/arc42/` only if root
-governance or the skill/agent structure changes the documented architecture
-view. Record that decision in Slice 06 and Slice 08.
+arc42 was checked during workflow creation. No arc42 update is required for
+workflow creation itself because this turn only regenerates workflow artifacts.
+Execution slices must update arc42 when they change implemented status,
+runtime behavior, architecture-decision convention, deployment wiring, or risk
+classification.

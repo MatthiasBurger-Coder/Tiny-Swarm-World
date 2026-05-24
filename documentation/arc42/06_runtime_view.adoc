@@ -8,18 +8,21 @@ Processes and workflows during execution.
 operator arguments, lists workflow-level commands without constructing
 services, checks live-infrastructure consent for mutating workflows, verifies
 destructive workflow confirmation before service construction, builds
-application services through `src/tiny_swarm_world/infrastructure/composition.py`,
-and delegates platform execution to composed workflow objects.
+the required service bundle through
+`src/tiny_swarm_world/infrastructure/composition.py`, and delegates selected
+commands to composed workflow objects. Platform commands build the full
+`ApplicationServices` aggregate. Artifact and Deployment commands build only
+their own boundary service bundle so they cannot fail on unrelated platform
+configuration before returning their explicit contract result.
 
 The composition root builds `ApplicationServices` as an aggregate of three
 service bundles:
 
 * `platform` for current VM, network, Docker, Swarm, preflight, VM IP, and
   socat automation.
-* `artifacts` for future artifact registry and publishing workflows.
+* `artifacts` for artifact registry and publishing workflow contracts.
 * `deployment` for stack lifecycle behavior, starting with Nexus stack
-  create/update ownership in the application service namespace. Composition
-  wiring for deployment commands remains planned for later workflow slices.
+  create/update ownership in the application service namespace.
 
 At this stage, Artifacts and Deployment are composition boundaries inside the
 same Python automation process, not independently deployable microservices.
@@ -27,8 +30,48 @@ Their bundles are side-effect free when constructed. The public CLI no longer
 dispatches low-level service names through `--run`; transitional
 `ApplicationServices` properties remain only for migration and internal
 compatibility. Artifact and deployment workflow command names are declared by
-the CLI contract and report blocked results until later slices wire their
-runtime behavior.
+the CLI contract and dispatch to blocked workflow objects with stable reasons
+until later slices wire their runtime behavior. Mutating boundary workflows
+such as `artifacts prepare` and `deployment apply` still require live consent
+before their boundary service bundle is constructed, then return `blocked`
+because Nexus, registry, and Portainer contracts are not wired yet.
+
+=== Artifact And Deployment Workflow Contract Flow
+
+The current artifact and deployment runtime flow is deliberately fail-closed:
+
+* `artifacts prepare` requires live consent, dispatches to
+  `ArtifactPrepareWorkflow`, and returns `blocked` until image build, image
+  push, and Nexus repository setup contracts exist.
+* `artifacts verify` dispatches without live consent and returns `blocked`
+  until artifact registry observed-state verification is implemented through
+  an application port.
+* `deployment apply` requires live consent, dispatches to
+  `DeploymentApplyWorkflow`, and returns `blocked` until Portainer stack apply
+  and command-backed verification contracts exist.
+* `deployment verify` dispatches without live consent and returns `blocked`
+  until stack and service observed-state verification is implemented through
+  deployment ports.
+
+No Portainer, Nexus, Docker registry, image build, image push, or stack
+deployment side effect is run by these workflow contracts.
+
+=== Console Status Runtime Flow
+
+Console/status UI remains terminal-only. The application UI port now owns the
+shared status vocabulary used by command-runner UI adapters and terminal
+renderers. Command runners report per-instance terminal results with the same
+`Success`, `Error`, and `Failed` semantics that the Linux console adapter uses
+to decide when all visible instances have reached a terminal state.
+
+Aggregate updates use the reserved `all` instance and are stored separately
+from per-VM state. The terminal renderer derives completion summaries from
+both aggregate and per-instance status, so failed command runs display
+`All instances completed with errors` instead of the ambiguous success-only
+completion message.
+
+No browser frontend, React component, JavaScript build tool, TSX/JSX file, or
+browser state is part of this console/status runtime flow.
 
 === Inventory And Evidence Runtime Flow
 
@@ -54,6 +97,15 @@ apply-then-verify gate. A mutating step must expose a verification path before
 the workflow runs it. If that path is missing, the workflow returns `blocked`
 and does not apply the step.
 
+The gate itself is implemented as fail-closed workflow behavior. At the current
+system-unification baseline, the composed `platform init` and
+`platform reconcile` steps expose explicit verification target IDs and
+operator-safe block reasons, but they still do not expose concrete
+command-backed verification contracts. These workflows therefore return
+`blocked` before running live steps. This keeps Multipass, Docker Swarm,
+netplan, and VM reconciliation commands from running until later slices add
+tested verification wrappers or equivalent verifiable step contracts.
+
 Continuation requires both parts:
 
 * apply succeeds;
@@ -66,3 +118,7 @@ non-verified evidence return `failed_to_verify`, while missing evidence returns
 
 When a verification evidence repository is configured, the workflow appends
 the typed verification result before making the continuation decision.
+
+The non-mutating `platform verify` workflow also interprets preflight results.
+Failed preflight checks now return `failed_to_verify` with summary-only
+verification evidence instead of reporting a completed verify workflow.

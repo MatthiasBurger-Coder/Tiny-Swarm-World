@@ -22,27 +22,38 @@ such as `VmIpList`, `MultipassInitVms`, and `NetworkPrepareNetplan` are
 constructed with explicit ports and repositories instead of creating
 infrastructure adapters inside the application layer.
 
-The composition root now exposes separate application service bundles:
+The composition root now exposes separate in-process application service
+bundles. These bundles are responsibility boundaries inside the Python
+automation process; they are not independently deployable services or
+microservices:
 
 * `PlatformServices` contains the current platform automation for Multipass,
   network setup, Docker installation, Swarm initialization, preflight checks,
   VM IP discovery, socat management, and workflow objects for platform
   `init`, `reconcile`, `verify`, `reset`, and `destroy` commands.
-* `ArtifactServices` is the explicit artifacts boundary. It is currently an
-  empty bundle until Nexus and publishing services are wired in later slices.
+* `ArtifactServices` is the explicit artifacts boundary. It owns blocked
+  workflow contracts for `artifacts prepare` and `artifacts verify` so the CLI
+  can report stable operator-facing reasons without wiring live Nexus or
+  registry behavior.
 * `DeploymentServices` is the explicit deployment boundary. The deployment
   service namespace now owns `EnsureNexusStack` for compose lookup and
-  Portainer stack create/update operations. The current composition bundle is
-  still empty and side-effect free; deployment workflow wiring remains pending.
+  Portainer stack create/update operations. Its composition bundle owns blocked
+  workflow contracts for `deployment apply` and `deployment verify`; it does
+  not construct Portainer clients or execute stack changes during CLI dispatch.
 * `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
   instead of aliasing `PlatformServices`.
 
-The empty Artifacts bundle and currently unwired Deployment bundle are
-intentional transitional building blocks. They create stable composition
-boundaries while service ownership moves in dedicated workflow slices.
+The blocked Artifacts and Deployment workflow bundles are intentional
+transitional building blocks. They create stable composition boundaries while
+service ownership moves in dedicated workflow slices, and they keep later live
+Nexus, registry, and Portainer work behind explicit contracts.
 Compatibility properties on `ApplicationServices` keep the existing
 service-level accessors available for migration, but the public Python
 entrypoint now routes through workflow-level commands.
+
+Console/status UI is also an in-process responsibility surface. It owns
+terminal status rendering, progress feedback and command-runner status
+presentation. It is not a browser React frontend.
 
 === Typed Command Catalog
 
@@ -70,7 +81,10 @@ The supported safety classes are `safe_read`, `safe_mutation`, `destructive`,
 `credential_mutation`, and `network_mutation`. Destructive command patterns
 such as Multipass delete or purge are accepted only when classified as
 `destructive` and limited to reset or destroy workflows. Mutating commands
-must declare a verification specification.
+must declare a verification specification. Commands that declare
+`runtime_change` cannot be classified as `safe_read`. Commands that emit
+credential material must be classified as `credential_mutation` and must
+declare an evidence policy that redacts output and forbids raw output storage.
 
 === Inventory And Verification Evidence
 
@@ -90,6 +104,12 @@ evidence use dedicated local-state adapters instead of the generic file
 manager so raw evidence is not logged and file lookup cannot drift into
 `infra/config`.
 
+The default desired inventory baseline is committed at
+`infra/config/inventory/desired_inventory.yaml`. It records host-neutral VM
+names, roles, resource sizes, expected stacks, and artifact registries. It must
+not contain host-specific IP addresses, gateway values, user names, tokens,
+passwords, or secrets.
+
 === Infrastructure Assets
 
 `infra` contains infrastructure and deployment assets that are not Python
@@ -99,7 +119,7 @@ application code.
 * `infra/compose` contains compose stacks and stack upload helpers.
 * `infra/prepare` contains one-off preparation scripts for local services.
 * `infra/swarm` contains legacy Swarm and Multipass helper scripts. This area
-  is quarantined as transitional live-infrastructure surface, not a supported
+  is quarantined as legacy live-infrastructure surface, not a supported
   workflow entry point. It must not run in default quality gates, and files
   should be removed or migrated only in an explicit cleanup slice with tests
   and rollback notes.

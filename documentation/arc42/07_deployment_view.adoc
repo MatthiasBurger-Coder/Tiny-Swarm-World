@@ -13,3 +13,17 @@ artifacts. They are stored under the ignored `.tiny-swarm-world/` directory in
 the repository root. That directory is not a deployment input, is not part of
 the default quality gate outputs, and must not be committed or moved under
 `infra/config`.
+
+== Blocked Deployment Contracts
+
+The in-process CLI now has explicit artifact and deployment workflow contracts,
+but they do not deploy services. `deployment apply` is live-consent gated and
+then returns a blocked result until Portainer stack mutation and verification
+contracts are available. `deployment verify` returns a blocked result until
+stack and service observed-state verification can be read through deployment
+ports.
+
+This keeps the current local deployment model deterministic in tests: the
+Python composition root can construct deployment workflow objects without
+creating Portainer clients, contacting Nexus, building images, pushing
+registries, or changing Docker Swarm state.

@@ -3,6 +3,12 @@ import unittest
 from unittest.mock import AsyncMock, patch
 
 from tiny_swarm_world.application.ports.commands.port_command_runner import PortCommandRunner
+from tiny_swarm_world.application.ports.ui.port_ui import (
+    AGGREGATE_INSTANCE,
+    STATUS_ERROR,
+    STATUS_SUCCESS,
+    PortUI,
+)
 from tiny_swarm_world.application.services.commands.command_executer.command_executer import (
     CommandExecutionFailed,
 )
@@ -30,8 +36,9 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(CommandExecutionFailed):
                 await runner_ui.run()
 
-        self.assertIn(("swarm-manager", "failed", "execution", "error"), ui.updates)
-        self.assertIn(("all", "finished", "execution", "error"), ui.updates)
+        self.assertIn(("swarm-manager", "failed", "execution", STATUS_ERROR), ui.updates)
+        self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_ERROR), ui.updates)
+        self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
 
     async def test_sync_ui_marks_aggregate_error_and_raises_on_command_failure(self):
         ui = RecordingUI()
@@ -49,21 +56,89 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(CommandExecutionFailed):
                 await runner_ui.run()
 
-        self.assertIn(("swarm-manager", "failed", "execution", "error"), ui.updates)
-        self.assertIn(("all", "finished", "execution", "error"), ui.updates)
+        self.assertIn(("swarm-manager", "failed", "execution", STATUS_ERROR), ui.updates)
+        self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_ERROR), ui.updates)
+        self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
+
+    async def test_sync_ui_aggregate_failure_is_terminal_with_pending_later_instances(self):
+        ui = RecordingUI(["swarm-manager", "swarm-worker"])
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
+        ) as factory:
+            factory.return_value.get_ui.return_value = ui
+            runner_ui = SyncCommandRunnerUI(
+                {
+                    "swarm-manager": _commands_for("swarm-manager", FailingRunner()),
+                    "swarm-worker": _commands_for("swarm-worker", SuccessfulRunner()),
+                }
+            )
+
+        with patch(
+            "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
+            new=AsyncMock(),
+        ):
+            with self.assertRaises(CommandExecutionFailed):
+                await runner_ui.run()
+
+        self.assertEqual("Pending", ui.status["swarm-worker"]["result"])
+        self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
+        self.assertTrue(ui.all_instances_terminal())
+
+    async def test_async_ui_marks_aggregate_success_when_commands_succeed(self):
+        ui = RecordingUI()
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
+        ) as factory:
+            factory.return_value.get_ui.return_value = ui
+            runner_ui = AsyncCommandRunnerUI(_command_list(SuccessfulRunner()))
+
+        with patch(
+            "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
+            new=AsyncMock(),
+        ):
+            await runner_ui.run()
+
+        self.assertIn(("swarm-manager", "completed", "execution", STATUS_SUCCESS), ui.updates)
+        self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_SUCCESS), ui.updates)
+        self.assertEqual(STATUS_SUCCESS, ui.aggregate_status["result"])
+
+    async def test_sync_ui_marks_aggregate_success_when_commands_succeed(self):
+        ui = RecordingUI()
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
+        ) as factory:
+            factory.return_value.get_ui.return_value = ui
+            runner_ui = SyncCommandRunnerUI(_command_list(SuccessfulRunner()))
+
+        with patch(
+            "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
+            new=AsyncMock(),
+        ):
+            await runner_ui.run()
+
+        self.assertIn(("swarm-manager", "completed", "execution", STATUS_SUCCESS), ui.updates)
+        self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_SUCCESS), ui.updates)
+        self.assertEqual(STATUS_SUCCESS, ui.aggregate_status["result"])
 
 
 def _command_list(runner: PortCommandRunner):
     return {
-        "swarm-manager": {
-            1: ExecutableCommandEntity(
-                index=1,
-                vm_instance_name="swarm-manager",
-                description="failing command",
-                command="exit 1",
-                runner=runner,
-            )
-        }
+        "swarm-manager": _commands_for("swarm-manager", runner)
+    }
+
+
+def _commands_for(vm_instance_name: str, runner: PortCommandRunner):
+    return {
+        1: ExecutableCommandEntity(
+            index=1,
+            vm_instance_name=vm_instance_name,
+            description="command",
+            command="exit 1",
+            runner=runner,
+        )
     }
 
 
@@ -72,8 +147,16 @@ class FailingRunner(PortCommandRunner):
         raise RuntimeError("boom")
 
 
-class RecordingUI:
-    def __init__(self):
+class SuccessfulRunner(PortCommandRunner):
+    async def run(self, command: str) -> str:
+        self.status["current_step"] = "Completed"
+        self.status["result"] = STATUS_SUCCESS
+        return "ok"
+
+
+class RecordingUI(PortUI):
+    def __init__(self, instances=None):
+        super().__init__(instances or ["swarm-manager"], test_mode=True)
         self.updates = []
         self.ui_thread = None
 
@@ -83,4 +166,8 @@ class RecordingUI:
         self.ui_thread.set_result(None)
 
     def update_status(self, instance, task, step, result=None):
+        super().update_status(instance, task, step, result)
         self.updates.append((instance, task, step, result))
+
+    def start(self):
+        pass

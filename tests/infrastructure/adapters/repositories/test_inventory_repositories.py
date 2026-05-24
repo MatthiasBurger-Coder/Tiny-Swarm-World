@@ -61,10 +61,41 @@ expected_artifact_registries:
 
         self.assertEqual(DesiredInventory(), inventory)
 
+    def test_loads_committed_default_desired_inventory_without_host_specific_values(self):
+        inventory = DesiredInventoryYamlRepository().load()
+
+        self.assertEqual(
+            ("swarm-manager", "swarm-worker-1", "swarm-worker-2"),
+            tuple(vm.name for vm in inventory.vms),
+        )
+        self.assertEqual(
+            ("portainer", "nexus", "rabbitmq", "sonarqube", "jenkins", "swagger"),
+            inventory.expected_stacks,
+        )
+        self.assertEqual(("nexus",), inventory.expected_artifact_registries)
+        self.assertFalse(_contains_forbidden_inventory_key(inventory.to_dict()))
+
     def test_rejects_non_mapping_yaml_root(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             inventory_file = Path(temporary_directory) / "desired_inventory.yaml"
             inventory_file.write_text("- not-a-mapping\n", encoding="utf-8")
+
+            with self.assertRaises(ValueError):
+                DesiredInventoryYamlRepository(inventory_file).load()
+
+    def test_rejects_host_specific_desired_inventory_fields(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            inventory_file = Path(temporary_directory) / "desired_inventory.yaml"
+            inventory_file.write_text(
+                """
+schema_version: "1"
+vms:
+  - name: swarm-manager
+    role: manager
+    external_ip: 10.0.0.10
+""",
+                encoding="utf-8",
+            )
 
             with self.assertRaises(ValueError):
                 DesiredInventoryYamlRepository(inventory_file).load()
@@ -164,6 +195,37 @@ class TestVerificationEvidenceLocalRepository(unittest.TestCase):
                         evidence={"summary": "docker swarm join --token hidden"},
                     )
                 )
+
+    def test_rejects_raw_message_before_persistence(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            VerificationEvidenceLocalRepository(root=Path(temporary_directory))
+
+            with self.assertRaises(ValueError):
+                VerificationResult(
+                    "command:probe",
+                    message="docker swarm join --token hidden",
+                )
+
+
+def _contains_forbidden_inventory_key(value: object) -> bool:
+    forbidden_keys = {
+        "external_ip",
+        "gateway",
+        "docker_bridge_ip",
+        "docker_overlay_ip",
+        "username",
+        "password",
+        "secret",
+        "token",
+    }
+    if isinstance(value, dict):
+        return any(
+            str(key) in forbidden_keys or _contains_forbidden_inventory_key(item)
+            for key, item in value.items()
+        )
+    if isinstance(value, list):
+        return any(_contains_forbidden_inventory_key(item) for item in value)
+    return False
 
 
 if __name__ == "__main__":

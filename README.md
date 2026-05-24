@@ -38,7 +38,7 @@ The system follows a hexagonal architecture and provides async Python automation
 ## Prerequisites
 
 - Linux host or WSL2 shell on Windows
-- Python 3.12 recommended; Python 3.10+ may work if the installed dependencies support it
+- Python 3.12
 - Git
 - Multipass with the QEMU backend
 - Docker Engine or Docker CLI access to the target Docker/Swarm environment
@@ -54,7 +54,7 @@ Optional but recommended:
 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/Tiny-Swarm-World.git
+git clone https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World.git
 cd Tiny-Swarm-World
 ```
 
@@ -109,6 +109,10 @@ require all of these controls before application services are constructed:
 - `--live`
 - `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`
 - typing `RUN TINY SWARM WORLD LIVE INSTALLATION` at the prompt
+
+At the current system-unification baseline, `platform init` and
+`platform reconcile` still return `blocked` before live steps until
+command-backed verification contracts are implemented.
 
 `platform reset` and `platform destroy` additionally require
 `RESET_TINY_SWARM_PLATFORM` or `DESTROY_TINY_SWARM_PLATFORM` through
@@ -165,6 +169,8 @@ Portainer setup is prepared from the repository root with:
 Direct scripts under `infra/prepare` and `infra/compose` bypass the
 workflow-level CLI consent guard. Treat them as live operator actions and run
 them only after reviewing the target environment and script contents.
+The canonical static classification is maintained in
+`documentation/system/live-operation-surfaces.adoc`.
 
 ```bash
 cd infra/prepare
@@ -187,15 +193,20 @@ cd infra/compose
 `upload_all_stacks.sh` talks directly to Portainer and can delete or recreate
 stacks.
 
-Legacy and transitional scripts:
+Live-operation surface summary:
 
 | Path | Status |
 | --- | --- |
+| `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts. |
+| `infra/prepare/portainer/prepare.sh` | Transitional direct Portainer preparation script; live stack/admin mutation. |
+| `infra/prepare/nexus/setup.py` | Transitional direct Nexus bootstrap; live Portainer, Docker, and Nexus mutation. |
+| `infra/prepare/nexus/*.sh` | Deprecated shell helpers with local defaults; keep static until replaced by typed ports. |
+| `infra/compose/*.sh` | Transitional or deprecated direct image/stack helpers; not part of the default quality gate. |
+| `infra/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands. |
 | `infra/swarm/**` | Legacy live-infrastructure surface; not a supported workflow entry point. |
-| `infra/prepare/portainer/portain_setup.py` | Transitional script with live Docker, Multipass, socat, and networking behavior. |
-| `infra/prepare/nexus/*.sh` | Legacy shell helpers with local defaults; prefer the Python `setup.py` path when intentionally bootstrapping Nexus. |
-| `infra/compose/create_dockerfiles.sh` | Direct build/push helper; not part of the default quality gate. |
-| `infra/compose/upload_all_stacks.sh` | Direct Portainer uploader; live stack mutation script. |
+
+See `documentation/system/live-operation-surfaces.adoc` for the full
+classification and credential/host-specific data rules.
 
 ---
 
@@ -312,7 +323,8 @@ Code style guidelines:
 
 ## License
 
-Add your license information here (e.g., Apache-2.0, MIT). If a LICENSE file exists, it takes precedence.
+No license has been declared in this repository. Do not assume reuse rights
+until a `LICENSE` file or explicit license statement is added.
 
 ---
 

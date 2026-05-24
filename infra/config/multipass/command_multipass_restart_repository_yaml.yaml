@@ -4,7 +4,7 @@ commands:
     description: Restart multipass
     intent: restart_multipass
     execution_mode: shell
-    safety_class: safe_read
+    safety_class: safe_mutation
     scope: multipass
     allowed_workflows:
       - platform:init
@@ -13,8 +13,8 @@ commands:
       - read
       - runtime_change
     verify:
-      type: none
-      description: Read-only command.
+      type: manual
+      description: "Verify after command: Restart Multipass-managed swarm VMs"
     command: "multipass list | awk '$1 ~ /^swarm-/ {{print $1}}' | xargs -r multipass\
       \ restart"
     runner: "async"

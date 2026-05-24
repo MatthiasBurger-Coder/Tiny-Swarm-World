@@ -96,7 +96,8 @@ execution steps are not wired yet; after confirmation they currently block
 until retention and teardown semantics are implemented.
 
 Artifact and deployment workflow command names are reserved by the CLI contract
-and report a blocked result until their workflow wiring lands in later slices.
+and dispatch to explicit blocked workflow contracts until live Nexus, registry,
+Portainer, and observed-state verification contracts are implemented.
 
 == Verification Scope
 
@@ -124,17 +125,23 @@ available separately and can be enabled intentionally.
 The workflow-level CLI is the supported operator entry point. Direct scripts
 under `infra/prepare`, `infra/compose`, and `infra/swarm` are live operations
 or transitional helpers and are not protected by the CLI consent gate.
+The canonical classification is maintained in
+`documentation/system/live-operation-surfaces.adoc`.
 
 [options="header"]
 |===
 | Path | Status
+| `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts.
+| `infra/prepare/portainer/prepare.sh` | Transitional direct Portainer preparation script.
+| `infra/prepare/nexus/setup.py` | Transitional direct Nexus bootstrap script.
+| `infra/prepare/portainer/portain_setup.py` | Deprecated duplicate with live Docker, Multipass, socat, and networking behavior.
+| `infra/prepare/nexus/addLocalDockerRepository.sh` | Deprecated Nexus shell helper with direct Portainer/Nexus calls.
+| `infra/prepare/nexus/addMavenMirror.sh` | Deprecated Nexus shell helper with direct Nexus calls.
+| `infra/prepare/nexus/prepare.sh` and `test.sh` | Deprecated shell paths; prefer `setup.py` for intentional Nexus bootstrap.
+| `infra/compose/create_dockerfiles.sh` | Deprecated image build/push helper outside the default quality gate.
+| `infra/compose/upload_all_stacks.sh` | Transitional Portainer uploader that can delete or recreate stacks.
+| `infra/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands.
 | `infra/swarm/**` | Legacy live-infrastructure surface; not a supported workflow entry point.
-| `infra/prepare/portainer/portain_setup.py` | Transitional script with live Docker, Multipass, socat, and networking behavior.
-| `infra/prepare/nexus/addLocalDockerRepository.sh` | Legacy Nexus shell helper with direct Portainer/Nexus calls.
-| `infra/prepare/nexus/addMavenMirror.sh` | Legacy Nexus shell helper with direct Nexus calls.
-| `infra/prepare/nexus/prepare.sh` and `test.sh` | Legacy shell paths; prefer `setup.py` for intentional Nexus bootstrap.
-| `infra/compose/create_dockerfiles.sh` | Direct image build/push helper outside the default quality gate.
-| `infra/compose/upload_all_stacks.sh` | Direct Portainer uploader that can delete or recreate stacks.
 |===
 
 Do not remove or re-enable legacy scripts without a dedicated cleanup slice,
@@ -180,6 +187,7 @@ Important variables:
 The repository still contains insecure local defaults for legacy compatibility.
 For real local work, provide explicit values through environment variables or
 flags.
+Do not copy local compatibility defaults into new configuration or logs.
 
 == Stack Uploads
 

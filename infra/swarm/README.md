@@ -21,3 +21,5 @@ Known transitional files:
 
 Do not run these scripts during normal development quality checks. They can
 change Multipass, networking, socat, iptables, or Docker state.
+The canonical classification is maintained in
+`documentation/system/live-operation-surfaces.adoc`.

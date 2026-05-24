@@ -80,6 +80,22 @@ class TestVerificationResult(unittest.TestCase):
                         evidence={"summary": raw_value},
                     )
 
+    def test_result_rejects_raw_or_sensitive_messages(self):
+        raw_messages = (
+            "stdout: raw output",
+            "docker swarm join --token hidden",
+            "PASSWORD=value",
+            "line one\nline two",
+        )
+
+        for raw_message in raw_messages:
+            with self.subTest(raw_message=raw_message):
+                with self.assertRaises(ValueError):
+                    VerificationResult(
+                        target_id="command:probe",
+                        message=raw_message,
+                    )
+
 
 class TestInventoryModels(unittest.TestCase):
     def test_desired_inventory_contains_vm_desired_state(self):
@@ -160,6 +176,31 @@ class TestInventoryModels(unittest.TestCase):
     def test_inventory_collection_fields_reject_plain_strings(self):
         with self.assertRaises(ValueError):
             VmDesiredState(name="tsw-manager-1", networks="control")
+
+    def test_desired_inventory_rejects_unknown_top_level_fields(self):
+        with self.assertRaises(ValueError):
+            DesiredInventory.from_dict(
+                {
+                    "schema_version": "1",
+                    "vms": [],
+                    "username": "operator",
+                }
+            )
+
+    def test_desired_inventory_rejects_host_specific_vm_fields(self):
+        with self.assertRaises(ValueError):
+            DesiredInventory.from_dict(
+                {
+                    "schema_version": "1",
+                    "vms": [
+                        {
+                            "name": "swarm-manager",
+                            "role": "manager",
+                            "external_ip": "10.0.0.10",
+                        }
+                    ],
+                }
+            )
 
 
 if __name__ == "__main__":

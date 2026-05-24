@@ -1,7 +1,9 @@
+import asyncio
 from dataclasses import fields
 import unittest
 from unittest.mock import patch
 
+from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.infrastructure import composition
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
@@ -62,8 +64,15 @@ class TestComposition(unittest.TestCase):
         self.assertEqual({"init", "reconcile", "reset", "destroy", "verify"}, workflow_field_names)
 
     def test_artifact_and_deployment_service_bundles_exist(self):
-        self.assertEqual([], list(fields(composition.ArtifactServices)))
-        self.assertEqual([], list(fields(composition.DeploymentServices)))
+        artifact_field_names = {field.name for field in fields(composition.ArtifactServices)}
+        artifact_workflow_names = {field.name for field in fields(composition.ArtifactWorkflows)}
+        deployment_field_names = {field.name for field in fields(composition.DeploymentServices)}
+        deployment_workflow_names = {field.name for field in fields(composition.DeploymentWorkflows)}
+
+        self.assertEqual({"workflows"}, artifact_field_names)
+        self.assertEqual({"prepare", "verify"}, artifact_workflow_names)
+        self.assertEqual({"workflows"}, deployment_field_names)
+        self.assertEqual({"apply", "verify"}, deployment_workflow_names)
 
     def test_build_platform_services_wires_preflight_adapter(self):
         with patch.object(composition, "PortVmRepositoryYaml") as vm_repository_factory:
@@ -89,6 +98,18 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
 
+    def test_build_artifact_services_wires_blocked_workflow_contracts(self):
+        services = composition.build_artifact_services()
+
+        self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
+        self.assertIsInstance(services.workflows.verify, composition.ArtifactVerifyWorkflow)
+
+    def test_build_deployment_services_wires_blocked_workflow_contracts(self):
+        services = composition.build_deployment_services()
+
+        self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
+        self.assertIsInstance(services.workflows.verify, composition.DeploymentVerifyWorkflow)
+
     def test_build_application_services_wires_preflight_through_platform_bundle(self):
         with patch.object(composition, "PortVmRepositoryYaml"):
             with patch.object(composition, "PortNetplanRepositoryYaml"):
@@ -109,3 +130,47 @@ class TestComposition(unittest.TestCase):
                     services = composition.build_application_services()
 
         self.assertIsInstance(services, composition.ApplicationServices)
+
+    def test_composed_init_workflow_blocks_before_live_step_execution(self):
+        with patch.object(composition, "PortVmRepositoryYaml"):
+            with patch.object(composition, "PortNetplanRepositoryYaml"):
+                with patch.object(
+                    composition.MultipassInitVms,
+                    "run",
+                    side_effect=AssertionError("init step must not run"),
+                ):
+                    services = composition.build_platform_services()
+                    result = asyncio.run(services.workflows.init.run())
+
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual(
+            "platform:init:multipass-vms",
+            result.verification_results[0].target_id,
+        )
+        self.assertEqual(
+            "command-backed verification is not configured",
+            result.verification_results[0].evidence["reason"],
+        )
+
+    def test_composed_reconcile_workflow_blocks_before_live_step_execution(self):
+        with patch.object(composition, "PortVmRepositoryYaml"):
+            with patch.object(composition, "PortNetplanRepositoryYaml"):
+                with patch.object(
+                    composition.VmIpList,
+                    "run",
+                    side_effect=AssertionError("reconcile step must not run"),
+                ):
+                    services = composition.build_platform_services()
+                    result = asyncio.run(services.workflows.reconcile.run())
+
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual(
+            "platform:reconcile:vm-ip-list",
+            result.verification_results[0].target_id,
+        )
+        self.assertEqual(
+            "command-backed verification is not configured",
+            result.verification_results[0].evidence["reason"],
+        )

@@ -12,12 +12,7 @@ class LinuxUI(PortUI):
         """
         Updates the status of an instance.
         """
-        with self.lock:
-            if instance in self.status:
-                self.status[instance]["current_task"] = task
-                self.status[instance]["current_step"] = step
-                if result:
-                    self.status[instance]["result"] = result
+        super().update_status(instance, task, step, result)
 
     def _draw_ui(self, stdscr):
         """
@@ -74,15 +69,16 @@ class LinuxUI(PortUI):
 
             time.sleep(0.5)
 
-            # Handle successful completion of all instances
-            if all(self.status[instance]["result"] in ["Success", "Error"] for instance in self.instances):
+            # Handle completion of all instances
+            if self.all_instances_terminal():
+                completion_summary = self.completion_summary()
                 # Ensure "All instances completed" fits within the terminal
                 if len(self.instances) + 4 < height:
-                    stdscr.addstr(len(self.instances) + 4, 0, "All instances completed".center(width)[:width],
+                    stdscr.addstr(len(self.instances) + 4, 0, completion_summary.center(width)[:width],
                                   curses.A_BOLD)
                 else:
                     # Print in the last line if there's no space
-                    stdscr.addstr(height - 1, 0, "All instances completed".center(width)[:width], curses.A_BOLD)
+                    stdscr.addstr(height - 1, 0, completion_summary.center(width)[:width], curses.A_BOLD)
 
                 stdscr.refresh()
                 if not self.test_mode:
