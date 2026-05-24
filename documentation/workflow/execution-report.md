@@ -185,5 +185,5 @@ Next command:
 workflow execute with subagents
 ```
 
-Execution continues at Slice 02 after re-verifying branch, context pack, locks,
+Execution continues at Slice 03 after re-verifying branch, context pack, locks,
 slice metadata, and quality gates before any write-capable work.

@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from tiny_swarm_world.domain.preflight.setup_manifest import (
+    SetupManifest,
+    SetupProfile,
+    default_setup_manifest,
+)
+
 
 GIB = 1024**3
 
@@ -39,6 +45,8 @@ class ResourceThresholds:
 
 @dataclass(frozen=True)
 class PreflightConfiguration:
+    setup_profile: SetupProfile
+    setup_manifest: SetupManifest
     required_dependencies: tuple[RequiredDependency, ...]
     required_ports: tuple[RequiredPort, ...]
     required_secrets: tuple[RequiredSecret, ...]
@@ -48,30 +56,25 @@ class PreflightConfiguration:
     minimum_python_version: tuple[int, int]
 
 
-def default_preflight_configuration() -> PreflightConfiguration:
+def default_preflight_configuration(
+    setup_profile: SetupProfile = SetupProfile.FULL,
+) -> PreflightConfiguration:
+    setup_manifest = default_setup_manifest(setup_profile)
     return PreflightConfiguration(
+        setup_profile=setup_profile,
+        setup_manifest=setup_manifest,
         required_dependencies=(
             RequiredDependency("python3"),
             RequiredDependency("multipass"),
             RequiredDependency("docker"),
         ),
-        required_ports=(
-            RequiredPort(9000, "Portainer"),
-            RequiredPort(8081, "Nexus"),
-            RequiredPort(8080, "Jenkins"),
-            RequiredPort(5000, "Nexus Docker registry"),
-            RequiredPort(5672, "RabbitMQ AMQP"),
-            RequiredPort(15672, "RabbitMQ management"),
-            RequiredPort(9001, "SonarQube"),
-            RequiredPort(80, "Swagger/NGINX"),
+        required_ports=tuple(
+            RequiredPort(port.port, port.service)
+            for port in setup_manifest.required_ports
         ),
-        required_secrets=(
-            RequiredSecret("TSW_PORTAINER_PASSWORD", "Portainer"),
-            RequiredSecret("TSW_NEXUS_ADMIN_PASSWORD", "Nexus"),
-            RequiredSecret("TSW_JENKINS_ADMIN_PASSWORD", "Jenkins"),
-            RequiredSecret("TSW_RABBITMQ_PASSWORD", "RabbitMQ"),
-            RequiredSecret("TSW_SONARQUBE_ADMIN_PASSWORD", "SonarQube"),
-            RequiredSecret("TSW_POSTGRES_PASSWORD", "SonarQube PostgreSQL"),
+        required_secrets=tuple(
+            RequiredSecret(secret.name, secret.service)
+            for secret in setup_manifest.required_secrets
         ),
         forbidden_secret_fingerprints=(
             ForbiddenSecretFingerprint(

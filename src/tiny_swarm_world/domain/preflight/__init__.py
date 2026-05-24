@@ -20,6 +20,14 @@ from tiny_swarm_world.domain.preflight.preflight_configuration import (
     default_preflight_configuration,
 )
 from tiny_swarm_world.domain.preflight.preflight_result import PreflightResult
+from tiny_swarm_world.domain.preflight.setup_manifest import (
+    SetupManifest,
+    SetupPortRequirement,
+    SetupProfile,
+    SetupSecretRequirement,
+    SetupServiceRequirement,
+    default_setup_manifest,
+)
 
 __all__ = [
     "LIVE_CONSENT_ENVIRONMENT_VARIABLE",
@@ -37,5 +45,11 @@ __all__ = [
     "RequiredPort",
     "RequiredSecret",
     "ResourceThresholds",
+    "SetupManifest",
+    "SetupPortRequirement",
+    "SetupProfile",
+    "SetupSecretRequirement",
+    "SetupServiceRequirement",
     "default_preflight_configuration",
+    "default_setup_manifest",
 ]
