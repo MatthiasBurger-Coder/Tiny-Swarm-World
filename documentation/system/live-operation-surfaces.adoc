@@ -1,0 +1,93 @@
+= Live Operation Surfaces
+
+Tiny Swarm World contains guarded Python workflows, transitional direct
+operator scripts, deprecated helpers, and legacy compatibility material. This
+catalog is static repository documentation. It must be maintained without
+executing live infrastructure commands.
+
+== Classification Meanings
+
+[options="header"]
+|===
+| Status | Meaning | Default quality-gate handling
+| Supported | Current documented path for intentional operator use. Mutating paths still require the documented live-consent or operator review controls. | May be tested only with mocked or static checks unless the user explicitly requests live infrastructure execution.
+| Transitional | Kept for compatibility while behavior moves behind workflow-level contracts. | Static review only by default; do not run during normal development.
+| Deprecated | Retained to avoid breaking old notes or local experiments, but not recommended for new operation. | Static review only; replacement should be planned before use.
+| Legacy | Pre-boundary material that is not a supported entry point. | Static review only; do not treat as product workflow behavior.
+| Supported Asset | Configuration or image material consumed by supported or transitional workflows, not a standalone operator entry point. | Static validation only unless an explicit live deployment is requested.
+|===
+
+== Guarded Python Entrypoint
+
+[options="header"]
+|===
+| Surface | Status | Notes
+| `PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows` | Supported | Lists workflow contracts without building application services.
+| `PYTHONPATH=src python3 -m tiny_swarm_world --preflight` | Supported | Runs static preflight checks without live infrastructure execution.
+| `PYTHONPATH=src python3 -m tiny_swarm_world platform verify` | Supported | Non-mutating workflow-level verification path.
+| `platform init` and `platform reconcile` | Supported | Mutating workflow names are supported, live-consent gated, and currently block before apply until command-backed verification is wired.
+| `platform reset` and `platform destroy` | Supported | Confirmation contracts are supported, but destructive execution remains blocked until retention and teardown semantics are implemented.
+| `artifacts prepare`, `artifacts verify`, `deployment apply`, `deployment verify` | Supported | Workflow names are supported and return explicit blocked contract results until their live contracts are implemented.
+|===
+
+== Direct Live Scripts And Assets
+
+[options="header"]
+|===
+| Path | Status | Live-operation risk | Operator guidance
+| `infra/prepare/prepare.sh` | Transitional | Delegates to service preparation scripts that can deploy or initialize services. | Review the delegated script and target environment before use.
+| `infra/prepare/portainer/prepare.sh` | Transitional | Runs Docker stack operations and Portainer administrator initialization. | Use only for intentional Portainer bootstrap in a disposable local Swarm.
+| `infra/prepare/portainer/portain_setup.py` | Deprecated | Runs Multipass, Docker cleanup, stack deploy, socat, iptables, and Portainer admin initialization paths. | Prefer documented workflow-level platform commands plus reviewed Portainer preparation.
+| `infra/prepare/nexus/setup.py` | Transitional | Talks to Portainer, Docker, and Nexus clients; changes stack and Nexus administrator state. | Provide explicit environment values or CLI flags; do not rely on local compatibility defaults.
+| `infra/prepare/nexus/prepare.sh` | Deprecated | Chains Nexus setup with legacy shell helpers. | Prefer `infra/prepare/nexus/setup.py` for intentional Nexus bootstrap.
+| `infra/prepare/nexus/addMavenMirror.sh` | Deprecated | Sends authenticated Nexus repository create/delete calls and can print sensitive values. | Do not use for new workflows; move behavior behind typed ports before re-enabling.
+| `infra/prepare/nexus/addLocalDockerRepository.sh` | Deprecated | Sends authenticated Nexus and Portainer registry calls and can print tokens. | Do not use for new workflows; move behavior behind typed ports before re-enabling.
+| `infra/prepare/nexus/test.sh` | Deprecated | Reads Nexus container administrator password material. | Do not run during development gates.
+| `infra/compose/create_dockerfiles.sh` | Deprecated | Builds images, logs in to a registry, pushes images, and logs out. | Replace with explicit image-build/publish workflow before using.
+| `infra/compose/upload_all_stacks.sh` | Transitional | Authenticates to Portainer and can delete, recreate, or upload stacks. | Review target Portainer endpoint and credentials before intentional use.
+| `infra/compose/jenkins/docker-compose.yml` | Supported Asset | Defines Jenkins stack runtime state. | Deploy only through reviewed Portainer or future deployment workflow contracts.
+| `infra/compose/jenkins/Dockerfile` and `infra/compose/jenkins/Dockerfile.template` | Supported Asset | Build Jenkins images and install packages when used by a build script. | Static review by default; do not build during quality gates.
+| `infra/compose/jenkins/casc.yaml` and `infra/compose/jenkins/setup.groovy` | Supported Asset | Configure Jenkins administrator state for local service bootstrapping. | Treat included credentials as local compatibility defaults and override before real use.
+| `infra/compose/jenkins/setup.sh` | Deprecated | Waits for Jenkins and invokes Jenkins CLI setup. | Keep static until Jenkins bootstrap is moved behind a workflow contract.
+| `infra/compose/swagger/docker-compose.yml` | Supported Asset | Defines Swagger/API documentation stack runtime state. | Deploy only through reviewed stack deployment paths.
+| `infra/compose/swagger/nginx/**` | Supported Asset | Builds and configures the Swagger NGINX image. | Static review by default; do not build during quality gates.
+| `infra/swarm/**` | Legacy | Pre-boundary scripts can change Multipass, networking, socat, iptables, Docker, or copied file state. | Not a supported workflow entry point.
+| `infra/swarm/prepere.py` | Legacy | Imports missing or transitional helper modules and can escalate through sudo. | Do not run; keep only as legacy evidence until cleanup.
+| `infra/swarm/multipass/multipass_setup.py` | Legacy | Installs Multipass, changes groups, socket permissions, and local passphrase settings. | Use documented host-preparation guidance instead.
+| `infra/swarm/multipass/multipass_socat_setup.py` | Legacy | Installs and restarts socat forwarding processes. | Use reviewed network workflow contracts before re-enabling.
+| `infra/swarm/multipass/socat_config.yaml` | Legacy | Contains host-specific forwarding values. | Do not reuse values as product defaults.
+| `infra/swarm/network/network_manager.py` | Legacy | Mixes WSL, Windows port forwarding, Multipass discovery, and iptables mutation. | Do not use in the Linux/WSL-only automation path.
+| `infra/swarm/file_copy.py` | Legacy | Copies files and changes ownership/permissions under a user directory. | Do not run during quality gates.
+|===
+
+== Credential And Host-Specific Data Rules
+
+Some legacy and transitional files retain local compatibility defaults for
+administrator users, passwords, registry URLs, and host addresses. They are not
+production secrets and must not be copied into new product configuration.
+
+Rules for future slices:
+
+* prefer environment variables, CLI flags, or typed configuration ports for
+  operator-supplied values;
+* do not print tokens, passwords, or raw API credentials in scripts or logs;
+* do not commit host-specific IP addresses, gateways, usernames, tokens, or
+  passwords to new configuration;
+* keep live Portainer, Nexus, Docker, Multipass, netplan, socat, and stack
+  deployment checks out of the default quality gate.
+
+== Verification Policy
+
+Normal development verification for these surfaces is static:
+
+[source,bash]
+----
+git diff --check
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+----
+
+Do not run `multipass`, Docker Swarm, compose deployments, netplan, socat,
+Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX bootstrap, image
+build, image push, or stack upload commands unless the user explicitly requests
+live infrastructure execution.

@@ -17,7 +17,7 @@
     "05": "COMPLETED_PUSHED",
         "06": "COMPLETED_PUSHED",
         "07": "COMPLETED_PUSHED",
-    "08": "PENDING",
+    "08": "COMPLETED",
     "09": "PENDING"
   },
   "governing_files": [
@@ -31,7 +31,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "31C6AA7F2907D2C773C4ADD14F31235AB620F3A11B3D9DB913004A69D8650A24"
+      "sha256": "3957103C2D7C0E7C101A8BA61BFE9B3F1836968D7F036A1086C2891274F84B0C"
     },
     {
       "path": ".importlinter",

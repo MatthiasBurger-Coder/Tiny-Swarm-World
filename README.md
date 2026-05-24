@@ -165,6 +165,8 @@ Portainer setup is prepared from the repository root with:
 Direct scripts under `infra/prepare` and `infra/compose` bypass the
 workflow-level CLI consent guard. Treat them as live operator actions and run
 them only after reviewing the target environment and script contents.
+The canonical static classification is maintained in
+`documentation/system/live-operation-surfaces.adoc`.
 
 ```bash
 cd infra/prepare
@@ -187,15 +189,20 @@ cd infra/compose
 `upload_all_stacks.sh` talks directly to Portainer and can delete or recreate
 stacks.
 
-Legacy and transitional scripts:
+Live-operation surface summary:
 
 | Path | Status |
 | --- | --- |
+| `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts. |
+| `infra/prepare/portainer/prepare.sh` | Transitional direct Portainer preparation script; live stack/admin mutation. |
+| `infra/prepare/nexus/setup.py` | Transitional direct Nexus bootstrap; live Portainer, Docker, and Nexus mutation. |
+| `infra/prepare/nexus/*.sh` | Deprecated shell helpers with local defaults; keep static until replaced by typed ports. |
+| `infra/compose/*.sh` | Transitional or deprecated direct image/stack helpers; not part of the default quality gate. |
+| `infra/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands. |
 | `infra/swarm/**` | Legacy live-infrastructure surface; not a supported workflow entry point. |
-| `infra/prepare/portainer/portain_setup.py` | Transitional script with live Docker, Multipass, socat, and networking behavior. |
-| `infra/prepare/nexus/*.sh` | Legacy shell helpers with local defaults; prefer the Python `setup.py` path when intentionally bootstrapping Nexus. |
-| `infra/compose/create_dockerfiles.sh` | Direct build/push helper; not part of the default quality gate. |
-| `infra/compose/upload_all_stacks.sh` | Direct Portainer uploader; live stack mutation script. |
+
+See `documentation/system/live-operation-surfaces.adoc` for the full
+classification and credential/host-specific data rules.
 
 ---
 
