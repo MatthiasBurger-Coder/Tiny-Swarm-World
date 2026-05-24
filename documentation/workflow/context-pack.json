@@ -6,7 +6,7 @@
     "createdDate": "2026-05-24",
     "processStrand": "autonomous-runnable-setup",
     "executionProfile": "FULL_PATH",
-    "releaseStatus": "WORKFLOW_CREATED"
+    "releaseStatus": "SLICE_01_COMPLETED"
   },
   "contextValidity": {
     "staleWhen": [
@@ -38,7 +38,11 @@
     },
     {
       "path": "documentation/epics/system-unification.md",
-      "sha256": "1246FE571B31CF57425BD60A722239F292B7C77E43C0CF70562ADC83984A21EF"
+      "sha256": "7F8B87A904676CC107FEF217987E6A3C419CD64EA533A29FD1D444BEEBD9721D"
+    },
+    {
+      "path": "documentation/epics/autonomous-runnable-setup.md",
+      "sha256": "6B464ADF0672012D5AD14CC5C27FC654E32D50DC5CB12D1C2756381B2E0E9FEB"
     },
     {
       "path": "documentation/arc42/05_building_blocks.adoc",
@@ -143,12 +147,14 @@
   "slices": [
     {
       "sliceId": "01",
+      "status": "COMPLETED",
       "owner": "senior_requirement_engineer",
       "purpose": "Installer requirement baseline",
       "dependencies": []
     },
     {
       "sliceId": "02",
+      "status": "PLANNED",
       "owner": "senior_system_architect",
       "purpose": "Setup safety ADR and arc42 alignment",
       "dependencies": [
@@ -157,6 +163,7 @@
     },
     {
       "sliceId": "03",
+      "status": "PLANNED",
       "owner": "senior_python_automation_developer",
       "purpose": "Setup preflight and manifest contract",
       "dependencies": [
@@ -165,6 +172,7 @@
     },
     {
       "sliceId": "04",
+      "status": "PLANNED",
       "owner": "senior_python_automation_developer",
       "purpose": "Inventory and evidence foundation",
       "dependencies": [
@@ -173,6 +181,7 @@
     },
     {
       "sliceId": "05",
+      "status": "PLANNED",
       "owner": "senior_python_automation_developer",
       "purpose": "Command-backed platform verification",
       "dependencies": [
@@ -181,6 +190,7 @@
     },
     {
       "sliceId": "06",
+      "status": "PLANNED",
       "owner": "senior_devops",
       "purpose": "Portainer deployment contract",
       "dependencies": [
@@ -189,6 +199,7 @@
     },
     {
       "sliceId": "07",
+      "status": "PLANNED",
       "owner": "senior_python_automation_developer",
       "purpose": "Nexus and artifact registry contract",
       "dependencies": [
@@ -197,6 +208,7 @@
     },
     {
       "sliceId": "08",
+      "status": "PLANNED",
       "owner": "senior_python_automation_developer",
       "purpose": "Service stack deployment and verification",
       "dependencies": [
@@ -206,6 +218,7 @@
     },
     {
       "sliceId": "09",
+      "status": "PLANNED",
       "owner": "senior_workflow_architect",
       "purpose": "Autonomous setup orchestrator and CLI contract",
       "dependencies": [
@@ -214,6 +227,7 @@
     },
     {
       "sliceId": "10",
+      "status": "PLANNED",
       "owner": "senior_python_automation_developer",
       "purpose": "Console status and recovery UX",
       "dependencies": [
@@ -222,6 +236,7 @@
     },
     {
       "sliceId": "11",
+      "status": "PLANNED",
       "owner": "senior_documentation_engineer",
       "purpose": "Documentation sync, quality gate, and optional live smoke handoff",
       "dependencies": [
