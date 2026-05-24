@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_06_COMPLETED
+SLICE_07_COMPLETED
 ```
 
 ## Branch
@@ -21,7 +21,8 @@ Slice 03 has been completed as the setup preflight and manifest contract
 slice. Slice 04 has been completed as the inventory and evidence foundation
 slice. Slice 05 has been completed as the command-backed platform verification
 contract slice. Slice 06 has been completed as the Portainer deployment
-contract slice. Slice 07 is the next planned implementation slice.
+contract slice. Slice 07 has been completed as the Nexus and artifact registry
+contract slice. Slice 08 is the next planned implementation slice.
 
 ## Subagent Review
 
@@ -446,6 +447,85 @@ Requirement-engineering decision:
 - the repair does not change product behavior and restores workflow
   traceability for Slice 07.
 
+### Slice 07: Nexus And Artifact Registry Contract
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+0edc32b
+```
+
+Changed files:
+
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/deployment/system.adoc`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/workflow/reports/07-nexus-artifact-contract.md`
+- `infra/config/compose/nexus/docker-compose.yml`
+- `src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
+- `src/tiny_swarm_world/application/services/artifacts/__init__.py`
+- `src/tiny_swarm_world/application/services/artifacts/workflows.py`
+- `src/tiny_swarm_world/application/services/nexus/__init__.py`
+- `src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py`
+- `src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py`
+- `src/tiny_swarm_world/application/services/nexus/nexus_bootstrap_configuration.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/docker_cli_runtime.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
+- `tests/application/services/artifacts/test_artifact_service_exports.py`
+- `tests/application/services/artifacts/test_artifact_workflows.py`
+- `tests/application/services/nexus/test_bootstrap_nexus.py`
+- `tests/application/services/nexus/test_nexus_repository_contracts.py`
+- `tests/architecture/test_hexagonal_imports.py`
+- `tests/architecture/test_legacy_surface_documentation.py`
+- `tests/infrastructure/adapters/clients/test_docker_cli_runtime.py`
+- `tests/infrastructure/adapters/clients/test_nexus_http_client.py`
+- `tests/infrastructure/test_composition.py`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.application.services.artifacts
+PYTHONPATH=src python3 -m unittest tests.application.services.nexus
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_nexus_http_client tests.infrastructure.adapters.clients.test_docker_cli_runtime tests.infrastructure.test_composition tests.architecture.test_legacy_surface_documentation
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The final full quality gate ran `316` tests with `1` skipped.
+
+### Governance Repair Before Slice 08
+
+Reason:
+
+```text
+Slice 07 added Nexus repository and artifact workflow contracts, hardened
+Nexus/Docker adapters, corrected the Nexus compose volume, and updated arc42
+governing files, so the workflow context pack needed to mark Slice 07 complete
+before service-stack deployment work can start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- artifact workflows now have tested Nexus repository contracts, but default
+  CLI composition remains fail-closed until live artifact steps and observed
+  registry checks are wired;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 08.
+
 ## Live Infrastructure
 
 No live infrastructure commands were run. Workflow creation did not execute
@@ -461,5 +541,5 @@ Next command:
 workflow execute with subagents
 ```
 
-Execution continues at Slice 07 after re-verifying branch, context pack, locks,
+Execution continues at Slice 08 after re-verifying branch, context pack, locks,
 slice metadata, and quality gates before any write-capable work.
