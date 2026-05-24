@@ -53,6 +53,12 @@ class EnsureNexusDockerHostedRepository:
 
     async def run(self) -> None:
         if self._repository_exists():
+            self.nexus_client.update_docker_hosted_repository(
+                self.configuration.admin_username,
+                self.configuration.admin_password,
+                self.configuration.repository_name,
+                self.configuration.http_port,
+            )
             return
         self.nexus_client.create_docker_hosted_repository(
             self.configuration.admin_username,

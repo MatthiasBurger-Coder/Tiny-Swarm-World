@@ -43,6 +43,16 @@ class PortNexusClient(ABC):
         pass
 
     @abstractmethod
+    def update_docker_hosted_repository(
+        self,
+        username: str,
+        password: str,
+        repository_name: str,
+        http_port: int,
+    ) -> None:
+        pass
+
+    @abstractmethod
     def create_maven_proxy_repository(
         self,
         username: str,

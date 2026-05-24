@@ -92,23 +92,25 @@ class NexusHttpClient(PortNexusClient):
         response = self.session.post(
             f"{self.base_url}/service/rest/v1/repositories/docker/hosted",
             auth=(username, password),
-            json={
-                "name": repository_name,
-                "online": True,
-                "storage": {
-                    "blobStoreName": "default",
-                    "strictContentTypeValidation": True,
-                    "writePolicy": "ALLOW_ONCE",
-                },
-                "docker": {
-                    "v1Enabled": False,
-                    "forceBasicAuth": True,
-                    "httpPort": http_port,
-                },
-            },
+            json=_docker_hosted_repository_payload(repository_name, http_port),
             timeout=30,
         )
         self._ensure_success(response, f"create Nexus Docker hosted repository '{repository_name}'")
+
+    def update_docker_hosted_repository(
+        self,
+        username: str,
+        password: str,
+        repository_name: str,
+        http_port: int,
+    ) -> None:
+        response = self.session.put(
+            f"{self.base_url}/service/rest/v1/repositories/docker/hosted/{repository_name}",
+            auth=(username, password),
+            json=_docker_hosted_repository_payload(repository_name, http_port),
+            timeout=30,
+        )
+        self._ensure_success(response, f"update Nexus Docker hosted repository '{repository_name}'")
 
     def create_maven_proxy_repository(
         self,
@@ -153,3 +155,20 @@ class NexusHttpClient(PortNexusClient):
     def _ensure_success(response: requests.Response, action: str) -> None:
         if response.status_code >= 400:
             raise RuntimeError(f"Failed to {action}. HTTP {response.status_code}.")
+
+
+def _docker_hosted_repository_payload(repository_name: str, http_port: int) -> dict[str, object]:
+    return {
+        "name": repository_name,
+        "online": True,
+        "storage": {
+            "blobStoreName": "default",
+            "strictContentTypeValidation": True,
+            "writePolicy": "ALLOW",
+        },
+        "docker": {
+            "v1Enabled": False,
+            "forceBasicAuth": True,
+            "httpPort": http_port,
+        },
+    }

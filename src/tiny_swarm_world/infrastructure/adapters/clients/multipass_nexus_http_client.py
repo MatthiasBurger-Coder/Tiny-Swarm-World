@@ -52,6 +52,15 @@ class MultipassNexusHttpClient(PortNexusClient):
     ) -> None:
         self._client().create_docker_hosted_repository(username, password, repository_name, http_port)
 
+    def update_docker_hosted_repository(
+        self,
+        username: str,
+        password: str,
+        repository_name: str,
+        http_port: int,
+    ) -> None:
+        self._client().update_docker_hosted_repository(username, password, repository_name, http_port)
+
     def create_maven_proxy_repository(
         self,
         username: str,

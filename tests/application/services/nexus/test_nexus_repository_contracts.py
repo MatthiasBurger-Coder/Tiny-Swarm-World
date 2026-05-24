@@ -31,7 +31,7 @@ class TestEnsureNexusDockerHostedRepository(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("docker-hosted", verification.evidence["repository_name"])
         self.assertNotIn("operator-supplied", str(verification.to_dict()))
 
-    async def test_skips_create_when_docker_hosted_repository_exists(self):
+    async def test_updates_existing_docker_hosted_repository(self):
         nexus_client = _FakeNexusClient(repository_exists_results=[True])
         configuration = NexusDockerHostedRepositoryConfiguration(
             repository_name="docker-hosted",
@@ -44,6 +44,10 @@ class TestEnsureNexusDockerHostedRepository(unittest.IsolatedAsyncioTestCase):
         await service.run()
 
         self.assertEqual([], nexus_client.created_docker_repositories)
+        self.assertEqual(
+            [("admin", "operator-supplied", "docker-hosted", 5000)],
+            nexus_client.updated_docker_repositories,
+        )
 
     async def test_verification_failure_is_sanitized(self):
         nexus_client = _FakeNexusClient(repository_exists_exception=RuntimeError("secret=leaked"))
@@ -110,6 +114,7 @@ class _FakeNexusClient:
         self.repository_exists_results = list(repository_exists_results or [])
         self.repository_exists_exception = repository_exists_exception
         self.created_docker_repositories: list[tuple[str, str, str, int]] = []
+        self.updated_docker_repositories: list[tuple[str, str, str, int]] = []
         self.created_maven_repositories: list[tuple[str, str, str, str]] = []
 
     def repository_exists(self, username: str, password: str, repository_name: str) -> bool:
@@ -127,6 +132,15 @@ class _FakeNexusClient:
         http_port: int,
     ) -> None:
         self.created_docker_repositories.append((username, password, repository_name, http_port))
+
+    def update_docker_hosted_repository(
+        self,
+        username: str,
+        password: str,
+        repository_name: str,
+        http_port: int,
+    ) -> None:
+        self.updated_docker_repositories.append((username, password, repository_name, http_port))
 
     def create_maven_proxy_repository(
         self,
