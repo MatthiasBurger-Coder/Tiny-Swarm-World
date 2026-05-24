@@ -16,11 +16,21 @@ from tiny_swarm_world.infrastructure.project_paths import repository_root
 
 
 SECRET_TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_-]{2,}")
+COMMON_LINUX_EXECUTABLE_DIRECTORIES = (Path("/snap/bin"),)
 
 
 class HostPreflightProbe(PortHostPreflightProbe):
-    def __init__(self, root: Path | None = None):
+    def __init__(
+        self,
+        root: Path | None = None,
+        executable_fallback_directories: Sequence[Path] | None = None,
+    ):
         self.root = root or repository_root()
+        self.executable_fallback_directories = tuple(
+            COMMON_LINUX_EXECUTABLE_DIRECTORIES
+            if executable_fallback_directories is None
+            else executable_fallback_directories
+        )
 
     def is_linux_or_wsl(self) -> bool:
         return platform.system().lower() == "linux"
@@ -29,7 +39,10 @@ class HostPreflightProbe(PortHostPreflightProbe):
         return ".".join(str(part) for part in sys.version_info[:3])
 
     def executable_available(self, name: str) -> bool:
-        return shutil.which(name) is not None
+        return shutil.which(
+            name,
+            path=_executable_search_path(self.executable_fallback_directories),
+        ) is not None
 
     def cpu_count(self) -> int:
         return os.cpu_count() or 0
@@ -137,3 +150,31 @@ def _token_fingerprints(text: str) -> tuple[str, ...]:
         hashlib.sha256(match.group(0).encode("utf-8")).hexdigest()
         for match in SECRET_TOKEN_PATTERN.finditer(text)
     )
+
+
+def ensure_common_executable_paths(
+    fallback_directories: Sequence[Path] = COMMON_LINUX_EXECUTABLE_DIRECTORIES,
+) -> None:
+    entries = _path_entries()
+    present = set(entries)
+    for directory in fallback_directories:
+        directory_text = str(directory)
+        if directory.is_dir() and directory_text not in present:
+            entries.append(directory_text)
+            present.add(directory_text)
+    os.environ["PATH"] = os.pathsep.join(entries)
+
+
+def _executable_search_path(fallback_directories: Sequence[Path]) -> str:
+    entries = _path_entries()
+    present = set(entries)
+    for directory in fallback_directories:
+        directory_text = str(directory)
+        if directory.is_dir() and directory_text not in present:
+            entries.append(directory_text)
+            present.add(directory_text)
+    return os.pathsep.join(entries)
+
+
+def _path_entries() -> list[str]:
+    return [entry for entry in os.environ.get("PATH", "").split(os.pathsep) if entry]

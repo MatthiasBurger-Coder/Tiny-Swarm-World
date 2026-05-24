@@ -32,6 +32,7 @@ from tiny_swarm_world.infrastructure.composition import (
     build_preflight_service,
     build_setup_services,
 )
+from tiny_swarm_world.infrastructure.adapters.preflight import ensure_common_executable_paths
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 WorkflowResult = (
@@ -128,6 +129,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
 
 
 async def main(argv: Sequence[str] | None = None) -> None:
+    ensure_common_executable_paths()
     args = parse_args(argv)
 
     logger = LoggerFactory.get_logger("application")

@@ -47,6 +47,15 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("No workflow selected", output.getvalue())
         self.assertIn("--list-workflows", output.getvalue())
 
+    async def test_entrypoint_normalizes_common_linux_executable_paths(self):
+        output = io.StringIO()
+
+        with patch.object(entrypoint, "ensure_common_executable_paths") as normalize_paths:
+            with redirect_stdout(output):
+                await entrypoint.main(["--list-workflows"])
+
+        normalize_paths.assert_called_once_with()
+
     async def test_list_workflows_does_not_build_or_run_services(self):
         output = io.StringIO()
 

@@ -7,10 +7,64 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
+from tiny_swarm_world.infrastructure.adapters.preflight import (
+    HostPreflightProbe,
+    ensure_common_executable_paths,
+)
 
 
 class TestHostPreflightProbe(unittest.TestCase):
+    def test_executable_available_uses_existing_path_entries(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            executable = Path(temporary_directory) / "tool"
+            executable.write_text("#!/usr/bin/env sh\n", encoding="utf-8")
+            executable.chmod(0o755)
+            probe = HostPreflightProbe(
+                Path.cwd(),
+                executable_fallback_directories=(),
+            )
+
+            with patch.dict(os.environ, {"PATH": temporary_directory}):
+                self.assertTrue(probe.executable_available("tool"))
+
+    def test_executable_available_uses_wsl_snap_fallback_directory(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            fallback_directory = Path(temporary_directory) / "snap" / "bin"
+            fallback_directory.mkdir(parents=True)
+            executable = fallback_directory / "multipass"
+            executable.write_text("#!/usr/bin/env sh\n", encoding="utf-8")
+            executable.chmod(0o755)
+            probe = HostPreflightProbe(
+                Path.cwd(),
+                executable_fallback_directories=(fallback_directory,),
+            )
+
+            with patch.dict(os.environ, {"PATH": ""}):
+                self.assertTrue(probe.executable_available("multipass"))
+
+    def test_ensure_common_executable_paths_adds_existing_fallback_directory(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            fallback_directory = Path(temporary_directory) / "snap" / "bin"
+            fallback_directory.mkdir(parents=True)
+
+            with patch.dict(os.environ, {"PATH": "/usr/bin"}):
+                ensure_common_executable_paths((fallback_directory,))
+
+                self.assertEqual(
+                    os.pathsep.join(("/usr/bin", str(fallback_directory))),
+                    os.environ["PATH"],
+                )
+
+    def test_ensure_common_executable_paths_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            fallback_directory = Path(temporary_directory) / "snap" / "bin"
+            fallback_directory.mkdir(parents=True)
+
+            with patch.dict(os.environ, {"PATH": str(fallback_directory)}):
+                ensure_common_executable_paths((fallback_directory,))
+
+                self.assertEqual(str(fallback_directory), os.environ["PATH"])
+
     def test_secret_available_uses_environment_without_reading_values(self):
         probe = HostPreflightProbe(Path.cwd())
 
