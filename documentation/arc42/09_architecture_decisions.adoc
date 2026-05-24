@@ -48,9 +48,8 @@ Consequences:
 
 * autonomous setup is a consent-gated orchestration over existing in-process
   Platform, Artifacts, Deployment, Shared, and Console/status UI boundaries;
-* mutating setup must preserve `--live`, the explicit live-consent environment
-  value, and the typed confirmation phrase until a later ADR changes that
-  contract;
+* mutating setup must preserve `--live` and the short interactive
+  live-infrastructure confirmation until a later ADR changes that contract;
 * `setup run` passes accepted live consent into setup preflight, sequences only
   non-destructive phases, and stops later phases after refused, blocked,
   resource-gated, failed-to-apply, or failed-to-verify outcomes;

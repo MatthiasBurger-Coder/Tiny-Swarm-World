@@ -57,9 +57,8 @@ COMPLETED
 - Updated README, installation, usage, troubleshooting, deployment, and
   live-operation documentation to show `setup run` as the canonical setup
   command.
-- Documented the exact live-consent contract: `--live`,
-  `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`,
-  and the typed phrase `RUN TINY SWARM WORLD LIVE INSTALLATION`.
+- Documented the simplified live-consent contract: `--live` plus answering
+  `y` at the short live-infrastructure confirmation prompt.
 - Clarified that `setup run` is implemented as a mutating, non-destructive,
   fail-closed orchestrator, while full live runnable setup remains unverified.
 - Demoted direct `infra/prepare`, `infra/compose`, and `infra/swarm` commands
@@ -128,13 +127,12 @@ given for this slice.
 The documented operator handoff is:
 
 ```bash
-export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ```
 
-The operator must then type `RUN TINY SWARM WORLD LIVE INSTALLATION` only when
-local Multipass, Docker Swarm, networking, Portainer, Nexus, Jenkins,
-RabbitMQ, SonarQube, Swagger/NGINX, image, and stack changes are intentional.
+The operator must then answer `y` only when local Multipass, Docker Swarm,
+networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX,
+image, and stack changes are intentional.
 
 ## Live Infrastructure
 

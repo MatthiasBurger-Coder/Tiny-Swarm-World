@@ -47,11 +47,10 @@ contract over the existing in-process responsibility boundaries.
 
 The canonical setup path must preserve these rules:
 
-* Mutating setup execution requires all current live-consent signals until a
+* Mutating setup execution requires the current live-consent signals until a
   later ADR changes that contract:
 ** `--live`
-** `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`
-** interactive phrase `RUN TINY SWARM WORLD LIVE INSTALLATION`
+** `y` at the short interactive live-infrastructure confirmation prompt
 * Missing live consent must be refused before Multipass, Docker Swarm,
   netplan, socat, compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
   Swagger/NGINX, image build, image push, stack upload, or service bootstrap

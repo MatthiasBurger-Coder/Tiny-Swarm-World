@@ -2,6 +2,8 @@ from tiny_swarm_world.domain.preflight.live_consent import (
     LIVE_CONSENT_ENVIRONMENT_VARIABLE,
     LIVE_CONSENT_ENVIRONMENT_VALUE,
     LIVE_CONSENT_PHRASE,
+    LIVE_CONSENT_PROMPT,
+    LIVE_CONSENT_YES_VALUES,
     LiveConsent,
 )
 from tiny_swarm_world.domain.preflight.preflight_check import (
@@ -33,6 +35,8 @@ __all__ = [
     "LIVE_CONSENT_ENVIRONMENT_VARIABLE",
     "LIVE_CONSENT_ENVIRONMENT_VALUE",
     "LIVE_CONSENT_PHRASE",
+    "LIVE_CONSENT_PROMPT",
+    "LIVE_CONSENT_YES_VALUES",
     "ForbiddenSecretFingerprint",
     "LiveConsent",
     "PreflightCategory",

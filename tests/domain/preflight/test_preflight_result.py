@@ -20,7 +20,13 @@ from tiny_swarm_world.domain.preflight import (
 
 
 class TestLiveConsent(unittest.TestCase):
-    def test_accepts_exact_live_consent_contract(self):
+    def test_accepts_short_live_confirmation(self):
+        consent = LiveConsent(live_flag=True, confirmed=True)
+
+        self.assertTrue(consent.accepted)
+        self.assertEqual((), consent.missing_reasons)
+
+    def test_accepts_legacy_exact_live_consent_contract(self):
         consent = LiveConsent(
             live_flag=True,
             environment_value=LIVE_CONSENT_ENVIRONMENT_VALUE,
@@ -31,16 +37,16 @@ class TestLiveConsent(unittest.TestCase):
         self.assertEqual((), consent.missing_reasons)
 
     def test_reports_missing_live_consent_controls_without_values(self):
-        consent = LiveConsent(
-            live_flag=False,
-            environment_value=None,
-            typed_phrase=None,
-        )
+        consent = LiveConsent(live_flag=False)
 
         self.assertFalse(consent.accepted)
-        self.assertIn("missing --live", consent.missing_reasons)
-        self.assertIn("missing TSW_LIVE_INFRASTRUCTURE_CONSENT", consent.missing_reasons)
-        self.assertIn("missing typed live confirmation phrase", consent.missing_reasons)
+        self.assertEqual(("missing --live",), consent.missing_reasons)
+
+    def test_reports_missing_short_confirmation(self):
+        consent = LiveConsent(live_flag=True, confirmed=False)
+
+        self.assertFalse(consent.accepted)
+        self.assertEqual(("missing live confirmation",), consent.missing_reasons)
 
 
 class TestPreflightResult(unittest.TestCase):

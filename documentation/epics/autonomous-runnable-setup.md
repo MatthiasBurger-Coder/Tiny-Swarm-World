@@ -131,8 +131,7 @@ preserve the current live-consent contract until a later ADR explicitly
 changes it:
 
 - `--live`;
-- `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`;
-- interactive phrase `RUN TINY SWARM WORLD LIVE INSTALLATION`.
+- answer `y` at the short live-infrastructure confirmation prompt.
 
 Missing consent must return `REFUSED_LIVE_CONSENT_MISSING` before any
 Multipass, Docker Swarm, netplan, socat, compose, stack, Portainer, Nexus,

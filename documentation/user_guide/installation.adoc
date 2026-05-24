@@ -122,8 +122,7 @@ Mutating workflow-level commands such as `platform init`, `platform reconcile`,
 `artifacts prepare`, `deployment apply`, and `setup run` require:
 
 * `--live`;
-* `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`;
-* the interactive phrase `RUN TINY SWARM WORLD LIVE INSTALLATION`.
+* answering `y` at the short live-infrastructure confirmation prompt.
 
 Optional live smoke validation is separate from the default quality gate. Run
 it only on a disposable or recoverable local environment after reviewing the
@@ -131,10 +130,9 @@ live-operation surface catalog:
 
 [source,bash]
 ----
-export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-When prompted, type `RUN TINY SWARM WORLD LIVE INSTALLATION` only if changing
-the local Multipass, Docker Swarm, networking, Portainer, Nexus, Jenkins,
-RabbitMQ, SonarQube, and Swagger/NGINX environment is intentional.
+When prompted, answer `y` only if changing the local Multipass, Docker Swarm,
+networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX
+environment is intentional.

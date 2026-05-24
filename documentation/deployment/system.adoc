@@ -156,14 +156,13 @@ and should be run only on a disposable or recoverable local Swarm target:
 
 [source,bash]
 ----
-export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-When prompted, type `RUN TINY SWARM WORLD LIVE INSTALLATION` only if the
-operator intentionally accepts local VM, Docker Swarm, networking, service
-bootstrap, image, and stack changes. A live smoke result is evidence for that
-local run only and must not be treated as the default repository quality gate.
+When prompted, answer `y` only if the operator intentionally accepts local VM,
+Docker Swarm, networking, service bootstrap, image, and stack changes. A live
+smoke result is evidence for that local run only and must not be treated as
+the default repository quality gate.
 
 == Operational caution
 

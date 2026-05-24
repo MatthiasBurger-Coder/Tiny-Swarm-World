@@ -106,19 +106,19 @@ live-consent controls. For the canonical setup path:
 
 [source,bash]
 ----
-export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-When prompted, type exactly:
+When prompted:
 
 [source,text]
 ----
-RUN TINY SWARM WORLD LIVE INSTALLATION
+Live setup can change local infrastructure. Continue? [y/N]:
 ----
 
-The workflow refuses before building application services if `--live`, the
-environment value, or the typed phrase is missing.
+Answer `y` only when changing local infrastructure is intentional. The
+workflow refuses before building application services if `--live` or the
+short live confirmation is missing.
 
 This refusal is expected for a plain `setup run` command without consent. It
 does not mean the default quality gate failed.

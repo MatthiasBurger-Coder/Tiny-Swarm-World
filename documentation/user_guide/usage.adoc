@@ -77,18 +77,18 @@ services are constructed:
 
 [source,bash]
 ----
-export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-The command also prompts for the exact phrase:
+The command prompts for a short confirmation:
 
 [source,text]
 ----
-RUN TINY SWARM WORLD LIVE INSTALLATION
+Live setup can change local infrastructure. Continue? [y/N]:
 ----
 
-Without the environment value and typed phrase, the entry point reports
+Answer `y` only when changing local infrastructure is intentional. Without
+`--live` and the short confirmation, the entry point reports
 `REFUSED_LIVE_CONSENT_MISSING` before application services are constructed.
 
 Destructive platform workflows also require the exact confirmation phrase:

@@ -1,6 +1,5 @@
 import asyncio
 import json
-import os
 from argparse import ArgumentParser, Namespace
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -16,9 +15,10 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PlatformWorkflowStatus,
 )
 from tiny_swarm_world.domain.preflight import (
-    LIVE_CONSENT_ENVIRONMENT_VARIABLE,
-    LIVE_CONSENT_PHRASE,
+    LIVE_CONSENT_PROMPT,
+    LIVE_CONSENT_YES_VALUES,
     LiveConsent,
+    PreflightResult,
 )
 from tiny_swarm_world.infrastructure.composition import (
     ApplicationServices,
@@ -141,6 +141,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
         live_consent = _live_consent_from_args(args) if args.live else None
         result = await preflight.run(live_consent)
         print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+        _print_preflight_summary(result)
         if not result.passed:
             raise SystemExit(1)
         return
@@ -288,17 +289,32 @@ def _blocked_workflow_result(workflow: CliWorkflow) -> dict[str, object]:
 
 
 def _live_consent_from_args(args: Namespace) -> LiveConsent:
-    typed_phrase = None
+    confirmed = False
     if args.live:
         try:
-            typed_phrase = input(f"Type '{LIVE_CONSENT_PHRASE}' to continue: ")
+            answer = input(f"{LIVE_CONSENT_PROMPT} ")
+            confirmed = answer.strip().lower() in LIVE_CONSENT_YES_VALUES
         except EOFError:
-            typed_phrase = None
-    return LiveConsent(
-        live_flag=args.live,
-        environment_value=os.environ.get(LIVE_CONSENT_ENVIRONMENT_VARIABLE),
-        typed_phrase=typed_phrase,
-    )
+            confirmed = False
+    return LiveConsent(live_flag=args.live, confirmed=confirmed)
+
+
+def _print_preflight_summary(result: PreflightResult) -> None:
+    print()
+    print(f"Preflight summary: {result.status}")
+    if result.passed:
+        print("All checks passed.")
+        return
+
+    if result.resource_gated:
+        print("Only resource-gated checks failed. Use a larger host or a smaller setup profile.")
+    else:
+        print("Fix the mandatory blockers before live setup.")
+
+    for check in result.failed_checks:
+        print(f"- {check.check_id}: {check.message}")
+        if check.remediation and check.remediation != "None":
+            print(f"  Action: {check.remediation}")
 
 
 if __name__ == "__main__":

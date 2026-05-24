@@ -30,7 +30,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "9165A11D60B16E5B73970248360558CAC8A817926623A9E90637DE047713DD9D"
+      "sha256": "87DE7E5F2F1C1A2B0D2B7E9EFB83085AE1E4C740B71C83656AB53F841F8031F0"
     },
     {
       "path": ".importlinter",
@@ -42,11 +42,11 @@
     },
     {
       "path": "documentation/epics/autonomous-runnable-setup.md",
-      "sha256": "032EE1C19307457F72410BEF6A7B00C6BBC07D7F73F802393D7EA4DFB5E2C312"
+      "sha256": "42B9A7C7FE4BF53B3CFFCFCA22229AD923B3F20BBA1CE88F4049D9087AABFB36"
     },
     {
       "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
-      "sha256": "489949926E416D15F372BFE38040709876CFDBA3C3A942178BD0202716622BAD"
+      "sha256": "09F2F6C23346A59596965E9EA8605020FFE8A7818E178A5648206ABF6E82DCC2"
     },
     {
       "path": "documentation/arc42/05_building_blocks.adoc",
@@ -62,7 +62,7 @@
     },
     {
       "path": "documentation/arc42/09_architecture_decisions.adoc",
-      "sha256": "50D16962A712E10E3FA48BCF35DCBEB9D1DF93FA7764AF2C333DC0A9DE10082E"
+      "sha256": "76C58BBAF9FD957ECD2F46B69C4BC7FEE02DED6A20E26C8961A97604CE2D548F"
     },
     {
       "path": "documentation/arc42/10_quality_requirements.adoc",
@@ -74,27 +74,31 @@
     },
     {
       "path": "documentation/system/live-operation-surfaces.adoc",
-      "sha256": "24E88A98ECF7F21B08599242F1EB5D7606F77C9EB487186FBA6FCB692BF2412E"
+      "sha256": "C1400625A1D66F184B35C156763784614563E90E8A806AC5FF4F673416854CCD"
     },
     {
       "path": "documentation/user_guide/installation.adoc",
-      "sha256": "C2C6902FBF67D03375F64D078EB2D00516F349EAF9330CD4B628A076A608D3FE"
+      "sha256": "A82BB7E82920E8310E0C5822A6CABAAD5D7E4479719606B5D3E573381B8C00AE"
     },
     {
       "path": "documentation/user_guide/usage.adoc",
-      "sha256": "8A7710E805C55A30DA96581F5D13032D54A2677D67FB61286E3B43200E5F8C7D"
+      "sha256": "D781C867F82BA21AB7BD9FA1CE1B765C151127F830FF6C404B3BE4DDB6A111C8"
     },
     {
       "path": "documentation/user_guide/troubleshooting.adoc",
-      "sha256": "0454C2BFECAA74F65F3E54B0DB4FBF348109360FE4B5A69FD6877C2948218A63"
+      "sha256": "0A937265E331B248DD4E5222166168431B9DE4623EB6FFE197EEB1EC42A3CFE7"
     },
     {
       "path": "documentation/deployment/system.adoc",
-      "sha256": "3630F668F4F5A530950AF3834546B7C72D8EA33249EA54DF86ECF1C5EEE3068A"
+      "sha256": "8FFDF7B9D3ADC1D9F6BB8BC10665469BA1C90A9711BAABC48C0C7B0E855382C4"
+    },
+    {
+      "path": "documentation/arc42/12_glossary.adoc",
+      "sha256": "D272FF4BE21CF73E48F700A563A4FA05F6163F1F99D12A00C2A3BD90D5F4B216"
     },
     {
       "path": "documentation/workflow/reports/11-documentation-sync-quality-live-smoke.md",
-      "sha256": "2AC2D8832D8B120363CF0AB7146D8CCFC5D63DC8B038699892533E3894BA8297"
+      "sha256": "633600D2DE4DA8838EB12BE0E52234586496E5019672F3F59217444AA4B90752"
     },
     {
       "path": ".agents/skills/workflow-authoring/SKILL.md",

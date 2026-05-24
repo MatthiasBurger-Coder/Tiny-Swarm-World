@@ -30,11 +30,6 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PlatformWorkflowResult,
     PlatformWorkflowStatus,
 )
-from tiny_swarm_world.domain.preflight import (
-    LIVE_CONSENT_ENVIRONMENT_VALUE,
-    LIVE_CONSENT_PHRASE,
-)
-
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ENTRYPOINT_PATH = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "__main__.py"
@@ -86,10 +81,10 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("REFUSED_LIVE_CONSENT_MISSING", output.getvalue())
         self.assertIn("missing --live", output.getvalue())
 
-    async def test_mutating_workflow_refuses_missing_consent_environment(self):
+    async def test_mutating_workflow_refuses_negative_live_confirmation(self):
         output = io.StringIO()
 
-        with patch("builtins.input", return_value=LIVE_CONSENT_PHRASE):
+        with patch("builtins.input", return_value="n"):
             with patch.object(entrypoint, "build_application_services") as build_services:
                 with redirect_stdout(output):
                     with self.assertRaises(SystemExit) as raised:
@@ -97,54 +92,41 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(2, raised.exception.code)
         build_services.assert_not_called()
-        self.assertIn("missing TSW_LIVE_INFRASTRUCTURE_CONSENT", output.getvalue())
+        self.assertIn("missing live confirmation", output.getvalue())
 
-    async def test_mutating_workflow_refuses_wrong_typed_phrase(self):
+    async def test_mutating_workflow_accepts_short_yes_confirmation(self):
+        services, workflows = _application_services_with_platform_workflows()
         output = io.StringIO()
 
-        with patch.dict(
-            "os.environ",
-            {entrypoint.LIVE_CONSENT_ENVIRONMENT_VARIABLE: LIVE_CONSENT_ENVIRONMENT_VALUE},
-        ):
-            with patch("builtins.input", return_value="wrong phrase"):
-                with patch.object(entrypoint, "build_application_services") as build_services:
-                    with redirect_stdout(output):
-                        with self.assertRaises(SystemExit) as raised:
-                            await entrypoint.main(["platform", "init", "--live"])
+        with patch("builtins.input", return_value="y"):
+            with patch.object(entrypoint, "build_application_services", return_value=services):
+                with redirect_stdout(output):
+                    await entrypoint.main(["platform", "init", "--live"])
 
-        self.assertEqual(2, raised.exception.code)
-        build_services.assert_not_called()
-        self.assertIn("missing typed live confirmation phrase", output.getvalue())
+        workflows.init.run.assert_awaited_once_with()
+        self.assertIn('"workflow": "platform init"', output.getvalue())
 
     async def test_mutating_workflow_refuses_noninteractive_eof(self):
         output = io.StringIO()
 
-        with patch.dict(
-            "os.environ",
-            {entrypoint.LIVE_CONSENT_ENVIRONMENT_VARIABLE: LIVE_CONSENT_ENVIRONMENT_VALUE},
-        ):
-            with patch("builtins.input", side_effect=EOFError):
-                with patch.object(entrypoint, "build_application_services") as build_services:
-                    with redirect_stdout(output):
-                        with self.assertRaises(SystemExit) as raised:
-                            await entrypoint.main(["platform", "init", "--live"])
+        with patch("builtins.input", side_effect=EOFError):
+            with patch.object(entrypoint, "build_application_services") as build_services:
+                with redirect_stdout(output):
+                    with self.assertRaises(SystemExit) as raised:
+                        await entrypoint.main(["platform", "init", "--live"])
 
         self.assertEqual(2, raised.exception.code)
         build_services.assert_not_called()
-        self.assertIn("missing typed live confirmation phrase", output.getvalue())
+        self.assertIn("missing live confirmation", output.getvalue())
 
     async def test_platform_init_dispatches_to_composed_workflow_with_live_consent(self):
         services, workflows = _application_services_with_platform_workflows()
         output = io.StringIO()
 
-        with patch.dict(
-            "os.environ",
-            {entrypoint.LIVE_CONSENT_ENVIRONMENT_VARIABLE: LIVE_CONSENT_ENVIRONMENT_VALUE},
-        ):
-            with patch("builtins.input", return_value=LIVE_CONSENT_PHRASE):
-                with patch.object(entrypoint, "build_application_services", return_value=services):
-                    with redirect_stdout(output):
-                        await entrypoint.main(["platform", "init", "--live"])
+        with patch("builtins.input", return_value="y"):
+            with patch.object(entrypoint, "build_application_services", return_value=services):
+                with redirect_stdout(output):
+                    await entrypoint.main(["platform", "init", "--live"])
 
         workflows.init.run.assert_awaited_once_with()
         workflows.reconcile.run.assert_not_awaited()
@@ -192,22 +174,18 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_confirmed_reset_dispatches_to_composed_workflow(self):
         services, workflows = _application_services_with_platform_workflows()
 
-        with patch.dict(
-            "os.environ",
-            {entrypoint.LIVE_CONSENT_ENVIRONMENT_VARIABLE: LIVE_CONSENT_ENVIRONMENT_VALUE},
-        ):
-            with patch("builtins.input", return_value=LIVE_CONSENT_PHRASE):
-                with patch.object(entrypoint, "build_application_services", return_value=services):
-                    with redirect_stdout(io.StringIO()):
-                        await entrypoint.main(
-                            [
-                                "platform",
-                                "reset",
-                                "--confirm",
-                                RESET_TINY_SWARM_PLATFORM_CONFIRMATION,
-                                "--live",
-                            ]
-                        )
+        with patch("builtins.input", return_value="y"):
+            with patch.object(entrypoint, "build_application_services", return_value=services):
+                with redirect_stdout(io.StringIO()):
+                    await entrypoint.main(
+                        [
+                            "platform",
+                            "reset",
+                            "--confirm",
+                            RESET_TINY_SWARM_PLATFORM_CONFIRMATION,
+                            "--live",
+                        ]
+                    )
 
         workflows.reset.run.assert_awaited_once_with(RESET_TINY_SWARM_PLATFORM_CONFIRMATION)
         workflows.destroy.run.assert_not_awaited()
@@ -215,22 +193,18 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_confirmed_destroy_dispatches_to_composed_workflow(self):
         services, workflows = _application_services_with_platform_workflows()
 
-        with patch.dict(
-            "os.environ",
-            {entrypoint.LIVE_CONSENT_ENVIRONMENT_VARIABLE: LIVE_CONSENT_ENVIRONMENT_VALUE},
-        ):
-            with patch("builtins.input", return_value=LIVE_CONSENT_PHRASE):
-                with patch.object(entrypoint, "build_application_services", return_value=services):
-                    with redirect_stdout(io.StringIO()):
-                        await entrypoint.main(
-                            [
-                                "platform",
-                                "destroy",
-                                "--confirm",
-                                DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
-                                "--live",
-                            ]
-                        )
+        with patch("builtins.input", return_value="y"):
+            with patch.object(entrypoint, "build_application_services", return_value=services):
+                with redirect_stdout(io.StringIO()):
+                    await entrypoint.main(
+                        [
+                            "platform",
+                            "destroy",
+                            "--confirm",
+                            DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
+                            "--live",
+                        ]
+                    )
 
         workflows.destroy.run.assert_awaited_once_with(DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION)
         workflows.reset.run.assert_not_awaited()
@@ -291,16 +265,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                             with redirect_stdout(output):
                                 with self.assertRaises(SystemExit) as raised:
                                     if requires_live:
-                                        with patch.dict(
-                                            "os.environ",
-                                            {
-                                                entrypoint.LIVE_CONSENT_ENVIRONMENT_VARIABLE: (
-                                                    LIVE_CONSENT_ENVIRONMENT_VALUE
-                                                )
-                                            },
-                                        ):
-                                            with patch("builtins.input", return_value=LIVE_CONSENT_PHRASE):
-                                                await entrypoint.main(command)
+                                        with patch("builtins.input", return_value="y"):
+                                            await entrypoint.main(command)
                                     else:
                                         await entrypoint.main(command)
 
@@ -337,20 +303,16 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         )
         output = io.StringIO()
 
-        with patch.dict(
-            "os.environ",
-            {entrypoint.LIVE_CONSENT_ENVIRONMENT_VARIABLE: LIVE_CONSENT_ENVIRONMENT_VALUE},
-        ):
-            with patch("builtins.input", return_value=LIVE_CONSENT_PHRASE):
-                with patch.object(entrypoint, "build_setup_services", return_value=setup_services) as build_setup:
-                    with patch.object(
-                        entrypoint,
-                        "build_application_services",
-                        side_effect=AssertionError("setup must use setup services"),
-                    ):
-                        with redirect_stdout(output):
-                            with self.assertRaises(SystemExit) as raised:
-                                await entrypoint.main(["setup", "run", "--live"])
+        with patch("builtins.input", return_value="y"):
+            with patch.object(entrypoint, "build_setup_services", return_value=setup_services) as build_setup:
+                with patch.object(
+                    entrypoint,
+                    "build_application_services",
+                    side_effect=AssertionError("setup must use setup services"),
+                ):
+                    with redirect_stdout(output):
+                        with self.assertRaises(SystemExit) as raised:
+                            await entrypoint.main(["setup", "run", "--live"])
 
         self.assertEqual(1, raised.exception.code)
         build_setup.assert_called_once()
@@ -421,9 +383,12 @@ def _direct_imports(source_file: Path) -> list[str]:
 class _FakePreflightResult:
     def __init__(self, passed: bool):
         self.passed = passed
+        self.status = "PASSED" if passed else "FAILED"
+        self.resource_gated = False
+        self.failed_checks = ()
 
     def to_dict(self) -> dict[str, object]:
-        return {"status": "PASSED" if self.passed else "FAILED", "checks": []}
+        return {"status": self.status, "checks": []}
 
 
 def _application_services_with_platform_workflows():

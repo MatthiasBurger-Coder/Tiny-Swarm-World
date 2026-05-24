@@ -103,13 +103,12 @@ and only on a disposable or recoverable local environment.
 
 [source,bash]
 ----
-export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-When prompted, type `RUN TINY SWARM WORLD LIVE INSTALLATION` only after
-confirming that Multipass, Docker Swarm, networking, Portainer, Nexus, Jenkins,
-RabbitMQ, SonarQube, Swagger/NGINX, image, and stack changes are intentional.
+When prompted, answer `y` only after confirming that Multipass, Docker Swarm,
+networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX,
+image, and stack changes are intentional.
 
 Live smoke evidence must stay in ignored local state such as
 `.tiny-swarm-world/`, must be redacted, and must not be committed. A

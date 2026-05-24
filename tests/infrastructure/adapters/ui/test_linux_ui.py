@@ -280,7 +280,7 @@ class TestLinuxUI(unittest.TestCase):
         calls = [call.args[2] for call in mock_stdscr.addstr.mock_calls]
 
         self.assertTrue(any("Status: Refused" in call for call in calls))
-        self.assertTrue(any("Action: Provide --live" in call for call in calls))
+        self.assertTrue(any("Action: Run with --live" in call for call in calls))
 
     @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.curs_set")
     @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.initscr")

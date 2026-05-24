@@ -21,9 +21,8 @@ Explicit destructive teardown workflow. It requires
 implemented.
 
 Live infrastructure consent::
-The combination of `--live`,
-`TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`,
-and the typed phrase `RUN TINY SWARM WORLD LIVE INSTALLATION`.
+The combination of `--live` and answering `y` at the short interactive
+live-infrastructure confirmation prompt.
 
 Command catalog::
 Typed YAML configuration under `infra/config/**/command_*.yaml` that declares

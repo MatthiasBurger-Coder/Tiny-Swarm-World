@@ -120,8 +120,7 @@ operations. They require all of these controls before application services are
 constructed:
 
 - `--live`
-- `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`
-- typing `RUN TINY SWARM WORLD LIVE INSTALLATION` at the prompt
+- answering `y` at the short live-infrastructure confirmation prompt
 
 At the current system-unification baseline, `platform init` and
 `platform reconcile` still return `blocked` before live steps until
@@ -144,13 +143,12 @@ default quality gate. Run it only on a disposable or recoverable local target
 after reviewing the live-operation surface catalog:
 
 ```bash
-export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ```
 
-When prompted, type `RUN TINY SWARM WORLD LIVE INSTALLATION` only if changing
-the local Multipass, Docker Swarm, networking, Portainer, Nexus, Jenkins,
-RabbitMQ, SonarQube, and Swagger/NGINX environment is intentional.
+When prompted, answer `y` only if changing the local Multipass, Docker Swarm,
+networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX
+environment is intentional.
 
 ---
 

@@ -65,13 +65,13 @@ class PreflightService:
                 "LIVE-CONSENT",
                 PreflightCategory.LIVE_CONSENT,
                 "Live infrastructure consent is complete.",
-                {"required_controls": "flag,environment,typed_phrase"},
+                {"required_controls": "flag,interactive_confirmation"},
             )
         return _failed(
             "LIVE-CONSENT",
             PreflightCategory.LIVE_CONSENT,
             "Live infrastructure consent is missing or incomplete.",
-            "Provide --live, the required consent environment variable, and the exact typed phrase.",
+            "Run with --live and answer y to the live infrastructure confirmation prompt.",
             {"missing": ",".join(live_consent.missing_reasons)},
         )
 

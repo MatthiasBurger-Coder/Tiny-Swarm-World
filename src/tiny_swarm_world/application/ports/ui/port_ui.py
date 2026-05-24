@@ -23,7 +23,7 @@ SETUP_RECOVERY_ACTIONS = {
     "failed_to_prepare": "Repair the preparation failure before rerunning setup.",
     "failed_to_verify": "Repair the verification failure before rerunning setup.",
     "not_run": "Resolve the earlier stopped phase before this phase can run.",
-    "refused": "Provide --live and the required live consent before retrying.",
+    "refused": "Run with --live and answer y to the live confirmation before retrying.",
     "resource_gated": "Use a host that satisfies the resource contract or select a smaller profile.",
 }
 FAILURE_RESULTS = frozenset(

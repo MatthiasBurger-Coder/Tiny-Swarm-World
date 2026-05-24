@@ -5,8 +5,6 @@ from collections.abc import Mapping, Sequence
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.domain.preflight import (
-    LIVE_CONSENT_ENVIRONMENT_VALUE,
-    LIVE_CONSENT_PHRASE,
     LiveConsent,
     PreflightSeverity,
     RequiredPort,
@@ -23,11 +21,7 @@ from tiny_swarm_world.domain.preflight import (
 class TestPreflightService(unittest.IsolatedAsyncioTestCase):
     async def test_successful_preflight_reports_passed_checks(self):
         result = await PreflightService(_FakeProbe()).run(
-            LiveConsent(
-                live_flag=True,
-                environment_value=LIVE_CONSENT_ENVIRONMENT_VALUE,
-                typed_phrase=LIVE_CONSENT_PHRASE,
-            )
+            LiveConsent(live_flag=True, confirmed=True)
         )
 
         check_ids = {check.check_id for check in result.checks}
@@ -91,18 +85,14 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_incomplete_live_consent_fails_preflight(self):
         result = await PreflightService(_FakeProbe()).run(
-            LiveConsent(
-                live_flag=True,
-                environment_value=None,
-                typed_phrase=LIVE_CONSENT_PHRASE,
-            )
+            LiveConsent(live_flag=True, confirmed=False)
         )
 
         failed_by_id = {check.check_id: check for check in result.failed_checks}
         self.assertFalse(result.passed)
         self.assertIn("LIVE-CONSENT", failed_by_id)
         self.assertIn(
-            "missing TSW_LIVE_INFRASTRUCTURE_CONSENT",
+            "missing live confirmation",
             failed_by_id["LIVE-CONSENT"].evidence["missing"],
         )
 
