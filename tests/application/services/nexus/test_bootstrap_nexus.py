@@ -106,6 +106,38 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
         updated_user = nexus_client.update_user.call_args.args[2]
         self.assertEqual(updated_user.status, "active")
 
+    def test_verify_reports_active_credentials_with_safe_evidence(self):
+        nexus_client = MagicMock()
+        nexus_client.can_authenticate.return_value = True
+        service = _nexus_admin_access(nexus_client)
+
+        result = _run_async(service.verify())
+
+        self.assertEqual("artifacts:nexus-admin-access", result.target_id)
+        self.assertEqual("active", result.evidence["access_state"])
+        self.assertNotIn("auth", str(result.evidence))
+
+    def test_verify_reports_inactive_credentials_with_safe_evidence(self):
+        nexus_client = MagicMock()
+        nexus_client.can_authenticate.return_value = False
+        service = _nexus_admin_access(nexus_client)
+
+        result = _run_async(service.verify())
+
+        self.assertEqual("inactive", result.evidence["access_state"])
+        self.assertNotIn("auth", str(result.evidence))
+
+    def test_verify_reports_sanitized_client_exceptions(self):
+        nexus_client = MagicMock()
+        nexus_client.can_authenticate.side_effect = ValueError("password=leaked")
+        service = _nexus_admin_access(nexus_client)
+
+        result = _run_async(service.verify())
+
+        self.assertEqual("unknown", result.evidence["access_state"])
+        self.assertNotIn("password=leaked", result.message)
+        self.assertNotIn("auth", str(result.evidence))
+
 
 class TestBootstrapNexus(unittest.TestCase):
     def test_runs_bootstrap_steps_in_order_without_anonymous_access_by_default(self):
@@ -178,3 +210,22 @@ class TestEnableNexusAnonymousAccess(unittest.TestCase):
         service.run()
 
         nexus_client.set_anonymous_access.assert_called_once_with("admin", "secret", enabled=True)
+
+
+def _nexus_admin_access(nexus_client: MagicMock) -> EnsureNexusAdminAccess:
+    return EnsureNexusAdminAccess(
+        nexus_client=nexus_client,
+        container_runtime=MagicMock(),
+        admin_username="admin",
+        admin_password="secret",
+        container_name_filter="nexus",
+        initial_password_path="/nexus-data/admin.password",
+        max_attempts=2,
+        wait_seconds=1,
+    )
+
+
+def _run_async(coro):
+    import asyncio
+
+    return asyncio.run(coro)

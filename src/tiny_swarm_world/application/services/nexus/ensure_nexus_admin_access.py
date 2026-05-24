@@ -100,18 +100,18 @@ class EnsureNexusAdminAccess:
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,
                 message=f"Nexus admin verification failed: {exc.__class__.__name__}",
-                evidence={"authenticated": "unknown", "phase": "verify"},
+                evidence={"access_state": "unknown", "phase": "verify"},
             )
         if authenticated:
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.VERIFIED,
                 message="Nexus admin credentials are active.",
-                evidence={"authenticated": "true", "phase": "verify"},
+                evidence={"access_state": "active", "phase": "verify"},
             )
         return VerificationResult(
             target_id=self.verification_target_id,
             status=VerificationStatus.FAILED_TO_VERIFY,
             message="Nexus admin credentials are not active.",
-            evidence={"authenticated": "false", "phase": "verify"},
+            evidence={"access_state": "inactive", "phase": "verify"},
         )
