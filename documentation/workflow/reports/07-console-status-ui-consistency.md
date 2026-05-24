@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-COMPLETED
+COMPLETED_PUSHED
 ```
 
 ## Changes
@@ -141,6 +141,8 @@ qualityGates:
   - command: "python3 -m json.tool documentation/workflow/context-pack.json"
     result: "PASS"
 rollbackReference: "revert this Slice 07 checkpoint commit on codex/workflow-system-unification-20260524"
+checkpointCommit: "c599115773c459c9404f95bd2fdbad7afc9659cc"
+checkpointPush: "origin/codex/workflow-system-unification-20260524"
 arc42Updated: true
 adrUpdated: false
 ```
