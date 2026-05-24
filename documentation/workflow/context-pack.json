@@ -6,7 +6,7 @@
     "createdDate": "2026-05-24",
     "processStrand": "autonomous-runnable-setup",
     "executionProfile": "FULL_PATH",
-    "releaseStatus": "SLICE_05_COMPLETED"
+    "releaseStatus": "SLICE_06_COMPLETED"
   },
   "contextValidity": {
     "staleWhen": [
@@ -50,15 +50,15 @@
     },
     {
       "path": "documentation/arc42/05_building_blocks.adoc",
-      "sha256": "DBCB831D168381E729C1C4D203D3E66ED713F30716FD035AAA3465FFD0101F16"
+      "sha256": "48D2556D5DF0D4A505FFBB02A96A079A54BADE1EFB1867B19C87DAE3167885FE"
     },
     {
       "path": "documentation/arc42/06_runtime_view.adoc",
-      "sha256": "3C4D4FF0B6AA50EBBE783593BDA8564761E45A0333F0C704EE37FD669D3C7724"
+      "sha256": "F35084AB5CCFEA050C0D9EF27FAF4DEBE1DA3058D6ADF313566443542A57FF59"
     },
     {
       "path": "documentation/arc42/07_deployment_view.adoc",
-      "sha256": "4704ADE3F02DEB0E4A5862E4B2506107C965903CC500BA29CEA033BB1C98A958"
+      "sha256": "4F0ADF443F953B6A70BD25CE7EEAD158EE60A306F962E1345435DB5FD106422B"
     },
     {
       "path": "documentation/arc42/09_architecture_decisions.adoc",
@@ -74,7 +74,7 @@
     },
     {
       "path": "documentation/system/live-operation-surfaces.adoc",
-      "sha256": "0D29583FCB1B3345BBA5CF01433C3897A5F01D926F2D1A526398D54C2228B23C"
+      "sha256": "3E5E0240361330E73CD448CEC985E6870E51650D4AD90C3FB94D44248181C67A"
     },
     {
       "path": "documentation/user_guide/installation.adoc",
@@ -82,7 +82,7 @@
     },
     {
       "path": "documentation/deployment/system.adoc",
-      "sha256": "CEE5B2CB76909F24E70B49B9889252320CB1B4E89BDA84525D7438C4715B1A23"
+      "sha256": "3BBE3433DD35BD2724B97159A607650402C962555DAC3F31481B72C9D0E939D8"
     },
     {
       "path": ".agents/skills/workflow-authoring/SKILL.md",
@@ -194,7 +194,7 @@
     },
     {
       "sliceId": "06",
-      "status": "PLANNED",
+      "status": "COMPLETED",
       "owner": "senior_devops",
       "purpose": "Portainer deployment contract",
       "dependencies": [

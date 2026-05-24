@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_05_COMPLETED
+SLICE_06_COMPLETED
 ```
 
 ## Branch
@@ -20,7 +20,8 @@ Slice 02 has been completed as a setup-safety ADR and arc42 alignment slice.
 Slice 03 has been completed as the setup preflight and manifest contract
 slice. Slice 04 has been completed as the inventory and evidence foundation
 slice. Slice 05 has been completed as the command-backed platform verification
-contract slice. Slices 06 and 07 are the next planned implementation slices.
+contract slice. Slice 06 has been completed as the Portainer deployment
+contract slice. Slice 07 is the next planned implementation slice.
 
 ## Subagent Review
 
@@ -368,6 +369,83 @@ Requirement-engineering decision:
 - the repair does not change product behavior and restores workflow
   traceability for Slices 06 and 07.
 
+### Slice 06: Portainer Deployment Contract
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+8e81529
+```
+
+Changed files:
+
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/deployment/system.adoc`
+- `documentation/system/live-operation-surfaces.adoc`
+- `infra/config/compose/portainer/docker-compose.yml`
+- `src/tiny_swarm_world/application/services/deployment/__init__.py`
+- `src/tiny_swarm_world/application/services/deployment/ensure_portainer_stack.py`
+- `src/tiny_swarm_world/application/services/deployment/workflows.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
+- `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+- `tests/application/services/deployment/test_deployment_service_exports.py`
+- `tests/application/services/deployment/test_deployment_workflows.py`
+- `tests/application/services/deployment/test_ensure_portainer_stack.py`
+- `tests/architecture/test_legacy_surface_documentation.py`
+- `tests/infrastructure/adapters/clients/test_portainer_http_client.py`
+- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- `tests/infrastructure/test_composition.py`
+- `documentation/workflow/reports/06-portainer-deployment-contract.md`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
+PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation
+python3 tools/quality_gate.py arch-lint
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The final full quality gate ran `300` tests with `1` skipped.
+
+### Governance Repair Before Slice 07
+
+Reason:
+
+```text
+Slice 06 added the Portainer deployment contract, updated deployment arc42
+status, and cataloged the privileged Portainer compose asset, so the workflow
+context pack needed to mark Slice 06 complete before artifact-contract work can
+start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- the Portainer contract is implemented as a post-bootstrap, port-backed
+  application contract with mocked tests;
+- CLI `deployment apply` remains fail-closed and does not claim live Portainer
+  bootstrap or observed service readiness;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 07.
+
 ## Live Infrastructure
 
 No live infrastructure commands were run. Workflow creation did not execute
@@ -383,5 +461,5 @@ Next command:
 workflow execute with subagents
 ```
 
-Execution continues at Slice 06 or Slice 07 after re-verifying branch, context
-pack, locks, slice metadata, and quality gates before any write-capable work.
+Execution continues at Slice 07 after re-verifying branch, context pack, locks,
+slice metadata, and quality gates before any write-capable work.
