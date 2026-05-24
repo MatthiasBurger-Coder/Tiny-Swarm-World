@@ -107,6 +107,20 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.executed)
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.verification_results[0].status)
 
+    async def test_apply_workflow_stops_later_stacks_when_verification_blocks(self):
+        first_step = _OrderedApplyStep("deployment:nexus-stack", VerificationStatus.VERIFIED)
+        second_step = _OrderedApplyStep("deployment:jenkins-service-readiness", VerificationStatus.BLOCKED)
+        third_step = _OrderedApplyStep("deployment:rabbitmq-stack", VerificationStatus.VERIFIED)
+
+        result = await DeploymentApplyWorkflow((first_step, second_step, third_step)).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.BLOCKED, result.status)
+        self.assertTrue(result.executed)
+        self.assertTrue(first_step.ran)
+        self.assertTrue(second_step.ran)
+        self.assertFalse(third_step.ran)
+        self.assertEqual(2, len(result.verification_results))
+
     async def test_verify_workflow_is_explicitly_blocked(self):
         result = await DeploymentVerifyWorkflow().run()
 
@@ -117,3 +131,93 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertIn("stack verification contracts", result.message)
         self.assertIn("observed-state verification", result.reason)
         self.assertEqual("deployment verify", result.to_dict()["workflow"])
+
+    async def test_verify_workflow_completes_after_verified_stack_checks(self):
+        check = _VerifiedDeploymentCheck("deployment:nexus-stack")
+
+        result = await DeploymentVerifyWorkflow((check,)).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.COMPLETED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
+        self.assertEqual("deployment:nexus-stack", result.verification_results[0].target_id)
+
+    async def test_verify_workflow_reports_missing_stack_verification(self):
+        check = _FailedDeploymentCheck("deployment:jenkins-stack")
+
+        result = await DeploymentVerifyWorkflow((check,)).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual("verification failed for deployment:jenkins-stack", result.reason)
+
+    async def test_verify_workflow_reports_blocked_service_readiness(self):
+        check = _BlockedDeploymentCheck("deployment:nexus-service-readiness")
+
+        result = await DeploymentVerifyWorkflow((check,)).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual("verification is blocked for deployment:nexus-service-readiness", result.reason)
+
+    async def test_verify_workflow_sanitizes_check_exceptions(self):
+        check = _ExceptionDeploymentCheck("deployment:rabbitmq-stack")
+
+        result = await DeploymentVerifyWorkflow((check,)).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertNotIn("secret", result.verification_results[0].message)
+
+
+class _VerifiedDeploymentCheck:
+    def __init__(self, target_id: str):
+        self.verification_target_id = target_id
+
+    async def verify(self) -> VerificationResult:
+        return _verification_result(self.verification_target_id, VerificationStatus.VERIFIED)
+
+
+class _FailedDeploymentCheck:
+    def __init__(self, target_id: str):
+        self.verification_target_id = target_id
+
+    async def verify(self) -> VerificationResult:
+        return _verification_result(self.verification_target_id, VerificationStatus.FAILED_TO_VERIFY)
+
+
+class _ExceptionDeploymentCheck:
+    def __init__(self, target_id: str):
+        self.verification_target_id = target_id
+
+    async def verify(self) -> VerificationResult:
+        raise RuntimeError("secret=leaked")
+
+
+class _BlockedDeploymentCheck:
+    def __init__(self, target_id: str):
+        self.verification_target_id = target_id
+
+    async def verify(self) -> VerificationResult:
+        return _verification_result(self.verification_target_id, VerificationStatus.BLOCKED)
+
+
+class _OrderedApplyStep:
+    def __init__(self, target_id: str, verification_status: VerificationStatus):
+        self.verification_target_id = target_id
+        self.verification_status = verification_status
+        self.ran = False
+
+    async def run(self) -> None:
+        self.ran = True
+
+    async def verify(self) -> VerificationResult:
+        return _verification_result(self.verification_target_id, self.verification_status)
+
+
+def _verification_result(target_id: str, status: VerificationStatus) -> VerificationResult:
+    return VerificationResult(
+        target_id=target_id,
+        status=status,
+        message="Deployment stack verification summary.",
+        evidence={"phase": "verify"},
+    )

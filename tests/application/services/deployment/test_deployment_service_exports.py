@@ -2,12 +2,15 @@ import unittest
 
 from tiny_swarm_world.application.services.deployment import (
     DeploymentApplyWorkflow,
+    DeploymentVerifyCheck,
     DeploymentVerifyWorkflow,
     DeploymentWorkflowKind,
     DeploymentWorkflowResult,
     DeploymentWorkflowStatus,
     EnsureNexusStack,
     EnsurePortainerStack,
+    EnsureServiceStack,
+    build_default_service_stack_steps,
 )
 from tiny_swarm_world.application.services.deployment.ensure_nexus_stack import (
     EnsureNexusStack as DeploymentEnsureNexusStack,
@@ -15,8 +18,17 @@ from tiny_swarm_world.application.services.deployment.ensure_nexus_stack import 
 from tiny_swarm_world.application.services.deployment.ensure_portainer_stack import (
     EnsurePortainerStack as DeploymentEnsurePortainerStack,
 )
+from tiny_swarm_world.application.services.deployment.ensure_service_stack import (
+    EnsureServiceStack as DeploymentEnsureServiceStack,
+)
+from tiny_swarm_world.application.services.deployment.service_stack_plan import (
+    build_default_service_stack_steps as existing_build_default_service_stack_steps,
+)
 from tiny_swarm_world.application.services.deployment.workflows import (
     DeploymentApplyWorkflow as ExistingDeploymentApplyWorkflow,
+)
+from tiny_swarm_world.application.services.deployment.workflows import (
+    DeploymentVerifyCheck as ExistingDeploymentVerifyCheck,
 )
 from tiny_swarm_world.application.services.deployment.workflows import (
     DeploymentVerifyWorkflow as ExistingDeploymentVerifyWorkflow,
@@ -35,6 +47,7 @@ from tiny_swarm_world.application.services.deployment.workflows import (
 class TestDeploymentServiceExports(unittest.TestCase):
     def test_deployment_namespace_exports_workflow_contracts(self):
         self.assertIs(DeploymentApplyWorkflow, ExistingDeploymentApplyWorkflow)
+        self.assertIs(DeploymentVerifyCheck, ExistingDeploymentVerifyCheck)
         self.assertIs(DeploymentVerifyWorkflow, ExistingDeploymentVerifyWorkflow)
         self.assertIs(DeploymentWorkflowKind, ExistingDeploymentWorkflowKind)
         self.assertIs(DeploymentWorkflowResult, ExistingDeploymentWorkflowResult)
@@ -43,3 +56,5 @@ class TestDeploymentServiceExports(unittest.TestCase):
     def test_deployment_namespace_exports_deployment_stack_service(self):
         self.assertIs(EnsureNexusStack, DeploymentEnsureNexusStack)
         self.assertIs(EnsurePortainerStack, DeploymentEnsurePortainerStack)
+        self.assertIs(EnsureServiceStack, DeploymentEnsureServiceStack)
+        self.assertIs(build_default_service_stack_steps, existing_build_default_service_stack_steps)

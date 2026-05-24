@@ -2,6 +2,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from ruamel.yaml import YAML
+
+from tiny_swarm_world.domain.deployment import DEFAULT_SERVICE_STACK_CONTRACTS
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import ComposeFileRepositoryYaml
 
 
@@ -72,3 +75,35 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
 
         self.assertIn("/var/run/docker.sock:/var/run/docker.sock", compose_content)
         self.assertNotIn("/var/run/sock", compose_content)
+
+    def test_committed_default_service_stack_compose_files_are_loadable(self):
+        repository = ComposeFileRepositoryYaml()
+
+        loaded_stack_names = [
+            repository.get_compose_of(contract.stack_name).name
+            for contract in DEFAULT_SERVICE_STACK_CONTRACTS
+        ]
+
+        self.assertEqual(
+            ["portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"],
+            loaded_stack_names,
+        )
+
+    def test_committed_default_service_stack_compose_files_declare_required_services(self):
+        repository = ComposeFileRepositoryYaml()
+        yaml = YAML(typ="safe")
+
+        missing_services_by_stack: dict[str, list[str]] = {}
+        for contract in DEFAULT_SERVICE_STACK_CONTRACTS:
+            stack_definition = repository.get_compose_of(contract.stack_name)
+            compose_data = yaml.load(stack_definition.compose_content)
+            declared_services = set((compose_data.get("services") or {}).keys())
+            missing_services = [
+                service_name
+                for service_name in contract.required_services
+                if service_name not in declared_services
+            ]
+            if missing_services:
+                missing_services_by_stack[contract.stack_name] = missing_services
+
+        self.assertEqual({}, missing_services_by_stack)

@@ -180,6 +180,24 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
             legacy_imports,
         )
 
+    def test_deployment_services_do_not_import_artifact_or_nexus_repository_readiness(self):
+        forbidden_prefixes = (
+            "tiny_swarm_world.application.ports.clients.port_container_runtime",
+            "tiny_swarm_world.application.ports.clients.port_nexus_client",
+            "tiny_swarm_world.application.services.artifacts",
+            "tiny_swarm_world.application.services.nexus.ensure_nexus_repository",
+        )
+        violations = [
+            violation
+            for forbidden_prefix in forbidden_prefixes
+            for violation in _find_forbidden_imports(
+                root=APPLICATION_SERVICES_ROOT / "deployment",
+                forbidden_prefix=forbidden_prefix,
+            )
+        ]
+
+        self.assertEqual([], violations)
+
     def test_artifact_application_services_have_no_platform_or_deployment_imports(self):
         forbidden_prefixes = (
             "tiny_swarm_world.application.services.multipass",

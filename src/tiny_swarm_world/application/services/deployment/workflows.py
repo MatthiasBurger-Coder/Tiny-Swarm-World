@@ -29,6 +29,11 @@ class DeploymentApplyStep(Protocol):
         pass
 
 
+class DeploymentVerifyCheck(Protocol):
+    async def verify(self) -> object:
+        pass
+
+
 @dataclass(frozen=True)
 class DeploymentWorkflowResult:
     kind: DeploymentWorkflowKind
@@ -81,7 +86,7 @@ class DeploymentApplyWorkflow:
 
         verification_results: list[VerificationResult] = []
         for step in self.steps:
-            target_id = _verification_target_id(step)
+            target_id = _verification_target_id(step, "deployment:apply-step")
             if not _step_has_verification(step):
                 blocked_verification = VerificationResult(
                     target_id=target_id,
@@ -152,34 +157,71 @@ class DeploymentApplyWorkflow:
 
 
 class DeploymentVerifyWorkflow:
+    def __init__(self, checks: Sequence[DeploymentVerifyCheck] = ()):
+        self.checks = tuple(checks)
+
     async def run(self) -> DeploymentWorkflowResult:
+        if not self.checks:
+            return DeploymentWorkflowResult(
+                kind=DeploymentWorkflowKind.VERIFY,
+                status=DeploymentWorkflowStatus.BLOCKED,
+                message="deployment verify is blocked until stack verification contracts are wired.",
+                reason=(
+                    "stack and service observed-state verification is not implemented through "
+                    "deployment ports"
+                ),
+            )
+
+        verification_results: list[VerificationResult] = []
+        for check in self.checks:
+            target_id = _verification_target_id(check, "deployment:verify-check")
+            verification = await _verify_step(check, target_id)
+            verification_results.append(verification)
+            if verification.status == VerificationStatus.BLOCKED:
+                return DeploymentWorkflowResult(
+                    kind=DeploymentWorkflowKind.VERIFY,
+                    status=DeploymentWorkflowStatus.BLOCKED,
+                    message="deployment verify is blocked until stack verification contracts are wired.",
+                    reason=f"verification is blocked for {target_id}",
+                    verification_results=tuple(verification_results),
+                )
+            if verification.status != VerificationStatus.VERIFIED:
+                return DeploymentWorkflowResult(
+                    kind=DeploymentWorkflowKind.VERIFY,
+                    status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
+                    message="deployment verify failed for a configured stack contract.",
+                    reason=f"verification failed for {target_id}",
+                    verification_results=tuple(verification_results),
+                )
+
         return DeploymentWorkflowResult(
             kind=DeploymentWorkflowKind.VERIFY,
-            status=DeploymentWorkflowStatus.BLOCKED,
-            message="deployment verify is blocked until stack verification contracts are wired.",
-            reason=(
-                "stack and service observed-state verification is not implemented through "
-                "deployment ports"
-            ),
+            status=DeploymentWorkflowStatus.COMPLETED,
+            message="deployment verify completed for configured stack contracts.",
+            reason="configured stack contracts verified through deployment ports",
+            verification_results=tuple(verification_results),
         )
 
 
-def _step_has_verification(step: DeploymentApplyStep) -> bool:
+def _step_has_verification(step: DeploymentApplyStep | DeploymentVerifyCheck) -> bool:
     return callable(getattr(step, "verify", None))
 
 
-def _verification_target_id(step: DeploymentApplyStep) -> str:
+def _verification_target_id(
+    step: DeploymentApplyStep | DeploymentVerifyCheck,
+    fallback: str,
+) -> str:
     target_id = getattr(step, "verification_target_id", "")
     if target_id:
         return str(target_id)
     deployment_target_id = getattr(step, "deployment_target_id", "")
     if deployment_target_id:
         return str(deployment_target_id)
-    return "deployment:apply-step"
+    return fallback
 
 
 async def _verify_step(
-    step: DeploymentApplyStep,
+    step: DeploymentApplyStep | DeploymentVerifyCheck,
     target_id: str,
 ) -> VerificationResult:
     verify = getattr(step, "verify", None)

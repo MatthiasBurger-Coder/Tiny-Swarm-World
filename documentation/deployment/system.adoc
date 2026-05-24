@@ -39,6 +39,15 @@ adapter contract. The CLI composition root does not wire that contract as a
 successful live `deployment apply` path yet, because first-time Portainer
 bootstrap and verify-after-apply evidence remain incomplete.
 
+The Deployment boundary also contains a generic `EnsureServiceStack` contract
+and a default stack plan for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+and Swagger/NGINX. The Portainer-managed plan intentionally excludes the
+Portainer stack itself to avoid a bootstrap cycle. These contracts can apply a
+stack through the Portainer port, then record stack-registration context while
+returning blocked readiness until required services are observed. They do not
+claim container health or application readiness; those checks remain future
+observed-state contracts.
+
 == Development gate before deployment work
 
 Run the development quality gate before changing deployment-related code:

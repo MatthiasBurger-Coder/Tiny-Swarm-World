@@ -32,6 +32,11 @@ contacting Portainer, contacting Nexus, building images, pushing registries, or
 changing Docker Swarm state. Tests use fakes for Portainer and compose
 repositories. Artifact contract tests use fake Nexus clients and patched Docker
 CLI calls only; they do not contact Nexus, build images, log in, or push.
+Default service stack contracts cover Portainer, Nexus, Jenkins, RabbitMQ,
+SonarQube, and Swagger/NGINX. The Portainer-managed plan excludes Portainer
+itself to avoid a bootstrap cycle. The current checks record stack
+registration context and return blocked readiness until container health or
+application readiness exists as observed-state evidence.
 
 == Planned Autonomous Setup Deployment Contract
 

@@ -27,7 +27,7 @@ executing live infrastructure commands.
 | `PYTHONPATH=src python3 -m tiny_swarm_world platform verify` | Supported | Non-mutating workflow-level verification path.
 | `platform init` and `platform reconcile` | Supported | Mutating workflow names are supported, live-consent gated, and currently block before apply until command-backed verification is wired.
 | `platform reset` and `platform destroy` | Supported | Confirmation contracts are supported, but destructive execution remains blocked until retention and teardown semantics are implemented.
-| `artifacts prepare`, `artifacts verify`, `deployment apply`, `deployment verify` | Supported | Workflow names are supported and return explicit blocked contract results until their live contracts are wired in composition. Slice 06 adds a tested post-bootstrap Portainer API contract. Slice 07 adds tested Nexus repository contracts and sanitized Nexus/Docker client behavior. CLI `artifacts prepare` and `deployment apply` remain fail-closed by default.
+| `artifacts prepare`, `artifacts verify`, `deployment apply`, `deployment verify` | Supported | Workflow names are supported and return explicit blocked contract results until their live contracts are wired in composition. Slice 06 adds a tested post-bootstrap Portainer API contract. Slice 07 adds tested Nexus repository contracts and sanitized Nexus/Docker client behavior. Slice 08 adds tested default stack-presence contracts without claiming service health. CLI `artifacts prepare` and `deployment apply` remain fail-closed by default.
 |===
 
 == Direct Live Scripts And Assets

@@ -173,6 +173,7 @@ class TestComposition(unittest.TestCase):
         result = asyncio.run(services.workflows.apply.run())
 
         self.assertEqual((), services.workflows.apply.steps)
+        self.assertEqual((), services.workflows.verify.checks)
         self.assertEqual(DeploymentWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
         self.assertIn("Portainer stack changes", result.reason)

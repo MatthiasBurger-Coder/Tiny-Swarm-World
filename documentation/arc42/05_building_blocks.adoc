@@ -37,13 +37,17 @@ microservices:
   configured Nexus repository and registry-readiness checks only after each
   step exposes typed verification evidence.
 * `DeploymentServices` is the explicit deployment boundary. The deployment
-  service namespace now owns `EnsurePortainerStack` and `EnsureNexusStack`.
+  service namespace now owns `EnsurePortainerStack`, `EnsureNexusStack`, and
+  the generic `EnsureServiceStack` contract for the default runnable-service
+  stack set.
   `EnsurePortainerStack` is a post-bootstrap Portainer API contract for
   compose lookup plus stack create/update through `PortComposeFileRepository`
   and `PortPortainerClient`. The composition bundle does not construct a
   Portainer client or run a stack mutation during CLI dispatch in the current
-  slice. `deployment apply` and `deployment verify` both remain blocked until
-  live stack bootstrap and observed-state verification contracts are wired.
+  slice. `deployment apply` and `deployment verify` can evaluate configured
+  stack contracts, but the default composition remains blocked until live
+  stack bootstrap, concrete Portainer configuration, and service readiness
+  checks are wired.
 * `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
   instead of aliasing `PlatformServices`.
 
