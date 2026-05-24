@@ -20,7 +20,7 @@ workflow file.
 - Date created: `2026-05-24`
 - Process strand: `autonomous-runnable-setup`
 - Execution profile: `FULL_PATH`
-- Release status: `SLICE_04_COMPLETED`
+- Release status: `SLICE_05_COMPLETED`
 
 ## Execution Status
 
@@ -30,7 +30,7 @@ workflow file.
 | 02 | `COMPLETED` |
 | 03 | `COMPLETED` |
 | 04 | `COMPLETED` |
-| 05 | `PLANNED` |
+| 05 | `COMPLETED` |
 | 06 | `PLANNED` |
 | 07 | `PLANNED` |
 | 08 | `PLANNED` |

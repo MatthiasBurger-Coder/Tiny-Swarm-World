@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_04_COMPLETED
+SLICE_05_COMPLETED
 ```
 
 ## Branch
@@ -19,7 +19,8 @@ Slice 01 has been completed as a documentation-only requirement baseline.
 Slice 02 has been completed as a setup-safety ADR and arc42 alignment slice.
 Slice 03 has been completed as the setup preflight and manifest contract
 slice. Slice 04 has been completed as the inventory and evidence foundation
-slice. Slice 05 is the next write-capable implementation slice.
+slice. Slice 05 has been completed as the command-backed platform verification
+contract slice. Slices 06 and 07 are the next planned implementation slices.
 
 ## Subagent Review
 
@@ -288,6 +289,85 @@ Requirement-engineering decision:
 - the repair does not change product behavior and restores workflow
   traceability for Slice 05.
 
+### Slice 05: Command-Backed Platform Verification
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+ec9cd2b
+```
+
+Changed files:
+
+- `src/tiny_swarm_world/application/ports/commands/port_command_workflow.py`
+- `src/tiny_swarm_world/application/services/multipass/multipass_docker_install.py`
+- `src/tiny_swarm_world/application/services/multipass/multipass_docker_swarm_init.py`
+- `src/tiny_swarm_world/application/services/multipass/multipass_init_vms.py`
+- `src/tiny_swarm_world/application/services/multipass/multipass_restart_vms.py`
+- `src/tiny_swarm_world/application/services/network/netplant/network_prepare_netplan.py`
+- `src/tiny_swarm_world/application/services/network/netplant/network_setup_netplan.py`
+- `src/tiny_swarm_world/application/services/platform/command_verification.py`
+- `src/tiny_swarm_world/application/services/platform/workflows.py`
+- `src/tiny_swarm_world/application/services/vm/steps/step_current_docker_bridges.py`
+- `src/tiny_swarm_world/application/services/vm/steps/step_manager_gateway.py`
+- `src/tiny_swarm_world/application/services/vm/steps/step_manager_ip.py`
+- `src/tiny_swarm_world/application/services/vm/vm_ip_list.py`
+- `src/tiny_swarm_world/domain/command/__init__.py`
+- `src/tiny_swarm_world/domain/command/verification_probe.py`
+- `src/tiny_swarm_world/infrastructure/adapters/command_runner/command_workflow.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `tests/application/services/multipass/test_multipass_init_vms.py`
+- `tests/application/services/platform/test_command_verification_contracts.py`
+- `tests/application/services/platform/test_platform_workflows.py`
+- `tests/domain/command/test_command_spec.py`
+- `tests/infrastructure/adapters/command_runner/test_command_workflow_configuration.py`
+- `tests/infrastructure/test_composition.py`
+- `documentation/workflow/reports/05-platform-verification-contracts.md`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.command.test_command_spec
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_workflow_configuration
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_command_verification_contracts
+PYTHONPATH=src python3 -m unittest tests.application.services.multipass.test_multipass_init_vms
+python3 tools/quality_gate.py arch-lint
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The final full quality gate ran `287` tests with `1` skipped.
+
+### Governance Repair Before Slices 06 And 07
+
+Reason:
+
+```text
+Slice 05 added command verification contracts, pre-apply platform blocks, and
+redacted platform command handling, so the workflow context pack needed to mark
+Slice 05 complete before Portainer and artifact-contract work can start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- platform command verification now fails closed with typed evidence and does
+  not claim observed post-apply success;
+- the repair does not change product behavior and restores workflow
+  traceability for Slices 06 and 07.
+
 ## Live Infrastructure
 
 No live infrastructure commands were run. Workflow creation did not execute
@@ -303,5 +383,5 @@ Next command:
 workflow execute with subagents
 ```
 
-Execution continues at Slice 05 after re-verifying branch, context pack, locks,
-slice metadata, and quality gates before any write-capable work.
+Execution continues at Slice 06 or Slice 07 after re-verifying branch, context
+pack, locks, slice metadata, and quality gates before any write-capable work.
