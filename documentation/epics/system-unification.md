@@ -20,6 +20,17 @@ sources:
 
 No prior `documentation/epics/` source existed at baseline creation time.
 
+## EPIC Extensions
+
+The autonomous runnable setup baseline extends this EPIC:
+
+- `documentation/epics/autonomous-runnable-setup.md`
+
+The extension defines what "runnable setup" must mean before implementation
+slices wire live Platform, Artifacts, and Deployment behavior. It does not
+replace this system-unification EPIC and does not claim that autonomous setup
+is already implemented.
+
 ## Intent
 
 Tiny Swarm World remains one Linux/WSL-only Python automation system for a
@@ -70,6 +81,9 @@ Planned or incomplete:
   command-backed verification.
 - Legacy direct scripts remain live-operation surfaces outside the CLI consent
   guard and are classified for static review.
+- The autonomous runnable setup requirement baseline exists as an EPIC
+  extension, but the runnable setup implementation remains planned workflow
+  work.
 
 ## Scope
 
@@ -112,6 +126,9 @@ Out of scope:
 - Legacy live-operation scripts are classified by static inspection only.
 - All verification uses repository quality gates and mocked or static checks by
   default.
+- Autonomous setup requirements preserve the Platform, Artifacts, Deployment,
+  Shared, and Console/status UI ownership model and do not present live setup
+  behavior as implemented before later slices verify it.
 
 ## Non-Functional Requirements
 
