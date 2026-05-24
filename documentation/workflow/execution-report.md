@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_02_COMPLETED
+SLICE_03_COMPLETED
 ```
 
 ## Branch
@@ -17,7 +17,8 @@ codex/workflow-autonomous-setup-20260524
 This report records workflow creation and workflow-execution checkpoints.
 Slice 01 has been completed as a documentation-only requirement baseline.
 Slice 02 has been completed as a setup-safety ADR and arc42 alignment slice.
-Slice 03 is the next write-capable implementation slice.
+Slice 03 has been completed as the setup preflight and manifest contract
+slice. Slice 04 is the next write-capable implementation slice.
 
 ## Subagent Review
 
@@ -170,6 +171,66 @@ Requirement-engineering decision:
 - the repair does not change product behavior and restores workflow
   traceability for Slice 03.
 
+### Slice 03: Setup Preflight And Manifest Contract
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+3e3a901
+```
+
+Changed files:
+
+- `src/tiny_swarm_world/domain/preflight/setup_manifest.py`
+- `src/tiny_swarm_world/domain/preflight/preflight_configuration.py`
+- `src/tiny_swarm_world/domain/preflight/preflight_result.py`
+- `src/tiny_swarm_world/domain/preflight/__init__.py`
+- `src/tiny_swarm_world/application/services/platform/preflight_service.py`
+- `tests/domain/preflight/test_preflight_result.py`
+- `tests/application/services/platform/test_preflight_service.py`
+- `tests/infrastructure/adapters/preflight/test_host_preflight_probe.py`
+- `documentation/workflow/execution-report.md`
+- `documentation/workflow/reports/03-setup-preflight-manifest.md`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py arch-tests
+.venv/bin/python tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed.
+
+### Governance Repair Before Slice 04
+
+Reason:
+
+```text
+Slice 03 added setup preflight and manifest contracts, so the workflow context
+needed to mark Slice 03 complete before inventory/evidence work starts.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- the accepted setup safety ADR remains the governing safety contract;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 04.
+
 ## Live Infrastructure
 
 No live infrastructure commands were run. Workflow creation did not execute
@@ -185,5 +246,5 @@ Next command:
 workflow execute with subagents
 ```
 
-Execution continues at Slice 03 after re-verifying branch, context pack, locks,
+Execution continues at Slice 04 after re-verifying branch, context pack, locks,
 slice metadata, and quality gates before any write-capable work.
