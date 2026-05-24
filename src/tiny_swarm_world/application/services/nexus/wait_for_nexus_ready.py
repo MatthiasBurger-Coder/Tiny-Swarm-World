@@ -2,9 +2,12 @@ import logging
 import time
 
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
 class WaitForNexusReady:
+    verification_target_id = "artifacts:nexus-ready"
+
     def __init__(self, nexus_client: PortNexusClient, max_attempts: int, wait_seconds: int):
         self.nexus_client = nexus_client
         self.max_attempts = max_attempts
@@ -25,4 +28,28 @@ class WaitForNexusReady:
 
         raise TimeoutError(
             f"Nexus did not become ready after {self.max_attempts} attempts with {self.wait_seconds} seconds delay."
+        )
+
+    async def verify(self) -> VerificationResult:
+        try:
+            available = self.nexus_client.is_available()
+        except Exception as exc:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.FAILED_TO_VERIFY,
+                message=f"Nexus readiness verification failed: {exc.__class__.__name__}",
+                evidence={"available": "unknown", "phase": "verify"},
+            )
+        if available:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.VERIFIED,
+                message="Nexus HTTP API is available.",
+                evidence={"available": "true", "phase": "verify"},
+            )
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.FAILED_TO_VERIFY,
+            message="Nexus HTTP API is not available.",
+            evidence={"available": "false", "phase": "verify"},
         )

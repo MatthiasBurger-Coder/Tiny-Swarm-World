@@ -19,6 +19,7 @@ from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_YES_VALUES,
     LiveConsent,
     PreflightResult,
+    default_preflight_configuration,
 )
 from tiny_swarm_world.infrastructure.composition import (
     ApplicationServices,
@@ -81,6 +82,7 @@ CLI_WORKFLOWS = (
     ),
     CliWorkflow(namespace="artifacts", action="prepare", mutating=True, destructive=False),
     CliWorkflow(namespace="artifacts", action="verify", mutating=False, destructive=False),
+    CliWorkflow(namespace="deployment", action="bootstrap", mutating=True, destructive=False),
     CliWorkflow(namespace="deployment", action="apply", mutating=True, destructive=False),
     CliWorkflow(namespace="deployment", action="verify", mutating=False, destructive=False),
     CliWorkflow(namespace="setup", action="run", mutating=True, destructive=False),
@@ -176,7 +178,11 @@ async def main(argv: Sequence[str] | None = None) -> None:
             raise SystemExit(2)
 
     logger.info("Running workflow: %s", workflow.name)
+    if workflow.namespace == "setup" and workflow.action == "run":
+        _print_setup_installation_plan()
     result = await run_cli_workflow(workflow, args.confirm, live_consent)
+    if isinstance(result, SetupWorkflowResult):
+        _print_setup_installation_summary(result)
     print(json.dumps(_workflow_result_to_dict(result), indent=2, sort_keys=True))
     if _workflow_status_value(result) != PlatformWorkflowStatus.COMPLETED.value:
         raise SystemExit(1)
@@ -247,6 +253,8 @@ async def run_deployment_workflow(
 ) -> DeploymentWorkflowResult:
     workflows = services.workflows
     match action:
+        case "bootstrap":
+            return await workflows.bootstrap.run()
         case "apply":
             return await workflows.apply.run()
         case "verify":
@@ -315,6 +323,57 @@ def _print_preflight_summary(result: PreflightResult) -> None:
         print(f"- {check.check_id}: {check.message}")
         if check.remediation and check.remediation != "None":
             print(f"  Action: {check.remediation}")
+
+
+def _print_setup_installation_plan() -> None:
+    configuration = default_preflight_configuration()
+    manifest = configuration.setup_manifest
+    print()
+    print("Tiny Swarm World guided installation")
+    print("Target: local Linux/WSL Multipass Docker Swarm")
+    print("Platform:")
+    print("- swarm-manager: Docker Swarm manager")
+    print("- swarm-worker-1: Docker Swarm worker")
+    print("- swarm-worker-2: Docker Swarm worker")
+    print("Installation phases:")
+    for phase in (
+        "preflight",
+        "platform init",
+        "platform reconcile",
+        "deployment bootstrap",
+        "artifacts prepare",
+        "artifacts verify",
+        "deployment apply",
+        "deployment verify",
+        "platform verify",
+    ):
+        print(f"- {phase}")
+    print("Services:")
+    stack_sources = {
+        "Jenkins": "infra/compose/jenkins/docker-compose.yml",
+        "Nexus": "infra/config/compose/nexus/docker-compose.yml",
+        "Portainer": "infra/config/compose/portainer/docker-compose.yml",
+        "RabbitMQ": "infra/config/compose/rabbitmq/docker-compose.yml",
+        "SonarQube": "infra/config/compose/sonarqube/docker-compose.yml",
+        "Swagger/NGINX": "infra/compose/swagger/docker-compose.yml",
+    }
+    for service in manifest.services:
+        ports = ", ".join(str(port.port) for port in service.ports) or "no published port"
+        stack_name = service.name.lower().replace("/nginx", "").replace("swagger", "swagger")
+        print(
+            f"- {service.name}: stack {stack_name}, "
+            f"source {stack_sources.get(service.name, 'infra')}, published port(s) {ports}"
+        )
+    print()
+
+
+def _print_setup_installation_summary(result: SetupWorkflowResult) -> None:
+    print()
+    print("Setup phase summary:")
+    for phase in result.phase_results:
+        print(f"- {phase.name}: {phase.status}")
+    print(f"Final setup status: {result.status.value}")
+    print()
 
 
 if __name__ == "__main__":

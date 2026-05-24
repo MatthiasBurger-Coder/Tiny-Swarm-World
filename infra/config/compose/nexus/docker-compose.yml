@@ -1,14 +1,19 @@
 services:
   nexus:
     image: sonatype/nexus3:3.75.1
-
-    container_name: 'nexus3'
-    restart: always
     volumes:
       - nexus-data:/nexus-data
     ports:
-      - "127.0.0.1:8081:8081"
-      - "127.0.0.1:8085:8085"
-      - "127.0.0.1:5000:5000"
+      - target: 8081
+        published: 8081
+        protocol: tcp
+      - target: 5000
+        published: 5000
+        protocol: tcp
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 volumes:
   nexus-data:

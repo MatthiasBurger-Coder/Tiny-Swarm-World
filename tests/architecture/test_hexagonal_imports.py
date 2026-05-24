@@ -222,17 +222,18 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
 
         self.assertEqual([], violations)
 
-    def test_artifact_and_deployment_cli_workflows_remain_explicitly_blocked(self):
+    def test_artifact_and_deployment_cli_workflows_remain_declared_at_entrypoint(self):
         entrypoint_text = CLI_ENTRYPOINT.read_text(encoding="utf-8")
 
         required_snippets = (
             'CliWorkflow(namespace="artifacts", action="prepare", mutating=True, destructive=False)',
             'CliWorkflow(namespace="artifacts", action="verify", mutating=False, destructive=False)',
+            'CliWorkflow(namespace="deployment", action="bootstrap", mutating=True, destructive=False)',
             'CliWorkflow(namespace="deployment", action="apply", mutating=True, destructive=False)',
             'CliWorkflow(namespace="deployment", action="verify", mutating=False, destructive=False)',
             "platform_kind=kind",
-            "_blocked_workflow_result(workflow)",
-            "is declared but not wired in this workflow slice",
+            "build_artifact_services",
+            "build_deployment_services",
         )
 
         missing_snippets = [

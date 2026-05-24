@@ -58,6 +58,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("platform init", output.getvalue())
         self.assertIn("platform reconcile", output.getvalue())
         self.assertIn("platform reset", output.getvalue())
+        self.assertIn("deployment bootstrap", output.getvalue())
         self.assertIn("deployment apply", output.getvalue())
         self.assertIn("setup run", output.getvalue())
         self.assertNotIn("vm-ip-list", output.getvalue())
@@ -212,7 +213,12 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_artifact_and_deployment_mutating_workflows_require_live_consent_before_services(
         self,
     ):
-        for command in (["artifacts", "prepare"], ["deployment", "apply"], ["setup", "run"]):
+        for command in (
+            ["artifacts", "prepare"],
+            ["deployment", "bootstrap"],
+            ["deployment", "apply"],
+            ["setup", "run"],
+        ):
             with self.subTest(command=command):
                 output = io.StringIO()
 
@@ -235,6 +241,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         cases = (
             ("artifacts", "prepare", True, "live registry and Nexus contracts"),
             ("artifacts", "verify", False, "observed-state verification"),
+            ("deployment", "bootstrap", True, "Portainer and Nexus bootstrap"),
             ("deployment", "apply", True, "Portainer stack changes"),
             ("deployment", "verify", False, "observed-state verification"),
         )
@@ -438,6 +445,14 @@ def _boundary_service_bundles():
         ),
     }
     deployment_runs = {
+        "bootstrap": AsyncMock(
+            return_value=DeploymentWorkflowResult(
+                kind=DeploymentWorkflowKind.BOOTSTRAP,
+                status=DeploymentWorkflowStatus.BLOCKED,
+                message="deployment bootstrap is blocked.",
+                reason="Portainer and Nexus bootstrap require contracts",
+            )
+        ),
         "apply": AsyncMock(
             return_value=DeploymentWorkflowResult(
                 kind=DeploymentWorkflowKind.APPLY,
@@ -463,6 +478,7 @@ def _boundary_service_bundles():
     )
     deployment_services = SimpleNamespace(
         workflows=SimpleNamespace(
+            bootstrap=SimpleNamespace(run=deployment_runs["bootstrap"]),
             apply=SimpleNamespace(run=deployment_runs["apply"]),
             verify=SimpleNamespace(run=deployment_runs["verify"]),
         )
@@ -470,6 +486,7 @@ def _boundary_service_bundles():
     return artifact_services, deployment_services, {
         ("artifacts", "prepare"): artifact_runs["prepare"],
         ("artifacts", "verify"): artifact_runs["verify"],
+        ("deployment", "bootstrap"): deployment_runs["bootstrap"],
         ("deployment", "apply"): deployment_runs["apply"],
         ("deployment", "verify"): deployment_runs["verify"],
     }

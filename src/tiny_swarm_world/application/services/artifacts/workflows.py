@@ -22,15 +22,15 @@ class ArtifactWorkflowStatus(str, Enum):
 
 
 class ArtifactPrepareStep(Protocol):
-    async def run(self) -> object:
+    def run(self) -> object:
         pass
 
-    async def verify(self) -> object:
+    def verify(self) -> object:
         pass
 
 
 class ArtifactVerifyCheck(Protocol):
-    async def verify(self) -> object:
+    def verify(self) -> object:
         pass
 
 

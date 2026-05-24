@@ -1,14 +1,28 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from tiny_swarm_world.application.services.artifacts import (
+    ArtifactPrepareStep,
     ArtifactPrepareWorkflow,
+    ArtifactVerifyCheck,
     ArtifactVerifyWorkflow,
+    EnsureContainerImage,
+    EnsureNexusAdminAccess,
+    EnsureNexusDockerHostedRepository,
+    EnsureNexusMavenProxyRepository,
+    NexusDockerHostedRepositoryConfiguration,
+    NexusMavenProxyRepositoryConfiguration,
+    WaitForNexusReady,
 )
 from tiny_swarm_world.application.services.deployment import (
     DeploymentApplyWorkflow,
+    DeploymentWorkflowKind,
     DeploymentVerifyWorkflow,
+    EnsurePortainerAdminAccess,
+    EnsureSwarmStack,
+    VerifySwarmServiceReadiness,
 )
 from tiny_swarm_world.application.services.platform import (
     MultipassDockerInstall,
@@ -27,11 +41,31 @@ from tiny_swarm_world.application.services.platform import (
     VmIpList,
 )
 from tiny_swarm_world.application.services.setup import SetupWorkflow, SetupWorkflowPhase
+from tiny_swarm_world.domain.artifacts import DEFAULT_CONTAINER_IMAGE_CONTRACTS
+from tiny_swarm_world.domain.deployment import DEFAULT_SERVICE_STACK_CONTRACTS
 from tiny_swarm_world.domain.preflight import LiveConsent
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
+from tiny_swarm_world.infrastructure.adapters.clients.multipass_container_image_publisher import (
+    MultipassContainerImagePublisher,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.multipass_container_runtime import (
+    MultipassContainerRuntime,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.multipass_nexus_http_client import (
+    MultipassNexusHttpClient,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.multipass_portainer_admin_client import (
+    MultipassPortainerAdminClient,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.multipass_swarm_runtime import (
+    MultipassSwarmRuntime,
+)
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
+from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
+    ComposeFileRepositoryYaml,
+)
 from tiny_swarm_world.infrastructure.adapters.repositories.netplan_repository import PortNetplanRepositoryYaml
 from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
     VerificationEvidenceLocalRepository,
@@ -79,6 +113,7 @@ class ArtifactServices:
 
 @dataclass(frozen=True)
 class DeploymentWorkflows:
+    bootstrap: DeploymentApplyWorkflow
     apply: DeploymentApplyWorkflow
     verify: DeploymentVerifyWorkflow
 
@@ -213,19 +248,115 @@ def build_platform_services() -> PlatformServices:
 
 
 def build_artifact_services() -> ArtifactServices:
+    nexus_admin_password = _static_secret_default("TSW_NEXUS_ADMIN_PASSWORD")
+    nexus_client = MultipassNexusHttpClient()
+    container_runtime = MultipassContainerRuntime()
+    image_publisher = MultipassContainerImagePublisher(
+        registry_username="admin",
+        registry_password=nexus_admin_password,
+    )
+    wait_for_nexus_ready = WaitForNexusReady(
+        nexus_client=nexus_client,
+        max_attempts=60,
+        wait_seconds=10,
+    )
+    ensure_nexus_admin_access = EnsureNexusAdminAccess(
+        nexus_client=nexus_client,
+        container_runtime=container_runtime,
+        admin_username="admin",
+        admin_password=nexus_admin_password,
+        container_name_filter="nexus",
+        initial_password_path="/nexus-data/admin.password",
+        max_attempts=60,
+        wait_seconds=10,
+    )
+    nexus_repository_steps = (
+        EnsureNexusDockerHostedRepository(
+            nexus_client=nexus_client,
+            configuration=NexusDockerHostedRepositoryConfiguration(
+                repository_name="docker-hosted",
+                http_port=5000,
+                admin_username="admin",
+                admin_password=nexus_admin_password,
+            ),
+        ),
+        EnsureNexusMavenProxyRepository(
+            nexus_client=nexus_client,
+            configuration=NexusMavenProxyRepositoryConfiguration(
+                repository_name="maven-central-proxy",
+                remote_url="https://repo1.maven.org/maven2/",
+                admin_username="admin",
+                admin_password=nexus_admin_password,
+            ),
+        ),
+    )
+    image_steps = tuple(
+        EnsureContainerImage(image_publisher, contract)
+        for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS
+    )
+    checks = cast(
+        tuple[ArtifactPrepareStep, ...],
+        (
+            wait_for_nexus_ready,
+            ensure_nexus_admin_access,
+            *nexus_repository_steps,
+            *image_steps,
+        ),
+    )
+    verify_checks = cast(tuple[ArtifactVerifyCheck, ...], checks)
     return ArtifactServices(
         workflows=ArtifactWorkflows(
-            prepare=ArtifactPrepareWorkflow(),
-            verify=ArtifactVerifyWorkflow(),
+            prepare=ArtifactPrepareWorkflow(checks),
+            verify=ArtifactVerifyWorkflow(verify_checks),
         )
     )
 
 
 def build_deployment_services() -> DeploymentServices:
+    compose_repository = ComposeFileRepositoryYaml()
+    swarm_runtime = MultipassSwarmRuntime()
+    portainer_admin_client = MultipassPortainerAdminClient()
+    stack_steps = {
+        contract.stack_name: EnsureSwarmStack(
+            compose_repository=compose_repository,
+            swarm_runtime=swarm_runtime,
+            service_stack=contract,
+        )
+        for contract in DEFAULT_SERVICE_STACK_CONTRACTS
+    }
+    bootstrap_steps = (
+        stack_steps["portainer"],
+        EnsurePortainerAdminAccess(
+            portainer_admin_client=portainer_admin_client,
+            username="admin",
+            password=_static_secret_default("TSW_PORTAINER_PASSWORD"),
+            max_attempts=60,
+            wait_seconds=5,
+        ),
+        stack_steps["nexus"],
+    )
+    application_steps = tuple(
+        step
+        for stack_name, step in stack_steps.items()
+        if stack_name not in {"portainer", "nexus"}
+    )
+    readiness_checks = tuple(
+        VerifySwarmServiceReadiness(
+            swarm_runtime=swarm_runtime,
+            service_stack=contract,
+            max_attempts=60,
+            wait_seconds=10,
+        )
+        for contract in DEFAULT_SERVICE_STACK_CONTRACTS
+    )
     return DeploymentServices(
         workflows=DeploymentWorkflows(
-            apply=DeploymentApplyWorkflow(),
-            verify=DeploymentVerifyWorkflow(),
+            bootstrap=DeploymentApplyWorkflow(
+                bootstrap_steps,
+                kind=DeploymentWorkflowKind.BOOTSTRAP,
+            ),
+            apply=DeploymentApplyWorkflow(application_steps),
+            verify=DeploymentVerifyWorkflow(readiness_checks),
         )
     )
 
@@ -243,6 +374,7 @@ def build_setup_services(live_consent: LiveConsent) -> SetupServices:
                     SetupWorkflowPhase("preflight", lambda: preflight.run(live_consent)),
                     SetupWorkflowPhase("platform init", lambda: platform.workflows.init.run()),
                     SetupWorkflowPhase("platform reconcile", lambda: platform.workflows.reconcile.run()),
+                    SetupWorkflowPhase("deployment bootstrap", lambda: deployment.workflows.bootstrap.run()),
                     SetupWorkflowPhase("artifacts prepare", lambda: artifacts.workflows.prepare.run()),
                     SetupWorkflowPhase("artifacts verify", lambda: artifacts.workflows.verify.run()),
                     SetupWorkflowPhase("deployment apply", lambda: deployment.workflows.apply.run()),
@@ -261,3 +393,10 @@ def build_application_services() -> ApplicationServices:
         artifacts=build_artifact_services(),
         deployment=build_deployment_services(),
     )
+
+
+def _static_secret_default(name: str) -> str:
+    for default in build_preflight_service().configuration.static_secret_defaults:
+        if default.name == name:
+            return default.value
+    raise KeyError(f"Missing static secret default '{name}'.")

@@ -3,8 +3,6 @@ import unittest
 from dataclasses import fields
 from unittest.mock import patch
 
-from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowStatus
-from tiny_swarm_world.application.services.deployment import DeploymentWorkflowStatus
 from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
@@ -82,7 +80,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual({"workflows"}, artifact_field_names)
         self.assertEqual({"prepare", "verify"}, artifact_workflow_names)
         self.assertEqual({"workflows"}, deployment_field_names)
-        self.assertEqual({"apply", "verify"}, deployment_workflow_names)
+        self.assertEqual({"bootstrap", "apply", "verify"}, deployment_workflow_names)
         self.assertEqual({"workflows"}, setup_field_names)
         self.assertEqual({"run"}, setup_workflow_names)
 
@@ -135,57 +133,95 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
 
-    def test_build_artifact_services_wires_blocked_workflow_contracts(self):
+    def test_build_artifact_services_wires_artifact_contracts_without_running_clients(self):
         services = composition.build_artifact_services()
 
         self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.ArtifactVerifyWorkflow)
+        self.assertEqual(
+            (
+                "artifacts:nexus-ready",
+                "artifacts:nexus-admin-access",
+                "artifacts:nexus-docker-hosted-repository",
+                "artifacts:nexus-maven-proxy-repository",
+                "artifacts:jenkins-image",
+                "artifacts:swagger-nginx-image",
+            ),
+            tuple(step.verification_target_id for step in services.workflows.prepare.steps),
+        )
 
-    def test_build_artifact_services_keeps_workflows_fail_closed_even_with_nexus_environment(self):
-        environment = {
-            "TSW_NEXUS_URL": "http://localhost:8081",
-            "TSW_NEXUS_ADMIN_USERNAME": "admin",
-            "TSW_NEXUS_ADMIN_PASSWORD": "operator-supplied",
-        }
+    def test_build_artifact_services_does_not_call_live_clients_during_construction(self):
+        with patch.object(composition, "MultipassNexusHttpClient") as nexus_client:
+            with patch.object(composition, "MultipassContainerRuntime") as container_runtime:
+                with patch.object(composition, "MultipassContainerImagePublisher") as image_publisher:
+                    services = composition.build_artifact_services()
 
-        with patch.dict("os.environ", environment, clear=True):
-            services = composition.build_artifact_services()
+        nexus_client.assert_called_once_with()
+        container_runtime.assert_called_once_with()
+        image_publisher.assert_called_once()
+        self.assertEqual(6, len(services.workflows.prepare.steps))
+        self.assertEqual(6, len(services.workflows.verify.checks))
 
-        prepare_result = asyncio.run(services.workflows.prepare.run())
-        verify_result = asyncio.run(services.workflows.verify.run())
+    def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
+        with patch.object(composition, "ComposeFileRepositoryYaml"):
+            with patch.object(composition, "MultipassSwarmRuntime"):
+                with patch.object(composition, "MultipassPortainerAdminClient"):
+                    services = composition.build_deployment_services()
 
-        self.assertEqual((), services.workflows.prepare.steps)
-        self.assertEqual((), services.workflows.verify.checks)
-        self.assertEqual(ArtifactWorkflowStatus.BLOCKED, prepare_result.status)
-        self.assertEqual(ArtifactWorkflowStatus.BLOCKED, verify_result.status)
-        self.assertFalse(prepare_result.executed)
-        self.assertIn("verified artifact contracts", prepare_result.reason)
-
-    def test_build_deployment_services_wires_blocked_workflow_contracts(self):
-        with patch.dict("os.environ", {}, clear=True):
-            services = composition.build_deployment_services()
-
+        self.assertIsInstance(services.workflows.bootstrap, composition.DeploymentApplyWorkflow)
         self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.DeploymentVerifyWorkflow)
+        self.assertEqual(
+            (
+                "deployment:portainer-stack",
+                "deployment:portainer-admin-access",
+                "deployment:nexus-stack",
+            ),
+            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
+        )
+        self.assertEqual(
+            (
+                "deployment:jenkins-stack",
+                "deployment:rabbitmq-stack",
+                "deployment:sonarqube-stack",
+                "deployment:swagger-stack",
+            ),
+            tuple(step.verification_target_id for step in services.workflows.apply.steps),
+        )
+        self.assertEqual(
+            (
+                "deployment:portainer-service-readiness",
+                "deployment:nexus-service-readiness",
+                "deployment:jenkins-service-readiness",
+                "deployment:rabbitmq-service-readiness",
+                "deployment:sonarqube-service-readiness",
+                "deployment:swagger-service-readiness",
+            ),
+            tuple(check.verification_target_id for check in services.workflows.verify.checks),
+        )
 
-    def test_build_deployment_services_keeps_apply_fail_closed_even_with_portainer_environment(self):
-        environment = {
-            "TSW_PORTAINER_URL": "http://localhost:9000",
-            "TSW_PORTAINER_USERNAME": "admin",
-            "TSW_PORTAINER_PASSWORD": "operator-supplied",
-            "TSW_PORTAINER_ENDPOINT": "local",
-        }
+    def test_build_deployment_services_does_not_call_runtime_during_construction(self):
+        with patch.object(composition, "ComposeFileRepositoryYaml") as compose_repository:
+            with patch.object(composition, "MultipassSwarmRuntime") as swarm_runtime:
+                with patch.object(composition, "MultipassPortainerAdminClient") as portainer_client:
+                    services = composition.build_deployment_services()
 
-        with patch.dict("os.environ", environment, clear=True):
-            services = composition.build_deployment_services()
+        compose_repository.assert_called_once_with()
+        swarm_runtime.assert_called_once_with()
+        portainer_client.assert_called_once_with()
+        self.assertEqual(3, len(services.workflows.bootstrap.steps))
+        self.assertEqual(4, len(services.workflows.apply.steps))
+        self.assertEqual(6, len(services.workflows.verify.checks))
 
-        result = asyncio.run(services.workflows.apply.run())
+    def test_build_artifact_services_uses_static_local_defaults_not_environment_passwords(self):
+        with patch.dict("os.environ", {"TSW_NEXUS_ADMIN_PASSWORD": "operator-supplied"}, clear=True):
+            services = composition.build_artifact_services()
 
-        self.assertEqual((), services.workflows.apply.steps)
-        self.assertEqual((), services.workflows.verify.checks)
-        self.assertEqual(DeploymentWorkflowStatus.BLOCKED, result.status)
-        self.assertFalse(result.executed)
-        self.assertIn("Portainer stack changes", result.reason)
+        image_publisher = services.workflows.prepare.steps[-1].image_publisher
+        self.assertEqual(
+            "MyAdminPassWord1234-126354654",
+            image_publisher.registry_password,
+        )
 
     def test_build_setup_services_wires_phase_orchestrator_without_running_phases(self):
         with patch.object(composition, "build_preflight_service") as build_preflight:
@@ -206,6 +242,7 @@ class TestComposition(unittest.TestCase):
                 "preflight",
                 "platform init",
                 "platform reconcile",
+                "deployment bootstrap",
                 "artifacts prepare",
                 "artifacts verify",
                 "deployment apply",
@@ -368,4 +405,4 @@ def _artifact_phase_bundle():
 
 
 def _deployment_phase_bundle():
-    return _workflow_bundle("apply", "verify")
+    return _workflow_bundle("bootstrap", "apply", "verify")

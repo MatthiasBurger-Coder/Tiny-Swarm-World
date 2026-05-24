@@ -10,6 +10,7 @@ from tiny_swarm_world.domain.inventory import VerificationResult, VerificationSt
 
 
 class DeploymentWorkflowKind(str, Enum):
+    BOOTSTRAP = "bootstrap"
     APPLY = "apply"
     VERIFY = "verify"
 
@@ -22,15 +23,15 @@ class DeploymentWorkflowStatus(str, Enum):
 
 
 class DeploymentApplyStep(Protocol):
-    async def run(self) -> object:
+    def run(self) -> object:
         pass
 
-    async def verify(self) -> object:
+    def verify(self) -> object:
         pass
 
 
 class DeploymentVerifyCheck(Protocol):
-    async def verify(self) -> object:
+    def verify(self) -> object:
         pass
 
 
@@ -71,14 +72,16 @@ class DeploymentApplyWorkflow:
         self,
         steps: Sequence[DeploymentApplyStep] = (),
         blocked_reason: str = DEFAULT_DEPLOYMENT_APPLY_BLOCK_REASON,
+        kind: DeploymentWorkflowKind = DeploymentWorkflowKind.APPLY,
     ):
         self.steps = tuple(steps)
         self.blocked_reason = blocked_reason
+        self.kind = kind
 
     async def run(self) -> DeploymentWorkflowResult:
         if not self.steps:
             return DeploymentWorkflowResult(
-                kind=DeploymentWorkflowKind.APPLY,
+                kind=self.kind,
                 status=DeploymentWorkflowStatus.BLOCKED,
                 message="deployment apply is blocked until stack deployment contracts are wired.",
                 reason=self.blocked_reason,
@@ -96,7 +99,7 @@ class DeploymentApplyWorkflow:
                 )
                 verification_results.append(blocked_verification)
                 return DeploymentWorkflowResult(
-                    kind=DeploymentWorkflowKind.APPLY,
+                    kind=self.kind,
                     status=DeploymentWorkflowStatus.BLOCKED,
                     message="deployment apply is blocked until stack deployment contracts are wired.",
                     reason="verify-after-apply contract is missing for deployment apply",
@@ -109,7 +112,7 @@ class DeploymentApplyWorkflow:
                     await apply_result
             except Exception as exc:
                 return DeploymentWorkflowResult(
-                    kind=DeploymentWorkflowKind.APPLY,
+                    kind=self.kind,
                     status=DeploymentWorkflowStatus.FAILED_TO_APPLY,
                     message="deployment apply failed for a configured stack contract.",
                     reason=f"apply failed with {exc.__class__.__name__}",
@@ -129,7 +132,7 @@ class DeploymentApplyWorkflow:
             verification_results.append(verification)
             if verification.status == VerificationStatus.BLOCKED:
                 return DeploymentWorkflowResult(
-                    kind=DeploymentWorkflowKind.APPLY,
+                    kind=self.kind,
                     status=DeploymentWorkflowStatus.BLOCKED,
                     message="deployment apply is blocked until stack deployment contracts are wired.",
                     reason=f"verification is blocked for {target_id}",
@@ -138,7 +141,7 @@ class DeploymentApplyWorkflow:
                 )
             if verification.status != VerificationStatus.VERIFIED:
                 return DeploymentWorkflowResult(
-                    kind=DeploymentWorkflowKind.APPLY,
+                    kind=self.kind,
                     status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
                     message="deployment apply failed verification for a configured stack contract.",
                     reason=f"verification failed for {target_id}",
@@ -147,7 +150,7 @@ class DeploymentApplyWorkflow:
                 )
 
         return DeploymentWorkflowResult(
-            kind=DeploymentWorkflowKind.APPLY,
+            kind=self.kind,
             status=DeploymentWorkflowStatus.COMPLETED,
             message="deployment apply completed for configured stack contracts.",
             reason="configured stack contracts applied and verified through deployment ports",

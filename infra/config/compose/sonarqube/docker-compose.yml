@@ -1,8 +1,6 @@
 services:
   sonarqube:
-    container_name: 'sonarqube'
     image: sonarqube:lts-community
-    restart: always
     depends_on:
       - sonar_db
     environment:
@@ -10,18 +8,23 @@ services:
       SONAR_JDBC_USERNAME: sonar
       SONAR_JDBC_PASSWORD: sonar
     ports:
-      - "127.0.0.1:9001:9000"
+      - target: 9000
+        published: 9001
+        protocol: tcp
     volumes:
       - sonarqube_conf:/opt/sonarqube/conf
       - sonarqube_data:/opt/sonarqube/data
       - sonarqube_extensions:/opt/sonarqube/extensions
       - sonarqube_logs:/opt/sonarqube/logs
       - sonarqube_temp:/opt/sonarqube/temp
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
   sonar_db:
     image: postgres:13
-    container_name: 'sonarqube-postgres'
-    restart: always
     environment:
       POSTGRES_USER: sonar
       POSTGRES_PASSWORD: sonar
@@ -29,6 +32,11 @@ services:
     volumes:
       - sonar_db:/var/lib/postgresql
       - sonar_db_data:/var/lib/postgresql/data
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
 volumes:
   sonarqube_conf:

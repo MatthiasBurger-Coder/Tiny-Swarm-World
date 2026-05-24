@@ -2,25 +2,38 @@ services:
   swagger-editor:
     image: swaggerapi/swagger-editor
     ports:
-      - "127.0.0.1:8082:8080"
-    restart: always
+      - target: 8080
+        published: 8082
+        protocol: tcp
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
   swagger-ui:
     image: swaggerapi/swagger-ui
     ports:
-      - "127.0.0.1:8083:8080"
-    restart: always
+      - target: 8080
+        published: 8083
+        protocol: tcp
     volumes:
       - ./swagger/openapi.json:/openapi.json
     environment:
       SWAGGER_JSON: /openapi.json
       # API_URL: ""
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
   swagger-api:
-    restart: always
     image: danielgtaylor/apisprout
     ports:
-      - "127.0.0.1:8084:8000"
+      - target: 8000
+        published: 8084
+        protocol: tcp
     volumes:
       - ./swagger/openapi.json:/openapi.json
     command: /openapi.json
@@ -28,17 +41,28 @@ services:
       swagger_link:
         aliases:
           - local.swagger.apisprout
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
   swagger-nginx:
-    restart: always
     image: 127.0.0.1:5000/swagger-nginx:latest
     ports:
-      - "127.0.0.1:8087:8084"
+      - target: 8084
+        published: 80
+        protocol: tcp
     depends_on:
       - swagger-api
     networks:
       swagger_link:
         aliases:
           - local.swagger.api
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 networks:
   swagger_link:

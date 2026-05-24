@@ -3,9 +3,12 @@ import time
 
 from tiny_swarm_world.application.ports.clients.port_container_runtime import PortContainerRuntime
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
 class EnsureNexusAdminAccess:
+    verification_target_id = "artifacts:nexus-admin-access"
+
     def __init__(
         self,
         nexus_client: PortNexusClient,
@@ -88,3 +91,27 @@ class EnsureNexusAdminAccess:
                 time.sleep(self.wait_seconds)
 
         raise RuntimeError(f"Could not read Nexus admin password from '{self.initial_password_path}'.")
+
+    async def verify(self) -> VerificationResult:
+        try:
+            authenticated = self.nexus_client.can_authenticate(self.admin_username, self.admin_password)
+        except Exception as exc:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.FAILED_TO_VERIFY,
+                message=f"Nexus admin verification failed: {exc.__class__.__name__}",
+                evidence={"authenticated": "unknown", "phase": "verify"},
+            )
+        if authenticated:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.VERIFIED,
+                message="Nexus admin credentials are active.",
+                evidence={"authenticated": "true", "phase": "verify"},
+            )
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.FAILED_TO_VERIFY,
+            message="Nexus admin credentials are not active.",
+            evidence={"authenticated": "false", "phase": "verify"},
+        )

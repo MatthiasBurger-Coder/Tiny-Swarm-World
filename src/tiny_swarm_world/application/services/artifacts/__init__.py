@@ -20,6 +20,9 @@ from tiny_swarm_world.application.services.nexus.nexus_bootstrap_configuration i
     NexusBootstrapConfiguration,
 )
 from tiny_swarm_world.application.services.nexus.wait_for_nexus_ready import WaitForNexusReady
+from tiny_swarm_world.application.services.artifacts.ensure_container_image import (
+    EnsureContainerImage,
+)
 from tiny_swarm_world.application.services.artifacts.workflows import (
     ArtifactPrepareStep,
     ArtifactPrepareWorkflow,
@@ -39,6 +42,7 @@ __all__ = [
     "ArtifactWorkflowResult",
     "ArtifactWorkflowStatus",
     "EnableNexusAnonymousAccess",
+    "EnsureContainerImage",
     "EnsureNexusAdminAccess",
     "EnsureNexusDockerHostedRepository",
     "EnsureNexusMavenProxyRepository",
