@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-COMPLETED_PENDING_COMMIT
+COMPLETED
 ```
 
 ## Workflow Context
@@ -140,9 +140,11 @@ login, registry push, or stack upload commands.
 ## Checkpoint Record
 
 ```yaml
-CP_RECORD: VERIFIED_PENDING_COMMIT
+CP_RECORD: VERIFIED_AND_PUSHED
 workflowVersion: autonomous-runnable-setup-v1.0.0
 sliceId: "11"
+checkpointCommit: a5f30f1
+pushResult: origin/codex/workflow-autonomous-setup-20260524 updated from bea02eb to a5f30f1
 changedFiles:
   - README.md
   - documentation/arc42/05_building_blocks.adoc
@@ -169,4 +171,5 @@ rollbackRef: revert the Slice 11 checkpoint commit
 arc42Updated: yes; building blocks, deployment view, and risks/debt updated
 adrUpdated: yes; autonomous setup safety implementation status updated
 optionalLiveSmoke: not run; no explicit live approval or disposable target provided
+pullRequest: no new PR created; existing PR #36 was not merged
 ```

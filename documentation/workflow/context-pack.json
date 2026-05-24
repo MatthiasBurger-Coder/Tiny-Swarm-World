@@ -6,7 +6,7 @@
     "createdDate": "2026-05-24",
     "processStrand": "autonomous-runnable-setup",
     "executionProfile": "FULL_PATH",
-    "releaseStatus": "SLICE_10_COMPLETED"
+    "releaseStatus": "WORKFLOW_COMPLETED"
   },
   "contextValidity": {
     "staleWhen": [
@@ -30,7 +30,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "C0E731EF69795EC8DFFB7E19A3C540F9F9EBC96996FB0974CFE5756DC6B0A3AF"
+      "sha256": "9165A11D60B16E5B73970248360558CAC8A817926623A9E90637DE047713DD9D"
     },
     {
       "path": ".importlinter",
@@ -38,19 +38,19 @@
     },
     {
       "path": "documentation/epics/system-unification.md",
-      "sha256": "7F8B87A904676CC107FEF217987E6A3C419CD64EA533A29FD1D444BEEBD9721D"
+      "sha256": "6A488D85AAB23B65B26CE927985D636FB5457977319EFA1F6A6DBF3C1E4F40D3"
     },
     {
       "path": "documentation/epics/autonomous-runnable-setup.md",
-      "sha256": "6B464ADF0672012D5AD14CC5C27FC654E32D50DC5CB12D1C2756381B2E0E9FEB"
+      "sha256": "032EE1C19307457F72410BEF6A7B00C6BBC07D7F73F802393D7EA4DFB5E2C312"
     },
     {
       "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
-      "sha256": "0CA708C87E68348254C91FB662B1A78D8577859BEBED2C92B420785AF74B6DE0"
+      "sha256": "489949926E416D15F372BFE38040709876CFDBA3C3A942178BD0202716622BAD"
     },
     {
       "path": "documentation/arc42/05_building_blocks.adoc",
-      "sha256": "BF399C6962A5C5277F86BF8A3E63C761E8193F409E2B369079A1D97EDF754EFA"
+      "sha256": "60DDB9811AB3CD2D404C16592AFEBE62872223EE7CD00EAC9586A6A41490B201"
     },
     {
       "path": "documentation/arc42/06_runtime_view.adoc",
@@ -58,7 +58,7 @@
     },
     {
       "path": "documentation/arc42/07_deployment_view.adoc",
-      "sha256": "6EB419A80736BADD17F69A5E6ADED4BCDD05040614F0327971503C865A7485E3"
+      "sha256": "2F4046D7D1BC1F4189C3B71B02A8DB4342945E27C149AD8F828C7F2B7A859CCC"
     },
     {
       "path": "documentation/arc42/09_architecture_decisions.adoc",
@@ -70,19 +70,31 @@
     },
     {
       "path": "documentation/arc42/11_risks_and_debt.adoc",
-      "sha256": "BE1D03D28E80F38E17B5009FACEB7FC8651691BCAFD2C48A60585BDBF23BA197"
+      "sha256": "6BA24B09A4F6F9448E36D475E59F4DEE6C1D3CF23DDF46B45872E7FDAB28F901"
     },
     {
       "path": "documentation/system/live-operation-surfaces.adoc",
-      "sha256": "A6083188144D2E3DBEAAAA95266752C7829E2D49A3A909B882C00F05876BF82C"
+      "sha256": "24E88A98ECF7F21B08599242F1EB5D7606F77C9EB487186FBA6FCB692BF2412E"
     },
     {
       "path": "documentation/user_guide/installation.adoc",
-      "sha256": "8F26FD0C8C217886784DC2B4A32EA2B89BFE88DE42A814A45A70486E338FD1D4"
+      "sha256": "C2C6902FBF67D03375F64D078EB2D00516F349EAF9330CD4B628A076A608D3FE"
+    },
+    {
+      "path": "documentation/user_guide/usage.adoc",
+      "sha256": "8A7710E805C55A30DA96581F5D13032D54A2677D67FB61286E3B43200E5F8C7D"
+    },
+    {
+      "path": "documentation/user_guide/troubleshooting.adoc",
+      "sha256": "0454C2BFECAA74F65F3E54B0DB4FBF348109360FE4B5A69FD6877C2948218A63"
     },
     {
       "path": "documentation/deployment/system.adoc",
-      "sha256": "69729FC169BE49F1BF1AEDDF0A4609ABBF6131741BE250A878844F2361461771"
+      "sha256": "3630F668F4F5A530950AF3834546B7C72D8EA33249EA54DF86ECF1C5EEE3068A"
+    },
+    {
+      "path": "documentation/workflow/reports/11-documentation-sync-quality-live-smoke.md",
+      "sha256": "FA103DE1C6DB6B3CDA71D2F1059DF1053D4901940B18EDBF6E2952C85C9A870E"
     },
     {
       "path": ".agents/skills/workflow-authoring/SKILL.md",
@@ -240,7 +252,7 @@
     },
     {
       "sliceId": "11",
-      "status": "PLANNED",
+      "status": "COMPLETED",
       "owner": "senior_documentation_engineer",
       "purpose": "Documentation sync, quality gate, and optional live smoke handoff",
       "dependencies": [

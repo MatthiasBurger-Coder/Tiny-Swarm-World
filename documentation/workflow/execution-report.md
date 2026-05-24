@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_10_COMPLETED
+WORKFLOW_COMPLETED
 ```
 
 ## Branch
@@ -25,8 +25,9 @@ contract slice. Slice 07 has been completed as the Nexus and artifact registry
 contract slice. Slice 08 has been completed as the service stack deployment
 and verification contract slice. Slice 09 has been completed as the
 autonomous setup orchestrator and CLI contract slice. Slice 10 has been
-completed as the console status and recovery UX slice. Slice 11 is the next
-planned implementation slice.
+completed as the console status and recovery UX slice. Slice 11 has been
+completed as the final documentation sync, quality gate, and optional live
+smoke handoff slice.
 
 ## Subagent Review
 
@@ -734,6 +735,74 @@ Requirement-engineering decision:
 - the repair does not change product behavior and restores workflow
   traceability for Slice 11.
 
+### Slice 11: Documentation Sync, Quality Gate, And Optional Live Smoke Handoff
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+a5f30f1
+```
+
+Push result:
+
+```text
+origin/codex/workflow-autonomous-setup-20260524 updated from bea02eb to a5f30f1
+```
+
+Changed files:
+
+- `README.md`
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/architecture/adr-autonomous-setup-safety.adoc`
+- `documentation/deployment/system.adoc`
+- `documentation/epics/autonomous-runnable-setup.md`
+- `documentation/epics/system-unification.md`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/user_guide/installation.adoc`
+- `documentation/user_guide/troubleshooting.adoc`
+- `documentation/user_guide/usage.adoc`
+- `documentation/workflow/reports/09-autonomous-setup-orchestrator.md`
+- `documentation/workflow/reports/10-console-status-recovery.md`
+- `documentation/workflow/reports/11-documentation-sync-quality-live-smoke.md`
+
+Verification:
+
+```bash
+git diff --check
+python3 tools/quality_gate.py arch-lint
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py quality
+git diff --cached --check
+```
+
+Result: passed. `arch-tests` ran `16` tests. The final full quality gate ran
+`359` tests with `1` skipped.
+
+Requirement-engineering decision:
+
+- the implementation now matches the EPIC partially with a precise status:
+  fail-closed `setup run` orchestration is implemented, but full live runnable
+  setup is not claimed;
+- optional live smoke remains a separate operator action, not the default
+  quality gate;
+- direct live scripts remain transitional, deprecated, legacy, or supported
+  assets, not the canonical setup workflow.
+
+Checkpoint governance:
+
+- no new pull request was created;
+- known existing PR `#36` was not merged by this checkpoint;
+- no `push auto`, force-push, branch cleanup, merge, or push to `main` was
+  performed.
+
 ## Live Infrastructure
 
 No live infrastructure commands were run. Workflow creation did not execute
@@ -743,11 +812,6 @@ or stack upload commands.
 
 ## Handoff
 
-Next command:
-
-```text
-workflow execute with subagents
-```
-
-Execution continues at Slice 11 after re-verifying branch, context pack, locks,
-slice metadata, and quality gates before any write-capable work.
+All planned workflow slices have completed. Optional live smoke validation is
+available only as an explicit operator action with live consent on a disposable
+or recoverable local target environment.
