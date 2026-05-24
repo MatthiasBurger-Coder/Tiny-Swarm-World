@@ -20,7 +20,7 @@ workflow file.
 - Date created: `2026-05-24`
 - Process strand: `autonomous-runnable-setup`
 - Execution profile: `FULL_PATH`
-- Release status: `SLICE_08_COMPLETED`
+- Release status: `SLICE_09_COMPLETED`
 
 ## Execution Status
 
@@ -34,7 +34,7 @@ workflow file.
 | 06 | `COMPLETED` |
 | 07 | `COMPLETED` |
 | 08 | `COMPLETED` |
-| 09 | `PLANNED` |
+| 09 | `COMPLETED` |
 | 10 | `PLANNED` |
 | 11 | `PLANNED` |
 
@@ -50,9 +50,9 @@ workflow file.
 | `documentation/epics/autonomous-runnable-setup.md` | `6B464ADF0672012D5AD14CC5C27FC654E32D50DC5CB12D1C2756381B2E0E9FEB` |
 | `documentation/architecture/adr-autonomous-setup-safety.adoc` | `0CA708C87E68348254C91FB662B1A78D8577859BEBED2C92B420785AF74B6DE0` |
 | `documentation/arc42/05_building_blocks.adoc` | `BF399C6962A5C5277F86BF8A3E63C761E8193F409E2B369079A1D97EDF754EFA` |
-| `documentation/arc42/06_runtime_view.adoc` | `118E7CE34484D1AECF783D2624CD9B8E9EF14D496960C69107B4546E81B88BED` |
+| `documentation/arc42/06_runtime_view.adoc` | `38FCAFD825308B671EC6C042AC0B9567D4F3A3A0AB70D1791DE5B05CE30CE71A` |
 | `documentation/arc42/07_deployment_view.adoc` | `6EB419A80736BADD17F69A5E6ADED4BCDD05040614F0327971503C865A7485E3` |
-| `documentation/arc42/09_architecture_decisions.adoc` | `8B9BE723ACF350193F8E6B8FD70412776AB3EA7888F43DFEDA4A4F0249871EF9` |
+| `documentation/arc42/09_architecture_decisions.adoc` | `50D16962A712E10E3FA48BCF35DCBEB9D1DF93FA7764AF2C333DC0A9DE10082E` |
 | `documentation/arc42/10_quality_requirements.adoc` | `E80E6187EACB4485BBB446C3070485606657BB4E127676A589E6A4B39401E072` |
 | `documentation/arc42/11_risks_and_debt.adoc` | `BE1D03D28E80F38E17B5009FACEB7FC8651691BCAFD2C48A60585BDBF23BA197` |
 | `documentation/system/live-operation-surfaces.adoc` | `A6083188144D2E3DBEAAAA95266752C7829E2D49A3A909B882C00F05876BF82C` |

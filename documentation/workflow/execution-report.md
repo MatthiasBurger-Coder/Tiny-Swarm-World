@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_08_COMPLETED
+SLICE_09_COMPLETED
 ```
 
 ## Branch
@@ -23,8 +23,9 @@ slice. Slice 05 has been completed as the command-backed platform verification
 contract slice. Slice 06 has been completed as the Portainer deployment
 contract slice. Slice 07 has been completed as the Nexus and artifact registry
 contract slice. Slice 08 has been completed as the service stack deployment
-and verification contract slice. Slice 09 is the next planned implementation
-slice.
+and verification contract slice. Slice 09 has been completed as the
+autonomous setup orchestrator and CLI contract slice. Slice 10 is the next
+planned implementation slice.
 
 ## Subagent Review
 
@@ -601,6 +602,75 @@ Requirement-engineering decision:
 - the repair does not change product behavior and restores workflow
   traceability for Slice 09.
 
+### Slice 09: Autonomous Setup Orchestrator And CLI Contract
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+b8ed730
+```
+
+Changed files:
+
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/09_architecture_decisions.adoc`
+- `documentation/workflow/reports/09-autonomous-setup-orchestrator.md`
+- `src/tiny_swarm_world/__main__.py`
+- `src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py`
+- `src/tiny_swarm_world/application/services/setup/__init__.py`
+- `src/tiny_swarm_world/application/services/setup/workflow.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `tests/application/services/setup/__init__.py`
+- `tests/application/services/setup/test_setup_workflow.py`
+- `tests/architecture/test_hexagonal_imports.py`
+- `tests/infrastructure/test_composition.py`
+- `tests/test_package_entrypoint.py`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.application.services.setup tests.infrastructure.test_composition
+python3 tools/quality_gate.py arch-lint
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py lint
+python3 tools/quality_gate.py typecheck
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The focused unit set ran `47` tests. The final full quality
+gate ran `351` tests with `1` skipped.
+
+### Governance Repair Before Slice 10
+
+Reason:
+
+```text
+Slice 09 added the canonical fail-closed setup CLI contract, setup
+application orchestration, setup composition wiring, platform result
+serialization, and arc42 runtime/decision updates, so the workflow context
+pack needed to mark Slice 09 complete before console status and recovery UX
+work can start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- setup orchestration now exists as an implemented CLI contract, but live
+  installation remains fail-closed until lower phases expose complete
+  observed-state evidence;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 10.
+
 ## Live Infrastructure
 
 No live infrastructure commands were run. Workflow creation did not execute
@@ -616,5 +686,5 @@ Next command:
 workflow execute with subagents
 ```
 
-Execution continues at Slice 09 after re-verifying branch, context pack, locks,
+Execution continues at Slice 10 after re-verifying branch, context pack, locks,
 slice metadata, and quality gates before any write-capable work.

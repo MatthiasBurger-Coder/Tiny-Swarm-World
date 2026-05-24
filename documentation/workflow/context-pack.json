@@ -6,7 +6,7 @@
     "createdDate": "2026-05-24",
     "processStrand": "autonomous-runnable-setup",
     "executionProfile": "FULL_PATH",
-    "releaseStatus": "SLICE_08_COMPLETED"
+    "releaseStatus": "SLICE_09_COMPLETED"
   },
   "contextValidity": {
     "staleWhen": [
@@ -54,7 +54,7 @@
     },
     {
       "path": "documentation/arc42/06_runtime_view.adoc",
-      "sha256": "118E7CE34484D1AECF783D2624CD9B8E9EF14D496960C69107B4546E81B88BED"
+      "sha256": "38FCAFD825308B671EC6C042AC0B9567D4F3A3A0AB70D1791DE5B05CE30CE71A"
     },
     {
       "path": "documentation/arc42/07_deployment_view.adoc",
@@ -62,7 +62,7 @@
     },
     {
       "path": "documentation/arc42/09_architecture_decisions.adoc",
-      "sha256": "8B9BE723ACF350193F8E6B8FD70412776AB3EA7888F43DFEDA4A4F0249871EF9"
+      "sha256": "50D16962A712E10E3FA48BCF35DCBEB9D1DF93FA7764AF2C333DC0A9DE10082E"
     },
     {
       "path": "documentation/arc42/10_quality_requirements.adoc",
@@ -222,7 +222,7 @@
     },
     {
       "sliceId": "09",
-      "status": "PLANNED",
+      "status": "COMPLETED",
       "owner": "senior_workflow_architect",
       "purpose": "Autonomous setup orchestrator and CLI contract",
       "dependencies": [
