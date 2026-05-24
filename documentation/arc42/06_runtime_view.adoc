@@ -56,6 +56,23 @@ The current artifact and deployment runtime flow is deliberately fail-closed:
 No Portainer, Nexus, Docker registry, image build, image push, or stack
 deployment side effect is run by these workflow contracts.
 
+=== Console Status Runtime Flow
+
+Console/status UI remains terminal-only. The application UI port now owns the
+shared status vocabulary used by command-runner UI adapters and terminal
+renderers. Command runners report per-instance terminal results with the same
+`Success`, `Error`, and `Failed` semantics that the Linux console adapter uses
+to decide when all visible instances have reached a terminal state.
+
+Aggregate updates use the reserved `all` instance and are stored separately
+from per-VM state. The terminal renderer derives completion summaries from
+both aggregate and per-instance status, so failed command runs display
+`All instances completed with errors` instead of the ambiguous success-only
+completion message.
+
+No browser frontend, React component, JavaScript build tool, TSX/JSX file, or
+browser state is part of this console/status runtime flow.
+
 === Inventory And Evidence Runtime Flow
 
 Desired inventory is a committed product configuration concern and can be read

@@ -74,7 +74,7 @@ creation evidence.
 | 04 | `COMPLETED_PUSHED` | `4b3e6e0102a1f70e592f65b88db7af7325efc3c3` | `origin/codex/workflow-system-unification-20260524` | Added command evidence policy, desired inventory baseline, and redaction checks |
 | 05 | `COMPLETED_PUSHED` | `92e4ff5a2d3f4999d872290e14197a341dd6b472` | `origin/codex/workflow-system-unification-20260524` | Platform init/reconcile block before apply with explicit reasons; verify fails on failed preflight |
 | 06 | `COMPLETED_PUSHED` | `4e9502896a412efcc1f7edcb0ca07c33daf5faf1` | `origin/codex/workflow-system-unification-20260524` | Added explicit blocked artifact/deployment workflow contracts and live-consent CLI routing |
-| 07 | `PENDING` | | | Console status UI consistency |
+| 07 | `COMPLETED` | | | Normalized terminal status vocabulary and aggregate console status handling |
 | 08 | `PENDING` | | | Legacy live-surface quarantine |
 | 09 | `PENDING` | | | Documentation sync, quality gate, final report |
 

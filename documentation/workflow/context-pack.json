@@ -16,7 +16,7 @@
     "04": "COMPLETED_PUSHED",
     "05": "COMPLETED_PUSHED",
         "06": "COMPLETED_PUSHED",
-    "07": "PENDING",
+        "07": "COMPLETED",
     "08": "PENDING",
     "09": "PENDING"
   },
@@ -67,7 +67,7 @@
         },
         {
             "path": "documentation/arc42/06_runtime_view.adoc",
-            "sha256": "97564F4D2B5FF53D0A7CCF6F4BCC875DC30D69E636E2C3A4DABB34AB26742277"
+            "sha256": "B0C24F70D5DE38E42A2C691CD83ABAFAAC66D2AE469720CBE3F0CD3D65B13FAF"
         },
         {
             "path": "documentation/arc42/07_deployment_view.adoc",

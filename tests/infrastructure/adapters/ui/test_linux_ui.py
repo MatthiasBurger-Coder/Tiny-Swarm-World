@@ -2,6 +2,7 @@ import asyncio
 import unittest
 from unittest.mock import patch, MagicMock
 
+from tiny_swarm_world.application.ports.ui.port_ui import AGGREGATE_INSTANCE
 from tiny_swarm_world.infrastructure.adapters.ui.linux_ui import LinuxUI
 
 
@@ -47,6 +48,41 @@ class TestLinuxUI(unittest.TestCase):
         self.ui.update_status("Instance2", task="", step="Step 2", result="Pending")
         self.assertEqual(self.ui.status["Instance2"]["current_step"], "Step 2")
         self.assertEqual(self.ui.status["Instance2"]["result"], "Pending")
+
+    def test_update_status_records_aggregate_status(self):
+        self.ui.update_status(
+            AGGREGATE_INSTANCE,
+            task="finished",
+            step="execution",
+            result="Error",
+        )
+
+        self.assertEqual(
+            {
+                "current_task": "finished",
+                "current_step": "execution",
+                "result": "Error",
+            },
+            self.ui.aggregate_status,
+        )
+
+    def test_terminal_status_contract_accepts_runner_and_executer_values(self):
+        for terminal_result in ("Success", "Error", "Failed", "success", "error", "failed"):
+            with self.subTest(result=terminal_result):
+                self.assertTrue(self.ui.is_terminal_result(terminal_result))
+
+        self.assertFalse(self.ui.is_terminal_result("Pending"))
+
+    def test_aggregate_terminal_status_completes_pending_instances(self):
+        self.ui.update_status(
+            AGGREGATE_INSTANCE,
+            task="finished",
+            step="execution",
+            result="Error",
+        )
+
+        self.assertTrue(self.ui.all_instances_terminal())
+        self.assertEqual("All instances completed with errors", self.ui.completion_summary())
 
     @patch("asyncio.get_running_loop", return_value=asyncio.new_event_loop())
     @patch("threading.Thread")
@@ -152,3 +188,21 @@ class TestLinuxUI(unittest.TestCase):
 
         # Assert the desired string exists
         assert any("All instances completed" in call for call in calls)
+
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.curs_set")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.initscr")
+    @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.endwin")
+    def test_draw_ui_reports_completion_with_errors(self, mock_endwin, mock_initscr, mock_curs_set):
+        mock_stdscr = MagicMock()
+        mock_stdscr.getmaxyx.return_value = (24, 80)
+        mock_initscr.return_value = mock_stdscr
+        self.ui.status = {
+            "Instance1": {"current_task": "", "current_step": "Finalizing", "result": "Success"},
+            "Instance2": {"current_task": "", "current_step": "Stopping", "result": "Failed"},
+        }
+        self.ui.test_mode = True
+        self.ui._draw_ui(mock_stdscr)
+
+        calls = [call.args[2] for call in mock_stdscr.addstr.mock_calls]
+
+        assert any("All instances completed with errors" in call for call in calls)
