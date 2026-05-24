@@ -32,3 +32,15 @@ class NetworkSetupNetplan:
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
             config_files=("command_netplant_setup_yaml.yaml",),
         )
+
+    async def verify(self):
+        from tiny_swarm_world.application.services.platform.command_verification import (
+            verify_command_execution,
+        )
+
+        return await verify_command_execution(
+            self.command_workflow,
+            target_id=self.verification_target_id,
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            config_file="command_netplant_ip_yaml.yaml",
+        )

@@ -1,0 +1,23 @@
+commands:
+  - id: multipass_docker_swarm_verify.001
+    index: 1
+    description: Verifying Docker Swarm membership on {vm_instance}
+    intent: verifying_docker_swarm_membership
+    execution_mode: shell
+    safety_class: safe_read
+    scope: swarm
+    allowed_workflows:
+      - platform:init
+    parameters:
+      - vm_instance
+    effects:
+      - read
+    verify:
+      type: none
+      description: Read-only command.
+    command: "multipass exec {vm_instance} -- sh -c 'test \"$(docker info --format \"{{{{.Swarm.LocalNodeState}}}}\")\" = active'"
+    runner: "async"
+    command_type: "vm"
+    vm_type:
+      - "manager"
+      - "worker"

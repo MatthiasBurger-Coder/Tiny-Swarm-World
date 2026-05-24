@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from tiny_swarm_world.domain.preflight.setup_manifest import (
     SetupManifest,
@@ -36,6 +36,13 @@ class ForbiddenSecretFingerprint:
 
 
 @dataclass(frozen=True)
+class StaticSecretDefault:
+    name: str
+    service: str
+    value: str = field(repr=False)
+
+
+@dataclass(frozen=True)
 class ResourceThresholds:
     minimum_cpu_count: int
     minimum_memory_bytes: int
@@ -50,6 +57,7 @@ class PreflightConfiguration:
     required_dependencies: tuple[RequiredDependency, ...]
     required_ports: tuple[RequiredPort, ...]
     required_secrets: tuple[RequiredSecret, ...]
+    static_secret_defaults: tuple[StaticSecretDefault, ...]
     forbidden_secret_fingerprints: tuple[ForbiddenSecretFingerprint, ...]
     required_ignored_paths: tuple[str, ...]
     resources: ResourceThresholds
@@ -76,15 +84,15 @@ def default_preflight_configuration(
             RequiredSecret(secret.name, secret.service)
             for secret in setup_manifest.required_secrets
         ),
+        static_secret_defaults=(
+            StaticSecretDefault("TSW_PORTAINER_PASSWORD", "Portainer", "admin1234567890"),
+            StaticSecretDefault("TSW_NEXUS_ADMIN_PASSWORD", "Nexus", "MyAdminPassWord1234-126354654"),
+            StaticSecretDefault("TSW_JENKINS_ADMIN_PASSWORD", "Jenkins", "adminPassword123"),
+            StaticSecretDefault("TSW_RABBITMQ_PASSWORD", "RabbitMQ", "guest"),
+            StaticSecretDefault("TSW_SONARQUBE_ADMIN_PASSWORD", "SonarQube", "admin"),
+            StaticSecretDefault("TSW_POSTGRES_PASSWORD", "SonarQube PostgreSQL", "sonar"),
+        ),
         forbidden_secret_fingerprints=(
-            ForbiddenSecretFingerprint(
-                "portainer-default-password",
-                "7ba9293f74fb0b610b7cce1494530ba975d15348ffec0b478b143fbe198bd917",
-            ),
-            ForbiddenSecretFingerprint(
-                "legacy-nexus-admin-password",
-                "72fc9fee800d9f881eb0d85d8d7287a6230ed81bdf9b03634f9454b83ae603d7",
-            ),
             ForbiddenSecretFingerprint(
                 "portainer-token-echo",
                 "d15db825d357c5a749f208ffc6de615140f53fb98f3f8aeedf0f82d0ca7bceda",

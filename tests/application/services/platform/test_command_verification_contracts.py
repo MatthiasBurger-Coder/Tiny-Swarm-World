@@ -88,6 +88,10 @@ class TestCommandVerificationContracts(unittest.TestCase):
             with self.subTest(target_id=target_id):
                 command_workflow = _RecordingCommandWorkflow()
                 result = factory(command_workflow).verify_pre_apply()
+                expected_parameters = [None] * len(expected_configs)
+                if target_id == "platform:reconcile:vm-ip-list":
+                    expected_parameters[1] = {ParameterType.DOCKER_BRIDGE: "bridge"}
+                    expected_parameters[3] = {ParameterType.DOCKER_BRIDGE: "bridge"}
 
                 self.assertEqual(VerificationStatus.VERIFIED, result.status)
                 self.assertEqual(target_id, result.target_id)
@@ -100,7 +104,7 @@ class TestCommandVerificationContracts(unittest.TestCase):
                     [call.workflow_id for call in command_workflow.verify_calls],
                 )
                 self.assertEqual(
-                    [None] * len(expected_configs),
+                    expected_parameters,
                     [call.parameter for call in command_workflow.verify_calls],
                 )
 
@@ -116,7 +120,7 @@ class TestCommandVerificationContracts(unittest.TestCase):
             [call.config_file for call in command_workflow.verify_calls],
         )
 
-    def test_swarm_pre_apply_contract_does_not_substitute_join_token(self):
+    def test_swarm_pre_apply_contract_uses_synthetic_join_parameters(self):
         command_workflow = _RecordingCommandWorkflow()
         service = MultipassDockerSwarmInit(command_workflow)
         service.parameter[ParameterType.SWARM_TOKEN] = "raw-token"
@@ -124,9 +128,13 @@ class TestCommandVerificationContracts(unittest.TestCase):
 
         service.verify_pre_apply()
 
+        join_call = command_workflow.verify_calls[-1]
+        self.assertEqual("command_multipass_docker_swarm_join_worker.yaml", join_call.config_file)
+        self.assertEqual("__verification_only_swarm_token__", join_call.parameter[ParameterType.SWARM_TOKEN])
+        self.assertNotEqual("raw-token", join_call.parameter[ParameterType.SWARM_TOKEN])
         self.assertEqual(
-            [None, None, None, None],
-            [call.parameter for call in command_workflow.verify_calls],
+            [None, None, None],
+            [call.parameter for call in command_workflow.verify_calls[:-1]],
         )
 
     def test_swarm_run_clears_join_token_after_worker_join(self):
@@ -160,7 +168,7 @@ class TestCommandVerificationContracts(unittest.TestCase):
 
         self.assertNotIn(ParameterType.SWARM_TOKEN, service.parameter)
 
-    def test_platform_steps_do_not_claim_post_apply_verification_from_metadata(self):
+    def test_platform_steps_expose_post_apply_verification(self):
         cases = (
             MultipassInitVms,
             MultipassDockerInstall,
@@ -172,10 +180,10 @@ class TestCommandVerificationContracts(unittest.TestCase):
         for service_type in cases:
             with self.subTest(service_type=service_type.__name__):
                 service = service_type(_RecordingCommandWorkflow())
-                self.assertFalse(callable(getattr(service, "verify", None)))
+                self.assertTrue(callable(getattr(service, "verify", None)))
 
-        self.assertFalse(callable(getattr(_network_prepare_netplan(_RecordingCommandWorkflow()), "verify", None)))
-        self.assertFalse(callable(getattr(_vm_ip_list(_RecordingCommandWorkflow()), "verify", None)))
+        self.assertTrue(callable(getattr(_network_prepare_netplan(_RecordingCommandWorkflow()), "verify", None)))
+        self.assertTrue(callable(getattr(_vm_ip_list(_RecordingCommandWorkflow()), "verify", None)))
 
     @staticmethod
     def loop_run(coro: Any) -> Any:

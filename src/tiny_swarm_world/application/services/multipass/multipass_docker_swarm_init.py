@@ -77,8 +77,27 @@ class MultipassDockerSwarmInit:
                 "command_multipass_docker_swarm_manager_init.yaml",
                 "command_multipass_docker_swarm_manager_join_token.yaml",
                 "command_multipass_docker_swarm_manager_ip.yaml",
-                "command_multipass_docker_swarm_join_worker.yaml",
+                (
+                    "command_multipass_docker_swarm_join_worker.yaml",
+                    {
+                        ParameterType.SWARM_TOKEN: "__verification_only_swarm_token__",
+                        ParameterType.SWARM_MANAGER_IP: "127.0.0.1",
+                        ParameterType.SWARM_MANAGER_PORT: "2377",
+                    },
+                ),
             ),
+        )
+
+    async def verify(self):
+        from tiny_swarm_world.application.services.platform.command_verification import (
+            verify_command_execution,
+        )
+
+        return await verify_command_execution(
+            self.command_workflow,
+            target_id=self.verification_target_id,
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            config_file="command_multipass_docker_swarm_verify_yaml.yaml",
         )
 
     def _setup_commands_init(self, config_file: str, parameter: Optional[Dict[ParameterType, str]]) -> Dict[

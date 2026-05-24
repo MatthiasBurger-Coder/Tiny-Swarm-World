@@ -1,4 +1,5 @@
 import asyncio
+import curses
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -190,6 +191,15 @@ class TestLinuxUI(unittest.TestCase):
     @patch("curses.wrapper")
     def test_start_ui(self, mock_wrapper):
         self.ui.start()
+        mock_wrapper.assert_called_once_with(self.ui._draw_ui)
+
+    @patch("curses.wrapper")
+    def test_start_ui_falls_back_when_curses_is_unavailable(self, mock_wrapper):
+        mock_wrapper.side_effect = curses.error("cbreak failed")
+        self.ui.test_mode = True
+
+        self.ui.start()
+
         mock_wrapper.assert_called_once_with(self.ui._draw_ui)
 
     @patch("curses.wrapper")

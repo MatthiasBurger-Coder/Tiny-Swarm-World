@@ -141,7 +141,8 @@ class TestCommandRepositoryYamlContract(unittest.TestCase):
         mutating_command = commands[1]
 
         self.assertEqual("safe_mutation", mutating_command.safety_class.value)
-        self.assertEqual("manual", mutating_command.verify.type.value)
+        self.assertEqual("command", mutating_command.verify.type.value)
+        self.assertEqual("probe:platform:vm-created", mutating_command.verify.command)
 
 
 def _repository_for(yaml_content: str) -> PortCommandRepositoryYaml:

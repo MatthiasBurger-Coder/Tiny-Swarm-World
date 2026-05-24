@@ -8,6 +8,7 @@ from tiny_swarm_world.application.services.vm.steps.step_manager_gateway import 
 from tiny_swarm_world.application.services.vm.steps.step_manager_ip import StepManagerIp
 from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.multipass.vm_entity import VmEntity
 from tiny_swarm_world.domain.network.socat.docker_ip_list import DockerIpList
 
@@ -54,9 +55,31 @@ class VmIpList:
             workflow_id=CommandWorkflowId.PLATFORM_RECONCILE.value,
             config_files=(
                 "command_vm_bridge_list.yaml",
-                "command_vm_docker_bridge_list.yaml",
+                (
+                    "command_vm_docker_bridge_list.yaml",
+                    {ParameterType.DOCKER_BRIDGE: "bridge"},
+                ),
                 "command_multipass_docker_swarm_manager_ip.yaml",
-                "command_vm_ip_list.yaml",
+                (
+                    "command_vm_ip_list.yaml",
+                    {ParameterType.DOCKER_BRIDGE: "bridge"},
+                ),
                 "command_vm_gateway_yaml.yaml",
             ),
+        )
+
+    async def verify(self):
+        vm_list = self.vm_repository.get_all_vms()
+        if not vm_list:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.FAILED_TO_VERIFY,
+                message="VM network inventory is empty.",
+                evidence={"phase": "verify"},
+            )
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.VERIFIED,
+            message="VM network inventory was updated.",
+            evidence={"phase": "verify", "vm_count": str(len(vm_list))},
         )

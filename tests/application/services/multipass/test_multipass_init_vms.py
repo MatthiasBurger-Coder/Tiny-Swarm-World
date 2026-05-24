@@ -16,6 +16,7 @@ DESTRUCTIVE_CONFIG_FILES = {
     "command_multipass_clean_repository_yaml.yaml",
 }
 INIT_CONFIG_FILE = "command_multipass_init_repository_yaml.yaml"
+INIT_VERIFY_CONFIG_FILE = "command_multipass_instance_status_yaml.yaml"
 
 
 class TestMultipassInitVms(unittest.IsolatedAsyncioTestCase):
@@ -65,7 +66,17 @@ class TestMultipassInitVms(unittest.IsolatedAsyncioTestCase):
         command_workflow = _RecordingCommandWorkflow()
         service = MultipassInitVms(command_workflow)
 
-        self.assertFalse(callable(getattr(service, "verify", None)))
+        result = await service.verify()
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual(
+            [INIT_VERIFY_CONFIG_FILE],
+            [call.config_file for call in command_workflow.async_calls],
+        )
+        self.assertEqual(
+            [CommandWorkflowId.PLATFORM_INIT.value],
+            [call.workflow_id for call in command_workflow.async_calls],
+        )
 
 
 def _destructive_or_reset_like_config_files(config_files: list[str]) -> list[str]:

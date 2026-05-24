@@ -57,11 +57,11 @@ add_repository_to_portainer() {
   printf "Logging into Portainer to obtain API token...\n"
 
   # Log in and retrieve token
-  PORTAINER_TOKEN=$(curl -s -X POST "$PORTAINER_URL/api/auth" \
+  PORTAINER_JWT=$(curl -s -X POST "$PORTAINER_URL/api/auth" \
     -H "Content-Type: application/json" \
     -d "{\"Username\": \"$PORTAINER_USERNAME\", \"Password\": \"$PORTAINER_PASSWORD\"}" | jq -r .jwt)
-  printf "PORTAINER_TOKEN %s\n" "$PORTAINER_TOKEN"
-  if [ "$PORTAINER_TOKEN" == "null" ]; then
+  printf "Portainer token retrieved.\n"
+  if [ "$PORTAINER_JWT" == "null" ]; then
     echo "Failed to retrieve Portainer token. Check your Portainer credentials."
     exit 1
   fi
@@ -70,7 +70,7 @@ add_repository_to_portainer() {
 
   # Add Nexus as a new registry endpoint
   curl -X POST "http://localhost:9000/api/registries" \
-      -H "Authorization: Bearer $PORTAINER_TOKEN" \
+      -H "Authorization: Bearer $PORTAINER_JWT" \
       -H "Content-Type: application/json" \
       -d "{
             \"Type\": 3,

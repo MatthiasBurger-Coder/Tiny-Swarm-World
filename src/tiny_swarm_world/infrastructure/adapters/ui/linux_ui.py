@@ -103,4 +103,11 @@ class LinuxUI(PortUI):
         """
         Runs the curses-based UI.
         """
-        curses.wrapper(self._draw_ui)
+        try:
+            curses.wrapper(self._draw_ui)
+        except curses.error:
+            self._wait_without_curses()
+
+    def _wait_without_curses(self):
+        while not self.test_mode and not self.all_instances_terminal():
+            time.sleep(0.2)

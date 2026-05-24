@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
 
@@ -29,6 +29,18 @@ class TestHostPreflightProbe(unittest.TestCase):
             self.assertFalse(probe.port_available(occupied_port))
 
         self.assertTrue(probe.port_available(occupied_port))
+
+    def test_port_available_fails_closed_when_bind_is_not_permitted(self):
+        probe = HostPreflightProbe(Path.cwd())
+        bind_socket = MagicMock()
+        bind_socket.__enter__.return_value = bind_socket
+        bind_socket.bind.side_effect = PermissionError()
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.socket.socket",
+            return_value=bind_socket,
+        ):
+            self.assertFalse(probe.port_available(80))
 
     def test_path_ignored_by_git_uses_check_ignore(self):
         probe = HostPreflightProbe(Path.cwd())

@@ -4,6 +4,7 @@ from tiny_swarm_world.application.ports.commands.port_command_workflow import Po
 from tiny_swarm_world.application.ports.repositories.port_vm_repository import PortVmRepository
 from tiny_swarm_world.application.ports.repositories.port_yaml_repository import PortYamlRepository
 from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.multipass.vm_type import VmType
 from tiny_swarm_world.domain.network.ip_extractor.ip_extractor_builder import IpExtractorBuilder
 from tiny_swarm_world.domain.network.ip_extractor.strategies.ip_extstractor_types import IpExtractorTypes
@@ -61,4 +62,28 @@ class NetworkPrepareNetplan:
             target_id=self.verification_target_id,
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
             config_files=("command_netplant_ip_yaml.yaml",),
+        )
+
+    async def verify(self):
+        try:
+            data = self.netplan_repository.load()
+        except Exception as exc:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.FAILED_TO_VERIFY,
+                message=f"Netplan repository verification failed: {exc.__class__.__name__}",
+                evidence={"phase": "verify"},
+            )
+        if not data:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.FAILED_TO_VERIFY,
+                message="Netplan repository did not contain generated data.",
+                evidence={"phase": "verify"},
+            )
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.VERIFIED,
+            message="Netplan repository contains generated data.",
+            evidence={"phase": "verify"},
         )

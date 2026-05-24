@@ -1,5 +1,7 @@
 import asyncio
 import inspect
+import os
+import signal
 from contextlib import suppress
 from typing import Any, cast
 
@@ -22,7 +24,7 @@ class AsyncPortCommandRunner(PortCommandRunner):
         self.logger = LoggerFactory.get_logger(self.__class__)
         self.logger.info("AsyncCommandRunner initialized")
 
-    async def run(self, command: str, timeout: int = 120) -> str:
+    async def run(self, command: str, timeout: int = 900) -> str:
         self.logger.info("Starting subprocess")
         process = None
         communicate_task = None
@@ -36,7 +38,8 @@ class AsyncPortCommandRunner(PortCommandRunner):
             process = await asyncio.create_subprocess_shell(
                 command,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+                stderr=asyncio.subprocess.PIPE,
+                start_new_session=True,
             )
             self.logger.info("Finishing subprocess")
             # Wait for subprocess to complete
@@ -79,10 +82,7 @@ class AsyncPortCommandRunner(PortCommandRunner):
                 with suppress(asyncio.CancelledError):
                     await communicate_task
             if process is not None:
-                kill_result = cast(Any, process).kill()
-                if inspect.isawaitable(kill_result):
-                    await kill_result
-                await process.communicate()
+                await self._terminate_process_tree(process)
             raise CommandExecutionError(
                 command=command,
                 return_code=-1,  # -1 = Special return code for timeout
@@ -104,3 +104,38 @@ class AsyncPortCommandRunner(PortCommandRunner):
                 stdout="",
                 stderr=f"An unexpected error occurred: {str(e)}"
             ) from e
+
+    async def _terminate_process_tree(self, process: asyncio.subprocess.Process) -> None:
+        killpg = getattr(os, "killpg", None)
+        getpgid = getattr(os, "getpgid", None)
+        process_pid = getattr(process, "pid", None)
+
+        if killpg is not None and getpgid is not None and process_pid is not None:
+            with suppress(ProcessLookupError, PermissionError):
+                killpg(getpgid(process_pid), signal.SIGTERM)
+            if await self._wait_for_exit(process, timeout=5):
+                return
+            with suppress(ProcessLookupError, PermissionError):
+                killpg(getpgid(process_pid), signal.SIGKILL)
+            await self._wait_for_exit(process, timeout=5)
+            return
+
+        kill_result = cast(Any, process).kill()
+        if inspect.isawaitable(kill_result):
+            await kill_result
+        await self._wait_for_exit(process, timeout=5)
+
+    @staticmethod
+    async def _wait_for_exit(process: asyncio.subprocess.Process, timeout: int) -> bool:
+        wait_method = getattr(process, "wait", None)
+        if wait_method is None:
+            with suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(process.communicate(), timeout=timeout)
+                return True
+            return False
+
+        try:
+            await asyncio.wait_for(wait_method(), timeout=timeout)
+            return True
+        except asyncio.TimeoutError:
+            return False

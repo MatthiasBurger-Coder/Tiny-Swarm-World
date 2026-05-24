@@ -97,12 +97,13 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_missing_dependency_and_secret_are_actionable_failures(self):
+        configuration = replace(default_preflight_configuration(), static_secret_defaults=())
         probe = _FakeProbe(
             executable_availability={"docker": False},
             secret_availability={"TSW_NEXUS_ADMIN_PASSWORD": False},
         )
 
-        result = await PreflightService(probe).run()
+        result = await PreflightService(probe, configuration).run()
 
         failed_by_id = {check.check_id: check for check in result.failed_checks}
         self.assertFalse(result.passed)
@@ -113,6 +114,18 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
             "Provide the secret",
             failed_by_id["SECRET-TSW_NEXUS_ADMIN_PASSWORD"].remediation,
         )
+
+    async def test_static_local_secret_defaults_satisfy_missing_environment_secrets(self):
+        result = await PreflightService(
+            _FakeProbe(secret_availability={"TSW_NEXUS_ADMIN_PASSWORD": False})
+        ).run()
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        secret_check = checks_by_id["SECRET-TSW_NEXUS_ADMIN_PASSWORD"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual("static_local_default", secret_check.evidence["source"])
+        self.assertNotIn("password_value", repr(secret_check.to_dict()).lower())
 
     async def test_host_port_and_ignore_policy_failures_are_reported(self):
         result = await PreflightService(

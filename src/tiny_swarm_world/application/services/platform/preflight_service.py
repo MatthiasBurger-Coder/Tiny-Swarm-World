@@ -219,6 +219,11 @@ class PreflightService:
 
     def _secret_checks(self) -> tuple[PreflightCheck, ...]:
         checks: list[PreflightCheck] = []
+        static_secret_names = {
+            static_secret.name
+            for static_secret in self.configuration.static_secret_defaults
+            if static_secret.value
+        }
         for secret in self.configuration.required_secrets:
             if self.host_probe.secret_available(secret.name):
                 checks.append(
@@ -226,7 +231,21 @@ class PreflightService:
                         f"SECRET-{secret.name}",
                         PreflightCategory.SECRET,
                         f"Secret source for {secret.service} is present.",
-                        {"secret": secret.name, "service": secret.service},
+                        {"secret": secret.name, "service": secret.service, "source": "environment"},
+                    )
+                )
+                continue
+            if secret.name in static_secret_names:
+                checks.append(
+                    _passed(
+                        f"SECRET-{secret.name}",
+                        PreflightCategory.SECRET,
+                        f"Static local secret default for {secret.service} is present.",
+                        {
+                            "secret": secret.name,
+                            "service": secret.service,
+                            "source": "static_local_default",
+                        },
                     )
                 )
                 continue

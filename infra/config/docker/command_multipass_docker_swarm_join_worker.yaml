@@ -1,27 +1,27 @@
 commands:
-  - id: multipass_docker_swarm_join_worker.001
-    index: 1
-    description: Joining Worker Nodes to Swarm
-    intent: joining_worker_nodes_to_swarm
-    execution_mode: shell
-    safety_class: network_mutation
-    scope: swarm
-    allowed_workflows:
-      - platform:init
-    parameters:
-      - vm_instance
-      - swarm_token
-      - swarm_manager_ip
-      - swarm_manager_port
-    effects:
-      - network_change
-      - runtime_change
-    verify:
-      type: manual
-      description: 'Verify after command: Joining Worker Nodes to Swarm'
-    command: "multipass exec {vm_instance} -- docker swarm join --token {swarm_token}\
-      \ {swarm_manager_ip}:{swarm_manager_port}"
-    runner: "async"
-    command_type: "vm"
-    vm_type:
-      - "worker"
+- id: multipass_docker_swarm_join_worker.001
+  index: 1
+  description: Joining Worker Nodes to Swarm
+  intent: joining_worker_nodes_to_swarm
+  execution_mode: shell
+  safety_class: network_mutation
+  scope: swarm
+  allowed_workflows:
+  - platform:init
+  parameters:
+  - vm_instance
+  - swarm_token
+  - swarm_manager_ip
+  - swarm_manager_port
+  effects:
+  - network_change
+  - runtime_change
+  verify:
+    type: command
+    description: 'Verify after command: Joining Worker Nodes to Swarm'
+    command: probe:platform:swarm-ready
+  command: "multipass exec {vm_instance} -- sh -c 'if [ \"$(docker info --format \"{{{{.Swarm.LocalNodeState}}}}\" 2>/dev/null)\" = active ]; then exit 0; fi; docker swarm join --token {swarm_token} {swarm_manager_ip}:{swarm_manager_port}'"
+  runner: "async"
+  command_type: "vm"
+  vm_type:
+  - "worker"

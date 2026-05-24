@@ -19,6 +19,7 @@ from tiny_swarm_world.domain.preflight.preflight_configuration import (
     RequiredPort,
     RequiredSecret,
     ResourceThresholds,
+    StaticSecretDefault,
     default_preflight_configuration,
 )
 from tiny_swarm_world.domain.preflight.preflight_result import PreflightResult
@@ -49,6 +50,7 @@ __all__ = [
     "RequiredPort",
     "RequiredSecret",
     "ResourceThresholds",
+    "StaticSecretDefault",
     "SetupManifest",
     "SetupPortRequirement",
     "SetupProfile",

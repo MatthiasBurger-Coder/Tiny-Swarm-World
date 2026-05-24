@@ -42,3 +42,15 @@ class MultipassDockerInstall:
                 "command_multipass_docker_prepare_repository_yaml.yaml",
             ),
         )
+
+    async def verify(self):
+        from tiny_swarm_world.application.services.platform.command_verification import (
+            verify_command_execution,
+        )
+
+        return await verify_command_execution(
+            self.command_workflow,
+            target_id=self.verification_target_id,
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            config_file="command_multipass_docker_verify_yaml.yaml",
+        )

@@ -54,6 +54,8 @@ class HostPreflightProbe(PortHostPreflightProbe):
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 sock.bind(("127.0.0.1", port))
+            except PermissionError:
+                return False
             except OSError:
                 return False
         return True

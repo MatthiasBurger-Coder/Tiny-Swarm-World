@@ -25,7 +25,10 @@ EXPECTED_COMMAND_COUNTS = {
     "command_multipass_docker_swarm_manager_init.yaml": 1,
     "command_multipass_docker_swarm_manager_ip.yaml": 1,
     "command_multipass_docker_swarm_manager_join_token.yaml": 1,
+    "command_multipass_docker_swarm_verify_yaml.yaml": 3,
+    "command_multipass_docker_verify_yaml.yaml": 3,
     "command_multipass_clean_repository_yaml.yaml": 3,
+    "command_multipass_instance_status_yaml.yaml": 3,
     "command_multipass_init_repository_yaml.yaml": 4,
     "command_multipass_prepare_repository_yaml.yaml": 12,
     "command_multipass_restart_repository_yaml.yaml": 1,
@@ -48,8 +51,11 @@ WORKFLOW_BY_COMMAND_FILE = {
     "command_multipass_docker_swarm_manager_init.yaml": CommandWorkflowId.PLATFORM_INIT.value,
     "command_multipass_docker_swarm_manager_ip.yaml": CommandWorkflowId.PLATFORM_INIT.value,
     "command_multipass_docker_swarm_manager_join_token.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_multipass_docker_swarm_verify_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_multipass_docker_verify_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
     "command_netplant_ip_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
     "command_netplant_setup_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
+    "command_multipass_instance_status_yaml.yaml": CommandWorkflowId.PLATFORM_INIT.value,
     "command_vm_bridge_list.yaml": CommandWorkflowId.PLATFORM_RECONCILE.value,
     "command_vm_docker_bridge_list.yaml": CommandWorkflowId.PLATFORM_RECONCILE.value,
     "command_vm_gateway_yaml.yaml": CommandWorkflowId.PLATFORM_RECONCILE.value,
@@ -96,6 +102,29 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
             transfer_command,
         )
 
+    def test_package_install_commands_are_bounded_and_noninteractive(self):
+        workflow = CommandWorkflow()
+        netplan_commands = workflow.build_command_list(
+            "command_netplant_setup_yaml.yaml",
+            _smoke_parameters(),
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+        )
+        docker_commands = workflow.build_command_list(
+            "command_multipass_docker_install_yaml.yaml",
+            _smoke_parameters(),
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+        )
+
+        install_socat = netplan_commands["hostos"][1].command
+        self.assertIn("command -v socat", install_socat)
+        self.assertIn("timeout 300", install_socat)
+        self.assertIn("sudo -n env DEBIAN_FRONTEND=noninteractive apt-get", install_socat)
+
+        for index in (1, 2, 7, 8):
+            docker_command = docker_commands["swarm-manager"][index].command
+            self.assertIn("DEBIAN_FRONTEND=noninteractive", docker_command)
+            self.assertIn("timeout 300", docker_command)
+
     def test_built_commands_preserve_verification_metadata(self):
         workflow = CommandWorkflow()
         command_list = workflow.build_command_list(
@@ -109,7 +138,9 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
         self.assertEqual("multipass_init_repository.001", launch_command.command_id)
         self.assertTrue(launch_command.mutating)
         self.assertIsNotNone(launch_command.verify)
-        self.assertEqual("manual", launch_command.verify.type.value)
+        self.assertEqual("command", launch_command.verify.type.value)
+        self.assertEqual("probe:platform:vm-created", launch_command.verify.command)
+        self.assertIn("multipass launch 24.04", launch_command.command)
 
     def test_built_sensitive_output_commands_preserve_evidence_policy(self):
         workflow = CommandWorkflow()
@@ -145,15 +176,15 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
         workflow = CommandWorkflow()
 
         result = workflow.verify_config_contract(
-            "command_multipass_init_repository_yaml.yaml",
+            "command_multipass_clean_repository_yaml.yaml",
             _smoke_parameters(),
-            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
-            target_id="platform:init:multipass-vms",
+            workflow_id=CommandWorkflowId.PLATFORM_RESET.value,
+            target_id="platform:reset:multipass-clean",
         )
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
         self.assertEqual("command_backed_verification_missing", result.evidence["reason"])
-        self.assertEqual("3", result.evidence["manual_verify_count"])
+        self.assertEqual("2", result.evidence["manual_verify_count"])
 
     def test_read_only_catalog_verifies_without_running_commands(self):
         workflow = CommandWorkflow()

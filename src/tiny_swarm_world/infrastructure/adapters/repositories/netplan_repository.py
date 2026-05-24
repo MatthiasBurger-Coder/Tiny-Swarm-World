@@ -17,9 +17,9 @@ class PortNetplanRepositoryYaml(PortYamlRepository):
     Manages the creation, validation, and saving of Netplan configuration using YamlFileManager.
     """
 
-    def __init__(self, file_name: str = "cloud-init-manager.yaml"):
+    def __init__(self, file_name: str = "cloud-init-manager.yaml", file_manager: FileManager | None = None):
         self.file = Path(file_name)
-        self.file_manager = infra_core_container.resolve(FileManager)
+        self.file_manager = file_manager or infra_core_container.resolve(FileManager)
         self.builder = FluentYAMLBuilder("network")
         self.yaml = YAML()  # Use ruamel.yaml
         self.yaml.default_flow_style = False  # Ensure correct indentation
@@ -48,7 +48,7 @@ class PortNetplanRepositoryYaml(PortYamlRepository):
     def load(self) -> Any:
         """Loads an existing Netplan configuration file."""
         try:
-            return self.builder.load_from_string(self.file_manager.load(self.file)).build()
+            return self.yaml.load(self.file_manager.load(self.file)) or {}
         except FileNotFoundError:
             self.logger.error(f"Netplan configuration file {self.file} not found.")
             return {}

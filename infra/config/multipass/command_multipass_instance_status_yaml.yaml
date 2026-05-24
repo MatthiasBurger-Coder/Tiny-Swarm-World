@@ -1,0 +1,24 @@
+commands:
+  - id: multipass_instance_status.001
+    index: 1
+    description: Verifying {vm_instance} exists and is reachable
+    intent: verifying_vm_instance_exists_and_is_reachable
+    execution_mode: shell
+    safety_class: safe_read
+    scope: multipass
+    allowed_workflows:
+      - platform:init
+      - platform:reconcile
+    parameters:
+      - vm_instance
+    effects:
+      - read
+    verify:
+      type: none
+      description: Read-only command.
+    command: "multipass info {vm_instance}"
+    runner: "async"
+    command_type: "hostos"
+    vm_type:
+      - "manager"
+      - "worker"
