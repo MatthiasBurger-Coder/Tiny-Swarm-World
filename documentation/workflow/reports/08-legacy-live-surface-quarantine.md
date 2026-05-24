@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-COMPLETED
+COMPLETED_PUSHED
 ```
 
 ## Changes
@@ -112,6 +112,8 @@ qualityGates:
 rollbackReference: "revert this Slice 08 checkpoint commit on codex/workflow-system-unification-20260524"
 arc42Updated: false
 adrUpdated: false
+checkpointCommit: "14f3f667cbca6e87a48cf1b1bd350386a149bcde"
+checkpointPush: "origin/codex/workflow-system-unification-20260524"
 ```
 
 ## Slice 08 Decision

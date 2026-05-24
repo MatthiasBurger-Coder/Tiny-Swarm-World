@@ -33,7 +33,7 @@ workflow file.
 | 05 | `COMPLETED_PUSHED` |
 | 06 | `COMPLETED_PUSHED` |
 | 07 | `COMPLETED_PUSHED` |
-| 08 | `COMPLETED` |
+| 08 | `COMPLETED_PUSHED` |
 | 09 | `PENDING` |
 
 ## Governing Files Checked
