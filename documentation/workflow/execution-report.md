@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_01_COMPLETED
+SLICE_02_COMPLETED
 ```
 
 ## Branch
@@ -16,9 +16,8 @@ codex/workflow-autonomous-setup-20260524
 
 This report records workflow creation and workflow-execution checkpoints.
 Slice 01 has been completed as a documentation-only requirement baseline.
-Slice 02 preflight found the workflow context pack stale after Slice 01 and
-triggered a requirement-engineering-guided governance repair before further
-write-capable Slice 02 work.
+Slice 02 has been completed as a setup-safety ADR and arc42 alignment slice.
+Slice 03 is the next write-capable implementation slice.
 
 ## Subagent Review
 
@@ -116,6 +115,60 @@ Requirement-engineering decision:
 - the repair does not change product behavior or architecture decisions;
 - the repair restores traceability so Slice 02 can evaluate ADR and arc42
   alignment from current authoritative sources.
+
+### Slice 02: Setup Safety ADR And arc42 Alignment
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+c51380c
+```
+
+Changed files:
+
+- `documentation/architecture/adr-autonomous-setup-safety.adoc`
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/09_architecture_decisions.adoc`
+- `documentation/arc42/10_quality_requirements.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/workflow/reports/02-setup-safety-architecture.md`
+
+Verification:
+
+```bash
+git diff --check
+python3 tools/quality_gate.py arch-tests
+git diff --cached --check
+```
+
+Result: passed.
+
+### Governance Repair Before Slice 03
+
+Reason:
+
+```text
+Slice 02 added a setup-safety ADR and updated arc42 governing files, so the
+workflow context pack needed refreshed hashes before Slice 03 could start from
+current architecture evidence.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- the accepted setup safety ADR is now part of the governing architecture
+  context for implementation slices;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 03.
 
 ## Live Infrastructure
 

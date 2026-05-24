@@ -6,7 +6,7 @@
     "createdDate": "2026-05-24",
     "processStrand": "autonomous-runnable-setup",
     "executionProfile": "FULL_PATH",
-    "releaseStatus": "SLICE_01_COMPLETED"
+    "releaseStatus": "SLICE_02_COMPLETED"
   },
   "contextValidity": {
     "staleWhen": [
@@ -45,28 +45,32 @@
       "sha256": "6B464ADF0672012D5AD14CC5C27FC654E32D50DC5CB12D1C2756381B2E0E9FEB"
     },
     {
+      "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
+      "sha256": "0CA708C87E68348254C91FB662B1A78D8577859BEBED2C92B420785AF74B6DE0"
+    },
+    {
       "path": "documentation/arc42/05_building_blocks.adoc",
-      "sha256": "048CBB16455644E015DBE4BF443DC5C9EB9D00F91C532D7DEB32783E2B1F0E94"
+      "sha256": "DBCB831D168381E729C1C4D203D3E66ED713F30716FD035AAA3465FFD0101F16"
     },
     {
       "path": "documentation/arc42/06_runtime_view.adoc",
-      "sha256": "B0C24F70D5DE38E42A2C691CD83ABAFAAC66D2AE469720CBE3F0CD3D65B13FAF"
+      "sha256": "3C4D4FF0B6AA50EBBE783593BDA8564761E45A0333F0C704EE37FD669D3C7724"
     },
     {
       "path": "documentation/arc42/07_deployment_view.adoc",
-      "sha256": "5A8056C5DFDC9CEF115019A958897205BDCD15795F3BFCBE13FE760E7028A323"
+      "sha256": "4704ADE3F02DEB0E4A5862E4B2506107C965903CC500BA29CEA033BB1C98A958"
     },
     {
       "path": "documentation/arc42/09_architecture_decisions.adoc",
-      "sha256": "84356FC35C80B304AFD776D7FE350C6090B50FA910570552A784DC68111390A9"
+      "sha256": "8B9BE723ACF350193F8E6B8FD70412776AB3EA7888F43DFEDA4A4F0249871EF9"
     },
     {
       "path": "documentation/arc42/10_quality_requirements.adoc",
-      "sha256": "DDE1208E83235F36DB22700039B008C84AAEFCA28DFA53E57CF0E936C05BAB9B"
+      "sha256": "E80E6187EACB4485BBB446C3070485606657BB4E127676A589E6A4B39401E072"
     },
     {
       "path": "documentation/arc42/11_risks_and_debt.adoc",
-      "sha256": "B248E43E49321E8B0104F29D5BF02C01FE22646043635325146F6314FF02EDD4"
+      "sha256": "FECF8A530EFD4E301CDB83F6B67FA8BC3C192F1A0BF9A107497B6499B842B02F"
     },
     {
       "path": "documentation/system/live-operation-surfaces.adoc",
@@ -154,7 +158,7 @@
     },
     {
       "sliceId": "02",
-      "status": "PLANNED",
+      "status": "COMPLETED",
       "owner": "senior_system_architect",
       "purpose": "Setup safety ADR and arc42 alignment",
       "dependencies": [
