@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_03_COMPLETED
+SLICE_04_COMPLETED
 ```
 
 ## Branch
@@ -18,7 +18,8 @@ This report records workflow creation and workflow-execution checkpoints.
 Slice 01 has been completed as a documentation-only requirement baseline.
 Slice 02 has been completed as a setup-safety ADR and arc42 alignment slice.
 Slice 03 has been completed as the setup preflight and manifest contract
-slice. Slice 04 is the next write-capable implementation slice.
+slice. Slice 04 has been completed as the inventory and evidence foundation
+slice. Slice 05 is the next write-capable implementation slice.
 
 ## Subagent Review
 
@@ -231,6 +232,62 @@ Requirement-engineering decision:
 - the repair does not change product behavior and restores workflow
   traceability for Slice 04.
 
+### Slice 04: Inventory And Evidence Foundation
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+4787747
+```
+
+Changed files:
+
+- `src/tiny_swarm_world/domain/inventory/safe_text.py`
+- `src/tiny_swarm_world/domain/inventory/verification.py`
+- `src/tiny_swarm_world/domain/inventory/observed_inventory.py`
+- `src/tiny_swarm_world/infrastructure/adapters/repositories/local_state_paths.py`
+- `tests/domain/inventory/test_inventory_model.py`
+- `tests/infrastructure/adapters/repositories/test_inventory_repositories.py`
+- `documentation/workflow/reports/04-inventory-evidence-foundation.md`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.inventory.test_inventory_model tests.infrastructure.adapters.repositories.test_inventory_repositories tests.application.services.platform.test_platform_workflows tests.architecture.test_local_state_storage
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+.venv/bin/python tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The full test gate ran `269` tests with `1` skipped.
+
+### Governance Repair Before Slice 05
+
+Reason:
+
+```text
+Slice 04 added inventory and evidence validation contracts, so the workflow
+context pack needed to mark Slice 04 complete before command-backed platform
+verification work starts.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- evidence storage, redaction, and local-state path constraints are now part
+  of the implemented foundation for command-backed verification;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 05.
+
 ## Live Infrastructure
 
 No live infrastructure commands were run. Workflow creation did not execute
@@ -246,5 +303,5 @@ Next command:
 workflow execute with subagents
 ```
 
-Execution continues at Slice 04 after re-verifying branch, context pack, locks,
+Execution continues at Slice 05 after re-verifying branch, context pack, locks,
 slice metadata, and quality gates before any write-capable work.
