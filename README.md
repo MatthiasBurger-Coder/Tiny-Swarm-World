@@ -97,22 +97,36 @@ infrastructure commands. They require the live-infrastructure consent controls.
 Destructive workflows also require the exact `--confirm` phrase shown by the
 workflow contract.
 
+The canonical autonomous setup entry point is `setup run`:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world setup run
+```
+
+Without the full live-consent contract this command refuses before setup
+services are constructed and prints `REFUSED_LIVE_CONSENT_MISSING`. With live
+consent, it sequences setup preflight, platform, artifact, deployment, and
+final verification phases. Current live behavior remains fail-closed where
+verification, readiness, credentials, or resource requirements are incomplete.
+
 ---
 
 ## Operator Safety Model
 
-Normal `platform init` and `platform reconcile` are non-destructive: they do
-not select the Multipass cleanup catalog that contains VM delete/purge
-commands. Mutating workflows are still live infrastructure operations. They
-require all of these controls before application services are constructed:
+Normal `platform init`, `platform reconcile`, and `setup run` are
+non-destructive: they do not select the Multipass cleanup catalog that contains
+VM delete/purge commands. Mutating workflows are still live infrastructure
+operations. They require all of these controls before application services are
+constructed:
 
 - `--live`
-- `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`
-- typing `RUN TINY SWARM WORLD LIVE INSTALLATION` at the prompt
+- answering `y` at the short live-infrastructure confirmation prompt
 
 At the current system-unification baseline, `platform init` and
 `platform reconcile` still return `blocked` before live steps until
-command-backed verification contracts are implemented.
+command-backed verification contracts are implemented. `setup run` is the
+supported setup orchestrator and preserves the same fail-closed behavior across
+preflight, platform, artifact, deployment, and final verification phases.
 
 `platform reset` and `platform destroy` additionally require
 `RESET_TINY_SWARM_PLATFORM` or `DESTROY_TINY_SWARM_PLATFORM` through
@@ -123,6 +137,18 @@ These behaviors are verified by unit tests, architecture checks, and static
 quality gates. This repository workflow did not run live Multipass, Docker
 Swarm, compose, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ,
 SonarQube, or Swagger/NGINX commands.
+
+Optional live smoke validation is a separate operator action, not part of the
+default quality gate. Run it only on a disposable or recoverable local target
+after reviewing the live-operation surface catalog:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+```
+
+When prompted, answer `y` only if changing the local Multipass, Docker Swarm,
+networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX
+environment is intentional.
 
 ---
 
@@ -155,22 +181,33 @@ Run only the workflow you explicitly intend to execute, for example:
 PYTHONPATH=src python3 -m tiny_swarm_world platform verify
 ```
 
+For the autonomous setup flow, start with the supported setup command and
+expect refusal until live consent is supplied:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world setup run
+```
+
 Platform workflows are constructed through the infrastructure composition root
 in `src/tiny_swarm_world/infrastructure/composition.py`. Mutating workflows
-such as `platform init` and `platform reconcile` require live-infrastructure
-consent before services are constructed. `platform reset` and
+such as `platform init`, `platform reconcile`, and `setup run` require
+live-infrastructure consent before services are constructed. `setup run`
+orchestrates only non-destructive setup phases and reports refused, blocked,
+resource-gated, failed-to-apply, failed-to-verify, failed, or completed states
+without treating missing verification as success. `platform reset` and
 `platform destroy` additionally require the exact reset or destroy confirmation
 phrase. Direct no-argument construction from the old `docker` layout is no
 longer supported. Use `build_application_services()` for the standard local
 wiring, or pass compatible port implementations in tests.
 
-Portainer setup is prepared from the repository root with:
+Transitional direct live scripts are still documented for operators who need
+to inspect or run legacy paths deliberately. They are not the canonical setup
+entry point and they bypass the workflow-level CLI consent guard. Treat them
+as live operator actions and run them only after reviewing the target
+environment and script contents. The canonical static classification is
+maintained in `documentation/system/live-operation-surfaces.adoc`.
 
-Direct scripts under `infra/prepare` and `infra/compose` bypass the
-workflow-level CLI consent guard. Treat them as live operator actions and run
-them only after reviewing the target environment and script contents.
-The canonical static classification is maintained in
-`documentation/system/live-operation-surfaces.adoc`.
+Portainer preparation can be inspected from the repository root with:
 
 ```bash
 cd infra/prepare

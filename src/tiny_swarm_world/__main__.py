@@ -1,6 +1,5 @@
 import asyncio
 import json
-import os
 from argparse import ArgumentParser, Namespace
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -8,6 +7,7 @@ from enum import Enum
 
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
+from tiny_swarm_world.application.services.setup import SetupWorkflowResult
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PLATFORM_WORKFLOW_TAXONOMY,
     PlatformWorkflowKind,
@@ -15,22 +15,30 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PlatformWorkflowStatus,
 )
 from tiny_swarm_world.domain.preflight import (
-    LIVE_CONSENT_ENVIRONMENT_VARIABLE,
-    LIVE_CONSENT_PHRASE,
+    LIVE_CONSENT_PROMPT,
+    LIVE_CONSENT_YES_VALUES,
     LiveConsent,
+    PreflightResult,
 )
 from tiny_swarm_world.infrastructure.composition import (
     ApplicationServices,
     ArtifactServices,
     DeploymentServices,
+    SetupServices,
     build_application_services,
     build_artifact_services,
     build_deployment_services,
     build_preflight_service,
+    build_setup_services,
 )
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
-WorkflowResult = PlatformWorkflowResult | ArtifactWorkflowResult | DeploymentWorkflowResult
+WorkflowResult = (
+    PlatformWorkflowResult
+    | ArtifactWorkflowResult
+    | DeploymentWorkflowResult
+    | SetupWorkflowResult
+)
 
 
 @dataclass(frozen=True)
@@ -48,7 +56,7 @@ class CliWorkflow:
 
     @property
     def implemented(self) -> bool:
-        return self.platform_kind is not None or self.namespace in {"artifacts", "deployment"}
+        return self.platform_kind is not None or self.namespace in {"artifacts", "deployment", "setup"}
 
 
 PLATFORM_WORKFLOW_ORDER = (
@@ -75,6 +83,7 @@ CLI_WORKFLOWS = (
     CliWorkflow(namespace="artifacts", action="verify", mutating=False, destructive=False),
     CliWorkflow(namespace="deployment", action="apply", mutating=True, destructive=False),
     CliWorkflow(namespace="deployment", action="verify", mutating=False, destructive=False),
+    CliWorkflow(namespace="setup", action="run", mutating=True, destructive=False),
 )
 CLI_WORKFLOWS_BY_KEY = {(workflow.namespace, workflow.action): workflow for workflow in CLI_WORKFLOWS}
 
@@ -132,6 +141,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
         live_consent = _live_consent_from_args(args) if args.live else None
         result = await preflight.run(live_consent)
         print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+        _print_preflight_summary(result)
         if not result.passed:
             raise SystemExit(1)
         return
@@ -156,6 +166,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
         )
         raise SystemExit(1)
 
+    live_consent: LiveConsent | None = None
     if workflow.mutating:
         live_consent = _live_consent_from_args(args)
         if not live_consent.accepted:
@@ -165,7 +176,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
             raise SystemExit(2)
 
     logger.info("Running workflow: %s", workflow.name)
-    result = await run_cli_workflow(workflow, args.confirm)
+    result = await run_cli_workflow(workflow, args.confirm, live_consent)
     print(json.dumps(_workflow_result_to_dict(result), indent=2, sort_keys=True))
     if _workflow_status_value(result) != PlatformWorkflowStatus.COMPLETED.value:
         raise SystemExit(1)
@@ -176,6 +187,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
 async def run_cli_workflow(
     workflow: CliWorkflow,
     confirmation: str | None,
+    live_consent: LiveConsent | None = None,
 ) -> WorkflowResult:
     if workflow.platform_kind is not None:
         services = build_application_services()
@@ -186,6 +198,11 @@ async def run_cli_workflow(
     if workflow.namespace == "deployment":
         services = build_deployment_services()
         return await run_deployment_workflow(services, workflow.action)
+    if workflow.namespace == "setup":
+        if live_consent is None or not live_consent.accepted:
+            raise ValueError("setup run requires accepted live consent")
+        services = build_setup_services(live_consent)
+        return await run_setup_workflow(services, workflow.action)
     raise ValueError(f"Unsupported workflow: {workflow.name}")
 
 
@@ -238,15 +255,21 @@ async def run_deployment_workflow(
             raise ValueError(f"Unsupported deployment workflow: {action}")
 
 
+async def run_setup_workflow(
+    services: SetupServices,
+    action: str,
+) -> SetupWorkflowResult:
+    match action:
+        case "run":
+            return await services.workflows.run.run()
+        case _:
+            raise ValueError(f"Unsupported setup workflow: {action}")
+
+
 def _workflow_result_to_dict(result: WorkflowResult) -> dict[str, object]:
-    if isinstance(result, ArtifactWorkflowResult | DeploymentWorkflowResult):
+    if isinstance(result, ArtifactWorkflowResult | DeploymentWorkflowResult | SetupWorkflowResult):
         return result.to_dict()
-    return {
-        "executed": result.executed,
-        "message": result.message,
-        "status": result.status.value,
-        "workflow": f"platform {result.kind.value}",
-    }
+    return result.to_dict()
 
 
 def _workflow_status_value(result: WorkflowResult) -> str:
@@ -266,17 +289,32 @@ def _blocked_workflow_result(workflow: CliWorkflow) -> dict[str, object]:
 
 
 def _live_consent_from_args(args: Namespace) -> LiveConsent:
-    typed_phrase = None
+    confirmed = False
     if args.live:
         try:
-            typed_phrase = input(f"Type '{LIVE_CONSENT_PHRASE}' to continue: ")
+            answer = input(f"{LIVE_CONSENT_PROMPT} ")
+            confirmed = answer.strip().lower() in LIVE_CONSENT_YES_VALUES
         except EOFError:
-            typed_phrase = None
-    return LiveConsent(
-        live_flag=args.live,
-        environment_value=os.environ.get(LIVE_CONSENT_ENVIRONMENT_VARIABLE),
-        typed_phrase=typed_phrase,
-    )
+            confirmed = False
+    return LiveConsent(live_flag=args.live, confirmed=confirmed)
+
+
+def _print_preflight_summary(result: PreflightResult) -> None:
+    print()
+    print(f"Preflight summary: {result.status}")
+    if result.passed:
+        print("All checks passed.")
+        return
+
+    if result.resource_gated:
+        print("Only resource-gated checks failed. Use a larger host or a smaller setup profile.")
+    else:
+        print("Fix the mandatory blockers before live setup.")
+
+    for check in result.failed_checks:
+        print(f"- {check.check_id}: {check.message}")
+        if check.remediation and check.remediation != "None":
+            print(f"  Action: {check.remediation}")
 
 
 if __name__ == "__main__":

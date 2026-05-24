@@ -9,6 +9,7 @@ from tiny_swarm_world.application.ports.commands.parameter_type import Parameter
 from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
 from tiny_swarm_world.application.services.multipass.multipass_init_vms import MultipassInitVms
 from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
 DESTRUCTIVE_CONFIG_FILES = {
@@ -45,6 +46,27 @@ class TestMultipassInitVms(unittest.IsolatedAsyncioTestCase):
             [call.workflow_id for call in command_workflow.async_calls],
         )
 
+    async def test_verify_pre_apply_checks_init_repository_contract(self):
+        command_workflow = _RecordingCommandWorkflow()
+
+        result = MultipassInitVms(command_workflow).verify_pre_apply()
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual(
+            [INIT_CONFIG_FILE],
+            [call.config_file for call in command_workflow.verify_calls],
+        )
+        self.assertEqual(
+            [CommandWorkflowId.PLATFORM_INIT.value],
+            [call.workflow_id for call in command_workflow.verify_calls],
+        )
+
+    async def test_post_apply_verify_is_not_a_metadata_only_success(self):
+        command_workflow = _RecordingCommandWorkflow()
+        service = MultipassInitVms(command_workflow)
+
+        self.assertFalse(callable(getattr(service, "verify", None)))
+
 
 def _destructive_or_reset_like_config_files(config_files: list[str]) -> list[str]:
     unsafe_terms = ("clean", "delete", "purge", "destroy", "reset")
@@ -61,6 +83,7 @@ class _RecordingCommandWorkflow(PortCommandWorkflow):
         self.async_calls: list[_WorkflowCall] = []
         self.sync_calls: list[_WorkflowCall] = []
         self.build_calls: list[_WorkflowCall] = []
+        self.verify_calls: list[_WorkflowCall] = []
 
     def build_command_list(
         self,
@@ -91,6 +114,22 @@ class _RecordingCommandWorkflow(PortCommandWorkflow):
     ) -> Any:
         self.sync_calls.append(_WorkflowCall(config_file, parameter, workflow_id))
         return f"ran {config_file}"
+
+    def verify_config_contract(
+        self,
+        config_file: str,
+        parameter: dict[ParameterType, str] | None = None,
+        *,
+        workflow_id: str,
+        target_id: str,
+    ) -> VerificationResult:
+        self.verify_calls.append(_WorkflowCall(config_file, parameter, workflow_id))
+        return VerificationResult(
+            target_id=target_id,
+            status=VerificationStatus.VERIFIED,
+            message="Command-backed verification contract is configured.",
+            evidence={"phase": "pre_apply"},
+        )
 
 
 @dataclass(frozen=True)

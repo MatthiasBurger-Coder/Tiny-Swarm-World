@@ -1,28 +1,34 @@
 import unittest
+from dataclasses import replace
 from collections.abc import Mapping, Sequence
 
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.domain.preflight import (
-    LIVE_CONSENT_ENVIRONMENT_VALUE,
-    LIVE_CONSENT_PHRASE,
     LiveConsent,
     PreflightSeverity,
+    RequiredPort,
+    RequiredSecret,
+    SetupManifest,
+    SetupPortRequirement,
+    SetupProfile,
+    SetupSecretRequirement,
+    SetupServiceRequirement,
+    default_preflight_configuration,
 )
 
 
 class TestPreflightService(unittest.IsolatedAsyncioTestCase):
     async def test_successful_preflight_reports_passed_checks(self):
         result = await PreflightService(_FakeProbe()).run(
-            LiveConsent(
-                live_flag=True,
-                environment_value=LIVE_CONSENT_ENVIRONMENT_VALUE,
-                typed_phrase=LIVE_CONSENT_PHRASE,
-            )
+            LiveConsent(live_flag=True, confirmed=True)
         )
 
         check_ids = {check.check_id for check in result.checks}
         self.assertTrue(result.passed)
+        self.assertEqual("PASSED", result.status)
+        self.assertEqual("full", result.to_dict()["setup_profile"])
+        self.assertIn("SETUP-MANIFEST", check_ids)
         self.assertIn("LIVE-CONSENT", check_ids)
         self.assertIn("PYTHON", check_ids)
         self.assertIn("DEPENDENCY-python3", check_ids)
@@ -35,20 +41,58 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.passed)
         self.assertNotIn("LIVE-CONSENT", check_ids)
 
+    async def test_preflight_reports_selected_setup_profile_and_manifest(self):
+        configuration = default_preflight_configuration(SetupProfile.RESOURCE_GATED)
+        result = await PreflightService(_FakeProbe(), configuration).run()
+
+        manifest = result.to_dict()["manifest"]
+        self.assertEqual("resource-gated", result.to_dict()["setup_profile"])
+        self.assertEqual("resource-gated", manifest["profile"])
+        self.assertIn("Portainer", manifest["services"])
+
+    async def test_custom_manifest_drives_port_and_secret_checks(self):
+        manifest = SetupManifest(
+            profile=SetupProfile.FULL,
+            evidence_root=".tiny-swarm-world/evidence/custom",
+            services=(
+                SetupServiceRequirement(
+                    "Custom",
+                    ports=(SetupPortRequirement(12345, "Custom"),),
+                    secrets=(SetupSecretRequirement("TSW_CUSTOM_SECRET", "Custom"),),
+                ),
+            ),
+        )
+        configuration = replace(
+            default_preflight_configuration(),
+            setup_manifest=manifest,
+            required_ports=tuple(
+                RequiredPort(port.port, port.service)
+                for port in manifest.required_ports
+            ),
+            required_secrets=tuple(
+                RequiredSecret(secret.name, secret.service)
+                for secret in manifest.required_secrets
+            ),
+        )
+
+        result = await PreflightService(_FakeProbe(), configuration).run()
+        check_ids = {check.check_id for check in result.checks}
+
+        self.assertIn("PORT-12345", check_ids)
+        self.assertIn("SECRET-TSW_CUSTOM_SECRET", check_ids)
+        self.assertNotIn("PORT-9000", check_ids)
+        self.assertNotIn("SECRET-TSW_PORTAINER_PASSWORD", check_ids)
+
     async def test_incomplete_live_consent_fails_preflight(self):
         result = await PreflightService(_FakeProbe()).run(
-            LiveConsent(
-                live_flag=True,
-                environment_value=None,
-                typed_phrase=LIVE_CONSENT_PHRASE,
-            )
+            LiveConsent(live_flag=True, confirmed=False)
         )
 
         failed_by_id = {check.check_id: check for check in result.failed_checks}
         self.assertFalse(result.passed)
         self.assertIn("LIVE-CONSENT", failed_by_id)
         self.assertIn(
-            "missing TSW_LIVE_INFRASTRUCTURE_CONSENT",
+            "missing live confirmation",
             failed_by_id["LIVE-CONSENT"].evidence["missing"],
         )
 
@@ -97,9 +141,25 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
             if check.check_id in {"RESOURCE-CPU", "RESOURCE-MEMORY", "RESOURCE-DISK"}
         ]
         self.assertEqual(3, len(resource_failures))
+        self.assertEqual("RESOURCE_GATED", result.status)
         self.assertTrue(
             all(check.severity == PreflightSeverity.RESOURCE_GATED for check in resource_failures)
         )
+
+    async def test_mandatory_failure_keeps_resource_failures_from_resource_gated_status(self):
+        result = await PreflightService(
+            _FakeProbe(
+                executable_availability={"docker": False},
+                cpu_count_value=2,
+                memory_bytes_value=8,
+                disk_free_bytes_value=8,
+            )
+        ).run()
+
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+        self.assertEqual("FAILED", result.status)
+        self.assertIn("DEPENDENCY-docker", failed_by_id)
+        self.assertIn("RESOURCE-CPU", failed_by_id)
 
     async def test_forbidden_secret_fingerprint_failures_report_ids_only(self):
         result = await PreflightService(

@@ -34,7 +34,7 @@ class LinuxUI(PortUI):
             stdscr.clear()
 
             # Check if the terminal is large enough
-            if height < len(self.instances) + 5:
+            if height < max(len(self.instances) + 8, 8):
                 stdscr.addstr(0, 0, f"Terminal too small ({height}x{width})!".center(width), curses.A_BOLD)
                 stdscr.refresh()
                 time.sleep(3)
@@ -63,6 +63,16 @@ class LinuxUI(PortUI):
                     stdscr.addstr(2, idx * col_width, f"Task: {current_task[:col_width - 7]}")
                     stdscr.addstr(3, idx * col_width, f"Step: {current_step[:col_width - 7]}")
                     stdscr.addstr(4, idx * col_width, f"Status: {current_result[:col_width - 7]}")
+                    recovery_action = self.recovery_action(current_result)
+                    if recovery_action:
+                        stdscr.addstr(5, idx * col_width, f"Action: {recovery_action[:col_width - 8]}")
+
+                aggregate_result = self.aggregate_status["result"]
+                if self.is_terminal_result(aggregate_result):
+                    stdscr.addstr(6, 0, f"Overall: {aggregate_result}"[:width], curses.A_BOLD)
+                    aggregate_recovery = self.recovery_action(aggregate_result)
+                    if aggregate_recovery:
+                        stdscr.addstr(7, 0, f"Action: {aggregate_recovery}"[:width])
 
             if changed:
                 stdscr.refresh()
@@ -73,8 +83,9 @@ class LinuxUI(PortUI):
             if self.all_instances_terminal():
                 completion_summary = self.completion_summary()
                 # Ensure "All instances completed" fits within the terminal
-                if len(self.instances) + 4 < height:
-                    stdscr.addstr(len(self.instances) + 4, 0, completion_summary.center(width)[:width],
+                summary_row = len(self.instances) + 7
+                if summary_row < height:
+                    stdscr.addstr(summary_row, 0, completion_summary.center(width)[:width],
                                   curses.A_BOLD)
                 else:
                     # Print in the last line if there's no space

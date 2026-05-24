@@ -40,7 +40,9 @@ def local_state_file(
 def _repository_root(root: Path | None) -> Path:
     if root is not None:
         return root.expanduser().resolve()
-    return repository_root().resolve()
+    repository = repository_root().resolve()
+    _require_verified_repository_root(repository)
+    return repository
 
 
 def _require_within(path: Path, root: Path, description: str) -> None:
@@ -56,3 +58,14 @@ def _contains_infra_config_segment(path: Path) -> bool:
         part == "infra" and index + 1 < len(parts) and parts[index + 1] == "config"
         for index, part in enumerate(parts)
     )
+
+
+def _require_verified_repository_root(root: Path) -> None:
+    required_paths = (
+        root / "AGENTS.md",
+        root / "QUALITY.md",
+        root / "src" / "tiny_swarm_world",
+        root / "infra" / "config",
+    )
+    if not all(path.exists() for path in required_paths):
+        raise LocalStatePathError("local state repository root is not a Tiny Swarm World root")

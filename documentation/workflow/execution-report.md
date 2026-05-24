@@ -1,163 +1,819 @@
-# Execution Report: System Unification
+# Workflow Creation Report: Autonomous Runnable Setup
 
 ## Status
 
 ```text
-WORKFLOW_EXECUTION_COMPLETED
+WORKFLOW_COMPLETED
 ```
 
-This report is initialized during workflow creation and must be updated by
-`workflow execute with subagents`.
+## Branch
+
+```text
+codex/workflow-autonomous-setup-20260524
+```
+
+## Scope
+
+This report records workflow creation and workflow-execution checkpoints.
+Slice 01 has been completed as a documentation-only requirement baseline.
+Slice 02 has been completed as a setup-safety ADR and arc42 alignment slice.
+Slice 03 has been completed as the setup preflight and manifest contract
+slice. Slice 04 has been completed as the inventory and evidence foundation
+slice. Slice 05 has been completed as the command-backed platform verification
+contract slice. Slice 06 has been completed as the Portainer deployment
+contract slice. Slice 07 has been completed as the Nexus and artifact registry
+contract slice. Slice 08 has been completed as the service stack deployment
+and verification contract slice. Slice 09 has been completed as the
+autonomous setup orchestrator and CLI contract slice. Slice 10 has been
+completed as the console status and recovery UX slice. Slice 11 has been
+completed as the final documentation sync, quality gate, and optional live
+smoke handoff slice.
+
+## Subagent Review
+
+Read-only subagents were used because the user explicitly requested subagents:
+
+- Senior Requirement Engineer: identified installer-specific requirement gaps,
+  consent/credential/runnable-state questions, and traceability concerns.
+- Senior System Architect: confirmed current CLI is fail-closed, preserved
+  hexagonal boundaries, identified ADR/arc42 sync needs, and named likely
+  affected areas.
+- Senior Python Automation Developer: proposed implementation slices across
+  platform verification, evidence, Portainer, Nexus/artifacts, deployment, and
+  setup orchestration.
+- Senior React Frontend: confirmed React/browser frontend is out of scope and
+  routed setup feedback to console/status UI.
+- Senior Tester: defined regression-first verification, mocked external-system
+  strategy, quality gate expectations, and failure classification.
 
 ## Workflow Creation Evidence
 
-- Branch: `codex/workflow-system-unification-20260524`
-- Execution profile: `FULL_PATH`
-- Workflow confidence: `91 percent`
-- Decision: `READY_FOR_WORKFLOW`
-- arc42 status: checked during workflow creation; no workflow-creation update
-  required.
+- Repository root verified.
+- Working tree was clean before branch creation.
+- Dedicated workflow branch created and verified:
+
+```bash
+git show-ref --verify --quiet refs/heads/codex/workflow-autonomous-setup-20260524
+git branch --show-current
+```
+
+- Existing `documentation/workflow` was removed and regenerated according to
+  the workflow-authoring rule.
+- `AGENTS.md`, `QUALITY.md`, relevant EPIC, arc42, setup docs, live-operation
+  catalog, and workflow skills were checked.
 
 ## Quality Evidence
 
-Workflow creation checks:
+Passed:
 
-```text
+```bash
 git diff --check
-PASS
 ```
 
-```text
-Get-Content documentation/workflow/context-pack.json | ConvertFrom-Json
-PASS
+The full gate was not run during workflow creation because this change only
+regenerates workflow documentation. It remains required by implementation
+slices when practical:
+
+```bash
+python3 tools/quality_gate.py quality
 ```
 
+## Execution Checkpoints
+
+### Slice 01: Installer Requirement Baseline
+
+Status:
+
 ```text
-wsl -e bash -lc "cd /mnt/d/Projects/Tiny-Swarm-World && python3 tools/quality_gate.py quality"
-FAILED: WSL system Python lacked the ruff module.
+COMPLETED
 ```
 
-Supplemental WSL quality environment:
+Checkpoint commit:
 
 ```text
-python3 -m venv /tmp/tsw-quality-venv
-/tmp/tsw-quality-venv/bin/python -m pip install -r requirements.txt ruff mypy import-linter types-requests
+d5f3e55e880fd9d8ba6eda3ba46356afc3981242
 ```
 
-Full quality gate:
+Changed files:
 
-```text
-wsl -e bash -lc "cd /mnt/d/Projects/Tiny-Swarm-World && /tmp/tsw-quality-venv/bin/python tools/quality_gate.py quality"
-PASS
-```
+- `documentation/epics/autonomous-runnable-setup.md`
+- `documentation/epics/system-unification.md`
+- `documentation/workflow/reports/01-installer-requirement-baseline.md`
 
-Gate result details:
+Verification:
 
-```text
-lint: PASS
-arch-lint: PASS, 3 contracts kept and 0 broken
-arch-tests: PASS
-typecheck: PASS, no issues found in 245 source files
-test: PASS, 213 tests run, 1 skipped
-```
-
-Slice 09 final checks:
-
-```text
+```bash
 git diff --check
-PASS
+git diff --cached --check
 ```
 
-```text
-python3 tools/quality_gate.py arch-lint
-PASS, 3 contracts kept and 0 broken
-```
+Result: passed.
+
+### Governance Repair Before Slice 02
+
+Reason:
 
 ```text
+documentation/workflow/context-pack.md and context-pack.json still described
+Slice 01 as planned and retained the pre-Slice-01 system-unification hash.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source is `documentation/epics/system-unification.md` plus the
+  Slice 01 extension `documentation/epics/autonomous-runnable-setup.md`;
+- the repair does not change product behavior or architecture decisions;
+- the repair restores traceability so Slice 02 can evaluate ADR and arc42
+  alignment from current authoritative sources.
+
+### Slice 02: Setup Safety ADR And arc42 Alignment
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+c51380c
+```
+
+Changed files:
+
+- `documentation/architecture/adr-autonomous-setup-safety.adoc`
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/09_architecture_decisions.adoc`
+- `documentation/arc42/10_quality_requirements.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/workflow/reports/02-setup-safety-architecture.md`
+
+Verification:
+
+```bash
+git diff --check
 python3 tools/quality_gate.py arch-tests
-PASS, 14 tests
+git diff --cached --check
 ```
+
+Result: passed.
+
+### Governance Repair Before Slice 03
+
+Reason:
 
 ```text
-/tmp/tsw-quality-venv/bin/python tools/quality_gate.py quality
-PASS
+Slice 02 added a setup-safety ADR and updated arc42 governing files, so the
+workflow context pack needed refreshed hashes before Slice 03 could start from
+current architecture evidence.
 ```
 
-Final gate result details:
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- the accepted setup safety ADR is now part of the governing architecture
+  context for implementation slices;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 03.
+
+### Slice 03: Setup Preflight And Manifest Contract
+
+Status:
 
 ```text
-lint: PASS
-arch-lint: PASS, 3 contracts kept and 0 broken
-arch-tests: PASS
-typecheck: PASS, no issues found in 249 source files
-test: PASS, 253 tests run, 1 skipped
+COMPLETED
 ```
 
-## Slice Results
-
-| Slice | Status | Commit | Push | Notes |
-| --- | --- | --- | --- | --- |
-| 01 | `COMPLETED_PUSHED` | `ceffce7bd42011d9fb8e68965d844cf09a63ae6f` | `origin/codex/workflow-system-unification-20260524` | Created EPIC baseline and system completeness baseline report |
-| 02 | `COMPLETED_PUSHED` | `40b99ab78d2e853573018289ff7dfa4aae594756` | `origin/codex/workflow-system-unification-20260524` | Preserved ADR location convention and aligned arc42 implementation status |
-| 03 | `COMPLETED_PUSHED` | `56186a4b53a15c59d1e9e39360f74a97150ff9ff` | `origin/codex/workflow-system-unification-20260524` | Added static boundary tests for blocked CLI workflows and console/status UI scope |
-| 04 | `COMPLETED_PUSHED` | `4b3e6e0102a1f70e592f65b88db7af7325efc3c3` | `origin/codex/workflow-system-unification-20260524` | Added command evidence policy, desired inventory baseline, and redaction checks |
-| 05 | `COMPLETED_PUSHED` | `92e4ff5a2d3f4999d872290e14197a341dd6b472` | `origin/codex/workflow-system-unification-20260524` | Platform init/reconcile block before apply with explicit reasons; verify fails on failed preflight |
-| 06 | `COMPLETED_PUSHED` | `4e9502896a412efcc1f7edcb0ca07c33daf5faf1` | `origin/codex/workflow-system-unification-20260524` | Added explicit blocked artifact/deployment workflow contracts and live-consent CLI routing |
-| 07 | `COMPLETED_PUSHED` | `c599115773c459c9404f95bd2fdbad7afc9659cc` | `origin/codex/workflow-system-unification-20260524` | Normalized terminal status vocabulary and aggregate console status handling |
-| 08 | `COMPLETED_PUSHED` | `14f3f667cbca6e87a48cf1b1bd350386a149bcde` | `origin/codex/workflow-system-unification-20260524` | Classified direct live-operation surfaces and documented static verification policy |
-| 09 | `COMPLETED` | | | Synchronized final documentation, recorded quality evidence, and answered final workflow questions |
-
-## Final Questions
-
-Is the Tiny Swarm World system boundary model now consistent?
+Checkpoint commit:
 
 ```text
-YES. Platform, Artifacts, Deployment, Shared, and Console/status UI are
-documented as in-process responsibility boundaries. The docs now distinguish
-implemented contracts from blocked live behavior.
+3e3a901
 ```
 
-Are Platform, Artifacts, Deployment, Shared, and Console/status UI complete
-enough for the documented workflows?
+Changed files:
+
+- `src/tiny_swarm_world/domain/preflight/setup_manifest.py`
+- `src/tiny_swarm_world/domain/preflight/preflight_configuration.py`
+- `src/tiny_swarm_world/domain/preflight/preflight_result.py`
+- `src/tiny_swarm_world/domain/preflight/__init__.py`
+- `src/tiny_swarm_world/application/services/platform/preflight_service.py`
+- `tests/domain/preflight/test_preflight_result.py`
+- `tests/application/services/platform/test_preflight_service.py`
+- `tests/infrastructure/adapters/preflight/test_host_preflight_probe.py`
+- `documentation/workflow/execution-report.md`
+- `documentation/workflow/reports/03-setup-preflight-manifest.md`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py arch-tests
+.venv/bin/python tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed.
+
+### Governance Repair Before Slice 04
+
+Reason:
 
 ```text
-YES WITH DOCUMENTED BLOCKERS. Platform workflows are guarded and fail closed.
-Artifacts and Deployment expose explicit blocked workflow contracts. Shared
-command, inventory, evidence, composition, and console/status UI behavior are
-covered by tests or documented constraints.
+Slice 03 added setup preflight and manifest contracts, so the workflow context
+needed to mark Slice 03 complete before inventory/evidence work starts.
 ```
 
-Which workflows remain blocked, and why?
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- the accepted setup safety ADR remains the governing safety contract;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 04.
+
+### Slice 04: Inventory And Evidence Foundation
+
+Status:
 
 ```text
-platform init and platform reconcile: blocked before live steps until
-command-backed verification contracts are implemented.
-
-platform reset and platform destroy: blocked after exact confirmation until
-retention and teardown semantics are implemented.
-
-artifacts prepare and artifacts verify: blocked until image build/push, Nexus
-repository, artifact registry, and observed-state contracts are implemented.
-
-deployment apply and deployment verify: blocked until Portainer stack mutation,
-stack/service observed-state, and verification contracts are implemented.
+COMPLETED
 ```
 
-Were live-operation surfaces classified without executing them?
+Checkpoint commit:
 
 ```text
-YES. Direct scripts and compose assets were classified through static review
-only. No Multipass, Docker Swarm, compose deployment, netplan, socat,
-Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX bootstrap, image
-build, image push, or stack upload command was run.
+4787747
 ```
 
-Are there unresolved ADR, arc42, quality, or test gaps?
+Changed files:
+
+- `src/tiny_swarm_world/domain/inventory/safe_text.py`
+- `src/tiny_swarm_world/domain/inventory/verification.py`
+- `src/tiny_swarm_world/domain/inventory/observed_inventory.py`
+- `src/tiny_swarm_world/infrastructure/adapters/repositories/local_state_paths.py`
+- `tests/domain/inventory/test_inventory_model.py`
+- `tests/infrastructure/adapters/repositories/test_inventory_repositories.py`
+- `documentation/workflow/reports/04-inventory-evidence-foundation.md`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.inventory.test_inventory_model tests.infrastructure.adapters.repositories.test_inventory_repositories tests.application.services.platform.test_platform_workflows tests.architecture.test_local_state_storage
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+.venv/bin/python tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The full test gate ran `269` tests with `1` skipped.
+
+### Governance Repair Before Slice 05
+
+Reason:
 
 ```text
-NO BLOCKING GAPS. ADR convention is documented; arc42 is synchronized with the
-implemented/blocked state; required Slice 09 quality gates pass. Remaining
-technical debt is tracked as future work: command-backed verification,
-observed-state integration, reset/destroy retention semantics, live
-artifact/deployment behavior, and shell-runner hardening.
+Slice 04 added inventory and evidence validation contracts, so the workflow
+context pack needed to mark Slice 04 complete before command-backed platform
+verification work starts.
 ```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- evidence storage, redaction, and local-state path constraints are now part
+  of the implemented foundation for command-backed verification;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 05.
+
+### Slice 05: Command-Backed Platform Verification
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+ec9cd2b
+```
+
+Changed files:
+
+- `src/tiny_swarm_world/application/ports/commands/port_command_workflow.py`
+- `src/tiny_swarm_world/application/services/multipass/multipass_docker_install.py`
+- `src/tiny_swarm_world/application/services/multipass/multipass_docker_swarm_init.py`
+- `src/tiny_swarm_world/application/services/multipass/multipass_init_vms.py`
+- `src/tiny_swarm_world/application/services/multipass/multipass_restart_vms.py`
+- `src/tiny_swarm_world/application/services/network/netplant/network_prepare_netplan.py`
+- `src/tiny_swarm_world/application/services/network/netplant/network_setup_netplan.py`
+- `src/tiny_swarm_world/application/services/platform/command_verification.py`
+- `src/tiny_swarm_world/application/services/platform/workflows.py`
+- `src/tiny_swarm_world/application/services/vm/steps/step_current_docker_bridges.py`
+- `src/tiny_swarm_world/application/services/vm/steps/step_manager_gateway.py`
+- `src/tiny_swarm_world/application/services/vm/steps/step_manager_ip.py`
+- `src/tiny_swarm_world/application/services/vm/vm_ip_list.py`
+- `src/tiny_swarm_world/domain/command/__init__.py`
+- `src/tiny_swarm_world/domain/command/verification_probe.py`
+- `src/tiny_swarm_world/infrastructure/adapters/command_runner/command_workflow.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `tests/application/services/multipass/test_multipass_init_vms.py`
+- `tests/application/services/platform/test_command_verification_contracts.py`
+- `tests/application/services/platform/test_platform_workflows.py`
+- `tests/domain/command/test_command_spec.py`
+- `tests/infrastructure/adapters/command_runner/test_command_workflow_configuration.py`
+- `tests/infrastructure/test_composition.py`
+- `documentation/workflow/reports/05-platform-verification-contracts.md`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.command.test_command_spec
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_workflow_configuration
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_command_verification_contracts
+PYTHONPATH=src python3 -m unittest tests.application.services.multipass.test_multipass_init_vms
+python3 tools/quality_gate.py arch-lint
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The final full quality gate ran `287` tests with `1` skipped.
+
+### Governance Repair Before Slices 06 And 07
+
+Reason:
+
+```text
+Slice 05 added command verification contracts, pre-apply platform blocks, and
+redacted platform command handling, so the workflow context pack needed to mark
+Slice 05 complete before Portainer and artifact-contract work can start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- platform command verification now fails closed with typed evidence and does
+  not claim observed post-apply success;
+- the repair does not change product behavior and restores workflow
+  traceability for Slices 06 and 07.
+
+### Slice 06: Portainer Deployment Contract
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+8e81529
+```
+
+Changed files:
+
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/deployment/system.adoc`
+- `documentation/system/live-operation-surfaces.adoc`
+- `infra/config/compose/portainer/docker-compose.yml`
+- `src/tiny_swarm_world/application/services/deployment/__init__.py`
+- `src/tiny_swarm_world/application/services/deployment/ensure_portainer_stack.py`
+- `src/tiny_swarm_world/application/services/deployment/workflows.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
+- `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+- `tests/application/services/deployment/test_deployment_service_exports.py`
+- `tests/application/services/deployment/test_deployment_workflows.py`
+- `tests/application/services/deployment/test_ensure_portainer_stack.py`
+- `tests/architecture/test_legacy_surface_documentation.py`
+- `tests/infrastructure/adapters/clients/test_portainer_http_client.py`
+- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- `tests/infrastructure/test_composition.py`
+- `documentation/workflow/reports/06-portainer-deployment-contract.md`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
+PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation
+python3 tools/quality_gate.py arch-lint
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The final full quality gate ran `300` tests with `1` skipped.
+
+### Governance Repair Before Slice 07
+
+Reason:
+
+```text
+Slice 06 added the Portainer deployment contract, updated deployment arc42
+status, and cataloged the privileged Portainer compose asset, so the workflow
+context pack needed to mark Slice 06 complete before artifact-contract work can
+start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- the Portainer contract is implemented as a post-bootstrap, port-backed
+  application contract with mocked tests;
+- CLI `deployment apply` remains fail-closed and does not claim live Portainer
+  bootstrap or observed service readiness;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 07.
+
+### Slice 07: Nexus And Artifact Registry Contract
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+0edc32b
+```
+
+Changed files:
+
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/deployment/system.adoc`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/workflow/reports/07-nexus-artifact-contract.md`
+- `infra/config/compose/nexus/docker-compose.yml`
+- `src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
+- `src/tiny_swarm_world/application/services/artifacts/__init__.py`
+- `src/tiny_swarm_world/application/services/artifacts/workflows.py`
+- `src/tiny_swarm_world/application/services/nexus/__init__.py`
+- `src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py`
+- `src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py`
+- `src/tiny_swarm_world/application/services/nexus/nexus_bootstrap_configuration.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/docker_cli_runtime.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
+- `tests/application/services/artifacts/test_artifact_service_exports.py`
+- `tests/application/services/artifacts/test_artifact_workflows.py`
+- `tests/application/services/nexus/test_bootstrap_nexus.py`
+- `tests/application/services/nexus/test_nexus_repository_contracts.py`
+- `tests/architecture/test_hexagonal_imports.py`
+- `tests/architecture/test_legacy_surface_documentation.py`
+- `tests/infrastructure/adapters/clients/test_docker_cli_runtime.py`
+- `tests/infrastructure/adapters/clients/test_nexus_http_client.py`
+- `tests/infrastructure/test_composition.py`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.application.services.artifacts
+PYTHONPATH=src python3 -m unittest tests.application.services.nexus
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_nexus_http_client tests.infrastructure.adapters.clients.test_docker_cli_runtime tests.infrastructure.test_composition tests.architecture.test_legacy_surface_documentation
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The final full quality gate ran `316` tests with `1` skipped.
+
+### Governance Repair Before Slice 08
+
+Reason:
+
+```text
+Slice 07 added Nexus repository and artifact workflow contracts, hardened
+Nexus/Docker adapters, corrected the Nexus compose volume, and updated arc42
+governing files, so the workflow context pack needed to mark Slice 07 complete
+before service-stack deployment work can start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- artifact workflows now have tested Nexus repository contracts, but default
+  CLI composition remains fail-closed until live artifact steps and observed
+  registry checks are wired;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 08.
+
+### Slice 08: Service Stack Deployment And Verification
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+fea882e
+```
+
+Changed files:
+
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/deployment/system.adoc`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/workflow/reports/08-service-stack-deployment.md`
+- `src/tiny_swarm_world/application/services/deployment/__init__.py`
+- `src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py`
+- `src/tiny_swarm_world/application/services/deployment/service_stack_plan.py`
+- `src/tiny_swarm_world/application/services/deployment/workflows.py`
+- `src/tiny_swarm_world/domain/deployment/__init__.py`
+- `src/tiny_swarm_world/domain/deployment/service_stack_contract.py`
+- `tests/application/services/deployment/test_deployment_service_exports.py`
+- `tests/application/services/deployment/test_deployment_workflows.py`
+- `tests/application/services/deployment/test_ensure_service_stack.py`
+- `tests/application/services/deployment/test_service_stack_plan.py`
+- `tests/architecture/test_hexagonal_imports.py`
+- `tests/domain/deployment/__init__.py`
+- `tests/domain/deployment/test_service_stack_contract.py`
+- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- `tests/infrastructure/test_composition.py`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.deployment tests.application.services.deployment
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml tests.infrastructure.adapters.clients.test_portainer_http_client tests.infrastructure.test_composition tests.test_package_entrypoint
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The final full quality gate ran `339` tests with `1` skipped.
+
+### Governance Repair Before Slice 09
+
+Reason:
+
+```text
+Slice 08 added default service stack contracts, Deployment workflow verify
+checks, static compose service validation, and arc42 deployment/risk updates,
+so the workflow context pack needed to mark Slice 08 complete before
+autonomous setup orchestrator work can start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- default service stacks now have precise stack apply contracts or readiness
+  blockers, but service health still requires future observed-state ports;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 09.
+
+### Slice 09: Autonomous Setup Orchestrator And CLI Contract
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+b8ed730
+```
+
+Changed files:
+
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/09_architecture_decisions.adoc`
+- `documentation/workflow/reports/09-autonomous-setup-orchestrator.md`
+- `src/tiny_swarm_world/__main__.py`
+- `src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py`
+- `src/tiny_swarm_world/application/services/setup/__init__.py`
+- `src/tiny_swarm_world/application/services/setup/workflow.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `tests/application/services/setup/__init__.py`
+- `tests/application/services/setup/test_setup_workflow.py`
+- `tests/architecture/test_hexagonal_imports.py`
+- `tests/infrastructure/test_composition.py`
+- `tests/test_package_entrypoint.py`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.application.services.setup tests.infrastructure.test_composition
+python3 tools/quality_gate.py arch-lint
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py lint
+python3 tools/quality_gate.py typecheck
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The focused unit set ran `47` tests. The final full quality
+gate ran `351` tests with `1` skipped.
+
+### Governance Repair Before Slice 10
+
+Reason:
+
+```text
+Slice 09 added the canonical fail-closed setup CLI contract, setup
+application orchestration, setup composition wiring, platform result
+serialization, and arc42 runtime/decision updates, so the workflow context
+pack needed to mark Slice 09 complete before console status and recovery UX
+work can start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- setup orchestration now exists as an implemented CLI contract, but live
+  installation remains fail-closed until lower phases expose complete
+  observed-state evidence;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 10.
+
+### Slice 10: Console Status And Recovery UX
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+27188ef
+```
+
+Changed files:
+
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/workflow/reports/10-console-status-recovery.md`
+- `src/tiny_swarm_world/application/ports/ui/port_ui.py`
+- `src/tiny_swarm_world/infrastructure/adapters/ui/linux_ui.py`
+- `tests/infrastructure/adapters/ui/test_command_runner_ui_failure_semantics.py`
+- `tests/infrastructure/adapters/ui/test_linux_ui.py`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_linux_ui
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics
+PYTHONPATH=src python3 -m unittest tests.application.services.commands.test_command_executer
+python3 tools/quality_gate.py lint
+python3 tools/quality_gate.py typecheck
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The focused UI and command tests ran `18`, `7`, and `3`
+tests. The final full quality gate ran `359` tests with `1` skipped.
+
+### Governance Repair Before Slice 11
+
+Reason:
+
+```text
+Slice 10 added setup terminal status vocabulary, deterministic recovery
+guidance, status-only failure preservation, Linux terminal rendering, and
+arc42 runtime updates, so the workflow context pack needed to mark Slice 10
+complete before final documentation sync and optional live smoke handoff work
+can start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- console/status UI now preserves distinct setup stop states and recovery
+  guidance without adding browser or React scope;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 11.
+
+### Slice 11: Documentation Sync, Quality Gate, And Optional Live Smoke Handoff
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+a5f30f1
+```
+
+Push result:
+
+```text
+origin/codex/workflow-autonomous-setup-20260524 updated from bea02eb to a5f30f1
+```
+
+Changed files:
+
+- `README.md`
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/architecture/adr-autonomous-setup-safety.adoc`
+- `documentation/deployment/system.adoc`
+- `documentation/epics/autonomous-runnable-setup.md`
+- `documentation/epics/system-unification.md`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/user_guide/installation.adoc`
+- `documentation/user_guide/troubleshooting.adoc`
+- `documentation/user_guide/usage.adoc`
+- `documentation/workflow/reports/09-autonomous-setup-orchestrator.md`
+- `documentation/workflow/reports/10-console-status-recovery.md`
+- `documentation/workflow/reports/11-documentation-sync-quality-live-smoke.md`
+
+Verification:
+
+```bash
+git diff --check
+env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py arch-lint
+env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py arch-tests
+env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py quality
+git diff --cached --check
+```
+
+Result: passed. `arch-tests` ran `16` tests. The final full quality gate ran
+`359` tests with `1` skipped. The active WSL verification environment placed
+`.venv/bin` first in `PATH`; a bare system `python3` without development tools
+is not the recorded quality-gate environment.
+
+Requirement-engineering decision:
+
+- the implementation now matches the EPIC partially with a precise status:
+  fail-closed `setup run` orchestration is implemented, but full live runnable
+  setup is not claimed;
+- optional live smoke remains a separate operator action, not the default
+  quality gate;
+- direct live scripts remain transitional, deprecated, legacy, or supported
+  assets, not the canonical setup workflow.
+
+Checkpoint governance:
+
+- no new pull request was created;
+- known existing PR `#36` was not merged by this checkpoint;
+- no `push auto`, force-push, branch cleanup, merge, or push to `main` was
+  performed.
+
+## Live Infrastructure
+
+No live infrastructure commands were run. Workflow creation did not execute
+Multipass, Docker Swarm, compose deployment, netplan, socat, Portainer, Nexus,
+Jenkins, RabbitMQ, SonarQube, Swagger/NGINX bootstrap, image build, image push,
+or stack upload commands.
+
+## Handoff
+
+All planned workflow slices have completed. Optional live smoke validation is
+available only as an explicit operator action with live consent on a disposable
+or recoverable local target environment.

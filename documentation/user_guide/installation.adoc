@@ -91,6 +91,24 @@ Example:
 PYTHONPATH=src python3 -m tiny_swarm_world
 ----
 
+List supported workflow-level commands without building application services:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+----
+
+The canonical autonomous setup entry point is:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run
+----
+
+Without the complete live-consent contract, `setup run` refuses before setup
+services are constructed and prints `REFUSED_LIVE_CONSENT_MISSING`. This is
+the expected safe default.
+
 == Live Infrastructure Warning
 
 Commands in `src/tiny_swarm_world/application/services/multipass`, `infra/prepare`,
@@ -99,3 +117,22 @@ change networking, install Docker, or deploy stacks. Run them only when you
 intend to change local infrastructure state.
 The canonical classification for these live-operation surfaces is
 `documentation/system/live-operation-surfaces.adoc`.
+
+Mutating workflow-level commands such as `platform init`, `platform reconcile`,
+`artifacts prepare`, `deployment apply`, and `setup run` require:
+
+* `--live`;
+* answering `y` at the short live-infrastructure confirmation prompt.
+
+Optional live smoke validation is separate from the default quality gate. Run
+it only on a disposable or recoverable local environment after reviewing the
+live-operation surface catalog:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+When prompted, answer `y` only if changing the local Multipass, Docker Swarm,
+networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX
+environment is intentional.

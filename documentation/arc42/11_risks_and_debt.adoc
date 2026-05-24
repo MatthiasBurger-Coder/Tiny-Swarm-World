@@ -30,9 +30,34 @@ Remaining debt:
 * direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
   remain live-operation surfaces outside the workflow-level CLI consent guard;
 * reset/destroy retention and teardown semantics are not wired yet;
-* artifact and deployment workflows are now explicit composition contracts, but
-  they remain blocked until Nexus, registry, Portainer, and observed-state
-  verification ports are wired deliberately;
+* artifact and deployment workflows are now explicit composition contracts;
+  artifact workflows have tested Nexus repository contracts, but default CLI
+  composition remains blocked until live artifact steps, image publication,
+  registry checks, and observed-state verification are wired deliberately;
 * `artifacts prepare` and `deployment apply` are live-consent gated before
   service construction, but the approved live behavior behind those gates is
   still technical debt.
+
+=== Autonomous Setup Safety Debt
+
+The autonomous setup safety contract is accepted. The canonical `setup run`
+workflow-level orchestrator now exists and fails closed behind live consent,
+but end-to-end full runnable setup remains incomplete.
+
+Remaining debt:
+
+* `setup run` does not yet install and verify the full runnable profile;
+* setup preflight and setup manifest contracts exist, but still need live
+  profile hardening for resource, credential, and readiness handoff detail;
+* command-backed verification remains incomplete for live Platform phases;
+* Artifacts readiness still needs image publication and registry observed-state
+  contracts; Deployment readiness has default stack-presence contracts but
+  still needs container and service health observed-state contracts;
+* Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX service
+  readiness must not be claimed until verified through tests or explicit live
+  smoke evidence;
+* direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
+  still need migration or clear legacy retirement;
+* automatic host package installation, non-interactive live consent, and direct
+  script promotion need future ADRs before they can change the accepted safety
+  model.

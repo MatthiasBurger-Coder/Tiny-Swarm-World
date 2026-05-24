@@ -44,6 +44,21 @@ class PlatformWorkflowResult:
     executed: bool
     verification_results: tuple[VerificationResult, ...] = ()
 
+    @property
+    def workflow_name(self) -> str:
+        return f"platform {self.kind.value}"
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "executed": self.executed,
+            "message": self.message,
+            "status": self.status.value,
+            "verification_results": [
+                verification.to_dict() for verification in self.verification_results
+            ],
+            "workflow": self.workflow_name,
+        }
+
     @classmethod
     def completed(
         cls,

@@ -1,17 +1,47 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from types import MappingProxyType
+from typing import Mapping
 
-from tiny_swarm_world.domain.preflight.preflight_check import PreflightCheck
+from tiny_swarm_world.domain.preflight.preflight_check import (
+    PreflightCheck,
+    PreflightSeverity,
+)
+from tiny_swarm_world.domain.preflight.setup_manifest import SetupProfile
 
 
 @dataclass(frozen=True)
 class PreflightResult:
     checks: tuple[PreflightCheck, ...]
+    setup_profile: SetupProfile = SetupProfile.FULL
+    manifest_summary: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "manifest_summary",
+            MappingProxyType(dict(self.manifest_summary)),
+        )
 
     @property
     def passed(self) -> bool:
         return all(check.passed for check in self.checks)
+
+    @property
+    def resource_gated(self) -> bool:
+        return bool(self.failed_checks) and all(
+            check.severity == PreflightSeverity.RESOURCE_GATED
+            for check in self.failed_checks
+        )
+
+    @property
+    def status(self) -> str:
+        if self.passed:
+            return "PASSED"
+        if self.resource_gated:
+            return "RESOURCE_GATED"
+        return "FAILED"
 
     @property
     def failed_checks(self) -> tuple[PreflightCheck, ...]:
@@ -19,6 +49,8 @@ class PreflightResult:
 
     def to_dict(self) -> dict[str, object]:
         return {
-            "status": "PASSED" if self.passed else "FAILED",
+            "status": self.status,
+            "setup_profile": self.setup_profile.value,
+            "manifest": dict(self.manifest_summary),
             "checks": [check.to_dict() for check in self.checks],
         }

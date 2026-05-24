@@ -64,23 +64,31 @@ Non-mutating workflow checks can be selected explicitly:
 PYTHONPATH=src python3 -m tiny_swarm_world platform verify
 ----
 
-Mutating platform workflows require live-infrastructure consent before services
-are constructed:
+The canonical autonomous setup command is `setup run`. Without live consent it
+refuses before setup services are constructed:
 
 [source,bash]
 ----
-export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
-PYTHONPATH=src python3 -m tiny_swarm_world platform init --live
+PYTHONPATH=src python3 -m tiny_swarm_world setup run
 ----
 
-The command also prompts for the exact phrase:
+Mutating workflow-level commands require live-infrastructure consent before
+services are constructed:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+The command prompts for a short confirmation:
 
 [source,text]
 ----
-RUN TINY SWARM WORLD LIVE INSTALLATION
+Live setup can change local infrastructure. Continue? [y/N]:
 ----
 
-Without the environment value and typed phrase, the entry point reports
+Answer `y` only when changing local infrastructure is intentional. Without
+`--live` and the short confirmation, the entry point reports
 `REFUSED_LIVE_CONSENT_MISSING` before application services are constructed.
 
 Destructive platform workflows also require the exact confirmation phrase:
@@ -99,6 +107,12 @@ Artifact and deployment workflow command names are reserved by the CLI contract
 and dispatch to explicit blocked workflow contracts until live Nexus, registry,
 Portainer, and observed-state verification contracts are implemented.
 
+Optional live smoke validation is a separate operator action, not part of
+`python3 tools/quality_gate.py quality`. Run `setup run --live` only on a
+disposable or recoverable local environment and only when Multipass, Docker
+Swarm, networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+Swagger/NGINX, image, and stack changes are intentional.
+
 == Verification Scope
 
 The workflow safety behavior is verified through unit tests, architecture
@@ -108,6 +122,10 @@ compose, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or
 Swagger/NGINX commands.
 
 == Service Preparation
+
+The workflow-level CLI is the supported setup surface. The commands in this
+section are transitional direct live scripts, not the default setup path and
+not development quality-gate checks.
 
 The preparation shell entrypoint is:
 
@@ -148,6 +166,11 @@ Do not remove or re-enable legacy scripts without a dedicated cleanup slice,
 tests, and rollback notes.
 
 == Nexus Bootstrap
+
+This is a direct live bootstrap path for intentional operator use. Prefer the
+workflow-level setup command for canonical setup orchestration, and review
+`documentation/system/live-operation-surfaces.adoc` before running direct
+bootstrap scripts.
 
 Nexus setup has been moved from a large shell script into Python services and
 adapters. Run it from the repository root or from its script directory:
@@ -190,6 +213,9 @@ flags.
 Do not copy local compatibility defaults into new configuration or logs.
 
 == Stack Uploads
+
+This is a transitional direct Portainer upload path. It is not protected by
+the CLI consent gate and is not part of the default quality gate.
 
 Bulk stack upload to Portainer is handled by:
 

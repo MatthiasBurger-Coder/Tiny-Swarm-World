@@ -1,26 +1,25 @@
 {
   "workflow": {
-    "name": "Unify Tiny Swarm World System Boundaries",
-    "file": "documentation/workflow/workflow.md",
-    "workflowVersion": "system-unification-v1.0.0",
-    "branch": "codex/workflow-system-unification-20260524",
-    "date_created": "2026-05-24",
-    "process_strand": "system-unification",
-    "execution_profile": "FULL_PATH",
-    "status": "WORKFLOW_EXECUTION_COMPLETED"
+    "name": "Autonomous Runnable Setup",
+    "version": "autonomous-runnable-setup-v1.0.0",
+    "branch": "codex/workflow-autonomous-setup-20260524",
+    "createdDate": "2026-05-24",
+    "processStrand": "autonomous-runnable-setup",
+    "executionProfile": "FULL_PATH",
+    "releaseStatus": "WORKFLOW_COMPLETED"
   },
-  "slice_status": {
-    "01": "COMPLETED_PUSHED",
-    "02": "COMPLETED_PUSHED",
-    "03": "COMPLETED_PUSHED",
-    "04": "COMPLETED_PUSHED",
-    "05": "COMPLETED_PUSHED",
-        "06": "COMPLETED_PUSHED",
-        "07": "COMPLETED_PUSHED",
-    "08": "COMPLETED_PUSHED",
-    "09": "COMPLETED"
+  "contextValidity": {
+    "staleWhen": [
+      "Any recorded governing file hash changes",
+      "documentation/workflow/** changes outside workflow execution",
+      "documentation/epics/** changes",
+      "documentation/architecture/** changes",
+      "documentation/arc42/** changes",
+      "Branch context changes",
+      "A conflict is detected"
+    ]
   },
-  "governing_files": [
+  "governingFiles": [
     {
       "path": "AGENTS.md",
       "sha256": "F0FA2387DFA023B968A0F474971BACDA12EBF05FEA4A03B5D6D098F1701D4601"
@@ -31,193 +30,238 @@
     },
     {
       "path": "README.md",
-      "sha256": "C0E731EF69795EC8DFFB7E19A3C540F9F9EBC96996FB0974CFE5756DC6B0A3AF"
+      "sha256": "87DE7E5F2F1C1A2B0D2B7E9EFB83085AE1E4C740B71C83656AB53F841F8031F0"
     },
     {
       "path": ".importlinter",
       "sha256": "4C5C879DDC20BF7CCB8ADCA2B907538264F9C3CF9C1C54E3076E7C008F1A62B4"
     },
     {
-      "path": ".agents/orchestrator/routing-rules.md",
-      "sha256": "4EE4C2C198471962EB48F66E53A9C4B4F15C40343420C200E7081103820757AB"
+      "path": "documentation/epics/system-unification.md",
+      "sha256": "6A488D85AAB23B65B26CE927985D636FB5457977319EFA1F6A6DBF3C1E4F40D3"
     },
     {
-      "path": "documentation/process/workflow-create.md",
-      "sha256": "DAE7115594172E159C051C3ECE15C0B535F1570EFBB28FC67440AEF0BBADC9C9"
+      "path": "documentation/epics/autonomous-runnable-setup.md",
+      "sha256": "42B9A7C7FE4BF53B3CFFCFCA22229AD923B3F20BBA1CE88F4049D9087AABFB36"
     },
     {
-      "path": "documentation/process/workflow-execute.md",
-      "sha256": "E34ED8E85753002D62D11EDE7DF44C2FC8B84F2D7CD88694633EC0232F4C7FED"
+      "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
+      "sha256": "09F2F6C23346A59596965E9EA8605020FFE8A7818E178A5648206ABF6E82DCC2"
     },
     {
-      "path": "documentation/architecture/responsibility-separation-analysis.md",
-      "sha256": "67F4D8D77650A8188603C6BD220A1B07D9CFD20857B08C714D6CEF17E3B49457"
+      "path": "documentation/arc42/05_building_blocks.adoc",
+      "sha256": "60DDB9811AB3CD2D404C16592AFEBE62872223EE7CD00EAC9586A6A41490B201"
     },
     {
-      "path": "documentation/architecture/adr-separate-platform-artifacts-deployment.adoc",
-      "sha256": "B679855EB3C34A364A89773CF13C09132E6402A628AE177923EEE318569F2A66"
+      "path": "documentation/arc42/06_runtime_view.adoc",
+      "sha256": "4EEFE086470FC4ABC7235F1570E0AA528889BA5408BC6839FF8AFC173B2C5A3E"
     },
     {
-      "path": "documentation/architecture/migration-plan.md",
-      "sha256": "DBF5618E62B96935B669CF880B3BE84710C8A29BA7CE9A4F4AAF08CCF5A21E2F"
+      "path": "documentation/arc42/07_deployment_view.adoc",
+      "sha256": "2F4046D7D1BC1F4189C3B71B02A8DB4342945E27C149AD8F828C7F2B7A859CCC"
     },
-        {
-            "path": "documentation/arc42/05_building_blocks.adoc",
-            "sha256": "048CBB16455644E015DBE4BF443DC5C9EB9D00F91C532D7DEB32783E2B1F0E94"
-        },
-        {
-            "path": "documentation/arc42/06_runtime_view.adoc",
-            "sha256": "B0C24F70D5DE38E42A2C691CD83ABAFAAC66D2AE469720CBE3F0CD3D65B13FAF"
-        },
-        {
-            "path": "documentation/arc42/07_deployment_view.adoc",
-            "sha256": "5A8056C5DFDC9CEF115019A958897205BDCD15795F3BFCBE13FE760E7028A323"
-        },
     {
-      "path": "documentation/arc42/08_concepts.adoc",
-      "sha256": "2BC78C86901D5CE98F210AC6F6DA0D3FBDA3F7A59723231C040A0C9919584F51"
+      "path": "documentation/arc42/09_architecture_decisions.adoc",
+      "sha256": "76C58BBAF9FD957ECD2F46B69C4BC7FEE02DED6A20E26C8961A97604CE2D548F"
     },
     {
       "path": "documentation/arc42/10_quality_requirements.adoc",
-      "sha256": "DDE1208E83235F36DB22700039B008C84AAEFCA28DFA53E57CF0E936C05BAB9B"
+      "sha256": "E80E6187EACB4485BBB446C3070485606657BB4E127676A589E6A4B39401E072"
     },
-        {
-            "path": "documentation/arc42/11_risks_and_debt.adoc",
-            "sha256": "B248E43E49321E8B0104F29D5BF02C01FE22646043635325146F6314FF02EDD4"
-        }
+    {
+      "path": "documentation/arc42/11_risks_and_debt.adoc",
+      "sha256": "6BA24B09A4F6F9448E36D475E59F4DEE6C1D3CF23DDF46B45872E7FDAB28F901"
+    },
+    {
+      "path": "documentation/system/live-operation-surfaces.adoc",
+      "sha256": "C1400625A1D66F184B35C156763784614563E90E8A806AC5FF4F673416854CCD"
+    },
+    {
+      "path": "documentation/user_guide/installation.adoc",
+      "sha256": "A82BB7E82920E8310E0C5822A6CABAAD5D7E4479719606B5D3E573381B8C00AE"
+    },
+    {
+      "path": "documentation/user_guide/usage.adoc",
+      "sha256": "D781C867F82BA21AB7BD9FA1CE1B765C151127F830FF6C404B3BE4DDB6A111C8"
+    },
+    {
+      "path": "documentation/user_guide/troubleshooting.adoc",
+      "sha256": "0A937265E331B248DD4E5222166168431B9DE4623EB6FFE197EEB1EC42A3CFE7"
+    },
+    {
+      "path": "documentation/deployment/system.adoc",
+      "sha256": "8FFDF7B9D3ADC1D9F6BB8BC10665469BA1C90A9711BAABC48C0C7B0E855382C4"
+    },
+    {
+      "path": "documentation/arc42/12_glossary.adoc",
+      "sha256": "D272FF4BE21CF73E48F700A563A4FA05F6163F1F99D12A00C2A3BD90D5F4B216"
+    },
+    {
+      "path": "documentation/workflow/reports/11-documentation-sync-quality-live-smoke.md",
+      "sha256": "633600D2DE4DA8838EB12BE0E52234586496E5019672F3F59217444AA4B90752"
+    },
+    {
+      "path": ".agents/skills/workflow-authoring/SKILL.md",
+      "sha256": "087658240296E3B1EC74205C60A96A9A4C67A17CF653F7867E6F316BD9AFA94E"
+    },
+    {
+      "path": ".agents/skills/setup-bootstrap-expert/SKILL.md",
+      "sha256": "37476A7B553A5E63B7E2B1F074D7DD697B2BD138A9EA745E6AC83A81C57CB5AC"
+    },
+    {
+      "path": ".agents/skills/swarm-orchestration/SKILL.md",
+      "sha256": "FAD1651BB25B5DBD3BA5C98174AEA0B24FF41B42B1BBF78926140304BE44AF95"
+    }
   ],
-  "affected_areas": [
-    "documentation/epics",
-    "documentation/workflow",
-    "documentation/architecture",
-    "documentation/arc42",
-    "documentation/deployment",
-    "documentation/system",
-    "documentation/user_guide",
-    "README.md",
-    "tests",
-    "src/tiny_swarm_world/domain",
-    "src/tiny_swarm_world/application",
-    "src/tiny_swarm_world/infrastructure",
-    "infra"
+  "affectedAreas": [
+    "Installer-specific EPIC and workflow reports",
+    "Platform, Artifacts, Deployment, Shared, and Console/status UI boundaries",
+    "CLI setup workflow declaration and composition wiring",
+    "Preflight, setup manifest, live consent, and resource gates",
+    "Command-backed verification, observed inventory, and evidence redaction",
+    "Portainer, Nexus, registry, compose, and service stack contracts",
+    "README, installation docs, deployment docs, system docs, arc42, and live-operation surface catalog",
+    "Tests and quality gates"
   ],
-  "forbidden_areas": [
-    "src/main/java",
+  "forbiddenAreas": [
+    "src/main/java/**",
     "pom.xml",
+    "external static-analysis CI configuration",
     "generated caches",
     "local virtual environments",
     "logs",
     "IDE state",
-    "live infrastructure execution"
+    ".tiny-swarm-world/**",
+    ".env",
+    ".env.local",
+    "live infrastructure execution during default verification"
   ],
-  "required_roles": [
+  "requiredRoles": [
     "senior_workflow_architect",
     "senior_requirement_engineer",
     "senior_system_architect",
     "senior_python_automation_developer",
     "senior_react_frontend",
-    "senior_tester",
-    "senior_documentation_engineer"
+    "senior_tester"
   ],
-  "conditional_roles": [
+  "conditionalRoles": [
     "senior_devops",
+    "senior_documentation_engineer",
     "senior_security_sandbox_engineer",
     "console-status-ui-developer",
+    "setup-bootstrap-expert",
+    "linux-host-preparation",
     "resilience-engineering",
     "adr-steward",
     "git_commit_reviewer",
     "git_commit_operator"
   ],
-  "quality_commands": {
-    "minimum": [
+  "qualityCommands": {
+    "workflowCreation": [
       "git diff --check"
     ],
-    "preferred_full_gate": "python3 tools/quality_gate.py quality"
+    "preferredFullGate": [
+      "python3 tools/quality_gate.py quality"
+    ]
   },
   "slices": [
     {
-      "id": "01",
+      "sliceId": "01",
+      "status": "COMPLETED",
       "owner": "senior_requirement_engineer",
-      "purpose": "EPIC baseline and completeness criteria",
+      "purpose": "Installer requirement baseline",
       "dependencies": []
     },
     {
-      "id": "02",
+      "sliceId": "02",
+      "status": "COMPLETED",
       "owner": "senior_system_architect",
-      "purpose": "ADR and arc42 alignment",
+      "purpose": "Setup safety ADR and arc42 alignment",
       "dependencies": [
         "01"
       ]
     },
     {
-      "id": "03",
-      "owner": "senior_tester",
-      "purpose": "Responsibility boundary quality coverage",
+      "sliceId": "03",
+      "status": "COMPLETED",
+      "owner": "senior_python_automation_developer",
+      "purpose": "Setup preflight and manifest contract",
       "dependencies": [
         "02"
       ]
     },
     {
-      "id": "04",
+      "sliceId": "04",
+      "status": "COMPLETED",
       "owner": "senior_python_automation_developer",
-      "purpose": "Command catalog, inventory, and evidence foundation",
+      "purpose": "Inventory and evidence foundation",
       "dependencies": [
         "03"
       ]
     },
     {
-      "id": "05",
+      "sliceId": "05",
+      "status": "COMPLETED",
       "owner": "senior_python_automation_developer",
-      "purpose": "Platform verify-after-apply contracts",
+      "purpose": "Command-backed platform verification",
       "dependencies": [
         "04"
       ]
     },
     {
-      "id": "06",
-      "owner": "senior_python_automation_developer",
-      "purpose": "Artifact and deployment workflow contracts",
+      "sliceId": "06",
+      "status": "COMPLETED",
+      "owner": "senior_devops",
+      "purpose": "Portainer deployment contract",
       "dependencies": [
         "05"
       ]
     },
     {
-      "id": "07",
+      "sliceId": "07",
+      "status": "COMPLETED",
       "owner": "senior_python_automation_developer",
-      "purpose": "Console status UI consistency",
+      "purpose": "Nexus and artifact registry contract",
       "dependencies": [
-        "03"
+        "05"
       ]
     },
     {
-      "id": "08",
-      "owner": "senior_devops",
-      "purpose": "Legacy live-surface quarantine",
-      "dependencies": [
-        "03"
-      ]
-    },
-    {
-      "id": "09",
-      "owner": "senior_documentation_engineer",
-      "purpose": "Documentation sync, quality gate, execution report",
+      "sliceId": "08",
+      "status": "COMPLETED",
+      "owner": "senior_python_automation_developer",
+      "purpose": "Service stack deployment and verification",
       "dependencies": [
         "06",
-        "07",
+        "07"
+      ]
+    },
+    {
+      "sliceId": "09",
+      "status": "COMPLETED",
+      "owner": "senior_workflow_architect",
+      "purpose": "Autonomous setup orchestrator and CLI contract",
+      "dependencies": [
         "08"
       ]
+    },
+    {
+      "sliceId": "10",
+      "status": "COMPLETED",
+      "owner": "senior_python_automation_developer",
+      "purpose": "Console status and recovery UX",
+      "dependencies": [
+        "09"
+      ]
+    },
+    {
+      "sliceId": "11",
+      "status": "COMPLETED",
+      "owner": "senior_documentation_engineer",
+      "purpose": "Documentation sync, quality gate, and optional live smoke handoff",
+      "dependencies": [
+        "10"
+      ]
     }
-  ],
-  "stop_rules": [
-    "active branch is not codex/workflow-system-unification-20260524",
-    "local branch ref is missing",
-    "unrelated or unclear changes exist",
-    "workflow or context-pack branch names are stale",
-    "live infrastructure execution would be required",
-    "EPIC baseline cannot align with architecture docs",
-    "ADR convention blocks architecture decision changes",
-    "QUALITY.md commands cannot be verified or documented",
-    "application imports infrastructure",
-    "React/browser, Spring Boot, Kubernetes-first, Java example, or unrelated analytics scope drives Python automation architecture"
   ]
 }

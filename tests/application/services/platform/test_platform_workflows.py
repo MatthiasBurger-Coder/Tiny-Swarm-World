@@ -187,6 +187,75 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             result.verification_results[0].evidence["reason"],
         )
 
+    async def test_pre_apply_verification_blocks_before_apply_and_later_steps(self):
+        blocked_step = _PreApplyAction(
+            "pre-apply-blocked",
+            VerificationResult(
+                target_id="pre-apply-blocked",
+                status=VerificationStatus.BLOCKED,
+                message="Command-backed verification is not configured.",
+                evidence={
+                    "phase": "pre_apply",
+                    "reason": "command_backed_verification_missing",
+                },
+            ),
+        )
+        later_step = _RecordingAction("later")
+
+        result = await PlatformInitWorkflow([blocked_step, later_step]).run()
+
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual([], blocked_step.calls)
+        self.assertEqual([], blocked_step.verifications)
+        self.assertEqual([], later_step.calls)
+        self.assertEqual(VerificationStatus.BLOCKED, result.verification_results[0].status)
+        self.assertEqual(
+            "command_backed_verification_missing",
+            result.verification_results[0].evidence["reason"],
+        )
+
+    async def test_pre_apply_verified_step_blocks_after_apply_without_observed_verification(self):
+        step = _PreApplyAction(
+            "pre-apply-verified",
+            VerificationResult(
+                target_id="pre-apply-verified",
+                status=VerificationStatus.VERIFIED,
+                message="Command-backed verification contract is configured.",
+                evidence={"phase": "pre_apply"},
+            ),
+        )
+
+        result = await PlatformInitWorkflow([step]).run()
+
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(["pre-apply-verified"], step.calls)
+        self.assertEqual(
+            ("pre_apply", "verify"),
+            tuple(item.evidence["phase"] for item in result.verification_results),
+        )
+        self.assertEqual("Verification evidence is missing.", result.verification_results[1].message)
+
+    async def test_pre_apply_verified_step_completes_with_observed_verification(self):
+        step = _PreApplyVerifiableAction(
+            "pre-apply-verified",
+            VerificationResult(
+                target_id="pre-apply-verified",
+                status=VerificationStatus.VERIFIED,
+                message="Command-backed verification contract is configured.",
+                evidence={"phase": "pre_apply"},
+            ),
+        )
+
+        result = await PlatformInitWorkflow([step]).run()
+
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(["pre-apply-verified"], step.calls)
+        self.assertEqual(["pre-apply-verified"], step.verifications)
+        self.assertEqual(
+            ("pre_apply", "verify"),
+            tuple(item.evidence["phase"] for item in result.verification_results),
+        )
+
     async def test_failed_apply_stops_workflow_before_verify_and_later_steps(self):
         failing_step = _FailingApplyAction("failing")
         later_step = _RecordingAction("later")
@@ -271,6 +340,36 @@ class _RecordingAction:
         self.calls.append(self.name)
         return self.name
 
+    async def verify(self) -> VerificationResult:
+        self.verifications.append(self.name)
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.VERIFIED,
+            message="Step verified.",
+            evidence={"phase": "verify"},
+        )
+
+
+class _PreApplyAction:
+    def __init__(self, name: str, pre_apply_result: VerificationResult):
+        self.name = name
+        self.calls: list[str] = []
+        self.verifications: list[str] = []
+        self.verification_target_id = name
+        self.pre_apply_result = pre_apply_result
+
+    async def run(self) -> object:
+        self.calls.append(self.name)
+        return self.name
+
+    def verify_pre_apply(self) -> VerificationResult:
+        return self.pre_apply_result
+
+    async def verify(self) -> object:
+        return None
+
+
+class _PreApplyVerifiableAction(_PreApplyAction):
     async def verify(self) -> VerificationResult:
         self.verifications.append(self.name)
         return VerificationResult(

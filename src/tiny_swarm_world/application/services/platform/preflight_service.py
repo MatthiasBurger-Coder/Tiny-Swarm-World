@@ -26,6 +26,7 @@ class PreflightService:
 
     async def run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
         checks = [
+            self._setup_manifest_check(),
             self._host_check(),
             self._python_check(),
             *self._dependency_checks(),
@@ -39,7 +40,24 @@ class PreflightService:
         ]
         if live_consent is not None:
             checks.insert(0, self._live_consent_check(live_consent))
-        return PreflightResult(tuple(checks))
+        return PreflightResult(
+            tuple(checks),
+            setup_profile=self.configuration.setup_profile,
+            manifest_summary=self.configuration.setup_manifest.summary(),
+        )
+
+    def _setup_manifest_check(self) -> PreflightCheck:
+        manifest = self.configuration.setup_manifest
+        return _passed(
+            "SETUP-MANIFEST",
+            PreflightCategory.CONFIGURATION,
+            "Setup manifest is structured and secret-safe.",
+            {
+                "profile": manifest.profile.value,
+                "services": ",".join(manifest.service_names),
+                "evidence_root": manifest.evidence_root,
+            },
+        )
 
     def _live_consent_check(self, live_consent: LiveConsent) -> PreflightCheck:
         if live_consent.accepted:
@@ -47,13 +65,13 @@ class PreflightService:
                 "LIVE-CONSENT",
                 PreflightCategory.LIVE_CONSENT,
                 "Live infrastructure consent is complete.",
-                {"required_controls": "flag,environment,typed_phrase"},
+                {"required_controls": "flag,interactive_confirmation"},
             )
         return _failed(
             "LIVE-CONSENT",
             PreflightCategory.LIVE_CONSENT,
             "Live infrastructure consent is missing or incomplete.",
-            "Provide --live, the required consent environment variable, and the exact typed phrase.",
+            "Run with --live and answer y to the live infrastructure confirmation prompt.",
             {"missing": ",".join(live_consent.missing_reasons)},
         )
 

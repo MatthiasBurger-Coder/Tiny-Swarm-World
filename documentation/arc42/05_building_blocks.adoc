@@ -31,22 +31,31 @@ microservices:
   network setup, Docker installation, Swarm initialization, preflight checks,
   VM IP discovery, socat management, and workflow objects for platform
   `init`, `reconcile`, `verify`, `reset`, and `destroy` commands.
-* `ArtifactServices` is the explicit artifacts boundary. It owns blocked
-  workflow contracts for `artifacts prepare` and `artifacts verify` so the CLI
-  can report stable operator-facing reasons without wiring live Nexus or
-  registry behavior.
+* `ArtifactServices` is the explicit artifacts boundary. It owns
+  `artifacts prepare` and `artifacts verify` workflow contracts. The default
+  composition remains fail-closed, while the workflow classes can now execute
+  configured Nexus repository and registry-readiness checks only after each
+  step exposes typed verification evidence.
 * `DeploymentServices` is the explicit deployment boundary. The deployment
-  service namespace now owns `EnsureNexusStack` for compose lookup and
-  Portainer stack create/update operations. Its composition bundle owns blocked
-  workflow contracts for `deployment apply` and `deployment verify`; it does
-  not construct Portainer clients or execute stack changes during CLI dispatch.
+  service namespace now owns `EnsurePortainerStack`, `EnsureNexusStack`, and
+  the generic `EnsureServiceStack` contract for the default runnable-service
+  stack set.
+  `EnsurePortainerStack` is a post-bootstrap Portainer API contract for
+  compose lookup plus stack create/update through `PortComposeFileRepository`
+  and `PortPortainerClient`. The composition bundle does not construct a
+  Portainer client or run a stack mutation during CLI dispatch in the current
+  slice. `deployment apply` and `deployment verify` can evaluate configured
+  stack contracts, but the default composition remains blocked until live
+  stack bootstrap, concrete Portainer configuration, and service readiness
+  checks are wired.
 * `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
   instead of aliasing `PlatformServices`.
 
-The blocked Artifacts and Deployment workflow bundles are intentional
-transitional building blocks. They create stable composition boundaries while
+The default Artifacts and Deployment workflow bundles are intentional
+fail-closed building blocks. They create stable composition boundaries while
 service ownership moves in dedicated workflow slices, and they keep later live
-Nexus, registry, and Portainer work behind explicit contracts.
+Nexus, registry, image publication, and Portainer work behind explicit
+contracts.
 Compatibility properties on `ApplicationServices` keep the existing
 service-level accessors available for migration, but the public Python
 entrypoint now routes through workflow-level commands.
@@ -54,6 +63,32 @@ entrypoint now routes through workflow-level commands.
 Console/status UI is also an in-process responsibility surface. It owns
 terminal status rendering, progress feedback and command-runner status
 presentation. It is not a browser React frontend.
+
+=== Autonomous Setup Boundary
+
+The autonomous setup workflow is an implemented fail-closed orchestration over
+the existing in-process boundaries. It is not a new deployable service,
+microservice, Spring Boot application, Java example responsibility, or browser
+frontend.
+
+The setup boundary coordinates Platform, Artifacts, Deployment, Shared, and
+Console/status UI contracts:
+
+* Platform owns host preflight, Multipass, Docker installation, Docker Swarm,
+  network, VM, and resource readiness behavior.
+* Artifacts owns Nexus, registry, image publication, and repository readiness
+  behavior.
+* Deployment owns Portainer, compose assets, service stack apply behavior, and
+  service readiness verification.
+* Shared owns command abstractions, local evidence storage, redaction,
+  configuration loading, and composition wiring.
+* Console/status UI owns terminal-only setup progress and recovery output.
+
+The current repository state includes the canonical `setup run` command,
+live-consent refusal before setup service construction, phase sequencing, and
+terminal recovery states. Lower Platform, Artifacts, and Deployment live
+contracts still need complete observed-state evidence before documentation can
+claim that the setup path installs a full runnable system.
 
 === Typed Command Catalog
 
@@ -127,6 +162,11 @@ application code.
 Live infrastructure scripts can modify VMs, networking, Docker Swarm state,
 service stacks, and credentials. They are not part of the normal development
 quality gate.
+
+Direct scripts must remain transitional live-operation surfaces until their
+behavior is wrapped behind Python ports, adapters, tests, verification, and
+live-consent controls. They must not become the canonical setup path by
+documentation alone.
 
 === Deployment Example Application
 

@@ -7,13 +7,14 @@ from tiny_swarm_world.application.services.vm.steps.step_current_docker_bridges 
 from tiny_swarm_world.application.services.vm.steps.step_manager_gateway import StepManagerGateway
 from tiny_swarm_world.application.services.vm.steps.step_manager_ip import StepManagerIp
 from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
+from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
 from tiny_swarm_world.domain.multipass.vm_entity import VmEntity
 from tiny_swarm_world.domain.network.socat.docker_ip_list import DockerIpList
 
 
 class VmIpList:
     verification_target_id = "platform:reconcile:vm-ip-list"
-    operator_block_reason = "command-backed verification is not configured"
+    operator_block_reason = "post-apply verification is not implemented"
 
     def __init__(self, command_workflow: PortCommandWorkflow, vm_repository: PortVmRepository):
         self.command_workflow = command_workflow
@@ -32,12 +33,30 @@ class VmIpList:
         await self.step_manager_ip.run()
         await self.step_manager_gateway.run()
 
-        self.logger.info(f"docker ip list: {self.docker_ip_list}")
-        vm_list: List[VmEntity] =self.vm_repository.get_all_vms()
+        self.logger.info("docker network addresses collected")
+        vm_list: List[VmEntity] = self.vm_repository.get_all_vms()
         for vm in vm_list:
             vm.gateway = str(self.docker_ip_list.gateway)
             vm.external_ip = str(self.docker_ip_list.external_ip)
             vm.docker_bridge_ip = str(self.docker_ip_list.docker_bridge_ip)
             vm.docker_overlay_ip = str(self.docker_ip_list.docker_overlay_ip)
-            self.logger.info(f"vm: {vm}, update with ip list: {self.docker_ip_list}")
+            self.logger.info("updating VM network address summary")
             self.vm_repository.update_vm(vm)
+
+    def verify_pre_apply(self):
+        from tiny_swarm_world.application.services.platform.command_verification import (
+            verify_command_configs,
+        )
+
+        return verify_command_configs(
+            self.command_workflow,
+            target_id=self.verification_target_id,
+            workflow_id=CommandWorkflowId.PLATFORM_RECONCILE.value,
+            config_files=(
+                "command_vm_bridge_list.yaml",
+                "command_vm_docker_bridge_list.yaml",
+                "command_multipass_docker_swarm_manager_ip.yaml",
+                "command_vm_ip_list.yaml",
+                "command_vm_gateway_yaml.yaml",
+            ),
+        )

@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tiny_swarm_world.domain.inventory import (
     DesiredInventory,
@@ -14,6 +15,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.desired_inventory_yam
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.local_state_paths import (
     LocalStatePathError,
+    local_state_file,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.observed_inventory_local_repository import (
     ObservedInventoryLocalRepository,
@@ -158,6 +160,28 @@ class TestObservedInventoryLocalRepository(unittest.TestCase):
             inventory = repository.load()
 
         self.assertEqual(ObservedInventory(), inventory)
+
+    def test_rejects_contaminated_observed_inventory_before_persistence(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository = ObservedInventoryLocalRepository(root=Path(temporary_directory))
+
+            with self.assertRaises(ValueError):
+                repository.save(
+                    ObservedInventory(
+                        vms=(
+                            VmObservedState(
+                                name="manager",
+                                status="docker swarm join --token hidden",
+                            ),
+                        )
+                    )
+                )
+
+    def test_default_local_state_root_env_must_point_to_verified_repository_root(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with patch.dict("os.environ", {"TSW_REPOSITORY_ROOT": temporary_directory}):
+                with self.assertRaises(LocalStatePathError):
+                    local_state_file(relative_path="observed.json")
 
 
 class TestVerificationEvidenceLocalRepository(unittest.TestCase):

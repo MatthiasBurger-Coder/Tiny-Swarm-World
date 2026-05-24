@@ -27,3 +27,27 @@ class PortNexusClient(ABC):
     @abstractmethod
     def set_anonymous_access(self, username: str, password: str, enabled: bool) -> None:
         pass
+
+    @abstractmethod
+    def repository_exists(self, username: str, password: str, repository_name: str) -> bool:
+        pass
+
+    @abstractmethod
+    def create_docker_hosted_repository(
+        self,
+        username: str,
+        password: str,
+        repository_name: str,
+        http_port: int,
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def create_maven_proxy_repository(
+        self,
+        username: str,
+        password: str,
+        repository_name: str,
+        remote_url: str,
+    ) -> None:
+        pass

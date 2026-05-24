@@ -27,9 +27,33 @@ Implemented platform workflows are `platform init`, `platform reconcile`,
 workflows require live consent before service construction. Reset and destroy
 also require exact confirmation and currently block after confirmation until
 retention and teardown semantics are implemented. Artifact and deployment
-workflow names dispatch to explicit blocked workflow contracts until live
-Nexus, registry, Portainer, and observed-state verification contracts are
-implemented.
+workflow names dispatch to explicit fail-closed workflow contracts until live
+Nexus, registry, Portainer, image publication, and observed-state verification
+contracts are wired in composition. The artifact workflow contracts can now
+run configured Nexus repository checks with typed verification evidence, but
+the default CLI composition still keeps artifact live behavior blocked.
+
+The Deployment boundary now contains a tested post-bootstrap
+`EnsurePortainerStack` application service and a sanitized Portainer HTTP
+adapter contract. The CLI composition root does not wire that contract as a
+successful live `deployment apply` path yet, because first-time Portainer
+bootstrap and verify-after-apply evidence remain incomplete.
+
+The Deployment boundary also contains a generic `EnsureServiceStack` contract
+and a default stack plan for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+and Swagger/NGINX. The Portainer-managed plan intentionally excludes the
+Portainer stack itself to avoid a bootstrap cycle. These contracts can apply a
+stack through the Portainer port, then record stack-registration context while
+returning blocked readiness until required services are observed. They do not
+claim container health or application readiness; those checks remain future
+observed-state contracts.
+
+The canonical autonomous setup command is `setup run`. It is a workflow-level
+orchestrator over preflight, platform, artifacts, deployment, and final
+verification phases. It refuses missing live consent before setup service
+construction and preserves blocked, resource-gated, failed-to-apply, and
+failed-to-verify states instead of reporting full deployment success without
+observed evidence.
 
 == Development gate before deployment work
 
@@ -61,6 +85,13 @@ cd infra/prepare
 Direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm` are
 outside the workflow-level CLI consent guard. Treat them as live operator
 actions, not development quality-gate commands.
+The guarded Python Portainer contract is the target migration direction, but
+these scripts remain transitional until their behavior is wrapped with
+observed-state verification and live-consent controls.
+The Portainer compose asset under `infra/config/compose/portainer` mounts the
+host Docker socket for the Portainer server and agent, and the agent also
+mounts Docker volumes. Treat that asset as privileged Docker-control
+configuration for intentional local Swarm bootstrap only.
 The canonical live-operation surface catalog is
 `documentation/system/live-operation-surfaces.adoc`.
 
@@ -119,6 +150,19 @@ docker service ls
 ----
 
 Service-specific web interfaces depend on the published stack ports. Typical local defaults are documented in `documentation/Howto.adoc`.
+
+Optional live smoke validation is separate from the development quality gate
+and should be run only on a disposable or recoverable local Swarm target:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+When prompted, answer `y` only if the operator intentionally accepts local VM,
+Docker Swarm, networking, service bootstrap, image, and stack changes. A live
+smoke result is evidence for that local run only and must not be treated as
+the default repository quality gate.
 
 == Operational caution
 

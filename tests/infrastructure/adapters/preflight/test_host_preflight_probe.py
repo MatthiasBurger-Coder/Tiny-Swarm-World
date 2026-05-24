@@ -43,7 +43,13 @@ class TestHostPreflightProbe(unittest.TestCase):
         ) as run:
             self.assertTrue(probe.path_ignored_by_git(".env"))
 
-        run.assert_called_once()
+        run.assert_called_once_with(
+            ["git", "check-ignore", "-q", "--", ".env"],
+            cwd=Path.cwd(),
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
     def test_forbidden_tracked_secret_fingerprints_scan_git_tracked_files(self):
         token = "synthetic-test-token"
@@ -72,3 +78,31 @@ class TestHostPreflightProbe(unittest.TestCase):
                 )
 
         self.assertEqual(("example-default-token",), tuple(found))
+
+    def test_tracked_file_scan_ignores_paths_outside_repository_root(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            outside_file = root.parent / "outside.py"
+            outside_file.write_text("TOKEN = 'outside-token'\n", encoding="utf-8")
+            probe = HostPreflightProbe(root)
+            completed = subprocess.CompletedProcess(
+                args=["git", "ls-files"],
+                returncode=0,
+                stdout="../outside.py\n",
+            )
+
+            with patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                return_value=completed,
+            ):
+                found = probe.forbidden_tracked_secret_fingerprints(
+                    {
+                        "outside-token": hashlib.sha256(
+                            b"outside-token"
+                        ).hexdigest()
+                    }
+                )
+
+            outside_file.unlink()
+
+        self.assertEqual((), tuple(found))

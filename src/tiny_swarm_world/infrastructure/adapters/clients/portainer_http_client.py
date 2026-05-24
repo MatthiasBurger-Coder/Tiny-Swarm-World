@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 import requests
 
 from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient
@@ -6,7 +8,17 @@ from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class PortainerHttpClient(PortPortainerClient):
-    def __init__(self, base_url: str, username: str, password: str, session: requests.Session | None = None):
+    def __init__(
+        self,
+        base_url: str,
+        username: str,
+        password: str,
+        session: requests.Session | None = None,
+    ):
+        parsed_base_url = urlparse(base_url)
+        if parsed_base_url.username or parsed_base_url.password:
+            raise ValueError("Portainer base URL must not contain credentials")
+
         self.base_url = base_url.rstrip("/")
         self.username = username
         self.password = password
@@ -100,4 +112,4 @@ class PortainerHttpClient(PortPortainerClient):
     @staticmethod
     def _ensure_success(response: requests.Response, action: str) -> None:
         if response.status_code >= 400:
-            raise RuntimeError(f"Failed to {action}. HTTP {response.status_code}: {response.text}")
+            raise RuntimeError(f"Failed to {action}. HTTP {response.status_code}.")

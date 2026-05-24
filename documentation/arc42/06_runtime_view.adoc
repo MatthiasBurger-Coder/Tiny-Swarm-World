@@ -13,7 +13,9 @@ the required service bundle through
 commands to composed workflow objects. Platform commands build the full
 `ApplicationServices` aggregate. Artifact and Deployment commands build only
 their own boundary service bundle so they cannot fail on unrelated platform
-configuration before returning their explicit contract result.
+configuration before returning their explicit contract result. `setup run`
+builds a dedicated `SetupServices` bundle only after accepted live consent and
+delegates all sequencing to the setup application workflow.
 
 The composition root builds `ApplicationServices` as an aggregate of three
 service bundles:
@@ -34,27 +36,46 @@ the CLI contract and dispatch to blocked workflow objects with stable reasons
 until later slices wire their runtime behavior. Mutating boundary workflows
 such as `artifacts prepare` and `deployment apply` still require live consent
 before their boundary service bundle is constructed, then return `blocked`
-because Nexus, registry, and Portainer contracts are not wired yet.
+because the default composition has no configured live artifact, registry, or
+deployment steps yet.
+
+Setup orchestration is also an in-process composition concern. It is not a new
+microservice boundary and it does not construct low-level adapters in the entry
+point. The setup bundle wires phase calls for preflight, platform init,
+platform reconcile, artifacts prepare, artifacts verify, deployment apply,
+deployment verify, and final platform verify. It does not wire platform reset
+or destroy behavior.
 
 === Artifact And Deployment Workflow Contract Flow
 
 The current artifact and deployment runtime flow is deliberately fail-closed:
 
-* `artifacts prepare` requires live consent, dispatches to
-  `ArtifactPrepareWorkflow`, and returns `blocked` until image build, image
-  push, and Nexus repository setup contracts exist.
-* `artifacts verify` dispatches without live consent and returns `blocked`
-  until artifact registry observed-state verification is implemented through
-  an application port.
+* `artifacts prepare` requires live consent and dispatches to
+  `ArtifactPrepareWorkflow`. The workflow can run configured artifact steps
+  only when each step provides verify-after-prepare evidence. The default
+  composition still returns `blocked` because no live Nexus, registry, image
+  build, or image push step is wired.
+* `artifacts verify` dispatches without live consent and can evaluate
+  configured artifact verification checks. The default composition still
+  returns `blocked` until registry observed-state checks are wired.
 * `deployment apply` requires live consent, dispatches to
-  `DeploymentApplyWorkflow`, and returns `blocked` until Portainer stack apply
-  and command-backed verification contracts exist.
+  `DeploymentApplyWorkflow`, and can run configured stack apply contracts only
+  when they expose verify-after-apply evidence. The tested
+  `EnsureServiceStack` contract can create or update Portainer-managed stacks
+  and then verify stack registration through `PortPortainerClient`, but it is
+  not wired into the CLI composition root as an executable live apply path in
+  this slice.
 * `deployment verify` dispatches without live consent and returns `blocked`
-  until stack and service observed-state verification is implemented through
-  deployment ports.
+  by default. When configured with the current default service stack checks,
+  it can observe Portainer stack registration but still returns `blocked`
+  until required service readiness is observed. It does not claim container or
+  service health.
 
-No Portainer, Nexus, Docker registry, image build, image push, or stack
-deployment side effect is run by these workflow contracts.
+No Nexus, Docker registry, image build, image push, or service stack side effect
+is run by default CLI composition. Nexus repository and Portainer API behavior
+is covered by isolated adapter and application-service tests with fakes; CLI
+composition remains fail-closed until a later slice owns first-time bootstrap,
+image publication, concrete live service wiring, and service readiness.
 
 === Console Status Runtime Flow
 
@@ -69,6 +90,21 @@ from per-VM state. The terminal renderer derives completion summaries from
 both aggregate and per-instance status, so failed command runs display
 `All instances completed with errors` instead of the ambiguous success-only
 completion message.
+
+Setup-oriented terminal status extends the same vocabulary without adding a
+browser UI. `Refused`, `Blocked`, `Resource gated`, `Failed to prepare`,
+`Failed to apply`, `Failed to verify`, `Failed`, and `Not run` are terminal
+non-success states. The UI normalizes spacing, underscores, and hyphens for
+these states, keeps later `Success` updates from overwriting an existing
+non-success setup state, and renders a textual `Action:` recovery action when a
+known recovery path exists. Successful setup-style terminal values such as
+`completed`, `passed`, and `verified` remain terminal success states and do
+not render recovery guidance.
+
+When an aggregate setup state is terminal while individual rows are still
+pending, the Linux terminal renderer shows the aggregate status and recovery
+guidance explicitly. This avoids relying on color and prevents refused,
+blocked, resource-gated, or failed states from being presented as success.
 
 No browser frontend, React component, JavaScript build tool, TSX/JSX file, or
 browser state is part of this console/status runtime flow.
@@ -122,3 +158,32 @@ the typed verification result before making the continuation decision.
 The non-mutating `platform verify` workflow also interprets preflight results.
 Failed preflight checks now return `failed_to_verify` with summary-only
 verification evidence instead of reporting a completed verify workflow.
+
+=== Autonomous Setup Runtime Flow
+
+Autonomous setup now has one canonical workflow-level CLI contract:
+`setup run`. The command orchestrates the existing in-process boundaries:
+
+. parse setup intent and selected profile;
+. refuse mutating execution before service construction when live consent is
+  missing;
+. pass the accepted consent object into setup preflight;
+. coordinate Platform apply/verify phases through composed workflow objects;
+. coordinate Artifacts prepare/verify phases through composed workflow
+  objects;
+. coordinate Deployment apply/verify phases through composed workflow objects;
+. stop later phases after the first refused, blocked, resource-gated,
+  failed-to-apply, or failed-to-verify result;
+. serialize only known safe workflow result contracts or safe summary
+  mappings.
+
+Current implementation status remains fail-closed below the orchestrator. The
+CLI command and phase sequencing are implemented, but the repository still
+does not claim a verified end-to-end live installation of all runnable
+services. Missing setup consent, missing command-backed verification, missing
+artifact/registry live steps, and missing observed service readiness must be
+reported as `refused`, `blocked`, `resource_gated`, `failed_to_apply`, or
+`failed_to_verify`, never as success.
+
+Optional live smoke validation remains a separate operator action and is not
+part of default architecture tests or the default quality gate.

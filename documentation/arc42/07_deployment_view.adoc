@@ -14,16 +14,43 @@ the repository root. That directory is not a deployment input, is not part of
 the default quality gate outputs, and must not be committed or moved under
 `infra/config`.
 
-== Blocked Deployment Contracts
+== Deployment Contracts
 
-The in-process CLI now has explicit artifact and deployment workflow contracts,
-but they do not deploy services. `deployment apply` is live-consent gated and
-then returns a blocked result until Portainer stack mutation and verification
-contracts are available. `deployment verify` returns a blocked result until
-stack and service observed-state verification can be read through deployment
-ports.
+The in-process CLI now has explicit artifact and deployment workflow contracts.
+`deployment apply` is live-consent gated and still returns a blocked result
+because first-time stack bootstrap and verify-after-apply evidence are not yet
+wired through the CLI composition root. Slice 06 introduces a tested
+post-bootstrap Portainer API contract through `PortComposeFileRepository` and
+`PortPortainerClient`, but that contract is not treated as a complete live
+setup path until later slices add observed-state verification. `deployment
+verify` still returns a blocked result until stack and service observed-state
+verification can be read through deployment ports.
 
 This keeps the current local deployment model deterministic in tests: the
 Python composition root can construct deployment workflow objects without
-creating Portainer clients, contacting Nexus, building images, pushing
-registries, or changing Docker Swarm state.
+contacting Portainer, contacting Nexus, building images, pushing registries, or
+changing Docker Swarm state. Tests use fakes for Portainer and compose
+repositories. Artifact contract tests use fake Nexus clients and patched Docker
+CLI calls only; they do not contact Nexus, build images, log in, or push.
+Default service stack contracts cover Portainer, Nexus, Jenkins, RabbitMQ,
+SonarQube, and Swagger/NGINX. The Portainer-managed plan excludes Portainer
+itself to avoid a bootstrap cycle. The current checks record stack
+registration context and return blocked readiness until container health or
+application readiness exists as observed-state evidence.
+
+== Autonomous Setup Deployment Contract
+
+The canonical `setup run` command is the workflow-level setup orchestrator for
+a local Linux/WSL Docker Swarm-first deployment. It is mutating,
+non-destructive, and live-consent gated. Full runnable success is reached only
+after the selected profile's host prerequisites, platform state, artifact
+registry behavior, service stacks, and readiness checks are verified.
+
+Hosts that do not satisfy the full-run resource contract remain
+resource-gated. A resource-gated result must identify omitted services and must
+not be reported as a full deployment pass.
+
+Default verification remains mocked or static. Optional live smoke validation
+requires explicit operator approval, live consent, and a disposable or
+recoverable local target environment. Live smoke evidence must be written only
+as redacted local state and must remain separate from the default quality gate.

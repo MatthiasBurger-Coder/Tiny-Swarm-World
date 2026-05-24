@@ -10,12 +10,20 @@ from tiny_swarm_world.application.services.nexus.enable_nexus_anonymous_access i
 from tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access import (
     EnsureNexusAdminAccess,
 )
+from tiny_swarm_world.application.services.nexus.ensure_nexus_repository import (
+    EnsureNexusDockerHostedRepository,
+    EnsureNexusMavenProxyRepository,
+    NexusDockerHostedRepositoryConfiguration,
+    NexusMavenProxyRepositoryConfiguration,
+)
 from tiny_swarm_world.application.services.nexus.nexus_bootstrap_configuration import (
     NexusBootstrapConfiguration,
 )
 from tiny_swarm_world.application.services.nexus.wait_for_nexus_ready import WaitForNexusReady
 from tiny_swarm_world.application.services.artifacts.workflows import (
+    ArtifactPrepareStep,
     ArtifactPrepareWorkflow,
+    ArtifactVerifyCheck,
     ArtifactVerifyWorkflow,
     ArtifactWorkflowKind,
     ArtifactWorkflowResult,
@@ -23,13 +31,19 @@ from tiny_swarm_world.application.services.artifacts.workflows import (
 )
 
 __all__ = [
+    "ArtifactPrepareStep",
     "ArtifactPrepareWorkflow",
+    "ArtifactVerifyCheck",
     "ArtifactVerifyWorkflow",
     "ArtifactWorkflowKind",
     "ArtifactWorkflowResult",
     "ArtifactWorkflowStatus",
     "EnableNexusAnonymousAccess",
     "EnsureNexusAdminAccess",
+    "EnsureNexusDockerHostedRepository",
+    "EnsureNexusMavenProxyRepository",
+    "NexusDockerHostedRepositoryConfiguration",
     "NexusBootstrapConfiguration",
+    "NexusMavenProxyRepositoryConfiguration",
     "WaitForNexusReady",
 ]

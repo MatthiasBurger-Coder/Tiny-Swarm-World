@@ -12,7 +12,7 @@ from tiny_swarm_world.domain.network.network import Network
 
 class NetworkPrepareNetplan:
     verification_target_id = "platform:init:network-prepare-netplan"
-    operator_block_reason = "command-backed verification is not configured"
+    operator_block_reason = "post-apply verification is not implemented"
 
     def __init__(
         self,
@@ -34,13 +34,13 @@ class NetworkPrepareNetplan:
             "command_netplant_ip_yaml.yaml",
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
         )
-        self.logger.info(f"multipass clean up result: {result}")
+        self.logger.info("network IP discovery completed")
 
         # getting the necessary IPs
         gateway_ip = self.ip_extractor_builder.build(result=result, ip_extractor_types=IpExtractorTypes.GATEWAY)
-        self.logger.info(f"extracted gateway ip: {gateway_ip}")
+        self.logger.info("gateway address extracted")
         ip = self.ip_extractor_builder.build(result=result, ip_extractor_types=IpExtractorTypes.SWAM_MANAGER)
-        self.logger.info(f"extracted ip: {ip}")
+        self.logger.info("swarm manager address extracted")
 
         vm_instance_names = self.vm_repository.find_vm_instances_by_type(VmType.MANAGER)
         network_data = Network(vm_instance=vm_instance_names[0], ip_address=ip, gateway=gateway_ip)
@@ -50,3 +50,15 @@ class NetworkPrepareNetplan:
         data.create(network_data)
         self.logger.info("saving network data")
         data.save()
+
+    def verify_pre_apply(self):
+        from tiny_swarm_world.application.services.platform.command_verification import (
+            verify_command_configs,
+        )
+
+        return verify_command_configs(
+            self.command_workflow,
+            target_id=self.verification_target_id,
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+            config_files=("command_netplant_ip_yaml.yaml",),
+        )

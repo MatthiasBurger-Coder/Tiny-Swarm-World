@@ -26,11 +26,16 @@ from tiny_swarm_world.application.services.platform import (
     SocatManager,
     VmIpList,
 )
+from tiny_swarm_world.application.services.setup import SetupWorkflow, SetupWorkflowPhase
+from tiny_swarm_world.domain.preflight import LiveConsent
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
 from tiny_swarm_world.infrastructure.adapters.repositories.netplan_repository import PortNetplanRepositoryYaml
+from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
+    VerificationEvidenceLocalRepository,
+)
 from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
 
@@ -81,6 +86,16 @@ class DeploymentWorkflows:
 @dataclass(frozen=True)
 class DeploymentServices:
     workflows: DeploymentWorkflows
+
+
+@dataclass(frozen=True)
+class SetupWorkflows:
+    run: SetupWorkflow
+
+
+@dataclass(frozen=True)
+class SetupServices:
+    workflows: SetupWorkflows
 
 
 @dataclass(frozen=True)
@@ -141,6 +156,7 @@ def build_platform_services() -> PlatformServices:
     vm_repository = PortVmRepositoryYaml()
     netplan_repository = PortNetplanRepositoryYaml()
     command_workflow = CommandWorkflow(vm_repository=vm_repository)
+    verification_evidence_repository = VerificationEvidenceLocalRepository()
     preflight = build_preflight_service()
     multipass_init_vms = MultipassInitVms(command_workflow)
     network_prepare_netplan = NetworkPrepareNetplan(
@@ -163,11 +179,19 @@ def build_platform_services() -> PlatformServices:
                 multipass_restart_vms,
                 multipass_docker_install,
                 multipass_docker_swarm_init,
-            )
+            ),
+            verification_evidence_repository=verification_evidence_repository,
         ),
-        reconcile=PlatformReconcileWorkflow((vm_ip_list,)),
-        reset=PlatformResetWorkflow(),
-        destroy=PlatformDestroyWorkflow(),
+        reconcile=PlatformReconcileWorkflow(
+            (vm_ip_list,),
+            verification_evidence_repository=verification_evidence_repository,
+        ),
+        reset=PlatformResetWorkflow(
+            verification_evidence_repository=verification_evidence_repository,
+        ),
+        destroy=PlatformDestroyWorkflow(
+            verification_evidence_repository=verification_evidence_repository,
+        ),
         verify=PlatformVerifyWorkflow((preflight,)),
     )
 
@@ -202,6 +226,31 @@ def build_deployment_services() -> DeploymentServices:
         workflows=DeploymentWorkflows(
             apply=DeploymentApplyWorkflow(),
             verify=DeploymentVerifyWorkflow(),
+        )
+    )
+
+
+def build_setup_services(live_consent: LiveConsent) -> SetupServices:
+    preflight = build_preflight_service()
+    platform = build_platform_services()
+    artifacts = build_artifact_services()
+    deployment = build_deployment_services()
+
+    return SetupServices(
+        workflows=SetupWorkflows(
+            run=SetupWorkflow(
+                (
+                    SetupWorkflowPhase("preflight", lambda: preflight.run(live_consent)),
+                    SetupWorkflowPhase("platform init", lambda: platform.workflows.init.run()),
+                    SetupWorkflowPhase("platform reconcile", lambda: platform.workflows.reconcile.run()),
+                    SetupWorkflowPhase("artifacts prepare", lambda: artifacts.workflows.prepare.run()),
+                    SetupWorkflowPhase("artifacts verify", lambda: artifacts.workflows.verify.run()),
+                    SetupWorkflowPhase("deployment apply", lambda: deployment.workflows.apply.run()),
+                    SetupWorkflowPhase("deployment verify", lambda: deployment.workflows.verify.run()),
+                    SetupWorkflowPhase("platform verify", lambda: platform.workflows.verify.run()),
+                ),
+                live_consent=live_consent,
+            )
         )
     )
 

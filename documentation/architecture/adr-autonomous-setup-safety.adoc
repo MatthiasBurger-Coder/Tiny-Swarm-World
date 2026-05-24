@@ -1,0 +1,135 @@
+= ADR: Autonomous Setup Safety Contract
+
+Status: Accepted as setup-safety contract; fail-closed orchestration implemented
+
+Date: 2026-05-24
+
+== Implementation Status
+
+Slice 01 of the autonomous runnable setup workflow established the requirement
+baseline in `documentation/epics/autonomous-runnable-setup.md`.
+
+This ADR accepts the safety contract that implementation slices must preserve.
+Slice 09 implemented the canonical `setup run` command as a fail-closed,
+live-consent-gated orchestration over setup phases. Current Platform,
+Artifacts, and Deployment behavior remains fail-closed where verification,
+bootstrap, publication, registry, or service-readiness contracts are missing.
+This ADR does not claim that full live runnable installation is verified.
+
+== Context
+
+Tiny Swarm World should provide one canonical setup path that can install a
+local Linux/WSL Docker Swarm-first environment into a runnable state after
+explicit operator consent.
+
+The setup can affect local VMs, networking, Docker Engine, Docker Swarm,
+Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, image build and
+push behavior, service stacks, credentials, and local evidence files. These are
+live infrastructure surfaces and must not be changed silently.
+
+The repository already has these constraints:
+
+* Tiny Swarm World is Linux/WSL-only and Docker Swarm-first.
+* Python automation is the architecture driver.
+* Platform, Artifacts, Deployment, Shared, and Console/status UI are
+  in-process responsibility boundaries, not microservices.
+* `src/tiny_swarm_world/infrastructure/composition.py` remains the composition
+  root.
+* Default quality gates must not run live infrastructure commands.
+* Direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
+  remain live-operation surfaces outside the canonical workflow until migrated
+  behind ports, adapters, tests, and consent controls.
+
+== Decision
+
+Autonomous setup is accepted only as a consent-gated, fail-closed orchestration
+contract over the existing in-process responsibility boundaries.
+
+The canonical setup path must preserve these rules:
+
+* Mutating setup execution requires the current live-consent signals until a
+  later ADR changes that contract:
+** `--live`
+** `y` at the short interactive live-infrastructure confirmation prompt
+* Missing live consent must be refused before Multipass, Docker Swarm,
+  netplan, socat, compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+  Swagger/NGINX, image build, image push, stack upload, or service bootstrap
+  commands can run.
+* Non-interactive live setup is out of scope until a later ADR defines a
+  separate consent model.
+* Automatic host package installation is out of scope until a later ADR defines
+  package ownership, rollback, permissions, and operator consent.
+* The setup orchestrator must use Platform, Artifacts, Deployment, Shared, and
+  Console/status UI contracts. It must not create a new service boundary or
+  move concrete infrastructure adapters into application services.
+* Direct scripts must not become the canonical setup path unless a later slice
+  wraps the behavior behind ports, adapters, tests, verification, and consent
+  controls.
+* Verification evidence must be redacted, summary-oriented, and stored only
+  under ignored local state such as `.tiny-swarm-world/evidence/...`.
+* Raw command strings, stdout, stderr, environment payloads, tokens, passwords,
+  Swarm join tokens, local IP addresses, gateways, user names, and host-specific
+  absolute paths must not be persisted in committed files or evidence bundles.
+* Full runnable success and resource-gated success must remain distinct.
+  Hosts below the approved full-run resource contract must not be reported as a
+  full pass.
+* Optional live smoke validation remains a separate explicit operator action,
+  not part of the default quality gate.
+
+== Rejected Alternatives
+
+=== Silent host mutation
+
+Rejected because Tiny Swarm World setup can change local infrastructure,
+networking, credentials, and service state. Silent mutation would contradict
+the current live-operation safety model.
+
+=== Non-interactive consent by default
+
+Rejected for this workflow. Non-interactive execution needs a separate
+architecture decision that defines the trust boundary, credentials source,
+operator approval semantics, and audit evidence.
+
+=== Automatic host package installation
+
+Rejected for this workflow. Installing host packages changes the operator's
+machine outside the repository and needs a separate decision covering
+permissions, rollback, and supported distributions.
+
+=== Direct scripts as canonical installer
+
+Rejected because direct scripts bypass the hexagonal ports/adapters,
+verification, redaction, and CLI consent contracts that the Python automation
+must enforce.
+
+== Consequences
+
+Later implementation slices must keep preflight non-mutating until live consent
+is present and must fail closed when required verification contracts are
+missing.
+
+Setup orchestration can be added only through the Python automation
+composition root and application services. Entry-point code must remain thin:
+parse operator intent, enforce consent, compose services, and delegate.
+
+Service readiness must be based on observed-state contracts, test-backed
+verification, or explicitly approved live smoke evidence. Documentation must
+not describe planned setup behavior as implemented behavior.
+
+Default development verification remains mocked or static and may not create
+VMs, change networking, initialize Docker Swarm, deploy compose stacks, contact
+Portainer or Nexus, run service bootstraps, build images, or push images.
+
+== Risks And Follow-Up
+
+The accepted safety contract increases implementation work because every live
+phase needs preflight, consent, apply/verify behavior, redacted evidence, and
+operator-facing blocked or failed states.
+
+Future ADRs are required before changing these areas:
+
+* automatic host package installation;
+* non-interactive live setup consent;
+* direct script promotion or removal as canonical setup behavior;
+* a material change to evidence semantics or credential storage;
+* a material change to the default service set or full-run resource contract.
