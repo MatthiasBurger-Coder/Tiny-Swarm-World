@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Iterable
 
 from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
@@ -48,19 +49,38 @@ async def verify_command_execution(
     target_id: str,
     workflow_id: str,
     config_file: str,
+    max_attempts: int = 1,
+    wait_seconds: float = 0,
 ) -> VerificationResult:
-    try:
-        await command_workflow.run_async(config_file, workflow_id=workflow_id)
-    except Exception as exc:
-        return VerificationResult(
-            target_id=target_id,
-            status=VerificationStatus.FAILED_TO_VERIFY,
-            message=f"Post-apply verification failed: {exc.__class__.__name__}",
-            evidence={"phase": "verify", "config_file": config_file},
-        )
+    last_exception: Exception | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            await command_workflow.run_async(config_file, workflow_id=workflow_id)
+        except Exception as exc:
+            last_exception = exc
+            if attempt < max_attempts:
+                await asyncio.sleep(wait_seconds)
+                continue
+        else:
+            return VerificationResult(
+                target_id=target_id,
+                status=VerificationStatus.VERIFIED,
+                message="Post-apply verification command completed.",
+                evidence={
+                    "phase": "verify",
+                    "config_file": config_file,
+                    "attempt": str(attempt),
+                },
+            )
+
+    exception_name = last_exception.__class__.__name__ if last_exception is not None else "UnknownError"
     return VerificationResult(
         target_id=target_id,
-        status=VerificationStatus.VERIFIED,
-        message="Post-apply verification command completed.",
-        evidence={"phase": "verify", "config_file": config_file},
+        status=VerificationStatus.FAILED_TO_VERIFY,
+        message=f"Post-apply verification failed: {exception_name}",
+        evidence={
+            "phase": "verify",
+            "config_file": config_file,
+            "attempts": str(max_attempts),
+        },
     )

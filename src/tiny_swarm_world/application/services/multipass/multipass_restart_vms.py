@@ -8,8 +8,15 @@ class MultipassRestartVMs:
     verification_target_id = "platform:init:multipass-restart-vms"
     operator_block_reason = "post-apply verification is not implemented"
 
-    def __init__(self, command_workflow: PortCommandWorkflow):
+    def __init__(
+        self,
+        command_workflow: PortCommandWorkflow,
+        verify_max_attempts: int = 12,
+        verify_wait_seconds: float = 10,
+    ):
         self.command_workflow = command_workflow
+        self.verify_max_attempts = verify_max_attempts
+        self.verify_wait_seconds = verify_wait_seconds
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self):
@@ -43,4 +50,6 @@ class MultipassRestartVMs:
             target_id=self.verification_target_id,
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
             config_file="command_multipass_instance_status_yaml.yaml",
+            max_attempts=self.verify_max_attempts,
+            wait_seconds=self.verify_wait_seconds,
         )

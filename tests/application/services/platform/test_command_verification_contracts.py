@@ -185,6 +185,44 @@ class TestCommandVerificationContracts(unittest.TestCase):
         self.assertTrue(callable(getattr(_network_prepare_netplan(_RecordingCommandWorkflow()), "verify", None)))
         self.assertTrue(callable(getattr(_vm_ip_list(_RecordingCommandWorkflow()), "verify", None)))
 
+    def test_restart_verify_retries_transient_vm_status_failures(self):
+        command_workflow = _RecordingCommandWorkflow(
+            async_failures={"command_multipass_instance_status_yaml.yaml": 1}
+        )
+        service = MultipassRestartVMs(
+            command_workflow,
+            verify_max_attempts=3,
+            verify_wait_seconds=0,
+        )
+
+        result = self.loop_run(service.verify())
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("2", result.evidence["attempt"])
+        self.assertEqual(
+            [
+                "command_multipass_instance_status_yaml.yaml",
+                "command_multipass_instance_status_yaml.yaml",
+            ],
+            [call.config_file for call in command_workflow.async_calls],
+        )
+
+    def test_restart_verify_fails_after_retry_budget_is_exhausted(self):
+        command_workflow = _RecordingCommandWorkflow(
+            async_failures={"command_multipass_instance_status_yaml.yaml": 3}
+        )
+        service = MultipassRestartVMs(
+            command_workflow,
+            verify_max_attempts=2,
+            verify_wait_seconds=0,
+        )
+
+        result = self.loop_run(service.verify())
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
+        self.assertEqual("2", result.evidence["attempts"])
+        self.assertEqual(2, len(command_workflow.async_calls))
+
     @staticmethod
     def loop_run(coro: Any) -> Any:
         import asyncio
@@ -210,10 +248,12 @@ class _RecordingCommandWorkflow(PortCommandWorkflow):
         blocked_at: str | None = None,
         sync_results: dict[str, object] | None = None,
         raise_at: str | None = None,
+        async_failures: dict[str, int] | None = None,
     ) -> None:
         self.blocked_at = blocked_at
         self.sync_results = sync_results or {}
         self.raise_at = raise_at
+        self.async_failures = async_failures or {}
         self.async_calls: list[_WorkflowCall] = []
         self.sync_calls: list[_WorkflowCall] = []
         self.build_calls: list[_WorkflowCall] = []
@@ -237,6 +277,10 @@ class _RecordingCommandWorkflow(PortCommandWorkflow):
         workflow_id: str,
     ) -> Any:
         self.async_calls.append(_WorkflowCall.from_values(config_file, parameter, workflow_id))
+        remaining_failures = self.async_failures.get(config_file, 0)
+        if remaining_failures:
+            self.async_failures[config_file] = remaining_failures - 1
+            raise RuntimeError("transient status failure")
         return self.sync_results.get(config_file, [])
 
     async def run_sync(
