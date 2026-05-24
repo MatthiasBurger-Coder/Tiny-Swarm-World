@@ -1,13 +1,18 @@
 import asyncio
-from dataclasses import fields
 import unittest
+from dataclasses import fields
 from unittest.mock import patch
 
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowStatus
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowStatus
 from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
-from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.domain.preflight import (
+    LIVE_CONSENT_ENVIRONMENT_VALUE,
+    LIVE_CONSENT_PHRASE,
+    LiveConsent,
+)
 from tiny_swarm_world.infrastructure import composition
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
 
@@ -71,11 +76,15 @@ class TestComposition(unittest.TestCase):
         artifact_workflow_names = {field.name for field in fields(composition.ArtifactWorkflows)}
         deployment_field_names = {field.name for field in fields(composition.DeploymentServices)}
         deployment_workflow_names = {field.name for field in fields(composition.DeploymentWorkflows)}
+        setup_field_names = {field.name for field in fields(composition.SetupServices)}
+        setup_workflow_names = {field.name for field in fields(composition.SetupWorkflows)}
 
         self.assertEqual({"workflows"}, artifact_field_names)
         self.assertEqual({"prepare", "verify"}, artifact_workflow_names)
         self.assertEqual({"workflows"}, deployment_field_names)
         self.assertEqual({"apply", "verify"}, deployment_workflow_names)
+        self.assertEqual({"workflows"}, setup_field_names)
+        self.assertEqual({"run"}, setup_workflow_names)
 
     def test_build_platform_services_wires_preflight_adapter(self):
         with patch.object(composition, "PortVmRepositoryYaml") as vm_repository_factory:
@@ -177,6 +186,38 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(DeploymentWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
         self.assertIn("Portainer stack changes", result.reason)
+
+    def test_build_setup_services_wires_phase_orchestrator_without_running_phases(self):
+        with patch.object(composition, "build_preflight_service") as build_preflight:
+            with patch.object(composition, "build_platform_services") as build_platform:
+                with patch.object(composition, "build_artifact_services") as build_artifacts:
+                    with patch.object(composition, "build_deployment_services") as build_deployment:
+                        build_preflight.return_value = _phase_bundle()
+                        build_platform.return_value = _platform_phase_bundle()
+                        build_artifacts.return_value = _artifact_phase_bundle()
+                        build_deployment.return_value = _deployment_phase_bundle()
+
+                        services = composition.build_setup_services(_accepted_live_consent())
+
+        self.assertIsInstance(services.workflows.run, composition.SetupWorkflow)
+        self.assertTrue(services.workflows.run.live_consent.accepted)
+        self.assertEqual(
+            (
+                "preflight",
+                "platform init",
+                "platform reconcile",
+                "artifacts prepare",
+                "artifacts verify",
+                "deployment apply",
+                "deployment verify",
+                "platform verify",
+            ),
+            tuple(phase.name for phase in services.workflows.run.phases),
+        )
+        build_preflight.return_value.run.assert_not_called()
+        build_platform.return_value.workflows.init.run.assert_not_called()
+        build_artifacts.return_value.workflows.prepare.run.assert_not_called()
+        build_deployment.return_value.workflows.apply.run.assert_not_called()
 
     def test_build_application_services_wires_preflight_through_platform_bundle(self):
         with patch.object(composition, "PortVmRepositoryYaml"):
@@ -282,6 +323,14 @@ def _blocked_contract_result(target_id: str) -> VerificationResult:
     )
 
 
+def _accepted_live_consent() -> LiveConsent:
+    return LiveConsent(
+        live_flag=True,
+        environment_value=LIVE_CONSENT_ENVIRONMENT_VALUE,
+        typed_phrase=LIVE_CONSENT_PHRASE,
+    )
+
+
 class _RecordingEvidenceRepository:
     def __init__(self) -> None:
         self.results: list[VerificationResult] = []
@@ -291,3 +340,32 @@ class _RecordingEvidenceRepository:
 
     def list_all(self) -> tuple[VerificationResult, ...]:
         return tuple(self.results)
+
+
+def _phase_bundle():
+    from unittest.mock import AsyncMock
+
+    return type("PhaseBundle", (), {"run": AsyncMock()})()
+
+
+def _workflow_bundle(*names: str):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    return SimpleNamespace(
+        workflows=SimpleNamespace(
+            **{name: SimpleNamespace(run=AsyncMock()) for name in names}
+        )
+    )
+
+
+def _platform_phase_bundle():
+    return _workflow_bundle("init", "reconcile", "verify")
+
+
+def _artifact_phase_bundle():
+    return _workflow_bundle("prepare", "verify")
+
+
+def _deployment_phase_bundle():
+    return _workflow_bundle("apply", "verify")

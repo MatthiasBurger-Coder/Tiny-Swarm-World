@@ -8,6 +8,7 @@ from enum import Enum
 
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
+from tiny_swarm_world.application.services.setup import SetupWorkflowResult
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PLATFORM_WORKFLOW_TAXONOMY,
     PlatformWorkflowKind,
@@ -23,14 +24,21 @@ from tiny_swarm_world.infrastructure.composition import (
     ApplicationServices,
     ArtifactServices,
     DeploymentServices,
+    SetupServices,
     build_application_services,
     build_artifact_services,
     build_deployment_services,
     build_preflight_service,
+    build_setup_services,
 )
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
-WorkflowResult = PlatformWorkflowResult | ArtifactWorkflowResult | DeploymentWorkflowResult
+WorkflowResult = (
+    PlatformWorkflowResult
+    | ArtifactWorkflowResult
+    | DeploymentWorkflowResult
+    | SetupWorkflowResult
+)
 
 
 @dataclass(frozen=True)
@@ -48,7 +56,7 @@ class CliWorkflow:
 
     @property
     def implemented(self) -> bool:
-        return self.platform_kind is not None or self.namespace in {"artifacts", "deployment"}
+        return self.platform_kind is not None or self.namespace in {"artifacts", "deployment", "setup"}
 
 
 PLATFORM_WORKFLOW_ORDER = (
@@ -75,6 +83,7 @@ CLI_WORKFLOWS = (
     CliWorkflow(namespace="artifacts", action="verify", mutating=False, destructive=False),
     CliWorkflow(namespace="deployment", action="apply", mutating=True, destructive=False),
     CliWorkflow(namespace="deployment", action="verify", mutating=False, destructive=False),
+    CliWorkflow(namespace="setup", action="run", mutating=True, destructive=False),
 )
 CLI_WORKFLOWS_BY_KEY = {(workflow.namespace, workflow.action): workflow for workflow in CLI_WORKFLOWS}
 
@@ -156,6 +165,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
         )
         raise SystemExit(1)
 
+    live_consent: LiveConsent | None = None
     if workflow.mutating:
         live_consent = _live_consent_from_args(args)
         if not live_consent.accepted:
@@ -165,7 +175,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
             raise SystemExit(2)
 
     logger.info("Running workflow: %s", workflow.name)
-    result = await run_cli_workflow(workflow, args.confirm)
+    result = await run_cli_workflow(workflow, args.confirm, live_consent)
     print(json.dumps(_workflow_result_to_dict(result), indent=2, sort_keys=True))
     if _workflow_status_value(result) != PlatformWorkflowStatus.COMPLETED.value:
         raise SystemExit(1)
@@ -176,6 +186,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
 async def run_cli_workflow(
     workflow: CliWorkflow,
     confirmation: str | None,
+    live_consent: LiveConsent | None = None,
 ) -> WorkflowResult:
     if workflow.platform_kind is not None:
         services = build_application_services()
@@ -186,6 +197,11 @@ async def run_cli_workflow(
     if workflow.namespace == "deployment":
         services = build_deployment_services()
         return await run_deployment_workflow(services, workflow.action)
+    if workflow.namespace == "setup":
+        if live_consent is None or not live_consent.accepted:
+            raise ValueError("setup run requires accepted live consent")
+        services = build_setup_services(live_consent)
+        return await run_setup_workflow(services, workflow.action)
     raise ValueError(f"Unsupported workflow: {workflow.name}")
 
 
@@ -238,15 +254,21 @@ async def run_deployment_workflow(
             raise ValueError(f"Unsupported deployment workflow: {action}")
 
 
+async def run_setup_workflow(
+    services: SetupServices,
+    action: str,
+) -> SetupWorkflowResult:
+    match action:
+        case "run":
+            return await services.workflows.run.run()
+        case _:
+            raise ValueError(f"Unsupported setup workflow: {action}")
+
+
 def _workflow_result_to_dict(result: WorkflowResult) -> dict[str, object]:
-    if isinstance(result, ArtifactWorkflowResult | DeploymentWorkflowResult):
+    if isinstance(result, ArtifactWorkflowResult | DeploymentWorkflowResult | SetupWorkflowResult):
         return result.to_dict()
-    return {
-        "executed": result.executed,
-        "message": result.message,
-        "status": result.status.value,
-        "workflow": f"platform {result.kind.value}",
-    }
+    return result.to_dict()
 
 
 def _workflow_status_value(result: WorkflowResult) -> str:

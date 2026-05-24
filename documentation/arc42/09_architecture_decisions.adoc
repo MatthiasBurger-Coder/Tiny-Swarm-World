@@ -41,7 +41,8 @@ Consequences:
 
 ADR: `documentation/architecture/adr-autonomous-setup-safety.adoc`
 
-Status: accepted as setup-safety contract, implementation planned.
+Status: accepted as setup-safety contract, implemented for the canonical
+fail-closed setup CLI orchestration contract.
 
 Consequences:
 
@@ -50,6 +51,9 @@ Consequences:
 * mutating setup must preserve `--live`, the explicit live-consent environment
   value, and the typed confirmation phrase until a later ADR changes that
   contract;
+* `setup run` passes accepted live consent into setup preflight, sequences only
+  non-destructive phases, and stops later phases after refused, blocked,
+  resource-gated, failed-to-apply, or failed-to-verify outcomes;
 * missing consent, missing verification, resource-gated outcomes, and failed
   phases must be reported explicitly and fail closed;
 * automatic host package installation and non-interactive live setup remain out
@@ -71,13 +75,16 @@ retention/teardown semantics are implemented.
 
 === Workflow-Level CLI
 
-Decision status: implemented for platform workflows and blocked artifact and
-deployment contracts.
+Decision status: implemented for platform workflows, blocked artifact and
+deployment contracts, and the fail-closed `setup run` orchestration contract.
 
 The Python entry point lists workflow-level commands, refuses unsupported
 workflow names, and applies live-consent checks before constructing services
 for mutating workflows. Artifact and deployment workflow names dispatch to
-blocked workflow contracts until live behavior lands.
+blocked workflow contracts until live behavior lands. `setup run` is mutating
+and non-destructive; it is listed by the CLI, refuses missing live consent
+before setup service construction, and delegates phase sequencing to
+`tiny_swarm_world.application.services.setup`.
 
 === Typed Command Catalog
 

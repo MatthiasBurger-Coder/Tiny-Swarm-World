@@ -18,6 +18,11 @@ from tiny_swarm_world.application.services.deployment import (
     DeploymentWorkflowResult,
     DeploymentWorkflowStatus,
 )
+from tiny_swarm_world.application.services.setup import (
+    SetupWorkflowKind,
+    SetupWorkflowResult,
+    SetupWorkflowStatus,
+)
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
     RESET_TINY_SWARM_PLATFORM_CONFIRMATION,
@@ -59,6 +64,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("platform reconcile", output.getvalue())
         self.assertIn("platform reset", output.getvalue())
         self.assertIn("deployment apply", output.getvalue())
+        self.assertIn("setup run", output.getvalue())
         self.assertNotIn("vm-ip-list", output.getvalue())
         self.assertNotIn("multipass-init-vms", output.getvalue())
 
@@ -232,21 +238,23 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_artifact_and_deployment_mutating_workflows_require_live_consent_before_services(
         self,
     ):
-        for command in (["artifacts", "prepare"], ["deployment", "apply"]):
+        for command in (["artifacts", "prepare"], ["deployment", "apply"], ["setup", "run"]):
             with self.subTest(command=command):
                 output = io.StringIO()
 
                 with patch.object(entrypoint, "build_application_services") as build_services:
                     with patch.object(entrypoint, "build_artifact_services") as build_artifact_services:
                         with patch.object(entrypoint, "build_deployment_services") as build_deployment_services:
-                            with redirect_stdout(output):
-                                with self.assertRaises(SystemExit) as raised:
-                                    await entrypoint.main(command)
+                            with patch.object(entrypoint, "build_setup_services") as build_setup_services:
+                                with redirect_stdout(output):
+                                    with self.assertRaises(SystemExit) as raised:
+                                        await entrypoint.main(command)
 
                 self.assertEqual(2, raised.exception.code)
                 build_services.assert_not_called()
                 build_artifact_services.assert_not_called()
                 build_deployment_services.assert_not_called()
+                build_setup_services.assert_not_called()
                 self.assertIn("REFUSED_LIVE_CONSENT_MISSING", output.getvalue())
 
     async def test_artifact_and_deployment_workflows_dispatch_to_contract_blocks(self):
@@ -310,6 +318,48 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual("blocked", payload["status"])
                 self.assertEqual(f"{namespace} {action}", payload["workflow"])
                 self.assertIn(expected_reason, str(payload["reason"]))
+
+    async def test_setup_run_dispatches_to_setup_workflow_after_live_consent(self):
+        setup_services = SimpleNamespace(
+            workflows=SimpleNamespace(
+                run=SimpleNamespace(
+                    run=AsyncMock(
+                        return_value=SetupWorkflowResult(
+                            kind=SetupWorkflowKind.RUN,
+                            status=SetupWorkflowStatus.BLOCKED,
+                            message="setup run stopped during phase 'platform init'.",
+                            reason="phase 'platform init' returned blocked",
+                            executed=True,
+                        )
+                    )
+                )
+            )
+        )
+        output = io.StringIO()
+
+        with patch.dict(
+            "os.environ",
+            {entrypoint.LIVE_CONSENT_ENVIRONMENT_VARIABLE: LIVE_CONSENT_ENVIRONMENT_VALUE},
+        ):
+            with patch("builtins.input", return_value=LIVE_CONSENT_PHRASE):
+                with patch.object(entrypoint, "build_setup_services", return_value=setup_services) as build_setup:
+                    with patch.object(
+                        entrypoint,
+                        "build_application_services",
+                        side_effect=AssertionError("setup must use setup services"),
+                    ):
+                        with redirect_stdout(output):
+                            with self.assertRaises(SystemExit) as raised:
+                                await entrypoint.main(["setup", "run", "--live"])
+
+        self.assertEqual(1, raised.exception.code)
+        build_setup.assert_called_once()
+        live_consent = build_setup.call_args.args[0]
+        self.assertTrue(live_consent.accepted)
+        setup_services.workflows.run.run.assert_awaited_once_with()
+        payload = _json_payload_from_output(output.getvalue())
+        self.assertEqual("setup run", payload["workflow"])
+        self.assertEqual("blocked", payload["status"])
 
     async def test_static_preflight_runs_without_live_consent(self):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))
