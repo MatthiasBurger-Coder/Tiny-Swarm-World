@@ -119,7 +119,7 @@ application code.
 * `infra/compose` contains compose stacks and stack upload helpers.
 * `infra/prepare` contains one-off preparation scripts for local services.
 * `infra/swarm` contains legacy Swarm and Multipass helper scripts. This area
-  is quarantined as transitional live-infrastructure surface, not a supported
+  is quarantined as legacy live-infrastructure surface, not a supported
   workflow entry point. It must not run in default quality gates, and files
   should be removed or migrated only in an explicit cleanup slice with tests
   and rollback notes.

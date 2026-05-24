@@ -163,8 +163,8 @@ Portainer stack APIs, and service lifecycle through Portainer or Docker Swarm.
   - `infra/compose/jenkins`
   - `infra/compose/swagger`
 - `infra/prepare/portainer`
-- `infra/prepare/portainer/README.md` documents the supported live script and
-  the transitional duplicate setup script
+- `infra/prepare/portainer/README.md` documents the transitional direct
+  preparation script and the deprecated duplicate setup script
 - Portainer stack compose files under `infra/config/compose/portainer`
 - service stack compose files under `infra/config/compose/nexus`,
   `infra/config/compose/rabbitmq`, and `infra/config/compose/sonarqube`
@@ -255,7 +255,7 @@ These areas need explicit classification before any cleanup:
 | C-007 | `infra/prepare/portainer/portain_setup.py` | Portainer setup | Multipass, socat, iptables, Docker cleanup, stack deploy | Platform networking and deployment are coupled in one transitional script. | Split Platform and Deployment | High because it contains destructive Docker cleanup | Platform Provisioning Agent plus Stack Deployment Agent |
 | C-008 | `infra/prepare/portainer/prepare.sh` | Portainer stack deployment | Docker system prune and volume removal | Deployment bootstrap also performs destructive host Docker cleanup. | Deployment, with explicit reset operation | High | Stack Deployment Agent |
 | C-009 | `infra/config/docker` | Docker install and Swarm commands | Artifact Docker image build meaning | Directory name `docker` can mean platform daemon setup or artifact image workflows. | Platform for current files; future artifact config elsewhere | Low | Platform Provisioning Agent |
-| C-010 | `src/tiny_swarm_world/infrastructure/composition.py` | Wiring root | Platform-only service bundle | Composition now exposes a platform-specific builder and keeps the existing application builder as a compatibility wrapper; artifact and deployment builders are still pending. | Shared composition root with boundary-specific builders | Medium | Composition / CLI Workflow Agent |
+| C-010 | `src/tiny_swarm_world/infrastructure/composition.py` | Wiring root | Boundary service bundles | Composition now exposes platform, artifact, and deployment builders and keeps the existing application builder as a compatibility wrapper; live artifact and deployment behavior remains blocked behind explicit workflow contracts. | Shared composition root with boundary-specific builders | Medium | Composition / CLI Workflow Agent |
 | C-011 | `src/tiny_swarm_world/__main__.py` | Thin entry point | Runtime inspection plus commented provisioning workflow | It is thin, but the active command and commented workflow obscure supported user workflows. | CLI workflow | Low | Composition / CLI Workflow Agent |
 | C-012 | `infra/swarm` | Legacy platform helpers | Duplicate or broken live provisioning scripts | Scripts overlap with Python services and one imports missing modules. | Legacy quarantine, then Platform if still needed | Medium | Platform Provisioning Agent |
 | C-013 | `tests` | Layer-based grouping | Missing responsibility boundary checks | Tests protect hexagonal imports but not platform/artifact/deployment ownership. | Test and Quality Gate | Low | Test and Quality Gate Agent |

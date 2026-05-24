@@ -8,7 +8,7 @@ default path.
 
 Install these tools before running project automation:
 
-* Python 3.12 or a compatible Python 3 version
+* Python 3.12
 * Git
 * Multipass with the QEMU driver
 * Docker CLI access from the shell that will run the scripts

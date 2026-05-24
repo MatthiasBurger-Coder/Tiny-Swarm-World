@@ -27,8 +27,9 @@ Implemented platform workflows are `platform init`, `platform reconcile`,
 workflows require live consent before service construction. Reset and destroy
 also require exact confirmation and currently block after confirmation until
 retention and teardown semantics are implemented. Artifact and deployment
-workflow names are declared by the CLI contract but remain blocked until their
-workflow wiring lands.
+workflow names dispatch to explicit blocked workflow contracts until live
+Nexus, registry, Portainer, and observed-state verification contracts are
+implemented.
 
 == Development gate before deployment work
 

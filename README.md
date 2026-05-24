@@ -38,7 +38,7 @@ The system follows a hexagonal architecture and provides async Python automation
 ## Prerequisites
 
 - Linux host or WSL2 shell on Windows
-- Python 3.12 recommended; Python 3.10+ may work if the installed dependencies support it
+- Python 3.12
 - Git
 - Multipass with the QEMU backend
 - Docker Engine or Docker CLI access to the target Docker/Swarm environment
@@ -54,7 +54,7 @@ Optional but recommended:
 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/Tiny-Swarm-World.git
+git clone https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World.git
 cd Tiny-Swarm-World
 ```
 
@@ -109,6 +109,10 @@ require all of these controls before application services are constructed:
 - `--live`
 - `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`
 - typing `RUN TINY SWARM WORLD LIVE INSTALLATION` at the prompt
+
+At the current system-unification baseline, `platform init` and
+`platform reconcile` still return `blocked` before live steps until
+command-backed verification contracts are implemented.
 
 `platform reset` and `platform destroy` additionally require
 `RESET_TINY_SWARM_PLATFORM` or `DESTROY_TINY_SWARM_PLATFORM` through
@@ -319,7 +323,8 @@ Code style guidelines:
 
 ## License
 
-Add your license information here (e.g., Apache-2.0, MIT). If a LICENSE file exists, it takes precedence.
+No license has been declared in this repository. Do not assume reuse rights
+until a `LICENSE` file or explicit license statement is added.
 
 ---
 

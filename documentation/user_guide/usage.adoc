@@ -96,7 +96,8 @@ execution steps are not wired yet; after confirmation they currently block
 until retention and teardown semantics are implemented.
 
 Artifact and deployment workflow command names are reserved by the CLI contract
-and report a blocked result until their workflow wiring lands in later slices.
+and dispatch to explicit blocked workflow contracts until live Nexus, registry,
+Portainer, and observed-state verification contracts are implemented.
 
 == Verification Scope
 

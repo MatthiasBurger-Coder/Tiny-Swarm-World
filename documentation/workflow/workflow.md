@@ -13,27 +13,29 @@ documentation, workflow governance, and quality gates. It must not run live
 Multipass, Docker Swarm, compose, netplan, socat, Portainer, Nexus, Jenkins,
 RabbitMQ, SonarQube, or Swagger/NGINX commands.
 
-The subagent review found that the repository is coherent but incomplete in
-specific areas:
+The subagent review found that the repository was coherent but incomplete in
+specific areas. Workflow execution has since converted several gaps into
+explicit, test-backed boundaries and documented blockers:
 
-- Artifacts and Deployment are declared as boundaries but are not wired as
-  executable workflow bundles.
-- CLI entries for `artifacts` and `deployment` exist but currently return
-  blocked results.
+- Artifacts and Deployment are declared as boundaries and now expose explicit
+  blocked workflow contracts.
+- CLI entries for `artifacts` and `deployment` dispatch to stable blocked
+  results until live Nexus, registry, Portainer, and observed-state contracts
+  are implemented.
 - Mutating platform workflows are protected by verify-after-apply, but the
   composed platform steps do not yet expose verification contracts.
 - Command metadata is safety-classified, but command-backed verification is not
   wired through the catalog; current command specs rely on manual verification
   declarations.
-- Desired inventory repository support exists, but no default
-  `infra/config/inventory/desired_inventory.yaml` baseline exists.
-- Responsibility-boundary tests exist only partially; broad hexagonal rules are
-  covered, but Platform/Artifacts/Deployment/Shared ownership checks need to be
-  strengthened.
+- Desired inventory repository support exists and the host-neutral
+  `infra/config/inventory/desired_inventory.yaml` baseline is committed.
+- Responsibility-boundary tests cover broad hexagonal rules plus targeted
+  Platform/Artifacts/Deployment/Shared ownership and live-surface checks.
 - Console/status UI is the only UI surface; no React or browser frontend module
   exists.
 - Direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
-  remain live-operation surfaces outside the CLI consent guard.
+  remain live-operation surfaces outside the CLI consent guard and are
+  classified by the canonical live-operation surface catalog.
 
 ## Target Picture
 
@@ -321,19 +323,20 @@ address these incomplete areas in small slices:
 
 - `PlatformServices` is wired, but mutating steps must expose verification
   contracts or remain blocked before apply.
-- `ArtifactServices` exists as an empty bundle while artifact services are
-  available through the Nexus namespace and artifact compatibility exports.
-- `DeploymentServices` exists as an empty bundle while `EnsureNexusStack` is
-  implemented in the deployment namespace.
-- CLI workflow declarations for artifacts and deployment currently return
-  blocked results.
-- Architecture tests document target responsibility boundaries but need
-  stronger regression checks for actual ownership.
+- `ArtifactServices` now owns explicit blocked workflow contracts while
+  artifact behavior remains available through the Nexus namespace and artifact
+  compatibility exports.
+- `DeploymentServices` now owns explicit blocked workflow contracts while
+  `EnsureNexusStack` is implemented in the deployment namespace.
+- CLI workflow declarations for artifacts and deployment dispatch to stable
+  blocked workflow results until live contracts are implemented.
+- Architecture tests now document target responsibility boundaries and protect
+  key ownership and live-surface classifications.
 - Command catalog entries require a verification foundation before they can
   drive verify-after-apply. A read-classified Swarm join-token command also
   emits credential material and needs explicit redaction/evidence semantics.
-- Desired inventory support exists in code, but the committed baseline
-  inventory file is absent.
+- Desired inventory support exists in code, and the committed baseline
+  inventory file now provides host-neutral defaults.
 
 ## Frontend And Console UI Assessment
 

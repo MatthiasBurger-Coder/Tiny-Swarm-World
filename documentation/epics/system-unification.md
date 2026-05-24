@@ -40,7 +40,7 @@ hexagonal architecture.
 Does the implementation still match the intended EPIC?
 
 ```text
-PARTIALLY
+PARTIALLY, WITH DOCUMENTED BLOCKERS
 ```
 
 Implemented or substantially present:
@@ -50,24 +50,26 @@ Implemented or substantially present:
 - Command safety metadata, workflow allow-list checks, and destructive command
   safeguards.
 - Desired/observed inventory and verification evidence concepts.
+- Host-neutral desired inventory baseline under `infra/config/inventory`.
 - Verify-after-apply workflow foundation.
 - Console/status UI adapters.
+- Explicit blocked workflow contracts for Artifact and Deployment commands.
+- Static live-operation surface catalog for guarded, transitional, deprecated,
+  legacy, and supported asset surfaces.
 - Documentation that identifies the Platform, Artifacts, Deployment, and
   Shared direction.
 
 Planned or incomplete:
 
-- Artifacts and Deployment are composition boundaries but are not wired as
-  executable service bundles.
-- CLI entries for `artifacts` and `deployment` are declared but return blocked
-  results.
+- Artifacts and Deployment are composition boundaries with workflow contracts,
+  but live Nexus, registry, Portainer, and observed-state behavior remains
+  blocked.
 - Mutating Platform workflow steps do not yet expose concrete verification
   contracts.
 - Command catalog entries mostly declare manual verification rather than
   command-backed verification.
-- A default desired inventory baseline is missing.
 - Legacy direct scripts remain live-operation surfaces outside the CLI consent
-  guard.
+  guard and are classified for static review.
 
 ## Scope
 

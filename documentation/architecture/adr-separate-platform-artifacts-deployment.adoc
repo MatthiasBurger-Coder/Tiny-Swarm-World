@@ -15,10 +15,13 @@ the initial composition split:
   verify, reset, and destroy semantics.
 * `EnsureNexusStack` is owned by the deployment service namespace, with the old
   Nexus import kept as a compatibility facade.
+* Artifact and Deployment CLI names now route to explicit blocked workflow
+  contracts.
 
 The package layout and `infra/` directory migration described below remain a
 target direction. `ArtifactServices` and `DeploymentServices` are explicit
-composition boundaries, but their workflow wiring is not complete and must not
+composition boundaries with blocked workflow contracts, but live Nexus,
+registry, Portainer, and observed-state behavior is not complete and must not
 be documented as independently deployable services.
 
 == Context
