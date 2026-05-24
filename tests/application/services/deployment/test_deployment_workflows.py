@@ -1,6 +1,9 @@
 import unittest
 from types import SimpleNamespace
 
+from tiny_swarm_world.application.services.deployment.ensure_portainer_admin_access import (
+    EnsurePortainerAdminAccess,
+)
 from tiny_swarm_world.application.services.deployment.workflows import (
     DeploymentApplyWorkflow,
     DeploymentVerifyWorkflow,
@@ -107,6 +110,44 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.executed)
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.verification_results[0].status)
 
+    async def test_bootstrap_workflow_stops_after_failed_admin_access_verification(self):
+        portainer_stack = _OrderedApplyStep("deployment:portainer-stack", VerificationStatus.VERIFIED)
+        admin_access = _OrderedApplyStep(
+            "deployment:portainer-admin-access",
+            VerificationStatus.FAILED_TO_VERIFY,
+        )
+        nexus_stack = _OrderedApplyStep("deployment:nexus-stack", VerificationStatus.VERIFIED)
+
+        result = await DeploymentApplyWorkflow(
+            (portainer_stack, admin_access, nexus_stack),
+            kind=DeploymentWorkflowKind.BOOTSTRAP,
+        ).run()
+
+        self.assertEqual(DeploymentWorkflowKind.BOOTSTRAP, result.kind)
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertTrue(portainer_stack.ran)
+        self.assertTrue(admin_access.ran)
+        self.assertFalse(nexus_stack.ran)
+        self.assertEqual("verification failed for deployment:portainer-admin-access", result.reason)
+
+    async def test_apply_workflow_accepts_portainer_admin_access_safe_evidence(self):
+        admin_access = EnsurePortainerAdminAccess(
+            _AlwaysActivePortainerAdminClient(),
+            username="admin",
+            password="operator-password",
+            max_attempts=1,
+            wait_seconds=0,
+        )
+
+        result = await DeploymentApplyWorkflow(
+            (admin_access,),
+            kind=DeploymentWorkflowKind.BOOTSTRAP,
+        ).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
+        self.assertEqual("active", result.verification_results[0].evidence["access_state"])
+
     async def test_apply_workflow_stops_later_stacks_when_verification_blocks(self):
         first_step = _OrderedApplyStep("deployment:nexus-stack", VerificationStatus.VERIFIED)
         second_step = _OrderedApplyStep("deployment:jenkins-service-readiness", VerificationStatus.BLOCKED)
@@ -199,6 +240,14 @@ class _BlockedDeploymentCheck:
 
     async def verify(self) -> VerificationResult:
         return _verification_result(self.verification_target_id, VerificationStatus.BLOCKED)
+
+
+class _AlwaysActivePortainerAdminClient:
+    def can_authenticate(self, username: str, password: str) -> bool:
+        return True
+
+    def initialize_admin_user(self, username: str, password: str) -> None:
+        raise AssertionError("active credentials should not require initialization")
 
 
 class _OrderedApplyStep:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import time
+import asyncio
 
 from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
     PortPortainerAdminClient,
@@ -28,7 +28,7 @@ class EnsurePortainerAdminAccess:
 
     async def run(self) -> None:
         for attempt in range(1, self.max_attempts + 1):
-            if self.portainer_admin_client.can_authenticate(self.username, self.password):
+            if self._can_authenticate():
                 return
 
             try:
@@ -37,35 +37,48 @@ class EnsurePortainerAdminAccess:
                 if attempt >= self.max_attempts:
                     raise
             else:
-                if self.portainer_admin_client.can_authenticate(self.username, self.password):
+                if self._can_authenticate():
                     return
 
             if attempt < self.max_attempts:
-                time.sleep(self.wait_seconds)
+                await asyncio.sleep(self.wait_seconds)
 
         raise RuntimeError("Portainer admin access could not be initialized.")
 
     async def verify(self) -> VerificationResult:
-        try:
-            authenticated = self.portainer_admin_client.can_authenticate(self.username, self.password)
-        except Exception as exc:
+        last_exception: Exception | None = None
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                if self.portainer_admin_client.can_authenticate(self.username, self.password):
+                    return VerificationResult(
+                        target_id=self.verification_target_id,
+                        status=VerificationStatus.VERIFIED,
+                        message="Portainer admin credentials are active.",
+                        evidence={"phase": "verify", "access_state": "active"},
+                    )
+                last_exception = None
+            except Exception as exc:
+                last_exception = exc
+
+            if attempt < self.max_attempts:
+                await asyncio.sleep(self.wait_seconds)
+
+        if last_exception is not None:
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,
-                message=f"Portainer admin verification failed: {exc.__class__.__name__}",
-                evidence={"phase": "verify", "authenticated": "unknown"},
-            )
-
-        if authenticated:
-            return VerificationResult(
-                target_id=self.verification_target_id,
-                status=VerificationStatus.VERIFIED,
-                message="Portainer admin credentials are active.",
-                evidence={"phase": "verify", "authenticated": "true"},
+                message=f"Portainer admin verification failed: {last_exception.__class__.__name__}",
+                evidence={"phase": "verify", "access_state": "unknown"},
             )
         return VerificationResult(
             target_id=self.verification_target_id,
             status=VerificationStatus.FAILED_TO_VERIFY,
             message="Portainer admin credentials are not active.",
-            evidence={"phase": "verify", "authenticated": "false"},
+            evidence={"phase": "verify", "access_state": "inactive"},
         )
+
+    def _can_authenticate(self) -> bool:
+        try:
+            return self.portainer_admin_client.can_authenticate(self.username, self.password)
+        except Exception:
+            return False

@@ -160,6 +160,27 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(SetupWorkflowStatus.FAILED_TO_VERIFY, result.status)
         self.assertEqual("phase 'deployment verify' returned failed_to_verify", result.reason)
 
+    async def test_stops_after_failed_bootstrap_verification_without_running_later_phases(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase(
+                    "deployment bootstrap",
+                    lambda: _failed_deployment_bootstrap(calls),
+                ),
+                SetupWorkflowPhase("artifacts prepare", lambda: _completed_result("artifacts prepare", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertEqual(["preflight", "deployment bootstrap"], calls)
+        self.assertEqual("phase 'deployment bootstrap' returned failed_to_verify", result.reason)
+        self.assertEqual("not_run", result.phase_results[2].status)
+
     async def test_rejects_unknown_phase_payload_types_as_failed_status(self):
         class UnsafeResult:
             status = "completed"
@@ -216,6 +237,17 @@ def _blocked_result(name: str, calls: list[str]) -> ArtifactWorkflowResult:
         status=ArtifactWorkflowStatus.BLOCKED,
         message=f"{name} blocked.",
         reason="blocked",
+    )
+
+
+def _failed_deployment_bootstrap(calls: list[str]) -> DeploymentWorkflowResult:
+    calls.append("deployment bootstrap")
+    return DeploymentWorkflowResult(
+        kind=DeploymentWorkflowKind.BOOTSTRAP,
+        status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
+        message="deployment bootstrap failed.",
+        reason="verification failed for deployment:portainer-admin-access",
+        executed=True,
     )
 
 

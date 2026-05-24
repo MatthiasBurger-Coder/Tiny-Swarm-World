@@ -8,6 +8,7 @@ from tiny_swarm_world.application.services.deployment import (
     DeploymentWorkflowResult,
     DeploymentWorkflowStatus,
     EnsureNexusStack,
+    EnsurePortainerAdminAccess,
     EnsurePortainerStack,
     EnsureServiceStack,
     build_default_service_stack_steps,
@@ -17,6 +18,9 @@ from tiny_swarm_world.application.services.deployment.ensure_nexus_stack import 
 )
 from tiny_swarm_world.application.services.deployment.ensure_portainer_stack import (
     EnsurePortainerStack as DeploymentEnsurePortainerStack,
+)
+from tiny_swarm_world.application.services.deployment.ensure_portainer_admin_access import (
+    EnsurePortainerAdminAccess as DeploymentEnsurePortainerAdminAccess,
 )
 from tiny_swarm_world.application.services.deployment.ensure_service_stack import (
     EnsureServiceStack as DeploymentEnsureServiceStack,
@@ -55,6 +59,7 @@ class TestDeploymentServiceExports(unittest.TestCase):
 
     def test_deployment_namespace_exports_deployment_stack_service(self):
         self.assertIs(EnsureNexusStack, DeploymentEnsureNexusStack)
+        self.assertIs(EnsurePortainerAdminAccess, DeploymentEnsurePortainerAdminAccess)
         self.assertIs(EnsurePortainerStack, DeploymentEnsurePortainerStack)
         self.assertIs(EnsureServiceStack, DeploymentEnsureServiceStack)
         self.assertIs(build_default_service_stack_steps, existing_build_default_service_stack_steps)

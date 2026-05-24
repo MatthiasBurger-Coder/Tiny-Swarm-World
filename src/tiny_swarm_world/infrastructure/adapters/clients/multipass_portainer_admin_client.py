@@ -27,18 +27,23 @@ class MultipassPortainerAdminClient(PortPortainerAdminClient):
             response = self.session.post(
                 f"{self._base_url()}/api/auth",
                 json={"Username": username, "Password": password},
-                timeout=30,
+                timeout=self.timeout_seconds,
             )
         except requests.RequestException:
             return False
-        return response.status_code == 200 and bool(response.json().get("jwt"))
+        if response.status_code != 200:
+            return False
+        return bool(self._json_object(response).get("jwt"))
 
     def initialize_admin_user(self, username: str, password: str) -> None:
-        response = self.session.post(
-            f"{self._base_url()}/api/users/admin/init",
-            json={"username": username, "password": password},
-            timeout=30,
-        )
+        try:
+            response = self.session.post(
+                f"{self._base_url()}/api/users/admin/init",
+                json={"username": username, "password": password},
+                timeout=self.timeout_seconds,
+            )
+        except requests.RequestException as exc:
+            raise RuntimeError("Failed to initialize Portainer admin user.") from exc
         if response.status_code >= 400 and not self.can_authenticate(username, password):
             raise RuntimeError(f"Failed to initialize Portainer admin user. HTTP {response.status_code}.")
 
@@ -63,3 +68,13 @@ class MultipassPortainerAdminClient(PortPortainerAdminClient):
         if not addresses:
             raise RuntimeError("Manager IP lookup returned no IPv4 address.")
         return addresses[0]
+
+    @staticmethod
+    def _json_object(response: requests.Response) -> dict[str, object]:
+        try:
+            payload = response.json()
+        except ValueError:
+            return {}
+        if isinstance(payload, dict):
+            return payload
+        return {}
