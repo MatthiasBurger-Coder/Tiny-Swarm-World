@@ -36,3 +36,23 @@ Remaining debt:
 * `artifacts prepare` and `deployment apply` are live-consent gated before
   service construction, but the approved live behavior behind those gates is
   still technical debt.
+
+=== Autonomous Setup Safety Debt
+
+The autonomous setup safety contract is accepted, but end-to-end setup remains
+planned work.
+
+Remaining debt:
+
+* no canonical setup command currently installs the full runnable profile;
+* setup preflight and setup manifest contracts still need implementation;
+* command-backed verification remains incomplete for live Platform phases;
+* Artifacts and Deployment readiness still need observed-state contracts;
+* Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX service
+  readiness must not be claimed until verified through tests or explicit live
+  smoke evidence;
+* direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
+  still need migration or clear legacy retirement;
+* automatic host package installation, non-interactive live consent, and direct
+  script promotion need future ADRs before they can change the accepted safety
+  model.

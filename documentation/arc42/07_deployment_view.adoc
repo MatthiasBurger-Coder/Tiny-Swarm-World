@@ -27,3 +27,19 @@ This keeps the current local deployment model deterministic in tests: the
 Python composition root can construct deployment workflow objects without
 creating Portainer clients, contacting Nexus, building images, pushing
 registries, or changing Docker Swarm state.
+
+== Planned Autonomous Setup Deployment Contract
+
+The autonomous setup target is a local Linux/WSL Docker Swarm-first
+deployment. Full runnable success is reached only after the selected profile's
+host prerequisites, platform state, artifact registry behavior, service stacks,
+and readiness checks are verified.
+
+Hosts that do not satisfy the full-run resource contract remain
+resource-gated. A resource-gated result must identify omitted services and must
+not be reported as a full deployment pass.
+
+Default verification remains mocked or static. Optional live smoke validation
+requires explicit operator approval, live consent, and a disposable or
+recoverable local target environment. Live smoke evidence must be written only
+as redacted local state and must remain separate from the default quality gate.

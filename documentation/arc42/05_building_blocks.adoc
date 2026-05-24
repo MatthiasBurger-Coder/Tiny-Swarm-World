@@ -55,6 +55,29 @@ Console/status UI is also an in-process responsibility surface. It owns
 terminal status rendering, progress feedback and command-runner status
 presentation. It is not a browser React frontend.
 
+=== Autonomous Setup Boundary
+
+The autonomous setup workflow is a planned orchestration over the existing
+in-process boundaries. It is not a new deployable service, microservice,
+Spring Boot application, Java example responsibility, or browser frontend.
+
+The setup boundary coordinates Platform, Artifacts, Deployment, Shared, and
+Console/status UI contracts when later slices implement it:
+
+* Platform owns host preflight, Multipass, Docker installation, Docker Swarm,
+  network, VM, and resource readiness behavior.
+* Artifacts owns Nexus, registry, image publication, and repository readiness
+  behavior.
+* Deployment owns Portainer, compose assets, service stack apply behavior, and
+  service readiness verification.
+* Shared owns command abstractions, local evidence storage, redaction,
+  configuration loading, and composition wiring.
+* Console/status UI owns terminal-only setup progress and recovery output.
+
+The current repository state is still requirement and safety alignment only for
+end-to-end setup. Later slices must add tested contracts before documentation
+can claim that the setup path installs a runnable system.
+
 === Typed Command Catalog
 
 Command YAML files under `infra/config/**/command_*.yaml` are product
@@ -127,6 +150,11 @@ application code.
 Live infrastructure scripts can modify VMs, networking, Docker Swarm state,
 service stacks, and credentials. They are not part of the normal development
 quality gate.
+
+Direct scripts must remain transitional live-operation surfaces until their
+behavior is wrapped behind Python ports, adapters, tests, verification, and
+live-consent controls. They must not become the canonical setup path by
+documentation alone.
 
 === Deployment Example Application
 

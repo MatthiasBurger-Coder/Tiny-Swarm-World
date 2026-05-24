@@ -122,3 +122,32 @@ the typed verification result before making the continuation decision.
 The non-mutating `platform verify` workflow also interprets preflight results.
 Failed preflight checks now return `failed_to_verify` with summary-only
 verification evidence instead of reporting a completed verify workflow.
+
+=== Planned Autonomous Setup Runtime Flow
+
+Autonomous setup is planned as a single workflow-level runtime flow that
+orchestrates the existing in-process boundaries:
+
+. parse setup intent and selected profile;
+. refuse mutating execution before service construction when live consent is
+  missing;
+. run non-mutating preflight for host, resource, credential, port, and
+  configuration readiness;
+. coordinate Platform apply/verify phases when consent and verification
+  contracts are present;
+. coordinate Artifacts prepare/verify phases when Nexus, registry, image, and
+  repository contracts are present;
+. coordinate Deployment apply/verify phases when Portainer, compose, stack,
+  and service-readiness contracts are present;
+. persist only redacted summary evidence under ignored local state;
+. render terminal setup status and recovery guidance through Console/status UI.
+
+Current implementation status remains fail-closed. The repository does not yet
+provide a verified end-to-end setup command that installs all runnable services.
+Missing setup consent, missing preflight contracts, missing command-backed
+verification, and missing observed-state contracts must be reported as
+`refused`, `blocked`, `failed_to_apply`, or `failed_to_verify`, never as
+success.
+
+Optional live smoke validation remains a separate operator action and is not
+part of default architecture tests or the default quality gate.

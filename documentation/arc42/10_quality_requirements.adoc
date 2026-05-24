@@ -41,3 +41,27 @@ Quality scenarios:
 Tests use synthetic workflow steps and mocked repositories. They do not execute
 Multipass, Docker Swarm, compose deployments, netplan, socat, or service
 bootstrap commands.
+
+=== Autonomous Setup Safety
+
+Autonomous setup quality gates must prove fail-closed behavior without live
+infrastructure side effects by default.
+
+Quality scenarios:
+
+* mutating setup without all required live-consent signals is refused before
+  Multipass, Docker Swarm, netplan, socat, compose, Portainer, Nexus, service
+  bootstrap, image build, image push, or stack upload commands can run;
+* preflight reports missing host prerequisites, resource limits, credentials,
+  port conflicts, or configuration blockers before mutation;
+* missing verification contracts return `blocked`, not success;
+* apply failures return `failed_to_apply` and stop later setup phases;
+* verification failures return `failed_to_verify` and stop later setup phases;
+* resource-gated profiles are distinct from full runnable success;
+* evidence persistence rejects raw command strings, stdout, stderr,
+  environment payloads, tokens, passwords, Swarm join tokens, host-specific
+  addresses, and user-specific absolute paths;
+* default quality gates and architecture tests do not execute live
+  infrastructure commands;
+* optional live smoke validation is documented and invoked separately from the
+  default quality gate.
