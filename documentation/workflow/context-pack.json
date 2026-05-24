@@ -15,7 +15,7 @@
     "03": "COMPLETED_PUSHED",
     "04": "COMPLETED_PUSHED",
     "05": "COMPLETED_PUSHED",
-        "06": "COMPLETED",
+        "06": "COMPLETED_PUSHED",
     "07": "PENDING",
     "08": "PENDING",
     "09": "PENDING"
