@@ -16,6 +16,17 @@ class TestMultipassPortainerAdminClient(unittest.TestCase):
 
         self.assertEqual("http://10.157.2.182:9000/api/auth", session.post_calls[0]["url"])
 
+    def test_can_authenticate_keeps_portainer_login_requests_stateless(self):
+        session = _PortainerCookieSession()
+        client = MultipassPortainerAdminClient(session=session)
+
+        with patch.object(client, "_manager_ip", return_value="10.157.2.182"):
+            self.assertTrue(client.can_authenticate("admin", "operator-password"))
+            self.assertTrue(client.can_authenticate("admin", "operator-password"))
+
+        self.assertEqual(2, len(session.post_calls))
+        self.assertEqual(4, session.cookies.clear_calls)
+
     def test_initialize_admin_user_sanitizes_failed_init_with_malformed_auth_fallback(self):
         session = _FakeSession(
             [
@@ -52,6 +63,29 @@ class _FakeSession:
     def post(self, url: str, **kwargs: object) -> _FakeResponse:
         self.post_calls.append({"url": url, **kwargs})
         return self.post_responses.pop(0)
+
+
+class _FakeCookies(dict[str, str]):
+    def __init__(self):
+        super().__init__()
+        self.clear_calls = 0
+
+    def clear(self) -> None:
+        self.clear_calls += 1
+        super().clear()
+
+
+class _PortainerCookieSession:
+    def __init__(self):
+        self.cookies = _FakeCookies()
+        self.post_calls: list[dict[str, object]] = []
+
+    def post(self, url: str, **kwargs: object) -> _FakeResponse:
+        self.post_calls.append({"url": url, **kwargs, "cookies": dict(self.cookies)})
+        if self.cookies:
+            return _FakeResponse(403, ValueError("Forbidden - CSRF token not found in request"))
+        self.cookies["portainer_api_key"] = "jwt-cookie"
+        return _FakeResponse(200, {"jwt": "jwt-token"})
 
 
 if __name__ == "__main__":

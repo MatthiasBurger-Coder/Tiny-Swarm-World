@@ -24,11 +24,13 @@ class MultipassPortainerAdminClient(PortPortainerAdminClient):
 
     def can_authenticate(self, username: str, password: str) -> bool:
         try:
+            self._clear_session_cookies()
             response = self.session.post(
                 f"{self._base_url()}/api/auth",
                 json={"Username": username, "Password": password},
                 timeout=self.timeout_seconds,
             )
+            self._clear_session_cookies()
         except requests.RequestException:
             return False
         if response.status_code != 200:
@@ -37,11 +39,13 @@ class MultipassPortainerAdminClient(PortPortainerAdminClient):
 
     def initialize_admin_user(self, username: str, password: str) -> None:
         try:
+            self._clear_session_cookies()
             response = self.session.post(
                 f"{self._base_url()}/api/users/admin/init",
                 json={"username": username, "password": password},
                 timeout=self.timeout_seconds,
             )
+            self._clear_session_cookies()
         except requests.RequestException as exc:
             raise RuntimeError("Failed to initialize Portainer admin user.") from exc
         if response.status_code >= 400 and not self.can_authenticate(username, password):
@@ -49,6 +53,12 @@ class MultipassPortainerAdminClient(PortPortainerAdminClient):
 
     def _base_url(self) -> str:
         return f"http://{self._manager_ip()}:{self.port}"
+
+    def _clear_session_cookies(self) -> None:
+        cookies = getattr(self.session, "cookies", None)
+        clear = getattr(cookies, "clear", None)
+        if callable(clear):
+            clear()
 
     def _manager_ip(self) -> str:
         try:
