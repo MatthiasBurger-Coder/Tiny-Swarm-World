@@ -44,6 +44,31 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             self.assertIn("image: preferred", stack_definition.compose_content)
             self.assertNotIn("image: fallback", stack_definition.compose_content)
 
+    def test_default_search_order_prefers_config_compose_before_image_assets(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            root.joinpath("compose", "jenkins").mkdir(parents=True)
+            root.joinpath("config", "compose", "jenkins").mkdir(parents=True)
+            root.joinpath("compose", "jenkins", "docker-compose.yml").write_text(
+                "services:\n  jenkins:\n    image: image-asset-side\n",
+                encoding="utf-8",
+            )
+            root.joinpath("config", "compose", "jenkins", "docker-compose.yml").write_text(
+                "services:\n  jenkins:\n    image: config-side\n",
+                encoding="utf-8",
+            )
+
+            repository = ComposeFileRepositoryYaml()
+            repository.base_directories = [
+                root / "config" / "compose",
+                root / "compose",
+            ]
+
+            stack_definition = repository.get_compose_of("jenkins")
+
+        self.assertIn("image: config-side", stack_definition.compose_content)
+        self.assertNotIn("image: image-asset-side", stack_definition.compose_content)
+
     def test_raises_when_stack_is_missing(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             compose_root = Path(temp_dir) / "compose"
@@ -107,3 +132,17 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
                 missing_services_by_stack[contract.stack_name] = missing_services
 
         self.assertEqual({}, missing_services_by_stack)
+
+    def test_committed_swagger_compose_uses_official_images_and_remote_openapi_bind(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_path = repository_root / "infra" / "config" / "compose" / "swagger" / "docker-compose.yml"
+        compose_content = compose_path.read_text(encoding="utf-8")
+
+        self.assertIn("image: docker.swagger.io/swaggerapi/swagger-editor", compose_content)
+        self.assertIn("image: docker.swagger.io/swaggerapi/swagger-ui", compose_content)
+        self.assertIn("SWAGGER_JSON: /openapi.json", compose_content)
+        self.assertIn(
+            "${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro",
+            compose_content,
+        )
+        self.assertNotIn("./swagger/openapi.json:/openapi.json", compose_content)

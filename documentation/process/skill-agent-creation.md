@@ -14,7 +14,8 @@ definitions.
 - Codex callable-agent definitions live under `.codex/agents`.
 - Root `AGENTS.md` and `QUALITY.md` remain authoritative.
 - New Python implementation roles must preserve the hexagonal architecture and live-infrastructure safety rules.
-- Java roles may cover only the deployment example unless the user explicitly changes the project architecture.
+- Java roles are out of scope unless the user explicitly changes the project
+  architecture.
 - Tiny Swarm World is Docker Swarm first and Kubernetes-aware, not
   Kubernetes-first.
 - Console/status UI skills are terminal-oriented and do not authorize browser

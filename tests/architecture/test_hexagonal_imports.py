@@ -43,12 +43,6 @@ REQUIRED_ARCHITECTURE_DOCUMENTS = (
 )
 KNOWN_MIXED_BOUNDARY_FILES = (
     "src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py",
-    "infra/prepare/nexus/setup.py",
-    "infra/compose/create_dockerfiles.sh",
-    "infra/compose/upload_all_stacks.sh",
-    "infra/prepare/prepare.sh",
-    "infra/prepare/portainer/portain_setup.py",
-    "infra/prepare/portainer/prepare.sh",
     "src/tiny_swarm_world/infrastructure/composition.py",
     "src/tiny_swarm_world/__main__.py",
     "infra/swarm",

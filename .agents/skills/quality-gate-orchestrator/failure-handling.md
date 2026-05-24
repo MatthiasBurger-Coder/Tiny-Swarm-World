@@ -23,7 +23,7 @@ these router types before retry or escalation:
 | Error type | Owner |
 |---|---|
 | `ARCH_VIOLATION` | Root Architect, Senior System Architect, `architecture-hexagonal` |
-| `BUILD_FAILURE` | responsible Python automation, Java example or Frontend Agent, Senior DevOps, `quality-gate` for Python quality-gate failures |
+| `BUILD_FAILURE` | responsible Python automation or Frontend Agent, Senior DevOps, `quality-gate` for Python quality-gate failures |
 | `TEST_FAILURE` | Senior Tester, responsible Slice Agent |
 | `DOC_GOVERNANCE_FAILURE` | Senior Documentation Engineer, Requirement Engineer |
 | `LOCK_CONFLICT` | Senior Execution Orchestrator, Senior Swarm Orchestrator, Root Architect |

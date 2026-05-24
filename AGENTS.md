@@ -7,10 +7,9 @@ It provisions and operates a production-like Docker Swarm environment on
 Multipass virtual machines and ships ready-to-use service stacks such as
 Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX.
 
-The project is primarily a Python automation codebase using a hexagonal
-architecture. Java code under `src/main/java` is a deployment example
-application for the finished local system and must not drive the Python
-automation architecture.
+The project is a Python automation codebase using a hexagonal architecture.
+Do not reintroduce Java, Maven, or Spring Boot project structure unless a later
+explicit task changes the product scope.
 
 ## Operating Assumptions
 
@@ -31,9 +30,10 @@ automation architecture.
   management, UI, and external clients.
 - `src/tiny_swarm_world/infrastructure`: concrete adapters, dependency wiring, logging,
   YAML handling, command runners, UI adapters, and file management.
-- `infra/config`: YAML command, VM, network, and compose configuration data.
-- `infra/compose`: compose stacks and related Dockerfiles.
-- `infra/prepare`: one-off preparation scripts for local services.
+- `infra/config`: YAML command, VM, network, and compose stack configuration data.
+- `infra/compose`: image build contexts and related Dockerfiles for stack services.
+- `infra/prepare`: retired notes for former direct local-service preparation
+  helpers; it must not contain executable setup entry points.
 - `infra/swarm`: swarm setup and helper scripts.
 - `tests`: unit tests organized by architecture layer.
 - `documentation`: arc42, deployment, system, and user guide documentation.

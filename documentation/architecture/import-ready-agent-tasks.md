@@ -81,8 +81,8 @@ Maven repository setup from platform provisioning and stack deployment.
 - `src/tiny_swarm_world/domain/nexus`
 - `src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
 - `src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
-- `infra/prepare/nexus`
-- `infra/compose/create_dockerfiles.sh`
+- `infra/compose/**/Dockerfile`
+- Python artifact workflow contracts
 
 ### Recommended remediation
 Move artifact responsibilities behind artifact use cases and ports. Treat Nexus
@@ -113,9 +113,10 @@ deployment lifecycle from platform provisioning and artifact publishing.
 - `src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
 - `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
 - `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
-- `infra/compose`
 - `infra/config/compose`
-- `infra/prepare/portainer`
+- image build contexts under `infra/compose`
+- `infra/config/compose`
+- Python deployment workflow contracts
 
 ### Recommended remediation
 Make stack deployment ownership explicit and isolate destructive reset behavior
@@ -211,7 +212,7 @@ clearly.
 
 ### Acceptance criteria
 - Docs use the target boundary names consistently.
-- `src/main/java` remains documented as deployable example application.
+- Java/Maven project structure is not reintroduced.
 - No production code, tests, scripts, or infra configs are modified.
 
 ### Dependencies

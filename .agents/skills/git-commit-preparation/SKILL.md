@@ -355,7 +355,7 @@ If an open pull request already exists for the current branch against `main`, re
 
 When the user enters exactly `push auto`, treat it as explicit permission to run the normal `push` workflow and then automatically finish the GitHub pull request lifecycle when the active change is within skills, agents, process-governance or governance-only workflow documentation scope.
 
-`push auto` must not publish Python product implementation, Java example code, frontend, Docker/runtime, REST, gRPC/protobuf, persistence, deployment automation, service bootstrap or other runtime behavior changes.
+`push auto` must not publish Python product implementation, Java/Maven project structure, frontend, Docker/runtime, REST, gRPC/protobuf, persistence, deployment automation, service bootstrap or other runtime behavior changes.
 
 Execute this order:
 
@@ -376,7 +376,7 @@ For `push auto`, the pull request body must include the same content as the `pus
 
 Do not treat `push auto` as permission to force-push, push directly to `main`, retarget the pull request, bypass failed or pending checks, merge an unrelated pull request, delete `main`, delete a branch before the pull request is verified as merged, or enable GitHub auto-merge.
 
-If the diff is outside skills, agents, process-governance and governance-only workflow documentation scope, or if it contains blocked implementation, build, service, contract, Docker/runtime, frontend, Python automation or Java example files, stop and report the exact blocker.
+If the diff is outside skills, agents, process-governance and governance-only workflow documentation scope, or if it contains blocked implementation, build, service, contract, Docker/runtime, frontend, Python automation or Java/Maven project files, stop and report the exact blocker.
 
 If GitHub mergeability, required-check status, merge result, remote branch deletion, or clean execution cannot be verified, stop and report the exact blocker.
 
@@ -483,7 +483,7 @@ Stop if:
 - the user requested `push` but GitHub pull request creation is unavailable or would require guessing,
 - a workflow-execute slice checkpoint contains files outside the current slice or targets anything other than `origin/<workflow-branch>`,
 - `push auto` is requested outside skills, agents, process-governance or governance-only workflow documentation scope,
-- `push auto` would publish product implementation, build, service, contract, Docker/runtime, frontend, Python automation or Java example files,
+- `push auto` would publish product implementation, build, service, contract, Docker/runtime, frontend, Python automation or Java/Maven project files,
 - the user requested `push auto` but mergeability, required-check status, merge result, remote branch deletion target, or clean execution cannot be verified.
 
 ## Forbidden Actions

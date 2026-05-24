@@ -350,12 +350,12 @@ def _print_setup_installation_plan() -> None:
         print(f"- {phase}")
     print("Services:")
     stack_sources = {
-        "Jenkins": "infra/compose/jenkins/docker-compose.yml",
+        "Jenkins": "infra/config/compose/jenkins/docker-compose.yml",
         "Nexus": "infra/config/compose/nexus/docker-compose.yml",
         "Portainer": "infra/config/compose/portainer/docker-compose.yml",
         "RabbitMQ": "infra/config/compose/rabbitmq/docker-compose.yml",
         "SonarQube": "infra/config/compose/sonarqube/docker-compose.yml",
-        "Swagger/NGINX": "infra/compose/swagger/docker-compose.yml",
+        "Swagger/NGINX": "infra/config/compose/swagger/docker-compose.yml",
     }
     for service in manifest.services:
         ports = ", ".join(str(port.port) for port in service.ports) or "no published port"

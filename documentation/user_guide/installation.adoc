@@ -98,7 +98,7 @@ List supported workflow-level commands without building application services:
 PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
 ----
 
-The canonical autonomous setup entry point is:
+The safe setup probe is:
 
 [source,bash]
 ----
@@ -109,12 +109,20 @@ Without the complete live-consent contract, `setup run` refuses before setup
 services are constructed and prints `REFUSED_LIVE_CONSENT_MISSING`. This is
 the expected safe default.
 
+The canonical live operator command is:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
 == Live Infrastructure Warning
 
-Commands in `src/tiny_swarm_world/application/services/multipass`, `infra/prepare`,
-`infra/compose`, and `infra/swarm` can create or delete virtual machines,
-change networking, install Docker, or deploy stacks. Run them only when you
-intend to change local infrastructure state.
+The canonical setup workflow and some legacy helper areas can create or delete
+virtual machines, change networking, install Docker, or deploy stacks. Run live
+automation only when you intend to change local infrastructure state. Former
+direct preparation helpers under `infra/prepare` and host-side compose
+orchestration scripts have been retired.
 The canonical classification for these live-operation surfaces is
 `documentation/system/live-operation-surfaces.adoc`.
 

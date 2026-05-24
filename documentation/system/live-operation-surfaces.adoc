@@ -13,6 +13,7 @@ executing live infrastructure commands.
 | Supported | Current documented path for intentional operator use. Mutating paths still require the documented live-consent or operator review controls. | May be tested only with mocked or static checks unless the user explicitly requests live infrastructure execution.
 | Transitional | Kept for compatibility while behavior moves behind workflow-level contracts. | Static review only by default; do not run during normal development.
 | Deprecated | Retained to avoid breaking old notes or local experiments, but not recommended for new operation. | Static review only; replacement should be planned before use.
+| Retired | Removed as an executable entry point; retained only as historical documentation or navigation notes. | Assert absence of executable helpers and route operators to the Python setup workflow.
 | Legacy | Pre-boundary material that is not a supported entry point. | Static review only; do not treat as product workflow behavior.
 | Supported Asset | Configuration or image material consumed by supported or transitional workflows, not a standalone operator entry point. | Static validation only unless an explicit live deployment is requested.
 |===
@@ -28,7 +29,8 @@ executing live infrastructure commands.
 | `platform init` and `platform reconcile` | Supported | Mutating workflow names are supported, live-consent gated, and currently block before apply until command-backed verification is wired.
 | `platform reset` and `platform destroy` | Supported | Confirmation contracts are supported, but destructive execution remains blocked until retention and teardown semantics are implemented.
 | `artifacts prepare`, `artifacts verify`, `deployment apply`, `deployment verify` | Supported | Workflow names are supported and return explicit blocked contract results until their live contracts are wired in composition. Slice 06 adds a tested post-bootstrap Portainer API contract. Slice 07 adds tested Nexus repository contracts and sanitized Nexus/Docker client behavior. Slice 08 adds tested default stack-presence contracts without claiming service health. CLI `artifacts prepare` and `deployment apply` remain fail-closed by default.
-| `PYTHONPATH=src python3 -m tiny_swarm_world setup run` | Supported | Canonical autonomous setup orchestrator. It is mutating and non-destructive, refuses missing live consent before setup service construction, and preserves fail-closed phase states across preflight, platform, artifacts, deployment, and final verification.
+| `PYTHONPATH=src python3 -m tiny_swarm_world setup run` | Supported | Safe refusal/probe command. It refuses missing live consent before setup service construction.
+| `PYTHONPATH=src python3 -m tiny_swarm_world setup run --live` | Supported | Canonical live autonomous setup orchestrator. It is mutating and non-destructive, prompts for operator confirmation, and preserves fail-closed phase states across preflight, platform, artifacts, deployment, and final verification.
 |===
 
 == Direct Live Scripts And Assets
@@ -36,24 +38,24 @@ executing live infrastructure commands.
 [options="header"]
 |===
 | Path | Status | Live-operation risk | Operator guidance
-| `infra/prepare/prepare.sh` | Transitional | Delegates to service preparation scripts that can deploy or initialize services. | Review the delegated script and target environment before use.
-| `infra/prepare/portainer/prepare.sh` | Transitional | Runs Docker stack operations and Portainer administrator initialization. | Use only for intentional Portainer bootstrap in a disposable local Swarm.
-| `infra/prepare/portainer/portain_setup.py` | Deprecated | Runs Multipass, Docker cleanup, stack deploy, socat, iptables, and Portainer admin initialization paths. | Prefer documented workflow-level platform commands plus reviewed Portainer preparation.
-| `infra/prepare/nexus/setup.py` | Transitional | Talks to Portainer, Docker, and Nexus clients; changes stack and Nexus administrator state. | Provide explicit environment values or CLI flags; do not rely on local compatibility defaults.
-| `infra/prepare/nexus/prepare.sh` | Deprecated | Chains Nexus setup with legacy shell helpers. | Prefer `infra/prepare/nexus/setup.py` for intentional Nexus bootstrap.
-| `infra/prepare/nexus/addMavenMirror.sh` | Deprecated | Sends authenticated Nexus repository create/delete calls and can print sensitive values. | Do not use for new workflows; move behavior behind typed ports before re-enabling.
-| `infra/prepare/nexus/addLocalDockerRepository.sh` | Deprecated | Sends authenticated Nexus and Portainer registry calls and can print tokens. | Do not use for new workflows; move behavior behind typed ports before re-enabling.
-| `infra/prepare/nexus/test.sh` | Deprecated | Reads Nexus container administrator password material. | Do not run during development gates.
-| `infra/compose/create_dockerfiles.sh` | Deprecated | Builds images, logs in to a registry, pushes images, and logs out. | Replace with explicit image-build/publish workflow before using.
-| `infra/compose/upload_all_stacks.sh` | Transitional | Authenticates to Portainer and can delete, recreate, or upload stacks. | Review target Portainer endpoint and credentials before intentional use.
+| `infra/prepare/prepare.sh` | Retired | Former umbrella preparation helper that delegated to direct service scripts. | Removed; use the Python setup workflow behind `setup run --live`.
+| `infra/prepare/portainer/prepare.sh` | Retired | Former direct Portainer preparation script with Docker stack and administrator mutation behavior. | Removed; use the Python deployment workflow behind `setup run --live`.
+| `infra/prepare/portainer/portain_setup.py` | Retired | Former duplicate script with Multipass, Docker cleanup, stack deploy, socat, iptables, and Portainer admin behavior. | Removed; use the guarded Python setup workflow.
+| `infra/prepare/nexus/setup.py` | Retired | Former direct Nexus bootstrap script with Portainer, Docker, and Nexus client mutations. | Removed; Nexus bootstrap is owned by the Python setup workflow.
+| `infra/prepare/nexus/prepare.sh` | Retired | Former shell chain for Nexus setup helpers. | Removed; use `setup run --live`.
+| `infra/prepare/nexus/addMavenMirror.sh` | Retired | Former authenticated Nexus repository helper. | Removed; repository behavior must stay behind typed Python ports.
+| `infra/prepare/nexus/addLocalDockerRepository.sh` | Retired | Former authenticated Nexus and Portainer registry helper. | Removed; repository behavior must stay behind typed Python ports.
+| `infra/prepare/nexus/test.sh` | Retired | Former helper that read Nexus administrator password material. | Removed; do not recreate as a development gate.
+| `infra/compose/create_dockerfiles.sh` | Retired | Former host-side image build/push helper with registry login behavior. | Removed; use the Python artifact workflow behind `setup run --live`.
+| `infra/compose/upload_all_stacks.sh` | Retired | Former direct Portainer upload helper that could delete and recreate stacks. | Removed; use the Python deployment workflow behind `setup run --live`.
 | `infra/config/compose/portainer/docker-compose.yml` | Supported Asset | Defines Portainer server and agent runtime state with host Docker socket access; the agent also mounts `/var/lib/docker/volumes`. These mounts grant privileged Docker control when deployed. | Static review by default. Use only for intentional Portainer bootstrap in a disposable or recoverable local Swarm. The current asset preserves both server and agent Docker socket mounts for compatibility with the existing local endpoint and agent model; any least-privilege removal requires a dedicated live-bootstrap validation slice.
 | `infra/config/compose/nexus/docker-compose.yml` | Supported Asset | Defines the Nexus runtime stack, local HTTP ports, and the `nexus-data` volume mounted at `/nexus-data` so the documented initial administrator password path is consistent. | Static review by default. Deploy only through reviewed Portainer or future deployment workflow contracts, and provide administrator credentials outside committed files.
-| `infra/compose/jenkins/docker-compose.yml` | Supported Asset | Defines Jenkins stack runtime state. | Deploy only through reviewed Portainer or future deployment workflow contracts.
-| `infra/compose/jenkins/Dockerfile` and `infra/compose/jenkins/Dockerfile.template` | Supported Asset | Build Jenkins images and install packages when used by a build script. | Static review by default; do not build during quality gates.
+| `infra/config/compose/jenkins/docker-compose.yml` | Supported Asset | Defines Jenkins stack runtime state. | Deploy only through reviewed setup workflow contracts.
+| `infra/compose/jenkins/Dockerfile` | Supported Asset | Builds the Jenkins image source used by the Python artifact workflow. | Static review by default; do not build during quality gates.
 | `infra/compose/jenkins/casc.yaml` and `infra/compose/jenkins/setup.groovy` | Supported Asset | Configure Jenkins administrator state for local service bootstrapping. | Treat included credentials as local compatibility defaults and override before real use.
-| `infra/compose/jenkins/setup.sh` | Deprecated | Waits for Jenkins and invokes Jenkins CLI setup. | Keep static until Jenkins bootstrap is moved behind a workflow contract.
-| `infra/compose/swagger/docker-compose.yml` | Supported Asset | Defines Swagger/API documentation stack runtime state. | Deploy only through reviewed stack deployment paths.
-| `infra/compose/swagger/nginx/**` | Supported Asset | Builds and configures the Swagger NGINX image. | Static review by default; do not build during quality gates.
+| `infra/compose/jenkins/setup.sh` | Retired | Former Jenkins CLI helper outside the setup workflow. | Removed; Jenkins bootstrap is handled through image initialization assets.
+| `infra/config/compose/swagger/docker-compose.yml` | Supported Asset | Defines Swagger/API documentation stack runtime state. It follows the documented Swagger Docker setup by using the official `docker.swagger.io/swaggerapi/swagger-ui` image, `SWAGGER_JSON=/openapi.json`, and a read-only OpenAPI bind mount. | Deploy only through reviewed stack deployment paths.
+| `infra/compose/swagger/nginx/**` | Supported Asset | Builds and configures the Swagger NGINX image. `wait-for-it.sh` is image-internal startup behavior for the NGINX container, not a host-side setup script. | Static review by default; do not build during quality gates.
 | `infra/swarm/**` | Legacy | Pre-boundary scripts can change Multipass, networking, socat, iptables, Docker, or copied file state. | Not a supported workflow entry point.
 | `infra/swarm/prepere.py` | Legacy | Imports missing or transitional helper modules and can escalate through sudo. | Do not run; keep only as legacy evidence until cleanup.
 | `infra/swarm/multipass/multipass_setup.py` | Legacy | Installs Multipass, changes groups, socket permissions, and local passphrase settings. | Use documented host-preparation guidance instead.

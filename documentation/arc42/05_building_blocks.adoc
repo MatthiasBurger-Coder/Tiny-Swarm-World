@@ -68,7 +68,7 @@ presentation. It is not a browser React frontend.
 
 The autonomous setup workflow is an implemented fail-closed orchestration over
 the existing in-process boundaries. It is not a new deployable service,
-microservice, Spring Boot application, Java example responsibility, or browser
+microservice, Spring Boot application, Java responsibility, or browser
 frontend.
 
 The setup boundary coordinates Platform, Artifacts, Deployment, Shared, and
@@ -151,8 +151,9 @@ passwords, or secrets.
 application code.
 
 * `infra/config` contains command, VM, network, and compose configuration.
-* `infra/compose` contains compose stacks and stack upload helpers.
-* `infra/prepare` contains one-off preparation scripts for local services.
+* `infra/compose` contains image build-context assets.
+* `infra/prepare` contains retired notes for former direct service preparation
+  helpers and must not contain executable setup entry points.
 * `infra/swarm` contains legacy Swarm and Multipass helper scripts. This area
   is quarantined as legacy live-infrastructure surface, not a supported
   workflow entry point. It must not run in default quality gates, and files
@@ -163,13 +164,7 @@ Live infrastructure scripts can modify VMs, networking, Docker Swarm state,
 service stacks, and credentials. They are not part of the normal development
 quality gate.
 
-Direct scripts must remain transitional live-operation surfaces until their
-behavior is wrapped behind Python ports, adapters, tests, verification, and
-live-consent controls. They must not become the canonical setup path by
-documentation alone.
-
-=== Deployment Example Application
-
-`src/main/java` is a Java example application intended to be built and deployed
-into the prepared Tiny Swarm World environment. It is intentionally separate
-from the Python automation architecture.
+Direct live-operation scripts must not become the canonical setup path by
+documentation alone. Former direct service preparation helpers and host-side
+compose orchestration scripts are retired; new setup behavior must go through
+Python ports, adapters, tests, verification, and live-consent controls.

@@ -5,9 +5,10 @@ publishing assets.
 
 Current artifact assets remain in their existing locations for compatibility:
 
-- `infra/prepare/nexus`
-- `infra/compose/create_dockerfiles.sh`
-- Dockerfile templates used by image build and push workflows
+- `infra/compose/**/Dockerfile`
+- service configuration files used as image build contexts
 
-Do not move live image build, registry, or Nexus bootstrap scripts into this
-directory without a dedicated migration slice and compatibility handling.
+Former direct helpers under `infra/prepare/nexus` have been retired.
+Live image build and registry publish behavior is owned by the Python artifact
+workflow behind the setup command. Do not add host-side image build or push
+scripts without a dedicated migration slice and compatibility handling.

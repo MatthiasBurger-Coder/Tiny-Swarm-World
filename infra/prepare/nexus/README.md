@@ -1,21 +1,18 @@
-# Nexus Preparation Scripts
+# Retired Nexus Preparation Surface
 
-This directory contains live Nexus preparation material.
+This directory is kept only as a compatibility note for former direct Nexus
+preparation helpers.
 
-Transitional direct helper:
+Retired former helpers:
 
-- `setup.py` bootstraps Nexus through Portainer, Docker, and Nexus clients. It
-  remains a direct operator script until Nexus behavior is wired behind
-  workflow-level artifact/deployment contracts.
-
-Deprecated shell helpers:
-
+- `setup.py`
 - `prepare.sh`
 - `addMavenMirror.sh`
 - `addLocalDockerRepository.sh`
 - `test.sh`
 
-These shell helpers retain local compatibility defaults and may print or read
-credential material. Do not run them during normal development quality checks.
+These files have been removed. Nexus stack deployment, administrator access,
+repository setup, and readiness checks are owned by the Python setup workflow
+and its typed artifact/deployment contracts.
 The canonical classification is maintained in
 `documentation/system/live-operation-surfaces.adoc`.

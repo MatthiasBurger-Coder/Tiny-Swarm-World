@@ -124,8 +124,6 @@
     "Tests and quality gates"
   ],
   "forbiddenAreas": [
-    "src/main/java/**",
-    "pom.xml",
     "external static-analysis CI configuration",
     "generated caches",
     "local virtual environments",

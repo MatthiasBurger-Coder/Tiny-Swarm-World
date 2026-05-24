@@ -87,7 +87,7 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
                 self.assertEqual(EXPECTED_COMMAND_COUNTS[config_file.name], command_count)
                 self.assertGreaterEqual(len(command_list), 1)
 
-    def test_netplan_transfer_command_uses_infra_config_path(self):
+    def test_netplan_transfer_command_uses_generated_local_state_path(self):
         workflow = CommandWorkflow()
         command_list = workflow.build_command_list(
             "command_netplant_setup_yaml.yaml",
@@ -98,7 +98,7 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
         transfer_command = command_list["swarm-manager"][3].command
 
         self.assertEqual(
-            "multipass transfer infra/config/cloud-init-manager.yaml swarm-manager:/tmp/netplan.yaml",
+            "multipass transfer .tiny-swarm-world/generated/cloud-init-manager.yaml swarm-manager:/tmp/netplan.yaml",
             transfer_command,
         )
 

@@ -30,7 +30,7 @@ direction drift and technology leakage.
 
 ## Boundaries
 
-- Do not drive architecture from Java deployment-example code.
+- Do not drive architecture from Java/Maven/Spring Boot project structure.
 - Do not introduce browser React, Spring Boot or Kubernetes-first assumptions.
 
 ## STOP conditions

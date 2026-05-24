@@ -22,7 +22,8 @@ preflight, Typed Error Router ownership, branch rules or required quality
 gates. Unclear impact defaults to `FULL_PATH`.
 
 - Python domain, application, ports, infrastructure adapters, YAML handling, command construction, VM/network automation or repository behavior routes to `roles/senior-python-automation-developer.md`.
-- Java code under `src/main/java` routes to `roles/senior-java-backend.md` only when the task explicitly targets the deployment example.
+- Java/Maven/Spring Boot project structure is retired. Requests to reintroduce
+  it must stop for scope confirmation before any role routing.
 - Tiny Swarm World console/status UI work routes to `skills/frontend-developer/SKILL.md`, `skills/console-status-ui-developer/SKILL.md`, and `skills/terminal-status-dashboard/SKILL.md`. Browser React, frontend state, API client integration or UI component work stops unless a separate frontend workflow verifies a frontend module, package tooling and quality gates; only then route to `roles/senior-react-frontend.md`.
 - Information architecture, accessibility, visualization UX or user-flow work routes to `roles/senior-ux-designer.md`.
 - Cross-module design, package boundaries, architecture tests or module restructuring routes to `roles/senior-system-architect.md`.
@@ -34,7 +35,7 @@ gates. Unclear impact defaults to `FULL_PATH`.
 - Test strategy, regression coverage, Python architecture checks or quality-gate design routes to `roles/senior-tester.md`.
 - Quality or validation failures in `workflow execute` route through the Typed Error Router before any retry:
   - `ARCH_VIOLATION` routes to Root Architect escalation, `roles/senior-system-architect.md` and `skills/architecture-hexagonal/SKILL.md`.
-  - `BUILD_FAILURE` routes to the responsible Python automation, backend-example or frontend owner plus `roles/senior-devops.md`; Python quality-gate failures also route to `skills/quality-gate/SKILL.md`.
+  - `BUILD_FAILURE` routes to the responsible Python automation or frontend owner plus `roles/senior-devops.md`; Python quality-gate failures also route to `skills/quality-gate/SKILL.md`.
   - `TEST_FAILURE` routes to `roles/senior-tester.md` and the responsible slice agent.
   - `DOC_GOVERNANCE_FAILURE` routes to `roles/senior-documentation-engineer.md` and `roles/senior-requirement-engineer/SKILL.md`.
   - `LOCK_CONFLICT` routes to `roles/senior-execution-orchestrator.md`, `skills/s3d-execution-orchestrator/SKILL.md`, Senior Swarm Orchestrator coordination and Root Architect escalation.

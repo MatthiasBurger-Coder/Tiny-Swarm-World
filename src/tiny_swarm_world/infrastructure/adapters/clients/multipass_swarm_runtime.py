@@ -41,6 +41,7 @@ class MultipassSwarmRuntime(PortSwarmStackRuntime):
         self._run_manager_shell(script, input_text=stack_definition.compose_content)
         self._transfer_stack_assets(stack_definition.name, remote_dir)
         self._run_manager_shell(
+            f"TSW_REMOTE_STACK_ROOT={shlex.quote(self.remote_stack_root)} "
             f"docker stack deploy --detach=true -c {shlex.quote(compose_path)} "
             f"{shlex.quote(stack_definition.name)}"
         )

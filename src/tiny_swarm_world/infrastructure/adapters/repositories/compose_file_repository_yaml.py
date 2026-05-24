@@ -14,8 +14,8 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
     def __init__(self, base_directories: list[Path] | None = None):
         root = infra_root()
         self.base_directories = base_directories or [
-            root / "compose",
             root / "config" / "compose",
+            root / "compose",
         ]
         self.logger = LoggerFactory.get_logger(self.__class__)
 

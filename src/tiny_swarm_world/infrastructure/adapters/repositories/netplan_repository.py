@@ -7,9 +7,12 @@ from tiny_swarm_world.application.ports.repositories.port_yaml_repository import
 from tiny_swarm_world.domain.network.network import Network
 from tiny_swarm_world.infrastructure.adapters.exceptions.exception_yaml_handling import YAMLHandlingError
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
+from tiny_swarm_world.infrastructure.adapters.repositories.local_state_paths import local_state_file
 from tiny_swarm_world.infrastructure.adapters.yaml.yaml_builder import FluentYAMLBuilder
-from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+
+
+GENERATED_NETPLAN_PATH = Path("generated/cloud-init-manager.yaml")
 
 
 class PortNetplanRepositoryYaml(PortYamlRepository):
@@ -17,9 +20,9 @@ class PortNetplanRepositoryYaml(PortYamlRepository):
     Manages the creation, validation, and saving of Netplan configuration using YamlFileManager.
     """
 
-    def __init__(self, file_name: str = "cloud-init-manager.yaml", file_manager: FileManager | None = None):
-        self.file = Path(file_name)
-        self.file_manager = file_manager or infra_core_container.resolve(FileManager)
+    def __init__(self, file_name: str | Path | None = None, file_manager: FileManager | None = None):
+        self.file = Path(file_name) if file_name is not None else local_state_file(relative_path=GENERATED_NETPLAN_PATH)
+        self.file_manager = file_manager
         self.builder = FluentYAMLBuilder("network")
         self.yaml = YAML()  # Use ruamel.yaml
         self.yaml.default_flow_style = False  # Ensure correct indentation
@@ -48,7 +51,8 @@ class PortNetplanRepositoryYaml(PortYamlRepository):
     def load(self) -> Any:
         """Loads an existing Netplan configuration file."""
         try:
-            return self.yaml.load(self.file_manager.load(self.file)) or {}
+            content = self.file_manager.load(self.file) if self.file_manager is not None else self.file.read_text(encoding="utf-8")
+            return self.yaml.load(content) or {}
         except FileNotFoundError:
             self.logger.error(f"Netplan configuration file {self.file} not found.")
             return {}
@@ -57,7 +61,12 @@ class PortNetplanRepositoryYaml(PortYamlRepository):
         """Saves the generated Netplan configuration file."""
         self.logger.info(f"Saving Netplan configuration: {self.builder}")
         try:
-            self.file_manager.save(self.file,self.builder.to_yaml())
+            content = self.builder.to_yaml()
+            if self.file_manager is not None:
+                self.file_manager.save(self.file, content)
+            else:
+                self.file.parent.mkdir(parents=True, exist_ok=True)
+                self.file.write_text(content, encoding="utf-8")
             self.logger.info(f"YAML file saved successfully: {self.file}")
         except Exception as e:
             self.logger.exception(f"Exception occurred while saving YAML: {str(e)}")

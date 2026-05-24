@@ -2,6 +2,8 @@ import ast
 import unittest
 from pathlib import Path
 
+from tiny_swarm_world.infrastructure.project_paths import logs_root
+
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DOMAIN_INVENTORY_ROOT = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "domain" / "inventory"
@@ -24,6 +26,12 @@ class TestLocalStateStorageArchitecture(unittest.TestCase):
         ignored_paths = GITIGNORE.read_text(encoding="utf-8").splitlines()
 
         self.assertIn("/.tiny-swarm-world/", ignored_paths)
+
+    def test_runtime_logs_are_stored_under_local_state_root(self):
+        log_path = str(logs_root()).replace("\\", "/")
+
+        self.assertIn("/.tiny-swarm-world/logs", log_path)
+        self.assertNotIn("/infra/logs", log_path)
 
     def test_domain_inventory_does_not_import_storage_or_adapter_details(self):
         violations: list[tuple[str, str, int]] = []

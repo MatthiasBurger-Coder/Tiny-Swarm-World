@@ -64,14 +64,15 @@ curl -s http://localhost:9000
 
 == Nexus Bootstrap Cannot Authenticate
 
-Provide explicit credentials instead of relying on defaults:
+Use the canonical setup workflow and provide explicit credentials through
+environment variables where supported:
 
 [source,bash]
 ----
 TSW_PORTAINER_USERNAME=admin \
 TSW_PORTAINER_PASSWORD='<portainer-password>' \
 TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-admin-password>' \
-python3 infra/prepare/nexus/setup.py
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
 If Nexus is still starting, increase:

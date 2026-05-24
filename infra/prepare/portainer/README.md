@@ -1,21 +1,15 @@
-# Portainer Preparation Scripts
+# Retired Portainer Preparation Surface
 
-This directory contains live Portainer preparation scripts.
+This directory is kept only as a compatibility note for former direct
+Portainer preparation scripts.
 
-Transitional supported live script:
+Retired former helpers:
 
-- `prepare.sh` deploys and initializes Portainer for a local Swarm environment.
-  It is a direct operator script and is not protected by the workflow-level CLI
-  consent guard.
+- `prepare.sh`
+- `portain_setup.py`
 
-Deprecated duplicate:
-
-- `portain_setup.py` overlaps with platform networking, Multipass access,
-  Docker cleanup, Portainer stack deployment, and admin initialization. Treat it
-  as transitional until a dedicated cleanup slice either replaces, quarantines,
-  or removes it.
-
-Do not run these scripts during normal development quality checks. They can
-modify Docker, Portainer, socat, iptables, volumes, and stack state.
+These files have been removed. Portainer bootstrap is owned by the Python setup
+workflow so it remains behind the CLI live-consent guard and verification
+reporting.
 The canonical classification is maintained in
 `documentation/system/live-operation-surfaces.adoc`.

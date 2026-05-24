@@ -27,8 +27,8 @@ Remaining debt:
 * the host-neutral desired inventory baseline is committed, but observed
   inventory collection and reconciliation are not yet wired into platform
   verification workflows;
-* direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
-  remain live-operation surfaces outside the workflow-level CLI consent guard;
+* legacy scripts under `infra/swarm` remain live-operation surfaces outside the
+  workflow-level CLI consent guard;
 * reset/destroy retention and teardown semantics are not wired yet;
 * artifact and deployment workflows are now explicit composition contracts;
   artifact workflows have tested Nexus repository contracts, but default CLI
@@ -56,8 +56,9 @@ Remaining debt:
 * Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX service
   readiness must not be claimed until verified through tests or explicit live
   smoke evidence;
-* direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
-  still need migration or clear legacy retirement;
+* direct scripts under `infra/prepare` and host-side orchestration scripts
+  under `infra/compose` have been retired, while `infra/swarm` still needs
+  migration or clear legacy retirement;
 * automatic host package installation, non-interactive live consent, and direct
   script promotion need future ADRs before they can change the accepted safety
   model.

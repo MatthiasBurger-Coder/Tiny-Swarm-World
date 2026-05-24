@@ -30,55 +30,25 @@ The current active path lists VM IP information. Provisioning steps are present
 in the file but commented. Enable those steps only when you intentionally want
 to create VMs, change networking, install Docker, or initialize Swarm.
 
-== Prepare Portainer
+== Run The Guided Setup
 
-Portainer preparation is available through:
-
-[source,bash]
-----
-cd infra/prepare
-./prepare.sh
-----
-
-This script can prune Docker objects and deploy the Portainer stack. Review the
-target Docker context before running it.
-
-== Bootstrap Nexus
-
-Nexus bootstrap is implemented in Python:
+The guided setup path is the Python workflow-level command:
 
 [source,bash]
 ----
-python3 infra/prepare/nexus/setup.py
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-Prefer explicit credentials through environment variables:
+When prompted, answer `y` only if changing the local Multipass, Docker Swarm,
+networking, service bootstrap, image, and stack state is intentional. Former
+direct Portainer and Nexus preparation scripts under `infra/prepare` have been
+retired.
 
-[source,bash]
-----
-TSW_PORTAINER_URL=http://localhost:9000 \
-TSW_PORTAINER_USERNAME=admin \
-TSW_PORTAINER_PASSWORD='<portainer-password>' \
-TSW_NEXUS_URL=http://localhost:8081 \
-TSW_NEXUS_ADMIN_USERNAME=admin \
-TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-password>' \
-python3 infra/prepare/nexus/setup.py
-----
+== Stack Deployment
 
-The script deploys or updates the Nexus stack through Portainer, waits for
-Nexus readiness, rotates the admin password, and enables anonymous access.
-
-== Upload Compose Stacks
-
-Bulk stack upload is handled by:
-
-[source,bash]
-----
-cd infra/compose
-./upload_all_stacks.sh -u admin -p '<portainer-password>'
-----
-
-This command can delete and recreate stacks in Portainer.
+Stack deployment is handled by the workflow-level setup command. Compose files
+under `infra/compose` and `infra/config/compose` are source assets, not direct
+operator scripts.
 
 == Service Ports
 

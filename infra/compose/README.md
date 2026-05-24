@@ -1,24 +1,18 @@
-# Compose Live Assets
+# Image Build Context Assets
 
-This directory contains stack assets and direct helper scripts for local
-Docker/Portainer operation.
+This directory contains image source assets used by the workflow-level Python
+setup command. Stack definitions live under `infra/config/compose`.
 
 Supported assets:
 
-- `jenkins/docker-compose.yml`
-- `swagger/docker-compose.yml`
-- service Dockerfiles, Dockerfile templates, and service configuration files
+- service Dockerfiles and service configuration files
+- image-internal runtime helpers such as `swagger/nginx/wait-for-it.sh`.
+  The Swagger NGINX image uses this helper to wait for the API service before
+  starting NGINX; it is not a host-side setup script.
 
-Transitional direct helper:
-
-- `upload_all_stacks.sh` talks directly to Portainer and can delete, recreate,
-  or upload stacks.
-
-Deprecated direct helper:
-
-- `create_dockerfiles.sh` builds images, logs in to the local registry, pushes
-  images, and logs out.
-
-Do not run these scripts during normal development quality checks. The
-canonical classification is maintained in
+Host-side image build, registry push, and stack deployment orchestration is
+owned by `PYTHONPATH=src python3 -m tiny_swarm_world setup run --live`.
+Do not add shell scripts here that run Docker, log in to a registry, push
+images, authenticate to Portainer, delete stacks, or upload stacks. The
+canonical live-operation classification is maintained in
 `documentation/system/live-operation-surfaces.adoc`.

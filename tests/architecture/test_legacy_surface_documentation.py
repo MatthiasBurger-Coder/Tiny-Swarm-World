@@ -7,7 +7,6 @@ INFRA_ROOT = REPOSITORY_ROOT / "infra"
 LIVE_SURFACE_CATALOG = (
     REPOSITORY_ROOT / "documentation" / "system" / "live-operation-surfaces.adoc"
 )
-NEXUS_SETUP = REPOSITORY_ROOT / "infra" / "prepare" / "nexus" / "setup.py"
 DEPLOYMENT_DOC = REPOSITORY_ROOT / "documentation" / "deployment" / "system.adoc"
 
 
@@ -15,25 +14,27 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
     def test_live_operation_surface_catalog_defines_supported_statuses(self):
         catalog = _read_document(LIVE_SURFACE_CATALOG)
 
-        for status in ("Supported", "Transitional", "Deprecated", "Legacy", "Supported Asset"):
+        for status in ("Supported", "Transitional", "Deprecated", "Retired", "Legacy", "Supported Asset"):
             with self.subTest(status=status):
                 self.assertIn(f"| {status} |", catalog)
 
     def test_live_operation_surface_catalog_classifies_key_entrypoints(self):
         catalog = _read_document(LIVE_SURFACE_CATALOG)
         expected_rows = {
-            "`infra/prepare/prepare.sh`": "Transitional",
-            "`infra/prepare/portainer/prepare.sh`": "Transitional",
-            "`infra/prepare/portainer/portain_setup.py`": "Deprecated",
-            "`infra/prepare/nexus/setup.py`": "Transitional",
-            "`infra/prepare/nexus/addMavenMirror.sh`": "Deprecated",
-            "`infra/prepare/nexus/addLocalDockerRepository.sh`": "Deprecated",
-            "`infra/compose/create_dockerfiles.sh`": "Deprecated",
-            "`infra/compose/upload_all_stacks.sh`": "Transitional",
+            "`infra/prepare/prepare.sh`": "Retired",
+            "`infra/prepare/portainer/prepare.sh`": "Retired",
+            "`infra/prepare/portainer/portain_setup.py`": "Retired",
+            "`infra/prepare/nexus/setup.py`": "Retired",
+            "`infra/prepare/nexus/prepare.sh`": "Retired",
+            "`infra/prepare/nexus/addMavenMirror.sh`": "Retired",
+            "`infra/prepare/nexus/addLocalDockerRepository.sh`": "Retired",
+            "`infra/prepare/nexus/test.sh`": "Retired",
+            "`infra/compose/create_dockerfiles.sh`": "Retired",
+            "`infra/compose/upload_all_stacks.sh`": "Retired",
             "`infra/config/compose/portainer/docker-compose.yml`": "Supported Asset",
             "`infra/config/compose/nexus/docker-compose.yml`": "Supported Asset",
-            "`infra/compose/jenkins/docker-compose.yml`": "Supported Asset",
-            "`infra/compose/swagger/docker-compose.yml`": "Supported Asset",
+            "`infra/config/compose/jenkins/docker-compose.yml`": "Supported Asset",
+            "`infra/config/compose/swagger/docker-compose.yml`": "Supported Asset",
             "`infra/swarm/**`": "Legacy",
             "`infra/swarm/prepere.py`": "Legacy",
             "`infra/swarm/network/network_manager.py`": "Legacy",
@@ -42,6 +43,65 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         for path, status in expected_rows.items():
             with self.subTest(path=path):
                 self.assertIn(f"| {path} | {status} |", catalog)
+
+    def test_compose_area_has_no_host_side_shell_orchestration(self):
+        allowed_runtime_shell_assets = {
+            "infra/compose/swagger/nginx/wait-for-it.sh",
+        }
+        shell_scripts = {
+            path.relative_to(REPOSITORY_ROOT).as_posix()
+            for path in (REPOSITORY_ROOT / "infra" / "compose").rglob("*.sh")
+        }
+
+        self.assertEqual(allowed_runtime_shell_assets, shell_scripts)
+
+        forbidden_fragments = (
+            "docker build",
+            "docker login",
+            "docker push",
+            "docker stack",
+            "api/auth",
+            "api/stacks",
+            "portainer",
+        )
+        violations = {
+            path: fragment
+            for path in shell_scripts
+            for fragment in forbidden_fragments
+            if fragment in (REPOSITORY_ROOT / path).read_text(encoding="utf-8").lower()
+        }
+
+        self.assertEqual({}, violations)
+
+    def test_compose_area_has_no_stack_definitions(self):
+        stack_definitions = sorted(
+            path.relative_to(REPOSITORY_ROOT).as_posix()
+            for path in (REPOSITORY_ROOT / "infra" / "compose").rglob("docker-compose.yml")
+        )
+
+        self.assertEqual([], stack_definitions)
+
+    def test_prepare_area_has_no_executable_installation_helpers(self):
+        executable_helpers = sorted(
+            path.relative_to(REPOSITORY_ROOT).as_posix()
+            for suffix in ("*.sh", "*.py")
+            for path in (REPOSITORY_ROOT / "infra" / "prepare").rglob(suffix)
+        )
+
+        self.assertEqual([], executable_helpers)
+
+    def test_java_maven_project_surface_is_not_reintroduced(self):
+        forbidden_paths = (
+            REPOSITORY_ROOT / "pom.xml",
+            REPOSITORY_ROOT / "src" / "main" / "java",
+        )
+        present_paths = [
+            path.relative_to(REPOSITORY_ROOT).as_posix()
+            for path in forbidden_paths
+            if path.exists()
+        ]
+
+        self.assertEqual([], present_paths)
 
     def test_operator_docs_reference_live_operation_surface_catalog(self):
         catalog_path = "documentation/system/live-operation-surfaces.adoc"
@@ -60,20 +120,12 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
 
         self.assertEqual([], missing_reference)
 
-    def test_nexus_bootstrap_documented_defaults_match_setup_script(self):
-        setup = _read_document(NEXUS_SETUP)
+    def test_nexus_bootstrap_is_routed_through_setup_workflow(self):
         deployment_doc = _read_document(DEPLOYMENT_DOC)
 
-        expected_defaults = {
-            "TSW_PORTAINER_ENDPOINT": "local",
-            "TSW_NEXUS_MAX_ATTEMPTS": "10",
-            "TSW_NEXUS_WAIT_SECONDS": "5",
-        }
-
-        for environment_name, default in expected_defaults.items():
-            with self.subTest(environment_name=environment_name):
-                self.assertIn(f'os.getenv("{environment_name}", "{default}")', setup)
-                self.assertIn(f"| `{environment_name}` | `{default}` |", deployment_doc)
+        self.assertIn("PYTHONPATH=src python3 -m tiny_swarm_world setup run --live", deployment_doc)
+        self.assertIn("Nexus setup is owned by the Python setup workflow", deployment_doc)
+        self.assertNotIn("python3 infra/prepare/nexus/setup.py", deployment_doc)
 
     def test_swarm_legacy_area_documents_unsupported_entrypoint(self):
         readme = _read_infra_document("swarm/README.md")
@@ -83,13 +135,17 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertIn("src/tiny_swarm_world/__main__.py", readme)
         self.assertIn("normal development quality checks", readme)
 
-    def test_portainer_prepare_area_documents_transitional_duplicate(self):
+    def test_prepare_area_documents_retired_helpers(self):
+        root_readme = _read_infra_document("prepare/README.md")
         readme = _read_infra_document("prepare/portainer/README.md")
+        nexus_readme = _read_infra_document("prepare/nexus/README.md")
 
+        self.assertIn("setup run --live", root_readme)
         self.assertIn("prepare.sh", readme)
         self.assertIn("portain_setup.py", readme)
-        self.assertIn("transitional", readme.lower())
-        self.assertIn("normal development quality checks", readme)
+        self.assertIn("retired", readme.lower())
+        self.assertIn("setup.py", nexus_readme)
+        self.assertIn("retired", nexus_readme.lower())
 
 
 def _read_infra_document(relative_path: str) -> str:

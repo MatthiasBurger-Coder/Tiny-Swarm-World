@@ -16,7 +16,7 @@ infrastructure:
 * Portainer and its API;
 * Nexus and its API;
 * Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, and other deployed stacks;
-* shell scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`.
+* legacy shell scripts under `infra/swarm`.
 
 The default development quality gate does not call these systems. Tests use
 mocks, static inspection, architecture checks, and typed configuration
@@ -32,9 +32,7 @@ The supported operator entry point is:
 PYTHONPATH=src python3 -m tiny_swarm_world
 ----
 
-Direct scripts under `infra/swarm`, legacy Nexus shell helpers, Portainer
-preparation, and direct Portainer upload scripts are classified in
-`documentation/system/live-operation-surfaces.adoc` with legacy, deprecated,
-or transitional status values. They remain documented for operators who
-intentionally inspect and run them, but they are not default workflow entry
-points.
+Legacy scripts under `infra/swarm` and retired former setup paths under
+`infra/prepare` and `infra/compose` are classified in
+`documentation/system/live-operation-surfaces.adoc`. They are not default
+workflow entry points.

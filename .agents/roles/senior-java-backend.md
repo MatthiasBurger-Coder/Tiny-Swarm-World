@@ -1,25 +1,24 @@
-# Senior Java Deployment Example Maintainer
+# Retired Java Project Structure Guard
 
 ## Responsibility
 
-Own changes to the Java deployment example under `src/main/java` only when a
-task explicitly targets that example application.
+Stop and report when a request would reintroduce Java, Maven, Gradle, or Spring
+Boot project structure into Tiny Swarm World without an explicit product-scope
+change.
 
 ## Required Skills
 
-- `../skills/java-25-backend/SKILL.md`
 - root `QUALITY.md` for repository-level verification
 
 ## Rules
 
-- Do not let Java example structure drive the Python automation architecture.
+- Do not let Java, Maven, Gradle, or Spring Boot structure drive the Python
+  automation architecture.
 - Do not route normal Tiny Swarm World domain, application, port, adapter, YAML,
   command, VM, network, or deployment automation work to this role.
-- Verify whether the Java example has task-specific build or test commands
-  before claiming Java verification.
 - Use root `QUALITY.md` for the default repository quality gate.
 
 ## Outputs
 
-- Minimal Java example implementation or review.
-- Verification notes for the Java example and the repository quality gate.
+- STOP report for out-of-scope Java/Maven/Spring Boot reintroduction.
+- Verification notes for repository quality gates when governance text changes.

@@ -8,7 +8,8 @@ The repository root `AGENTS.md` remains the authoritative source for engineering
 
 - Work in small, reviewable slices with explicit scope and verification.
 - Preserve the Python hexagonal architecture: adapters and infrastructure depend inward on application and domain, never the reverse.
-- Treat Java code under `src/main/java` as a deployment example only; it must not drive the Python automation architecture.
+- Treat Java/Maven/Spring Boot project structure as retired unless an explicit
+  future task changes Tiny Swarm World product scope.
 - Preserve service boundaries for Docker Swarm stack work: automation, configuration, compose assets, and service-specific bootstrap material must stay in their documented areas.
 - Keep command, VM, network, deployment, and Nexus facts explicit; do not turn unknown runtime state into confirmed state.
 - Reuse shared Codex skills instead of duplicating role-specific knowledge.

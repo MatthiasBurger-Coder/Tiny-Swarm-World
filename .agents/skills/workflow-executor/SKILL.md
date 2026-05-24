@@ -195,7 +195,8 @@ Keep these strands separate while executing workflow slices:
 
 Python automation work routes through Senior Python Automation Developer, Senior System Architect, `architecture-hexagonal`, `quality-testing-strategy`, and Senior DevOps with `devops-docker` when container readiness is affected.
 
-Java deployment-example work routes through Senior Java Deployment Example Maintainer only when the task explicitly targets `src/main/java`.
+Java/Maven/Spring Boot project structure is retired; requests to reintroduce it
+stop for explicit scope confirmation.
 
 Current Tiny Swarm World UI work routes through `frontend-developer`,
 `console-status-ui-developer`, and `terminal-status-dashboard` as
@@ -213,7 +214,7 @@ starting any retry or targeted fix:
 | Error type | Route to |
 |---|---|
 | `ARCH_VIOLATION` | Root Architect, Senior System Architect, `architecture-hexagonal` |
-| `BUILD_FAILURE` | responsible Python automation, Java example or Frontend Agent, Senior DevOps, `quality-gate` for Python quality-gate failures |
+| `BUILD_FAILURE` | responsible Python automation or Frontend Agent, Senior DevOps, `quality-gate` for Python quality-gate failures |
 | `TEST_FAILURE` | Senior Tester and responsible Slice Agent |
 | `DOC_GOVERNANCE_FAILURE` | Senior Documentation Engineer, Requirement Engineer |
 | `LOCK_CONFLICT` | Senior Execution Orchestrator, Senior Swarm Orchestrator, Workflow Executor, Root Architect |

@@ -1,23 +1,24 @@
 ---
 name: java-25-backend
-description: Use for Java backend implementation that must follow the configured Java 25 Gradle toolchain and repository style.
+description: Retired for Tiny Swarm World; use only to stop unapproved Java/Maven/Spring Boot reintroduction.
 ---
 
-# Java 25
+# Retired Java Backend Scope
 
 ## Purpose
 
-Guide backend implementation using the repository Java baseline without changing toolchain versions.
+Tiny Swarm World no longer contains a Java/Maven project surface. This skill
+exists only as a guard when a request would reintroduce Java, Maven, Gradle, or
+Spring Boot structure without an explicit product-scope change.
 
 ## Practices
 
-- Use the configured Java toolchain from the Gradle build.
-- Prefer immutable value objects and explicit records where they fit existing style.
-- Keep exceptions descriptive and preserve original causes.
-- Avoid static mutable state and hidden side effects.
-- Keep comments and JavaDoc in English.
+- Stop before adding Java source roots, Maven POMs, Gradle builds, or Spring
+  Boot project structure.
+- Route approved product-scope changes through root architecture governance
+  before implementation.
 
 ## Verification
 
-- Confirm toolchain configuration in the build before changing Java language assumptions.
-- Run targeted module tests with the Gradle wrapper through WSL on Windows hosts.
+- Use the Python quality gate from root `QUALITY.md` for current Tiny Swarm
+  World work.

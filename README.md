@@ -29,7 +29,7 @@ The system follows a hexagonal architecture and provides async Python automation
   - RabbitMQ (message broker)
   - SonarQube (static code analysis)
   - Swagger + NGINX (API documentation)
-- Modular infrastructure in `infra/prepare` and `infra/compose`.
+- Modular infrastructure assets in `infra/config` and `infra/compose`, driven by the Python setup workflow.
 - WSL2 networking support via socat and netplan helpers.
 - Rich test suite and enforced separation between domain, application, and infrastructure layers.
 
@@ -97,17 +97,24 @@ infrastructure commands. They require the live-infrastructure consent controls.
 Destructive workflows also require the exact `--confirm` phrase shown by the
 workflow contract.
 
-The canonical autonomous setup entry point is `setup run`:
+The safe setup probe is `setup run` without `--live`:
 
 ```bash
 PYTHONPATH=src python3 -m tiny_swarm_world setup run
 ```
 
 Without the full live-consent contract this command refuses before setup
-services are constructed and prints `REFUSED_LIVE_CONSENT_MISSING`. With live
-consent, it sequences setup preflight, platform, artifact, deployment, and
-final verification phases. Current live behavior remains fail-closed where
-verification, readiness, credentials, or resource requirements are incomplete.
+services are constructed and prints `REFUSED_LIVE_CONSENT_MISSING`. The
+canonical live operator command is:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+```
+
+With live consent, it sequences setup preflight, platform, artifact,
+deployment, and final verification phases. Current live behavior remains
+fail-closed where verification, readiness, credentials, or resource
+requirements are incomplete.
 
 ---
 
@@ -181,11 +188,17 @@ Run only the workflow you explicitly intend to execute, for example:
 PYTHONPATH=src python3 -m tiny_swarm_world platform verify
 ```
 
-For the autonomous setup flow, start with the supported setup command and
-expect refusal until live consent is supplied:
+For the autonomous setup flow, `setup run` without `--live` is the safe refusal
+probe:
 
 ```bash
 PYTHONPATH=src python3 -m tiny_swarm_world setup run
+```
+
+The canonical live operator command is:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ```
 
 Platform workflows are constructed through the infrastructure composition root
@@ -200,46 +213,25 @@ phrase. Direct no-argument construction from the old `docker` layout is no
 longer supported. Use `build_application_services()` for the standard local
 wiring, or pass compatible port implementations in tests.
 
-Transitional direct live scripts are still documented for operators who need
-to inspect or run legacy paths deliberately. They are not the canonical setup
-entry point and they bypass the workflow-level CLI consent guard. Treat them
-as live operator actions and run them only after reviewing the target
-environment and script contents. The canonical static classification is
-maintained in `documentation/system/live-operation-surfaces.adoc`.
+The canonical setup path is the workflow-level Python command. Former direct
+preparation scripts under `infra/prepare` and host-side compose orchestration
+scripts under `infra/compose` have been retired so service bootstrap, image
+publication, and stack deployment cannot bypass the CLI consent gate. The
+canonical static classification is maintained in
+`documentation/system/live-operation-surfaces.adoc`.
 
-Portainer preparation can be inspected from the repository root with:
-
-```bash
-cd infra/prepare
-./prepare.sh
-```
-
-Nexus bootstrap can be run directly when Portainer and the target endpoint are available:
-
-```bash
-python3 infra/prepare/nexus/setup.py
-```
-
-Deploying all compose stacks through Portainer is handled by:
-
-```bash
-cd infra/compose
-./upload_all_stacks.sh -u admin -p '<password>'
-```
-
-`upload_all_stacks.sh` talks directly to Portainer and can delete or recreate
-stacks.
+Image publication and stack deployment are handled by the workflow-level setup
+command. Stack definitions live under `infra/config/compose`; image build
+contexts live under `infra/compose`.
 
 Live-operation surface summary:
 
 | Path | Status |
 | --- | --- |
 | `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts. |
-| `infra/prepare/portainer/prepare.sh` | Transitional direct Portainer preparation script; live stack/admin mutation. |
-| `infra/prepare/nexus/setup.py` | Transitional direct Nexus bootstrap; live Portainer, Docker, and Nexus mutation. |
-| `infra/prepare/nexus/*.sh` | Deprecated shell helpers with local defaults; keep static until replaced by typed ports. |
-| `infra/compose/*.sh` | Transitional or deprecated direct image/stack helpers; not part of the default quality gate. |
-| `infra/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands. |
+| `infra/prepare/**` | Retired former direct service preparation surface; no executable setup helpers are kept there. |
+| `infra/config/compose/**/docker-compose.yml` | Supported stack assets used by the Python setup workflow. |
+| `infra/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow. |
 | `infra/swarm/**` | Legacy live-infrastructure surface; not a supported workflow entry point. |
 
 See `documentation/system/live-operation-surfaces.adoc` for the full
@@ -249,13 +241,14 @@ classification and credential/host-specific data rules.
 
 ## Configuration
 
-- Compose files and service configurations live under `infra/compose` and `infra/config`.
+- Compose stack files live under `infra/config/compose`; image build contexts
+  and service image configuration live under `infra/compose`.
 - Desired product configuration may live under `infra/config`.
 - Observed inventory and verification evidence are local runtime artifacts
   under `.tiny-swarm-world/`; this path is ignored and must not be committed.
 - Networking helpers and netplan templates: `infra/config/network`.
 - VM definitions and templates: `infra/config/vm`.
-- Logs: `infra/logs`.
+- Logs: `.tiny-swarm-world/logs`.
 - Python settings can be provided via environment variables or `.env` when supported by specific modules.
 
 ---
@@ -263,12 +256,11 @@ classification and credential/host-specific data rules.
 ## Project Structure (high-level)
 
 - `src/tiny_swarm_world/domain`, `src/tiny_swarm_world/application`, `src/tiny_swarm_world/infrastructure` - hexagonal architecture layers
-- `infra/prepare` - one-off preparation artifacts, for example Nexus and Portainer
-- `infra/compose` - docker-compose stacks ready for deployment
+- `infra/prepare` - retired notes for former direct service preparation helpers
+- `infra/compose` - image build contexts and related service image assets
 - `infra/swarm` - swarm-related scripts/config
 - `documentation` - arc42, user guides, deployment notes
 - `tests` - unit and integration tests for adapters, services, and domain logic
-- `src/main/java` - example application that can be built and deployed into the prepared local system
 
 Explore documentation for deeper architecture details:
 - `documentation/arc42`

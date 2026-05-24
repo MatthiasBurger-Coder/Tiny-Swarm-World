@@ -12,7 +12,8 @@ project for Multipass-backed Docker Swarm environments.
 
 ## Responsibilities
 
-- Keep Python automation architecture distinct from Java deployment examples.
+- Keep Tiny Swarm World a Python automation project; Java/Maven/Spring Boot
+  project structure is retired unless scope explicitly changes.
 - Maintain Docker Swarm-first and Kubernetes-aware positioning.
 - Align system decisions with arc42, root `AGENTS.md` and `QUALITY.md`.
 
@@ -36,7 +37,8 @@ project for Multipass-backed Docker Swarm environments.
 ## STOP conditions
 
 - Architecture identity conflicts with root `AGENTS.md`.
-- A change would make Java drive Python automation architecture.
+- A change would make Java, Maven, Gradle, or Spring Boot drive Python
+  automation architecture.
 - Required arc42 or quality authority is unclear.
 
 ## Collaboration with other skills

@@ -64,15 +64,15 @@ Non-mutating workflow checks can be selected explicitly:
 PYTHONPATH=src python3 -m tiny_swarm_world platform verify
 ----
 
-The canonical autonomous setup command is `setup run`. Without live consent it
-refuses before setup services are constructed:
+The safe setup probe is `setup run` without `--live`. It refuses before setup
+services are constructed:
 
 [source,bash]
 ----
 PYTHONPATH=src python3 -m tiny_swarm_world setup run
 ----
 
-Mutating workflow-level commands require live-infrastructure consent before
+The canonical live operator command requires live-infrastructure consent before
 services are constructed:
 
 [source,bash]
@@ -123,26 +123,23 @@ Swagger/NGINX commands.
 
 == Service Preparation
 
-The workflow-level CLI is the supported setup surface. The commands in this
-section are transitional direct live scripts, not the default setup path and
-not development quality-gate checks.
-
-The preparation shell entrypoint is:
+The workflow-level CLI is the supported setup surface. Portainer, Nexus, image
+publication, stack deployment, and final verification are sequenced by:
 
 [source,bash]
 ----
-cd infra/prepare
-./prepare.sh
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-The current `prepare.sh` invokes Portainer preparation. Nexus preparation is
-available separately and can be enabled intentionally.
+Former direct service preparation helpers under `infra/prepare` have been
+retired and are not development quality-gate checks.
 
 == Legacy And Direct Scripts
 
-The workflow-level CLI is the supported operator entry point. Direct scripts
-under `infra/prepare`, `infra/compose`, and `infra/swarm` are live operations
-or transitional helpers and are not protected by the CLI consent gate.
+The workflow-level CLI is the supported operator entry point. Former direct
+scripts under `infra/prepare` and host-side orchestration scripts under
+`infra/compose` have been retired. Direct scripts under `infra/swarm` are
+legacy live operations and are not protected by the CLI consent gate.
 The canonical classification is maintained in
 `documentation/system/live-operation-surfaces.adoc`.
 
@@ -150,48 +147,19 @@ The canonical classification is maintained in
 |===
 | Path | Status
 | `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts.
-| `infra/prepare/portainer/prepare.sh` | Transitional direct Portainer preparation script.
-| `infra/prepare/nexus/setup.py` | Transitional direct Nexus bootstrap script.
-| `infra/prepare/portainer/portain_setup.py` | Deprecated duplicate with live Docker, Multipass, socat, and networking behavior.
-| `infra/prepare/nexus/addLocalDockerRepository.sh` | Deprecated Nexus shell helper with direct Portainer/Nexus calls.
-| `infra/prepare/nexus/addMavenMirror.sh` | Deprecated Nexus shell helper with direct Nexus calls.
-| `infra/prepare/nexus/prepare.sh` and `test.sh` | Deprecated shell paths; prefer `setup.py` for intentional Nexus bootstrap.
-| `infra/compose/create_dockerfiles.sh` | Deprecated image build/push helper outside the default quality gate.
-| `infra/compose/upload_all_stacks.sh` | Transitional Portainer uploader that can delete or recreate stacks.
-| `infra/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands.
+| `infra/prepare/**` | Retired former direct service preparation surface; no executable setup helpers are kept there.
+| `infra/config/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands.
+| `infra/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow.
 | `infra/swarm/**` | Legacy live-infrastructure surface; not a supported workflow entry point.
 |===
 
-Do not remove or re-enable legacy scripts without a dedicated cleanup slice,
+Do not re-enable legacy or retired scripts without a dedicated cleanup slice,
 tests, and rollback notes.
 
 == Nexus Bootstrap
 
-This is a direct live bootstrap path for intentional operator use. Prefer the
-workflow-level setup command for canonical setup orchestration, and review
-`documentation/system/live-operation-surfaces.adoc` before running direct
-bootstrap scripts.
-
-Nexus setup has been moved from a large shell script into Python services and
-adapters. Run it from the repository root or from its script directory:
-
-[source,bash]
-----
-python3 infra/prepare/nexus/setup.py
-----
-
-Configuration can be supplied with environment variables or CLI flags:
-
-[source,bash]
-----
-TSW_PORTAINER_URL=http://localhost:9000 \
-TSW_PORTAINER_USERNAME=admin \
-TSW_PORTAINER_PASSWORD='<portainer-password>' \
-TSW_NEXUS_URL=http://localhost:8081 \
-TSW_NEXUS_ADMIN_USERNAME=admin \
-TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-password>' \
-python3 infra/prepare/nexus/setup.py
-----
+Nexus bootstrap is owned by the workflow-level setup command. Configuration can
+be supplied with environment variables where supported by the Python adapters:
 
 Important variables:
 
@@ -207,26 +175,16 @@ Important variables:
 * `TSW_NEXUS_MAX_ATTEMPTS`
 * `TSW_NEXUS_WAIT_SECONDS`
 
-The repository still contains insecure local defaults for legacy compatibility.
-For real local work, provide explicit values through environment variables or
-flags.
+The repository still contains local static defaults for this non-production
+system. For real local work, provide explicit values through environment
+variables where supported.
 Do not copy local compatibility defaults into new configuration or logs.
 
-== Stack Uploads
+== Stack Deployment
 
-This is a transitional direct Portainer upload path. It is not protected by
-the CLI consent gate and is not part of the default quality gate.
-
-Bulk stack upload to Portainer is handled by:
-
-[source,bash]
-----
-cd infra/compose
-./upload_all_stacks.sh -u admin -p '<password>'
-----
-
-This command talks to Portainer and can delete/recreate stacks. Review the
-script and target environment before running it.
+Stack deployment is handled by the workflow-level setup command. Direct
+Portainer upload scripts have been retired so compose assets cannot bypass the
+CLI consent gate.
 
 == Commit And Push Shortcut
 

@@ -14,8 +14,8 @@ This project is developed and operated from WSL or Linux shells. Windows-specifi
 The repository separates deployment work into three areas:
 
 * `src/tiny_swarm_world/__main__.py` contains the Python entry point for infrastructure orchestration.
-* `infra/prepare` contains one-off preparation scripts for services such as Portainer and Nexus.
-* `infra/compose` contains compose stacks and upload helpers for Portainer-managed stack deployment.
+* `infra/prepare` contains retired notes for former direct service preparation helpers.
+* `infra/compose` contains image build-context assets for workflow-managed deployment.
 
 The active Python entry point exposes workflow-level commands. Running without
 arguments does not execute infrastructure commands, and `--list-workflows`
@@ -70,24 +70,20 @@ The quality gate covers linting, import architecture checks, architecture
 tests, type checks, and unittest discovery. It does not start Multipass VMs,
 initialize Docker Swarm, or deploy live services.
 
-== Portainer preparation
+== Service preparation
 
-Portainer preparation is started from the repository root:
+Portainer, Nexus, image publication, and stack deployment are started through
+the canonical setup workflow:
 
 [source,bash]
 ----
-cd infra/prepare
-./prepare.sh
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-`prepare.sh` currently delegates to the Portainer preparation script. Review `infra/prepare/portainer/prepare.sh` before running it against a live environment because it initializes the Portainer administrator account.
-
-Direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm` are
-outside the workflow-level CLI consent guard. Treat them as live operator
-actions, not development quality-gate commands.
-The guarded Python Portainer contract is the target migration direction, but
-these scripts remain transitional until their behavior is wrapped with
-observed-state verification and live-consent controls.
+Former direct scripts under `infra/prepare` and host-side orchestration scripts
+under `infra/compose` have been retired so setup behavior stays behind the
+workflow-level CLI consent guard. Direct scripts under `infra/swarm` remain
+legacy live-operation surfaces and are not development quality-gate commands.
 The Portainer compose asset under `infra/config/compose/portainer` mounts the
 host Docker socket for the Portainer server and agent, and the agent also
 mounts Docker volumes. Treat that asset as privileged Docker-control
@@ -97,14 +93,9 @@ The canonical live-operation surface catalog is
 
 == Nexus bootstrap
 
-Nexus setup is implemented in Python under `infra/prepare/nexus/setup.py`. It creates or starts the Nexus stack through Portainer, reads the initial admin password from the container, changes the admin password, and configures the Docker bearer token realm.
-
-Run it from the repository root:
-
-[source,bash]
-----
-python3 infra/prepare/nexus/setup.py
-----
+Nexus setup is owned by the Python setup workflow. The workflow creates or
+updates the Nexus stack through the deployment boundary, establishes
+administrator access, and applies artifact repository readiness contracts.
 
 Important environment variables:
 
@@ -124,18 +115,11 @@ Important environment variables:
 | `TSW_NEXUS_WAIT_SECONDS` | `5` | Delay between polling attempts
 |===
 
-== Stack upload
+== Stack deployment
 
-Compose stacks can be uploaded through Portainer with:
-
-[source,bash]
-----
-cd infra/compose
-./upload_all_stacks.sh -u admin -p '<password>'
-----
-
-The script uploads the stack definitions from `infra/compose`. It requires a reachable Portainer instance and valid credentials.
-It can delete or recreate stacks and must be reviewed before use.
+The supported stack deployment path is the workflow-level setup command. Compose
+files under `infra/config/compose` are read by Python deployment adapters and
+deployed through the reviewed setup workflow.
 
 == Verification
 
@@ -166,10 +150,12 @@ the default repository quality gate.
 
 == Operational caution
 
-Deployment scripts can create or modify virtual machines, Docker configuration, Swarm state, network settings, and service credentials. Review the enabled script sections and environment variables before running them against an existing local environment.
+The guided setup workflow can create or modify virtual machines, Docker
+configuration, Swarm state, network settings, and service credentials. Review
+the live-operation surface catalog and environment values before running it
+against an existing local environment.
 
-Legacy helper areas such as `infra/swarm/**`, old Nexus shell helpers, and
-direct Portainer upload scripts remain documented as transitional or
-unsupported until a dedicated cleanup slice verifies replacement parity.
-Do not remove or promote any direct live-operation script without updating
+Legacy helper areas such as `infra/swarm/**` remain documented as unsupported
+until a dedicated cleanup slice verifies replacement parity. Do not add,
+restore, or promote any direct live-operation script without updating
 `documentation/system/live-operation-surfaces.adoc`, tests, and rollback notes.

@@ -31,7 +31,7 @@ without weakening root `QUALITY.md`.
 ## Boundaries
 
 - Do not replace the Python quality gate with Maven, Gradle, JUnit or Java
-  checks unless the task explicitly targets the Java example.
+  checks unless a future task explicitly changes project scope.
 - Do not lower thresholds or remove architecture checks.
 
 ## STOP conditions

@@ -25,9 +25,9 @@ shape, but not the end-to-end installer:
 - Artifact and Deployment workflow names exist, but return blocked contract
   results until Nexus, registry, Portainer, stack, and observed-state contracts
   are implemented.
-- Direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm`
-  remain transitional, deprecated, or legacy live-operation surfaces and must
-  not become the canonical setup path by simple promotion.
+- Former direct setup scripts under `infra/prepare` and host-side
+  orchestration scripts under `infra/compose` are retired. Legacy scripts under
+  `infra/swarm` must not become the canonical setup path by simple promotion.
 - No React/browser frontend is in scope. Setup feedback belongs to the
   console/status UI and CLI output.
 
@@ -152,8 +152,10 @@ Implicit requirements:
 - Do not run live infrastructure commands during workflow creation.
 - Use `QUALITY.md` as the quality-command authority.
 - Treat console/status UI as terminal UI, not React/browser frontend.
-- Keep Java under `src/main/java` as deployment example surface only.
-- Keep secrets out of committed configuration and evidence.
+- Do not reintroduce Java, Maven, or Spring Boot setup architecture.
+- Keep secrets out of runtime evidence; this local non-production system may
+  retain reviewed static compatibility passwords where they are intentionally
+  part of the setup baseline.
 
 Accepted assumptions:
 
@@ -293,8 +295,6 @@ AGENTS.md only if root governance must be corrected
 The workflow must not change:
 
 ```text
-src/main/java/**
-pom.xml
 external static-analysis CI configuration
 generated caches
 local virtual environments
@@ -305,10 +305,11 @@ IDE state
 .env.local
 ```
 
-Direct modification of live scripts under `infra/prepare`, `infra/compose`,
-or `infra/swarm` is allowed only when a slice explicitly owns migration,
-quarantine, or compatibility updates and verification remains static or
-mocked unless the user separately approves live execution.
+Direct modification of live scripts under `infra/swarm` is allowed only when a
+slice explicitly owns migration, quarantine, or compatibility updates and
+verification remains static or mocked unless the user separately approves live
+execution. Former executable setup surfaces under `infra/prepare` and
+host-side orchestration scripts under `infra/compose` must not be restored.
 
 ## Architecture Constraints
 
@@ -326,10 +327,11 @@ mocked unless the user separately approves live execution.
 - `src/tiny_swarm_world/__main__.py` remains thin.
 - Platform, Artifacts, Deployment, Shared, and Console/status UI remain
   in-process responsibility boundaries, not extracted microservices.
-- Direct live scripts are reference material or transitional surfaces, not the
+- Direct live scripts are reference material or legacy surfaces, not the
   canonical installer contract.
 - Console/status UI is terminal-only.
-- Java remains deployment example surface.
+- Java/Maven project structure is retired unless a later explicit task changes
+  scope.
 - Kubernetes awareness must not displace Docker Swarm as the current target.
 
 ## Python Automation Assessment
@@ -1302,7 +1304,7 @@ Stop and report when:
 - service health would be claimed without observed-state evidence;
 - quality commands are missing and no documented limitation exists;
 - a slice would weaken `.importlinter`, architecture tests, or `QUALITY.md`;
-- Java, React/browser, Spring Boot, Kubernetes-first, or unrelated analytics
+- Java/Maven, React/browser, Spring Boot, Kubernetes-first, or unrelated analytics
   concerns start driving the Python automation architecture.
 
 ## Definition Of Done

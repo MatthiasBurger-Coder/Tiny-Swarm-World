@@ -43,7 +43,7 @@ must preserve:
 
 Autonomous setup is an execution goal built on those boundaries. It must not
 extract new microservices, promote direct live scripts as canonical behavior,
-introduce browser/React scope, or make the Java deployment example drive the
+introduce browser/React scope, or reintroduce Java/Maven structure into the
 Python automation architecture.
 
 ## Mandatory EPIC Question

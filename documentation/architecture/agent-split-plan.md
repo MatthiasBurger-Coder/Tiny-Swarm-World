@@ -196,7 +196,7 @@ Allowed files after architecture approval:
 - artifact-related ports
 - `src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
 - artifact-related adapters
-- `infra/prepare/nexus`
+- retired `infra/prepare/nexus` notes
 - artifact-related docs and tests
 
 Forbidden files:
@@ -278,7 +278,7 @@ Allowed files after architecture approval:
 - `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
 - `infra/compose`
 - `infra/config/compose`
-- `infra/prepare/portainer`
+- retired `infra/prepare/portainer` notes
 - deployment-related tests and docs
 
 Forbidden files:
@@ -514,7 +514,8 @@ Exact task steps:
 1. Inspect `git status --short`.
 2. Align docs with Platform, Artifacts, Deployment, and Shared naming.
 3. Mark live infrastructure commands clearly.
-4. Keep `src/main/java` documented as the deployable example application.
+4. Do not reintroduce Java/Maven project structure unless product scope
+   explicitly changes.
 5. Do not change scripts or production code.
 6. Run safe architecture checks.
 

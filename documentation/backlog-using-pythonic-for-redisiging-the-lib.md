@@ -34,7 +34,7 @@ The current library exhibits mixed styles and patterns that are not consistently
 
 ## Out of Scope
 - Changes to deployment pipelines or CI unrelated to Pythonicity.
-- Non-Python components (e.g., Java code under `src/main/java`).
+- Non-Python components.
 
 ## Rationale
 Pythonic code decreases cognitive load, lowers onboarding time for contributors, and reduces defects by leveraging well-understood patterns. It also improves testability and future extensibility.

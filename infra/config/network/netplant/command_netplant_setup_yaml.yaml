@@ -64,7 +64,7 @@ commands:
     type: command
     description: 'Verify after command: Transfer the file to the instance'
     command: probe:platform:netplan-applied
-  command: "multipass transfer infra/config/cloud-init-manager.yaml {vm_instance}:/tmp/netplan.yaml"
+  command: "multipass transfer .tiny-swarm-world/generated/cloud-init-manager.yaml {vm_instance}:/tmp/netplan.yaml"
   runner: "async"
   command_type: "hostos"
   vm_type:

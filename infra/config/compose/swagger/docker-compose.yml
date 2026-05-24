@@ -1,6 +1,6 @@
 services:
   swagger-editor:
-    image: swaggerapi/swagger-editor
+    image: docker.swagger.io/swaggerapi/swagger-editor
     ports:
       - target: 8080
         published: 8082
@@ -12,13 +12,13 @@ services:
           - node.role == manager
 
   swagger-ui:
-    image: swaggerapi/swagger-ui
+    image: docker.swagger.io/swaggerapi/swagger-ui
     ports:
       - target: 8080
         published: 8083
         protocol: tcp
     volumes:
-      - ./swagger/openapi.json:/openapi.json
+      - ${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro
     environment:
       SWAGGER_JSON: /openapi.json
       # API_URL: ""
@@ -35,7 +35,7 @@ services:
         published: 8084
         protocol: tcp
     volumes:
-      - ./swagger/openapi.json:/openapi.json
+      - ${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro
     command: /openapi.json
     networks:
       swagger_link:

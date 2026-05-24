@@ -33,5 +33,9 @@ def config_root() -> Path:
     return infra_root() / "config"
 
 
+def local_state_root() -> Path:
+    return repository_root() / ".tiny-swarm-world"
+
+
 def logs_root() -> Path:
-    return infra_root() / "logs"
+    return local_state_root() / "logs"

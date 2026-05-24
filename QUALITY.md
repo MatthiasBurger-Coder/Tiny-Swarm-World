@@ -21,13 +21,13 @@ model, and live-infrastructure restrictions.
 
 ## Build Tool Authority
 
-Tiny Swarm World is a Python automation project. The Java code under
-`src/main/java` and `pom.xml` are deployment-example surface and do not define
-the default project quality gate.
+Tiny Swarm World is a Python automation project. The repository no longer
+contains a Java/Maven application, and `src/main/java` plus `pom.xml` must not
+be reintroduced as default build surfaces.
 
 Do not use Gradle, Maven, JUnit, ArchUnit, or Java dependency-verification
-commands as the default workflow gate unless a task explicitly changes the Java
-example application.
+commands as the default workflow gate unless a task explicitly changes the
+project scope.
 
 ## Full Local Quality Gate
 

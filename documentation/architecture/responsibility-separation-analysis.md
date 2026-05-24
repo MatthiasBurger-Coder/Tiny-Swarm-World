@@ -32,7 +32,7 @@ Additional relevant areas inspected:
 - `src/tiny_swarm_world/infrastructure`
 - `infra/config`
 - `infra/compose`
-- `infra/prepare`
+- `infra/prepare` (retired navigation notes only)
 - `infra/swarm`
 - `tests`
 - existing import-ready issue files
@@ -124,13 +124,9 @@ Nexus repository behavior, and future Maven or Docker registry workflows.
 
 ### Infrastructure Assets
 
-- `infra/prepare/nexus`
-- `infra/compose/create_dockerfiles.sh`
+- `infra/compose/**/Dockerfile`
 - `infra/artifacts/README.md` as target boundary marker
-- Dockerfile templates and generated Dockerfiles that are used for image build
-  and push workflows, for example:
-  - `infra/compose/jenkins/Dockerfile.template`
-  - `infra/compose/swagger/nginx/Dockerfile.template`
+- service configuration files that are used as image build contexts
 
 ### Tests and Documentation
 
@@ -158,13 +154,11 @@ Portainer stack APIs, and service lifecycle through Portainer or Docker Swarm.
 ### Infrastructure Assets
 
 - `infra/config/compose`
-- `infra/compose/upload_all_stacks.sh`
 - stack directories under `infra/compose`, including:
-  - `infra/compose/jenkins`
-  - `infra/compose/swagger`
-- `infra/prepare/portainer`
-- `infra/prepare/portainer/README.md` documents the transitional direct
-  preparation script and the deprecated duplicate setup script
+  - `infra/config/compose/jenkins`
+  - `infra/config/compose/swagger`
+- `infra/prepare/portainer/README.md` documents the retired direct preparation
+  surface
 - Portainer stack compose files under `infra/config/compose/portainer`
 - service stack compose files under `infra/config/compose/nexus`,
   `infra/config/compose/rabbitmq`, and `infra/config/compose/sonarqube`
@@ -218,9 +212,9 @@ artifact, or deployment decisions.
 
 These areas need explicit classification before any cleanup:
 
-- `src/main/java` is a Java example application intended to be deployed onto the
-  finished Tiny Swarm World environment. It is not part of the Python
-  automation architecture.
+- The former Java/Maven example application has been removed. Do not
+  reintroduce Java, Maven, or Spring Boot as project build surfaces unless a
+  later task explicitly changes scope.
 - `infra/swarm/prepere.py` imports modules that are not present in the tracked
   `infra/swarm/multipass` directory. It looks transitional or broken.
 - `infra/swarm/multipass/multipass_setup.py` and
@@ -228,12 +222,7 @@ These areas need explicit classification before any cleanup:
   Python application services and command YAML workflow.
 - `infra/swarm/network/network_manager.py` mixes WSL, Windows `netsh`,
   Multipass discovery, and iptables behavior.
-- `infra/prepare/portainer/portain_setup.py` duplicates shell behavior from
-  `infra/prepare/portainer/prepare.sh` and also performs Multipass, socat,
-  Docker cleanup, stack deploy, and Portainer admin initialization.
-- `infra/prepare/nexus/test.sh` should be reviewed before being treated as a
-  supported test command, because it is located with live Nexus preparation
-  scripts.
+- Former direct preparation helpers under `infra/prepare` have been retired.
 - Spelling issues such as `netplant`, `prepere.py`, `portain_setup.py`, and
   `excecuteable_commands.py` are structural cleanup candidates, but renames
   should be separate behavior-preserving slices.
@@ -248,12 +237,12 @@ These areas need explicit classification before any cleanup:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | C-001 | `src/tiny_swarm_world/application/services/nexus/ensure_nexus_stack.py` | Nexus bootstrap | Portainer stack deployment | A Nexus service directly owns stack creation/update through Portainer. | Deployment | Medium | Stack Deployment Agent |
 | C-002 | `src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py` | Nexus workflow orchestration | Deployment plus registry configuration | A single workflow combines stack deployment, readiness, credential rotation, and anonymous access. | Split between Deployment and Artifacts | Medium | Artifact Registry Agent plus Stack Deployment Agent |
-| C-003 | `infra/prepare/nexus/setup.py` | Nexus setup entrypoint | Composition root, Portainer client, Docker runtime, Nexus client | The script wires concrete deployment and artifact adapters outside the main composition root. | Composition / CLI with Artifacts and Deployment dependencies | Medium | Composition / CLI Workflow Agent |
-| C-004 | `infra/compose/create_dockerfiles.sh` | Image build and registry push | Stack deployment directory | Dockerfile generation, build, login, push, and registry credentials live in `infra/compose`. | Artifacts | High because it can push images | Artifact Registry Agent |
-| C-005 | `infra/compose/upload_all_stacks.sh` | Stack upload | Image build and push | It sources `create_dockerfiles.sh` and runs image publishing before stack processing. | Deployment should call artifact output, not perform artifact work | High because it calls Docker and Portainer | Stack Deployment Agent |
-| C-006 | `infra/prepare/prepare.sh` | Top-level preparation | Portainer setup with optional Nexus setup | A single script can become an umbrella for unrelated live setup actions. | Composition / CLI Workflow | Medium | Composition / CLI Workflow Agent |
-| C-007 | `infra/prepare/portainer/portain_setup.py` | Portainer setup | Multipass, socat, iptables, Docker cleanup, stack deploy | Platform networking and deployment are coupled in one transitional script. | Split Platform and Deployment | High because it contains destructive Docker cleanup | Platform Provisioning Agent plus Stack Deployment Agent |
-| C-008 | `infra/prepare/portainer/prepare.sh` | Portainer stack deployment | Docker system prune and volume removal | Deployment bootstrap also performs destructive host Docker cleanup. | Deployment, with explicit reset operation | High | Stack Deployment Agent |
+| C-003 | `infra/prepare/nexus/setup.py` | Retired Nexus setup entrypoint | Composition root, Portainer client, Docker runtime, Nexus client | The former direct script wired concrete deployment and artifact adapters outside the main composition root. | Resolved by removal; behavior belongs behind setup workflow contracts | Retired | Composition / CLI Workflow Agent |
+| C-004 | `infra/compose/create_dockerfiles.sh` | Retired image build and registry push helper | Stack deployment directory | The former helper mixed Dockerfile generation, build, login, push, and registry credentials in `infra/compose`. | Resolved by removal; artifacts behavior belongs to Python artifact workflow | Retired | Artifact Registry Agent |
+| C-005 | `infra/compose/upload_all_stacks.sh` | Retired stack upload helper | Image build and push | The former helper sourced image publishing before stack processing. | Resolved by removal; deployment should call artifact output through workflow contracts | Retired | Stack Deployment Agent |
+| C-006 | `infra/prepare/prepare.sh` | Retired top-level preparation helper | Portainer setup with optional Nexus setup | The former umbrella script could mix unrelated live setup actions. | Resolved by removal; use setup workflow | Retired | Composition / CLI Workflow Agent |
+| C-007 | `infra/prepare/portainer/portain_setup.py` | Retired Portainer setup duplicate | Multipass, socat, iptables, Docker cleanup, stack deploy | The former script coupled platform networking and deployment. | Resolved by removal; split behavior across Platform and Deployment workflow contracts | Retired | Platform Provisioning Agent plus Stack Deployment Agent |
+| C-008 | `infra/prepare/portainer/prepare.sh` | Retired Portainer stack deployment helper | Docker system prune and volume removal | The former helper mixed deployment bootstrap with destructive Docker cleanup. | Resolved by removal; reset behavior must stay explicit | Retired | Stack Deployment Agent |
 | C-009 | `infra/config/docker` | Docker install and Swarm commands | Artifact Docker image build meaning | Directory name `docker` can mean platform daemon setup or artifact image workflows. | Platform for current files; future artifact config elsewhere | Low | Platform Provisioning Agent |
 | C-010 | `src/tiny_swarm_world/infrastructure/composition.py` | Wiring root | Boundary service bundles | Composition now exposes platform, artifact, and deployment builders and keeps the existing application builder as a compatibility wrapper; live artifact and deployment behavior remains blocked behind explicit workflow contracts. | Shared composition root with boundary-specific builders | Medium | Composition / CLI Workflow Agent |
 | C-011 | `src/tiny_swarm_world/__main__.py` | Thin entry point | Runtime inspection plus commented provisioning workflow | It is thin, but the active command and commented workflow obscure supported user workflows. | CLI workflow | Low | Composition / CLI Workflow Agent |

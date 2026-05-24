@@ -85,8 +85,6 @@ when branch context changes.
 
 ## Forbidden Areas
 
-- `src/main/java/**`
-- `pom.xml`
 - external static-analysis CI configuration
 - generated caches
 - local virtual environments
@@ -149,7 +147,7 @@ Stop when:
 - manual-only verification would be used for an autonomous live step;
 - secrets, tokens, raw command payloads, stdout, or stderr would be persisted;
 - application imports infrastructure;
-- React/browser, Spring Boot, Kubernetes-first, Java example, or unrelated
+- React/browser, Spring Boot, Kubernetes-first, Java/Maven, or unrelated
   analytics scope starts driving Python automation architecture.
 
 ## Slice Summary

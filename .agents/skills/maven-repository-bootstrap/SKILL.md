@@ -1,25 +1,25 @@
 ---
 name: maven-repository-bootstrap
-description: Use for Maven repository bootstrap guidance while keeping Java as deployment-example surface.
+description: Use for Nexus Maven repository bootstrap guidance without reintroducing Java/Maven build authority.
 ---
 
 # Maven Repository Bootstrap
 
 ## Purpose
 
-Guide Maven repository bootstrap in Nexus without making Maven or Java the
-default Tiny Swarm World build authority.
+Guide Maven repository bootstrap in Nexus without making Maven or Java a Tiny
+Swarm World build authority.
 
 ## Responsibilities
 
-- Keep Maven repository setup scoped to platform services and Java examples.
+- Keep Maven repository setup scoped to Nexus artifact-repository behavior.
 - Preserve credentials and repository URLs as configurable values.
 - Separate repository bootstrap from Java build behavior.
 
 ## Inputs
 
-- Nexus/Maven repository docs, prepare scripts and workflow scope.
-- Root `AGENTS.md`, `QUALITY.md` and Java example boundary.
+- Nexus/Maven repository docs and workflow scope.
+- Root `AGENTS.md` and `QUALITY.md`.
 - Required repository behavior.
 
 ## Outputs
@@ -35,7 +35,8 @@ default Tiny Swarm World build authority.
 
 ## STOP conditions
 
-- Java example scope is confused with Python automation architecture.
+- Maven repository scope is confused with Python automation architecture or
+  Java/Maven project structure.
 - Repository credentials are unclear.
 - Verification would mutate a live Nexus service.
 
@@ -43,11 +44,10 @@ default Tiny Swarm World build authority.
 
 - Pair with `nexus-bootstrap`.
 - Pair with `registry-infrastructure`.
-- Escalate Java-example changes to `java-25-backend` only when explicitly in
-  scope.
+- Stop if a change would reintroduce Java/Maven project structure without an
+  explicit scope decision.
 
 ## Quality expectations
 
 - Run `git diff --check` for docs/config changes.
-- Use Python quality gates as project default unless Java example work is
-  explicitly requested.
+- Use Python quality gates as the project default.

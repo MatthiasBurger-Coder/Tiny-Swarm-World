@@ -22,6 +22,3 @@ The current architecture goals are:
 * require verify-after-apply behavior for mutating workflow steps;
 * keep live Multipass, Docker Swarm, netplan, socat, compose, and service
   bootstrap commands out of the default quality gate.
-
-The Java code under `src/main/java` is a deployment example for the prepared
-local system. It does not define the Python automation architecture.
