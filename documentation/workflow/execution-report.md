@@ -777,14 +777,16 @@ Verification:
 
 ```bash
 git diff --check
-python3 tools/quality_gate.py arch-lint
-python3 tools/quality_gate.py arch-tests
-python3 tools/quality_gate.py quality
+env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py arch-lint
+env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py arch-tests
+env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py quality
 git diff --cached --check
 ```
 
 Result: passed. `arch-tests` ran `16` tests. The final full quality gate ran
-`359` tests with `1` skipped.
+`359` tests with `1` skipped. The active WSL verification environment placed
+`.venv/bin` first in `PATH`; a bare system `python3` without development tools
+is not the recorded quality-gate environment.
 
 Requirement-engineering decision:
 

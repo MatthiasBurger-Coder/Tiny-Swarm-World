@@ -28,7 +28,8 @@ COMPLETED
 - `S3D_RESULT`: EXECUTION_PLAN.
 - `SLICE_11_DEPENDENCIES`: `10`.
 - `SLICE_11_TARGETED_GATES`: `git diff --check`, `arch-lint`, `arch-tests`.
-- `SLICE_11_REQUIRED_GATES`: `python3 tools/quality_gate.py quality`.
+- `SLICE_11_REQUIRED_GATES`: `python3 tools/quality_gate.py quality`,
+  executed with the repository `.venv/bin` first in `PATH`.
 
 ## Subagent Review Evidence
 
@@ -92,8 +93,8 @@ Documentation and targeted gates:
 
 ```bash
 git diff --check
-python3 tools/quality_gate.py arch-lint
-python3 tools/quality_gate.py arch-tests
+env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py arch-lint
+env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py arch-tests
 PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
 PYTHONPATH=src python3 -m tiny_swarm_world setup run
 ```
@@ -106,12 +107,17 @@ Result: passed for `git diff --check`, `arch-lint`, and `arch-tests`.
 Required full gate:
 
 ```bash
-python3 tools/quality_gate.py quality
+env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py quality
 ```
 
 Result: passed. The full quality gate executed lint, arch-lint, arch-tests,
 typecheck, and unittest discovery using the ignored local `.venv/` tooling.
 The final unittest discovery ran `359` tests with `1` skipped.
+
+Note: the active verification environment places `.venv/bin` before the WSL
+system paths so `python3` resolves to the repository virtual environment. A
+bare system `python3` without the development tools is not the recorded
+quality-gate environment.
 
 ## Optional Live Smoke
 
@@ -163,9 +169,9 @@ changedFiles:
   - documentation/workflow/reports/11-documentation-sync-quality-live-smoke.md
 qualityGateCommands:
   - git diff --check
-  - python3 tools/quality_gate.py arch-lint
-  - python3 tools/quality_gate.py arch-tests
-  - python3 tools/quality_gate.py quality
+  - env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py arch-lint
+  - env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py arch-tests
+  - env PATH=/mnt/d/Projects/Tiny-Swarm-World/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 tools/quality_gate.py quality
 qualityGateResult: PASS
 rollbackRef: revert the Slice 11 checkpoint commit
 arc42Updated: yes; building blocks, deployment view, and risks/debt updated
