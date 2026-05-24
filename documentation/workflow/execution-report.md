@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_07_COMPLETED
+SLICE_08_COMPLETED
 ```
 
 ## Branch
@@ -22,7 +22,9 @@ slice. Slice 04 has been completed as the inventory and evidence foundation
 slice. Slice 05 has been completed as the command-backed platform verification
 contract slice. Slice 06 has been completed as the Portainer deployment
 contract slice. Slice 07 has been completed as the Nexus and artifact registry
-contract slice. Slice 08 is the next planned implementation slice.
+contract slice. Slice 08 has been completed as the service stack deployment
+and verification contract slice. Slice 09 is the next planned implementation
+slice.
 
 ## Subagent Review
 
@@ -526,6 +528,79 @@ Requirement-engineering decision:
 - the repair does not change product behavior and restores workflow
   traceability for Slice 08.
 
+### Slice 08: Service Stack Deployment And Verification
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+fea882e
+```
+
+Changed files:
+
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/deployment/system.adoc`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/workflow/reports/08-service-stack-deployment.md`
+- `src/tiny_swarm_world/application/services/deployment/__init__.py`
+- `src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py`
+- `src/tiny_swarm_world/application/services/deployment/service_stack_plan.py`
+- `src/tiny_swarm_world/application/services/deployment/workflows.py`
+- `src/tiny_swarm_world/domain/deployment/__init__.py`
+- `src/tiny_swarm_world/domain/deployment/service_stack_contract.py`
+- `tests/application/services/deployment/test_deployment_service_exports.py`
+- `tests/application/services/deployment/test_deployment_workflows.py`
+- `tests/application/services/deployment/test_ensure_service_stack.py`
+- `tests/application/services/deployment/test_service_stack_plan.py`
+- `tests/architecture/test_hexagonal_imports.py`
+- `tests/domain/deployment/__init__.py`
+- `tests/domain/deployment/test_service_stack_contract.py`
+- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- `tests/infrastructure/test_composition.py`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.deployment tests.application.services.deployment
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml tests.infrastructure.adapters.clients.test_portainer_http_client tests.infrastructure.test_composition tests.test_package_entrypoint
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The final full quality gate ran `339` tests with `1` skipped.
+
+### Governance Repair Before Slice 09
+
+Reason:
+
+```text
+Slice 08 added default service stack contracts, Deployment workflow verify
+checks, static compose service validation, and arc42 deployment/risk updates,
+so the workflow context pack needed to mark Slice 08 complete before
+autonomous setup orchestrator work can start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- default service stacks now have precise stack apply contracts or readiness
+  blockers, but service health still requires future observed-state ports;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 09.
+
 ## Live Infrastructure
 
 No live infrastructure commands were run. Workflow creation did not execute
@@ -541,5 +616,5 @@ Next command:
 workflow execute with subagents
 ```
 
-Execution continues at Slice 08 after re-verifying branch, context pack, locks,
+Execution continues at Slice 09 after re-verifying branch, context pack, locks,
 slice metadata, and quality gates before any write-capable work.
