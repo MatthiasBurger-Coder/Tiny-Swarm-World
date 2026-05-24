@@ -1,9 +1,13 @@
+import re
 from pathlib import Path
 
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import PortComposeFileRepository
 from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.project_paths import infra_root
+
+
+STACK_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
 
 
 class ComposeFileRepositoryYaml(PortComposeFileRepository):
@@ -16,10 +20,13 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def get_compose_of(self, stack_name: str) -> StackDefinition:
+        if not STACK_NAME_PATTERN.fullmatch(stack_name):
+            raise ValueError("compose stack name contains invalid characters")
+
         for base_directory in self.base_directories:
             compose_path = base_directory / stack_name / "docker-compose.yml"
             if compose_path.is_file():
-                self.logger.info(f"Loaded compose file for stack '{stack_name}' from {compose_path}.")
+                self.logger.info("Loaded compose file for stack '%s'.", stack_name)
                 return StackDefinition(
                     name=stack_name,
                     compose_content=compose_path.read_text(encoding="utf-8"),

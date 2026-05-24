@@ -36,10 +36,13 @@ microservices:
   can report stable operator-facing reasons without wiring live Nexus or
   registry behavior.
 * `DeploymentServices` is the explicit deployment boundary. The deployment
-  service namespace now owns `EnsureNexusStack` for compose lookup and
-  Portainer stack create/update operations. Its composition bundle owns blocked
-  workflow contracts for `deployment apply` and `deployment verify`; it does
-  not construct Portainer clients or execute stack changes during CLI dispatch.
+  service namespace now owns `EnsurePortainerStack` and `EnsureNexusStack`.
+  `EnsurePortainerStack` is a post-bootstrap Portainer API contract for
+  compose lookup plus stack create/update through `PortComposeFileRepository`
+  and `PortPortainerClient`. The composition bundle does not construct a
+  Portainer client or run a stack mutation during CLI dispatch in the current
+  slice. `deployment apply` and `deployment verify` both remain blocked until
+  live stack bootstrap and observed-state verification contracts are wired.
 * `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
   instead of aliasing `PlatformServices`.
 

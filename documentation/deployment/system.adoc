@@ -31,6 +31,12 @@ workflow names dispatch to explicit blocked workflow contracts until live
 Nexus, registry, Portainer, and observed-state verification contracts are
 implemented.
 
+The Deployment boundary now contains a tested post-bootstrap
+`EnsurePortainerStack` application service and a sanitized Portainer HTTP
+adapter contract. The CLI composition root does not wire that contract as a
+successful live `deployment apply` path yet, because first-time Portainer
+bootstrap and verify-after-apply evidence remain incomplete.
+
 == Development gate before deployment work
 
 Run the development quality gate before changing deployment-related code:
@@ -61,6 +67,13 @@ cd infra/prepare
 Direct scripts under `infra/prepare`, `infra/compose`, and `infra/swarm` are
 outside the workflow-level CLI consent guard. Treat them as live operator
 actions, not development quality-gate commands.
+The guarded Python Portainer contract is the target migration direction, but
+these scripts remain transitional until their behavior is wrapped with
+observed-state verification and live-consent controls.
+The Portainer compose asset under `infra/config/compose/portainer` mounts the
+host Docker socket for the Portainer server and agent, and the agent also
+mounts Docker volumes. Treat that asset as privileged Docker-control
+configuration for intentional local Swarm bootstrap only.
 The canonical live-operation surface catalog is
 `documentation/system/live-operation-surfaces.adoc`.
 

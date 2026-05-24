@@ -3,6 +3,7 @@ from dataclasses import fields
 import unittest
 from unittest.mock import patch
 
+from tiny_swarm_world.application.services.deployment import DeploymentWorkflowStatus
 from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
@@ -131,10 +132,29 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.workflows.verify, composition.ArtifactVerifyWorkflow)
 
     def test_build_deployment_services_wires_blocked_workflow_contracts(self):
-        services = composition.build_deployment_services()
+        with patch.dict("os.environ", {}, clear=True):
+            services = composition.build_deployment_services()
 
         self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.DeploymentVerifyWorkflow)
+
+    def test_build_deployment_services_keeps_apply_fail_closed_even_with_portainer_environment(self):
+        environment = {
+            "TSW_PORTAINER_URL": "http://localhost:9000",
+            "TSW_PORTAINER_USERNAME": "admin",
+            "TSW_PORTAINER_PASSWORD": "operator-supplied",
+            "TSW_PORTAINER_ENDPOINT": "local",
+        }
+
+        with patch.dict("os.environ", environment, clear=True):
+            services = composition.build_deployment_services()
+
+        result = asyncio.run(services.workflows.apply.run())
+
+        self.assertEqual((), services.workflows.apply.steps)
+        self.assertEqual(DeploymentWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertIn("Portainer stack changes", result.reason)
 
     def test_build_application_services_wires_preflight_through_platform_bundle(self):
         with patch.object(composition, "PortVmRepositoryYaml"):

@@ -47,14 +47,20 @@ The current artifact and deployment runtime flow is deliberately fail-closed:
   until artifact registry observed-state verification is implemented through
   an application port.
 * `deployment apply` requires live consent, dispatches to
-  `DeploymentApplyWorkflow`, and returns `blocked` until Portainer stack apply
-  and command-backed verification contracts exist.
+  `DeploymentApplyWorkflow`, and returns `blocked` while stack deployment lacks
+  a verified apply-plus-observed-state contract. The tested
+  `EnsurePortainerStack` service is a post-bootstrap Portainer API contract,
+  but it is not wired into the CLI composition root as an executable live apply
+  path in this slice.
 * `deployment verify` dispatches without live consent and returns `blocked`
   until stack and service observed-state verification is implemented through
   deployment ports.
 
-No Portainer, Nexus, Docker registry, image build, image push, or stack
-deployment side effect is run by these workflow contracts.
+No Nexus, Docker registry, image build, image push, or service stack side effect
+is run by these workflow contracts. Portainer API behavior is covered by
+isolated adapter and application-service tests with fakes; CLI composition
+remains fail-closed until a later slice owns first-time bootstrap,
+verify-after-apply evidence, and service readiness.
 
 === Console Status Runtime Flow
 

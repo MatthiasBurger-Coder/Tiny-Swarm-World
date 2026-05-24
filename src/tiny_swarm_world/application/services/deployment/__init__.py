@@ -6,6 +6,7 @@ import path remains as a compatibility facade.
 """
 
 from tiny_swarm_world.application.services.deployment.ensure_nexus_stack import EnsureNexusStack
+from tiny_swarm_world.application.services.deployment.ensure_portainer_stack import EnsurePortainerStack
 from tiny_swarm_world.application.services.deployment.workflows import (
     DeploymentApplyWorkflow,
     DeploymentVerifyWorkflow,
@@ -21,4 +22,5 @@ __all__ = [
     "DeploymentWorkflowResult",
     "DeploymentWorkflowStatus",
     "EnsureNexusStack",
+    "EnsurePortainerStack",
 ]

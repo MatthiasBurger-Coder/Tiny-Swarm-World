@@ -7,9 +7,13 @@ from tiny_swarm_world.application.services.deployment import (
     DeploymentWorkflowResult,
     DeploymentWorkflowStatus,
     EnsureNexusStack,
+    EnsurePortainerStack,
 )
 from tiny_swarm_world.application.services.deployment.ensure_nexus_stack import (
     EnsureNexusStack as DeploymentEnsureNexusStack,
+)
+from tiny_swarm_world.application.services.deployment.ensure_portainer_stack import (
+    EnsurePortainerStack as DeploymentEnsurePortainerStack,
 )
 from tiny_swarm_world.application.services.deployment.workflows import (
     DeploymentApplyWorkflow as ExistingDeploymentApplyWorkflow,
@@ -38,3 +42,4 @@ class TestDeploymentServiceExports(unittest.TestCase):
 
     def test_deployment_namespace_exports_deployment_stack_service(self):
         self.assertIs(EnsureNexusStack, DeploymentEnsureNexusStack)
+        self.assertIs(EnsurePortainerStack, DeploymentEnsurePortainerStack)
