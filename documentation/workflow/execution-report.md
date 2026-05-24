@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_09_COMPLETED
+SLICE_10_COMPLETED
 ```
 
 ## Branch
@@ -24,7 +24,8 @@ contract slice. Slice 06 has been completed as the Portainer deployment
 contract slice. Slice 07 has been completed as the Nexus and artifact registry
 contract slice. Slice 08 has been completed as the service stack deployment
 and verification contract slice. Slice 09 has been completed as the
-autonomous setup orchestrator and CLI contract slice. Slice 10 is the next
+autonomous setup orchestrator and CLI contract slice. Slice 10 has been
+completed as the console status and recovery UX slice. Slice 11 is the next
 planned implementation slice.
 
 ## Subagent Review
@@ -671,6 +672,68 @@ Requirement-engineering decision:
 - the repair does not change product behavior and restores workflow
   traceability for Slice 10.
 
+### Slice 10: Console Status And Recovery UX
+
+Status:
+
+```text
+COMPLETED
+```
+
+Checkpoint commit:
+
+```text
+27188ef
+```
+
+Changed files:
+
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/workflow/reports/10-console-status-recovery.md`
+- `src/tiny_swarm_world/application/ports/ui/port_ui.py`
+- `src/tiny_swarm_world/infrastructure/adapters/ui/linux_ui.py`
+- `tests/infrastructure/adapters/ui/test_command_runner_ui_failure_semantics.py`
+- `tests/infrastructure/adapters/ui/test_linux_ui.py`
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_linux_ui
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics
+PYTHONPATH=src python3 -m unittest tests.application.services.commands.test_command_executer
+python3 tools/quality_gate.py lint
+python3 tools/quality_gate.py typecheck
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+git diff --check
+git diff --cached --check
+```
+
+Result: passed. The focused UI and command tests ran `18`, `7`, and `3`
+tests. The final full quality gate ran `359` tests with `1` skipped.
+
+### Governance Repair Before Slice 11
+
+Reason:
+
+```text
+Slice 10 added setup terminal status vocabulary, deterministic recovery
+guidance, status-only failure preservation, Linux terminal rendering, and
+arc42 runtime updates, so the workflow context pack needed to mark Slice 10
+complete before final documentation sync and optional live smoke handoff work
+can start.
+```
+
+Requirement-engineering decision:
+
+- current EPIC source remains `documentation/epics/system-unification.md` plus
+  `documentation/epics/autonomous-runnable-setup.md`;
+- console/status UI now preserves distinct setup stop states and recovery
+  guidance without adding browser or React scope;
+- the repair does not change product behavior and restores workflow
+  traceability for Slice 11.
+
 ## Live Infrastructure
 
 No live infrastructure commands were run. Workflow creation did not execute
@@ -686,5 +749,5 @@ Next command:
 workflow execute with subagents
 ```
 
-Execution continues at Slice 10 after re-verifying branch, context pack, locks,
+Execution continues at Slice 11 after re-verifying branch, context pack, locks,
 slice metadata, and quality gates before any write-capable work.
