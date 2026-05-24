@@ -15,10 +15,15 @@ class WaitForNexusReady:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def run(self) -> None:
+        last_exception: Exception | None = None
         for attempt in range(1, self.max_attempts + 1):
-            if self.nexus_client.is_available():
-                self.logger.info(f"Nexus became ready on attempt {attempt}.")
-                return
+            try:
+                if self.nexus_client.is_available():
+                    self.logger.info(f"Nexus became ready on attempt {attempt}.")
+                    return
+                last_exception = None
+            except Exception as exc:
+                last_exception = exc
 
             if attempt < self.max_attempts:
                 self.logger.info(
@@ -26,9 +31,12 @@ class WaitForNexusReady:
                 )
                 time.sleep(self.wait_seconds)
 
-        raise TimeoutError(
+        error = TimeoutError(
             f"Nexus did not become ready after {self.max_attempts} attempts with {self.wait_seconds} seconds delay."
         )
+        if last_exception is not None:
+            raise error from last_exception
+        raise error
 
     async def verify(self) -> VerificationResult:
         try:

@@ -25,6 +25,16 @@ class TestWaitForNexusReady(unittest.TestCase):
         self.assertEqual(nexus_client.is_available.call_count, 3)
 
     @patch("tiny_swarm_world.application.services.nexus.wait_for_nexus_ready.time.sleep")
+    def test_retries_transient_connection_errors_until_nexus_is_ready(self, _mock_sleep):
+        nexus_client = MagicMock()
+        nexus_client.is_available.side_effect = [ConnectionError("connection refused"), True]
+
+        service = WaitForNexusReady(nexus_client, max_attempts=2, wait_seconds=1)
+        service.run()
+
+        self.assertEqual(nexus_client.is_available.call_count, 2)
+
+    @patch("tiny_swarm_world.application.services.nexus.wait_for_nexus_ready.time.sleep")
     def test_raises_timeout_when_nexus_never_becomes_ready(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.is_available.return_value = False
@@ -33,6 +43,18 @@ class TestWaitForNexusReady(unittest.TestCase):
 
         with self.assertRaises(TimeoutError):
             service.run()
+
+    @patch("tiny_swarm_world.application.services.nexus.wait_for_nexus_ready.time.sleep")
+    def test_raises_timeout_from_last_connection_error(self, _mock_sleep):
+        nexus_client = MagicMock()
+        nexus_client.is_available.side_effect = ConnectionError("connection refused")
+
+        service = WaitForNexusReady(nexus_client, max_attempts=2, wait_seconds=1)
+
+        with self.assertRaises(TimeoutError) as raised:
+            service.run()
+
+        self.assertIsInstance(raised.exception.__cause__, ConnectionError)
 
 
 class TestEnsureNexusAdminAccess(unittest.TestCase):
