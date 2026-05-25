@@ -60,6 +60,9 @@ The canonical setup path must preserve these rules:
   non-mutating probes. Multipass readiness must distinguish executable
   presence from daemon, socket, permission, and driver usability before
   mutating setup phases start.
+* Direct `platform init --live` and setup-driven `platform init` must use the
+  same application-level live-readiness guard before VM creation, networking,
+  Docker installation, or Swarm initialization steps run.
 * Non-interactive live setup is out of scope until a later ADR defines a
   separate consent model.
 * Automatic host package installation is out of scope until a later ADR defines
@@ -117,6 +120,10 @@ Live preflight may use read-only runtime probes after consent. These probes are
 allowed to classify Multipass host prerequisites, but they must not repair the
 host, change drivers, start services, create VMs, or persist raw command
 payloads.
+
+Platform init owns an additional pre-apply guard using the same live preflight
+contract. This preserves setup phase reporting while also protecting direct
+platform workflow execution from bypassing host-readiness checks.
 
 Setup orchestration can be added only through the Python automation
 composition root and application services. Entry-point code must remain thin:

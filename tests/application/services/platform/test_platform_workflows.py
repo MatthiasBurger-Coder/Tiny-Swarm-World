@@ -105,6 +105,51 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             dict(result.verification_results[0].evidence),
         )
 
+    async def test_init_pre_apply_guard_blocks_before_steps(self):
+        guard = _PreflightAction(
+            PreflightResult(
+                (
+                    PreflightCheck(
+                        check_id="RUNTIME-MULTIPASS-SOCKET",
+                        category=PreflightCategory.RUNTIME,
+                        status=PreflightStatus.FAILED,
+                        severity=PreflightSeverity.MANDATORY,
+                        message="Multipass daemon or socket is not reachable.",
+                        remediation="Repair Multipass runtime access.",
+                    ),
+                )
+            )
+        )
+        step = _RecordingAction("init")
+
+        result = await PlatformInitWorkflow([step], pre_apply_guard=guard).run()
+
+        self.assertEqual(["preflight"], guard.calls)
+        self.assertEqual([], step.calls)
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual("platform:init:preflight", result.verification_results[0].target_id)
+        self.assertEqual(VerificationStatus.BLOCKED, result.verification_results[0].status)
+        self.assertEqual("1", result.verification_results[0].evidence["runtime_failure_count"])
+
+    async def test_init_pre_apply_guard_passes_before_steps(self):
+        guard = _PreflightAction(PreflightResult(()))
+        step = _RecordingAction("init")
+
+        result = await PlatformInitWorkflow([step], pre_apply_guard=guard).run()
+
+        self.assertEqual(["preflight"], guard.calls)
+        self.assertEqual(["init"], step.calls)
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            ("platform:init:preflight", "init"),
+            tuple(item.target_id for item in result.verification_results),
+        )
+        self.assertEqual(
+            (VerificationStatus.VERIFIED, VerificationStatus.VERIFIED),
+            tuple(item.status for item in result.verification_results),
+        )
+
     async def test_reset_refuses_missing_or_wrong_confirmation_before_running_steps(self):
         destructive_step = _ForbiddenAction()
         workflow = PlatformResetWorkflow([destructive_step])

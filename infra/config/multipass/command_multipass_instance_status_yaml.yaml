@@ -16,7 +16,7 @@ commands:
     verify:
       type: none
       description: Read-only command.
-    command: "multipass info {vm_instance}"
+    command: "multipass list >/dev/null 2>&1 && multipass info {vm_instance}"
     runner: "async"
     command_type: "hostos"
     vm_type:

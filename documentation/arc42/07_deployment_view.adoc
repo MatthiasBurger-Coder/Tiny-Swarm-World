@@ -78,6 +78,13 @@ non-destructive, and live-consent gated. Full runnable success is reached only
 after the selected profile's host prerequisites, platform state, artifact
 registry behavior, service stacks, and readiness checks are verified.
 
+The platform init workflow also owns the live-readiness pre-apply guard. Direct
+`platform init --live` and setup-driven `platform init` therefore use the same
+application workflow boundary before VM creation, netplan changes, Docker
+installation, or Swarm initialization can begin. The guard is read-only and
+classifies Multipass runtime readiness; it does not repair host services,
+change drivers, or create VMs.
+
 Hosts that do not satisfy the full-run resource contract remain
 resource-gated. A resource-gated result must identify omitted services and must
 not be reported as a full deployment pass.

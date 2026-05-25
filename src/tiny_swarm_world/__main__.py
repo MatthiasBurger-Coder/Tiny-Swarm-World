@@ -215,8 +215,15 @@ async def run_cli_workflow(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
 ) -> WorkflowResult:
     if workflow.platform_kind is not None:
-        services = build_application_services()
-        return await run_platform_workflow(services, workflow.platform_kind, confirmation)
+        services = build_application_services(
+            live_consent=live_consent,
+            service_profile=service_profile,
+        )
+        return await run_platform_workflow(
+            services,
+            workflow.platform_kind,
+            confirmation,
+        )
     if workflow.namespace == "artifacts":
         services = build_artifact_services()
         return await run_artifact_workflow(services, workflow.action)

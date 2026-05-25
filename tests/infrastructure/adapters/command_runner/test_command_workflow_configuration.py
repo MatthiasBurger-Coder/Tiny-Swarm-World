@@ -140,7 +140,32 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
         self.assertIsNotNone(launch_command.verify)
         self.assertEqual("command", launch_command.verify.type.value)
         self.assertEqual("probe:platform:vm-created", launch_command.verify.command)
+        self.assertIn("multipass list >/dev/null 2>&1", launch_command.command)
+        self.assertLess(
+            launch_command.command.index("multipass list"),
+            launch_command.command.index("multipass info swarm-manager"),
+        )
         self.assertIn("multipass launch 24.04", launch_command.command)
+        self.assertIn("exit $list_status", launch_command.command)
+        self.assertNotIn("exit $info_status", launch_command.command)
+        self.assertNotIn("|| true", launch_command.command)
+
+    def test_multipass_status_commands_guard_runtime_before_vm_info(self):
+        workflow = CommandWorkflow()
+        command_list = workflow.build_command_list(
+            "command_multipass_instance_status_yaml.yaml",
+            _smoke_parameters(),
+            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+        )
+
+        status_command = command_list["swarm-manager"][1].command
+
+        self.assertIn("multipass list >/dev/null 2>&1", status_command)
+        self.assertIn("multipass info swarm-manager", status_command)
+        self.assertLess(
+            status_command.index("multipass list"),
+            status_command.index("multipass info swarm-manager"),
+        )
 
     def test_built_sensitive_output_commands_preserve_evidence_policy(self):
         workflow = CommandWorkflow()

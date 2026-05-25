@@ -56,6 +56,8 @@ Quality scenarios:
   port conflicts, or configuration blockers before mutation;
 * accepted live preflight distinguishes Multipass executable presence from
   daemon, socket, permission, and driver readiness before VM mutation;
+* direct `platform init --live` and setup-driven platform init both stop before
+  mutating steps when the shared live preflight guard fails;
 * Multipass readiness diagnostics expose safe classifications and return codes,
   not raw stdout, stderr, command payloads, socket paths, user names, or
   host-specific paths;

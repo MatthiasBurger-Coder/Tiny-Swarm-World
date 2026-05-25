@@ -200,6 +200,7 @@ def build_preflight_service(
 
 def build_platform_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    live_consent: LiveConsent | None = None,
 ) -> PlatformServices:
     configure_infrastructure_container()
 
@@ -231,6 +232,14 @@ def build_platform_services(
                 multipass_docker_swarm_init,
             ),
             verification_evidence_repository=verification_evidence_repository,
+            pre_apply_guard=(
+                SetupWorkflowPhase(
+                    "platform init preflight",
+                    lambda: preflight.run(live_consent),
+                )
+                if live_consent is not None
+                else None
+            ),
         ),
         reconcile=PlatformReconcileWorkflow(
             (vm_ip_list,),
@@ -392,7 +401,10 @@ def build_setup_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
 ) -> SetupServices:
     preflight = build_preflight_service(service_profile=service_profile)
-    platform = build_platform_services(service_profile=service_profile)
+    platform = build_platform_services(
+        service_profile=service_profile,
+        live_consent=live_consent,
+    )
     artifacts = build_artifact_services()
     deployment = build_deployment_services(service_profile=service_profile)
 
@@ -416,11 +428,17 @@ def build_setup_services(
     )
 
 
-def build_application_services() -> ApplicationServices:
+def build_application_services(
+    live_consent: LiveConsent | None = None,
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+) -> ApplicationServices:
     return ApplicationServices(
-        platform=build_platform_services(),
+        platform=build_platform_services(
+            service_profile=service_profile,
+            live_consent=live_consent,
+        ),
         artifacts=build_artifact_services(),
-        deployment=build_deployment_services(),
+        deployment=build_deployment_services(service_profile=service_profile),
     )
 
 

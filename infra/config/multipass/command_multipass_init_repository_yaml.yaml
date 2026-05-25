@@ -16,7 +16,7 @@ commands:
     type: command
     description: 'Verify after command: Creating {vm_instance}'
     command: probe:platform:vm-created
-  command: "if multipass info {vm_instance} >/dev/null 2>&1; then multipass start {vm_instance} || true; else multipass launch 24.04 -n {vm_instance} --memory 4G --disk 50G; fi"
+  command: "if multipass list >/dev/null 2>&1; then if multipass info {vm_instance} >/dev/null 2>&1; then multipass start {vm_instance}; else multipass launch 24.04 -n {vm_instance} --memory 4G --disk 50G; fi; else list_status=$?; exit $list_status; fi"
   runner: "async"
   command_type: "hostos"
   vm_type:

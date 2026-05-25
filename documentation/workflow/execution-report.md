@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_03_COMPLETED_CHECKPOINT_PENDING
+SLICE_04_COMPLETED_CHECKPOINT_PENDING
 ```
 
 ## Creation Evidence
@@ -21,6 +21,8 @@ feature/workflow-stable-live-setup-20260525
   checkpoint.
 - Slice 03 was executed as a live-consent-gated, non-mutating Multipass
   readiness preflight checkpoint.
+- Slice 04 was executed as a shared platform-init guard and Multipass command
+  catalog semantics checkpoint.
 
 ## Problem Summary
 
@@ -221,7 +223,107 @@ live consent
 Known follow-up:
 
 ```text
-direct platform init --live still needs the Slice 04 readiness guard
+resolved by Slice 04
+```
+
+Checkpoint commit:
+
+```text
+a345941
+```
+
+Push result:
+
+```text
+pushed to origin/feature/workflow-stable-live-setup-20260525
+```
+
+## Slice 04 Checkpoint Evidence
+
+Slice:
+
+```text
+04 - Platform Init Guard And Command Catalog Semantics
+```
+
+Responsible role:
+
+```text
+Senior Python Automation Developer
+```
+
+Reviewed by:
+
+```text
+Senior Python Automation Developer, Senior DevOps
+```
+
+Changed files:
+
+```text
+infra/config/multipass/command_multipass_init_repository_yaml.yaml
+infra/config/multipass/command_multipass_instance_status_yaml.yaml
+src/tiny_swarm_world/__main__.py
+src/tiny_swarm_world/application/services/platform/workflows.py
+src/tiny_swarm_world/infrastructure/composition.py
+tests/application/services/platform/test_platform_workflows.py
+tests/infrastructure/adapters/command_runner/test_command_workflow_configuration.py
+tests/infrastructure/test_composition.py
+tests/test_package_entrypoint.py
+documentation/architecture/adr-autonomous-setup-safety.adoc
+documentation/arc42/07_deployment_view.adoc
+documentation/arc42/10_quality_requirements.adoc
+documentation/workflow/execution-report.md
+```
+
+Result:
+
+```text
+completed
+```
+
+Behavior added:
+
+```text
+direct platform init --live and setup-driven platform init now share the
+application-level live preflight guard; Multipass init/status catalogs check
+multipass list before VM-specific info or launch branches
+```
+
+Quality evidence:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m unittest tests.application.services.platform.test_platform_workflows tests.infrastructure.test_composition tests.test_package_entrypoint tests.infrastructure.adapters.command_runner.test_command_workflow_configuration tests.infrastructure.adapters.repositories.test_command_repository_yaml_contract tests.application.services.platform.test_command_verification_contracts tests.application.services.multipass.test_multipass_init_vms
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py lint
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py arch-tests
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py typecheck
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py quality
+```
+
+Quality result:
+
+```text
+passed
+```
+
+Rollback reference:
+
+```text
+a345941
+```
+
+arc42Updated:
+
+```text
+yes; deployment and setup safety quality requirements describe shared platform
+init guard behavior
+```
+
+adrUpdated:
+
+```text
+yes; setup safety contract now requires shared application-level platform init
+readiness guard
 ```
 
 Checkpoint commit:
@@ -238,7 +340,7 @@ pending CP_PUSH
 
 ## Next Execution Step
 
-Begin future implementation with Slice 04 from
+Begin future implementation with Slice 05 from
 `documentation/workflow/workflow.md`.
 
 ## Verification Evidence
