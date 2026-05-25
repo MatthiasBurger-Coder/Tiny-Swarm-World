@@ -1,57 +1,77 @@
-# Subagent Review Summary: Stable Live Setup
+# Subagent Review Summary
+
+The user explicitly requested workflow creation with subagents. Five mandatory
+read-only role reviews were run before workflow artifact regeneration. No
+subagent modified files or ran live infrastructure commands.
 
 ## Senior Requirement Engineer
 
-- Confirmed the autonomous setup EPIC expects host prerequisite blockers to be
-  identified before mutation.
-- Classified the current behavior as drift: preflight can pass even though
-  Multipass socket access fails immediately afterward.
-- Recommended fail-fast diagnostics and detection-first behavior.
-- Raised open questions around automatic remediation and driver strictness.
-  The workflow records accepted assumptions: detection/guidance now, no
-  automatic host repair without later approval.
+Decision: `PROCEED_WITH_ACCEPTED_ASSUMPTIONS`.
+
+Key points:
+
+- the source draft is requirement-complete enough after documenting assumptions;
+- the workflow extends `documentation/epics/autonomous-runnable-setup.md`;
+- the current implementation partially matches the EPIC but does not yet prove
+  full live setup;
+- the generated workflow must explicitly replace the older active workflow;
+- real WSL2 evidence must be operator-provided when Codex cannot access that
+  console.
 
 ## Senior System Architect
 
-- Confirmed the active workflow context was stale and must be regenerated for
-  `feature/workflow-stable-live-setup-20260525`.
-- Reinforced hexagonal boundaries:
-  domain owns setup concepts, application orchestrates ports, infrastructure
-  owns Multipass/Docker/YAML/subprocess details, and composition remains the
-  wiring root.
-- Identified additional stable-setup risks:
-  endpoint strategy, WSL localhost forwarding, credential source of truth,
-  desired inventory drift and live evidence claims.
+Decision for source draft: `REQUIRES_REFINEMENT`.
+
+Refinements applied:
+
+- source draft is reconciled with existing Multipass readiness code;
+- workflow avoids adding `application/services/host` or
+  `application/services/swarm` by default;
+- `infra/swarm` remains legacy evidence only;
+- raw command, stdout, stderr, local IP, username, environment, and path
+  evidence is forbidden in committed artifacts;
+- automatic host package and network mutation remains out of scope unless a
+  later ADR authorizes it.
 
 ## Senior Python Automation Developer
 
-- Identified the root code path:
-  `PreflightService` checks executable presence, `HostPreflightProbe` uses
-  `shutil.which`, and `MultipassInitVms` later executes real Multipass
-  commands.
-- Identified the command catalog bug shape:
-  `multipass info` failure is treated as VM absence, so socket failure falls
-  through to `multipass launch`.
-- Recommended consent-gated Multipass readiness, direct `platform init` guard,
-  command catalog correction and safe error classification.
+Decision: proceed only after tightening the workflow text.
+
+Refinements applied:
+
+- extend existing preflight instead of creating a parallel preflight system;
+- keep subprocess and filesystem probing in infrastructure adapters;
+- preserve current setup phase safe-payload rules;
+- require regression-first tests for the exact false-positive behavior.
 
 ## Senior React Frontend Developer
 
-- Confirmed browser/React/frontend work is not in scope.
-- Recorded the role as a mandatory N/A React impact guard.
-- Identified only console/status UI as conditionally relevant if terminal
-  status or recovery text changes.
+Decision: `READY_FOR_WORKFLOW` as a frontend scope guard.
+
+Refinements applied:
+
+- no React/browser/package-manager scope is allowed;
+- console/status output is the only UI impact;
+- forbidden frontend files and commands are listed in the workflow.
 
 ## Senior Tester
 
-- Recommended regression-first mocked tests for the preflight boundary,
-  setup phase stopping, direct platform guard and redacted diagnostics.
-- Confirmed default quality gates must not run live infrastructure.
-- Recommended addressing quality output hygiene around intentional failure log
-  lines and the unawaited coroutine warning.
+Decision for source draft: `REQUIRES_REFINEMENT`.
+
+Refinements applied:
+
+- executable slice YAML metadata was added;
+- `setup run` without `--live` is treated as consent-boundary evidence, not a
+  dry-run installation pass;
+- static `--preflight` is not treated as Multipass daemon or WSL2 live proof;
+- quality commands are verified from `QUALITY.md`;
+- sandbox and real WSL2 validation are separated.
 
 ## Consolidated Decision
 
-Proceed with workflow creation under accepted assumptions. Implementation
-starts at Slice 02 and must not run live infrastructure unless the user
-explicitly approves an optional live smoke step.
+```text
+PROCEED_WITH_ACCEPTED_ASSUMPTIONS
+```
+
+The source draft was not executable as written. The regenerated workflow is the
+governed executable plan after incorporating the subagent refinements.

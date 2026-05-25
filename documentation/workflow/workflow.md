@@ -1,260 +1,213 @@
-# Workflow: Stable Live Setup
+# Workflow: Linux/WSL-Aware Swarm Setup Migration
 
 ## Executive Summary
 
-This workflow creates the governed implementation plan for making the canonical
-Tiny Swarm World live setup path stable from a Linux or WSL shell, including
-the same shell context used by an IntelliJ terminal or run configuration.
+This workflow replaces the previous `Stable Live Setup` active workflow with a
+governed implementation plan for separating Tiny Swarm World setup behavior into
+explicit Native Linux, WSL2, WSL1-unsupported, unknown-unsupported, and
+sandbox-unverified paths.
 
-The reported failure is not a Python dependency or Ruff installation problem.
-The project quality gate passed. The live setup failed because preflight proved
-only that the `multipass` executable exists, while the later `platform init`
-phase needed a working Multipass daemon/socket and failed at
-`platform:init:multipass-vms`.
+The user-provided source draft targets the observed failure shape:
 
-Target command:
-
-```bash
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+```text
+preflight: passed
+platform init: failed_to_apply
+reason: CommandExecutionFailed
 ```
 
-Target behavior:
+The executable workflow must refine that draft against the current repository
+baseline. Current source already contains live-consent-gated Multipass runtime
+checks, so this workflow does not create a parallel preflight system. It extends
+the existing preflight, setup, platform, Multipass, network, evidence, and
+documentation boundaries.
 
-- from a Linux/WSL IntelliJ terminal, the command either installs the selected
-  stable local Multipass Docker Swarm environment or fails before mutation with
-  actionable host-prerequisite diagnostics;
-- Multipass socket, driver and access failures are reported during live
-  readiness/preflight, not as a late `failed_to_apply` during VM creation;
-- direct `platform init --live` receives the same host-readiness guard;
-- default verification remains static or mocked and does not run Multipass,
-  Docker Swarm, compose, netplan, `socat`, Portainer, Nexus, Jenkins,
-  RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image build, image push or
-  stack deployment commands.
+Target outcome:
 
-No live infrastructure command may run during workflow creation. Future
-workflow execution must keep live smoke validation separate from the default
-quality gate.
+```text
+broken host or WSL2 Multipass readiness:
+  preflight: failed
+  platform init: not_run
+  reason: host, Multipass, driver, socket, systemd, snapd, or network readiness
+
+supported and ready Native Linux:
+  selected setup path: native_linux
+  setup proceeds only after explicit live consent
+
+supported and ready WSL2:
+  selected setup path: wsl2
+  setup proceeds only after explicit live consent and WSL2-specific checks
+
+sandbox:
+  selected setup path: sandbox_unverified
+  static and mocked validation allowed
+  WSL2 correctness is never inferred from sandbox success
+```
+
+No live infrastructure command is part of workflow creation, unit tests, static
+checks, or the normal quality gate.
 
 ## Target Picture
 
-### Verified Baseline At Workflow Creation
+### Verified Baseline
 
-- Active workflow version:
-
-```text
-stable-live-setup-v1.0.0
-```
-
+- Active workflow version: `linux-wsl-swarm-setup-v1.0.0`.
 - Active workflow branch:
 
 ```bash
-feature/workflow-stable-live-setup-20260525
+fix/linux-wsl-swarm-setup-workprocess-20260525
 ```
 
 - Root `AGENTS.md` defines Tiny Swarm World as Linux/WSL-only, Python
-  automation, hexagonal architecture and Docker Swarm-first.
-- Root `QUALITY.md` defines the full local quality gate:
+  automation, hexagonal architecture, and Docker Swarm-first.
+- Root `QUALITY.md` defines the authoritative quality gate:
 
 ```bash
 python3 tools/quality_gate.py quality
 ```
 
-- The reported local gate completed successfully:
-  `lint`, `arch-lint`, `arch-tests`, `typecheck`, and `test` passed.
-- The quality output still included noisy intentional test failure log lines
-  and one unawaited coroutine warning; these are test hygiene issues, not the
-  live setup root cause.
-- Manual host evidence before live setup:
-
-```text
-multipass info -> cannot connect to the multipass socket
-multipass get local.driver -> cannot connect to the multipass socket
-```
-
-- `setup run --live` passed setup preflight, then stopped during
-  `platform init` with:
-
-```text
-platform:init:multipass-vms -> failed_to_apply
-Apply failed for platform:init:multipass-vms: CommandExecutionFailed
-```
-
-- Local `.tiny-swarm-world` evidence was inspected after the first workflow
-  draft. The directory is ignored by Git and remains local evidence only.
-- The runner logs confirm two separate classes of failure:
-  - `boom` entries are intentional test/mock noise from command-runner tests,
-    not live infrastructure failures;
-  - current live setup failures are `CommandExecutionError` events for
-    `swarm-manager`, `swarm-worker-1` and `swarm-worker-2` with return code
-    `2`, while stdout and stderr are redacted.
-- `AsyncPortCommandRunner.log` shows the failing commands start in parallel
-  and fail before useful stderr is persisted; the exact Multipass stderr is
-  therefore still unavailable from the committed-safe evidence.
-- `live-runs/setup-20260525-014558.log` shows an earlier full setup run that
-  reached `completed`, including deployment verification and platform
-  verification. The system is therefore not inherently impossible to install;
-  the current failure is state/readiness/diagnostic handling that must become
-  deterministic.
-- Older local live-run logs show additional historical failure classes in
-  later phases: Portainer admin verification, Nexus readiness/admin access and
-  Jenkins image preparation. These are downstream hardening targets after the
-  Multipass readiness boundary is fixed.
-- The existing `documentation/workflow/**` content described the prior
-  service-access/Vaultwarden workflow and is stale for this branch.
+- Existing active workflow artifacts were regenerated because they described
+  the older `Stable Live Setup` workflow.
+- `documentation/epics/autonomous-runnable-setup.md` remains the requirement
+  baseline for canonical setup.
+- `documentation/architecture/adr-autonomous-setup-safety.adoc` accepts the
+  fail-closed, live-consent-gated setup contract.
+- Current implementation evidence:
+  - `PreflightService._host_check` still reports generic Linux/WSL compatibility.
+  - `HostPreflightProbe.is_linux_or_wsl` currently checks only
+    `platform.system() == "linux"`.
+  - live preflight already has a Multipass runtime readiness path for list and
+    driver probes; the workflow must extend it rather than duplicate it.
+  - setup orchestration refuses missing live consent before setup phases run.
+  - setup phase result safety rejects raw command, stdout, stderr, environment,
+    token, password, and secret keys.
 
 ### Target Outcome
 
-After workflow execution, the system should provide:
+After workflow execution, Tiny Swarm World should provide:
 
-- a live-readiness preflight contract that distinguishes executable presence
-  from Multipass daemon/socket/driver usability;
-- fail-closed checks that block both `setup run --live` and direct
-  `platform init --live` before mutating commands when host runtime access is
-  unavailable;
-- Multipass init command templates that do not treat "cannot connect to
-  Multipass" as "VM does not exist";
-- safe failure classification for known host-runtime failures without
-  exposing raw stdout, stderr, commands, tokens, passwords, local IPs or
-  user-specific paths;
-- endpoint and WSL/localhost strategy captured through ports/configuration
-  rather than adapter shortcuts;
-- credential and setup profile behavior aligned with the autonomous runnable
-  setup EPIC;
-- static/mocked tests that reproduce the reported failure shape;
-- synchronized user guide, troubleshooting, arc42 and workflow documentation;
-- optional live smoke instructions that require explicit user approval and
-  redacted evidence.
+- typed host environment classification with evidence and remediation;
+- typed Multipass readiness classification including version, list, driver,
+  daemon, socket, permission, timeout, and remediation state;
+- typed WSL2 network and port-forwarding planning without committed IPs;
+- explicit Native Linux and WSL2 setup path selection before VM creation;
+- WSL1 and unknown host environments blocked before platform mutation;
+- sandbox/unverified Linux reported as non-live proof only;
+- regression-first tests for the observed false-positive failure;
+- sanitized evidence and diagnostics that preserve current redaction rules;
+- documentation that keeps `infra/swarm` as legacy evidence, not an executable
+  product workflow;
+- separate operator-approved live validation for sandbox and real WSL2 console.
 
 ## Requirement Clarification Record
 
-Original request, normalized:
+Original request:
 
 ```text
-Analyze the problem from the shown terminal session. Then create a workflow
-with subagents. Goal: when this command is run from IntelliJ,
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live, a stable
-environment should be installed and the shown errors should disappear.
+workflow create with subagents
 ```
 
 Interpreted intent:
 
-- Create a new active workflow on a dedicated branch.
-- Use delegated subagent review.
-- Plan changes that make live setup reliable and diagnosable from the
-  supported Linux/WSL execution context.
-- Treat IntelliJ as an IDE shell/runner surface that must use the same
-  Linux/WSL interpreter, working directory and environment as the terminal.
+```text
+Create or regenerate the active Tiny Swarm World workflow from the supplied
+Linux/WSL-aware swarm setup draft, using subagents for role review.
+```
 
 Change type:
 
-- FULL_PATH workflow creation for setup preflight, platform readiness,
-  command catalog behavior, diagnostics, endpoint strategy, credentials,
-  deployment readiness, tests and documentation.
+```text
+fix / architecture hardening / setup migration / installation validation
+```
 
 Affected process strand:
 
-- Autonomous runnable setup and live platform/deployment readiness.
+```text
+workflow authoring, setup preflight, platform setup, Multipass readiness,
+network forwarding, evidence, documentation, quality gates
+```
 
 Affected architecture area:
 
-- Domain preflight configuration and status concepts.
-- Application preflight service, setup orchestration and platform workflow
-  guards.
-- Infrastructure host probe and command runner/adapters.
-- YAML command catalogs under `infra/config`.
-- Composition root wiring.
-- Console/status UI text only if recovery messages change.
-- Documentation, arc42, EPIC and workflow context pack.
+```text
+Platform boundary, setup orchestration, preflight domain and ports,
+infrastructure preflight adapters, network planning, command diagnostics,
+console/status output, documentation and arc42 governance
+```
 
 Explicit requirements:
 
-- Analyze the reported terminal failure.
-- Create a workflow with subagents.
-- Make `PYTHONPATH=src python3 -m tiny_swarm_world setup run --live` stable
-  for IntelliJ/Linux/WSL execution.
-- Remove the observed late Multipass/socket failure mode.
+- detect Native Linux, WSL2, WSL1 unsupported, unknown unsupported, and sandbox
+  unverified environments;
+- block WSL1 and unknown hosts before live mutation;
+- stop treating sandbox Linux as proof of WSL2 correctness;
+- migrate useful `infra/swarm` knowledge behind typed Python contracts;
+- preserve `infra/swarm` as legacy evidence only;
+- fail preflight before `platform init` when Multipass is unusable;
+- keep separate Native Linux and WSL2 setup paths;
+- keep normal tests and quality gates mocked or static;
+- require real WSL2 console validation before claiming WSL2 live success.
 
 Implicit requirements:
 
-- Preserve Linux/WSL-only behavior and POSIX examples.
-- Preserve live-consent controls.
-- Do not run live infrastructure commands during workflow creation or default
-  verification.
-- Preserve hexagonal architecture.
-- Keep infrastructure-specific Multipass, Docker, shell and YAML details in
-  infrastructure adapters or configuration.
-- Keep `src/tiny_swarm_world/infrastructure/composition.py` as the concrete
-  wiring root.
-- Keep the default quality gate static/mocked.
-- Keep diagnostics redacted and actionable.
-- Do not introduce Java, Maven, Spring Boot, browser React, Kubernetes-first
-  behavior or external static-analysis CI.
+- reconcile the draft with existing preflight and setup code;
+- keep package changes inside existing architecture-test boundaries unless a
+  deliberate architecture documentation and test update is included;
+- avoid raw command or host evidence persistence;
+- avoid new browser React scope;
+- keep live remediation commands operator-approved and outside default gates.
 
-Accepted assumptions:
+Assumptions accepted for workflow creation:
 
-- The manual Multipass socket failures were observed from the same Linux/WSL
-  user context intended for IntelliJ execution.
-- Socket/daemon/driver failures are host prerequisite failures and should
-  block live setup before VM mutation.
-- The workflow should plan detection and guided remediation, not automatic
-  host repair.
-- QEMU remains the expected Linux/WSL Multipass driver unless a later ADR
-  changes the runtime model.
-- Static preflight without live consent may remain static; accepted live
-  preflight may use safe read-only runtime probes.
-- Slice 06 establishes operator-supplied password values as the guided setup
-  credential source of truth; the remaining committed default is the
-  Vaultwarden external Swarm secret name, not a token value.
+- the supplied draft replaces the older `Stable Live Setup` workflow;
+- the active branch remains the branch named in the source draft;
+- real WSL2 validation is operator-provided evidence if Codex cannot access the
+  real WSL2 console;
+- `netsh` remains documentation-only or operator-confirmed troubleshooting, not
+  a new Windows-native automation path;
+- full live installation success and host-prerequisite blocked outcomes are
+  reported separately.
 
 Non-goals:
 
-- No live Multipass, Docker, Swarm, compose, netplan, `socat`, Portainer,
-  Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image build,
-  image push or service bootstrap during workflow creation.
-- No automatic installation of host packages.
-- No automatic `sudo`, group membership, socket ownership, driver mutation or
-  service restart without a later explicit approval and ADR where required.
-- No Windows-native support expansion.
-- No non-interactive live consent model unless a later ADR accepts it.
-- No claim of live service health without observed evidence.
+- no Java, Maven, Spring Boot, Kubernetes-first, browser React, npm, Vite,
+  Next.js, TypeScript frontend, or new package-manager tooling;
+- no direct promotion of `infra/swarm` scripts as canonical setup entry points;
+- no automatic host package installation, socket chmod/chown, driver changes,
+  `iptables`, `netsh`, or `socat` mutation without explicit operator approval
+  and a later ADR where required;
+- no live infrastructure commands during unit tests, architecture checks,
+  type checks, docs checks, or normal quality gates;
+- no committed host-specific IPs, usernames, absolute paths, tokens, passwords,
+  raw stdout, raw stderr, raw environment payloads, or Swarm join tokens.
 
 Risks:
 
-- Preflight can continue to pass while live platform state is unusable if the
-  Multipass readiness gap remains.
-- Direct `platform init --live` currently bypasses setup preflight and needs
-  its own readiness guard.
-- The current Multipass init shell command conflates VM absence with
-  Multipass socket failure.
-- Over-redaction can hide useful failure classification; under-redaction can
-  leak commands, paths, tokens or host details.
-- IntelliJ run configurations without stdin can fail live consent even when
-  the shell environment is otherwise correct.
-- WSL localhost forwarding and hardcoded `http://localhost:9000` Portainer
-  access can diverge from the actual Swarm node route.
-- Desired inventory, service-access profile and documentation can drift unless
-  synchronized before claiming a full stable setup.
+- the source draft described some behavior as absent even though current code
+  already has partial live preflight readiness probes;
+- new service directories such as `application/services/host` or
+  `application/services/swarm` would conflict with current architecture tests;
+- the installation matrix can overclaim if static preflight is treated as live
+  Multipass readiness;
+- live evidence can leak local host details unless redaction is explicit.
 
-Open questions delegated to slices:
+Open questions:
 
-- Whether endpoint resolution should prefer localhost, node IP, or a
-  profile-specific operator override for each service.
-- Whether legacy local compatibility defaults outside the guided setup path
-  should become explicit development profile values or be replaced by ignored
-  local secret sources.
-- Whether optional guided host remediation should remain documentation-only or
-  become a future approved live workflow.
+- who will run and approve real WSL2 live validation and cleanup;
+- whether a later ADR should authorize automatic host preparation or keep it as
+  documentation/remediation only.
 
 Blocking questions:
 
-- None for workflow creation. Any decision that would mutate host services,
-  change consent semantics, change static secret policy, change endpoint
-  routing or claim live health becomes a slice stop condition until governed.
+```text
+None for workflow authoring. Live execution remains blocked until the
+workflow-execute preflight confirms branch, locks, slice metadata, and operator
+approval for any live validation phase.
+```
 
 Confidence level:
 
 ```text
-88 percent
+84 percent
 ```
 
 Decision:
@@ -263,1003 +216,926 @@ Decision:
 PROCEED_WITH_ACCEPTED_ASSUMPTIONS
 ```
 
-## Problem Analysis
-
-The failure chain is:
-
-1. `ruff`, `mypy`, `import-linter` and project dependencies are installed in
-   `.venv`, and the quality gate passes.
-2. `multipass info` and `multipass get local.driver` both fail with:
-
-```text
-cannot connect to the multipass socket
-```
-
-3. `setup run --live` executes preflight.
-4. Preflight checks `multipass` as a dependency using executable lookup. That
-   proves only that the binary is available on `PATH`.
-5. Preflight reports all checks passed, including existing service ports.
-6. `platform init` starts `MultipassInitVms`.
-7. `MultipassInitVms` executes
-   `infra/config/multipass/command_multipass_init_repository_yaml.yaml`.
-8. The first command runs `multipass info {vm_instance}` and treats every
-   non-zero result as "VM missing", then attempts `multipass launch`.
-9. Because the real problem is socket/daemon access, `multipass launch` also
-   fails.
-10. `AsyncPortCommandRunner` raises `CommandExecutionError`.
-11. `CommandExecuter` wraps it as `CommandExecutionFailed`.
-12. `PlatformInitWorkflow` records `failed_to_apply`.
-13. `SetupWorkflow` stops later phases as `not_run`.
-
-This is a host-readiness and orchestration-boundary problem, not a Ruff or
-Python package problem.
-
-Refinement from local logs:
-
-- The exact latest failing shell command output is not visible because the
-  command runner records a redacted diagnostic payload.
-- The strongest supported conclusion is that the current failure occurs in the
-  Multipass VM initialization path before later deployment phases can run.
-- The logs do not prove "VM already exists" as the root cause. Existing or
-  broken VMs remain a plausible operator-side condition, but the product issue
-  is broader: setup must distinguish Multipass unreachable, daemon/socket
-  access problems, driver problems, VM absence and existing bad VM state before
-  mutation.
-- The earlier successful live run is important regression evidence. Future
-  implementation must preserve the ability to complete a full setup while
-  making later reruns stable and diagnosable.
-
-## Execution Profile
-
-```text
-executionProfile=FULL_PATH
-reason=The workflow affects live setup behavior, host preflight, platform
-guards, command catalog semantics, diagnostics, endpoint strategy, credentials,
-tests, documentation, arc42 and optional live smoke evidence.
-requiredFullReviews=Senior Requirement Engineer, Senior System Architect,
-Senior Python Automation Developer, Senior React Frontend Developer,
-Senior Tester
-conditionalReviews=Senior DevOps Engineer, Senior Documentation Engineer,
-Console/status UI skills, Security Sandbox Engineer, Platform Verification
-requiredQualityChecks=git diff --check for workflow creation; targeted tests
-per implementation slice; python3 tools/quality_gate.py quality before final
-implementation release when practical
-stopConditions=live commands required without explicit approval, architecture
-boundary violation, raw evidence leakage, host mutation hidden in defaults,
-consent model change without ADR, or live health claimed without evidence
-```
-
 ## Subagent Review Summary
 
-Senior Requirement Engineer:
+Five mandatory workflow-creation roles reviewed the source draft.
 
-- Confirmed EPIC drift: autonomous setup requires preflight to identify host
-  prerequisite blockers before mutation, but the reported setup run reached
-  `platform init`.
-- Recommended fail-fast preflight and documented non-goals for automatic host
-  repair.
+| Role | Decision | Workflow impact |
+| --- | --- | --- |
+| Senior Requirement Engineer | `PROCEED_WITH_ACCEPTED_ASSUMPTIONS` | Requirement is complete enough after recording replacement, WSL2 operator evidence, and `netsh` assumptions. |
+| Senior System Architect | `REQUIRES_REFINEMENT` for the source draft | Refined workflow must reconcile existing preflight code, avoid new forbidden service directories, and tighten evidence redaction. |
+| Senior Python Automation Developer | Proceed only after tightening | Refined workflow must extend current preflight rather than create a parallel system. |
+| Senior React Frontend Developer | `READY_FOR_WORKFLOW` as N/A guard | No React/browser scope; only console/status output may be affected. |
+| Senior Tester | `REQUIRES_REFINEMENT` for the source draft | Refined workflow must add YAML slice metadata, command semantics, targeted tests, and live/static boundary rules. |
 
-Senior System Architect:
-
-- Confirmed stale workflow context and required regeneration.
-- Identified boundary risks around endpoint strategy, WSL forwarding,
-  credential source of truth, desired inventory drift and live evidence.
-- Reinforced hexagonal boundaries and composition-root ownership.
-
-Senior Python Automation Developer:
-
-- Located the core code path: preflight executable lookup, platform init
-  Multipass command catalog, command runner exception wrapping and workflow
-  `failed_to_apply`.
-- Recommended live consent-gated Multipass readiness, direct platform guard,
-  command-template correction and safe error classification.
-
-Senior React Frontend Developer:
-
-- Confirmed browser/React work is out of scope.
-- Identified console/status UI as the only UI-relevant area if recovery text
-  or terminal status states change.
-
-Senior Tester:
-
-- Recommended regression-first mocked tests for preflight boundary, setup
-  phase stopping, direct platform guard, redacted diagnostics and command
-  catalog behavior.
-- Confirmed default quality gates must not run live infrastructure.
+The generated workflow incorporates those refinements. The source draft itself
+must not be executed directly.
 
 ## Architecture Constraints
 
-- Domain code may define preflight capabilities, categories, status values and
-  safe result objects. It must not import subprocess, Multipass, Docker,
-  Portainer, YAML parsers, file managers, logging setup or dependency
-  injection containers.
-- Application services may orchestrate ports and domain objects. They must not
-  embed low-level shell, filesystem, HTTP, Docker, curses or Multipass details.
-- Infrastructure adapters own executable lookup, safe read-only host probes,
-  subprocess invocation, YAML parsing, filesystem access and external clients.
-- Command catalog YAML may contain shell commands only within existing
-  governed command catalog boundaries.
-- `src/tiny_swarm_world/infrastructure/composition.py` remains the concrete
-  wiring root.
-- `src/tiny_swarm_world/__main__.py` remains thin: parse CLI, compose
-  dependencies, invoke services, print summaries.
-- IntelliJ support means documented Linux/WSL interpreter and terminal
-  expectations, not Windows-native behavior.
+- Preserve hexagonal architecture.
+- Domain code must remain independent from application and infrastructure.
+- Application services may orchestrate ports and domain objects, but must not
+  embed subprocess, filesystem, Docker, HTTP, curses, YAML parser, or live
+  host details directly.
+- Infrastructure adapters own `/proc`, environment, filesystem, subprocess,
+  Multipass, Docker, `socat`, and host-probing details.
+- Keep standard runtime wiring in
+  `src/tiny_swarm_world/infrastructure/composition.py`.
+- Prefer extending existing package areas:
+  - `domain/preflight`
+  - `domain/multipass`
+  - `domain/network`
+  - `application/ports/preflight`
+  - `application/services/platform`
+  - `application/services/setup`
+  - `application/services/network`
+  - `infrastructure/adapters/preflight`
+  - `infrastructure/adapters/command_runner`
+  - `infrastructure/adapters/repositories`
+- Do not introduce `application/services/host` or `application/services/swarm`
+  unless a slice deliberately updates architecture docs and tests.
+- `infra/swarm` is a migration evidence source only. Do not call its scripts.
 
 ## Python Automation Assessment
 
-Likely implementation areas:
+Implementation should extend current contracts:
 
-- `src/tiny_swarm_world/domain/preflight/preflight_configuration.py`
-- `src/tiny_swarm_world/domain/preflight/preflight_check.py`
-- `src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py`
-- `src/tiny_swarm_world/application/services/platform/preflight_service.py`
-- `src/tiny_swarm_world/application/services/setup/workflow.py`
-- `src/tiny_swarm_world/application/services/platform/workflows.py`
-- `src/tiny_swarm_world/application/services/multipass/multipass_init_vms.py`
-- `src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py`
-- `src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py`
-- `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
-- `infra/config/multipass/command_multipass_init_repository_yaml.yaml`
-- `infra/config/multipass/command_multipass_instance_status_yaml.yaml`
-
-Expected design direction:
-
-- Add a structured host runtime readiness result rather than returning raw
-  stdout/stderr.
-- Gate live readiness probes by accepted live consent or a mutating workflow
-  guard.
-- Keep static `--preflight` non-mutating and safe.
-- Make direct `platform init --live` and setup-driven platform init share the
-  same readiness decision.
-- Classify Multipass socket, driver, permission and daemon access failures
-  with safe identifiers and remediation text.
+- `PreflightService` should receive typed host environment and runtime reports.
+- `HostPreflightProbe` should be split internally into deterministic, testable
+  probes while preserving the public port until compatibility slices update it.
+- Multipass readiness should add `version` probing, socket evidence, qemu driver
+  checks, and explicit timeout classification while preserving argument-list
+  subprocess calls.
+- Setup/platform orchestration should convert failed preflight into
+  `not_run` downstream phases rather than late `failed_to_apply`.
+- Diagnostics must use sanitized classification and excerpts only when allowed
+  by the current safe-text contract. Raw `command`, `stdout`, `stderr`,
+  `environment`, `token`, `password`, and `secret` keys are forbidden in setup
+  phase results and committed artifacts.
 
 ## Frontend Assessment
 
-No browser frontend or React work is in scope.
+Tiny Swarm World is not a React frontend project. This workflow forbids browser
+frontend scope:
 
-Out of scope:
+- no `package.json`;
+- no npm, pnpm, yarn, Vite, Next.js, TypeScript frontend, `.tsx`, or `.jsx`;
+- no browser route or browser state work.
 
-- `package.json`;
-- JavaScript or TypeScript package manager lockfiles;
-- React, Vite, TSX, JSX, browser routing or frontend state management;
-- browser smoke claims without explicit live evidence.
+Frontend impact is limited to console/status semantics and operator-readable
+messages for preflight, setup, remediation, and installation summaries.
 
-Console/status UI work is conditional only if implementation changes terminal
-status labels, summaries, recovery actions or failure classification text.
+## Test Strategy
 
-## Resilience Requirements
+Use regression-first, mocked tests before implementation changes. Live
+infrastructure checks are not part of the normal quality gate.
 
-- Fail before mutation when host runtime prerequisites are unavailable.
-- Distinguish `refused`, `blocked`, `resource_gated`, `failed_to_apply` and
-  `failed_to_verify`.
-- Do not retry host socket failures blindly.
-- Do not turn daemon/socket failures into VM creation attempts.
-- Preserve redaction while exposing safe failure classes.
-- Keep optional live smoke evidence local, ignored and redacted.
+Targeted tests for implementation slices:
 
-## Ordered Slices
-
-### Slice 01 - Governance Reset And Baseline
-
-Purpose:
-
-- Replace stale service-access workflow context with this stable-live-setup
-  workflow.
-- Record the problem analysis, accepted assumptions, scope, stop conditions
-  and subagent findings.
-
-```yaml
-slice_id: "01"
-profile: FULL_PATH
-owner: Senior Workflow Architect
-secondary_reviewers:
-  - Senior Requirement Engineer
-  - Senior System Architect
-  - Senior Tester
-affected_files:
-  - documentation/workflow/workflow.md
-  - documentation/workflow/context-pack.md
-  - documentation/workflow/context-pack.json
-  - documentation/workflow/execution-report.md
-  - documentation/workflow/reports/01-subagent-review-summary.md
-  - documentation/workflow/reports/02-problem-analysis.md
-  - documentation/workflow/reports/03-local-log-evidence.md
-affected_modules: []
-affected_contracts:
-  - workflow-context-pack
-  - autonomous-setup-requirement-baseline
-dependencies: []
-parallel_group: A
-file_locks:
-  - documentation/workflow/**
-contract_locks:
-  - workflow-context-pack
-architecture_locks:
-  - planned-vs-implemented-documentation
-quality_gates:
-  targeted:
-    - git diff --check
-  required:
-    - git diff --check
-documentation:
-  arc42: documentation/arc42/07_deployment_view.adoc; documentation/arc42/10_quality_requirements.adoc; documentation/arc42/11_risks_and_debt.adoc
-  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
-stop_conditions:
-  - Existing workflow context cannot be safely regenerated.
-  - Workflow creation would need live infrastructure commands.
+```bash
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe
+PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
 ```
 
-Allowed write scope:
+Required final quality gate when practical:
 
-- `documentation/workflow/**` only.
-
-Done criteria:
-
-- Workflow files describe stable live setup, not service-access/Vaultwarden
-  implementation.
-- Context pack records branch, roles, affected areas and governing hashes.
-- `git diff --check` passes.
-
-### Slice 02 - Regression Baseline And Test Output Hygiene
-
-Purpose:
-
-- Capture current failure behavior in mocked tests before changing runtime
-  behavior.
-- Classify quality-gate noise from intentional test failures and the unawaited
-  coroutine warning.
-- Preserve the local-log distinction between test/mock `boom`, redacted
-  Multipass return-code failures and downstream service-readiness failures.
-
-```yaml
-slice_id: "02"
-profile: FULL_PATH
-owner: Senior Tester
-secondary_reviewers:
-  - Senior Python Automation Developer
-  - Senior System Architect
-affected_files:
-  - tests/application/services/platform/test_preflight_service.py
-  - tests/infrastructure/adapters/preflight/test_host_preflight_probe.py
-  - tests/application/services/setup/test_setup_workflow.py
-  - tests/application/services/platform/test_platform_workflows.py
-  - tests/test_package_entrypoint.py
-  - tests/application/services/commands/test_command_executer.py
-  - tests/infrastructure/adapters/ui/test_command_runner_ui_failure_semantics.py
-  - tests/infrastructure/adapters/command_runner/test_async_command_runner.py
-affected_modules:
-  - tests.application.services.platform
-  - tests.infrastructure.adapters.preflight
-  - tests.application.services.setup
-  - tests.infrastructure.adapters.command_runner
-affected_contracts:
-  - setup-preflight-failure-boundary
-  - test-output-hygiene
-dependencies:
-  - "01"
-parallel_group: B
-file_locks:
-  - tests/application/services/platform/**
-  - tests/infrastructure/adapters/preflight/**
-  - tests/application/services/setup/**
-  - tests/application/services/commands/**
-  - tests/infrastructure/adapters/ui/**
-  - tests/infrastructure/adapters/command_runner/**
-  - tests/test_package_entrypoint.py
-contract_locks:
-  - setup-preflight-failure-boundary
-  - redacted-diagnostics
-architecture_locks:
-  - default-gates-no-live-infra
-quality_gates:
-  targeted:
-    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe
-    - PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
-    - PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
-  required:
-    - python3 tools/quality_gate.py test
-documentation:
-  arc42: documentation/arc42/10_quality_requirements.adoc
-  adr: ""
-stop_conditions:
-  - Tests would call real Multipass, Docker, Swarm, compose, netplan, socat or service bootstrap commands.
-  - Tests require raw stdout, stderr, command strings, secrets or host-specific paths.
+```bash
+python3 tools/quality_gate.py quality
 ```
 
-Allowed write scope:
-
-- Tests and test fixtures for the affected setup/preflight/command runner
-  behavior.
-
-Done criteria:
-
-- A mocked test proves that executable presence alone is insufficient for
-  live setup.
-- A mocked test proves live readiness failure stops before platform mutation.
-- Intentional failure logs and coroutine warnings are either removed or
-  explicitly classified without hiding real failures.
-
-### Slice 03 - Live Multipass Readiness Preflight
-
-Purpose:
-
-- Add safe, consent-gated host runtime readiness checks for Multipass daemon,
-  socket accessibility and expected driver state.
-- Keep static `--preflight` static unless live consent is accepted.
-
-```yaml
-slice_id: "03"
-profile: FULL_PATH
-owner: Senior Python Automation Developer
-secondary_reviewers:
-  - Senior System Architect
-  - Senior Tester
-affected_files:
-  - src/tiny_swarm_world/domain/preflight/preflight_configuration.py
-  - src/tiny_swarm_world/domain/preflight/preflight_check.py
-  - src/tiny_swarm_world/domain/preflight/__init__.py
-  - src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py
-  - src/tiny_swarm_world/application/services/platform/preflight_service.py
-  - src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py
-  - tests/application/services/platform/test_preflight_service.py
-  - tests/infrastructure/adapters/preflight/test_host_preflight_probe.py
-affected_modules:
-  - tiny_swarm_world.domain.preflight
-  - tiny_swarm_world.application.ports.preflight
-  - tiny_swarm_world.application.services.platform
-  - tiny_swarm_world.infrastructure.adapters.preflight
-affected_contracts:
-  - live-host-runtime-readiness
-  - multipass-driver-readiness
-dependencies:
-  - "02"
-parallel_group: C
-file_locks:
-  - src/tiny_swarm_world/domain/preflight/**
-  - src/tiny_swarm_world/application/ports/preflight/**
-  - src/tiny_swarm_world/application/services/platform/preflight_service.py
-  - src/tiny_swarm_world/infrastructure/adapters/preflight/**
-  - tests/application/services/platform/test_preflight_service.py
-  - tests/infrastructure/adapters/preflight/test_host_preflight_probe.py
-contract_locks:
-  - live-host-runtime-readiness
-  - preflight-result-redaction
-architecture_locks:
-  - hexagonal-domain-independence
-  - infrastructure-owns-subprocess
-quality_gates:
-  targeted:
-    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe
-    - python3 tools/quality_gate.py arch-tests
-  required:
-    - python3 tools/quality_gate.py test
-documentation:
-  arc42: documentation/arc42/10_quality_requirements.adoc
-  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
-stop_conditions:
-  - Static preflight starts mutating host state.
-  - Domain imports subprocess or infrastructure adapters.
-  - Diagnostics expose raw command output, local paths, usernames or socket details beyond safe classifications.
-```
-
-Allowed write scope:
-
-- Preflight domain/application/adapter code and focused tests.
-
-Done criteria:
-
-- Live preflight reports a failed check such as
-  `RUNTIME-MULTIPASS-SOCKET` or equivalent when the socket is unavailable.
-- Remediation points the operator to Multipass daemon/socket/driver repair
-  without executing repair.
-- Static preflight remains safe and non-mutating.
-
-### Slice 04 - Platform Init Guard And Command Catalog Semantics
-
-Purpose:
-
-- Ensure direct `platform init --live` and setup-driven `platform init` share
-  the same host-readiness guard.
-- Update Multipass command templates so socket/daemon failure does not fall
-  through to VM creation.
-
-```yaml
-slice_id: "04"
-profile: FULL_PATH
-owner: Senior Python Automation Developer
-secondary_reviewers:
-  - Senior DevOps Engineer
-  - Senior Tester
-affected_files:
-  - src/tiny_swarm_world/__main__.py
-  - src/tiny_swarm_world/application/services/multipass/multipass_init_vms.py
-  - src/tiny_swarm_world/application/services/platform/workflows.py
-  - src/tiny_swarm_world/application/services/setup/workflow.py
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - infra/config/multipass/command_multipass_init_repository_yaml.yaml
-  - infra/config/multipass/command_multipass_instance_status_yaml.yaml
-  - tests/test_package_entrypoint.py
-  - tests/application/services/platform/test_platform_workflows.py
-  - tests/application/services/setup/test_setup_workflow.py
-  - tests/infrastructure/adapters/command_runner/test_command_workflow_configuration.py
-affected_modules:
-  - tiny_swarm_world.application.services.multipass
-  - tiny_swarm_world.application.services.platform
-  - tiny_swarm_world.application.services.setup
-  - tiny_swarm_world.infrastructure.composition
-  - infra.config.multipass
-affected_contracts:
-  - platform-init-readiness-guard
-  - multipass-init-command-catalog
-dependencies:
-  - "03"
-parallel_group: D
-file_locks:
-  - src/tiny_swarm_world/__main__.py
-  - src/tiny_swarm_world/application/services/multipass/**
-  - src/tiny_swarm_world/application/services/platform/**
-  - src/tiny_swarm_world/application/services/setup/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - infra/config/multipass/**
-  - tests/test_package_entrypoint.py
-  - tests/application/services/platform/**
-  - tests/application/services/setup/**
-  - tests/infrastructure/adapters/command_runner/**
-contract_locks:
-  - platform-init-readiness-guard
-  - command-catalog-safety
-architecture_locks:
-  - entrypoint-thinness
-  - application-port-dependency
-  - composition-root
-quality_gates:
-  targeted:
-    - PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
-    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
-    - PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_workflow_configuration
-    - python3 tools/quality_gate.py arch-tests
-  required:
-    - python3 tools/quality_gate.py test
-documentation:
-  arc42: documentation/arc42/07_deployment_view.adoc; documentation/arc42/10_quality_requirements.adoc
-  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
-stop_conditions:
-  - Direct platform init can still run Multipass mutation after a failed readiness check.
-  - VM absence cannot be distinguished from Multipass unreachable in tests.
-  - Entry point starts constructing low-level infrastructure directly.
-```
-
-Allowed write scope:
-
-- CLI dispatch, platform/setup orchestration, Multipass command catalog and
-  directly related tests.
-
-Done criteria:
-
-- `setup run --live` and `platform init --live` both stop before mutation when
-  Multipass readiness fails.
-- Multipass command template handles daemon/socket failures separately from
-  missing VM state.
-- Workflow result remains redacted and actionable.
-
-### Slice 05 - Endpoint, WSL Forwarding And IntelliJ Execution Contract
-
-Purpose:
-
-- Model operator endpoint selection and WSL localhost forwarding as explicit
-  configuration/port behavior.
-- Document IntelliJ execution as Linux/WSL shell use, not Windows-native
-  support.
-
-```yaml
-slice_id: "05"
-profile: FULL_PATH
-owner: Senior System Architect
-secondary_reviewers:
-  - Senior DevOps Engineer
-  - Senior Python Automation Developer
-  - Senior Tester
-affected_files:
-  - src/tiny_swarm_world/domain/deployment/service_stack_contract.py
-  - src/tiny_swarm_world/application/services/deployment/service_stack_plan.py
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - documentation/user_guide/installation.adoc
-  - documentation/user_guide/troubleshooting.adoc
-  - documentation/arc42/07_deployment_view.adoc
-  - tests/domain/deployment/test_service_stack_contract.py
-  - tests/application/services/deployment/test_service_stack_plan.py
-  - tests/infrastructure/test_composition.py
-affected_modules:
-  - tiny_swarm_world.domain.deployment
-  - tiny_swarm_world.application.services.deployment
-  - tiny_swarm_world.infrastructure.composition
-affected_contracts:
-  - endpoint-resolution
-  - wsl-localhost-forwarding
-  - intellij-linux-wsl-execution
-dependencies:
-  - "04"
-parallel_group: E
-file_locks:
-  - src/tiny_swarm_world/domain/deployment/**
-  - src/tiny_swarm_world/application/services/deployment/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - documentation/user_guide/**
-  - documentation/arc42/07_deployment_view.adoc
-  - tests/domain/deployment/**
-  - tests/application/services/deployment/**
-  - tests/infrastructure/test_composition.py
-contract_locks:
-  - endpoint-resolution
-  - operator-execution-context
-architecture_locks:
-  - deployment-boundary
-  - no-windows-native-expansion
-quality_gates:
-  targeted:
-    - PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
-    - PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_service_stack_plan
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
-    - git diff --check
-  required:
-    - python3 tools/quality_gate.py test
-documentation:
-  arc42: documentation/arc42/07_deployment_view.adoc
-  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
-stop_conditions:
-  - Endpoint behavior depends on hardcoded host-specific IPs or user paths.
-  - IntelliJ instructions add Windows-native support or PowerShell examples.
-  - Service health is claimed from endpoint configuration alone.
-```
-
-Allowed write scope:
-
-- Endpoint/configuration contracts, deployment planning tests and Linux/WSL
-  documentation.
-
-Done criteria:
-
-- IntelliJ command expectations are documented as WSL/Linux terminal
-  prerequisites.
-- Portainer/service endpoint defaults are explicit and test-backed.
-- Localhost forwarding gaps are diagnosed separately from service readiness.
-
-### Slice 06 - Credential, Profile And Inventory Consistency
-
-Purpose:
-
-- Align setup manifest, desired inventory, service-access default profile and
-  credential source behavior before claiming a stable full setup.
-
-```yaml
-slice_id: "06"
-profile: FULL_PATH
-owner: Senior System Architect
-secondary_reviewers:
-  - Senior Python Automation Developer
-  - Senior Security Sandbox Engineer
-  - Senior Tester
-affected_files:
-  - src/tiny_swarm_world/application/services/platform/preflight_service.py
-  - src/tiny_swarm_world/domain/preflight/preflight_configuration.py
-  - src/tiny_swarm_world/domain/preflight/setup_manifest.py
-  - src/tiny_swarm_world/domain/deployment/service_stack_contract.py
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - infra/config/inventory/**
-  - infra/config/compose/service-access/docker-compose.yml
-  - documentation/epics/autonomous-runnable-setup.md
-  - documentation/epics/service-access-dashboard-vaultwarden.md
-  - documentation/arc42/11_risks_and_debt.adoc
-  - documentation/deployment/system.adoc
-  - documentation/workflow/execution-report.md
-  - tests/application/services/platform/test_preflight_service.py
-  - tests/domain/preflight/test_preflight_result.py
-  - tests/domain/deployment/test_service_stack_contract.py
-  - tests/architecture/test_local_state_storage.py
-  - tests/infrastructure/adapters/repositories/test_inventory_repositories.py
-  - tests/infrastructure/test_composition.py
-affected_modules:
-  - tiny_swarm_world.application.services.platform
-  - tiny_swarm_world.domain.preflight
-  - tiny_swarm_world.domain.deployment
-  - tiny_swarm_world.infrastructure.composition
-  - infra.config
-affected_contracts:
-  - setup-profile-contract
-  - desired-inventory-contract
-  - credential-source-contract
-dependencies:
-  - "05"
-parallel_group: F
-file_locks:
-  - src/tiny_swarm_world/application/services/platform/preflight_service.py
-  - src/tiny_swarm_world/domain/preflight/**
-  - src/tiny_swarm_world/domain/deployment/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - infra/config/inventory/**
-  - infra/config/compose/service-access/**
-  - documentation/epics/**
-  - documentation/arc42/11_risks_and_debt.adoc
-  - documentation/deployment/system.adoc
-  - documentation/workflow/execution-report.md
-  - tests/application/services/platform/test_preflight_service.py
-  - tests/domain/preflight/**
-  - tests/domain/deployment/**
-  - tests/architecture/**
-  - tests/infrastructure/adapters/repositories/test_inventory_repositories.py
-  - tests/infrastructure/test_composition.py
-contract_locks:
-  - setup-profile-contract
-  - credential-source-contract
-  - desired-inventory-contract
-architecture_locks:
-  - credential-evidence-redaction
-  - planned-vs-implemented-documentation
-quality_gates:
-  targeted:
-    - PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
-    - PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
-    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_inventory_repositories
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
-    - PYTHONPATH=src python3 -m unittest tests.architecture.test_local_state_storage
-    - git diff --check
-  required:
-    - python3 tools/quality_gate.py test
-documentation:
-  arc42: documentation/arc42/11_risks_and_debt.adoc
-  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
-stop_conditions:
-  - Secrets, tokens, passwords, credential-bearing URLs or host IPs would be committed.
-  - Static defaults are treated as production-like secrets.
-  - Desired inventory and default setup profile cannot be reconciled without a governance decision.
-```
-
-Allowed write scope:
-
-- Profile, inventory, credential contracts, docs and focused tests.
-
-Done criteria:
-
-- Full setup profile, service-access inclusion and desired inventory are
-  aligned or explicitly documented as staged.
-- Secret source behavior is clear and redacted.
-- Missing secrets block before deployment when required by the selected
-  profile.
-
-### Slice 07 - Artifact, Registry And Deployment Readiness
-
-Purpose:
-
-- Harden the later setup phases so a host that passes platform readiness can
-  continue through artifact preparation, registry verification, bootstrap,
-  stack deployment and service readiness with observed-state checks.
-
-```yaml
-slice_id: "07"
-profile: FULL_PATH
-owner: Senior DevOps Engineer
-secondary_reviewers:
-  - Senior Python Automation Developer
-  - Senior Tester
-  - Senior System Architect
-affected_files:
-  - src/tiny_swarm_world/application/ports/clients/port_portainer_client.py
-  - src/tiny_swarm_world/application/ports/clients/port_swarm_stack_runtime.py
-  - src/tiny_swarm_world/application/services/artifacts/**
-  - src/tiny_swarm_world/application/services/deployment/**
-  - src/tiny_swarm_world/infrastructure/adapters/clients/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - tests/application/services/artifacts/**
-  - tests/application/services/deployment/**
-  - tests/infrastructure/adapters/clients/**
-  - tests/infrastructure/test_composition.py
-affected_modules:
-  - tiny_swarm_world.application.ports.clients
-  - tiny_swarm_world.application.services.artifacts
-  - tiny_swarm_world.application.services.deployment
-  - tiny_swarm_world.infrastructure.adapters.clients
-affected_contracts:
-  - nexus-registry-readiness
-  - portainer-bootstrap-readiness
-  - swarm-stack-readiness
-  - service-health-readiness
-dependencies:
-  - "06"
-parallel_group: G
-file_locks:
-  - src/tiny_swarm_world/application/ports/clients/port_portainer_client.py
-  - src/tiny_swarm_world/application/ports/clients/port_swarm_stack_runtime.py
-  - src/tiny_swarm_world/application/services/artifacts/**
-  - src/tiny_swarm_world/application/services/deployment/**
-  - src/tiny_swarm_world/infrastructure/adapters/clients/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - tests/application/services/artifacts/**
-  - tests/application/services/deployment/**
-  - tests/infrastructure/adapters/clients/**
-  - tests/infrastructure/test_composition.py
-contract_locks:
-  - artifact-readiness
-  - deployment-readiness
-  - observed-state-verification
-architecture_locks:
-  - application-port-dependency
-  - infrastructure-client-boundary
-quality_gates:
-  targeted:
-    - PYTHONPATH=src python3 -m unittest tests.application.services.artifacts
-    - PYTHONPATH=src python3 -m unittest tests.application.services.deployment
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
-    - python3 tools/quality_gate.py arch-tests
-  required:
-    - python3 tools/quality_gate.py test
-documentation:
-  arc42: documentation/arc42/07_deployment_view.adoc; documentation/arc42/10_quality_requirements.adoc; documentation/arc42/11_risks_and_debt.adoc
-  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
-stop_conditions:
-  - Readiness is inferred without observed state.
-  - Tests contact real Portainer, Nexus, Docker, Multipass or Swarm.
-  - Application code embeds low-level HTTP, shell, Docker or filesystem details.
-```
-
-Allowed write scope:
-
-- Artifact/deployment application services, infrastructure clients, wiring and
-  focused tests.
-
-Done criteria:
-
-- Later setup phases report `blocked`, `failed_to_prepare`,
-  `failed_to_verify` or `completed` with redacted evidence.
-- Registry, Portainer and service readiness have mocked contract tests.
-- No default gate performs live infrastructure work.
-
-### Slice 08 - Documentation, Quality Evidence And Optional Live Smoke Handoff
-
-Purpose:
-
-- Synchronize docs with implemented behavior.
-- Record exact verification evidence.
-- Define optional live smoke steps without running them by default.
-
-```yaml
-slice_id: "08"
-profile: FULL_PATH
-owner: Senior Documentation Engineer
-secondary_reviewers:
-  - Senior Tester
-  - Senior Workflow Architect
-  - Senior System Architect
-affected_files:
-  - README.md
-  - documentation/user_guide/installation.adoc
-  - documentation/user_guide/usage.adoc
-  - documentation/user_guide/troubleshooting.adoc
-  - documentation/system/live-operation-surfaces.adoc
-  - documentation/system/multipass-setup.adoc
-  - documentation/arc42/06_runtime_view.adoc
-  - documentation/arc42/07_deployment_view.adoc
-  - documentation/arc42/10_quality_requirements.adoc
-  - documentation/arc42/11_risks_and_debt.adoc
-  - documentation/workflow/**
-affected_modules: []
-affected_contracts:
-  - documentation-sync
-  - quality-evidence
-  - optional-live-smoke-handoff
-dependencies:
-  - "02"
-  - "03"
-  - "04"
-  - "05"
-  - "06"
-  - "07"
-parallel_group: H
-file_locks:
-  - README.md
-  - documentation/user_guide/**
-  - documentation/system/**
-  - documentation/arc42/**
-  - documentation/workflow/**
-contract_locks:
-  - documentation-sync
-  - quality-evidence
-architecture_locks:
-  - planned-vs-implemented-documentation
-quality_gates:
-  targeted:
-    - git diff --check
-    - python3 tools/quality_gate.py arch-tests
-    - python3 tools/quality_gate.py test
-  required:
-    - python3 tools/quality_gate.py quality
-documentation:
-  arc42: documentation/arc42/06_runtime_view.adoc; documentation/arc42/07_deployment_view.adoc; documentation/arc42/10_quality_requirements.adoc; documentation/arc42/11_risks_and_debt.adoc
-  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
-stop_conditions:
-  - Documentation claims live setup success before evidence exists.
-  - Full quality gate fails or is skipped without recorded justification.
-  - Optional live smoke is mixed into default quality gates.
-```
-
-Allowed write scope:
-
-- User guide, system docs, arc42, workflow evidence and final handoff.
-
-Done criteria:
-
-- Docs explain IntelliJ/Linux/WSL execution, Multipass readiness blockers and
-  safe remediation.
-- Quality evidence records exact commands and outcomes.
-- Optional live smoke is separate, explicit and redacted.
-
-## Slice Dependency Graph
-
-```text
-01 -> 02 -> 03 -> 04 -> 05 -> 06 -> 07 -> 08
-02 -------------------------------> 08
-03 -------------------------------> 08
-04 -------------------------------> 08
-05 -------------------------------> 08
-06 -------------------------------> 08
-07 -------------------------------> 08
-```
-
-The graph is mostly sequential because readiness, command semantics, endpoint
-strategy, credential/profile consistency and later deployment readiness depend
-on each other. Read-only reviews may run in parallel; write-capable work must
-respect slice locks.
-
-## Parallelization Opportunities
-
-- Slice 02 test baselining may run with read-only documentation review after
-  Slice 01.
-- Slice 05 endpoint documentation exploration may run read-only while Slice 03
-  implementation is drafted, but writes wait for Slice 04 readiness semantics.
-- Slice 06 profile/inventory review may start read-only once Slice 05 begins.
-- Slice 08 documentation drafts may be prepared read-only throughout, then
-  updated with actual evidence only after implementation slices complete.
-
-## Role And Subagent Ownership Map
-
-| Role | Ownership |
-|---|---|
-| Senior Workflow Architect | Workflow structure, dependency graph, metadata, locks, handoff |
-| Senior Requirement Engineer | Requirement baseline, EPIC drift, acceptance criteria |
-| Senior System Architect | Hexagonal boundaries, endpoint strategy, profile/inventory governance |
-| Senior Python Automation Developer | Preflight, setup/platform orchestration, command catalog semantics |
-| Senior React Frontend Developer | N/A React scope guard, console/status UI routing awareness |
-| Senior Tester | Regression tests, redaction checks, quality-gate evidence |
-| Senior DevOps Engineer | Multipass/Docker/Swarm readiness, artifact/deployment runtime contracts |
-| Senior Documentation Engineer | User guide, troubleshooting, arc42, workflow sync |
-| Senior Security Sandbox Engineer | Secret handling, evidence redaction, host mutation boundaries |
-| Console/status UI skills | Conditional terminal status/recovery text only |
-
-## Quality-Gate Expectations
-
-Workflow creation:
+Documentation-only workflow creation gate:
 
 ```bash
 git diff --check
 ```
 
-Targeted implementation checks:
+## Resilience Requirements
+
+- Fail closed when the environment cannot be classified.
+- WSL1 and unknown environments must stop before `platform init`.
+- WSL2 without required systemd, snapd when needed, reachable Multipass daemon,
+  qemu driver, socket access, or supported network strategy must stop before
+  VM creation.
+- Sandbox/unverified Linux may run static and mocked validation only; it cannot
+  prove WSL2 live behavior.
+- Read-only probes must use timeouts and argument-list subprocess APIs.
+- Host repair actions are remediation guidance unless a later ADR and explicit
+  operator live consent authorize mutation.
+- Evidence must be redacted, summary-oriented, and stored under ignored local
+  state.
+- Cleanup commands require explicit operator confirmation and must report
+  remaining resources when skipped.
+
+## Ordered Slices
+
+### Slice 01: Legacy Swarm Migration Analysis
+
+Purpose: document `infra/swarm` behavior as migration evidence before any
+runtime behavior changes.
+
+```yaml
+slice_id: "01"
+profile: "documentation"
+owner: "Senior Documentation Engineer"
+secondary_reviewers:
+  - "Senior System Architect"
+  - "Senior Python Automation Developer"
+affected_files:
+  - "documentation/architecture/legacy-swarm-setup-migration.md"
+affected_modules: []
+affected_contracts:
+  - "legacy live-operation surface classification"
+dependencies: []
+parallel_group: "A"
+file_locks:
+  - "documentation/architecture/legacy-swarm-setup-migration.md"
+contract_locks:
+  - "infra/swarm remains legacy evidence only"
+architecture_locks:
+  - "no direct script promotion"
+quality_gates:
+  targeted:
+    - "git diff --check"
+  required:
+    - "git diff --check"
+documentation:
+  arc42: "checked; no behavior claim until implementation slices"
+  adr: "documentation/architecture/adr-autonomous-setup-safety.adoc checked"
+stop_conditions:
+  - "legacy scripts would be called or promoted as canonical setup"
+  - "host-specific values would be copied into product configuration"
+```
+
+Done criteria:
+
+- migration document classifies each required legacy behavior as `MIGRATE`,
+  `MIGRATE_WITH_CHANGES`, `DOCUMENT_ONLY`, or `REJECT`;
+- direct execution from `infra/swarm` remains forbidden.
+
+### Slice 02: Host Environment Domain Model
+
+Purpose: add typed environment reports and setup path concepts inside existing
+domain boundaries.
+
+```yaml
+slice_id: "02"
+profile: "implementation"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior System Architect"
+  - "Senior Tester"
+affected_files:
+  - "src/tiny_swarm_world/domain/preflight/**"
+  - "src/tiny_swarm_world/domain/multipass/**"
+  - "src/tiny_swarm_world/domain/network/**"
+  - "tests/domain/preflight/**"
+  - "tests/domain/network/**"
+affected_modules:
+  - "tiny_swarm_world.domain.preflight"
+  - "tiny_swarm_world.domain.multipass"
+  - "tiny_swarm_world.domain.network"
+affected_contracts:
+  - "host environment report"
+  - "multipass readiness report"
+  - "port forwarding plan"
+dependencies:
+  - "01"
+parallel_group: "B"
+file_locks:
+  - "src/tiny_swarm_world/domain/preflight/**"
+  - "src/tiny_swarm_world/domain/multipass/**"
+  - "src/tiny_swarm_world/domain/network/**"
+contract_locks:
+  - "domain has no application or infrastructure imports"
+architecture_locks:
+  - "hexagonal domain independence"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.domain.preflight tests.domain.network"
+  required:
+    - "python3 tools/quality_gate.py arch-tests"
+documentation:
+  arc42: "update if domain concepts become architecture-visible"
+  adr: "no new ADR unless evidence semantics change"
+stop_conditions:
+  - "domain imports application or infrastructure"
+  - "host-specific evidence is modeled as committed configuration"
+```
+
+Done criteria:
+
+- host environment enum covers `native_linux`, `wsl2`, `wsl1_unsupported`,
+  `unknown_unsupported`, and `sandbox_unverified`;
+- reports include evidence and remediation without raw host payloads.
+
+### Slice 03: Extend Preflight Ports And Service Contract
+
+Purpose: extend the existing preflight port and service without introducing a
+parallel preflight subsystem.
+
+```yaml
+slice_id: "03"
+profile: "implementation"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior System Architect"
+  - "Senior Tester"
+affected_files:
+  - "src/tiny_swarm_world/application/ports/preflight/**"
+  - "src/tiny_swarm_world/application/services/platform/preflight_service.py"
+  - "tests/application/services/platform/test_preflight_service.py"
+affected_modules:
+  - "tiny_swarm_world.application.ports.preflight"
+  - "tiny_swarm_world.application.services.platform"
+affected_contracts:
+  - "preflight host check"
+  - "preflight runtime readiness"
+dependencies:
+  - "02"
+parallel_group: "C"
+file_locks:
+  - "src/tiny_swarm_world/application/ports/preflight/**"
+  - "src/tiny_swarm_world/application/services/platform/preflight_service.py"
+contract_locks:
+  - "PreflightService remains application orchestration"
+architecture_locks:
+  - "application services depend on ports, not infrastructure adapters"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service"
+  required:
+    - "python3 tools/quality_gate.py arch-tests"
+documentation:
+  arc42: "runtime/preflight view must be updated in documentation slice"
+  adr: "adr-autonomous-setup-safety must remain satisfied"
+stop_conditions:
+  - "new preflight service duplicates existing platform preflight behavior"
+  - "static --preflight is documented as live Multipass readiness proof"
+```
+
+Done criteria:
+
+- generic `Host is Linux or WSL compatible` no longer has empty evidence;
+- static and live-consent runtime checks have distinct semantics.
+
+### Slice 04: Implement Linux And Sandbox Host Probe
+
+Purpose: classify native Linux and sandbox/unverified Linux through the
+infrastructure preflight adapter with mocked tests.
+
+```yaml
+slice_id: "04"
+profile: "implementation"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior Tester"
+  - "Senior System Architect"
+affected_files:
+  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
+  - "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py"
+affected_modules:
+  - "tiny_swarm_world.infrastructure.adapters.preflight"
+affected_contracts:
+  - "host environment probe"
+dependencies:
+  - "03"
+parallel_group: "D"
+file_locks:
+  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
+  - "tests/infrastructure/adapters/preflight/**"
+contract_locks:
+  - "no live infrastructure mutation from probes"
+architecture_locks:
+  - "infrastructure owns platform, /proc, environment, filesystem probes"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe"
+  required:
+    - "python3 tools/quality_gate.py test"
+documentation:
+  arc42: "record sandbox boundary in runtime/deployment docs"
+  adr: "no new ADR expected"
+stop_conditions:
+  - "probe runs mutating host commands"
+  - "sandbox is treated as WSL2 evidence"
+```
+
+Done criteria:
+
+- native Linux and sandbox/unverified Linux are distinguishable in reports;
+- tests mock filesystem, platform, and environment signals.
+
+### Slice 05: Implement WSL Host Probe
+
+Purpose: detect WSL2 and WSL1 through multiple signals and block unsupported
+or unknown environments before platform mutation.
+
+```yaml
+slice_id: "05"
+profile: "implementation"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior Tester"
+  - "Senior System Architect"
+affected_files:
+  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
+  - "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py"
+affected_modules:
+  - "tiny_swarm_world.infrastructure.adapters.preflight"
+affected_contracts:
+  - "WSL host detection"
+  - "unsupported host blocking"
+dependencies:
+  - "04"
+parallel_group: "E"
+file_locks:
+  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
+  - "tests/infrastructure/adapters/preflight/**"
+contract_locks:
+  - "WSL2 requires multiple detection signals"
+architecture_locks:
+  - "Windows host commands are not default automation"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe"
+  required:
+    - "python3 tools/quality_gate.py test"
+documentation:
+  arc42: "update runtime view for WSL2 and WSL1 paths"
+  adr: "no new ADR unless Windows-host mutation is automated"
+stop_conditions:
+  - "single fragile signal is the only WSL2 proof"
+  - "WSL1 proceeds past preflight"
+  - "unknown environment proceeds past preflight"
+```
+
+Done criteria:
+
+- WSL2, WSL1 unsupported, and unknown unsupported behavior is covered by
+  deterministic tests;
+- WSL-specific remediation is actionable and non-mutating.
+
+### Slice 06: Refine Multipass Readiness
+
+Purpose: migrate the useful Multipass readiness concepts from legacy scripts
+behind the current preflight adapter and reject unsafe legacy behavior.
+
+```yaml
+slice_id: "06"
+profile: "implementation"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior Tester"
+  - "Senior Security/Sandbox Engineer"
+affected_files:
+  - "src/tiny_swarm_world/domain/preflight/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py"
+  - "infra/config/multipass/**"
+  - "tests/application/services/platform/test_preflight_service.py"
+  - "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py"
+affected_modules:
+  - "tiny_swarm_world.domain.preflight"
+  - "tiny_swarm_world.infrastructure.adapters.preflight"
+affected_contracts:
+  - "Multipass readiness"
+  - "live preflight runtime readiness"
+dependencies:
+  - "05"
+parallel_group: "F"
+file_locks:
+  - "src/tiny_swarm_world/domain/preflight/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py"
+  - "infra/config/multipass/**"
+contract_locks:
+  - "read-only probes only"
+  - "no static passphrase"
+architecture_locks:
+  - "subprocess details remain infrastructure-only"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service tests.infrastructure.adapters.preflight.test_host_preflight_probe"
+  required:
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "update risks if readiness semantics change materially"
+  adr: "adr-autonomous-setup-safety checked; new ADR if host repair is automated"
+stop_conditions:
+  - "multipass launch is used in preflight"
+  - "shell=True is introduced for new probes"
+  - "static Multipass passphrase remains reachable from canonical setup"
+  - "driver mismatch does not block before platform init"
+```
+
+Done criteria:
+
+- readiness includes version, list, driver, daemon/socket/permission, timeout,
+  and remediation signals;
+- broken daemon or non-qemu driver blocks before mutation.
+
+### Slice 07: WSL2 Network Forwarding Planning
+
+Purpose: migrate WSL networking concepts into typed planning without blind host
+network mutation.
+
+```yaml
+slice_id: "07"
+profile: "implementation"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior DevOps Engineer"
+  - "Senior Security/Sandbox Engineer"
+affected_files:
+  - "src/tiny_swarm_world/domain/network/**"
+  - "src/tiny_swarm_world/application/services/network/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
+  - "tests/domain/network/**"
+  - "tests/application/services/network/**"
+affected_modules:
+  - "tiny_swarm_world.domain.network"
+  - "tiny_swarm_world.application.services.network"
+affected_contracts:
+  - "port forwarding plan"
+  - "network readiness"
+dependencies:
+  - "05"
+parallel_group: "F"
+file_locks:
+  - "src/tiny_swarm_world/domain/network/**"
+  - "src/tiny_swarm_world/application/services/network/**"
+  - "tests/domain/network/**"
+  - "tests/application/services/network/**"
+contract_locks:
+  - "no committed IP addresses"
+  - "no blind socat, iptables, or netsh mutation"
+architecture_locks:
+  - "network service depends on typed ports and domain models"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.domain.network tests.application.services.network"
+  required:
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "update deployment/runtime view for WSL2 forwarding strategies"
+  adr: "new ADR required before automatic host network mutation"
+stop_conditions:
+  - "hardcoded VM, WSL, gateway, or Windows IP is committed"
+  - "netsh or iptables becomes default automation"
+```
+
+Done criteria:
+
+- forwarding strategies are explicit: `NATIVE_LINUX_DIRECT`, `WSL2_SOCAT`,
+  `WSL2_NETSH_DOCUMENTED`, `WSL2_IPTABLES_OPTIONAL`, `UNSUPPORTED`;
+- default WSL2 behavior is planning and verification, not blind mutation.
+
+### Slice 08: Setup And Platform Guard Integration
+
+Purpose: ensure selected host path and preflight status govern setup/platform
+phase ordering before VM creation.
+
+```yaml
+slice_id: "08"
+profile: "implementation"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior System Architect"
+  - "Senior Tester"
+  - "Console/status UI reviewer"
+affected_files:
+  - "src/tiny_swarm_world/application/services/setup/**"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/__main__.py"
+  - "tests/application/services/setup/test_setup_workflow.py"
+  - "tests/application/services/platform/test_platform_workflows.py"
+  - "tests/test_package_entrypoint.py"
+affected_modules:
+  - "tiny_swarm_world.application.services.setup"
+  - "tiny_swarm_world.application.services.platform"
+  - "tiny_swarm_world.infrastructure.composition"
+affected_contracts:
+  - "setup phase ordering"
+  - "platform init pre-apply guard"
+  - "CLI status semantics"
+dependencies:
+  - "03"
+  - "06"
+  - "07"
+parallel_group: "G"
+file_locks:
+  - "src/tiny_swarm_world/application/services/setup/**"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/__main__.py"
+contract_locks:
+  - "missing live consent refuses before setup construction"
+  - "failed preflight marks downstream phases not_run"
+architecture_locks:
+  - "entry point remains thin"
+  - "composition root owns adapter construction"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow tests.application.services.platform.test_platform_workflows tests.test_package_entrypoint"
+  required:
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "runtime view and quality requirements must be updated"
+  adr: "adr-autonomous-setup-safety must remain satisfied"
+stop_conditions:
+  - "platform init can bypass host readiness guard"
+  - "setup run without live consent mutates infrastructure"
+  - "console output claims WSL2 readiness from sandbox"
+```
+
+Done criteria:
+
+- old failure shape is covered by a regression test;
+- downstream setup phases are `not_run` when host preflight fails.
+
+### Slice 09: Sanitized Diagnostics And Evidence
+
+Purpose: improve failure diagnostics without violating safe-text or evidence
+redaction contracts.
+
+```yaml
+slice_id: "09"
+profile: "implementation"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior Tester"
+  - "Senior Security/Sandbox Engineer"
+  - "Console/status UI reviewer"
+affected_files:
+  - "src/tiny_swarm_world/domain/inventory/**"
+  - "src/tiny_swarm_world/domain/command/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/verification_evidence_local_repository.py"
+  - "tests/domain/inventory/**"
+  - "tests/infrastructure/adapters/command_runner/**"
+affected_modules:
+  - "tiny_swarm_world.domain.inventory"
+  - "tiny_swarm_world.domain.command"
+  - "tiny_swarm_world.infrastructure.adapters.command_runner"
+affected_contracts:
+  - "safe diagnostic summary"
+  - "verification evidence redaction"
+dependencies:
+  - "08"
+parallel_group: "H"
+file_locks:
+  - "src/tiny_swarm_world/domain/inventory/**"
+  - "src/tiny_swarm_world/domain/command/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/verification_evidence_local_repository.py"
+contract_locks:
+  - "no raw command/stdout/stderr/environment/token/password/secret persistence"
+architecture_locks:
+  - "diagnostics stay sanitized and summary-oriented"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.domain.inventory tests.infrastructure.adapters.command_runner"
+  required:
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "update quality and risks if evidence semantics change"
+  adr: "new ADR required for material evidence semantic change"
+stop_conditions:
+  - "raw output or host-specific payload is persisted"
+  - "setup phase result safety is weakened"
+```
+
+Done criteria:
+
+- errors expose actionable classification and sanitized evidence only;
+- no safety guard is relaxed to carry raw command output.
+
+### Slice 10: Documentation And Architecture Synchronization
+
+Purpose: align README, system docs, user guide, arc42, and ADR references with
+implemented behavior only.
+
+```yaml
+slice_id: "10"
+profile: "documentation"
+owner: "Senior Documentation Engineer"
+secondary_reviewers:
+  - "Senior System Architect"
+  - "Senior Tester"
+affected_files:
+  - "README.md"
+  - "documentation/system/multipass-setup.adoc"
+  - "documentation/system/network.adoc"
+  - "documentation/system/live-operation-surfaces.adoc"
+  - "documentation/system/wsl-host-preflight.adoc"
+  - "documentation/user_guide/installation.adoc"
+  - "documentation/user_guide/troubleshooting.adoc"
+  - "documentation/deployment/system.adoc"
+  - "documentation/arc42/**"
+  - "documentation/architecture/adr-autonomous-setup-safety.adoc"
+affected_modules: []
+affected_contracts:
+  - "operator documentation"
+  - "arc42 runtime and deployment views"
+dependencies:
+  - "08"
+  - "09"
+parallel_group: "I"
+file_locks:
+  - "README.md"
+  - "documentation/system/**"
+  - "documentation/user_guide/**"
+  - "documentation/deployment/**"
+  - "documentation/arc42/**"
+  - "documentation/architecture/adr-autonomous-setup-safety.adoc"
+contract_locks:
+  - "planned behavior is not documented as implemented behavior"
+architecture_locks:
+  - "Linux/WSL-only and Docker Swarm-first wording preserved"
+quality_gates:
+  targeted:
+    - "git diff --check"
+  required:
+    - "git diff --check"
+documentation:
+  arc42: "update 02, 06, 07, 10, 11 at minimum when behavior changes"
+  adr: "update or add ADR only for accepted architecture decisions"
+stop_conditions:
+  - "docs claim full WSL2 success without WSL2 evidence"
+  - "Windows-native automation is documented as default product behavior"
+```
+
+Done criteria:
+
+- docs distinguish Native Linux, WSL2, WSL1 unsupported, unknown unsupported,
+  and sandbox/unverified Linux;
+- `infra/swarm` remains legacy.
+
+### Slice 11: Quality And Installation Validation Matrix
+
+Purpose: run final static/mocked quality gates and collect separate operator
+validation evidence for sandbox and real WSL2 console.
+
+```yaml
+slice_id: "11"
+profile: "verification"
+owner: "Senior Tester"
+secondary_reviewers:
+  - "Senior DevOps Engineer"
+  - "Senior Documentation Engineer"
+  - "Senior System Architect"
+affected_files:
+  - ".tiny-swarm-world/evidence/installation-tests/**"
+  - "documentation/workflow/execution-report.md"
+affected_modules: []
+affected_contracts:
+  - "QUALITY.md gate evidence"
+  - "operator-approved live validation evidence"
+dependencies:
+  - "10"
+parallel_group: "J"
+file_locks:
+  - "documentation/workflow/execution-report.md"
+contract_locks:
+  - "live infrastructure requires explicit operator approval"
+  - "local evidence remains ignored"
+architecture_locks:
+  - "sandbox evidence cannot prove WSL2 behavior"
+quality_gates:
+  targeted:
+    - "git diff --check"
+    - "python3 tools/quality_gate.py lint"
+    - "python3 tools/quality_gate.py arch-lint"
+    - "python3 tools/quality_gate.py arch-tests"
+    - "python3 tools/quality_gate.py typecheck"
+    - "python3 tools/quality_gate.py test"
+  required:
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "checked after final behavior"
+  adr: "checked after final behavior"
+stop_conditions:
+  - "live commands would run without explicit operator approval"
+  - "WSL2 validation is reported from sandbox"
+  - "local evidence contains secrets, raw output, usernames, host paths, or IPs in committed files"
+```
+
+Done criteria:
+
+- full quality gate result is recorded;
+- sandbox and WSL2 evidence are evaluated separately;
+- final report states whether the original false-positive condition is
+  eliminated.
+
+## Dependency Graph
+
+```text
+01
+ |
+02
+ |
+03
+ |
+04 -> 05
+      | \
+      |  +-> 07
+      +-> 06
+            \
+             +-> 08 -> 09 -> 10 -> 11
+```
+
+Parallelization:
+
+- Slice 01 can run independently first.
+- Slice 02 must finish before preflight/service/adapter implementation.
+- Slice 06 and Slice 07 may run in parallel after Slice 05 if their file locks
+  remain disjoint.
+- Documentation drafting in Slice 10 may begin as notes during implementation
+  but must not claim behavior until implementation and tests exist.
+
+## Role Ownership Map
+
+| Concern | Owner | Secondary review |
+| --- | --- | --- |
+| Workflow dependency ordering | Senior Workflow Architect | Senior Swarm Orchestrator |
+| Requirement and EPIC drift | Senior Requirement Engineer | Engineering Governance |
+| Architecture boundaries and arc42 | Senior System Architect | arc42 governance |
+| Python automation implementation | Senior Python Automation Developer | Senior Tester |
+| Console/status output semantics | Console/status UI skills | Senior React Frontend Developer as N/A React guard |
+| Live platform safety | Senior DevOps Engineer | Security/Sandbox Engineer |
+| Test strategy and gates | Senior Tester | Quality Gate Orchestrator |
+| Documentation synchronization | Senior Documentation Engineer | Senior System Architect |
+| Git/commit readiness | Git commit preparation skills | Git commit reviewer |
+
+Only one implementation worker may modify files in a slice at a time. Read-only
+review subagents may run in parallel. Write scopes must remain disjoint before
+parallel implementation is authorized.
+
+## Quality Gate Expectations
+
+Verified commands from `QUALITY.md`:
 
 ```bash
-PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
-PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
-PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
-PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe
-PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
-PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_workflow_configuration
-PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+git diff --check
+python3 tools/quality_gate.py lint
+python3 tools/quality_gate.py arch-lint
 python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py typecheck
 python3 tools/quality_gate.py test
 python3 tools/quality_gate.py quality
 ```
 
-No quality gate may create VMs, change networking, initialize Docker Swarm,
-deploy stacks, contact Portainer/Nexus live, run Vaultwarden/NGINX containers,
-or bootstrap service credentials.
+Do not invent frontend, Java, Maven, Gradle, JUnit, ArchUnit, mutation testing,
+Docker, Multipass, or deployment CI commands.
+
+## Installation Validation Boundary
+
+Static preflight:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+```
+
+Static preflight is configuration and host-classification evidence only until
+runtime readiness checks are explicitly included. It must not be treated as
+proof that Multipass daemon, qemu driver, VM creation, Docker Swarm, or WSL2
+forwarding works.
+
+Consent-boundary setup command:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world setup run
+```
+
+Without `--live`, this is expected to refuse before mutation. Treat the result
+as consent-boundary evidence, not a dry-run installation pass.
+
+Operator-approved live validation commands may be run only after explicit
+approval in a disposable or recoverable environment:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+```
+
+Live validation results:
+
+- `PASSED_FULL_INSTALLATION`: full live installation was verified.
+- `BLOCKED_SANDBOX_CAPABILITY_MISSING`: sandbox lacks live infrastructure
+  capability; this is not a full pass.
+- `BLOCKED_WSL2_HOST_PREREQUISITE`: real WSL2 preflight blocked before
+  mutation with actionable remediation; this proves fail-closed safety but not
+  full installation success.
+- `FAILED`: live validation failed after an approved live phase.
+- `NOT_RUN`: required environment validation was not run.
+
+Full WSL2 installation success may be claimed only for
+`PASSED_FULL_INSTALLATION` from a real WSL2 console. A preflight-blocked WSL2
+result may close the safety regression when it blocks before `platform init`,
+but it must not be reported as full installation success.
+
+Evidence paths are local and ignored:
+
+```text
+.tiny-swarm-world/evidence/installation-tests/sandbox/
+.tiny-swarm-world/evidence/installation-tests/wsl2/
+.tiny-swarm-world/evidence/installation-tests/comparison-report.md
+```
+
+Committed reports may summarize sanitized status only.
 
 ## Documentation Synchronization Points
 
-- Slice 01: workflow and context pack.
-- Slice 03: preflight quality requirements and host runtime prerequisites.
-- Slice 04: platform init behavior and Multipass troubleshooting.
-- Slice 05: IntelliJ/Linux/WSL execution contract and endpoint strategy.
-- Slice 06: EPIC, inventory, profile and credential-source consistency.
-- Slice 07: artifact/deployment readiness docs.
-- Slice 08: README, user guide, arc42, workflow evidence and optional live
-  smoke handoff.
+Update documentation only when behavior is implemented or clearly marked as
+planned workflow behavior:
 
-## Stop Conditions
-
-Stop and report when:
-
-- live infrastructure execution is required without explicit approval;
-- the workflow would auto-repair host packages, socket permissions, drivers or
-  service state without an ADR and live approval;
-- domain code would import infrastructure concerns;
-- application services would embed low-level shell, Docker, HTTP or filesystem
-  details directly;
-- commands, stdout, stderr, tokens, passwords, local IPs, usernames or
-  user-specific paths would be persisted as evidence;
-- direct `platform init --live` could still bypass readiness checks;
-- endpoint strategy requires guessing localhost versus node-IP behavior;
-- documentation would claim live setup success before evidence exists;
-- quality commands cannot be verified from `QUALITY.md`;
-- React/browser frontend or Windows-native behavior is introduced.
-
-## Commit And Push Plan
-
-No commit or push is requested by this workflow creation request.
-
-When the user later asks for commit or push preparation:
-
-- inspect `git status --short --branch`;
-- review changed files and line-ending noise;
-- run required gates for the changed scope;
-- stage only workflow-related files;
-- use commit messaging governed by the git commit preparation skills.
-
-## Definition Of Done
-
-- `documentation/workflow/workflow.md` exists and includes complete slice
-  metadata.
-- `documentation/workflow/context-pack.md` and
-  `documentation/workflow/context-pack.json` exist and match this branch.
-- Subagent review findings are reflected in the workflow.
-- The problem analysis explains why quality passed while live setup failed.
-- Local `.tiny-swarm-world` evidence is summarized without committing raw logs,
-  host IPs, secrets or user-specific details.
-- arc42 impact is checked and represented in slice documentation
-  requirements.
-- Workflow creation verification passes `git diff --check`.
-- No live infrastructure command was run.
-- No implementation code, stack deployment or service bootstrap was performed
-  during workflow creation.
-
-## Handoff To Workflow Execute
-
-Use:
-
-```text
-workflow execute with subagents
-```
-
-Before execution:
-
-- verify the active branch is
-  `feature/workflow-stable-live-setup-20260525`;
-- verify context pack hashes are current;
-- verify slice metadata and locks;
-- run S3/S3D preflight;
-- begin at Slice 02 for implementation, because Slice 01 is this workflow
-  creation;
-- keep writes inside each slice's allowed scope;
-- stop on any live-infrastructure, secret, endpoint, consent, ADR or
-  architecture blocker.
-
-Final publication is checkpoint-only for workflow execution unless the user
-explicitly requests commit or push. No `push auto`, pull request, merge,
-branch cleanup, force-push or push to `main` is part of this workflow.
-
-## arc42 Check Status
-
-Checked during workflow creation:
-
+- `README.md`
+- `documentation/architecture/legacy-swarm-setup-migration.md`
+- `documentation/architecture/adr-autonomous-setup-safety.adoc`
+- `documentation/system/multipass-setup.adoc`
+- `documentation/system/network.adoc`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/system/wsl-host-preflight.adoc`
+- `documentation/user_guide/installation.adoc`
+- `documentation/user_guide/troubleshooting.adoc`
+- `documentation/deployment/system.adoc`
+- `documentation/arc42/02_constraints.adoc`
 - `documentation/arc42/06_runtime_view.adoc`
 - `documentation/arc42/07_deployment_view.adoc`
 - `documentation/arc42/10_quality_requirements.adoc`
 - `documentation/arc42/11_risks_and_debt.adoc`
 
-arc42 files are not changed during workflow creation. They are synchronized in
-the implementation slices when behavior changes are made.
+## Stop Conditions
+
+Stop and report if:
+
+- active branch is not `fix/linux-wsl-swarm-setup-workprocess-20260525`;
+- workflow slice metadata or locks are missing;
+- implementation would touch files outside the active slice scope;
+- direct `infra/swarm` scripts would be executed or promoted;
+- live infrastructure commands would run without explicit operator approval;
+- WSL2 behavior would be inferred from sandbox evidence;
+- raw command strings, stdout, stderr, environment payloads, tokens, passwords,
+  Swarm join tokens, usernames, host paths, or host-specific IPs would be
+  committed or persisted in unsafe evidence;
+- architecture tests would need to be weakened;
+- new host package installation, socket repair, `netsh`, `iptables`, or
+  automatic `socat` mutation is required without ADR approval;
+- planned behavior would be documented as implemented behavior.
+
+## Definition Of Done
+
+- `documentation/workflow/workflow.md` contains complete slice metadata and is
+  consistent with `AGENTS.md`, `QUALITY.md`, EPICs, ADRs, and arc42.
+- Legacy `infra/swarm` behavior is analyzed and classified.
+- Host environment classification is typed, tested, and wired into preflight.
+- WSL1 and unknown hosts block before platform mutation.
+- Sandbox/unverified Linux cannot be used as WSL2 proof.
+- Multipass readiness distinguishes executable presence from daemon, socket,
+  permission, timeout, version, list, and qemu driver readiness.
+- WSL2 network planning avoids hardcoded IPs and blind host mutation.
+- Setup/platform phase ordering blocks before VM creation when preflight fails.
+- The observed false-positive regression has a deterministic test.
+- Documentation is synchronized without overclaiming live success.
+- `python3 tools/quality_gate.py quality` passes or any failure is routed
+  through the Typed Error Router.
+- Sandbox and WSL2 live validation are recorded separately when operator
+  approval is granted.
+
+## Commit And Push Plan
+
+Suggested commit message after implementation and verification:
+
+```text
+fix: split swarm setup into native Linux and WSL2 host paths
+```
+
+Do not push or create a pull request during slice checkpoints unless the user
+explicitly asks for that action.
+
+## Handoff To Workflow Execute
+
+Before `workflow execute`:
+
+1. Verify branch:
+
+```bash
+git show-ref --verify --quiet refs/heads/fix/linux-wsl-swarm-setup-workprocess-20260525
+git branch --show-current
+```
+
+2. Verify no unrelated local changes.
+3. Re-read `AGENTS.md`, `QUALITY.md`, this workflow, and
+   `documentation/workflow/context-pack.md`.
+4. Use S3/S3D workflow-execute preflight.
+5. Execute slices in dependency order.
+6. Run targeted checks first, then required gates.
+7. Route failures through the Typed Error Router before retrying.
+
+## arc42 Check Status
+
+arc42 was checked during workflow creation. No arc42 file was changed during
+workflow authoring because this is a plan, not implementation. Slice 10 must
+update arc42 once behavior changes are implemented and verified.
