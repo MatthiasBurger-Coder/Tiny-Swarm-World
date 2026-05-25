@@ -6,7 +6,7 @@
     "createdDate": "2026-05-25",
     "processStrand": "service-access-vaultwarden-dashboard",
     "executionProfile": "FULL_PATH",
-    "releaseStatus": "SLICE_05_CHECKPOINT_PUSHED"
+    "releaseStatus": "WORKFLOW_EXECUTION_COMPLETE"
   },
   "contextValidity": {
     "staleWhen": [
@@ -219,7 +219,7 @@
     },
     {
       "path": "documentation/workflow/execution-report.md",
-      "sha256": "D74D5CD9292D32F27660B59521E0297EE83B3D35ED3638A53F4CEA9BD34E847D"
+      "sha256": "759386F3F0D37C2996DBC78ED6F3E0DFDB0A91A2CCBFD2E3220002E69F293AD3"
     }
   ],
   "affectedAreas": [

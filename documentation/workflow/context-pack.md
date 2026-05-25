@@ -12,7 +12,7 @@ or skill files.
 - Created: `2026-05-25`
 - Process strand: `service-access-vaultwarden-dashboard`
 - Execution profile: `FULL_PATH`
-- Release status: `SLICE_05_CHECKPOINT_PUSHED`
+- Release status: `WORKFLOW_EXECUTION_COMPLETE`
 
 ## Affected Areas
 
@@ -130,7 +130,7 @@ python3 tools/quality_gate.py quality
 | `tests/architecture/test_legacy_surface_documentation.py` | `2054D9102D7673D0D1059F50552E1B39A2B766C2AEEA25EF71FC96987B95B6F1` |
 | `documentation/workflow/reports/02-routing-security-quality-notes.md` | `E1AFBA162A0849ED30A6916536DB79239270796F2EB9A003645D2C2F1127BF96` |
 | `documentation/workflow/workflow.md` | `F0DC3746629B1836855EE796D859E8C61ADFFBAADF19FD3036B9A94E793CF40F` |
-| `documentation/workflow/execution-report.md` | `D74D5CD9292D32F27660B59521E0297EE83B3D35ED3638A53F4CEA9BD34E847D` |
+| `documentation/workflow/execution-report.md` | `759386F3F0D37C2996DBC78ED6F3E0DFDB0A91A2CCBFD2E3220002E69F293AD3` |
 
 ## Stale When
 

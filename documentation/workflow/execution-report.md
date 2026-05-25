@@ -507,7 +507,7 @@ PUSHED_TO_ORIGIN
 Status:
 
 ```text
-PASSED_CHECKPOINT_PENDING_COMMIT
+PASSED_CHECKPOINT_PUSHED
 ```
 
 Responsible role:
@@ -588,17 +588,17 @@ Decision details:
 Rollback reference:
 
 ```text
-git revert <slice-06-checkpoint-commit>
+git revert d5d69233d053fe8d42b393f60669adf0d6c43408
 ```
 
 Checkpoint commit:
 
 ```text
-PENDING_UNTIL_CP_COMMIT_SUCCEEDS
+d5d69233d053fe8d42b393f60669adf0d6c43408
 ```
 
 Push result:
 
 ```text
-PENDING_UNTIL_CP_PUSH_SUCCEEDS
+PUSHED_TO_ORIGIN
 ```
