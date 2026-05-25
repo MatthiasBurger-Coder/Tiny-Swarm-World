@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.preflight.setup_manifest import (
     SetupManifest,
     SetupProfile,
@@ -66,8 +67,9 @@ class PreflightConfiguration:
 
 def default_preflight_configuration(
     setup_profile: SetupProfile = SetupProfile.FULL,
+    service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
 ) -> PreflightConfiguration:
-    setup_manifest = default_setup_manifest(setup_profile)
+    setup_manifest = default_setup_manifest(setup_profile, service_profile)
     return PreflightConfiguration(
         setup_profile=setup_profile,
         setup_manifest=setup_manifest,

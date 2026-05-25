@@ -2,7 +2,9 @@ import unittest
 
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
     build_default_service_stack_steps,
+    build_service_stack_steps,
 )
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.domain.inventory import VerificationStatus
 
@@ -17,11 +19,11 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(5, len(steps))
         self.assertEqual(
             [
-                "deployment:nexus-service-readiness",
-                "deployment:jenkins-service-readiness",
-                "deployment:rabbitmq-service-readiness",
-                "deployment:sonarqube-service-readiness",
-                "deployment:swagger-service-readiness",
+                "deployment:nexus-stack",
+                "deployment:jenkins-stack",
+                "deployment:rabbitmq-stack",
+                "deployment:sonarqube-stack",
+                "deployment:swagger-stack",
             ],
             [step.verification_target_id for step in steps],
         )
@@ -34,7 +36,41 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
 
         self.assertNotIn("portainer", [step.service_stack.stack_name for step in steps])
 
-    async def test_default_service_stack_steps_block_until_service_readiness_is_observed(self):
+    def test_service_access_profile_steps_include_selected_stack(self):
+        compose_repository = object()
+        portainer_client = object()
+
+        steps = build_service_stack_steps(
+            compose_repository,
+            portainer_client,
+            "local",
+            service_profile=ServiceStackProfile.SERVICE_ACCESS,
+        )
+
+        self.assertEqual(
+            ("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "service-access"),
+            tuple(step.service_stack.stack_name for step in steps),
+        )
+        self.assertNotIn("portainer", tuple(step.service_stack.stack_name for step in steps))
+        self.assertTrue(all(step.compose_repository is compose_repository for step in steps))
+        self.assertTrue(all(step.portainer_client is portainer_client for step in steps))
+        self.assertTrue(all(step.endpoint_name == "local" for step in steps))
+
+    def test_service_stack_steps_can_exclude_bootstrap_owned_stacks(self):
+        steps = build_service_stack_steps(
+            object(),
+            object(),
+            "local",
+            service_profile=ServiceStackProfile.SERVICE_ACCESS,
+            excluded_stack_names=("nexus",),
+        )
+
+        self.assertEqual(
+            ("jenkins", "rabbitmq", "sonarqube", "swagger", "service-access"),
+            tuple(step.service_stack.stack_name for step in steps),
+        )
+
+    async def test_default_service_stack_steps_verify_stack_registration_without_readiness_claim(self):
         compose_repository = _FakeComposeRepository()
         portainer_client = _FakePortainerClient()
 
@@ -43,16 +79,19 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             [
-                "deployment:nexus-service-readiness",
-                "deployment:jenkins-service-readiness",
-                "deployment:rabbitmq-service-readiness",
-                "deployment:sonarqube-service-readiness",
-                "deployment:swagger-service-readiness",
+                "deployment:nexus-stack",
+                "deployment:jenkins-stack",
+                "deployment:rabbitmq-stack",
+                "deployment:sonarqube-stack",
+                "deployment:swagger-stack",
             ],
             [verification.target_id for verification in verification_results],
         )
         self.assertTrue(
-            all(verification.status == VerificationStatus.BLOCKED for verification in verification_results)
+            all(verification.status == VerificationStatus.VERIFIED for verification in verification_results)
+        )
+        self.assertTrue(
+            all(verification.evidence["readiness_observed"] == "false" for verification in verification_results)
         )
         self.assertEqual([], compose_repository.requested_stacks)
 

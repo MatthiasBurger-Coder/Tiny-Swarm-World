@@ -23,11 +23,13 @@ class EnsureServiceStack:
         self.service_stack = service_stack
         self.endpoint_name = endpoint_name
         self.deployment_target_id = service_stack.stack_target_id
-        self.verification_target_id = service_stack.verification_target_id
+        self.verification_target_id = service_stack.stack_target_id
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self) -> None:
         stack_definition = self.compose_repository.get_compose_of(self.service_stack.stack_name)
+        if stack_definition.name != self.service_stack.stack_name:
+            raise ValueError("compose stack definition name does not match the service stack contract")
         endpoint_id = self.portainer_client.get_endpoint_id_by_name(self.endpoint_name)
         stack_id = self.portainer_client.find_stack_id_by_name(stack_definition.name)
 
@@ -46,37 +48,38 @@ class EnsureServiceStack:
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,
-                message=f"Portainer stack presence verification failed: {exc.__class__.__name__}",
-                evidence=_service_readiness_evidence(self.service_stack, stack_registered="unknown"),
+                message=f"Portainer stack registration verification failed: {exc.__class__.__name__}",
+                evidence=_stack_registration_evidence(self.service_stack, stack_registered="unknown"),
             )
 
         if stack_id is None:
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,
-                message="Portainer stack is missing; service readiness cannot be checked.",
-                evidence=_service_readiness_evidence(self.service_stack, stack_registered="false"),
+                message="Portainer stack is missing after apply.",
+                evidence=_stack_registration_evidence(self.service_stack, stack_registered="false"),
             )
 
         return VerificationResult(
             target_id=self.verification_target_id,
-            status=VerificationStatus.BLOCKED,
+            status=VerificationStatus.VERIFIED,
             message=(
-                "Service readiness verification is blocked; Portainer stack is "
-                "registered but required services are not observed."
+                "Portainer stack is registered; service readiness remains a "
+                "separate observed-state verification."
             ),
-            evidence=_service_readiness_evidence(self.service_stack, stack_registered="true"),
+            evidence=_stack_registration_evidence(self.service_stack, stack_registered="true"),
         )
 
 
-def _service_readiness_evidence(
+def _stack_registration_evidence(
     service_stack: ServiceStackContract,
     *,
     stack_registered: str,
 ) -> dict[str, str]:
     return {
         "phase": "verify",
-        "readiness_scope": "service_readiness",
+        "readiness_observed": "false",
+        "registration_scope": "portainer_stack",
         "required_service_count": str(len(service_stack.required_services)),
         "required_services": ",".join(service_stack.required_services),
         "stack_registered": stack_registered,

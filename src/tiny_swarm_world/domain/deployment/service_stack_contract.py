@@ -2,10 +2,16 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from enum import Enum
 
 
 STACK_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
 SERVICE_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
+
+
+class ServiceStackProfile(str, Enum):
+    DEFAULT = "default"
+    SERVICE_ACCESS = "service-access"
 
 
 @dataclass(frozen=True)
@@ -56,6 +62,30 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
     ServiceStackContract("sonarqube", ("sonarqube", "sonar_db")),
     ServiceStackContract("swagger", ("swagger-editor", "swagger-ui", "swagger-api", "swagger-nginx")),
 )
-DEFAULT_PORTAINER_MANAGED_SERVICE_STACK_CONTRACTS = tuple(
-    contract for contract in DEFAULT_SERVICE_STACK_CONTRACTS if contract.stack_name != "portainer"
+
+SERVICE_ACCESS_STACK_CONTRACT = ServiceStackContract(
+    "service-access",
+    ("service-access-dashboard", "vaultwarden", "service-access-nginx"),
 )
+
+
+def service_stack_contracts_for_profile(
+    service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
+) -> tuple[ServiceStackContract, ...]:
+    profile = ServiceStackProfile(service_profile)
+    if profile is ServiceStackProfile.SERVICE_ACCESS:
+        return (*DEFAULT_SERVICE_STACK_CONTRACTS, SERVICE_ACCESS_STACK_CONTRACT)
+    return DEFAULT_SERVICE_STACK_CONTRACTS
+
+
+def portainer_managed_service_stack_contracts_for_profile(
+    service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
+) -> tuple[ServiceStackContract, ...]:
+    return tuple(
+        contract
+        for contract in service_stack_contracts_for_profile(service_profile)
+        if contract.stack_name != "portainer"
+    )
+
+
+DEFAULT_PORTAINER_MANAGED_SERVICE_STACK_CONTRACTS = portainer_managed_service_stack_contracts_for_profile()

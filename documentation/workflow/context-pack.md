@@ -108,8 +108,22 @@ python3 tools/quality_gate.py quality
 | `infra/compose/service-access/dashboard/index.html` | `682AC6C22CA409AA92BFDE19EADC29133F9C00EAEBBA5EFE9B7353869A9BCFCA` |
 | `infra/compose/service-access/nginx/Dockerfile` | `FBFC1750D9179E4F7EF83116221EDACF129823CF55D12ADF36FA559F007B657B` |
 | `infra/compose/service-access/nginx/default.conf` | `D01F7884D79D4A75BC4A4BFDD392E849455CCE04AEE28216728050AC7FD3C6D2` |
+| `src/tiny_swarm_world/domain/deployment/service_stack_contract.py` | `E9774248959404F3F21184CDD806E68B370D76022DDDCB0379C799F1FC754471` |
+| `src/tiny_swarm_world/domain/deployment/__init__.py` | `55CEF5099776F2AC1910F01FE3275754EFF419E946241947F58B3CFF62FDA2F9` |
+| `src/tiny_swarm_world/domain/preflight/setup_manifest.py` | `601D231D307C6A5D9FA43A0C75CAE8B192B65F6B68EDB53FCB2574C7BBEEF545` |
+| `src/tiny_swarm_world/domain/preflight/preflight_configuration.py` | `0CB902DDDA476BC10DC1D16DAC2B922A914E5936FB6793E007FAB3BA7DC052C3` |
+| `src/tiny_swarm_world/application/services/deployment/service_stack_plan.py` | `EF476E2416A2B002DC940FFAD54C2C1FF20601395F24014B3567DFF87EEF5015` |
+| `src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py` | `CEEB7A9C9692C4D3A82BEE577DEAE9CDD6AADA1A16BEEA60147BD9F09D0B1D7F` |
+| `src/tiny_swarm_world/application/services/deployment/verify_swarm_service_readiness.py` | `6DE065BA3999B7F35B0D5D36D5FC8A4EFC6647C90E41B1507BAB407DFAB1AE7B` |
+| `src/tiny_swarm_world/infrastructure/composition.py` | `0A56295B57E43487A6F4644BAC8291A3187ADA2B8D2F60C45109DE38ED618ABD` |
+| `tests/domain/deployment/test_service_stack_contract.py` | `E81BEF67074EB37A3524581A4401511C02BB67F4812C1F91E70BABC7BF920961` |
+| `tests/domain/preflight/test_preflight_result.py` | `84AC123A4B547DD1BBC9A3065351D592CDBA24FDC58C8709BC6195D107179E47` |
+| `tests/application/services/deployment/test_service_stack_plan.py` | `133D18E02EBCEFDCCEB327C7A758048DC40D2B944451D6ECFA43768813549503` |
+| `tests/application/services/deployment/test_ensure_service_stack.py` | `709D883551E66FBDB73D31F8B8219C0D22C7EB14D2C33E835478A69E5A37C91E` |
+| `tests/application/services/deployment/test_verify_swarm_service_readiness.py` | `EF65C7A7637CE81F56D5E86018578AFB9F29D00F86D7C15C56EBB11A9A5B80FA` |
+| `tests/infrastructure/test_composition.py` | `FB4FA7FD2969D378FA7C7CEF7A1E0DF3D8D77AEA95D34E9B460CA8866EC80C13` |
 | `documentation/workflow/reports/02-routing-security-quality-notes.md` | `E1AFBA162A0849ED30A6916536DB79239270796F2EB9A003645D2C2F1127BF96` |
-| `documentation/workflow/execution-report.md` | `6609FF655894C920466DD45BEAED6F33CACCD418C5732C0A60979263427B8F8E` |
+| `documentation/workflow/execution-report.md` | `0DC48F44CD03A1F237A60B4637632BE6228481E2643262043340FC4883FB71D8` |
 
 ## Stale When
 

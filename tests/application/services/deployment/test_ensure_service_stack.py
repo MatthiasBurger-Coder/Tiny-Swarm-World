@@ -41,7 +41,7 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([], portainer_client.created_stacks)
         self.assertEqual([(42, "rabbitmq", 7)], portainer_client.updated_stacks)
 
-    async def test_verify_blocks_when_only_stack_presence_is_known(self):
+    async def test_verify_reports_registered_stack_without_claiming_readiness(self):
         stack_definition = StackDefinition(name="sonarqube", compose_content="services: {}")
         compose_repository = _FakeComposeRepository(stack_definition)
         portainer_client = _FakePortainerClient(stack_ids=[31])
@@ -54,11 +54,12 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
 
         verification = await service.verify()
 
-        self.assertEqual(VerificationStatus.BLOCKED, verification.status)
-        self.assertEqual("deployment:sonarqube-service-readiness", verification.target_id)
-        self.assertEqual("service_readiness", verification.evidence["readiness_scope"])
+        self.assertEqual(VerificationStatus.VERIFIED, verification.status)
+        self.assertEqual("deployment:sonarqube-stack", verification.target_id)
+        self.assertEqual("portainer_stack", verification.evidence["registration_scope"])
+        self.assertEqual("false", verification.evidence["readiness_observed"])
         self.assertEqual("true", verification.evidence["stack_registered"])
-        self.assertIn("required services are not observed", verification.message)
+        self.assertIn("service readiness remains", verification.message)
 
     async def test_verify_reports_missing_stack_without_running_compose(self):
         stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
@@ -76,6 +77,23 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertEqual([], compose_repository.requested_stacks)
         self.assertEqual("false", verification.evidence["stack_registered"])
+
+    async def test_run_rejects_compose_stack_name_mismatch(self):
+        stack_definition = StackDefinition(name="wrong-stack", compose_content="services: {}")
+        compose_repository = _FakeComposeRepository(stack_definition)
+        portainer_client = _FakePortainerClient(stack_ids=[None])
+        service = EnsureServiceStack(
+            compose_repository,
+            portainer_client,
+            ServiceStackContract("service-access", ("service-access-dashboard",)),
+            "local",
+        )
+
+        with self.assertRaises(ValueError):
+            await service.run()
+
+        self.assertEqual(["service-access"], compose_repository.requested_stacks)
+        self.assertEqual([], portainer_client.requested_endpoints)
 
     async def test_verify_sanitizes_portainer_client_failures(self):
         stack_definition = StackDefinition(name="nexus", compose_content="services: {}")

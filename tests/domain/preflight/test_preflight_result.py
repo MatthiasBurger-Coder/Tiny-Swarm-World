@@ -17,6 +17,7 @@ from tiny_swarm_world.domain.preflight import (
     default_preflight_configuration,
     default_setup_manifest,
 )
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
 
 
 class TestLiveConsent(unittest.TestCase):
@@ -158,6 +159,36 @@ class TestPreflightResult(unittest.TestCase):
             ),
             tuple(secret.name for secret in manifest.required_secrets),
         )
+
+    def test_service_access_setup_manifest_lists_ports_and_secret_source_name(self):
+        manifest = default_setup_manifest(service_profile=ServiceStackProfile.SERVICE_ACCESS)
+        configuration = default_preflight_configuration(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS
+        )
+
+        self.assertIn("Service Access", manifest.service_names)
+        self.assertIn(
+            (8085, "Service Access dashboard"),
+            tuple((port.port, port.service) for port in manifest.required_ports),
+        )
+        self.assertIn(
+            (8086, "Vaultwarden"),
+            tuple((port.port, port.service) for port in manifest.required_ports),
+        )
+        self.assertIn(
+            "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
+            tuple(secret.name for secret in manifest.required_secrets),
+        )
+        self.assertIn(
+            "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
+            tuple(secret.name for secret in configuration.required_secrets),
+        )
+        self.assertNotIn(
+            "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
+            tuple(default.name for default in configuration.static_secret_defaults),
+        )
+        self.assertNotIn("token-value", repr(manifest.to_dict()).lower())
+        self.assertNotIn("password_value", repr(manifest.to_dict()).lower())
 
     def test_resource_gated_manifest_keeps_profile_explicit(self):
         manifest = default_setup_manifest(SetupProfile.RESOURCE_GATED)

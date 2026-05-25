@@ -201,7 +201,7 @@ PUSHED_TO_ORIGIN
 Status:
 
 ```text
-PASSED_CHECKPOINT_PENDING_COMMIT
+PASSED_CHECKPOINT_PUSHED
 ```
 
 Responsible role:
@@ -280,7 +280,122 @@ Decision details:
 Rollback reference:
 
 ```text
-git revert <slice-03-checkpoint-commit>
+git revert 20e091c6cfa27f42e63dccd76e4f91f1baf3b672
+```
+
+Checkpoint commit:
+
+```text
+20e091c6cfa27f42e63dccd76e4f91f1baf3b672
+```
+
+Push result:
+
+```text
+PUSHED_TO_ORIGIN
+```
+
+## Slice 04 - Domain, Preflight, And Deployment Contracts
+
+Status:
+
+```text
+PASSED_CHECKPOINT_PENDING_COMMIT
+```
+
+Responsible role:
+
+```text
+Senior Python Automation Developer
+```
+
+Reviewed roles:
+
+- Senior Python Automation Developer
+- Senior System Architect
+- Senior DevOps Engineer
+- Senior Tester
+
+Changed files:
+
+- `src/tiny_swarm_world/domain/deployment/service_stack_contract.py`
+- `src/tiny_swarm_world/domain/deployment/__init__.py`
+- `src/tiny_swarm_world/domain/preflight/setup_manifest.py`
+- `src/tiny_swarm_world/domain/preflight/preflight_configuration.py`
+- `src/tiny_swarm_world/application/services/deployment/service_stack_plan.py`
+- `src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py`
+- `src/tiny_swarm_world/application/services/deployment/verify_swarm_service_readiness.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `tests/domain/deployment/test_service_stack_contract.py`
+- `tests/domain/preflight/test_preflight_result.py`
+- `tests/application/services/deployment/test_service_stack_plan.py`
+- `tests/application/services/deployment/test_ensure_service_stack.py`
+- `tests/application/services/deployment/test_verify_swarm_service_readiness.py`
+- `tests/infrastructure/test_composition.py`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/execution-report.md`
+
+Quality-gate commands:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+git diff --check
+```
+
+Quality-gate result:
+
+```text
+PASSED
+```
+
+Evidence:
+
+- `PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract`
+  passed: 9 tests.
+- `PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result`
+  passed: 14 tests.
+- `PYTHONPATH=src python3 -m unittest tests.application.services.deployment`
+  passed: 41 tests.
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition`
+  passed: 20 tests.
+- `python3 tools/quality_gate.py arch-tests` passed: 16 tests.
+- `python3 tools/quality_gate.py test` passed: 412 tests, 1 skipped.
+  Existing mocked command-failure messages and one runtime warning were
+  printed, but the gate exited successfully.
+- `git diff --check` passed in WSL. Git emitted CRLF warnings for unrelated
+  untouched files, but no whitespace errors.
+- Context pack JSON and recorded hashes validated after Slice 04 updates.
+- ASCII check passed for all Slice 04 code, tests and workflow metadata files.
+- Secret-pattern scan found no committed credential values. Deliberate
+  sanitizer-test strings were not treated as credential values.
+
+Decision details:
+
+- The default service-stack profile remains unchanged and does not include
+  `service-access`.
+- The selected service-access profile adds the `service-access` stack with
+  required services `service-access-dashboard`, `vaultwarden` and
+  `service-access-nginx`.
+- Post-bootstrap selected-stack planning excludes `portainer` and can exclude
+  bootstrap-owned `nexus`; `service-access` is a Portainer-managed
+  post-bootstrap stack.
+- Setup manifest selection adds ports `8085` and `8086` and the
+  `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name without any
+  credential value or static default.
+- `EnsureServiceStack` verifies Portainer stack registration after apply; real
+  service readiness remains fail-closed in observed Swarm readiness checks.
+- Swarm service readiness now waits asynchronously between attempts.
+
+Rollback reference:
+
+```text
+git revert <slice-04-checkpoint-commit>
 ```
 
 Checkpoint commit:
