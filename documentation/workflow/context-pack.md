@@ -105,7 +105,7 @@ python3 tools/quality_gate.py quality
 | `infra/compose/README.md` | `82537B6B32BD4CDC6FA8E4F948BD7B8F1554F3E13ACC9AA943B56664E2ABF33F` |
 | `infra/config/compose/service-access/docker-compose.yml` | `851D189D3AC55487A80FDC923BED6F5B31118F9463048E4E7DCDCAB0B94CE5F6` |
 | `infra/compose/service-access/dashboard/Dockerfile` | `EDDF37ADD4DBB61F317920E55DD221A07348DAD7FAD29E8445BEBA7A4871A9B9` |
-| `infra/compose/service-access/dashboard/index.html` | `682AC6C22CA409AA92BFDE19EADC29133F9C00EAEBBA5EFE9B7353869A9BCFCA` |
+| `infra/compose/service-access/dashboard/index.html` | `F3BD5BDC317962DD8B28E86FC6C52139D001F977DEE561404D5A7B4FE32C2C45` |
 | `infra/compose/service-access/nginx/Dockerfile` | `FBFC1750D9179E4F7EF83116221EDACF129823CF55D12ADF36FA559F007B657B` |
 | `infra/compose/service-access/nginx/default.conf` | `D01F7884D79D4A75BC4A4BFDD392E849455CCE04AEE28216728050AC7FD3C6D2` |
 | `src/tiny_swarm_world/domain/deployment/service_stack_contract.py` | `E9774248959404F3F21184CDD806E68B370D76022DDDCB0379C799F1FC754471` |
@@ -122,8 +122,10 @@ python3 tools/quality_gate.py quality
 | `tests/application/services/deployment/test_ensure_service_stack.py` | `709D883551E66FBDB73D31F8B8219C0D22C7EB14D2C33E835478A69E5A37C91E` |
 | `tests/application/services/deployment/test_verify_swarm_service_readiness.py` | `EF65C7A7637CE81F56D5E86018578AFB9F29D00F86D7C15C56EBB11A9A5B80FA` |
 | `tests/infrastructure/test_composition.py` | `FB4FA7FD2969D378FA7C7CEF7A1E0DF3D8D77AEA95D34E9B460CA8866EC80C13` |
+| `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py` | `079478009E135B9CC1F73FE1AAC65FAB1E268E5FA72D83D4E4F033C3F0D64446` |
+| `tests/architecture/test_legacy_surface_documentation.py` | `2054D9102D7673D0D1059F50552E1B39A2B766C2AEEA25EF71FC96987B95B6F1` |
 | `documentation/workflow/reports/02-routing-security-quality-notes.md` | `E1AFBA162A0849ED30A6916536DB79239270796F2EB9A003645D2C2F1127BF96` |
-| `documentation/workflow/execution-report.md` | `0DC48F44CD03A1F237A60B4637632BE6228481E2643262043340FC4883FB71D8` |
+| `documentation/workflow/execution-report.md` | `EDC4EB4C4E12F9496DA92A05B5040848371538F4E4E89C811180ED2459A1BFCB` |
 
 ## Stale When
 

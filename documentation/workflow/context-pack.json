@@ -119,7 +119,7 @@
     },
     {
       "path": "infra/compose/service-access/dashboard/index.html",
-      "sha256": "682AC6C22CA409AA92BFDE19EADC29133F9C00EAEBBA5EFE9B7353869A9BCFCA"
+      "sha256": "F3BD5BDC317962DD8B28E86FC6C52139D001F977DEE561404D5A7B4FE32C2C45"
     },
     {
       "path": "infra/compose/service-access/nginx/Dockerfile",
@@ -186,12 +186,20 @@
       "sha256": "FB4FA7FD2969D378FA7C7CEF7A1E0DF3D8D77AEA95D34E9B460CA8866EC80C13"
     },
     {
+      "path": "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py",
+      "sha256": "079478009E135B9CC1F73FE1AAC65FAB1E268E5FA72D83D4E4F033C3F0D64446"
+    },
+    {
+      "path": "tests/architecture/test_legacy_surface_documentation.py",
+      "sha256": "2054D9102D7673D0D1059F50552E1B39A2B766C2AEEA25EF71FC96987B95B6F1"
+    },
+    {
       "path": "documentation/workflow/reports/02-routing-security-quality-notes.md",
       "sha256": "E1AFBA162A0849ED30A6916536DB79239270796F2EB9A003645D2C2F1127BF96"
     },
     {
       "path": "documentation/workflow/execution-report.md",
-      "sha256": "0DC48F44CD03A1F237A60B4637632BE6228481E2643262043340FC4883FB71D8"
+      "sha256": "EDC4EB4C4E12F9496DA92A05B5040848371538F4E4E89C811180ED2459A1BFCB"
     }
   ],
   "affectedAreas": [

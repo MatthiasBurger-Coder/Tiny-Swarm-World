@@ -1,10 +1,15 @@
 import tempfile
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urlparse
 
 from ruamel.yaml import YAML
 
-from tiny_swarm_world.domain.deployment import DEFAULT_SERVICE_STACK_CONTRACTS
+from tiny_swarm_world.domain.deployment import (
+    DEFAULT_SERVICE_STACK_CONTRACTS,
+    SERVICE_ACCESS_STACK_CONTRACT,
+)
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import ComposeFileRepositoryYaml
 
 
@@ -159,3 +164,138 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertNotIn("127.0.0.1:5000/swagger-nginx", compose_content)
         self.assertNotIn("depends_on", compose_content)
         self.assertNotIn("./swagger/openapi.json:/openapi.json", compose_content)
+
+    def test_committed_service_access_compose_declares_required_services_and_secret_boundary(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_path = repository_root / "infra" / "config" / "compose" / "service-access" / "docker-compose.yml"
+        compose_content = compose_path.read_text(encoding="utf-8")
+        compose_data = YAML(typ="safe").load(compose_content)
+        services = compose_data["services"]
+
+        self.assertEqual("service-access", ComposeFileRepositoryYaml().get_compose_of("service-access").name)
+        self.assertEqual(set(SERVICE_ACCESS_STACK_CONTRACT.required_services), set(services))
+        self.assertEqual(
+            [
+                {"target": 8085, "published": 8085, "protocol": "tcp"},
+                {"target": 8086, "published": 8086, "protocol": "tcp"},
+            ],
+            services["service-access-nginx"]["ports"],
+        )
+        self.assertNotIn("ports", services["vaultwarden"])
+        self.assertEqual(
+            "/run/secrets/vaultwarden_admin_token",
+            services["vaultwarden"]["environment"]["ADMIN_TOKEN_FILE"],
+        )
+        self.assertNotIn("ADMIN_TOKEN", services["vaultwarden"]["environment"])
+        self.assertEqual(
+            {"external": True, "name": "${TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET:-tsw_vaultwarden_admin_token}"},
+            compose_data["secrets"]["vaultwarden_admin_token"],
+        )
+        self.assertEqual(["vaultwarden_data:/data"], services["vaultwarden"]["volumes"])
+        self.assertNotIn("${TSW_REMOTE_STACK_ROOT", compose_content)
+
+    def test_service_access_dashboard_and_nginx_are_image_packaged(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_data = YAML(typ="safe").load(
+            (
+                repository_root / "infra" / "config" / "compose" / "service-access" / "docker-compose.yml"
+            ).read_text(encoding="utf-8")
+        )
+        packaged_services = {
+            "service-access-dashboard": (
+                repository_root / "infra" / "compose" / "service-access" / "dashboard" / "Dockerfile",
+                "COPY index.html /usr/share/nginx/html/index.html",
+            ),
+            "service-access-nginx": (
+                repository_root / "infra" / "compose" / "service-access" / "nginx" / "Dockerfile",
+                "COPY default.conf /etc/nginx/conf.d/default.conf",
+            ),
+        }
+
+        for service_name, (dockerfile_path, copy_line) in packaged_services.items():
+            with self.subTest(service_name=service_name):
+                service = compose_data["services"][service_name]
+                self.assertIn("image", service)
+                self.assertNotIn("build", service)
+                self.assertNotIn("volumes", service)
+                self.assertNotIn("configs", service)
+                self.assertNotIn("secrets", service)
+                self.assertTrue(dockerfile_path.is_file())
+                dockerfile = dockerfile_path.read_text(encoding="utf-8")
+                self.assertIn("FROM nginx:mainline-alpine", dockerfile)
+                self.assertIn(copy_line, dockerfile)
+
+    def test_service_access_dashboard_exposes_status_labels_as_visible_text(self):
+        dashboard = _service_access_dashboard_html()
+
+        for label in ("Unknown", "Blocked", "Reachable", "Unreachable", "Resource-gated", "Needs credentials"):
+            with self.subTest(label=label):
+                self.assertIn(f">{label}<", dashboard)
+
+    def test_service_access_dashboard_links_only_to_vaultwarden_without_credentials(self):
+        dashboard = _service_access_dashboard_html()
+        links = _extract_links(dashboard)
+
+        self.assertTrue(links)
+        self.assertEqual({"http://localhost:8086/"}, set(links))
+        for link in links:
+            parsed = urlparse(link)
+            self.assertFalse(parsed.username)
+            self.assertFalse(parsed.password)
+            self.assertEqual("", parsed.query)
+            self.assertEqual("", parsed.fragment)
+        for forbidden_link in (
+            "http://localhost:8085",
+            "http://localhost:9000",
+            "http://localhost:8081",
+            "http://localhost:8080",
+            "http://localhost:15672",
+            "http://localhost:9001",
+        ):
+            self.assertNotIn(forbidden_link, dashboard)
+
+    def test_service_access_dashboard_lists_credential_references_without_values(self):
+        dashboard = _service_access_dashboard_html()
+        expected_items = (
+            "service-access/vaultwarden",
+            "platform/portainer",
+            "platform/nexus",
+            "platform/jenkins",
+            "platform/rabbitmq",
+            "platform/sonarqube",
+        )
+
+        for item in expected_items:
+            with self.subTest(item=item):
+                self.assertIn(f"<code>{item}</code>", dashboard)
+        self.assertEqual(7, dashboard.count("<b>Unknown</b>"))
+        self.assertEqual(6, dashboard.count("<b>Needs credentials</b>"))
+        for forbidden in ("password=", "token=", "secret=", "api_key=", "access_token=", "Bearer ", "Basic "):
+            self.assertNotIn(forbidden, dashboard)
+
+
+class _LinkCollector(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag != "a":
+            return
+        attributes = dict(attrs)
+        href = attributes.get("href")
+        if href:
+            self.links.append(href)
+
+
+def _extract_links(html: str) -> list[str]:
+    collector = _LinkCollector()
+    collector.feed(html)
+    return collector.links
+
+
+def _service_access_dashboard_html() -> str:
+    repository_root = Path(__file__).resolve().parents[4]
+    return (
+        repository_root / "infra" / "compose" / "service-access" / "dashboard" / "index.html"
+    ).read_text(encoding="utf-8")

@@ -300,7 +300,7 @@ PUSHED_TO_ORIGIN
 Status:
 
 ```text
-PASSED_CHECKPOINT_PENDING_COMMIT
+PASSED_CHECKPOINT_PUSHED
 ```
 
 Responsible role:
@@ -395,7 +395,99 @@ Decision details:
 Rollback reference:
 
 ```text
-git revert <slice-04-checkpoint-commit>
+git revert e8b385f43f6882e2c1870bf39cb5d104fa5c7607
+```
+
+Checkpoint commit:
+
+```text
+e8b385f43f6882e2c1870bf39cb5d104fa5c7607
+```
+
+Push result:
+
+```text
+PUSHED_TO_ORIGIN
+```
+
+## Slice 05 - Dashboard UX, Reachability, And Credential References
+
+Status:
+
+```text
+PASSED_CHECKPOINT_PENDING_COMMIT
+```
+
+Responsible role:
+
+```text
+Senior DevOps Engineer
+```
+
+Reviewed roles:
+
+- Senior UX Designer
+- Senior Security Sandbox Engineer
+- Senior Tester
+
+Changed files:
+
+- `infra/compose/service-access/dashboard/index.html`
+- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- `tests/architecture/test_legacy_surface_documentation.py`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/execution-report.md`
+
+Quality-gate commands:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation
+python3 tools/quality_gate.py arch-tests
+git diff --check
+python3 tools/quality_gate.py test
+```
+
+Quality-gate result:
+
+```text
+PASSED
+```
+
+Evidence:
+
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml`
+  passed: 15 tests.
+- `PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation`
+  passed: 13 tests.
+- `python3 tools/quality_gate.py arch-tests` passed: 16 tests.
+- `git diff --check` passed in WSL. Git emitted CRLF warnings for unrelated
+  untouched files, but no whitespace errors.
+- `python3 tools/quality_gate.py test` passed: 419 tests, 1 skipped.
+  Existing mocked command-failure messages and one runtime warning were
+  printed, but the gate exited successfully.
+
+Decision details:
+
+- Dashboard links point only to the plain Vaultwarden route.
+- Service access methods are descriptive text, not direct service links.
+- Reachability states are text-visible and distinguish `Unknown`, `Blocked`,
+  `Reachable`, `Unreachable`, `Resource-gated` and `Needs credentials`
+  without relying on color alone.
+- Each service row records evidence source and freshness as static catalog
+  data until observed reachability is wired.
+- Credential references are Vaultwarden item names only; no password values,
+  credential-bearing query strings, userinfo URLs, API keys or admin-token
+  values are rendered.
+- Static tests cover service-access compose services, NGINX route constraints,
+  image-packaged dashboard/NGINX assets, Vaultwarden-only links and no
+  React/Vite/live-orchestration surface.
+
+Rollback reference:
+
+```text
+git revert <slice-05-checkpoint-commit>
 ```
 
 Checkpoint commit:
