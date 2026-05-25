@@ -33,6 +33,29 @@ class TestPortainerHttpClient(unittest.TestCase):
         self.assertEqual("Bearer jwt-token", session.request_calls[0]["headers"]["Authorization"])
         self.assertEqual("portainer", session.request_calls[0]["json"]["name"])
 
+    def test_create_stack_sends_allowlisted_stack_environment(self):
+        session = _FakeSession(
+            post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
+            request_responses=[_FakeResponse(200, {})],
+        )
+        client = PortainerHttpClient(
+            "http://portainer.local",
+            "admin",
+            "operator-password",
+            session=session,
+        )
+
+        client.create_stack(
+            StackDefinition(name="service-access", compose_content="services: {}"),
+            1,
+            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+        )
+
+        self.assertEqual(
+            [{"name": "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET", "value": "operator_defined"}],
+            session.request_calls[0]["json"]["env"],
+        )
+
     def test_get_endpoint_id_by_name_uses_cached_jwt(self):
         session = _FakeSession(
             post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
@@ -133,6 +156,30 @@ class TestPortainerHttpClient(unittest.TestCase):
                 "stackFileContent": "services: {}",
             },
             request["json"],
+        )
+
+    def test_update_stack_sends_stack_environment(self):
+        session = _FakeSession(
+            post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
+            request_responses=[_FakeResponse(200, {})],
+        )
+        client = PortainerHttpClient(
+            "http://portainer.local",
+            "admin",
+            "operator-password",
+            session=session,
+        )
+
+        client.update_stack(
+            42,
+            StackDefinition(name="service-access", compose_content="services: {}"),
+            7,
+            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+        )
+
+        self.assertEqual(
+            [{"name": "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET", "value": "operator_defined"}],
+            session.request_calls[0]["json"]["env"],
         )
 
     def test_missing_jwt_blocks_api_request(self):

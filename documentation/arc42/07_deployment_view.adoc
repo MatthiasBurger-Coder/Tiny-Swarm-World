@@ -35,7 +35,11 @@ profile by default and adds the `service-access` stack. The
 Portainer-managed plan excludes Portainer itself to avoid a bootstrap cycle
 and can exclude bootstrap-owned Nexus. Stack apply checks record Portainer
 stack-registration context only; service readiness is verified separately
-through observed Swarm service evidence.
+through observed Swarm service evidence. The service-access deployment path
+also has a pre-apply external Swarm input check for the Vaultwarden
+administrator-token Swarm secret reference. Missing input blocks deployment
+before Portainer stack create/update runs, and verification evidence records
+only neutral presence/source classifications.
 
 == Service Access And Vaultwarden Routing Baseline
 
@@ -69,6 +73,11 @@ For the Portainer-managed path, service-access dashboard and NGINX assets are
 image-packaged under `infra/compose/service-access/**`. Bind-mounted
 repository files are not an accepted Portainer path unless a later slice adds
 a tested asset-preparation port or adapter and documents when it runs.
+
+The Vaultwarden administrator-token secret name is propagated through an
+allowlisted stack environment variable for both Portainer-managed and direct
+Swarm stack deployment paths. The literal Swarm secret name is a deployment
+input and must not be copied into `VerificationResult` evidence.
 
 == Autonomous Setup Deployment Contract
 

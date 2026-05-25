@@ -207,6 +207,7 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(
             (
+                "deployment:service-access-external-input",
                 "deployment:portainer-service-readiness",
                 "deployment:nexus-service-readiness",
                 "deployment:jenkins-service-readiness",
@@ -216,6 +217,10 @@ class TestComposition(unittest.TestCase):
                 "deployment:service-access-service-readiness",
             ),
             tuple(check.verification_target_id for check in services.workflows.verify.checks),
+        )
+        self.assertEqual(
+            ("deployment:service-access-external-input",),
+            tuple(check.verification_target_id for check in services.workflows.apply.pre_apply_checks),
         )
 
     def test_build_deployment_services_does_not_call_runtime_during_construction(self):
@@ -231,7 +236,7 @@ class TestComposition(unittest.TestCase):
         stack_client.assert_called_once()
         self.assertEqual(3, len(services.workflows.bootstrap.steps))
         self.assertEqual(5, len(services.workflows.apply.steps))
-        self.assertEqual(7, len(services.workflows.verify.checks))
+        self.assertEqual(8, len(services.workflows.verify.checks))
 
     def test_build_deployment_services_uses_named_portainer_api_default(self):
         with patch.object(composition, "PortainerHttpClient") as portainer_client:
@@ -277,6 +282,7 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(
             (
+                "deployment:service-access-external-input",
                 "deployment:portainer-service-readiness",
                 "deployment:nexus-service-readiness",
                 "deployment:jenkins-service-readiness",
@@ -286,6 +292,33 @@ class TestComposition(unittest.TestCase):
                 "deployment:service-access-service-readiness",
             ),
             tuple(check.verification_target_id for check in services.workflows.verify.checks),
+        )
+
+    def test_build_deployment_services_wires_service_access_external_input_check(self):
+        with patch.dict(
+            "os.environ",
+            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+            clear=True,
+        ):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                with patch.object(composition, "MultipassSwarmRuntime") as swarm_runtime:
+                    with patch.object(composition, "MultipassPortainerAdminClient"):
+                        with patch.object(composition, "PortainerHttpClient"):
+                            services = composition.build_deployment_services()
+
+        pre_apply_check = services.workflows.apply.pre_apply_checks[0]
+        service_access_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.service_stack.stack_name == "service-access"
+        )
+
+        self.assertIs(pre_apply_check.swarm_runtime, swarm_runtime.return_value)
+        self.assertEqual("operator_defined", pre_apply_check.resource_name)
+        self.assertEqual("operator_env", pre_apply_check.source_ref)
+        self.assertEqual(
+            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+            service_access_step.stack_environment,
         )
 
     def test_build_artifact_services_uses_operator_environment_passwords(self):

@@ -950,6 +950,8 @@ secondary_reviewers:
   - Senior Tester
   - Senior System Architect
 affected_files:
+  - src/tiny_swarm_world/application/ports/clients/port_portainer_client.py
+  - src/tiny_swarm_world/application/ports/clients/port_swarm_stack_runtime.py
   - src/tiny_swarm_world/application/services/artifacts/**
   - src/tiny_swarm_world/application/services/deployment/**
   - src/tiny_swarm_world/infrastructure/adapters/clients/**
@@ -959,6 +961,7 @@ affected_files:
   - tests/infrastructure/adapters/clients/**
   - tests/infrastructure/test_composition.py
 affected_modules:
+  - tiny_swarm_world.application.ports.clients
   - tiny_swarm_world.application.services.artifacts
   - tiny_swarm_world.application.services.deployment
   - tiny_swarm_world.infrastructure.adapters.clients
@@ -971,6 +974,8 @@ dependencies:
   - "06"
 parallel_group: G
 file_locks:
+  - src/tiny_swarm_world/application/ports/clients/port_portainer_client.py
+  - src/tiny_swarm_world/application/ports/clients/port_swarm_stack_runtime.py
   - src/tiny_swarm_world/application/services/artifacts/**
   - src/tiny_swarm_world/application/services/deployment/**
   - src/tiny_swarm_world/infrastructure/adapters/clients/**

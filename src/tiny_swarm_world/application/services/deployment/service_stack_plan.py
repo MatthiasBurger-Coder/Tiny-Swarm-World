@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
     PortComposeFileRepository,
@@ -33,8 +35,10 @@ def build_service_stack_steps(
     *,
     service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
     excluded_stack_names: tuple[str, ...] = (),
+    stack_environments: Mapping[str, Mapping[str, str]] | None = None,
 ) -> tuple[EnsureServiceStack, ...]:
     excluded = set(excluded_stack_names)
+    environments = stack_environments or {}
     contracts = (
         DEFAULT_PORTAINER_MANAGED_SERVICE_STACK_CONTRACTS
         if ServiceStackProfile(service_profile) is ServiceStackProfile.DEFAULT
@@ -46,6 +50,7 @@ def build_service_stack_steps(
             portainer_client=portainer_client,
             service_stack=service_stack,
             endpoint_name=endpoint_name,
+            stack_environment=environments.get(service_stack.stack_name),
         )
         for service_stack in contracts
         if service_stack.stack_name not in excluded

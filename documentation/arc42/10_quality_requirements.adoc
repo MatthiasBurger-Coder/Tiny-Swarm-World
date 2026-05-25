@@ -92,6 +92,11 @@ Quality scenarios:
   publishes only the service-access NGINX ports `80` and `8086`;
 * Vaultwarden receives its administrator token through an external Swarm
   secret name and no committed token value or static password default exists;
+* deployment apply blocks before Portainer stack create/update when the
+  configured external Swarm input for Vaultwarden is not observed;
+* Portainer and direct Swarm deployment paths propagate only allowlisted stack
+  environment values, and verification evidence records no literal token,
+  secret, password or credential names;
 * service-access dashboard and NGINX images are part of the artifact image
   publication contracts for full setup;
 * dashboard and NGINX assets are image-packaged and do not depend on

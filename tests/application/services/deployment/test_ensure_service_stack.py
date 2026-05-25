@@ -22,7 +22,7 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(["jenkins"], compose_repository.requested_stacks)
         self.assertEqual(["local"], portainer_client.requested_endpoints)
-        self.assertEqual([("jenkins", 7)], portainer_client.created_stacks)
+        self.assertEqual([("jenkins", 7, {})], portainer_client.created_stacks)
         self.assertEqual([], portainer_client.updated_stacks)
 
     async def test_updates_existing_default_service_stack(self):
@@ -39,7 +39,26 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         await service.run()
 
         self.assertEqual([], portainer_client.created_stacks)
-        self.assertEqual([(42, "rabbitmq", 7)], portainer_client.updated_stacks)
+        self.assertEqual([(42, "rabbitmq", 7, {})], portainer_client.updated_stacks)
+
+    async def test_passes_stack_environment_when_creating_service_access_stack(self):
+        stack_definition = StackDefinition(name="service-access", compose_content="services: {}")
+        compose_repository = _FakeComposeRepository(stack_definition)
+        portainer_client = _FakePortainerClient(stack_ids=[None])
+        service = EnsureServiceStack(
+            compose_repository,
+            portainer_client,
+            ServiceStackContract("service-access", ("service-access-dashboard",)),
+            "local",
+            stack_environment={"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+        )
+
+        await service.run()
+
+        self.assertEqual(
+            [("service-access", 7, {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"})],
+            portainer_client.created_stacks,
+        )
 
     async def test_verify_reports_registered_stack_without_claiming_readiness(self):
         stack_definition = StackDefinition(name="sonarqube", compose_content="services: {}")
@@ -133,8 +152,8 @@ class _FakePortainerClient:
         self.stack_ids = list(stack_ids or [])
         self.stack_exception = stack_exception
         self.requested_endpoints: list[str] = []
-        self.created_stacks: list[tuple[str, int]] = []
-        self.updated_stacks: list[tuple[int, str, int]] = []
+        self.created_stacks: list[tuple[str, int, dict[str, str]]] = []
+        self.updated_stacks: list[tuple[int, str, int, dict[str, str]]] = []
 
     def get_endpoint_id_by_name(self, endpoint_name: str) -> int:
         self.requested_endpoints.append(endpoint_name)
@@ -147,8 +166,19 @@ class _FakePortainerClient:
             return self.stack_ids.pop(0)
         return None
 
-    def create_stack(self, stack_definition: StackDefinition, endpoint_id: int) -> None:
-        self.created_stacks.append((stack_definition.name, endpoint_id))
+    def create_stack(
+        self,
+        stack_definition: StackDefinition,
+        endpoint_id: int,
+        stack_environment: dict[str, str] | None = None,
+    ) -> None:
+        self.created_stacks.append((stack_definition.name, endpoint_id, dict(stack_environment or {})))
 
-    def update_stack(self, stack_id: int, stack_definition: StackDefinition, endpoint_id: int) -> None:
-        self.updated_stacks.append((stack_id, stack_definition.name, endpoint_id))
+    def update_stack(
+        self,
+        stack_id: int,
+        stack_definition: StackDefinition,
+        endpoint_id: int,
+        stack_environment: dict[str, str] | None = None,
+    ) -> None:
+        self.updated_stacks.append((stack_id, stack_definition.name, endpoint_id, dict(stack_environment or {})))

@@ -85,6 +85,9 @@ Remaining risks and debt:
   and rollback are not implemented and remain blockers before production-like
   claims; the committed default is only the external Swarm secret name, never
   the token value;
+* missing Vaultwarden external Swarm input now blocks before service-access
+  stack deployment, but creating or rotating that input remains an operator
+  responsibility outside the default quality gate;
 * a bootstrap cycle is possible if required setup credentials are moved into
   Vaultwarden before Vaultwarden itself is reachable;
 * service reachability could be falsely presented as healthy without fresh

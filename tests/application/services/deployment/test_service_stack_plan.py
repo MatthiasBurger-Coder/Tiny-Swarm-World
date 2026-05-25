@@ -86,6 +86,30 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
             tuple(step.service_stack.stack_name for step in steps),
         )
 
+    def test_service_stack_steps_attach_stack_specific_environment(self):
+        steps = build_service_stack_steps(
+            object(),
+            object(),
+            "local",
+            service_profile=ServiceStackProfile.SERVICE_ACCESS,
+            stack_environments={
+                "service-access": {
+                    "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined",
+                }
+            },
+        )
+
+        service_access_step = next(
+            step
+            for step in steps
+            if step.service_stack.stack_name == "service-access"
+        )
+
+        self.assertEqual(
+            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+            service_access_step.stack_environment,
+        )
+
     async def test_default_service_stack_steps_verify_stack_registration_without_readiness_claim(self):
         compose_repository = _FakeComposeRepository()
         portainer_client = _FakePortainerClient()

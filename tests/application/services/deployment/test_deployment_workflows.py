@@ -83,11 +83,45 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
 
         result = await DeploymentApplyWorkflow((FailingStep(),)).run()
 
-        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_PREPARE, result.status)
         self.assertTrue(result.executed)
-        self.assertEqual("apply failed with RuntimeError", result.reason)
+        self.assertEqual("prepare failed with RuntimeError", result.reason)
         self.assertNotIn("sensitive response", result.reason)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
+
+    async def test_apply_workflow_blocks_before_running_steps_when_pre_apply_check_blocks(self):
+        pre_apply_check = _BlockedDeploymentCheck("deployment:service-access-external-input")
+        step = _OrderedApplyStep("deployment:service-access-stack", VerificationStatus.VERIFIED)
+
+        result = await DeploymentApplyWorkflow(
+            (step,),
+            pre_apply_checks=(pre_apply_check,),
+        ).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertFalse(step.ran)
+        self.assertEqual(
+            "pre-apply verification is blocked for deployment:service-access-external-input",
+            result.reason,
+        )
+
+    async def test_apply_workflow_reports_failed_pre_apply_verification_without_running_steps(self):
+        pre_apply_check = _FailedDeploymentCheck("deployment:service-access-external-input")
+        step = _OrderedApplyStep("deployment:service-access-stack", VerificationStatus.VERIFIED)
+
+        result = await DeploymentApplyWorkflow(
+            (step,),
+            pre_apply_checks=(pre_apply_check,),
+        ).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertFalse(result.executed)
+        self.assertFalse(step.ran)
+        self.assertEqual(
+            "pre-apply verification failed for deployment:service-access-external-input",
+            result.reason,
+        )
 
     async def test_apply_workflow_reports_verify_failures(self):
         class FailedVerifyStep:

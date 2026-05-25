@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_06_COMPLETED_CHECKPOINT_PENDING
+SLICE_07_COMPLETED_CHECKPOINT_PENDING
 ```
 
 ## Creation Evidence
@@ -27,6 +27,7 @@ feature/workflow-stable-live-setup-20260525
   execution contract checkpoint.
 - Slice 06 was executed as a credential-source, profile and desired-inventory
   consistency checkpoint.
+- Slice 07 was executed as an artifact/deployment readiness checkpoint.
 
 ## Problem Summary
 
@@ -548,6 +549,127 @@ not applicable; no new architecture decision was made
 Checkpoint commit:
 
 ```text
+0d6359e
+```
+
+Push result:
+
+```text
+pushed to origin/feature/workflow-stable-live-setup-20260525
+```
+
+## Slice 07 Checkpoint Evidence
+
+Slice:
+
+```text
+07 - Artifact, Registry And Deployment Readiness
+```
+
+Responsible role:
+
+```text
+Senior DevOps Engineer
+```
+
+Reviewed by:
+
+```text
+Senior DevOps Engineer, Senior Python Automation Developer, Senior Tester,
+Senior System Architect
+```
+
+Changed files:
+
+```text
+src/tiny_swarm_world/application/ports/clients/port_portainer_client.py
+src/tiny_swarm_world/application/ports/clients/port_swarm_stack_runtime.py
+src/tiny_swarm_world/application/services/deployment/__init__.py
+src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py
+src/tiny_swarm_world/application/services/deployment/ensure_swarm_stack.py
+src/tiny_swarm_world/application/services/deployment/service_stack_plan.py
+src/tiny_swarm_world/application/services/deployment/verify_external_swarm_input.py
+src/tiny_swarm_world/application/services/deployment/workflows.py
+src/tiny_swarm_world/infrastructure/adapters/clients/multipass_swarm_runtime.py
+src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py
+src/tiny_swarm_world/infrastructure/composition.py
+tests/application/services/deployment/test_deployment_service_exports.py
+tests/application/services/deployment/test_deployment_workflows.py
+tests/application/services/deployment/test_ensure_service_stack.py
+tests/application/services/deployment/test_ensure_swarm_stack.py
+tests/application/services/deployment/test_service_stack_plan.py
+tests/application/services/deployment/test_verify_external_swarm_input.py
+tests/infrastructure/adapters/clients/test_multipass_swarm_runtime.py
+tests/infrastructure/adapters/clients/test_portainer_http_client.py
+tests/infrastructure/test_composition.py
+documentation/arc42/07_deployment_view.adoc
+documentation/arc42/10_quality_requirements.adoc
+documentation/arc42/11_risks_and_debt.adoc
+documentation/workflow/workflow.md
+documentation/workflow/execution-report.md
+```
+
+Result:
+
+```text
+completed
+```
+
+Behavior added:
+
+```text
+deployment apply now runs a redacted external Swarm input pre-apply check
+before service-access stack upload; Portainer-managed and direct Swarm stack
+paths propagate allowlisted stack environment values; deployment apply
+exceptions classify at workflow level as failed_to_prepare
+```
+
+Review disposition:
+
+```text
+Volta, Pascal and Dewey review findings for the missing Vaultwarden external
+Swarm input check, stack environment propagation, pre-apply classification and
+mocked coverage were remediated in this checkpoint.
+```
+
+Quality evidence:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m unittest tests.application.services.artifacts tests.application.services.deployment tests.infrastructure.adapters.clients tests.infrastructure.test_composition
+.venv/bin/python tools/quality_gate.py lint
+.venv/bin/python tools/quality_gate.py arch-tests
+.venv/bin/python tools/quality_gate.py typecheck
+.venv/bin/python tools/quality_gate.py test
+```
+
+Quality result:
+
+```text
+passed
+```
+
+Rollback reference:
+
+```text
+0d6359e
+```
+
+arc42Updated:
+
+```text
+yes; deployment and quality views now describe external Swarm input checks,
+allowlisted stack environment propagation and redacted evidence expectations
+```
+
+adrUpdated:
+
+```text
+not applicable; no new architecture decision was made
+```
+
+Checkpoint commit:
+
+```text
 pending CP_COMMIT
 ```
 
@@ -559,7 +681,7 @@ pending CP_PUSH
 
 ## Next Execution Step
 
-Begin future implementation with Slice 07 from
+Begin future implementation with Slice 08 from
 `documentation/workflow/workflow.md`.
 
 ## Verification Evidence
