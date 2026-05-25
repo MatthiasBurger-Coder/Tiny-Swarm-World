@@ -137,10 +137,16 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = repository_root / "infra" / "config" / "compose" / "swagger" / "docker-compose.yml"
         compose_content = compose_path.read_text(encoding="utf-8")
+        yaml = YAML(typ="safe")
+        compose_data = yaml.load(compose_content)
 
         self.assertIn("image: docker.swagger.io/swaggerapi/swagger-editor", compose_content)
         self.assertIn("image: docker.swagger.io/swaggerapi/swagger-ui", compose_content)
         self.assertIn("image: nginx:mainline-alpine", compose_content)
+        self.assertEqual(
+            [{"target": 80, "published": 8082, "protocol": "tcp"}],
+            compose_data["services"]["swagger-editor"]["ports"],
+        )
         self.assertIn("SWAGGER_JSON: /openapi.json", compose_content)
         self.assertIn(
             "${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro",

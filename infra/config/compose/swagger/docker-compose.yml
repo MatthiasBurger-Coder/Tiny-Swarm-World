@@ -2,7 +2,7 @@ services:
   swagger-editor:
     image: docker.swagger.io/swaggerapi/swagger-editor
     ports:
-      - target: 8080
+      - target: 80
         published: 8082
         protocol: tcp
     deploy:
