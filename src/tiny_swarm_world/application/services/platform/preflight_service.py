@@ -226,6 +226,28 @@ class PreflightService:
                     )
                 )
                 continue
+            replaced_service = _planned_replaced_service(required_port.port, required_port.service)
+            if replaced_service and self.host_probe.port_matches_expected_service(
+                required_port.port,
+                replaced_service,
+            ):
+                checks.append(
+                    _passed(
+                        check_id,
+                        PreflightCategory.PORT,
+                        (
+                            f"Port {required_port.port} for {required_port.service} "
+                            f"is currently serving {replaced_service} and will be reassigned."
+                        ),
+                        {
+                            "port": str(required_port.port),
+                            "service": required_port.service,
+                            "source": "planned_route_reassignment",
+                            "current_service": replaced_service,
+                        },
+                    )
+                )
+                continue
             checks.append(
                 _failed(
                     check_id,
@@ -386,3 +408,11 @@ def _port_remediation(service: str) -> str:
             "Swarm node IP with the same port."
         )
     return "Stop the process using the port or change the service mapping before live execution."
+
+
+def _planned_replaced_service(port: int, service: str) -> str | None:
+    if port == 80 and service == "Service Access dashboard":
+        return "Swagger/NGINX"
+    if port == 8084 and service == "Swagger/NGINX":
+        return "Swagger API"
+    return None

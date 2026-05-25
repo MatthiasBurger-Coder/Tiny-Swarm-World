@@ -145,7 +145,7 @@ class TestPreflightResult(unittest.TestCase):
             manifest.service_names,
         )
         self.assertEqual(
-            (9000, 8081, 5000, 8080, 5672, 15672, 9001, 80),
+            (9000, 8081, 5000, 8080, 5672, 15672, 9001, 8084),
             tuple(port.port for port in manifest.required_ports),
         )
         self.assertEqual(
@@ -168,7 +168,7 @@ class TestPreflightResult(unittest.TestCase):
 
         self.assertIn("Service Access", manifest.service_names)
         self.assertIn(
-            (8085, "Service Access dashboard"),
+            (80, "Service Access dashboard"),
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
         self.assertIn(
@@ -176,7 +176,7 @@ class TestPreflightResult(unittest.TestCase):
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
         self.assertIn(
-            8085,
+            80,
             tuple(port.port for port in configuration.required_ports),
         )
         self.assertIn(

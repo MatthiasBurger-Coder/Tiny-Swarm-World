@@ -143,15 +143,20 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         }
         self.assertEqual({}, live_violations)
 
-    def test_service_access_nginx_routes_only_dashboard_and_vaultwarden_without_request_logs(self):
+    def test_service_access_nginx_owns_central_routes_without_request_logs(self):
         nginx_config = (
             INFRA_ROOT / "compose" / "service-access" / "nginx" / "default.conf"
         ).read_text(encoding="utf-8")
 
         self.assertEqual(2, nginx_config.count("access_log off;"))
+        self.assertIn("listen 80;", nginx_config)
+        self.assertIn("listen 8086;", nginx_config)
         self.assertIn("resolver 127.0.0.11", nginx_config)
         self.assertIn("set $dashboard_upstream http://service-access-dashboard:80;", nginx_config)
         self.assertIn("set $vaultwarden_upstream http://vaultwarden:80;", nginx_config)
+        for route in ("jenkins", "nexus", "portainer", "rabbitmq", "sonarqube", "swagger", "vaultwarden"):
+            with self.subTest(route=route):
+                self.assertIn(f"location = /{route}", nginx_config)
         self.assertNotIn("password=", nginx_config)
         self.assertNotIn("token=", nginx_config)
         self.assertNotIn("secret=", nginx_config)

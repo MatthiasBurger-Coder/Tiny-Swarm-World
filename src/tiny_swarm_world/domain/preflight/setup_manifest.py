@@ -135,7 +135,7 @@ def default_setup_manifest(
         ),
         SetupServiceRequirement(
             name="Swagger/NGINX",
-            ports=(SetupPortRequirement(80, "Swagger/NGINX"),),
+            ports=(SetupPortRequirement(8084, "Swagger/NGINX"),),
         ),
     ]
     if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS:
@@ -143,7 +143,7 @@ def default_setup_manifest(
             SetupServiceRequirement(
                 name="Service Access",
                 ports=(
-                    SetupPortRequirement(8085, "Service Access dashboard"),
+                    SetupPortRequirement(80, "Service Access dashboard"),
                     SetupPortRequirement(8086, "Vaultwarden"),
                 ),
                 secrets=(

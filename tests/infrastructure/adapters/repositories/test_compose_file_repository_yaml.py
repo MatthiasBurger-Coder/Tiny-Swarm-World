@@ -152,6 +152,11 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             [{"target": 80, "published": 8082, "protocol": "tcp"}],
             compose_data["services"]["swagger-editor"]["ports"],
         )
+        self.assertNotIn("ports", compose_data["services"]["swagger-api"])
+        self.assertEqual(
+            [{"target": 8084, "published": 8084, "protocol": "tcp"}],
+            compose_data["services"]["swagger-nginx"]["ports"],
+        )
         self.assertIn("SWAGGER_JSON: /openapi.json", compose_content)
         self.assertIn(
             "${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro",
@@ -184,7 +189,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         )
         self.assertEqual(
             [
-                {"target": 8085, "published": 8085, "protocol": "tcp"},
+                {"target": 80, "published": 80, "protocol": "tcp"},
                 {"target": 8086, "published": 8086, "protocol": "tcp"},
             ],
             services["service-access-nginx"]["ports"],
@@ -233,19 +238,31 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
                 self.assertIn("FROM nginx:mainline-alpine", dockerfile)
                 self.assertIn(copy_line, dockerfile)
 
-    def test_service_access_dashboard_exposes_status_labels_as_visible_text(self):
+    def test_service_access_dashboard_exposes_management_table_columns(self):
         dashboard = _service_access_dashboard_html()
 
-        for label in ("Unknown", "Blocked", "Reachable", "Unreachable", "Resource-gated", "Needs credentials"):
+        for label in ("Server", "URL", "user", "pwd"):
             with self.subTest(label=label):
                 self.assertIn(f">{label}<", dashboard)
 
-    def test_service_access_dashboard_links_only_to_vaultwarden_without_credentials(self):
+    def test_service_access_dashboard_links_to_central_routes_without_credentials(self):
         dashboard = _service_access_dashboard_html()
         links = _extract_links(dashboard)
 
         self.assertTrue(links)
-        self.assertEqual({"/vaultwarden"}, set(links))
+        self.assertEqual(
+            {
+                "/",
+                "/jenkins",
+                "/nexus",
+                "/portainer",
+                "/rabbitmq",
+                "/sonarqube",
+                "/swagger",
+                "/vaultwarden",
+            },
+            set(links),
+        )
         for link in links:
             parsed = urlparse(link)
             self.assertFalse(parsed.username)
@@ -265,7 +282,6 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
     def test_service_access_dashboard_lists_credential_references_without_values(self):
         dashboard = _service_access_dashboard_html()
         expected_items = (
-            "service-access/vaultwarden",
             "platform/portainer",
             "platform/nexus",
             "platform/jenkins",
@@ -276,9 +292,18 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         for item in expected_items:
             with self.subTest(item=item):
                 self.assertIn(f"<code>{item}</code>", dashboard)
-        self.assertEqual(7, dashboard.count("<b>Unknown</b>"))
-        self.assertEqual(6, dashboard.count("<b>Needs credentials</b>"))
-        for forbidden in ("password=", "token=", "secret=", "api_key=", "access_token=", "Bearer ", "Basic "):
+        for forbidden in (
+            "password=",
+            "token=",
+            "secret=",
+            "api_key=",
+            "access_token=",
+            "Bearer ",
+            "Basic ",
+            "admin1234567890",
+            "MyAdminPassWord1234-126354654",
+            "adminPassword123",
+        ):
             self.assertNotIn(forbidden, dashboard)
 
 

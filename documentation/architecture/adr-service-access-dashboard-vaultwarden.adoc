@@ -20,19 +20,18 @@ Implemented repository behavior:
 * `ServiceStackProfile.SERVICE_ACCESS` and `SERVICE_ACCESS_STACK_CONTRACT`
   add service-access as the full guided setup profile. Operators can still
   pass `--service-profile default` to run only the older base service set.
-* The service-access setup manifest records ports `8085` and `8086` plus the
+* The service-access setup manifest records ports `80` and `8086` plus the
   `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
 * The artifact workflow builds and publishes the image-packaged
   `service-access-dashboard` and `service-access-nginx` assets for setup.
-* Static tests verify the compose boundary, image packaging, Vaultwarden-only
-  dashboard links, status taxonomy and no React/Vite/live-orchestration
+* Static tests verify the compose boundary, image packaging, central route
+  links, Vaultwarden item references and no React/Vite/live-orchestration
   surface.
 
 Not implemented or not verified:
 
-* local `localhost` forwarding for `8085` and `8086` remains out of sync in
-  the observed WSL smoke environment; unexpected local listeners are now
-  blocked during service-access preflight instead of being treated as success;
+* the central `http://localhost` service-access route requires a fresh live
+  redeployment before it is claimed as live-verified;
 * Vaultwarden backup, restore, admin-token rotation and rollback remain
   future work.
 
@@ -93,14 +92,14 @@ The baseline rules are:
 * The full guided setup includes service access by default so the installed
   environment has a management landing page. The older base service set
   remains available through `--service-profile default`.
-* The accepted routing decision is `NGINX_FIRST_DEDICATED_PORT`.
-* The existing Swagger/NGINX stack keeps published port `80`.
-* The service-access stack uses a service-access-owned NGINX ingress with
-  non-conflicting Swarm-published ports: `8085` for the dashboard route and
-  `8086` for the Vaultwarden route.
-* Shared ingress is deferred until a later ADR defines route ownership,
-  migration of the current Swagger/NGINX port `80` behavior, tests and
-  rollback.
+* The accepted routing decision is `SERVICE_ACCESS_CENTRAL_NGINX`.
+* The service-access stack owns published port `80` and serves the management
+  overview at `http://localhost`.
+* The service-access NGINX manages stable central paths for Jenkins, Nexus,
+  Portainer, RabbitMQ, SonarQube, Swagger and Vaultwarden.
+* Swagger/NGINX moves to published port `8084`.
+* Wider shared ingress is deferred until a later ADR defines route ownership,
+  tests and rollback.
 * Traefik, TLS automation, certificate automation and wider-than-local HTTP
   exposure require later ADR coverage.
 * Portainer is preferred for post-bootstrap stack create/update after
@@ -151,9 +150,8 @@ Implementation must preserve the hexagonal architecture:
 * infrastructure owns YAML parsing, HTTP calls, Docker/Portainer details,
   NGINX assets, file handling and image publishing.
 
-Service readiness and dashboard reachability must fail closed until observed
-state or HTTP evidence is test-backed. Unknown status must not be rendered as
-healthy.
+Service readiness and dashboard reachability must not be claimed as live
+verified until observed state or HTTP evidence is test-backed.
 
 Verification evidence must reject raw command output, passwords, tokens, Swarm
 join tokens, local IP addresses, local paths, environment payloads and

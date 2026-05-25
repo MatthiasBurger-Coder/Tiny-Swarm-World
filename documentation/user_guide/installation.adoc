@@ -152,14 +152,14 @@ static landing page, Vaultwarden and service-access NGINX assets. The setup
 CLI selects this profile by default. Operators who intentionally want only the
 older base service set can pass `--service-profile default`.
 
-The Swarm target publishes ports `8085` and `8086` for the service-access
-landing page and Vaultwarden route. WSL `localhost` forwarding for those ports
-is a separate host-network concern. The Vaultwarden
+The Swarm target publishes port `80` for the service-access landing page and
+port `8086` for the Vaultwarden route. WSL `localhost` forwarding is a
+separate host-network concern. The Vaultwarden
 administrator token is provided through an external Swarm secret. By default
 the compose stack references `tsw_vaultwarden_admin_token`; operators may
 override the secret name through `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`.
 Document only the secret name, never the token value.
 
-The service-access dashboard is static catalog data. It lists service links
-and Vaultwarden item references; password values are visible only through
-Vaultwarden's authenticated UI.
+The service-access dashboard is a static management table. It lists service
+links, users and Vaultwarden item references; password values are visible only
+through Vaultwarden's authenticated UI.

@@ -132,7 +132,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         result = await PreflightService(
             _FakeProbe(
                 host_compatible=False,
-                port_availability={80: False},
+                port_availability={8084: False},
                 ignored_paths={".env": False},
             )
         ).run()
@@ -140,7 +140,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         failed_by_id = {check.check_id: check for check in result.failed_checks}
         self.assertFalse(result.passed)
         self.assertIn("HOST", failed_by_id)
-        self.assertIn("PORT-80", failed_by_id)
+        self.assertIn("PORT-8084", failed_by_id)
         self.assertIn("IGNORE-.env", failed_by_id)
         self.assertIn("Run Tiny Swarm World from Linux or WSL", failed_by_id["HOST"].remediation)
 
@@ -180,8 +180,8 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         result = await PreflightService(
             _FakeProbe(
-                port_availability={8085: False},
-                expected_service_ports={8085: False},
+                port_availability={80: False},
+                expected_service_ports={80: False},
             ),
             configuration,
         ).run()
@@ -189,9 +189,46 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         failed_by_id = {check.check_id: check for check in result.failed_checks}
 
         self.assertFalse(result.passed)
-        self.assertIn("PORT-8085", failed_by_id)
-        self.assertIn("Service Access dashboard", failed_by_id["PORT-8085"].message)
-        self.assertIn("stale localhost listener", failed_by_id["PORT-8085"].remediation)
+        self.assertIn("PORT-80", failed_by_id)
+        self.assertIn("Service Access dashboard", failed_by_id["PORT-80"].message)
+        self.assertIn("stale localhost listener", failed_by_id["PORT-80"].remediation)
+
+    async def test_service_access_profile_allows_swagger_to_be_reassigned_from_localhost_root(self):
+        configuration = default_preflight_configuration(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS
+        )
+
+        result = await PreflightService(
+            _FakeProbe(
+                port_availability={80: False},
+                expected_service_ports={80: False},
+                service_matches={(80, "Swagger/NGINX"): True},
+            ),
+            configuration,
+        ).run()
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        port_check = checks_by_id["PORT-80"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
+        self.assertEqual("Swagger/NGINX", port_check.evidence["current_service"])
+
+    async def test_swagger_port_allows_old_swagger_api_listener_to_be_reassigned(self):
+        result = await PreflightService(
+            _FakeProbe(
+                port_availability={8084: False},
+                expected_service_ports={8084: False},
+                service_matches={(8084, "Swagger API"): True},
+            )
+        ).run()
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        port_check = checks_by_id["PORT-8084"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
+        self.assertEqual("Swagger API", port_check.evidence["current_service"])
 
     async def test_resource_failures_are_resource_gated(self):
         result = await PreflightService(
@@ -250,6 +287,7 @@ class _FakeProbe(PortHostPreflightProbe):
         host_compatible: bool = True,
         port_availability: dict[int, bool] | None = None,
         expected_service_ports: dict[int, bool] | None = None,
+        service_matches: dict[tuple[int, str], bool] | None = None,
         ignored_paths: dict[str, bool] | None = None,
         cpu_count_value: int = 8,
         memory_bytes_value: int = 32 * 1024**3,
@@ -262,6 +300,7 @@ class _FakeProbe(PortHostPreflightProbe):
         self.host_compatible = host_compatible
         self.port_availability = port_availability or {}
         self.expected_service_ports = expected_service_ports or {}
+        self.service_matches = service_matches or {}
         self.ignored_paths = ignored_paths or {}
         self.cpu_count_value = cpu_count_value
         self.memory_bytes_value = memory_bytes_value
@@ -290,6 +329,8 @@ class _FakeProbe(PortHostPreflightProbe):
         return self.port_availability.get(port, True)
 
     def port_matches_expected_service(self, port: int, service: str) -> bool:
+        if (port, service) in self.service_matches:
+            return self.service_matches[(port, service)]
         return self.expected_service_ports.get(port, False)
 
     def secret_available(self, name: str) -> bool:

@@ -81,14 +81,14 @@ Consequences:
 * the full guided setup includes service-access through
   `ServiceStackProfile.SERVICE_ACCESS`; the older base service set remains
   available through `--service-profile default`;
-* NGINX is the baseline routing direction, with dedicated local ports `8085`
-  and `8086` for the service-access stack;
+* NGINX is the baseline routing direction, with Service Access owning
+  `http://localhost` and Vaultwarden remaining on `8086`;
 * Traefik, TLS automation and wider-than-local exposure require later ADR
   coverage;
 * Portainer may manage post-bootstrap stack create/update only after
   Portainer is reachable and must not become its own bootstrap dependency;
-* live smoke evidence verified Swarm node IP reachability on 2026-05-25, while
-  local `localhost` forwarding and Vaultwarden operational hardening remain
+* the central `http://localhost` route requires a fresh live deployment before
+  it is claimed as verified; Vaultwarden operational hardening remains
   follow-up work.
 
 === Workflow Taxonomy And Destructive Operation Policy

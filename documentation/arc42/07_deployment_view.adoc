@@ -43,16 +43,20 @@ The service-access dashboard and Vaultwarden capability is implemented as
 repository assets and setup-selected service contracts. The repository now
 contains the service-access compose stack, image-packaged dashboard and NGINX
 assets, service-stack contracts, setup-manifest requirements and static tests.
-A post-workflow live smoke test on 2026-05-25 verified the Portainer-managed
-stack on Swarm node IPs. Local `localhost` forwarding for `8085` and `8086`
-remains a separate network follow-up.
+A post-workflow live smoke test on 2026-05-25 verified the older dedicated
+dashboard route on Swarm node IPs. The current central `http://localhost`
+route requires a fresh deployment before it is claimed as live-verified.
 
-The accepted routing baseline is `NGINX_FIRST_DEDICATED_PORT`:
+The accepted routing baseline is `SERVICE_ACCESS_CENTRAL_NGINX`:
 
-* the existing Swagger/NGINX stack keeps published port `80`;
+* the service-access stack owns published port `80` and serves
+  `http://localhost` as the local management overview;
 * the service-access stack owns its own NGINX ingress instead of modifying the
   Swagger-owned NGINX service;
-* the service-access dashboard route uses published port `8085`;
+* stable central paths such as `/jenkins`, `/nexus`, `/portainer`,
+  `/rabbitmq`, `/sonarqube`, `/swagger` and `/vaultwarden` are managed by
+  service-access NGINX;
+* the Swagger/NGINX stack uses published port `8084`;
 * the Vaultwarden route uses published port `8086`;
 * Traefik remains deferred until a later ADR and tests add a provider, labels,
   dashboard exposure policy, network model and rollback.

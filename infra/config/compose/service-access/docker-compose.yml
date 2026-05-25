@@ -31,8 +31,8 @@ services:
   service-access-nginx:
     image: ${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:5000/service-access-nginx:latest}
     ports:
-      - target: 8085
-        published: 8085
+      - target: 80
+        published: 80
         protocol: tcp
       - target: 8086
         published: 8086

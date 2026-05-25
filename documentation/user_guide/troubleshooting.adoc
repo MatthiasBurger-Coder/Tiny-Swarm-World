@@ -119,7 +119,7 @@ available.
 
 Check the non-secret prerequisites before a live run:
 
-* the Swarm nodes expose `8085` for the service-access landing page;
+* the Swarm nodes expose `80` for the service-access landing page;
 * the Swarm nodes expose `8086` for Vaultwarden;
 * `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` names an external Swarm secret, or the
   default Swarm secret name `tsw_vaultwarden_admin_token` exists;
@@ -128,12 +128,12 @@ Check the non-secret prerequisites before a live run:
 * the service-access stack has been deployed intentionally through a reviewed
   live path.
 
-In WSL, `localhost:8085` and `localhost:8086` depend on host-forwarding state
+In WSL, `localhost` and `localhost:8086` depend on host-forwarding state
 and may be out of sync even when the stack is reachable on the Swarm node IPs.
 The service-access setup profile treats an unexpected local listener on those
-ports as a mandatory preflight blocker. If `localhost:8085` returns an empty
-NGINX `404`, clear the stale local listener or use the current Swarm node IP
-until host forwarding is repaired.
+ports as a mandatory preflight blocker. If `http://localhost` returns an
+unexpected page, clear the stale local listener or redeploy the updated
+service-access stack.
 
 == Git Shows Generated Python Files
 

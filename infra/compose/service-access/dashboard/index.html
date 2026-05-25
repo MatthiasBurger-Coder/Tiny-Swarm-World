@@ -8,18 +8,15 @@
   <style>
     :root {
       color-scheme: light;
-      --bg: #f6f7f9;
+      --bg: #f5f7fa;
       --panel: #ffffff;
-      --line: #d8dee7;
+      --line: #d7dde6;
       --ink: #172033;
-      --muted: #5f6b7c;
-      --accent: #176b87;
-      --unknown: #5f6b7c;
-      --blocked: #805200;
-      --reachable: #157347;
-      --unreachable: #a63131;
-      --resource: #4d5f9d;
-      --credentials: #6f4e00;
+      --muted: #657386;
+      --accent: #146b7f;
+      --accent-soft: #e8f6f8;
+      --warn: #7a5200;
+      --warn-bg: #fff8e8;
     }
 
     * {
@@ -35,7 +32,7 @@
     }
 
     main {
-      width: min(1240px, calc(100vw - 32px));
+      width: min(1180px, calc(100vw - 32px));
       margin: 0 auto;
       padding: 28px 0;
     }
@@ -45,13 +42,14 @@
       flex-wrap: wrap;
       align-items: flex-end;
       justify-content: space-between;
-      gap: 16px;
+      gap: 14px;
       margin-bottom: 18px;
     }
 
     h1 {
       margin: 0 0 6px;
-      font-size: clamp(1.8rem, 2.4vw, 2.6rem);
+      font-size: 2rem;
+      line-height: 1.1;
       font-weight: 760;
       letter-spacing: 0;
     }
@@ -59,7 +57,7 @@
     p {
       margin: 0;
       color: var(--muted);
-      line-height: 1.55;
+      line-height: 1.5;
     }
 
     a {
@@ -80,81 +78,29 @@
       padding: 0 14px;
       border: 1px solid var(--accent);
       border-radius: 6px;
-      background: #eef8fb;
-      color: #0e5067;
+      background: var(--accent-soft);
+      color: #0d5364;
       white-space: nowrap;
     }
 
-    .summary {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .metric,
-    .legend {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-      padding: 14px;
-    }
-
-    .metric strong {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 0.82rem;
-      color: var(--muted);
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-
-    .metric span {
-      display: block;
-      font-size: 1.2rem;
-      font-weight: 760;
-      color: var(--ink);
-    }
-
-    .legend {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 14px;
     }
 
-    .legend-item {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 8px;
-      align-items: start;
-      min-width: 0;
-    }
-
-    .legend-code {
+    .chip {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      width: 34px;
-      min-width: 34px;
-      height: 26px;
-      border: 1px solid currentColor;
-      border-radius: 5px;
-      font-size: 0.72rem;
-      font-weight: 760;
-    }
-
-    .legend-title {
-      display: block;
-      margin-bottom: 2px;
-      font-weight: 760;
-    }
-
-    .legend-copy {
-      display: block;
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
       color: var(--muted);
-      font-size: 0.84rem;
-      line-height: 1.35;
+      font-size: 0.86rem;
+      font-weight: 650;
     }
 
     .table-wrap {
@@ -166,20 +112,13 @@
 
     table {
       width: 100%;
+      min-width: 820px;
       border-collapse: collapse;
-      min-width: 1080px;
-    }
-
-    caption {
-      padding: 14px 16px 0;
-      color: var(--muted);
-      text-align: left;
-      font-weight: 650;
     }
 
     th,
     td {
-      padding: 12px 14px;
+      padding: 13px 14px;
       border-bottom: 1px solid var(--line);
       text-align: left;
       vertical-align: top;
@@ -188,7 +127,7 @@
 
     th {
       color: var(--muted);
-      font-size: 0.76rem;
+      font-size: 0.78rem;
       text-transform: uppercase;
       font-weight: 760;
     }
@@ -199,72 +138,10 @@
     }
 
     tbody th {
-      width: 180px;
+      width: 170px;
       color: var(--ink);
-      font-size: 0.96rem;
+      font-size: 0.98rem;
       text-transform: none;
-    }
-
-    .status {
-      display: inline-grid;
-      grid-template-columns: auto 1fr;
-      gap: 8px;
-      align-items: start;
-      max-width: 260px;
-      color: var(--unknown);
-      font-weight: 700;
-    }
-
-    .status::before {
-      content: attr(data-code);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 34px;
-      min-width: 34px;
-      height: 26px;
-      border: 1px solid currentColor;
-      border-radius: 5px;
-      font-size: 0.72rem;
-      font-weight: 760;
-    }
-
-    .status b {
-      display: block;
-      margin-bottom: 2px;
-      color: var(--ink);
-    }
-
-    .status small {
-      display: block;
-      color: var(--muted);
-      font-size: 0.84rem;
-      font-weight: 500;
-    }
-
-    .status-blocked {
-      color: var(--blocked);
-    }
-
-    .status-reachable {
-      color: var(--reachable);
-    }
-
-    .status-unreachable {
-      color: var(--unreachable);
-    }
-
-    .status-resource {
-      color: var(--resource);
-    }
-
-    .status-credentials {
-      color: var(--credentials);
-    }
-
-    .reference {
-      display: grid;
-      gap: 6px;
     }
 
     code {
@@ -276,18 +153,28 @@
       font-size: 0.9em;
     }
 
+    .pwd {
+      display: grid;
+      gap: 4px;
+    }
+
+    .pwd small {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
     .note {
       margin-top: 14px;
       padding: 14px 16px;
-      border-left: 4px solid var(--blocked);
-      background: #fff8ea;
+      border-left: 4px solid var(--warn);
+      background: var(--warn-bg);
       color: #3c2d12;
       border-radius: 4px;
     }
 
     @media (max-width: 720px) {
       main {
-        width: min(100vw - 20px, 1240px);
+        width: min(100vw - 20px, 1180px);
         padding: 20px 0;
       }
 
@@ -302,129 +189,78 @@
     <header>
       <div>
         <h1>Service Access</h1>
-        <p>Static service catalog for Tiny Swarm World routes and Vaultwarden credential references.</p>
+        <p>Verwaltungstabelle fuer lokale Tiny Swarm World Services und Vaultwarden-Passworteintraege.</p>
       </div>
-      <a class="vault-link" href="/vaultwarden" rel="noreferrer">Open Vaultwarden</a>
+      <a class="vault-link" href="/vaultwarden" rel="noreferrer">Vaultwarden oeffnen</a>
     </header>
 
-    <section class="summary" aria-label="Service access summary">
-      <div class="metric">
-        <strong>Services Listed</strong>
-        <span>7</span>
-      </div>
-      <div class="metric">
-        <strong>Reachability Evidence</strong>
-        <span>Not collected</span>
-      </div>
-      <div class="metric">
-        <strong>Password Surface</strong>
-        <span>Vaultwarden only</span>
-      </div>
-    </section>
-
-    <section class="legend" aria-label="Reachability status legend">
-      <div class="legend-item">
-        <span class="legend-code" style="color: var(--unknown);">UNK</span>
-        <span><span class="legend-title">Unknown</span><span class="legend-copy">No observed check has been collected.</span></span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-code" style="color: var(--blocked);">BLK</span>
-        <span><span class="legend-title">Blocked</span><span class="legend-copy">Verification cannot run with current prerequisites.</span></span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-code" style="color: var(--reachable);">OK</span>
-        <span><span class="legend-title">Reachable</span><span class="legend-copy">Observed service check passed.</span></span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-code" style="color: var(--unreachable);">ERR</span>
-        <span><span class="legend-title">Unreachable</span><span class="legend-copy">Observed service check failed.</span></span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-code" style="color: var(--resource);">RSC</span>
-        <span><span class="legend-title">Resource-gated</span><span class="legend-copy">Host capacity blocks the route from being verified.</span></span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-code" style="color: var(--credentials);">AUTH</span>
-        <span><span class="legend-title">Needs credentials</span><span class="legend-copy">Authenticate in Vaultwarden and reveal the referenced item.</span></span>
-      </div>
-    </section>
+    <div class="toolbar" aria-label="Access summary">
+      <span class="chip">7 Services</span>
+      <span class="chip">Passwoerter ueber Vaultwarden sichtbar</span>
+      <span class="chip">Lokales Swarm Setup</span>
+    </div>
 
     <div class="table-wrap">
       <table>
-        <caption>Service catalog. Configured routes are descriptive only; reachability remains unverified until observed evidence is wired.</caption>
         <thead>
           <tr>
-            <th scope="col">Service</th>
-            <th scope="col">Access Method</th>
-            <th scope="col">Reachability State</th>
-            <th scope="col">Evidence Source</th>
-            <th scope="col">Freshness</th>
-            <th scope="col">Credential Reference</th>
+            <th scope="col">Server</th>
+            <th scope="col">URL</th>
+            <th scope="col">user</th>
+            <th scope="col">pwd</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <th scope="row">Service Access Dashboard</th>
-            <td>Service-access NGINX dashboard route on published port 8085.</td>
-            <td><span class="status" data-code="UNK"><span><b>Unknown</b><small>No observed route check collected.</small></span></span></td>
-            <td>Static compose catalog.</td>
-            <td>Static build-time entry.</td>
-            <td><span class="reference">No credential required by this static page.</span></td>
+            <th scope="row">jenkins</th>
+            <td><a href="/jenkins" rel="noreferrer">http://localhost/jenkins</a></td>
+            <td><code>admin</code></td>
+            <td><span class="pwd"><a href="/vaultwarden" rel="noreferrer"><code>platform/jenkins</code></a><small>Passwort in Vaultwarden anzeigen</small></span></td>
           </tr>
           <tr>
-            <th scope="row">Vaultwarden</th>
-            <td>Service-access NGINX Vaultwarden route on published port 8086.</td>
-            <td><span class="status" data-code="UNK"><span><b>Unknown</b><small>No observed route check collected.</small></span></span></td>
-            <td>Static compose catalog.</td>
-            <td>Static build-time entry.</td>
-            <td><span class="reference"><span class="status status-credentials" data-code="AUTH"><span><b>Needs credentials</b><small>Open Vaultwarden and search item <code>service-access/vaultwarden</code>.</small></span></span><a href="/vaultwarden" rel="noreferrer">Open Vaultwarden</a></span></td>
+            <th scope="row">nexus</th>
+            <td><a href="/nexus" rel="noreferrer">http://localhost/nexus</a></td>
+            <td><code>admin</code></td>
+            <td><span class="pwd"><a href="/vaultwarden" rel="noreferrer"><code>platform/nexus</code></a><small>Passwort in Vaultwarden anzeigen</small></span></td>
           </tr>
           <tr>
-            <th scope="row">Portainer</th>
-            <td>Local Portainer management route on published port 9000 after bootstrap.</td>
-            <td><span class="status" data-code="UNK"><span><b>Unknown</b><small>No observed route check collected.</small></span></span></td>
-            <td>Static compose catalog.</td>
-            <td>Static build-time entry.</td>
-            <td><span class="reference"><span class="status status-credentials" data-code="AUTH"><span><b>Needs credentials</b><small>Open Vaultwarden and search item <code>platform/portainer</code>.</small></span></span><a href="/vaultwarden" rel="noreferrer">Open Vaultwarden</a></span></td>
+            <th scope="row">portainer</th>
+            <td><a href="/portainer" rel="noreferrer">http://localhost/portainer</a></td>
+            <td><code>admin</code></td>
+            <td><span class="pwd"><a href="/vaultwarden" rel="noreferrer"><code>platform/portainer</code></a><small>Passwort in Vaultwarden anzeigen</small></span></td>
           </tr>
           <tr>
-            <th scope="row">Nexus</th>
-            <td>Local Nexus route on published port 8081.</td>
-            <td><span class="status" data-code="UNK"><span><b>Unknown</b><small>No observed route check collected.</small></span></span></td>
-            <td>Static compose catalog.</td>
-            <td>Static build-time entry.</td>
-            <td><span class="reference"><span class="status status-credentials" data-code="AUTH"><span><b>Needs credentials</b><small>Open Vaultwarden and search item <code>platform/nexus</code>.</small></span></span><a href="/vaultwarden" rel="noreferrer">Open Vaultwarden</a></span></td>
+            <th scope="row">rabbitmq</th>
+            <td><a href="/rabbitmq" rel="noreferrer">http://localhost/rabbitmq</a></td>
+            <td><code>guest</code></td>
+            <td><span class="pwd"><a href="/vaultwarden" rel="noreferrer"><code>platform/rabbitmq</code></a><small>Passwort in Vaultwarden anzeigen</small></span></td>
           </tr>
           <tr>
-            <th scope="row">Jenkins</th>
-            <td>Local Jenkins route on published port 8080.</td>
-            <td><span class="status" data-code="UNK"><span><b>Unknown</b><small>No observed route check collected.</small></span></span></td>
-            <td>Static compose catalog.</td>
-            <td>Static build-time entry.</td>
-            <td><span class="reference"><span class="status status-credentials" data-code="AUTH"><span><b>Needs credentials</b><small>Open Vaultwarden and search item <code>platform/jenkins</code>.</small></span></span><a href="/vaultwarden" rel="noreferrer">Open Vaultwarden</a></span></td>
+            <th scope="row">service-access</th>
+            <td><a href="/" rel="noreferrer">http://localhost</a></td>
+            <td><code>none</code></td>
+            <td><span class="pwd"><code>not required</code><small>Dashboard selbst hat keinen Login</small></span></td>
           </tr>
           <tr>
-            <th scope="row">RabbitMQ Management</th>
-            <td>Local RabbitMQ management route on published port 15672.</td>
-            <td><span class="status" data-code="UNK"><span><b>Unknown</b><small>No observed route check collected.</small></span></span></td>
-            <td>Static compose catalog.</td>
-            <td>Static build-time entry.</td>
-            <td><span class="reference"><span class="status status-credentials" data-code="AUTH"><span><b>Needs credentials</b><small>Open Vaultwarden and search item <code>platform/rabbitmq</code>.</small></span></span><a href="/vaultwarden" rel="noreferrer">Open Vaultwarden</a></span></td>
+            <th scope="row">sonarqube</th>
+            <td><a href="/sonarqube" rel="noreferrer">http://localhost/sonarqube</a></td>
+            <td><code>admin</code></td>
+            <td><span class="pwd"><a href="/vaultwarden" rel="noreferrer"><code>platform/sonarqube</code></a><small>Passwort in Vaultwarden anzeigen</small></span></td>
           </tr>
           <tr>
-            <th scope="row">SonarQube</th>
-            <td>Local SonarQube route on published port 9001.</td>
-            <td><span class="status" data-code="UNK"><span><b>Unknown</b><small>No observed route check collected.</small></span></span></td>
-            <td>Static compose catalog.</td>
-            <td>Static build-time entry.</td>
-            <td><span class="reference"><span class="status status-credentials" data-code="AUTH"><span><b>Needs credentials</b><small>Open Vaultwarden and search item <code>platform/sonarqube</code>.</small></span></span><a href="/vaultwarden" rel="noreferrer">Open Vaultwarden</a></span></td>
+            <th scope="row">swagger</th>
+            <td><a href="/swagger" rel="noreferrer">http://localhost/swagger</a></td>
+            <td><code>none</code></td>
+            <td><span class="pwd"><code>not required</code><small>Swagger/NGINX hat keinen Login</small></span></td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <p class="note">
-      Password values are never stored or rendered by this dashboard. Authorized operators open Vaultwarden, search the listed item name, and use Vaultwarden's authenticated reveal or copy flow.
+      Diese Seite speichert keine Klartext-Passwoerter. Die Spalte <strong>pwd</strong>
+      zeigt den Vaultwarden-Eintrag oder markiert Services ohne Login. Passwortwerte
+      werden in Vaultwarden sichtbar gemacht und dort kopiert.
     </p>
   </main>
 </body>

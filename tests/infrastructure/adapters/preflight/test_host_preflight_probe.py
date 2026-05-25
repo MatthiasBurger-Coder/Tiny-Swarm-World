@@ -129,7 +129,7 @@ class TestHostPreflightProbe(unittest.TestCase):
     def test_port_matches_expected_service_rejects_empty_nginx_404_for_service_access(self):
         probe = HostPreflightProbe(Path.cwd())
         error = urllib.error.HTTPError(
-            url="http://127.0.0.1:8085/",
+            url="http://127.0.0.1:80/",
             code=404,
             msg="Not Found",
             hdrs={
@@ -144,8 +144,24 @@ class TestHostPreflightProbe(unittest.TestCase):
             side_effect=error,
         ):
             self.assertFalse(
-                probe.port_matches_expected_service(8085, "Service Access dashboard")
+                probe.port_matches_expected_service(80, "Service Access dashboard")
             )
+
+    def test_port_matches_expected_service_recognizes_legacy_swagger_api_cors_404(self):
+        probe = HostPreflightProbe(Path.cwd())
+        error = urllib.error.HTTPError(
+            url="http://127.0.0.1:8084/",
+            code=404,
+            msg="Not Found",
+            hdrs={"Access-Control-Allow-Origin": "*"},
+            fp=io.BytesIO(b""),
+        )
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",
+            side_effect=error,
+        ):
+            self.assertTrue(probe.port_matches_expected_service(8084, "Swagger API"))
 
     def test_path_ignored_by_git_uses_check_ignore(self):
         probe = HostPreflightProbe(Path.cwd())

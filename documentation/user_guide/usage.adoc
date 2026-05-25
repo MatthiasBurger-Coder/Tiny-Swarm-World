@@ -204,27 +204,19 @@ Implemented repository assets:
   route configuration.
 
 When the default full profile is deployed by an operator workflow, the
-dashboard route is `8085` and the Vaultwarden route is `8086`. The dashboard
-is static catalog data. It lists service access methods, unknown reachability,
-evidence source, freshness, and Vaultwarden item references. It links only to
-Vaultwarden through a host-neutral `/vaultwarden` link that redirects to the
-same host on port `8086`. It does not show password values.
+dashboard route is `http://localhost` and the Vaultwarden route is `8086`.
+The dashboard is a static management table with `Server`, `URL`, `user` and
+`pwd` columns. It provides central paths such as `/jenkins`, `/nexus`,
+`/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and `/vaultwarden`.
+It does not show password values.
 
 Authorized operators reveal or copy password values only through
 Vaultwarden's authenticated UI.
 
-A post-workflow live smoke test on 2026-05-25 deployed the stack through
-Portainer and verified the dashboard and Vaultwarden over the Swarm node IPs:
-`10.157.2.182`, `10.157.2.19`, and `10.157.2.33`. In that run, both `8085`
-and `8086` returned HTTP `200` on each node IP, and `/vaultwarden` redirected
-to the same host on port `8086`.
-
-Residual local access gap: `localhost:8085` still reached a pre-existing
-local NGINX `404`, and `localhost:8086` was not reachable from the WSL shell.
-The service-access setup profile now treats that stale local listener as a
-preflight blocker, so operators get an actionable failure before a live run.
-Use the Swarm node IPs until host forwarding for `8085` and `8086` is
-repaired.
+The previous 2026-05-25 live smoke test verified the older dedicated
+`8085` dashboard route on Swarm node IPs. The current central
+`http://localhost` route requires redeploying the updated service-access stack
+before browser verification.
 
 == Commit And Push Shortcut
 

@@ -6,6 +6,17 @@ Version: `service-access-vaultwarden-dashboard-v1.0.0`
 
 Branch: `feature/workflow-access-vaultwarden-dashboard-20260525`
 
+Current routing update:
+
+- This report contains previous live-smoke evidence for the older dedicated
+  service-access dashboard route on `8085`.
+- The current baseline is service-access central NGINX on `http://localhost`
+  with Vaultwarden on `8086`.
+- Swagger/NGINX no longer owns host port `80`; its proxy endpoint publishes
+  `8084`.
+- The current central route requires a fresh live deployment before it is
+  claimed as browser-verified.
+
 ## Slice 01 - Requirement, EPIC, And ADR Baseline
 
 Status:
@@ -136,7 +147,7 @@ Live actions executed:
 - Updated Portainer stack `service-access` to use the fixed live-test image
   tags.
 
-Observed live evidence:
+Observed previous live evidence:
 
 - Swarm tasks for `service-access_vaultwarden`,
   `service-access_service-access-dashboard`, and
@@ -152,7 +163,7 @@ Observed live evidence:
 - Dashboard content included `Service Access`, `Reachability`,
   `Needs credentials`, and `Vaultwarden` markers.
 
-Residual live gap:
+Previous live gap:
 
 - `http://localhost:8085/` still returned the pre-existing local NGINX
   `404`, and `http://localhost:8086/` was not reachable from the WSL shell.
@@ -233,17 +244,17 @@ Evidence:
 Decision:
 
 ```text
-NGINX_FIRST_DEDICATED_PORT
+SERVICE_ACCESS_CENTRAL_NGINX
 ```
 
 Decision details:
 
-- Swagger/NGINX keeps published port `80`.
-- Service access owns a dedicated NGINX ingress.
-- The service-access dashboard route uses published port `8085`.
+- Service access owns the central NGINX ingress and publishes port `80`.
+- The service-access dashboard route is `http://localhost`.
 - The Vaultwarden route uses published port `8086`.
-- Traefik, shared ingress, TLS automation and wider-than-local exposure remain
-  behind later ADR and test scope.
+- Swagger/NGINX publishes `8084` instead of host port `80`.
+- Traefik, TLS automation and wider-than-local exposure remain behind later ADR
+  and test scope.
 - Service-access dashboard and NGINX assets must be image-packaged or
   image-native for the Portainer-managed path.
 
@@ -320,10 +331,9 @@ Evidence:
 - `git diff --check` passed in WSL. Git emitted CRLF warnings for unrelated
   untouched files, but no whitespace errors.
 - Static service-access YAML validation passed: the compose repository loads
-  the stack, required services are declared, published ports are `8085` and
-  `8086`, no published `80` is present, named volume and network declarations
-  exist, and the external Vaultwarden admin-token secret is referenced by
-  name only.
+  the stack, required services are declared, published ports are `80` and
+  `8086`, named volume and network declarations exist, and the external
+  Vaultwarden admin-token secret is referenced by name only.
 - Static asset validation passed: no `docker-compose.yml` or shell helper
   exists under `infra/compose/service-access`.
 - ASCII check passed for all Slice 03 compose, dashboard, NGINX and touched
@@ -338,7 +348,7 @@ Decision details:
 - Stack YAML lives under `infra/config/compose/service-access`.
 - Dashboard and NGINX assets are image-packaged under
   `infra/compose/service-access`.
-- Service-access NGINX publishes the dashboard route on `8085` and the
+- Service-access NGINX publishes the dashboard route on `80` and the
   Vaultwarden route on `8086`.
 - Vaultwarden data uses a named volume.
 - The Vaultwarden administrator token is referenced through an external Swarm
@@ -454,7 +464,7 @@ Decision details:
 - Post-bootstrap selected-stack planning excludes `portainer` and can exclude
   bootstrap-owned `nexus`; `service-access` is a Portainer-managed
   post-bootstrap stack.
-- Setup manifest selection adds ports `8085` and `8086` and the
+- Setup manifest selection adds ports `80` and `8086` and the
   `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name without any
   credential value.
 - `EnsureServiceStack` verifies Portainer stack registration after apply; real
@@ -539,18 +549,18 @@ Evidence:
 
 Decision details:
 
-- Dashboard links point only to the plain Vaultwarden route.
-- Service access methods are descriptive text, not direct service links.
-- Reachability states are text-visible and distinguish `Unknown`, `Blocked`,
-  `Reachable`, `Unreachable`, `Resource-gated` and `Needs credentials`
-  without relying on color alone.
-- Each service row records evidence source and freshness as static catalog
-  data until observed reachability is wired.
+- Dashboard links point to central service-access NGINX routes such as
+  `/jenkins`, `/nexus`, `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger`
+  and `/vaultwarden`.
+- The dashboard renders a static management table with `Server`, `URL`,
+  `user` and `pwd` columns.
+- Service access methods are central route links, not host-specific Swarm node
+  URLs.
 - Credential references are Vaultwarden item names only; no password values,
   credential-bearing query strings, userinfo URLs, API keys or admin-token
   values are rendered.
 - Static tests cover service-access compose services, NGINX route constraints,
-  image-packaged dashboard/NGINX assets, Vaultwarden-only links and no
+  image-packaged dashboard/NGINX assets, central route links and no
   React/Vite/live-orchestration surface.
 
 Rollback reference:

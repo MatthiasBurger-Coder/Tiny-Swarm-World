@@ -5,13 +5,16 @@
 Accepted routing decision:
 
 ```text
-NGINX_FIRST_DEDICATED_PORT
+SERVICE_ACCESS_CENTRAL_NGINX
 ```
 
 Rationale:
 
 - Existing Swagger/NGINX assets use `nginx:mainline-alpine` with mounted
   config.
+- The service-access dashboard is the installed landing page and must be
+  reachable at `http://localhost` after the full setup applies the updated
+  stack.
 - No Traefik configuration, labels, provider wiring, or tests are present.
 - Introducing Traefik would add routing architecture, labels, provider, TLS,
   dashboard exposure, and security decisions that need ADR coverage.
@@ -25,13 +28,18 @@ Portainer preference:
 
 Port decision:
 
-- Swagger/NGINX currently publishes port `80`.
-- Swagger/NGINX keeps published port `80`.
-- Service access owns a dedicated NGINX ingress.
-- The service-access dashboard route uses published port `8085`.
+- Service access owns the central NGINX ingress and publishes port `80`.
+- The service-access dashboard route is `http://localhost`.
 - The Vaultwarden route uses published port `8086`.
-- Shared ingress is deferred until a later ADR defines route ownership,
-  Swagger migration, tests, and rollback.
+- Swagger/NGINX no longer owns host port `80`; its proxy endpoint publishes
+  `8084`.
+- Service shortcut routes such as `/jenkins`, `/nexus`, `/portainer`,
+  `/rabbitmq`, `/sonarqube`, `/swagger` and `/vaultwarden` are owned by
+  service-access NGINX.
+- The setup preflight allows legacy local listeners for old Swagger `80` and
+  old Swagger API `8084` when the same live run will reassign those routes.
+- Traefik, TLS automation and wider-than-local exposure remain behind later
+  ADR and test scope.
 - A compose file must not silently publish another service on port `80`.
 
 Asset decision:

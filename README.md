@@ -32,7 +32,7 @@ The system follows a hexagonal architecture and provides async Python automation
 - Service-access management surface:
   - static landing page for server links and credential references
   - Vaultwarden credential store behind service-access NGINX
-  - Vaultwarden-only password reveal/copy path
+  - password values available only through Vaultwarden's authenticated UI
 - Modular infrastructure assets in `infra/config` and `infra/compose`, driven by the Python setup workflow.
 - WSL2 networking support via socat and netplan helpers.
 - Rich test suite and enforced separation between domain, application, and infrastructure layers.
@@ -232,9 +232,11 @@ The full guided setup now includes the `service-access` management stack. Its
 compose definition lives under
 `infra/config/compose/service-access/docker-compose.yml`, and its dashboard
 and NGINX assets are image-packaged under `infra/compose/service-access/**`.
-The dashboard is the installed landing page for service links and Vaultwarden
-credential references. It links only to Vaultwarden and keeps reachability
-unknown until observed evidence is wired. Password values are visible only in
+The dashboard is the installed landing page at `http://localhost`. A central
+service-access NGINX owns the local root route and redirects stable paths such
+as `/jenkins`, `/nexus`, `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger`
+and `/vaultwarden` to the matching local service route. The table shows users
+and Vaultwarden item references; password values are visible only in
 Vaultwarden's authenticated UI. Operators who intentionally want the older base
 service set can pass `--service-profile default`.
 

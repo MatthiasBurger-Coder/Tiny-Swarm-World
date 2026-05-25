@@ -56,15 +56,15 @@ setup selects `ServiceStackProfile.SERVICE_ACCESS` by default and adds
 `SERVICE_ACCESS_STACK_CONTRACT` with the services
 `service-access-dashboard`, `vaultwarden`, and `service-access-nginx`. The
 base stack profile remains available for explicit `--service-profile default`
-runs. The service-access setup manifest adds ports `8085` and `8086` plus the
+runs. The service-access setup manifest adds ports `80` and `8086` plus the
 `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
 
 The service-access dashboard and NGINX assets are image-packaged under
 `infra/compose/service-access/**`, while the stack definition lives under
 `infra/config/compose/service-access/docker-compose.yml`. Static tests verify
-that the dashboard links only to Vaultwarden, does not render password values,
-does not introduce React/Vite files, and keeps reachability unknown until
-observed evidence is available.
+that the dashboard exposes a management table with central route links and
+Vaultwarden item references, does not render password values, and does not
+introduce React/Vite files.
 
 The default Artifacts and Deployment workflow bundles are intentional
 fail-closed building blocks. They create stable composition boundaries while

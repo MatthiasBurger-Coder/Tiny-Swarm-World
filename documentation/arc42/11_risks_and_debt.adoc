@@ -70,8 +70,9 @@ The service-access dashboard and Vaultwarden baseline is implemented as
 repository compose assets, image-packaged dashboard/NGINX assets, setup
 profile contracts, setup manifest requirements and static tests.
 A post-workflow live smoke test on 2026-05-25 verified the Portainer-managed
-stack on the Swarm node IPs, while local `localhost` forwarding for `8085` and
-`8086` remained out of sync.
+stack on the Swarm node IPs using the older dedicated dashboard port. The
+current central `http://localhost` route requires a fresh live redeployment
+before it is claimed as verified.
 
 Remaining risks and debt:
 
@@ -86,11 +87,9 @@ Remaining risks and debt:
 * service reachability could be falsely presented as healthy without fresh
   observed-state or HTTP evidence; current dashboard assets render catalog
   reachability as unknown unless evidence is collected separately;
-* local host forwarding is incomplete: the 2026-05-25 live smoke verified
-  Swarm node IP access, but `localhost:8085` still returned a pre-existing
-  local NGINX `404` and `localhost:8086` was not reachable from the WSL shell;
-  the setup preflight now blocks unexpected local listeners on the
-  service-access ports instead of allowing a misleading local 404;
+* the central `http://localhost` service-access route is implemented in
+  repository assets but still needs a fresh live redeployment and browser smoke
+  test before it can be claimed as verified;
 * local registry availability and image publication still need live
   observed-state hardening beyond the static artifact contracts;
 * plain HTTP access is acceptable only as a local development baseline until a
@@ -100,8 +99,8 @@ Remaining risks and debt:
 
 Resolved or narrowed risks:
 
-* the published port collision with Swagger/NGINX port `80` is resolved for
-  the current design by dedicated service-access ports `8085` and `8086`;
+* the published port collision with Swagger/NGINX port `80` is resolved by
+  making service-access the owner of `80` and moving Swagger/NGINX to `8084`;
 * dashboard and NGINX repository assets are image-packaged for the
   Portainer-managed stack path instead of bind-mounted from the repository;
 * static tests reject React/Vite project files, live orchestration helpers,

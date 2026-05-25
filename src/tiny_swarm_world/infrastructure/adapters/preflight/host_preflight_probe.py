@@ -95,6 +95,8 @@ class HostPreflightProbe(PortHostPreflightProbe):
             return _tcp_connects(port) and _http_service_available(15672, ("/",), ("rabbitmq",))
         if "sonarqube" in service_name:
             return _http_service_available(port, ("/api/system/status", "/"), ("sonar", "status"))
+        if "swagger api" in service_name:
+            return _http_service_available(port, ("/",), ("access-control-allow-origin: *",))
         if "swagger" in service_name:
             return _http_service_available(port, ("/",), ("swagger", "openapi"))
         if "service access" in service_name:

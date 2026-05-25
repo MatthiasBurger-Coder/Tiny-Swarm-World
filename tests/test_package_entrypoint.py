@@ -93,7 +93,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         plan = output.getvalue()
         self.assertIn("Service profile: service-access", plan)
         self.assertIn("Service Access: stack service-access", plan)
-        self.assertIn("published port(s) 8085, 8086", plan)
+        self.assertIn("published port(s) 80, 8086", plan)
 
     async def test_mutating_workflow_requires_live_consent_before_building_services(self):
         output = io.StringIO()

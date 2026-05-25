@@ -716,7 +716,8 @@ Done criteria:
 Purpose:
 
 - Implement or configure the service-access dashboard content.
-- Ensure status labels and credential references are deterministic and safe.
+- Ensure central route links and credential references are deterministic and
+  safe.
 - Avoid React project scope.
 
 ```yaml
@@ -1015,6 +1016,7 @@ Checked during workflow creation:
 - `documentation/arc42/11_risks_and_debt.adoc`
 
 arc42 files are synchronized during workflow execution slices when behavior is
-implemented. The post-workflow live smoke test on 2026-05-25 verified
-service-access reachability through Swarm node IPs and recorded the remaining
-`localhost` forwarding gap for ports `8085` and `8086`.
+implemented. The post-workflow live smoke test on 2026-05-25 verified the
+older service-access route through Swarm node IPs. The current routing baseline
+is service-access central NGINX on `http://localhost` with Vaultwarden on
+`8086`; it requires a fresh live deployment before browser verification.
