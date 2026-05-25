@@ -1,49 +1,63 @@
 {
   "active_workflow": {
-    "version": "linux-wsl-swarm-setup-v1.0.0",
-    "branch": "fix/linux-wsl-swarm-setup-workprocess-20260525",
-    "source_label": "workflow-linux-wsl-swarm-setup.md",
-    "source_sha256": "B42CE30106AF8F200284A4FC6C3C9EBAFEAA84FE6CDC2CB31D101889C0C9A9A1",
+    "version": "lxc-native-node-provider-v1.0.0",
+    "branch": "feature/workflow-lxc-node-provider-20260526",
+    "source_label": "user request in current thread: LXC/LXD/Incus default provider, Multipass legacy/fallback",
+    "source_sha256": null,
     "decision": "PROCEED_WITH_ACCEPTED_ASSUMPTIONS",
-    "execution_profile": "NORMAL_PATH",
-    "sequencing_update": "Slice 06 and Slice 07 run serially after Slice 05; Slice 07 depends on Slice 06 because both may touch infrastructure preflight adapter scope.",
+    "execution_profile": "FULL_PATH",
+    "external_source_report": "documentation/workflow/reports/03-external-wsl-provider-sources.md",
     "process_strand": [
       "workflow-authoring",
+      "provider-architecture",
       "setup-preflight",
       "platform-setup",
-      "multipass-readiness",
-      "wsl2-network-planning",
+      "lxd-incus-readiness",
+      "docker-swarm-node-lifecycle",
+      "multipass-legacy-fallback",
       "evidence",
       "documentation",
       "quality-validation"
     ]
   },
   "affected_areas": [
+    "src/tiny_swarm_world/domain/node_provider",
     "src/tiny_swarm_world/domain/preflight",
-    "src/tiny_swarm_world/domain/multipass",
     "src/tiny_swarm_world/domain/network",
+    "src/tiny_swarm_world/domain/multipass",
+    "src/tiny_swarm_world/application/ports/node_provider",
     "src/tiny_swarm_world/application/ports/preflight",
     "src/tiny_swarm_world/application/services/platform",
     "src/tiny_swarm_world/application/services/setup",
-    "src/tiny_swarm_world/application/services/network",
+    "src/tiny_swarm_world/application/services/multipass",
     "src/tiny_swarm_world/infrastructure/adapters/preflight",
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner",
+    "src/tiny_swarm_world/infrastructure/adapters/clients",
+    "src/tiny_swarm_world/infrastructure/adapters/repositories",
     "src/tiny_swarm_world/infrastructure/composition.py",
     "src/tiny_swarm_world/__main__.py",
+    "infra/config/node-providers",
+    "infra/config/multipass",
+    "infra/config/docker",
     "tests/domain",
     "tests/application/services/platform",
     "tests/application/services/setup",
+    "tests/application/services/multipass",
     "tests/infrastructure/adapters/preflight",
+    "tests/infrastructure/adapters/clients",
+    "tests/infrastructure/adapters/repositories",
     "documentation/architecture",
     "documentation/system",
     "documentation/user_guide",
     "documentation/deployment",
-    "documentation/arc42"
+    "documentation/arc42",
+    "AGENTS.md",
+    "README.md"
   ],
   "forbidden_areas": [
     "Java/Maven/Spring Boot/Gradle/JUnit/ArchUnit build surfaces",
     "browser React/frontend modules or package-manager tooling",
     "Kubernetes-first implementation",
+    "raw low-level LXC-only provider as the first implementation",
     "direct execution or promotion of infra/swarm scripts",
     "live infrastructure commands during normal tests or quality gates",
     "committed secrets, host IPs, usernames, local paths, raw output, environment payloads, or Swarm join tokens"
@@ -68,8 +82,10 @@
       "git diff --check"
     ],
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service",
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe",
+      "PYTHONPATH=src python3 -m unittest tests.domain.node_provider",
+      "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_node_provider_selection",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_lxc_provider_preflight",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider",
       "PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow",
       "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows",
       "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint"
@@ -97,14 +113,21 @@
     "documentation/arc42/06_runtime_view.adoc": "5a16efb85a04e5099b1ba31b84830eb672af0825",
     "documentation/arc42/07_deployment_view.adoc": "3e0e76f65979ba7bbc384379def3ffbe795e174b",
     "documentation/arc42/11_risks_and_debt.adoc": "0ad988ec0b27d59f82b265a475110e9cddaeb99c",
-    "documentation/architecture/adr-autonomous-setup-safety.adoc": "3c6c88c479ac3db7aa8d8cdf03e06fc045d074a0"
+    "documentation/architecture/adr-autonomous-setup-safety.adoc": "3c6c88c479ac3db7aa8d8cdf03e06fc045d074a0",
+    "documentation/process/workflow-create.md": "78f2b31e96ab0731ee7b61cc2066f3446f3e1bcf",
+    ".agents/skills/workflow-authoring/SKILL.md": "6ccd9a0e322437fbca49e388ae3b387ac515758b",
+    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "a11ed5c6b901e8a5ad5f9c13ce37bfc67886e1b0",
+    ".agents/skills/execution-profile-router/SKILL.md": "007dd37d35028e99a119219084ad321ffb4da25e",
+    ".agents/orchestrator/routing-rules.md": "3d7998b6413102c3dd69e4299d70b63a06323923",
+    "documentation/process/branch-governance.md": "1b4479ac69e659ebfe236fa662c54e6c325412e5"
   },
   "stale_when": [
     "any governing hash changes",
-    "active branch differs from fix/linux-wsl-swarm-setup-workprocess-20260525",
+    "active branch differs from feature/workflow-lxc-node-provider-20260526",
     "workflow.md changes without context-pack.json update",
-    "architecture, quality, or live-consent semantics change outside workflow scope",
+    "external WSL/LXD/Incus source assumptions change without updating reports/03-external-wsl-provider-sources.md",
+    "architecture, quality, provider, or live-consent semantics change outside workflow scope",
     "slice order, locks, or required quality gates change"
   ],
-  "live_validation_rule": "Sandbox validates Linux/sandbox behavior only; real WSL2 console validates WSL2 behavior."
+  "live_validation_rule": "Sandbox validates only mocked/static behavior; native Linux, WSL2, and Multipass legacy evidence must be evaluated separately."
 }

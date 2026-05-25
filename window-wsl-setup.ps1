@@ -10,6 +10,9 @@ It can:
 - convert the selected distribution to WSL2
 - enable systemd in /etc/wsl.conf
 - optionally configure %UserProfile%\.wslconfig
+- optionally install the selected LXD provider inside WSL
+- optionally initialize LXD with a minimal local configuration
+- optionally run a disposable LXD/LXC smoke test
 - collect diagnostic evidence
 - optionally check whether LXD or Incus is already available inside WSL
 
@@ -17,7 +20,8 @@ It does not:
 - create LXC/LXD/Incus containers
 - create Docker Swarm nodes
 - install Docker Swarm
-- install LXD/Incus automatically
+- install LXD automatically unless -InstallProvider is set
+- initialize LXD automatically unless -InitializeProvider is set
 - mutate Windows portproxy/netsh rules
 #>
 
@@ -27,6 +31,14 @@ param(
 
     [ValidateSet("none", "lxd", "incus")]
     [string]$Provider = "none",
+
+    [switch]$InstallProvider,
+
+    [switch]$InitializeProvider,
+
+    [switch]$RunProviderSmokeTest,
+
+    [string]$SmokeTestInstanceName = "tsw-lxd-smoke",
 
     [switch]$CheckOnly,
 
@@ -450,6 +462,8 @@ systemctl is-active lxd 2>/dev/null || true
             Write-Host "Suggested WSL commands after systemd is active:" -ForegroundColor DarkGray
             Write-Host "  sudo snap install lxd" -ForegroundColor DarkGray
             Write-Host "  sudo lxd init" -ForegroundColor DarkGray
+            Write-Host "Or rerun this script with:" -ForegroundColor DarkGray
+            Write-Host "  -Provider lxd -InstallProvider -InitializeProvider" -ForegroundColor DarkGray
         }
 
         return
@@ -467,6 +481,161 @@ systemctl is-active incus 2>/dev/null || true
         if ($result.Output -notmatch "incus") {
             Write-Warn "Incus was not detected inside the distro."
         }
+    }
+}
+
+function Assert-ProviderSelectionForMutation {
+    param([string]$SelectedProvider)
+
+    if ($SelectedProvider -eq "none") {
+        throw "Select -Provider lxd before installing, initializing, or smoke-testing the provider."
+    }
+
+    if ($SelectedProvider -eq "incus") {
+        throw "Automated Incus installation is not implemented in this script yet. Use -Provider lxd or install Incus manually."
+    }
+}
+
+function Install-LxdInsideWsl {
+    param([string]$Distro)
+
+    $scriptText = @'
+set -euo pipefail
+
+if ! command -v snap >/dev/null 2>&1; then
+  echo "snap-not-found"
+  echo "Install or repair snapd inside the WSL distro before installing LXD."
+  exit 21
+fi
+
+if command -v systemctl >/dev/null 2>&1; then
+  if ! systemctl is-active snapd.service >/dev/null 2>&1 && ! systemctl is-active snapd.socket >/dev/null 2>&1; then
+    echo "snapd-not-active"
+    echo "snapd must be active for the LXD snap. Restart WSL after enabling systemd, then retry."
+    exit 22
+  fi
+fi
+
+if snap list lxd >/dev/null 2>&1; then
+  echo "lxd-snap-already-installed"
+else
+  sudo snap install lxd
+fi
+
+getent group lxd >/dev/null || sudo groupadd --system lxd
+
+if id -nG "$USER" | tr ' ' '\n' | grep -qx lxd; then
+  echo "current-user-already-in-lxd-group"
+else
+  sudo usermod -aG lxd "$USER"
+  echo "current-user-added-to-lxd-group"
+  echo "Open a new WSL shell or run 'newgrp lxd' before using lxc without sudo."
+fi
+
+echo "lxd-install-complete"
+'@
+
+    Invoke-WslBash -Distro $Distro -ScriptText $scriptText | Out-Null
+}
+
+function Initialize-LxdInsideWsl {
+    param([string]$Distro)
+
+    $scriptText = @'
+set -euo pipefail
+
+if ! command -v lxd >/dev/null 2>&1 && ! command -v lxc >/dev/null 2>&1; then
+  echo "lxd-not-installed"
+  exit 23
+fi
+
+if sudo lxc storage list --format csv >/dev/null 2>&1; then
+  if [ -n "$(sudo lxc storage list --format csv 2>/dev/null)" ]; then
+    echo "lxd-already-initialized"
+    sudo lxc version
+    exit 0
+  fi
+fi
+
+sudo lxd init --minimal
+sudo lxc version
+'@
+
+    Invoke-WslBash -Distro $Distro -ScriptText $scriptText | Out-Null
+}
+
+function Invoke-LxdSmokeTestInsideWsl {
+    param(
+        [string]$Distro,
+        [string]$InstanceName
+    )
+
+    if ($InstanceName -notmatch "^[A-Za-z0-9][A-Za-z0-9_.-]*$") {
+        throw "SmokeTestInstanceName '$InstanceName' is invalid."
+    }
+
+    $scriptText = @'
+set -euo pipefail
+
+NAME="__INSTANCE_NAME__"
+
+cleanup() {
+  sudo lxc delete "$NAME" --force >/dev/null 2>&1 || true
+}
+
+trap cleanup EXIT
+cleanup
+
+sudo lxc launch ubuntu:24.04 "$NAME"
+sudo lxc list "$NAME"
+sudo lxc exec "$NAME" -- bash -lc "cat /etc/os-release && getent hosts archive.ubuntu.com"
+echo "lxd-smoke-test-complete"
+'@
+
+    $scriptText = $scriptText.Replace("__INSTANCE_NAME__", $InstanceName)
+
+    Invoke-WslBash -Distro $Distro -ScriptText $scriptText | Out-Null
+}
+
+function Invoke-ProviderInstallSteps {
+    param(
+        [string]$Distro,
+        [string]$SelectedProvider
+    )
+
+    Assert-ProviderSelectionForMutation -SelectedProvider $SelectedProvider
+
+    if ($SelectedProvider -eq "lxd") {
+        Install-LxdInsideWsl -Distro $Distro
+        return
+    }
+}
+
+function Invoke-ProviderInitializationSteps {
+    param(
+        [string]$Distro,
+        [string]$SelectedProvider
+    )
+
+    Assert-ProviderSelectionForMutation -SelectedProvider $SelectedProvider
+
+    if ($SelectedProvider -eq "lxd") {
+        Initialize-LxdInsideWsl -Distro $Distro
+        return
+    }
+}
+
+function Invoke-ProviderSmokeTest {
+    param(
+        [string]$Distro,
+        [string]$SelectedProvider
+    )
+
+    Assert-ProviderSelectionForMutation -SelectedProvider $SelectedProvider
+
+    if ($SelectedProvider -eq "lxd") {
+        Invoke-LxdSmokeTestInsideWsl -Distro $Distro -InstanceName $SmokeTestInstanceName
+        return
     }
 }
 
@@ -520,6 +689,9 @@ function Write-Summary {
     Write-Host "Selected distro: $SelectedDistro"
     Write-Host "Provider target: $Provider"
     Write-Host "CheckOnly: $CheckOnly"
+    Write-Host "InstallProvider: $InstallProvider"
+    Write-Host "InitializeProvider: $InitializeProvider"
+    Write-Host "RunProviderSmokeTest: $RunProviderSmokeTest"
     Write-Host "Changed WSL configuration: $Script:ChangedWslConfiguration"
 
     if ($Script:ChangedWslConfiguration -and $ShutdownAfterChange -and -not $CheckOnly) {
@@ -537,6 +709,8 @@ function Write-Summary {
 
     if ($Provider -eq "lxd") {
         Write-Host "  wsl -d $SelectedDistro -- bash -lc 'command -v lxc && lxc version'"
+        Write-Host "  wsl -d $SelectedDistro -- bash -lc 'id -nG; lxc list'"
+        Write-Host "  wsl -d $SelectedDistro -- bash -lc 'lxc launch ubuntu:24.04 test-lxc; lxc exec test-lxc -- bash -lc `"cat /etc/os-release && getent hosts archive.ubuntu.com`"; lxc delete test-lxc --force'"
     }
 
     if ($Provider -eq "incus") {
@@ -644,6 +818,39 @@ try {
 
     Write-Section "WSL host evidence"
     Collect-WslEvidence -Distro $selectedName
+
+    if ($InstallProvider) {
+        Write-Section "Install selected provider inside WSL"
+
+        if ($CheckOnly) {
+            Assert-ProviderSelectionForMutation -SelectedProvider $Provider
+            Write-Warn "CheckOnly is set. Would install provider '$Provider' inside '$selectedName'."
+        } else {
+            Invoke-ProviderInstallSteps -Distro $selectedName -SelectedProvider $Provider
+        }
+    }
+
+    if ($InitializeProvider) {
+        Write-Section "Initialize selected provider inside WSL"
+
+        if ($CheckOnly) {
+            Assert-ProviderSelectionForMutation -SelectedProvider $Provider
+            Write-Warn "CheckOnly is set. Would initialize provider '$Provider' inside '$selectedName'."
+        } else {
+            Invoke-ProviderInitializationSteps -Distro $selectedName -SelectedProvider $Provider
+        }
+    }
+
+    if ($RunProviderSmokeTest) {
+        Write-Section "Run selected provider smoke test"
+
+        if ($CheckOnly) {
+            Assert-ProviderSelectionForMutation -SelectedProvider $Provider
+            Write-Warn "CheckOnly is set. Would run provider smoke test '$SmokeTestInstanceName' inside '$selectedName'."
+        } else {
+            Invoke-ProviderSmokeTest -Distro $selectedName -SelectedProvider $Provider
+        }
+    }
 
     Write-Section "Provider validation"
     Test-ProviderInsideWsl -Distro $selectedName -SelectedProvider $Provider
