@@ -95,7 +95,7 @@
     },
     {
       "path": "documentation/arc42/11_risks_and_debt.adoc",
-      "sha256": "4C9F4638689295B4C0A78101D7D1FD2C5B95E9C1D6834938CE7BDC0369B2F0EE"
+      "sha256": "59FEE627BB7C944C3C8D760A8497C707AF460EA8703B4DD7C2B7A6BF01D37DC7"
     },
     {
       "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
@@ -103,7 +103,7 @@
     },
     {
       "path": "documentation/deployment/system.adoc",
-      "sha256": "5EE8781DC8CE1AAF3319D82D56ADD01088F7690B9ED6E1F0673AB8F8F9545CB9"
+      "sha256": "83EA94DA18EEFF9995B9A4E72A4C84B92CBDC82CF5ADD9521A0D3031F6E31B55"
     },
     {
       "path": "documentation/user_guide/installation.adoc",
@@ -111,7 +111,7 @@
     },
     {
       "path": "documentation/user_guide/usage.adoc",
-      "sha256": "0CE90424661F174FA7AB57294318C016A0AE81BAE95732588BDC75AB4330DBE3"
+      "sha256": "56B7D8C4E2C4ADDA4ABF1F4D1A05FF2E77C2CC187D755CD6269C6BAAE20A8282"
     },
     {
       "path": "documentation/user_guide/troubleshooting.adoc",
@@ -215,11 +215,11 @@
     },
     {
       "path": "documentation/workflow/workflow.md",
-      "sha256": "F0DC3746629B1836855EE796D859E8C61ADFFBAADF19FD3036B9A94E793CF40F"
+      "sha256": "CD43C417BD16AEF9C30285FFD6F2C9EF53FA5D530748D7713D60DF76C8C0CEE6"
     },
     {
       "path": "documentation/workflow/execution-report.md",
-      "sha256": "6F988471859F9D053A73DA07339C2A6EA66135D4BAE88C78BDBC09AF5E8467C3"
+      "sha256": "00C5835BE25F2EA20D9EEC4BCCBEE01997AE31C76BEF1DCA58B42E319EAC800D"
     }
   ],
   "affectedAreas": [

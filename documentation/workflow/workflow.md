@@ -1015,5 +1015,6 @@ Checked during workflow creation:
 - `documentation/arc42/11_risks_and_debt.adoc`
 
 arc42 files are synchronized during workflow execution slices when behavior is
-implemented. Current static and mocked evidence covers repository assets and
-contracts only; it does not claim live service reachability.
+implemented. The post-workflow live smoke test on 2026-05-25 verified
+service-access reachability through Swarm node IPs and recorded the remaining
+`localhost` forwarding gap for ports `8085` and `8086`.

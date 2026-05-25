@@ -645,8 +645,9 @@ Evidence:
 Decision details:
 
 - Documentation now describes service-access as partially implemented in
-  repository assets and selected-profile contracts, not live deployed or
-  reachable.
+  repository assets and selected-profile contracts. Later post-workflow live
+  smoke evidence verifies Swarm node IP reachability and records the remaining
+  `localhost` forwarding gap.
 - User-facing docs state that service-access is not part of the default
   setup profile and no user-facing CLI selector is documented yet.
 - arc42 and ADR material distinguish implemented static/mocked evidence from

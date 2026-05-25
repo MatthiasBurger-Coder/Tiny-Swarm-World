@@ -126,8 +126,11 @@ deployed through the reviewed setup workflow.
 == Service-access routing and Vaultwarden
 
 The service-access dashboard and Vaultwarden capability is partially
-implemented in repository configuration and tests, but it has not been live
-deployed or verified as reachable.
+implemented in repository configuration and tests. A post-workflow live smoke
+test on 2026-05-25 deployed the stack through Portainer and verified the
+dashboard and Vaultwarden routes through the Swarm node IPs. Local
+`localhost` forwarding for ports `8085` and `8086` remained out of sync in
+that run.
 
 Implemented repository behavior:
 
@@ -164,9 +167,28 @@ slice adds a tested asset-preparation boundary.
 The static dashboard links only to Vaultwarden. Service entries list access
 methods, unknown reachability state, evidence source, freshness and
 Vaultwarden item references. Password values remain visible only through
-Vaultwarden's authenticated reveal/copy flow. No live reachability evidence
-has been collected for the dashboard, Vaultwarden or service-access NGINX
-routes.
+Vaultwarden's authenticated reveal/copy flow.
+
+Observed live smoke evidence from 2026-05-25:
+
+* The Portainer stack `service-access` was created and updated on endpoint
+  `local`.
+* Swarm tasks for the dashboard, Vaultwarden and service-access NGINX reached
+  `running`, and Vaultwarden reported healthy.
+* `http://10.157.2.182:8085/`, `http://10.157.2.19:8085/`, and
+  `http://10.157.2.33:8085/` returned the service-access dashboard with HTTP
+  `200`.
+* `http://10.157.2.182:8086/`, `http://10.157.2.19:8086/`, and
+  `http://10.157.2.33:8086/` returned Vaultwarden with HTTP `200`.
+* The dashboard path `/vaultwarden` redirected to the same host on port
+  `8086`.
+
+Residual live gap:
+
+* `http://localhost:8085/` returned a pre-existing local NGINX `404`, and
+  `http://localhost:8086/` was not reachable from the WSL shell. The stack is
+  reachable on Swarm node IPs, but host forwarding for `localhost` needs a
+  separate network follow-up.
 
 == Verification
 

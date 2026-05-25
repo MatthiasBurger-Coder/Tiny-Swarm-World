@@ -201,16 +201,26 @@ Implemented repository assets:
 * `infra/compose/service-access/nginx/**` contains the image-packaged NGINX
   route configuration.
 
-If the selected profile is deployed by a future operator workflow, the
-dashboard route is `8085` and the Vaultwarden route is `8086`. The dashboard
-is static catalog data. It lists service access methods, unknown reachability,
-evidence source, freshness, and Vaultwarden item references. It links only to
-Vaultwarden. It does not show password values.
+When the selected profile is deployed by an operator workflow, the dashboard
+route is `8085` and the Vaultwarden route is `8086`. The dashboard is static
+catalog data. It lists service access methods, unknown reachability, evidence
+source, freshness, and Vaultwarden item references. It links only to
+Vaultwarden through a host-neutral `/vaultwarden` link that redirects to the
+same host on port `8086`. It does not show password values.
 
 Authorized operators reveal or copy password values only through
-Vaultwarden's authenticated UI. Current repository quality evidence is static
-and mocked; it does not prove that the dashboard, Vaultwarden or NGINX routes
-are live reachable.
+Vaultwarden's authenticated UI.
+
+A post-workflow live smoke test on 2026-05-25 deployed the stack through
+Portainer and verified the dashboard and Vaultwarden over the Swarm node IPs:
+`10.157.2.182`, `10.157.2.19`, and `10.157.2.33`. In that run, both `8085`
+and `8086` returned HTTP `200` on each node IP, and `/vaultwarden` redirected
+to the same host on port `8086`.
+
+Residual local access gap: `localhost:8085` still reached a pre-existing
+local NGINX `404`, and `localhost:8086` was not reachable from the WSL shell.
+Use the Swarm node IPs until host forwarding for `8085` and `8086` is
+synchronized.
 
 == Commit And Push Shortcut
 
