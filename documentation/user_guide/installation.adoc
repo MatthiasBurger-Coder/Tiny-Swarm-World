@@ -144,3 +144,19 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 When prompted, answer `y` only if changing the local Multipass, Docker Swarm,
 networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX
 environment is intentional.
+
+== Optional Service Access Prerequisites
+
+The repository contains an optional selected-profile service-access stack with
+a static dashboard, Vaultwarden and service-access NGINX assets. It is not
+part of the default runnable setup profile and no user-facing CLI selector is
+documented yet.
+
+When a future live setup path selects this profile, the local target must have
+ports `8085` and `8086` available. The Vaultwarden administrator token must be
+provided as an external Swarm secret whose name is supplied through
+`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Document only the secret name, never the
+token value.
+
+The service-access dashboard remains static catalog data until a live run
+deploys the stack and observed reachability evidence is collected.

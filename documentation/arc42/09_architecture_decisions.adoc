@@ -67,25 +67,27 @@ Consequences:
 
 ADR: `documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc`
 
-Status: accepted as requirement and security baseline; implementation not
-started.
+Status: accepted as requirement and security baseline; partially implemented
+as static stack assets and selected-profile contracts.
 
 Consequences:
 
-* the future service-access capability belongs to the Deployment
-  responsibility boundary as a Docker Swarm service stack;
+* the service-access capability belongs to the Deployment responsibility
+  boundary as a Docker Swarm service stack;
 * Vaultwarden is the only approved password reveal and copy surface;
 * the service-access dashboard may show service names, access routes,
   reachability states, credential labels and Vaultwarden item references, but
   must not display, cache, export, log or persist password values;
-* the current default runnable service set is unchanged until a later slice
-  accepts default-profile inclusion;
-* NGINX is the baseline routing direction, with concrete port or shared
-  ingress decisions deferred to the routing slice;
+* the current default runnable service set remains unchanged; the implemented
+  contract adds service-access through `ServiceStackProfile.SERVICE_ACCESS`;
+* NGINX is the baseline routing direction, with dedicated local ports `8085`
+  and `8086` for the service-access stack;
 * Traefik, TLS automation and wider-than-local exposure require later ADR
   coverage;
 * Portainer may manage post-bootstrap stack create/update only after
-  Portainer is reachable and must not become its own bootstrap dependency.
+  Portainer is reachable and must not become its own bootstrap dependency;
+* live deployment and reachability are not verified by the current static and
+  mocked quality evidence.
 
 === Workflow Taxonomy And Destructive Operation Policy
 

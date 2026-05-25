@@ -415,7 +415,7 @@ PUSHED_TO_ORIGIN
 Status:
 
 ```text
-PASSED_CHECKPOINT_PENDING_COMMIT
+PASSED_CHECKPOINT_PUSHED
 ```
 
 Responsible role:
@@ -487,7 +487,108 @@ Decision details:
 Rollback reference:
 
 ```text
-git revert <slice-05-checkpoint-commit>
+git revert a9dca8dd6219c112d05be3be2215d8dac7393ae0
+```
+
+Checkpoint commit:
+
+```text
+a9dca8dd6219c112d05be3be2215d8dac7393ae0
+```
+
+Push result:
+
+```text
+PUSHED_TO_ORIGIN
+```
+
+## Slice 06 - Documentation, Quality Evidence, And Handoff
+
+Status:
+
+```text
+PASSED_CHECKPOINT_PENDING_COMMIT
+```
+
+Responsible role:
+
+```text
+Senior Documentation Engineer
+```
+
+Reviewed roles:
+
+- Senior Documentation Engineer
+- Senior Tester
+- Senior Workflow Architect
+- Senior System Architect
+
+Changed files:
+
+- `README.md`
+- `documentation/deployment/system.adoc`
+- `documentation/user_guide/installation.adoc`
+- `documentation/user_guide/usage.adoc`
+- `documentation/user_guide/troubleshooting.adoc`
+- `documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc`
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/09_architecture_decisions.adoc`
+- `documentation/arc42/10_quality_requirements.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/workflow/workflow.md`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/execution-report.md`
+
+Quality-gate commands:
+
+```bash
+git diff --check
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+```
+
+Quality-gate result:
+
+```text
+PASSED
+```
+
+Evidence:
+
+- Context-pack hash validation passed for all recorded governing files.
+- `python3 -m json.tool documentation/workflow/context-pack.json` passed.
+- `git diff --check` passed; Git reported existing CRLF normalization
+  warnings for untouched files only.
+- `python3 tools/quality_gate.py test` passed with 419 tests and 1 skipped
+  test. The existing AsyncMock warning remains unchanged.
+- Initial full-gate invocation with system `python3` stopped before lint
+  because `ruff` was not installed in that interpreter.
+- `. .venv/bin/activate && python3 tools/quality_gate.py quality` passed:
+  Ruff reported all checks passed, import-linter kept 3 contracts with 0
+  broken contracts after analyzing 209 files and 431 dependencies,
+  architecture tests passed, mypy reported no issues in 294 source files,
+  and unittest discovery passed with 419 tests and 1 skipped test.
+- No live Multipass, Docker Swarm, compose deployment, Portainer, NGINX,
+  Vaultwarden, netplan or socat command was run.
+
+Decision details:
+
+- Documentation now describes service-access as partially implemented in
+  repository assets and selected-profile contracts, not live deployed or
+  reachable.
+- User-facing docs state that service-access is not part of the default
+  setup profile and no user-facing CLI selector is documented yet.
+- arc42 and ADR material distinguish implemented static/mocked evidence from
+  unverified live reachability.
+- Workflow handoff is checkpoint-only: no `push auto`, no pull request
+  creation, no merge, no branch cleanup, no force-push and no push to `main`.
+
+Rollback reference:
+
+```text
+git revert <slice-06-checkpoint-commit>
 ```
 
 Checkpoint commit:

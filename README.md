@@ -29,6 +29,10 @@ The system follows a hexagonal architecture and provides async Python automation
   - RabbitMQ (message broker)
   - SonarQube (static code analysis)
   - Swagger + NGINX (API documentation)
+- Optional selected-profile service-access assets:
+  - static service-access dashboard
+  - Vaultwarden credential store behind service-access NGINX
+  - Vaultwarden-only password reveal/copy path
 - Modular infrastructure assets in `infra/config` and `infra/compose`, driven by the Python setup workflow.
 - WSL2 networking support via socat and netplan helpers.
 - Rich test suite and enforced separation between domain, application, and infrastructure layers.
@@ -223,6 +227,16 @@ canonical static classification is maintained in
 Image publication and stack deployment are handled by the workflow-level setup
 command. Stack definitions live under `infra/config/compose`; image build
 contexts live under `infra/compose`.
+
+The repository also contains an optional selected-profile service-access
+stack. Its compose definition lives under
+`infra/config/compose/service-access/docker-compose.yml`, and its dashboard
+and NGINX assets are image-packaged under
+`infra/compose/service-access/**`. It is not part of the default runnable
+service set and no user-facing CLI selector is documented yet. The dashboard
+is static catalog data: it links only to Vaultwarden, lists credential item
+references, and keeps reachability unknown until observed evidence is wired.
+Password values are visible only in Vaultwarden's authenticated UI.
 
 Live-operation surface summary:
 

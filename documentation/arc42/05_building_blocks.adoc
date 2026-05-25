@@ -39,23 +39,37 @@ microservices:
 * `DeploymentServices` is the explicit deployment boundary. The deployment
   service namespace now owns `EnsurePortainerStack`, `EnsureNexusStack`, and
   the generic `EnsureServiceStack` contract for the default runnable-service
-  stack set.
+  stack set plus selected service profiles.
   `EnsurePortainerStack` is a post-bootstrap Portainer API contract for
   compose lookup plus stack create/update through `PortComposeFileRepository`
   and `PortPortainerClient`. The composition bundle does not construct a
   Portainer client or run a stack mutation during CLI dispatch in the current
   slice. `deployment apply` and `deployment verify` can evaluate configured
-  stack contracts, but the default composition remains blocked until live
-  stack bootstrap, concrete Portainer configuration, and service readiness
-  checks are wired.
+  stack contracts, but live success still depends on live consent, stack
+  bootstrap and observed service readiness.
 * `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
   instead of aliasing `PlatformServices`.
+
+The selected service-access profile is implemented as a Deployment stack
+contract, not as a new microservice and not as a React frontend project.
+`ServiceStackProfile.SERVICE_ACCESS` adds `SERVICE_ACCESS_STACK_CONTRACT`
+with the services `service-access-dashboard`, `vaultwarden`, and
+`service-access-nginx`. The default stack profile remains unchanged. The
+selected setup manifest adds ports `8085` and `8086` plus the
+`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
+
+The service-access dashboard and NGINX assets are image-packaged under
+`infra/compose/service-access/**`, while the stack definition lives under
+`infra/config/compose/service-access/docker-compose.yml`. Static tests verify
+that the dashboard links only to Vaultwarden, does not render password values,
+does not introduce React/Vite files, and keeps reachability unknown until
+observed evidence is available.
 
 The default Artifacts and Deployment workflow bundles are intentional
 fail-closed building blocks. They create stable composition boundaries while
 service ownership moves in dedicated workflow slices, and they keep later live
-Nexus, registry, image publication, and Portainer work behind explicit
-contracts.
+Nexus, registry, image publication, Portainer and service-access work behind
+explicit contracts.
 Compatibility properties on `ApplicationServices` keep the existing
 service-level accessors available for migration, but the public Python
 entrypoint now routes through workflow-level commands.

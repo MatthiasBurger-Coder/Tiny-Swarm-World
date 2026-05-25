@@ -40,13 +40,15 @@ successful live `deployment apply` path yet, because first-time Portainer
 bootstrap and verify-after-apply evidence remain incomplete.
 
 The Deployment boundary also contains a generic `EnsureServiceStack` contract
-and a default stack plan for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
-and Swagger/NGINX. The Portainer-managed plan intentionally excludes the
-Portainer stack itself to avoid a bootstrap cycle. These contracts can apply a
-stack through the Portainer port, then record stack-registration context while
-returning blocked readiness until required services are observed. They do not
-claim container health or application readiness; those checks remain future
-observed-state contracts.
+and stack plans for the default service set plus selected service profiles.
+The default service set covers Portainer, Nexus, Jenkins, RabbitMQ,
+SonarQube, and Swagger/NGINX. The selected service-access profile adds the
+`service-access` stack without changing the default profile. The
+Portainer-managed plan intentionally excludes the Portainer stack itself to
+avoid a bootstrap cycle and can exclude bootstrap-owned Nexus. These
+contracts can apply a stack through the Portainer port, then record
+stack-registration context. They do not claim container health or application
+readiness; readiness remains separate observed-state verification.
 
 The canonical autonomous setup command is `setup run`. It is a workflow-level
 orchestrator over preflight, platform, artifacts, deployment, and final
@@ -121,18 +123,33 @@ The supported stack deployment path is the workflow-level setup command. Compose
 files under `infra/config/compose` are read by Python deployment adapters and
 deployed through the reviewed setup workflow.
 
-== Planned service-access routing
+== Service-access routing and Vaultwarden
 
-The service-access dashboard and Vaultwarden capability is currently a planned
-deployment baseline, not an implemented stack.
+The service-access dashboard and Vaultwarden capability is partially
+implemented in repository configuration and tests, but it has not been live
+deployed or verified as reachable.
 
-The accepted routing decision for future implementation is
+Implemented repository behavior:
+
+* `infra/config/compose/service-access/docker-compose.yml` defines the
+  dashboard, Vaultwarden and service-access NGINX stack.
+* `infra/compose/service-access/dashboard/**` and
+  `infra/compose/service-access/nginx/**` provide image-packaged static
+  assets for the Portainer-managed path.
+* `ServiceStackProfile.SERVICE_ACCESS` adds the `service-access` stack as an
+  optional selected profile. It is not part of the default setup profile and
+  no user-facing CLI selector is documented yet.
+* The setup manifest for the selected profile records ports `8085` and `8086`
+  plus the `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
+  It does not record a token value.
+
+The accepted routing decision is
 `NGINX_FIRST_DEDICATED_PORT`:
 
 * Swagger/NGINX keeps published port `80`.
 * The service-access stack owns its own NGINX ingress.
-* The service-access dashboard should publish local port `8085`.
-* Vaultwarden should publish local port `8086`.
+* The service-access dashboard route uses local port `8085`.
+* The Vaultwarden route uses local port `8086`.
 * Shared ingress, Traefik, TLS automation and wider-than-local exposure require
   later ADR coverage and tests.
 
@@ -140,9 +157,16 @@ Portainer may manage the service-access stack only after Portainer is
 reachable. First-time Portainer bootstrap remains outside Portainer-managed
 stack upload.
 
-For a Portainer-managed service-access stack, dashboard and NGINX assets must
-be image-packaged or image-native. Do not rely on bind-mounted repository
-files unless a later slice adds a tested asset-preparation boundary.
+For a Portainer-managed service-access stack, dashboard and NGINX assets are
+image-packaged. Do not rely on bind-mounted repository files unless a later
+slice adds a tested asset-preparation boundary.
+
+The static dashboard links only to Vaultwarden. Service entries list access
+methods, unknown reachability state, evidence source, freshness and
+Vaultwarden item references. Password values remain visible only through
+Vaultwarden's authenticated reveal/copy flow. No live reachability evidence
+has been collected for the dashboard, Vaultwarden or service-access NGINX
+routes.
 
 == Verification
 

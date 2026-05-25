@@ -65,8 +65,10 @@ Remaining debt:
 
 === Service Access Dashboard And Vaultwarden Baseline Risks
 
-The service-access dashboard and Vaultwarden baseline is accepted as a
-requirement and security direction, but implementation has not started.
+The service-access dashboard and Vaultwarden baseline is partially implemented
+as repository compose assets, image-packaged dashboard/NGINX assets,
+selected-profile contracts, setup manifest requirements and static tests.
+Live deployment and reachability have not been verified.
 
 Remaining risks and debt:
 
@@ -79,14 +81,24 @@ Remaining risks and debt:
 * a bootstrap cycle is possible if required setup credentials are moved into
   Vaultwarden before Vaultwarden itself is reachable;
 * service reachability could be falsely presented as healthy without
-  observed-state or HTTP evidence;
-* service-access routing can collide with the existing Swagger/NGINX port `80`
-  binding unless a later slice defines shared ingress or a non-conflicting
-  published port;
-* Portainer stack upload currently sends compose content, so mounted
-  dashboard or NGINX assets need image packaging or explicit asset
-  preparation before deployment;
+  observed-state or HTTP evidence; current dashboard assets render
+  reachability as unknown;
+* live service-access deployment has not been performed, so the dashboard,
+  Vaultwarden route and NGINX route are not proven reachable;
+* service-access dashboard and NGINX image publication contracts are not yet
+  wired into the artifact workflow;
+* no user-facing CLI selector is documented for enabling the selected
+  service-access profile during setup;
 * plain HTTP access is acceptable only as a local development baseline until a
   later ADR accepts TLS, certificate automation or wider exposure controls;
 * scope could drift into a React/browser frontend project or Traefik routing
   without the required ADR and quality-gate coverage.
+
+Resolved or narrowed risks:
+
+* the published port collision with Swagger/NGINX port `80` is resolved for
+  the current design by dedicated service-access ports `8085` and `8086`;
+* dashboard and NGINX repository assets are image-packaged for the
+  Portainer-managed stack path instead of bind-mounted from the repository;
+* static tests reject React/Vite project files, live orchestration helpers,
+  credential-bearing dashboard links, and raw password rendering.

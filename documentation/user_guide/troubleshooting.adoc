@@ -80,6 +80,27 @@ If Nexus is still starting, increase:
 * `TSW_NEXUS_MAX_ATTEMPTS`
 * `TSW_NEXUS_WAIT_SECONDS`
 
+== Service Access Or Vaultwarden Is Not Reachable
+
+This is expected unless a future live workflow selects the service-access
+profile, builds or publishes the service-access dashboard and NGINX images,
+creates the external Vaultwarden administrator-token secret, deploys the
+service-access stack, and collects observed Swarm or HTTP readiness evidence.
+
+The committed dashboard is static catalog data. It intentionally renders
+service reachability as unknown until observed evidence exists. Password
+values are not present in the dashboard; open Vaultwarden and use the listed
+item name only after Vaultwarden itself is deployed and authenticated access is
+available.
+
+Check the non-secret prerequisites before a live run:
+
+* local ports `8085` and `8086` are available;
+* `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` names an external Swarm secret;
+* the service-access dashboard and NGINX images are available to the Swarm;
+* the service-access stack has been deployed intentionally through a reviewed
+  live path.
+
 == Git Shows Generated Python Files
 
 Generated files such as `__pycache__/`, `.ruff_cache/`, `.mypy_cache/`, and

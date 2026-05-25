@@ -17,14 +17,11 @@ the default quality gate outputs, and must not be committed or moved under
 == Deployment Contracts
 
 The in-process CLI now has explicit artifact and deployment workflow contracts.
-`deployment apply` is live-consent gated and still returns a blocked result
-because first-time stack bootstrap and verify-after-apply evidence are not yet
-wired through the CLI composition root. Slice 06 introduces a tested
-post-bootstrap Portainer API contract through `PortComposeFileRepository` and
-`PortPortainerClient`, but that contract is not treated as a complete live
-setup path until later slices add observed-state verification. `deployment
-verify` still returns a blocked result until stack and service observed-state
-verification can be read through deployment ports.
+`deployment apply` is live-consent gated and now has post-bootstrap
+Portainer-managed stack contracts. First-time Portainer and Nexus bootstrap
+remain separate bootstrap steps, and service readiness still requires observed
+Swarm service evidence. `deployment verify` uses observed-state readiness
+checks and must not report success without collected service state.
 
 This keeps the current local deployment model deterministic in tests: the
 Python composition root can construct deployment workflow objects without
@@ -33,17 +30,25 @@ changing Docker Swarm state. Tests use fakes for Portainer and compose
 repositories. Artifact contract tests use fake Nexus clients and patched Docker
 CLI calls only; they do not contact Nexus, build images, log in, or push.
 Default service stack contracts cover Portainer, Nexus, Jenkins, RabbitMQ,
-SonarQube, and Swagger/NGINX. The Portainer-managed plan excludes Portainer
-itself to avoid a bootstrap cycle. The current checks record stack
-registration context and return blocked readiness until container health or
-application readiness exists as observed-state evidence.
+SonarQube, and Swagger/NGINX. The selected service-access profile adds the
+`service-access` stack without changing the default runnable profile. The
+Portainer-managed plan excludes Portainer itself to avoid a bootstrap cycle
+and can exclude bootstrap-owned Nexus. Stack apply checks record Portainer
+stack-registration context only; service readiness is verified separately
+through observed Swarm service evidence.
 
 == Service Access And Vaultwarden Routing Baseline
 
-The service-access dashboard and Vaultwarden capability is planned as a future
-Deployment-owned Docker Swarm service stack. It is not implemented by the
-current repository state and must not be documented as reachable until compose
-assets, stack contracts, readiness checks and quality evidence exist.
+The service-access dashboard and Vaultwarden capability is partially
+implemented as repository assets and selected-profile contracts. The
+repository now contains the service-access compose stack, image-packaged
+dashboard and NGINX assets, selected service-stack contracts, setup-manifest
+requirements and static tests.
+
+No live service-access deployment or reachability evidence has been collected.
+The dashboard, Vaultwarden route and NGINX ingress must not be documented as
+reachable until a specific live run or mocked observed-state check proves that
+state.
 
 The accepted routing baseline is `NGINX_FIRST_DEDICATED_PORT`:
 
@@ -59,10 +64,10 @@ Portainer may manage service-access stack create/update only after Portainer
 is reachable. First-time Portainer bootstrap remains outside the
 Portainer-managed upload path.
 
-For the Portainer-managed path, service-access dashboard and NGINX assets must
-be image-packaged or image-native. Bind-mounted repository files are not an
-accepted Portainer path unless a later slice adds a tested asset-preparation
-port or adapter and documents when it runs.
+For the Portainer-managed path, service-access dashboard and NGINX assets are
+image-packaged under `infra/compose/service-access/**`. Bind-mounted
+repository files are not an accepted Portainer path unless a later slice adds
+a tested asset-preparation port or adapter and documents when it runs.
 
 == Autonomous Setup Deployment Contract
 

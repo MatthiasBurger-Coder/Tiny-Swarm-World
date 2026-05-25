@@ -1,17 +1,38 @@
 = ADR: Service Access Dashboard And Vaultwarden Baseline
 
-Status: Accepted as requirement and security baseline; implementation not started
+Status: Accepted as requirement and security baseline; partially implemented as static stack assets and selected-profile contracts
 
 Date: 2026-05-25
 
 == Implementation Status
 
-Slice 01 of the service-access dashboard and Vaultwarden workflow establishes
-the requirement, security and architecture baseline only.
+The workflow has implemented repository-level service-access assets and
+contracts without running live infrastructure.
 
-No service-access stack, Vaultwarden stack, dashboard asset, routing asset,
-Portainer-managed deployment wiring, readiness verification or live deployment
-is implemented by this ADR.
+Implemented repository behavior:
+
+* `infra/config/compose/service-access/docker-compose.yml` defines the
+  service-access dashboard, Vaultwarden and service-access NGINX stack.
+* `infra/compose/service-access/dashboard/**` and
+  `infra/compose/service-access/nginx/**` provide image-packaged static
+  dashboard and NGINX assets.
+* `ServiceStackProfile.SERVICE_ACCESS` and `SERVICE_ACCESS_STACK_CONTRACT`
+  add service-access as an explicitly selected stack profile. The default
+  runnable stack profile remains unchanged.
+* The selected setup manifest records ports `8085` and `8086` plus the
+  `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
+* Static tests verify the compose boundary, image packaging, Vaultwarden-only
+  dashboard links, status taxonomy and no React/Vite/live-orchestration
+  surface.
+
+Not implemented or not verified:
+
+* no live service-access stack deployment was run;
+* no live Vaultwarden or dashboard reachability was observed;
+* no CLI operator selector is documented for enabling the selected
+  service-access profile;
+* Vaultwarden backup, restore, admin-token rotation and rollback remain
+  future work.
 
 == Context
 
@@ -41,8 +62,9 @@ Repository constraints already require:
 
 == Decision
 
-Accept a service-access dashboard and Vaultwarden capability as a future
-Deployment-owned service stack baseline.
+Accept a service-access dashboard and Vaultwarden capability as a
+Deployment-owned service stack baseline with an explicitly selected
+service-access profile.
 
 The baseline rules are:
 
@@ -66,9 +88,9 @@ The baseline rules are:
 * Missing required secrets must fail preflight before stack deployment.
 * Vaultwarden admin-token ownership, rotation, persistence, backup, restore
   and rollback behavior are blockers before production-like claims.
-* The current default runnable service set is not changed by this ADR. Later
-  slices may decide whether service access becomes part of the default profile
-  or an optional selected profile.
+* The current default runnable service set is not changed by this ADR.
+  Service access is implemented as an optional selected profile until a later
+  workflow adds and documents an operator-facing selector.
 * The accepted routing decision is `NGINX_FIRST_DEDICATED_PORT`.
 * The existing Swagger/NGINX stack keeps published port `80`.
 * The service-access stack uses a service-access-owned NGINX ingress with
@@ -84,8 +106,8 @@ The baseline rules are:
   Swarm runtime path and must not depend on Portainer before Portainer itself
   is available.
 * For the Portainer-managed path, service-access dashboard and NGINX
-  configuration assets must be image-packaged or image-native. They must not
-  depend on bind-mounted repository files unless a later slice adds a tested
+  configuration assets are image-packaged. They must not depend on
+  bind-mounted repository files unless a later slice adds a tested
   asset-preparation port or adapter and documents when it runs.
 
 == Rejected Alternatives
@@ -116,8 +138,8 @@ TypeScript, Vite, TSX/JSX or browser frontend project setup.
 
 == Consequences
 
-Implementation slices must preserve the accepted routing, port allocation and
-asset packaging decision before compose assets are committed.
+Implementation preserves the accepted routing, port allocation and asset
+packaging decision in committed compose and image assets.
 
 Implementation must preserve the hexagonal architecture:
 
@@ -135,23 +157,24 @@ Verification evidence must reject raw command output, passwords, tokens, Swarm
 join tokens, local IP addresses, local paths, environment payloads and
 credential-bearing URLs.
 
-Documentation must keep planned and implemented behavior separate. This ADR
-does not permit documentation to claim Vaultwarden, service access, routing or
-readiness as implemented before source, configuration and verification
-evidence exist.
+Documentation must keep implemented repository behavior and unverified live
+behavior separate. This ADR does not permit documentation to claim
+Vaultwarden, service access, routing or readiness as live-deployed or
+reachable before source, configuration and verification evidence exists for a
+specific run.
 
 == Risks And Follow-Up
 
 Open follow-up items:
 
-* define whether service access is in the default runnable profile or an
-  optional selected profile;
+* add and document an operator-facing way to select the service-access profile
+  when live setup is ready for it;
 * optionally revisit shared NGINX ingress in a later ADR;
-* define the exact image-packaged or image-native dashboard and NGINX asset
-  delivery mechanism;
+* add service-access image publication contracts for the dashboard and NGINX
+  images;
 * define Vaultwarden backup, restore, admin-token rotation and rollback
   operations;
 * define optional TLS and external exposure policy if local-only HTTP becomes
   insufficient;
-* add tests that reject secret values in compose, dashboard assets, logs and
-  verification evidence.
+* add live or mocked observed-state checks before documenting service-access
+  reachability as verified.
