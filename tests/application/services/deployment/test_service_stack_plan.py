@@ -1,6 +1,7 @@
 import unittest
 
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
+    DEFAULT_PORTAINER_ENDPOINT_NAME,
     build_default_service_stack_steps,
     build_service_stack_steps,
 )
@@ -35,6 +36,21 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         steps = build_default_service_stack_steps(object(), object(), "local")
 
         self.assertNotIn("portainer", [step.service_stack.stack_name for step in steps])
+
+    def test_default_service_stack_steps_use_named_portainer_endpoint_default(self):
+        steps = build_default_service_stack_steps(object(), object())
+
+        self.assertEqual("local", DEFAULT_PORTAINER_ENDPOINT_NAME)
+        self.assertTrue(
+            all(step.endpoint_name == DEFAULT_PORTAINER_ENDPOINT_NAME for step in steps)
+        )
+
+    def test_service_stack_steps_use_named_portainer_endpoint_default(self):
+        steps = build_service_stack_steps(object(), object())
+
+        self.assertTrue(
+            all(step.endpoint_name == DEFAULT_PORTAINER_ENDPOINT_NAME for step in steps)
+        )
 
     def test_service_access_profile_steps_include_selected_stack(self):
         compose_repository = object()

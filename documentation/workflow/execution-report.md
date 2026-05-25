@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_04_COMPLETED_CHECKPOINT_PENDING
+SLICE_05_COMPLETED_CHECKPOINT_PENDING
 ```
 
 ## Creation Evidence
@@ -23,6 +23,8 @@ feature/workflow-stable-live-setup-20260525
   readiness preflight checkpoint.
 - Slice 04 was executed as a shared platform-init guard and Multipass command
   catalog semantics checkpoint.
+- Slice 05 was executed as an endpoint, WSL forwarding and IntelliJ/Linux
+  execution contract checkpoint.
 
 ## Problem Summary
 
@@ -329,6 +331,105 @@ readiness guard
 Checkpoint commit:
 
 ```text
+6fe87c9
+```
+
+Push result:
+
+```text
+pushed to origin/feature/workflow-stable-live-setup-20260525
+```
+
+## Slice 05 Checkpoint Evidence
+
+Slice:
+
+```text
+05 - Endpoint, WSL Forwarding And IntelliJ Execution Contract
+```
+
+Responsible role:
+
+```text
+Senior System Architect
+```
+
+Reviewed by:
+
+```text
+Senior System Architect, Senior DevOps, Senior Python Automation Developer,
+Senior Tester
+```
+
+Changed files:
+
+```text
+src/tiny_swarm_world/domain/deployment/service_stack_contract.py
+src/tiny_swarm_world/domain/deployment/__init__.py
+src/tiny_swarm_world/application/services/deployment/service_stack_plan.py
+src/tiny_swarm_world/infrastructure/composition.py
+tests/domain/deployment/test_service_stack_contract.py
+tests/application/services/deployment/test_service_stack_plan.py
+tests/infrastructure/test_composition.py
+documentation/user_guide/installation.adoc
+documentation/user_guide/troubleshooting.adoc
+documentation/arc42/07_deployment_view.adoc
+documentation/workflow/execution-report.md
+```
+
+Result:
+
+```text
+completed
+```
+
+Behavior added:
+
+```text
+service stack contracts now expose localhost endpoint defaults without
+claiming readiness; the Portainer endpoint name is centralized as the local
+endpoint default; IntelliJ execution is documented as WSL/Linux shell usage
+with stdin-capable live consent
+```
+
+Quality evidence:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m unittest tests.domain.deployment.test_service_stack_contract tests.application.services.deployment.test_service_stack_plan tests.infrastructure.test_composition
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py lint
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py typecheck
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py arch-tests
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py quality
+```
+
+Quality result:
+
+```text
+passed
+```
+
+Rollback reference:
+
+```text
+6fe87c9
+```
+
+arc42Updated:
+
+```text
+yes; deployment view describes endpoint defaults as configuration hints and
+keeps localhost forwarding separate from readiness
+```
+
+adrUpdated:
+
+```text
+not applicable; no safety decision changed
+```
+
+Checkpoint commit:
+
+```text
 pending CP_COMMIT
 ```
 
@@ -340,7 +441,7 @@ pending CP_PUSH
 
 ## Next Execution Step
 
-Begin future implementation with Slice 05 from
+Begin future implementation with Slice 06 from
 `documentation/workflow/workflow.md`.
 
 ## Verification Evidence

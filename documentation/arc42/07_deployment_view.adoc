@@ -85,6 +85,12 @@ installation, or Swarm initialization can begin. The guard is read-only and
 classifies Multipass runtime readiness; it does not repair host services,
 change drivers, or create VMs.
 
+Service-stack contracts carry localhost endpoint defaults so operator-facing
+routes are explicit and test-backed. These endpoints are configuration hints
+for WSL/Linux local access and do not claim Swarm service health. Localhost
+forwarding failures are diagnosed separately from deployment readiness, and
+operators may use current Swarm node IPs only as manual diagnostic fallbacks.
+
 Hosts that do not satisfy the full-run resource contract remain
 resource-gated. A resource-gated result must identify omitted services and must
 not be reported as a full deployment pass.

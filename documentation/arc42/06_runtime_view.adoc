@@ -62,20 +62,21 @@ The current artifact and deployment runtime flow is deliberately fail-closed:
   `DeploymentApplyWorkflow`, and can run configured stack apply contracts only
   when they expose verify-after-apply evidence. The tested
   `EnsureServiceStack` contract can create or update Portainer-managed stacks
-  and then verify stack registration through `PortPortainerClient`, but it is
-  not wired into the CLI composition root as an executable live apply path in
-  this slice.
+  and then verify stack registration through `PortPortainerClient`. The
+  default CLI composition now wires these Portainer-managed apply steps for
+  the selected service profile, while first-time Portainer and Nexus bootstrap
+  remain separate setup phases.
 * `deployment verify` dispatches without live consent and returns `blocked`
   by default. When configured with the current default service stack checks,
   it can observe Portainer stack registration but still returns `blocked`
   until required service readiness is observed. It does not claim container or
   service health.
 
-No Nexus, Docker registry, image build, image push, or service stack side effect
-is run by default CLI composition. Nexus repository and Portainer API behavior
-is covered by isolated adapter and application-service tests with fakes; CLI
-composition remains fail-closed until a later slice owns first-time bootstrap,
-image publication, concrete live service wiring, and service readiness.
+No Nexus repository mutation, Docker registry mutation, image build, or image
+push side effect is run by default CLI composition. Nexus repository and
+Portainer API behavior is covered by isolated adapter and application-service
+tests with fakes; live service readiness remains separate observed-state
+evidence and must not be inferred from endpoint configuration alone.
 
 === Console Status Runtime Flow
 

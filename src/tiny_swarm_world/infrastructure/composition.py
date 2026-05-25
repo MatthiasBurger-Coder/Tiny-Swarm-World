@@ -24,7 +24,10 @@ from tiny_swarm_world.application.services.deployment import (
     EnsureSwarmStack,
     VerifySwarmServiceReadiness,
 )
-from tiny_swarm_world.application.services.deployment.service_stack_plan import build_service_stack_steps
+from tiny_swarm_world.application.services.deployment.service_stack_plan import (
+    DEFAULT_PORTAINER_ENDPOINT_NAME,
+    build_service_stack_steps,
+)
 from tiny_swarm_world.application.services.platform import (
     MultipassDockerInstall,
     MultipassDockerSwarmInit,
@@ -80,6 +83,7 @@ from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_containe
 
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
+DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
 
 
 @dataclass(frozen=True)
@@ -345,7 +349,7 @@ def build_deployment_services(
     swarm_runtime = MultipassSwarmRuntime()
     portainer_admin_client = MultipassPortainerAdminClient()
     portainer_client = PortainerHttpClient(
-        "http://localhost:9000",
+        DEFAULT_PORTAINER_API_URL,
         "admin",
         _static_secret_default("TSW_PORTAINER_PASSWORD"),
     )
@@ -371,7 +375,7 @@ def build_deployment_services(
     application_steps = build_service_stack_steps(
         compose_repository=compose_repository,
         portainer_client=portainer_client,
-        endpoint_name="local",
+        endpoint_name=DEFAULT_PORTAINER_ENDPOINT_NAME,
         service_profile=selected_service_profile,
         excluded_stack_names=("nexus",),
     )

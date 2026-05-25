@@ -199,6 +199,12 @@ class TestComposition(unittest.TestCase):
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
+        self.assertTrue(
+            all(
+                step.endpoint_name == composition.DEFAULT_PORTAINER_ENDPOINT_NAME
+                for step in services.workflows.apply.steps
+            )
+        )
         self.assertEqual(
             (
                 "deployment:portainer-service-readiness",
@@ -226,6 +232,18 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(3, len(services.workflows.bootstrap.steps))
         self.assertEqual(5, len(services.workflows.apply.steps))
         self.assertEqual(7, len(services.workflows.verify.checks))
+
+    def test_build_deployment_services_uses_named_portainer_api_default(self):
+        with patch.object(composition, "PortainerHttpClient") as portainer_client:
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                with patch.object(composition, "MultipassSwarmRuntime"):
+                    with patch.object(composition, "MultipassPortainerAdminClient"):
+                        composition.build_deployment_services()
+
+        self.assertEqual(
+            composition.DEFAULT_PORTAINER_API_URL,
+            portainer_client.call_args.args[0],
+        )
 
     def test_build_deployment_services_can_select_service_access_profile(self):
         with patch.object(composition, "ComposeFileRepositoryYaml"):

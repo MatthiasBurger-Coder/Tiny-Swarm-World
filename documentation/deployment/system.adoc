@@ -122,6 +122,10 @@ Important environment variables:
 | `TSW_NEXUS_WAIT_SECONDS` | `5` | Delay between polling attempts
 |===
 
+The localhost defaults above are operator targets for the Linux/WSL execution
+context. They may depend on WSL forwarding state and must not be treated as
+proof that a service is live or healthy.
+
 == Stack deployment
 
 The supported stack deployment path is the workflow-level setup command. Compose

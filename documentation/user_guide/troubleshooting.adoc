@@ -46,6 +46,25 @@ multipass info
 
 For WSL/Linux usage, use the QEMU driver.
 
+If `setup run --live` or `platform init --live` reports a
+`RUNTIME-MULTIPASS-*` blocker, repair Multipass access from the same WSL or
+Linux shell before retrying. The readiness check is read-only; it does not
+start services, change drivers, create VMs, or repair socket permissions.
+
+== IntelliJ Run Configuration Cannot Start Live Setup
+
+Use IntelliJ as a WSL/Linux shell launcher. The run configuration must use the
+WSL or Linux interpreter, the repository root as working directory, and the
+same environment as a successful terminal run.
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+The live prompt needs stdin. If the IDE runner cannot answer the prompt, use
+the IntelliJ terminal or an external WSL/Linux terminal.
+
 == Docker Or Portainer Calls Fail
 
 Check that Docker is reachable from the same shell:
@@ -134,6 +153,10 @@ The service-access setup profile treats an unexpected local listener on those
 ports as a mandatory preflight blocker. If `http://localhost` returns an
 unexpected page, clear the stale local listener or redeploy the updated
 service-access stack.
+
+Endpoint configuration does not prove service health. Treat `http://localhost`
+routes as operator defaults only; use deployment verification or explicit live
+smoke evidence before claiming a service is reachable.
 
 == Git Shows Generated Python Files
 

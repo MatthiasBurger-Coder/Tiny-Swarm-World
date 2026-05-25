@@ -11,11 +11,13 @@ from tiny_swarm_world.domain.deployment import (
     portainer_managed_service_stack_contracts_for_profile,
 )
 
+DEFAULT_PORTAINER_ENDPOINT_NAME = "local"
+
 
 def build_default_service_stack_steps(
     compose_repository: PortComposeFileRepository,
     portainer_client: PortPortainerClient,
-    endpoint_name: str,
+    endpoint_name: str = DEFAULT_PORTAINER_ENDPOINT_NAME,
 ) -> tuple[EnsureServiceStack, ...]:
     return build_service_stack_steps(
         compose_repository=compose_repository,
@@ -27,7 +29,7 @@ def build_default_service_stack_steps(
 def build_service_stack_steps(
     compose_repository: PortComposeFileRepository,
     portainer_client: PortPortainerClient,
-    endpoint_name: str,
+    endpoint_name: str = DEFAULT_PORTAINER_ENDPOINT_NAME,
     *,
     service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
     excluded_stack_names: tuple[str, ...] = (),
