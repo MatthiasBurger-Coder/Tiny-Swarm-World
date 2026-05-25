@@ -132,6 +132,19 @@ The canonical live operator command is:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
+For repeatable Linux or WSL operator runs with local evidence capture, use:
+
+[source,bash]
+----
+./install.sh
+----
+
+The wrapper writes run context, setup logs and the setup exit code below
+`.tiny-swarm-world/evidence/installation-tests/`. It loads or generates local
+`TSW_*` secrets in `.tiny-swarm-world/local/live-installation.env` without
+printing secret values, then requires an explicit confirmation phrase before it
+calls the canonical live setup workflow.
+
 == Live Infrastructure Warning
 
 The canonical setup workflow and some legacy helper areas can create or delete
