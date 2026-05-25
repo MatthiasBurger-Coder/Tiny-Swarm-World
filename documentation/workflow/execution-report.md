@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_07_COMPLETED_CHECKPOINT_PENDING
+SLICE_08_COMPLETED_CHECKPOINT_PENDING
 ```
 
 ## Creation Evidence
@@ -28,6 +28,8 @@ feature/workflow-stable-live-setup-20260525
 - Slice 06 was executed as a credential-source, profile and desired-inventory
   consistency checkpoint.
 - Slice 07 was executed as an artifact/deployment readiness checkpoint.
+- Slice 08 was executed as documentation, quality evidence and optional live
+  smoke handoff.
 
 ## Problem Summary
 
@@ -670,6 +672,98 @@ not applicable; no new architecture decision was made
 Checkpoint commit:
 
 ```text
+6897fa1
+```
+
+Push result:
+
+```text
+pushed to origin/feature/workflow-stable-live-setup-20260525
+```
+
+## Slice 08 Checkpoint Evidence
+
+Slice:
+
+```text
+08 - Documentation, Quality Evidence And Optional Live Smoke Handoff
+```
+
+Responsible role:
+
+```text
+Senior Documentation Engineer
+```
+
+Reviewed by:
+
+```text
+Senior Tester, Senior Workflow Architect, Senior System Architect
+```
+
+Changed files:
+
+```text
+README.md
+documentation/user_guide/installation.adoc
+documentation/user_guide/troubleshooting.adoc
+documentation/system/live-operation-surfaces.adoc
+documentation/arc42/06_runtime_view.adoc
+documentation/workflow/execution-report.md
+```
+
+Result:
+
+```text
+completed
+```
+
+Behavior documented:
+
+```text
+operator-facing docs now describe IntelliJ/WSL execution, fail-closed
+Multipass readiness, operator-supplied Vaultwarden external Swarm input,
+pre-upload service-access blocking, quality-gate evidence and separate
+optional live smoke handoff
+```
+
+Quality evidence:
+
+```bash
+git diff --check
+.venv/bin/python tools/quality_gate.py arch-tests
+.venv/bin/python tools/quality_gate.py test
+.venv/bin/python tools/quality_gate.py quality
+```
+
+Quality result:
+
+```text
+passed
+```
+
+Rollback reference:
+
+```text
+6897fa1
+```
+
+arc42Updated:
+
+```text
+yes; runtime view now includes failed_to_prepare and external Swarm input
+failure classification
+```
+
+adrUpdated:
+
+```text
+not applicable; no new architecture decision was made
+```
+
+Checkpoint commit:
+
+```text
 pending CP_COMMIT
 ```
 
@@ -681,8 +775,8 @@ pending CP_PUSH
 
 ## Next Execution Step
 
-Begin future implementation with Slice 08 from
-`documentation/workflow/workflow.md`.
+Workflow implementation slices are complete. Optional live smoke remains a
+separate operator action and was not run by this workflow execution.
 
 ## Verification Evidence
 

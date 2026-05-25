@@ -147,7 +147,8 @@ reset/destroy steps remain blocked until retention semantics are implemented.
 These behaviors are verified by unit tests, architecture checks, and static
 quality gates. This repository workflow did not run live Multipass, Docker
 Swarm, compose, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ,
-SonarQube, or Swagger/NGINX commands.
+SonarQube, Swagger/NGINX, Vaultwarden, image build, image push, or stack
+deployment commands.
 
 Optional live smoke validation is a separate operator action, not part of the
 default quality gate. Run it only on a disposable or recoverable local target
@@ -239,6 +240,13 @@ and `/vaultwarden` to the matching local service route. The table shows users
 and Vaultwarden item references; password values are visible only in
 Vaultwarden's authenticated UI. Operators who intentionally want the older base
 service set can pass `--service-profile default`.
+
+The service-access stack needs a pre-existing external Swarm secret for the
+Vaultwarden administrator token. The default secret name is
+`tsw_vaultwarden_admin_token`, and operators may override the name with
+`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. The setup checks that the configured
+external Swarm input is observable before uploading the stack and records only
+redacted presence/source evidence.
 
 Live-operation surface summary:
 

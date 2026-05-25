@@ -142,6 +142,8 @@ Check the non-secret prerequisites before a live run:
 * the Swarm nodes expose `8086` for Vaultwarden;
 * `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` names an external Swarm secret, or the
   default Swarm secret name `tsw_vaultwarden_admin_token` exists;
+* a missing external Swarm input blocks before the service-access stack is
+  uploaded through Portainer;
 * the service-access dashboard and NGINX images are available to the Swarm
   registry;
 * the service-access stack has been deployed intentionally through a reviewed

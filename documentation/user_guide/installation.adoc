@@ -179,6 +179,11 @@ the compose stack references `tsw_vaultwarden_admin_token`; operators may
 override the secret name through `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`.
 Document only the secret name, never the token value.
 
+During `deployment apply`, the setup checks that the configured external
+Swarm input is observable before uploading the service-access stack. A missing
+input returns a blocked deployment result with redacted evidence instead of
+attempting the Portainer stack create/update.
+
 The service-access dashboard is a static management table. It lists service
 links, users and Vaultwarden item references; password values are visible only
 through Vaultwarden's authenticated UI.
