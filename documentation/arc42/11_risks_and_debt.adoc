@@ -62,3 +62,31 @@ Remaining debt:
 * automatic host package installation, non-interactive live consent, and direct
   script promotion need future ADRs before they can change the accepted safety
   model.
+
+=== Service Access Dashboard And Vaultwarden Baseline Risks
+
+The service-access dashboard and Vaultwarden baseline is accepted as a
+requirement and security direction, but implementation has not started.
+
+Remaining risks and debt:
+
+* credential leakage could occur through dashboard content, compose defaults,
+  logs, evidence, screenshots or exported artifacts if password values are
+  duplicated outside Vaultwarden;
+* Vaultwarden admin-token ownership, rotation, persistence, backup, restore
+  and rollback are not implemented and remain blockers before production-like
+  claims;
+* a bootstrap cycle is possible if required setup credentials are moved into
+  Vaultwarden before Vaultwarden itself is reachable;
+* service reachability could be falsely presented as healthy without
+  observed-state or HTTP evidence;
+* service-access routing can collide with the existing Swagger/NGINX port `80`
+  binding unless a later slice defines shared ingress or a non-conflicting
+  published port;
+* Portainer stack upload currently sends compose content, so mounted
+  dashboard or NGINX assets need image packaging or explicit asset
+  preparation before deployment;
+* plain HTTP access is acceptable only as a local development baseline until a
+  later ADR accepts TLS, certificate automation or wider exposure controls;
+* scope could drift into a React/browser frontend project or Traefik routing
+  without the required ADR and quality-gate coverage.

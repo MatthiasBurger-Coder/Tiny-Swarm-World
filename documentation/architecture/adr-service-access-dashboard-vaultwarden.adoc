@@ -1,0 +1,147 @@
+= ADR: Service Access Dashboard And Vaultwarden Baseline
+
+Status: Accepted as requirement and security baseline; implementation not started
+
+Date: 2026-05-25
+
+== Implementation Status
+
+Slice 01 of the service-access dashboard and Vaultwarden workflow establishes
+the requirement, security and architecture baseline only.
+
+No service-access stack, Vaultwarden stack, dashboard asset, routing asset,
+Portainer-managed deployment wiring, readiness verification or live deployment
+is implemented by this ADR.
+
+== Context
+
+Tiny Swarm World is a Linux/WSL-only Python automation project that provisions
+and operates a local Docker Swarm environment. Existing service stacks such as
+Portainer, Nexus, Jenkins, RabbitMQ, SonarQube and Swagger/NGINX are governed
+through Deployment responsibility boundaries, compose assets, explicit
+verification contracts and live-infrastructure consent rules.
+
+The requested capability adds a service-access GUI and a Vaultwarden
+credential store. The user requirement includes password visibility for
+authorized operators. This introduces credential-source, persistence, routing,
+UI-scope and documentation risks that must be decision-recorded before
+implementation.
+
+Repository constraints already require:
+
+* no committed passwords, tokens, host-specific IP addresses, local paths or
+  raw command output;
+* default verification through static or mocked tests, not live
+  infrastructure;
+* Docker Swarm-first deployment;
+* no React frontend project unless a separate workflow verifies such scope;
+* no Traefik routing implementation without architecture coverage;
+* `src/tiny_swarm_world/infrastructure/composition.py` as the concrete wiring
+  root.
+
+== Decision
+
+Accept a service-access dashboard and Vaultwarden capability as a future
+Deployment-owned service stack baseline.
+
+The baseline rules are:
+
+* The service-access capability is a Docker Swarm service-stack capability, not
+  a new microservice and not a repository React frontend project.
+* Vaultwarden is the only approved password reveal and copy surface.
+* Password values must be visible to authorized operators through
+  Vaultwarden's authenticated UI.
+* The service-access dashboard may show service names, access routes,
+  reachability states, credential labels, missing or configured source status,
+  and Vaultwarden item references.
+* The service-access dashboard must not display, cache, export, log, or
+  persist password values.
+* Compose files, documentation, logs and evidence must not contain
+  Vaultwarden admin token values, SMTP passwords, database passwords, static
+  password defaults, API keys, credential-bearing URLs, host-specific IP
+  addresses or local filesystem paths.
+* Required secret names may be documented. Required secret values must come
+  from operator-supplied environment variables, command-line inputs that do not
+  persist values, or ignored local secret files.
+* Missing required secrets must fail preflight before stack deployment.
+* Vaultwarden admin-token ownership, rotation, persistence, backup, restore
+  and rollback behavior are blockers before production-like claims.
+* The current default runnable service set is not changed by this ADR. Later
+  slices may decide whether service access becomes part of the default profile
+  or an optional selected profile.
+* NGINX is the routing baseline because the repository already has
+  Swagger/NGINX assets and no Traefik surface. Slice 02 owns the concrete port
+  or shared-ingress decision.
+* Traefik, TLS automation, certificate automation and wider-than-local HTTP
+  exposure require later ADR coverage.
+* Portainer is preferred for post-bootstrap stack create/update after
+  Portainer is reachable. First-time bootstrap may still use the existing
+  Swarm runtime path and must not depend on Portainer before Portainer itself
+  is available.
+
+== Rejected Alternatives
+
+=== Dashboard Displays Password Values Directly
+
+Rejected. Duplicating password values in the dashboard would create another
+secret-handling surface and increase the risk of leaks through browser cache,
+logs, static assets, screenshots or evidence bundles. Vaultwarden remains the
+password-visible surface.
+
+=== Store Required Passwords In Compose Defaults
+
+Rejected. Static secret defaults in committed compose files would contradict
+the repository credential and evidence safety model.
+
+=== Traefik As Immediate Router
+
+Rejected for this baseline because no Traefik provider, label, dashboard,
+network, TLS or test surface exists in the repository. Traefik remains possible
+only through a later ADR and tests.
+
+=== Repository React Frontend
+
+Rejected for this workflow. The requested GUI is an infrastructure service
+surface. The repository remains a Python automation project without React,
+TypeScript, Vite, TSX/JSX or browser frontend project setup.
+
+== Consequences
+
+Implementation slices must first decide routing, port allocation and asset
+packaging before compose assets are committed.
+
+Implementation must preserve the hexagonal architecture:
+
+* domain may hold stack names, credential-source identifiers and validation
+  rules;
+* application services may orchestrate ports and domain objects;
+* infrastructure owns YAML parsing, HTTP calls, Docker/Portainer details,
+  NGINX assets, file handling and image publishing.
+
+Service readiness and dashboard reachability must fail closed until observed
+state or HTTP evidence is test-backed. Unknown status must not be rendered as
+healthy.
+
+Verification evidence must reject raw command output, passwords, tokens, Swarm
+join tokens, local IP addresses, local paths, environment payloads and
+credential-bearing URLs.
+
+Documentation must keep planned and implemented behavior separate. This ADR
+does not permit documentation to claim Vaultwarden, service access, routing or
+readiness as implemented before source, configuration and verification
+evidence exist.
+
+== Risks And Follow-Up
+
+Open follow-up items:
+
+* define whether service access is in the default runnable profile or an
+  optional selected profile;
+* decide shared NGINX ingress versus non-conflicting published port;
+* decide dashboard and NGINX asset packaging or preparation;
+* define Vaultwarden backup, restore, admin-token rotation and rollback
+  operations;
+* define optional TLS and external exposure policy if local-only HTTP becomes
+  insufficient;
+* add tests that reject secret values in compose, dashboard assets, logs and
+  verification evidence.

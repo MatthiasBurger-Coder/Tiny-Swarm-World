@@ -59,11 +59,19 @@
     },
     {
       "path": "documentation/epics/system-unification.md",
-      "sha256": "6A488D85AAB23B65B26CE927985D636FB5457977319EFA1F6A6DBF3C1E4F40D3"
+      "sha256": "0883AE0E1ED9AF160E4467B30256A54688BCC626F924C155C1E7C4DA3E038183"
     },
     {
       "path": "documentation/epics/autonomous-runnable-setup.md",
-      "sha256": "0D9547C6048834EE655B02B29C526CF7DAC56A3ABC5D60468D01A3378CFB4A0C"
+      "sha256": "551DBD491BD2774DE74F0E8023E5AF2426F73A2C8DD3AF0DBD5B0D14F395ACA9"
+    },
+    {
+      "path": "documentation/epics/service-access-dashboard-vaultwarden.md",
+      "sha256": "E83911993B7B8FFD65A2D87E45B287E6D05ABBBBCB1DBC5172FBD38A7BD3B714"
+    },
+    {
+      "path": "documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc",
+      "sha256": "C5E594A5E58F90FA7FAE28FDB783C6E805EE9EC772D32C28CB0F87EEC2740A95"
     },
     {
       "path": "documentation/arc42/05_building_blocks.adoc",
@@ -75,7 +83,7 @@
     },
     {
       "path": "documentation/arc42/09_architecture_decisions.adoc",
-      "sha256": "76C58BBAF9FD957ECD2F46B69C4BC7FEE02DED6A20E26C8961A97604CE2D548F"
+      "sha256": "D7053D9974AB547726F780532DA979D471514FF9F6660CF1D48292BB69698A78"
     },
     {
       "path": "documentation/arc42/10_quality_requirements.adoc",
@@ -83,7 +91,7 @@
     },
     {
       "path": "documentation/arc42/11_risks_and_debt.adoc",
-      "sha256": "54E11723EC25E0D145C482BE1C9F82603D32D42FBE26410A075410E931D03349"
+      "sha256": "F4E3561282029A01AB52D713AF2D5D6BED623CA2CF3A14381CEB893E50B18697"
     },
     {
       "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
