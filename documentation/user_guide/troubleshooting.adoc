@@ -62,6 +62,30 @@ Check Portainer manually before running stack upload or Nexus bootstrap:
 curl -s http://localhost:9000
 ----
 
+== Setup Preflight Reports Occupied Ports
+
+`setup run --live` is intentionally re-runnable. During preflight, an occupied
+port is accepted only when the local host probe recognizes the expected Tiny
+Swarm World service on that port.
+
+Expected already-running services are reported with
+`source=existing_expected_service` and the port check passes. Unknown port
+owners still fail preflight and must be stopped or remapped before live
+execution.
+
+If a port fails although the service should already be running, verify the
+service from the same WSL shell:
+
+[source,bash]
+----
+curl -s http://localhost:9000/api/status
+curl -s http://localhost:8081/service/rest/v1/status
+curl -s http://localhost:5000/v2/
+curl -s http://localhost:8080/login
+curl -s http://localhost:15672
+curl -s http://localhost:9001/api/system/status
+----
+
 == Nexus Bootstrap Cannot Authenticate
 
 Use the canonical setup workflow and provide explicit credentials through
@@ -82,10 +106,10 @@ If Nexus is still starting, increase:
 
 == Service Access Or Vaultwarden Is Not Reachable
 
-This is expected unless a future live workflow selects the service-access
-profile, builds or publishes the service-access dashboard and NGINX images,
-creates the external Vaultwarden administrator-token secret, deploys the
-service-access stack, and collects observed Swarm or HTTP readiness evidence.
+The full guided setup selects the service-access profile by default. It builds
+or publishes the service-access dashboard and NGINX images, deploys the
+service-access stack through the deployment workflow, and verifies Swarm
+service readiness separately from static dashboard content.
 
 The committed dashboard is static catalog data. It intentionally renders
 service reachability as unknown until observed evidence exists. Password
@@ -95,11 +119,19 @@ available.
 
 Check the non-secret prerequisites before a live run:
 
-* local ports `8085` and `8086` are available;
-* `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` names an external Swarm secret;
-* the service-access dashboard and NGINX images are available to the Swarm;
+* the Swarm nodes expose `8085` for the service-access landing page;
+* the Swarm nodes expose `8086` for Vaultwarden;
+* `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` names an external Swarm secret, or the
+  default Swarm secret name `tsw_vaultwarden_admin_token` exists;
+* the service-access dashboard and NGINX images are available to the Swarm
+  registry;
 * the service-access stack has been deployed intentionally through a reviewed
   live path.
+
+In WSL, `localhost:8085` and `localhost:8086` depend on host-forwarding state
+and may be out of sync even when the stack is reachable on the Swarm node IPs.
+The setup preflight does not treat those local forwarding ports as mandatory
+blockers for the service-access stack.
 
 == Git Shows Generated Python Files
 

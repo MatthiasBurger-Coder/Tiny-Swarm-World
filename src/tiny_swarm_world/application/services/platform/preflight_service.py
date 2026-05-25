@@ -206,6 +206,26 @@ class PreflightService:
                     )
                 )
                 continue
+            if self.host_probe.port_matches_expected_service(
+                required_port.port,
+                required_port.service,
+            ):
+                checks.append(
+                    _passed(
+                        check_id,
+                        PreflightCategory.PORT,
+                        (
+                            f"Port {required_port.port} for {required_port.service} "
+                            "is already serving the expected service."
+                        ),
+                        {
+                            "port": str(required_port.port),
+                            "service": required_port.service,
+                            "source": "existing_expected_service",
+                        },
+                    )
+                )
+                continue
             checks.append(
                 _failed(
                     check_id,

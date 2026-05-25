@@ -1,13 +1,14 @@
 = ADR: Service Access Dashboard And Vaultwarden Baseline
 
-Status: Accepted as requirement and security baseline; partially implemented as static stack assets and selected-profile contracts
+Status: Accepted as requirement and security baseline; implemented as the full setup service-access profile with residual operational hardening
 
 Date: 2026-05-25
 
 == Implementation Status
 
 The workflow has implemented repository-level service-access assets and
-contracts without running live infrastructure.
+contracts, and a post-workflow live smoke test verified the Portainer-managed
+stack on Swarm node IPs.
 
 Implemented repository behavior:
 
@@ -17,20 +18,20 @@ Implemented repository behavior:
   `infra/compose/service-access/nginx/**` provide image-packaged static
   dashboard and NGINX assets.
 * `ServiceStackProfile.SERVICE_ACCESS` and `SERVICE_ACCESS_STACK_CONTRACT`
-  add service-access as an explicitly selected stack profile. The default
-  runnable stack profile remains unchanged.
-* The selected setup manifest records ports `8085` and `8086` plus the
+  add service-access as the full guided setup profile. Operators can still
+  pass `--service-profile default` to run only the older base service set.
+* The service-access setup manifest records ports `8085` and `8086` plus the
   `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
+* The artifact workflow builds and publishes the image-packaged
+  `service-access-dashboard` and `service-access-nginx` assets for setup.
 * Static tests verify the compose boundary, image packaging, Vaultwarden-only
   dashboard links, status taxonomy and no React/Vite/live-orchestration
   surface.
 
 Not implemented or not verified:
 
-* no live service-access stack deployment was run;
-* no live Vaultwarden or dashboard reachability was observed;
-* no CLI operator selector is documented for enabling the selected
-  service-access profile;
+* local `localhost` forwarding for `8085` and `8086` remains out of sync in
+  the observed WSL smoke environment;
 * Vaultwarden backup, restore, admin-token rotation and rollback remain
   future work.
 
@@ -63,8 +64,8 @@ Repository constraints already require:
 == Decision
 
 Accept a service-access dashboard and Vaultwarden capability as a
-Deployment-owned service stack baseline with an explicitly selected
-service-access profile.
+Deployment-owned service stack baseline that the full guided setup selects by
+default.
 
 The baseline rules are:
 
@@ -88,13 +89,13 @@ The baseline rules are:
 * Missing required secrets must fail preflight before stack deployment.
 * Vaultwarden admin-token ownership, rotation, persistence, backup, restore
   and rollback behavior are blockers before production-like claims.
-* The current default runnable service set is not changed by this ADR.
-  Service access is implemented as an optional selected profile until a later
-  workflow adds and documents an operator-facing selector.
+* The full guided setup includes service access by default so the installed
+  environment has a management landing page. The older base service set
+  remains available through `--service-profile default`.
 * The accepted routing decision is `NGINX_FIRST_DEDICATED_PORT`.
 * The existing Swagger/NGINX stack keeps published port `80`.
 * The service-access stack uses a service-access-owned NGINX ingress with
-  non-conflicting local published ports: `8085` for the dashboard route and
+  non-conflicting Swarm-published ports: `8085` for the dashboard route and
   `8086` for the Vaultwarden route.
 * Shared ingress is deferred until a later ADR defines route ownership,
   migration of the current Swagger/NGINX port `80` behavior, tests and

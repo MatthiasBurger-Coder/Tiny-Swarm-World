@@ -38,8 +38,8 @@ microservices:
   step exposes typed verification evidence.
 * `DeploymentServices` is the explicit deployment boundary. The deployment
   service namespace now owns `EnsurePortainerStack`, `EnsureNexusStack`, and
-  the generic `EnsureServiceStack` contract for the default runnable-service
-  stack set plus selected service profiles.
+  the generic `EnsureServiceStack` contract for the base runnable-service
+  stack set plus the service-access setup profile.
   `EnsurePortainerStack` is a post-bootstrap Portainer API contract for
   compose lookup plus stack create/update through `PortComposeFileRepository`
   and `PortPortainerClient`. The composition bundle does not construct a
@@ -50,12 +50,13 @@ microservices:
 * `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
   instead of aliasing `PlatformServices`.
 
-The selected service-access profile is implemented as a Deployment stack
-contract, not as a new microservice and not as a React frontend project.
-`ServiceStackProfile.SERVICE_ACCESS` adds `SERVICE_ACCESS_STACK_CONTRACT`
-with the services `service-access-dashboard`, `vaultwarden`, and
-`service-access-nginx`. The default stack profile remains unchanged. The
-selected setup manifest adds ports `8085` and `8086` plus the
+The service-access profile is implemented as a Deployment stack contract, not
+as a new microservice and not as a React frontend project. The full guided
+setup selects `ServiceStackProfile.SERVICE_ACCESS` by default and adds
+`SERVICE_ACCESS_STACK_CONTRACT` with the services
+`service-access-dashboard`, `vaultwarden`, and `service-access-nginx`. The
+base stack profile remains available for explicit `--service-profile default`
+runs. The service-access setup manifest adds ports `8085` and `8086` plus the
 `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
 
 The service-access dashboard and NGINX assets are image-packaged under

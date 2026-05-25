@@ -8,6 +8,8 @@ import shutil
 import socket
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
@@ -72,6 +74,34 @@ class HostPreflightProbe(PortHostPreflightProbe):
             except OSError:
                 return False
         return True
+
+    def port_matches_expected_service(self, port: int, service: str) -> bool:
+        service_name = service.casefold()
+        if "portainer" in service_name:
+            return _http_service_available(port, ("/api/status", "/api/system/status"), ("version",))
+        if "docker registry" in service_name:
+            return _http_service_available(port, ("/v2/",), ())
+        if "nexus" in service_name:
+            return _http_service_available(
+                port,
+                ("/service/rest/v1/status", "/"),
+                ("nexus", "status", "available"),
+            )
+        if "jenkins" in service_name:
+            return _http_service_available(port, ("/login", "/"), ("jenkins",))
+        if "rabbitmq management" in service_name:
+            return _http_service_available(port, ("/",), ("rabbitmq",))
+        if "rabbitmq amqp" in service_name:
+            return _tcp_connects(port) and _http_service_available(15672, ("/",), ("rabbitmq",))
+        if "sonarqube" in service_name:
+            return _http_service_available(port, ("/api/system/status", "/"), ("sonar", "status"))
+        if "swagger" in service_name:
+            return _http_service_available(port, ("/",), ("swagger", "openapi"))
+        if "service access" in service_name:
+            return _http_service_available(port, ("/",), ("service access", "vaultwarden"))
+        if "vaultwarden" in service_name:
+            return _http_service_available(port, ("/", "/admin"), ("vaultwarden",))
+        return False
 
     def secret_available(self, name: str) -> bool:
         return bool(os.environ.get(name))
@@ -150,6 +180,49 @@ def _token_fingerprints(text: str) -> tuple[str, ...]:
         hashlib.sha256(match.group(0).encode("utf-8")).hexdigest()
         for match in SECRET_TOKEN_PATTERN.finditer(text)
     )
+
+
+def _http_service_available(
+    port: int,
+    paths: Sequence[str],
+    expected_markers: Sequence[str],
+) -> bool:
+    for path in paths:
+        try:
+            status, text = _read_http_response(port, path)
+        except OSError:
+            continue
+        if status >= 500:
+            continue
+        normalized_text = text.casefold()
+        if not expected_markers or any(marker in normalized_text for marker in expected_markers):
+            return True
+    return False
+
+
+def _read_http_response(port: int, path: str) -> tuple[int, str]:
+    request = urllib.request.Request(
+        f"http://127.0.0.1:{port}{path}",
+        headers={"User-Agent": "tiny-swarm-world-preflight/1.0"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=2.0) as response:
+            return response.status, _response_text(response.read(4096), response.headers)
+    except urllib.error.HTTPError as error:
+        return error.code, _response_text(error.read(4096), error.headers)
+
+
+def _response_text(body: bytes, headers: object) -> str:
+    header_text = "\n".join(f"{key}: {value}" for key, value in getattr(headers, "items", lambda: ())())
+    return f"{header_text}\n{body.decode('utf-8', errors='ignore')}"
+
+
+def _tcp_connects(port: int) -> bool:
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=2.0):
+            return True
+    except OSError:
+        return False
 
 
 def ensure_common_executable_paths(

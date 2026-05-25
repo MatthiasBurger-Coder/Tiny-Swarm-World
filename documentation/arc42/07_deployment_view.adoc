@@ -29,9 +29,9 @@ contacting Portainer, contacting Nexus, building images, pushing registries, or
 changing Docker Swarm state. Tests use fakes for Portainer and compose
 repositories. Artifact contract tests use fake Nexus clients and patched Docker
 CLI calls only; they do not contact Nexus, build images, log in, or push.
-Default service stack contracts cover Portainer, Nexus, Jenkins, RabbitMQ,
-SonarQube, and Swagger/NGINX. The selected service-access profile adds the
-`service-access` stack without changing the default runnable profile. The
+Base service stack contracts cover Portainer, Nexus, Jenkins, RabbitMQ,
+SonarQube, and Swagger/NGINX. The full guided setup selects the service-access
+profile by default and adds the `service-access` stack. The
 Portainer-managed plan excludes Portainer itself to avoid a bootstrap cycle
 and can exclude bootstrap-owned Nexus. Stack apply checks record Portainer
 stack-registration context only; service readiness is verified separately
@@ -39,16 +39,13 @@ through observed Swarm service evidence.
 
 == Service Access And Vaultwarden Routing Baseline
 
-The service-access dashboard and Vaultwarden capability is partially
-implemented as repository assets and selected-profile contracts. The
-repository now contains the service-access compose stack, image-packaged
-dashboard and NGINX assets, selected service-stack contracts, setup-manifest
-requirements and static tests.
-
-No live service-access deployment or reachability evidence has been collected.
-The dashboard, Vaultwarden route and NGINX ingress must not be documented as
-reachable until a specific live run or mocked observed-state check proves that
-state.
+The service-access dashboard and Vaultwarden capability is implemented as
+repository assets and setup-selected service contracts. The repository now
+contains the service-access compose stack, image-packaged dashboard and NGINX
+assets, service-stack contracts, setup-manifest requirements and static tests.
+A post-workflow live smoke test on 2026-05-25 verified the Portainer-managed
+stack on Swarm node IPs. Local `localhost` forwarding for `8085` and `8086`
+remains a separate network follow-up.
 
 The accepted routing baseline is `NGINX_FIRST_DEDICATED_PORT`:
 

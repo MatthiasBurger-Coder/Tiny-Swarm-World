@@ -145,18 +145,21 @@ When prompted, answer `y` only if changing the local Multipass, Docker Swarm,
 networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX
 environment is intentional.
 
-== Optional Service Access Prerequisites
+== Service Access Management Prerequisites
 
-The repository contains an optional selected-profile service-access stack with
-a static dashboard, Vaultwarden and service-access NGINX assets. It is not
-part of the default runnable setup profile and no user-facing CLI selector is
-documented yet.
+The full guided setup includes the service-access management stack with a
+static landing page, Vaultwarden and service-access NGINX assets. The setup
+CLI selects this profile by default. Operators who intentionally want only the
+older base service set can pass `--service-profile default`.
 
-When a future live setup path selects this profile, the local target must have
-ports `8085` and `8086` available. The Vaultwarden administrator token must be
-provided as an external Swarm secret whose name is supplied through
-`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Document only the secret name, never the
-token value.
+The Swarm target publishes ports `8085` and `8086` for the service-access
+landing page and Vaultwarden route. WSL `localhost` forwarding for those ports
+is a separate host-network concern. The Vaultwarden
+administrator token is provided through an external Swarm secret. By default
+the compose stack references `tsw_vaultwarden_admin_token`; operators may
+override the secret name through `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`.
+Document only the secret name, never the token value.
 
-The service-access dashboard remains static catalog data until a live run
-deploys the stack and observed reachability evidence is collected.
+The service-access dashboard is static catalog data. It lists service links
+and Vaultwarden item references; password values are visible only through
+Vaultwarden's authenticated UI.

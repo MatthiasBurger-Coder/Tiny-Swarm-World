@@ -31,9 +31,9 @@ Remaining debt:
   workflow-level CLI consent guard;
 * reset/destroy retention and teardown semantics are not wired yet;
 * artifact and deployment workflows are now explicit composition contracts;
-  artifact workflows have tested Nexus repository contracts, but default CLI
-  composition remains blocked until live artifact steps, image publication,
-  registry checks, and observed-state verification are wired deliberately;
+  artifact workflows have tested Nexus repository and setup image-publication
+  contracts, but default CLI composition still needs live registry checks and
+  observed-state verification hardening;
 * `artifacts prepare` and `deployment apply` are live-consent gated before
   service construction, but the approved live behavior behind those gates is
   still technical debt.
@@ -46,7 +46,8 @@ but end-to-end full runnable setup remains incomplete.
 
 Remaining debt:
 
-* `setup run` does not yet install and verify the full runnable profile;
+* `setup run` now includes the service-access management stack in the full
+  profile, but still needs complete end-to-end verification hardening;
 * setup preflight and setup manifest contracts exist, but still need live
   profile hardening for resource, credential, and readiness handoff detail;
 * command-backed verification remains incomplete for live Platform phases;
@@ -65,9 +66,9 @@ Remaining debt:
 
 === Service Access Dashboard And Vaultwarden Baseline Risks
 
-The service-access dashboard and Vaultwarden baseline is partially implemented
-as repository compose assets, image-packaged dashboard/NGINX assets,
-selected-profile contracts, setup manifest requirements and static tests.
+The service-access dashboard and Vaultwarden baseline is implemented as
+repository compose assets, image-packaged dashboard/NGINX assets, setup
+profile contracts, setup manifest requirements and static tests.
 A post-workflow live smoke test on 2026-05-25 verified the Portainer-managed
 stack on the Swarm node IPs, while local `localhost` forwarding for `8085` and
 `8086` remained out of sync.
@@ -88,10 +89,8 @@ Remaining risks and debt:
 * local host forwarding is incomplete: the 2026-05-25 live smoke verified
   Swarm node IP access, but `localhost:8085` still returned a pre-existing
   local NGINX `404` and `localhost:8086` was not reachable from the WSL shell;
-* service-access dashboard and NGINX image publication contracts are not yet
-  wired into the artifact workflow;
-* no user-facing CLI selector is documented for enabling the selected
-  service-access profile during setup;
+* local registry availability and image publication still need live
+  observed-state hardening beyond the static artifact contracts;
 * plain HTTP access is acceptable only as a local development baseline until a
   later ADR accepts TLS, certificate automation or wider exposure controls;
 * scope could drift into a React/browser frontend project or Traefik routing

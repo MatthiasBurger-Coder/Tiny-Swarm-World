@@ -81,6 +81,7 @@ def default_preflight_configuration(
         required_ports=tuple(
             RequiredPort(port.port, port.service)
             for port in setup_manifest.required_ports
+            if port.host_preflight_required
         ),
         required_secrets=tuple(
             RequiredSecret(secret.name, secret.service)
@@ -93,6 +94,11 @@ def default_preflight_configuration(
             StaticSecretDefault("TSW_RABBITMQ_PASSWORD", "RabbitMQ", "guest"),
             StaticSecretDefault("TSW_SONARQUBE_ADMIN_PASSWORD", "SonarQube", "admin"),
             StaticSecretDefault("TSW_POSTGRES_PASSWORD", "SonarQube PostgreSQL", "sonar"),
+            StaticSecretDefault(
+                "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
+                "Vaultwarden admin-token secret name",
+                "tsw_vaultwarden_admin_token",
+            ),
         ),
         forbidden_secret_fingerprints=(
             ForbiddenSecretFingerprint(

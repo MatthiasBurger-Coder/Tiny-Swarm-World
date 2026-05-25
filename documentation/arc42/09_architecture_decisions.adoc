@@ -67,8 +67,8 @@ Consequences:
 
 ADR: `documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc`
 
-Status: accepted as requirement and security baseline; partially implemented
-as static stack assets and selected-profile contracts.
+Status: accepted as requirement and security baseline; implemented as the full
+guided setup service-access profile with residual operational hardening.
 
 Consequences:
 
@@ -78,16 +78,18 @@ Consequences:
 * the service-access dashboard may show service names, access routes,
   reachability states, credential labels and Vaultwarden item references, but
   must not display, cache, export, log or persist password values;
-* the current default runnable service set remains unchanged; the implemented
-  contract adds service-access through `ServiceStackProfile.SERVICE_ACCESS`;
+* the full guided setup includes service-access through
+  `ServiceStackProfile.SERVICE_ACCESS`; the older base service set remains
+  available through `--service-profile default`;
 * NGINX is the baseline routing direction, with dedicated local ports `8085`
   and `8086` for the service-access stack;
 * Traefik, TLS automation and wider-than-local exposure require later ADR
   coverage;
 * Portainer may manage post-bootstrap stack create/update only after
   Portainer is reachable and must not become its own bootstrap dependency;
-* live deployment and reachability are not verified by the current static and
-  mocked quality evidence.
+* live smoke evidence verified Swarm node IP reachability on 2026-05-25, while
+  local `localhost` forwarding and Vaultwarden operational hardening remain
+  follow-up work.
 
 === Workflow Taxonomy And Destructive Operation Policy
 

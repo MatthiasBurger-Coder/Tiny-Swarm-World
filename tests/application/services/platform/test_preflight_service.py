@@ -143,6 +143,35 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("IGNORE-.env", failed_by_id)
         self.assertIn("Run Tiny Swarm World from Linux or WSL", failed_by_id["HOST"].remediation)
 
+    async def test_occupied_port_passes_when_expected_service_is_detected(self):
+        result = await PreflightService(
+            _FakeProbe(
+                port_availability={9000: False},
+                expected_service_ports={9000: True},
+            )
+        ).run()
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        port_check = checks_by_id["PORT-9000"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual("PASSED", port_check.status)
+        self.assertEqual("existing_expected_service", port_check.evidence["source"])
+
+    async def test_occupied_unknown_port_still_fails_preflight(self):
+        result = await PreflightService(
+            _FakeProbe(
+                port_availability={9000: False},
+                expected_service_ports={9000: False},
+            )
+        ).run()
+
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+
+        self.assertFalse(result.passed)
+        self.assertIn("PORT-9000", failed_by_id)
+        self.assertIn("occupied", failed_by_id["PORT-9000"].message)
+
     async def test_resource_failures_are_resource_gated(self):
         result = await PreflightService(
             _FakeProbe(cpu_count_value=2, memory_bytes_value=8, disk_free_bytes_value=8)
@@ -199,6 +228,7 @@ class _FakeProbe(PortHostPreflightProbe):
         forbidden_fingerprints: tuple[str, ...] = (),
         host_compatible: bool = True,
         port_availability: dict[int, bool] | None = None,
+        expected_service_ports: dict[int, bool] | None = None,
         ignored_paths: dict[str, bool] | None = None,
         cpu_count_value: int = 8,
         memory_bytes_value: int = 32 * 1024**3,
@@ -210,6 +240,7 @@ class _FakeProbe(PortHostPreflightProbe):
         self.forbidden_fingerprints = forbidden_fingerprints
         self.host_compatible = host_compatible
         self.port_availability = port_availability or {}
+        self.expected_service_ports = expected_service_ports or {}
         self.ignored_paths = ignored_paths or {}
         self.cpu_count_value = cpu_count_value
         self.memory_bytes_value = memory_bytes_value
@@ -236,6 +267,9 @@ class _FakeProbe(PortHostPreflightProbe):
 
     def port_available(self, port: int) -> bool:
         return self.port_availability.get(port, True)
+
+    def port_matches_expected_service(self, port: int, service: str) -> bool:
+        return self.expected_service_ports.get(port, False)
 
     def secret_available(self, name: str) -> bool:
         return self.secret_availability.get(name, True)

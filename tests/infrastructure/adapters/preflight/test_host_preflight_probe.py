@@ -96,6 +96,34 @@ class TestHostPreflightProbe(unittest.TestCase):
         ):
             self.assertFalse(probe.port_available(80))
 
+    def test_port_matches_expected_service_recognizes_portainer(self):
+        probe = HostPreflightProbe(Path.cwd())
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.status = 200
+        response.headers = {"Server": "Portainer"}
+        response.read.return_value = b'{"Version":"2.25.1"}'
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",
+            return_value=response,
+        ):
+            self.assertTrue(probe.port_matches_expected_service(9000, "Portainer"))
+
+    def test_port_matches_expected_service_rejects_unknown_http_service(self):
+        probe = HostPreflightProbe(Path.cwd())
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.status = 200
+        response.headers = {"Server": "Example"}
+        response.read.return_value = b"hello"
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",
+            return_value=response,
+        ):
+            self.assertFalse(probe.port_matches_expected_service(9000, "Portainer"))
+
     def test_path_ignored_by_git_uses_check_ignore(self):
         probe = HostPreflightProbe(Path.cwd())
         completed = subprocess.CompletedProcess(

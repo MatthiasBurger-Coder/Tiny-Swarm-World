@@ -34,6 +34,10 @@ class PortHostPreflightProbe(ABC):
         pass
 
     @abstractmethod
+    def port_matches_expected_service(self, port: int, service: str) -> bool:
+        pass
+
+    @abstractmethod
     def secret_available(self, name: str) -> bool:
         pass
 

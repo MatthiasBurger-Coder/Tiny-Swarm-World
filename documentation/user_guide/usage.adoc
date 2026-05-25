@@ -188,9 +188,11 @@ CLI consent gate.
 
 == Service Access Dashboard And Vaultwarden
 
-The repository contains a selected-profile service-access stack, but it is not
-part of the default setup profile and no user-facing CLI selector is
-documented yet.
+The full guided setup includes the service-access stack by default. It is the
+installed management landing page for service links and Vaultwarden credential
+references. Operators who intentionally want only the older base service set
+can pass `--service-profile default` to setup, deployment, or preflight
+commands.
 
 Implemented repository assets:
 
@@ -201,10 +203,10 @@ Implemented repository assets:
 * `infra/compose/service-access/nginx/**` contains the image-packaged NGINX
   route configuration.
 
-When the selected profile is deployed by an operator workflow, the dashboard
-route is `8085` and the Vaultwarden route is `8086`. The dashboard is static
-catalog data. It lists service access methods, unknown reachability, evidence
-source, freshness, and Vaultwarden item references. It links only to
+When the default full profile is deployed by an operator workflow, the
+dashboard route is `8085` and the Vaultwarden route is `8086`. The dashboard
+is static catalog data. It lists service access methods, unknown reachability,
+evidence source, freshness, and Vaultwarden item references. It links only to
 Vaultwarden through a host-neutral `/vaultwarden` link that redirects to the
 same host on port `8086`. It does not show password values.
 

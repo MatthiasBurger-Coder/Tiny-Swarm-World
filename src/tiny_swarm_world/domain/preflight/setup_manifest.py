@@ -17,6 +17,7 @@ class SetupProfile(str, Enum):
 class SetupPortRequirement:
     port: int
     service: str
+    host_preflight_required: bool = True
 
 
 @dataclass(frozen=True)
@@ -36,7 +37,11 @@ class SetupServiceRequirement:
         return {
             "name": self.name,
             "ports": [
-                {"port": port.port, "service": port.service}
+                {
+                    "host_preflight_required": port.host_preflight_required,
+                    "port": port.port,
+                    "service": port.service,
+                }
                 for port in self.ports
             ],
             "secrets": [
@@ -138,8 +143,16 @@ def default_setup_manifest(
             SetupServiceRequirement(
                 name="Service Access",
                 ports=(
-                    SetupPortRequirement(8085, "Service Access dashboard"),
-                    SetupPortRequirement(8086, "Vaultwarden"),
+                    SetupPortRequirement(
+                        8085,
+                        "Service Access dashboard",
+                        host_preflight_required=False,
+                    ),
+                    SetupPortRequirement(
+                        8086,
+                        "Vaultwarden",
+                        host_preflight_required=False,
+                    ),
                 ),
                 secrets=(
                     SetupSecretRequirement(

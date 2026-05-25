@@ -59,5 +59,7 @@ Common local ports after stack deployment:
 * Swagger editor/UI: `http://localhost:8082`, `http://localhost:8083`
 * SonarQube: `http://localhost:9001`
 * RabbitMQ: `http://localhost:15672`
+* Service Access landing page: `http://localhost:8085`
+* Vaultwarden: `http://localhost:8086`
 
 Published ports depend on the active compose files and local forwarding setup.

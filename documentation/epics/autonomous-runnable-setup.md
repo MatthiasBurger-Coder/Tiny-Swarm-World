@@ -189,8 +189,9 @@ smoke validation is a separate operator action and requires:
 
 - The autonomous setup requirement baseline is linked from the
   system-unification EPIC.
-- Service-access dashboard and Vaultwarden are documented as a future profile
-  extension, not as currently verified full runnable state.
+- Service-access dashboard and Vaultwarden are documented as the full guided
+  setup's management surface, with live reachability scoped to observed smoke
+  evidence and remaining host-forwarding gaps.
 - Full runnable state and resource-gated state are explicit and testable.
 - The setup preserves Platform, Artifacts, Deployment, Shared, and
   Console/status UI ownership.

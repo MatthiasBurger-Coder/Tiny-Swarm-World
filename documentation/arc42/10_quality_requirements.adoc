@@ -74,15 +74,20 @@ default quality gate.
 
 Quality scenarios:
 
-* the default stack profile excludes `service-access`;
-* the selected service-access profile includes the `service-access` stack with
+* the base stack profile excludes `service-access`;
+* the full guided setup profile includes the `service-access` stack with
   required services `service-access-dashboard`, `vaultwarden`, and
   `service-access-nginx`;
+* the default setup CLI plan lists the service-access landing page and
+  Vaultwarden ports, while `--service-profile default` can omit the management
+  stack intentionally;
 * committed service-access YAML loads through the compose repository and does
   not publish port `80`;
 * only the service-access NGINX service publishes ports `8085` and `8086`;
 * Vaultwarden receives its administrator token through an external Swarm
   secret name and no committed token value or static password default exists;
+* service-access dashboard and NGINX images are part of the artifact image
+  publication contracts for full setup;
 * dashboard and NGINX assets are image-packaged and do not depend on
   repository bind mounts for the Portainer-managed path;
 * dashboard links point only to the plain Vaultwarden route and do not include

@@ -175,6 +175,21 @@ class TestPreflightResult(unittest.TestCase):
             (8086, "Vaultwarden"),
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
+        self.assertNotIn(
+            8085,
+            tuple(port.port for port in configuration.required_ports),
+        )
+        self.assertNotIn(
+            8086,
+            tuple(port.port for port in configuration.required_ports),
+        )
+        self.assertFalse(
+            next(
+                port
+                for port in manifest.required_ports
+                if port.service == "Service Access dashboard"
+            ).host_preflight_required
+        )
         self.assertIn(
             "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
             tuple(secret.name for secret in manifest.required_secrets),
@@ -183,7 +198,7 @@ class TestPreflightResult(unittest.TestCase):
             "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
             tuple(secret.name for secret in configuration.required_secrets),
         )
-        self.assertNotIn(
+        self.assertIn(
             "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
             tuple(default.name for default in configuration.static_secret_defaults),
         )

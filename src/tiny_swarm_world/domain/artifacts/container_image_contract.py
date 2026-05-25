@@ -49,4 +49,14 @@ DEFAULT_CONTAINER_IMAGE_CONTRACTS = (
         tag="latest",
         build_context="jenkins",
     ),
+    ContainerImageContract(
+        image_name="127.0.0.1:5000/service-access-dashboard",
+        tag="latest",
+        build_context="service-access-dashboard",
+    ),
+    ContainerImageContract(
+        image_name="127.0.0.1:5000/service-access-nginx",
+        tag="latest",
+        build_context="service-access-nginx",
+    ),
 )

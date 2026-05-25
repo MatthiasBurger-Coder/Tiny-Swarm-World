@@ -175,6 +175,14 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertEqual("service-access", ComposeFileRepositoryYaml().get_compose_of("service-access").name)
         self.assertEqual(set(SERVICE_ACCESS_STACK_CONTRACT.required_services), set(services))
         self.assertEqual(
+            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:5000/service-access-dashboard:latest}",
+            services["service-access-dashboard"]["image"],
+        )
+        self.assertEqual(
+            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:5000/service-access-nginx:latest}",
+            services["service-access-nginx"]["image"],
+        )
+        self.assertEqual(
             [
                 {"target": 8085, "published": 8085, "protocol": "tcp"},
                 {"target": 8086, "published": 8086, "protocol": "tcp"},

@@ -29,8 +29,8 @@ The system follows a hexagonal architecture and provides async Python automation
   - RabbitMQ (message broker)
   - SonarQube (static code analysis)
   - Swagger + NGINX (API documentation)
-- Optional selected-profile service-access assets:
-  - static service-access dashboard
+- Service-access management surface:
+  - static landing page for server links and credential references
   - Vaultwarden credential store behind service-access NGINX
   - Vaultwarden-only password reveal/copy path
 - Modular infrastructure assets in `infra/config` and `infra/compose`, driven by the Python setup workflow.
@@ -228,15 +228,15 @@ Image publication and stack deployment are handled by the workflow-level setup
 command. Stack definitions live under `infra/config/compose`; image build
 contexts live under `infra/compose`.
 
-The repository also contains an optional selected-profile service-access
-stack. Its compose definition lives under
+The full guided setup now includes the `service-access` management stack. Its
+compose definition lives under
 `infra/config/compose/service-access/docker-compose.yml`, and its dashboard
-and NGINX assets are image-packaged under
-`infra/compose/service-access/**`. It is not part of the default runnable
-service set and no user-facing CLI selector is documented yet. The dashboard
-is static catalog data: it links only to Vaultwarden, lists credential item
-references, and keeps reachability unknown until observed evidence is wired.
-Password values are visible only in Vaultwarden's authenticated UI.
+and NGINX assets are image-packaged under `infra/compose/service-access/**`.
+The dashboard is the installed landing page for service links and Vaultwarden
+credential references. It links only to Vaultwarden and keeps reachability
+unknown until observed evidence is wired. Password values are visible only in
+Vaultwarden's authenticated UI. Operators who intentionally want the older base
+service set can pass `--service-profile default`.
 
 Live-operation surface summary:
 

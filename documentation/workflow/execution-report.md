@@ -446,17 +446,17 @@ Evidence:
 
 Decision details:
 
-- The default service-stack profile remains unchanged and does not include
+- The base service-stack profile remains available and does not include
   `service-access`.
-- The selected service-access profile adds the `service-access` stack with
-  required services `service-access-dashboard`, `vaultwarden` and
-  `service-access-nginx`.
+- The full guided setup selects the service-access profile by default and adds
+  the `service-access` stack with required services
+  `service-access-dashboard`, `vaultwarden` and `service-access-nginx`.
 - Post-bootstrap selected-stack planning excludes `portainer` and can exclude
   bootstrap-owned `nexus`; `service-access` is a Portainer-managed
   post-bootstrap stack.
 - Setup manifest selection adds ports `8085` and `8086` and the
   `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name without any
-  credential value or static default.
+  credential value.
 - `EnsureServiceStack` verifies Portainer stack registration after apply; real
   service readiness remains fail-closed in observed Swarm readiness checks.
 - Swarm service readiness now waits asynchronously between attempts.
@@ -644,14 +644,14 @@ Evidence:
 
 Decision details:
 
-- Documentation now describes service-access as partially implemented in
-  repository assets and selected-profile contracts. Later post-workflow live
-  smoke evidence verifies Swarm node IP reachability and records the remaining
-  `localhost` forwarding gap.
-- User-facing docs state that service-access is not part of the default
-  setup profile and no user-facing CLI selector is documented yet.
-- arc42 and ADR material distinguish implemented static/mocked evidence from
-  unverified live reachability.
+- Documentation now describes service-access as the full guided setup's
+  management surface, backed by repository assets and setup-selected contracts.
+  Post-workflow live smoke evidence verifies Swarm node IP reachability and
+  records the remaining `localhost` forwarding gap.
+- User-facing docs state that `setup run --live` includes service-access by
+  default and that `--service-profile default` intentionally omits it.
+- arc42 and ADR material distinguish implemented setup wiring from the
+  remaining host-forwarding and Vaultwarden operational hardening gaps.
 - Workflow handoff is checkpoint-only: no `push auto`, no pull request
   creation, no merge, no branch cleanup, no force-push and no push to `main`.
 
