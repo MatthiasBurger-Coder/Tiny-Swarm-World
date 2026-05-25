@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 
 from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
@@ -17,11 +18,13 @@ class EnsureServiceStack:
         portainer_client: PortPortainerClient,
         service_stack: ServiceStackContract,
         endpoint_name: str,
+        stack_environment: Mapping[str, str] | None = None,
     ):
         self.compose_repository = compose_repository
         self.portainer_client = portainer_client
         self.service_stack = service_stack
         self.endpoint_name = endpoint_name
+        self.stack_environment = dict(stack_environment or {})
         self.deployment_target_id = service_stack.stack_target_id
         self.verification_target_id = service_stack.stack_target_id
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -35,11 +38,20 @@ class EnsureServiceStack:
 
         if stack_id is None:
             self.logger.info("Creating Portainer-managed stack '%s'.", stack_definition.name)
-            self.portainer_client.create_stack(stack_definition, endpoint_id)
+            self.portainer_client.create_stack(
+                stack_definition,
+                endpoint_id,
+                self.stack_environment,
+            )
             return
 
         self.logger.info("Updating Portainer-managed stack '%s'.", stack_definition.name)
-        self.portainer_client.update_stack(stack_id, stack_definition, endpoint_id)
+        self.portainer_client.update_stack(
+            stack_id,
+            stack_definition,
+            endpoint_id,
+            self.stack_environment,
+        )
 
     async def verify(self) -> VerificationResult:
         try:

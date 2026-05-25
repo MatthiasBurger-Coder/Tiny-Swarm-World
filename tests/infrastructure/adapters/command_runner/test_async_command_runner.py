@@ -1,7 +1,8 @@
+import asyncio
 import subprocess
 import unittest
 from inspect import signature
-from asyncio import TimeoutError, Lock
+from asyncio import Lock
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from tiny_swarm_world.infrastructure.adapters.command_runner.async_command_runner import AsyncPortCommandRunner
@@ -52,16 +53,16 @@ class TestAsyncCommandRunner(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(context.exception.stdout, "")
         self.assertEqual("<redacted>", context.exception.stderr)
 
-    @patch("asyncio.wait_for", side_effect=TimeoutError())
     @patch("asyncio.create_subprocess_shell")
-    async def test_run_asyncio_timeout(self, mock_subprocess,mock_wait_for):
+    async def test_run_asyncio_timeout(self, mock_subprocess):
         command = "sleep 10"
-        timeout = 1
+        timeout = 0.001
 
         mock_process = AsyncMock()
         mock_process.pid = 1234
-        mock_process.returncode = 0  # Simulate timeout during execution
-        mock_process.wait = AsyncMock()
+        mock_process.returncode = None
+        mock_process.communicate.side_effect = _never_finishes
+        mock_process.wait = AsyncMock(return_value=None)
         mock_subprocess.return_value = mock_process
 
         with patch(
@@ -76,9 +77,32 @@ class TestAsyncCommandRunner(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("return code -1", str(context.exception))
         self.assertNotIn(command, str(context.exception))
-        self.assertGreaterEqual(mock_wait_for.call_count, 1)
         self.assertGreaterEqual(mock_killpg.call_count, 1)
+        mock_process.wait.assert_awaited()
         self.assertTrue(mock_subprocess.call_args.kwargs["start_new_session"])
+
+    @patch("asyncio.create_subprocess_shell")
+    async def test_run_multipass_socket_failure_preserves_return_code_and_redacts_payload(
+        self,
+        mock_subprocess,
+    ):
+        command = "multipass info swarm-manager"
+        raw_stderr = "cannot connect to the multipass socket"
+        mock_process = AsyncMock()
+        mock_process.communicate.return_value = (b"raw vm output", raw_stderr.encode("utf-8"))
+        mock_process.returncode = 2
+        mock_subprocess.return_value = mock_process
+
+        with self.assertRaises(CommandExecutionError) as context:
+            await self.command_runner.run(command)
+
+        self.assertEqual(2, context.exception.returnCode)
+        self.assertIn("return code 2", str(context.exception))
+        self.assertNotIn(command, str(context.exception))
+        self.assertNotIn(raw_stderr, str(context.exception))
+        self.assertEqual("<redacted>", context.exception.command)
+        self.assertEqual("<redacted>", context.exception.stdout)
+        self.assertEqual("<redacted>", context.exception.stderr)
 
     @patch("asyncio.create_subprocess_shell")
     async def test_run_unexpected_error(self, mock_subprocess):
@@ -132,3 +156,8 @@ class TestAsyncCommandRunner(unittest.IsolatedAsyncioTestCase):
         ]
         self.assertFalse(any("secret stdout" in message for message in logged_messages))
         self.assertFalse(any("secret stderr" in message for message in logged_messages))
+
+
+async def _never_finishes():
+    await asyncio.sleep(60)
+    return b"", b""

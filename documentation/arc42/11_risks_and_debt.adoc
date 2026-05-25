@@ -24,9 +24,9 @@ Remaining debt:
 * composed mutating platform workflows now block with explicit target IDs and
   operator-facing reasons before apply, but still need concrete command-backed
   verification contracts before they can safely execute live steps;
-* the host-neutral desired inventory baseline is committed, but observed
-  inventory collection and reconciliation are not yet wired into platform
-  verification workflows;
+* the host-neutral desired inventory baseline is committed and aligned with
+  the default service-access setup profile, but observed inventory collection
+  and reconciliation are not yet wired into platform verification workflows;
 * legacy scripts under `infra/swarm` remain live-operation surfaces outside the
   workflow-level CLI consent guard;
 * reset/destroy retention and teardown semantics are not wired yet;
@@ -79,9 +79,15 @@ Remaining risks and debt:
 * credential leakage could occur through dashboard content, compose defaults,
   logs, evidence, screenshots or exported artifacts if password values are
   duplicated outside Vaultwarden;
+* required setup password values must remain operator-supplied; committed
+  static defaults are not accepted as preflight secret-value sources;
 * Vaultwarden admin-token ownership, rotation, persistence, backup, restore
   and rollback are not implemented and remain blockers before production-like
-  claims;
+  claims; the committed default is only the external Swarm secret name, never
+  the token value;
+* missing Vaultwarden external Swarm input now blocks before service-access
+  stack deployment, but creating or rotating that input remains an operator
+  responsibility outside the default quality gate;
 * a bootstrap cycle is possible if required setup credentials are moved into
   Vaultwarden before Vaultwarden itself is reachable;
 * service reachability could be falsely presented as healthy without fresh

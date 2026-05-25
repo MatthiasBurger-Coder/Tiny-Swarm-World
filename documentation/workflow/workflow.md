@@ -202,9 +202,9 @@ Accepted assumptions:
   changes the runtime model.
 - Static preflight without live consent may remain static; accepted live
   preflight may use safe read-only runtime probes.
-- Existing static local defaults are tolerated only as local-development
-  compatibility until a slice decides and tests the credential source of
-  truth.
+- Slice 06 establishes operator-supplied password values as the guided setup
+  credential source of truth; the remaining committed default is the
+  Vaultwarden external Swarm secret name, not a token value.
 
 Non-goals:
 
@@ -239,9 +239,9 @@ Open questions delegated to slices:
 
 - Whether endpoint resolution should prefer localhost, node IP, or a
   profile-specific operator override for each service.
-- Whether static local secrets should remain as local defaults, become
-  explicit development profile values, or be replaced by ignored local secret
-  sources.
+- Whether legacy local compatibility defaults outside the guided setup path
+  should become explicit development profile values or be replaced by ignored
+  local secret sources.
 - Whether optional guided host remediation should remain documentation-only or
   become a future approved live workflow.
 
@@ -846,20 +846,29 @@ secondary_reviewers:
   - Senior Security Sandbox Engineer
   - Senior Tester
 affected_files:
+  - src/tiny_swarm_world/application/services/platform/preflight_service.py
   - src/tiny_swarm_world/domain/preflight/preflight_configuration.py
   - src/tiny_swarm_world/domain/preflight/setup_manifest.py
   - src/tiny_swarm_world/domain/deployment/service_stack_contract.py
+  - src/tiny_swarm_world/infrastructure/composition.py
   - infra/config/inventory/**
   - infra/config/compose/service-access/docker-compose.yml
   - documentation/epics/autonomous-runnable-setup.md
   - documentation/epics/service-access-dashboard-vaultwarden.md
   - documentation/arc42/11_risks_and_debt.adoc
+  - documentation/deployment/system.adoc
+  - documentation/workflow/execution-report.md
+  - tests/application/services/platform/test_preflight_service.py
   - tests/domain/preflight/test_preflight_result.py
   - tests/domain/deployment/test_service_stack_contract.py
   - tests/architecture/test_local_state_storage.py
+  - tests/infrastructure/adapters/repositories/test_inventory_repositories.py
+  - tests/infrastructure/test_composition.py
 affected_modules:
+  - tiny_swarm_world.application.services.platform
   - tiny_swarm_world.domain.preflight
   - tiny_swarm_world.domain.deployment
+  - tiny_swarm_world.infrastructure.composition
   - infra.config
 affected_contracts:
   - setup-profile-contract
@@ -869,15 +878,22 @@ dependencies:
   - "05"
 parallel_group: F
 file_locks:
+  - src/tiny_swarm_world/application/services/platform/preflight_service.py
   - src/tiny_swarm_world/domain/preflight/**
   - src/tiny_swarm_world/domain/deployment/**
+  - src/tiny_swarm_world/infrastructure/composition.py
   - infra/config/inventory/**
   - infra/config/compose/service-access/**
   - documentation/epics/**
   - documentation/arc42/11_risks_and_debt.adoc
+  - documentation/deployment/system.adoc
+  - documentation/workflow/execution-report.md
+  - tests/application/services/platform/test_preflight_service.py
   - tests/domain/preflight/**
   - tests/domain/deployment/**
   - tests/architecture/**
+  - tests/infrastructure/adapters/repositories/test_inventory_repositories.py
+  - tests/infrastructure/test_composition.py
 contract_locks:
   - setup-profile-contract
   - credential-source-contract
@@ -889,6 +905,9 @@ quality_gates:
   targeted:
     - PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
     - PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_inventory_repositories
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
     - PYTHONPATH=src python3 -m unittest tests.architecture.test_local_state_storage
     - git diff --check
   required:
@@ -931,6 +950,8 @@ secondary_reviewers:
   - Senior Tester
   - Senior System Architect
 affected_files:
+  - src/tiny_swarm_world/application/ports/clients/port_portainer_client.py
+  - src/tiny_swarm_world/application/ports/clients/port_swarm_stack_runtime.py
   - src/tiny_swarm_world/application/services/artifacts/**
   - src/tiny_swarm_world/application/services/deployment/**
   - src/tiny_swarm_world/infrastructure/adapters/clients/**
@@ -940,6 +961,7 @@ affected_files:
   - tests/infrastructure/adapters/clients/**
   - tests/infrastructure/test_composition.py
 affected_modules:
+  - tiny_swarm_world.application.ports.clients
   - tiny_swarm_world.application.services.artifacts
   - tiny_swarm_world.application.services.deployment
   - tiny_swarm_world.infrastructure.adapters.clients
@@ -952,6 +974,8 @@ dependencies:
   - "06"
 parallel_group: G
 file_locks:
+  - src/tiny_swarm_world/application/ports/clients/port_portainer_client.py
+  - src/tiny_swarm_world/application/ports/clients/port_swarm_stack_runtime.py
   - src/tiny_swarm_world/application/services/artifacts/**
   - src/tiny_swarm_world/application/services/deployment/**
   - src/tiny_swarm_world/infrastructure/adapters/clients/**

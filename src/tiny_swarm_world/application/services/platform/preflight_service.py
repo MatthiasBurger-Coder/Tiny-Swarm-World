@@ -4,6 +4,8 @@ from collections.abc import Mapping
 
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.domain.preflight import (
+    HostRuntimeReadiness,
+    HostRuntimeReadinessStatus,
     LiveConsent,
     PreflightCategory,
     PreflightCheck,
@@ -30,16 +32,22 @@ class PreflightService:
             self._host_check(),
             self._python_check(),
             *self._dependency_checks(),
-            self._cpu_check(),
-            self._memory_check(),
-            self._disk_check(),
-            *self._port_checks(),
-            *self._secret_checks(),
-            *self._ignore_policy_checks(),
-            self._forbidden_secret_fingerprint_check(),
         ]
         if live_consent is not None:
             checks.insert(0, self._live_consent_check(live_consent))
+        if live_consent is not None and live_consent.accepted:
+            checks.extend(self._runtime_checks())
+        checks.extend(
+            (
+                self._cpu_check(),
+                self._memory_check(),
+                self._disk_check(),
+                *self._port_checks(),
+                *self._secret_checks(),
+                *self._ignore_policy_checks(),
+                self._forbidden_secret_fingerprint_check(),
+            )
+        )
         return PreflightResult(
             tuple(checks),
             setup_profile=self.configuration.setup_profile,
@@ -127,6 +135,27 @@ class PreflightService:
                     PreflightCategory.DEPENDENCY,
                     f"Dependency '{dependency.name}' is missing.",
                     f"Install '{dependency.name}' or make it available on PATH.",
+                )
+            )
+        return tuple(checks)
+
+    def _runtime_checks(self) -> tuple[PreflightCheck, ...]:
+        checks: list[PreflightCheck] = []
+        for runtime in self.configuration.required_runtime_readiness:
+            if runtime.name == "multipass":
+                checks.append(
+                    _runtime_readiness_check(
+                        self.host_probe.multipass_runtime_readiness(runtime.expected_driver)
+                    )
+                )
+                continue
+            checks.append(
+                _failed(
+                    f"RUNTIME-{runtime.name.upper()}-UNSUPPORTED",
+                    PreflightCategory.RUNTIME,
+                    f"Runtime readiness probe '{runtime.name}' is not supported.",
+                    "Remove the unsupported runtime readiness requirement or add a supported probe.",
+                    {"runtime": runtime.name, "classification": "unsupported"},
                 )
             )
         return tuple(checks)
@@ -261,8 +290,8 @@ class PreflightService:
 
     def _secret_checks(self) -> tuple[PreflightCheck, ...]:
         checks: list[PreflightCheck] = []
-        static_secret_names = {
-            static_secret.name
+        static_secrets = {
+            static_secret.name: static_secret
             for static_secret in self.configuration.static_secret_defaults
             if static_secret.value
         }
@@ -272,32 +301,50 @@ class PreflightService:
                     _passed(
                         f"SECRET-{secret.name}",
                         PreflightCategory.SECRET,
-                        f"Secret source for {secret.service} is present.",
-                        {"secret": secret.name, "service": secret.service, "source": "environment"},
-                    )
-                )
-                continue
-            if secret.name in static_secret_names:
-                checks.append(
-                    _passed(
-                        f"SECRET-{secret.name}",
-                        PreflightCategory.SECRET,
-                        f"Static local secret default for {secret.service} is present.",
+                        _secret_present_message(secret.value_kind, secret.service),
                         {
                             "secret": secret.name,
                             "service": secret.service,
-                            "source": "static_local_default",
+                            "source": "environment",
+                            "value_kind": secret.value_kind,
                         },
                     )
                 )
                 continue
+            static_secret = static_secrets.get(secret.name)
+            if (
+                static_secret is not None
+                and secret.value_kind == "secret_name"
+                and static_secret.value_kind == "secret_name"
+            ):
+                checks.append(
+                    _passed(
+                        f"SECRET-{secret.name}",
+                        PreflightCategory.SECRET,
+                        _static_secret_default_message(static_secret.value_kind, secret.service),
+                        {
+                            "secret": secret.name,
+                            "service": secret.service,
+                            "source": _static_secret_default_source(static_secret.value_kind),
+                            "value_kind": static_secret.value_kind,
+                        },
+                    )
+                )
+                continue
+            evidence = {
+                "secret": secret.name,
+                "service": secret.service,
+                "value_kind": secret.value_kind,
+            }
+            if static_secret is not None:
+                evidence["static_default"] = "local_development_only"
             checks.append(
                 _failed(
                     f"SECRET-{secret.name}",
                     PreflightCategory.SECRET,
-                    f"Secret source for {secret.service} is missing.",
-                    "Provide the secret through an environment variable or ignored local file.",
-                    {"secret": secret.name, "service": secret.service},
+                    _secret_missing_message(secret.value_kind, secret.service),
+                    _secret_missing_remediation(secret.value_kind),
+                    evidence,
                 )
             )
         return tuple(checks)
@@ -382,6 +429,125 @@ def _failed(
         remediation=remediation,
         evidence=evidence or {},
     )
+
+
+def _runtime_readiness_check(readiness: HostRuntimeReadiness) -> PreflightCheck:
+    evidence = {
+        "runtime": readiness.runtime,
+        "classification": readiness.status.value.lower(),
+        **readiness.evidence,
+    }
+    if readiness.ready:
+        return _passed(
+            _runtime_check_id(readiness),
+            PreflightCategory.RUNTIME,
+            f"{_runtime_label(readiness.runtime)} runtime is reachable.",
+            evidence,
+        )
+
+    message, remediation = _runtime_failure_guidance(readiness)
+    return _failed(
+        _runtime_check_id(readiness),
+        PreflightCategory.RUNTIME,
+        message,
+        remediation,
+        evidence,
+    )
+
+
+def _runtime_check_id(readiness: HostRuntimeReadiness) -> str:
+    suffix_by_status = {
+        HostRuntimeReadinessStatus.READY: "",
+        HostRuntimeReadinessStatus.EXECUTABLE_MISSING: "-EXECUTABLE",
+        HostRuntimeReadinessStatus.SOCKET_UNAVAILABLE: "-SOCKET",
+        HostRuntimeReadinessStatus.DAEMON_UNAVAILABLE: "-DAEMON",
+        HostRuntimeReadinessStatus.PERMISSION_DENIED: "-PERMISSION",
+        HostRuntimeReadinessStatus.DRIVER_UNAVAILABLE: "-DRIVER",
+        HostRuntimeReadinessStatus.DRIVER_MISMATCH: "-DRIVER",
+        HostRuntimeReadinessStatus.UNKNOWN_FAILURE: "-UNKNOWN",
+    }
+    return f"RUNTIME-{readiness.runtime.upper()}{suffix_by_status[readiness.status]}"
+
+
+def _runtime_failure_guidance(readiness: HostRuntimeReadiness) -> tuple[str, str]:
+    runtime = _runtime_label(readiness.runtime)
+    if readiness.status == HostRuntimeReadinessStatus.EXECUTABLE_MISSING:
+        return (
+            f"{runtime} executable is not available.",
+            "Install Multipass or make it available on PATH before live setup.",
+        )
+    if readiness.status == HostRuntimeReadinessStatus.SOCKET_UNAVAILABLE:
+        return (
+            f"{runtime} daemon or socket is not reachable.",
+            (
+                "Start or repair the Multipass service and verify read-only access from "
+                "the same Linux/WSL shell before rerunning live setup."
+            ),
+        )
+    if readiness.status == HostRuntimeReadinessStatus.DAEMON_UNAVAILABLE:
+        return (
+            f"{runtime} daemon did not answer the readiness probe.",
+            "Start or repair the Multipass service before rerunning live setup.",
+        )
+    if readiness.status == HostRuntimeReadinessStatus.PERMISSION_DENIED:
+        return (
+            f"{runtime} is installed but not accessible for the current user.",
+            (
+                "Fix Multipass socket permissions or run from a Linux/WSL user with "
+                "access to the Multipass service."
+            ),
+        )
+    if readiness.status == HostRuntimeReadinessStatus.DRIVER_UNAVAILABLE:
+        return (
+            f"{runtime} driver state could not be read.",
+            "Repair Multipass driver configuration before live setup.",
+        )
+    if readiness.status == HostRuntimeReadinessStatus.DRIVER_MISMATCH:
+        expected_driver = readiness.evidence.get("expected_driver", "the expected driver")
+        return (
+            f"{runtime} uses an unsupported driver for this setup profile.",
+            f"Configure Multipass to use {expected_driver} or document an approved driver change.",
+        )
+    return (
+        f"{runtime} readiness could not be verified.",
+        "Repair the host runtime and rerun live preflight before mutation.",
+    )
+
+
+def _runtime_label(runtime: str) -> str:
+    if runtime == "multipass":
+        return "Multipass"
+    return runtime
+
+
+def _secret_present_message(value_kind: str, service: str) -> str:
+    if value_kind == "secret_name":
+        return f"Secret source name for {service} is present."
+    return f"Secret source for {service} is present."
+
+
+def _static_secret_default_message(value_kind: str, service: str) -> str:
+    if value_kind == "secret_name":
+        return f"Static local secret source name default for {service} is present."
+    return f"Static local secret default for {service} is present."
+
+
+def _secret_missing_message(value_kind: str, service: str) -> str:
+    if value_kind == "secret_name":
+        return f"Secret source name for {service} is missing."
+    return f"Secret source for {service} is missing."
+
+
+def _secret_missing_remediation(value_kind: str) -> str:
+    if value_kind == "secret_name":
+        return "Provide the external secret name through an environment variable or ignored local file."
+    return "Provide the secret through an environment variable or ignored local file."
+
+
+def _static_secret_default_source(value_kind: str) -> str:
+    if value_kind == "secret_name":
+        return "static_local_secret_name_default"
+    return "static_local_default"
 
 
 def _parse_python_version(version_text: str) -> tuple[int, ...]:

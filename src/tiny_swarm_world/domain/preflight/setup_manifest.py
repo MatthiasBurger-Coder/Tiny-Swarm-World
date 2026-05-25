@@ -24,6 +24,7 @@ class SetupPortRequirement:
 class SetupSecretRequirement:
     name: str
     service: str
+    value_kind: str = "secret_value"
 
 
 @dataclass(frozen=True)
@@ -45,7 +46,11 @@ class SetupServiceRequirement:
                 for port in self.ports
             ],
             "secrets": [
-                {"name": secret.name, "service": secret.service}
+                {
+                    "name": secret.name,
+                    "service": secret.service,
+                    "value_kind": secret.value_kind,
+                }
                 for secret in self.secrets
             ],
             "required_for_full": self.required_for_full,
@@ -150,6 +155,7 @@ def default_setup_manifest(
                     SetupSecretRequirement(
                         "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
                         "Vaultwarden admin-token secret name",
+                        value_kind="secret_name",
                     ),
                 ),
             )

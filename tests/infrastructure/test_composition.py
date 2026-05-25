@@ -55,9 +55,14 @@ class TestComposition(unittest.TestCase):
         self.assertIs(services.platform, platform)
         self.assertIs(services.artifacts, artifacts)
         self.assertIs(services.deployment, deployment)
-        build_platform_services.assert_called_once_with()
+        build_platform_services.assert_called_once_with(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS,
+            live_consent=None,
+        )
         build_artifact_services.assert_called_once_with()
-        build_deployment_services.assert_called_once_with()
+        build_deployment_services.assert_called_once_with(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS
+        )
 
     def test_platform_services_contains_preflight_service(self):
         field_names = {field.name for field in fields(composition.PlatformServices)}
@@ -119,6 +124,7 @@ class TestComposition(unittest.TestCase):
             evidence_repository,
             services.workflows.init.verification_evidence_repository,
         )
+        self.assertIsNone(services.workflows.init.pre_apply_guard)
         self.assertIs(
             evidence_repository,
             services.workflows.reconcile.verification_evidence_repository,
@@ -193,8 +199,15 @@ class TestComposition(unittest.TestCase):
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
+        self.assertTrue(
+            all(
+                step.endpoint_name == composition.DEFAULT_PORTAINER_ENDPOINT_NAME
+                for step in services.workflows.apply.steps
+            )
+        )
         self.assertEqual(
             (
+                "deployment:service-access-external-input",
                 "deployment:portainer-service-readiness",
                 "deployment:nexus-service-readiness",
                 "deployment:jenkins-service-readiness",
@@ -204,6 +217,10 @@ class TestComposition(unittest.TestCase):
                 "deployment:service-access-service-readiness",
             ),
             tuple(check.verification_target_id for check in services.workflows.verify.checks),
+        )
+        self.assertEqual(
+            ("deployment:service-access-external-input",),
+            tuple(check.verification_target_id for check in services.workflows.apply.pre_apply_checks),
         )
 
     def test_build_deployment_services_does_not_call_runtime_during_construction(self):
@@ -219,7 +236,19 @@ class TestComposition(unittest.TestCase):
         stack_client.assert_called_once()
         self.assertEqual(3, len(services.workflows.bootstrap.steps))
         self.assertEqual(5, len(services.workflows.apply.steps))
-        self.assertEqual(7, len(services.workflows.verify.checks))
+        self.assertEqual(8, len(services.workflows.verify.checks))
+
+    def test_build_deployment_services_uses_named_portainer_api_default(self):
+        with patch.object(composition, "PortainerHttpClient") as portainer_client:
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                with patch.object(composition, "MultipassSwarmRuntime"):
+                    with patch.object(composition, "MultipassPortainerAdminClient"):
+                        composition.build_deployment_services()
+
+        self.assertEqual(
+            composition.DEFAULT_PORTAINER_API_URL,
+            portainer_client.call_args.args[0],
+        )
 
     def test_build_deployment_services_can_select_service_access_profile(self):
         with patch.object(composition, "ComposeFileRepositoryYaml"):
@@ -253,6 +282,7 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(
             (
+                "deployment:service-access-external-input",
                 "deployment:portainer-service-readiness",
                 "deployment:nexus-service-readiness",
                 "deployment:jenkins-service-readiness",
@@ -264,15 +294,54 @@ class TestComposition(unittest.TestCase):
             tuple(check.verification_target_id for check in services.workflows.verify.checks),
         )
 
-    def test_build_artifact_services_uses_static_local_defaults_not_environment_passwords(self):
+    def test_build_deployment_services_wires_service_access_external_input_check(self):
+        with patch.dict(
+            "os.environ",
+            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+            clear=True,
+        ):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                with patch.object(composition, "MultipassSwarmRuntime") as swarm_runtime:
+                    with patch.object(composition, "MultipassPortainerAdminClient"):
+                        with patch.object(composition, "PortainerHttpClient"):
+                            services = composition.build_deployment_services()
+
+        pre_apply_check = services.workflows.apply.pre_apply_checks[0]
+        service_access_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.service_stack.stack_name == "service-access"
+        )
+
+        self.assertIs(pre_apply_check.swarm_runtime, swarm_runtime.return_value)
+        self.assertEqual("operator_defined", pre_apply_check.resource_name)
+        self.assertEqual("operator_env", pre_apply_check.source_ref)
+        self.assertEqual(
+            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+            service_access_step.stack_environment,
+        )
+
+    def test_build_artifact_services_uses_operator_environment_passwords(self):
         with patch.dict("os.environ", {"TSW_NEXUS_ADMIN_PASSWORD": "operator-supplied"}, clear=True):
             services = composition.build_artifact_services()
 
         image_publisher = services.workflows.prepare.steps[-1].image_publisher
         self.assertEqual(
-            "MyAdminPassWord1234-126354654",
+            "operator-supplied",
             image_publisher.registry_password,
         )
+
+    def test_build_deployment_services_uses_operator_portainer_password(self):
+        with patch.dict("os.environ", {"TSW_PORTAINER_PASSWORD": "operator-portainer"}, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                with patch.object(composition, "MultipassSwarmRuntime"):
+                    with patch.object(composition, "MultipassPortainerAdminClient"):
+                        with patch.object(composition, "PortainerHttpClient") as portainer_client:
+                            services = composition.build_deployment_services()
+
+        portainer_client.assert_called_once()
+        self.assertEqual("operator-portainer", portainer_client.call_args.args[2])
+        self.assertEqual("operator-portainer", services.workflows.bootstrap.steps[1].password)
 
     def test_build_setup_services_wires_phase_orchestrator_without_running_phases(self):
         with patch.object(composition, "build_preflight_service") as build_preflight:
@@ -303,7 +372,10 @@ class TestComposition(unittest.TestCase):
             tuple(phase.name for phase in services.workflows.run.phases),
         )
         build_preflight.assert_called_once_with(service_profile=ServiceStackProfile.SERVICE_ACCESS)
-        build_platform.assert_called_once_with(service_profile=ServiceStackProfile.SERVICE_ACCESS)
+        build_platform.assert_called_once_with(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS,
+            live_consent=services.workflows.run.live_consent,
+        )
         build_deployment.assert_called_once_with(service_profile=ServiceStackProfile.SERVICE_ACCESS)
         build_preflight.return_value.run.assert_not_called()
         build_platform.return_value.workflows.init.run.assert_not_called()
@@ -318,6 +390,36 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.platform.preflight, PreflightService)
         self.assertIs(services.preflight, services.platform.preflight)
         self.assertIs(services.platform.workflows.verify.steps[0], services.platform.preflight)
+
+    def test_build_platform_services_wires_init_guard_when_live_consent_is_available(self):
+        live_consent = _accepted_live_consent()
+        with patch.object(composition, "PortVmRepositoryYaml"):
+            with patch.object(composition, "PortNetplanRepositoryYaml"):
+                services = composition.build_platform_services(live_consent=live_consent)
+
+        self.assertIsNotNone(services.workflows.init.pre_apply_guard)
+
+    def test_build_setup_services_wires_live_consent_into_platform_init_guard(self):
+        live_consent = _accepted_live_consent()
+        captured: dict[str, object] = {}
+
+        def build_platform(*, service_profile: object, live_consent: LiveConsent | None = None):
+            captured["service_profile"] = service_profile
+            captured["live_consent"] = live_consent
+            return _platform_phase_bundle()
+
+        with patch.object(composition, "build_preflight_service", return_value=_phase_bundle()):
+            with patch.object(composition, "build_platform_services", side_effect=build_platform):
+                with patch.object(composition, "build_artifact_services", return_value=_artifact_phase_bundle()):
+                    with patch.object(
+                        composition,
+                        "build_deployment_services",
+                        return_value=_deployment_phase_bundle(),
+                    ):
+                        composition.build_setup_services(live_consent)
+
+        self.assertIs(live_consent, captured["live_consent"])
+        self.assertEqual(ServiceStackProfile.SERVICE_ACCESS, captured["service_profile"])
 
     def test_build_application_services_does_not_run_constructed_services(self):
         with patch.object(composition.MultipassInitVms, "run", side_effect=AssertionError):

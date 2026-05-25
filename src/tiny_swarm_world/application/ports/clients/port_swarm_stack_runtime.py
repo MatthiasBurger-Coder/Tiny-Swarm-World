@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from tiny_swarm_world.domain.deployment import StackDefinition
@@ -19,7 +20,11 @@ class SwarmServiceStatus:
 
 class PortSwarmStackRuntime(ABC):
     @abstractmethod
-    def deploy_stack(self, stack_definition: StackDefinition) -> None:
+    def deploy_stack(
+        self,
+        stack_definition: StackDefinition,
+        stack_environment: Mapping[str, str] | None = None,
+    ) -> None:
         pass
 
     @abstractmethod
@@ -28,4 +33,8 @@ class PortSwarmStackRuntime(ABC):
 
     @abstractmethod
     def list_stack_services(self, stack_name: str) -> tuple[SwarmServiceStatus, ...]:
+        pass
+
+    @abstractmethod
+    def external_secret_exists(self, name: str) -> bool:
         pass

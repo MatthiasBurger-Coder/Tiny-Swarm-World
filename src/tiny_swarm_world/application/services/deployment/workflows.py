@@ -19,6 +19,7 @@ class DeploymentWorkflowStatus(str, Enum):
     BLOCKED = "blocked"
     COMPLETED = "completed"
     FAILED_TO_APPLY = "failed_to_apply"
+    FAILED_TO_PREPARE = "failed_to_prepare"
     FAILED_TO_VERIFY = "failed_to_verify"
 
 
@@ -31,6 +32,11 @@ class DeploymentApplyStep(Protocol):
 
 
 class DeploymentVerifyCheck(Protocol):
+    def verify(self) -> object:
+        pass
+
+
+class DeploymentPreApplyCheck(Protocol):
     def verify(self) -> object:
         pass
 
@@ -71,10 +77,12 @@ class DeploymentApplyWorkflow:
     def __init__(
         self,
         steps: Sequence[DeploymentApplyStep] = (),
+        pre_apply_checks: Sequence[DeploymentPreApplyCheck] = (),
         blocked_reason: str = DEFAULT_DEPLOYMENT_APPLY_BLOCK_REASON,
         kind: DeploymentWorkflowKind = DeploymentWorkflowKind.APPLY,
     ):
         self.steps = tuple(steps)
+        self.pre_apply_checks = tuple(pre_apply_checks)
         self.blocked_reason = blocked_reason
         self.kind = kind
 
@@ -88,6 +96,27 @@ class DeploymentApplyWorkflow:
             )
 
         verification_results: list[VerificationResult] = []
+        for check in self.pre_apply_checks:
+            target_id = _verification_target_id(check, "deployment:pre-apply-check")
+            verification = await _verify_step(check, target_id)
+            verification_results.append(verification)
+            if verification.status == VerificationStatus.BLOCKED:
+                return DeploymentWorkflowResult(
+                    kind=self.kind,
+                    status=DeploymentWorkflowStatus.BLOCKED,
+                    message="deployment apply is blocked by pre-apply verification.",
+                    reason=f"pre-apply verification is blocked for {target_id}",
+                    verification_results=tuple(verification_results),
+                )
+            if verification.status != VerificationStatus.VERIFIED:
+                return DeploymentWorkflowResult(
+                    kind=self.kind,
+                    status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
+                    message="deployment apply failed pre-apply verification.",
+                    reason=f"pre-apply verification failed for {target_id}",
+                    verification_results=tuple(verification_results),
+                )
+
         for step in self.steps:
             target_id = _verification_target_id(step, "deployment:apply-step")
             if not _step_has_verification(step):
@@ -113,9 +142,9 @@ class DeploymentApplyWorkflow:
             except Exception as exc:
                 return DeploymentWorkflowResult(
                     kind=self.kind,
-                    status=DeploymentWorkflowStatus.FAILED_TO_APPLY,
-                    message="deployment apply failed for a configured stack contract.",
-                    reason=f"apply failed with {exc.__class__.__name__}",
+                    status=DeploymentWorkflowStatus.FAILED_TO_PREPARE,
+                    message="deployment prepare failed for a configured stack contract.",
+                    reason=f"prepare failed with {exc.__class__.__name__}",
                     executed=True,
                     verification_results=(
                         *verification_results,
@@ -211,7 +240,7 @@ def _step_has_verification(step: DeploymentApplyStep | DeploymentVerifyCheck) ->
 
 
 def _verification_target_id(
-    step: DeploymentApplyStep | DeploymentVerifyCheck,
+    step: DeploymentApplyStep | DeploymentVerifyCheck | DeploymentPreApplyCheck,
     fallback: str,
 ) -> str:
     target_id = getattr(step, "verification_target_id", "")
@@ -224,7 +253,7 @@ def _verification_target_id(
 
 
 async def _verify_step(
-    step: DeploymentApplyStep | DeploymentVerifyCheck,
+    step: DeploymentApplyStep | DeploymentVerifyCheck | DeploymentPreApplyCheck,
     target_id: str,
 ) -> VerificationResult:
     verify = getattr(step, "verify", None)

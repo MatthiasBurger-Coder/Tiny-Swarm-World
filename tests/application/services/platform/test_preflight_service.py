@@ -6,7 +6,10 @@ from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.preflight import (
+    HostRuntimeReadiness,
+    HostRuntimeReadinessStatus,
     LiveConsent,
+    PreflightCategory,
     PreflightSeverity,
     RequiredPort,
     RequiredSecret,
@@ -36,11 +39,14 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("SECRET-TSW_PORTAINER_PASSWORD", check_ids)
 
     async def test_static_preflight_can_run_without_live_consent_check(self):
-        result = await PreflightService(_FakeProbe()).run()
+        probe = _FakeProbe()
+        result = await PreflightService(probe).run()
 
         check_ids = {check.check_id for check in result.checks}
         self.assertTrue(result.passed)
         self.assertNotIn("LIVE-CONSENT", check_ids)
+        self.assertNotIn("RUNTIME-MULTIPASS", check_ids)
+        self.assertEqual((), tuple(probe.runtime_probe_calls))
 
     async def test_preflight_reports_selected_setup_profile_and_manifest(self):
         configuration = default_preflight_configuration(SetupProfile.RESOURCE_GATED)
@@ -116,17 +122,99 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
             failed_by_id["SECRET-TSW_NEXUS_ADMIN_PASSWORD"].remediation,
         )
 
-    async def test_static_local_secret_defaults_satisfy_missing_environment_secrets(self):
+    async def test_live_preflight_reports_multipass_runtime_readiness(self):
+        probe = _FakeProbe()
+
+        result = await PreflightService(probe).run(
+            LiveConsent(live_flag=True, confirmed=True)
+        )
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        runtime_check = checks_by_id["RUNTIME-MULTIPASS"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual(PreflightCategory.RUNTIME, runtime_check.category)
+        self.assertEqual("ready", runtime_check.evidence["classification"])
+        self.assertEqual("qemu", runtime_check.evidence["expected_driver"])
+        self.assertEqual(("qemu",), tuple(probe.runtime_probe_calls))
+
+    async def test_live_preflight_fails_when_multipass_socket_is_unavailable(self):
+        result = await PreflightService(
+            _FakeProbe(
+                runtime_readiness=HostRuntimeReadiness(
+                    "multipass",
+                    HostRuntimeReadinessStatus.SOCKET_UNAVAILABLE,
+                    {"probe": "list", "return_code": "2"},
+                )
+            )
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+        runtime_failure = failed_by_id["RUNTIME-MULTIPASS-SOCKET"]
+
+        self.assertFalse(result.passed)
+        self.assertEqual(PreflightCategory.RUNTIME, runtime_failure.category)
+        self.assertEqual("socket_unavailable", runtime_failure.evidence["classification"])
+        self.assertEqual("2", runtime_failure.evidence["return_code"])
+        self.assertIn("daemon or socket", runtime_failure.message)
+        self.assertIn("same Linux/WSL shell", runtime_failure.remediation)
+        self.assertNotIn("cannot connect", repr(runtime_failure.to_dict()).casefold())
+
+    async def test_live_preflight_fails_when_multipass_driver_mismatches(self):
+        result = await PreflightService(
+            _FakeProbe(
+                runtime_readiness=HostRuntimeReadiness(
+                    "multipass",
+                    HostRuntimeReadinessStatus.DRIVER_MISMATCH,
+                    {
+                        "probe": "driver",
+                        "actual_driver": "lxd",
+                        "expected_driver": "qemu",
+                    },
+                )
+            )
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+        runtime_failure = failed_by_id["RUNTIME-MULTIPASS-DRIVER"]
+
+        self.assertFalse(result.passed)
+        self.assertEqual("driver_mismatch", runtime_failure.evidence["classification"])
+        self.assertEqual("lxd", runtime_failure.evidence["actual_driver"])
+        self.assertIn("unsupported driver", runtime_failure.message)
+
+    async def test_static_local_password_defaults_do_not_satisfy_missing_secret_values(self):
         result = await PreflightService(
             _FakeProbe(secret_availability={"TSW_NEXUS_ADMIN_PASSWORD": False})
         ).run()
 
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+        secret_check = failed_by_id["SECRET-TSW_NEXUS_ADMIN_PASSWORD"]
+
+        self.assertFalse(result.passed)
+        self.assertEqual("secret_value", secret_check.evidence["value_kind"])
+        self.assertNotIn("static_default", secret_check.evidence)
+        self.assertIn("Provide the secret", secret_check.remediation)
+        self.assertNotIn("password_value", repr(secret_check.to_dict()).lower())
+
+    async def test_static_local_secret_name_default_satisfies_missing_secret_name_source(self):
+        configuration = default_preflight_configuration(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS
+        )
+        result = await PreflightService(
+            _FakeProbe(
+                secret_availability={"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": False},
+            ),
+            configuration,
+        ).run()
+
         checks_by_id = {check.check_id: check for check in result.checks}
-        secret_check = checks_by_id["SECRET-TSW_NEXUS_ADMIN_PASSWORD"]
+        secret_check = checks_by_id["SECRET-TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"]
 
         self.assertTrue(result.passed)
-        self.assertEqual("static_local_default", secret_check.evidence["source"])
-        self.assertNotIn("password_value", repr(secret_check.to_dict()).lower())
+        self.assertEqual("secret_name", secret_check.evidence["value_kind"])
+        self.assertEqual("static_local_secret_name_default", secret_check.evidence["source"])
+        self.assertNotIn("token-value", repr(secret_check.to_dict()).casefold())
 
     async def test_host_port_and_ignore_policy_failures_are_reported(self):
         result = await PreflightService(
@@ -293,6 +381,7 @@ class _FakeProbe(PortHostPreflightProbe):
         memory_bytes_value: int = 32 * 1024**3,
         disk_free_bytes_value: int = 120 * 1024**3,
         python_version_value: str = "3.12.3",
+        runtime_readiness: HostRuntimeReadiness | None = None,
     ):
         self.executable_availability = executable_availability or {}
         self.secret_availability = secret_availability or {}
@@ -306,6 +395,16 @@ class _FakeProbe(PortHostPreflightProbe):
         self.memory_bytes_value = memory_bytes_value
         self.disk_free_bytes_value = disk_free_bytes_value
         self.python_version_value = python_version_value
+        self.runtime_readiness = runtime_readiness or HostRuntimeReadiness(
+            "multipass",
+            HostRuntimeReadinessStatus.READY,
+            {
+                "probe": "list,driver",
+                "actual_driver": "qemu",
+                "expected_driver": "qemu",
+            },
+        )
+        self.runtime_probe_calls: list[str | None] = []
 
     def is_linux_or_wsl(self) -> bool:
         return self.host_compatible
@@ -315,6 +414,13 @@ class _FakeProbe(PortHostPreflightProbe):
 
     def executable_available(self, name: str) -> bool:
         return self.executable_availability.get(name, True)
+
+    def multipass_runtime_readiness(
+        self,
+        expected_driver: str | None = None,
+    ) -> HostRuntimeReadiness:
+        self.runtime_probe_calls.append(expected_driver)
+        return self.runtime_readiness
 
     def cpu_count(self) -> int:
         return self.cpu_count_value

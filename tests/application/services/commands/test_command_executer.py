@@ -9,6 +9,9 @@ from tiny_swarm_world.application.services.commands.command_executer.command_exe
 from tiny_swarm_world.application.ports.commands.executable_command import (
     ExecutableCommandEntity,
 )
+from tiny_swarm_world.infrastructure.adapters.exceptions.exception_command_execution import (
+    CommandExecutionError,
+)
 
 
 class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
@@ -54,11 +57,59 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            with self.assertRaises(CommandExecutionFailed):
-                await executer.execute({1: command})
+            with patch.object(executer.logger, "error") as log_error:
+                with self.assertRaises(CommandExecutionFailed) as context:
+                    await executer.execute({1: command})
+
+        message = str(context.exception)
+        logged_messages = " ".join(str(call.args) for call in log_error.call_args_list)
+        self.assertIn("return code 2", message)
+        self.assertNotIn("cannot connect to the multipass socket", message)
+        self.assertNotIn("raw vm output", message)
+        self.assertNotIn("multipass info", message)
+        self.assertNotIn("cannot connect to the multipass socket", logged_messages)
+        self.assertNotIn("raw vm output", logged_messages)
+        self.assertNotIn("multipass info", logged_messages)
 
         self.assertIn(
             ("swarm-manager", "failing command", "Error", "Failed"),
+            ui.updates,
+        )
+        self.assertNotIn(
+            ("swarm-manager", "closing", "Finishing", "Success"),
+            ui.updates,
+        )
+
+    async def test_execute_wraps_redacted_multipass_return_code_failure(self):
+        ui = RecordingUI()
+        executer = CommandExecuter(ui=ui)
+        command = ExecutableCommandEntity(
+            index=1,
+            vm_instance_name="swarm-manager",
+            description="multipass readiness command",
+            command="multipass info swarm-manager",
+            runner=FailingRunner(),
+        )
+
+        with patch(
+            "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
+            new=AsyncMock(),
+        ):
+            with patch.object(executer.logger, "error") as log_error:
+                with self.assertRaises(CommandExecutionFailed) as context:
+                    await executer.execute({1: command})
+
+        message = str(context.exception)
+        logged_messages = " ".join(str(call.args) for call in log_error.call_args_list)
+        self.assertIn("return code 2", message)
+        self.assertNotIn("cannot connect to the multipass socket", message)
+        self.assertNotIn("raw vm output", message)
+        self.assertNotIn("multipass info", message)
+        self.assertNotIn("cannot connect to the multipass socket", logged_messages)
+        self.assertNotIn("raw vm output", logged_messages)
+        self.assertNotIn("multipass info", logged_messages)
+        self.assertIn(
+            ("swarm-manager", "multipass readiness command", "Error", "Failed"),
             ui.updates,
         )
         self.assertNotIn(
@@ -77,8 +128,9 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
             runner=SuccessfulRunner(),
         )
 
-        with self.assertRaises(CommandExecutionFailed):
-            await executer.execute({1: command})
+        with patch.object(executer.logger, "error"):
+            with self.assertRaises(CommandExecutionFailed):
+                await executer.execute({1: command})
 
         self.assertIn(
             ("swarm-manager", "incomplete command", "Error", "Failed"),
@@ -95,7 +147,12 @@ class SuccessfulRunner(PortCommandRunner):
 
 class FailingRunner(PortCommandRunner):
     async def run(self, command: str) -> str:
-        raise RuntimeError("boom")
+        raise CommandExecutionError(
+            command=command,
+            return_code=2,
+            stdout="raw vm output",
+            stderr="cannot connect to the multipass socket",
+        )
 
 
 class RecordingUI:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import cast
 
@@ -22,9 +23,13 @@ from tiny_swarm_world.application.services.deployment import (
     DeploymentVerifyWorkflow,
     EnsurePortainerAdminAccess,
     EnsureSwarmStack,
+    VerifyExternalSwarmInput,
     VerifySwarmServiceReadiness,
 )
-from tiny_swarm_world.application.services.deployment.service_stack_plan import build_service_stack_steps
+from tiny_swarm_world.application.services.deployment.service_stack_plan import (
+    DEFAULT_PORTAINER_ENDPOINT_NAME,
+    build_service_stack_steps,
+)
 from tiny_swarm_world.application.services.platform import (
     MultipassDockerInstall,
     MultipassDockerSwarmInit,
@@ -80,6 +85,9 @@ from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_containe
 
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
+DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
+VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"
+DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME = "tsw_vaultwarden_admin_token"
 
 
 @dataclass(frozen=True)
@@ -200,6 +208,7 @@ def build_preflight_service(
 
 def build_platform_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    live_consent: LiveConsent | None = None,
 ) -> PlatformServices:
     configure_infrastructure_container()
 
@@ -231,6 +240,14 @@ def build_platform_services(
                 multipass_docker_swarm_init,
             ),
             verification_evidence_repository=verification_evidence_repository,
+            pre_apply_guard=(
+                SetupWorkflowPhase(
+                    "platform init preflight",
+                    lambda: preflight.run(live_consent),
+                )
+                if live_consent is not None
+                else None
+            ),
         ),
         reconcile=PlatformReconcileWorkflow(
             (vm_ip_list,),
@@ -263,7 +280,7 @@ def build_platform_services(
 
 
 def build_artifact_services() -> ArtifactServices:
-    nexus_admin_password = _static_secret_default("TSW_NEXUS_ADMIN_PASSWORD")
+    nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD")
     nexus_client = MultipassNexusHttpClient()
     container_runtime = MultipassContainerRuntime()
     image_publisher = MultipassContainerImagePublisher(
@@ -332,19 +349,25 @@ def build_deployment_services(
 ) -> DeploymentServices:
     selected_service_profile = ServiceStackProfile(service_profile)
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
-    compose_repository = ComposeFileRepositoryYaml()
     swarm_runtime = MultipassSwarmRuntime()
+    service_access_environment = _service_access_stack_environment(selected_service_profile)
+    external_input_checks = _service_access_external_input_checks(
+        selected_service_profile,
+        swarm_runtime=swarm_runtime,
+    )
+    compose_repository = ComposeFileRepositoryYaml()
     portainer_admin_client = MultipassPortainerAdminClient()
     portainer_client = PortainerHttpClient(
-        "http://localhost:9000",
+        DEFAULT_PORTAINER_API_URL,
         "admin",
-        _static_secret_default("TSW_PORTAINER_PASSWORD"),
+        _operator_secret_value("TSW_PORTAINER_PASSWORD"),
     )
     stack_steps = {
         contract.stack_name: EnsureSwarmStack(
             compose_repository=compose_repository,
             swarm_runtime=swarm_runtime,
             service_stack=contract,
+            stack_environment=service_access_environment.get(contract.stack_name),
         )
         for contract in service_stack_contracts
     }
@@ -353,7 +376,7 @@ def build_deployment_services(
         EnsurePortainerAdminAccess(
             portainer_admin_client=portainer_admin_client,
             username="admin",
-            password=_static_secret_default("TSW_PORTAINER_PASSWORD"),
+            password=_operator_secret_value("TSW_PORTAINER_PASSWORD"),
             max_attempts=60,
             wait_seconds=5,
         ),
@@ -362,9 +385,10 @@ def build_deployment_services(
     application_steps = build_service_stack_steps(
         compose_repository=compose_repository,
         portainer_client=portainer_client,
-        endpoint_name="local",
+        endpoint_name=DEFAULT_PORTAINER_ENDPOINT_NAME,
         service_profile=selected_service_profile,
         excluded_stack_names=("nexus",),
+        stack_environments=service_access_environment,
     )
     readiness_checks = tuple(
         VerifySwarmServiceReadiness(
@@ -381,8 +405,11 @@ def build_deployment_services(
                 bootstrap_steps,
                 kind=DeploymentWorkflowKind.BOOTSTRAP,
             ),
-            apply=DeploymentApplyWorkflow(application_steps),
-            verify=DeploymentVerifyWorkflow(readiness_checks),
+            apply=DeploymentApplyWorkflow(
+                application_steps,
+                pre_apply_checks=external_input_checks,
+            ),
+            verify=DeploymentVerifyWorkflow((*external_input_checks, *readiness_checks)),
         )
     )
 
@@ -392,7 +419,10 @@ def build_setup_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
 ) -> SetupServices:
     preflight = build_preflight_service(service_profile=service_profile)
-    platform = build_platform_services(service_profile=service_profile)
+    platform = build_platform_services(
+        service_profile=service_profile,
+        live_consent=live_consent,
+    )
     artifacts = build_artifact_services()
     deployment = build_deployment_services(service_profile=service_profile)
 
@@ -416,16 +446,63 @@ def build_setup_services(
     )
 
 
-def build_application_services() -> ApplicationServices:
+def build_application_services(
+    live_consent: LiveConsent | None = None,
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+) -> ApplicationServices:
     return ApplicationServices(
-        platform=build_platform_services(),
+        platform=build_platform_services(
+            service_profile=service_profile,
+            live_consent=live_consent,
+        ),
         artifacts=build_artifact_services(),
-        deployment=build_deployment_services(),
+        deployment=build_deployment_services(service_profile=service_profile),
     )
 
 
-def _static_secret_default(name: str) -> str:
-    for default in build_preflight_service().configuration.static_secret_defaults:
-        if default.name == name:
-            return default.value
-    raise KeyError(f"Missing static secret default '{name}'.")
+def _operator_secret_value(name: str) -> str:
+    return os.environ.get(name) or f"<operator-supplied:{name}>"
+
+
+def _operator_config_value(name: str, default: str) -> str:
+    return os.environ.get(name) or default
+
+
+def _operator_config_source_ref(name: str) -> str:
+    if os.environ.get(name):
+        return "operator_env"
+    return "default"
+
+
+def _service_access_stack_environment(
+    service_profile: ServiceStackProfile,
+) -> dict[str, dict[str, str]]:
+    if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
+        return {}
+    return {
+        "service-access": {
+            VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT: _operator_config_value(
+                VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
+                DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
+            )
+        }
+    }
+
+
+def _service_access_external_input_checks(
+    service_profile: ServiceStackProfile,
+    *,
+    swarm_runtime: MultipassSwarmRuntime,
+) -> tuple[VerifyExternalSwarmInput, ...]:
+    if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
+        return ()
+    return (
+        VerifyExternalSwarmInput(
+            swarm_runtime=swarm_runtime,
+            resource_name=_operator_config_value(
+                VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
+                DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
+            ),
+            source_ref=_operator_config_source_ref(VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT),
+        ),
+    )

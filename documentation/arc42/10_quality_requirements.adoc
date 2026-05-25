@@ -54,6 +54,13 @@ Quality scenarios:
   bootstrap, image build, image push, or stack upload commands can run;
 * preflight reports missing host prerequisites, resource limits, credentials,
   port conflicts, or configuration blockers before mutation;
+* accepted live preflight distinguishes Multipass executable presence from
+  daemon, socket, permission, and driver readiness before VM mutation;
+* direct `platform init --live` and setup-driven platform init both stop before
+  mutating steps when the shared live preflight guard fails;
+* Multipass readiness diagnostics expose safe classifications and return codes,
+  not raw stdout, stderr, command payloads, socket paths, user names, or
+  host-specific paths;
 * missing verification contracts return `blocked`, not success;
 * apply failures return `failed_to_apply` and stop later setup phases;
 * verification failures return `failed_to_verify` and stop later setup phases;
@@ -85,6 +92,11 @@ Quality scenarios:
   publishes only the service-access NGINX ports `80` and `8086`;
 * Vaultwarden receives its administrator token through an external Swarm
   secret name and no committed token value or static password default exists;
+* deployment apply blocks before Portainer stack create/update when the
+  configured external Swarm input for Vaultwarden is not observed;
+* Portainer and direct Swarm deployment paths propagate only allowlisted stack
+  environment values, and verification evidence records no literal token,
+  secret, password or credential names;
 * service-access dashboard and NGINX images are part of the artifact image
   publication contracts for full setup;
 * dashboard and NGINX assets are image-packaged and do not depend on

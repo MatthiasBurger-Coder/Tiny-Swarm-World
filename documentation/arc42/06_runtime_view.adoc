@@ -62,20 +62,21 @@ The current artifact and deployment runtime flow is deliberately fail-closed:
   `DeploymentApplyWorkflow`, and can run configured stack apply contracts only
   when they expose verify-after-apply evidence. The tested
   `EnsureServiceStack` contract can create or update Portainer-managed stacks
-  and then verify stack registration through `PortPortainerClient`, but it is
-  not wired into the CLI composition root as an executable live apply path in
-  this slice.
+  and then verify stack registration through `PortPortainerClient`. The
+  default CLI composition now wires these Portainer-managed apply steps for
+  the selected service profile, while first-time Portainer and Nexus bootstrap
+  remain separate setup phases.
 * `deployment verify` dispatches without live consent and returns `blocked`
   by default. When configured with the current default service stack checks,
   it can observe Portainer stack registration but still returns `blocked`
   until required service readiness is observed. It does not claim container or
   service health.
 
-No Nexus, Docker registry, image build, image push, or service stack side effect
-is run by default CLI composition. Nexus repository and Portainer API behavior
-is covered by isolated adapter and application-service tests with fakes; CLI
-composition remains fail-closed until a later slice owns first-time bootstrap,
-image publication, concrete live service wiring, and service readiness.
+No Nexus repository mutation, Docker registry mutation, image build, or image
+push side effect is run by default CLI composition. Nexus repository and
+Portainer API behavior is covered by isolated adapter and application-service
+tests with fakes; live service readiness remains separate observed-state
+evidence and must not be inferred from endpoint configuration alone.
 
 === Console Status Runtime Flow
 
@@ -147,10 +148,12 @@ Continuation requires both parts:
 * apply succeeds;
 * verify returns `VerificationStatus.verified` evidence.
 
-Apply exceptions and explicit failed apply results return
-`failed_to_apply`. Verification exceptions, failed verification results, or
-non-verified evidence return `failed_to_verify`, while missing evidence returns
-`blocked`. Later mutating steps are not run after any of these outcomes.
+Platform apply exceptions and explicit failed apply results return
+`failed_to_apply`. Artifact preparation failures and deployment pre-upload
+failures return `failed_to_prepare`. Verification exceptions, failed
+verification results, or non-verified evidence return `failed_to_verify`, while
+missing evidence returns `blocked`. Later mutating steps are not run after any
+of these outcomes.
 
 When a verification evidence repository is configured, the workflow appends
 the typed verification result before making the continuation decision.
@@ -173,7 +176,7 @@ Autonomous setup now has one canonical workflow-level CLI contract:
   objects;
 . coordinate Deployment apply/verify phases through composed workflow objects;
 . stop later phases after the first refused, blocked, resource-gated,
-  failed-to-apply, or failed-to-verify result;
+  failed-to-apply, failed-to-prepare, or failed-to-verify result;
 . serialize only known safe workflow result contracts or safe summary
   mappings.
 
@@ -181,8 +184,9 @@ Current implementation status remains fail-closed below the orchestrator. The
 CLI command and phase sequencing are implemented, but the repository still
 does not claim a verified end-to-end live installation of all runnable
 services. Missing setup consent, missing command-backed verification, missing
-artifact/registry live steps, and missing observed service readiness must be
-reported as `refused`, `blocked`, `resource_gated`, `failed_to_apply`, or
+artifact/registry live steps, missing external Swarm inputs, and missing
+observed service readiness must be reported as `refused`, `blocked`,
+`resource_gated`, `failed_to_apply`, `failed_to_prepare`, or
 `failed_to_verify`, never as success.
 
 Optional live smoke validation remains a separate operator action and is not

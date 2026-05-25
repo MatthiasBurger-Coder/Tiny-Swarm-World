@@ -35,15 +35,27 @@ class PlatformInitWorkflow:
         self,
         steps: Sequence[AsyncWorkflowStep],
         verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
+        pre_apply_guard: AsyncWorkflowStep | None = None,
     ):
         self.steps = tuple(steps)
         self.verification_evidence_repository = verification_evidence_repository
+        self.pre_apply_guard = pre_apply_guard
 
     async def run(self) -> PlatformWorkflowResult:
+        guard_verification, guard_result = await _run_pre_apply_guard(
+            self.pre_apply_guard,
+            self.semantics,
+            self.verification_evidence_repository,
+        )
+        if guard_result is not None:
+            return guard_result
         return await _run_mutating_steps(
             self.steps,
             self.semantics,
             self.verification_evidence_repository,
+            initial_verification_results=(
+                (guard_verification,) if guard_verification is not None else ()
+            ),
         )
 
 
@@ -152,12 +164,88 @@ async def _run_steps(steps: Sequence[AsyncWorkflowStep]) -> tuple[object, ...]:
     return tuple(results)
 
 
+async def _run_pre_apply_guard(
+    guard: AsyncWorkflowStep | None,
+    semantics: PlatformWorkflowSemantics,
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+) -> tuple[VerificationResult | None, PlatformWorkflowResult | None]:
+    if guard is None:
+        return None, None
+
+    guard_output = await guard.run()
+
+    verification_result = _pre_apply_guard_verification(guard_output)
+    if verification_result is None:
+        result = VerificationResult(
+            target_id=f"platform:{semantics.kind.value}:preflight",
+            status=VerificationStatus.BLOCKED,
+            message="Pre-apply guard returned unsupported output.",
+            evidence={"phase": "pre_apply", "reason": "unsupported_guard_output"},
+        )
+        _append_evidence(verification_evidence_repository, result)
+        return (
+            None,
+            PlatformWorkflowResult.blocked(
+                semantics,
+                f"{semantics.kind.value} workflow blocked by pre-apply guard.",
+                (result,),
+            ),
+        )
+
+    _append_evidence(verification_evidence_repository, verification_result)
+    if verification_result.status == VerificationStatus.VERIFIED:
+        return verification_result, None
+
+    return (
+        None,
+        PlatformWorkflowResult.blocked(
+            semantics,
+            f"{semantics.kind.value} workflow blocked by live preflight before mutation.",
+            (verification_result,),
+        ),
+    )
+
+
+def _pre_apply_guard_verification(result: object) -> VerificationResult | None:
+    if isinstance(result, VerificationResult):
+        return result
+    if not isinstance(result, PreflightResult):
+        return None
+    if result.passed:
+        return VerificationResult(
+            target_id="platform:init:preflight",
+            status=VerificationStatus.VERIFIED,
+            message="Live preflight checks passed before platform init.",
+            evidence={
+                "phase": "pre_apply",
+                "check_count": str(len(result.checks)),
+            },
+        )
+    return VerificationResult(
+        target_id="platform:init:preflight",
+        status=VerificationStatus.BLOCKED,
+        message="Live preflight blocked platform init before mutation.",
+        evidence={
+            "phase": "pre_apply",
+            "failed_check_count": str(len(result.failed_checks)),
+            "runtime_failure_count": str(
+                sum(
+                    1
+                    for check in result.failed_checks
+                    if check.category.value == "RUNTIME"
+                )
+            ),
+        },
+    )
+
+
 async def _run_mutating_steps(
     steps: Sequence[AsyncWorkflowStep],
     semantics: PlatformWorkflowSemantics,
     verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    initial_verification_results: Sequence[VerificationResult] = (),
 ) -> PlatformWorkflowResult:
-    verification_results: list[VerificationResult] = []
+    verification_results: list[VerificationResult] = list(initial_verification_results)
     for step in steps:
         pre_apply_verification = _pre_apply_verification(step)
         if pre_apply_verification is not None:

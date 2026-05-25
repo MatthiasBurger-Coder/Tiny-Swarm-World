@@ -35,7 +35,11 @@ profile by default and adds the `service-access` stack. The
 Portainer-managed plan excludes Portainer itself to avoid a bootstrap cycle
 and can exclude bootstrap-owned Nexus. Stack apply checks record Portainer
 stack-registration context only; service readiness is verified separately
-through observed Swarm service evidence.
+through observed Swarm service evidence. The service-access deployment path
+also has a pre-apply external Swarm input check for the Vaultwarden
+administrator-token Swarm secret reference. Missing input blocks deployment
+before Portainer stack create/update runs, and verification evidence records
+only neutral presence/source classifications.
 
 == Service Access And Vaultwarden Routing Baseline
 
@@ -70,6 +74,11 @@ image-packaged under `infra/compose/service-access/**`. Bind-mounted
 repository files are not an accepted Portainer path unless a later slice adds
 a tested asset-preparation port or adapter and documents when it runs.
 
+The Vaultwarden administrator-token secret name is propagated through an
+allowlisted stack environment variable for both Portainer-managed and direct
+Swarm stack deployment paths. The literal Swarm secret name is a deployment
+input and must not be copied into `VerificationResult` evidence.
+
 == Autonomous Setup Deployment Contract
 
 The canonical `setup run` command is the workflow-level setup orchestrator for
@@ -77,6 +86,19 @@ a local Linux/WSL Docker Swarm-first deployment. It is mutating,
 non-destructive, and live-consent gated. Full runnable success is reached only
 after the selected profile's host prerequisites, platform state, artifact
 registry behavior, service stacks, and readiness checks are verified.
+
+The platform init workflow also owns the live-readiness pre-apply guard. Direct
+`platform init --live` and setup-driven `platform init` therefore use the same
+application workflow boundary before VM creation, netplan changes, Docker
+installation, or Swarm initialization can begin. The guard is read-only and
+classifies Multipass runtime readiness; it does not repair host services,
+change drivers, or create VMs.
+
+Service-stack contracts carry localhost endpoint defaults so operator-facing
+routes are explicit and test-backed. These endpoints are configuration hints
+for WSL/Linux local access and do not claim Swarm service health. Localhost
+forwarding failures are diagnosed separately from deployment readiness, and
+operators may use current Swarm node IPs only as manual diagnostic fallbacks.
 
 Hosts that do not satisfy the full-run resource contract remain
 resource-gated. A resource-gated result must identify omitted services and must

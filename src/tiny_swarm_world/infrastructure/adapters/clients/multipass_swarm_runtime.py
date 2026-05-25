@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import shlex
 import subprocess
+from collections.abc import Mapping
 
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
     PortSwarmStackRuntime,
@@ -14,6 +15,7 @@ from tiny_swarm_world.infrastructure.project_paths import infra_root
 
 
 REPLICA_PATTERN = re.compile(r"^(?P<current>\d+)/(?:\s*)?(?P<desired>\d+)$")
+STACK_ENVIRONMENT_NAME_PATTERN = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 
 
 class MultipassSwarmRuntime(PortSwarmStackRuntime):
@@ -30,7 +32,11 @@ class MultipassSwarmRuntime(PortSwarmStackRuntime):
         self.timeout_seconds = timeout_seconds
         self.logger = LoggerFactory.get_logger(self.__class__)
 
-    def deploy_stack(self, stack_definition: StackDefinition) -> None:
+    def deploy_stack(
+        self,
+        stack_definition: StackDefinition,
+        stack_environment: Mapping[str, str] | None = None,
+    ) -> None:
         self._ensure_stack_prerequisites(stack_definition.name)
         remote_dir = f"{self.remote_stack_root}/{stack_definition.name}"
         compose_path = f"{remote_dir}/docker-compose.yml"
@@ -40,8 +46,12 @@ class MultipassSwarmRuntime(PortSwarmStackRuntime):
         )
         self._run_manager_shell(script, input_text=stack_definition.compose_content)
         self._transfer_stack_assets(stack_definition.name, remote_dir)
+        environment = {
+            "TSW_REMOTE_STACK_ROOT": self.remote_stack_root,
+            **dict(stack_environment or {}),
+        }
         self._run_manager_shell(
-            f"TSW_REMOTE_STACK_ROOT={shlex.quote(self.remote_stack_root)} "
+            f"{_stack_environment_prefix(environment)} "
             f"docker stack deploy --detach=true -c {shlex.quote(compose_path)} "
             f"{shlex.quote(stack_definition.name)}"
         )
@@ -67,6 +77,13 @@ class MultipassSwarmRuntime(PortSwarmStackRuntime):
             for line in result.stdout.splitlines()
             if (status := _parse_service_status(line)) is not None
         )
+
+    def external_secret_exists(self, name: str) -> bool:
+        result = self._run_manager_shell(
+            f"docker secret inspect {shlex.quote(name)} >/dev/null 2>&1",
+            check=False,
+        )
+        return result.returncode == 0
 
     def _ensure_stack_prerequisites(self, stack_name: str) -> None:
         if stack_name != "sonarqube":
@@ -128,3 +145,12 @@ def _parse_service_status(line: str) -> SwarmServiceStatus | None:
         current_replicas=int(match.group("current")),
         desired_replicas=int(match.group("desired")),
     )
+
+
+def _stack_environment_prefix(environment: Mapping[str, str]) -> str:
+    assignments: list[str] = []
+    for name, value in sorted(environment.items()):
+        if not STACK_ENVIRONMENT_NAME_PATTERN.fullmatch(name):
+            raise ValueError("Stack environment name contains invalid characters.")
+        assignments.append(f"{name}={shlex.quote(str(value))}")
+    return " ".join(assignments)

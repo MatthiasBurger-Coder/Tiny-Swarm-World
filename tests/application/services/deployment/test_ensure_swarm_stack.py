@@ -22,7 +22,25 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
         await service.run()
 
         self.assertEqual(["jenkins"], repository.requested_stacks)
-        self.assertEqual([stack_definition], runtime.deployed_stacks)
+        self.assertEqual([(stack_definition, {})], runtime.deployed_stacks)
+
+    async def test_deploys_stack_with_environment_through_runtime_port(self):
+        stack_definition = StackDefinition(name="service-access", compose_content="services: {}")
+        repository = _FakeComposeRepository(stack_definition)
+        runtime = _FakeSwarmRuntime(stack_exists=True)
+        service = EnsureSwarmStack(
+            repository,
+            runtime,
+            ServiceStackContract("service-access", ("service-access-dashboard",)),
+            stack_environment={"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+        )
+
+        await service.run()
+
+        self.assertEqual(
+            [(stack_definition, {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"})],
+            runtime.deployed_stacks,
+        )
 
     async def test_verify_confirms_stack_registration_and_expected_services(self):
         repository = _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}"))
@@ -42,6 +60,50 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("deployment:rabbitmq-stack", verification.target_id)
         self.assertEqual("true", verification.evidence["stack_registered"])
 
+    async def test_verify_fails_when_stack_is_missing(self):
+        service = EnsureSwarmStack(
+            _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}")),
+            _FakeSwarmRuntime(
+                stack_exists=False,
+                services=(SwarmServiceStatus("rabbitmq_rabbitmq", 1, 1),),
+            ),
+            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+        )
+
+        verification = await service.verify()
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
+        self.assertEqual("false", verification.evidence["stack_registered"])
+
+    async def test_verify_fails_when_required_service_is_missing(self):
+        service = EnsureSwarmStack(
+            _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}")),
+            _FakeSwarmRuntime(stack_exists=True, services=()),
+            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+        )
+
+        verification = await service.verify()
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
+        self.assertEqual("rabbitmq", verification.evidence["missing_services"])
+
+    async def test_verify_sanitizes_runtime_failure_and_does_not_deploy(self):
+        runtime = _FakeSwarmRuntime(
+            stack_exists=True,
+            stack_exception=RuntimeError("secret=leaked"),
+        )
+        service = EnsureSwarmStack(
+            _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}")),
+            runtime,
+            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+        )
+
+        verification = await service.verify()
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
+        self.assertEqual([], runtime.deployed_stacks)
+        self.assertNotIn("secret", str(verification.to_dict()).casefold())
+
 
 class _FakeComposeRepository:
     def __init__(self, stack_definition: StackDefinition):
@@ -59,16 +121,29 @@ class _FakeSwarmRuntime:
         *,
         stack_exists: bool,
         services: tuple[SwarmServiceStatus, ...] = (),
+        stack_exception: Exception | None = None,
     ):
         self._stack_exists = stack_exists
         self._services = services
-        self.deployed_stacks: list[StackDefinition] = []
+        self.stack_exception = stack_exception
+        self.deployed_stacks: list[tuple[StackDefinition, dict[str, str]]] = []
 
-    def deploy_stack(self, stack_definition: StackDefinition) -> None:
-        self.deployed_stacks.append(stack_definition)
+    def deploy_stack(
+        self,
+        stack_definition: StackDefinition,
+        stack_environment: dict[str, str] | None = None,
+    ) -> None:
+        self.deployed_stacks.append((stack_definition, dict(stack_environment or {})))
 
     def stack_exists(self, stack_name: str) -> bool:
+        if self.stack_exception is not None:
+            raise self.stack_exception
         return self._stack_exists
 
     def list_stack_services(self, stack_name: str) -> tuple[SwarmServiceStatus, ...]:
+        if self.stack_exception is not None:
+            raise self.stack_exception
         return self._services
+
+    def external_secret_exists(self, name: str) -> bool:
+        return True

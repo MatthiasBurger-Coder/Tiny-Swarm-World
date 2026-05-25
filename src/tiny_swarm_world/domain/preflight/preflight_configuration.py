@@ -19,6 +19,12 @@ class RequiredDependency:
 
 
 @dataclass(frozen=True)
+class RequiredRuntimeReadiness:
+    name: str
+    expected_driver: str | None = None
+
+
+@dataclass(frozen=True)
 class RequiredPort:
     port: int
     service: str
@@ -28,6 +34,7 @@ class RequiredPort:
 class RequiredSecret:
     name: str
     service: str
+    value_kind: str = "secret_value"
 
 
 @dataclass(frozen=True)
@@ -41,6 +48,7 @@ class StaticSecretDefault:
     name: str
     service: str
     value: str = field(repr=False)
+    value_kind: str = "secret_value"
 
 
 @dataclass(frozen=True)
@@ -56,6 +64,7 @@ class PreflightConfiguration:
     setup_profile: SetupProfile
     setup_manifest: SetupManifest
     required_dependencies: tuple[RequiredDependency, ...]
+    required_runtime_readiness: tuple[RequiredRuntimeReadiness, ...]
     required_ports: tuple[RequiredPort, ...]
     required_secrets: tuple[RequiredSecret, ...]
     static_secret_defaults: tuple[StaticSecretDefault, ...]
@@ -78,26 +87,24 @@ def default_preflight_configuration(
             RequiredDependency("multipass"),
             RequiredDependency("docker"),
         ),
+        required_runtime_readiness=(
+            RequiredRuntimeReadiness("multipass", expected_driver="qemu"),
+        ),
         required_ports=tuple(
             RequiredPort(port.port, port.service)
             for port in setup_manifest.required_ports
             if port.host_preflight_required
         ),
         required_secrets=tuple(
-            RequiredSecret(secret.name, secret.service)
+            RequiredSecret(secret.name, secret.service, secret.value_kind)
             for secret in setup_manifest.required_secrets
         ),
         static_secret_defaults=(
-            StaticSecretDefault("TSW_PORTAINER_PASSWORD", "Portainer", "admin1234567890"),
-            StaticSecretDefault("TSW_NEXUS_ADMIN_PASSWORD", "Nexus", "MyAdminPassWord1234-126354654"),
-            StaticSecretDefault("TSW_JENKINS_ADMIN_PASSWORD", "Jenkins", "adminPassword123"),
-            StaticSecretDefault("TSW_RABBITMQ_PASSWORD", "RabbitMQ", "guest"),
-            StaticSecretDefault("TSW_SONARQUBE_ADMIN_PASSWORD", "SonarQube", "admin"),
-            StaticSecretDefault("TSW_POSTGRES_PASSWORD", "SonarQube PostgreSQL", "sonar"),
             StaticSecretDefault(
                 "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
                 "Vaultwarden admin-token secret name",
                 "tsw_vaultwarden_admin_token",
+                value_kind="secret_name",
             ),
         ),
         forbidden_secret_fingerprints=(

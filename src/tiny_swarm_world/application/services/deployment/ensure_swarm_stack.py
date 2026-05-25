@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
     PortSwarmStackRuntime,
     SwarmServiceStatus,
@@ -17,16 +19,18 @@ class EnsureSwarmStack:
         compose_repository: PortComposeFileRepository,
         swarm_runtime: PortSwarmStackRuntime,
         service_stack: ServiceStackContract,
+        stack_environment: Mapping[str, str] | None = None,
     ):
         self.compose_repository = compose_repository
         self.swarm_runtime = swarm_runtime
         self.service_stack = service_stack
+        self.stack_environment = dict(stack_environment or {})
         self.deployment_target_id = service_stack.stack_target_id
         self.verification_target_id = service_stack.stack_target_id
 
     async def run(self) -> None:
         stack_definition = self.compose_repository.get_compose_of(self.service_stack.stack_name)
-        self.swarm_runtime.deploy_stack(stack_definition)
+        self.swarm_runtime.deploy_stack(stack_definition, self.stack_environment)
 
     async def verify(self) -> VerificationResult:
         try:

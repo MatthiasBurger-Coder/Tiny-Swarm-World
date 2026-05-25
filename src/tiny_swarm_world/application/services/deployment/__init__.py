@@ -18,6 +18,9 @@ from tiny_swarm_world.application.services.deployment.service_stack_plan import 
 from tiny_swarm_world.application.services.deployment.verify_swarm_service_readiness import (
     VerifySwarmServiceReadiness,
 )
+from tiny_swarm_world.application.services.deployment.verify_external_swarm_input import (
+    VerifyExternalSwarmInput,
+)
 from tiny_swarm_world.application.services.deployment.workflows import (
     DeploymentApplyWorkflow,
     DeploymentVerifyCheck,
@@ -40,5 +43,6 @@ __all__ = [
     "EnsureServiceStack",
     "EnsureSwarmStack",
     "VerifySwarmServiceReadiness",
+    "VerifyExternalSwarmInput",
     "build_default_service_stack_steps",
 ]

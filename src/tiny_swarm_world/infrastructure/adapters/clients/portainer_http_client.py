@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from urllib.parse import urlparse
 
 import requests
@@ -45,9 +46,14 @@ class PortainerHttpClient(PortPortainerClient):
                 return int(stack["Id"])
         return None
 
-    def create_stack(self, stack_definition: StackDefinition, endpoint_id: int) -> None:
+    def create_stack(
+        self,
+        stack_definition: StackDefinition,
+        endpoint_id: int,
+        stack_environment: Mapping[str, str] | None = None,
+    ) -> None:
         payload = {
-            "env": [],
+            "env": _portainer_environment(stack_environment),
             "name": stack_definition.name,
             "fromAppTemplate": False,
             "stackFileContent": stack_definition.compose_content,
@@ -67,12 +73,18 @@ class PortainerHttpClient(PortPortainerClient):
 
         self._ensure_success(response, f"create Portainer stack '{stack_definition.name}'")
 
-    def update_stack(self, stack_id: int, stack_definition: StackDefinition, endpoint_id: int) -> None:
+    def update_stack(
+        self,
+        stack_id: int,
+        stack_definition: StackDefinition,
+        endpoint_id: int,
+        stack_environment: Mapping[str, str] | None = None,
+    ) -> None:
         response = self._send(
             "PUT",
             f"/api/stacks/{stack_id}?endpointId={endpoint_id}",
             json={
-                "env": [],
+                "env": _portainer_environment(stack_environment),
                 "prune": True,
                 "pullImage": False,
                 "stackFileContent": stack_definition.compose_content,
@@ -113,3 +125,12 @@ class PortainerHttpClient(PortPortainerClient):
     def _ensure_success(response: requests.Response, action: str) -> None:
         if response.status_code >= 400:
             raise RuntimeError(f"Failed to {action}. HTTP {response.status_code}.")
+
+
+def _portainer_environment(
+    stack_environment: Mapping[str, str] | None,
+) -> list[dict[str, str]]:
+    return [
+        {"name": name, "value": str(value)}
+        for name, value in sorted(dict(stack_environment or {}).items())
+    ]

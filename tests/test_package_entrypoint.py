@@ -1,3 +1,4 @@
+import asyncio
 import ast
 import io
 import json
@@ -31,6 +32,7 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PlatformWorkflowStatus,
 )
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ENTRYPOINT_PATH = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "__main__.py"
@@ -159,6 +161,30 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         workflows.reconcile.run.assert_not_awaited()
         self.assertIn('"workflow": "platform init"', output.getvalue())
 
+    async def test_platform_init_uses_composed_guarded_workflow_result(self):
+        services, workflows = _application_services_with_platform_workflows(
+            init_result=_blocked_platform_init_result()
+        )
+        output = io.StringIO()
+
+        with patch("builtins.input", return_value="y"):
+            with patch.object(entrypoint, "build_application_services", return_value=services):
+                with redirect_stdout(output):
+                    with self.assertRaises(SystemExit) as raised:
+                        await entrypoint.main(["platform", "init", "--live"])
+
+        self.assertEqual(1, raised.exception.code)
+        services.platform.preflight.run.assert_not_awaited()
+        workflows.init.run.assert_awaited_once_with()
+        payload = _json_payload_from_output(output.getvalue())
+        self.assertEqual("platform init", payload["workflow"])
+        self.assertEqual("blocked", payload["status"])
+        self.assertFalse(payload["executed"])
+        self.assertEqual(
+            "1",
+            payload["verification_results"][0]["evidence"]["runtime_failure_count"],
+        )
+
     async def test_platform_verify_dispatches_without_live_consent(self):
         services, workflows = _application_services_with_platform_workflows()
         output = io.StringIO()
@@ -167,7 +193,10 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             with redirect_stdout(output):
                 await entrypoint.main(["platform", "verify"])
 
-        build_services.assert_called_once_with()
+        build_services.assert_called_once_with(
+            live_consent=None,
+            service_profile=ServiceStackProfile.SERVICE_ACCESS.value,
+        )
         workflows.verify.run.assert_awaited_once_with()
         workflows.init.run.assert_not_awaited()
         self.assertIn('"workflow": "platform verify"', output.getvalue())
@@ -262,6 +291,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 build_deployment_services.assert_not_called()
                 build_setup_services.assert_not_called()
                 self.assertIn("REFUSED_LIVE_CONSENT_MISSING", output.getvalue())
+                await asyncio.sleep(0)
 
     async def test_artifact_and_deployment_workflows_dispatch_to_contract_blocks(self):
         cases = (
@@ -319,6 +349,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual("blocked", payload["status"])
                 self.assertEqual(f"{namespace} {action}", payload["workflow"])
                 self.assertIn(expected_reason, str(payload["reason"]))
+                await asyncio.sleep(0)
 
     async def test_setup_run_dispatches_to_setup_workflow_after_live_consent(self):
         setup_services = SimpleNamespace(
@@ -422,19 +453,28 @@ def _direct_imports(source_file: Path) -> list[str]:
 
 
 class _FakePreflightResult:
-    def __init__(self, passed: bool):
+    def __init__(
+        self,
+        passed: bool,
+        failed_checks: tuple[object, ...] = (),
+    ):
         self.passed = passed
         self.status = "PASSED" if passed else "FAILED"
         self.resource_gated = False
-        self.failed_checks = ()
+        self.failed_checks = failed_checks
 
     def to_dict(self) -> dict[str, object]:
         return {"status": self.status, "checks": []}
 
 
-def _application_services_with_platform_workflows():
+def _application_services_with_platform_workflows(
+    preflight_result: _FakePreflightResult | None = None,
+    init_result: PlatformWorkflowResult | None = None,
+):
     workflows = SimpleNamespace(
-        init=SimpleNamespace(run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.INIT))),
+        init=SimpleNamespace(
+            run=AsyncMock(return_value=init_result or _workflow_result(PlatformWorkflowKind.INIT))
+        ),
         reconcile=SimpleNamespace(
             run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.RECONCILE))
         ),
@@ -447,7 +487,37 @@ def _application_services_with_platform_workflows():
         "network_setup_netplan": SimpleNamespace(run=AsyncMock(side_effect=AssertionError)),
         "vm_ip_list": SimpleNamespace(run=AsyncMock(side_effect=AssertionError)),
     }
-    return SimpleNamespace(platform=SimpleNamespace(workflows=workflows, **low_level_services)), workflows
+    preflight = SimpleNamespace(
+        run=AsyncMock(return_value=preflight_result or _FakePreflightResult(True))
+    )
+    return SimpleNamespace(
+        platform=SimpleNamespace(
+            workflows=workflows,
+            preflight=preflight,
+            **low_level_services,
+        )
+    ), workflows
+
+
+def _blocked_platform_init_result() -> PlatformWorkflowResult:
+    return PlatformWorkflowResult(
+        kind=PlatformWorkflowKind.INIT,
+        status=PlatformWorkflowStatus.BLOCKED,
+        message="init workflow blocked by live preflight before mutation.",
+        executed=False,
+        verification_results=(
+            VerificationResult(
+                target_id="platform:init:preflight",
+                status=VerificationStatus.BLOCKED,
+                message="Live preflight blocked platform init before mutation.",
+                evidence={
+                    "phase": "pre_apply",
+                    "failed_check_count": "1",
+                    "runtime_failure_count": "1",
+                },
+            ),
+        ),
+    )
 
 
 def _workflow_result(kind: PlatformWorkflowKind) -> PlatformWorkflowResult:

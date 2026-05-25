@@ -1,6 +1,7 @@
 import unittest
 
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
+    DEFAULT_PORTAINER_ENDPOINT_NAME,
     build_default_service_stack_steps,
     build_service_stack_steps,
 )
@@ -36,6 +37,21 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
 
         self.assertNotIn("portainer", [step.service_stack.stack_name for step in steps])
 
+    def test_default_service_stack_steps_use_named_portainer_endpoint_default(self):
+        steps = build_default_service_stack_steps(object(), object())
+
+        self.assertEqual("local", DEFAULT_PORTAINER_ENDPOINT_NAME)
+        self.assertTrue(
+            all(step.endpoint_name == DEFAULT_PORTAINER_ENDPOINT_NAME for step in steps)
+        )
+
+    def test_service_stack_steps_use_named_portainer_endpoint_default(self):
+        steps = build_service_stack_steps(object(), object())
+
+        self.assertTrue(
+            all(step.endpoint_name == DEFAULT_PORTAINER_ENDPOINT_NAME for step in steps)
+        )
+
     def test_service_access_profile_steps_include_selected_stack(self):
         compose_repository = object()
         portainer_client = object()
@@ -68,6 +84,30 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             ("jenkins", "rabbitmq", "sonarqube", "swagger", "service-access"),
             tuple(step.service_stack.stack_name for step in steps),
+        )
+
+    def test_service_stack_steps_attach_stack_specific_environment(self):
+        steps = build_service_stack_steps(
+            object(),
+            object(),
+            "local",
+            service_profile=ServiceStackProfile.SERVICE_ACCESS,
+            stack_environments={
+                "service-access": {
+                    "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined",
+                }
+            },
+        )
+
+        service_access_step = next(
+            step
+            for step in steps
+            if step.service_stack.stack_name == "service-access"
+        )
+
+        self.assertEqual(
+            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+            service_access_step.stack_environment,
         )
 
     async def test_default_service_stack_steps_verify_stack_registration_without_readiness_claim(self):

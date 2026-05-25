@@ -18,6 +18,9 @@ from tiny_swarm_world.application.ports.commands.executable_command import (
 )
 from tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui import AsyncCommandRunnerUI
 from tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui import SyncCommandRunnerUI
+from tiny_swarm_world.infrastructure.adapters.exceptions.exception_command_execution import (
+    CommandExecutionError,
+)
 
 
 class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
@@ -34,8 +37,7 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            with self.assertRaises(CommandExecutionFailed):
-                await runner_ui.run()
+            await _assert_redacted_runner_ui_failure(runner_ui)
 
         self.assertIn(("swarm-manager", "failed", "execution", STATUS_ERROR), ui.updates)
         self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_ERROR), ui.updates)
@@ -54,8 +56,7 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            with self.assertRaises(CommandExecutionFailed):
-                await runner_ui.run()
+            await _assert_redacted_runner_ui_failure(runner_ui)
 
         self.assertIn(("swarm-manager", "failed", "execution", STATUS_ERROR), ui.updates)
         self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_ERROR), ui.updates)
@@ -79,8 +80,7 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            with self.assertRaises(CommandExecutionFailed):
-                await runner_ui.run()
+            await _assert_redacted_runner_ui_failure(runner_ui)
 
         self.assertEqual("Pending", ui.status["swarm-worker"]["result"])
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
@@ -183,7 +183,12 @@ def _commands_for(vm_instance_name: str, runner: PortCommandRunner):
 
 class FailingRunner(PortCommandRunner):
     async def run(self, command: str) -> str:
-        raise RuntimeError("boom")
+        raise CommandExecutionError(
+            command=command,
+            return_code=2,
+            stdout="raw vm output",
+            stderr="cannot connect to the multipass socket",
+        )
 
 
 class SuccessfulRunner(PortCommandRunner):
@@ -224,3 +229,20 @@ class RecordingUI(PortUI):
 
     def start(self):
         pass
+
+
+async def _assert_redacted_runner_ui_failure(runner_ui):
+    with patch.object(runner_ui.command_execute.logger, "error") as command_error:
+        with patch.object(runner_ui.logger, "error") as ui_error:
+            with unittest.TestCase().assertRaises(CommandExecutionFailed) as context:
+                await runner_ui.run()
+
+    text = " ".join(
+        str(call.args)
+        for call in (*command_error.call_args_list, *ui_error.call_args_list)
+    )
+    text = f"{text} {context.exception}"
+    unittest.TestCase().assertIn("return code 2", text)
+    unittest.TestCase().assertNotIn("cannot connect to the multipass socket", text)
+    unittest.TestCase().assertNotIn("raw vm output", text)
+    unittest.TestCase().assertNotIn("multipass info", text)
