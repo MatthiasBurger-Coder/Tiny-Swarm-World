@@ -56,6 +56,10 @@ The canonical setup path must preserve these rules:
   netplan, socat, compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
   Swagger/NGINX, image build, image push, stack upload, or service bootstrap
   commands can run.
+* After live consent is accepted, host-runtime readiness checks may run
+  non-mutating probes. Multipass readiness must distinguish executable
+  presence from daemon, socket, permission, and driver usability before
+  mutating setup phases start.
 * Non-interactive live setup is out of scope until a later ADR defines a
   separate consent model.
 * Automatic host package installation is out of scope until a later ADR defines
@@ -108,6 +112,11 @@ must enforce.
 Later implementation slices must keep preflight non-mutating until live consent
 is present and must fail closed when required verification contracts are
 missing.
+
+Live preflight may use read-only runtime probes after consent. These probes are
+allowed to classify Multipass host prerequisites, but they must not repair the
+host, change drivers, start services, create VMs, or persist raw command
+payloads.
 
 Setup orchestration can be added only through the Python automation
 composition root and application services. Entry-point code must remain thin:

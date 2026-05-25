@@ -14,6 +14,7 @@ class PreflightStatus(str, Enum):
 class PreflightCategory(str, Enum):
     HOST = "HOST"
     DEPENDENCY = "DEPENDENCY"
+    RUNTIME = "RUNTIME"
     RESOURCE = "RESOURCE"
     PORT = "PORT"
     SECRET = "SECRET"

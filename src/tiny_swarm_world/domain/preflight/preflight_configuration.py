@@ -19,6 +19,12 @@ class RequiredDependency:
 
 
 @dataclass(frozen=True)
+class RequiredRuntimeReadiness:
+    name: str
+    expected_driver: str | None = None
+
+
+@dataclass(frozen=True)
 class RequiredPort:
     port: int
     service: str
@@ -56,6 +62,7 @@ class PreflightConfiguration:
     setup_profile: SetupProfile
     setup_manifest: SetupManifest
     required_dependencies: tuple[RequiredDependency, ...]
+    required_runtime_readiness: tuple[RequiredRuntimeReadiness, ...]
     required_ports: tuple[RequiredPort, ...]
     required_secrets: tuple[RequiredSecret, ...]
     static_secret_defaults: tuple[StaticSecretDefault, ...]
@@ -77,6 +84,9 @@ def default_preflight_configuration(
             RequiredDependency("python3"),
             RequiredDependency("multipass"),
             RequiredDependency("docker"),
+        ),
+        required_runtime_readiness=(
+            RequiredRuntimeReadiness("multipass", expected_driver="qemu"),
         ),
         required_ports=tuple(
             RequiredPort(port.port, port.service)

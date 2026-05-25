@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_02_COMPLETED_CHECKPOINT_PENDING
+SLICE_03_COMPLETED_CHECKPOINT_PENDING
 ```
 
 ## Creation Evidence
@@ -19,6 +19,8 @@ feature/workflow-stable-live-setup-20260525
 - No live infrastructure commands were executed.
 - Slice 02 was executed as a test-only regression and test-output hygiene
   checkpoint.
+- Slice 03 was executed as a live-consent-gated, non-mutating Multipass
+  readiness preflight checkpoint.
 
 ## Problem Summary
 
@@ -119,6 +121,112 @@ not applicable; no architecture decision changed
 Checkpoint commit:
 
 ```text
+f3aefd4
+```
+
+Push result:
+
+```text
+pushed to origin/feature/workflow-stable-live-setup-20260525
+```
+
+## Slice 03 Checkpoint Evidence
+
+Slice:
+
+```text
+03 - Live Multipass Readiness Preflight
+```
+
+Responsible role:
+
+```text
+Senior Python Automation Developer
+```
+
+Reviewed by:
+
+```text
+Senior DevOps, Senior System Architect, Senior Tester
+```
+
+Changed files:
+
+```text
+src/tiny_swarm_world/domain/preflight/host_runtime_readiness.py
+src/tiny_swarm_world/domain/preflight/preflight_check.py
+src/tiny_swarm_world/domain/preflight/preflight_configuration.py
+src/tiny_swarm_world/domain/preflight/__init__.py
+src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py
+src/tiny_swarm_world/application/services/platform/preflight_service.py
+src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py
+tests/application/services/platform/test_preflight_service.py
+tests/infrastructure/adapters/preflight/test_host_preflight_probe.py
+documentation/architecture/adr-autonomous-setup-safety.adoc
+documentation/arc42/10_quality_requirements.adoc
+documentation/workflow/execution-report.md
+```
+
+Result:
+
+```text
+completed
+```
+
+Behavior added:
+
+```text
+accepted live preflight now runs read-only Multipass readiness probes and
+classifies executable, socket, daemon, permission, driver, and unknown runtime
+failures before VM mutation
+```
+
+Quality evidence:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m unittest tests.application.services.platform.test_preflight_service tests.infrastructure.adapters.preflight.test_host_preflight_probe
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py lint
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py arch-tests
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py arch-lint
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py typecheck
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py test
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python tools/quality_gate.py quality
+```
+
+Quality result:
+
+```text
+passed
+```
+
+Rollback reference:
+
+```text
+f3aefd4
+```
+
+arc42Updated:
+
+```text
+yes; live Multipass readiness quality requirements added
+```
+
+adrUpdated:
+
+```text
+yes; autonomous setup safety contract now allows read-only runtime probes after
+live consent
+```
+
+Known follow-up:
+
+```text
+direct platform init --live still needs the Slice 04 readiness guard
+```
+
+Checkpoint commit:
+
+```text
 pending CP_COMMIT
 ```
 
@@ -130,7 +238,7 @@ pending CP_PUSH
 
 ## Next Execution Step
 
-Begin future implementation with Slice 03 from
+Begin future implementation with Slice 04 from
 `documentation/workflow/workflow.md`.
 
 ## Verification Evidence

@@ -7,8 +7,9 @@ import tempfile
 import urllib.error
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
+from tiny_swarm_world.domain.preflight import HostRuntimeReadinessStatus
 from tiny_swarm_world.infrastructure.adapters.preflight import (
     HostPreflightProbe,
     ensure_common_executable_paths,
@@ -66,6 +67,294 @@ class TestHostPreflightProbe(unittest.TestCase):
                 ensure_common_executable_paths((fallback_directory,))
 
                 self.assertEqual(str(fallback_directory), os.environ["PATH"])
+
+    def test_multipass_runtime_readiness_reports_ready_expected_driver(self):
+        probe = HostPreflightProbe(Path.cwd())
+        list_result = subprocess.CompletedProcess(
+            args=["multipass", "list"],
+            returncode=0,
+            stdout="Name,State,IPv4,Image\n",
+            stderr="",
+        )
+        driver_result = subprocess.CompletedProcess(
+            args=["multipass", "get", "local.driver"],
+            returncode=0,
+            stdout="qemu\n",
+            stderr="",
+        )
+
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.shutil.which",
+                return_value="/usr/bin/multipass",
+            ),
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                side_effect=(list_result, driver_result),
+            ) as run,
+        ):
+            readiness = probe.multipass_runtime_readiness(expected_driver="qemu")
+
+        self.assertEqual(HostRuntimeReadinessStatus.READY, readiness.status)
+        self.assertTrue(readiness.ready)
+        self.assertEqual("qemu", readiness.evidence["actual_driver"])
+        self.assertEqual("qemu", readiness.evidence["expected_driver"])
+        run.assert_has_calls(
+            (
+                call(
+                    ["multipass", "list"],
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=5.0,
+                ),
+                call(
+                    ["multipass", "get", "local.driver"],
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=5.0,
+                ),
+            )
+        )
+
+    def test_multipass_runtime_readiness_reports_socket_failure_without_payload(self):
+        probe = HostPreflightProbe(Path.cwd())
+        list_result = subprocess.CompletedProcess(
+            args=["multipass", "list"],
+            returncode=2,
+            stdout="",
+            stderr="cannot connect to the multipass socket",
+        )
+
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.shutil.which",
+                return_value="/usr/bin/multipass",
+            ),
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                return_value=list_result,
+            ),
+        ):
+            readiness = probe.multipass_runtime_readiness(expected_driver="qemu")
+
+        self.assertEqual(HostRuntimeReadinessStatus.SOCKET_UNAVAILABLE, readiness.status)
+        self.assertFalse(readiness.ready)
+        self.assertEqual("list", readiness.evidence["probe"])
+        self.assertEqual("2", readiness.evidence["return_code"])
+        self.assertNotIn("stderr", readiness.evidence)
+        self.assertNotIn("stdout", readiness.evidence)
+        self.assertNotIn("cannot connect", repr(readiness.evidence).casefold())
+
+    def test_multipass_runtime_readiness_reports_permission_denied(self):
+        probe = HostPreflightProbe(Path.cwd())
+        list_result = subprocess.CompletedProcess(
+            args=["multipass", "list"],
+            returncode=2,
+            stdout="",
+            stderr="permission denied",
+        )
+
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.shutil.which",
+                return_value="/usr/bin/multipass",
+            ),
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                return_value=list_result,
+            ),
+        ):
+            readiness = probe.multipass_runtime_readiness(expected_driver="qemu")
+
+        self.assertEqual(HostRuntimeReadinessStatus.PERMISSION_DENIED, readiness.status)
+        self.assertEqual("2", readiness.evidence["return_code"])
+        self.assertNotIn("permission denied", repr(readiness.evidence).casefold())
+
+    def test_multipass_runtime_readiness_reports_daemon_failure(self):
+        probe = HostPreflightProbe(Path.cwd())
+        list_result = subprocess.CompletedProcess(
+            args=["multipass", "list"],
+            returncode=2,
+            stdout="",
+            stderr="multipass service is not running",
+        )
+
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.shutil.which",
+                return_value="/usr/bin/multipass",
+            ),
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                return_value=list_result,
+            ),
+        ):
+            readiness = probe.multipass_runtime_readiness(expected_driver="qemu")
+
+        self.assertEqual(HostRuntimeReadinessStatus.DAEMON_UNAVAILABLE, readiness.status)
+        self.assertEqual("2", readiness.evidence["return_code"])
+
+    def test_multipass_runtime_readiness_reports_unknown_failure_without_payload(self):
+        probe = HostPreflightProbe(Path.cwd())
+        list_result = subprocess.CompletedProcess(
+            args=["multipass", "list"],
+            returncode=2,
+            stdout="",
+            stderr="unexpected host-specific /home/example failure",
+        )
+
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.shutil.which",
+                return_value="/usr/bin/multipass",
+            ),
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                return_value=list_result,
+            ),
+        ):
+            readiness = probe.multipass_runtime_readiness(expected_driver="qemu")
+
+        self.assertEqual(HostRuntimeReadinessStatus.UNKNOWN_FAILURE, readiness.status)
+        self.assertEqual("2", readiness.evidence["return_code"])
+        self.assertNotIn("/home/example", repr(readiness.evidence))
+
+    def test_multipass_runtime_readiness_reports_nonzero_driver_probe(self):
+        probe = HostPreflightProbe(Path.cwd())
+        list_result = subprocess.CompletedProcess(
+            args=["multipass", "list"],
+            returncode=0,
+            stdout="Name,State,IPv4,Image\n",
+            stderr="",
+        )
+        driver_result = subprocess.CompletedProcess(
+            args=["multipass", "get", "local.driver"],
+            returncode=2,
+            stdout="",
+            stderr="driver configuration unavailable",
+        )
+
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.shutil.which",
+                return_value="/usr/bin/multipass",
+            ),
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                side_effect=(list_result, driver_result),
+            ),
+        ):
+            readiness = probe.multipass_runtime_readiness(expected_driver="qemu")
+
+        self.assertEqual(HostRuntimeReadinessStatus.DRIVER_UNAVAILABLE, readiness.status)
+        self.assertEqual("driver", readiness.evidence["probe"])
+        self.assertEqual("2", readiness.evidence["return_code"])
+        self.assertEqual("qemu", readiness.evidence["expected_driver"])
+
+    def test_multipass_runtime_readiness_reports_driver_mismatch(self):
+        probe = HostPreflightProbe(Path.cwd())
+        list_result = subprocess.CompletedProcess(
+            args=["multipass", "list"],
+            returncode=0,
+            stdout="Name,State,IPv4,Image\n",
+            stderr="",
+        )
+        driver_result = subprocess.CompletedProcess(
+            args=["multipass", "get", "local.driver"],
+            returncode=0,
+            stdout="lxd\n",
+            stderr="",
+        )
+
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.shutil.which",
+                return_value="/usr/bin/multipass",
+            ),
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                side_effect=(list_result, driver_result),
+            ),
+        ):
+            readiness = probe.multipass_runtime_readiness(expected_driver="qemu")
+
+        self.assertEqual(HostRuntimeReadinessStatus.DRIVER_MISMATCH, readiness.status)
+        self.assertEqual("lxd", readiness.evidence["actual_driver"])
+        self.assertEqual("qemu", readiness.evidence["expected_driver"])
+
+    def test_multipass_runtime_readiness_collapses_unknown_driver_output(self):
+        probe = HostPreflightProbe(Path.cwd())
+        list_result = subprocess.CompletedProcess(
+            args=["multipass", "list"],
+            returncode=0,
+            stdout="Name,State,IPv4,Image\n",
+            stderr="",
+        )
+        driver_result = subprocess.CompletedProcess(
+            args=["multipass", "get", "local.driver"],
+            returncode=0,
+            stdout="/home/example/custom-driver\n",
+            stderr="",
+        )
+
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.shutil.which",
+                return_value="/usr/bin/multipass",
+            ),
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                side_effect=(list_result, driver_result),
+            ),
+        ):
+            readiness = probe.multipass_runtime_readiness(expected_driver="qemu")
+
+        self.assertEqual(HostRuntimeReadinessStatus.DRIVER_MISMATCH, readiness.status)
+        self.assertEqual("unknown", readiness.evidence["actual_driver"])
+        self.assertNotIn("/home/example", repr(readiness.evidence))
+
+    def test_multipass_runtime_readiness_reports_missing_executable_without_probe(self):
+        probe = HostPreflightProbe(Path.cwd())
+
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.shutil.which",
+                return_value=None,
+            ),
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+            ) as run,
+        ):
+            readiness = probe.multipass_runtime_readiness(expected_driver="qemu")
+
+        self.assertEqual(HostRuntimeReadinessStatus.EXECUTABLE_MISSING, readiness.status)
+        self.assertEqual("executable_lookup", readiness.evidence["classification_source"])
+        run.assert_not_called()
+
+    def test_multipass_runtime_readiness_classifies_probe_timeout_as_daemon_failure(self):
+        probe = HostPreflightProbe(Path.cwd())
+
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.shutil.which",
+                return_value="/usr/bin/multipass",
+            ),
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                side_effect=subprocess.TimeoutExpired(
+                    cmd=["multipass", "list"],
+                    timeout=5.0,
+                ),
+            ),
+        ):
+            readiness = probe.multipass_runtime_readiness(expected_driver="qemu")
+
+        self.assertEqual(HostRuntimeReadinessStatus.DAEMON_UNAVAILABLE, readiness.status)
+        self.assertEqual("timeout", readiness.evidence["classification_source"])
 
     def test_secret_available_uses_environment_without_reading_values(self):
         probe = HostPreflightProbe(Path.cwd())
