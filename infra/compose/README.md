@@ -10,6 +10,10 @@ Supported assets:
   The Swagger NGINX service uses the official `nginx:mainline-alpine` image
   with this mounted config; it does not require a custom image or startup
   wait script.
+- service-access dashboard and NGINX Dockerfiles plus static configuration.
+  These assets are copied into images for the Portainer-managed stack path so
+  `infra/config/compose/service-access/docker-compose.yml` does not depend on
+  repository bind mounts or host paths.
 
 Host-side image build, registry push, and stack deployment orchestration is
 owned by `PYTHONPATH=src python3 -m tiny_swarm_world setup run --live`.

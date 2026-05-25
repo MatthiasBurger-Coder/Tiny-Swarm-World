@@ -56,8 +56,12 @@ Common local ports after stack deployment:
 
 * Portainer: `http://localhost:9000`
 * Nexus: `http://localhost:8081`
-* Swagger editor/UI: `http://localhost:8082`, `http://localhost:8083`
+* Swagger editor/UI/API proxy: `http://localhost:8082`, `http://localhost:8083`,
+  `http://localhost:8084`
 * SonarQube: `http://localhost:9001`
 * RabbitMQ: `http://localhost:15672`
+* Service Access landing page and route overview: `http://localhost`
+* Vaultwarden: `http://localhost:8086` when local forwarding is clear;
+  otherwise use the current Swarm node IP with port `8086`
 
 Published ports depend on the active compose files and local forwarding setup.

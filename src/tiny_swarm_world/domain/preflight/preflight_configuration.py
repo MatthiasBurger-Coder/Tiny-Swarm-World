@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.preflight.setup_manifest import (
     SetupManifest,
     SetupProfile,
@@ -66,8 +67,9 @@ class PreflightConfiguration:
 
 def default_preflight_configuration(
     setup_profile: SetupProfile = SetupProfile.FULL,
+    service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
 ) -> PreflightConfiguration:
-    setup_manifest = default_setup_manifest(setup_profile)
+    setup_manifest = default_setup_manifest(setup_profile, service_profile)
     return PreflightConfiguration(
         setup_profile=setup_profile,
         setup_manifest=setup_manifest,
@@ -79,6 +81,7 @@ def default_preflight_configuration(
         required_ports=tuple(
             RequiredPort(port.port, port.service)
             for port in setup_manifest.required_ports
+            if port.host_preflight_required
         ),
         required_secrets=tuple(
             RequiredSecret(secret.name, secret.service)
@@ -91,6 +94,11 @@ def default_preflight_configuration(
             StaticSecretDefault("TSW_RABBITMQ_PASSWORD", "RabbitMQ", "guest"),
             StaticSecretDefault("TSW_SONARQUBE_ADMIN_PASSWORD", "SonarQube", "admin"),
             StaticSecretDefault("TSW_POSTGRES_PASSWORD", "SonarQube PostgreSQL", "sonar"),
+            StaticSecretDefault(
+                "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
+                "Vaultwarden admin-token secret name",
+                "tsw_vaultwarden_admin_token",
+            ),
         ),
         forbidden_secret_fingerprints=(
             ForbiddenSecretFingerprint(

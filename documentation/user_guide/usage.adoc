@@ -186,6 +186,38 @@ Stack deployment is handled by the workflow-level setup command. Direct
 Portainer upload scripts have been retired so compose assets cannot bypass the
 CLI consent gate.
 
+== Service Access Dashboard And Vaultwarden
+
+The full guided setup includes the service-access stack by default. It is the
+installed management landing page for service links and Vaultwarden credential
+references. Operators who intentionally want only the older base service set
+can pass `--service-profile default` to setup, deployment, or preflight
+commands.
+
+Implemented repository assets:
+
+* `infra/config/compose/service-access/docker-compose.yml` defines the
+  service-access dashboard, Vaultwarden and service-access NGINX services.
+* `infra/compose/service-access/dashboard/**` contains a static dashboard
+  image asset.
+* `infra/compose/service-access/nginx/**` contains the image-packaged NGINX
+  route configuration.
+
+When the default full profile is deployed by an operator workflow, the
+dashboard route is `http://localhost` and the Vaultwarden route is `8086`.
+The dashboard is a static management table with `Server`, `URL`, `user` and
+`pwd` columns. It provides central paths such as `/jenkins`, `/nexus`,
+`/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and `/vaultwarden`.
+It does not show password values.
+
+Authorized operators reveal or copy password values only through
+Vaultwarden's authenticated UI.
+
+The previous 2026-05-25 live smoke test verified the older dedicated
+`8085` dashboard route on Swarm node IPs. The current central
+`http://localhost` route requires redeploying the updated service-access stack
+before browser verification.
+
 == Commit And Push Shortcut
 
 For Codex-assisted repository maintenance, the user command `cc` executes the

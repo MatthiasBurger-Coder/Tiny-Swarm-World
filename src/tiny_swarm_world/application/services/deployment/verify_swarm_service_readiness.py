@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import time
+import asyncio
 
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
     PortSwarmStackRuntime,
@@ -46,7 +46,7 @@ class VerifySwarmServiceReadiness:
                 )
 
             if attempt < self.max_attempts:
-                time.sleep(self.wait_seconds)
+                await asyncio.sleep(self.wait_seconds)
 
         return VerificationResult(
             target_id=self.verification_target_id,

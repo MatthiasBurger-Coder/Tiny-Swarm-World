@@ -36,6 +36,9 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             "`infra/config/compose/jenkins/docker-compose.yml`": "Supported Asset",
             "`infra/config/compose/swagger/docker-compose.yml`": "Supported Asset",
             "`infra/compose/swagger/nginx/default.conf`": "Supported Asset",
+            "`infra/config/compose/service-access/docker-compose.yml`": "Supported Asset",
+            "`infra/compose/service-access/dashboard/**`": "Supported Asset",
+            "`infra/compose/service-access/nginx/**`": "Supported Asset",
             "`infra/swarm/**`": "Legacy",
             "`infra/swarm/prepere.py`": "Legacy",
             "`infra/swarm/network/network_manager.py`": "Legacy",
@@ -93,6 +96,71 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         )
 
         self.assertEqual([], stack_definitions)
+
+    def test_service_access_assets_do_not_introduce_frontend_project_or_live_orchestration_surface(self):
+        roots = [
+            INFRA_ROOT / "compose" / "service-access",
+            INFRA_ROOT / "config" / "compose" / "service-access",
+        ]
+        forbidden_names = {
+            "package.json",
+            "package-lock.json",
+            "pnpm-lock.yaml",
+            "yarn.lock",
+            "vite.config.js",
+            "vite.config.ts",
+        }
+        forbidden_suffixes = {".jsx", ".tsx"}
+        forbidden_fragments = (
+            "docker build",
+            "docker login",
+            "docker push",
+            "docker stack",
+            "docker compose",
+            "docker swarm",
+            "api/auth",
+            "api/stacks",
+            "portainer/api",
+            "multipass",
+            "socat",
+        )
+
+        forbidden_files = sorted(
+            path.relative_to(REPOSITORY_ROOT).as_posix()
+            for root in roots
+            for path in root.rglob("*")
+            if path.is_file() and (path.name in forbidden_names or path.suffix.lower() in forbidden_suffixes)
+        )
+        self.assertEqual([], forbidden_files)
+
+        live_violations = {
+            path.relative_to(REPOSITORY_ROOT).as_posix(): fragment
+            for root in roots
+            for path in root.rglob("*")
+            if path.is_file()
+            for fragment in forbidden_fragments
+            if fragment in path.read_text(encoding="utf-8").lower()
+        }
+        self.assertEqual({}, live_violations)
+
+    def test_service_access_nginx_owns_central_routes_without_request_logs(self):
+        nginx_config = (
+            INFRA_ROOT / "compose" / "service-access" / "nginx" / "default.conf"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual(2, nginx_config.count("access_log off;"))
+        self.assertIn("listen 80;", nginx_config)
+        self.assertIn("listen 8086;", nginx_config)
+        self.assertIn("resolver 127.0.0.11", nginx_config)
+        self.assertIn("set $dashboard_upstream http://service-access-dashboard:80;", nginx_config)
+        self.assertIn("set $vaultwarden_upstream http://vaultwarden:80;", nginx_config)
+        for route in ("jenkins", "nexus", "portainer", "rabbitmq", "sonarqube", "swagger", "vaultwarden"):
+            with self.subTest(route=route):
+                self.assertIn(f"location = /{route}", nginx_config)
+        self.assertNotIn("password=", nginx_config)
+        self.assertNotIn("token=", nginx_config)
+        self.assertNotIn("secret=", nginx_config)
+        self.assertNotIn("api_key=", nginx_config)
 
     def test_prepare_area_has_no_executable_installation_helpers(self):
         executable_helpers = sorted(

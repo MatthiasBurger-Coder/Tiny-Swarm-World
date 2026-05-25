@@ -40,13 +40,15 @@ successful live `deployment apply` path yet, because first-time Portainer
 bootstrap and verify-after-apply evidence remain incomplete.
 
 The Deployment boundary also contains a generic `EnsureServiceStack` contract
-and a default stack plan for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
-and Swagger/NGINX. The Portainer-managed plan intentionally excludes the
-Portainer stack itself to avoid a bootstrap cycle. These contracts can apply a
-stack through the Portainer port, then record stack-registration context while
-returning blocked readiness until required services are observed. They do not
-claim container health or application readiness; those checks remain future
-observed-state contracts.
+and stack plans for the default service set plus selected service profiles.
+The base service set covers Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+and Swagger/NGINX. The full guided setup selects the service-access profile by
+default, which adds the `service-access` management stack. The
+Portainer-managed plan intentionally excludes the Portainer stack itself to
+avoid a bootstrap cycle and can exclude bootstrap-owned Nexus. These
+contracts can apply a stack through the Portainer port, then record
+stack-registration context. They do not claim container health or application
+readiness; readiness remains separate observed-state verification.
 
 The canonical autonomous setup command is `setup run`. It is a workflow-level
 orchestrator over preflight, platform, artifacts, deployment, and final
@@ -54,6 +56,11 @@ verification phases. It refuses missing live consent before setup service
 construction and preserves blocked, resource-gated, failed-to-apply, and
 failed-to-verify states instead of reporting full deployment success without
 observed evidence.
+
+Setup preflight is idempotent for an already running Tiny Swarm World
+environment. Required ports pass when they are either free or already serve the
+expected local service, reported as `source=existing_expected_service`.
+Unknown port owners still fail before live execution.
 
 == Development gate before deployment work
 
@@ -120,6 +127,74 @@ Important environment variables:
 The supported stack deployment path is the workflow-level setup command. Compose
 files under `infra/config/compose` are read by Python deployment adapters and
 deployed through the reviewed setup workflow.
+
+== Service-access routing and Vaultwarden
+
+The service-access dashboard and Vaultwarden capability is implemented as the
+full guided setup's management surface. The current repository design makes
+the service-access NGINX the central local HTTP entry point at
+`http://localhost`. Swagger/NGINX moves to its own `8084` published route.
+
+Implemented repository behavior:
+
+* `infra/config/compose/service-access/docker-compose.yml` defines the
+  dashboard, Vaultwarden and service-access NGINX stack.
+* `infra/compose/service-access/dashboard/**` and
+  `infra/compose/service-access/nginx/**` provide image-packaged static
+  assets for the Portainer-managed path.
+* The setup CLI uses `ServiceStackProfile.SERVICE_ACCESS` by default so the
+  installed environment has the service-access landing page. Operators can use
+  `--service-profile default` to run only the older base service set.
+* The setup manifest for the service-access profile records ports `80` and `8086`
+  plus the `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
+  It does not record a token value.
+
+The accepted routing decision is
+`SERVICE_ACCESS_CENTRAL_NGINX`:
+
+* Service Access owns published port `80` and serves the overview at
+  `http://localhost`.
+* Service Access NGINX manages stable local paths such as `/jenkins`,
+  `/nexus`, `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and
+  `/vaultwarden`.
+* Swagger/NGINX uses published port `8084`.
+* The Vaultwarden route uses published Swarm port `8086`.
+* Shared ingress, Traefik, TLS automation and wider-than-local exposure require
+  later ADR coverage and tests.
+
+Portainer may manage the service-access stack only after Portainer is
+reachable. First-time Portainer bootstrap remains outside Portainer-managed
+stack upload.
+
+For a Portainer-managed service-access stack, dashboard and NGINX assets are
+image-packaged. Do not rely on bind-mounted repository files unless a later
+slice adds a tested asset-preparation boundary.
+
+The static dashboard is a management table with `Server`, `URL`, `user` and
+`pwd` columns. Service entries use central route paths and Vaultwarden item
+references. Password values remain visible only through Vaultwarden's
+authenticated reveal/copy flow.
+
+Observed live smoke evidence from 2026-05-25:
+
+* The Portainer stack `service-access` was created and updated on endpoint
+  `local`.
+* Swarm tasks for the dashboard, Vaultwarden and service-access NGINX reached
+  `running`, and Vaultwarden reported healthy.
+* `http://10.157.2.182:8085/`, `http://10.157.2.19:8085/`, and
+  `http://10.157.2.33:8085/` returned the service-access dashboard with HTTP
+  `200`.
+* `http://10.157.2.182:8086/`, `http://10.157.2.19:8086/`, and
+  `http://10.157.2.33:8086/` returned Vaultwarden with HTTP `200`.
+* The dashboard path `/vaultwarden` redirected to the same host on port
+  `8086`.
+
+Current live verification note:
+
+* The previous 2026-05-25 live smoke verified the older dedicated `8085`
+  dashboard route on Swarm node IPs. The central `http://localhost` route
+  requires a fresh service-access stack deployment before it is claimed as
+  live-verified.
 
 == Verification
 

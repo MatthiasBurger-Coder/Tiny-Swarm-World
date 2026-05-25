@@ -17,14 +17,11 @@ the default quality gate outputs, and must not be committed or moved under
 == Deployment Contracts
 
 The in-process CLI now has explicit artifact and deployment workflow contracts.
-`deployment apply` is live-consent gated and still returns a blocked result
-because first-time stack bootstrap and verify-after-apply evidence are not yet
-wired through the CLI composition root. Slice 06 introduces a tested
-post-bootstrap Portainer API contract through `PortComposeFileRepository` and
-`PortPortainerClient`, but that contract is not treated as a complete live
-setup path until later slices add observed-state verification. `deployment
-verify` still returns a blocked result until stack and service observed-state
-verification can be read through deployment ports.
+`deployment apply` is live-consent gated and now has post-bootstrap
+Portainer-managed stack contracts. First-time Portainer and Nexus bootstrap
+remain separate bootstrap steps, and service readiness still requires observed
+Swarm service evidence. `deployment verify` uses observed-state readiness
+checks and must not report success without collected service state.
 
 This keeps the current local deployment model deterministic in tests: the
 Python composition root can construct deployment workflow objects without
@@ -32,11 +29,46 @@ contacting Portainer, contacting Nexus, building images, pushing registries, or
 changing Docker Swarm state. Tests use fakes for Portainer and compose
 repositories. Artifact contract tests use fake Nexus clients and patched Docker
 CLI calls only; they do not contact Nexus, build images, log in, or push.
-Default service stack contracts cover Portainer, Nexus, Jenkins, RabbitMQ,
-SonarQube, and Swagger/NGINX. The Portainer-managed plan excludes Portainer
-itself to avoid a bootstrap cycle. The current checks record stack
-registration context and return blocked readiness until container health or
-application readiness exists as observed-state evidence.
+Base service stack contracts cover Portainer, Nexus, Jenkins, RabbitMQ,
+SonarQube, and Swagger/NGINX. The full guided setup selects the service-access
+profile by default and adds the `service-access` stack. The
+Portainer-managed plan excludes Portainer itself to avoid a bootstrap cycle
+and can exclude bootstrap-owned Nexus. Stack apply checks record Portainer
+stack-registration context only; service readiness is verified separately
+through observed Swarm service evidence.
+
+== Service Access And Vaultwarden Routing Baseline
+
+The service-access dashboard and Vaultwarden capability is implemented as
+repository assets and setup-selected service contracts. The repository now
+contains the service-access compose stack, image-packaged dashboard and NGINX
+assets, service-stack contracts, setup-manifest requirements and static tests.
+A post-workflow live smoke test on 2026-05-25 verified the older dedicated
+dashboard route on Swarm node IPs. The current central `http://localhost`
+route requires a fresh deployment before it is claimed as live-verified.
+
+The accepted routing baseline is `SERVICE_ACCESS_CENTRAL_NGINX`:
+
+* the service-access stack owns published port `80` and serves
+  `http://localhost` as the local management overview;
+* the service-access stack owns its own NGINX ingress instead of modifying the
+  Swagger-owned NGINX service;
+* stable central paths such as `/jenkins`, `/nexus`, `/portainer`,
+  `/rabbitmq`, `/sonarqube`, `/swagger` and `/vaultwarden` are managed by
+  service-access NGINX;
+* the Swagger/NGINX stack uses published port `8084`;
+* the Vaultwarden route uses published port `8086`;
+* Traefik remains deferred until a later ADR and tests add a provider, labels,
+  dashboard exposure policy, network model and rollback.
+
+Portainer may manage service-access stack create/update only after Portainer
+is reachable. First-time Portainer bootstrap remains outside the
+Portainer-managed upload path.
+
+For the Portainer-managed path, service-access dashboard and NGINX assets are
+image-packaged under `infra/compose/service-access/**`. Bind-mounted
+repository files are not an accepted Portainer path unless a later slice adds
+a tested asset-preparation port or adapter and documents when it runs.
 
 == Autonomous Setup Deployment Contract
 

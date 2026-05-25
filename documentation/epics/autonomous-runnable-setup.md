@@ -30,6 +30,17 @@ This EPIC is the requirement baseline for autonomous setup. The canonical
 live-consent-gated command, but this EPIC does not claim that the full live
 runnable system is installed successfully.
 
+## EPIC Extensions
+
+The service-access dashboard and Vaultwarden baseline extends this EPIC:
+
+- `documentation/epics/service-access-dashboard-vaultwarden.md`
+
+The extension defines a future service-access and credential visibility
+capability for selected runnable profiles. It does not claim that Vaultwarden,
+the service-access dashboard, routing, persistence, backup, readiness, or live
+deployment is implemented.
+
 ## Relationship To System Unification
 
 The system-unification EPIC defines the in-process boundaries that the setup
@@ -104,6 +115,10 @@ through test-backed contracts or explicitly approved live smoke evidence:
 - RabbitMQ is reachable when included in the selected profile;
 - SonarQube is reachable when included in the selected profile;
 - Swagger/NGINX is reachable when included in the selected profile;
+- service-access dashboard and Vaultwarden are reachable only if a later
+  selected profile explicitly includes them and verifies stack registration,
+  service readiness, credential-source availability, persistence ownership,
+  backup/restore behavior, and redacted evidence;
 - verification evidence is redacted and written only under
   `.tiny-swarm-world/evidence/live-installation/<run-id>/`;
 - final setup status distinguishes `completed`, `refused`, `blocked`,
@@ -174,6 +189,9 @@ smoke validation is a separate operator action and requires:
 
 - The autonomous setup requirement baseline is linked from the
   system-unification EPIC.
+- Service-access dashboard and Vaultwarden are documented as the full guided
+  setup's management surface, with live reachability scoped to observed smoke
+  evidence and remaining host-forwarding gaps.
 - Full runnable state and resource-gated state are explicit and testable.
 - The setup preserves Platform, Artifacts, Deployment, Shared, and
   Console/status UI ownership.
@@ -227,5 +245,7 @@ Stop execution when:
   ADR approval;
 - direct scripts would bypass CLI consent controls;
 - service health would be claimed without verification evidence;
+- Vaultwarden or the service-access dashboard would be documented as
+  installed, reachable, or production-like before evidence exists;
 - planned behavior would be documented as implemented behavior;
 - a change would weaken architecture or quality gates.

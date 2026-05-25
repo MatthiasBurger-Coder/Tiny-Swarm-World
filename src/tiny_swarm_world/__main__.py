@@ -14,6 +14,7 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PlatformWorkflowResult,
     PlatformWorkflowStatus,
 )
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_PROMPT,
     LIVE_CONSENT_YES_VALUES,
@@ -25,6 +26,7 @@ from tiny_swarm_world.infrastructure.composition import (
     ApplicationServices,
     ArtifactServices,
     DeploymentServices,
+    DEFAULT_SETUP_SERVICE_PROFILE,
     SetupServices,
     build_application_services,
     build_artifact_services,
@@ -112,6 +114,15 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
         "--confirm",
         help="Exact confirmation phrase required by destructive workflows.",
     )
+    parser.add_argument(
+        "--service-profile",
+        choices=[profile.value for profile in ServiceStackProfile],
+        default=DEFAULT_SETUP_SERVICE_PROFILE.value,
+        help=(
+            "Service stack profile for setup, deployment and preflight. "
+            "The default full installation includes service-access."
+        ),
+    )
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
     parser.add_argument("workflow_action", nargs="?", help="Workflow action.")
     args = parser.parse_args(argv)
@@ -141,7 +152,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
         return
 
     if args.preflight:
-        preflight = build_preflight_service()
+        preflight = build_preflight_service(service_profile=args.service_profile)
         live_consent = _live_consent_from_args(args) if args.live else None
         result = await preflight.run(live_consent)
         print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
@@ -181,8 +192,13 @@ async def main(argv: Sequence[str] | None = None) -> None:
 
     logger.info("Running workflow: %s", workflow.name)
     if workflow.namespace == "setup" and workflow.action == "run":
-        _print_setup_installation_plan()
-    result = await run_cli_workflow(workflow, args.confirm, live_consent)
+        _print_setup_installation_plan(service_profile=args.service_profile)
+    result = await run_cli_workflow(
+        workflow,
+        args.confirm,
+        live_consent,
+        service_profile=args.service_profile,
+    )
     if isinstance(result, SetupWorkflowResult):
         _print_setup_installation_summary(result)
     print(json.dumps(_workflow_result_to_dict(result), indent=2, sort_keys=True))
@@ -196,6 +212,7 @@ async def run_cli_workflow(
     workflow: CliWorkflow,
     confirmation: str | None,
     live_consent: LiveConsent | None = None,
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
 ) -> WorkflowResult:
     if workflow.platform_kind is not None:
         services = build_application_services()
@@ -204,12 +221,12 @@ async def run_cli_workflow(
         services = build_artifact_services()
         return await run_artifact_workflow(services, workflow.action)
     if workflow.namespace == "deployment":
-        services = build_deployment_services()
+        services = build_deployment_services(service_profile=service_profile)
         return await run_deployment_workflow(services, workflow.action)
     if workflow.namespace == "setup":
         if live_consent is None or not live_consent.accepted:
             raise ValueError("setup run requires accepted live consent")
-        services = build_setup_services(live_consent)
+        services = build_setup_services(live_consent, service_profile=service_profile)
         return await run_setup_workflow(services, workflow.action)
     raise ValueError(f"Unsupported workflow: {workflow.name}")
 
@@ -327,12 +344,16 @@ def _print_preflight_summary(result: PreflightResult) -> None:
             print(f"  Action: {check.remediation}")
 
 
-def _print_setup_installation_plan() -> None:
-    configuration = default_preflight_configuration()
+def _print_setup_installation_plan(
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+) -> None:
+    selected_service_profile = ServiceStackProfile(service_profile)
+    configuration = default_preflight_configuration(service_profile=selected_service_profile)
     manifest = configuration.setup_manifest
     print()
     print("Tiny Swarm World guided installation")
     print("Target: local Linux/WSL Multipass Docker Swarm")
+    print(f"Service profile: {selected_service_profile.value}")
     print("Platform:")
     print("- swarm-manager: Docker Swarm manager")
     print("- swarm-worker-1: Docker Swarm worker")
@@ -356,14 +377,23 @@ def _print_setup_installation_plan() -> None:
         "Nexus": "infra/config/compose/nexus/docker-compose.yml",
         "Portainer": "infra/config/compose/portainer/docker-compose.yml",
         "RabbitMQ": "infra/config/compose/rabbitmq/docker-compose.yml",
+        "Service Access": "infra/config/compose/service-access/docker-compose.yml",
         "SonarQube": "infra/config/compose/sonarqube/docker-compose.yml",
         "Swagger/NGINX": "infra/config/compose/swagger/docker-compose.yml",
     }
+    stack_names = {
+        "Jenkins": "jenkins",
+        "Nexus": "nexus",
+        "Portainer": "portainer",
+        "RabbitMQ": "rabbitmq",
+        "Service Access": "service-access",
+        "SonarQube": "sonarqube",
+        "Swagger/NGINX": "swagger",
+    }
     for service in manifest.services:
         ports = ", ".join(str(port.port) for port in service.ports) or "no published port"
-        stack_name = service.name.lower().replace("/nginx", "").replace("swagger", "swagger")
         print(
-            f"- {service.name}: stack {stack_name}, "
+            f"- {service.name}: stack {stack_names.get(service.name, 'infra')}, "
             f"source {stack_sources.get(service.name, 'infra')}, published port(s) {ports}"
         )
     print()

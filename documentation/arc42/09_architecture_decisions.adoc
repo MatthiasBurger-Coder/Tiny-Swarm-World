@@ -63,6 +63,34 @@ Consequences:
   payloads, secrets, Swarm tokens, host-specific addresses, or environment
   payloads.
 
+=== Service Access Dashboard And Vaultwarden Baseline
+
+ADR: `documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc`
+
+Status: accepted as requirement and security baseline; implemented as the full
+guided setup service-access profile with residual operational hardening.
+
+Consequences:
+
+* the service-access capability belongs to the Deployment responsibility
+  boundary as a Docker Swarm service stack;
+* Vaultwarden is the only approved password reveal and copy surface;
+* the service-access dashboard may show service names, access routes,
+  reachability states, credential labels and Vaultwarden item references, but
+  must not display, cache, export, log or persist password values;
+* the full guided setup includes service-access through
+  `ServiceStackProfile.SERVICE_ACCESS`; the older base service set remains
+  available through `--service-profile default`;
+* NGINX is the baseline routing direction, with Service Access owning
+  `http://localhost` and Vaultwarden remaining on `8086`;
+* Traefik, TLS automation and wider-than-local exposure require later ADR
+  coverage;
+* Portainer may manage post-bootstrap stack create/update only after
+  Portainer is reachable and must not become its own bootstrap dependency;
+* the central `http://localhost` route requires a fresh live deployment before
+  it is claimed as verified; Vaultwarden operational hardening remains
+  follow-up work.
+
 === Workflow Taxonomy And Destructive Operation Policy
 
 Decision status: implemented in the safety-first workflow.

@@ -24,6 +24,7 @@ from tiny_swarm_world.application.services.deployment import (
     EnsureSwarmStack,
     VerifySwarmServiceReadiness,
 )
+from tiny_swarm_world.application.services.deployment.service_stack_plan import build_service_stack_steps
 from tiny_swarm_world.application.services.platform import (
     MultipassDockerInstall,
     MultipassDockerSwarmInit,
@@ -42,8 +43,11 @@ from tiny_swarm_world.application.services.platform import (
 )
 from tiny_swarm_world.application.services.setup import SetupWorkflow, SetupWorkflowPhase
 from tiny_swarm_world.domain.artifacts import DEFAULT_CONTAINER_IMAGE_CONTRACTS
-from tiny_swarm_world.domain.deployment import DEFAULT_SERVICE_STACK_CONTRACTS
-from tiny_swarm_world.domain.preflight import LiveConsent
+from tiny_swarm_world.domain.deployment import (
+    ServiceStackProfile,
+    service_stack_contracts_for_profile,
+)
+from tiny_swarm_world.domain.preflight import LiveConsent, default_preflight_configuration
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
 from tiny_swarm_world.infrastructure.adapters.clients.multipass_container_image_publisher import (
     MultipassContainerImagePublisher,
@@ -60,6 +64,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.multipass_portainer_admin_
 from tiny_swarm_world.infrastructure.adapters.clients.multipass_swarm_runtime import (
     MultipassSwarmRuntime,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import PortainerHttpClient
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
@@ -72,6 +77,9 @@ from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
+
+
+DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 
 
 @dataclass(frozen=True)
@@ -181,18 +189,25 @@ def configure_infrastructure_container() -> None:
     infra_core_container.register(FileManager)
 
 
-def build_preflight_service() -> PreflightService:
-    return PreflightService(HostPreflightProbe())
+def build_preflight_service(
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+) -> PreflightService:
+    return PreflightService(
+        HostPreflightProbe(),
+        default_preflight_configuration(service_profile=service_profile),
+    )
 
 
-def build_platform_services() -> PlatformServices:
+def build_platform_services(
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+) -> PlatformServices:
     configure_infrastructure_container()
 
     vm_repository = PortVmRepositoryYaml()
     netplan_repository = PortNetplanRepositoryYaml()
     command_workflow = CommandWorkflow(vm_repository=vm_repository)
     verification_evidence_repository = VerificationEvidenceLocalRepository()
-    preflight = build_preflight_service()
+    preflight = build_preflight_service(service_profile=service_profile)
     multipass_init_vms = MultipassInitVms(command_workflow)
     network_prepare_netplan = NetworkPrepareNetplan(
         command_workflow=command_workflow,
@@ -312,17 +327,26 @@ def build_artifact_services() -> ArtifactServices:
     )
 
 
-def build_deployment_services() -> DeploymentServices:
+def build_deployment_services(
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+) -> DeploymentServices:
+    selected_service_profile = ServiceStackProfile(service_profile)
+    service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
     compose_repository = ComposeFileRepositoryYaml()
     swarm_runtime = MultipassSwarmRuntime()
     portainer_admin_client = MultipassPortainerAdminClient()
+    portainer_client = PortainerHttpClient(
+        "http://localhost:9000",
+        "admin",
+        _static_secret_default("TSW_PORTAINER_PASSWORD"),
+    )
     stack_steps = {
         contract.stack_name: EnsureSwarmStack(
             compose_repository=compose_repository,
             swarm_runtime=swarm_runtime,
             service_stack=contract,
         )
-        for contract in DEFAULT_SERVICE_STACK_CONTRACTS
+        for contract in service_stack_contracts
     }
     bootstrap_steps = (
         stack_steps["portainer"],
@@ -335,10 +359,12 @@ def build_deployment_services() -> DeploymentServices:
         ),
         stack_steps["nexus"],
     )
-    application_steps = tuple(
-        step
-        for stack_name, step in stack_steps.items()
-        if stack_name not in {"portainer", "nexus"}
+    application_steps = build_service_stack_steps(
+        compose_repository=compose_repository,
+        portainer_client=portainer_client,
+        endpoint_name="local",
+        service_profile=selected_service_profile,
+        excluded_stack_names=("nexus",),
     )
     readiness_checks = tuple(
         VerifySwarmServiceReadiness(
@@ -347,7 +373,7 @@ def build_deployment_services() -> DeploymentServices:
             max_attempts=60,
             wait_seconds=10,
         )
-        for contract in DEFAULT_SERVICE_STACK_CONTRACTS
+        for contract in service_stack_contracts
     )
     return DeploymentServices(
         workflows=DeploymentWorkflows(
@@ -361,11 +387,14 @@ def build_deployment_services() -> DeploymentServices:
     )
 
 
-def build_setup_services(live_consent: LiveConsent) -> SetupServices:
-    preflight = build_preflight_service()
-    platform = build_platform_services()
+def build_setup_services(
+    live_consent: LiveConsent,
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+) -> SetupServices:
+    preflight = build_preflight_service(service_profile=service_profile)
+    platform = build_platform_services(service_profile=service_profile)
     artifacts = build_artifact_services()
-    deployment = build_deployment_services()
+    deployment = build_deployment_services(service_profile=service_profile)
 
     return SetupServices(
         workflows=SetupWorkflows(

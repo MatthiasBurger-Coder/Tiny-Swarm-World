@@ -29,6 +29,10 @@ The system follows a hexagonal architecture and provides async Python automation
   - RabbitMQ (message broker)
   - SonarQube (static code analysis)
   - Swagger + NGINX (API documentation)
+- Service-access management surface:
+  - static landing page for server links and credential references
+  - Vaultwarden credential store behind service-access NGINX
+  - password values available only through Vaultwarden's authenticated UI
 - Modular infrastructure assets in `infra/config` and `infra/compose`, driven by the Python setup workflow.
 - WSL2 networking support via socat and netplan helpers.
 - Rich test suite and enforced separation between domain, application, and infrastructure layers.
@@ -223,6 +227,18 @@ canonical static classification is maintained in
 Image publication and stack deployment are handled by the workflow-level setup
 command. Stack definitions live under `infra/config/compose`; image build
 contexts live under `infra/compose`.
+
+The full guided setup now includes the `service-access` management stack. Its
+compose definition lives under
+`infra/config/compose/service-access/docker-compose.yml`, and its dashboard
+and NGINX assets are image-packaged under `infra/compose/service-access/**`.
+The dashboard is the installed landing page at `http://localhost`. A central
+service-access NGINX owns the local root route and redirects stable paths such
+as `/jenkins`, `/nexus`, `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger`
+and `/vaultwarden` to the matching local service route. The table shows users
+and Vaultwarden item references; password values are visible only in
+Vaultwarden's authenticated UI. Operators who intentionally want the older base
+service set can pass `--service-profile default`.
 
 Live-operation surface summary:
 

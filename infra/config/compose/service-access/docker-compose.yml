@@ -1,0 +1,57 @@
+services:
+  service-access-dashboard:
+    image: ${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:5000/service-access-dashboard:latest}
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  vaultwarden:
+    image: ${TSW_VAULTWARDEN_IMAGE:-vaultwarden/server:latest}
+    environment:
+      ADMIN_TOKEN_FILE: /run/secrets/vaultwarden_admin_token
+      DOMAIN: ${TSW_VAULTWARDEN_DOMAIN:-http://localhost:8086}
+      SIGNUPS_ALLOWED: "false"
+      INVITATIONS_ALLOWED: "true"
+    secrets:
+      - vaultwarden_admin_token
+    volumes:
+      - vaultwarden_data:/data
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  service-access-nginx:
+    image: ${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:5000/service-access-nginx:latest}
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+      - target: 8086
+        published: 8086
+        protocol: tcp
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+secrets:
+  vaultwarden_admin_token:
+    external: true
+    name: ${TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET:-tsw_vaultwarden_admin_token}
+
+volumes:
+  vaultwarden_data:
+
+networks:
+  service_access_link:

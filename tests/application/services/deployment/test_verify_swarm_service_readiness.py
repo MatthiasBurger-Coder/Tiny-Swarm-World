@@ -45,6 +45,51 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertIn("nexus=0/1", verification.evidence["replicas"])
 
+    async def test_verifies_service_access_when_all_required_services_are_ready(self):
+        runtime = _FakeSwarmRuntime(
+            (
+                SwarmServiceStatus("service-access_service-access-dashboard", 1, 1),
+                SwarmServiceStatus("service-access_vaultwarden", 1, 1),
+                SwarmServiceStatus("service-access_service-access-nginx", 1, 1),
+            )
+        )
+        service = VerifySwarmServiceReadiness(
+            runtime,
+            ServiceStackContract(
+                "service-access",
+                ("service-access-dashboard", "vaultwarden", "service-access-nginx"),
+            ),
+            max_attempts=1,
+            wait_seconds=0,
+        )
+
+        verification = await service.verify()
+
+        self.assertEqual(VerificationStatus.VERIFIED, verification.status)
+        self.assertEqual("deployment:service-access-service-readiness", verification.target_id)
+
+    async def test_fails_service_access_when_required_service_is_missing(self):
+        runtime = _FakeSwarmRuntime(
+            (
+                SwarmServiceStatus("service-access_service-access-dashboard", 1, 1),
+                SwarmServiceStatus("service-access_service-access-nginx", 1, 1),
+            )
+        )
+        service = VerifySwarmServiceReadiness(
+            runtime,
+            ServiceStackContract(
+                "service-access",
+                ("service-access-dashboard", "vaultwarden", "service-access-nginx"),
+            ),
+            max_attempts=1,
+            wait_seconds=0,
+        )
+
+        verification = await service.verify()
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
+        self.assertEqual("vaultwarden", verification.evidence["missing_services"])
+
 
 class _FakeSwarmRuntime:
     def __init__(self, services: tuple[SwarmServiceStatus, ...]):

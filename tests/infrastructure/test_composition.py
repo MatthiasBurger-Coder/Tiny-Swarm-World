@@ -3,9 +3,11 @@ import unittest
 from dataclasses import fields
 from unittest.mock import patch
 
+from tiny_swarm_world.application.services.deployment.ensure_service_stack import EnsureServiceStack
 from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_ENVIRONMENT_VALUE,
     LIVE_CONSENT_PHRASE,
@@ -145,6 +147,8 @@ class TestComposition(unittest.TestCase):
                 "artifacts:nexus-docker-hosted-repository",
                 "artifacts:nexus-maven-proxy-repository",
                 "artifacts:jenkins-image",
+                "artifacts:service-access-dashboard-image",
+                "artifacts:service-access-nginx-image",
             ),
             tuple(step.verification_target_id for step in services.workflows.prepare.steps),
         )
@@ -158,14 +162,15 @@ class TestComposition(unittest.TestCase):
         nexus_client.assert_called_once_with()
         container_runtime.assert_called_once_with()
         image_publisher.assert_called_once()
-        self.assertEqual(5, len(services.workflows.prepare.steps))
-        self.assertEqual(5, len(services.workflows.verify.checks))
+        self.assertEqual(7, len(services.workflows.prepare.steps))
+        self.assertEqual(7, len(services.workflows.verify.checks))
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
         with patch.object(composition, "ComposeFileRepositoryYaml"):
             with patch.object(composition, "MultipassSwarmRuntime"):
                 with patch.object(composition, "MultipassPortainerAdminClient"):
-                    services = composition.build_deployment_services()
+                    with patch.object(composition, "PortainerHttpClient"):
+                        services = composition.build_deployment_services()
 
         self.assertIsInstance(services.workflows.bootstrap, composition.DeploymentApplyWorkflow)
         self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
@@ -184,6 +189,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:rabbitmq-stack",
                 "deployment:sonarqube-stack",
                 "deployment:swagger-stack",
+                "deployment:service-access-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
@@ -195,6 +201,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:rabbitmq-service-readiness",
                 "deployment:sonarqube-service-readiness",
                 "deployment:swagger-service-readiness",
+                "deployment:service-access-service-readiness",
             ),
             tuple(check.verification_target_id for check in services.workflows.verify.checks),
         )
@@ -203,14 +210,59 @@ class TestComposition(unittest.TestCase):
         with patch.object(composition, "ComposeFileRepositoryYaml") as compose_repository:
             with patch.object(composition, "MultipassSwarmRuntime") as swarm_runtime:
                 with patch.object(composition, "MultipassPortainerAdminClient") as portainer_client:
-                    services = composition.build_deployment_services()
+                    with patch.object(composition, "PortainerHttpClient") as stack_client:
+                        services = composition.build_deployment_services()
 
         compose_repository.assert_called_once_with()
         swarm_runtime.assert_called_once_with()
         portainer_client.assert_called_once_with()
+        stack_client.assert_called_once()
         self.assertEqual(3, len(services.workflows.bootstrap.steps))
-        self.assertEqual(4, len(services.workflows.apply.steps))
-        self.assertEqual(6, len(services.workflows.verify.checks))
+        self.assertEqual(5, len(services.workflows.apply.steps))
+        self.assertEqual(7, len(services.workflows.verify.checks))
+
+    def test_build_deployment_services_can_select_service_access_profile(self):
+        with patch.object(composition, "ComposeFileRepositoryYaml"):
+            with patch.object(composition, "MultipassSwarmRuntime"):
+                with patch.object(composition, "MultipassPortainerAdminClient"):
+                    with patch.object(composition, "PortainerHttpClient"):
+                        services = composition.build_deployment_services(
+                            service_profile=ServiceStackProfile.SERVICE_ACCESS
+                        )
+
+        self.assertEqual(
+            (
+                "deployment:portainer-stack",
+                "deployment:portainer-admin-access",
+                "deployment:nexus-stack",
+            ),
+            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
+        )
+        self.assertEqual(
+            (
+                "deployment:jenkins-stack",
+                "deployment:rabbitmq-stack",
+                "deployment:sonarqube-stack",
+                "deployment:swagger-stack",
+                "deployment:service-access-stack",
+            ),
+            tuple(step.verification_target_id for step in services.workflows.apply.steps),
+        )
+        self.assertTrue(
+            all(isinstance(step, EnsureServiceStack) for step in services.workflows.apply.steps)
+        )
+        self.assertEqual(
+            (
+                "deployment:portainer-service-readiness",
+                "deployment:nexus-service-readiness",
+                "deployment:jenkins-service-readiness",
+                "deployment:rabbitmq-service-readiness",
+                "deployment:sonarqube-service-readiness",
+                "deployment:swagger-service-readiness",
+                "deployment:service-access-service-readiness",
+            ),
+            tuple(check.verification_target_id for check in services.workflows.verify.checks),
+        )
 
     def test_build_artifact_services_uses_static_local_defaults_not_environment_passwords(self):
         with patch.dict("os.environ", {"TSW_NEXUS_ADMIN_PASSWORD": "operator-supplied"}, clear=True):
@@ -250,6 +302,9 @@ class TestComposition(unittest.TestCase):
             ),
             tuple(phase.name for phase in services.workflows.run.phases),
         )
+        build_preflight.assert_called_once_with(service_profile=ServiceStackProfile.SERVICE_ACCESS)
+        build_platform.assert_called_once_with(service_profile=ServiceStackProfile.SERVICE_ACCESS)
+        build_deployment.assert_called_once_with(service_profile=ServiceStackProfile.SERVICE_ACCESS)
         build_preflight.return_value.run.assert_not_called()
         build_platform.return_value.workflows.init.run.assert_not_called()
         build_artifacts.return_value.workflows.prepare.run.assert_not_called()

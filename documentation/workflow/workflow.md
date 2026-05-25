@@ -716,7 +716,8 @@ Done criteria:
 Purpose:
 
 - Implement or configure the service-access dashboard content.
-- Ensure status labels and credential references are deterministic and safe.
+- Ensure central route links and credential references are deterministic and
+  safe.
 - Avoid React project scope.
 
 ```yaml
@@ -978,7 +979,11 @@ When the user later asks for commit or push preparation:
 
 ## Handoff To Workflow Execute
 
-Future execution should use:
+Workflow execution has progressed through Slice 05 on branch
+`feature/workflow-access-vaultwarden-dashboard-20260525`. Slice 06 is the
+active documentation, quality-evidence and handoff slice.
+
+If execution is resumed, use:
 
 ```text
 workflow execute with subagents
@@ -991,9 +996,14 @@ Before execution:
 - verify the context pack hashes are current;
 - verify slice metadata and locks;
 - run S3/S3D preflight;
-- execute Slice 01 first;
+- resume at Slice 06 unless a checkpoint rollback deliberately changes the
+  execution state;
 - keep writes inside each slice's allowed scope;
 - stop on any credential, routing, port, or architecture blocker.
+
+Final publication is checkpoint-only for workflow execution: no `push auto`,
+no pull request creation, no merge, no branch cleanup, no force-push and no
+push to `main`.
 
 ## arc42 Check Status
 
@@ -1005,6 +1015,8 @@ Checked during workflow creation:
 - `documentation/arc42/10_quality_requirements.adoc`
 - `documentation/arc42/11_risks_and_debt.adoc`
 
-No arc42 file is updated during workflow creation because implementation has
-not happened yet. Slices define the exact arc42 synchronization points needed
-when behavior is implemented.
+arc42 files are synchronized during workflow execution slices when behavior is
+implemented. The post-workflow live smoke test on 2026-05-25 verified the
+older service-access route through Swarm node IPs. The current routing baseline
+is service-access central NGINX on `http://localhost` with Vaultwarden on
+`8086`; it requires a fresh live deployment before browser verification.

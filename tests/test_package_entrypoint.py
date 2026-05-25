@@ -30,6 +30,7 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PlatformWorkflowResult,
     PlatformWorkflowStatus,
 )
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ENTRYPOINT_PATH = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "__main__.py"
@@ -77,6 +78,22 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         with redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
                 entrypoint.parse_args(["--run", "vm-ip-list"])
+
+    def test_service_profile_defaults_to_service_access(self):
+        args = entrypoint.parse_args([])
+
+        self.assertEqual(ServiceStackProfile.SERVICE_ACCESS.value, args.service_profile)
+
+    def test_setup_installation_plan_lists_service_access_landing_page(self):
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            entrypoint._print_setup_installation_plan()
+
+        plan = output.getvalue()
+        self.assertIn("Service profile: service-access", plan)
+        self.assertIn("Service Access: stack service-access", plan)
+        self.assertIn("published port(s) 80, 8086", plan)
 
     async def test_mutating_workflow_requires_live_consent_before_building_services(self):
         output = io.StringIO()
@@ -293,7 +310,9 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                     build_deployment_services.assert_not_called()
                 else:
                     build_artifact_services.assert_not_called()
-                    build_deployment_services.assert_called_once_with()
+                    build_deployment_services.assert_called_once_with(
+                        service_profile=ServiceStackProfile.SERVICE_ACCESS.value
+                    )
                 runs[(namespace, action)].assert_awaited_once_with()
                 payload = _json_payload_from_output(output.getvalue())
                 self.assertEqual(False, payload["executed"])
@@ -334,6 +353,10 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         build_setup.assert_called_once()
         live_consent = build_setup.call_args.args[0]
         self.assertTrue(live_consent.accepted)
+        self.assertEqual(
+            {"service_profile": ServiceStackProfile.SERVICE_ACCESS.value},
+            build_setup.call_args.kwargs,
+        )
         setup_services.workflows.run.run.assert_awaited_once_with()
         payload = _json_payload_from_output(output.getvalue())
         self.assertEqual("setup run", payload["workflow"])
@@ -348,7 +371,9 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 with redirect_stdout(output):
                     await entrypoint.main(["--preflight"])
 
-        build_preflight.assert_called_once_with()
+        build_preflight.assert_called_once_with(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS.value
+        )
         build_services.assert_not_called()
         preflight.run.assert_awaited_once_with(None)
         self.assertIn('"status": "PASSED"', output.getvalue())

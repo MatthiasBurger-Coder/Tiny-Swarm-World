@@ -31,6 +31,15 @@ slices wire live Platform, Artifacts, and Deployment behavior. It does not
 replace this system-unification EPIC and does not claim that autonomous setup
 is already implemented.
 
+The service-access dashboard and Vaultwarden baseline also extends this EPIC:
+
+- `documentation/epics/service-access-dashboard-vaultwarden.md`
+
+That extension defines a future Deployment-owned service stack capability for
+operator service access and credential visibility. It does not claim that a
+Vaultwarden stack, dashboard stack, routing asset, readiness check, or live
+deployment is implemented.
+
 ## Intent
 
 Tiny Swarm World remains one Linux/WSL-only Python automation system for a
@@ -91,6 +100,9 @@ Planned or incomplete:
   runnable setup remains incomplete until command-backed platform
   verification, artifact publication, registry checks, first-time stack
   bootstrap, and service readiness evidence are wired.
+- The service-access dashboard and Vaultwarden requirement baseline exists as
+  an EPIC extension, but no stack, routing, persistence, readiness, or live
+  deployment implementation exists yet.
 
 ## Scope
 
@@ -138,6 +150,10 @@ Out of scope:
   the implemented fail-closed `setup run` orchestrator, but must not present
   full live runnable setup as implemented until later verification evidence
   proves it.
+- Service-access dashboard and Vaultwarden requirements preserve the
+  Deployment responsibility boundary. Documentation must not present the
+  service-access dashboard, Vaultwarden, routing, or credential migration as
+  implemented until source, configuration, and verification evidence exist.
 
 ## Non-Functional Requirements
 

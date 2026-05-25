@@ -5,6 +5,8 @@ from enum import Enum
 from types import MappingProxyType
 from typing import Mapping
 
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
+
 
 class SetupProfile(str, Enum):
     FULL = "full"
@@ -15,6 +17,7 @@ class SetupProfile(str, Enum):
 class SetupPortRequirement:
     port: int
     service: str
+    host_preflight_required: bool = True
 
 
 @dataclass(frozen=True)
@@ -34,7 +37,11 @@ class SetupServiceRequirement:
         return {
             "name": self.name,
             "ports": [
-                {"port": port.port, "service": port.service}
+                {
+                    "host_preflight_required": port.host_preflight_required,
+                    "port": port.port,
+                    "service": port.service,
+                }
                 for port in self.ports
             ],
             "secrets": [
@@ -88,49 +95,71 @@ class SetupManifest:
 
 def default_setup_manifest(
     profile: SetupProfile = SetupProfile.FULL,
+    service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
 ) -> SetupManifest:
+    selected_service_profile = ServiceStackProfile(service_profile)
+    services = [
+        SetupServiceRequirement(
+            name="Portainer",
+            ports=(SetupPortRequirement(9000, "Portainer"),),
+            secrets=(SetupSecretRequirement("TSW_PORTAINER_PASSWORD", "Portainer"),),
+        ),
+        SetupServiceRequirement(
+            name="Nexus",
+            ports=(
+                SetupPortRequirement(8081, "Nexus"),
+                SetupPortRequirement(5000, "Nexus Docker registry"),
+            ),
+            secrets=(SetupSecretRequirement("TSW_NEXUS_ADMIN_PASSWORD", "Nexus"),),
+        ),
+        SetupServiceRequirement(
+            name="Jenkins",
+            ports=(SetupPortRequirement(8080, "Jenkins"),),
+            secrets=(SetupSecretRequirement("TSW_JENKINS_ADMIN_PASSWORD", "Jenkins"),),
+        ),
+        SetupServiceRequirement(
+            name="RabbitMQ",
+            ports=(
+                SetupPortRequirement(5672, "RabbitMQ AMQP"),
+                SetupPortRequirement(15672, "RabbitMQ management"),
+            ),
+            secrets=(SetupSecretRequirement("TSW_RABBITMQ_PASSWORD", "RabbitMQ"),),
+        ),
+        SetupServiceRequirement(
+            name="SonarQube",
+            ports=(SetupPortRequirement(9001, "SonarQube"),),
+            secrets=(
+                SetupSecretRequirement("TSW_SONARQUBE_ADMIN_PASSWORD", "SonarQube"),
+                SetupSecretRequirement("TSW_POSTGRES_PASSWORD", "SonarQube PostgreSQL"),
+            ),
+        ),
+        SetupServiceRequirement(
+            name="Swagger/NGINX",
+            ports=(SetupPortRequirement(8084, "Swagger/NGINX"),),
+        ),
+    ]
+    if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS:
+        services.append(
+            SetupServiceRequirement(
+                name="Service Access",
+                ports=(
+                    SetupPortRequirement(80, "Service Access dashboard"),
+                    SetupPortRequirement(8086, "Vaultwarden"),
+                ),
+                secrets=(
+                    SetupSecretRequirement(
+                        "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
+                        "Vaultwarden admin-token secret name",
+                    ),
+                ),
+            )
+        )
     return SetupManifest(
         profile=profile,
         evidence_root=".tiny-swarm-world/evidence/live-installation",
-        metadata={"live_smoke": "separate-operator-action"},
-        services=(
-            SetupServiceRequirement(
-                name="Portainer",
-                ports=(SetupPortRequirement(9000, "Portainer"),),
-                secrets=(SetupSecretRequirement("TSW_PORTAINER_PASSWORD", "Portainer"),),
-            ),
-            SetupServiceRequirement(
-                name="Nexus",
-                ports=(
-                    SetupPortRequirement(8081, "Nexus"),
-                    SetupPortRequirement(5000, "Nexus Docker registry"),
-                ),
-                secrets=(SetupSecretRequirement("TSW_NEXUS_ADMIN_PASSWORD", "Nexus"),),
-            ),
-            SetupServiceRequirement(
-                name="Jenkins",
-                ports=(SetupPortRequirement(8080, "Jenkins"),),
-                secrets=(SetupSecretRequirement("TSW_JENKINS_ADMIN_PASSWORD", "Jenkins"),),
-            ),
-            SetupServiceRequirement(
-                name="RabbitMQ",
-                ports=(
-                    SetupPortRequirement(5672, "RabbitMQ AMQP"),
-                    SetupPortRequirement(15672, "RabbitMQ management"),
-                ),
-                secrets=(SetupSecretRequirement("TSW_RABBITMQ_PASSWORD", "RabbitMQ"),),
-            ),
-            SetupServiceRequirement(
-                name="SonarQube",
-                ports=(SetupPortRequirement(9001, "SonarQube"),),
-                secrets=(
-                    SetupSecretRequirement("TSW_SONARQUBE_ADMIN_PASSWORD", "SonarQube"),
-                    SetupSecretRequirement("TSW_POSTGRES_PASSWORD", "SonarQube PostgreSQL"),
-                ),
-            ),
-            SetupServiceRequirement(
-                name="Swagger/NGINX",
-                ports=(SetupPortRequirement(80, "Swagger/NGINX"),),
-            ),
-        ),
+        metadata={
+            "live_smoke": "separate-operator-action",
+            "service_profile": selected_service_profile.value,
+        },
+        services=tuple(services),
     )

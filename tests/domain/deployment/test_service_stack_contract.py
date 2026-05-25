@@ -3,7 +3,11 @@ import unittest
 from tiny_swarm_world.domain.deployment import (
     DEFAULT_PORTAINER_MANAGED_SERVICE_STACK_CONTRACTS,
     DEFAULT_SERVICE_STACK_CONTRACTS,
+    SERVICE_ACCESS_STACK_CONTRACT,
+    ServiceStackProfile,
     ServiceStackContract,
+    portainer_managed_service_stack_contracts_for_profile,
+    service_stack_contracts_for_profile,
 )
 
 
@@ -14,6 +18,25 @@ class TestServiceStackContract(unittest.TestCase):
         self.assertEqual(
             ("portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"),
             stack_names,
+        )
+        self.assertNotIn("service-access", stack_names)
+
+    def test_service_access_profile_adds_selected_stack_contract(self):
+        selected = service_stack_contracts_for_profile(ServiceStackProfile.SERVICE_ACCESS)
+        selected_by_name = {contract.stack_name: contract for contract in selected}
+
+        self.assertEqual(
+            ("portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "service-access"),
+            tuple(contract.stack_name for contract in selected),
+        )
+        self.assertEqual(SERVICE_ACCESS_STACK_CONTRACT, selected_by_name["service-access"])
+        self.assertEqual(
+            ("service-access-dashboard", "vaultwarden", "service-access-nginx"),
+            selected_by_name["service-access"].required_services,
+        )
+        self.assertEqual(
+            "deployment:service-access-service-readiness",
+            selected_by_name["service-access"].service_readiness_target_id,
         )
 
     def test_default_service_stack_contracts_have_valid_verification_targets(self):
@@ -39,6 +62,20 @@ class TestServiceStackContract(unittest.TestCase):
         )
 
         self.assertEqual(("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"), stack_names)
+
+    def test_selected_portainer_managed_stack_contracts_include_service_access(self):
+        stack_names = tuple(
+            contract.stack_name
+            for contract in portainer_managed_service_stack_contracts_for_profile(
+                ServiceStackProfile.SERVICE_ACCESS
+            )
+        )
+
+        self.assertEqual(
+            ("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "service-access"),
+            stack_names,
+        )
+        self.assertNotIn("portainer", stack_names)
 
     def test_rejects_invalid_stack_name(self):
         with self.assertRaises(ValueError):
