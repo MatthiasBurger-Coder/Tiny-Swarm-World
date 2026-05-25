@@ -121,4 +121,53 @@ Limitations:
 
 ## Slice 03: Extend Preflight Ports And Service Contract
 
+Responsible role: Senior Python Automation Developer
+
+Reviewed roles:
+
+- Senior System Architect
+- Senior Tester
+- Senior Python Automation Developer
+
+Changed files:
+
+- `src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py`
+- `src/tiny_swarm_world/application/services/platform/preflight_service.py`
+- `tests/application/services/platform/test_preflight_service.py`
+
+Quality gates:
+
+- `PYTHONPATH=src python3 -m unittest
+  tests.application.services.platform.test_preflight_service`: passed, 24 tests
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+  tests.infrastructure.adapters.preflight.test_host_preflight_probe`: passed,
+  49 tests
+- `python3 tools/quality_gate.py arch-tests`: passed, 16 tests
+- `/home/mburger/.local/bin/ruff check <changed files>`: passed
+- `git diff --check`: passed with unrelated CRLF warnings for untouched files
+- `git diff --cached --check`: passed
+
+Checkpoint commit: `910e247`
+
+Rollback reference:
+
+- Revert commit `910e247`.
+
+arc42 update status: checked; runtime/preflight view update remains assigned to
+the documentation slice.
+
+ADR update status:
+`documentation/architecture/adr-autonomous-setup-safety.adoc` remains
+satisfied; no new ADR required.
+
+Push result: not run. The active workflow says not to push or create a pull
+request during slice checkpoints unless explicitly requested.
+
+Limitations:
+
+- Full `python3 tools/quality_gate.py quality` was not reported for this
+  checkpoint; the Slice 03 required gates were run.
+
+## Slice 04: Implement Linux And Sandbox Host Probe
+
 Status: pending S3D confirmation before write-capable work.
