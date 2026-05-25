@@ -4,6 +4,7 @@ from collections.abc import Mapping
 
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.domain.preflight import (
+    HostEnvironmentReport,
     HostRuntimeReadiness,
     HostRuntimeReadinessStatus,
     LiveConsent,
@@ -27,15 +28,20 @@ class PreflightService:
         self.configuration = configuration or default_preflight_configuration()
 
     async def run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
+        host_environment = self.host_probe.host_environment_report()
         checks = [
             self._setup_manifest_check(),
-            self._host_check(),
+            self._host_check(host_environment),
             self._python_check(),
             *self._dependency_checks(),
         ]
         if live_consent is not None:
             checks.insert(0, self._live_consent_check(live_consent))
-        if live_consent is not None and live_consent.accepted:
+        if (
+            live_consent is not None
+            and live_consent.accepted
+            and host_environment.allows_live_setup
+        ):
             checks.extend(self._runtime_checks())
         checks.extend(
             (
@@ -83,14 +89,28 @@ class PreflightService:
             {"missing": ",".join(live_consent.missing_reasons)},
         )
 
-    def _host_check(self) -> PreflightCheck:
-        if self.host_probe.is_linux_or_wsl():
-            return _passed("HOST", PreflightCategory.HOST, "Host is Linux or WSL compatible.")
+    def _host_check(self, host_environment: HostEnvironmentReport) -> PreflightCheck:
+        evidence = {
+            "environment": host_environment.environment.value,
+            "setup_path": host_environment.setup_path.value,
+            "supported": _bool_text(host_environment.supported),
+            "allows_live_setup": _bool_text(host_environment.allows_live_setup),
+            "static_validation_only": _bool_text(host_environment.static_validation_only),
+            **host_environment.evidence,
+        }
+        if host_environment.allows_live_setup:
+            return _passed(
+                "HOST",
+                PreflightCategory.HOST,
+                f"Host setup path '{host_environment.setup_path.value}' is supported.",
+                evidence,
+            )
         return _failed(
             "HOST",
             PreflightCategory.HOST,
-            "Host is not reported as Linux or WSL.",
-            "Run Tiny Swarm World from Linux or WSL.",
+            f"Host setup path '{host_environment.setup_path.value}' is not live-ready.",
+            _host_environment_remediation(host_environment),
+            evidence,
         )
 
     def _python_check(self) -> PreflightCheck:
@@ -564,6 +584,16 @@ def _format_python_version(version: tuple[int, ...]) -> str:
     if not version:
         return "unknown"
     return ".".join(str(part) for part in version)
+
+
+def _bool_text(value: bool) -> str:
+    return "true" if value else "false"
+
+
+def _host_environment_remediation(host_environment: HostEnvironmentReport) -> str:
+    if host_environment.remediation:
+        return " ".join(host_environment.remediation)
+    return "Run Tiny Swarm World from supported native Linux or WSL2."
 
 
 def _port_remediation(service: str) -> str:

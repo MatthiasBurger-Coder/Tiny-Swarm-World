@@ -6,13 +6,17 @@ from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.preflight import (
+    HostEnvironmentKind,
+    HostEnvironmentReport,
     HostRuntimeReadiness,
     HostRuntimeReadinessStatus,
     LiveConsent,
     PreflightCategory,
     PreflightSeverity,
+    PreflightStatus,
     RequiredPort,
     RequiredSecret,
+    SetupPath,
     SetupManifest,
     SetupPortRequirement,
     SetupProfile,
@@ -47,6 +51,79 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("LIVE-CONSENT", check_ids)
         self.assertNotIn("RUNTIME-MULTIPASS", check_ids)
         self.assertEqual((), tuple(probe.runtime_probe_calls))
+
+    async def test_static_preflight_reports_typed_host_evidence_without_runtime_readiness(self):
+        probe = _FakeProbe(
+            host_environment=HostEnvironmentReport(
+                environment=HostEnvironmentKind.WSL2,
+                setup_path=SetupPath.WSL2,
+                remediation=("Verify runtime readiness before live setup.",),
+                evidence={"classification": "wsl2"},
+            )
+        )
+
+        result = await PreflightService(probe).run()
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        host_check = checks_by_id["HOST"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual(PreflightStatus.PASSED, host_check.status)
+        self.assertEqual("wsl2", host_check.evidence["environment"])
+        self.assertEqual("wsl2", host_check.evidence["setup_path"])
+        self.assertEqual("true", host_check.evidence["supported"])
+        self.assertEqual("true", host_check.evidence["allows_live_setup"])
+        self.assertEqual("false", host_check.evidence["static_validation_only"])
+        self.assertEqual((), tuple(probe.runtime_probe_calls))
+        self.assertNotIn("RUNTIME-MULTIPASS", checks_by_id)
+        self.assertNotIn("qemu", repr(result.to_dict()).casefold())
+        self.assertNotIn("runtime is reachable", repr(result.to_dict()).casefold())
+
+    async def test_live_preflight_fails_closed_for_unsupported_host_reports(self):
+        cases = (
+            (
+                HostEnvironmentKind.WSL1_UNSUPPORTED,
+                SetupPath.UNSUPPORTED,
+                "Upgrade to WSL2.",
+            ),
+            (
+                HostEnvironmentKind.UNKNOWN_UNSUPPORTED,
+                SetupPath.UNSUPPORTED,
+                "Use native Linux or WSL2.",
+            ),
+            (
+                HostEnvironmentKind.SANDBOX_UNVERIFIED,
+                SetupPath.SANDBOX_UNVERIFIED,
+                "Run live validation from a real WSL2 console.",
+            ),
+        )
+
+        for environment, setup_path, remediation in cases:
+            with self.subTest(environment=environment.value):
+                probe = _FakeProbe(
+                    host_environment=HostEnvironmentReport(
+                        environment=environment,
+                        setup_path=setup_path,
+                        remediation=(remediation,),
+                        evidence={"classification": environment.value},
+                    )
+                )
+
+                result = await PreflightService(probe).run(
+                    LiveConsent(live_flag=True, confirmed=True)
+                )
+
+                checks_by_id = {check.check_id: check for check in result.checks}
+                host_check = checks_by_id["HOST"]
+
+                self.assertFalse(result.passed)
+                self.assertEqual(PreflightStatus.FAILED, host_check.status)
+                self.assertEqual(environment.value, host_check.evidence["environment"])
+                self.assertEqual(setup_path.value, host_check.evidence["setup_path"])
+                self.assertEqual("false", host_check.evidence["allows_live_setup"])
+                self.assertIn(remediation, host_check.remediation)
+                self.assertEqual((), tuple(probe.runtime_probe_calls))
+                self.assertNotIn("RUNTIME-MULTIPASS", checks_by_id)
 
     async def test_preflight_reports_selected_setup_profile_and_manifest(self):
         configuration = default_preflight_configuration(SetupProfile.RESOURCE_GATED)
@@ -136,6 +213,23 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(PreflightCategory.RUNTIME, runtime_check.category)
         self.assertEqual("ready", runtime_check.evidence["classification"])
         self.assertEqual("qemu", runtime_check.evidence["expected_driver"])
+        self.assertEqual(("qemu",), tuple(probe.runtime_probe_calls))
+
+    async def test_legacy_boolean_host_probe_still_runs_live_runtime_readiness(self):
+        probe = _LegacyBooleanProbe()
+
+        result = await PreflightService(probe).run(
+            LiveConsent(live_flag=True, confirmed=True)
+        )
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        host_check = checks_by_id["HOST"]
+        runtime_check = checks_by_id["RUNTIME-MULTIPASS"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual("native_linux", host_check.evidence["environment"])
+        self.assertEqual("legacy_boolean_compatible", host_check.evidence["classification"])
+        self.assertEqual("ready", runtime_check.evidence["classification"])
         self.assertEqual(("qemu",), tuple(probe.runtime_probe_calls))
 
     async def test_live_preflight_fails_when_multipass_socket_is_unavailable(self):
@@ -382,6 +476,7 @@ class _FakeProbe(PortHostPreflightProbe):
         disk_free_bytes_value: int = 120 * 1024**3,
         python_version_value: str = "3.12.3",
         runtime_readiness: HostRuntimeReadiness | None = None,
+        host_environment: HostEnvironmentReport | None = None,
     ):
         self.executable_availability = executable_availability or {}
         self.secret_availability = secret_availability or {}
@@ -395,6 +490,12 @@ class _FakeProbe(PortHostPreflightProbe):
         self.memory_bytes_value = memory_bytes_value
         self.disk_free_bytes_value = disk_free_bytes_value
         self.python_version_value = python_version_value
+        self.host_environment = host_environment or HostEnvironmentReport(
+            environment=HostEnvironmentKind.NATIVE_LINUX,
+            setup_path=SetupPath.NATIVE_LINUX,
+            remediation=("Verify runtime readiness before live setup.",),
+            evidence={"classification": "native_linux"},
+        )
         self.runtime_readiness = runtime_readiness or HostRuntimeReadiness(
             "multipass",
             HostRuntimeReadinessStatus.READY,
@@ -408,6 +509,16 @@ class _FakeProbe(PortHostPreflightProbe):
 
     def is_linux_or_wsl(self) -> bool:
         return self.host_compatible
+
+    def host_environment_report(self) -> HostEnvironmentReport:
+        if self.host_compatible:
+            return self.host_environment
+        return HostEnvironmentReport(
+            environment=HostEnvironmentKind.UNKNOWN_UNSUPPORTED,
+            setup_path=SetupPath.UNSUPPORTED,
+            remediation=("Run Tiny Swarm World from Linux or WSL.",),
+            evidence={"classification": "unknown_unsupported"},
+        )
 
     def python_version(self) -> str:
         return self.python_version_value
@@ -450,3 +561,59 @@ class _FakeProbe(PortHostPreflightProbe):
         fingerprints: Mapping[str, str],
     ) -> Sequence[str]:
         return self.forbidden_fingerprints
+
+
+class _LegacyBooleanProbe(PortHostPreflightProbe):
+    def __init__(self):
+        self.runtime_probe_calls: list[str | None] = []
+
+    def is_linux_or_wsl(self) -> bool:
+        return True
+
+    def python_version(self) -> str:
+        return "3.12.3"
+
+    def executable_available(self, name: str) -> bool:
+        return True
+
+    def multipass_runtime_readiness(
+        self,
+        expected_driver: str | None = None,
+    ) -> HostRuntimeReadiness:
+        self.runtime_probe_calls.append(expected_driver)
+        return HostRuntimeReadiness(
+            "multipass",
+            HostRuntimeReadinessStatus.READY,
+            {
+                "probe": "list,driver",
+                "actual_driver": "qemu",
+                "expected_driver": "qemu",
+            },
+        )
+
+    def cpu_count(self) -> int:
+        return 8
+
+    def memory_bytes(self) -> int:
+        return 32 * 1024**3
+
+    def disk_free_bytes(self, path: str) -> int:
+        return 120 * 1024**3
+
+    def port_available(self, port: int) -> bool:
+        return True
+
+    def port_matches_expected_service(self, port: int, service: str) -> bool:
+        return False
+
+    def secret_available(self, name: str) -> bool:
+        return True
+
+    def path_ignored_by_git(self, path: str) -> bool:
+        return True
+
+    def forbidden_tracked_secret_fingerprints(
+        self,
+        fingerprints: Mapping[str, str],
+    ) -> Sequence[str]:
+        return ()

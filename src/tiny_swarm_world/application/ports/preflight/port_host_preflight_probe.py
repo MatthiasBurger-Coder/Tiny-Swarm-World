@@ -3,13 +3,33 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 
-from tiny_swarm_world.domain.preflight import HostRuntimeReadiness
+from tiny_swarm_world.domain.preflight import (
+    HostEnvironmentKind,
+    HostEnvironmentReport,
+    HostRuntimeReadiness,
+    SetupPath,
+)
 
 
 class PortHostPreflightProbe(ABC):
     @abstractmethod
     def is_linux_or_wsl(self) -> bool:
         pass
+
+    def host_environment_report(self) -> HostEnvironmentReport:
+        if self.is_linux_or_wsl():
+            return HostEnvironmentReport(
+                environment=HostEnvironmentKind.NATIVE_LINUX,
+                setup_path=SetupPath.NATIVE_LINUX,
+                remediation=("Provide a typed host probe for WSL2-specific classification.",),
+                evidence={"classification": "legacy_boolean_compatible"},
+            )
+        return HostEnvironmentReport(
+            environment=HostEnvironmentKind.UNKNOWN_UNSUPPORTED,
+            setup_path=SetupPath.UNSUPPORTED,
+            remediation=("Run Tiny Swarm World from Linux or WSL2.",),
+            evidence={"classification": "legacy_boolean_unsupported"},
+        )
 
     @abstractmethod
     def python_version(self) -> str:
