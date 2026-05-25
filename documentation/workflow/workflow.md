@@ -454,6 +454,7 @@ affected_files:
   - "documentation/arc42/02_constraints.adoc"
   - "documentation/arc42/06_runtime_view.adoc"
   - "documentation/arc42/07_deployment_view.adoc"
+  - "documentation/arc42/09_architecture_decisions.adoc"
   - "documentation/arc42/11_risks_and_debt.adoc"
 affected_modules: []
 affected_contracts:

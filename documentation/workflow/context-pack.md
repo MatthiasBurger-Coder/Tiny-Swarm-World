@@ -127,6 +127,7 @@ Git blob hashes:
 
 | File | Hash |
 | --- | --- |
+| `documentation/workflow/workflow.md` | `f0d8c6119ed2e0ef2467d4f9aae598f50f130d2f` |
 | `AGENTS.md` | `13a61789bff97a4b0b7c99424aca1d79f013d55e` |
 | `QUALITY.md` | `17002150bab9f168eb60be85d55b7a0c1cb441e5` |
 | `documentation/epics/autonomous-runnable-setup.md` | `cc9c7ae0e5a116395bd4582eb2049a17e54e7e08` |
