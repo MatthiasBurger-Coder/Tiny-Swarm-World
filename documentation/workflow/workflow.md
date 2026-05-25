@@ -1,35 +1,39 @@
-# Workflow: Service Access Dashboard And Vaultwarden
+# Workflow: Stable Live Setup
 
 ## Executive Summary
 
-This workflow creates the governed implementation plan for adding a
-Portainer-managed service-access stack to Tiny Swarm World.
+This workflow creates the governed implementation plan for making the canonical
+Tiny Swarm World live setup path stable from a Linux or WSL shell, including
+the same shell context used by an IntelliJ terminal or run configuration.
 
-The target is a Docker Swarm-first stack, created with the same repository
-patterns as the existing service stacks: compose definitions under
-`infra/config/compose`, optional image or runtime assets under `infra/compose`,
-deployment contracts through the existing Python automation, and default
-verification through mocked or static checks.
+The reported failure is not a Python dependency or Ruff installation problem.
+The project quality gate passed. The live setup failed because preflight proved
+only that the `multipass` executable exists, while the later `platform init`
+phase needed a working Multipass daemon/socket and failed at
+`platform:init:multipass-vms`.
 
-The workflow plans:
+Target command:
 
-- a service-access dashboard GUI container that lists how configured Tiny
-  Swarm World services are reached;
-- a Vaultwarden container for credential storage;
-- dashboard credential links that lead operators to Vaultwarden items;
-- password values visible to authorized operators through the authenticated
-  Vaultwarden UI, not duplicated as plaintext in the service-access dashboard,
-  compose files, logs, or evidence;
-- NGINX-first HTTP routing, because the repository already contains a
-  Swagger/NGINX pattern and has no Traefik surface;
-- Portainer as the preferred post-bootstrap stack management surface, not as
-  the HTTP router and not as its own bootstrap dependency.
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+```
+
+Target behavior:
+
+- from a Linux/WSL IntelliJ terminal, the command either installs the selected
+  stable local Multipass Docker Swarm environment or fails before mutation with
+  actionable host-prerequisite diagnostics;
+- Multipass socket, driver and access failures are reported during live
+  readiness/preflight, not as a late `failed_to_apply` during VM creation;
+- direct `platform init --live` receives the same host-readiness guard;
+- default verification remains static or mocked and does not run Multipass,
+  Docker Swarm, compose, netplan, `socat`, Portainer, Nexus, Jenkins,
+  RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image build, image push or
+  stack deployment commands.
 
 No live infrastructure command may run during workflow creation. Future
-workflow execution must not run Multipass, Docker Swarm, compose deployments,
-Portainer, Vaultwarden, NGINX, Traefik, or service bootstrap commands unless a
-slice explicitly owns that behavior and the user provides live-infrastructure
-consent.
+workflow execution must keep live smoke validation separate from the default
+quality gate.
 
 ## Target Picture
 
@@ -38,460 +42,723 @@ consent.
 - Active workflow version:
 
 ```text
-service-access-vaultwarden-dashboard-v1.0.0
+stable-live-setup-v1.0.0
 ```
 
 - Active workflow branch:
 
 ```bash
-feature/workflow-access-vaultwarden-dashboard-20260525
+feature/workflow-stable-live-setup-20260525
 ```
 
 - Root `AGENTS.md` defines Tiny Swarm World as Linux/WSL-only, Python
-  automation, hexagonal architecture, and Docker Swarm-first.
-- Root `QUALITY.md` defines the full quality gate:
+  automation, hexagonal architecture and Docker Swarm-first.
+- Root `QUALITY.md` defines the full local quality gate:
 
 ```bash
 python3 tools/quality_gate.py quality
 ```
 
-- Existing compose stacks live under `infra/config/compose/<stack>/docker-compose.yml`.
-- Existing runtime assets live under `infra/compose/<stack>/**`.
-- Existing default service contracts cover Portainer, Nexus, Jenkins,
-  RabbitMQ, SonarQube, and Swagger/NGINX.
-- Portainer-managed service-stack planning already excludes Portainer itself
-  to avoid a bootstrap cycle.
-- Swagger/NGINX currently publishes HTTP port `80`; a new HTTP-facing service
-  must not silently reuse that port.
-- Portainer stack upload currently sends compose content. Additional NGINX or
-  dashboard assets must be packaged into an image, prepared through an
-  explicit asset boundary, or avoided by using image-native configuration.
-- No React frontend build surface is present. The dashboard is an
-  infrastructure service GUI, not a new repository React application.
-- No Vaultwarden stack or credential-vault contract exists yet.
+- The reported local gate completed successfully:
+  `lint`, `arch-lint`, `arch-tests`, `typecheck`, and `test` passed.
+- The quality output still included noisy intentional test failure log lines
+  and one unawaited coroutine warning; these are test hygiene issues, not the
+  live setup root cause.
+- Manual host evidence before live setup:
+
+```text
+multipass info -> cannot connect to the multipass socket
+multipass get local.driver -> cannot connect to the multipass socket
+```
+
+- `setup run --live` passed setup preflight, then stopped during
+  `platform init` with:
+
+```text
+platform:init:multipass-vms -> failed_to_apply
+Apply failed for platform:init:multipass-vms: CommandExecutionFailed
+```
+
+- Local `.tiny-swarm-world` evidence was inspected after the first workflow
+  draft. The directory is ignored by Git and remains local evidence only.
+- The runner logs confirm two separate classes of failure:
+  - `boom` entries are intentional test/mock noise from command-runner tests,
+    not live infrastructure failures;
+  - current live setup failures are `CommandExecutionError` events for
+    `swarm-manager`, `swarm-worker-1` and `swarm-worker-2` with return code
+    `2`, while stdout and stderr are redacted.
+- `AsyncPortCommandRunner.log` shows the failing commands start in parallel
+  and fail before useful stderr is persisted; the exact Multipass stderr is
+  therefore still unavailable from the committed-safe evidence.
+- `live-runs/setup-20260525-014558.log` shows an earlier full setup run that
+  reached `completed`, including deployment verification and platform
+  verification. The system is therefore not inherently impossible to install;
+  the current failure is state/readiness/diagnostic handling that must become
+  deterministic.
+- Older local live-run logs show additional historical failure classes in
+  later phases: Portainer admin verification, Nexus readiness/admin access and
+  Jenkins image preparation. These are downstream hardening targets after the
+  Multipass readiness boundary is fixed.
+- The existing `documentation/workflow/**` content described the prior
+  service-access/Vaultwarden workflow and is stale for this branch.
 
 ### Target Outcome
 
-The completed workflow execution should produce:
+After workflow execution, the system should provide:
 
-- a documented requirement and security baseline for the service-access
-  dashboard and Vaultwarden;
-- an ADR or ADR-equivalent decision when the implementation changes the
-  default service set, credential-source model, routing model, persistence
-  model, or TLS stance;
-- NGINX-first routing with an explicit port or shared-ingress decision that
-  avoids collision with the current Swagger/NGINX port `80` binding;
-- Portainer-managed stack contracts for the new service-access stack after
-  Portainer is reachable;
-- password values visible to authorized operators in Vaultwarden's
-  authenticated reveal/copy flow;
-- compose and optional runtime/image assets that are deterministic,
-  Swarm-compatible, and free of committed secrets;
-- Python domain, application, and infrastructure changes that preserve
-  existing port/adaptor boundaries;
-- tests that load the new compose stack, verify stack contracts, reject
-  committed secret values, and use fakes for Portainer and Swarm behavior;
-- dashboard behavior that displays service reachability state or access method
-  only when the evidence source is test-backed;
-- documentation synchronized with actual implemented behavior, without
-  presenting planned deployment success as already verified.
+- a live-readiness preflight contract that distinguishes executable presence
+  from Multipass daemon/socket/driver usability;
+- fail-closed checks that block both `setup run --live` and direct
+  `platform init --live` before mutating commands when host runtime access is
+  unavailable;
+- Multipass init command templates that do not treat "cannot connect to
+  Multipass" as "VM does not exist";
+- safe failure classification for known host-runtime failures without
+  exposing raw stdout, stderr, commands, tokens, passwords, local IPs or
+  user-specific paths;
+- endpoint and WSL/localhost strategy captured through ports/configuration
+  rather than adapter shortcuts;
+- credential and setup profile behavior aligned with the autonomous runnable
+  setup EPIC;
+- static/mocked tests that reproduce the reported failure shape;
+- synchronized user guide, troubleshooting, arc42 and workflow documentation;
+- optional live smoke instructions that require explicit user approval and
+  redacted evidence.
 
 ## Requirement Clarification Record
 
-Original request, normalized to ASCII:
+Original request, normalized:
 
 ```text
-workflow create with subagents:
-
-Create another container using the same technique as the other containers.
-This container includes a GUI that shows which server is reachable and which
-passwords are needed.
-
-For passwords:
-- Vaultwarden as container
-- HTTP via NGINX/Traefik
-
-Choose what is better for routing. If this can be solved with Portainer, that
-would be preferred.
+Analyze the problem from the shown terminal session. Then create a workflow
+with subagents. Goal: when this command is run from IntelliJ,
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live, a stable
+environment should be installed and the shown errors should disappear.
 ```
 
 Interpreted intent:
 
-- Create a new active workflow with delegated subagent review.
-- Plan a new service-access dashboard and credential-vault capability.
-- Use existing Docker Swarm, Portainer-managed stack, compose repository, and
-  Python deployment-contract patterns.
-- Prefer NGINX routing because repository evidence supports NGINX and not
-  Traefik.
-- Keep Vaultwarden as the credential store and the password-visible UI.
-- Keep the service-access dashboard focused on service reachability, access
-  routes, credential labels, and links into Vaultwarden.
+- Create a new active workflow on a dedicated branch.
+- Use delegated subagent review.
+- Plan changes that make live setup reliable and diagnosable from the
+  supported Linux/WSL execution context.
+- Treat IntelliJ as an IDE shell/runner surface that must use the same
+  Linux/WSL interpreter, working directory and environment as the terminal.
 
 Change type:
 
-- FULL_PATH workflow creation for deployment configuration, credential-source
-  handling, routing, Python deployment contracts, tests, and documentation.
+- FULL_PATH workflow creation for setup preflight, platform readiness,
+  command catalog behavior, diagnostics, endpoint strategy, credentials,
+  deployment readiness, tests and documentation.
 
 Affected process strand:
 
-- Service stack deployment and setup readiness extension.
+- Autonomous runnable setup and live platform/deployment readiness.
 
 Affected architecture area:
 
-- Deployment boundary, service stack contracts, compose assets, optional
-  artifact publishing, setup preflight manifest, Portainer stack management,
-  reverse-proxy routing, credential-source handling, service readiness
-  verification, documentation, arc42, and ADR index.
+- Domain preflight configuration and status concepts.
+- Application preflight service, setup orchestration and platform workflow
+  guards.
+- Infrastructure host probe and command runner/adapters.
+- YAML command catalogs under `infra/config`.
+- Composition root wiring.
+- Console/status UI text only if recovery messages change.
+- Documentation, arc42, EPIC and workflow context pack.
 
 Explicit requirements:
 
-- Use subagents.
-- Create a workflow.
-- Add another container or stack using the same technique as existing
-  containers.
-- Provide a GUI showing which servers or services are reachable and what
-  credentials are needed.
-- Make password values visible to authorized operators.
-- Use Vaultwarden as a container for password handling.
-- Route HTTP through NGINX or Traefik.
-- Prefer Portainer if feasible.
+- Analyze the reported terminal failure.
+- Create a workflow with subagents.
+- Make `PYTHONPATH=src python3 -m tiny_swarm_world setup run --live` stable
+  for IntelliJ/Linux/WSL execution.
+- Remove the observed late Multipass/socket failure mode.
 
 Implicit requirements:
 
-- Preserve Linux/WSL-only operation and POSIX command examples.
-- Preserve Docker Swarm-first deployment.
+- Preserve Linux/WSL-only behavior and POSIX examples.
+- Preserve live-consent controls.
+- Do not run live infrastructure commands during workflow creation or default
+  verification.
 - Preserve hexagonal architecture.
-- Keep concrete adapter construction in
-  `src/tiny_swarm_world/infrastructure/composition.py`.
-- Keep application services dependent on ports, not infrastructure adapters.
-- Keep runtime stack configuration host-neutral.
-- Do not commit passwords, tokens, Vaultwarden admin tokens, local paths,
-  local IP addresses, or raw command output.
-- Use static and mocked tests by default.
-- Record service reachability as unknown or blocked unless observed-state or
-  HTTP evidence is test-backed.
+- Keep infrastructure-specific Multipass, Docker, shell and YAML details in
+  infrastructure adapters or configuration.
+- Keep `src/tiny_swarm_world/infrastructure/composition.py` as the concrete
+  wiring root.
+- Keep the default quality gate static/mocked.
+- Keep diagnostics redacted and actionable.
+- Do not introduce Java, Maven, Spring Boot, browser React, Kubernetes-first
+  behavior or external static-analysis CI.
 
-Accepted assumptions and decisions:
+Accepted assumptions:
 
-- The feature is a service-access stack containing at least a dashboard
-  service and Vaultwarden. NGINX may be part of the stack or shared ingress,
-  depending on the port decision in Slice 02.
-- Password values must be visible in Vaultwarden's authenticated UI. The
-  service-access dashboard may show credential names, source status, and
-  Vaultwarden item links, but must not duplicate or cache password values.
-- NGINX is the default routing direction because Swagger/NGINX exists and no
-  Traefik configuration exists. Traefik requires a later ADR-level decision.
-- Portainer is preferred for post-bootstrap stack create/update. Initial
-  bootstrap must avoid depending on Portainer before Portainer is reachable.
-- The workflow extends the autonomous runnable setup and system-unification
-  EPICs. It does not replace them.
-- The regenerated `documentation/workflow/**` directory is intentional under
-  the workflow-create regeneration rule.
+- The manual Multipass socket failures were observed from the same Linux/WSL
+  user context intended for IntelliJ execution.
+- Socket/daemon/driver failures are host prerequisite failures and should
+  block live setup before VM mutation.
+- The workflow should plan detection and guided remediation, not automatic
+  host repair.
+- QEMU remains the expected Linux/WSL Multipass driver unless a later ADR
+  changes the runtime model.
+- Static preflight without live consent may remain static; accepted live
+  preflight may use safe read-only runtime probes.
+- Existing static local defaults are tolerated only as local-development
+  compatibility until a slice decides and tests the credential source of
+  truth.
 
 Non-goals:
 
-- No live deployment during workflow creation.
-- No plaintext secrets in the service-access dashboard, compose files, logs,
-  documentation, or evidence. Vaultwarden's authenticated UI is the approved
-  password-visible surface.
-- No new React, TypeScript, Vite, or browser frontend project in the
-  repository.
-- No Java, Maven, Spring Boot, or Kubernetes-first pivot.
-- No direct promotion of legacy scripts as deployment entry points.
-- No TLS or certificate automation unless a later ADR accepts that contract.
-- No Traefik implementation unless an ADR and tests deliberately add it.
+- No live Multipass, Docker, Swarm, compose, netplan, `socat`, Portainer,
+  Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image build,
+  image push or service bootstrap during workflow creation.
+- No automatic installation of host packages.
+- No automatic `sudo`, group membership, socket ownership, driver mutation or
+  service restart without a later explicit approval and ADR where required.
+- No Windows-native support expansion.
+- No non-interactive live consent model unless a later ADR accepts it.
+- No claim of live service health without observed evidence.
 
 Risks:
 
-- Credential leakage through dashboard content, compose defaults, logs, or
-  evidence.
-- A circular bootstrap if Vaultwarden credentials are needed before
-  Vaultwarden is reachable.
-- False health claims if reachability is inferred without observed evidence.
-- Port collision with the existing Swagger/NGINX port `80`.
-- Portainer stack upload missing runtime assets that are referenced by mounted
-  NGINX or dashboard files.
-- Security risk from exposing Vaultwarden over unauthenticated plain HTTP
-  beyond the local development boundary.
-- Scope drift into a browser frontend project.
+- Preflight can continue to pass while live platform state is unusable if the
+  Multipass readiness gap remains.
+- Direct `platform init --live` currently bypasses setup preflight and needs
+  its own readiness guard.
+- The current Multipass init shell command conflates VM absence with
+  Multipass socket failure.
+- Over-redaction can hide useful failure classification; under-redaction can
+  leak commands, paths, tokens or host details.
+- IntelliJ run configurations without stdin can fail live consent even when
+  the shell environment is otherwise correct.
+- WSL localhost forwarding and hardcoded `http://localhost:9000` Portainer
+  access can diverge from the actual Swarm node route.
+- Desired inventory, service-access profile and documentation can drift unless
+  synchronized before claiming a full stable setup.
 
-Open questions:
+Open questions delegated to slices:
 
-- None blocking for workflow creation.
-
-Questions intentionally delegated to slices:
-
-- Whether service access should use a shared NGINX ingress or a non-conflicting
-  published port.
-- Whether dashboard assets are image-packaged, mounted through an explicit
-  asset preparation boundary, or provided by an existing image-native
-  dashboard.
-- Whether Vaultwarden becomes part of the default runnable service set or an
-  optional service profile.
-- Which exact service names and credential item names the dashboard lists.
+- Whether endpoint resolution should prefer localhost, node IP, or a
+  profile-specific operator override for each service.
+- Whether static local secrets should remain as local defaults, become
+  explicit development profile values, or be replaced by ignored local secret
+  sources.
+- Whether optional guided host remediation should remain documentation-only or
+  become a future approved live workflow.
 
 Blocking questions:
 
-- None. Any answer that would require showing raw passwords outside
-  authenticated Vaultwarden UI, reusing port `80` without a routing decision,
-  using Traefik without ADR review, or running live infrastructure defaults to
-  a stop condition.
+- None for workflow creation. Any decision that would mutate host services,
+  change consent semantics, change static secret policy, change endpoint
+  routing or claim live health becomes a slice stop condition until governed.
 
 Confidence level:
 
 ```text
-91 percent
+88 percent
 ```
 
 Decision:
 
 ```text
-READY_FOR_WORKFLOW
+PROCEED_WITH_ACCEPTED_ASSUMPTIONS
 ```
+
+## Problem Analysis
+
+The failure chain is:
+
+1. `ruff`, `mypy`, `import-linter` and project dependencies are installed in
+   `.venv`, and the quality gate passes.
+2. `multipass info` and `multipass get local.driver` both fail with:
+
+```text
+cannot connect to the multipass socket
+```
+
+3. `setup run --live` executes preflight.
+4. Preflight checks `multipass` as a dependency using executable lookup. That
+   proves only that the binary is available on `PATH`.
+5. Preflight reports all checks passed, including existing service ports.
+6. `platform init` starts `MultipassInitVms`.
+7. `MultipassInitVms` executes
+   `infra/config/multipass/command_multipass_init_repository_yaml.yaml`.
+8. The first command runs `multipass info {vm_instance}` and treats every
+   non-zero result as "VM missing", then attempts `multipass launch`.
+9. Because the real problem is socket/daemon access, `multipass launch` also
+   fails.
+10. `AsyncPortCommandRunner` raises `CommandExecutionError`.
+11. `CommandExecuter` wraps it as `CommandExecutionFailed`.
+12. `PlatformInitWorkflow` records `failed_to_apply`.
+13. `SetupWorkflow` stops later phases as `not_run`.
+
+This is a host-readiness and orchestration-boundary problem, not a Ruff or
+Python package problem.
+
+Refinement from local logs:
+
+- The exact latest failing shell command output is not visible because the
+  command runner records a redacted diagnostic payload.
+- The strongest supported conclusion is that the current failure occurs in the
+  Multipass VM initialization path before later deployment phases can run.
+- The logs do not prove "VM already exists" as the root cause. Existing or
+  broken VMs remain a plausible operator-side condition, but the product issue
+  is broader: setup must distinguish Multipass unreachable, daemon/socket
+  access problems, driver problems, VM absence and existing bad VM state before
+  mutation.
+- The earlier successful live run is important regression evidence. Future
+  implementation must preserve the ability to complete a full setup while
+  making later reruns stable and diagnosable.
 
 ## Execution Profile
 
 ```text
 executionProfile=FULL_PATH
-reason=The workflow can affect deployment behavior, service contracts, routing,
-credential handling, persistence, Python wiring, tests, arc42, ADRs, and
-operator documentation.
+reason=The workflow affects live setup behavior, host preflight, platform
+guards, command catalog semantics, diagnostics, endpoint strategy, credentials,
+tests, documentation, arc42 and optional live smoke evidence.
 requiredFullReviews=Senior Requirement Engineer, Senior System Architect,
-Senior Python Automation Developer, Senior Tester, Senior DevOps Engineer,
-Senior Documentation Engineer, Security review for credential handling
-allowedImpactChecks=Senior React Frontend Developer as N/A React scope guard
+Senior Python Automation Developer, Senior React Frontend Developer,
+Senior Tester
+conditionalReviews=Senior DevOps Engineer, Senior Documentation Engineer,
+Console/status UI skills, Security Sandbox Engineer, Platform Verification
 requiredQualityChecks=git diff --check for workflow creation; targeted tests
-per slice; python3 tools/quality_gate.py quality before final implementation
-release when practical
-stopConditions=secrets committed, live commands required without consent,
-routing ownership unclear, Traefik selected without ADR, port 80 conflict
-unresolved, React project introduced, or architecture boundaries weakened
+per implementation slice; python3 tools/quality_gate.py quality before final
+implementation release when practical
+stopConditions=live commands required without explicit approval, architecture
+boundary violation, raw evidence leakage, host mutation hidden in defaults,
+consent model change without ADR, or live health claimed without evidence
 ```
 
 ## Subagent Review Summary
 
 Senior Requirement Engineer:
 
-- Raised refinement risks around GUI scope, credential display, reachability
-  source, routing, TLS, Vaultwarden bootstrap, and EPIC extension.
-- Workflow resolves these as explicit assumptions, non-goals, slice decisions,
-  and stop conditions.
+- Confirmed EPIC drift: autonomous setup requires preflight to identify host
+  prerequisite blockers before mutation, but the reported setup run reached
+  `platform init`.
+- Recommended fail-fast preflight and documented non-goals for automatic host
+  repair.
 
 Senior System Architect:
 
-- Recommends NGINX first based on existing Swagger/NGINX assets and no Traefik
-  evidence.
-- Confirms Portainer should orchestrate stacks, not route HTTP.
-- Recommends Deployment-owned stack contracts, not a new microservice.
+- Confirmed stale workflow context and required regeneration.
+- Identified boundary risks around endpoint strategy, WSL forwarding,
+  credential source of truth, desired inventory drift and live evidence.
+- Reinforced hexagonal boundaries and composition-root ownership.
 
 Senior Python Automation Developer:
 
-- Flags the current Swagger/NGINX port `80` binding as a required routing
-  decision.
-- Flags Portainer stack upload as compose-content-only, so mounted assets need
-  image packaging or explicit asset preparation.
-- Lists domain, preflight, deployment, composition, artifact, and test areas
-  likely affected.
+- Located the core code path: preflight executable lookup, platform init
+  Multipass command catalog, command runner exception wrapping and workflow
+  `failed_to_apply`.
+- Recommended live consent-gated Multipass readiness, direct platform guard,
+  command-template correction and safe error classification.
 
 Senior React Frontend Developer:
 
-- Confirms no React frontend repository scope exists.
-- Treats the role as an N/A impact check and scope guard.
-- Allows an infrastructure-provided GUI only if no React/browser build surface
-  is introduced. Password values may be shown only by Vaultwarden's
-  authenticated UI.
+- Confirmed browser/React work is out of scope.
+- Identified console/status UI as the only UI-relevant area if recovery text
+  or terminal status states change.
 
 Senior Tester:
 
-- Recommends regression-first tests for service-stack contracts, preflight,
-  compose repository loading, fake Portainer deployment, routing decisions,
-  composition, and secret handling.
-- Confirms no live infrastructure belongs in default verification.
+- Recommended regression-first mocked tests for preflight boundary, setup
+  phase stopping, direct platform guard, redacted diagnostics and command
+  catalog behavior.
+- Confirmed default quality gates must not run live infrastructure.
 
 ## Architecture Constraints
 
-- Domain code may hold stack names, credential-source identifiers, and
-  validation rules. It must not import YAML parsers, Docker clients,
-  Portainer clients, HTTP clients, file managers, logging setup, or dependency
+- Domain code may define preflight capabilities, categories, status values and
+  safe result objects. It must not import subprocess, Multipass, Docker,
+  Portainer, YAML parsers, file managers, logging setup or dependency
   injection containers.
 - Application services may orchestrate ports and domain objects. They must not
-  embed shell, Docker, Portainer HTTP, NGINX config generation, or filesystem
-  asset-transfer details directly.
-- Infrastructure adapters own YAML parsing, HTTP calls, command execution,
-  file management, NGINX assets, Docker image publishing, and Portainer
-  client behavior.
+  embed low-level shell, filesystem, HTTP, Docker, curses or Multipass details.
+- Infrastructure adapters own executable lookup, safe read-only host probes,
+  subprocess invocation, YAML parsing, filesystem access and external clients.
+- Command catalog YAML may contain shell commands only within existing
+  governed command catalog boundaries.
 - `src/tiny_swarm_world/infrastructure/composition.py` remains the concrete
   wiring root.
-- `src/tiny_swarm_world/__main__.py` remains thin.
-- The service-access stack is a deployment stack, not a new microservice or
-  repository frontend project.
-- Vaultwarden credential values are operator-owned secrets. Committed files
-  may contain required secret names, never secret values.
+- `src/tiny_swarm_world/__main__.py` remains thin: parse CLI, compose
+  dependencies, invoke services, print summaries.
+- IntelliJ support means documented Linux/WSL interpreter and terminal
+  expectations, not Windows-native behavior.
 
 ## Python Automation Assessment
 
 Likely implementation areas:
 
-- `src/tiny_swarm_world/domain/deployment/service_stack_contract.py`
-- `src/tiny_swarm_world/domain/preflight/setup_manifest.py`
-- `src/tiny_swarm_world/application/services/deployment/service_stack_plan.py`
-- `src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py`
-- `src/tiny_swarm_world/application/services/deployment/verify_swarm_service_readiness.py`
+- `src/tiny_swarm_world/domain/preflight/preflight_configuration.py`
+- `src/tiny_swarm_world/domain/preflight/preflight_check.py`
+- `src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py`
+- `src/tiny_swarm_world/application/services/platform/preflight_service.py`
+- `src/tiny_swarm_world/application/services/setup/workflow.py`
+- `src/tiny_swarm_world/application/services/platform/workflows.py`
+- `src/tiny_swarm_world/application/services/multipass/multipass_init_vms.py`
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py`
+- `src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py`
+- `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`
 - `src/tiny_swarm_world/infrastructure/composition.py`
-- `src/tiny_swarm_world/domain/artifacts/container_image_contract.py` only if
-  a custom dashboard image is introduced.
-- `src/tiny_swarm_world/infrastructure/adapters/clients/multipass_container_image_publisher.py`
-  only if a custom dashboard image is introduced.
+- `infra/config/multipass/command_multipass_init_repository_yaml.yaml`
+- `infra/config/multipass/command_multipass_instance_status_yaml.yaml`
 
-Required boundaries:
+Expected design direction:
 
-- Use `PortComposeFileRepository` for compose lookup.
-- Use `PortPortainerClient` for post-bootstrap Portainer stack create/update.
-- Use `PortSwarmStackRuntime` or tested HTTP checks for observed readiness.
-- Use `PortContainerImagePublisher` only for packaged dashboard assets.
-- Keep preflight and setup manifest concerns in domain/application contracts.
+- Add a structured host runtime readiness result rather than returning raw
+  stdout/stderr.
+- Gate live readiness probes by accepted live consent or a mutating workflow
+  guard.
+- Keep static `--preflight` non-mutating and safe.
+- Make direct `platform init --live` and setup-driven platform init share the
+  same readiness decision.
+- Classify Multipass socket, driver, permission and daemon access failures
+  with safe identifiers and remediation text.
 
 ## Frontend Assessment
 
-The dashboard request is in scope only as a deployed infrastructure GUI
-service.
+No browser frontend or React work is in scope.
 
 Out of scope:
 
-- adding `package.json`;
-- adding React, TSX/JSX, Vite, browser routers, or frontend state management;
-- building a browser application inside the Python repository;
-- storing or rendering raw password values outside Vaultwarden's authenticated
-  UI.
+- `package.json`;
+- JavaScript or TypeScript package manager lockfiles;
+- React, Vite, TSX, JSX, browser routing or frontend state management;
+- browser smoke claims without explicit live evidence.
 
-The dashboard must be usable without color alone, distinguish unknown from
-reachable, show source/freshness for status where available, and display
-credential requirement labels or Vaultwarden item references only.
+Console/status UI work is conditional only if implementation changes terminal
+status labels, summaries, recovery actions or failure classification text.
 
-## Security And Credential Requirements
+## Resilience Requirements
 
-- Vaultwarden may store credential values and must provide the authenticated
-  UI where authorized operators can reveal or copy password values.
-- The service-access dashboard may show credential names, missing/present
-  status, and Vaultwarden item references. It must not display, cache, log, or
-  export password values itself.
-- Compose files must not include Vaultwarden admin tokens, SMTP passwords,
-  basic-auth URLs, API keys, tokens, database passwords, or static password
-  defaults.
-- Required secret names such as `TSW_VAULTWARDEN_ADMIN_TOKEN` may be recorded
-  as configuration requirements.
-- Verification evidence must reject raw command output, tokens, passwords,
-  Swarm join tokens, local IP addresses, host-specific paths, and environment
-  payloads.
-- Vaultwarden persistence, backup, admin-token rotation, and rollback must be
-  defined before the stack is treated as production-like.
-
-## Test Strategy
-
-Default tests must remain static or mocked.
-
-Targeted commands expected during workflow execution:
-
-```bash
-git diff --check
-PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
-PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
-PYTHONPATH=src python3 -m unittest tests.application.services.deployment
-PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
-PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
-python3 tools/quality_gate.py arch-tests
-python3 tools/quality_gate.py test
-python3 tools/quality_gate.py quality
-```
-
-Quality commands must come from `QUALITY.md`. Do not invent mutation-testing,
-frontend, Traefik, Docker, or live-smoke gates.
-
-Live smoke validation is optional and separate. It requires explicit user
-approval, live consent, a disposable or recoverable local target, and redacted
-evidence. It is not part of the default quality gate.
+- Fail before mutation when host runtime prerequisites are unavailable.
+- Distinguish `refused`, `blocked`, `resource_gated`, `failed_to_apply` and
+  `failed_to_verify`.
+- Do not retry host socket failures blindly.
+- Do not turn daemon/socket failures into VM creation attempts.
+- Preserve redaction while exposing safe failure classes.
+- Keep optional live smoke evidence local, ignored and redacted.
 
 ## Ordered Slices
 
-### Slice 01 - Requirement, EPIC, And ADR Baseline
+### Slice 01 - Governance Reset And Baseline
 
 Purpose:
 
-- Establish the service-access requirement baseline.
-- Decide whether the feature extends the autonomous runnable setup EPIC.
-- Create or update ADR material for default service-set, credential-source,
-  persistence, and routing-impact decisions.
+- Replace stale service-access workflow context with this stable-live-setup
+  workflow.
+- Record the problem analysis, accepted assumptions, scope, stop conditions
+  and subagent findings.
 
 ```yaml
 slice_id: "01"
 profile: FULL_PATH
-owner: Senior Requirement Engineer
+owner: Senior Workflow Architect
 secondary_reviewers:
+  - Senior Requirement Engineer
   - Senior System Architect
-  - Senior Security Sandbox Engineer
-  - Senior Documentation Engineer
   - Senior Tester
 affected_files:
-  - documentation/epics/service-access-dashboard-vaultwarden.md
-  - documentation/epics/autonomous-runnable-setup.md
-  - documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
-  - documentation/arc42/09_architecture_decisions.adoc
-  - documentation/arc42/11_risks_and_debt.adoc
+  - documentation/workflow/workflow.md
+  - documentation/workflow/context-pack.md
+  - documentation/workflow/context-pack.json
+  - documentation/workflow/execution-report.md
+  - documentation/workflow/reports/01-subagent-review-summary.md
+  - documentation/workflow/reports/02-problem-analysis.md
+  - documentation/workflow/reports/03-local-log-evidence.md
 affected_modules: []
 affected_contracts:
-  - service-access-requirement-baseline
-  - vaultwarden-credential-source-contract
-  - default-service-set-decision
+  - workflow-context-pack
+  - autonomous-setup-requirement-baseline
 dependencies: []
 parallel_group: A
 file_locks:
-  - documentation/epics/**
-  - documentation/architecture/**
-  - documentation/arc42/**
+  - documentation/workflow/**
 contract_locks:
-  - credential-source-contract
-  - service-access-scope-contract
+  - workflow-context-pack
 architecture_locks:
-  - deployment-boundary
-  - credential-evidence-redaction
+  - planned-vs-implemented-documentation
 quality_gates:
   targeted:
     - git diff --check
   required:
     - git diff --check
 documentation:
-  arc42: documentation/arc42/09_architecture_decisions.adoc; documentation/arc42/11_risks_and_debt.adoc
-  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
+  arc42: documentation/arc42/07_deployment_view.adoc; documentation/arc42/10_quality_requirements.adoc; documentation/arc42/11_risks_and_debt.adoc
+  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
 stop_conditions:
-  - Password values would be displayed outside authenticated Vaultwarden UI, logged, committed, or persisted as evidence.
-  - Vaultwarden persistence or admin-token ownership is undefined.
-  - The feature conflicts with the autonomous runnable setup EPIC.
+  - Existing workflow context cannot be safely regenerated.
+  - Workflow creation would need live infrastructure commands.
 ```
 
 Allowed write scope:
 
-- Requirement, EPIC, ADR, arc42 risk/index documentation only.
+- `documentation/workflow/**` only.
 
 Done criteria:
 
-- Credential display policy is explicit.
-- Vaultwarden bootstrap, persistence, backup, and rollback responsibilities
-  are at least decision-recorded.
-- Dashboard scope is defined as infrastructure GUI, not React repository app.
+- Workflow files describe stable live setup, not service-access/Vaultwarden
+  implementation.
+- Context pack records branch, roles, affected areas and governing hashes.
 - `git diff --check` passes.
 
-### Slice 02 - Routing, Port, And Asset Packaging Decision
+### Slice 02 - Regression Baseline And Test Output Hygiene
 
 Purpose:
 
-- Record the NGINX-first routing decision.
-- Resolve the port `80` collision with current Swagger/NGINX before compose
-  assets are created.
-- Decide whether dashboard and NGINX assets are image-packaged, prepared
-  through an explicit asset boundary, or avoided through image-native config.
+- Capture current failure behavior in mocked tests before changing runtime
+  behavior.
+- Classify quality-gate noise from intentional test failures and the unawaited
+  coroutine warning.
+- Preserve the local-log distinction between test/mock `boom`, redacted
+  Multipass return-code failures and downstream service-readiness failures.
 
 ```yaml
 slice_id: "02"
+profile: FULL_PATH
+owner: Senior Tester
+secondary_reviewers:
+  - Senior Python Automation Developer
+  - Senior System Architect
+affected_files:
+  - tests/application/services/platform/test_preflight_service.py
+  - tests/infrastructure/adapters/preflight/test_host_preflight_probe.py
+  - tests/application/services/setup/test_setup_workflow.py
+  - tests/application/services/platform/test_platform_workflows.py
+  - tests/test_package_entrypoint.py
+  - tests/application/services/commands/test_command_executer.py
+  - tests/infrastructure/adapters/ui/test_command_runner_ui_failure_semantics.py
+  - tests/infrastructure/adapters/command_runner/test_async_command_runner.py
+affected_modules:
+  - tests.application.services.platform
+  - tests.infrastructure.adapters.preflight
+  - tests.application.services.setup
+  - tests.infrastructure.adapters.command_runner
+affected_contracts:
+  - setup-preflight-failure-boundary
+  - test-output-hygiene
+dependencies:
+  - "01"
+parallel_group: B
+file_locks:
+  - tests/application/services/platform/**
+  - tests/infrastructure/adapters/preflight/**
+  - tests/application/services/setup/**
+  - tests/application/services/commands/**
+  - tests/infrastructure/adapters/ui/**
+  - tests/infrastructure/adapters/command_runner/**
+  - tests/test_package_entrypoint.py
+contract_locks:
+  - setup-preflight-failure-boundary
+  - redacted-diagnostics
+architecture_locks:
+  - default-gates-no-live-infra
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe
+    - PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
+    - PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
+  required:
+    - python3 tools/quality_gate.py test
+documentation:
+  arc42: documentation/arc42/10_quality_requirements.adoc
+  adr: ""
+stop_conditions:
+  - Tests would call real Multipass, Docker, Swarm, compose, netplan, socat or service bootstrap commands.
+  - Tests require raw stdout, stderr, command strings, secrets or host-specific paths.
+```
+
+Allowed write scope:
+
+- Tests and test fixtures for the affected setup/preflight/command runner
+  behavior.
+
+Done criteria:
+
+- A mocked test proves that executable presence alone is insufficient for
+  live setup.
+- A mocked test proves live readiness failure stops before platform mutation.
+- Intentional failure logs and coroutine warnings are either removed or
+  explicitly classified without hiding real failures.
+
+### Slice 03 - Live Multipass Readiness Preflight
+
+Purpose:
+
+- Add safe, consent-gated host runtime readiness checks for Multipass daemon,
+  socket accessibility and expected driver state.
+- Keep static `--preflight` static unless live consent is accepted.
+
+```yaml
+slice_id: "03"
+profile: FULL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Senior System Architect
+  - Senior Tester
+affected_files:
+  - src/tiny_swarm_world/domain/preflight/preflight_configuration.py
+  - src/tiny_swarm_world/domain/preflight/preflight_check.py
+  - src/tiny_swarm_world/domain/preflight/__init__.py
+  - src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py
+  - src/tiny_swarm_world/application/services/platform/preflight_service.py
+  - src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py
+  - tests/application/services/platform/test_preflight_service.py
+  - tests/infrastructure/adapters/preflight/test_host_preflight_probe.py
+affected_modules:
+  - tiny_swarm_world.domain.preflight
+  - tiny_swarm_world.application.ports.preflight
+  - tiny_swarm_world.application.services.platform
+  - tiny_swarm_world.infrastructure.adapters.preflight
+affected_contracts:
+  - live-host-runtime-readiness
+  - multipass-driver-readiness
+dependencies:
+  - "02"
+parallel_group: C
+file_locks:
+  - src/tiny_swarm_world/domain/preflight/**
+  - src/tiny_swarm_world/application/ports/preflight/**
+  - src/tiny_swarm_world/application/services/platform/preflight_service.py
+  - src/tiny_swarm_world/infrastructure/adapters/preflight/**
+  - tests/application/services/platform/test_preflight_service.py
+  - tests/infrastructure/adapters/preflight/test_host_preflight_probe.py
+contract_locks:
+  - live-host-runtime-readiness
+  - preflight-result-redaction
+architecture_locks:
+  - hexagonal-domain-independence
+  - infrastructure-owns-subprocess
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe
+    - python3 tools/quality_gate.py arch-tests
+  required:
+    - python3 tools/quality_gate.py test
+documentation:
+  arc42: documentation/arc42/10_quality_requirements.adoc
+  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
+stop_conditions:
+  - Static preflight starts mutating host state.
+  - Domain imports subprocess or infrastructure adapters.
+  - Diagnostics expose raw command output, local paths, usernames or socket details beyond safe classifications.
+```
+
+Allowed write scope:
+
+- Preflight domain/application/adapter code and focused tests.
+
+Done criteria:
+
+- Live preflight reports a failed check such as
+  `RUNTIME-MULTIPASS-SOCKET` or equivalent when the socket is unavailable.
+- Remediation points the operator to Multipass daemon/socket/driver repair
+  without executing repair.
+- Static preflight remains safe and non-mutating.
+
+### Slice 04 - Platform Init Guard And Command Catalog Semantics
+
+Purpose:
+
+- Ensure direct `platform init --live` and setup-driven `platform init` share
+  the same host-readiness guard.
+- Update Multipass command templates so socket/daemon failure does not fall
+  through to VM creation.
+
+```yaml
+slice_id: "04"
+profile: FULL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Senior DevOps Engineer
+  - Senior Tester
+affected_files:
+  - src/tiny_swarm_world/__main__.py
+  - src/tiny_swarm_world/application/services/multipass/multipass_init_vms.py
+  - src/tiny_swarm_world/application/services/platform/workflows.py
+  - src/tiny_swarm_world/application/services/setup/workflow.py
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - infra/config/multipass/command_multipass_init_repository_yaml.yaml
+  - infra/config/multipass/command_multipass_instance_status_yaml.yaml
+  - tests/test_package_entrypoint.py
+  - tests/application/services/platform/test_platform_workflows.py
+  - tests/application/services/setup/test_setup_workflow.py
+  - tests/infrastructure/adapters/command_runner/test_command_workflow_configuration.py
+affected_modules:
+  - tiny_swarm_world.application.services.multipass
+  - tiny_swarm_world.application.services.platform
+  - tiny_swarm_world.application.services.setup
+  - tiny_swarm_world.infrastructure.composition
+  - infra.config.multipass
+affected_contracts:
+  - platform-init-readiness-guard
+  - multipass-init-command-catalog
+dependencies:
+  - "03"
+parallel_group: D
+file_locks:
+  - src/tiny_swarm_world/__main__.py
+  - src/tiny_swarm_world/application/services/multipass/**
+  - src/tiny_swarm_world/application/services/platform/**
+  - src/tiny_swarm_world/application/services/setup/**
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - infra/config/multipass/**
+  - tests/test_package_entrypoint.py
+  - tests/application/services/platform/**
+  - tests/application/services/setup/**
+  - tests/infrastructure/adapters/command_runner/**
+contract_locks:
+  - platform-init-readiness-guard
+  - command-catalog-safety
+architecture_locks:
+  - entrypoint-thinness
+  - application-port-dependency
+  - composition-root
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
+    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+    - PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_workflow_configuration
+    - python3 tools/quality_gate.py arch-tests
+  required:
+    - python3 tools/quality_gate.py test
+documentation:
+  arc42: documentation/arc42/07_deployment_view.adoc; documentation/arc42/10_quality_requirements.adoc
+  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
+stop_conditions:
+  - Direct platform init can still run Multipass mutation after a failed readiness check.
+  - VM absence cannot be distinguished from Multipass unreachable in tests.
+  - Entry point starts constructing low-level infrastructure directly.
+```
+
+Allowed write scope:
+
+- CLI dispatch, platform/setup orchestration, Multipass command catalog and
+  directly related tests.
+
+Done criteria:
+
+- `setup run --live` and `platform init --live` both stop before mutation when
+  Multipass readiness fails.
+- Multipass command template handles daemon/socket failures separately from
+  missing VM state.
+- Workflow result remains redacted and actionable.
+
+### Slice 05 - Endpoint, WSL Forwarding And IntelliJ Execution Contract
+
+Purpose:
+
+- Model operator endpoint selection and WSL localhost forwarding as explicit
+  configuration/port behavior.
+- Document IntelliJ execution as Linux/WSL shell use, not Windows-native
+  support.
+
+```yaml
+slice_id: "05"
 profile: FULL_PATH
 owner: Senior System Architect
 secondary_reviewers:
@@ -499,305 +766,247 @@ secondary_reviewers:
   - Senior Python Automation Developer
   - Senior Tester
 affected_files:
-  - documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
+  - src/tiny_swarm_world/domain/deployment/service_stack_contract.py
+  - src/tiny_swarm_world/application/services/deployment/service_stack_plan.py
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - documentation/user_guide/installation.adoc
+  - documentation/user_guide/troubleshooting.adoc
   - documentation/arc42/07_deployment_view.adoc
-  - documentation/deployment/system.adoc
-affected_modules: []
+  - tests/domain/deployment/test_service_stack_contract.py
+  - tests/application/services/deployment/test_service_stack_plan.py
+  - tests/infrastructure/test_composition.py
+affected_modules:
+  - tiny_swarm_world.domain.deployment
+  - tiny_swarm_world.application.services.deployment
+  - tiny_swarm_world.infrastructure.composition
 affected_contracts:
-  - reverse-proxy-routing
-  - service-access-ingress
-  - asset-packaging-boundary
+  - endpoint-resolution
+  - wsl-localhost-forwarding
+  - intellij-linux-wsl-execution
 dependencies:
-  - "01"
-parallel_group: B
+  - "04"
+parallel_group: E
 file_locks:
-  - documentation/architecture/**
+  - src/tiny_swarm_world/domain/deployment/**
+  - src/tiny_swarm_world/application/services/deployment/**
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - documentation/user_guide/**
   - documentation/arc42/07_deployment_view.adoc
-  - documentation/deployment/**
+  - tests/domain/deployment/**
+  - tests/application/services/deployment/**
+  - tests/infrastructure/test_composition.py
 contract_locks:
-  - reverse-proxy-routing
-  - port-allocation
+  - endpoint-resolution
+  - operator-execution-context
 architecture_locks:
   - deployment-boundary
-  - live-operation-surface
+  - no-windows-native-expansion
 quality_gates:
   targeted:
+    - PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+    - PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_service_stack_plan
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
     - git diff --check
   required:
-    - git diff --check
+    - python3 tools/quality_gate.py test
 documentation:
   arc42: documentation/arc42/07_deployment_view.adoc
-  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
+  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
 stop_conditions:
-  - The workflow would publish a second service on port 80 without a shared-ingress decision.
-  - Traefik is selected without ADR and test scope.
-  - NGINX or dashboard config depends on files Portainer cannot deploy.
+  - Endpoint behavior depends on hardcoded host-specific IPs or user paths.
+  - IntelliJ instructions add Windows-native support or PowerShell examples.
+  - Service health is claimed from endpoint configuration alone.
 ```
 
 Allowed write scope:
 
-- Routing and deployment documentation, ADR updates, and port-allocation
-  decision artifacts only.
+- Endpoint/configuration contracts, deployment planning tests and Linux/WSL
+  documentation.
 
 Done criteria:
 
-- NGINX-first routing is documented.
-- Traefik is rejected or moved behind explicit ADR scope.
-- Port `80` collision is resolved before YAML implementation.
-- Asset transfer or packaging boundary is explicit.
+- IntelliJ command expectations are documented as WSL/Linux terminal
+  prerequisites.
+- Portainer/service endpoint defaults are explicit and test-backed.
+- Localhost forwarding gaps are diagnosed separately from service readiness.
 
-### Slice 03 - Compose Stack And Secret-Safe Configuration
+### Slice 06 - Credential, Profile And Inventory Consistency
 
 Purpose:
 
-- Add the service-access and Vaultwarden compose definitions using existing
-  stack layout.
-- Keep compose files host-neutral and Swarm-compatible.
-- Avoid committed secret values.
+- Align setup manifest, desired inventory, service-access default profile and
+  credential source behavior before claiming a stable full setup.
 
 ```yaml
-slice_id: "03"
+slice_id: "06"
 profile: FULL_PATH
-owner: Senior DevOps Engineer
+owner: Senior System Architect
 secondary_reviewers:
   - Senior Python Automation Developer
   - Senior Security Sandbox Engineer
   - Senior Tester
 affected_files:
+  - src/tiny_swarm_world/domain/preflight/preflight_configuration.py
+  - src/tiny_swarm_world/domain/preflight/setup_manifest.py
+  - src/tiny_swarm_world/domain/deployment/service_stack_contract.py
+  - infra/config/inventory/**
   - infra/config/compose/service-access/docker-compose.yml
-  - infra/compose/service-access/**
-  - infra/compose/README.md
-  - documentation/system/live-operation-surfaces.adoc
+  - documentation/epics/autonomous-runnable-setup.md
+  - documentation/epics/service-access-dashboard-vaultwarden.md
+  - documentation/arc42/11_risks_and_debt.adoc
+  - tests/domain/preflight/test_preflight_result.py
+  - tests/domain/deployment/test_service_stack_contract.py
+  - tests/architecture/test_local_state_storage.py
 affected_modules:
-  - infra/config/compose
-  - infra/compose
+  - tiny_swarm_world.domain.preflight
+  - tiny_swarm_world.domain.deployment
+  - infra.config
 affected_contracts:
-  - service-access-stack-compose
-  - vaultwarden-secret-and-data-contract
-  - reverse-proxy-routing
+  - setup-profile-contract
+  - desired-inventory-contract
+  - credential-source-contract
 dependencies:
-  - "01"
-  - "02"
-parallel_group: C
+  - "05"
+parallel_group: F
 file_locks:
+  - src/tiny_swarm_world/domain/preflight/**
+  - src/tiny_swarm_world/domain/deployment/**
+  - infra/config/inventory/**
   - infra/config/compose/service-access/**
-  - infra/compose/service-access/**
-  - infra/compose/README.md
-  - documentation/system/live-operation-surfaces.adoc
+  - documentation/epics/**
+  - documentation/arc42/11_risks_and_debt.adoc
+  - tests/domain/preflight/**
+  - tests/domain/deployment/**
+  - tests/architecture/**
 contract_locks:
-  - service-access-stack
-  - vaultwarden-secret-and-data-contract
-  - reverse-proxy-routing
+  - setup-profile-contract
+  - credential-source-contract
+  - desired-inventory-contract
 architecture_locks:
-  - deployment-boundary
-  - live-operation-surface
+  - credential-evidence-redaction
+  - planned-vs-implemented-documentation
 quality_gates:
   targeted:
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+    - PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
+    - PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+    - PYTHONPATH=src python3 -m unittest tests.architecture.test_local_state_storage
     - git diff --check
   required:
     - python3 tools/quality_gate.py test
 documentation:
-  arc42: documentation/arc42/07_deployment_view.adoc
-  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
+  arc42: documentation/arc42/11_risks_and_debt.adoc
+  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
 stop_conditions:
-  - Compose files contain static passwords, tokens, local paths, or host IP addresses.
-  - Compose publishes a conflicting port.
-  - Compose relies on unprepared mounted assets.
-  - Tests would deploy containers or contact Portainer.
+  - Secrets, tokens, passwords, credential-bearing URLs or host IPs would be committed.
+  - Static defaults are treated as production-like secrets.
+  - Desired inventory and default setup profile cannot be reconciled without a governance decision.
 ```
 
 Allowed write scope:
 
-- New service-access compose directory, service-access runtime assets, live
-  operation surface docs, and compose README notes.
+- Profile, inventory, credential contracts, docs and focused tests.
 
 Done criteria:
 
-- New YAML loads through the compose repository.
-- Required services are named deterministically.
-- Named volumes/networks are Swarm-compatible.
-- Secret values are absent.
-- No live deployment runs.
+- Full setup profile, service-access inclusion and desired inventory are
+  aligned or explicitly documented as staged.
+- Secret source behavior is clear and redacted.
+- Missing secrets block before deployment when required by the selected
+  profile.
 
-### Slice 04 - Domain, Preflight, And Deployment Contracts
+### Slice 07 - Artifact, Registry And Deployment Readiness
 
 Purpose:
 
-- Add service-stack and setup manifest contracts for the new service-access
-  capability.
-- Wire post-bootstrap Portainer-managed planning deliberately.
-- Preserve fail-closed verification behavior.
+- Harden the later setup phases so a host that passes platform readiness can
+  continue through artifact preparation, registry verification, bootstrap,
+  stack deployment and service readiness with observed-state checks.
 
 ```yaml
-slice_id: "04"
+slice_id: "07"
 profile: FULL_PATH
-owner: Senior Python Automation Developer
+owner: Senior DevOps Engineer
 secondary_reviewers:
-  - Senior System Architect
+  - Senior Python Automation Developer
   - Senior Tester
+  - Senior System Architect
 affected_files:
-  - src/tiny_swarm_world/domain/deployment/service_stack_contract.py
-  - src/tiny_swarm_world/domain/preflight/setup_manifest.py
-  - src/tiny_swarm_world/application/services/deployment/service_stack_plan.py
-  - src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py
-  - src/tiny_swarm_world/application/services/deployment/verify_swarm_service_readiness.py
+  - src/tiny_swarm_world/application/services/artifacts/**
+  - src/tiny_swarm_world/application/services/deployment/**
+  - src/tiny_swarm_world/infrastructure/adapters/clients/**
   - src/tiny_swarm_world/infrastructure/composition.py
-  - tests/domain/deployment/test_service_stack_contract.py
-  - tests/domain/preflight/test_preflight_result.py
-  - tests/application/services/deployment/test_service_stack_plan.py
-  - tests/application/services/deployment/test_ensure_service_stack.py
-  - tests/application/services/deployment/test_verify_swarm_service_readiness.py
+  - tests/application/services/artifacts/**
+  - tests/application/services/deployment/**
+  - tests/infrastructure/adapters/clients/**
   - tests/infrastructure/test_composition.py
 affected_modules:
-  - tiny_swarm_world.domain.deployment
-  - tiny_swarm_world.domain.preflight
+  - tiny_swarm_world.application.services.artifacts
   - tiny_swarm_world.application.services.deployment
-  - tiny_swarm_world.infrastructure.composition
+  - tiny_swarm_world.infrastructure.adapters.clients
 affected_contracts:
-  - service-stack-contract
-  - setup-manifest-contract
-  - deployment-apply-contract
-  - deployment-verify-contract
+  - nexus-registry-readiness
+  - portainer-bootstrap-readiness
+  - swarm-stack-readiness
+  - service-health-readiness
 dependencies:
-  - "03"
-parallel_group: D
+  - "06"
+parallel_group: G
 file_locks:
-  - src/tiny_swarm_world/domain/deployment/**
-  - src/tiny_swarm_world/domain/preflight/**
+  - src/tiny_swarm_world/application/services/artifacts/**
   - src/tiny_swarm_world/application/services/deployment/**
+  - src/tiny_swarm_world/infrastructure/adapters/clients/**
   - src/tiny_swarm_world/infrastructure/composition.py
-  - tests/domain/deployment/**
-  - tests/domain/preflight/**
+  - tests/application/services/artifacts/**
   - tests/application/services/deployment/**
+  - tests/infrastructure/adapters/clients/**
   - tests/infrastructure/test_composition.py
 contract_locks:
-  - service-stack-contract
-  - setup-manifest-contract
-  - deployment-apply-contract
-  - deployment-verify-contract
+  - artifact-readiness
+  - deployment-readiness
+  - observed-state-verification
 architecture_locks:
-  - hexagonal-domain-independence
   - application-port-dependency
-  - composition-root
+  - infrastructure-client-boundary
 quality_gates:
   targeted:
-    - PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
-    - PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
+    - PYTHONPATH=src python3 -m unittest tests.application.services.artifacts
     - PYTHONPATH=src python3 -m unittest tests.application.services.deployment
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients
     - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
     - python3 tools/quality_gate.py arch-tests
   required:
     - python3 tools/quality_gate.py test
 documentation:
-  arc42: documentation/arc42/05_building_blocks.adoc; documentation/arc42/07_deployment_view.adoc
-  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
+  arc42: documentation/arc42/07_deployment_view.adoc; documentation/arc42/10_quality_requirements.adoc; documentation/arc42/11_risks_and_debt.adoc
+  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
 stop_conditions:
-  - Domain imports infrastructure or YAML/HTTP/Docker details.
-  - Application services embed Portainer HTTP, shell, Docker, or filesystem transfer details.
-  - Portainer becomes a bootstrap dependency for itself.
-  - Verification reports reachable without observed evidence.
+  - Readiness is inferred without observed state.
+  - Tests contact real Portainer, Nexus, Docker, Multipass or Swarm.
+  - Application code embeds low-level HTTP, shell, Docker or filesystem details.
 ```
 
 Allowed write scope:
 
-- Deployment/preflight contract code and directly related tests.
+- Artifact/deployment application services, infrastructure clients, wiring and
+  focused tests.
 
 Done criteria:
 
-- Stack contracts include the new stack only in the selected service profile.
-- Portainer-managed planning is explicit and tested with fakes.
-- Setup manifest includes required ports and credential-source names without
-  values.
-- Architecture tests remain valid.
+- Later setup phases report `blocked`, `failed_to_prepare`,
+  `failed_to_verify` or `completed` with redacted evidence.
+- Registry, Portainer and service readiness have mocked contract tests.
+- No default gate performs live infrastructure work.
 
-### Slice 05 - Dashboard UX, Reachability, And Credential References
-
-Purpose:
-
-- Implement or configure the service-access dashboard content.
-- Ensure central route links and credential references are deterministic and
-  safe.
-- Avoid React project scope.
-
-```yaml
-slice_id: "05"
-profile: FULL_PATH
-owner: Senior DevOps Engineer
-secondary_reviewers:
-  - Senior React Frontend Developer
-  - Senior Security Sandbox Engineer
-  - Senior Tester
-affected_files:
-  - infra/compose/service-access/**
-  - infra/config/compose/service-access/docker-compose.yml
-  - tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py
-  - tests/architecture/test_legacy_surface_documentation.py
-affected_modules:
-  - infra/compose
-  - infra/config/compose
-affected_contracts:
-  - dashboard-service-catalog
-  - credential-reference-contract
-  - service-readiness-display-contract
-dependencies:
-  - "03"
-  - "04"
-parallel_group: E
-file_locks:
-  - infra/compose/service-access/**
-  - infra/config/compose/service-access/**
-  - tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py
-  - tests/architecture/test_legacy_surface_documentation.py
-contract_locks:
-  - dashboard-service-catalog
-  - credential-reference-contract
-architecture_locks:
-  - no-react-repository-scope
-  - credential-evidence-redaction
-quality_gates:
-  targeted:
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
-    - python3 tools/quality_gate.py arch-tests
-    - git diff --check
-  required:
-    - python3 tools/quality_gate.py test
-documentation:
-  arc42: documentation/arc42/07_deployment_view.adoc
-  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
-stop_conditions:
-  - package.json, TSX, JSX, Vite, or React project files are introduced.
-  - Dashboard displays password values outside Vaultwarden or credential-bearing URLs.
-  - Unknown reachability is rendered as healthy.
-  - Dashboard assets cannot be delivered by the selected stack mechanism.
-```
-
-Allowed write scope:
-
-- Dashboard/runtime assets and static tests for their configuration.
-
-Done criteria:
-
-- Dashboard lists services, access methods, status source/freshness where
-  available, and Vaultwarden credential references.
-- Dashboard provides a clear route to Vaultwarden where authenticated
-  operators can reveal or copy the required password value.
-- Unknown, blocked, reachable, unreachable, resource-gated, and
-  needs-credentials states are distinguishable without color alone.
-- No raw secrets appear in dashboard assets.
-- No React build surface is introduced.
-
-### Slice 06 - Documentation, Quality Evidence, And Handoff
+### Slice 08 - Documentation, Quality Evidence And Optional Live Smoke Handoff
 
 Purpose:
 
-- Synchronize user-facing, deployment, arc42, and workflow documentation with
-  actual behavior.
-- Record verification evidence.
-- Prepare handoff to future workflow execution or commit preparation.
+- Synchronize docs with implemented behavior.
+- Record exact verification evidence.
+- Define optional live smoke steps without running them by default.
 
 ```yaml
-slice_id: "06"
+slice_id: "08"
 profile: FULL_PATH
 owner: Senior Documentation Engineer
 secondary_reviewers:
@@ -806,11 +1015,12 @@ secondary_reviewers:
   - Senior System Architect
 affected_files:
   - README.md
-  - documentation/deployment/system.adoc
   - documentation/user_guide/installation.adoc
   - documentation/user_guide/usage.adoc
   - documentation/user_guide/troubleshooting.adoc
-  - documentation/arc42/05_building_blocks.adoc
+  - documentation/system/live-operation-surfaces.adoc
+  - documentation/system/multipass-setup.adoc
+  - documentation/arc42/06_runtime_view.adoc
   - documentation/arc42/07_deployment_view.adoc
   - documentation/arc42/10_quality_requirements.adoc
   - documentation/arc42/11_risks_and_debt.adoc
@@ -819,18 +1029,19 @@ affected_modules: []
 affected_contracts:
   - documentation-sync
   - quality-evidence
-  - workflow-handoff
+  - optional-live-smoke-handoff
 dependencies:
-  - "01"
   - "02"
   - "03"
   - "04"
   - "05"
-parallel_group: F
+  - "06"
+  - "07"
+parallel_group: H
 file_locks:
   - README.md
-  - documentation/deployment/**
   - documentation/user_guide/**
+  - documentation/system/**
   - documentation/arc42/**
   - documentation/workflow/**
 contract_locks:
@@ -841,115 +1052,127 @@ architecture_locks:
 quality_gates:
   targeted:
     - git diff --check
+    - python3 tools/quality_gate.py arch-tests
     - python3 tools/quality_gate.py test
   required:
     - python3 tools/quality_gate.py quality
 documentation:
-  arc42: documentation/arc42/05_building_blocks.adoc; documentation/arc42/07_deployment_view.adoc; documentation/arc42/10_quality_requirements.adoc; documentation/arc42/11_risks_and_debt.adoc
-  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
+  arc42: documentation/arc42/06_runtime_view.adoc; documentation/arc42/07_deployment_view.adoc; documentation/arc42/10_quality_requirements.adoc; documentation/arc42/11_risks_and_debt.adoc
+  adr: documentation/architecture/adr-autonomous-setup-safety.adoc
 stop_conditions:
-  - Documentation claims live service reachability without verified evidence.
+  - Documentation claims live setup success before evidence exists.
   - Full quality gate fails or is skipped without recorded justification.
-  - Workflow context pack is stale.
+  - Optional live smoke is mixed into default quality gates.
 ```
 
 Allowed write scope:
 
-- Documentation, workflow reports, and quality evidence only.
+- User guide, system docs, arc42, workflow evidence and final handoff.
 
 Done criteria:
 
-- Documentation states what is implemented, blocked, optional, or future work.
-- POSIX/Linux/WSL examples are used.
-- Quality evidence is recorded exactly.
-- Handoff to commit/push is explicit but not performed unless requested.
+- Docs explain IntelliJ/Linux/WSL execution, Multipass readiness blockers and
+  safe remediation.
+- Quality evidence records exact commands and outcomes.
+- Optional live smoke is separate, explicit and redacted.
 
 ## Slice Dependency Graph
 
 ```text
-01 -> 02 -> 03 -> 04 -> 05 -> 06
-01 --------> 03
-03 --------> 05
-04 --------> 06
+01 -> 02 -> 03 -> 04 -> 05 -> 06 -> 07 -> 08
+02 -------------------------------> 08
+03 -------------------------------> 08
+04 -------------------------------> 08
+05 -------------------------------> 08
+06 -------------------------------> 08
+07 -------------------------------> 08
 ```
 
-The graph is intentionally mostly sequential because credential policy,
-routing, port allocation, and asset packaging must be fixed before parallel
-implementation can safely write compose, code, dashboard assets, and docs.
+The graph is mostly sequential because readiness, command semantics, endpoint
+strategy, credential/profile consistency and later deployment readiness depend
+on each other. Read-only reviews may run in parallel; write-capable work must
+respect slice locks.
 
 ## Parallelization Opportunities
 
-- After Slice 01, a read-only security review may run in parallel with Slice
-  02.
-- After Slice 02 freezes route and asset packaging contracts, Slice 03 compose
-  work and Slice 04 contract-test drafting may be prepared in parallel, but
-  writes must remain disjoint.
-- Slice 05 can run in parallel with parts of Slice 04 only after the
-  dashboard service catalog contract is frozen and file locks do not overlap.
-- Slice 06 starts only after previous slices provide verified behavior and
-  quality evidence.
+- Slice 02 test baselining may run with read-only documentation review after
+  Slice 01.
+- Slice 05 endpoint documentation exploration may run read-only while Slice 03
+  implementation is drafted, but writes wait for Slice 04 readiness semantics.
+- Slice 06 profile/inventory review may start read-only once Slice 05 begins.
+- Slice 08 documentation drafts may be prepared read-only throughout, then
+  updated with actual evidence only after implementation slices complete.
 
 ## Role And Subagent Ownership Map
 
 | Role | Ownership |
 |---|---|
-| Senior Workflow Architect | Workflow structure, dependency ordering, metadata, locks, handoff |
+| Senior Workflow Architect | Workflow structure, dependency graph, metadata, locks, handoff |
 | Senior Requirement Engineer | Requirement baseline, EPIC drift, acceptance criteria |
-| Senior System Architect | Hexagonal boundaries, routing decision, ADR/arc42 impact |
-| Senior Python Automation Developer | Service stack contracts, preflight, deployment wiring |
-| Senior DevOps Engineer | Compose assets, NGINX routing, Portainer-managed stack fit |
-| Senior React Frontend Developer | N/A React impact guard, dashboard UX safety review |
-| Senior Security Sandbox Engineer | Secret handling, Vaultwarden risk, evidence redaction |
-| Senior Tester | Targeted tests, quality gates, no-live-infra boundaries |
-| Senior Documentation Engineer | README, user guide, deployment, arc42, workflow sync |
+| Senior System Architect | Hexagonal boundaries, endpoint strategy, profile/inventory governance |
+| Senior Python Automation Developer | Preflight, setup/platform orchestration, command catalog semantics |
+| Senior React Frontend Developer | N/A React scope guard, console/status UI routing awareness |
+| Senior Tester | Regression tests, redaction checks, quality-gate evidence |
+| Senior DevOps Engineer | Multipass/Docker/Swarm readiness, artifact/deployment runtime contracts |
+| Senior Documentation Engineer | User guide, troubleshooting, arc42, workflow sync |
+| Senior Security Sandbox Engineer | Secret handling, evidence redaction, host mutation boundaries |
+| Console/status UI skills | Conditional terminal status/recovery text only |
 
 ## Quality-Gate Expectations
 
-Workflow creation minimum:
+Workflow creation:
 
 ```bash
 git diff --check
 ```
 
-Implementation slices:
+Targeted implementation checks:
 
-- Run the nearest targeted tests first.
-- Run architecture checks when Python boundaries are touched.
-- Run `python3 tools/quality_gate.py test` for behavior/config slices.
-- Run `python3 tools/quality_gate.py quality` before final implementation
-  release when practical.
+```bash
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
+PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_workflow_configuration
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+```
 
 No quality gate may create VMs, change networking, initialize Docker Swarm,
-deploy stacks, contact Portainer, run Vaultwarden/NGINX/Traefik containers,
+deploy stacks, contact Portainer/Nexus live, run Vaultwarden/NGINX containers,
 or bootstrap service credentials.
 
 ## Documentation Synchronization Points
 
-- Slice 01: EPIC, ADR, arc42 decision/risk.
-- Slice 02: routing and deployment view.
-- Slice 03: compose assets and live-operation surface classification.
-- Slice 04: architecture building blocks and deployment contracts.
-- Slice 05: dashboard behavior and credential-reference documentation.
-- Slice 06: README, deployment docs, user guide, troubleshooting, workflow
-  reports, quality evidence.
+- Slice 01: workflow and context pack.
+- Slice 03: preflight quality requirements and host runtime prerequisites.
+- Slice 04: platform init behavior and Multipass troubleshooting.
+- Slice 05: IntelliJ/Linux/WSL execution contract and endpoint strategy.
+- Slice 06: EPIC, inventory, profile and credential-source consistency.
+- Slice 07: artifact/deployment readiness docs.
+- Slice 08: README, user guide, arc42, workflow evidence and optional live
+  smoke handoff.
 
 ## Stop Conditions
 
 Stop and report when:
 
-- a live infrastructure command is required without explicit approval;
-- secrets, Vaultwarden admin tokens, passwords, credential-bearing URLs, or
-  local host details would be committed;
-- password values would be shown outside Vaultwarden's authenticated UI;
-- a second service would publish port `80` without a shared-ingress decision;
-- Traefik is selected without ADR and tests;
-- Portainer is made a prerequisite for bootstrapping Portainer;
-- service reachability would be claimed without observed evidence;
-- domain or application code would import infrastructure concerns;
-- React, TypeScript, Vite, or browser frontend project files would be added;
-- documentation would describe planned behavior as implemented behavior;
-- required quality commands cannot be verified from `QUALITY.md`;
-- workflow context-pack hashes are stale.
+- live infrastructure execution is required without explicit approval;
+- the workflow would auto-repair host packages, socket permissions, drivers or
+  service state without an ADR and live approval;
+- domain code would import infrastructure concerns;
+- application services would embed low-level shell, Docker, HTTP or filesystem
+  details directly;
+- commands, stdout, stderr, tokens, passwords, local IPs, usernames or
+  user-specific paths would be persisted as evidence;
+- direct `platform init --live` could still bypass readiness checks;
+- endpoint strategy requires guessing localhost versus node-IP behavior;
+- documentation would claim live setup success before evidence exists;
+- quality commands cannot be verified from `QUALITY.md`;
+- React/browser frontend or Windows-native behavior is introduced.
 
 ## Commit And Push Plan
 
@@ -959,7 +1182,7 @@ When the user later asks for commit or push preparation:
 
 - inspect `git status --short --branch`;
 - review changed files and line-ending noise;
-- run the required gates for the changed scope;
+- run required gates for the changed scope;
 - stage only workflow-related files;
 - use commit messaging governed by the git commit preparation skills.
 
@@ -968,22 +1191,21 @@ When the user later asks for commit or push preparation:
 - `documentation/workflow/workflow.md` exists and includes complete slice
   metadata.
 - `documentation/workflow/context-pack.md` and
-  `documentation/workflow/context-pack.json` exist.
+  `documentation/workflow/context-pack.json` exist and match this branch.
 - Subagent review findings are reflected in the workflow.
-- arc42 impact has been checked and is represented in slice documentation
+- The problem analysis explains why quality passed while live setup failed.
+- Local `.tiny-swarm-world` evidence is summarized without committing raw logs,
+  host IPs, secrets or user-specific details.
+- arc42 impact is checked and represented in slice documentation
   requirements.
 - Workflow creation verification passes `git diff --check`.
 - No live infrastructure command was run.
-- No implementation code, stack deployment, or service bootstrap was performed
+- No implementation code, stack deployment or service bootstrap was performed
   during workflow creation.
 
 ## Handoff To Workflow Execute
 
-Workflow execution has progressed through Slice 05 on branch
-`feature/workflow-access-vaultwarden-dashboard-20260525`. Slice 06 is the
-active documentation, quality-evidence and handoff slice.
-
-If execution is resumed, use:
+Use:
 
 ```text
 workflow execute with subagents
@@ -992,31 +1214,28 @@ workflow execute with subagents
 Before execution:
 
 - verify the active branch is
-  `feature/workflow-access-vaultwarden-dashboard-20260525`;
-- verify the context pack hashes are current;
+  `feature/workflow-stable-live-setup-20260525`;
+- verify context pack hashes are current;
 - verify slice metadata and locks;
 - run S3/S3D preflight;
-- resume at Slice 06 unless a checkpoint rollback deliberately changes the
-  execution state;
+- begin at Slice 02 for implementation, because Slice 01 is this workflow
+  creation;
 - keep writes inside each slice's allowed scope;
-- stop on any credential, routing, port, or architecture blocker.
+- stop on any live-infrastructure, secret, endpoint, consent, ADR or
+  architecture blocker.
 
-Final publication is checkpoint-only for workflow execution: no `push auto`,
-no pull request creation, no merge, no branch cleanup, no force-push and no
-push to `main`.
+Final publication is checkpoint-only for workflow execution unless the user
+explicitly requests commit or push. No `push auto`, pull request, merge,
+branch cleanup, force-push or push to `main` is part of this workflow.
 
 ## arc42 Check Status
 
 Checked during workflow creation:
 
-- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
 - `documentation/arc42/07_deployment_view.adoc`
-- `documentation/arc42/09_architecture_decisions.adoc`
 - `documentation/arc42/10_quality_requirements.adoc`
 - `documentation/arc42/11_risks_and_debt.adoc`
 
-arc42 files are synchronized during workflow execution slices when behavior is
-implemented. The post-workflow live smoke test on 2026-05-25 verified the
-older service-access route through Swarm node IPs. The current routing baseline
-is service-access central NGINX on `http://localhost` with Vaultwarden on
-`8086`; it requires a fresh live deployment before browser verification.
+arc42 files are not changed during workflow creation. They are synchronized in
+the implementation slices when behavior changes are made.
