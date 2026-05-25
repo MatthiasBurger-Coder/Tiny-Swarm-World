@@ -1,39 +1,35 @@
-# Workflow: Autonomous Runnable Setup
+# Workflow: Service Access Dashboard And Vaultwarden
 
 ## Executive Summary
 
-This workflow creates the governed execution plan for making Tiny Swarm World
-self-installing into a runnable local system from a Linux or WSL shell.
+This workflow creates the governed implementation plan for adding a
+Portainer-managed service-access stack to Tiny Swarm World.
 
-The target is one canonical, consent-gated setup path that can prepare the
-platform, configure the core Docker Swarm services, verify the result, and
-leave operator-readable evidence. The workflow is intentionally safety-first:
-workflow creation does not run live infrastructure commands, and execution
-must not mutate Multipass, Docker Swarm, netplan, socat, Portainer, Nexus,
-Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, images, registries, or stacks
-unless the active execution slice explicitly owns that behavior and the user
-has provided live-infrastructure consent.
+The target is a Docker Swarm-first stack, created with the same repository
+patterns as the existing service stacks: compose definitions under
+`infra/config/compose`, optional image or runtime assets under `infra/compose`,
+deployment contracts through the existing Python automation, and default
+verification through mocked or static checks.
 
-Subagent review found that the repository already has the right protected
-shape, but not the end-to-end installer:
+The workflow plans:
 
-- The supported Python CLI exists and is thin.
-- Static preflight exists and can check host, dependency, port, secret,
-  resource, ignore-policy, and forbidden-secret-fingerprint requirements.
-- Platform `init` and `reconcile` are live-consent gated, but currently block
-  before apply until command-backed verification contracts exist.
-- Artifact and Deployment workflow names exist, but return blocked contract
-  results until Nexus, registry, Portainer, stack, and observed-state contracts
-  are implemented.
-- Former direct setup scripts under `infra/prepare` and host-side
-  orchestration scripts under `infra/compose` are retired. Legacy scripts under
-  `infra/swarm` must not become the canonical setup path by simple promotion.
-- No React/browser frontend is in scope. Setup feedback belongs to the
-  console/status UI and CLI output.
+- a service-access dashboard GUI container that lists how configured Tiny
+  Swarm World services are reached;
+- a Vaultwarden container for credential storage;
+- dashboard credential links that lead operators to Vaultwarden items;
+- password values visible to authorized operators through the authenticated
+  Vaultwarden UI, not duplicated as plaintext in the service-access dashboard,
+  compose files, logs, or evidence;
+- NGINX-first HTTP routing, because the repository already contains a
+  Swagger/NGINX pattern and has no Traefik surface;
+- Portainer as the preferred post-bootstrap stack management surface, not as
+  the HTTP router and not as its own bootstrap dependency.
 
-The workflow is a FULL_PATH workflow because it can touch requirements,
-architecture decisions, Python automation, infrastructure adapters, YAML
-configuration, service contracts, tests, documentation, and quality gates.
+No live infrastructure command may run during workflow creation. Future
+workflow execution must not run Multipass, Docker Swarm, compose deployments,
+Portainer, Vaultwarden, NGINX, Traefik, or service bootstrap commands unless a
+slice explicitly owns that behavior and the user provides live-infrastructure
+consent.
 
 ## Target Picture
 
@@ -42,1318 +38,973 @@ configuration, service contracts, tests, documentation, and quality gates.
 - Active workflow version:
 
 ```text
-autonomous-runnable-setup-v1.0.0
+service-access-vaultwarden-dashboard-v1.0.0
 ```
 
 - Active workflow branch:
 
 ```bash
-codex/workflow-autonomous-setup-20260524
+feature/workflow-access-vaultwarden-dashboard-20260525
 ```
 
-- Root `AGENTS.md` defines Tiny Swarm World as a Linux/WSL-only Python
-  automation project with hexagonal architecture and Docker Swarm as the
-  current runtime model.
-- Root `QUALITY.md` defines the preferred full gate:
+- Root `AGENTS.md` defines Tiny Swarm World as Linux/WSL-only, Python
+  automation, hexagonal architecture, and Docker Swarm-first.
+- Root `QUALITY.md` defines the full quality gate:
 
 ```bash
 python3 tools/quality_gate.py quality
 ```
 
-- `documentation/epics/system-unification.md` says the implementation matches
-  the intended system only partially, with documented blockers.
-- `documentation/arc42/09_architecture_decisions.adoc` keeps ADR files under
-  `documentation/architecture/adr-*.adoc`; `documentation/adr/**` is not the
-  current convention.
-- `src/tiny_swarm_world/__main__.py` provides `--list-workflows`,
-  `--preflight`, live-consent checks, destructive confirmation checks, and
-  Platform/Artifacts/Deployment workflow dispatch.
-- `src/tiny_swarm_world/infrastructure/composition.py` is the concrete wiring
-  root for Platform, Artifact, and Deployment service bundles.
-- `documentation/system/live-operation-surfaces.adoc` classifies direct live
-  scripts and assets. Default verification remains static or mocked.
-- No `package.json`, TSX/JSX, browser router, or React build surface is part
-  of the current project.
+- Existing compose stacks live under `infra/config/compose/<stack>/docker-compose.yml`.
+- Existing runtime assets live under `infra/compose/<stack>/**`.
+- Existing default service contracts cover Portainer, Nexus, Jenkins,
+  RabbitMQ, SonarQube, and Swagger/NGINX.
+- Portainer-managed service-stack planning already excludes Portainer itself
+  to avoid a bootstrap cycle.
+- Swagger/NGINX currently publishes HTTP port `80`; a new HTTP-facing service
+  must not silently reuse that port.
+- Portainer stack upload currently sends compose content. Additional NGINX or
+  dashboard assets must be packaged into an image, prepared through an
+  explicit asset boundary, or avoided by using image-native configuration.
+- No React frontend build surface is present. The dashboard is an
+  infrastructure service GUI, not a new repository React application.
+- No Vaultwarden stack or credential-vault contract exists yet.
 
 ### Target Outcome
 
-The completed workflow must produce:
+The completed workflow execution should produce:
 
-- an installer-specific requirement baseline for "runnable setup";
-- an explicit decision on autonomous setup safety, live consent, credentials,
-  host prerequisites, and optional live smoke validation;
-- preflight and setup manifest contracts for prerequisites, resources, ports,
-  secrets, ignored local paths, and selected service profile;
-- command-backed verification contracts for platform steps that can safely
-  unblock `platform init` and `platform reconcile`;
-- observed inventory and verification evidence that remain under ignored
-  `.tiny-swarm-world/` paths and never persist raw command payloads or secrets;
-- guarded Portainer deployment contracts;
-- guarded Nexus/artifact registry contracts;
-- default service stack deployment and verification contracts for Portainer,
-  Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX;
-- one canonical autonomous setup CLI workflow that orchestrates platform,
-  artifacts, deployment, and final verification after live consent;
-- console/status output that distinguishes refused, blocked, failed-to-apply,
-  failed-to-verify, resource-gated, and completed phases;
-- README, installation, deployment, system, arc42, workflow, and live-operation
-  documentation synchronized with actual behavior;
-- exact targeted and full quality-gate evidence.
+- a documented requirement and security baseline for the service-access
+  dashboard and Vaultwarden;
+- an ADR or ADR-equivalent decision when the implementation changes the
+  default service set, credential-source model, routing model, persistence
+  model, or TLS stance;
+- NGINX-first routing with an explicit port or shared-ingress decision that
+  avoids collision with the current Swagger/NGINX port `80` binding;
+- Portainer-managed stack contracts for the new service-access stack after
+  Portainer is reachable;
+- password values visible to authorized operators in Vaultwarden's
+  authenticated reveal/copy flow;
+- compose and optional runtime/image assets that are deterministic,
+  Swarm-compatible, and free of committed secrets;
+- Python domain, application, and infrastructure changes that preserve
+  existing port/adaptor boundaries;
+- tests that load the new compose stack, verify stack contracts, reject
+  committed secret values, and use fakes for Portainer and Swarm behavior;
+- dashboard behavior that displays service reachability state or access method
+  only when the evidence source is test-backed;
+- documentation synchronized with actual implemented behavior, without
+  presenting planned deployment success as already verified.
 
 ## Requirement Clarification Record
 
-Original request:
+Original request, normalized to ASCII:
 
 ```text
 workflow create with subagents:
-Erstelle ein setup damit sich das system selbstaendig lauffaehig installieren laesst
+
+Create another container using the same technique as the other containers.
+This container includes a GUI that shows which server is reachable and which
+passwords are needed.
+
+For passwords:
+- Vaultwarden as container
+- HTTP via NGINX/Traefik
+
+Choose what is better for routing. If this can be solved with Portainer, that
+would be preferred.
 ```
 
 Interpreted intent:
 
 - Create a new active workflow with delegated subagent review.
-- Plan a setup path that can make Tiny Swarm World install itself into a
-  runnable local state.
-- Keep the setup path Linux/WSL-only, Docker Swarm first, Python automation
-  first, and governed by the existing safety model.
-- Use the workflow for later `workflow execute with subagents` implementation.
+- Plan a new service-access dashboard and credential-vault capability.
+- Use existing Docker Swarm, Portainer-managed stack, compose repository, and
+  Python deployment-contract patterns.
+- Prefer NGINX routing because repository evidence supports NGINX and not
+  Traefik.
+- Keep Vaultwarden as the credential store and the password-visible UI.
+- Keep the service-access dashboard focused on service reachability, access
+  routes, credential labels, and links into Vaultwarden.
 
 Change type:
 
-- Workflow creation and autonomous setup planning.
+- FULL_PATH workflow creation for deployment configuration, credential-source
+  handling, routing, Python deployment contracts, tests, and documentation.
 
 Affected process strand:
 
-- FULL_PATH setup enablement: requirements, architecture, preflight,
-  command-backed verification, inventory/evidence, platform workflows,
-  artifact workflows, deployment workflows, console status, docs, and quality
-  gates.
+- Service stack deployment and setup readiness extension.
 
 Affected architecture area:
 
-- Platform, Artifacts, Deployment, Shared, CLI workflow contracts, preflight,
-  verify-after-apply, inventory/evidence persistence, Portainer/Nexus client
-  boundaries, compose assets, console/status UI, legacy live-operation
-  surfaces, arc42, and workflow governance.
+- Deployment boundary, service stack contracts, compose assets, optional
+  artifact publishing, setup preflight manifest, Portainer stack management,
+  reverse-proxy routing, credential-source handling, service readiness
+  verification, documentation, arc42, and ADR index.
 
 Explicit requirements:
 
 - Use subagents.
 - Create a workflow.
-- Create a setup path so the system can install itself into a runnable state.
+- Add another container or stack using the same technique as existing
+  containers.
+- Provide a GUI showing which servers or services are reachable and what
+  credentials are needed.
+- Make password values visible to authorized operators.
+- Use Vaultwarden as a container for password handling.
+- Route HTTP through NGINX or Traefik.
+- Prefer Portainer if feasible.
 
 Implicit requirements:
 
 - Preserve Linux/WSL-only operation and POSIX command examples.
-- Preserve hexagonal architecture and application-to-port dependencies.
+- Preserve Docker Swarm-first deployment.
+- Preserve hexagonal architecture.
 - Keep concrete adapter construction in
   `src/tiny_swarm_world/infrastructure/composition.py`.
-- Keep `src/tiny_swarm_world/__main__.py` thin.
-- Do not run live infrastructure commands during workflow creation.
-- Use `QUALITY.md` as the quality-command authority.
-- Treat console/status UI as terminal UI, not React/browser frontend.
-- Do not reintroduce Java, Maven, or Spring Boot setup architecture.
-- Keep secrets out of runtime evidence; this local non-production system may
-  retain reviewed static compatibility passwords where they are intentionally
-  part of the setup baseline.
+- Keep application services dependent on ports, not infrastructure adapters.
+- Keep runtime stack configuration host-neutral.
+- Do not commit passwords, tokens, Vaultwarden admin tokens, local paths,
+  local IP addresses, or raw command output.
+- Use static and mocked tests by default.
+- Record service reachability as unknown or blocked unless observed-state or
+  HTTP evidence is test-backed.
 
-Accepted assumptions:
+Accepted assumptions and decisions:
 
-- "Autonomous" means one orchestrated setup command after explicit
-  live-infrastructure consent, not silent unattended host mutation.
-- Host prerequisites such as Multipass, Docker CLI, socat, curl, and jq are
-  verified and documented first. Installing host packages automatically
-  requires a dedicated ADR or explicit slice decision.
-- The default runnable target is the full local system: Platform plus
-  Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX. Resource
-  constraints may produce a documented resource-gated result, not a false pass.
-- Credentials are supplied through environment variables or ignored local
-  files. No new default passwords, tokens, host IPs, or user-specific absolute
-  paths may be committed.
-- Live integration validation is not part of the default quality gate. It may
-  be planned as an optional final smoke run only after explicit user approval
-  on a disposable local environment.
-- The installer-specific baseline extends the existing system-unification EPIC
-  instead of replacing it.
+- The feature is a service-access stack containing at least a dashboard
+  service and Vaultwarden. NGINX may be part of the stack or shared ingress,
+  depending on the port decision in Slice 02.
+- Password values must be visible in Vaultwarden's authenticated UI. The
+  service-access dashboard may show credential names, source status, and
+  Vaultwarden item links, but must not duplicate or cache password values.
+- NGINX is the default routing direction because Swagger/NGINX exists and no
+  Traefik configuration exists. Traefik requires a later ADR-level decision.
+- Portainer is preferred for post-bootstrap stack create/update. Initial
+  bootstrap must avoid depending on Portainer before Portainer is reachable.
+- The workflow extends the autonomous runnable setup and system-unification
+  EPICs. It does not replace them.
+- The regenerated `documentation/workflow/**` directory is intentional under
+  the workflow-create regeneration rule.
 
 Non-goals:
 
-- No live infrastructure execution during workflow creation.
-- No Kubernetes-first pivot.
-- No browser React frontend work.
-- No Spring Boot or Java-driven setup architecture.
-- No microservice extraction.
-- No promotion of direct legacy scripts as the canonical installer without
-  ports, adapters, tests, consent controls, and documentation.
-- No weakening of `.importlinter`, architecture tests, or `QUALITY.md`.
-- No committing generated caches, local runtime evidence, credentials, logs,
-  virtual environments, or IDE state.
+- No live deployment during workflow creation.
+- No plaintext secrets in the service-access dashboard, compose files, logs,
+  documentation, or evidence. Vaultwarden's authenticated UI is the approved
+  password-visible surface.
+- No new React, TypeScript, Vite, or browser frontend project in the
+  repository.
+- No Java, Maven, Spring Boot, or Kubernetes-first pivot.
+- No direct promotion of legacy scripts as deployment entry points.
+- No TLS or certificate automation unless a later ADR accepts that contract.
+- No Traefik implementation unless an ADR and tests deliberately add it.
 
 Risks:
 
-- Installer scope, consent, credentials, and "runnable" acceptance criteria
-  need an explicit first execution slice before implementation.
-- Current platform mutating workflows block before apply until verification
-  contracts are implemented.
-- Artifact and Deployment workflows are explicit but currently blocked.
-- Command catalog entries are shell-oriented and mostly manual verification.
-- `MultipassDockerSwarmInit` touches Swarm token flow and needs redaction and
-  evidence hardening before live autonomous setup.
-- Direct scripts can mutate VMs, networking, Docker, stacks, credentials, and
-  volumes outside CLI consent.
-- Full stack setup can exceed host resources and must report resource-gated
-  status honestly.
+- Credential leakage through dashboard content, compose defaults, logs, or
+  evidence.
+- A circular bootstrap if Vaultwarden credentials are needed before
+  Vaultwarden is reachable.
+- False health claims if reachability is inferred without observed evidence.
+- Port collision with the existing Swagger/NGINX port `80`.
+- Portainer stack upload missing runtime assets that are referenced by mounted
+  NGINX or dashboard files.
+- Security risk from exposing Vaultwarden over unauthenticated plain HTTP
+  beyond the local development boundary.
+- Scope drift into a browser frontend project.
 
-Open questions converted into slice decisions:
+Open questions:
 
-- Whether host prerequisites may be installed automatically.
-- Whether non-interactive live consent is ever acceptable.
-- Whether a partial target profile is supported for resource-constrained hosts.
-- Which secret source format becomes canonical for unattended setup.
-- Which optional live smoke environment is acceptable.
+- None blocking for workflow creation.
+
+Questions intentionally delegated to slices:
+
+- Whether service access should use a shared NGINX ingress or a non-conflicting
+  published port.
+- Whether dashboard assets are image-packaged, mounted through an explicit
+  asset preparation boundary, or provided by an existing image-native
+  dashboard.
+- Whether Vaultwarden becomes part of the default runnable service set or an
+  optional service profile.
+- Which exact service names and credential item names the dashboard lists.
 
 Blocking questions:
 
-- None for workflow creation. The questions above are blocking for later
-  implementation slices until resolved by Slice 01 or Slice 02.
+- None. Any answer that would require showing raw passwords outside
+  authenticated Vaultwarden UI, reusing port `80` without a routing decision,
+  using Traefik without ADR review, or running live infrastructure defaults to
+  a stop condition.
 
 Confidence level:
 
 ```text
-82 percent
+91 percent
 ```
 
 Decision:
 
 ```text
-PROCEED_WITH_ACCEPTED_ASSUMPTIONS
+READY_FOR_WORKFLOW
 ```
-
-Rationale:
-
-- The user requested workflow creation, not immediate live setup execution.
-- Ambiguities can be converted into explicit early workflow slices and stop
-  conditions without guessing product behavior.
-- The repository already contains enough guarded CLI, preflight, architecture,
-  and quality structure to author a safe execution plan.
 
 ## Execution Profile
 
 ```text
 executionProfile=FULL_PATH
-reason=The workflow can affect architecture decisions, Python automation,
-runtime workflow wiring, live-operation safety, service contracts, docs, and
-quality gates.
-requiredFullReviews=senior_requirement_engineer, senior_system_architect,
-senior_python_automation_developer, senior_react_frontend as React/browser
-scope guard, senior_tester, senior_workflow_architect
-requiredConditionalReviews=senior_devops, senior_documentation_engineer,
-senior_security_sandbox_engineer, console-status-ui-developer,
-resilience-engineering, adr-steward, git_commit_reviewer
-requiredQualityChecks=git diff --check, targeted unit/static gates by slice,
-and python3 tools/quality_gate.py quality before final release when practical
-stopConditions=unverified branch, stale workflow context, live command without
-explicit approval, missing setup requirement baseline, unclear ADR convention,
-manual-only verification for an autonomous live step, secret leakage,
-architecture boundary violation, or quality-gate weakening
+reason=The workflow can affect deployment behavior, service contracts, routing,
+credential handling, persistence, Python wiring, tests, arc42, ADRs, and
+operator documentation.
+requiredFullReviews=Senior Requirement Engineer, Senior System Architect,
+Senior Python Automation Developer, Senior Tester, Senior DevOps Engineer,
+Senior Documentation Engineer, Security review for credential handling
+allowedImpactChecks=Senior React Frontend Developer as N/A React scope guard
+requiredQualityChecks=git diff --check for workflow creation; targeted tests
+per slice; python3 tools/quality_gate.py quality before final implementation
+release when practical
+stopConditions=secrets committed, live commands required without consent,
+routing ownership unclear, Traefik selected without ADR, port 80 conflict
+unresolved, React project introduced, or architecture boundaries weakened
 ```
 
-## Scope
+## Subagent Review Summary
 
-### Allowed Write Scope
+Senior Requirement Engineer:
 
-The workflow may change:
+- Raised refinement risks around GUI scope, credential display, reachability
+  source, routing, TLS, Vaultwarden bootstrap, and EPIC extension.
+- Workflow resolves these as explicit assumptions, non-goals, slice decisions,
+  and stop conditions.
 
-```text
-documentation/workflow/**
-documentation/epics/**
-documentation/architecture/**
-documentation/arc42/**
-documentation/deployment/**
-documentation/system/**
-documentation/user_guide/**
-README.md
-src/tiny_swarm_world/__main__.py
-src/tiny_swarm_world/domain/**
-src/tiny_swarm_world/application/**
-src/tiny_swarm_world/infrastructure/composition.py
-src/tiny_swarm_world/infrastructure/adapters/command_runner/**
-src/tiny_swarm_world/infrastructure/adapters/clients/**
-src/tiny_swarm_world/infrastructure/adapters/repositories/**
-src/tiny_swarm_world/infrastructure/adapters/preflight/**
-src/tiny_swarm_world/infrastructure/adapters/ui/**
-infra/config/**
-infra/compose/**
-tests/**
-.importlinter only with Senior Tester and Senior System Architect approval
-QUALITY.md only if the quality authority is explicitly wrong
-AGENTS.md only if root governance must be corrected
-```
+Senior System Architect:
 
-### Forbidden Write Scope
+- Recommends NGINX first based on existing Swagger/NGINX assets and no Traefik
+  evidence.
+- Confirms Portainer should orchestrate stacks, not route HTTP.
+- Recommends Deployment-owned stack contracts, not a new microservice.
 
-The workflow must not change:
+Senior Python Automation Developer:
 
-```text
-external static-analysis CI configuration
-generated caches
-local virtual environments
-logs
-IDE state
-.tiny-swarm-world/**
-.env
-.env.local
-```
+- Flags the current Swagger/NGINX port `80` binding as a required routing
+  decision.
+- Flags Portainer stack upload as compose-content-only, so mounted assets need
+  image packaging or explicit asset preparation.
+- Lists domain, preflight, deployment, composition, artifact, and test areas
+  likely affected.
 
-Direct modification of live scripts under `infra/swarm` is allowed only when a
-slice explicitly owns migration, quarantine, or compatibility updates and
-verification remains static or mocked unless the user separately approves live
-execution. Former executable setup surfaces under `infra/prepare` and
-host-side orchestration scripts under `infra/compose` must not be restored.
+Senior React Frontend Developer:
+
+- Confirms no React frontend repository scope exists.
+- Treats the role as an N/A impact check and scope guard.
+- Allows an infrastructure-provided GUI only if no React/browser build surface
+  is introduced. Password values may be shown only by Vaultwarden's
+  authenticated UI.
+
+Senior Tester:
+
+- Recommends regression-first tests for service-stack contracts, preflight,
+  compose repository loading, fake Portainer deployment, routing decisions,
+  composition, and secret handling.
+- Confirms no live infrastructure belongs in default verification.
 
 ## Architecture Constraints
 
-- Preserve the hexagonal architecture.
-- Domain modules must not import application, infrastructure, filesystem,
-  YAML, HTTP, Docker, logging, command runner, UI adapter, or dependency
-  injection concerns.
-- Application services may orchestrate ports and domain objects but must not
-  embed low-level shell, filesystem, HTTP, curses, Docker, or Portainer/Nexus
-  details directly.
-- Infrastructure adapters implement ports and contain technology-specific
-  behavior.
+- Domain code may hold stack names, credential-source identifiers, and
+  validation rules. It must not import YAML parsers, Docker clients,
+  Portainer clients, HTTP clients, file managers, logging setup, or dependency
+  injection containers.
+- Application services may orchestrate ports and domain objects. They must not
+  embed shell, Docker, Portainer HTTP, NGINX config generation, or filesystem
+  asset-transfer details directly.
+- Infrastructure adapters own YAML parsing, HTTP calls, command execution,
+  file management, NGINX assets, Docker image publishing, and Portainer
+  client behavior.
 - `src/tiny_swarm_world/infrastructure/composition.py` remains the concrete
-  composition root.
+  wiring root.
 - `src/tiny_swarm_world/__main__.py` remains thin.
-- Platform, Artifacts, Deployment, Shared, and Console/status UI remain
-  in-process responsibility boundaries, not extracted microservices.
-- Direct live scripts are reference material or legacy surfaces, not the
-  canonical installer contract.
-- Console/status UI is terminal-only.
-- Java/Maven project structure is retired unless a later explicit task changes
-  scope.
-- Kubernetes awareness must not displace Docker Swarm as the current target.
+- The service-access stack is a deployment stack, not a new microservice or
+  repository frontend project.
+- Vaultwarden credential values are operator-owned secrets. Committed files
+  may contain required secret names, never secret values.
 
 ## Python Automation Assessment
 
-Python automation is the primary implementation surface. The setup workflow
-must address these incomplete areas in small, testable slices:
+Likely implementation areas:
 
-- runnable-state acceptance criteria are not installer-specific yet;
-- platform mutating workflows expose step IDs and block reasons, but lack
-  command-backed verification;
-- observed inventory and verification evidence exist as concepts, but service
-  readiness and stack health collection are not wired end to end;
-- artifact workflows are blocked until image build/push, Nexus repository, and
-  registry verification contracts exist;
-- deployment workflows are blocked until Portainer stack apply and service
-  observed-state verification ports exist;
-- direct scripts contain useful operational knowledge but bypass CLI consent
-  and must be migrated through ports/adapters before becoming canonical;
-- setup orchestration needs explicit async phase sequencing, failure
-  classification, retries, timeouts, recovery guidance, and redacted evidence.
+- `src/tiny_swarm_world/domain/deployment/service_stack_contract.py`
+- `src/tiny_swarm_world/domain/preflight/setup_manifest.py`
+- `src/tiny_swarm_world/application/services/deployment/service_stack_plan.py`
+- `src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py`
+- `src/tiny_swarm_world/application/services/deployment/verify_swarm_service_readiness.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `src/tiny_swarm_world/domain/artifacts/container_image_contract.py` only if
+  a custom dashboard image is introduced.
+- `src/tiny_swarm_world/infrastructure/adapters/clients/multipass_container_image_publisher.py`
+  only if a custom dashboard image is introduced.
 
-## Frontend And Console UI Assessment
+Required boundaries:
 
-No React or browser frontend exists. The mandatory Senior React Frontend role
-is a read-only scope guard and reports N/A for browser React.
+- Use `PortComposeFileRepository` for compose lookup.
+- Use `PortPortainerClient` for post-bootstrap Portainer stack create/update.
+- Use `PortSwarmStackRuntime` or tested HTTP checks for observed readiness.
+- Use `PortContainerImagePublisher` only for packaged dashboard assets.
+- Keep preflight and setup manifest concerns in domain/application contracts.
 
-Any user-facing setup progress belongs to the CLI and console/status UI:
+## Frontend Assessment
 
-- status labels must not rely on color alone;
-- aggregate and per-service statuses must remain distinct;
-- refused, blocked, resource-gated, failed-to-apply, failed-to-verify, and
-  completed states must not collapse into a generic success message;
-- setup output must show actionable recovery guidance without printing
-  secrets, raw command payloads, tokens, or credentials.
+The dashboard request is in scope only as a deployed infrastructure GUI
+service.
+
+Out of scope:
+
+- adding `package.json`;
+- adding React, TSX/JSX, Vite, browser routers, or frontend state management;
+- building a browser application inside the Python repository;
+- storing or rendering raw password values outside Vaultwarden's authenticated
+  UI.
+
+The dashboard must be usable without color alone, distinguish unknown from
+reachable, show source/freshness for status where available, and display
+credential requirement labels or Vaultwarden item references only.
+
+## Security And Credential Requirements
+
+- Vaultwarden may store credential values and must provide the authenticated
+  UI where authorized operators can reveal or copy password values.
+- The service-access dashboard may show credential names, missing/present
+  status, and Vaultwarden item references. It must not display, cache, log, or
+  export password values itself.
+- Compose files must not include Vaultwarden admin tokens, SMTP passwords,
+  basic-auth URLs, API keys, tokens, database passwords, or static password
+  defaults.
+- Required secret names such as `TSW_VAULTWARDEN_ADMIN_TOKEN` may be recorded
+  as configuration requirements.
+- Verification evidence must reject raw command output, tokens, passwords,
+  Swarm join tokens, local IP addresses, host-specific paths, and environment
+  payloads.
+- Vaultwarden persistence, backup, admin-token rotation, and rollback must be
+  defined before the stack is treated as production-like.
 
 ## Test Strategy
 
-- Use regression-first implementation.
-- Start each slice with the nearest focused unit/static tests.
-- Keep live infrastructure effects mocked or statically inspected by default.
-- Use fake command workflows, command runners, host preflight probes,
-  Portainer/Nexus/container-runtime clients, inventory repositories, evidence
-  repositories, and synthetic YAML/compose fixtures.
-- Patch process calls, sleeps, input, and environment variables in tests.
-- Assert forbidden live calls with mocks that raise `AssertionError`.
-- Do not add mutation-testing commands because repository tooling does not
-  configure them.
-- Do not claim `python3 tools/quality_gate.py quality` passed unless it was
-  executed successfully in a suitable Linux/WSL environment.
+Default tests must remain static or mocked.
 
-## Resilience And Safety Requirements
+Targeted commands expected during workflow execution:
 
-- No live infrastructure commands during workflow creation.
-- Mutating setup execution must require live consent before service
-  construction.
-- Destructive reset/destroy behavior remains outside autonomous setup unless a
-  later ADR explicitly defines retention and teardown semantics.
-- Every autonomous live step must have an apply contract and a verification
-  contract before it can run.
-- Missing verification, manual-only verification, missing observed-state
-  evidence, or unsafe evidence persistence must return `blocked`.
-- Failed apply stops later phases.
-- Failed verification stops later phases and records redacted evidence.
-- Resource-gated hosts produce resource-gated results, not false success.
-- Secrets are provided through environment variables or ignored local files.
-- Verification evidence stores summaries and checksums, not raw command
-  strings, stdout, stderr, environment payloads, passwords, tokens, or Swarm
-  join tokens.
+```bash
+git diff --check
+PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+```
+
+Quality commands must come from `QUALITY.md`. Do not invent mutation-testing,
+frontend, Traefik, Docker, or live-smoke gates.
+
+Live smoke validation is optional and separate. It requires explicit user
+approval, live consent, a disposable or recoverable local target, and redacted
+evidence. It is not part of the default quality gate.
 
 ## Ordered Slices
 
-### Slice 01: Installer Requirement Baseline
+### Slice 01 - Requirement, EPIC, And ADR Baseline
 
 Purpose:
 
-- Define the installer-specific EPIC extension, runnable-state acceptance
-  criteria, service profile, credentials model, resource-gated outcomes, and
-  live validation boundaries before implementation.
+- Establish the service-access requirement baseline.
+- Decide whether the feature extends the autonomous runnable setup EPIC.
+- Create or update ADR material for default service-set, credential-source,
+  persistence, and routing-impact decisions.
 
 ```yaml
 slice_id: "01"
-profile: "FULL_PATH"
-owner: "senior_requirement_engineer"
+profile: FULL_PATH
+owner: Senior Requirement Engineer
 secondary_reviewers:
-  - "senior_workflow_architect"
-  - "senior_system_architect"
-  - "senior_tester"
+  - Senior System Architect
+  - Senior Security Sandbox Engineer
+  - Senior Documentation Engineer
+  - Senior Tester
 affected_files:
-  - "documentation/epics/autonomous-runnable-setup.md"
-  - "documentation/epics/system-unification.md"
-  - "documentation/workflow/reports/01-installer-requirement-baseline.md"
+  - documentation/epics/service-access-dashboard-vaultwarden.md
+  - documentation/epics/autonomous-runnable-setup.md
+  - documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
+  - documentation/arc42/09_architecture_decisions.adoc
+  - documentation/arc42/11_risks_and_debt.adoc
 affected_modules: []
 affected_contracts:
-  - "autonomous-setup-requirement"
-  - "runnable-state-acceptance"
+  - service-access-requirement-baseline
+  - vaultwarden-credential-source-contract
+  - default-service-set-decision
 dependencies: []
-parallel_group: "A"
+parallel_group: A
 file_locks:
-  - "documentation/epics/**"
-  - "documentation/workflow/reports/01-installer-requirement-baseline.md"
+  - documentation/epics/**
+  - documentation/architecture/**
+  - documentation/arc42/**
 contract_locks:
-  - "autonomous-setup-requirement"
-  - "runnable-state-acceptance"
+  - credential-source-contract
+  - service-access-scope-contract
 architecture_locks:
-  - "Platform-Artifacts-Deployment-Shared"
+  - deployment-boundary
+  - credential-evidence-redaction
 quality_gates:
   targeted:
-    - "git diff --check"
-  required: []
+    - git diff --check
+  required:
+    - git diff --check
 documentation:
-  arc42: "checked; update only if the requirement changes architecture status"
-  adr: "checked; no new ADR expected unless live consent or host package installation changes"
+  arc42: documentation/arc42/09_architecture_decisions.adoc; documentation/arc42/11_risks_and_debt.adoc
+  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
 stop_conditions:
-  - "runnable state cannot be made testable"
-  - "credential source would require committed secrets"
-  - "autonomous setup is redefined as silent host mutation"
-  - "minimum target becomes unclear"
+  - Password values would be displayed outside authenticated Vaultwarden UI, logged, committed, or persisted as evidence.
+  - Vaultwarden persistence or admin-token ownership is undefined.
+  - The feature conflicts with the autonomous runnable setup EPIC.
 ```
+
+Allowed write scope:
+
+- Requirement, EPIC, ADR, arc42 risk/index documentation only.
 
 Done criteria:
 
-- Installer-specific EPIC or EPIC extension exists.
-- Full and resource-gated runnable-state criteria are explicit.
-- Credential, consent, and live smoke assumptions are testable.
+- Credential display policy is explicit.
+- Vaultwarden bootstrap, persistence, backup, and rollback responsibilities
+  are at least decision-recorded.
+- Dashboard scope is defined as infrastructure GUI, not React repository app.
+- `git diff --check` passes.
 
-### Slice 02: Setup Safety ADR And arc42 Alignment
+### Slice 02 - Routing, Port, And Asset Packaging Decision
 
 Purpose:
 
-- Decide whether autonomous setup needs a standalone ADR and align arc42 with
-  the accepted setup contract before runtime wiring changes.
+- Record the NGINX-first routing decision.
+- Resolve the port `80` collision with current Swagger/NGINX before compose
+  assets are created.
+- Decide whether dashboard and NGINX assets are image-packaged, prepared
+  through an explicit asset boundary, or avoided through image-native config.
 
 ```yaml
 slice_id: "02"
-profile: "FULL_PATH"
-owner: "senior_system_architect"
+profile: FULL_PATH
+owner: Senior System Architect
 secondary_reviewers:
-  - "adr-steward"
-  - "senior_documentation_engineer"
-  - "senior_security_sandbox_engineer"
+  - Senior DevOps Engineer
+  - Senior Python Automation Developer
+  - Senior Tester
 affected_files:
-  - "documentation/architecture/**"
-  - "documentation/arc42/05_building_blocks.adoc"
-  - "documentation/arc42/06_runtime_view.adoc"
-  - "documentation/arc42/07_deployment_view.adoc"
-  - "documentation/arc42/09_architecture_decisions.adoc"
-  - "documentation/arc42/10_quality_requirements.adoc"
-  - "documentation/arc42/11_risks_and_debt.adoc"
-  - "documentation/workflow/reports/02-setup-safety-architecture.md"
+  - documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
+  - documentation/arc42/07_deployment_view.adoc
+  - documentation/deployment/system.adoc
 affected_modules: []
 affected_contracts:
-  - "autonomous-setup-safety"
-  - "adr-location-convention"
+  - reverse-proxy-routing
+  - service-access-ingress
+  - asset-packaging-boundary
 dependencies:
   - "01"
-parallel_group: "B"
+parallel_group: B
 file_locks:
-  - "documentation/architecture/**"
-  - "documentation/arc42/**"
-  - "documentation/workflow/reports/02-setup-safety-architecture.md"
+  - documentation/architecture/**
+  - documentation/arc42/07_deployment_view.adoc
+  - documentation/deployment/**
 contract_locks:
-  - "autonomous-setup-safety"
-  - "adr-location-convention"
+  - reverse-proxy-routing
+  - port-allocation
 architecture_locks:
-  - "hexagonal-architecture"
-  - "Platform-Artifacts-Deployment-Shared"
+  - deployment-boundary
+  - live-operation-surface
 quality_gates:
   targeted:
-    - "git diff --check"
-    - "python3 tools/quality_gate.py arch-tests"
-  required: []
+    - git diff --check
+  required:
+    - git diff --check
 documentation:
-  arc42: "update when setup contract, runtime flow, deployment view, or risk status changes"
-  adr: "new ADR required if consent, host package installation, evidence semantics, or script promotion changes"
+  arc42: documentation/arc42/07_deployment_view.adoc
+  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
 stop_conditions:
-  - "ADR convention cannot be followed"
-  - "arc42 would document planned behavior as implemented"
-  - "setup ownership crosses boundaries without a decision"
+  - The workflow would publish a second service on port 80 without a shared-ingress decision.
+  - Traefik is selected without ADR and test scope.
+  - NGINX or dashboard config depends on files Portainer cannot deploy.
 ```
+
+Allowed write scope:
+
+- Routing and deployment documentation, ADR updates, and port-allocation
+  decision artifacts only.
 
 Done criteria:
 
-- ADR need is explicitly accepted or rejected.
-- arc42 distinguishes planned setup behavior from implemented setup behavior.
+- NGINX-first routing is documented.
+- Traefik is rejected or moved behind explicit ADR scope.
+- Port `80` collision is resolved before YAML implementation.
+- Asset transfer or packaging boundary is explicit.
 
-### Slice 03: Setup Preflight And Manifest Contract
+### Slice 03 - Compose Stack And Secret-Safe Configuration
 
 Purpose:
 
-- Extend preflight and setup manifest behavior for a full runnable setup while
-  keeping checks non-mutating until live consent is provided.
+- Add the service-access and Vaultwarden compose definitions using existing
+  stack layout.
+- Keep compose files host-neutral and Swarm-compatible.
+- Avoid committed secret values.
 
 ```yaml
 slice_id: "03"
-profile: "FULL_PATH"
-owner: "senior_python_automation_developer"
+profile: FULL_PATH
+owner: Senior DevOps Engineer
 secondary_reviewers:
-  - "setup-bootstrap-expert"
-  - "linux-host-preparation"
-  - "senior_tester"
+  - Senior Python Automation Developer
+  - Senior Security Sandbox Engineer
+  - Senior Tester
 affected_files:
-  - "src/tiny_swarm_world/domain/preflight/**"
-  - "src/tiny_swarm_world/application/ports/preflight/**"
-  - "src/tiny_swarm_world/application/services/platform/preflight_service.py"
-  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
-  - "src/tiny_swarm_world/infrastructure/composition.py"
-  - "tests/domain/preflight/**"
-  - "tests/application/services/platform/test_preflight_service.py"
-  - "tests/infrastructure/adapters/preflight/**"
-  - "tests/test_package_entrypoint.py"
-  - "documentation/workflow/reports/03-setup-preflight-manifest.md"
+  - infra/config/compose/service-access/docker-compose.yml
+  - infra/compose/service-access/**
+  - infra/compose/README.md
+  - documentation/system/live-operation-surfaces.adoc
 affected_modules:
-  - "tiny_swarm_world.domain.preflight"
-  - "tiny_swarm_world.application.services.platform"
-  - "tiny_swarm_world.infrastructure.adapters.preflight"
+  - infra/config/compose
+  - infra/compose
 affected_contracts:
-  - "setup-preflight-contract"
-  - "setup-manifest-contract"
+  - service-access-stack-compose
+  - vaultwarden-secret-and-data-contract
+  - reverse-proxy-routing
 dependencies:
+  - "01"
   - "02"
-parallel_group: "C"
+parallel_group: C
 file_locks:
-  - "src/tiny_swarm_world/domain/preflight/**"
-  - "src/tiny_swarm_world/application/ports/preflight/**"
-  - "src/tiny_swarm_world/application/services/platform/preflight_service.py"
-  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
-  - "tests/domain/preflight/**"
-  - "tests/application/services/platform/test_preflight_service.py"
-  - "tests/infrastructure/adapters/preflight/**"
+  - infra/config/compose/service-access/**
+  - infra/compose/service-access/**
+  - infra/compose/README.md
+  - documentation/system/live-operation-surfaces.adoc
 contract_locks:
-  - "setup-preflight-contract"
-  - "setup-manifest-contract"
+  - service-access-stack
+  - vaultwarden-secret-and-data-contract
+  - reverse-proxy-routing
 architecture_locks:
-  - "hexagonal-architecture"
-  - "Shared"
+  - deployment-boundary
+  - live-operation-surface
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result"
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service"
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe"
-    - "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint"
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+    - git diff --check
   required:
-    - "python3 tools/quality_gate.py test"
+    - python3 tools/quality_gate.py test
 documentation:
-  arc42: "update quality requirements and runtime view if preflight semantics change"
-  adr: "new ADR only if setup can install host prerequisites automatically"
+  arc42: documentation/arc42/07_deployment_view.adoc
+  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
 stop_conditions:
-  - "preflight would mutate host state"
-  - "resource-gated outcome would be treated as pass"
-  - "secret values would be stored or printed"
+  - Compose files contain static passwords, tokens, local paths, or host IP addresses.
+  - Compose publishes a conflicting port.
+  - Compose relies on unprepared mounted assets.
+  - Tests would deploy containers or contact Portainer.
 ```
+
+Allowed write scope:
+
+- New service-access compose directory, service-access runtime assets, live
+  operation surface docs, and compose README notes.
 
 Done criteria:
 
-- Setup preflight knows the selected profile and reports actionable failures.
-- Setup manifest data is structured and secret-safe.
+- New YAML loads through the compose repository.
+- Required services are named deterministically.
+- Named volumes/networks are Swarm-compatible.
+- Secret values are absent.
+- No live deployment runs.
 
-### Slice 04: Inventory And Evidence Foundation
+### Slice 04 - Domain, Preflight, And Deployment Contracts
 
 Purpose:
 
-- Provide safe observed inventory and verification evidence contracts for
-  setup phases, services, ports, and stack readiness.
+- Add service-stack and setup manifest contracts for the new service-access
+  capability.
+- Wire post-bootstrap Portainer-managed planning deliberately.
+- Preserve fail-closed verification behavior.
 
 ```yaml
 slice_id: "04"
-profile: "FULL_PATH"
-owner: "senior_python_automation_developer"
+profile: FULL_PATH
+owner: Senior Python Automation Developer
 secondary_reviewers:
-  - "senior_system_architect"
-  - "senior_security_sandbox_engineer"
-  - "senior_tester"
+  - Senior System Architect
+  - Senior Tester
 affected_files:
-  - "src/tiny_swarm_world/domain/inventory/**"
-  - "src/tiny_swarm_world/application/ports/repositories/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
-  - "infra/config/inventory/**"
-  - "tests/domain/inventory/**"
-  - "tests/infrastructure/adapters/repositories/**"
-  - "tests/architecture/test_local_state_storage.py"
-  - "documentation/workflow/reports/04-inventory-evidence-foundation.md"
+  - src/tiny_swarm_world/domain/deployment/service_stack_contract.py
+  - src/tiny_swarm_world/domain/preflight/setup_manifest.py
+  - src/tiny_swarm_world/application/services/deployment/service_stack_plan.py
+  - src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py
+  - src/tiny_swarm_world/application/services/deployment/verify_swarm_service_readiness.py
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/domain/deployment/test_service_stack_contract.py
+  - tests/domain/preflight/test_preflight_result.py
+  - tests/application/services/deployment/test_service_stack_plan.py
+  - tests/application/services/deployment/test_ensure_service_stack.py
+  - tests/application/services/deployment/test_verify_swarm_service_readiness.py
+  - tests/infrastructure/test_composition.py
 affected_modules:
-  - "tiny_swarm_world.domain.inventory"
-  - "tiny_swarm_world.application.ports.repositories"
-  - "tiny_swarm_world.infrastructure.adapters.repositories"
+  - tiny_swarm_world.domain.deployment
+  - tiny_swarm_world.domain.preflight
+  - tiny_swarm_world.application.services.deployment
+  - tiny_swarm_world.infrastructure.composition
 affected_contracts:
-  - "observed-inventory-contract"
-  - "verification-evidence-contract"
-  - "evidence-redaction-contract"
+  - service-stack-contract
+  - setup-manifest-contract
+  - deployment-apply-contract
+  - deployment-verify-contract
 dependencies:
   - "03"
-parallel_group: "D"
+parallel_group: D
 file_locks:
-  - "src/tiny_swarm_world/domain/inventory/**"
-  - "src/tiny_swarm_world/application/ports/repositories/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
-  - "infra/config/inventory/**"
-  - "tests/domain/inventory/**"
-  - "tests/infrastructure/adapters/repositories/**"
+  - src/tiny_swarm_world/domain/deployment/**
+  - src/tiny_swarm_world/domain/preflight/**
+  - src/tiny_swarm_world/application/services/deployment/**
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/domain/deployment/**
+  - tests/domain/preflight/**
+  - tests/application/services/deployment/**
+  - tests/infrastructure/test_composition.py
 contract_locks:
-  - "observed-inventory-contract"
-  - "verification-evidence-contract"
-  - "evidence-redaction-contract"
+  - service-stack-contract
+  - setup-manifest-contract
+  - deployment-apply-contract
+  - deployment-verify-contract
 architecture_locks:
-  - "Shared"
-  - "hexagonal-architecture"
+  - hexagonal-domain-independence
+  - application-port-dependency
+  - composition-root
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.domain.inventory.test_inventory_model"
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_inventory_repositories"
-    - "PYTHONPATH=src python3 -m unittest tests.architecture.test_local_state_storage"
-    - "python3 tools/quality_gate.py arch-tests"
+    - PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+    - PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
+    - PYTHONPATH=src python3 -m unittest tests.application.services.deployment
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+    - python3 tools/quality_gate.py arch-tests
   required:
-    - "python3 tools/quality_gate.py test"
+    - python3 tools/quality_gate.py test
 documentation:
-  arc42: "update runtime view, deployment view, concepts, and risks if evidence storage changes"
-  adr: "new ADR only if evidence semantics change materially"
+  arc42: documentation/arc42/05_building_blocks.adoc; documentation/arc42/07_deployment_view.adoc
+  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
 stop_conditions:
-  - "raw command strings, stdout, stderr, environment payloads, tokens, or passwords would be persisted"
-  - "observed inventory would be committed under infra/config"
-  - "domain imports infrastructure"
+  - Domain imports infrastructure or YAML/HTTP/Docker details.
+  - Application services embed Portainer HTTP, shell, Docker, or filesystem transfer details.
+  - Portainer becomes a bootstrap dependency for itself.
+  - Verification reports reachable without observed evidence.
 ```
+
+Allowed write scope:
+
+- Deployment/preflight contract code and directly related tests.
 
 Done criteria:
 
-- Evidence paths remain ignored local state.
-- Evidence redaction is test-backed.
-- Observed readiness can be represented without live calls in tests.
+- Stack contracts include the new stack only in the selected service profile.
+- Portainer-managed planning is explicit and tested with fakes.
+- Setup manifest includes required ports and credential-source names without
+  values.
+- Architecture tests remain valid.
 
-### Slice 05: Command-Backed Platform Verification
+### Slice 05 - Dashboard UX, Reachability, And Credential References
 
 Purpose:
 
-- Add command-backed or probe-backed verification contracts for platform setup
-  steps so platform workflows can safely move beyond pre-apply blocks.
+- Implement or configure the service-access dashboard content.
+- Ensure status labels and credential references are deterministic and safe.
+- Avoid React project scope.
 
 ```yaml
 slice_id: "05"
-profile: "FULL_PATH"
-owner: "senior_python_automation_developer"
+profile: FULL_PATH
+owner: Senior DevOps Engineer
 secondary_reviewers:
-  - "senior_system_architect"
-  - "senior_devops"
-  - "senior_tester"
-  - "resilience-engineering"
+  - Senior React Frontend Developer
+  - Senior Security Sandbox Engineer
+  - Senior Tester
 affected_files:
-  - "src/tiny_swarm_world/domain/command/**"
-  - "src/tiny_swarm_world/application/ports/commands/**"
-  - "src/tiny_swarm_world/application/services/platform/**"
-  - "src/tiny_swarm_world/application/services/multipass/**"
-  - "src/tiny_swarm_world/application/services/network/**"
-  - "src/tiny_swarm_world/application/services/vm/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
-  - "src/tiny_swarm_world/infrastructure/composition.py"
-  - "infra/config/**/command_*.yaml"
-  - "tests/domain/command/**"
-  - "tests/application/services/platform/**"
-  - "tests/application/services/multipass/**"
-  - "tests/application/services/network/**"
-  - "tests/infrastructure/adapters/command_runner/**"
-  - "tests/infrastructure/test_composition.py"
-  - "documentation/workflow/reports/05-platform-verification-contracts.md"
+  - infra/compose/service-access/**
+  - infra/config/compose/service-access/docker-compose.yml
+  - tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py
+  - tests/architecture/test_legacy_surface_documentation.py
 affected_modules:
-  - "tiny_swarm_world.domain.command"
-  - "tiny_swarm_world.application.services.platform"
-  - "tiny_swarm_world.application.services.multipass"
-  - "tiny_swarm_world.application.services.network"
-  - "tiny_swarm_world.infrastructure.adapters.command_runner"
+  - infra/compose
+  - infra/config/compose
 affected_contracts:
-  - "command-verification-contract"
-  - "platform-setup-contract"
-  - "verify-after-apply"
+  - dashboard-service-catalog
+  - credential-reference-contract
+  - service-readiness-display-contract
 dependencies:
+  - "03"
   - "04"
-parallel_group: "E"
+parallel_group: E
 file_locks:
-  - "src/tiny_swarm_world/domain/command/**"
-  - "src/tiny_swarm_world/application/ports/commands/**"
-  - "src/tiny_swarm_world/application/services/platform/**"
-  - "src/tiny_swarm_world/application/services/multipass/**"
-  - "src/tiny_swarm_world/application/services/network/**"
-  - "src/tiny_swarm_world/application/services/vm/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
-  - "infra/config/**/command_*.yaml"
-  - "tests/domain/command/**"
-  - "tests/application/services/platform/**"
-  - "tests/infrastructure/adapters/command_runner/**"
+  - infra/compose/service-access/**
+  - infra/config/compose/service-access/**
+  - tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py
+  - tests/architecture/test_legacy_surface_documentation.py
 contract_locks:
-  - "command-verification-contract"
-  - "platform-setup-contract"
-  - "verify-after-apply"
+  - dashboard-service-catalog
+  - credential-reference-contract
 architecture_locks:
-  - "Platform"
-  - "hexagonal-architecture"
+  - no-react-repository-scope
+  - credential-evidence-redaction
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.domain.command.test_command_spec"
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_workflow_configuration"
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows"
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition"
-    - "python3 tools/quality_gate.py arch-lint"
-    - "python3 tools/quality_gate.py arch-tests"
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+    - python3 tools/quality_gate.py arch-tests
+    - git diff --check
   required:
-    - "python3 tools/quality_gate.py test"
+    - python3 tools/quality_gate.py test
 documentation:
-  arc42: "update runtime view and risks if platform workflows unblock live steps"
-  adr: "new ADR only if verification semantics or token handling change materially"
+  arc42: documentation/arc42/07_deployment_view.adoc
+  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
 stop_conditions:
-  - "verification would remain manual-only for an autonomous live step"
-  - "Swarm join tokens or command payloads would be logged or persisted"
-  - "application service would import infrastructure"
-  - "tests would execute live Multipass, Docker Swarm, netplan, or socat"
+  - package.json, TSX, JSX, Vite, or React project files are introduced.
+  - Dashboard displays password values outside Vaultwarden or credential-bearing URLs.
+  - Unknown reachability is rendered as healthy.
+  - Dashboard assets cannot be delivered by the selected stack mechanism.
 ```
+
+Allowed write scope:
+
+- Dashboard/runtime assets and static tests for their configuration.
 
 Done criteria:
 
-- Platform setup steps can verify or block for specific tested reasons.
-- Command token handling and evidence redaction are explicit.
+- Dashboard lists services, access methods, status source/freshness where
+  available, and Vaultwarden credential references.
+- Dashboard provides a clear route to Vaultwarden where authenticated
+  operators can reveal or copy the required password value.
+- Unknown, blocked, reachable, unreachable, resource-gated, and
+  needs-credentials states are distinguishable without color alone.
+- No raw secrets appear in dashboard assets.
+- No React build surface is introduced.
 
-### Slice 06: Portainer Deployment Contract
+### Slice 06 - Documentation, Quality Evidence, And Handoff
 
 Purpose:
 
-- Replace direct Portainer preparation as the setup path with guarded
-  application ports, infrastructure adapters, and tested deployment contracts.
+- Synchronize user-facing, deployment, arc42, and workflow documentation with
+  actual behavior.
+- Record verification evidence.
+- Prepare handoff to future workflow execution or commit preparation.
 
 ```yaml
 slice_id: "06"
-profile: "FULL_PATH"
-owner: "senior_devops"
+profile: FULL_PATH
+owner: Senior Documentation Engineer
 secondary_reviewers:
-  - "senior_python_automation_developer"
-  - "senior_system_architect"
-  - "senior_security_sandbox_engineer"
-  - "senior_tester"
+  - Senior Tester
+  - Senior Workflow Architect
+  - Senior System Architect
 affected_files:
-  - "src/tiny_swarm_world/application/ports/clients/port_portainer_client.py"
-  - "src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py"
-  - "src/tiny_swarm_world/application/services/deployment/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py"
-  - "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py"
-  - "src/tiny_swarm_world/infrastructure/composition.py"
-  - "infra/config/compose/portainer/**"
-  - "infra/compose/portainer/**"
-  - "tests/application/services/deployment/**"
-  - "tests/infrastructure/adapters/clients/**"
-  - "tests/infrastructure/adapters/repositories/**"
-  - "tests/architecture/test_legacy_surface_documentation.py"
-  - "documentation/workflow/reports/06-portainer-deployment-contract.md"
-affected_modules:
-  - "tiny_swarm_world.application.services.deployment"
-  - "tiny_swarm_world.application.ports.clients"
-  - "tiny_swarm_world.infrastructure.adapters.clients"
-affected_contracts:
-  - "portainer-deployment-contract"
-  - "compose-asset-contract"
-dependencies:
-  - "05"
-parallel_group: "F"
-file_locks:
-  - "src/tiny_swarm_world/application/ports/clients/port_portainer_client.py"
-  - "src/tiny_swarm_world/application/services/deployment/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py"
-  - "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py"
-  - "infra/config/compose/portainer/**"
-  - "infra/compose/portainer/**"
-  - "tests/application/services/deployment/**"
-  - "tests/infrastructure/adapters/clients/**"
-contract_locks:
-  - "portainer-deployment-contract"
-  - "compose-asset-contract"
-architecture_locks:
-  - "Deployment"
-  - "hexagonal-architecture"
-quality_gates:
-  targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.deployment"
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml"
-    - "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint"
-    - "python3 tools/quality_gate.py arch-tests"
-  required:
-    - "python3 tools/quality_gate.py test"
-documentation:
-  arc42: "update deployment view and live-operation surfaces if Portainer support status changes"
-  adr: "new ADR only if direct script support status is promoted or removed"
-stop_conditions:
-  - "Portainer admin credentials would be committed or printed"
-  - "direct scripts bypass CLI consent"
-  - "tests would contact Portainer or deploy a stack"
-```
-
-Done criteria:
-
-- Portainer setup has a port-backed contract with mocked tests.
-- Direct script status remains documented honestly.
-
-### Slice 07: Nexus And Artifact Registry Contract
-
-Purpose:
-
-- Implement artifact setup and verification contracts for Nexus repository and
-  registry behavior without collapsing it into Deployment ownership.
-
-```yaml
-slice_id: "07"
-profile: "FULL_PATH"
-owner: "senior_python_automation_developer"
-secondary_reviewers:
-  - "senior_system_architect"
-  - "senior_devops"
-  - "senior_security_sandbox_engineer"
-  - "senior_tester"
-affected_files:
-  - "src/tiny_swarm_world/application/services/artifacts/**"
-  - "src/tiny_swarm_world/application/services/nexus/**"
-  - "src/tiny_swarm_world/application/ports/clients/port_nexus_client.py"
-  - "src/tiny_swarm_world/application/ports/clients/port_container_runtime.py"
-  - "src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py"
-  - "src/tiny_swarm_world/infrastructure/adapters/clients/docker_cli_runtime.py"
-  - "src/tiny_swarm_world/infrastructure/composition.py"
-  - "infra/config/compose/nexus/**"
-  - "infra/compose/**"
-  - "tests/application/services/artifacts/**"
-  - "tests/application/services/nexus/**"
-  - "tests/infrastructure/adapters/clients/**"
-  - "documentation/workflow/reports/07-nexus-artifact-contract.md"
-affected_modules:
-  - "tiny_swarm_world.application.services.artifacts"
-  - "tiny_swarm_world.application.services.nexus"
-  - "tiny_swarm_world.application.ports.clients"
-  - "tiny_swarm_world.infrastructure.adapters.clients"
-affected_contracts:
-  - "artifact-prepare-contract"
-  - "artifact-verify-contract"
-  - "nexus-registry-contract"
-dependencies:
-  - "05"
-parallel_group: "F"
-file_locks:
-  - "src/tiny_swarm_world/application/services/artifacts/**"
-  - "src/tiny_swarm_world/application/services/nexus/**"
-  - "src/tiny_swarm_world/application/ports/clients/port_nexus_client.py"
-  - "src/tiny_swarm_world/application/ports/clients/port_container_runtime.py"
-  - "src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py"
-  - "src/tiny_swarm_world/infrastructure/adapters/clients/docker_cli_runtime.py"
-  - "tests/application/services/artifacts/**"
-  - "tests/application/services/nexus/**"
-contract_locks:
-  - "artifact-prepare-contract"
-  - "artifact-verify-contract"
-  - "nexus-registry-contract"
-architecture_locks:
-  - "Artifacts"
-  - "hexagonal-architecture"
-quality_gates:
-  targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.artifacts"
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.nexus"
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition"
-    - "python3 tools/quality_gate.py arch-tests"
-  required:
-    - "python3 tools/quality_gate.py test"
-documentation:
-  arc42: "update building blocks, runtime view, and risks if artifact workflows unblock"
-  adr: "new ADR only if registry ownership or credential model changes"
-stop_conditions:
-  - "Nexus credentials or initial admin password material would be committed or logged"
-  - "image build or push would run during tests"
-  - "Artifacts and Deployment ownership becomes ambiguous"
-```
-
-Done criteria:
-
-- `artifacts prepare` and `artifacts verify` are either executable with mocked
-  contracts or blocked with more precise tested reasons.
-
-### Slice 08: Service Stack Deployment And Verification
-
-Purpose:
-
-- Wire default stack deployment and verification contracts for the runnable
-  service set through Deployment ports and observed-state checks.
-
-```yaml
-slice_id: "08"
-profile: "FULL_PATH"
-owner: "senior_python_automation_developer"
-secondary_reviewers:
-  - "senior_devops"
-  - "senior_system_architect"
-  - "senior_tester"
-  - "resilience-engineering"
-affected_files:
-  - "src/tiny_swarm_world/application/services/deployment/**"
-  - "src/tiny_swarm_world/domain/deployment/**"
-  - "src/tiny_swarm_world/application/ports/clients/**"
-  - "src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py"
-  - "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py"
-  - "src/tiny_swarm_world/infrastructure/composition.py"
-  - "infra/config/compose/**"
-  - "infra/compose/**"
-  - "tests/application/services/deployment/**"
-  - "tests/domain/deployment/**"
-  - "tests/infrastructure/adapters/repositories/**"
-  - "documentation/workflow/reports/08-service-stack-deployment.md"
-affected_modules:
-  - "tiny_swarm_world.domain.deployment"
-  - "tiny_swarm_world.application.services.deployment"
-  - "tiny_swarm_world.infrastructure.adapters.repositories"
-affected_contracts:
-  - "deployment-apply-contract"
-  - "deployment-verify-contract"
-  - "service-readiness-contract"
-dependencies:
-  - "06"
-  - "07"
-parallel_group: "G"
-file_locks:
-  - "src/tiny_swarm_world/application/services/deployment/**"
-  - "src/tiny_swarm_world/domain/deployment/**"
-  - "src/tiny_swarm_world/application/ports/clients/**"
-  - "src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py"
-  - "infra/config/compose/**"
-  - "infra/compose/**"
-  - "tests/application/services/deployment/**"
-  - "tests/domain/deployment/**"
-contract_locks:
-  - "deployment-apply-contract"
-  - "deployment-verify-contract"
-  - "service-readiness-contract"
-architecture_locks:
-  - "Deployment"
-  - "hexagonal-architecture"
-quality_gates:
-  targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.deployment"
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml"
-    - "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint"
-    - "python3 tools/quality_gate.py arch-tests"
-  required:
-    - "python3 tools/quality_gate.py test"
-documentation:
-  arc42: "update deployment view and runtime view when stack deployment status changes"
-  adr: "new ADR only if default service set or ownership changes materially"
-stop_conditions:
-  - "service health would be claimed without observed-state evidence"
-  - "Portainer, compose, image build, or stack upload would run in default tests"
-  - "host-specific addresses or credentials would be committed"
-```
-
-Done criteria:
-
-- Deployment apply/verify has service-specific contracts or precise tested
-  blockers for every default service.
-
-### Slice 09: Autonomous Setup Orchestrator And CLI Contract
-
-Purpose:
-
-- Add one canonical setup workflow command that orchestrates preflight,
-  platform, artifacts, deployment, and final verification while preserving
-  live-consent and thin-entrypoint rules.
-
-```yaml
-slice_id: "09"
-profile: "FULL_PATH"
-owner: "senior_workflow_architect"
-secondary_reviewers:
-  - "senior_python_automation_developer"
-  - "senior_system_architect"
-  - "senior_tester"
-  - "senior_security_sandbox_engineer"
-affected_files:
-  - "src/tiny_swarm_world/__main__.py"
-  - "src/tiny_swarm_world/application/services/setup/**"
-  - "src/tiny_swarm_world/application/services/platform/**"
-  - "src/tiny_swarm_world/application/services/artifacts/**"
-  - "src/tiny_swarm_world/application/services/deployment/**"
-  - "src/tiny_swarm_world/infrastructure/composition.py"
-  - "tests/test_package_entrypoint.py"
-  - "tests/application/services/setup/**"
-  - "tests/infrastructure/test_composition.py"
-  - "tests/architecture/test_hexagonal_imports.py"
-  - "documentation/workflow/reports/09-autonomous-setup-orchestrator.md"
-affected_modules:
-  - "tiny_swarm_world.application.services.setup"
-  - "tiny_swarm_world.infrastructure.composition"
-  - "tiny_swarm_world.__main__"
-affected_contracts:
-  - "autonomous-setup-cli-contract"
-  - "setup-orchestration-contract"
-  - "live-consent-contract"
-dependencies:
-  - "08"
-parallel_group: "H"
-file_locks:
-  - "src/tiny_swarm_world/__main__.py"
-  - "src/tiny_swarm_world/application/services/setup/**"
-  - "src/tiny_swarm_world/infrastructure/composition.py"
-  - "tests/test_package_entrypoint.py"
-  - "tests/application/services/setup/**"
-  - "tests/infrastructure/test_composition.py"
-contract_locks:
-  - "autonomous-setup-cli-contract"
-  - "setup-orchestration-contract"
-  - "live-consent-contract"
-architecture_locks:
-  - "hexagonal-architecture"
-  - "Platform-Artifacts-Deployment-Shared"
-quality_gates:
-  targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint"
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.setup"
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition"
-    - "python3 tools/quality_gate.py arch-lint"
-    - "python3 tools/quality_gate.py arch-tests"
-  required:
-    - "python3 tools/quality_gate.py test"
-documentation:
-  arc42: "update runtime view and architecture decisions for the new CLI contract"
-  adr: "new ADR required if setup contract changes live-consent semantics"
-stop_conditions:
-  - "entry point would construct low-level services directly"
-  - "setup orchestration would bypass live consent"
-  - "setup would run destructive reset/destroy behavior"
-  - "workflow status would hide blocked or failed phases"
-```
-
-Done criteria:
-
-- Setup command is listed by `--list-workflows`.
-- Mutating setup refuses missing live consent before service construction.
-- Setup orchestration is tested with mocked phase services.
-
-### Slice 10: Console Status And Recovery UX
-
-Purpose:
-
-- Make setup progress and recovery output readable in the terminal without
-  adding browser or React scope.
-
-```yaml
-slice_id: "10"
-profile: "NORMAL_PATH"
-owner: "senior_python_automation_developer"
-secondary_reviewers:
-  - "senior_react_frontend"
-  - "console-status-ui-developer"
-  - "senior_tester"
-affected_files:
-  - "src/tiny_swarm_world/application/ports/ui/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/ui/**"
-  - "tests/infrastructure/adapters/ui/**"
-  - "documentation/workflow/reports/10-console-status-recovery.md"
-affected_modules:
-  - "tiny_swarm_world.application.ports.ui"
-  - "tiny_swarm_world.infrastructure.adapters.ui"
-affected_contracts:
-  - "console-status-contract"
-  - "setup-recovery-output"
-dependencies:
-  - "09"
-parallel_group: "I"
-file_locks:
-  - "src/tiny_swarm_world/application/ports/ui/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/ui/**"
-  - "tests/infrastructure/adapters/ui/**"
-contract_locks:
-  - "console-status-contract"
-  - "setup-recovery-output"
-architecture_locks:
-  - "Console-status-UI"
-quality_gates:
-  targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_linux_ui"
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics"
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.commands.test_command_executer"
-  required:
-    - "python3 tools/quality_gate.py test"
-documentation:
-  arc42: "update only if console runtime semantics change"
-  adr: "not expected"
-stop_conditions:
-  - "work introduces package.json, React, browser routes, TSX, JSX, or browser state"
-  - "color becomes the only status signal"
-  - "blocked, refused, resource-gated, or failed states are rendered as success"
-```
-
-Done criteria:
-
-- Terminal status output preserves distinct setup states and recovery actions.
-- No browser frontend scope is introduced.
-
-### Slice 11: Documentation Sync, Quality Gate, And Optional Live Smoke Handoff
-
-Purpose:
-
-- Synchronize user-facing documentation, record final quality evidence, and
-  define the optional live smoke run as a separate, explicit operator action.
-
-```yaml
-slice_id: "11"
-profile: "FULL_PATH"
-owner: "senior_documentation_engineer"
-secondary_reviewers:
-  - "senior_workflow_architect"
-  - "senior_requirement_engineer"
-  - "senior_system_architect"
-  - "senior_tester"
-  - "senior_devops"
-  - "git_commit_reviewer"
-affected_files:
-  - "README.md"
-  - "documentation/workflow/**"
-  - "documentation/epics/**"
-  - "documentation/architecture/**"
-  - "documentation/arc42/**"
-  - "documentation/deployment/**"
-  - "documentation/system/**"
-  - "documentation/user_guide/**"
+  - README.md
+  - documentation/deployment/system.adoc
+  - documentation/user_guide/installation.adoc
+  - documentation/user_guide/usage.adoc
+  - documentation/user_guide/troubleshooting.adoc
+  - documentation/arc42/05_building_blocks.adoc
+  - documentation/arc42/07_deployment_view.adoc
+  - documentation/arc42/10_quality_requirements.adoc
+  - documentation/arc42/11_risks_and_debt.adoc
+  - documentation/workflow/**
 affected_modules: []
 affected_contracts:
-  - "documentation-sync"
-  - "quality-evidence"
-  - "optional-live-smoke-contract"
+  - documentation-sync
+  - quality-evidence
+  - workflow-handoff
 dependencies:
-  - "10"
-parallel_group: "J"
+  - "01"
+  - "02"
+  - "03"
+  - "04"
+  - "05"
+parallel_group: F
 file_locks:
-  - "README.md"
-  - "documentation/**"
+  - README.md
+  - documentation/deployment/**
+  - documentation/user_guide/**
+  - documentation/arc42/**
+  - documentation/workflow/**
 contract_locks:
-  - "documentation-sync"
-  - "quality-evidence"
-  - "optional-live-smoke-contract"
+  - documentation-sync
+  - quality-evidence
 architecture_locks:
-  - "Platform-Artifacts-Deployment-Shared"
+  - planned-vs-implemented-documentation
 quality_gates:
   targeted:
-    - "git diff --check"
-    - "python3 tools/quality_gate.py arch-lint"
-    - "python3 tools/quality_gate.py arch-tests"
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-    - "python3 tools/quality_gate.py quality"
+    - python3 tools/quality_gate.py quality
 documentation:
-  arc42: "final checked or updated status required"
-  adr: "final ADR references and decision status required"
+  arc42: documentation/arc42/05_building_blocks.adoc; documentation/arc42/07_deployment_view.adoc; documentation/arc42/10_quality_requirements.adoc; documentation/arc42/11_risks_and_debt.adoc
+  adr: documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
 stop_conditions:
-  - "docs claim live setup works before mocked and static gates pass"
-  - "quality results are missing"
-  - "live smoke run is treated as default quality gate"
-  - "optional live smoke lacks explicit disposable-environment warning"
+  - Documentation claims live service reachability without verified evidence.
+  - Full quality gate fails or is skipped without recorded justification.
+  - Workflow context pack is stale.
 ```
+
+Allowed write scope:
+
+- Documentation, workflow reports, and quality evidence only.
 
 Done criteria:
 
-- README and installation docs show the canonical setup path accurately.
-- Live-operation surfaces reflect the new support status.
-- Exact quality commands and results are recorded.
-- Optional live smoke instructions are explicit, separated, and consent-gated.
+- Documentation states what is implemented, blocked, optional, or future work.
+- POSIX/Linux/WSL examples are used.
+- Quality evidence is recorded exactly.
+- Handoff to commit/push is explicit but not performed unless requested.
 
 ## Slice Dependency Graph
 
 ```text
-01 -> 02 -> 03 -> 04 -> 05 -> 06 -> 08 -> 09 -> 10 -> 11
-                         \-----> 07 ----/
+01 -> 02 -> 03 -> 04 -> 05 -> 06
+01 --------> 03
+03 --------> 05
+04 --------> 06
 ```
+
+The graph is intentionally mostly sequential because credential policy,
+routing, port allocation, and asset packaging must be fixed before parallel
+implementation can safely write compose, code, dashboard assets, and docs.
 
 ## Parallelization Opportunities
 
-- Slices 06 and 07 may run in parallel after Slice 05 if S3D confirms disjoint
-  file, contract, and architecture locks.
-- Slice 10 must wait for the setup orchestrator contract in Slice 09.
-- Documentation synchronization in Slice 11 waits for all implementation
-  slices.
-- Default execution should still use one write-capable implementation worker
-  at a time unless S3D proves write scopes are disjoint.
+- After Slice 01, a read-only security review may run in parallel with Slice
+  02.
+- After Slice 02 freezes route and asset packaging contracts, Slice 03 compose
+  work and Slice 04 contract-test drafting may be prepared in parallel, but
+  writes must remain disjoint.
+- Slice 05 can run in parallel with parts of Slice 04 only after the
+  dashboard service catalog contract is frozen and file locks do not overlap.
+- Slice 06 starts only after previous slices provide verified behavior and
+  quality evidence.
 
 ## Role And Subagent Ownership Map
 
-- Senior Workflow Architect: workflow integrity, dependency graph, S3/S3D
-  handoff, setup orchestrator contract.
-- Senior Requirement Engineer: runnable-state baseline, EPIC extension,
-  acceptance criteria, unresolved requirement decisions.
-- Senior System Architect: hexagonal boundaries, ADR need, arc42 alignment,
-  responsibility ownership.
-- Senior Python Automation Developer: preflight, inventory/evidence, platform,
-  artifact, deployment, setup orchestrator, and console implementation.
-- Senior React Frontend: read-only scope guard confirming browser/React remains
-  out of scope; console UI routes to console/status skills.
-- Senior Tester: regression-first tests, mocks, quality gates, failure
-  classification, verification evidence.
-- Senior DevOps: Portainer/deployment contracts, Docker Swarm safety, live
-  surface migration, optional live smoke design.
-- Senior Documentation Engineer: README, installation guide, deployment docs,
-  system docs, arc42 synchronization, workflow reports.
-- Senior Security/Sandbox Engineer: secrets, local evidence, direct script
-  risks, command redaction, unsafe defaults.
-- Git reviewers/operators: commit and push readiness only after required gates
-  pass.
+| Role | Ownership |
+|---|---|
+| Senior Workflow Architect | Workflow structure, dependency ordering, metadata, locks, handoff |
+| Senior Requirement Engineer | Requirement baseline, EPIC drift, acceptance criteria |
+| Senior System Architect | Hexagonal boundaries, routing decision, ADR/arc42 impact |
+| Senior Python Automation Developer | Service stack contracts, preflight, deployment wiring |
+| Senior DevOps Engineer | Compose assets, NGINX routing, Portainer-managed stack fit |
+| Senior React Frontend Developer | N/A React impact guard, dashboard UX safety review |
+| Senior Security Sandbox Engineer | Secret handling, Vaultwarden risk, evidence redaction |
+| Senior Tester | Targeted tests, quality gates, no-live-infra boundaries |
+| Senior Documentation Engineer | README, user guide, deployment, arc42, workflow sync |
 
-## Quality Gate Expectations
+## Quality-Gate Expectations
 
-Use `QUALITY.md` as authority.
-
-Minimum workflow-creation check:
+Workflow creation minimum:
 
 ```bash
 git diff --check
 ```
 
-Preferred full gate before final implementation release:
+Implementation slices:
 
-```bash
-python3 tools/quality_gate.py quality
-```
+- Run the nearest targeted tests first.
+- Run architecture checks when Python boundaries are touched.
+- Run `python3 tools/quality_gate.py test` for behavior/config slices.
+- Run `python3 tools/quality_gate.py quality` before final implementation
+  release when practical.
 
-Targeted gates are listed per slice. Default gates must not run live
-infrastructure commands. If `python3` or required tooling is unavailable in the
-current environment, record the exact failure and do not claim the gate passed.
+No quality gate may create VMs, change networking, initialize Docker Swarm,
+deploy stacks, contact Portainer, run Vaultwarden/NGINX/Traefik containers,
+or bootstrap service credentials.
 
 ## Documentation Synchronization Points
 
-- `documentation/epics/autonomous-runnable-setup.md`
-- `documentation/epics/system-unification.md`
-- `documentation/workflow/workflow.md`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/execution-report.md`
-- `documentation/architecture/**`
-- `documentation/arc42/**`
-- `documentation/deployment/**`
-- `documentation/system/**`
-- `documentation/user_guide/**`
-- `README.md`
-
-## Commit And Push Plan
-
-The user requested workflow creation but did not explicitly request commit or
-push.
-
-Workflow creation may be committed and pushed later when:
-
-1. The active branch is `codex/workflow-autonomous-setup-20260524`.
-2. `documentation/workflow/workflow.md` and context-pack files exist.
-3. `git diff --check` passes.
-4. Any skipped full quality gate is documented and justified.
-
-Workflow execution checkpoint pushes must follow the workflow-executor rule:
-one slice-scoped commit and push per completed slice after required quality
-gates pass.
+- Slice 01: EPIC, ADR, arc42 decision/risk.
+- Slice 02: routing and deployment view.
+- Slice 03: compose assets and live-operation surface classification.
+- Slice 04: architecture building blocks and deployment contracts.
+- Slice 05: dashboard behavior and credential-reference documentation.
+- Slice 06: README, deployment docs, user guide, troubleshooting, workflow
+  reports, quality evidence.
 
 ## Stop Conditions
 
 Stop and report when:
 
-- active branch is not `codex/workflow-autonomous-setup-20260524`;
-- working tree contains unrelated or unclear changes;
-- workflow or context-pack branch names are stale;
-- installer requirement baseline cannot make runnable state testable;
-- live infrastructure execution would be required without explicit user
-  approval and live consent;
-- host package installation or non-interactive consent would be introduced
-  without ADR approval;
-- application code would import infrastructure adapters;
-- direct scripts would become canonical setup without ports, tests, and
-  consent controls;
-- raw command output, Swarm tokens, passwords, or credentials would be
-  persisted or printed;
-- service health would be claimed without observed-state evidence;
-- quality commands are missing and no documented limitation exists;
-- a slice would weaken `.importlinter`, architecture tests, or `QUALITY.md`;
-- Java/Maven, React/browser, Spring Boot, Kubernetes-first, or unrelated analytics
-  concerns start driving the Python automation architecture.
+- a live infrastructure command is required without explicit approval;
+- secrets, Vaultwarden admin tokens, passwords, credential-bearing URLs, or
+  local host details would be committed;
+- password values would be shown outside Vaultwarden's authenticated UI;
+- a second service would publish port `80` without a shared-ingress decision;
+- Traefik is selected without ADR and tests;
+- Portainer is made a prerequisite for bootstrapping Portainer;
+- service reachability would be claimed without observed evidence;
+- domain or application code would import infrastructure concerns;
+- React, TypeScript, Vite, or browser frontend project files would be added;
+- documentation would describe planned behavior as implemented behavior;
+- required quality commands cannot be verified from `QUALITY.md`;
+- workflow context-pack hashes are stale.
+
+## Commit And Push Plan
+
+No commit or push is requested by this workflow creation request.
+
+When the user later asks for commit or push preparation:
+
+- inspect `git status --short --branch`;
+- review changed files and line-ending noise;
+- run the required gates for the changed scope;
+- stage only workflow-related files;
+- use commit messaging governed by the git commit preparation skills.
 
 ## Definition Of Done
 
-This workflow is complete when:
-
-- installer-specific requirements and runnable-state acceptance criteria exist;
-- setup safety decisions are recorded in ADR/arc42 when needed;
-- setup preflight and manifest contracts are test-backed;
-- observed inventory and verification evidence are redacted and stored only in
-  ignored local state;
-- platform setup steps are verified or blocked with exact tested reasons;
-- Portainer, Nexus/artifacts, and default service stack deployment contracts
-  are explicit and test-backed;
-- one canonical autonomous setup CLI workflow exists and preserves live
-  consent;
-- console/status output shows accurate setup phase status and recovery
-  guidance;
-- README, installation, deployment, system, arc42, workflow, and report docs
-  match actual behavior;
-- `python3 tools/quality_gate.py quality` passes or inability to run it is
-  recorded as a blocker;
-- optional live smoke validation is separated from default quality gates and
-  requires explicit operator approval.
+- `documentation/workflow/workflow.md` exists and includes complete slice
+  metadata.
+- `documentation/workflow/context-pack.md` and
+  `documentation/workflow/context-pack.json` exist.
+- Subagent review findings are reflected in the workflow.
+- arc42 impact has been checked and is represented in slice documentation
+  requirements.
+- Workflow creation verification passes `git diff --check`.
+- No live infrastructure command was run.
+- No implementation code, stack deployment, or service bootstrap was performed
+  during workflow creation.
 
 ## Handoff To Workflow Execute
 
-Workflow execution is released with this entrypoint:
+Future execution should use:
 
 ```text
 workflow execute with subagents
 ```
 
-Before executing, the executor must verify:
+Before execution:
 
-```bash
-git status --short --branch
-git branch --show-current
-git show-ref --verify --quiet refs/heads/codex/workflow-autonomous-setup-20260524
-```
-
-Execution may start only when the active branch is
-`codex/workflow-autonomous-setup-20260524`, the local branch ref exists, and
-the working tree contains no unrelated or unclear changes.
+- verify the active branch is
+  `feature/workflow-access-vaultwarden-dashboard-20260525`;
+- verify the context pack hashes are current;
+- verify slice metadata and locks;
+- run S3/S3D preflight;
+- execute Slice 01 first;
+- keep writes inside each slice's allowed scope;
+- stop on any credential, routing, port, or architecture blocker.
 
 ## arc42 Check Status
 
-arc42 was checked during workflow creation. No arc42 update is required for
-workflow creation itself because this turn only regenerates workflow artifacts.
-Execution slices must update arc42 when they change implemented status,
-runtime behavior, setup safety decisions, deployment wiring, quality
-requirements, or risk classification.
+Checked during workflow creation:
+
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/09_architecture_decisions.adoc`
+- `documentation/arc42/10_quality_requirements.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+
+No arc42 file is updated during workflow creation because implementation has
+not happened yet. Slices define the exact arc42 synchronization points needed
+when behavior is implemented.

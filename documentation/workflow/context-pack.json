@@ -1,40 +1,61 @@
 {
   "workflow": {
-    "name": "Autonomous Runnable Setup",
-    "version": "autonomous-runnable-setup-v1.0.0",
-    "branch": "codex/workflow-autonomous-setup-20260524",
-    "createdDate": "2026-05-24",
-    "processStrand": "autonomous-runnable-setup",
+    "name": "Service Access Dashboard And Vaultwarden",
+    "version": "service-access-vaultwarden-dashboard-v1.0.0",
+    "branch": "feature/workflow-access-vaultwarden-dashboard-20260525",
+    "createdDate": "2026-05-25",
+    "processStrand": "service-access-vaultwarden-dashboard",
     "executionProfile": "FULL_PATH",
-    "releaseStatus": "WORKFLOW_COMPLETED"
+    "releaseStatus": "WORKFLOW_CREATED"
   },
   "contextValidity": {
     "staleWhen": [
       "Any recorded governing file hash changes",
-      "documentation/workflow/** changes outside workflow execution",
-      "documentation/epics/** changes",
-      "documentation/architecture/** changes",
-      "documentation/arc42/** changes",
+      "documentation/workflow/** changes outside this workflow branch",
+      "documentation/epics/** changes that affect service access, routing, credential handling, setup, deployment, or quality gates",
+      "documentation/architecture/** changes that affect service access, routing, credential handling, setup, deployment, or quality gates",
+      "documentation/arc42/** changes that affect service access, routing, credential handling, setup, deployment, or quality gates",
       "Branch context changes",
-      "A conflict is detected"
+      "A conflict is detected",
+      "A slice requires live infrastructure behavior not described in the workflow"
     ]
   },
   "governingFiles": [
     {
       "path": "AGENTS.md",
-      "sha256": "F0FA2387DFA023B968A0F474971BACDA12EBF05FEA4A03B5D6D098F1701D4601"
+      "sha256": "E09BCBE872EDF6FC64791AEFEB8CEB539067BE1A1A4D1E091C76354FC10FB4D8"
     },
     {
       "path": "QUALITY.md",
-      "sha256": "D327E4060FF1729F17FFDE844B1A2D6208FE203E149AE9D1AF185BEF0AED2155"
+      "sha256": "458E5F4D8FBDEDEA1C413E1FF135EC91392A4BB5A5AEA20300DCAC8E209414B6"
     },
     {
-      "path": "README.md",
-      "sha256": "87DE7E5F2F1C1A2B0D2B7E9EFB83085AE1E4C740B71C83656AB53F841F8031F0"
+      "path": ".agents/skills/workflow-authoring/SKILL.md",
+      "sha256": "087658240296E3B1EC74205C60A96A9A4C67A17CF653F7867E6F316BD9AFA94E"
     },
     {
-      "path": ".importlinter",
-      "sha256": "4C5C879DDC20BF7CCB8ADCA2B907538264F9C3CF9C1C54E3076E7C008F1A62B4"
+      "path": ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md",
+      "sha256": "23DE7D9AAC9D2694EAE26FAC2765D65F369C101AC348DAC24D5F3BBE9E2D3BA4"
+    },
+    {
+      "path": ".agents/skills/agent-swarm-coordination-specialist/SKILL.md",
+      "sha256": "5C5269735D277E74A1ACAD8D89479E239247102F9B1F95BD6A1CFA10C157F14E"
+    },
+    {
+      "path": ".agents/skills/execution-profile-router/SKILL.md",
+      "sha256": "B554FFD4C3C8DE9B313B55D8A9C99DEDA8C3BF3910F559105000E338680263E9"
+    },
+    {
+      "path": ".agents/orchestrator/routing-rules.md",
+      "sha256": "C11B3DF9E77717BAD7CAACB464B74DB4566B00C7794CEA53E2DBE39A8065E71A"
+    },
+    {
+      "path": "documentation/process/workflow-create.md",
+      "sha256": "DAE7115594172E159C051C3ECE15C0B535F1570EFBB28FC67440AEF0BBADC9C9"
+    },
+    {
+      "path": "documentation/process/branch-governance.md",
+      "sha256": "2D75AFACED2C8C68FC8071A6B1C9782D6B3A931264562F2F43FDF05F0CED24F5"
     },
     {
       "path": "documentation/epics/system-unification.md",
@@ -42,19 +63,11 @@
     },
     {
       "path": "documentation/epics/autonomous-runnable-setup.md",
-      "sha256": "42B9A7C7FE4BF53B3CFFCFCA22229AD923B3F20BBA1CE88F4049D9087AABFB36"
-    },
-    {
-      "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
-      "sha256": "09F2F6C23346A59596965E9EA8605020FFE8A7818E178A5648206ABF6E82DCC2"
+      "sha256": "0D9547C6048834EE655B02B29C526CF7DAC56A3ABC5D60468D01A3378CFB4A0C"
     },
     {
       "path": "documentation/arc42/05_building_blocks.adoc",
-      "sha256": "60DDB9811AB3CD2D404C16592AFEBE62872223EE7CD00EAC9586A6A41490B201"
-    },
-    {
-      "path": "documentation/arc42/06_runtime_view.adoc",
-      "sha256": "4EEFE086470FC4ABC7235F1570E0AA528889BA5408BC6839FF8AFC173B2C5A3E"
+      "sha256": "A3CFFAF5BD4E40F7688D72B41A3B4B81FF210393D5C1A69E8CB6AE1B8F9DEAD7"
     },
     {
       "path": "documentation/arc42/07_deployment_view.adoc",
@@ -70,196 +83,68 @@
     },
     {
       "path": "documentation/arc42/11_risks_and_debt.adoc",
-      "sha256": "6BA24B09A4F6F9448E36D475E59F4DEE6C1D3CF23DDF46B45872E7FDAB28F901"
+      "sha256": "54E11723EC25E0D145C482BE1C9F82603D32D42FBE26410A075410E931D03349"
     },
     {
-      "path": "documentation/system/live-operation-surfaces.adoc",
-      "sha256": "C1400625A1D66F184B35C156763784614563E90E8A806AC5FF4F673416854CCD"
-    },
-    {
-      "path": "documentation/user_guide/installation.adoc",
-      "sha256": "A82BB7E82920E8310E0C5822A6CABAAD5D7E4479719606B5D3E573381B8C00AE"
-    },
-    {
-      "path": "documentation/user_guide/usage.adoc",
-      "sha256": "D781C867F82BA21AB7BD9FA1CE1B765C151127F830FF6C404B3BE4DDB6A111C8"
-    },
-    {
-      "path": "documentation/user_guide/troubleshooting.adoc",
-      "sha256": "0A937265E331B248DD4E5222166168431B9DE4623EB6FFE197EEB1EC42A3CFE7"
-    },
-    {
-      "path": "documentation/deployment/system.adoc",
-      "sha256": "8FFDF7B9D3ADC1D9F6BB8BC10665469BA1C90A9711BAABC48C0C7B0E855382C4"
-    },
-    {
-      "path": "documentation/arc42/12_glossary.adoc",
-      "sha256": "D272FF4BE21CF73E48F700A563A4FA05F6163F1F99D12A00C2A3BD90D5F4B216"
-    },
-    {
-      "path": "documentation/workflow/reports/11-documentation-sync-quality-live-smoke.md",
-      "sha256": "633600D2DE4DA8838EB12BE0E52234586496E5019672F3F59217444AA4B90752"
-    },
-    {
-      "path": ".agents/skills/workflow-authoring/SKILL.md",
-      "sha256": "087658240296E3B1EC74205C60A96A9A4C67A17CF653F7867E6F316BD9AFA94E"
-    },
-    {
-      "path": ".agents/skills/setup-bootstrap-expert/SKILL.md",
-      "sha256": "37476A7B553A5E63B7E2B1F074D7DD697B2BD138A9EA745E6AC83A81C57CB5AC"
-    },
-    {
-      "path": ".agents/skills/swarm-orchestration/SKILL.md",
-      "sha256": "FAD1651BB25B5DBD3BA5C98174AEA0B24FF41B42B1BBF78926140304BE44AF95"
+      "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
+      "sha256": "0B356E6C6890E4F9011D8EA20A451178A52FDDE9E386F6EC3B3FB1E0AB6BB9AF"
     }
   ],
   "affectedAreas": [
-    "Installer-specific EPIC and workflow reports",
-    "Platform, Artifacts, Deployment, Shared, and Console/status UI boundaries",
-    "CLI setup workflow declaration and composition wiring",
-    "Preflight, setup manifest, live consent, and resource gates",
-    "Command-backed verification, observed inventory, and evidence redaction",
-    "Portainer, Nexus, registry, compose, and service stack contracts",
-    "README, installation docs, deployment docs, system docs, arc42, and live-operation surface catalog",
-    "Tests and quality gates"
+    "Deployment service stack contracts",
+    "Portainer-managed post-bootstrap stack planning",
+    "Compose stack definitions under infra/config/compose",
+    "Optional runtime or image assets under infra/compose",
+    "Setup preflight ports and credential-source requirements",
+    "NGINX-first HTTP routing and port allocation",
+    "Vaultwarden credential-source handling",
+    "Service-access dashboard content and reachability evidence",
+    "Documentation, arc42, ADRs, and workflow handoff"
   ],
   "forbiddenAreas": [
-    "external static-analysis CI configuration",
-    "generated caches",
-    "local virtual environments",
-    "logs",
-    "IDE state",
-    ".tiny-swarm-world/**",
-    ".env",
-    ".env.local",
-    "live infrastructure execution during default verification"
+    "Java, Maven, Spring Boot",
+    "Kubernetes-first deployment",
+    "React, TypeScript, Vite, TSX, JSX, or browser frontend project setup",
+    "Live infrastructure commands during default gates",
+    "Committed secrets or host-specific values",
+    "Direct promotion of legacy scripts as canonical deployment entry points"
   ],
   "requiredRoles": [
-    "senior_workflow_architect",
-    "senior_requirement_engineer",
-    "senior_system_architect",
-    "senior_python_automation_developer",
-    "senior_react_frontend",
-    "senior_tester"
+    "Senior Workflow Architect",
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Python Automation Developer",
+    "Senior DevOps Engineer",
+    "Senior Tester",
+    "Senior Documentation Engineer"
   ],
   "conditionalRoles": [
-    "senior_devops",
-    "senior_documentation_engineer",
-    "senior_security_sandbox_engineer",
-    "console-status-ui-developer",
-    "setup-bootstrap-expert",
-    "linux-host-preparation",
-    "resilience-engineering",
-    "adr-steward",
-    "git_commit_reviewer",
-    "git_commit_operator"
+    {
+      "role": "Senior React Frontend Developer",
+      "condition": "N/A impact guard unless a later approved workflow verifies a frontend module"
+    },
+    {
+      "role": "Senior Security Sandbox Engineer",
+      "condition": "Required for Vaultwarden secret handling, credential display, redaction, and local evidence safety"
+    },
+    {
+      "role": "Senior UX Designer",
+      "condition": "Optional if dashboard information architecture becomes complex"
+    }
   ],
   "qualityCommands": {
     "workflowCreation": [
       "git diff --check"
     ],
-    "preferredFullGate": [
+    "targeted": [
+      "PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract",
+      "PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result",
+      "PYTHONPATH=src python3 -m unittest tests.application.services.deployment",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition",
+      "python3 tools/quality_gate.py arch-tests",
+      "python3 tools/quality_gate.py test",
       "python3 tools/quality_gate.py quality"
     ]
-  },
-  "slices": [
-    {
-      "sliceId": "01",
-      "status": "COMPLETED",
-      "owner": "senior_requirement_engineer",
-      "purpose": "Installer requirement baseline",
-      "dependencies": []
-    },
-    {
-      "sliceId": "02",
-      "status": "COMPLETED",
-      "owner": "senior_system_architect",
-      "purpose": "Setup safety ADR and arc42 alignment",
-      "dependencies": [
-        "01"
-      ]
-    },
-    {
-      "sliceId": "03",
-      "status": "COMPLETED",
-      "owner": "senior_python_automation_developer",
-      "purpose": "Setup preflight and manifest contract",
-      "dependencies": [
-        "02"
-      ]
-    },
-    {
-      "sliceId": "04",
-      "status": "COMPLETED",
-      "owner": "senior_python_automation_developer",
-      "purpose": "Inventory and evidence foundation",
-      "dependencies": [
-        "03"
-      ]
-    },
-    {
-      "sliceId": "05",
-      "status": "COMPLETED",
-      "owner": "senior_python_automation_developer",
-      "purpose": "Command-backed platform verification",
-      "dependencies": [
-        "04"
-      ]
-    },
-    {
-      "sliceId": "06",
-      "status": "COMPLETED",
-      "owner": "senior_devops",
-      "purpose": "Portainer deployment contract",
-      "dependencies": [
-        "05"
-      ]
-    },
-    {
-      "sliceId": "07",
-      "status": "COMPLETED",
-      "owner": "senior_python_automation_developer",
-      "purpose": "Nexus and artifact registry contract",
-      "dependencies": [
-        "05"
-      ]
-    },
-    {
-      "sliceId": "08",
-      "status": "COMPLETED",
-      "owner": "senior_python_automation_developer",
-      "purpose": "Service stack deployment and verification",
-      "dependencies": [
-        "06",
-        "07"
-      ]
-    },
-    {
-      "sliceId": "09",
-      "status": "COMPLETED",
-      "owner": "senior_workflow_architect",
-      "purpose": "Autonomous setup orchestrator and CLI contract",
-      "dependencies": [
-        "08"
-      ]
-    },
-    {
-      "sliceId": "10",
-      "status": "COMPLETED",
-      "owner": "senior_python_automation_developer",
-      "purpose": "Console status and recovery UX",
-      "dependencies": [
-        "09"
-      ]
-    },
-    {
-      "sliceId": "11",
-      "status": "COMPLETED",
-      "owner": "senior_documentation_engineer",
-      "purpose": "Documentation sync, quality gate, and optional live smoke handoff",
-      "dependencies": [
-        "10"
-      ]
-    }
-  ]
+  }
 }

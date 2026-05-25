@@ -1,167 +1,111 @@
-# Workflow Context Pack: Autonomous Runnable Setup
+# Workflow Context Pack: Service Access Dashboard And Vaultwarden
 
-## Purpose
+This context pack is a workflow-local navigation aid. It does not replace
+`AGENTS.md`, `QUALITY.md`, ADRs, arc42, routing rules, active workflow files,
+or skill files.
 
-This context pack is the navigation aid for the active workflow:
+## Workflow
 
-```text
-Autonomous Runnable Setup
-```
-
-It does not replace root `AGENTS.md`, root `QUALITY.md`, arc42 documentation,
-architecture decision files, routing rules, skills, roles, or the active
-workflow file.
-
-## Active Workflow
-
-- Workflow file: `documentation/workflow/workflow.md`
-- Workflow version: `autonomous-runnable-setup-v1.0.0`
-- Branch: `codex/workflow-autonomous-setup-20260524`
-- Date created: `2026-05-24`
-- Process strand: `autonomous-runnable-setup`
+- Name: Service Access Dashboard And Vaultwarden
+- Version: `service-access-vaultwarden-dashboard-v1.0.0`
+- Branch: `feature/workflow-access-vaultwarden-dashboard-20260525`
+- Created: `2026-05-25`
+- Process strand: `service-access-vaultwarden-dashboard`
 - Execution profile: `FULL_PATH`
-- Release status: `WORKFLOW_COMPLETED`
-
-## Execution Status
-
-| Slice | Status |
-| --- | --- |
-| 01 | `COMPLETED` |
-| 02 | `COMPLETED` |
-| 03 | `COMPLETED` |
-| 04 | `COMPLETED` |
-| 05 | `COMPLETED` |
-| 06 | `COMPLETED` |
-| 07 | `COMPLETED` |
-| 08 | `COMPLETED` |
-| 09 | `COMPLETED` |
-| 10 | `COMPLETED` |
-| 11 | `COMPLETED` |
-
-## Governing Files Checked
-
-| File | SHA-256 |
-| --- | --- |
-| `AGENTS.md` | `F0FA2387DFA023B968A0F474971BACDA12EBF05FEA4A03B5D6D098F1701D4601` |
-| `QUALITY.md` | `D327E4060FF1729F17FFDE844B1A2D6208FE203E149AE9D1AF185BEF0AED2155` |
-| `README.md` | `87DE7E5F2F1C1A2B0D2B7E9EFB83085AE1E4C740B71C83656AB53F841F8031F0` |
-| `.importlinter` | `4C5C879DDC20BF7CCB8ADCA2B907538264F9C3CF9C1C54E3076E7C008F1A62B4` |
-| `documentation/epics/system-unification.md` | `6A488D85AAB23B65B26CE927985D636FB5457977319EFA1F6A6DBF3C1E4F40D3` |
-| `documentation/epics/autonomous-runnable-setup.md` | `42B9A7C7FE4BF53B3CFFCFCA22229AD923B3F20BBA1CE88F4049D9087AABFB36` |
-| `documentation/architecture/adr-autonomous-setup-safety.adoc` | `09F2F6C23346A59596965E9EA8605020FFE8A7818E178A5648206ABF6E82DCC2` |
-| `documentation/arc42/05_building_blocks.adoc` | `60DDB9811AB3CD2D404C16592AFEBE62872223EE7CD00EAC9586A6A41490B201` |
-| `documentation/arc42/06_runtime_view.adoc` | `4EEFE086470FC4ABC7235F1570E0AA528889BA5408BC6839FF8AFC173B2C5A3E` |
-| `documentation/arc42/07_deployment_view.adoc` | `2F4046D7D1BC1F4189C3B71B02A8DB4342945E27C149AD8F828C7F2B7A859CCC` |
-| `documentation/arc42/09_architecture_decisions.adoc` | `76C58BBAF9FD957ECD2F46B69C4BC7FEE02DED6A20E26C8961A97604CE2D548F` |
-| `documentation/arc42/10_quality_requirements.adoc` | `E80E6187EACB4485BBB446C3070485606657BB4E127676A589E6A4B39401E072` |
-| `documentation/arc42/11_risks_and_debt.adoc` | `6BA24B09A4F6F9448E36D475E59F4DEE6C1D3CF23DDF46B45872E7FDAB28F901` |
-| `documentation/arc42/12_glossary.adoc` | `D272FF4BE21CF73E48F700A563A4FA05F6163F1F99D12A00C2A3BD90D5F4B216` |
-| `documentation/system/live-operation-surfaces.adoc` | `C1400625A1D66F184B35C156763784614563E90E8A806AC5FF4F673416854CCD` |
-| `documentation/user_guide/installation.adoc` | `A82BB7E82920E8310E0C5822A6CABAAD5D7E4479719606B5D3E573381B8C00AE` |
-| `documentation/user_guide/usage.adoc` | `D781C867F82BA21AB7BD9FA1CE1B765C151127F830FF6C404B3BE4DDB6A111C8` |
-| `documentation/user_guide/troubleshooting.adoc` | `0A937265E331B248DD4E5222166168431B9DE4623EB6FFE197EEB1EC42A3CFE7` |
-| `documentation/deployment/system.adoc` | `8FFDF7B9D3ADC1D9F6BB8BC10665469BA1C90A9711BAABC48C0C7B0E855382C4` |
-| `documentation/workflow/reports/11-documentation-sync-quality-live-smoke.md` | `633600D2DE4DA8838EB12BE0E52234586496E5019672F3F59217444AA4B90752` |
-| `.agents/skills/workflow-authoring/SKILL.md` | `087658240296E3B1EC74205C60A96A9A4C67A17CF653F7867E6F316BD9AFA94E` |
-| `.agents/skills/setup-bootstrap-expert/SKILL.md` | `37476A7B553A5E63B7E2B1F074D7DD697B2BD138A9EA745E6AC83A81C57CB5AC` |
-| `.agents/skills/swarm-orchestration/SKILL.md` | `FAD1651BB25B5DBD3BA5C98174AEA0B24FF41B42B1BBF78926140304BE44AF95` |
-
-This context pack is stale when any listed hash changes, when
-`documentation/workflow/**` changes outside workflow execution, when
-architecture documentation changes, when setup requirement files change, or
-when branch context changes.
+- Release status: `WORKFLOW_CREATED`
 
 ## Affected Areas
 
-- Installer-specific EPIC and workflow reports.
-- Platform, Artifacts, Deployment, Shared, and Console/status UI boundaries.
-- CLI setup workflow declaration and composition wiring.
-- Preflight, setup manifest, live consent, and resource gates.
-- Command-backed verification, observed inventory, and evidence redaction.
-- Portainer, Nexus, registry, compose, and service stack contracts.
-- README, installation docs, deployment docs, system docs, arc42, and
-  live-operation surface catalog.
-- Tests and quality gates.
+- Deployment service stack contracts
+- Portainer-managed post-bootstrap stack planning
+- Compose stack definitions under `infra/config/compose`
+- Optional runtime/image assets under `infra/compose`
+- Setup preflight ports and credential-source requirements
+- NGINX-first HTTP routing and port allocation
+- Vaultwarden credential-source handling
+- Service-access dashboard content and reachability evidence
+- Documentation, arc42, ADRs, and workflow handoff
 
 ## Forbidden Areas
 
-- external static-analysis CI configuration
-- generated caches
-- local virtual environments
-- logs
-- IDE state
-- `.tiny-swarm-world/**`
-- `.env`
-- `.env.local`
-- live infrastructure execution during default verification
+- Java, Maven, Spring Boot
+- Kubernetes-first deployment
+- React, TypeScript, Vite, TSX, JSX, or browser frontend project setup
+- Live Multipass, Docker Swarm, compose, netplan, socat, Portainer,
+  Vaultwarden, NGINX, Traefik, or bootstrap execution during default gates
+- Committed passwords, tokens, Vaultwarden admin tokens, host IPs, local paths,
+  raw command output, or credential-bearing URLs
+- Direct promotion of legacy scripts as canonical deployment entry points
 
 ## Required Roles
 
-- `senior_workflow_architect`
-- `senior_requirement_engineer`
-- `senior_system_architect`
-- `senior_python_automation_developer`
-- `senior_react_frontend` as React/browser scope guard
-- `senior_tester`
+- Senior Workflow Architect
+- Senior Requirement Engineer
+- Senior System Architect
+- Senior Python Automation Developer
+- Senior DevOps Engineer
+- Senior Tester
+- Senior Documentation Engineer
 
 ## Conditional Roles
 
-- `senior_devops`
-- `senior_documentation_engineer`
-- `senior_security_sandbox_engineer`
-- `console-status-ui-developer`
-- `setup-bootstrap-expert`
-- `linux-host-preparation`
-- `resilience-engineering`
-- `adr-steward`
-- `git_commit_reviewer`
-- `git_commit_operator`
+- Senior React Frontend Developer: N/A impact guard unless a later approved
+  workflow verifies a frontend module.
+- Senior Security Sandbox Engineer: required for Vaultwarden secret handling,
+  credential display, redaction, and local evidence safety.
+- Senior UX Designer: optional if dashboard information architecture becomes
+  complex.
 
 ## Quality Commands
 
-Minimum workflow-creation command:
+Workflow creation:
 
 ```bash
 git diff --check
 ```
 
-Preferred full gate:
+Targeted implementation checks:
 
 ```bash
+PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py test
 python3 tools/quality_gate.py quality
 ```
 
-Targeted commands are defined per slice in `workflow.md`.
+## Governing File Hashes
 
-## Stop Rules
+| Path | SHA-256 |
+|---|---|
+| `AGENTS.md` | `E09BCBE872EDF6FC64791AEFEB8CEB539067BE1A1A4D1E091C76354FC10FB4D8` |
+| `QUALITY.md` | `458E5F4D8FBDEDEA1C413E1FF135EC91392A4BB5A5AEA20300DCAC8E209414B6` |
+| `.agents/skills/workflow-authoring/SKILL.md` | `087658240296E3B1EC74205C60A96A9A4C67A17CF653F7867E6F316BD9AFA94E` |
+| `.agents/skills/three-amigos-requirement-gatekeeper/SKILL.md` | `23DE7D9AAC9D2694EAE26FAC2765D65F369C101AC348DAC24D5F3BBE9E2D3BA4` |
+| `.agents/skills/agent-swarm-coordination-specialist/SKILL.md` | `5C5269735D277E74A1ACAD8D89479E239247102F9B1F95BD6A1CFA10C157F14E` |
+| `.agents/skills/execution-profile-router/SKILL.md` | `B554FFD4C3C8DE9B313B55D8A9C99DEDA8C3BF3910F559105000E338680263E9` |
+| `.agents/orchestrator/routing-rules.md` | `C11B3DF9E77717BAD7CAACB464B74DB4566B00C7794CEA53E2DBE39A8065E71A` |
+| `documentation/process/workflow-create.md` | `DAE7115594172E159C051C3ECE15C0B535F1570EFBB28FC67440AEF0BBADC9C9` |
+| `documentation/process/branch-governance.md` | `2D75AFACED2C8C68FC8071A6B1C9782D6B3A931264562F2F43FDF05F0CED24F5` |
+| `documentation/epics/system-unification.md` | `6A488D85AAB23B65B26CE927985D636FB5457977319EFA1F6A6DBF3C1E4F40D3` |
+| `documentation/epics/autonomous-runnable-setup.md` | `0D9547C6048834EE655B02B29C526CF7DAC56A3ABC5D60468D01A3378CFB4A0C` |
+| `documentation/arc42/05_building_blocks.adoc` | `A3CFFAF5BD4E40F7688D72B41A3B4B81FF210393D5C1A69E8CB6AE1B8F9DEAD7` |
+| `documentation/arc42/07_deployment_view.adoc` | `2F4046D7D1BC1F4189C3B71B02A8DB4342945E27C149AD8F828C7F2B7A859CCC` |
+| `documentation/arc42/09_architecture_decisions.adoc` | `76C58BBAF9FD957ECD2F46B69C4BC7FEE02DED6A20E26C8961A97604CE2D548F` |
+| `documentation/arc42/10_quality_requirements.adoc` | `E80E6187EACB4485BBB446C3070485606657BB4E127676A589E6A4B39401E072` |
+| `documentation/arc42/11_risks_and_debt.adoc` | `54E11723EC25E0D145C482BE1C9F82603D32D42FBE26410A075410E931D03349` |
+| `documentation/architecture/adr-autonomous-setup-safety.adoc` | `0B356E6C6890E4F9011D8EA20A451178A52FDDE9E386F6EC3B3FB1E0AB6BB9AF` |
 
-Stop when:
+## Stale When
 
-- active branch is not `codex/workflow-autonomous-setup-20260524`;
-- local branch ref is missing;
-- unrelated or unclear changes exist;
-- workflow or context-pack branch names are stale;
-- runnable setup criteria cannot be made testable;
-- live infrastructure execution would be required without explicit approval;
-- host package installation or non-interactive consent lacks ADR approval;
-- manual-only verification would be used for an autonomous live step;
-- secrets, tokens, raw command payloads, stdout, or stderr would be persisted;
-- application imports infrastructure;
-- React/browser, Spring Boot, Kubernetes-first, Java/Maven, or unrelated
-  analytics scope starts driving Python automation architecture.
-
-## Slice Summary
-
-| Slice | Owner | Purpose |
-| --- | --- | --- |
-| 01 | `senior_requirement_engineer` | Installer requirement baseline |
-| 02 | `senior_system_architect` | Setup safety ADR and arc42 alignment |
-| 03 | `senior_python_automation_developer` | Setup preflight and manifest contract |
-| 04 | `senior_python_automation_developer` | Inventory and evidence foundation |
-| 05 | `senior_python_automation_developer` | Command-backed platform verification |
-| 06 | `senior_devops` | Portainer deployment contract |
-| 07 | `senior_python_automation_developer` | Nexus and artifact registry contract |
-| 08 | `senior_python_automation_developer` | Service stack deployment and verification |
-| 09 | `senior_workflow_architect` | Autonomous setup orchestrator and CLI contract |
-| 10 | `senior_python_automation_developer` | Console status and recovery UX |
-| 11 | `senior_documentation_engineer` | Documentation sync, quality gate, and optional live smoke handoff |
+- Any recorded governing file hash changes.
+- `documentation/workflow/**` changes outside this workflow branch.
+- `documentation/epics/**`, `documentation/architecture/**`, or
+  `documentation/arc42/**` changes in a way that affects service access,
+  routing, credential handling, setup, deployment, or quality gates.
+- Branch context changes.
+- A conflict is detected.
+- A slice requires live infrastructure behavior not described in the workflow.
