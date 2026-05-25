@@ -116,7 +116,7 @@ Notes:
 Status:
 
 ```text
-PASSED_CHECKPOINT_PENDING_COMMIT
+PASSED_CHECKPOINT_PUSHED
 ```
 
 Responsible role:
@@ -181,7 +181,106 @@ Decision details:
 Rollback reference:
 
 ```text
-git revert <slice-02-checkpoint-commit>
+git revert e6e539fb4a6f24286faa54b8c761383526fb99a4
+```
+
+Checkpoint commit:
+
+```text
+e6e539fb4a6f24286faa54b8c761383526fb99a4
+```
+
+Push result:
+
+```text
+PUSHED_TO_ORIGIN
+```
+
+## Slice 03 - Compose Stack And Secret-Safe Configuration
+
+Status:
+
+```text
+PASSED_CHECKPOINT_PENDING_COMMIT
+```
+
+Responsible role:
+
+```text
+Senior DevOps Engineer
+```
+
+Reviewed roles:
+
+- Senior DevOps Engineer
+- Senior Python Automation Developer
+- Senior Security Sandbox Engineer
+- Senior Tester
+
+Changed files:
+
+- `infra/config/compose/service-access/docker-compose.yml`
+- `infra/compose/service-access/dashboard/Dockerfile`
+- `infra/compose/service-access/dashboard/index.html`
+- `infra/compose/service-access/nginx/Dockerfile`
+- `infra/compose/service-access/nginx/default.conf`
+- `infra/compose/README.md`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/execution-report.md`
+
+Quality-gate commands:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+git diff --check
+python3 tools/quality_gate.py test
+```
+
+Quality-gate result:
+
+```text
+PASSED
+```
+
+Evidence:
+
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml`
+  passed: 10 tests.
+- `git diff --check` passed in WSL. Git emitted CRLF warnings for unrelated
+  untouched files, but no whitespace errors.
+- Static service-access YAML validation passed: the compose repository loads
+  the stack, required services are declared, published ports are `8085` and
+  `8086`, no published `80` is present, named volume and network declarations
+  exist, and the external Vaultwarden admin-token secret is referenced by
+  name only.
+- Static asset validation passed: no `docker-compose.yml` or shell helper
+  exists under `infra/compose/service-access`.
+- ASCII check passed for all Slice 03 compose, dashboard, NGINX and touched
+  documentation files.
+- Secret-pattern scan found no committed credential values.
+- `python3 tools/quality_gate.py test` passed: 403 tests, 1 skipped. Existing
+  mocked command-failure messages and one runtime warning were printed, but
+  the gate exited successfully.
+
+Decision details:
+
+- Stack YAML lives under `infra/config/compose/service-access`.
+- Dashboard and NGINX assets are image-packaged under
+  `infra/compose/service-access`.
+- Service-access NGINX publishes the dashboard route on `8085` and the
+  Vaultwarden route on `8086`.
+- Vaultwarden data uses a named volume.
+- The Vaultwarden administrator token is referenced through an external Swarm
+  secret name; no token value is committed.
+- The dashboard lists service routes, reachability as unknown until observed
+  evidence is wired, and Vaultwarden item references without password values.
+
+Rollback reference:
+
+```text
+git revert <slice-03-checkpoint-commit>
 ```
 
 Checkpoint commit:

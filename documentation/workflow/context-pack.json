@@ -102,12 +102,40 @@
       "sha256": "9E947243E4DB776AB2F080C542B00BF40D32EE7A55F1ED0DEBCD07AB4BEA1B4F"
     },
     {
+      "path": "documentation/system/live-operation-surfaces.adoc",
+      "sha256": "40324CAC8973E444EF31A60E604CC965F3EFAD521E42D17E97B6FFDCF46B4E8A"
+    },
+    {
+      "path": "infra/compose/README.md",
+      "sha256": "82537B6B32BD4CDC6FA8E4F948BD7B8F1554F3E13ACC9AA943B56664E2ABF33F"
+    },
+    {
+      "path": "infra/config/compose/service-access/docker-compose.yml",
+      "sha256": "851D189D3AC55487A80FDC923BED6F5B31118F9463048E4E7DCDCAB0B94CE5F6"
+    },
+    {
+      "path": "infra/compose/service-access/dashboard/Dockerfile",
+      "sha256": "EDDF37ADD4DBB61F317920E55DD221A07348DAD7FAD29E8445BEBA7A4871A9B9"
+    },
+    {
+      "path": "infra/compose/service-access/dashboard/index.html",
+      "sha256": "682AC6C22CA409AA92BFDE19EADC29133F9C00EAEBBA5EFE9B7353869A9BCFCA"
+    },
+    {
+      "path": "infra/compose/service-access/nginx/Dockerfile",
+      "sha256": "FBFC1750D9179E4F7EF83116221EDACF129823CF55D12ADF36FA559F007B657B"
+    },
+    {
+      "path": "infra/compose/service-access/nginx/default.conf",
+      "sha256": "D01F7884D79D4A75BC4A4BFDD392E849455CCE04AEE28216728050AC7FD3C6D2"
+    },
+    {
       "path": "documentation/workflow/reports/02-routing-security-quality-notes.md",
       "sha256": "E1AFBA162A0849ED30A6916536DB79239270796F2EB9A003645D2C2F1127BF96"
     },
     {
       "path": "documentation/workflow/execution-report.md",
-      "sha256": "E714898DB859B3D7AFE4A439D42EE37CBF5AC99664516A69E112C98F37C82312"
+      "sha256": "6609FF655894C920466DD45BEAED6F33CACCD418C5732C0A60979263427B8F8E"
     }
   ],
   "affectedAreas": [

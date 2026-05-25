@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Tiny Swarm World Service Access</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --line: #d8dee7;
+      --ink: #172033;
+      --muted: #5f6b7c;
+      --accent: #176b87;
+      --warn: #8a5a00;
+      --unknown: #6b7280;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(1.8rem, 2.5vw, 2.8rem);
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    a {
+      color: var(--accent);
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      min-height: 96px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 16px;
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .metric span {
+      display: block;
+      font-size: 1.35rem;
+      font-weight: 760;
+      color: var(--ink);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.45;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      font-weight: 760;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      color: var(--unknown);
+      font-weight: 700;
+    }
+
+    .status::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-left: 4px solid var(--warn);
+      background: #fff8ea;
+      color: #3c2d12;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 680px) {
+      main {
+        width: min(100vw - 20px, 1180px);
+        padding: 20px 0;
+      }
+
+      header {
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Service Access</h1>
+        <p>Local service routes and credential locations for Tiny Swarm World.</p>
+      </div>
+      <a href="http://localhost:8086/" rel="noreferrer">Open Vaultwarden</a>
+    </header>
+
+    <section class="summary" aria-label="Service access summary">
+      <div class="metric">
+        <strong>Services Listed</strong>
+        <span>7</span>
+      </div>
+      <div class="metric">
+        <strong>Reachability Evidence</strong>
+        <span>Unknown</span>
+      </div>
+      <div class="metric">
+        <strong>Password Surface</strong>
+        <span>Vaultwarden</span>
+      </div>
+    </section>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Route</th>
+            <th>Reachability</th>
+            <th>Credential Item</th>
+            <th>Password Visibility</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Service Access Dashboard</td>
+            <td>http://localhost:8085/</td>
+            <td><span class="status">Unknown</span></td>
+            <td>service-access/dashboard</td>
+            <td>Open Vaultwarden and reveal the item password.</td>
+          </tr>
+          <tr>
+            <td>Vaultwarden</td>
+            <td>http://localhost:8086/</td>
+            <td><span class="status">Unknown</span></td>
+            <td>service-access/vaultwarden</td>
+            <td>Passwords are visible only after authenticated Vaultwarden access.</td>
+          </tr>
+          <tr>
+            <td>Portainer</td>
+            <td>http://localhost:9000/</td>
+            <td><span class="status">Unknown</span></td>
+            <td>platform/portainer</td>
+            <td>Open Vaultwarden and reveal the item password.</td>
+          </tr>
+          <tr>
+            <td>Nexus</td>
+            <td>http://localhost:8081/</td>
+            <td><span class="status">Unknown</span></td>
+            <td>platform/nexus</td>
+            <td>Open Vaultwarden and reveal the item password.</td>
+          </tr>
+          <tr>
+            <td>Jenkins</td>
+            <td>http://localhost:8080/</td>
+            <td><span class="status">Unknown</span></td>
+            <td>platform/jenkins</td>
+            <td>Open Vaultwarden and reveal the item password.</td>
+          </tr>
+          <tr>
+            <td>RabbitMQ Management</td>
+            <td>http://localhost:15672/</td>
+            <td><span class="status">Unknown</span></td>
+            <td>platform/rabbitmq</td>
+            <td>Open Vaultwarden and reveal the item password.</td>
+          </tr>
+          <tr>
+            <td>SonarQube</td>
+            <td>http://localhost:9001/</td>
+            <td><span class="status">Unknown</span></td>
+            <td>platform/sonarqube</td>
+            <td>Open Vaultwarden and reveal the item password.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note">
+      This dashboard does not store or render password values. Authorized operators reveal passwords in Vaultwarden.
+      Reachability remains unknown until a later slice wires observed status evidence.
+    </p>
+  </main>
+</body>
+</html>
