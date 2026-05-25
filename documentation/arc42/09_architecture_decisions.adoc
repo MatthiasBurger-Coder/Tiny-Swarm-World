@@ -63,6 +63,31 @@ Consequences:
   payloads, secrets, Swarm tokens, host-specific addresses, or environment
   payloads.
 
+=== LXC Native Node Provider Direction
+
+ADR: `documentation/architecture/adr-lxc-native-node-provider.adoc`
+
+Status: accepted as provider direction; implementation planned.
+
+Consequences:
+
+* `lxc_native` through LXD or Incus is the accepted target default provider
+  direction;
+* raw low-level LXC lifecycle commands are not the first default provider
+  surface;
+* current runtime implementation remains Multipass-centered until later
+  provider migration slices introduce provider-neutral domain contracts,
+  application ports, readiness checks, configuration, node lifecycle adapters,
+  setup integration, and an explicit legacy boundary;
+* Multipass remains compatibility surface and must become an explicit
+  `multipass_legacy` provider selection rather than a silent fallback;
+* WSL2 LXD/Incus behavior is capability-gated and requires target-specific
+  live evidence before it can be claimed as working;
+* Docker-in-container profile requirements, privileged profile choices, host
+  package installation, daemon repair, group changes, bridge/firewall changes,
+  and non-interactive live consent remain explicit follow-up decisions rather
+  than silent defaults.
+
 === Service Access Dashboard And Vaultwarden Baseline
 
 ADR: `documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc`

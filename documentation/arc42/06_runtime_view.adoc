@@ -20,11 +20,18 @@ delegates all sequencing to the setup application workflow.
 The composition root builds `ApplicationServices` as an aggregate of three
 service bundles:
 
-* `platform` for current VM, network, Docker, Swarm, preflight, VM IP, and
-  socat automation.
+* `platform` for current Multipass-backed VM, network, Docker, Swarm,
+  preflight, VM IP, and socat automation.
 * `artifacts` for artifact registry and publishing workflow contracts.
 * `deployment` for stack lifecycle behavior, starting with Nexus stack
   create/update ownership in the application service namespace.
+
+Provider migration status: LXC-native through LXD or Incus is the accepted
+target default direction, but current runtime wiring remains Multipass-centered
+until later implementation slices add provider-neutral domain contracts,
+application ports, LXD/Incus readiness, node lifecycle adapters, setup
+integration, and an explicit Multipass legacy boundary. `setup run` must not
+be described as selecting LXD or Incus until those slices pass.
 
 At this stage, Artifacts and Deployment are composition boundaries inside the
 same Python automation process, not independently deployable microservices.
@@ -161,6 +168,10 @@ the typed verification result before making the continuation decision.
 The non-mutating `platform verify` workflow also interprets preflight results.
 Failed preflight checks now return `failed_to_verify` with summary-only
 verification evidence instead of reporting a completed verify workflow.
+The current preflight interpretation is Multipass-oriented. LXD/Incus
+readiness, WSL2 systemd/provider capability gates, backend ambiguity handling,
+and Docker-in-container profile validation are target runtime behavior for the
+provider migration, not implemented runtime behavior in this slice.
 
 === Autonomous Setup Runtime Flow
 
@@ -188,6 +199,13 @@ artifact/registry live steps, missing external Swarm inputs, and missing
 observed service readiness must be reported as `refused`, `blocked`,
 `resource_gated`, `failed_to_apply`, `failed_to_prepare`, or
 `failed_to_verify`, never as success.
+
+The provider selected by setup is also in transition. The accepted target
+default is `lxc_native` through LXD or Incus, while the implemented platform
+surface remains Multipass-backed until the provider migration slices wire the
+new selection contract. Multipass must become an explicit legacy/fallback
+selection; it must not be used as a silent fallback after LXD/Incus readiness
+fails.
 
 Optional live smoke validation remains a separate operator action and is not
 part of default architecture tests or the default quality gate.

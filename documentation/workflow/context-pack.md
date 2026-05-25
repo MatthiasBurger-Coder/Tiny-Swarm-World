@@ -127,18 +127,20 @@ Git blob hashes:
 
 | File | Hash |
 | --- | --- |
-| `documentation/workflow/workflow.md` | `f0d8c6119ed2e0ef2467d4f9aae598f50f130d2f` |
+| `documentation/workflow/workflow.md` | `bf087388b296aceecb777a8c9b29668291bffd42` |
 | `AGENTS.md` | `13a61789bff97a4b0b7c99424aca1d79f013d55e` |
 | `QUALITY.md` | `17002150bab9f168eb60be85d55b7a0c1cb441e5` |
-| `documentation/epics/autonomous-runnable-setup.md` | `cc9c7ae0e5a116395bd4582eb2049a17e54e7e08` |
-| `documentation/epics/system-unification.md` | `c1810e090ec3a53938d0a8b1174dc407e0763262` |
+| `documentation/epics/autonomous-runnable-setup.md` | `a8b8d02c04533ba6570e713681cd6ed2ffce908d` |
+| `documentation/epics/system-unification.md` | `7ccbac7d2b7261561058f7f4323ffc1c14b5286c` |
 | `documentation/system/live-operation-surfaces.adoc` | `007b9c42d1111aa24206f675e81a567685f59fb4` |
 | `documentation/system/multipass-setup.adoc` | `ad6a4eff60ad4c46ffe8a8fd05288048d20a275f` |
 | `documentation/system/network.adoc` | `e5e7eb7cfb21f023a76b534bbd4febbf226fa5ed` |
-| `documentation/arc42/02_constraints.adoc` | `535551ede77e366a78c253583724aa068bb2454b` |
-| `documentation/arc42/06_runtime_view.adoc` | `5a16efb85a04e5099b1ba31b84830eb672af0825` |
-| `documentation/arc42/07_deployment_view.adoc` | `3e0e76f65979ba7bbc384379def3ffbe795e174b` |
-| `documentation/arc42/11_risks_and_debt.adoc` | `0ad988ec0b27d59f82b265a475110e9cddaeb99c` |
+| `documentation/arc42/02_constraints.adoc` | `ffb78cc06e5df0f83c75b6c52fe46b67ae612886` |
+| `documentation/arc42/06_runtime_view.adoc` | `1114f862e425c36568f07040a4c5fb8bc43ca88e` |
+| `documentation/arc42/07_deployment_view.adoc` | `6ff6adaabb9a65caa3146f406cf1b3e190de9ab0` |
+| `documentation/arc42/09_architecture_decisions.adoc` | `2c7dfb4b9b2a0f42ee1c81a1b24ddba7e4b603a9` |
+| `documentation/arc42/11_risks_and_debt.adoc` | `318c5606d0b63fc55f364c5220b9feaa43a3a1e0` |
+| `documentation/architecture/adr-lxc-native-node-provider.adoc` | `57af4272fe0f0b46483ae895eec183a358479149` |
 | `documentation/architecture/adr-autonomous-setup-safety.adoc` | `3c6c88c479ac3db7aa8d8cdf03e06fc045d074a0` |
 | `documentation/process/workflow-create.md` | `78f2b31e96ab0731ee7b61cc2066f3446f3e1bcf` |
 | `.agents/skills/workflow-authoring/SKILL.md` | `6ccd9a0e322437fbca49e388ae3b387ac515758b` |

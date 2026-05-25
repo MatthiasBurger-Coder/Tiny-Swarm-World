@@ -456,6 +456,9 @@ affected_files:
   - "documentation/arc42/07_deployment_view.adoc"
   - "documentation/arc42/09_architecture_decisions.adoc"
   - "documentation/arc42/11_risks_and_debt.adoc"
+  - "documentation/workflow/workflow.md"
+  - "documentation/workflow/context-pack.md"
+  - "documentation/workflow/context-pack.json"
 affected_modules: []
 affected_contracts:
   - "provider architecture decision"
@@ -467,7 +470,11 @@ file_locks:
   - "documentation/architecture/adr-lxc-native-node-provider.adoc"
   - "documentation/epics/autonomous-runnable-setup.md"
   - "documentation/epics/system-unification.md"
+  - "documentation/arc42/09_architecture_decisions.adoc"
   - "documentation/arc42/**"
+  - "documentation/workflow/workflow.md"
+  - "documentation/workflow/context-pack.md"
+  - "documentation/workflow/context-pack.json"
 contract_locks:
   - "default provider changes only after ADR is recorded"
 architecture_locks:

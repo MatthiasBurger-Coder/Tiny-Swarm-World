@@ -94,6 +94,20 @@ installation, or Swarm initialization can begin. The guard is read-only and
 classifies Multipass runtime readiness; it does not repair host services,
 change drivers, or create VMs.
 
+The provider deployment target is changing by ADR. LXC-native through LXD or
+Incus is the accepted planned default provider direction, but the current
+deployment implementation remains Multipass-centered until provider migration
+slices wire and verify the new contracts. Future deployment evidence must keep
+native Linux LXD/Incus, WSL2 LXD/Incus, and Multipass legacy fallback results
+separate.
+
+For the LXC-native target, deployment must block before mutation when LXD or
+Incus readiness is absent, backend selection is ambiguous, WSL2 capability is
+missing, or Docker-in-container profile requirements are not satisfied. Host
+package installation, provider daemon repair, bridge or firewall mutation,
+group membership repair, and privileged container profile changes are live
+host mutations and are not deployment defaults in this slice.
+
 Service-stack contracts carry localhost endpoint defaults so operator-facing
 routes are explicit and test-backed. These endpoints are configuration hints
 for WSL/Linux local access and do not claim Swarm service health. Localhost

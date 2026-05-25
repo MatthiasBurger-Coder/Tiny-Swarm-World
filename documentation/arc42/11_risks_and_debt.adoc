@@ -64,6 +64,33 @@ Remaining debt:
   script promotion need future ADRs before they can change the accepted safety
   model.
 
+=== LXC Native Provider Migration Risks
+
+The LXC-native provider direction is accepted as planned architecture drift.
+The current implementation remains Multipass-centered until later provider
+migration slices implement and verify the new provider contracts.
+
+Remaining risks and debt:
+
+* provider-neutral domain and application port contracts do not exist yet;
+* LXD/Incus readiness, backend ambiguity handling, WSL2 systemd/provider
+  capability gates, and Docker-in-container profile validation remain planned
+  behavior;
+* Multipass still appears in current runtime and deployment documentation as
+  the implemented provider surface and must be moved behind explicit
+  `multipass_legacy` selection before it stops being the default behavior;
+* WSL2 success could be overclaimed if documentation, static tests, or native
+  Linux evidence are treated as WSL2 live evidence;
+* silent fallback to Multipass could mask LXD/Incus readiness failures unless
+  provider selection is fail-closed and operator-visible;
+* Docker Swarm inside LXD/Incus containers may require nesting, cgroup,
+  AppArmor, seccomp, capability, privileged-profile, or host-mount decisions
+  that need security and DevOps review;
+* automatic provider installation, daemon repair, group membership changes,
+  bridge/firewall mutation, and non-interactive live consent remain outside
+  the accepted default behavior until later ADRs or explicit operator approval
+  cover them.
+
 === Service Access Dashboard And Vaultwarden Baseline Risks
 
 The service-access dashboard and Vaultwarden baseline is implemented as

@@ -31,6 +31,17 @@ slices wire live Platform, Artifacts, and Deployment behavior. It does not
 replace this system-unification EPIC and does not claim that autonomous setup
 is already implemented.
 
+The LXC-native node provider migration also extends this EPIC:
+
+- `documentation/architecture/adr-lxc-native-node-provider.adoc`
+- active workflow `documentation/workflow/workflow.md`, version
+  `lxc-native-node-provider-v1.0.0`
+
+That extension accepts `lxc_native` through LXD or Incus as the planned
+default provider direction and keeps Multipass as the implemented provider
+surface until later slices move it behind explicit `multipass_legacy`
+selection.
+
 The service-access dashboard and Vaultwarden baseline also extends this EPIC:
 
 - `documentation/epics/service-access-dashboard-vaultwarden.md`
@@ -100,6 +111,10 @@ Planned or incomplete:
   runnable setup remains incomplete until command-backed platform
   verification, artifact publication, registry checks, first-time stack
   bootstrap, and service readiness evidence are wired.
+- The LXC-native provider direction is accepted as planned architecture drift,
+  but provider-neutral domain contracts, LXD/Incus readiness, node lifecycle
+  adapters, setup integration, and the explicit Multipass legacy boundary are
+  not implemented yet.
 - The service-access dashboard and Vaultwarden requirement baseline exists as
   an EPIC extension, but no stack, routing, persistence, readiness, or live
   deployment implementation exists yet.
@@ -122,7 +137,8 @@ In scope:
 Out of scope:
 
 - Live Multipass, Docker Swarm, compose, netplan, socat, Portainer, Nexus,
-  Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX execution.
+  Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, LXD, Incus, LXC container, or
+  Docker-in-container execution.
 - Kubernetes-first architecture.
 - Browser React frontend work.
 - Spring Boot or Java-driven architecture.
@@ -150,6 +166,11 @@ Out of scope:
   the implemented fail-closed `setup run` orchestrator, but must not present
   full live runnable setup as implemented until later verification evidence
   proves it.
+- Provider migration requirements preserve the Platform responsibility
+  boundary and hexagonal architecture. Documentation may describe LXC-native
+  through LXD/Incus as the accepted target default direction, but must not
+  present it as implemented setup behavior until later slices provide source,
+  tests, and verification evidence.
 - Service-access dashboard and Vaultwarden requirements preserve the
   Deployment responsibility boundary. Documentation must not present the
   service-access dashboard, Vaultwarden, routing, or credential migration as

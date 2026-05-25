@@ -28,3 +28,16 @@ rules.
   returns `verified` evidence.
 * The default quality gate must not create VMs, mutate networking, initialize
   Docker Swarm, deploy stacks, or bootstrap services.
+* LXC-native through LXD or Incus is the accepted target default provider
+  direction. Current runtime implementation remains Multipass-centered until
+  later provider migration slices pass.
+* Raw low-level LXC command automation is not an accepted first default
+  provider path.
+* Multipass fallback must be explicit and operator-selected. A failed
+  LXD/Incus readiness check must not silently fall back to Multipass.
+* WSL2 is capability-gated for managed LXC provider behavior. WSL1 is not a
+  supported provider target.
+* Host package installation, daemon repair, group membership changes,
+  privileged container profiles, bridge/firewall changes, broad host mounts,
+  and non-interactive live consent require explicit operator approval and may
+  require later ADR coverage before becoming automated defaults.
