@@ -9,7 +9,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
-from tiny_swarm_world.domain.preflight import HostRuntimeReadinessStatus
+from tiny_swarm_world.domain.preflight import (
+    HostEnvironmentKind,
+    HostRuntimeReadinessStatus,
+    SetupPath,
+)
 from tiny_swarm_world.infrastructure.adapters.preflight import (
     HostPreflightProbe,
     ensure_common_executable_paths,
@@ -67,6 +71,163 @@ class TestHostPreflightProbe(unittest.TestCase):
                 ensure_common_executable_paths((fallback_directory,))
 
                 self.assertEqual(str(fallback_directory), os.environ["PATH"])
+
+    def test_host_environment_report_classifies_verified_native_linux(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            os_root = Path(temporary_directory)
+            _write_os_signal(os_root, "proc", "version", text="Linux version 6.8\n")
+            _write_os_signal(
+                os_root,
+                "proc",
+                "sys",
+                "kernel",
+                "osrelease",
+                text="6.8.0-generic\n",
+            )
+            probe = HostPreflightProbe(Path.cwd(), os_root=os_root)
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                    return_value="Linux",
+                ),
+                patch.dict(os.environ, {}, clear=True),
+            ):
+                report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.NATIVE_LINUX, report.environment)
+        self.assertEqual(SetupPath.NATIVE_LINUX, report.setup_path)
+        self.assertTrue(report.allows_live_setup)
+        self.assertFalse(report.static_validation_only)
+        self.assertEqual("native_linux", report.evidence["classification"])
+        self.assertEqual("present", report.evidence["kernel_signal"])
+
+    def test_host_environment_report_classifies_container_marker_as_sandbox(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            os_root = Path(temporary_directory)
+            _write_os_signal(os_root, "proc", "version", text="Linux version 6.8\n")
+            (os_root / ".dockerenv").write_text("", encoding="utf-8")
+            probe = HostPreflightProbe(Path.cwd(), os_root=os_root)
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                    return_value="Linux",
+                ),
+                patch.dict(os.environ, {}, clear=True),
+            ):
+                report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
+        self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
+        self.assertFalse(report.allows_live_setup)
+        self.assertTrue(report.static_validation_only)
+        self.assertEqual("container_marker", report.evidence["sandbox_signal"])
+
+    def test_host_environment_report_classifies_cgroup_container_as_sandbox(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            os_root = Path(temporary_directory)
+            _write_os_signal(os_root, "proc", "version", text="Linux version 6.8\n")
+            _write_os_signal(
+                os_root,
+                "proc",
+                "self",
+                "cgroup",
+                text="0::/docker/synthetic\n",
+            )
+            probe = HostPreflightProbe(Path.cwd(), os_root=os_root)
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                    return_value="Linux",
+                ),
+                patch.dict(os.environ, {}, clear=True),
+            ):
+                report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
+        self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
+        self.assertEqual("container_marker", report.evidence["sandbox_signal"])
+
+    def test_host_environment_report_classifies_ci_environment_as_sandbox(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            os_root = Path(temporary_directory)
+            _write_os_signal(os_root, "proc", "version", text="Linux version 6.8\n")
+            probe = HostPreflightProbe(Path.cwd(), os_root=os_root)
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                    return_value="Linux",
+                ),
+                patch.dict(os.environ, {"CI": "true"}, clear=True),
+            ):
+                report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
+        self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
+        self.assertEqual("ci_marker", report.evidence["sandbox_signal"])
+
+    def test_host_environment_report_classifies_missing_kernel_signals_as_sandbox(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            probe = HostPreflightProbe(Path.cwd(), os_root=Path(temporary_directory))
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                    return_value="Linux",
+                ),
+                patch.dict(os.environ, {}, clear=True),
+            ):
+                report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
+        self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
+        self.assertEqual("kernel_signal_missing", report.evidence["sandbox_signal"])
+
+    def test_host_environment_report_does_not_promote_wsl_hint_to_wsl2_in_slice_04(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            os_root = Path(temporary_directory)
+            _write_os_signal(
+                os_root,
+                "proc",
+                "sys",
+                "kernel",
+                "osrelease",
+                text="5.15.90.1-microsoft-standard-WSL2\n",
+            )
+            probe = HostPreflightProbe(Path.cwd(), os_root=os_root)
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                    return_value="Linux",
+                ),
+                patch.dict(os.environ, {}, clear=True),
+            ):
+                report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
+        self.assertNotEqual(HostEnvironmentKind.WSL2, report.environment)
+        self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
+        self.assertEqual("wsl_hint_pending", report.evidence["sandbox_signal"])
+
+    def test_host_environment_report_fails_closed_for_non_linux_platform(self):
+        probe = HostPreflightProbe(Path.cwd())
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+            return_value="Darwin",
+        ):
+            report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.UNKNOWN_UNSUPPORTED, report.environment)
+        self.assertEqual(SetupPath.UNSUPPORTED, report.setup_path)
+        self.assertFalse(report.allows_live_setup)
+        self.assertFalse(report.static_validation_only)
+        self.assertEqual("unknown_unsupported", report.evidence["classification"])
+        self.assertEqual("darwin", report.evidence["kernel_family"])
 
     def test_multipass_runtime_readiness_reports_ready_expected_driver(self):
         probe = HostPreflightProbe(Path.cwd())
@@ -528,3 +689,9 @@ class TestHostPreflightProbe(unittest.TestCase):
             outside_file.unlink()
 
         self.assertEqual((), tuple(found))
+
+
+def _write_os_signal(root: Path, *parts: str, text: str) -> None:
+    target = root.joinpath(*parts)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(text, encoding="utf-8")

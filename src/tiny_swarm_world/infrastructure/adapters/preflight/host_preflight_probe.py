@@ -16,8 +16,11 @@ from pathlib import Path
 
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.domain.preflight import (
+    HostEnvironmentKind,
+    HostEnvironmentReport,
     HostRuntimeReadiness,
     HostRuntimeReadinessStatus,
+    SetupPath,
 )
 from tiny_swarm_world.infrastructure.project_paths import repository_root
 
@@ -25,6 +28,29 @@ from tiny_swarm_world.infrastructure.project_paths import repository_root
 SECRET_TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_-]{2,}")
 COMMON_LINUX_EXECUTABLE_DIRECTORIES = (Path("/snap/bin"),)
 KNOWN_MULTIPASS_DRIVERS = frozenset(("qemu", "lxd", "libvirt", "hyperv", "hyperkit", "virtualbox"))
+CI_ENVIRONMENT_KEYS = frozenset(
+    (
+        "CI",
+        "GITHUB_ACTIONS",
+        "GITLAB_CI",
+        "BUILDKITE",
+        "TF_BUILD",
+    )
+)
+CONTAINER_MARKER_FILES = (
+    (".dockerenv",),
+    ("run", ".containerenv"),
+    ("var", "run", ".containerenv"),
+)
+CONTAINER_CGROUP_MARKERS = (
+    "docker",
+    "kubepods",
+    "containerd",
+    "libpod",
+    "podman",
+    "lxc",
+)
+WSL_MARKERS = ("microsoft", "wsl")
 
 
 class HostPreflightProbe(PortHostPreflightProbe):
@@ -32,8 +58,11 @@ class HostPreflightProbe(PortHostPreflightProbe):
         self,
         root: Path | None = None,
         executable_fallback_directories: Sequence[Path] | None = None,
+        *,
+        os_root: Path | None = None,
     ):
         self.root = root or repository_root()
+        self.os_root = os_root or Path("/")
         self.executable_fallback_directories = tuple(
             COMMON_LINUX_EXECUTABLE_DIRECTORIES
             if executable_fallback_directories is None
@@ -42,6 +71,43 @@ class HostPreflightProbe(PortHostPreflightProbe):
 
     def is_linux_or_wsl(self) -> bool:
         return platform.system().lower() == "linux"
+
+    def host_environment_report(self) -> HostEnvironmentReport:
+        platform_family = _safe_signal_token(platform.system())
+        if platform_family != "linux":
+            return HostEnvironmentReport(
+                environment=HostEnvironmentKind.UNKNOWN_UNSUPPORTED,
+                setup_path=SetupPath.UNSUPPORTED,
+                remediation=("Run Tiny Swarm World from native Linux or WSL2.",),
+                evidence={
+                    "classification": "unknown_unsupported",
+                    "kernel_family": platform_family,
+                },
+            )
+
+        if self._has_wsl_hint():
+            return self._sandbox_report("wsl_hint_pending")
+
+        if self._has_container_marker():
+            return self._sandbox_report("container_marker")
+
+        if _has_ci_hint(os.environ):
+            return self._sandbox_report("ci_marker")
+
+        if not self._has_kernel_signal():
+            return self._sandbox_report("kernel_signal_missing")
+
+        return HostEnvironmentReport(
+            environment=HostEnvironmentKind.NATIVE_LINUX,
+            setup_path=SetupPath.NATIVE_LINUX,
+            remediation=("Verify Multipass runtime readiness before live setup.",),
+            evidence={
+                "classification": "native_linux",
+                "kernel_family": "linux",
+                "kernel_signal": "present",
+                "sandbox_signal": "absent",
+            },
+        )
 
     def python_version(self) -> str:
         return ".".join(str(part) for part in sys.version_info[:3])
@@ -245,12 +311,75 @@ class HostPreflightProbe(PortHostPreflightProbe):
                 paths.append(candidate)
         return tuple(paths)
 
+    def _sandbox_report(self, signal: str) -> HostEnvironmentReport:
+        return HostEnvironmentReport(
+            environment=HostEnvironmentKind.SANDBOX_UNVERIFIED,
+            setup_path=SetupPath.SANDBOX_UNVERIFIED,
+            remediation=(
+                "Use static validation only, or rerun from verified native Linux or WSL2.",
+            ),
+            evidence={
+                "classification": "sandbox_unverified",
+                "kernel_family": "linux",
+                "sandbox_signal": signal,
+            },
+        )
+
+    def _has_kernel_signal(self) -> bool:
+        return any(
+            self._read_os_file(*parts).strip()
+            for parts in (
+                ("proc", "version"),
+                ("proc", "sys", "kernel", "osrelease"),
+            )
+        )
+
+    def _has_wsl_hint(self) -> bool:
+        text = "\n".join(
+            self._read_os_file(*parts).casefold()
+            for parts in (
+                ("proc", "version"),
+                ("proc", "sys", "kernel", "osrelease"),
+            )
+        )
+        return any(marker in text for marker in WSL_MARKERS)
+
+    def _has_container_marker(self) -> bool:
+        if any((self.os_root.joinpath(*parts)).exists() for parts in CONTAINER_MARKER_FILES):
+            return True
+        text = "\n".join(
+            self._read_os_file(*parts).casefold()
+            for parts in (
+                ("proc", "1", "cgroup"),
+                ("proc", "self", "cgroup"),
+            )
+        )
+        return any(marker in text for marker in CONTAINER_CGROUP_MARKERS)
+
+    def _read_os_file(self, *parts: str) -> str:
+        try:
+            return self.os_root.joinpath(*parts).read_text(
+                encoding="utf-8",
+                errors="ignore",
+            )
+        except OSError:
+            return ""
+
 
 def _token_fingerprints(text: str) -> tuple[str, ...]:
     return tuple(
         hashlib.sha256(match.group(0).encode("utf-8")).hexdigest()
         for match in SECRET_TOKEN_PATTERN.finditer(text)
     )
+
+
+def _has_ci_hint(environ: Mapping[str, str]) -> bool:
+    return any(environ.get(key) for key in CI_ENVIRONMENT_KEYS)
+
+
+def _safe_signal_token(value: str) -> str:
+    normalized = re.sub(r"[^a-z0-9_+-]", "_", value.casefold()).strip("_")
+    return normalized[:40] or "unknown"
 
 
 def _http_service_available(
