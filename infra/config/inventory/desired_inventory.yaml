@@ -9,10 +9,11 @@ vms:
     stacks:
       - portainer
       - nexus
+      - jenkins
       - rabbitmq
       - sonarqube
-      - jenkins
       - swagger
+      - service-access
 
   - name: swarm-worker-1
     role: worker
@@ -23,10 +24,11 @@ vms:
     stacks:
       - portainer
       - nexus
+      - jenkins
       - rabbitmq
       - sonarqube
-      - jenkins
       - swagger
+      - service-access
 
   - name: swarm-worker-2
     role: worker
@@ -37,17 +39,19 @@ vms:
     stacks:
       - portainer
       - nexus
+      - jenkins
       - rabbitmq
       - sonarqube
-      - jenkins
       - swagger
+      - service-access
 
 expected_stacks:
   - portainer
   - nexus
+  - jenkins
   - rabbitmq
   - sonarqube
-  - jenkins
   - swagger
+  - service-access
 expected_artifact_registries:
   - nexus

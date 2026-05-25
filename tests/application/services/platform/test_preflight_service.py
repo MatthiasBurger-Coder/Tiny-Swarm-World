@@ -183,17 +183,38 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("lxd", runtime_failure.evidence["actual_driver"])
         self.assertIn("unsupported driver", runtime_failure.message)
 
-    async def test_static_local_secret_defaults_satisfy_missing_environment_secrets(self):
+    async def test_static_local_password_defaults_do_not_satisfy_missing_secret_values(self):
         result = await PreflightService(
             _FakeProbe(secret_availability={"TSW_NEXUS_ADMIN_PASSWORD": False})
         ).run()
 
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+        secret_check = failed_by_id["SECRET-TSW_NEXUS_ADMIN_PASSWORD"]
+
+        self.assertFalse(result.passed)
+        self.assertEqual("secret_value", secret_check.evidence["value_kind"])
+        self.assertNotIn("static_default", secret_check.evidence)
+        self.assertIn("Provide the secret", secret_check.remediation)
+        self.assertNotIn("password_value", repr(secret_check.to_dict()).lower())
+
+    async def test_static_local_secret_name_default_satisfies_missing_secret_name_source(self):
+        configuration = default_preflight_configuration(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS
+        )
+        result = await PreflightService(
+            _FakeProbe(
+                secret_availability={"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": False},
+            ),
+            configuration,
+        ).run()
+
         checks_by_id = {check.check_id: check for check in result.checks}
-        secret_check = checks_by_id["SECRET-TSW_NEXUS_ADMIN_PASSWORD"]
+        secret_check = checks_by_id["SECRET-TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"]
 
         self.assertTrue(result.passed)
-        self.assertEqual("static_local_default", secret_check.evidence["source"])
-        self.assertNotIn("password_value", repr(secret_check.to_dict()).lower())
+        self.assertEqual("secret_name", secret_check.evidence["value_kind"])
+        self.assertEqual("static_local_secret_name_default", secret_check.evidence["source"])
+        self.assertNotIn("token-value", repr(secret_check.to_dict()).casefold())
 
     async def test_host_port_and_ignore_policy_failures_are_reported(self):
         result = await PreflightService(

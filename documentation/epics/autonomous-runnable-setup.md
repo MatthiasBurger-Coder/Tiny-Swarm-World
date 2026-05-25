@@ -162,6 +162,14 @@ Credentials and host-specific values must come only from operator-supplied
 environment variables, command-line flags that do not persist values, or
 ignored local files.
 
+The current full guided setup profile selects `service-access` by default, and
+the committed desired inventory is aligned with that profile. Required
+password values must be operator-supplied and are not satisfied by committed
+static defaults. For Vaultwarden, the committed default is the external Swarm
+secret name
+`tsw_vaultwarden_admin_token`; the Vaultwarden admin token value itself must
+be operator-supplied and must not be committed.
+
 The setup must not commit:
 
 - passwords;

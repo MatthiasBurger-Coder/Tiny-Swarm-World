@@ -138,8 +138,8 @@ visibility model is:
   source status, and Vaultwarden item references only.
 - The service-access dashboard does not display, cache, export, log, or
   persist password values.
-- Required secret names may be documented, for example
-  `TSW_VAULTWARDEN_ADMIN_TOKEN`.
+- Required secret-source environment variables may be documented, for example
+  `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`, which names an external Swarm secret.
 - Required secret values must come from operator-supplied environment
   variables, command-line inputs that do not persist values, or ignored local
   secret files.
@@ -151,7 +151,9 @@ these facts are verified through tests or explicit live smoke evidence:
 
 - the service-access stack contract is registered in the selected profile;
 - Vaultwarden has a persistent data volume with documented ownership;
-- Vaultwarden admin-token source is defined and contains no committed default;
+- Vaultwarden admin-token source is defined. The committed default may name
+  the external Swarm secret, but no committed default may contain the token
+  value itself;
 - Vaultwarden backup and restore behavior is documented;
 - stack rollback behavior is documented, including whether credential data is
   preserved or removed;

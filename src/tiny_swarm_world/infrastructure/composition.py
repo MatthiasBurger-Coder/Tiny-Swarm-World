@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import cast
 
@@ -276,7 +277,7 @@ def build_platform_services(
 
 
 def build_artifact_services() -> ArtifactServices:
-    nexus_admin_password = _static_secret_default("TSW_NEXUS_ADMIN_PASSWORD")
+    nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD")
     nexus_client = MultipassNexusHttpClient()
     container_runtime = MultipassContainerRuntime()
     image_publisher = MultipassContainerImagePublisher(
@@ -351,7 +352,7 @@ def build_deployment_services(
     portainer_client = PortainerHttpClient(
         DEFAULT_PORTAINER_API_URL,
         "admin",
-        _static_secret_default("TSW_PORTAINER_PASSWORD"),
+        _operator_secret_value("TSW_PORTAINER_PASSWORD"),
     )
     stack_steps = {
         contract.stack_name: EnsureSwarmStack(
@@ -366,7 +367,7 @@ def build_deployment_services(
         EnsurePortainerAdminAccess(
             portainer_admin_client=portainer_admin_client,
             username="admin",
-            password=_static_secret_default("TSW_PORTAINER_PASSWORD"),
+            password=_operator_secret_value("TSW_PORTAINER_PASSWORD"),
             max_attempts=60,
             wait_seconds=5,
         ),
@@ -446,8 +447,5 @@ def build_application_services(
     )
 
 
-def _static_secret_default(name: str) -> str:
-    for default in build_preflight_service().configuration.static_secret_defaults:
-        if default.name == name:
-            return default.value
-    raise KeyError(f"Missing static secret default '{name}'.")
+def _operator_secret_value(name: str) -> str:
+    return os.environ.get(name) or f"<operator-supplied:{name}>"

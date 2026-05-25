@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-SLICE_05_COMPLETED_CHECKPOINT_PENDING
+SLICE_06_COMPLETED_CHECKPOINT_PENDING
 ```
 
 ## Creation Evidence
@@ -25,6 +25,8 @@ feature/workflow-stable-live-setup-20260525
   catalog semantics checkpoint.
 - Slice 05 was executed as an endpoint, WSL forwarding and IntelliJ/Linux
   execution contract checkpoint.
+- Slice 06 was executed as a credential-source, profile and desired-inventory
+  consistency checkpoint.
 
 ## Problem Summary
 
@@ -430,6 +432,122 @@ not applicable; no safety decision changed
 Checkpoint commit:
 
 ```text
+f2b786c
+```
+
+Push result:
+
+```text
+pushed to origin/feature/workflow-stable-live-setup-20260525
+```
+
+## Slice 06 Checkpoint Evidence
+
+Slice:
+
+```text
+06 - Credential, Profile And Inventory Consistency
+```
+
+Responsible role:
+
+```text
+Senior System Architect
+```
+
+Reviewed by:
+
+```text
+Senior System Architect, Senior Python Automation Developer, Senior Security
+Sandbox Engineer, Senior Tester
+```
+
+Changed files:
+
+```text
+src/tiny_swarm_world/domain/preflight/setup_manifest.py
+src/tiny_swarm_world/domain/preflight/preflight_configuration.py
+src/tiny_swarm_world/application/services/platform/preflight_service.py
+src/tiny_swarm_world/infrastructure/composition.py
+infra/config/inventory/desired_inventory.yaml
+tests/domain/preflight/test_preflight_result.py
+tests/application/services/platform/test_preflight_service.py
+tests/infrastructure/adapters/repositories/test_inventory_repositories.py
+tests/infrastructure/test_composition.py
+documentation/epics/autonomous-runnable-setup.md
+documentation/epics/service-access-dashboard-vaultwarden.md
+documentation/arc42/11_risks_and_debt.adoc
+documentation/deployment/system.adoc
+documentation/workflow/workflow.md
+documentation/workflow/execution-report.md
+```
+
+Result:
+
+```text
+completed
+```
+
+Behavior added:
+
+```text
+the service-access stack is included in the committed desired inventory for
+the default full guided setup profile; Vaultwarden admin-token configuration is
+modeled as a secret-name source; static local password defaults no longer
+satisfy missing secret-value preflight requirements; artifact and deployment
+composition use operator environment password values when wiring live clients
+```
+
+Review disposition:
+
+```text
+Banach security review findings 1, 3 and 4 were remediated in this checkpoint.
+Hilbert quality review findings 1 through 4 were remediated in this checkpoint.
+Banach finding 2, external Swarm secret existence verification for the named
+Vaultwarden admin-token secret, is deferred to Slice 07 because it belongs to
+deployment observed-state readiness and infrastructure/client wiring.
+```
+
+Quality evidence:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m unittest tests.application.services.platform.test_preflight_service tests.domain.preflight.test_preflight_result tests.domain.deployment.test_service_stack_contract tests.architecture.test_local_state_storage tests.infrastructure.adapters.repositories.test_inventory_repositories tests.infrastructure.test_composition
+git diff --check
+.venv/bin/python tools/quality_gate.py lint
+.venv/bin/python tools/quality_gate.py arch-tests
+.venv/bin/python tools/quality_gate.py typecheck
+.venv/bin/python tools/quality_gate.py test
+.venv/bin/python tools/quality_gate.py quality
+```
+
+Quality result:
+
+```text
+passed
+```
+
+Rollback reference:
+
+```text
+f2b786c
+```
+
+arc42Updated:
+
+```text
+yes; risks and debt now describe desired-inventory alignment and Vaultwarden
+secret-name ownership without committed token values
+```
+
+adrUpdated:
+
+```text
+not applicable; no new architecture decision was made
+```
+
+Checkpoint commit:
+
+```text
 pending CP_COMMIT
 ```
 
@@ -441,7 +559,7 @@ pending CP_PUSH
 
 ## Next Execution Step
 
-Begin future implementation with Slice 06 from
+Begin future implementation with Slice 07 from
 `documentation/workflow/workflow.md`.
 
 ## Verification Evidence

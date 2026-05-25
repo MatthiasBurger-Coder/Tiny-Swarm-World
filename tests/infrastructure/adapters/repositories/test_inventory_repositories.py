@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from tiny_swarm_world.domain.deployment import service_stack_contracts_for_profile
 from tiny_swarm_world.domain.inventory import (
     DesiredInventory,
     ObservedInventory,
@@ -10,6 +11,7 @@ from tiny_swarm_world.domain.inventory import (
     VerificationStatus,
     VmObservedState,
 )
+from tiny_swarm_world.infrastructure import composition
 from tiny_swarm_world.infrastructure.adapters.repositories.desired_inventory_yaml_repository import (
     DesiredInventoryYamlRepository,
 )
@@ -71,11 +73,31 @@ expected_artifact_registries:
             tuple(vm.name for vm in inventory.vms),
         )
         self.assertEqual(
-            ("portainer", "nexus", "rabbitmq", "sonarqube", "jenkins", "swagger"),
+            (
+                "portainer",
+                "nexus",
+                "jenkins",
+                "rabbitmq",
+                "sonarqube",
+                "swagger",
+                "service-access",
+            ),
             inventory.expected_stacks,
         )
+        self.assertTrue(all("service-access" in vm.stacks for vm in inventory.vms))
         self.assertEqual(("nexus",), inventory.expected_artifact_registries)
         self.assertFalse(_contains_forbidden_inventory_key(inventory.to_dict()))
+
+    def test_committed_default_inventory_matches_default_setup_service_profile(self):
+        inventory = DesiredInventoryYamlRepository().load()
+        stack_names = tuple(
+            contract.stack_name
+            for contract in service_stack_contracts_for_profile(
+                composition.DEFAULT_SETUP_SERVICE_PROFILE
+            )
+        )
+
+        self.assertEqual(stack_names, inventory.expected_stacks)
 
     def test_rejects_non_mapping_yaml_root(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

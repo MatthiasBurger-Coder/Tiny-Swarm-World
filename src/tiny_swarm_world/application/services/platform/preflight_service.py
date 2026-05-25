@@ -290,8 +290,8 @@ class PreflightService:
 
     def _secret_checks(self) -> tuple[PreflightCheck, ...]:
         checks: list[PreflightCheck] = []
-        static_secret_names = {
-            static_secret.name
+        static_secrets = {
+            static_secret.name: static_secret
             for static_secret in self.configuration.static_secret_defaults
             if static_secret.value
         }
@@ -301,32 +301,50 @@ class PreflightService:
                     _passed(
                         f"SECRET-{secret.name}",
                         PreflightCategory.SECRET,
-                        f"Secret source for {secret.service} is present.",
-                        {"secret": secret.name, "service": secret.service, "source": "environment"},
-                    )
-                )
-                continue
-            if secret.name in static_secret_names:
-                checks.append(
-                    _passed(
-                        f"SECRET-{secret.name}",
-                        PreflightCategory.SECRET,
-                        f"Static local secret default for {secret.service} is present.",
+                        _secret_present_message(secret.value_kind, secret.service),
                         {
                             "secret": secret.name,
                             "service": secret.service,
-                            "source": "static_local_default",
+                            "source": "environment",
+                            "value_kind": secret.value_kind,
                         },
                     )
                 )
                 continue
+            static_secret = static_secrets.get(secret.name)
+            if (
+                static_secret is not None
+                and secret.value_kind == "secret_name"
+                and static_secret.value_kind == "secret_name"
+            ):
+                checks.append(
+                    _passed(
+                        f"SECRET-{secret.name}",
+                        PreflightCategory.SECRET,
+                        _static_secret_default_message(static_secret.value_kind, secret.service),
+                        {
+                            "secret": secret.name,
+                            "service": secret.service,
+                            "source": _static_secret_default_source(static_secret.value_kind),
+                            "value_kind": static_secret.value_kind,
+                        },
+                    )
+                )
+                continue
+            evidence = {
+                "secret": secret.name,
+                "service": secret.service,
+                "value_kind": secret.value_kind,
+            }
+            if static_secret is not None:
+                evidence["static_default"] = "local_development_only"
             checks.append(
                 _failed(
                     f"SECRET-{secret.name}",
                     PreflightCategory.SECRET,
-                    f"Secret source for {secret.service} is missing.",
-                    "Provide the secret through an environment variable or ignored local file.",
-                    {"secret": secret.name, "service": secret.service},
+                    _secret_missing_message(secret.value_kind, secret.service),
+                    _secret_missing_remediation(secret.value_kind),
+                    evidence,
                 )
             )
         return tuple(checks)
@@ -500,6 +518,36 @@ def _runtime_label(runtime: str) -> str:
     if runtime == "multipass":
         return "Multipass"
     return runtime
+
+
+def _secret_present_message(value_kind: str, service: str) -> str:
+    if value_kind == "secret_name":
+        return f"Secret source name for {service} is present."
+    return f"Secret source for {service} is present."
+
+
+def _static_secret_default_message(value_kind: str, service: str) -> str:
+    if value_kind == "secret_name":
+        return f"Static local secret source name default for {service} is present."
+    return f"Static local secret default for {service} is present."
+
+
+def _secret_missing_message(value_kind: str, service: str) -> str:
+    if value_kind == "secret_name":
+        return f"Secret source name for {service} is missing."
+    return f"Secret source for {service} is missing."
+
+
+def _secret_missing_remediation(value_kind: str) -> str:
+    if value_kind == "secret_name":
+        return "Provide the external secret name through an environment variable or ignored local file."
+    return "Provide the secret through an environment variable or ignored local file."
+
+
+def _static_secret_default_source(value_kind: str) -> str:
+    if value_kind == "secret_name":
+        return "static_local_secret_name_default"
+    return "static_local_default"
 
 
 def _parse_python_version(version_text: str) -> tuple[int, ...]:

@@ -34,6 +34,7 @@ class RequiredPort:
 class RequiredSecret:
     name: str
     service: str
+    value_kind: str = "secret_value"
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,7 @@ class StaticSecretDefault:
     name: str
     service: str
     value: str = field(repr=False)
+    value_kind: str = "secret_value"
 
 
 @dataclass(frozen=True)
@@ -94,20 +96,15 @@ def default_preflight_configuration(
             if port.host_preflight_required
         ),
         required_secrets=tuple(
-            RequiredSecret(secret.name, secret.service)
+            RequiredSecret(secret.name, secret.service, secret.value_kind)
             for secret in setup_manifest.required_secrets
         ),
         static_secret_defaults=(
-            StaticSecretDefault("TSW_PORTAINER_PASSWORD", "Portainer", "admin1234567890"),
-            StaticSecretDefault("TSW_NEXUS_ADMIN_PASSWORD", "Nexus", "MyAdminPassWord1234-126354654"),
-            StaticSecretDefault("TSW_JENKINS_ADMIN_PASSWORD", "Jenkins", "adminPassword123"),
-            StaticSecretDefault("TSW_RABBITMQ_PASSWORD", "RabbitMQ", "guest"),
-            StaticSecretDefault("TSW_SONARQUBE_ADMIN_PASSWORD", "SonarQube", "admin"),
-            StaticSecretDefault("TSW_POSTGRES_PASSWORD", "SonarQube PostgreSQL", "sonar"),
             StaticSecretDefault(
                 "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
                 "Vaultwarden admin-token secret name",
                 "tsw_vaultwarden_admin_token",
+                value_kind="secret_name",
             ),
         ),
         forbidden_secret_fingerprints=(

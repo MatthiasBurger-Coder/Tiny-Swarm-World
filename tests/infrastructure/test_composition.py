@@ -288,15 +288,27 @@ class TestComposition(unittest.TestCase):
             tuple(check.verification_target_id for check in services.workflows.verify.checks),
         )
 
-    def test_build_artifact_services_uses_static_local_defaults_not_environment_passwords(self):
+    def test_build_artifact_services_uses_operator_environment_passwords(self):
         with patch.dict("os.environ", {"TSW_NEXUS_ADMIN_PASSWORD": "operator-supplied"}, clear=True):
             services = composition.build_artifact_services()
 
         image_publisher = services.workflows.prepare.steps[-1].image_publisher
         self.assertEqual(
-            "MyAdminPassWord1234-126354654",
+            "operator-supplied",
             image_publisher.registry_password,
         )
+
+    def test_build_deployment_services_uses_operator_portainer_password(self):
+        with patch.dict("os.environ", {"TSW_PORTAINER_PASSWORD": "operator-portainer"}, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                with patch.object(composition, "MultipassSwarmRuntime"):
+                    with patch.object(composition, "MultipassPortainerAdminClient"):
+                        with patch.object(composition, "PortainerHttpClient") as portainer_client:
+                            services = composition.build_deployment_services()
+
+        portainer_client.assert_called_once()
+        self.assertEqual("operator-portainer", portainer_client.call_args.args[2])
+        self.assertEqual("operator-portainer", services.workflows.bootstrap.steps[1].password)
 
     def test_build_setup_services_wires_phase_orchestrator_without_running_phases(self):
         with patch.object(composition, "build_preflight_service") as build_preflight:

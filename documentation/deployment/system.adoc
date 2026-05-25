@@ -111,12 +111,12 @@ Important environment variables:
 | Variable | Default | Purpose
 | `TSW_PORTAINER_URL` | `http://localhost:9000` | Portainer API base URL
 | `TSW_PORTAINER_USERNAME` | `admin` | Portainer login user
-| `TSW_PORTAINER_PASSWORD` | local compatibility default, override required | Portainer login password
+| `TSW_PORTAINER_PASSWORD` | no default, operator supplied | Portainer login password
 | `TSW_PORTAINER_ENDPOINT` | `local` | Portainer endpoint name
 | `TSW_NEXUS_STACK_NAME` | `nexus` | Stack name in Portainer
 | `TSW_NEXUS_URL` | `http://localhost:8081` | Nexus base URL
 | `TSW_NEXUS_ADMIN_USERNAME` | `admin` | Nexus administrator user
-| `TSW_NEXUS_ADMIN_PASSWORD` | local compatibility default, override required | New Nexus administrator password
+| `TSW_NEXUS_ADMIN_PASSWORD` | no default, operator supplied | New Nexus administrator password
 | `TSW_NEXUS_INITIAL_PASSWORD_PATH` | `/nexus-data/admin.password` | Initial password path inside the Nexus container
 | `TSW_NEXUS_MAX_ATTEMPTS` | `10` | Startup polling attempts
 | `TSW_NEXUS_WAIT_SECONDS` | `5` | Delay between polling attempts
@@ -185,11 +185,9 @@ Observed live smoke evidence from 2026-05-25:
   `local`.
 * Swarm tasks for the dashboard, Vaultwarden and service-access NGINX reached
   `running`, and Vaultwarden reported healthy.
-* `http://10.157.2.182:8085/`, `http://10.157.2.19:8085/`, and
-  `http://10.157.2.33:8085/` returned the service-access dashboard with HTTP
-  `200`.
-* `http://10.157.2.182:8086/`, `http://10.157.2.19:8086/`, and
-  `http://10.157.2.33:8086/` returned Vaultwarden with HTTP `200`.
+* The service-access dashboard returned HTTP `200` on three Swarm node IPs
+  through port `8085`.
+* Vaultwarden returned HTTP `200` on three Swarm node IPs through port `8086`.
 * The dashboard path `/vaultwarden` redirected to the same host on port
   `8086`.
 
