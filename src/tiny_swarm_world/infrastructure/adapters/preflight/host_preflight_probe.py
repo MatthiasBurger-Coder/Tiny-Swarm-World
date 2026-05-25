@@ -51,6 +51,8 @@ CONTAINER_CGROUP_MARKERS = (
     "lxc",
 )
 WSL_MARKERS = ("microsoft", "wsl")
+WSL_ENVIRONMENT_KEYS = ("WSL_DISTRO_NAME", "WSL_INTEROP")
+WSL_INTEROP_MARKER_FILES = (("proc", "sys", "fs", "binfmt_misc", "WSLInterop"),)
 
 
 class HostPreflightProbe(PortHostPreflightProbe):
@@ -85,14 +87,15 @@ class HostPreflightProbe(PortHostPreflightProbe):
                 },
             )
 
-        if self._has_wsl_hint():
-            return self._sandbox_report("wsl_hint_pending")
-
         if self._has_container_marker():
             return self._sandbox_report("container_marker")
 
         if _has_ci_hint(os.environ):
             return self._sandbox_report("ci_marker")
+
+        wsl_report = self._wsl_environment_report()
+        if wsl_report is not None:
+            return wsl_report
 
         if not self._has_kernel_signal():
             return self._sandbox_report("kernel_signal_missing")
@@ -326,23 +329,72 @@ class HostPreflightProbe(PortHostPreflightProbe):
         )
 
     def _has_kernel_signal(self) -> bool:
-        return any(
-            self._read_os_file(*parts).strip()
-            for parts in (
-                ("proc", "version"),
-                ("proc", "sys", "kernel", "osrelease"),
+        return bool(self._kernel_signal_text().strip())
+
+    def _wsl_environment_report(self) -> HostEnvironmentReport | None:
+        kernel_signal = self._kernel_signal_text()
+        has_kernel_hint = _has_wsl_kernel_hint(kernel_signal)
+        has_independent_signal = self._has_wsl_independent_signal()
+        if not has_kernel_hint and not has_independent_signal:
+            return None
+
+        if _is_wsl2_kernel(kernel_signal) and has_independent_signal:
+            return HostEnvironmentReport(
+                environment=HostEnvironmentKind.WSL2,
+                setup_path=SetupPath.WSL2,
+                remediation=("Verify WSL2 Multipass runtime readiness before live setup.",),
+                evidence={
+                    "classification": "wsl2",
+                    "kernel_family": "linux",
+                    "sandbox_signal": "absent",
+                    "wsl_generation": "2",
+                    "wsl_kernel_signal": "present",
+                    "wsl_independent_signal": "present",
+                },
             )
+
+        if _is_wsl1_kernel(kernel_signal) and has_independent_signal:
+            return HostEnvironmentReport(
+                environment=HostEnvironmentKind.WSL1_UNSUPPORTED,
+                setup_path=SetupPath.UNSUPPORTED,
+                remediation=("Upgrade the distribution to WSL2 or use native Linux.",),
+                evidence={
+                    "classification": "wsl1_unsupported",
+                    "kernel_family": "linux",
+                    "wsl_generation": "1",
+                    "wsl_kernel_signal": "present",
+                    "wsl_independent_signal": "present",
+                },
+            )
+
+        return HostEnvironmentReport(
+            environment=HostEnvironmentKind.UNKNOWN_UNSUPPORTED,
+            setup_path=SetupPath.UNSUPPORTED,
+            remediation=(
+                "Verify the WSL generation from the same Linux shell before live setup.",
+            ),
+            evidence={
+                "classification": "wsl_unknown",
+                "kernel_family": "linux",
+                "wsl_generation": "unknown",
+                "wsl_kernel_signal": _presence_text(has_kernel_hint),
+                "wsl_independent_signal": _presence_text(has_independent_signal),
+            },
         )
 
-    def _has_wsl_hint(self) -> bool:
-        text = "\n".join(
+    def _kernel_signal_text(self) -> str:
+        return "\n".join(
             self._read_os_file(*parts).casefold()
             for parts in (
                 ("proc", "version"),
                 ("proc", "sys", "kernel", "osrelease"),
             )
         )
-        return any(marker in text for marker in WSL_MARKERS)
+
+    def _has_wsl_independent_signal(self) -> bool:
+        if any(os.environ.get(key) for key in WSL_ENVIRONMENT_KEYS):
+            return True
+        return any((self.os_root.joinpath(*parts)).exists() for parts in WSL_INTEROP_MARKER_FILES)
 
     def _has_container_marker(self) -> bool:
         if any((self.os_root.joinpath(*parts)).exists() for parts in CONTAINER_MARKER_FILES):
@@ -380,6 +432,26 @@ def _has_ci_hint(environ: Mapping[str, str]) -> bool:
 def _safe_signal_token(value: str) -> str:
     normalized = re.sub(r"[^a-z0-9_+-]", "_", value.casefold()).strip("_")
     return normalized[:40] or "unknown"
+
+
+def _has_wsl_kernel_hint(kernel_signal: str) -> bool:
+    return any(marker in kernel_signal for marker in WSL_MARKERS)
+
+
+def _is_wsl2_kernel(kernel_signal: str) -> bool:
+    return "microsoft" in kernel_signal and "wsl2" in kernel_signal
+
+
+def _is_wsl1_kernel(kernel_signal: str) -> bool:
+    return (
+        "wsl2" not in kernel_signal
+        and re.search(r"\b4\.4\.[^\n]*microsoft|microsoft[^\n]*\b4\.4\.", kernel_signal)
+        is not None
+    )
+
+
+def _presence_text(value: bool) -> str:
+    return "present" if value else "absent"
 
 
 def _http_service_available(

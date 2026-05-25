@@ -169,6 +169,33 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
         self.assertEqual("ci_marker", report.evidence["sandbox_signal"])
 
+    def test_host_environment_report_keeps_container_wsl2_as_sandbox(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            os_root = Path(temporary_directory)
+            _write_os_signal(
+                os_root,
+                "proc",
+                "sys",
+                "kernel",
+                "osrelease",
+                text="5.15.90.1-microsoft-standard-WSL2\n",
+            )
+            (os_root / ".dockerenv").write_text("", encoding="utf-8")
+            probe = HostPreflightProbe(Path.cwd(), os_root=os_root)
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                    return_value="Linux",
+                ),
+                patch.dict(os.environ, {"WSL_DISTRO_NAME": "Ubuntu"}, clear=True),
+            ):
+                report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
+        self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
+        self.assertEqual("container_marker", report.evidence["sandbox_signal"])
+
     def test_host_environment_report_classifies_missing_kernel_signals_as_sandbox(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             probe = HostPreflightProbe(Path.cwd(), os_root=Path(temporary_directory))
@@ -186,7 +213,7 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
         self.assertEqual("kernel_signal_missing", report.evidence["sandbox_signal"])
 
-    def test_host_environment_report_does_not_promote_wsl_hint_to_wsl2_in_slice_04(self):
+    def test_host_environment_report_requires_independent_wsl_signal_for_wsl2(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             os_root = Path(temporary_directory)
             _write_os_signal(
@@ -208,10 +235,123 @@ class TestHostPreflightProbe(unittest.TestCase):
             ):
                 report = probe.host_environment_report()
 
-        self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
+        self.assertEqual(HostEnvironmentKind.UNKNOWN_UNSUPPORTED, report.environment)
         self.assertNotEqual(HostEnvironmentKind.WSL2, report.environment)
-        self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
-        self.assertEqual("wsl_hint_pending", report.evidence["sandbox_signal"])
+        self.assertEqual(SetupPath.UNSUPPORTED, report.setup_path)
+        self.assertEqual("unknown", report.evidence["wsl_generation"])
+        self.assertEqual("absent", report.evidence["wsl_independent_signal"])
+
+    def test_host_environment_report_classifies_verified_wsl2(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            os_root = Path(temporary_directory)
+            _write_os_signal(
+                os_root,
+                "proc",
+                "sys",
+                "kernel",
+                "osrelease",
+                text="5.15.90.1-microsoft-standard-WSL2\n",
+            )
+            probe = HostPreflightProbe(Path.cwd(), os_root=os_root)
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                    return_value="Linux",
+                ),
+                patch.dict(os.environ, {"WSL_DISTRO_NAME": "Ubuntu"}, clear=True),
+            ):
+                report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.WSL2, report.environment)
+        self.assertEqual(SetupPath.WSL2, report.setup_path)
+        self.assertTrue(report.allows_live_setup)
+        self.assertFalse(report.static_validation_only)
+        self.assertEqual("wsl2", report.evidence["classification"])
+        self.assertEqual("2", report.evidence["wsl_generation"])
+        self.assertEqual("present", report.evidence["wsl_independent_signal"])
+
+    def test_host_environment_report_classifies_wsl1_as_unsupported(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            os_root = Path(temporary_directory)
+            _write_os_signal(
+                os_root,
+                "proc",
+                "version",
+                text="Linux version 4.4.0-19041-Microsoft\n",
+            )
+            probe = HostPreflightProbe(Path.cwd(), os_root=os_root)
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                    return_value="Linux",
+                ),
+                patch.dict(os.environ, {"WSL_INTEROP": "present"}, clear=True),
+            ):
+                report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.WSL1_UNSUPPORTED, report.environment)
+        self.assertEqual(SetupPath.UNSUPPORTED, report.setup_path)
+        self.assertFalse(report.allows_live_setup)
+        self.assertEqual("wsl1_unsupported", report.evidence["classification"])
+        self.assertEqual("1", report.evidence["wsl_generation"])
+
+    def test_host_environment_report_blocks_ambiguous_wsl_signal(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            os_root = Path(temporary_directory)
+            _write_os_signal(os_root, "proc", "version", text="Linux version 6.8\n")
+            probe = HostPreflightProbe(Path.cwd(), os_root=os_root)
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                    return_value="Linux",
+                ),
+                patch.dict(os.environ, {"WSL_DISTRO_NAME": "Ubuntu"}, clear=True),
+            ):
+                report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.UNKNOWN_UNSUPPORTED, report.environment)
+        self.assertEqual(SetupPath.UNSUPPORTED, report.setup_path)
+        self.assertFalse(report.allows_live_setup)
+        self.assertEqual("wsl_unknown", report.evidence["classification"])
+        self.assertEqual("unknown", report.evidence["wsl_generation"])
+
+    def test_host_environment_report_uses_wsl_interop_marker_as_independent_signal(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            os_root = Path(temporary_directory)
+            _write_os_signal(
+                os_root,
+                "proc",
+                "sys",
+                "kernel",
+                "osrelease",
+                text="5.15.90.1-microsoft-standard-WSL2\n",
+            )
+            _write_os_signal(
+                os_root,
+                "proc",
+                "sys",
+                "fs",
+                "binfmt_misc",
+                "WSLInterop",
+                text="enabled\n",
+            )
+            probe = HostPreflightProbe(Path.cwd(), os_root=os_root)
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                    return_value="Linux",
+                ),
+                patch.dict(os.environ, {}, clear=True),
+            ):
+                report = probe.host_environment_report()
+
+        self.assertEqual(HostEnvironmentKind.WSL2, report.environment)
+        self.assertEqual(SetupPath.WSL2, report.setup_path)
+        self.assertEqual("present", report.evidence["wsl_independent_signal"])
 
     def test_host_environment_report_fails_closed_for_non_linux_platform(self):
         probe = HostPreflightProbe(Path.cwd())
