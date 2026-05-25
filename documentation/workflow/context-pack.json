@@ -6,6 +6,7 @@
     "source_sha256": "B42CE30106AF8F200284A4FC6C3C9EBAFEAA84FE6CDC2CB31D101889C0C9A9A1",
     "decision": "PROCEED_WITH_ACCEPTED_ASSUMPTIONS",
     "execution_profile": "NORMAL_PATH",
+    "sequencing_update": "Slice 06 and Slice 07 run serially after Slice 05; Slice 07 depends on Slice 06 because both may touch infrastructure preflight adapter scope.",
     "process_strand": [
       "workflow-authoring",
       "setup-preflight",

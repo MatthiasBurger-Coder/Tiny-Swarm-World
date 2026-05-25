@@ -16,6 +16,9 @@ or the workflow itself.
 - Process strand: workflow authoring, setup preflight, platform setup,
   Multipass readiness, WSL2 network planning, evidence, documentation,
   quality validation
+- Sequencing update: Slice 06 and Slice 07 run serially after Slice 05. Slice
+  07 depends on Slice 06 because both may touch infrastructure preflight
+  adapter scope.
 
 ## Affected Areas
 
