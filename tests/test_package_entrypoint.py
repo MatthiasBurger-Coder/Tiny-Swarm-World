@@ -1,3 +1,4 @@
+import asyncio
 import ast
 import io
 import json
@@ -262,6 +263,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 build_deployment_services.assert_not_called()
                 build_setup_services.assert_not_called()
                 self.assertIn("REFUSED_LIVE_CONSENT_MISSING", output.getvalue())
+                await asyncio.sleep(0)
 
     async def test_artifact_and_deployment_workflows_dispatch_to_contract_blocks(self):
         cases = (
@@ -319,6 +321,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual("blocked", payload["status"])
                 self.assertEqual(f"{namespace} {action}", payload["workflow"])
                 self.assertIn(expected_reason, str(payload["reason"]))
+                await asyncio.sleep(0)
 
     async def test_setup_run_dispatches_to_setup_workflow_after_live_consent(self):
         setup_services = SimpleNamespace(

@@ -26,6 +26,11 @@ from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_ENVIRONMENT_VALUE,
     LIVE_CONSENT_PHRASE,
     LiveConsent,
+    PreflightCategory,
+    PreflightCheck,
+    PreflightResult,
+    PreflightSeverity,
+    PreflightStatus,
 )
 
 
@@ -84,6 +89,45 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("phase 'artifacts prepare' returned blocked", result.reason)
         self.assertEqual(3, len(result.phase_results))
         self.assertEqual("not_run", result.phase_results[2].status)
+
+    async def test_failed_preflight_stops_before_platform_init_phase(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _failed_preflight_result(calls)),
+                SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
+        self.assertEqual(["preflight"], calls)
+        self.assertEqual("phase 'preflight' returned failed", result.reason)
+        self.assertEqual("not_run", result.phase_results[1].status)
+
+    async def test_redacted_platform_init_failure_stops_before_downstream_phases(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _failed_platform_init(calls)),
+                SetupWorkflowPhase("deployment apply", lambda: _completed_result("deployment apply", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+        payload = result.to_dict()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual(["preflight", "platform init"], calls)
+        self.assertEqual("phase 'platform init' returned failed_to_apply", result.reason)
+        self.assertEqual("not_run", result.phase_results[2].status)
+        self.assertNotIn("stdout", str(payload).lower())
+        self.assertNotIn("stderr", str(payload).lower())
+        self.assertNotIn("cannot connect to the multipass socket", str(payload).lower())
 
     async def test_sanitizes_phase_exceptions(self):
         workflow = SetupWorkflow(
@@ -248,6 +292,41 @@ def _failed_deployment_bootstrap(calls: list[str]) -> DeploymentWorkflowResult:
         message="deployment bootstrap failed.",
         reason="verification failed for deployment:portainer-admin-access",
         executed=True,
+    )
+
+
+def _failed_preflight_result(calls: list[str]) -> PreflightResult:
+    calls.append("preflight")
+    return PreflightResult(
+        (
+            PreflightCheck(
+                check_id="RUNTIME-MULTIPASS-SOCKET",
+                category=PreflightCategory.DEPENDENCY,
+                status=PreflightStatus.FAILED,
+                severity=PreflightSeverity.MANDATORY,
+                message="Multipass runtime is not reachable.",
+                remediation="Repair Multipass daemon/socket access and rerun setup.",
+                evidence={"classification": "multipass_socket_unavailable"},
+            ),
+        )
+    )
+
+
+def _failed_platform_init(calls: list[str]) -> PlatformWorkflowResult:
+    calls.append("platform init")
+    return PlatformWorkflowResult(
+        kind=PlatformWorkflowKind.INIT,
+        status=PlatformWorkflowStatus.FAILED_TO_APPLY,
+        message="init apply failed for platform:init:multipass-vms.",
+        executed=True,
+        verification_results=(
+            VerificationResult(
+                target_id="platform:init:multipass-vms",
+                status=VerificationStatus.FAILED_TO_APPLY,
+                message="Apply failed for platform:init:multipass-vms: CommandExecutionFailed",
+                evidence={"phase": "apply", "return_code": "2"},
+            ),
+        ),
     )
 
 
