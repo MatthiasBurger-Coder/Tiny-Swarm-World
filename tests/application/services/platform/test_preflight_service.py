@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.preflight import (
     LiveConsent,
     PreflightSeverity,
@@ -171,6 +172,26 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.passed)
         self.assertIn("PORT-9000", failed_by_id)
         self.assertIn("occupied", failed_by_id["PORT-9000"].message)
+
+    async def test_service_access_profile_blocks_unexpected_local_dashboard_listener(self):
+        configuration = default_preflight_configuration(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS
+        )
+
+        result = await PreflightService(
+            _FakeProbe(
+                port_availability={8085: False},
+                expected_service_ports={8085: False},
+            ),
+            configuration,
+        ).run()
+
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+
+        self.assertFalse(result.passed)
+        self.assertIn("PORT-8085", failed_by_id)
+        self.assertIn("Service Access dashboard", failed_by_id["PORT-8085"].message)
+        self.assertIn("stale localhost listener", failed_by_id["PORT-8085"].remediation)
 
     async def test_resource_failures_are_resource_gated(self):
         result = await PreflightService(

@@ -143,16 +143,8 @@ def default_setup_manifest(
             SetupServiceRequirement(
                 name="Service Access",
                 ports=(
-                    SetupPortRequirement(
-                        8085,
-                        "Service Access dashboard",
-                        host_preflight_required=False,
-                    ),
-                    SetupPortRequirement(
-                        8086,
-                        "Vaultwarden",
-                        host_preflight_required=False,
-                    ),
+                    SetupPortRequirement(8085, "Service Access dashboard"),
+                    SetupPortRequirement(8086, "Vaultwarden"),
                 ),
                 secrets=(
                     SetupSecretRequirement(

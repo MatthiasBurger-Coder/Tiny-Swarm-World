@@ -192,7 +192,9 @@ Residual live gap:
 * `http://localhost:8085/` returned a pre-existing local NGINX `404`, and
   `http://localhost:8086/` was not reachable from the WSL shell. The stack is
   reachable on Swarm node IPs, but host forwarding for `localhost` needs a
-  separate network follow-up.
+  separate network follow-up. The service-access setup profile treats an
+  unexpected local listener on `8085` or `8086` as a preflight blocker so the
+  live run does not report success while the local landing page is wrong.
 
 == Verification
 

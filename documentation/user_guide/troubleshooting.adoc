@@ -130,8 +130,10 @@ Check the non-secret prerequisites before a live run:
 
 In WSL, `localhost:8085` and `localhost:8086` depend on host-forwarding state
 and may be out of sync even when the stack is reachable on the Swarm node IPs.
-The setup preflight does not treat those local forwarding ports as mandatory
-blockers for the service-access stack.
+The service-access setup profile treats an unexpected local listener on those
+ports as a mandatory preflight blocker. If `localhost:8085` returns an empty
+NGINX `404`, clear the stale local listener or use the current Swarm node IP
+until host forwarding is repaired.
 
 == Git Shows Generated Python Files
 

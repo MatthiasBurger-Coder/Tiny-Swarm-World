@@ -31,7 +31,8 @@ Implemented repository behavior:
 Not implemented or not verified:
 
 * local `localhost` forwarding for `8085` and `8086` remains out of sync in
-  the observed WSL smoke environment;
+  the observed WSL smoke environment; unexpected local listeners are now
+  blocked during service-access preflight instead of being treated as success;
 * Vaultwarden backup, restore, admin-token rotation and rollback remain
   future work.
 

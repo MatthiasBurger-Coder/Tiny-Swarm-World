@@ -175,15 +175,15 @@ class TestPreflightResult(unittest.TestCase):
             (8086, "Vaultwarden"),
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
-        self.assertNotIn(
+        self.assertIn(
             8085,
             tuple(port.port for port in configuration.required_ports),
         )
-        self.assertNotIn(
+        self.assertIn(
             8086,
             tuple(port.port for port in configuration.required_ports),
         )
-        self.assertFalse(
+        self.assertTrue(
             next(
                 port
                 for port in manifest.required_ports

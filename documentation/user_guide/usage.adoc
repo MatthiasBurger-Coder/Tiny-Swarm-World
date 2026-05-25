@@ -221,8 +221,10 @@ to the same host on port `8086`.
 
 Residual local access gap: `localhost:8085` still reached a pre-existing
 local NGINX `404`, and `localhost:8086` was not reachable from the WSL shell.
+The service-access setup profile now treats that stale local listener as a
+preflight blocker, so operators get an actionable failure before a live run.
 Use the Swarm node IPs until host forwarding for `8085` and `8086` is
-synchronized.
+repaired.
 
 == Commit And Push Shortcut
 

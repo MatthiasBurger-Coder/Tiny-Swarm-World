@@ -1,8 +1,10 @@
 import hashlib
+import io
 import os
 import socket
 import subprocess
 import tempfile
+import urllib.error
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -123,6 +125,27 @@ class TestHostPreflightProbe(unittest.TestCase):
             return_value=response,
         ):
             self.assertFalse(probe.port_matches_expected_service(9000, "Portainer"))
+
+    def test_port_matches_expected_service_rejects_empty_nginx_404_for_service_access(self):
+        probe = HostPreflightProbe(Path.cwd())
+        error = urllib.error.HTTPError(
+            url="http://127.0.0.1:8085/",
+            code=404,
+            msg="Not Found",
+            hdrs={
+                "Server": "nginx/1.31.1",
+                "Access-Control-Allow-Origin": "*",
+            },
+            fp=io.BytesIO(b""),
+        )
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",
+            side_effect=error,
+        ):
+            self.assertFalse(
+                probe.port_matches_expected_service(8085, "Service Access dashboard")
+            )
 
     def test_path_ignored_by_git_uses_check_ignore(self):
         probe = HostPreflightProbe(Path.cwd())

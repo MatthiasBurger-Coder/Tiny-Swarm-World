@@ -231,7 +231,7 @@ class PreflightService:
                     check_id,
                     PreflightCategory.PORT,
                     f"Port {required_port.port} for {required_port.service} is occupied.",
-                    "Stop the process using the port or change the service mapping before live execution.",
+                    _port_remediation(required_port.service),
                     {"port": str(required_port.port), "service": required_port.service},
                 )
             )
@@ -376,3 +376,13 @@ def _format_python_version(version: tuple[int, ...]) -> str:
     if not version:
         return "unknown"
     return ".".join(str(part) for part in version)
+
+
+def _port_remediation(service: str) -> str:
+    if service in {"Service Access dashboard", "Vaultwarden"}:
+        return (
+            "Clear the stale localhost listener or forwarding for this service-access port, "
+            "then rerun preflight. Until localhost forwarding is repaired, use the current "
+            "Swarm node IP with the same port."
+        )
+    return "Stop the process using the port or change the service mapping before live execution."

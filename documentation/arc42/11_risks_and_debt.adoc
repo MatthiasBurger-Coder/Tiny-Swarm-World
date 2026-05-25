@@ -89,6 +89,8 @@ Remaining risks and debt:
 * local host forwarding is incomplete: the 2026-05-25 live smoke verified
   Swarm node IP access, but `localhost:8085` still returned a pre-existing
   local NGINX `404` and `localhost:8086` was not reachable from the WSL shell;
+  the setup preflight now blocks unexpected local listeners on the
+  service-access ports instead of allowing a misleading local 404;
 * local registry availability and image publication still need live
   observed-state hardening beyond the static artifact contracts;
 * plain HTTP access is acceptable only as a local development baseline until a
