@@ -69,15 +69,24 @@ The baseline rules are:
 * The current default runnable service set is not changed by this ADR. Later
   slices may decide whether service access becomes part of the default profile
   or an optional selected profile.
-* NGINX is the routing baseline because the repository already has
-  Swagger/NGINX assets and no Traefik surface. Slice 02 owns the concrete port
-  or shared-ingress decision.
+* The accepted routing decision is `NGINX_FIRST_DEDICATED_PORT`.
+* The existing Swagger/NGINX stack keeps published port `80`.
+* The service-access stack uses a service-access-owned NGINX ingress with
+  non-conflicting local published ports: `8085` for the dashboard route and
+  `8086` for the Vaultwarden route.
+* Shared ingress is deferred until a later ADR defines route ownership,
+  migration of the current Swagger/NGINX port `80` behavior, tests and
+  rollback.
 * Traefik, TLS automation, certificate automation and wider-than-local HTTP
   exposure require later ADR coverage.
 * Portainer is preferred for post-bootstrap stack create/update after
   Portainer is reachable. First-time bootstrap may still use the existing
   Swarm runtime path and must not depend on Portainer before Portainer itself
   is available.
+* For the Portainer-managed path, service-access dashboard and NGINX
+  configuration assets must be image-packaged or image-native. They must not
+  depend on bind-mounted repository files unless a later slice adds a tested
+  asset-preparation port or adapter and documents when it runs.
 
 == Rejected Alternatives
 
@@ -107,8 +116,8 @@ TypeScript, Vite, TSX/JSX or browser frontend project setup.
 
 == Consequences
 
-Implementation slices must first decide routing, port allocation and asset
-packaging before compose assets are committed.
+Implementation slices must preserve the accepted routing, port allocation and
+asset packaging decision before compose assets are committed.
 
 Implementation must preserve the hexagonal architecture:
 
@@ -137,8 +146,9 @@ Open follow-up items:
 
 * define whether service access is in the default runnable profile or an
   optional selected profile;
-* decide shared NGINX ingress versus non-conflicting published port;
-* decide dashboard and NGINX asset packaging or preparation;
+* optionally revisit shared NGINX ingress in a later ADR;
+* define the exact image-packaged or image-native dashboard and NGINX asset
+  delivery mechanism;
 * define Vaultwarden backup, restore, admin-token rotation and rollback
   operations;
 * define optional TLS and external exposure policy if local-only HTTP becomes

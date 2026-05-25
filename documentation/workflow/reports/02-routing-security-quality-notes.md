@@ -2,10 +2,10 @@
 
 ## Routing Decision
 
-Default routing direction:
+Accepted routing decision:
 
 ```text
-NGINX_FIRST
+NGINX_FIRST_DEDICATED_PORT
 ```
 
 Rationale:
@@ -23,12 +23,23 @@ Portainer preference:
 - Portainer is not the HTTP router.
 - Portainer must not be made a prerequisite for bootstrapping Portainer.
 
-Port issue:
+Port decision:
 
 - Swagger/NGINX currently publishes port `80`.
-- Service access must either share ingress deliberately or use a
-  non-conflicting published port.
-- A compose file must not silently publish a second service on port `80`.
+- Swagger/NGINX keeps published port `80`.
+- Service access owns a dedicated NGINX ingress.
+- The service-access dashboard route uses published port `8085`.
+- The Vaultwarden route uses published port `8086`.
+- Shared ingress is deferred until a later ADR defines route ownership,
+  Swagger migration, tests, and rollback.
+- A compose file must not silently publish another service on port `80`.
+
+Asset decision:
+
+- For the Portainer-managed path, service-access dashboard and NGINX assets
+  must be image-packaged or image-native.
+- Bind-mounted repository files are not accepted unless a later slice adds a
+  tested asset-preparation port or adapter.
 
 ## Credential Safety
 

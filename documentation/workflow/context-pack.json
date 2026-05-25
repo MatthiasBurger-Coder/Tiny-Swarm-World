@@ -71,7 +71,7 @@
     },
     {
       "path": "documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc",
-      "sha256": "C5E594A5E58F90FA7FAE28FDB783C6E805EE9EC772D32C28CB0F87EEC2740A95"
+      "sha256": "013CCEF1BF1B5F32BC826FF9D75869CD2D2338631C187990963115ED46CB03B4"
     },
     {
       "path": "documentation/arc42/05_building_blocks.adoc",
@@ -79,7 +79,7 @@
     },
     {
       "path": "documentation/arc42/07_deployment_view.adoc",
-      "sha256": "2F4046D7D1BC1F4189C3B71B02A8DB4342945E27C149AD8F828C7F2B7A859CCC"
+      "sha256": "0D9E263B015BFEBE8EF81E2B8D35C23228C94B534F68EA4D31BED53EF8321E8D"
     },
     {
       "path": "documentation/arc42/09_architecture_decisions.adoc",
@@ -96,6 +96,18 @@
     {
       "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
       "sha256": "0B356E6C6890E4F9011D8EA20A451178A52FDDE9E386F6EC3B3FB1E0AB6BB9AF"
+    },
+    {
+      "path": "documentation/deployment/system.adoc",
+      "sha256": "9E947243E4DB776AB2F080C542B00BF40D32EE7A55F1ED0DEBCD07AB4BEA1B4F"
+    },
+    {
+      "path": "documentation/workflow/reports/02-routing-security-quality-notes.md",
+      "sha256": "E1AFBA162A0849ED30A6916536DB79239270796F2EB9A003645D2C2F1127BF96"
+    },
+    {
+      "path": "documentation/workflow/execution-report.md",
+      "sha256": "E714898DB859B3D7AFE4A439D42EE37CBF5AC99664516A69E112C98F37C82312"
     }
   ],
   "affectedAreas": [

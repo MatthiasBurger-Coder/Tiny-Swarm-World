@@ -38,6 +38,32 @@ itself to avoid a bootstrap cycle. The current checks record stack
 registration context and return blocked readiness until container health or
 application readiness exists as observed-state evidence.
 
+== Service Access And Vaultwarden Routing Baseline
+
+The service-access dashboard and Vaultwarden capability is planned as a future
+Deployment-owned Docker Swarm service stack. It is not implemented by the
+current repository state and must not be documented as reachable until compose
+assets, stack contracts, readiness checks and quality evidence exist.
+
+The accepted routing baseline is `NGINX_FIRST_DEDICATED_PORT`:
+
+* the existing Swagger/NGINX stack keeps published port `80`;
+* the service-access stack owns its own NGINX ingress instead of modifying the
+  Swagger-owned NGINX service;
+* the service-access dashboard route uses published port `8085`;
+* the Vaultwarden route uses published port `8086`;
+* Traefik remains deferred until a later ADR and tests add a provider, labels,
+  dashboard exposure policy, network model and rollback.
+
+Portainer may manage service-access stack create/update only after Portainer
+is reachable. First-time Portainer bootstrap remains outside the
+Portainer-managed upload path.
+
+For the Portainer-managed path, service-access dashboard and NGINX assets must
+be image-packaged or image-native. Bind-mounted repository files are not an
+accepted Portainer path unless a later slice adds a tested asset-preparation
+port or adapter and documents when it runs.
+
 == Autonomous Setup Deployment Contract
 
 The canonical `setup run` command is the workflow-level setup orchestrator for

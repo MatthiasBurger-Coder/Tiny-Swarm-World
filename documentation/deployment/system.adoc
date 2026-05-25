@@ -121,6 +121,29 @@ The supported stack deployment path is the workflow-level setup command. Compose
 files under `infra/config/compose` are read by Python deployment adapters and
 deployed through the reviewed setup workflow.
 
+== Planned service-access routing
+
+The service-access dashboard and Vaultwarden capability is currently a planned
+deployment baseline, not an implemented stack.
+
+The accepted routing decision for future implementation is
+`NGINX_FIRST_DEDICATED_PORT`:
+
+* Swagger/NGINX keeps published port `80`.
+* The service-access stack owns its own NGINX ingress.
+* The service-access dashboard should publish local port `8085`.
+* Vaultwarden should publish local port `8086`.
+* Shared ingress, Traefik, TLS automation and wider-than-local exposure require
+  later ADR coverage and tests.
+
+Portainer may manage the service-access stack only after Portainer is
+reachable. First-time Portainer bootstrap remains outside Portainer-managed
+stack upload.
+
+For a Portainer-managed service-access stack, dashboard and NGINX assets must
+be image-packaged or image-native. Do not rely on bind-mounted repository
+files unless a later slice adds a tested asset-preparation boundary.
+
 == Verification
 
 Useful checks after deployment:
