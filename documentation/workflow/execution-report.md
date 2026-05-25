@@ -217,4 +217,53 @@ Limitations:
 
 ## Slice 05: Implement WSL Host Probe
 
+Responsible role: Senior Python Automation Developer
+
+Reviewed roles:
+
+- Senior Tester
+- Senior System Architect
+- Senior Python Automation Developer
+
+Changed files:
+
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py`
+- `tests/infrastructure/adapters/preflight/test_host_preflight_probe.py`
+
+Quality gates:
+
+- `PYTHONPATH=src python3 -m unittest
+  tests.infrastructure.adapters.preflight.test_host_preflight_probe`: passed,
+  36 tests
+- `python3 tools/quality_gate.py test`: passed, 505 tests, 1 skipped
+- `python3 tools/quality_gate.py arch-tests`: passed, 16 tests
+- `python3 tools/quality_gate.py arch-lint`: passed, 3 contracts kept
+- `/home/mburger/.local/bin/ruff check <changed files>`: passed
+- `git diff --check`: passed with unrelated CRLF warnings for untouched files
+- `git diff --cached --check`: passed
+
+Checkpoint commit: `d09fa40`
+
+Rollback reference:
+
+- Revert commit `d09fa40`.
+
+arc42 update status: runtime/arc42 documentation remains assigned to Slice 10.
+
+ADR update status: no new ADR expected.
+
+Push result: not run. The active workflow says not to push or create a pull
+request during slice checkpoints unless explicitly requested.
+
+Limitations:
+
+- `python3 tools/quality_gate.py quality` did not complete because
+  `/usr/bin/python3` has no `ruff` module installed.
+- `python3 tools/quality_gate.py typecheck` did not complete because
+  `/usr/bin/python3` has no `mypy` module installed.
+- No live WSL2 or Multipass validation was run; this slice used static and
+  mocked probe evidence only.
+
+## Slice 06: Refine Multipass Readiness
+
 Status: pending S3D confirmation before write-capable work.
