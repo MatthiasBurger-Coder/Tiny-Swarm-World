@@ -1,68 +1,57 @@
-# Subagent Review Summary
+# Subagent Review Summary: Stable Live Setup
 
-## Requirement Review
+## Senior Requirement Engineer
 
-Decision raised by subagent: `REQUIRES_REFINEMENT`.
+- Confirmed the autonomous setup EPIC expects host prerequisite blockers to be
+  identified before mutation.
+- Classified the current behavior as drift: preflight can pass even though
+  Multipass socket access fails immediately afterward.
+- Recommended fail-fast diagnostics and detection-first behavior.
+- Raised open questions around automatic remediation and driver strictness.
+  The workflow records accepted assumptions: detection/guidance now, no
+  automatic host repair without later approval.
 
-The lead workflow decision resolves the raised questions as explicit workflow
-assumptions and stop conditions:
+## Senior System Architect
 
-- GUI scope is a service-access dashboard plus Vaultwarden, not only
-  Vaultwarden's UI.
-- Password values are visible through Vaultwarden's authenticated UI.
-- The service-access dashboard does not duplicate password values. It shows
-  credential labels, source status, and Vaultwarden item references.
-- NGINX is the default routing direction because repository evidence supports
-  NGINX and not Traefik.
-- Portainer is preferred for post-bootstrap stack management, not initial
-  bootstrap and not HTTP routing.
-- The feature extends autonomous runnable setup and system unification.
+- Confirmed the active workflow context was stale and must be regenerated for
+  `feature/workflow-stable-live-setup-20260525`.
+- Reinforced hexagonal boundaries:
+  domain owns setup concepts, application orchestrates ports, infrastructure
+  owns Multipass/Docker/YAML/subprocess details, and composition remains the
+  wiring root.
+- Identified additional stable-setup risks:
+  endpoint strategy, WSL localhost forwarding, credential source of truth,
+  desired inventory drift and live evidence claims.
 
-## Architecture Review
+## Senior Python Automation Developer
 
-The architecture subagent recommends:
+- Identified the root code path:
+  `PreflightService` checks executable presence, `HostPreflightProbe` uses
+  `shutil.which`, and `MultipassInitVms` later executes real Multipass
+  commands.
+- Identified the command catalog bug shape:
+  `multipass info` failure is treated as VM absence, so socket failure falls
+  through to `multipass launch`.
+- Recommended consent-gated Multipass readiness, direct `platform init` guard,
+  command catalog correction and safe error classification.
 
-- NGINX first.
-- Traefik only with ADR and tests.
-- Portainer as deployment orchestrator, not router.
-- Service-access and Vaultwarden as Deployment-owned stack contracts.
-- Hexagonal boundaries preserved: domain owns names and validation;
-  application orchestrates ports; infrastructure owns YAML, HTTP, Docker,
-  NGINX, and file details.
+## Senior React Frontend Developer
 
-## Python Automation Review
+- Confirmed browser/React/frontend work is not in scope.
+- Recorded the role as a mandatory N/A React impact guard.
+- Identified only console/status UI as conditionally relevant if terminal
+  status or recovery text changes.
 
-The Python automation subagent flags:
+## Senior Tester
 
-- Current Swagger/NGINX already publishes port `80`.
-- A new HTTP-facing stack must make an explicit port or shared-ingress
-  decision.
-- Portainer stack upload sends compose content; mounted dashboard or NGINX
-  files require image packaging or explicit asset preparation.
-- Likely changes touch deployment stack contracts, setup manifest, deployment
-  planning, composition wiring, compose assets, and tests.
+- Recommended regression-first mocked tests for the preflight boundary,
+  setup phase stopping, direct platform guard and redacted diagnostics.
+- Confirmed default quality gates must not run live infrastructure.
+- Recommended addressing quality output hygiene around intentional failure log
+  lines and the unawaited coroutine warning.
 
-## Frontend Impact Review
+## Consolidated Decision
 
-The React/frontend subagent confirms:
-
-- No React frontend module exists.
-- Senior React Frontend Developer is an N/A impact guard.
-- A deployed infrastructure GUI is acceptable only if it does not introduce a
-  React/browser build surface in the repository.
-- Password values must be shown only through Vaultwarden's authenticated UI.
-
-## Tester Review
-
-The tester recommends:
-
-- Regression-first domain contract tests.
-- Setup manifest/preflight tests for ports and secret names without values.
-- Static compose repository tests.
-- Fake Portainer and Swarm deployment tests.
-- Composition and entrypoint tests proving no live construction happens
-  before live consent.
-- Secret regression checks across compose, dashboard assets, logs, and
-  evidence.
-- `git diff --check` for workflow creation and `python3 tools/quality_gate.py
-  quality` before final implementation release when practical.
+Proceed with workflow creation under accepted assumptions. Implementation
+starts at Slice 02 and must not run live infrastructure unless the user
+explicitly approves an optional live smoke step.

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 from tiny_swarm_world.application.ports.clients.port_container_image_publisher import (
     PortContainerImagePublisher,
 )
 from tiny_swarm_world.domain.artifacts import ContainerImageContract
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 class EnsureContainerImage:
@@ -18,7 +19,7 @@ class EnsureContainerImage:
         self.contract = contract
         self.artifact_target_id = contract.artifact_target_id
         self.verification_target_id = contract.verification_target_id
-        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self) -> None:
         self.logger.info("Running EnsureContainerImage.")
@@ -26,7 +27,7 @@ class EnsureContainerImage:
 
     async def verify(self) -> VerificationResult:
         try:
-            self.logger.info("Verifying  EnsureContainerImage.")
+            self.logger.info("Verifying EnsureContainerImage.")
             available = self.image_publisher.image_available(self.contract)
         except Exception as exc:
             verification = VerificationResult(
@@ -48,7 +49,7 @@ class EnsureContainerImage:
             self.logger.info("Negotiated settings: {}".format(verification))
             return verification
 
-        verification =  VerificationResult(
+        verification = VerificationResult(
             target_id=self.verification_target_id,
             status=VerificationStatus.FAILED_TO_VERIFY,
             message="Container image is missing from the local registry.",
