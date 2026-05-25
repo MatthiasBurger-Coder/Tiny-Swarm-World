@@ -605,11 +605,13 @@ affected_contracts:
   - "live preflight runtime readiness"
 dependencies:
   - "05"
-parallel_group: "F"
+parallel_group: "F1"
 file_locks:
   - "src/tiny_swarm_world/domain/preflight/**"
   - "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py"
   - "infra/config/multipass/**"
+  - "tests/application/services/platform/test_preflight_service.py"
+  - "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py"
 contract_locks:
   - "read-only probes only"
   - "no static passphrase"
@@ -657,15 +659,18 @@ affected_files:
 affected_modules:
   - "tiny_swarm_world.domain.network"
   - "tiny_swarm_world.application.services.network"
+  - "tiny_swarm_world.infrastructure.adapters.preflight"
 affected_contracts:
   - "port forwarding plan"
   - "network readiness"
 dependencies:
   - "05"
-parallel_group: "F"
+  - "06"
+parallel_group: "F2"
 file_locks:
   - "src/tiny_swarm_world/domain/network/**"
   - "src/tiny_swarm_world/application/services/network/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
   - "tests/domain/network/**"
   - "tests/application/services/network/**"
 contract_locks:
@@ -940,19 +945,17 @@ Done criteria:
 03
  |
 04 -> 05
-      | \
-      |  +-> 07
-      +-> 06
-            \
-             +-> 08 -> 09 -> 10 -> 11
+      |
+      +-> 06 -> 07 -> 08 -> 09 -> 10 -> 11
 ```
 
 Parallelization:
 
 - Slice 01 can run independently first.
 - Slice 02 must finish before preflight/service/adapter implementation.
-- Slice 06 and Slice 07 may run in parallel after Slice 05 if their file locks
-  remain disjoint.
+- Slice 06 and Slice 07 must run serially after Slice 05 because both may touch
+  infrastructure preflight adapter scope. Execute Slice 06 before Slice 07
+  unless a later governance checkpoint removes Slice 07 preflight scope.
 - Documentation drafting in Slice 10 may begin as notes during implementation
   but must not claim behavior until implementation and tests exist.
 
