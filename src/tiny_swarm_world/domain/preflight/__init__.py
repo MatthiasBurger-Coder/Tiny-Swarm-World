@@ -10,6 +10,11 @@ from tiny_swarm_world.domain.preflight.host_runtime_readiness import (
     HostRuntimeReadiness,
     HostRuntimeReadinessStatus,
 )
+from tiny_swarm_world.domain.preflight.host_environment import (
+    HostEnvironmentKind,
+    HostEnvironmentReport,
+    SetupPath,
+)
 from tiny_swarm_world.domain.preflight.preflight_check import (
     PreflightCategory,
     PreflightCheck,
@@ -44,6 +49,8 @@ __all__ = [
     "LIVE_CONSENT_PROMPT",
     "LIVE_CONSENT_YES_VALUES",
     "ForbiddenSecretFingerprint",
+    "HostEnvironmentKind",
+    "HostEnvironmentReport",
     "HostRuntimeReadiness",
     "HostRuntimeReadinessStatus",
     "LiveConsent",
@@ -60,6 +67,7 @@ __all__ = [
     "ResourceThresholds",
     "StaticSecretDefault",
     "SetupManifest",
+    "SetupPath",
     "SetupPortRequirement",
     "SetupProfile",
     "SetupSecretRequirement",
