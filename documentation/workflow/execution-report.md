@@ -170,4 +170,51 @@ Limitations:
 
 ## Slice 04: Implement Linux And Sandbox Host Probe
 
+Responsible role: Senior Python Automation Developer
+
+Reviewed roles:
+
+- Senior Tester
+- Senior System Architect
+- Senior Python Automation Developer
+
+Changed files:
+
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py`
+- `tests/infrastructure/adapters/preflight/test_host_preflight_probe.py`
+
+Quality gates:
+
+- `PYTHONPATH=src python3 -m unittest
+  tests.infrastructure.adapters.preflight.test_host_preflight_probe`: passed,
+  31 tests
+- `python3 tools/quality_gate.py test`: passed, 500 tests, 1 skipped
+- `python3 tools/quality_gate.py arch-tests`: passed, 16 tests
+- `/home/mburger/.local/bin/ruff check <changed files>`: passed
+- `git diff --check`: passed with unrelated CRLF warnings for untouched files
+- `git diff --cached --check`: passed
+
+Checkpoint commit: `f744bdf`
+
+Rollback reference:
+
+- Revert commit `f744bdf`.
+
+arc42 update status: sandbox boundary documentation remains assigned to the
+documentation/runtime-view slice.
+
+ADR update status: no new ADR expected.
+
+Push result: not run. The active workflow says not to push or create a pull
+request during slice checkpoints unless explicitly requested.
+
+Limitations:
+
+- `python3 tools/quality_gate.py quality` did not complete because
+  `/usr/bin/python3` has no `ruff` module installed.
+- `python3 tools/quality_gate.py typecheck` did not complete because
+  `/usr/bin/python3` has no `mypy` module installed.
+
+## Slice 05: Implement WSL Host Probe
+
 Status: pending S3D confirmation before write-capable work.
