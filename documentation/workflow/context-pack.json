@@ -6,7 +6,7 @@
     "createdDate": "2026-05-25",
     "processStrand": "service-access-vaultwarden-dashboard",
     "executionProfile": "FULL_PATH",
-    "releaseStatus": "WORKFLOW_EXECUTION_COMPLETE"
+    "releaseStatus": "LIVE_SMOKE_PASSED_WITH_HOST_FORWARDING_GAP"
   },
   "contextValidity": {
     "staleWhen": [
@@ -135,7 +135,7 @@
     },
     {
       "path": "infra/compose/service-access/dashboard/index.html",
-      "sha256": "F3BD5BDC317962DD8B28E86FC6C52139D001F977DEE561404D5A7B4FE32C2C45"
+      "sha256": "7CA4B98A06E5F51CD31DD9D18166EE7B2968DDAA692F030F9537412ED38810C9"
     },
     {
       "path": "infra/compose/service-access/nginx/Dockerfile",
@@ -143,7 +143,7 @@
     },
     {
       "path": "infra/compose/service-access/nginx/default.conf",
-      "sha256": "D01F7884D79D4A75BC4A4BFDD392E849455CCE04AEE28216728050AC7FD3C6D2"
+      "sha256": "813726048E7D562A69EE9EA7CE1BD00B2EDA679AA7D54119B802D70252A22A28"
     },
     {
       "path": "src/tiny_swarm_world/domain/deployment/service_stack_contract.py",
@@ -203,7 +203,7 @@
     },
     {
       "path": "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py",
-      "sha256": "079478009E135B9CC1F73FE1AAC65FAB1E268E5FA72D83D4E4F033C3F0D64446"
+      "sha256": "BD2961CCFA530A9CE33D570DA497668ADF355523BD92C8B5FAC18F517D3FC216"
     },
     {
       "path": "tests/architecture/test_legacy_surface_documentation.py",
@@ -219,7 +219,7 @@
     },
     {
       "path": "documentation/workflow/execution-report.md",
-      "sha256": "759386F3F0D37C2996DBC78ED6F3E0DFDB0A91A2CCBFD2E3220002E69F293AD3"
+      "sha256": "6F988471859F9D053A73DA07339C2A6EA66135D4BAE88C78BDBC09AF5E8467C3"
     }
   ],
   "affectedAreas": [

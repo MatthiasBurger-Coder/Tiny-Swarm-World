@@ -237,7 +237,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         links = _extract_links(dashboard)
 
         self.assertTrue(links)
-        self.assertEqual({"http://localhost:8086/"}, set(links))
+        self.assertEqual({"/vaultwarden"}, set(links))
         for link in links:
             parsed = urlparse(link)
             self.assertFalse(parsed.username)

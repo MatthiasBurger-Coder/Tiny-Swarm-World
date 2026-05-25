@@ -102,6 +102,75 @@ Push result:
 PUSHED_TO_ORIGIN
 ```
 
+## Post-Workflow Live Smoke Test - 2026-05-25
+
+Status:
+
+```text
+PASSED_WITH_HOST_FORWARDING_GAP
+```
+
+Approval:
+
+```text
+Operator approved live infrastructure testing after workflow checkpoint push.
+```
+
+Live actions executed:
+
+- Authenticated to the reachable local Portainer API without printing tokens.
+- Verified Portainer endpoint `local` as Swarm-active with manager
+  `swarm-manager`.
+- Built and pushed `127.0.0.1:5000/service-access-dashboard:live-test`
+  and `127.0.0.1:5000/service-access-nginx:live-test` into the local Nexus
+  Docker registry.
+- Created Swarm secret `tsw_vaultwarden_admin_token` when it was missing.
+  The secret value was generated locally and not printed or committed.
+- Created Portainer stack `service-access`.
+- After live evidence showed host-specific dashboard links, updated the
+  dashboard to link to `/vaultwarden` and updated service-access NGINX to
+  redirect that route to the same host on port `8086`.
+- Built and pushed
+  `127.0.0.1:5000/service-access-dashboard:live-test-fix-20260525` and
+  `127.0.0.1:5000/service-access-nginx:live-test-fix-20260525`.
+- Updated Portainer stack `service-access` to use the fixed live-test image
+  tags.
+
+Observed live evidence:
+
+- Swarm tasks for `service-access_vaultwarden`,
+  `service-access_service-access-dashboard`, and
+  `service-access_service-access-nginx` reached `running`.
+- Vaultwarden container reported `healthy`.
+- `http://10.157.2.182:8085/`, `http://10.157.2.19:8085/`, and
+  `http://10.157.2.33:8085/` returned HTTP `200` with the service-access
+  dashboard content.
+- `http://10.157.2.182:8086/`, `http://10.157.2.19:8086/`, and
+  `http://10.157.2.33:8086/` returned HTTP `200` with Vaultwarden content.
+- `http://10.157.2.182:8085/vaultwarden` returned HTTP `302` with
+  `Location: http://10.157.2.182:8086/`.
+- Dashboard content included `Service Access`, `Reachability`,
+  `Needs credentials`, and `Vaultwarden` markers.
+
+Residual live gap:
+
+- `http://localhost:8085/` still returned the pre-existing local NGINX
+  `404`, and `http://localhost:8086/` was not reachable from the WSL shell.
+  The service-access stack itself is live on the Swarm node IPs, but local
+  host forwarding for ports `8085` and `8086` is not synchronized with the
+  new stack.
+- Vaultwarden logged the upstream warning that a plain-text `ADMIN_TOKEN`
+  source is insecure. Future live hardening should provide an Argon2 PHC admin
+  token through the same Swarm secret name.
+
+Live artifacts intentionally left in place:
+
+- Portainer stack `service-access`.
+- Swarm secret `tsw_vaultwarden_admin_token`.
+- Local registry image tags
+  `service-access-dashboard:live-test-fix-20260525` and
+  `service-access-nginx:live-test-fix-20260525`.
+
 Notes:
 
 - This slice creates requirement and security baseline documentation only.
