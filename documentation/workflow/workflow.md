@@ -1,213 +1,244 @@
-# Workflow: Linux/WSL-Aware Swarm Setup Migration
+# Workflow: LXC Native Node Provider Migration
 
 ## Executive Summary
 
-This workflow replaces the previous `Stable Live Setup` active workflow with a
-governed implementation plan for separating Tiny Swarm World setup behavior into
-explicit Native Linux, WSL2, WSL1-unsupported, unknown-unsupported, and
-sandbox-unverified paths.
-
-The user-provided source draft targets the observed failure shape:
+This workflow replaces the active Multipass repair direction with a governed
+provider migration plan:
 
 ```text
-preflight: passed
-platform init: failed_to_apply
-reason: CommandExecutionFailed
+Default node provider: LXC-native through LXD or Incus
+Raw LXC low-level commands: not the first implementation path
+Multipass: optional legacy/fallback provider only
 ```
 
-The executable workflow must refine that draft against the current repository
-baseline. Current source already contains live-consent-gated Multipass runtime
-checks, so this workflow does not create a parallel preflight system. It extends
-the existing preflight, setup, platform, Multipass, network, evidence, and
-documentation boundaries.
+The workflow does not execute live infrastructure commands. It plans the
+migration from Multipass virtual machines to managed LXC containers while
+preserving Tiny Swarm World's Linux/WSL-only operating model, Docker
+Swarm-first target, Python automation codebase, hexagonal architecture,
+live-consent safety model, and default mocked/static quality gates.
 
-Target outcome:
+The default product path after workflow execution should be:
 
 ```text
-broken host or WSL2 Multipass readiness:
-  preflight: failed
-  platform init: not_run
-  reason: host, Multipass, driver, socket, systemd, snapd, or network readiness
+setup run:
+  selects provider family: lxc_native
+  selects backend: explicit Incus or LXD when configured
+  auto-detects only when exactly one managed backend is usable
+  blocks before mutation when backend readiness is absent or ambiguous
 
-supported and ready Native Linux:
-  selected setup path: native_linux
-  setup proceeds only after explicit live consent
-
-supported and ready WSL2:
-  selected setup path: wsl2
-  setup proceeds only after explicit live consent and WSL2-specific checks
-
-sandbox:
-  selected setup path: sandbox_unverified
-  static and mocked validation allowed
-  WSL2 correctness is never inferred from sandbox success
+setup run --node-provider multipass_legacy:
+  allowed only as explicit fallback
+  never selected as silent automatic fallback
+  remains governed by the same live-consent and verification gates
 ```
-
-No live infrastructure command is part of workflow creation, unit tests, static
-checks, or the normal quality gate.
 
 ## Target Picture
 
 ### Verified Baseline
 
-- Active workflow version: `linux-wsl-swarm-setup-v1.0.0`.
-- Active workflow branch:
+- Active workflow creation branch:
 
 ```bash
-fix/linux-wsl-swarm-setup-workprocess-20260525
+feature/workflow-lxc-node-provider-20260526
 ```
 
-- Root `AGENTS.md` defines Tiny Swarm World as Linux/WSL-only, Python
-  automation, hexagonal architecture, and Docker Swarm-first.
+- Root `AGENTS.md` currently identifies Tiny Swarm World as a
+  Multipass-backed Docker Swarm automation project. The user request changes
+  that product direction, so later workflow slices must update governance and
+  documentation after the architecture decision is recorded.
 - Root `QUALITY.md` defines the authoritative quality gate:
 
 ```bash
 python3 tools/quality_gate.py quality
 ```
 
-- Existing active workflow artifacts were regenerated because they described
-  the older `Stable Live Setup` workflow.
-- `documentation/epics/autonomous-runnable-setup.md` remains the requirement
-  baseline for canonical setup.
-- `documentation/architecture/adr-autonomous-setup-safety.adoc` accepts the
-  fail-closed, live-consent-gated setup contract.
-- Current implementation evidence:
-  - `PreflightService._host_check` still reports generic Linux/WSL compatibility.
-  - `HostPreflightProbe.is_linux_or_wsl` currently checks only
-    `platform.system() == "linux"`.
-  - live preflight already has a Multipass runtime readiness path for list and
-    driver probes; the workflow must extend it rather than duplicate it.
-  - setup orchestration refuses missing live consent before setup phases run.
-  - setup phase result safety rejects raw command, stdout, stderr, environment,
-    token, password, and secret keys.
+- Current source contains Multipass-specific platform services, command
+  configuration, infrastructure clients, and documentation:
+  - `src/tiny_swarm_world/application/services/multipass/**`
+  - `src/tiny_swarm_world/domain/multipass/**`
+  - `src/tiny_swarm_world/infrastructure/adapters/clients/multipass_*.py`
+  - `infra/config/multipass/**`
+  - `infra/config/docker/command_multipass_*.yaml`
+  - `documentation/system/multipass-setup.adoc`
+- Current setup safety is fail-closed and live-consent gated through
+  `documentation/architecture/adr-autonomous-setup-safety.adoc`.
+- Current arc42 runtime and deployment views describe Multipass readiness as
+  the platform guard. Those views are no longer target-state documentation for
+  the new provider direction until updated by an implementation slice.
+- Existing architecture tests forbid new undeclared application service
+  directories. Provider orchestration should stay in existing Platform
+  boundaries unless a slice deliberately updates architecture documentation
+  and tests.
 
 ### Target Outcome
 
 After workflow execution, Tiny Swarm World should provide:
 
-- typed host environment classification with evidence and remediation;
-- typed Multipass readiness classification including version, list, driver,
-  daemon, socket, permission, timeout, and remediation state;
-- typed WSL2 network and port-forwarding planning without committed IPs;
-- explicit Native Linux and WSL2 setup path selection before VM creation;
-- WSL1 and unknown host environments blocked before platform mutation;
-- sandbox/unverified Linux reported as non-live proof only;
-- regression-first tests for the observed false-positive failure;
-- sanitized evidence and diagnostics that preserve current redaction rules;
-- documentation that keeps `infra/swarm` as legacy evidence, not an executable
-  product workflow;
-- separate operator-approved live validation for sandbox and real WSL2 console.
+- a provider-neutral node model for manager and worker nodes;
+- `lxc_native` as the default provider family;
+- managed LXC backends through LXD and/or Incus, not raw `lxc-*` command
+  automation as the first implementation;
+- explicit backend selection semantics:
+  - configured backend wins;
+  - exactly one usable backend may be selected automatically;
+  - multiple usable backends without configured preference block with
+    remediation;
+  - no usable backend blocks before platform mutation;
+- non-mutating LXD/Incus readiness checks with timeouts and sanitized evidence;
+- explicit container profile requirements for Docker-in-container and Swarm
+  operation;
+- setup and platform workflows that create/reconcile LXC nodes only after live
+  consent, provider readiness, profile validation, and verify-after-apply
+  contracts are satisfied;
+- Multipass retained only behind an explicit `multipass_legacy` provider path;
+- documentation, EPICs, ADR references, and arc42 synchronized so planned
+  behavior is not documented as implemented behavior;
+- tests that mock LXD, Incus, Multipass, Docker, networking, and filesystem
+  interactions by default.
 
 ## Requirement Clarification Record
 
 Original request:
 
 ```text
-workflow create with subagents
+wir aendern vom mulitpass zu nativ LXC provider:
+workflow create:
+Ja. Dann ist die neue Richtung:
+
+LXC/LXD wird der Standardpfad.
+Multipass wird nicht mehr primaer repariert.
+Multipass wird optionaler Legacy-/Fallback-Provider.
+
+Wichtig: Ich wuerde nicht "raw LXC only" als erste Implementierung nehmen,
+sondern LXC-native ueber LXD/Incus.
+
+Default Node Provider:
+  LXC / LXD / Incu
 ```
 
 Interpreted intent:
 
 ```text
-Create or regenerate the active Tiny Swarm World workflow from the supplied
-Linux/WSL-aware swarm setup draft, using subagents for role review.
+Create a new executable workflow that makes managed LXC through LXD/Incus the
+default node provider for Tiny Swarm World and demotes Multipass to an explicit
+legacy/fallback provider.
 ```
 
 Change type:
 
 ```text
-fix / architecture hardening / setup migration / installation validation
+architecture migration / platform provider migration / setup runtime strategy
 ```
 
 Affected process strand:
 
 ```text
-workflow authoring, setup preflight, platform setup, Multipass readiness,
-network forwarding, evidence, documentation, quality gates
+workflow authoring, provider architecture, setup preflight, platform setup,
+node lifecycle, Docker Swarm bootstrap, network planning, evidence,
+documentation, quality validation
 ```
 
 Affected architecture area:
 
 ```text
-Platform boundary, setup orchestration, preflight domain and ports,
-infrastructure preflight adapters, network planning, command diagnostics,
-console/status output, documentation and arc42 governance
+Platform boundary, provider domain model, application ports, infrastructure
+adapters, command/YAML configuration, setup orchestration, composition root,
+CLI semantics, console/status output, documentation and arc42 governance
 ```
 
 Explicit requirements:
 
-- detect Native Linux, WSL2, WSL1 unsupported, unknown unsupported, and sandbox
-  unverified environments;
-- block WSL1 and unknown hosts before live mutation;
-- stop treating sandbox Linux as proof of WSL2 correctness;
-- migrate useful `infra/swarm` knowledge behind typed Python contracts;
-- preserve `infra/swarm` as legacy evidence only;
-- fail preflight before `platform init` when Multipass is unusable;
-- keep separate Native Linux and WSL2 setup paths;
-- keep normal tests and quality gates mocked or static;
-- require real WSL2 console validation before claiming WSL2 live success.
+- LXC/LXD becomes the standard path.
+- Multipass is no longer the primary repair target.
+- Multipass remains optional legacy/fallback provider.
+- First implementation should use LXD/Incus as the management layer over LXC,
+  not raw LXC-only automation.
+- LXC containment properties matter to the design, but low-level kernel
+  details must stay behind infrastructure/provider abstractions.
 
 Implicit requirements:
 
-- reconcile the draft with existing preflight and setup code;
-- keep package changes inside existing architecture-test boundaries unless a
-  deliberate architecture documentation and test update is included;
-- avoid raw command or host evidence persistence;
-- avoid new browser React scope;
-- keep live remediation commands operator-approved and outside default gates.
+- introduce provider-neutral terminology without a disruptive big-bang rename;
+- preserve Docker Swarm as the runtime target;
+- preserve live-consent and fail-closed setup semantics;
+- add provider selection to CLI/configuration without silently selecting
+  Multipass when LXD/Incus readiness fails;
+- keep LXD/Incus subprocess, filesystem, socket, profile, and network details
+  in infrastructure adapters;
+- keep default tests and quality gates mocked/static;
+- update EPIC, ADR and arc42 material once provider behavior changes.
 
 Assumptions accepted for workflow creation:
 
-- the supplied draft replaces the older `Stable Live Setup` workflow;
-- the active branch remains the branch named in the source draft;
-- real WSL2 validation is operator-provided evidence if Codex cannot access the
-  real WSL2 console;
-- `netsh` remains documentation-only or operator-confirmed troubleshooting, not
-  a new Windows-native automation path;
-- full live installation success and host-prerequisite blocked outcomes are
-  reported separately.
+- `Incu` in the user request means `Incus`.
+- `LXC-native` means managed LXC containers through LXD or Incus.
+- The provider family default is `lxc_native`; backend preference is explicit
+  configuration when both LXD and Incus are available.
+- Native Linux is the primary target for the first LXC-native live path.
+- WSL2 remains Linux/WSL in scope, but LXD/Incus support on WSL2 is
+  capability-gated and must not be claimed from sandbox or native Linux tests.
+- Existing Multipass code is migrated behind an explicit legacy provider
+  boundary before removal is considered.
+- Any automatic host package installation, daemon repair, privileged container
+  profile, or host networking mutation requires explicit live consent and may
+  require a later ADR.
 
 Non-goals:
 
-- no Java, Maven, Spring Boot, Kubernetes-first, browser React, npm, Vite,
-  Next.js, TypeScript frontend, or new package-manager tooling;
-- no direct promotion of `infra/swarm` scripts as canonical setup entry points;
-- no automatic host package installation, socket chmod/chown, driver changes,
-  `iptables`, `netsh`, or `socat` mutation without explicit operator approval
-  and a later ADR where required;
-- no live infrastructure commands during unit tests, architecture checks,
-  type checks, docs checks, or normal quality gates;
-- no committed host-specific IPs, usernames, absolute paths, tokens, passwords,
-  raw stdout, raw stderr, raw environment payloads, or Swarm join tokens.
+- no raw low-level LXC-only provider as the first implementation;
+- no Kubernetes-first direction;
+- no Java, Maven, Spring Boot, Gradle, JUnit or ArchUnit build surface;
+- no browser React frontend, npm, Vite, Next.js, TypeScript, `.tsx`, or `.jsx`
+  scope;
+- no live LXD, Incus, Multipass, Docker Swarm, compose, network, Portainer,
+  Nexus, Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX execution during
+  workflow creation, unit tests, architecture tests, type checks, docs checks,
+  or default quality gates;
+- no committed host IPs, usernames, absolute paths, tokens, passwords, raw
+  command strings, stdout, stderr, environment payloads, or Swarm join tokens;
+- no silent automatic fallback to Multipass when the default LXC-native path
+  is not ready;
+- no removal of Multipass code until compatibility and documentation
+  boundaries are verified.
 
 Risks:
 
-- the source draft described some behavior as absent even though current code
-  already has partial live preflight readiness probes;
-- new service directories such as `application/services/host` or
-  `application/services/swarm` would conflict with current architecture tests;
-- the installation matrix can overclaim if static preflight is treated as live
-  Multipass readiness;
-- live evidence can leak local host details unless redaction is explicit.
+- Docker Swarm inside LXD/Incus containers can require nesting, cgroup, AppArmor
+  and capability decisions that must be explicit and security-reviewed.
+- Privileged containers or broad host mounts could make local setup easier but
+  would weaken the safety model if enabled silently.
+- WSL2 support for managed LXC may be more constrained than native Linux; the
+  workflow must not overclaim WSL2 success.
+- Existing code and tests are named around Multipass and VM concepts, so a
+  provider-neutral migration needs compatibility shims and staged naming.
+- Existing architecture tests reject undeclared application service
+  directories.
+- Documentation currently presents Multipass as the baseline; docs must be
+  changed only when behavior is implemented or clearly marked as planned.
 
 Open questions:
 
-- who will run and approve real WSL2 live validation and cleanup;
-- whether a later ADR should authorize automatic host preparation or keep it as
-  documentation/remediation only.
+- Should Incus or LXD be preferred when both are installed and no explicit
+  backend is configured?
+- Which LXD/Incus container profile is accepted for Docker Swarm-in-container:
+  unprivileged with nesting, privileged local-dev profile, or both with
+  explicit risk labeling?
+- Is WSL2 intended to be a first live LXD/Incus target, or a
+  capability-gated secondary path after native Linux works?
+- What is the operator-facing name of the provider flag: `--node-provider`,
+  `--provider`, or existing setup profile configuration?
 
 Blocking questions:
 
 ```text
-None for workflow authoring. Live execution remains blocked until the
-workflow-execute preflight confirms branch, locks, slice metadata, and operator
-approval for any live validation phase.
+None for workflow authoring. The open questions are resolved inside explicit
+architecture and implementation slices before live behavior is claimed.
 ```
 
 Confidence level:
 
 ```text
-84 percent
+86 percent
 ```
 
 Decision:
@@ -216,63 +247,132 @@ Decision:
 PROCEED_WITH_ACCEPTED_ASSUMPTIONS
 ```
 
-## Subagent Review Summary
+## External Documentation Baseline
 
-Five mandatory workflow-creation roles reviewed the source draft.
+External provider and WSL documentation was checked so WSL2 behavior is treated
+as a capability-gated path rather than an inferred success case. The checked
+source list and planning facts are recorded in:
+
+```text
+documentation/workflow/reports/03-external-wsl-provider-sources.md
+```
+
+Key workflow constraints from those sources:
+
+- WSL2 is the only WSL baseline for this provider direction; WSL1 remains
+  unsupported.
+- systemd must be verified for daemon-managed LXD/Incus behavior in WSL.
+- LXD installation uses Snap and requires `snapd`.
+- local LXD access requires root or membership in the `lxd` group.
+- LXD can be initialized with `lxd init --minimal` for a default local setup.
+- Docker-in-container requires explicit nesting/profile configuration.
+- privileged containers are not accepted as a silent default.
+- WSL2 LXD/Incus success must be validated from a real WSL2 environment, not
+  inferred from native Linux or sandbox evidence.
+
+## Execution Profile
+
+```text
+executionProfile=FULL_PATH
+reason=The request changes provider architecture, platform runtime behavior,
+deployment assumptions, workflow structure, documentation governance, and
+quality-sensitive live infrastructure boundaries.
+requiredFullReviews=Senior Requirement Engineer, Senior System Architect,
+Senior Python Automation Developer, Senior Tester, Senior Workflow Architect
+allowedImpactChecks=Senior React Frontend Developer as N/A browser frontend
+guard
+requiredQualityChecks=git diff --check for workflow creation; targeted Python
+tests and python3 tools/quality_gate.py quality during implementation slices
+stopConditions=branch mismatch, missing provider decision, unclear
+architecture ownership, live command requirement without approval, or planned
+behavior documented as implemented behavior
+```
+
+## Five-Role Review Summary
 
 | Role | Decision | Workflow impact |
 | --- | --- | --- |
-| Senior Requirement Engineer | `PROCEED_WITH_ACCEPTED_ASSUMPTIONS` | Requirement is complete enough after recording replacement, WSL2 operator evidence, and `netsh` assumptions. |
-| Senior System Architect | `REQUIRES_REFINEMENT` for the source draft | Refined workflow must reconcile existing preflight code, avoid new forbidden service directories, and tighten evidence redaction. |
-| Senior Python Automation Developer | Proceed only after tightening | Refined workflow must extend current preflight rather than create a parallel system. |
-| Senior React Frontend Developer | `READY_FOR_WORKFLOW` as N/A guard | No React/browser scope; only console/status output may be affected. |
-| Senior Tester | `REQUIRES_REFINEMENT` for the source draft | Refined workflow must add YAML slice metadata, command semantics, targeted tests, and live/static boundary rules. |
+| Senior Requirement Engineer | `PROCEED_WITH_ACCEPTED_ASSUMPTIONS` | Requirement is clear enough for workflow creation after recording LXD/Incus backend preference and WSL2 capability assumptions. |
+| Senior System Architect | `PROCEED_WITH_ACCEPTED_ASSUMPTIONS` | Requires ADR/arc42 synchronization and provider-neutral Platform boundary without new undeclared application service directories. |
+| Senior Python Automation Developer | `PROCEED_WITH_ACCEPTED_ASSUMPTIONS` | Requires ports-first provider abstraction, mocked LXD/Incus tests, structured YAML, and composition-root wiring. |
+| Senior React Frontend Developer | `READY_FOR_WORKFLOW` as N/A guard | No browser frontend scope. Console/status wording only. |
+| Senior Tester | `PROCEED_WITH_ACCEPTED_ASSUMPTIONS` | Requires regression-first tests for provider selection, LXD/Incus readiness, fail-closed setup, and Multipass explicit fallback. |
 
-The generated workflow incorporates those refinements. The source draft itself
-must not be executed directly.
+Dependency/deadlock validation:
+
+```text
+Provider decision and domain model must precede adapter and setup integration.
+LXD/Incus adapter work and Multipass legacy wrapping may proceed in parallel
+after the provider port contract is stable. Documentation may draft early but
+must not claim implemented behavior before implementation slices pass.
+No cyclic slice dependency detected.
+```
+
+Mandatory EPIC question:
+
+```text
+Does the implementation still match the EPIC?
+```
+
+Current answer:
+
+```text
+PARTIALLY, WITH PLANNED PROVIDER DRIFT.
+```
+
+The autonomous runnable setup EPIC currently names Multipass as the platform
+state provider. This workflow intentionally changes that provider direction.
+Slice 01 must record the architecture decision and update EPIC/arc42 references
+before implementation slices claim the new baseline.
 
 ## Architecture Constraints
 
 - Preserve hexagonal architecture.
 - Domain code must remain independent from application and infrastructure.
-- Application services may orchestrate ports and domain objects, but must not
-  embed subprocess, filesystem, Docker, HTTP, curses, YAML parser, or live
-  host details directly.
-- Infrastructure adapters own `/proc`, environment, filesystem, subprocess,
-  Multipass, Docker, `socat`, and host-probing details.
+- Application services may orchestrate provider ports and domain objects, but
+  must not embed subprocess, filesystem, socket, Docker, LXD, Incus, raw LXC,
+  curses, YAML parser, or host-networking details directly.
+- Infrastructure adapters own LXD/Incus CLI calls, sockets, filesystem probes,
+  profile inspection, command timeouts, Docker CLI calls, and legacy Multipass
+  subprocess details.
 - Keep standard runtime wiring in
   `src/tiny_swarm_world/infrastructure/composition.py`.
-- Prefer extending existing package areas:
-  - `domain/preflight`
-  - `domain/multipass`
-  - `domain/network`
-  - `application/ports/preflight`
-  - `application/services/platform`
-  - `application/services/setup`
-  - `application/services/network`
-  - `infrastructure/adapters/preflight`
-  - `infrastructure/adapters/command_runner`
-  - `infrastructure/adapters/repositories`
-- Do not introduce `application/services/host` or `application/services/swarm`
-  unless a slice deliberately updates architecture docs and tests.
-- `infra/swarm` is a migration evidence source only. Do not call its scripts.
+- Keep entry-point code thin. CLI parses provider intent, enforces consent, and
+  delegates to composed services.
+- Do not introduce `application/services/lxc`,
+  `application/services/incus`, or `application/services/lxd` unless a slice
+  deliberately updates architecture docs and tests. Prefer existing Platform
+  service boundaries for provider orchestration.
+- Prefer new provider-neutral ports and domain models over extending
+  Multipass-specific names as the long-term contract.
+- Keep Multipass code as explicit legacy compatibility until replacement
+  coverage and docs are verified.
+- Do not execute direct `infra/swarm` scripts.
+- Do not make raw LXC low-level commands such as `lxc-start`, `lxc-create`, or
+  `lxc-attach` the default provider surface in the first implementation.
 
 ## Python Automation Assessment
 
-Implementation should extend current contracts:
+Implementation should introduce a provider-neutral layer while keeping changes
+small:
 
-- `PreflightService` should receive typed host environment and runtime reports.
-- `HostPreflightProbe` should be split internally into deterministic, testable
-  probes while preserving the public port until compatibility slices update it.
-- Multipass readiness should add `version` probing, socket evidence, qemu driver
-  checks, and explicit timeout classification while preserving argument-list
-  subprocess calls.
-- Setup/platform orchestration should convert failed preflight into
-  `not_run` downstream phases rather than late `failed_to_apply`.
-- Diagnostics must use sanitized classification and excerpts only when allowed
-  by the current safe-text contract. Raw `command`, `stdout`, `stderr`,
-  `environment`, `token`, `password`, and `secret` keys are forbidden in setup
-  phase results and committed artifacts.
+- `NodeProviderKind` or equivalent domain value object with
+  `lxc_native`, `multipass_legacy`, and `unsupported`.
+- `ManagedLxcBackend` or equivalent value object for `incus` and `lxd`.
+- `NodeSpec`, `NodeRole`, `NodeState`, `ProviderReadiness`, and
+  `ProviderSelection` domain concepts that do not import infrastructure.
+- Application ports for provider detection, readiness, node lifecycle, command
+  execution inside a node, and provider-specific verification.
+- Infrastructure adapters for Incus CLI and LXD CLI using argument-list
+  subprocess APIs where new code bypasses shell-oriented legacy command
+  templates.
+- Structured YAML configuration under `infra/config` for provider defaults,
+  node profiles, container images, resource settings, and verification
+  metadata.
+- Composition-root provider selection so `setup run` and platform workflows use
+  the same selected provider.
+- Legacy Multipass adapters wrapped behind the same provider port only when the
+  operator explicitly selects `multipass_legacy`.
 
 ## Frontend Assessment
 
@@ -283,19 +383,27 @@ frontend scope:
 - no npm, pnpm, yarn, Vite, Next.js, TypeScript frontend, `.tsx`, or `.jsx`;
 - no browser route or browser state work.
 
-Frontend impact is limited to console/status semantics and operator-readable
-messages for preflight, setup, remediation, and installation summaries.
+Frontend impact is limited to terminal/console status semantics and
+operator-readable provider messages.
 
 ## Test Strategy
 
 Use regression-first, mocked tests before implementation changes. Live
 infrastructure checks are not part of the normal quality gate.
 
-Targeted tests for implementation slices:
+Documentation-only workflow creation gate:
 
 ```bash
-PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
-PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe
+git diff --check
+```
+
+Representative targeted gates for implementation slices:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.node_provider
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_node_provider_selection
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_lxc_provider_preflight
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider
 PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
 PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
 PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
@@ -307,79 +415,90 @@ Required final quality gate when practical:
 python3 tools/quality_gate.py quality
 ```
 
-Documentation-only workflow creation gate:
-
-```bash
-git diff --check
-```
-
 ## Resilience Requirements
 
-- Fail closed when the environment cannot be classified.
-- WSL1 and unknown environments must stop before `platform init`.
-- WSL2 without required systemd, snapd when needed, reachable Multipass daemon,
-  qemu driver, socket access, or supported network strategy must stop before
-  VM creation.
-- Sandbox/unverified Linux may run static and mocked validation only; it cannot
-  prove WSL2 live behavior.
-- Read-only probes must use timeouts and argument-list subprocess APIs.
-- Host repair actions are remediation guidance unless a later ADR and explicit
-  operator live consent authorize mutation.
-- Evidence must be redacted, summary-oriented, and stored under ignored local
-  state.
-- Cleanup commands require explicit operator confirmation and must report
-  remaining resources when skipped.
+- Fail closed when provider selection is absent, ambiguous, or unsupported.
+- Default LXC-native path must block before mutation when LXD/Incus readiness
+  cannot be verified.
+- Multipass fallback requires explicit operator selection and must not mask an
+  LXD/Incus failure.
+- Read-only probes must use timeouts and sanitized classification.
+- Host repair, package installation, daemon start/restart, group membership,
+  privileged profile enablement, bridge changes, firewall changes, and Docker
+  Swarm mutation remain operator-approved live actions.
+- Container profile requirements for Docker-in-container must be explicit,
+  test-backed where possible, and risk-labeled.
+- Evidence must stay summary-oriented and redacted.
+- WSL2 capability must be validated separately from native Linux and sandbox
+  evidence.
 
 ## Ordered Slices
 
-### Slice 01: Legacy Swarm Migration Analysis
+### Slice 01: Provider Decision And Governance Baseline
 
-Purpose: document `infra/swarm` behavior as migration evidence before any
-runtime behavior changes.
+Purpose: record the architecture decision, requirement drift, and documentation
+authority for making LXC-native through LXD/Incus the default node provider.
 
 ```yaml
 slice_id: "01"
-profile: "documentation"
-owner: "Senior Documentation Engineer"
+profile: "architecture-documentation"
+owner: "Senior Requirement Engineer"
 secondary_reviewers:
   - "Senior System Architect"
-  - "Senior Python Automation Developer"
+  - "Senior Documentation Engineer"
+  - "Senior Tester"
 affected_files:
-  - "documentation/architecture/legacy-swarm-setup-migration.md"
+  - "documentation/architecture/adr-lxc-native-node-provider.adoc"
+  - "documentation/epics/autonomous-runnable-setup.md"
+  - "documentation/epics/system-unification.md"
+  - "documentation/arc42/02_constraints.adoc"
+  - "documentation/arc42/06_runtime_view.adoc"
+  - "documentation/arc42/07_deployment_view.adoc"
+  - "documentation/arc42/11_risks_and_debt.adoc"
 affected_modules: []
 affected_contracts:
-  - "legacy live-operation surface classification"
+  - "provider architecture decision"
+  - "autonomous setup provider baseline"
+  - "external WSL/LXD/Incus source baseline"
 dependencies: []
 parallel_group: "A"
 file_locks:
-  - "documentation/architecture/legacy-swarm-setup-migration.md"
+  - "documentation/architecture/adr-lxc-native-node-provider.adoc"
+  - "documentation/epics/autonomous-runnable-setup.md"
+  - "documentation/epics/system-unification.md"
+  - "documentation/arc42/**"
 contract_locks:
-  - "infra/swarm remains legacy evidence only"
+  - "default provider changes only after ADR is recorded"
 architecture_locks:
-  - "no direct script promotion"
+  - "Linux/WSL-only"
+  - "Docker Swarm-first"
+  - "Python hexagonal architecture"
 quality_gates:
   targeted:
     - "git diff --check"
   required:
     - "git diff --check"
 documentation:
-  arc42: "checked; no behavior claim until implementation slices"
-  adr: "documentation/architecture/adr-autonomous-setup-safety.adoc checked"
+  arc42: "update provider baseline and risk/debt sections"
+  adr: "create ADR for LXC-native provider default and Multipass legacy fallback"
 stop_conditions:
-  - "legacy scripts would be called or promoted as canonical setup"
-  - "host-specific values would be copied into product configuration"
+  - "EPIC and ADR disagree on default provider"
+  - "documentation claims live LXD/Incus setup before implementation exists"
+  - "WSL2 support is claimed without external-source-backed capability gates"
 ```
 
 Done criteria:
 
-- migration document classifies each required legacy behavior as `MIGRATE`,
-  `MIGRATE_WITH_CHANGES`, `DOCUMENT_ONLY`, or `REJECT`;
-- direct execution from `infra/swarm` remains forbidden.
+- ADR records `lxc_native` through LXD/Incus as the default path.
+- Multipass is documented as explicit legacy/fallback only.
+- EPIC drift is resolved or explicitly tracked.
+- External WSL/LXD/Incus documentation baseline is referenced by the ADR or
+  architecture notes.
 
-### Slice 02: Host Environment Domain Model
+### Slice 02: Provider-Neutral Domain Model
 
-Purpose: add typed environment reports and setup path concepts inside existing
-domain boundaries.
+Purpose: add provider-neutral node and readiness concepts without importing
+application or infrastructure concerns.
 
 ```yaml
 slice_id: "02"
@@ -389,53 +508,55 @@ secondary_reviewers:
   - "Senior System Architect"
   - "Senior Tester"
 affected_files:
+  - "src/tiny_swarm_world/domain/node_provider/**"
   - "src/tiny_swarm_world/domain/preflight/**"
-  - "src/tiny_swarm_world/domain/multipass/**"
-  - "src/tiny_swarm_world/domain/network/**"
+  - "tests/domain/node_provider/**"
   - "tests/domain/preflight/**"
-  - "tests/domain/network/**"
 affected_modules:
+  - "tiny_swarm_world.domain.node_provider"
   - "tiny_swarm_world.domain.preflight"
-  - "tiny_swarm_world.domain.multipass"
-  - "tiny_swarm_world.domain.network"
 affected_contracts:
-  - "host environment report"
-  - "multipass readiness report"
-  - "port forwarding plan"
+  - "node provider kind"
+  - "managed LXC backend"
+  - "provider readiness"
+  - "node spec and role"
 dependencies:
   - "01"
 parallel_group: "B"
 file_locks:
+  - "src/tiny_swarm_world/domain/node_provider/**"
   - "src/tiny_swarm_world/domain/preflight/**"
-  - "src/tiny_swarm_world/domain/multipass/**"
-  - "src/tiny_swarm_world/domain/network/**"
+  - "tests/domain/node_provider/**"
+  - "tests/domain/preflight/**"
 contract_locks:
   - "domain has no application or infrastructure imports"
 architecture_locks:
   - "hexagonal domain independence"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.domain.preflight tests.domain.network"
+    - "PYTHONPATH=src python3 -m unittest tests.domain.node_provider tests.domain.preflight"
   required:
     - "python3 tools/quality_gate.py arch-tests"
 documentation:
-  arc42: "update if domain concepts become architecture-visible"
-  adr: "no new ADR unless evidence semantics change"
+  arc42: "update if new provider concepts become architecture-visible"
+  adr: "must satisfy provider ADR from Slice 01"
 stop_conditions:
   - "domain imports application or infrastructure"
-  - "host-specific evidence is modeled as committed configuration"
+  - "provider model silently maps failed LXC-native readiness to Multipass"
 ```
 
 Done criteria:
 
-- host environment enum covers `native_linux`, `wsl2`, `wsl1_unsupported`,
-  `unknown_unsupported`, and `sandbox_unverified`;
-- reports include evidence and remediation without raw host payloads.
+- Domain model represents `lxc_native`, `multipass_legacy`, and unsupported
+  outcomes.
+- Managed backend model distinguishes `incus`, `lxd`, ambiguous, missing, and
+  unsupported states.
+- Tests cover selection and failure classification without live commands.
 
-### Slice 03: Extend Preflight Ports And Service Contract
+### Slice 03: Provider Ports And Selection Contract
 
-Purpose: extend the existing preflight port and service without introducing a
-parallel preflight subsystem.
+Purpose: define application ports and Platform-level provider selection while
+keeping low-level details out of application services.
 
 ```yaml
 slice_id: "03"
@@ -445,47 +566,52 @@ secondary_reviewers:
   - "Senior System Architect"
   - "Senior Tester"
 affected_files:
+  - "src/tiny_swarm_world/application/ports/node_provider/**"
   - "src/tiny_swarm_world/application/ports/preflight/**"
-  - "src/tiny_swarm_world/application/services/platform/preflight_service.py"
-  - "tests/application/services/platform/test_preflight_service.py"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "tests/application/services/platform/test_node_provider_selection.py"
 affected_modules:
+  - "tiny_swarm_world.application.ports.node_provider"
   - "tiny_swarm_world.application.ports.preflight"
   - "tiny_swarm_world.application.services.platform"
 affected_contracts:
-  - "preflight host check"
-  - "preflight runtime readiness"
+  - "provider selection"
+  - "provider readiness port"
+  - "node lifecycle port"
 dependencies:
   - "02"
 parallel_group: "C"
 file_locks:
+  - "src/tiny_swarm_world/application/ports/node_provider/**"
   - "src/tiny_swarm_world/application/ports/preflight/**"
-  - "src/tiny_swarm_world/application/services/platform/preflight_service.py"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "tests/application/services/platform/test_node_provider_selection.py"
 contract_locks:
-  - "PreflightService remains application orchestration"
+  - "application depends on provider ports, not concrete LXD/Incus adapters"
 architecture_locks:
-  - "application services depend on ports, not infrastructure adapters"
+  - "no new undeclared application service directory"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service"
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_node_provider_selection"
   required:
     - "python3 tools/quality_gate.py arch-tests"
 documentation:
-  arc42: "runtime/preflight view must be updated in documentation slice"
-  adr: "adr-autonomous-setup-safety must remain satisfied"
+  arc42: "record provider selection in runtime view"
+  adr: "provider ADR checked"
 stop_conditions:
-  - "new preflight service duplicates existing platform preflight behavior"
-  - "static --preflight is documented as live Multipass readiness proof"
+  - "application service imports infrastructure"
+  - "selection contract allows silent automatic Multipass fallback"
 ```
 
 Done criteria:
 
-- generic `Host is Linux or WSL compatible` no longer has empty evidence;
-- static and live-consent runtime checks have distinct semantics.
+- Provider selection priority is explicit.
+- Ambiguous Incus/LXD detection blocks with remediation.
+- Multipass legacy requires explicit selection.
 
-### Slice 04: Implement Linux And Sandbox Host Probe
+### Slice 04: LXD/Incus Readiness Preflight Adapter
 
-Purpose: classify native Linux and sandbox/unverified Linux through the
-infrastructure preflight adapter with mocked tests.
+Purpose: add non-mutating readiness probes for managed LXC backends.
 
 ```yaml
 slice_id: "04"
@@ -493,155 +619,171 @@ profile: "implementation"
 owner: "Senior Python Automation Developer"
 secondary_reviewers:
   - "Senior Tester"
+  - "Senior Security/Sandbox Engineer"
   - "Senior System Architect"
 affected_files:
   - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
-  - "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py"
+  - "tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py"
 affected_modules:
   - "tiny_swarm_world.infrastructure.adapters.preflight"
 affected_contracts:
-  - "host environment probe"
+  - "LXD readiness"
+  - "Incus readiness"
+  - "provider capability report"
+  - "WSL2 systemd and daemon capability gate"
 dependencies:
   - "03"
-parallel_group: "D"
+parallel_group: "D1"
 file_locks:
   - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
-  - "tests/infrastructure/adapters/preflight/**"
+  - "tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py"
 contract_locks:
-  - "no live infrastructure mutation from probes"
+  - "read-only probes only"
+  - "sanitized readiness evidence"
 architecture_locks:
-  - "infrastructure owns platform, /proc, environment, filesystem probes"
+  - "infrastructure owns subprocess, socket, filesystem, and daemon probes"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_lxc_provider_preflight"
   required:
     - "python3 tools/quality_gate.py test"
 documentation:
-  arc42: "record sandbox boundary in runtime/deployment docs"
-  adr: "no new ADR expected"
+  arc42: "runtime view must distinguish static and live provider readiness"
+  adr: "new ADR required before host repair is automated"
 stop_conditions:
-  - "probe runs mutating host commands"
-  - "sandbox is treated as WSL2 evidence"
+  - "probe starts, creates, deletes, or modifies containers"
+  - "probe persists raw command output or host-specific paths"
+  - "WSL2 LXD/Incus readiness is inferred from sandbox or native Linux"
+  - "systemd or provider daemon access is assumed on WSL2 without verification"
 ```
 
 Done criteria:
 
-- native Linux and sandbox/unverified Linux are distinguishable in reports;
-- tests mock filesystem, platform, and environment signals.
+- Tests mock executable availability, version/info commands, timeout, daemon
+  unavailable, permission denied, ambiguous backends, and missing backend.
+- Reports are summary-only and actionable.
+- WSL2 reports distinguish WSL version, systemd readiness, provider daemon
+  access, and unsupported capability states.
 
-### Slice 05: Implement WSL Host Probe
+### Slice 05: LXC-Native Provider Configuration
 
-Purpose: detect WSL2 and WSL1 through multiple signals and block unsupported
-or unknown environments before platform mutation.
+Purpose: add structured provider configuration for node specs, profiles, and
+verification metadata.
 
 ```yaml
 slice_id: "05"
-profile: "implementation"
+profile: "configuration"
 owner: "Senior Python Automation Developer"
 secondary_reviewers:
+  - "Senior DevOps Engineer"
+  - "Senior Security/Sandbox Engineer"
   - "Senior Tester"
-  - "Senior System Architect"
 affected_files:
-  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
-  - "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py"
+  - "infra/config/node-providers/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
+  - "tests/infrastructure/adapters/repositories/**"
 affected_modules:
-  - "tiny_swarm_world.infrastructure.adapters.preflight"
+  - "tiny_swarm_world.infrastructure.adapters.repositories"
 affected_contracts:
-  - "WSL host detection"
-  - "unsupported host blocking"
+  - "provider configuration repository"
+  - "LXD/Incus node profile configuration"
 dependencies:
-  - "04"
-parallel_group: "E"
+  - "02"
+parallel_group: "D2"
 file_locks:
-  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
-  - "tests/infrastructure/adapters/preflight/**"
+  - "infra/config/node-providers/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
+  - "tests/infrastructure/adapters/repositories/**"
 contract_locks:
-  - "WSL2 requires multiple detection signals"
+  - "structured YAML only"
+  - "no host-specific absolute paths or IP addresses"
 architecture_locks:
-  - "Windows host commands are not default automation"
+  - "infra/config is product behavior"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories"
   required:
     - "python3 tools/quality_gate.py test"
 documentation:
-  arc42: "update runtime view for WSL2 and WSL1 paths"
-  adr: "no new ADR unless Windows-host mutation is automated"
+  arc42: "deployment view must describe committed provider config"
+  adr: "provider ADR checked"
 stop_conditions:
-  - "single fragile signal is the only WSL2 proof"
-  - "WSL1 proceeds past preflight"
-  - "unknown environment proceeds past preflight"
+  - "configuration embeds host IPs, usernames, secrets, or local paths"
+  - "privileged container profile is enabled without explicit risk contract"
 ```
 
 Done criteria:
 
-- WSL2, WSL1 unsupported, and unknown unsupported behavior is covered by
-  deterministic tests;
-- WSL-specific remediation is actionable and non-mutating.
+- Provider config defines default `lxc_native` family and explicit legacy
+  Multipass fallback.
+- LXD/Incus profile requirements are named and risk-labeled.
+- YAML parsing uses existing structured helpers or equivalent repository
+  adapters.
 
-### Slice 06: Refine Multipass Readiness
+### Slice 06: LXD/Incus Node Lifecycle Adapter
 
-Purpose: migrate the useful Multipass readiness concepts from legacy scripts
-behind the current preflight adapter and reject unsafe legacy behavior.
+Purpose: implement the managed LXC node lifecycle behind provider ports.
 
 ```yaml
 slice_id: "06"
 profile: "implementation"
 owner: "Senior Python Automation Developer"
 secondary_reviewers:
+  - "Senior System Architect"
   - "Senior Tester"
+  - "Senior DevOps Engineer"
   - "Senior Security/Sandbox Engineer"
 affected_files:
-  - "src/tiny_swarm_world/domain/preflight/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py"
-  - "infra/config/multipass/**"
-  - "tests/application/services/platform/test_preflight_service.py"
-  - "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/**"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "tests/infrastructure/adapters/clients/test_lxc_node_provider.py"
+  - "tests/infrastructure/test_composition.py"
 affected_modules:
-  - "tiny_swarm_world.domain.preflight"
-  - "tiny_swarm_world.infrastructure.adapters.preflight"
+  - "tiny_swarm_world.infrastructure.adapters.clients"
+  - "tiny_swarm_world.infrastructure.composition"
 affected_contracts:
-  - "Multipass readiness"
-  - "live preflight runtime readiness"
+  - "node lifecycle provider"
+  - "provider command timeout and result mapping"
 dependencies:
+  - "03"
+  - "04"
   - "05"
-parallel_group: "F1"
+parallel_group: "E1"
 file_locks:
-  - "src/tiny_swarm_world/domain/preflight/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py"
-  - "infra/config/multipass/**"
-  - "tests/application/services/platform/test_preflight_service.py"
-  - "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/**"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "tests/infrastructure/adapters/clients/test_lxc_node_provider.py"
+  - "tests/infrastructure/test_composition.py"
 contract_locks:
-  - "read-only probes only"
-  - "no static passphrase"
+  - "no live commands in tests"
+  - "destructive operations remain guarded"
 architecture_locks:
-  - "subprocess details remain infrastructure-only"
+  - "composition root owns concrete adapter construction"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service tests.infrastructure.adapters.preflight.test_host_preflight_probe"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider tests.infrastructure.test_composition"
   required:
-    - "python3 tools/quality_gate.py quality"
+    - "python3 tools/quality_gate.py arch-tests"
 documentation:
-  arc42: "update risks if readiness semantics change materially"
-  adr: "adr-autonomous-setup-safety checked; new ADR if host repair is automated"
+  arc42: "runtime and deployment views updated in documentation slice"
+  adr: "new ADR required before automatic host repair or privileged default"
 stop_conditions:
-  - "multipass launch is used in preflight"
-  - "shell=True is introduced for new probes"
-  - "static Multipass passphrase remains reachable from canonical setup"
-  - "driver mismatch does not block before platform init"
+  - "adapter mutates containers during tests"
+  - "shell=True is introduced for new provider commands"
+  - "raw command output is persisted as verification evidence"
 ```
 
 Done criteria:
 
-- readiness includes version, list, driver, daemon/socket/permission, timeout,
-  and remediation signals;
-- broken daemon or non-qemu driver blocks before mutation.
+- Adapter maps Incus and LXD commands through one provider port.
+- Apply/verify semantics distinguish created, already present, blocked,
+  failed-to-apply, and failed-to-verify.
+- Tests use fakes and do not require LXD, Incus, Docker, or Multipass.
 
-### Slice 07: WSL2 Network Forwarding Planning
+### Slice 07: Docker Swarm-In-LXC Contract
 
-Purpose: migrate WSL networking concepts into typed planning without blind host
-network mutation.
+Purpose: define and test the minimum container profile and verification model
+required to run Docker Swarm nodes inside LXD/Incus containers.
 
 ```yaml
 slice_id: "07"
@@ -650,57 +792,62 @@ owner: "Senior Python Automation Developer"
 secondary_reviewers:
   - "Senior DevOps Engineer"
   - "Senior Security/Sandbox Engineer"
+  - "Senior Tester"
 affected_files:
+  - "src/tiny_swarm_world/domain/node_provider/**"
   - "src/tiny_swarm_world/domain/network/**"
-  - "src/tiny_swarm_world/application/services/network/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "tests/domain/node_provider/**"
   - "tests/domain/network/**"
-  - "tests/application/services/network/**"
+  - "tests/application/services/platform/**"
 affected_modules:
+  - "tiny_swarm_world.domain.node_provider"
   - "tiny_swarm_world.domain.network"
-  - "tiny_swarm_world.application.services.network"
-  - "tiny_swarm_world.infrastructure.adapters.preflight"
+  - "tiny_swarm_world.application.services.platform"
 affected_contracts:
-  - "port forwarding plan"
-  - "network readiness"
+  - "Docker-in-container profile"
+  - "Swarm node readiness"
+  - "container network plan"
 dependencies:
-  - "05"
   - "06"
-parallel_group: "F2"
+parallel_group: "F"
 file_locks:
+  - "src/tiny_swarm_world/domain/node_provider/**"
   - "src/tiny_swarm_world/domain/network/**"
-  - "src/tiny_swarm_world/application/services/network/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/preflight/**"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "tests/domain/node_provider/**"
   - "tests/domain/network/**"
-  - "tests/application/services/network/**"
+  - "tests/application/services/platform/**"
 contract_locks:
-  - "no committed IP addresses"
-  - "no blind socat, iptables, or netsh mutation"
+  - "profile requirements are explicit and risk-labeled"
+  - "no host network mutation without approval"
 architecture_locks:
-  - "network service depends on typed ports and domain models"
+  - "application orchestrates ports; infrastructure owns provider details"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.domain.network tests.application.services.network"
+    - "PYTHONPATH=src python3 -m unittest tests.domain.node_provider tests.domain.network tests.application.services.platform"
   required:
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "update deployment/runtime view for WSL2 forwarding strategies"
-  adr: "new ADR required before automatic host network mutation"
+  arc42: "quality and risk views must reflect Docker-in-LXC constraints"
+  adr: "new ADR required if privileged containers become default"
 stop_conditions:
-  - "hardcoded VM, WSL, gateway, or Windows IP is committed"
-  - "netsh or iptables becomes default automation"
+  - "privileged profile is silently enabled"
+  - "host bridge or firewall mutation is automated without approval"
+  - "Docker Swarm health is claimed without observed-state evidence"
+  - "Docker-in-container nesting requirements are hidden in adapter defaults"
 ```
 
 Done criteria:
 
-- forwarding strategies are explicit: `NATIVE_LINUX_DIRECT`, `WSL2_SOCAT`,
-  `WSL2_NETSH_DOCUMENTED`, `WSL2_IPTABLES_OPTIONAL`, `UNSUPPORTED`;
-- default WSL2 behavior is planning and verification, not blind mutation.
+- Required profile capabilities are modeled and validated before node creation.
+- Security-sensitive profile choices are visible in setup output and evidence.
+- Network plan contains no committed host-specific addresses.
+- Privileged container mode is risk-labeled and never the silent default.
 
-### Slice 08: Setup And Platform Guard Integration
+### Slice 08: Platform And Setup Integration
 
-Purpose: ensure selected host path and preflight status govern setup/platform
-phase ordering before VM creation.
+Purpose: make setup and platform workflows use the selected provider by default.
 
 ```yaml
 slice_id: "08"
@@ -723,11 +870,10 @@ affected_modules:
   - "tiny_swarm_world.application.services.platform"
   - "tiny_swarm_world.infrastructure.composition"
 affected_contracts:
-  - "setup phase ordering"
-  - "platform init pre-apply guard"
-  - "CLI status semantics"
+  - "setup provider selection"
+  - "platform init provider guard"
+  - "CLI provider option"
 dependencies:
-  - "03"
   - "06"
   - "07"
 parallel_group: "G"
@@ -736,9 +882,12 @@ file_locks:
   - "src/tiny_swarm_world/application/services/platform/**"
   - "src/tiny_swarm_world/infrastructure/composition.py"
   - "src/tiny_swarm_world/__main__.py"
+  - "tests/application/services/setup/test_setup_workflow.py"
+  - "tests/application/services/platform/test_platform_workflows.py"
+  - "tests/test_package_entrypoint.py"
 contract_locks:
-  - "missing live consent refuses before setup construction"
-  - "failed preflight marks downstream phases not_run"
+  - "missing live consent refuses before mutation"
+  - "failed provider preflight marks downstream phases not_run"
 architecture_locks:
   - "entry point remains thin"
   - "composition root owns adapter construction"
@@ -748,114 +897,130 @@ quality_gates:
   required:
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "runtime view and quality requirements must be updated"
-  adr: "adr-autonomous-setup-safety must remain satisfied"
+  arc42: "runtime view updated after implementation"
+  adr: "provider ADR checked"
 stop_conditions:
-  - "platform init can bypass host readiness guard"
-  - "setup run without live consent mutates infrastructure"
-  - "console output claims WSL2 readiness from sandbox"
+  - "setup still prints Multipass as the default target"
+  - "platform init can bypass provider readiness"
+  - "setup run auto-falls back to Multipass after LXC-native failure"
 ```
 
 Done criteria:
 
-- old failure shape is covered by a regression test;
-- downstream setup phases are `not_run` when host preflight fails.
+- CLI and setup summary name LXC-native as the default target.
+- Provider preflight failure stops platform mutation and marks later phases
+  `not_run`.
+- Tests cover explicit Multipass legacy selection separately.
 
-### Slice 09: Sanitized Diagnostics And Evidence
+### Slice 09: Multipass Legacy/Fallback Boundary
 
-Purpose: improve failure diagnostics without violating safe-text or evidence
-redaction contracts.
+Purpose: wrap existing Multipass behavior behind an explicit legacy provider
+and stop treating it as the default repair path.
 
 ```yaml
 slice_id: "09"
 profile: "implementation"
 owner: "Senior Python Automation Developer"
 secondary_reviewers:
+  - "Senior System Architect"
   - "Senior Tester"
-  - "Senior Security/Sandbox Engineer"
-  - "Console/status UI reviewer"
+  - "Senior Documentation Engineer"
 affected_files:
-  - "src/tiny_swarm_world/domain/inventory/**"
-  - "src/tiny_swarm_world/domain/command/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/repositories/verification_evidence_local_repository.py"
-  - "tests/domain/inventory/**"
-  - "tests/infrastructure/adapters/command_runner/**"
+  - "src/tiny_swarm_world/domain/multipass/**"
+  - "src/tiny_swarm_world/application/services/multipass/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/multipass_*.py"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "infra/config/multipass/**"
+  - "infra/config/docker/command_multipass_*.yaml"
+  - "tests/application/services/multipass/**"
+  - "tests/infrastructure/adapters/clients/test_multipass_*.py"
 affected_modules:
-  - "tiny_swarm_world.domain.inventory"
-  - "tiny_swarm_world.domain.command"
-  - "tiny_swarm_world.infrastructure.adapters.command_runner"
+  - "tiny_swarm_world.domain.multipass"
+  - "tiny_swarm_world.application.services.multipass"
+  - "tiny_swarm_world.infrastructure.adapters.clients"
 affected_contracts:
-  - "safe diagnostic summary"
-  - "verification evidence redaction"
+  - "multipass legacy provider"
+  - "legacy fallback selection"
 dependencies:
+  - "03"
   - "08"
-parallel_group: "H"
+parallel_group: "E2"
 file_locks:
-  - "src/tiny_swarm_world/domain/inventory/**"
-  - "src/tiny_swarm_world/domain/command/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/command_runner/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/repositories/verification_evidence_local_repository.py"
+  - "src/tiny_swarm_world/domain/multipass/**"
+  - "src/tiny_swarm_world/application/services/multipass/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/multipass_*.py"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "infra/config/multipass/**"
+  - "infra/config/docker/command_multipass_*.yaml"
+  - "tests/application/services/multipass/**"
+  - "tests/infrastructure/adapters/clients/test_multipass_*.py"
 contract_locks:
-  - "no raw command/stdout/stderr/environment/token/password/secret persistence"
+  - "Multipass legacy must be explicit"
+  - "destructive Multipass cleanup remains guarded"
 architecture_locks:
-  - "diagnostics stay sanitized and summary-oriented"
+  - "legacy adapter remains infrastructure-owned"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.domain.inventory tests.infrastructure.adapters.command_runner"
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.multipass tests.infrastructure.adapters.clients.test_multipass_swarm_runtime tests.infrastructure.adapters.clients.test_multipass_container_image_publisher"
   required:
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "update quality and risks if evidence semantics change"
-  adr: "new ADR required for material evidence semantic change"
+  arc42: "deployment view demotes Multipass after behavior exists"
+  adr: "provider ADR checked"
 stop_conditions:
-  - "raw output or host-specific payload is persisted"
-  - "setup phase result safety is weakened"
+  - "Multipass remains default provider"
+  - "Multipass repair work expands instead of being isolated"
+  - "legacy fallback runs without explicit provider selection"
 ```
 
 Done criteria:
 
-- errors expose actionable classification and sanitized evidence only;
-- no safety guard is relaxed to carry raw command output.
+- Existing Multipass behavior remains test-covered but is no longer default.
+- Fallback selection is explicit and operator-visible.
+- Documentation and CLI warnings identify Multipass as legacy/fallback.
 
-### Slice 10: Documentation And Architecture Synchronization
+### Slice 10: Documentation And Governance Synchronization
 
-Purpose: align README, system docs, user guide, arc42, and ADR references with
-implemented behavior only.
+Purpose: align operator docs, root governance, live-operation catalog, and
+arc42 with implemented provider behavior.
 
 ```yaml
 slice_id: "10"
 profile: "documentation"
 owner: "Senior Documentation Engineer"
 secondary_reviewers:
+  - "Senior Requirement Engineer"
   - "Senior System Architect"
   - "Senior Tester"
 affected_files:
+  - "AGENTS.md"
   - "README.md"
   - "documentation/system/multipass-setup.adoc"
+  - "documentation/system/lxc-native-setup.adoc"
   - "documentation/system/network.adoc"
   - "documentation/system/live-operation-surfaces.adoc"
-  - "documentation/system/wsl-host-preflight.adoc"
   - "documentation/user_guide/installation.adoc"
   - "documentation/user_guide/troubleshooting.adoc"
   - "documentation/deployment/system.adoc"
   - "documentation/arc42/**"
-  - "documentation/architecture/adr-autonomous-setup-safety.adoc"
+  - "documentation/architecture/adr-lxc-native-node-provider.adoc"
 affected_modules: []
 affected_contracts:
   - "operator documentation"
+  - "governance product identity"
   - "arc42 runtime and deployment views"
 dependencies:
   - "08"
   - "09"
-parallel_group: "I"
+parallel_group: "H"
 file_locks:
+  - "AGENTS.md"
   - "README.md"
   - "documentation/system/**"
   - "documentation/user_guide/**"
   - "documentation/deployment/**"
   - "documentation/arc42/**"
-  - "documentation/architecture/adr-autonomous-setup-safety.adoc"
+  - "documentation/architecture/adr-lxc-native-node-provider.adoc"
 contract_locks:
   - "planned behavior is not documented as implemented behavior"
 architecture_locks:
@@ -867,22 +1032,24 @@ quality_gates:
     - "git diff --check"
 documentation:
   arc42: "update 02, 06, 07, 10, 11 at minimum when behavior changes"
-  adr: "update or add ADR only for accepted architecture decisions"
+  adr: "provider ADR checked and indexed if ADR index exists"
 stop_conditions:
-  - "docs claim full WSL2 success without WSL2 evidence"
+  - "docs claim full LXD/Incus live success without evidence"
+  - "docs remove Multipass before legacy fallback is verified"
   - "Windows-native automation is documented as default product behavior"
 ```
 
 Done criteria:
 
-- docs distinguish Native Linux, WSL2, WSL1 unsupported, unknown unsupported,
-  and sandbox/unverified Linux;
-- `infra/swarm` remains legacy.
+- Docs name LXC-native through LXD/Incus as the default after implementation.
+- Multipass docs are retained as legacy/fallback guidance only.
+- Root governance no longer presents Multipass VMs as the primary identity
+  once the implementation has changed.
 
-### Slice 11: Quality And Installation Validation Matrix
+### Slice 11: Quality And Live Validation Matrix
 
-Purpose: run final static/mocked quality gates and collect separate operator
-validation evidence for sandbox and real WSL2 console.
+Purpose: run final mocked/static gates and define optional operator live smoke
+evidence for native Linux and WSL2.
 
 ```yaml
 slice_id: "11"
@@ -890,25 +1057,26 @@ profile: "verification"
 owner: "Senior Tester"
 secondary_reviewers:
   - "Senior DevOps Engineer"
+  - "Senior Security/Sandbox Engineer"
   - "Senior Documentation Engineer"
   - "Senior System Architect"
 affected_files:
-  - ".tiny-swarm-world/evidence/installation-tests/**"
+  - ".tiny-swarm-world/evidence/provider-validation/**"
   - "documentation/workflow/execution-report.md"
 affected_modules: []
 affected_contracts:
   - "QUALITY.md gate evidence"
-  - "operator-approved live validation evidence"
+  - "provider live smoke evidence"
 dependencies:
   - "10"
-parallel_group: "J"
+parallel_group: "I"
 file_locks:
   - "documentation/workflow/execution-report.md"
 contract_locks:
   - "live infrastructure requires explicit operator approval"
   - "local evidence remains ignored"
 architecture_locks:
-  - "sandbox evidence cannot prove WSL2 behavior"
+  - "sandbox evidence cannot prove native Linux or WSL2 LXD/Incus behavior"
 quality_gates:
   targeted:
     - "git diff --check"
@@ -924,16 +1092,17 @@ documentation:
   adr: "checked after final behavior"
 stop_conditions:
   - "live commands would run without explicit operator approval"
-  - "WSL2 validation is reported from sandbox"
+  - "WSL2 success is inferred from native Linux or sandbox"
   - "local evidence contains secrets, raw output, usernames, host paths, or IPs in committed files"
 ```
 
 Done criteria:
 
-- full quality gate result is recorded;
-- sandbox and WSL2 evidence are evaluated separately;
-- final report states whether the original false-positive condition is
-  eliminated.
+- `python3 tools/quality_gate.py quality` passes or failures are routed through
+  the Typed Error Router.
+- Optional live smoke outcomes are recorded separately for native Linux,
+  WSL2, and legacy Multipass fallback when approved.
+- Final report states whether LXC-native is default and Multipass is fallback.
 
 ## Dependency Graph
 
@@ -943,21 +1112,22 @@ Done criteria:
 02
  |
 03
- |
-04 -> 05
-      |
-      +-> 06 -> 07 -> 08 -> 09 -> 10 -> 11
+ |\
+ | +-> 04 -> 06 -> 07 -> 08 -> 10 -> 11
+ |       \         \         /
+ |        +-> 05 ---+       /
+ |                  \      /
+ +-----------------> 09 --+
 ```
 
 Parallelization:
 
-- Slice 01 can run independently first.
-- Slice 02 must finish before preflight/service/adapter implementation.
-- Slice 06 and Slice 07 must run serially after Slice 05 because both may touch
-  infrastructure preflight adapter scope. Execute Slice 06 before Slice 07
-  unless a later governance checkpoint removes Slice 07 preflight scope.
-- Documentation drafting in Slice 10 may begin as notes during implementation
-  but must not claim behavior until implementation and tests exist.
+- Slice 04 and Slice 05 may run in parallel after Slice 03 if file locks stay
+  disjoint.
+- Slice 09 may begin after Slice 03 but must not change default behavior until
+  Slice 08 defines the new setup integration.
+- Documentation drafting may start after Slice 01, but Slice 10 must not claim
+  implemented behavior before implementation slices pass.
 
 ## Role Ownership Map
 
@@ -966,9 +1136,9 @@ Parallelization:
 | Workflow dependency ordering | Senior Workflow Architect | Senior Swarm Orchestrator |
 | Requirement and EPIC drift | Senior Requirement Engineer | Engineering Governance |
 | Architecture boundaries and arc42 | Senior System Architect | arc42 governance |
-| Python automation implementation | Senior Python Automation Developer | Senior Tester |
+| Python provider implementation | Senior Python Automation Developer | Senior Tester |
+| LXD/Incus and Docker-in-container safety | Senior DevOps Engineer | Security/Sandbox Engineer |
 | Console/status output semantics | Console/status UI skills | Senior React Frontend Developer as N/A React guard |
-| Live platform safety | Senior DevOps Engineer | Security/Sandbox Engineer |
 | Test strategy and gates | Senior Tester | Quality Gate Orchestrator |
 | Documentation synchronization | Senior Documentation Engineer | Senior System Architect |
 | Git/commit readiness | Git commit preparation skills | Git commit reviewer |
@@ -992,29 +1162,20 @@ python3 tools/quality_gate.py quality
 ```
 
 Do not invent frontend, Java, Maven, Gradle, JUnit, ArchUnit, mutation testing,
-Docker, Multipass, or deployment CI commands.
+Docker, LXD, Incus, Multipass, or deployment CI commands as default gates.
 
-## Installation Validation Boundary
+## Optional Live Validation Boundary
 
-Static preflight:
+Default static preflight remains non-mutating:
 
 ```bash
 PYTHONPATH=src python3 -m tiny_swarm_world --preflight
 ```
 
-Static preflight is configuration and host-classification evidence only until
-runtime readiness checks are explicitly included. It must not be treated as
-proof that Multipass daemon, qemu driver, VM creation, Docker Swarm, or WSL2
-forwarding works.
-
-Consent-boundary setup command:
-
-```bash
-PYTHONPATH=src python3 -m tiny_swarm_world setup run
-```
-
-Without `--live`, this is expected to refuse before mutation. Treat the result
-as consent-boundary evidence, not a dry-run installation pass.
+After implementation, static preflight may classify provider configuration and
+host capability. It must not be treated as proof that LXD/Incus containers,
+Docker-in-container, Docker Swarm, Portainer, Nexus, Jenkins, RabbitMQ,
+SonarQube, or Swagger/NGINX work live.
 
 Operator-approved live validation commands may be run only after explicit
 approval in a disposable or recoverable environment:
@@ -1023,28 +1184,23 @@ approval in a disposable or recoverable environment:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ```
 
-Live validation results:
+Expected live validation result classes:
 
-- `PASSED_FULL_INSTALLATION`: full live installation was verified.
-- `BLOCKED_SANDBOX_CAPABILITY_MISSING`: sandbox lacks live infrastructure
-  capability; this is not a full pass.
-- `BLOCKED_WSL2_HOST_PREREQUISITE`: real WSL2 preflight blocked before
-  mutation with actionable remediation; this proves fail-closed safety but not
-  full installation success.
-- `FAILED`: live validation failed after an approved live phase.
-- `NOT_RUN`: required environment validation was not run.
-
-Full WSL2 installation success may be claimed only for
-`PASSED_FULL_INSTALLATION` from a real WSL2 console. A preflight-blocked WSL2
-result may close the safety regression when it blocks before `platform init`,
-but it must not be reported as full installation success.
+- `PASSED_LXC_NATIVE_FULL_INSTALLATION`
+- `BLOCKED_LXC_BACKEND_PREREQUISITE`
+- `BLOCKED_CONTAINER_PROFILE_PREREQUISITE`
+- `BLOCKED_WSL2_CAPABILITY_MISSING`
+- `PASSED_MULTIPASS_LEGACY_FALLBACK`
+- `FAILED`
+- `NOT_RUN`
 
 Evidence paths are local and ignored:
 
 ```text
-.tiny-swarm-world/evidence/installation-tests/sandbox/
-.tiny-swarm-world/evidence/installation-tests/wsl2/
-.tiny-swarm-world/evidence/installation-tests/comparison-report.md
+.tiny-swarm-world/evidence/provider-validation/native-linux/
+.tiny-swarm-world/evidence/provider-validation/wsl2/
+.tiny-swarm-world/evidence/provider-validation/multipass-legacy/
+.tiny-swarm-world/evidence/provider-validation/comparison-report.md
 ```
 
 Committed reports may summarize sanitized status only.
@@ -1054,13 +1210,15 @@ Committed reports may summarize sanitized status only.
 Update documentation only when behavior is implemented or clearly marked as
 planned workflow behavior:
 
+- `AGENTS.md`
 - `README.md`
-- `documentation/architecture/legacy-swarm-setup-migration.md`
-- `documentation/architecture/adr-autonomous-setup-safety.adoc`
+- `documentation/architecture/adr-lxc-native-node-provider.adoc`
+- `documentation/epics/autonomous-runnable-setup.md`
+- `documentation/epics/system-unification.md`
+- `documentation/system/lxc-native-setup.adoc`
 - `documentation/system/multipass-setup.adoc`
 - `documentation/system/network.adoc`
 - `documentation/system/live-operation-surfaces.adoc`
-- `documentation/system/wsl-host-preflight.adoc`
 - `documentation/user_guide/installation.adoc`
 - `documentation/user_guide/troubleshooting.adoc`
 - `documentation/deployment/system.adoc`
@@ -1074,45 +1232,48 @@ planned workflow behavior:
 
 Stop and report if:
 
-- active branch is not `fix/linux-wsl-swarm-setup-workprocess-20260525`;
+- active branch is not `feature/workflow-lxc-node-provider-20260526`;
 - workflow slice metadata or locks are missing;
 - implementation would touch files outside the active slice scope;
+- raw low-level LXC becomes the first implementation path;
 - direct `infra/swarm` scripts would be executed or promoted;
 - live infrastructure commands would run without explicit operator approval;
-- WSL2 behavior would be inferred from sandbox evidence;
+- LXD/Incus readiness would be inferred from sandbox evidence;
+- Multipass fallback would be automatic or silent;
+- privileged container profiles, host network changes, daemon repairs, package
+  installs, or permission changes would be automated without explicit approval
+  and any required ADR;
 - raw command strings, stdout, stderr, environment payloads, tokens, passwords,
   Swarm join tokens, usernames, host paths, or host-specific IPs would be
   committed or persisted in unsafe evidence;
 - architecture tests would need to be weakened;
-- new host package installation, socket repair, `netsh`, `iptables`, or
-  automatic `socat` mutation is required without ADR approval;
 - planned behavior would be documented as implemented behavior.
 
 ## Definition Of Done
 
 - `documentation/workflow/workflow.md` contains complete slice metadata and is
   consistent with `AGENTS.md`, `QUALITY.md`, EPICs, ADRs, and arc42.
-- Legacy `infra/swarm` behavior is analyzed and classified.
-- Host environment classification is typed, tested, and wired into preflight.
-- WSL1 and unknown hosts block before platform mutation.
-- Sandbox/unverified Linux cannot be used as WSL2 proof.
-- Multipass readiness distinguishes executable presence from daemon, socket,
-  permission, timeout, version, list, and qemu driver readiness.
-- WSL2 network planning avoids hardcoded IPs and blind host mutation.
-- Setup/platform phase ordering blocks before VM creation when preflight fails.
-- The observed false-positive regression has a deterministic test.
+- Provider ADR and EPIC baseline make LXC-native through LXD/Incus the
+  accepted default direction.
+- Provider-neutral domain and port contracts exist and are tested.
+- LXD/Incus readiness is non-mutating, timeout-bound, and sanitized.
+- Default setup/platform selection uses `lxc_native` and blocks on missing or
+  ambiguous backend readiness.
+- Multipass is available only as explicit legacy/fallback.
+- Docker Swarm-in-LXC profile and network requirements are explicit and
+  security-reviewed.
 - Documentation is synchronized without overclaiming live success.
 - `python3 tools/quality_gate.py quality` passes or any failure is routed
   through the Typed Error Router.
-- Sandbox and WSL2 live validation are recorded separately when operator
-  approval is granted.
+- Native Linux, WSL2, and Multipass legacy live validation evidence are
+  recorded separately when operator approval is granted.
 
 ## Commit And Push Plan
 
 Suggested commit message after implementation and verification:
 
 ```text
-fix: split swarm setup into native Linux and WSL2 host paths
+feat: make LXC native provider the default platform path
 ```
 
 Do not push or create a pull request during slice checkpoints unless the user
@@ -1125,7 +1286,7 @@ Before `workflow execute`:
 1. Verify branch:
 
 ```bash
-git show-ref --verify --quiet refs/heads/fix/linux-wsl-swarm-setup-workprocess-20260525
+git show-ref --verify --quiet refs/heads/feature/workflow-lxc-node-provider-20260526
 git branch --show-current
 ```
 
@@ -1140,5 +1301,6 @@ git branch --show-current
 ## arc42 Check Status
 
 arc42 was checked during workflow creation. No arc42 file was changed during
-workflow authoring because this is a plan, not implementation. Slice 10 must
-update arc42 once behavior changes are implemented and verified.
+workflow authoring because this is a plan, not implementation. Slice 01 and
+Slice 10 must update arc42 once the provider decision and implementation
+behavior are recorded.
