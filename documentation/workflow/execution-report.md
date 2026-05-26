@@ -428,3 +428,53 @@ Quality gates:
 Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
 
 Rollback reference: `ece2501b253c807d5ff8ac2d2078a0e7ad085bb9`.
+
+### Slice 09: Multipass Legacy/Fallback Boundary
+
+Responsible agent: Senior Python Automation Developer.
+
+Commit: `96bde4b86b73484998b7b009de1467164a521aa6`
+
+Title: `feat(platform): isolate Multipass legacy fallback`
+
+Result: `PASSED`
+
+Changed files:
+
+- `src/tiny_swarm_world/__main__.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `tests/infrastructure/test_composition.py`
+- `tests/test_package_entrypoint.py`
+
+Quality gates:
+
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -B -m unittest tests.application.services.multipass tests.infrastructure.adapters.clients.test_multipass_swarm_runtime tests.infrastructure.adapters.clients.test_multipass_container_image_publisher tests.infrastructure.adapters.clients.test_multipass_portainer_admin_client tests.infrastructure.test_composition tests.test_package_entrypoint tests.application.services.platform.test_node_provider_selection tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository` passed with 98 tests.
+- `python tools/quality_gate.py lint` passed.
+- `python tools/quality_gate.py typecheck` passed.
+- `git diff --check` passed.
+- `.venv/bin/python tools/quality_gate.py quality` passed with lint OK,
+  arch-lint 3 kept and 0 broken, arch-tests OK, mypy success, 595 tests
+  OK, and 1 skipped.
+- `git diff --cached --check` passed before commit.
+
+Reviewer status:
+
+- Senior System Architect: READY after default platform reconcile was moved
+  behind a fail-closed LXC-native provider boundary and explicit
+  `multipass_legacy` kept the old `VmIpList` contract.
+- Senior Tester: READY after explicit `multipass_legacy` forwarding was
+  covered for platform, artifact, deployment, and setup CLI branches.
+- Senior Documentation Engineer: READY. General operator documentation and
+  arc42 synchronization remain assigned to Slice 10.
+- Git commit reviewer: READY for workflow checkpoint commit scope.
+
+arc42 update status: documentation synchronization remains assigned to Slice
+10. No arc42 file was changed in this implementation slice.
+
+ADR update status: provider ADR checked. Multipass is now isolated behind
+explicit `multipass_legacy` selection for platform init, platform reconcile,
+artifact workflows, deployment workflows, and setup composition.
+
+Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+
+Rollback reference: `140aafe6b6e23358722c2c80b4c5a137c81b0ad6`.
