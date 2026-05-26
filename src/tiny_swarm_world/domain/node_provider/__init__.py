@@ -1,3 +1,10 @@
+from tiny_swarm_world.domain.node_provider.docker_swarm_lxc import (
+    DockerSwarmInLxcProfileContract,
+    DockerSwarmLxcRiskLabel,
+    REQUIRED_DOCKER_SWARM_LXC_RISK_LABELS,
+    SwarmNodeReadinessEvidence,
+    SwarmNodeState,
+)
 from tiny_swarm_world.domain.node_provider.provider_model import (
     ManagedLxcBackend,
     ManagedLxcBackendSelection,
@@ -15,6 +22,8 @@ __all__ = [
     "ManagedLxcBackend",
     "ManagedLxcBackendSelection",
     "ManagedLxcBackendSelectionStatus",
+    "DockerSwarmInLxcProfileContract",
+    "DockerSwarmLxcRiskLabel",
     "NodeProviderKind",
     "NodeRole",
     "NodeSpec",
@@ -22,4 +31,7 @@ __all__ = [
     "ProviderReadinessStatus",
     "ProviderSelection",
     "ProviderSelectionStatus",
+    "REQUIRED_DOCKER_SWARM_LXC_RISK_LABELS",
+    "SwarmNodeReadinessEvidence",
+    "SwarmNodeState",
 ]

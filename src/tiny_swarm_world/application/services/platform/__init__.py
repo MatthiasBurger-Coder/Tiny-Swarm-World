@@ -17,6 +17,9 @@ from tiny_swarm_world.application.services.multipass.multipass_init_vms import (
 from tiny_swarm_world.application.services.multipass.multipass_restart_vms import (
     MultipassRestartVMs,
 )
+from tiny_swarm_world.application.services.platform.docker_swarm_lxc_contract import (
+    DockerSwarmInLxcContractService,
+)
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.application.services.platform.node_provider_selection import (
     NodeProviderSelectionRequest,
@@ -53,6 +56,7 @@ __all__ = [
     "MultipassDockerSwarmInit",
     "MultipassInitVms",
     "MultipassRestartVMs",
+    "DockerSwarmInLxcContractService",
     "NodeProviderSelectionRequest",
     "NodeProviderSelectionService",
     "PreflightService",
