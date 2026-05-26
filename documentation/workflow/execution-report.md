@@ -239,3 +239,54 @@ secret, host IP, username, or host-local path was added.
 Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
 
 Rollback reference: `134f28f3fcbce49fc98fb9d257b42b4ea1eb022c`.
+
+### Slice 06: LXD/Incus Node Lifecycle Adapter
+
+Responsible agent: Senior Python Automation Developer.
+
+Commit: `ae5732f58597e5b879ff449ff7fc5e9a5663c880`
+
+Title: `feat(infrastructure): add LXC node lifecycle adapter`
+
+Result: `PASSED`
+
+Changed files:
+
+- `src/tiny_swarm_world/infrastructure/adapters/clients/__init__.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `tests/infrastructure/adapters/clients/test_lxc_node_provider.py`
+- `tests/infrastructure/test_composition.py`
+
+Quality gates:
+
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider tests.infrastructure.test_composition` passed.
+- `python3 -m ruff check src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py src/tiny_swarm_world/infrastructure/adapters/clients/__init__.py src/tiny_swarm_world/infrastructure/composition.py tests/infrastructure/adapters/clients/test_lxc_node_provider.py tests/infrastructure/test_composition.py` passed.
+- `python3 tools/quality_gate.py arch-tests` passed.
+- `python3 tools/quality_gate.py typecheck` passed.
+- `git diff --check` passed.
+- `git diff --cached --check` passed.
+- `python3 tools/quality_gate.py quality` passed.
+
+Reviewer status:
+
+- Senior Tester: READY.
+- Senior System Architect: READY.
+- Senior Security/Sandbox Engineer: READY after live-mutation, managed-node,
+  provider-profile and device allowlist hardening.
+- Senior DevOps Engineer: READY in read-only pre-implementation review.
+
+arc42 update status: runtime and deployment documentation are updated in later
+documentation slices. Slice 06 remained inside infrastructure adapter and
+composition locks.
+
+ADR update status: provider ADR checked. No automatic host repair, package
+installation, privileged profile default, host networking, host mount default
+or destructive lifecycle operation was added.
+
+External documentation status: official Incus and LXD command references were
+checked for managed CLI command shape (`list`, `launch`, `profile show`).
+
+Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+
+Rollback reference: `b1594ec485b91043c1ca1c95111160b8bbda99ad`.
