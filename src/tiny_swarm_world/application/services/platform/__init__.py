@@ -22,6 +22,7 @@ from tiny_swarm_world.application.services.platform.docker_swarm_lxc_contract im
 )
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.application.services.platform.node_provider_selection import (
+    NodeProviderEnsureNodeStep,
     NodeProviderSelectionRequest,
     NodeProviderSelectionService,
 )
@@ -57,6 +58,7 @@ __all__ = [
     "MultipassInitVms",
     "MultipassRestartVMs",
     "DockerSwarmInLxcContractService",
+    "NodeProviderEnsureNodeStep",
     "NodeProviderSelectionRequest",
     "NodeProviderSelectionService",
     "PreflightService",

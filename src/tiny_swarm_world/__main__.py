@@ -15,6 +15,7 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PlatformWorkflowStatus,
 )
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
+from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProviderKind
 from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_PROMPT,
     LIVE_CONSENT_YES_VALUES,
@@ -27,6 +28,7 @@ from tiny_swarm_world.infrastructure.composition import (
     ArtifactServices,
     DeploymentServices,
     DEFAULT_SETUP_SERVICE_PROFILE,
+    NodeProviderSelectionRequest,
     SetupServices,
     build_application_services,
     build_artifact_services,
@@ -123,9 +125,23 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
             "The default full installation includes service-access."
         ),
     )
+    parser.add_argument(
+        "--node-provider",
+        choices=[NodeProviderKind.LXC_NATIVE.value, NodeProviderKind.MULTIPASS_LEGACY.value],
+        default=NodeProviderKind.LXC_NATIVE.value,
+        help="Node provider for platform setup; default is lxc_native.",
+    )
+    parser.add_argument(
+        "--lxc-backend",
+        choices=[backend.value for backend in ManagedLxcBackend],
+        help="Preferred managed LXC backend when --node-provider lxc_native is selected.",
+    )
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
     parser.add_argument("workflow_action", nargs="?", help="Workflow action.")
     args = parser.parse_args(argv)
+
+    if args.lxc_backend is not None and args.node_provider != NodeProviderKind.LXC_NATIVE.value:
+        parser.error("--lxc-backend requires --node-provider lxc_native")
 
     if (args.workflow_namespace is None) != (args.workflow_action is None):
         parser.error("workflow command requires both namespace and action")
@@ -152,11 +168,15 @@ async def main(argv: Sequence[str] | None = None) -> None:
         return
 
     if args.preflight:
-        preflight = build_preflight_service(service_profile=args.service_profile)
+        node_provider_request = _node_provider_request_from_args(args)
+        preflight = build_preflight_service(
+            service_profile=args.service_profile,
+            node_provider_request=node_provider_request,
+        )
         live_consent = _live_consent_from_args(args) if args.live else None
         result = await preflight.run(live_consent)
         print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
-        _print_preflight_summary(result)
+        _print_preflight_summary(result, live=args.live)
         if not result.passed:
             raise SystemExit(1)
         return
@@ -191,13 +211,18 @@ async def main(argv: Sequence[str] | None = None) -> None:
             raise SystemExit(2)
 
     logger.info("Running workflow: %s", workflow.name)
+    node_provider_request = _node_provider_request_from_args(args)
     if workflow.namespace == "setup" and workflow.action == "run":
-        _print_setup_installation_plan(service_profile=args.service_profile)
+        _print_setup_installation_plan(
+            service_profile=args.service_profile,
+            node_provider_request=node_provider_request,
+        )
     result = await run_cli_workflow(
         workflow,
         args.confirm,
         live_consent,
         service_profile=args.service_profile,
+        node_provider_request=node_provider_request,
     )
     if isinstance(result, SetupWorkflowResult):
         _print_setup_installation_summary(result)
@@ -213,11 +238,13 @@ async def run_cli_workflow(
     confirmation: str | None,
     live_consent: LiveConsent | None = None,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
 ) -> WorkflowResult:
     if workflow.platform_kind is not None:
         services = build_application_services(
             live_consent=live_consent,
             service_profile=service_profile,
+            node_provider_request=node_provider_request,
         )
         return await run_platform_workflow(
             services,
@@ -233,7 +260,11 @@ async def run_cli_workflow(
     if workflow.namespace == "setup":
         if live_consent is None or not live_consent.accepted:
             raise ValueError("setup run requires accepted live consent")
-        services = build_setup_services(live_consent, service_profile=service_profile)
+        services = build_setup_services(
+            live_consent,
+            service_profile=service_profile,
+            node_provider_request=node_provider_request,
+        )
         return await run_setup_workflow(services, workflow.action)
     raise ValueError(f"Unsupported workflow: {workflow.name}")
 
@@ -333,11 +364,25 @@ def _live_consent_from_args(args: Namespace) -> LiveConsent:
     return LiveConsent(live_flag=args.live, confirmed=confirmed)
 
 
-def _print_preflight_summary(result: PreflightResult) -> None:
+def _node_provider_request_from_args(args: Namespace) -> NodeProviderSelectionRequest:
+    return NodeProviderSelectionRequest(
+        requested_provider=NodeProviderKind(args.node_provider),
+        preferred_backend=(
+            None
+            if args.lxc_backend is None
+            else ManagedLxcBackend(args.lxc_backend)
+        ),
+    )
+
+
+def _print_preflight_summary(result: PreflightResult, *, live: bool = False) -> None:
     print()
     print(f"Preflight summary: {result.status}")
     if result.passed:
-        print("All checks passed.")
+        if live:
+            print("Preflight checks passed; provider readiness is checked by the platform guard.")
+        else:
+            print("Static checks passed; this does not claim live provider readiness.")
         return
 
     if result.resource_gated:
@@ -353,13 +398,26 @@ def _print_preflight_summary(result: PreflightResult) -> None:
 
 def _print_setup_installation_plan(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
 ) -> None:
     selected_service_profile = ServiceStackProfile(service_profile)
     configuration = default_preflight_configuration(service_profile=selected_service_profile)
     manifest = configuration.setup_manifest
+    provider_request = node_provider_request or NodeProviderSelectionRequest()
     print()
     print("Tiny Swarm World guided installation")
-    print("Target: local Linux/WSL Multipass Docker Swarm")
+    if provider_request.requested_provider == NodeProviderKind.LXC_NATIVE:
+        print("Target: local Linux/WSL LXC-native Docker Swarm")
+        print(f"Default node provider: {provider_request.requested_provider.value}")
+        if provider_request.preferred_backend is None:
+            print("Managed backend: auto-detect Incus or LXD")
+        else:
+            print(f"Managed backend: {provider_request.preferred_backend.value}")
+    else:
+        print("Target: local Linux/WSL Multipass legacy Docker Swarm")
+        print(f"Explicit node provider: {provider_request.requested_provider.value}")
+        print("Managed backend: not applicable")
+    print("Provider readiness: checked before platform mutation")
     print(f"Service profile: {selected_service_profile.value}")
     print("Platform:")
     print("- swarm-manager: Docker Swarm manager")

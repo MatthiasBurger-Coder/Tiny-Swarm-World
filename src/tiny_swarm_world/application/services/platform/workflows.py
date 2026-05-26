@@ -259,7 +259,7 @@ async def _run_mutating_steps(
                     tuple(verification_results),
                 )
 
-        if not _step_has_verification(step):
+        if not _step_has_verification_contract(step):
             target_id = _verification_target_id(step)
             operator_reason = _operator_block_reason(step)
             result = VerificationResult(
@@ -306,6 +306,30 @@ async def _run_mutating_steps(
                 tuple(verification_results),
             )
 
+        direct_verification = _direct_verification_result(apply_result)
+        if direct_verification is not None:
+            _append_evidence(verification_evidence_repository, direct_verification)
+            verification_results.append(direct_verification)
+            if direct_verification.status == VerificationStatus.VERIFIED:
+                continue
+            if direct_verification.status == VerificationStatus.BLOCKED:
+                return PlatformWorkflowResult.blocked(
+                    semantics,
+                    f"{semantics.kind.value} step {target_id} is blocked.",
+                    tuple(verification_results),
+                )
+            if direct_verification.status == VerificationStatus.FAILED_TO_APPLY:
+                return PlatformWorkflowResult.failed_to_apply(
+                    semantics,
+                    f"{semantics.kind.value} apply failed for {target_id}.",
+                    tuple(verification_results),
+                )
+            return PlatformWorkflowResult.failed_to_verify(
+                semantics,
+                f"{semantics.kind.value} verification failed for {target_id}.",
+                tuple(verification_results),
+            )
+
         verification = await _verify_step(step, target_id)
         if verification is None:
             result = VerificationResult(
@@ -346,6 +370,12 @@ async def _run_mutating_steps(
 
 def _step_has_verification(step: AsyncWorkflowStep) -> bool:
     return callable(getattr(step, "verify", None))
+
+
+def _step_has_verification_contract(step: AsyncWorkflowStep) -> bool:
+    return _step_has_verification(step) or bool(
+        getattr(step, "returns_verification_result", False)
+    )
 
 
 def _pre_apply_verification(step: AsyncWorkflowStep) -> VerificationResult | None:
@@ -394,6 +424,12 @@ def _verification_result_from_preflight(result: PreflightResult) -> Verification
         message="Preflight checks failed.",
         evidence={"phase": "verify", "failed_check_count": str(len(result.failed_checks))},
     )
+
+
+def _direct_verification_result(result: object) -> VerificationResult | None:
+    if isinstance(result, VerificationResult):
+        return result
+    return None
 
 
 def _failed_apply_result(result: object) -> VerificationResult | None:

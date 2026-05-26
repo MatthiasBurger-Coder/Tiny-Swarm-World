@@ -107,6 +107,34 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("phase 'preflight' returned failed", result.reason)
         self.assertEqual("not_run", result.phase_results[1].status)
 
+    async def test_provider_blocked_platform_init_marks_downstream_phases_not_run(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _provider_blocked_platform_init(calls)),
+                SetupWorkflowPhase("platform reconcile", lambda: _completed_result("platform reconcile", calls)),
+                SetupWorkflowPhase("deployment bootstrap", lambda: _completed_result("deployment bootstrap", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+        payload = result.to_dict()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(["preflight", "platform init"], calls)
+        self.assertEqual("phase 'platform init' returned blocked", result.reason)
+        self.assertEqual(
+            ["completed", "blocked", "not_run", "not_run"],
+            [phase["status"] for phase in payload["phase_results"]],
+        )
+        self.assertEqual(
+            "provider_selection_blocked",
+            payload["phase_results"][1]["result"]["verification_results"][0]["evidence"]["reason"],
+        )
+        self.assertNotIn("multipass_legacy", repr(payload))
+
     async def test_redacted_platform_init_failure_stops_before_downstream_phases(self):
         calls: list[str] = []
         workflow = SetupWorkflow(
@@ -325,6 +353,31 @@ def _failed_platform_init(calls: list[str]) -> PlatformWorkflowResult:
                 status=VerificationStatus.FAILED_TO_APPLY,
                 message="Apply failed for platform:init:multipass-vms: CommandExecutionFailed",
                 evidence={"phase": "apply", "return_code": "2"},
+            ),
+        ),
+    )
+
+
+def _provider_blocked_platform_init(calls: list[str]) -> PlatformWorkflowResult:
+    calls.append("platform init")
+    return PlatformWorkflowResult(
+        kind=PlatformWorkflowKind.INIT,
+        status=PlatformWorkflowStatus.BLOCKED,
+        message="init workflow blocked by provider selection before mutation.",
+        executed=False,
+        verification_results=(
+            VerificationResult(
+                target_id="platform:node-provider:lxc_native",
+                status=VerificationStatus.BLOCKED,
+                message="Provider selection blocked platform mutation.",
+                evidence={
+                    "phase": "pre_apply",
+                    "reason": "provider_selection_blocked",
+                    "requested_provider": "lxc_native",
+                    "selected_provider": "lxc_native",
+                    "selection_status": "blocked",
+                    "backend_status": "missing",
+                },
             ),
         ),
     )

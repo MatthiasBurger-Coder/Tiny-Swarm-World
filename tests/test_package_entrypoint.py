@@ -33,6 +33,7 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
 )
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProviderKind
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ENTRYPOINT_PATH = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "__main__.py"
@@ -85,6 +86,14 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         args = entrypoint.parse_args([])
 
         self.assertEqual(ServiceStackProfile.SERVICE_ACCESS.value, args.service_profile)
+        self.assertEqual(NodeProviderKind.LXC_NATIVE.value, args.node_provider)
+        self.assertIsNone(args.lxc_backend)
+
+    def test_lxc_backend_option_is_forwarded_as_provider_preference(self):
+        args = entrypoint.parse_args(["--lxc-backend", "incus"])
+
+        self.assertEqual(NodeProviderKind.LXC_NATIVE.value, args.node_provider)
+        self.assertEqual(ManagedLxcBackend.INCUS.value, args.lxc_backend)
 
     def test_setup_installation_plan_lists_service_access_landing_page(self):
         output = io.StringIO()
@@ -93,9 +102,13 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             entrypoint._print_setup_installation_plan()
 
         plan = output.getvalue()
+        self.assertIn("Default node provider: lxc_native", plan)
+        self.assertIn("Managed backend: auto-detect Incus or LXD", plan)
+        self.assertIn("Provider readiness: checked before platform mutation", plan)
         self.assertIn("Service profile: service-access", plan)
         self.assertIn("Service Access: stack service-access", plan)
         self.assertIn("published port(s) 80, 8086", plan)
+        self.assertNotIn("Target: local Linux/WSL Multipass Docker Swarm", plan)
 
     async def test_mutating_workflow_requires_live_consent_before_building_services(self):
         output = io.StringIO()
@@ -196,6 +209,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         build_services.assert_called_once_with(
             live_consent=None,
             service_profile=ServiceStackProfile.SERVICE_ACCESS.value,
+            node_provider_request=entrypoint.NodeProviderSelectionRequest(),
         )
         workflows.verify.run.assert_awaited_once_with()
         workflows.init.run.assert_not_awaited()
@@ -385,7 +399,10 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         live_consent = build_setup.call_args.args[0]
         self.assertTrue(live_consent.accepted)
         self.assertEqual(
-            {"service_profile": ServiceStackProfile.SERVICE_ACCESS.value},
+            {
+                "service_profile": ServiceStackProfile.SERVICE_ACCESS.value,
+                "node_provider_request": entrypoint.NodeProviderSelectionRequest(),
+            },
             build_setup.call_args.kwargs,
         )
         setup_services.workflows.run.run.assert_awaited_once_with()
@@ -403,11 +420,14 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                     await entrypoint.main(["--preflight"])
 
         build_preflight.assert_called_once_with(
-            service_profile=ServiceStackProfile.SERVICE_ACCESS.value
+            service_profile=ServiceStackProfile.SERVICE_ACCESS.value,
+            node_provider_request=entrypoint.NodeProviderSelectionRequest(),
         )
         build_services.assert_not_called()
         preflight.run.assert_awaited_once_with(None)
         self.assertIn('"status": "PASSED"', output.getvalue())
+        self.assertIn("Static checks passed", output.getvalue())
+        self.assertIn("does not claim live provider readiness", output.getvalue())
 
     async def test_failed_preflight_exits_nonzero(self):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(False)))

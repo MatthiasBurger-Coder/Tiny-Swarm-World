@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import cast
 
@@ -32,13 +32,16 @@ from tiny_swarm_world.application.services.deployment.service_stack_plan import 
     build_service_stack_steps,
 )
 from tiny_swarm_world.application.services.platform import (
-    NodeProviderSelectionService,
+    AsyncWorkflowStep,
     MultipassDockerInstall,
     MultipassDockerSwarmInit,
     MultipassInitVms,
     MultipassRestartVMs,
     NetworkPrepareNetplan,
     NetworkSetupNetplan,
+    NodeProviderEnsureNodeStep,
+    NodeProviderSelectionRequest,
+    NodeProviderSelectionService,
     PlatformDestroyWorkflow,
     PlatformInitWorkflow,
     PlatformReconcileWorkflow,
@@ -54,7 +57,12 @@ from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
     service_stack_contracts_for_profile,
 )
-from tiny_swarm_world.domain.preflight import LiveConsent, default_preflight_configuration
+from tiny_swarm_world.domain.node_provider import NodeProviderKind, NodeRole, NodeSpec
+from tiny_swarm_world.domain.preflight import (
+    LiveConsent,
+    PreflightConfiguration,
+    default_preflight_configuration,
+)
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
 from tiny_swarm_world.infrastructure.adapters.clients.multipass_container_image_publisher import (
     MultipassContainerImagePublisher,
@@ -97,6 +105,11 @@ DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
 VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"
 DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME = "tsw_vaultwarden_admin_token"
+DEFAULT_LXC_PLATFORM_NODES = (
+    NodeSpec("swarm-manager", NodeRole.MANAGER, NodeProviderKind.LXC_NATIVE),
+    NodeSpec("swarm-worker-1", NodeRole.WORKER, NodeProviderKind.LXC_NATIVE),
+    NodeSpec("swarm-worker-2", NodeRole.WORKER, NodeProviderKind.LXC_NATIVE),
+)
 
 
 @dataclass(frozen=True)
@@ -210,24 +223,27 @@ def configure_infrastructure_container() -> None:
 
 def build_preflight_service(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
 ) -> PreflightService:
     return PreflightService(
         HostPreflightProbe(),
-        default_preflight_configuration(service_profile=service_profile),
+        _preflight_configuration_for_provider(service_profile, node_provider_request),
     )
 
 
 def build_platform_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     live_consent: LiveConsent | None = None,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
 ) -> PlatformServices:
     configure_infrastructure_container()
+    provider_request = node_provider_request or NodeProviderSelectionRequest()
 
     vm_repository = PortVmRepositoryYaml()
     netplan_repository = PortNetplanRepositoryYaml()
     command_workflow = CommandWorkflow(vm_repository=vm_repository)
     verification_evidence_repository = VerificationEvidenceLocalRepository()
-    preflight = build_preflight_service(service_profile=service_profile)
+    preflight = _build_preflight_service_for_request(service_profile, node_provider_request)
     lxc_node_provider = LxcNodeProvider(
         config_repository=NodeProviderConfigYamlRepository(),
         runner=AsyncLxcNodeCommandRunner(),
@@ -251,21 +267,32 @@ def build_platform_services(
     multipass_docker_swarm_init = MultipassDockerSwarmInit(command_workflow)
     vm_ip_list = VmIpList(command_workflow=command_workflow, vm_repository=vm_repository)
     socat_manager = SocatManager()
+    init_steps = _platform_init_steps(
+        provider_request=provider_request,
+        node_provider_selection=node_provider_selection,
+        live_consent=live_consent,
+        multipass_steps=(
+            multipass_init_vms,
+            network_prepare_netplan,
+            network_setup_netplan,
+            multipass_restart_vms,
+            multipass_docker_install,
+            multipass_docker_swarm_init,
+        ),
+    )
     workflows = PlatformWorkflows(
         init=PlatformInitWorkflow(
-            (
-                multipass_init_vms,
-                network_prepare_netplan,
-                network_setup_netplan,
-                multipass_restart_vms,
-                multipass_docker_install,
-                multipass_docker_swarm_init,
-            ),
+            init_steps,
             verification_evidence_repository=verification_evidence_repository,
             pre_apply_guard=(
                 SetupWorkflowPhase(
                     "platform init preflight",
-                    lambda: preflight.run(live_consent),
+                    lambda: _platform_init_pre_apply_guard(
+                        preflight,
+                        node_provider_selection,
+                        provider_request,
+                        live_consent,
+                    ),
                 )
                 if live_consent is not None
                 else None
@@ -441,11 +468,13 @@ def build_deployment_services(
 def build_setup_services(
     live_consent: LiveConsent,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
 ) -> SetupServices:
-    preflight = build_preflight_service(service_profile=service_profile)
-    platform = build_platform_services(
-        service_profile=service_profile,
-        live_consent=live_consent,
+    preflight = _build_preflight_service_for_request(service_profile, node_provider_request)
+    platform = _build_platform_services_for_request(
+        service_profile,
+        live_consent,
+        node_provider_request,
     )
     artifacts = build_artifact_services()
     deployment = build_deployment_services(service_profile=service_profile)
@@ -473,15 +502,94 @@ def build_setup_services(
 def build_application_services(
     live_consent: LiveConsent | None = None,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
 ) -> ApplicationServices:
     return ApplicationServices(
-        platform=build_platform_services(
-            service_profile=service_profile,
-            live_consent=live_consent,
+        platform=_build_platform_services_for_request(
+            service_profile,
+            live_consent,
+            node_provider_request,
         ),
         artifacts=build_artifact_services(),
         deployment=build_deployment_services(service_profile=service_profile),
     )
+
+
+def _build_platform_services_for_request(
+    service_profile: ServiceStackProfile | str,
+    live_consent: LiveConsent | None,
+    node_provider_request: NodeProviderSelectionRequest | None,
+) -> PlatformServices:
+    if node_provider_request is None:
+        return build_platform_services(
+            service_profile=service_profile,
+            live_consent=live_consent,
+        )
+    return build_platform_services(
+        service_profile=service_profile,
+        live_consent=live_consent,
+        node_provider_request=node_provider_request,
+    )
+
+
+def _build_preflight_service_for_request(
+    service_profile: ServiceStackProfile | str,
+    node_provider_request: NodeProviderSelectionRequest | None,
+) -> PreflightService:
+    if node_provider_request is None:
+        return build_preflight_service(service_profile=service_profile)
+    return build_preflight_service(
+        service_profile=service_profile,
+        node_provider_request=node_provider_request,
+    )
+
+
+def _preflight_configuration_for_provider(
+    service_profile: ServiceStackProfile | str,
+    node_provider_request: NodeProviderSelectionRequest | None,
+) -> PreflightConfiguration:
+    configuration = default_preflight_configuration(service_profile=service_profile)
+    request = node_provider_request or NodeProviderSelectionRequest()
+    if request.requested_provider != NodeProviderKind.LXC_NATIVE:
+        return configuration
+    return replace(
+        configuration,
+        required_dependencies=tuple(
+            dependency
+            for dependency in configuration.required_dependencies
+            if dependency.name != "multipass"
+        ),
+        required_runtime_readiness=(),
+    )
+
+
+def _platform_init_steps(
+    *,
+    provider_request: NodeProviderSelectionRequest,
+    node_provider_selection: NodeProviderSelectionService,
+    live_consent: LiveConsent | None,
+    multipass_steps: tuple[AsyncWorkflowStep, ...],
+) -> tuple[AsyncWorkflowStep, ...]:
+    if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
+        return multipass_steps
+    if live_consent is None or not live_consent.accepted:
+        return multipass_steps
+    return tuple(
+        NodeProviderEnsureNodeStep(node, node_provider_selection, provider_request)
+        for node in DEFAULT_LXC_PLATFORM_NODES
+    )
+
+
+async def _platform_init_pre_apply_guard(
+    preflight: PreflightService,
+    node_provider_selection: NodeProviderSelectionService,
+    provider_request: NodeProviderSelectionRequest,
+    live_consent: LiveConsent | None,
+) -> object:
+    preflight_result = await preflight.run(live_consent)
+    if not preflight_result.passed:
+        return preflight_result
+    return await node_provider_selection.verify_provider_selection(provider_request)
 
 
 def _operator_secret_value(name: str) -> str:

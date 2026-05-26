@@ -60,6 +60,24 @@ class NodeProviderSelectionService:
         )
         return _selection_from_lxc_readiness(readiness)
 
+    async def verify_provider_selection(
+        self,
+        request: NodeProviderSelectionRequest | None = None,
+    ) -> VerificationResult:
+        selection = await self.select_provider(request)
+        if selection.blocks_mutation:
+            return _blocked_result(
+                selection,
+                "Provider selection blocked platform mutation.",
+                "provider_selection_blocked",
+            )
+        return VerificationResult(
+            target_id=f"platform:node-provider:{selection.requested_provider.value}",
+            status=VerificationStatus.VERIFIED,
+            message="Provider selection is ready for platform mutation.",
+            evidence=_selection_evidence(selection, "provider_selected"),
+        )
+
     async def ensure_node(
         self,
         node: NodeSpec,
@@ -87,8 +105,26 @@ class NodeProviderSelectionService:
                 selection,
                 "Node lifecycle port is not configured.",
                 "node_lifecycle_port_missing",
-            )
+        )
         return await self.node_lifecycle.ensure_node(node, selection)
+
+
+class NodeProviderEnsureNodeStep:
+    returns_verification_result = True
+
+    def __init__(
+        self,
+        node: NodeSpec,
+        provider_selection: NodeProviderSelectionService,
+        request: NodeProviderSelectionRequest | None = None,
+    ):
+        self.node = node
+        self.provider_selection = provider_selection
+        self.request = request
+        self.verification_target_id = f"platform:node:{node.name}"
+
+    async def run(self) -> VerificationResult:
+        return await self.provider_selection.ensure_node(self.node, self.request)
 
 
 def _selection_from_lxc_readiness(readiness: ProviderReadiness) -> ProviderSelection:
@@ -140,13 +176,35 @@ def _blocked_result(
         target_id=f"platform:node-provider:{selection.requested_provider.value}",
         status=VerificationStatus.BLOCKED,
         message=message,
-        evidence={
-            "phase": "pre_apply",
-            "reason": reason,
-            "requested_provider": selection.requested_provider.value,
-            "selection_status": selection.status.value,
-        },
+        evidence=_selection_evidence(selection, reason),
     )
+
+
+def _selection_evidence(
+    selection: ProviderSelection,
+    reason: str,
+) -> dict[str, str]:
+    evidence = {
+        "phase": "pre_apply",
+        "reason": reason,
+        "requested_provider": selection.requested_provider.value,
+        "selected_provider": selection.selected_provider.value,
+        "selection_status": selection.status.value,
+        "remediation_count": str(len(selection.remediation)),
+    }
+    backend_selection = selection.backend_selection
+    if backend_selection is None:
+        return evidence
+
+    evidence["backend_status"] = backend_selection.status.value
+    evidence["backend_candidate_count"] = str(len(backend_selection.candidates))
+    if backend_selection.backend is not None:
+        evidence["selected_backend"] = backend_selection.backend.value
+    if backend_selection.candidates:
+        evidence["backend_candidates"] = ",".join(
+            candidate.value for candidate in backend_selection.candidates
+        )
+    return evidence
 
 
 def _merge_remediation(
