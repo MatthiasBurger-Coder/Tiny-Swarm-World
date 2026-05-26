@@ -162,3 +162,41 @@ ADR update status: provider ADR checked.
 Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
 
 Rollback reference: `d7d90fc6861e0287a0c9378e77e5e1549086fc66`.
+
+### Slice 04: LXD/Incus Readiness Preflight Adapter
+
+Responsible agent: Senior Python Automation Developer.
+
+Commit: `9b4646ad7c715c169c76892e176f8d4ce95b191a`
+
+Title: `feat(infrastructure): add LXC provider readiness preflight`
+
+Result: `PASSED`
+
+Changed files:
+
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/__init__.py`
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py`
+- `tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py`
+
+Quality gates:
+
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_lxc_provider_preflight` passed.
+- `python3 -m ruff check src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py` passed.
+- `python3 tools/quality_gate.py arch-tests` passed.
+- `python3 tools/quality_gate.py typecheck` passed.
+- `python3 tools/quality_gate.py test` passed.
+- `git diff --check` passed.
+- `git diff --cached --check` passed.
+- `python3 tools/quality_gate.py quality` passed.
+
+arc42 update status: runtime view already distinguishes static readiness,
+provider readiness and WSL2 capability gates from Slice 01; no additional
+arc42 file changed in this infrastructure-adapter slice.
+
+ADR update status: provider ADR checked. No host repair, package installation
+or privileged profile default was added.
+
+Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+
+Rollback reference: `13ef3cb90b00db4fbf1cfa979d993afd136d4b42`.
