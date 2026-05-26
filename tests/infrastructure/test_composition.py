@@ -68,6 +68,8 @@ class TestComposition(unittest.TestCase):
         field_names = {field.name for field in fields(composition.PlatformServices)}
 
         self.assertIn("preflight", field_names)
+        self.assertIn("lxc_node_provider", field_names)
+        self.assertIn("node_provider_selection", field_names)
 
     def test_platform_services_contains_workflow_bundle(self):
         platform_field_names = {field.name for field in fields(composition.PlatformServices)}
@@ -97,12 +99,49 @@ class TestComposition(unittest.TestCase):
                 composition,
                 "PortNetplanRepositoryYaml",
             ) as netplan_repository_factory:
-                services = composition.build_platform_services()
+                with patch.object(
+                    composition,
+                    "NodeProviderConfigYamlRepository",
+                ) as node_config_repository_factory:
+                    with patch.object(
+                        composition,
+                        "AsyncLxcNodeCommandRunner",
+                    ) as lxc_runner_factory:
+                        with patch.object(
+                            composition,
+                            "_wsl_lxc_lifecycle_capability_available",
+                            return_value=True,
+                        ) as wsl_capability_probe:
+                            services = composition.build_platform_services()
 
         vm_repository_factory.assert_called_once_with()
         netplan_repository_factory.assert_called_once_with()
+        node_config_repository_factory.assert_called_once_with()
+        lxc_runner_factory.assert_called_once_with()
         self.assertIsInstance(services.preflight, PreflightService)
         self.assertIsInstance(services.preflight.host_probe, HostPreflightProbe)
+        self.assertIsInstance(services.lxc_node_provider, composition.LxcNodeProvider)
+        self.assertIs(
+            node_config_repository_factory.return_value,
+            services.lxc_node_provider.config_repository,
+        )
+        self.assertIs(
+            lxc_runner_factory.return_value,
+            services.lxc_node_provider.runner,
+        )
+        self.assertIsInstance(
+            services.node_provider_selection,
+            composition.NodeProviderSelectionService,
+        )
+        self.assertIs(
+            services.lxc_node_provider,
+            services.node_provider_selection.node_lifecycle,
+        )
+        self.assertIs(
+            wsl_capability_probe,
+            services.node_provider_selection.readiness_probe.wsl_lxc_capability_available,
+        )
+        self.assertFalse(services.lxc_node_provider.allow_live_mutation)
 
     def test_build_platform_services_wires_workflow_objects(self):
         evidence_repository = _RecordingEvidenceRepository()
@@ -398,6 +437,7 @@ class TestComposition(unittest.TestCase):
                 services = composition.build_platform_services(live_consent=live_consent)
 
         self.assertIsNotNone(services.workflows.init.pre_apply_guard)
+        self.assertTrue(services.lxc_node_provider.allow_live_mutation)
 
     def test_build_setup_services_wires_live_consent_into_platform_init_guard(self):
         live_consent = _accepted_live_consent()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import cast
 
 from tiny_swarm_world.application.services.artifacts import (
@@ -31,6 +32,7 @@ from tiny_swarm_world.application.services.deployment.service_stack_plan import 
     build_service_stack_steps,
 )
 from tiny_swarm_world.application.services.platform import (
+    NodeProviderSelectionService,
     MultipassDockerInstall,
     MultipassDockerSwarmInit,
     MultipassInitVms,
@@ -69,14 +71,21 @@ from tiny_swarm_world.infrastructure.adapters.clients.multipass_portainer_admin_
 from tiny_swarm_world.infrastructure.adapters.clients.multipass_swarm_runtime import (
     MultipassSwarmRuntime,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
+    AsyncLxcNodeCommandRunner,
+    LxcNodeProvider,
+)
 from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import PortainerHttpClient
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
-from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
+from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe, LxcProviderPreflightProbe
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
     ComposeFileRepositoryYaml,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.netplan_repository import PortNetplanRepositoryYaml
+from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
+    NodeProviderConfigYamlRepository,
+)
 from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
     VerificationEvidenceLocalRepository,
 )
@@ -111,6 +120,8 @@ class PlatformServices:
     multipass_docker_install: MultipassDockerInstall
     multipass_docker_swarm_init: MultipassDockerSwarmInit
     preflight: PreflightService
+    lxc_node_provider: LxcNodeProvider
+    node_provider_selection: NodeProviderSelectionService
     vm_ip_list: VmIpList
     socat_manager: SocatManager
     workflows: PlatformWorkflows
@@ -217,6 +228,17 @@ def build_platform_services(
     command_workflow = CommandWorkflow(vm_repository=vm_repository)
     verification_evidence_repository = VerificationEvidenceLocalRepository()
     preflight = build_preflight_service(service_profile=service_profile)
+    lxc_node_provider = LxcNodeProvider(
+        config_repository=NodeProviderConfigYamlRepository(),
+        runner=AsyncLxcNodeCommandRunner(),
+        allow_live_mutation=False if live_consent is None else live_consent.accepted
+    )
+    node_provider_selection = NodeProviderSelectionService(
+        LxcProviderPreflightProbe(
+            wsl_lxc_capability_available=_wsl_lxc_lifecycle_capability_available,
+        ),
+        lxc_node_provider,
+    )
     multipass_init_vms = MultipassInitVms(command_workflow)
     network_prepare_netplan = NetworkPrepareNetplan(
         command_workflow=command_workflow,
@@ -273,6 +295,8 @@ def build_platform_services(
         multipass_docker_install=multipass_docker_install,
         multipass_docker_swarm_init=multipass_docker_swarm_init,
         preflight=preflight,
+        lxc_node_provider=lxc_node_provider,
+        node_provider_selection=node_provider_selection,
         vm_ip_list=vm_ip_list,
         socat_manager=socat_manager,
         workflows=workflows,
@@ -462,6 +486,21 @@ def build_application_services(
 
 def _operator_secret_value(name: str) -> str:
     return os.environ.get(name) or f"<operator-supplied:{name}>"
+
+
+def _wsl_lxc_lifecycle_capability_available() -> bool:
+    return (
+        _linux_text_file_equals(Path("/proc/sys/kernel/unprivileged_userns_clone"), "1")
+        and Path("/sys/fs/cgroup/cgroup.controllers").exists()
+        and Path("/proc/self/uid_map").exists()
+    )
+
+
+def _linux_text_file_equals(path: Path, expected: str) -> bool:
+    try:
+        return path.read_text(encoding="utf-8", errors="ignore").strip() == expected
+    except OSError:
+        return False
 
 
 def _operator_config_value(name: str, default: str) -> str:
