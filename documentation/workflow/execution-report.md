@@ -401,3 +401,30 @@ explicit and is not selected as an automatic fallback.
 Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
 
 Rollback reference: `5b7fb155810f1acaf217fc94bdd717ce217ecedd`.
+
+### Metadata Repair: Slice 09 Legacy Boundary Scope
+
+Commit: `2bb01db3bf1e552ba8f500f35a20dfccd55fcc11`
+
+Title: `docs(workflow): expand slice 09 legacy boundary scope`
+
+Result: `PASSED`
+
+Reason: Slice 09 implementation blockers showed that the declared locks did
+not include the entrypoint and composition tests needed to prove Multipass is
+never selected without explicit `multipass_legacy` intent.
+
+Changed files:
+
+- `documentation/workflow/workflow.md`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+
+Quality gates:
+
+- `git diff --check` passed for the workflow and context-pack files.
+- `context-pack.json` parsed successfully.
+
+Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+
+Rollback reference: `ece2501b253c807d5ff8ac2d2078a0e7ad085bb9`.
