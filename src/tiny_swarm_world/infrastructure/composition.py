@@ -10,6 +10,9 @@ from tiny_swarm_world.application.services.artifacts import (
     ArtifactPrepareWorkflow,
     ArtifactVerifyCheck,
     ArtifactVerifyWorkflow,
+    ArtifactWorkflowKind,
+    ArtifactWorkflowResult,
+    ArtifactWorkflowStatus,
     EnsureContainerImage,
     EnsureNexusAdminAccess,
     EnsureNexusDockerHostedRepository,
@@ -21,6 +24,8 @@ from tiny_swarm_world.application.services.artifacts import (
 from tiny_swarm_world.application.services.deployment import (
     DeploymentApplyWorkflow,
     DeploymentWorkflowKind,
+    DeploymentWorkflowResult,
+    DeploymentWorkflowStatus,
     DeploymentVerifyWorkflow,
     EnsurePortainerAdminAccess,
     EnsureSwarmStack,
@@ -57,6 +62,7 @@ from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
     service_stack_contracts_for_profile,
 )
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.node_provider import NodeProviderKind, NodeRole, NodeSpec
 from tiny_swarm_world.domain.preflight import (
     LiveConsent,
@@ -109,6 +115,19 @@ DEFAULT_LXC_PLATFORM_NODES = (
     NodeSpec("swarm-manager", NodeRole.MANAGER, NodeProviderKind.LXC_NATIVE),
     NodeSpec("swarm-worker-1", NodeRole.WORKER, NodeProviderKind.LXC_NATIVE),
     NodeSpec("swarm-worker-2", NodeRole.WORKER, NodeProviderKind.LXC_NATIVE),
+)
+LEGACY_ARTIFACT_PROVIDER_REQUIRED_REASON = (
+    "artifact workflows still use Multipass legacy clients; select explicit "
+    "--node-provider multipass_legacy to use the legacy fallback path"
+)
+LEGACY_DEPLOYMENT_PROVIDER_REQUIRED_REASON = (
+    "deployment workflows still use Multipass legacy clients; select explicit "
+    "--node-provider multipass_legacy to use the legacy fallback path"
+)
+LEGACY_RECONCILE_PROVIDER_REQUIRED_REASON = "multipass_legacy_required"
+LEGACY_RECONCILE_PROVIDER_REQUIRED_MESSAGE = (
+    "platform reconcile still uses Multipass legacy VM inventory; select "
+    "explicit --node-provider multipass_legacy to use the legacy fallback path"
 )
 
 
@@ -216,6 +235,72 @@ class ApplicationServices:
         return self.platform.socat_manager
 
 
+class _BlockedArtifactWorkflow:
+    def __init__(self, kind: ArtifactWorkflowKind, reason: str):
+        self.kind = kind
+        self.reason = reason
+        self.steps = ()
+        self.checks = ()
+
+    async def run(self) -> ArtifactWorkflowResult:
+        return ArtifactWorkflowResult(
+            kind=self.kind,
+            status=ArtifactWorkflowStatus.BLOCKED,
+            message=(
+                f"artifacts {self.kind.value} is blocked for the selected node provider."
+            ),
+            reason=self.reason,
+        )
+
+
+class _BlockedDeploymentWorkflow:
+    def __init__(self, kind: DeploymentWorkflowKind, reason: str):
+        self.kind = kind
+        self.reason = reason
+        self.steps = ()
+        self.pre_apply_checks = ()
+        self.checks = ()
+
+    async def run(self) -> DeploymentWorkflowResult:
+        return DeploymentWorkflowResult(
+            kind=self.kind,
+            status=DeploymentWorkflowStatus.BLOCKED,
+            message=(
+                f"deployment {self.kind.value} is blocked for the selected node provider."
+            ),
+            reason=self.reason,
+        )
+
+
+class _BlockedPlatformProviderStep:
+    returns_verification_result = True
+
+    def __init__(
+        self,
+        *,
+        target_id: str,
+        provider_request: NodeProviderSelectionRequest,
+        message: str,
+        reason: str,
+    ):
+        self.verification_target_id = target_id
+        self.provider_request = provider_request
+        self.message = message
+        self.reason = reason
+
+    async def run(self) -> VerificationResult:
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.BLOCKED,
+            message=self.message,
+            evidence={
+                "phase": "pre_apply",
+                "reason": self.reason,
+                "requested_provider": self.provider_request.requested_provider.value,
+            },
+        )
+
+
 def configure_infrastructure_container() -> None:
     infra_core_container.register(PathFactory)
     infra_core_container.register(FileManager)
@@ -270,7 +355,6 @@ def build_platform_services(
     init_steps = _platform_init_steps(
         provider_request=provider_request,
         node_provider_selection=node_provider_selection,
-        live_consent=live_consent,
         multipass_steps=(
             multipass_init_vms,
             network_prepare_netplan,
@@ -299,7 +383,7 @@ def build_platform_services(
             ),
         ),
         reconcile=PlatformReconcileWorkflow(
-            (vm_ip_list,),
+            _platform_reconcile_steps(provider_request, vm_ip_list),
             verification_evidence_repository=verification_evidence_repository,
         ),
         reset=PlatformResetWorkflow(
@@ -395,6 +479,32 @@ def build_artifact_services() -> ArtifactServices:
     )
 
 
+def build_artifact_services_for_provider(
+    node_provider_request: NodeProviderSelectionRequest | None = None,
+) -> ArtifactServices:
+    provider_request = node_provider_request or NodeProviderSelectionRequest()
+    if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
+        return build_artifact_services()
+    return ArtifactServices(
+        workflows=ArtifactWorkflows(
+            prepare=cast(
+                ArtifactPrepareWorkflow,
+                _BlockedArtifactWorkflow(
+                    ArtifactWorkflowKind.PREPARE,
+                    LEGACY_ARTIFACT_PROVIDER_REQUIRED_REASON,
+                ),
+            ),
+            verify=cast(
+                ArtifactVerifyWorkflow,
+                _BlockedArtifactWorkflow(
+                    ArtifactWorkflowKind.VERIFY,
+                    LEGACY_ARTIFACT_PROVIDER_REQUIRED_REASON,
+                ),
+            ),
+        )
+    )
+
+
 def build_deployment_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
 ) -> DeploymentServices:
@@ -465,6 +575,40 @@ def build_deployment_services(
     )
 
 
+def build_deployment_services_for_provider(
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
+) -> DeploymentServices:
+    provider_request = node_provider_request or NodeProviderSelectionRequest()
+    if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
+        return build_deployment_services(service_profile=service_profile)
+    return DeploymentServices(
+        workflows=DeploymentWorkflows(
+            bootstrap=cast(
+                DeploymentApplyWorkflow,
+                _BlockedDeploymentWorkflow(
+                    DeploymentWorkflowKind.BOOTSTRAP,
+                    LEGACY_DEPLOYMENT_PROVIDER_REQUIRED_REASON,
+                ),
+            ),
+            apply=cast(
+                DeploymentApplyWorkflow,
+                _BlockedDeploymentWorkflow(
+                    DeploymentWorkflowKind.APPLY,
+                    LEGACY_DEPLOYMENT_PROVIDER_REQUIRED_REASON,
+                ),
+            ),
+            verify=cast(
+                DeploymentVerifyWorkflow,
+                _BlockedDeploymentWorkflow(
+                    DeploymentWorkflowKind.VERIFY,
+                    LEGACY_DEPLOYMENT_PROVIDER_REQUIRED_REASON,
+                ),
+            ),
+        )
+    )
+
+
 def build_setup_services(
     live_consent: LiveConsent,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
@@ -476,8 +620,13 @@ def build_setup_services(
         live_consent,
         node_provider_request,
     )
-    artifacts = build_artifact_services()
-    deployment = build_deployment_services(service_profile=service_profile)
+    artifacts = build_artifact_services_for_provider(
+        node_provider_request=node_provider_request
+    )
+    deployment = build_deployment_services_for_provider(
+        service_profile=service_profile,
+        node_provider_request=node_provider_request,
+    )
 
     return SetupServices(
         workflows=SetupWorkflows(
@@ -510,8 +659,13 @@ def build_application_services(
             live_consent,
             node_provider_request,
         ),
-        artifacts=build_artifact_services(),
-        deployment=build_deployment_services(service_profile=service_profile),
+        artifacts=build_artifact_services_for_provider(
+            node_provider_request=node_provider_request
+        ),
+        deployment=build_deployment_services_for_provider(
+            service_profile=service_profile,
+            node_provider_request=node_provider_request,
+        ),
     )
 
 
@@ -567,16 +721,29 @@ def _platform_init_steps(
     *,
     provider_request: NodeProviderSelectionRequest,
     node_provider_selection: NodeProviderSelectionService,
-    live_consent: LiveConsent | None,
     multipass_steps: tuple[AsyncWorkflowStep, ...],
 ) -> tuple[AsyncWorkflowStep, ...]:
     if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
         return multipass_steps
-    if live_consent is None or not live_consent.accepted:
-        return multipass_steps
     return tuple(
         NodeProviderEnsureNodeStep(node, node_provider_selection, provider_request)
         for node in DEFAULT_LXC_PLATFORM_NODES
+    )
+
+
+def _platform_reconcile_steps(
+    provider_request: NodeProviderSelectionRequest,
+    vm_ip_list: VmIpList,
+) -> tuple[AsyncWorkflowStep, ...]:
+    if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
+        return (vm_ip_list,)
+    return (
+        _BlockedPlatformProviderStep(
+            target_id="platform:reconcile:lxc-native-provider-boundary",
+            provider_request=provider_request,
+            message=LEGACY_RECONCILE_PROVIDER_REQUIRED_MESSAGE,
+            reason=LEGACY_RECONCILE_PROVIDER_REQUIRED_REASON,
+        ),
     )
 
 

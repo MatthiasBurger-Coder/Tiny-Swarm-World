@@ -31,8 +31,8 @@ from tiny_swarm_world.infrastructure.composition import (
     NodeProviderSelectionRequest,
     SetupServices,
     build_application_services,
-    build_artifact_services,
-    build_deployment_services,
+    build_artifact_services_for_provider,
+    build_deployment_services_for_provider,
     build_preflight_service,
     build_setup_services,
 )
@@ -169,6 +169,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
 
     if args.preflight:
         node_provider_request = _node_provider_request_from_args(args)
+        _print_legacy_provider_warning(node_provider_request)
         preflight = build_preflight_service(
             service_profile=args.service_profile,
             node_provider_request=node_provider_request,
@@ -212,6 +213,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
 
     logger.info("Running workflow: %s", workflow.name)
     node_provider_request = _node_provider_request_from_args(args)
+    _print_legacy_provider_warning(node_provider_request)
     if workflow.namespace == "setup" and workflow.action == "run":
         _print_setup_installation_plan(
             service_profile=args.service_profile,
@@ -252,10 +254,15 @@ async def run_cli_workflow(
             confirmation,
         )
     if workflow.namespace == "artifacts":
-        services = build_artifact_services()
+        services = build_artifact_services_for_provider(
+            node_provider_request=node_provider_request,
+        )
         return await run_artifact_workflow(services, workflow.action)
     if workflow.namespace == "deployment":
-        services = build_deployment_services(service_profile=service_profile)
+        services = build_deployment_services_for_provider(
+            service_profile=service_profile,
+            node_provider_request=node_provider_request,
+        )
         return await run_deployment_workflow(services, workflow.action)
     if workflow.namespace == "setup":
         if live_consent is None or not live_consent.accepted:
@@ -462,6 +469,17 @@ def _print_setup_installation_plan(
             f"source {stack_sources.get(service.name, 'infra')}, published port(s) {ports}"
         )
     print()
+
+
+def _print_legacy_provider_warning(
+    node_provider_request: NodeProviderSelectionRequest,
+) -> None:
+    if node_provider_request.requested_provider != NodeProviderKind.MULTIPASS_LEGACY:
+        return
+    print(
+        "LEGACY_NODE_PROVIDER_SELECTED: multipass_legacy is an optional "
+        "fallback path and is not the default repair target."
+    )
 
 
 def _print_setup_installation_summary(result: SetupWorkflowResult) -> None:
