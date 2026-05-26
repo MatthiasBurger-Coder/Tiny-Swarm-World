@@ -348,3 +348,56 @@ claims remain forbidden defaults.
 Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
 
 Rollback reference: `3fe0bf099a970153d7ce4c11aa364eb775eab17a`.
+
+### Slice 08: Platform And Setup Integration
+
+Responsible agent: Senior Python Automation Developer.
+
+Commit: `c7aa63213f8b2eb9593036255e912034dea4a34a`
+
+Title: `feat(platform): wire LXC provider into setup flow`
+
+Result: `PASSED`
+
+Changed files:
+
+- `src/tiny_swarm_world/__main__.py`
+- `src/tiny_swarm_world/application/services/platform/__init__.py`
+- `src/tiny_swarm_world/application/services/platform/node_provider_selection.py`
+- `src/tiny_swarm_world/application/services/platform/workflows.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `tests/application/services/platform/test_platform_workflows.py`
+- `tests/application/services/setup/test_setup_workflow.py`
+- `tests/test_package_entrypoint.py`
+
+Quality gates:
+
+- `PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow tests.application.services.platform.test_platform_workflows tests.test_package_entrypoint` passed with 63 tests.
+- The targeted Slice 08 test set plus `tests.infrastructure.test_composition` passed with 88 tests.
+- Targeted Ruff check for the Slice 08 source and test paths passed.
+- `.venv/bin/python tools/quality_gate.py typecheck` passed.
+- `.venv/bin/python tools/quality_gate.py arch-tests` passed.
+- `.venv/bin/python tools/quality_gate.py arch-lint` passed.
+- `git diff --check` passed.
+- `git diff --cached --check` passed.
+- `.venv/bin/python tools/quality_gate.py quality` passed with 586 tests and 1 skipped.
+
+Reviewer status:
+
+- Senior System Architect: READY.
+- Senior Tester: READY after targeted and full quality reruns.
+- Console/status UI reviewer: READY after setup target wording, static
+  preflight wording, provider-aware preflight configuration and provider
+  evidence fixes.
+- Git commit reviewer: READY for workflow checkpoint commit scope.
+
+arc42 update status: documentation synchronization remains assigned to Slice
+10. No arc42 file was changed in this implementation slice.
+
+ADR update status: provider ADR checked. Default setup/platform flow now uses
+`lxc_native` provider selection before mutation; `multipass_legacy` remains
+explicit and is not selected as an automatic fallback.
+
+Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+
+Rollback reference: `5b7fb155810f1acaf217fc94bdd717ce217ecedd`.
