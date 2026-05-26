@@ -42,10 +42,10 @@ setup run --node-provider multipass_legacy:
 feature/workflow-lxc-node-provider-20260526
 ```
 
-- Root `AGENTS.md` currently identifies Tiny Swarm World as a
-  Multipass-backed Docker Swarm automation project. The user request changes
-  that product direction, so later workflow slices must update governance and
-  documentation after the architecture decision is recorded.
+- At workflow creation, root `AGENTS.md` identified Multipass as the primary
+  provider for the Docker Swarm automation. Slice 10 updates that product
+  identity to LXC-native through LXD/Incus as the default direction with
+  Multipass retained as explicit legacy/fallback.
 - Root `QUALITY.md` defines the authoritative quality gate:
 
 ```bash
@@ -213,8 +213,9 @@ Risks:
   provider-neutral migration needs compatibility shims and staged naming.
 - Existing architecture tests reject undeclared application service
   directories.
-- Documentation currently presents Multipass as the baseline; docs must be
-  changed only when behavior is implemented or clearly marked as planned.
+- Documentation started from a Multipass baseline; Slice 10 must keep it
+  aligned with implemented provider behavior and mark remaining LXC-native
+  gaps as blocked or unverified.
 
 Open questions:
 
@@ -320,10 +321,10 @@ Current answer:
 PARTIALLY, WITH PLANNED PROVIDER DRIFT.
 ```
 
-The autonomous runnable setup EPIC currently names Multipass as the platform
-state provider. This workflow intentionally changes that provider direction.
-Slice 01 must record the architecture decision and update EPIC/arc42 references
-before implementation slices claim the new baseline.
+At workflow creation, the autonomous runnable setup EPIC named Multipass as
+the platform state provider. This workflow intentionally changed that provider
+direction. Slice 01 recorded the architecture decision before implementation
+slices claimed the new baseline.
 
 ## Architecture Constraints
 
@@ -1028,6 +1029,10 @@ affected_files:
   - "documentation/arc42/**"
   - "documentation/architecture/adr-lxc-native-node-provider.adoc"
   - "documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc"
+  - "documentation/workflow/context-pack.md"
+  - "documentation/workflow/context-pack.json"
+  - "documentation/workflow/workflow.md"
+  - "documentation/workflow/reports/02-architecture-baseline.md"
 affected_modules: []
 affected_contracts:
   - "operator documentation"
@@ -1049,6 +1054,10 @@ file_locks:
   - "documentation/arc42/**"
   - "documentation/architecture/adr-lxc-native-node-provider.adoc"
   - "documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc"
+  - "documentation/workflow/context-pack.md"
+  - "documentation/workflow/context-pack.json"
+  - "documentation/workflow/workflow.md"
+  - "documentation/workflow/reports/02-architecture-baseline.md"
 contract_locks:
   - "planned behavior is not documented as implemented behavior"
 architecture_locks:

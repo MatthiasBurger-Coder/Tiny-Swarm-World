@@ -37,19 +37,19 @@ The LXC-native node provider migration also extends this EPIC:
 - active workflow `documentation/workflow/workflow.md`, version
   `lxc-native-node-provider-v1.0.0`
 
-That extension accepts `lxc_native` through LXD or Incus as the planned
-default provider direction and keeps Multipass as the implemented provider
-surface until later slices move it behind explicit `multipass_legacy`
-selection.
+That extension accepts `lxc_native` through LXD or Incus as the default
+provider direction. The implementation now keeps Multipass behind explicit
+`multipass_legacy` selection and fails closed for remaining provider-native
+reconcile, artifact, deployment, and live validation gaps.
 
 The service-access dashboard and Vaultwarden baseline also extends this EPIC:
 
 - `documentation/epics/service-access-dashboard-vaultwarden.md`
 
-That extension defines a future Deployment-owned service stack capability for
-operator service access and credential visibility. It does not claim that a
-Vaultwarden stack, dashboard stack, routing asset, readiness check, or live
-deployment is implemented.
+That extension defines a Deployment-owned service stack capability for
+operator service access and credential visibility. Repository assets and
+contracts exist, but provider-native live deployment, persistence hardening,
+service readiness, and default `lxc_native` live evidence remain incomplete.
 
 ## Intent
 
@@ -111,13 +111,16 @@ Planned or incomplete:
   runnable setup remains incomplete until command-backed platform
   verification, artifact publication, registry checks, first-time stack
   bootstrap, and service readiness evidence are wired.
-- The LXC-native provider direction is accepted as planned architecture drift,
-  but provider-neutral domain contracts, LXD/Incus readiness, node lifecycle
-  adapters, setup integration, and the explicit Multipass legacy boundary are
-  not implemented yet.
-- The service-access dashboard and Vaultwarden requirement baseline exists as
-  an EPIC extension, but no stack, routing, persistence, readiness, or live
-  deployment implementation exists yet.
+- The LXC-native provider direction is implemented for default provider
+  selection, provider-neutral contracts, LXD/Incus readiness, node lifecycle
+  adapters, setup/platform init integration, and the explicit Multipass legacy
+  boundary. Provider-native platform reconcile, artifact/deployment wiring,
+  Docker Swarm-in-container live validation, and WSL2 live proof remain
+  incomplete and fail closed.
+- The service-access dashboard and Vaultwarden EPIC extension now has
+  repository assets and contracts, but provider-native deployment,
+  persistence hardening, service readiness, and live `lxc_native` evidence
+  remain incomplete.
 
 ## Scope
 
@@ -168,9 +171,10 @@ Out of scope:
   proves it.
 - Provider migration requirements preserve the Platform responsibility
   boundary and hexagonal architecture. Documentation may describe LXC-native
-  through LXD/Incus as the accepted target default direction, but must not
-  present it as implemented setup behavior until later slices provide source,
-  tests, and verification evidence.
+  through LXD/Incus as the implemented default selection and setup/platform
+  init direction, but must not present provider-native reconcile,
+  artifact/deployment behavior, Docker Swarm-in-container health, or WSL2 live
+  success as complete until source, tests, and verification evidence exist.
 - Service-access dashboard and Vaultwarden requirements preserve the
   Deployment responsibility boundary. Documentation must not present the
   service-access dashboard, Vaultwarden, routing, or credential migration as

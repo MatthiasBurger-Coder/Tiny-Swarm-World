@@ -28,8 +28,9 @@ Consequences:
 
 * `ApplicationServices` aggregates `PlatformServices`, `ArtifactServices`, and
   `DeploymentServices`;
-* Platform workflows own Multipass, netplan, Docker install, Swarm, preflight,
-  and VM/IP behavior;
+* Platform workflows own LXD/Incus provider readiness and node lifecycle,
+  Multipass legacy/fallback behavior, netplan legacy behavior, Docker install,
+  Swarm, preflight, and node or VM/IP behavior;
 * the Deployment namespace owns `EnsureNexusStack`, and deployment workflow
   composition owns explicit blocked contracts until live Portainer behavior is
   implemented;
@@ -67,19 +68,20 @@ Consequences:
 
 ADR: `documentation/architecture/adr-lxc-native-node-provider.adoc`
 
-Status: accepted as provider direction; implementation planned.
+Status: accepted as provider direction; partially implemented.
 
 Consequences:
 
-* `lxc_native` through LXD or Incus is the accepted target default provider
-  direction;
+* `lxc_native` through LXD or Incus is the default provider direction;
 * raw low-level LXC lifecycle commands are not the first default provider
   surface;
-* current runtime implementation remains Multipass-centered until later
-  provider migration slices introduce provider-neutral domain contracts,
-  application ports, readiness checks, configuration, node lifecycle adapters,
-  setup integration, and an explicit legacy boundary;
-* Multipass remains compatibility surface and must become an explicit
+* provider-neutral domain contracts, application ports, readiness checks,
+  configuration, node lifecycle adapters, setup integration, and the explicit
+  legacy boundary are implemented for default selection and platform init;
+* default platform reconcile, artifact/deployment behavior, Docker
+  Swarm-in-container health, and WSL2 live success remain unverified or
+  blocked;
+* Multipass remains compatibility surface behind explicit
   `multipass_legacy` provider selection rather than a silent fallback;
 * WSL2 LXD/Incus behavior is capability-gated and requires target-specific
   live evidence before it can be claimed as working;

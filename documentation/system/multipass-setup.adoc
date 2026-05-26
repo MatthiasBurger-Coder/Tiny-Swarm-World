@@ -1,7 +1,17 @@
-== Multipass Setup On WSL Or Linux
+== Multipass Legacy/Fallback Setup On WSL Or Linux
 
-Tiny Swarm World expects Multipass to be operated from a Linux or WSL shell.
-Use QEMU as the Multipass driver.
+Multipass is no longer the default node provider for Tiny Swarm World. The
+default path is `lxc_native` through LXD or Incus. Keep Multipass installed
+only when an operator intentionally wants to use the explicit legacy/fallback
+provider:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --node-provider multipass_legacy setup run --live
+----
+
+The legacy provider must not be selected automatically after an LXD/Incus
+readiness failure.
 
 === Install Multipass
 
@@ -62,16 +72,15 @@ sudo chmod 660 /var/run/multipass_socket || true
 Restart the WSL distribution or log out and back in so group membership is
 refreshed.
 
-=== VM Names Used By The Project
+=== Legacy VM Names
 
-The existing configuration expects these VM names:
+The legacy configuration expects these VM names:
 
 * `swarm-manager`
 * `swarm-worker-1`
 * `swarm-worker-2`
 
-The project can create VMs through the configured command repositories, but
-manual inspection is useful:
+Manual inspection is useful before a legacy run:
 
 [source,bash]
 ----
@@ -83,4 +92,4 @@ multipass info swarm-manager
 
 Some commands in `infra/config/multipass` delete and purge VMs. Treat reset
 commands as destructive and run them only when you intentionally want to remove
-local VM state.
+local legacy VM state.

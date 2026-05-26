@@ -1,0 +1,176 @@
+= LXC Native Setup Through LXD Or Incus
+
+Tiny Swarm World uses `lxc_native` as the default node provider. The provider
+is managed through LXD or Incus, not through raw low-level LXC lifecycle
+commands. Multipass remains available only when an operator explicitly selects
+`--node-provider multipass_legacy`.
+
+This page documents host preparation and safe checks. It is not live proof
+that a particular Windows/WSL2, LXD, Incus, Docker-in-container, or Docker
+Swarm-in-container installation works.
+
+== WSL2 Host Baseline
+
+For WSL, use WSL2. WSL1 is not a supported provider target. The WSL
+distribution must expose the Linux features needed by the selected provider,
+including systemd for daemon-managed provider behavior, cgroup support, and
+user namespace support.
+
+Safe non-mutating checks from the Ubuntu WSL shell:
+
+[source,bash]
+----
+systemctl is-system-running || true
+test -f /sys/fs/cgroup/cgroup.controllers
+test -f /proc/self/uid_map
+cat /proc/sys/kernel/unprivileged_userns_clone
+----
+
+The project preflight checks these capabilities before provider mutation. A
+failed WSL2 capability check blocks the default provider path; it does not
+silently fall back to Multipass.
+
+== LXD Installation
+
+Ubuntu documents the LXD snap as the recommended install path where Snap is
+available. Install and grant the current user access to the LXD daemon:
+
+[source,bash]
+----
+sudo snap install lxd
+getent group lxd | grep -qwF "$USER" || sudo usermod -aG lxd "$USER"
+newgrp lxd
+----
+
+Initialize LXD before creating instances:
+
+[source,bash]
+----
+lxd init
+----
+
+Use `sudo lxd init` only when the local host policy requires root instead of
+daemon access through the `lxd` group.
+
+For a minimal local setup, use `lxd init --minimal` only when that option is
+available on the installed LXD version and matches the operator's local
+storage/network choice.
+
+Verify daemon access from the same shell that runs Tiny Swarm World:
+
+[source,bash]
+----
+lxc version
+lxc info
+----
+
+== Incus Installation
+
+Incus is the other supported managed LXC backend. Install it by following the
+official Incus installation guide for the host distribution, then ensure the
+operator can access the local daemon. Incus local administration commonly uses
+the `incus-admin` group.
+
+Verify daemon access from the same shell that runs Tiny Swarm World:
+
+[source,bash]
+----
+incus version
+incus info
+----
+
+If both LXD and Incus are installed and usable, Tiny Swarm World blocks
+provider selection until the backend is explicit:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd --preflight
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
+----
+
+== Project Provider Checks
+
+The committed provider configuration lives at:
+
+* `infra/config/node-providers/provider_config.yaml`
+
+It declares:
+
+* `default_provider: lxc_native`;
+* candidate backends `incus` and `lxd`;
+* `multipass_legacy` as `explicit_only`;
+* node names `swarm-manager`, `swarm-worker-1`, and `swarm-worker-2`;
+* the `docker-swarm` profile requirements.
+
+Run the non-mutating project preflight before a live run:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd --preflight
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
+----
+
+The default live setup command is:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+The command still requires the live confirmation prompt. It blocks rather than
+claiming success when provider readiness, profile requirements, artifacts,
+deployment, or service readiness are incomplete.
+
+== Docker-In-Container Profile Notes
+
+Docker Swarm remains the runtime target. Running Docker inside managed LXC
+containers requires explicit profile support. The committed `docker-swarm`
+profile contract requires nesting and syscall interception, keeps privileged
+mode disabled by default, and forbids host network and host mounts by default.
+
+Tiny Swarm World does not silently create or repair provider profiles during
+normal quality gates. Profile creation or mutation is a live infrastructure
+operation and needs explicit operator consent.
+
+== Manual Smoke Check
+
+The following commands are optional operator checks and create a temporary
+container. They are not part of the repository quality gate.
+
+LXD:
+
+[source,bash]
+----
+lxc launch ubuntu:24.04 test-lxc
+lxc list
+lxc exec test-lxc -- bash -lc "cat /etc/os-release && getent hosts archive.ubuntu.com"
+lxc delete test-lxc --force
+----
+
+Incus:
+
+[source,bash]
+----
+incus launch images:ubuntu/24.04 test-lxc
+incus list
+incus exec test-lxc -- bash -lc "cat /etc/os-release && getent hosts archive.ubuntu.com"
+incus delete test-lxc --force
+----
+
+Passing this smoke check proves only the local provider/container/DNS path for
+that host. It is not proof that Docker Swarm, Portainer, Nexus, Jenkins,
+RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image publication, or stack
+deployment is complete.
+
+== References
+
+Official references used for this setup baseline:
+
+* Microsoft WSL systemd documentation: `https://learn.microsoft.com/en-us/windows/wsl/systemd`
+* Ubuntu WSL documentation: `https://documentation.ubuntu.com/wsl/stable/`
+* Ubuntu LXD installation documentation: `https://documentation.ubuntu.com/lxd/default/installing/`
+* Ubuntu LXD initialization documentation: `https://documentation.ubuntu.com/lxd/latest/howto/initialize/`
+* Ubuntu Docker inside LXD tutorial: `https://ubuntu.com/tutorials/how-to-run-docker-inside-lxd-containers`
+* Incus installation documentation: `https://linuxcontainers.org/incus/docs/main/installing/`
+* LXC security documentation: `https://linuxcontainers.org/lxc/security/`

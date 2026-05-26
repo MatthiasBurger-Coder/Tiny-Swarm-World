@@ -26,11 +26,10 @@ rules.
   must not be committed.
 * Mutating workflow steps continue only after apply succeeds and verification
   returns `verified` evidence.
-* The default quality gate must not create VMs, mutate networking, initialize
-  Docker Swarm, deploy stacks, or bootstrap services.
-* LXC-native through LXD or Incus is the accepted target default provider
-  direction. Current runtime implementation remains Multipass-centered until
-  later provider migration slices pass.
+* The default quality gate must not create provider nodes or VMs, mutate
+  networking, initialize Docker Swarm, deploy stacks, or bootstrap services.
+* LXC-native through LXD or Incus is the default provider direction.
+  Multipass is retained only as explicit `multipass_legacy` fallback.
 * Raw low-level LXC command automation is not an accepted first default
   provider path.
 * Multipass fallback must be explicit and operator-selected. A failed

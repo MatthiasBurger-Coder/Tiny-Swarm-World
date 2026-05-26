@@ -16,8 +16,10 @@
 
 ## Baseline Findings
 
-- Current governance and documentation still identify Multipass as the primary
-  platform provider.
+- At workflow creation, governance and documentation still identified
+  Multipass as the primary platform provider. Slice 10 later updates that
+  identity to LXC-native through LXD/Incus as the default direction with
+  Multipass as explicit legacy/fallback.
 - The accepted setup safety contract is provider-shaped but names Multipass in
   several concrete readiness and mutation examples.
 - Architecture tests allow existing Platform application service directories

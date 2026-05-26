@@ -9,9 +9,10 @@ approved, with live local infrastructure.
 The following systems are outside the Python process and are treated as live
 infrastructure:
 
-* Multipass and the managed virtual machines;
-* Docker Engine and Docker Swarm inside or outside the VMs;
-* netplan and host/VM networking;
+* LXD or Incus and managed LXC provider nodes;
+* Multipass and the managed virtual machines for explicit legacy/fallback use;
+* Docker Engine and Docker Swarm inside or outside the provider nodes;
+* provider networking, netplan, and host/VM networking;
 * socat and WSL port-forwarding helpers;
 * Portainer and its API;
 * Nexus and its API;

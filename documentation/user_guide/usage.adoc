@@ -3,8 +3,9 @@
 Tiny Swarm World contains two different kinds of workflows:
 
 * development workflows that are safe to run during normal coding
-* live infrastructure workflows that change Multipass, Docker, Portainer,
-  Nexus, networking, or service stacks
+* live infrastructure workflows that change LXD/Incus/LXC provider state,
+  explicit Multipass legacy state, Docker, Portainer, Nexus, networking, or
+  service stacks
 
 Use a Linux or WSL shell from the repository root unless a command explicitly
 states otherwise.
@@ -73,11 +74,26 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run
 ----
 
 The canonical live operator command requires live-infrastructure consent before
-services are constructed:
+services are constructed and uses `lxc_native` by default:
 
 [source,bash]
 ----
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+Select a managed LXC backend explicitly when both LXD and Incus are available:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd setup run --live
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
+----
+
+Use Multipass only through the explicit legacy/fallback provider:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --node-provider multipass_legacy setup run --live
 ----
 
 The command prompts for a short confirmation:
@@ -104,27 +120,31 @@ execution steps are not wired yet; after confirmation they currently block
 until retention and teardown semantics are implemented.
 
 Artifact and deployment workflow command names are reserved by the CLI contract
-and dispatch to explicit blocked workflow contracts until live Nexus, registry,
-Portainer, and observed-state verification contracts are implemented.
+and dispatch to explicit blocked workflow contracts on the default
+`lxc_native` path until provider-native live Nexus, registry, Portainer, and
+observed-state verification contracts are implemented.
 
 Optional live smoke validation is a separate operator action, not part of
 `python3 tools/quality_gate.py quality`. Run `setup run --live` only on a
-disposable or recoverable local environment and only when Multipass, Docker
-Swarm, networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
-Swagger/NGINX, image, and stack changes are intentional.
+disposable or recoverable local environment and only when LXD/Incus/LXC or
+explicit Multipass legacy provider state, Docker Swarm, networking, Portainer,
+Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, image, and stack changes
+are intentional.
 
 == Verification Scope
 
 The workflow safety behavior is verified through unit tests, architecture
 checks, import-linter contracts, type checks, and static command catalog
-validation. The default quality gate does not run live Multipass, Docker Swarm,
-compose, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or
-Swagger/NGINX commands.
+validation. The default quality gate does not run live LXD, Incus, LXC
+container lifecycle, Multipass, Docker Swarm, compose, netplan, socat,
+Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX commands.
 
 == Service Preparation
 
 The workflow-level CLI is the supported setup surface. Portainer, Nexus, image
-publication, stack deployment, and final verification are sequenced by:
+publication, stack deployment, and final verification belong to setup
+boundaries. On the default `lxc_native` path they remain blocked until
+provider-native artifact, deployment, and observed-state contracts are wired:
 
 [source,bash]
 ----
@@ -182,15 +202,17 @@ Do not copy local compatibility defaults into new configuration or logs.
 
 == Stack Deployment
 
-Stack deployment is handled by the workflow-level setup command. Direct
-Portainer upload scripts have been retired so compose assets cannot bypass the
-CLI consent gate.
+Stack deployment is owned by the workflow-level setup boundary. On the default
+`lxc_native` path it remains blocked until provider-native deployment and
+observed-state contracts are wired. Direct Portainer upload scripts have been
+retired so compose assets cannot bypass the CLI consent gate.
 
 == Service Access Dashboard And Vaultwarden
 
-The full guided setup includes the service-access stack by default. It is the
-installed management landing page for service links and Vaultwarden credential
-references. Operators who intentionally want only the older base service set
+The full guided setup selects the service-access stack profile by default. It
+provides the intended management landing page contract for service links and
+Vaultwarden credential references after a verified provider-specific live
+deployment. Operators who intentionally want only the older base service set
 can pass `--service-profile default` to setup, deployment, or preflight
 commands.
 
@@ -213,10 +235,8 @@ It does not show password values.
 Authorized operators reveal or copy password values only through
 Vaultwarden's authenticated UI.
 
-The previous 2026-05-25 live smoke test verified the older dedicated
-`8085` dashboard route on Swarm node IPs. The current central
-`http://localhost` route requires redeploying the updated service-access stack
-before browser verification.
+The current central `http://localhost` route requires provider-specific
+redeployment before browser verification.
 
 == Commit And Push Shortcut
 

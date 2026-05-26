@@ -1,29 +1,53 @@
 = Networking
 
-Tiny Swarm World uses Multipass VMs and Docker Swarm networking. WSL does not
-provide a dedicated port-forwarding daemon, so local access can require
-explicit forwarding with `socat`, netplan, or Docker/Portainer published ports.
+Tiny Swarm World uses Docker Swarm networking on provider nodes. The default
+provider nodes are managed LXC containers through LXD or Incus. Multipass VM
+networking remains legacy/fallback behavior for explicit
+`--node-provider multipass_legacy` runs.
 
-== Inspect VM Addresses
+Local access can still depend on WSL forwarding state, published Docker ports,
+provider bridge configuration, or optional `socat` forwarding. Do not
+hard-code addresses from examples.
+
+== Inspect Provider Node Addresses
+
+For Incus:
+
+[source,bash]
+----
+incus list swarm-manager --format json
+----
+
+For LXD:
+
+[source,bash]
+----
+lxc list swarm-manager --format json
+----
+
+For the explicit Multipass legacy path:
 
 [source,bash]
 ----
 multipass list
 multipass info swarm-manager
-hostname -I
 ----
 
-Do not hard-code addresses from examples. Use the current VM addresses from
-Multipass output.
+Use current provider output only for manual diagnosis. Do not commit
+host-specific IP addresses, gateway values, or forwarded port state.
 
-== Netplan Helpers
+== Provider Network Changes
 
-Network-related command templates live under:
+LXD and Incus network, storage, and profile changes are live infrastructure
+mutations. They are not part of the default quality gate and must be performed
+only when the operator intentionally approves provider changes.
+
+Legacy netplan templates and helpers remain under:
 
 * `infra/config/network/netplant`
 * `src/tiny_swarm_world/application/services/network`
 
-Manual netplan commands for inspection inside a VM include:
+Manual netplan commands for inspection inside a legacy VM include:
 
 [source,bash]
 ----
@@ -33,11 +57,11 @@ sudo netplan try
 sudo netplan apply
 ----
 
-Run netplan changes only when you intend to modify VM networking.
+Run netplan changes only when you intend to modify legacy VM networking.
 
 == WSL Port Forwarding
 
-Install `socat` when forwarding is required:
+Install `socat` only when forwarding is required:
 
 [source,bash]
 ----
@@ -49,10 +73,10 @@ Example pattern:
 
 [source,bash]
 ----
-socat TCP-LISTEN:<local-port>,fork TCP:<vm-ip>:<target-port>
+socat TCP-LISTEN:<local-port>,fork TCP:<node-ip>:<target-port>
 ----
 
-Replace `<vm-ip>` and ports with values from the active Multipass and Docker
+Replace `<node-ip>` and ports with values from the active provider and Docker
 state. Avoid committing host-specific IP addresses.
 
 == Verification
@@ -68,4 +92,5 @@ curl -s http://localhost:9000
 ----
 
 `docker node ls` and `docker service ls` require a Docker Swarm manager
-context.
+context. Endpoint configuration and localhost routes are not service-health
+proof unless observed-state or live smoke evidence exists for that run.

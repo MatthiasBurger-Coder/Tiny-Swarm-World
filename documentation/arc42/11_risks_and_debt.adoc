@@ -66,23 +66,21 @@ Remaining debt:
 
 === LXC Native Provider Migration Risks
 
-The LXC-native provider direction is accepted as planned architecture drift.
-The current implementation remains Multipass-centered until later provider
-migration slices implement and verify the new provider contracts.
+The LXC-native provider direction is accepted and partially implemented.
+Default provider selection, LXD/Incus readiness, node lifecycle adapters,
+setup/platform init integration, and the explicit Multipass legacy boundary
+are implemented and test-backed.
 
 Remaining risks and debt:
 
-* provider-neutral domain and application port contracts do not exist yet;
-* LXD/Incus readiness, backend ambiguity handling, WSL2 systemd/provider
-  capability gates, and Docker-in-container profile validation remain planned
-  behavior;
-* Multipass still appears in current runtime and deployment documentation as
-  the implemented provider surface and must be moved behind explicit
-  `multipass_legacy` selection before it stops being the default behavior;
+* default platform reconcile still blocks at the LXC-native provider boundary;
+* default artifact and deployment workflows still block until provider-native
+  publication, registry, Portainer, stack, and observed-state contracts are
+  wired;
+* Docker Swarm inside LXD/Incus containers has not been live-validated by this
+  repository workflow;
 * WSL2 success could be overclaimed if documentation, static tests, or native
   Linux evidence are treated as WSL2 live evidence;
-* silent fallback to Multipass could mask LXD/Incus readiness failures unless
-  provider selection is fail-closed and operator-visible;
 * Docker Swarm inside LXD/Incus containers may require nesting, cgroup,
   AppArmor, seccomp, capability, privileged-profile, or host-mount decisions
   that need security and DevOps review;
@@ -96,10 +94,8 @@ Remaining risks and debt:
 The service-access dashboard and Vaultwarden baseline is implemented as
 repository compose assets, image-packaged dashboard/NGINX assets, setup
 profile contracts, setup manifest requirements and static tests.
-A post-workflow live smoke test on 2026-05-25 verified the Portainer-managed
-stack on the Swarm node IPs using the older dedicated dashboard port. The
-current central `http://localhost` route requires a fresh live redeployment
-before it is claimed as verified.
+The current central `http://localhost` route requires a fresh
+provider-specific redeployment before it is claimed as verified.
 
 Remaining risks and debt:
 
@@ -138,6 +134,5 @@ Resolved or narrowed risks:
   Portainer-managed stack path instead of bind-mounted from the repository;
 * static tests reject React/Vite project files, live orchestration helpers,
   credential-bearing dashboard links, and raw password rendering.
-* the 2026-05-25 live smoke test verified the Portainer stack, Swarm tasks,
-  node-IP dashboard route, node-IP Vaultwarden route, and host-neutral
-  `/vaultwarden` redirect.
+* service-access live evidence must be collected separately for the default
+  `lxc_native` provider baseline.
