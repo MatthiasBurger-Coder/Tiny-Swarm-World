@@ -1016,6 +1016,7 @@ affected_files:
   - "AGENTS.md"
   - "README.md"
   - "documentation/epics/autonomous-runnable-setup.md"
+  - "documentation/epics/service-access-dashboard-vaultwarden.md"
   - "documentation/epics/system-unification.md"
   - "documentation/system/multipass-setup.adoc"
   - "documentation/system/lxc-native-setup.adoc"
@@ -1026,6 +1027,7 @@ affected_files:
   - "documentation/deployment/system.adoc"
   - "documentation/arc42/**"
   - "documentation/architecture/adr-lxc-native-node-provider.adoc"
+  - "documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc"
 affected_modules: []
 affected_contracts:
   - "operator documentation"
@@ -1039,12 +1041,14 @@ file_locks:
   - "AGENTS.md"
   - "README.md"
   - "documentation/epics/autonomous-runnable-setup.md"
+  - "documentation/epics/service-access-dashboard-vaultwarden.md"
   - "documentation/epics/system-unification.md"
   - "documentation/system/**"
   - "documentation/user_guide/**"
   - "documentation/deployment/**"
   - "documentation/arc42/**"
   - "documentation/architecture/adr-lxc-native-node-provider.adoc"
+  - "documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc"
 contract_locks:
   - "planned behavior is not documented as implemented behavior"
 architecture_locks:
