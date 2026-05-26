@@ -200,3 +200,42 @@ or privileged profile default was added.
 Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
 
 Rollback reference: `13ef3cb90b00db4fbf1cfa979d993afd136d4b42`.
+
+### Slice 05: LXC-Native Provider Configuration
+
+Responsible agent: Senior Python Automation Developer.
+
+Commit: `d3d590eba7df506a58559215febbc7be5a69a453`
+
+Title: `feat(config): add LXC node provider configuration`
+
+Result: `PASSED`
+
+Changed files:
+
+- `infra/config/node-providers/provider_config.yaml`
+- `src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py`
+- `tests/infrastructure/adapters/repositories/__init__.py`
+- `tests/infrastructure/adapters/repositories/test_node_provider_config_yaml_repository.py`
+
+Quality gates:
+
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories` passed.
+- `python3 -m ruff check src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py tests/infrastructure/adapters/repositories/test_node_provider_config_yaml_repository.py tests/infrastructure/adapters/repositories/__init__.py` passed.
+- Provider-config forbidden-value search passed with no matches.
+- `python3 tools/quality_gate.py typecheck` passed.
+- `python3 tools/quality_gate.py test` passed.
+- `git diff --check` passed.
+- `git diff --cached --check` passed.
+- `python3 tools/quality_gate.py quality` passed.
+
+arc42 update status: Slice 05 metadata references deployment documentation,
+but documentation files are outside the Slice 05 file locks. No arc42 file was
+changed in this configuration slice.
+
+ADR update status: provider ADR checked. No privileged default, committed
+secret, host IP, username, or host-local path was added.
+
+Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+
+Rollback reference: `134f28f3fcbce49fc98fb9d257b42b4ea1eb022c`.
