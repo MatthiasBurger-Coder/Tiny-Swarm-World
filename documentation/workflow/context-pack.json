@@ -88,7 +88,8 @@
       "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider",
       "PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow",
       "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows",
-      "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint"
+      "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint",
+      "PYTHONPATH=src python3 -m unittest tests.application.services.multipass tests.infrastructure.adapters.clients.test_multipass_swarm_runtime tests.infrastructure.adapters.clients.test_multipass_container_image_publisher tests.infrastructure.adapters.clients.test_multipass_portainer_admin_client tests.infrastructure.test_composition tests.application.services.platform.test_node_provider_selection tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository"
     ],
     "required": [
       "python3 tools/quality_gate.py quality"
@@ -102,7 +103,7 @@
     ]
   },
   "governing_hashes": {
-    "documentation/workflow/workflow.md": "bf087388b296aceecb777a8c9b29668291bffd42",
+    "documentation/workflow/workflow.md": "fc4da39206ed8d61ad17db8d518dd7460cfb93a6",
     "AGENTS.md": "13a61789bff97a4b0b7c99424aca1d79f013d55e",
     "QUALITY.md": "17002150bab9f168eb60be85d55b7a0c1cb441e5",
     "documentation/epics/autonomous-runnable-setup.md": "a8b8d02c04533ba6570e713681cd6ed2ffce908d",

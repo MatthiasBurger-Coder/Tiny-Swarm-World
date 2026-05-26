@@ -938,17 +938,22 @@ affected_files:
   - "src/tiny_swarm_world/application/services/multipass/**"
   - "src/tiny_swarm_world/infrastructure/adapters/clients/multipass_*.py"
   - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/__main__.py"
   - "infra/config/multipass/**"
   - "infra/config/docker/command_multipass_*.yaml"
   - "tests/application/services/multipass/**"
   - "tests/infrastructure/adapters/clients/test_multipass_*.py"
+  - "tests/infrastructure/test_composition.py"
+  - "tests/test_package_entrypoint.py"
 affected_modules:
   - "tiny_swarm_world.domain.multipass"
   - "tiny_swarm_world.application.services.multipass"
   - "tiny_swarm_world.infrastructure.adapters.clients"
+  - "tiny_swarm_world.infrastructure.composition"
 affected_contracts:
   - "multipass legacy provider"
   - "legacy fallback selection"
+  - "standalone artifact and deployment provider guard"
 dependencies:
   - "03"
   - "08"
@@ -958,34 +963,41 @@ file_locks:
   - "src/tiny_swarm_world/application/services/multipass/**"
   - "src/tiny_swarm_world/infrastructure/adapters/clients/multipass_*.py"
   - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/__main__.py"
   - "infra/config/multipass/**"
   - "infra/config/docker/command_multipass_*.yaml"
   - "tests/application/services/multipass/**"
   - "tests/infrastructure/adapters/clients/test_multipass_*.py"
+  - "tests/infrastructure/test_composition.py"
+  - "tests/test_package_entrypoint.py"
 contract_locks:
   - "Multipass legacy must be explicit"
   - "destructive Multipass cleanup remains guarded"
+  - "default artifact/deployment workflows must not construct Multipass clients"
 architecture_locks:
   - "legacy adapter remains infrastructure-owned"
+  - "entry point remains thin"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.multipass tests.infrastructure.adapters.clients.test_multipass_swarm_runtime tests.infrastructure.adapters.clients.test_multipass_container_image_publisher"
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.multipass tests.infrastructure.adapters.clients.test_multipass_swarm_runtime tests.infrastructure.adapters.clients.test_multipass_container_image_publisher tests.infrastructure.adapters.clients.test_multipass_portainer_admin_client tests.infrastructure.test_composition tests.test_package_entrypoint tests.application.services.platform.test_node_provider_selection tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository"
   required:
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "deployment view demotes Multipass after behavior exists"
+  arc42: "deployment view demotes Multipass in Slice 10 documentation sync"
   adr: "provider ADR checked"
 stop_conditions:
   - "Multipass remains default provider"
   - "Multipass repair work expands instead of being isolated"
   - "legacy fallback runs without explicit provider selection"
+  - "default artifact or deployment workflows construct Multipass clients"
 ```
 
 Done criteria:
 
 - Existing Multipass behavior remains test-covered but is no longer default.
 - Fallback selection is explicit and operator-visible.
-- Documentation and CLI warnings identify Multipass as legacy/fallback.
+- CLI warnings identify Multipass as legacy/fallback for explicit selection.
+- General documentation updates remain deferred to Slice 10.
 
 ### Slice 10: Documentation And Governance Synchronization
 
