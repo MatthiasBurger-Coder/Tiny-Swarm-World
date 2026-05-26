@@ -123,3 +123,42 @@ ADR update status: provider ADR checked.
 Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
 
 Rollback reference: `173b72b701732f28004351218c4c5799437e1a52`.
+
+### Slice 03: Provider Ports And Selection Contract
+
+Responsible agent: Senior Python Automation Developer.
+
+Commit: `54efdef03d9694038e02f071e42585e7319d63cb`
+
+Title: `feat(application): add node provider selection contract`
+
+Result: `PASSED`
+
+Changed files:
+
+- `src/tiny_swarm_world/application/ports/node_provider/__init__.py`
+- `src/tiny_swarm_world/application/ports/node_provider/port_node_lifecycle.py`
+- `src/tiny_swarm_world/application/ports/node_provider/port_node_provider_readiness.py`
+- `src/tiny_swarm_world/application/services/platform/__init__.py`
+- `src/tiny_swarm_world/application/services/platform/node_provider_selection.py`
+- `tests/application/services/platform/test_node_provider_selection.py`
+
+Quality gates:
+
+- `PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_node_provider_selection` passed.
+- `python3 -m ruff check src/tiny_swarm_world/application/ports/node_provider src/tiny_swarm_world/application/services/platform/node_provider_selection.py tests/application/services/platform/test_node_provider_selection.py` passed.
+- `python3 tools/quality_gate.py arch-tests` passed.
+- `python3 tools/quality_gate.py typecheck` passed.
+- `python3 tools/quality_gate.py test` passed.
+- `git diff --check` passed.
+- `git diff --cached --check` passed.
+- `python3 tools/quality_gate.py quality` passed.
+
+arc42 update status: provider selection guardrails already recorded by Slice 01;
+no additional arc42 file changed in this application-contract slice.
+
+ADR update status: provider ADR checked.
+
+Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+
+Rollback reference: `d7d90fc6861e0287a0c9378e77e5e1549086fc66`.
