@@ -57,6 +57,7 @@ privileged container risk handling.
 - `tests/infrastructure/adapters/clients`
 - `tests/infrastructure/adapters/repositories`
 - `documentation/architecture`
+- `documentation/epics`
 - `documentation/system`
 - `documentation/user_guide`
 - `documentation/deployment`
@@ -128,7 +129,7 @@ Git blob hashes:
 
 | File | Hash |
 | --- | --- |
-| `documentation/workflow/workflow.md` | `fc4da39206ed8d61ad17db8d518dd7460cfb93a6` |
+| `documentation/workflow/workflow.md` | `b13ae79141b86454092d2a09c770e7f96581cf7e` |
 | `AGENTS.md` | `13a61789bff97a4b0b7c99424aca1d79f013d55e` |
 | `QUALITY.md` | `17002150bab9f168eb60be85d55b7a0c1cb441e5` |
 | `documentation/epics/autonomous-runnable-setup.md` | `a8b8d02c04533ba6570e713681cd6ed2ffce908d` |
