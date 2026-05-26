@@ -290,3 +290,61 @@ checked for managed CLI command shape (`list`, `launch`, `profile show`).
 Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
 
 Rollback reference: `b1594ec485b91043c1ca1c95111160b8bbda99ad`.
+
+### Slice 07: Docker Swarm-In-LXC Contract
+
+Responsible agent: Senior Python Automation Developer.
+
+Commit: `2439a49f591fe22470e324539f57a5531fd3e308`
+
+Title: `feat(platform): add Docker Swarm LXC contracts`
+
+Result: `PASSED`
+
+Changed files:
+
+- `src/tiny_swarm_world/domain/node_provider/docker_swarm_lxc.py`
+- `src/tiny_swarm_world/domain/node_provider/__init__.py`
+- `src/tiny_swarm_world/domain/network/container_network_plan.py`
+- `src/tiny_swarm_world/domain/network/__init__.py`
+- `src/tiny_swarm_world/application/services/platform/docker_swarm_lxc_contract.py`
+- `src/tiny_swarm_world/application/services/platform/__init__.py`
+- `tests/domain/node_provider/test_docker_swarm_lxc_contract.py`
+- `tests/domain/network/test_container_network_plan.py`
+- `tests/domain/network/__init__.py`
+- `tests/application/services/platform/test_docker_swarm_lxc_contract.py`
+- `tests/application/services/platform/__init__.py`
+
+Quality gates:
+
+- `PYTHONPATH=src python3 -m unittest tests.domain.node_provider tests.domain.network tests.application.services.platform` passed with 112 tests.
+- Targeted Ruff check for the Slice 07 source and test paths passed.
+- `python3 tools/quality_gate.py typecheck` passed.
+- `python3 tools/quality_gate.py arch-tests` passed.
+- `git diff --check` passed for the Slice 07 file scope; global WSL Git output
+  reported unrelated CRLF warnings in untouched legacy files only.
+- `git diff --cached --check` passed.
+- `python3 tools/quality_gate.py quality` passed with 579 tests and 1 skipped.
+
+Reviewer status:
+
+- Senior Tester: READY after package-discovery verification and targeted
+  regression rerun.
+- Senior DevOps Engineer: READY after observed-role, IP-literal network name,
+  AppArmor and Seccomp contract fixes.
+- Senior Security/Sandbox Engineer: READY after confirming non-privileged
+  defaults, no host networking, no host bridge/firewall mutation and
+  summary-only evidence.
+- Git commit reviewer: READY for workflow checkpoint commit scope.
+
+arc42 update status: documentation synchronization remains assigned to the
+later documentation slice. No arc42 file was changed in this contract-model
+slice.
+
+ADR update status: provider ADR checked. Privileged containers, host
+networking, host mounts, host bridge/firewall mutation and unobserved health
+claims remain forbidden defaults.
+
+Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+
+Rollback reference: `3fe0bf099a970153d7ce4c11aa364eb775eab17a`.
