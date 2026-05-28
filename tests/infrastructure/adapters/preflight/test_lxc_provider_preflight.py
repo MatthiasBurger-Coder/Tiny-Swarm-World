@@ -44,7 +44,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             [
                 (("incus", "version"), 5.0),
-                (("incus", "info", "--format", "json"), 5.0),
+                (("incus", "info"), 5.0),
             ],
             runner.calls,
         )
@@ -62,7 +62,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             [
                 (("lxc", "version"), 5.0),
-                (("lxc", "info", "--format", "json"), 5.0),
+                (("lxc", "info"), 5.0),
             ],
             runner.calls,
         )
@@ -169,7 +169,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             [
                 (("lxc", "version"), 5.0),
-                (("lxc", "info", "--format", "json"), 5.0),
+                (("lxc", "info"), 5.0),
             ],
             runner.calls,
         )
@@ -357,9 +357,9 @@ def _assert_read_only_command(args) -> None:
         raise AssertionError(f"mutating provider command was called: {argv!r}")
     if argv not in {
         ("incus", "version"),
-        ("incus", "info", "--format", "json"),
+        ("incus", "info"),
         ("lxc", "version"),
-        ("lxc", "info", "--format", "json"),
+        ("lxc", "info"),
     }:
         raise AssertionError(f"unexpected provider command was called: {argv!r}")
 

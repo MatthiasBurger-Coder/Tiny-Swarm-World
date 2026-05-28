@@ -676,7 +676,7 @@ class TestHostPreflightProbe(unittest.TestCase):
 
         self.assertTrue(probe.port_available(occupied_port))
 
-    def test_port_available_fails_closed_when_bind_is_not_permitted(self):
+    def test_port_available_fails_closed_when_unprivileged_bind_is_not_permitted(self):
         probe = HostPreflightProbe(Path.cwd())
         bind_socket = MagicMock()
         bind_socket.__enter__.return_value = bind_socket
@@ -686,7 +686,22 @@ class TestHostPreflightProbe(unittest.TestCase):
             "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.socket.socket",
             return_value=bind_socket,
         ):
-            self.assertFalse(probe.port_available(80))
+            self.assertFalse(probe.port_available(8080))
+
+    def test_privileged_port_available_when_bind_denied_and_no_listener_exists(self):
+        probe = HostPreflightProbe(Path.cwd())
+        bind_socket = MagicMock()
+        bind_socket.__enter__.return_value = bind_socket
+        bind_socket.bind.side_effect = PermissionError()
+        connect_socket = MagicMock()
+        connect_socket.__enter__.return_value = connect_socket
+        connect_socket.connect_ex.return_value = 111
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.socket.socket",
+            side_effect=(bind_socket, connect_socket),
+        ):
+            self.assertTrue(probe.port_available(80))
 
     def test_port_matches_expected_service_recognizes_portainer(self):
         probe = HostPreflightProbe(Path.cwd())

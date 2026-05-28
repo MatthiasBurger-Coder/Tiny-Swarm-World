@@ -226,7 +226,7 @@ def _valid_config() -> dict[str, Any]:
                 "backend": None,
                 "profile": "docker-swarm",
                 "image_alias": "ubuntu-24.04",
-                "resources": {"cpu": "2", "memory": "4G", "disk": "20G"},
+                "resources": {"cpu": "2", "memory": "4GiB", "disk": "20GiB"},
                 "networks": ["control"],
             },
             {
@@ -236,7 +236,7 @@ def _valid_config() -> dict[str, Any]:
                 "backend": None,
                 "profile": "docker-swarm",
                 "image_alias": "ubuntu-24.04",
-                "resources": {"cpu": "2", "memory": "8G", "disk": "50G"},
+                "resources": {"cpu": "2", "memory": "8GiB", "disk": "50GiB"},
                 "networks": ["control"],
             },
         ],

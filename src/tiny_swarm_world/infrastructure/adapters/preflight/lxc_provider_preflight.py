@@ -34,8 +34,8 @@ _BACKEND_CLI = {
     ManagedLxcBackend.LXD: "lxc",
 }
 _READINESS_COMMANDS = {
-    ManagedLxcBackend.INCUS: (("incus", "version"), ("incus", "info", "--format", "json")),
-    ManagedLxcBackend.LXD: (("lxc", "version"), ("lxc", "info", "--format", "json")),
+    ManagedLxcBackend.INCUS: (("incus", "version"), ("incus", "info")),
+    ManagedLxcBackend.LXD: (("lxc", "version"), ("lxc", "info")),
 }
 
 

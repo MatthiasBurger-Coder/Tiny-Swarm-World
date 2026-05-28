@@ -765,10 +765,18 @@ def _operator_secret_value(name: str) -> str:
 
 def _wsl_lxc_lifecycle_capability_available() -> bool:
     return (
-        _linux_text_file_equals(Path("/proc/sys/kernel/unprivileged_userns_clone"), "1")
+        _wsl_unprivileged_userns_clone_available()
         and Path("/sys/fs/cgroup/cgroup.controllers").exists()
         and Path("/proc/self/uid_map").exists()
     )
+
+
+def _wsl_unprivileged_userns_clone_available(
+    path: Path = Path("/proc/sys/kernel/unprivileged_userns_clone"),
+) -> bool:
+    if not path.exists():
+        return True
+    return _linux_text_file_equals(path, "1")
 
 
 def _linux_text_file_equals(path: Path, expected: str) -> bool:

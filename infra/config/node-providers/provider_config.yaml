@@ -18,8 +18,8 @@ nodes:
     image_alias: ubuntu-24.04
     resources:
       cpu: "2"
-      memory: 4G
-      disk: 20G
+      memory: 4GiB
+      disk: 20GiB
     networks:
       - control
   - name: swarm-worker-1
@@ -30,8 +30,8 @@ nodes:
     image_alias: ubuntu-24.04
     resources:
       cpu: "2"
-      memory: 8G
-      disk: 50G
+      memory: 8GiB
+      disk: 50GiB
     networks:
       - control
   - name: swarm-worker-2
@@ -42,8 +42,8 @@ nodes:
     image_alias: ubuntu-24.04
     resources:
       cpu: "1"
-      memory: 2G
-      disk: 10G
+      memory: 2GiB
+      disk: 10GiB
     networks:
       - control
 profiles:

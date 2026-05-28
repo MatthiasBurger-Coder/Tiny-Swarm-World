@@ -79,6 +79,32 @@ class TestComposition(unittest.TestCase):
         self.assertIn("workflows", platform_field_names)
         self.assertEqual({"init", "reconcile", "reset", "destroy", "verify"}, workflow_field_names)
 
+    def test_wsl_lxc_user_namespace_gate_allows_missing_kernel_flag(self):
+        with patch.object(
+            composition,
+            "_linux_text_file_equals",
+            side_effect=AssertionError("missing WSL kernel flag must not be read"),
+        ):
+            self.assertTrue(
+                composition._wsl_unprivileged_userns_clone_available(
+                    _ExistingPath(exists=False)
+                )
+            )
+
+    def test_wsl_lxc_user_namespace_gate_honors_present_kernel_flag(self):
+        with patch.object(
+            composition,
+            "_linux_text_file_equals",
+            return_value=True,
+        ) as text_file_equals:
+            self.assertTrue(
+                composition._wsl_unprivileged_userns_clone_available(
+                    _ExistingPath(exists=True)
+                )
+            )
+
+        text_file_equals.assert_called_once()
+
     def test_artifact_and_deployment_service_bundles_exist(self):
         artifact_field_names = {field.name for field in fields(composition.ArtifactServices)}
         artifact_workflow_names = {field.name for field in fields(composition.ArtifactWorkflows)}
@@ -734,6 +760,14 @@ class _RecordingEvidenceRepository:
 
     def list_all(self) -> tuple[VerificationResult, ...]:
         return tuple(self.results)
+
+
+class _ExistingPath:
+    def __init__(self, *, exists: bool):
+        self._exists = exists
+
+    def exists(self):
+        return self._exists
 
 
 def _phase_bundle():
