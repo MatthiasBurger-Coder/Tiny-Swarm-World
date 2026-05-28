@@ -15,6 +15,10 @@ repository-visible sources:
   runnable state;
 - active workflow `documentation/workflow/workflow.md`, version
   `autonomous-runnable-setup-v1.0.0`;
+- active provider migration workflow `documentation/workflow/workflow.md`,
+  version `lxc-native-node-provider-v1.0.0`;
+- accepted provider direction in
+  `documentation/architecture/adr-lxc-native-node-provider.adoc`;
 - root `AGENTS.md` Linux/WSL-only, Docker Swarm-first, Python automation
   identity;
 - root `QUALITY.md` quality-gate authority;
@@ -30,16 +34,24 @@ This EPIC is the requirement baseline for autonomous setup. The canonical
 live-consent-gated command, but this EPIC does not claim that the full live
 runnable system is installed successfully.
 
+The provider baseline has moved to `lxc_native` as the default node-provider
+selection. The implementation now includes provider-neutral contracts,
+LXD/Incus readiness checks, node-provider configuration, LXC-native lifecycle
+adapters, setup/platform integration, and an explicit `multipass_legacy`
+selection path. Provider-native platform reconcile, artifact publication,
+deployment, Docker Swarm-in-container live validation, and WSL2 live proof
+remain incomplete and fail closed.
+
 ## EPIC Extensions
 
 The service-access dashboard and Vaultwarden baseline extends this EPIC:
 
 - `documentation/epics/service-access-dashboard-vaultwarden.md`
 
-The extension defines a future service-access and credential visibility
-capability for selected runnable profiles. It does not claim that Vaultwarden,
-the service-access dashboard, routing, persistence, backup, readiness, or live
-deployment is implemented.
+The extension defines the service-access and credential visibility capability
+for selected runnable profiles. Repository assets and setup contracts exist,
+but provider-native live deployment, persistence hardening, service readiness,
+and default `lxc_native` live evidence remain incomplete.
 
 ## Relationship To System Unification
 
@@ -75,6 +87,13 @@ phases. Full live runnable setup still depends on later evidence for
 command-backed platform verification, artifact publication, registry checks,
 first-time stack bootstrap, and service readiness.
 
+The accepted LXC-native provider direction is requirement drift that is now
+tracked by ADR and implemented for default provider selection, readiness
+checks, node lifecycle adapters, and setup/platform init wiring. The
+implementation does not yet prove Docker Swarm inside LXD/Incus containers,
+does not yet provide provider-native platform reconcile, and keeps default
+artifact/deployment workflows blocked until native contracts are wired.
+
 ## Intent
 
 Tiny Swarm World should provide one canonical setup path that can, after
@@ -86,8 +105,11 @@ The setup path must:
 
 - validate host prerequisites before mutation;
 - preserve existing live-consent controls;
-- prepare or reconcile Multipass-backed platform state only through governed
-  Platform contracts;
+- prepare or reconcile the selected provider's platform state only through
+  governed Platform contracts;
+- use LXC-native through LXD or Incus as the default provider path;
+- keep Multipass available only through explicit legacy/fallback provider
+  selection;
 - prepare artifact registry behavior through Artifacts contracts;
 - deploy and verify service stacks through Deployment contracts;
 - record redacted setup evidence under ignored local state;
@@ -102,11 +124,16 @@ through test-backed contracts or explicitly approved live smoke evidence:
 
 - host prerequisites are satisfied for Linux or WSL;
 - Python 3.12 runtime and project dependencies are available;
-- Multipass is available with the expected Linux/WSL driver model;
+- the selected node provider prerequisites are satisfied and verified:
+  LXD/Incus readiness, backend selection, WSL2 capability gates where
+  applicable, and Docker-in-container profile requirements for the default
+  `lxc_native` path, or Multipass readiness for explicit
+  `multipass_legacy`;
 - Docker CLI or Engine access required by the setup profile is available;
 - required local ports are available or a tested alternative mapping is used;
 - all required secret sources are present without committing secret values;
-- platform VMs are created or reconciled without implicit destructive reset;
+- platform provider nodes are created or reconciled without implicit
+  destructive reset;
 - Docker is installed and active where the profile requires it;
 - Docker Swarm manager and workers are initialized or detected;
 - Portainer is reachable;
@@ -149,9 +176,9 @@ changes it:
 - answer `y` at the short live-infrastructure confirmation prompt.
 
 Missing consent must return `REFUSED_LIVE_CONSENT_MISSING` before any
-Multipass, Docker Swarm, netplan, socat, compose, stack, Portainer, Nexus,
-Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, image build, image push, or
-bootstrap command runs.
+Multipass, LXD, Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
+compose, stack, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+Swagger/NGINX, image build, image push, or bootstrap command runs.
 
 Non-interactive live execution is out of scope until a later workflow and ADR
 define a separate consent contract.
@@ -213,6 +240,11 @@ smoke validation is a separate operator action and requires:
 - A missing verification contract returns `blocked`, not success.
 - Service health is never claimed without observed-state or smoke-test
   evidence.
+- LXC-native through LXD or Incus is the default provider direction, while
+  remaining provider-native reconcile, artifact, deployment, and live
+  validation gaps remain explicit.
+- Multipass fallback must be explicit and operator-visible; it must not hide a
+  failed LXD/Incus readiness check.
 - Direct scripts remain transitional, deprecated, or legacy until a later
   slice migrates behavior behind ports, adapters, tests, and consent controls.
 - Documentation examples use POSIX paths and Linux/WSL command forms.
@@ -230,7 +262,9 @@ smoke validation is a separate operator action and requires:
 
 ## Out Of Scope
 
-- Live setup execution during Slice 01.
+- Live setup execution during default development quality gates.
+- Live LXD, Incus, LXC container, Docker-in-container, or Docker
+  Swarm-in-container validation during default development quality gates.
 - Automatic host package installation.
 - Non-interactive live consent.
 - Kubernetes-first deployment.

@@ -17,7 +17,15 @@ from tiny_swarm_world.application.services.multipass.multipass_init_vms import (
 from tiny_swarm_world.application.services.multipass.multipass_restart_vms import (
     MultipassRestartVMs,
 )
+from tiny_swarm_world.application.services.platform.docker_swarm_lxc_contract import (
+    DockerSwarmInLxcContractService,
+)
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
+from tiny_swarm_world.application.services.platform.node_provider_selection import (
+    NodeProviderEnsureNodeStep,
+    NodeProviderSelectionRequest,
+    NodeProviderSelectionService,
+)
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
     PLATFORM_WORKFLOW_TAXONOMY,
@@ -49,6 +57,10 @@ __all__ = [
     "MultipassDockerSwarmInit",
     "MultipassInitVms",
     "MultipassRestartVMs",
+    "DockerSwarmInLxcContractService",
+    "NodeProviderEnsureNodeStep",
+    "NodeProviderSelectionRequest",
+    "NodeProviderSelectionService",
     "PreflightService",
     "DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION",
     "PLATFORM_WORKFLOW_TAXONOMY",

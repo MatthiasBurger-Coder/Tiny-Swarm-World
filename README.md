@@ -1,6 +1,6 @@
 # Tiny Swarm World
 
-Tiny Swarm World is a local development and test infrastructure to simulate a production-like microservices environment on your machine. It combines Multipass-managed virtual machines with Docker Swarm and a set of pre-integrated developer services (Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Swagger + NGINX).
+Tiny Swarm World is a local development and test infrastructure to simulate a production-like microservices environment on your machine. Its default node-provider direction is managed LXC through LXD or Incus for Docker Swarm nodes, and it includes guarded workflow boundaries plus configuration for developer services such as Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger + NGINX. Multipass remains available only as an explicit legacy/fallback provider.
 
 This README gives you a clear entry point: what it is, how to set it up, how to run it, and where to find more documentation.
 
@@ -9,9 +9,9 @@ This README gives you a clear entry point: what it is, how to set it up, how to 
 ## Overview
 
 Use Tiny Swarm World to:
-- Develop and test distributed systems with real Docker Swarm orchestration.
-- Deploy multiple docker-compose stacks into a managed Swarm cluster.
-- Manage and observe services via Portainer.
+- Develop and test Docker Swarm-oriented automation boundaries.
+- Keep compose stack deployment behind reviewed setup contracts.
+- Model service management and observation through Portainer-facing contracts.
 - Recreate cloud-like environments locally from a WSL2 or Linux shell without cloud costs.
 
 The system follows a hexagonal architecture and provides async Python automation for provisioning and orchestration.
@@ -20,21 +20,22 @@ The system follows a hexagonal architecture and provides async Python automation
 
 ## Features
 
-- Multipass VMs lifecycle (create, initialize, restart).
-- Automated Docker installation and Docker Swarm initialization on VMs.
-- Centralized service management via Portainer.
-- Pre-integrated components:
+- LXC-native node-provider selection, readiness checks, and node lifecycle through LXD or Incus.
+- Explicit Multipass legacy/fallback mode through `--node-provider multipass_legacy`.
+- Fail-closed workflow boundaries for future provider-native Docker installation and Docker Swarm initialization.
+- Portainer-facing service management contracts and compose assets.
+- Component configuration assets for:
   - Nexus (local Docker + Maven repository)
   - Jenkins (CI/CD with configuration-as-code)
   - RabbitMQ (message broker)
   - SonarQube (static code analysis)
   - Swagger + NGINX (API documentation)
-- Service-access management surface:
-  - static landing page for server links and credential references
-  - Vaultwarden credential store behind service-access NGINX
-  - password values available only through Vaultwarden's authenticated UI
+- Service-access management assets:
+  - static landing page content for server links and credential references
+  - Vaultwarden and service-access NGINX stack configuration
+  - password-value visibility restricted to Vaultwarden's authenticated UI
 - Modular infrastructure assets in `infra/config` and `infra/compose`, driven by the Python setup workflow.
-- WSL2 networking support via socat and netplan helpers.
+- WSL2 capability checks for managed LXC providers, with optional `socat` forwarding where needed.
 - Rich test suite and enforced separation between domain, application, and infrastructure layers.
 
 ---
@@ -44,7 +45,9 @@ The system follows a hexagonal architecture and provides async Python automation
 - Linux host or WSL2 shell on Windows
 - Python 3.12
 - Git
-- Multipass with the QEMU backend
+- Incus or LXD installed and initialized for the default `lxc_native` provider
+- WSL2 with systemd, cgroup, and user-namespace support when running under WSL
+- Multipass with the QEMU backend only for explicit legacy/fallback runs
 - Docker Engine or Docker CLI access to the target Docker/Swarm environment
 - socat if using WSL2 port-forwarding
 
@@ -89,6 +92,12 @@ python3 tools/quality_gate.py quality
 PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
 ```
 
+6. Run the static preflight check for the default node provider
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+```
+
 Running the module without arguments does not execute infrastructure commands.
 Use an explicit workflow selection before running automation:
 
@@ -96,10 +105,10 @@ Use an explicit workflow selection before running automation:
 PYTHONPATH=src python3 -m tiny_swarm_world platform verify
 ```
 
-Mutating workflows can call Multipass, Docker, networking, or other local
-infrastructure commands. They require the live-infrastructure consent controls.
-Destructive workflows also require the exact `--confirm` phrase shown by the
-workflow contract.
+Mutating workflows can call LXD/Incus/LXC, Multipass legacy, Docker,
+networking, or other local infrastructure commands. They require the
+live-infrastructure consent controls. Destructive workflows also require the
+exact `--confirm` phrase shown by the workflow contract.
 
 The safe setup probe is `setup run` without `--live`:
 
@@ -109,10 +118,23 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run
 
 Without the full live-consent contract this command refuses before setup
 services are constructed and prints `REFUSED_LIVE_CONSENT_MISSING`. The
-canonical live operator command is:
+canonical live operator command uses the default `lxc_native` provider:
 
 ```bash
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+```
+
+Operators may select a managed LXC backend explicitly:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd setup run --live
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
+```
+
+Multipass is a legacy/fallback path and must be requested explicitly:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world --node-provider multipass_legacy setup run --live
 ```
 
 For repeatable WSL/Linux operator runs with evidence capture, use the repository
@@ -138,19 +160,21 @@ requirements are incomplete.
 ## Operator Safety Model
 
 Normal `platform init`, `platform reconcile`, and `setup run` are
-non-destructive: they do not select the Multipass cleanup catalog that contains
-VM delete/purge commands. Mutating workflows are still live infrastructure
-operations. They require all of these controls before application services are
-constructed:
+non-destructive: they do not select destructive cleanup catalogs. Mutating
+workflows are still live infrastructure operations. They require all of these
+controls before application services are constructed:
 
 - `--live`
 - answering `y` at the short live-infrastructure confirmation prompt
 
-At the current system-unification baseline, `platform init` and
-`platform reconcile` still return `blocked` before live steps until
-command-backed verification contracts are implemented. `setup run` is the
-supported setup orchestrator and preserves the same fail-closed behavior across
-preflight, platform, artifact, deployment, and final verification phases.
+The current default provider is `lxc_native`. `platform init` selects the
+LXD/Incus provider path after provider readiness checks and blocks before
+mutation when backend selection, daemon access, WSL2 capability, or profile
+requirements are not satisfied. `platform reconcile`, default artifact
+workflows, and default deployment workflows still block at provider boundaries
+until provider-native reconciliation, publication, and deployment contracts are
+wired. Explicit `--node-provider multipass_legacy` keeps the old Multipass
+fallback behavior visible and isolated.
 
 `platform reset` and `platform destroy` additionally require
 `RESET_TINY_SWARM_PLATFORM` or `DESTROY_TINY_SWARM_PLATFORM` through
@@ -158,10 +182,10 @@ preflight, platform, artifact, deployment, and final verification phases.
 reset/destroy steps remain blocked until retention semantics are implemented.
 
 These behaviors are verified by unit tests, architecture checks, and static
-quality gates. This repository workflow did not run live Multipass, Docker
-Swarm, compose, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ,
-SonarQube, Swagger/NGINX, Vaultwarden, image build, image push, or stack
-deployment commands.
+quality gates. This repository workflow did not run live LXD, Incus, LXC
+container, Multipass, Docker Swarm, compose, netplan, socat, Portainer, Nexus,
+Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image build, image
+push, or stack deployment commands.
 
 Optional live smoke validation is a separate operator action, not part of the
 default quality gate. Run it only on a disposable or recoverable local target
@@ -171,24 +195,30 @@ after reviewing the live-operation surface catalog:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ```
 
-When prompted, answer `y` only if changing the local Multipass, Docker Swarm,
-networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX
-environment is intentional.
+When prompted, answer `y` only if changing the local LXD/Incus/LXC or explicit
+Multipass legacy provider state, Docker Swarm, networking, Portainer, Nexus,
+Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX environment is intentional.
 
 ---
 
 ## Provisioning and Running the Stack
 
-The repository contains Python services to prepare your local swarm cluster on Multipass VMs. Typical steps:
+The repository contains Python services for preparing a local swarm cluster on
+provider nodes. The default provider-node direction is managed LXC through LXD
+or Incus. Current default flow is fail-closed:
 
-- Initialize (create) Multipass VMs
-- Configure networking (netplan)
-- Install Docker on each VM
-- Initialize Docker Swarm and join nodes
-- Deploy optional service stacks (Portainer, Nexus, Jenkins, etc.)
+- Select and verify the node provider (`lxc_native` by default)
+- Ensure provider nodes from `infra/config/node-providers/provider_config.yaml`
+  only when live consent and provider guards allow mutation
+- Block before provider networking, Docker installation, or Swarm
+  initialization when provider-native checks or contracts are incomplete
+- Keep default stack deployment blocked until provider-native deployment contracts are wired
 
 Where to find the scripts/services:
-- `src/tiny_swarm_world/application/services/multipass`
+- `src/tiny_swarm_world/application/services/platform`
+- `src/tiny_swarm_world/application/ports/node_provider`
+- `infra/config/node-providers`
+- `src/tiny_swarm_world/application/services/multipass` for explicit legacy/fallback behavior
 - `src/tiny_swarm_world/application/services/network`
 - `src/tiny_swarm_world/application/services/commands`
 - `infra/swarm`
@@ -238,28 +268,31 @@ publication, and stack deployment cannot bypass the CLI consent gate. The
 canonical static classification is maintained in
 `documentation/system/live-operation-surfaces.adoc`.
 
-Image publication and stack deployment are handled by the workflow-level setup
-command. Stack definitions live under `infra/config/compose`; image build
-contexts live under `infra/compose`.
+Image publication and stack deployment are owned by workflow-level setup
+boundaries. On the default `lxc_native` path they remain blocked until
+provider-native artifact and deployment contracts are wired. Stack definitions
+live under `infra/config/compose`; image build contexts live under
+`infra/compose`.
 
-The full guided setup now includes the `service-access` management stack. Its
-compose definition lives under
+The full guided setup selects the `service-access` management stack profile by
+default. Its compose definition lives under
 `infra/config/compose/service-access/docker-compose.yml`, and its dashboard
 and NGINX assets are image-packaged under `infra/compose/service-access/**`.
-The dashboard is the installed landing page at `http://localhost`. A central
-service-access NGINX owns the local root route and redirects stable paths such
-as `/jenkins`, `/nexus`, `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger`
-and `/vaultwarden` to the matching local service route. The table shows users
-and Vaultwarden item references; password values are visible only in
-Vaultwarden's authenticated UI. Operators who intentionally want the older base
-service set can pass `--service-profile default`.
+After a verified provider-specific live deployment, the dashboard is intended
+to be the management landing page at `http://localhost`. A central
+service-access NGINX is the accepted routing design for stable paths such as
+`/jenkins`, `/nexus`, `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and
+`/vaultwarden`. The table shows users and Vaultwarden item references;
+password values are visible only in Vaultwarden's authenticated UI. Operators
+who intentionally want the older base service set can pass
+`--service-profile default`.
 
 The service-access stack needs a pre-existing external Swarm secret for the
 Vaultwarden administrator token. The default secret name is
 `tsw_vaultwarden_admin_token`, and operators may override the name with
-`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. The setup checks that the configured
-external Swarm input is observable before uploading the stack and records only
-redacted presence/source evidence.
+`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Provider-native deployment must check
+that the configured external Swarm input is observable before uploading the
+stack and record only redacted presence/source evidence.
 
 Live-operation surface summary:
 
@@ -280,11 +313,12 @@ classification and credential/host-specific data rules.
 
 - Compose stack files live under `infra/config/compose`; image build contexts
   and service image configuration live under `infra/compose`.
+- Node-provider defaults live under `infra/config/node-providers`.
 - Desired product configuration may live under `infra/config`.
 - Observed inventory and verification evidence are local runtime artifacts
   under `.tiny-swarm-world/`; this path is ignored and must not be committed.
-- Networking helpers and netplan templates: `infra/config/network`.
-- VM definitions and templates: `infra/config/vm`.
+- Networking helpers and legacy netplan templates: `infra/config/network`.
+- Legacy VM definitions and templates: `infra/config/vm`.
 - Logs: `.tiny-swarm-world/logs`.
 - Python settings can be provided via environment variables or `.env` when supported by specific modules.
 
@@ -364,14 +398,20 @@ Notes:
 - `arch-lint` expects an `.importlinter` configuration.
 - `arch-tests` expects the architecture test module
   `tests.architecture.test_hexagonal_imports`.
-- Do not run live Multipass, Docker Swarm, netplan, or service-bootstrap
-  commands as part of the development quality gate.
+- Do not run live LXD, Incus, LXC container lifecycle, Multipass, Docker
+  Swarm, netplan, or service-bootstrap commands as part of the development
+  quality gate.
 
 ---
 
 ## Troubleshooting
 
-- Multipass not found: Ensure Multipass is installed and accessible on `PATH`.
+- LXC-native provider not ready: verify `incus version`/`incus info` or
+  `lxc version`/`lxc info`, and select `--lxc-backend` if both backends are
+  installed.
+- Multipass not found: this matters only for explicit
+  `--node-provider multipass_legacy` runs. Ensure Multipass is installed and
+  accessible on `PATH` before using the legacy provider.
 - Docker connection issues: Verify Docker Engine or the Docker CLI target is available and your user has permission to access the Docker socket.
 - WSL2 networking/ports: Install `socat` and review `infra/config/network` for port-forwarding helpers.
 - Python import errors: Run commands from the repository root and set `PYTHONPATH=src` for direct script execution.
@@ -397,5 +437,8 @@ until a `LICENSE` file or explicit license statement is added.
 ## Links
 
 - Portainer: https://www.portainer.io/
+- LXD: https://documentation.ubuntu.com/lxd/
+- Incus: https://linuxcontainers.org/incus/
+- LXC: https://linuxcontainers.org/lxc/
 - Multipass: https://multipass.run/
 - Docker Swarm: https://docs.docker.com/engine/swarm/

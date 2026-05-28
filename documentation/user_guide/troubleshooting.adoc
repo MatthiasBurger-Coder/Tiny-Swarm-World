@@ -33,7 +33,51 @@ The quality gate configures this automatically.
 The architecture lint gate expects `.importlinter` in the repository root.
 Run the gate from the repository root, not from a source or test subdirectory.
 
-== Multipass Is Not Available
+== LXC Native Provider Is Not Ready
+
+The default node provider is `lxc_native` through LXD or Incus. Check the
+selected backend from the same Linux/WSL shell that will run Tiny Swarm World.
+
+For Incus:
+
+[source,bash]
+----
+incus version
+incus info
+----
+
+For LXD:
+
+[source,bash]
+----
+lxc version
+lxc info
+----
+
+If both backends are installed and usable, select one explicitly:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd --preflight
+----
+
+In WSL, verify that the distribution is WSL2 and that systemd, cgroup, and
+user namespace support are available. WSL1 is not a supported target for the
+default provider.
+
+Provider readiness checks are read-only. They do not install packages, start
+or repair daemons, create profiles, change group membership, or mutate
+provider networking.
+
+== Multipass Legacy/Fallback Is Not Available
+
+Multipass is relevant only for explicit legacy/fallback runs:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --node-provider multipass_legacy setup run --live
+----
 
 Verify Multipass installation and driver state:
 
@@ -44,12 +88,12 @@ multipass get local.driver
 multipass info
 ----
 
-For WSL/Linux usage, use the QEMU driver.
+For legacy WSL/Linux usage, use the QEMU driver.
 
-If `setup run --live` or `platform init --live` reports a
-`RUNTIME-MULTIPASS-*` blocker, repair Multipass access from the same WSL or
-Linux shell before retrying. The readiness check is read-only; it does not
-start services, change drivers, create VMs, or repair socket permissions.
+If an explicit legacy run reports a `RUNTIME-MULTIPASS-*` blocker, repair
+Multipass access from the same WSL or Linux shell before retrying. The
+readiness check is read-only; it does not start services, change drivers,
+create VMs, or repair socket permissions.
 
 == IntelliJ Run Configuration Cannot Start Live Setup
 
@@ -125,10 +169,11 @@ If Nexus is still starting, increase:
 
 == Service Access Or Vaultwarden Is Not Reachable
 
-The full guided setup selects the service-access profile by default. It builds
-or publishes the service-access dashboard and NGINX images, deploys the
-service-access stack through the deployment workflow, and verifies Swarm
-service readiness separately from static dashboard content.
+The full guided setup selects the service-access profile by default, but the
+default `lxc_native` path still blocks before provider-native image
+publication, stack deployment, and Swarm service-readiness verification are
+complete. Service-access dashboard and NGINX assets are committed repository
+inputs until a live provider-specific deployment path verifies them.
 
 The committed dashboard is static catalog data. It intentionally renders
 service reachability as unknown until observed evidence exists. Password

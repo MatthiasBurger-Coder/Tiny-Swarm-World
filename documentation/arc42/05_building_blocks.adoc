@@ -6,7 +6,8 @@ Tiny Swarm World now separates three repository roles explicitly.
 
 `src/tiny_swarm_world` contains the Python orchestration code.
 
-* `domain` contains core command, VM, network, deployment, and Nexus concepts.
+* `domain` contains core command, node-provider, VM legacy, network,
+  deployment, and Nexus concepts.
 * `application` contains use cases, command orchestration services, and ports.
 * `infrastructure` contains adapters for command execution, HTTP clients,
   repositories, YAML handling, dependency wiring, logging, and local file
@@ -27,10 +28,12 @@ bundles. These bundles are responsibility boundaries inside the Python
 automation process; they are not independently deployable services or
 microservices:
 
-* `PlatformServices` contains the current platform automation for Multipass,
-  network setup, Docker installation, Swarm initialization, preflight checks,
-  VM IP discovery, socat management, and workflow objects for platform
-  `init`, `reconcile`, `verify`, `reset`, and `destroy` commands.
+* `PlatformServices` contains the current platform automation for default
+  LXC-native provider selection, LXD/Incus readiness, managed node lifecycle,
+  Multipass legacy/fallback behavior, network setup, Docker installation,
+  Swarm initialization, preflight checks, node or VM IP discovery, socat
+  management, and workflow objects for platform `init`, `reconcile`,
+  `verify`, `reset`, and `destroy` commands.
 * `ArtifactServices` is the explicit artifacts boundary. It owns
   `artifacts prepare` and `artifacts verify` workflow contracts. The default
   composition remains fail-closed, while the workflow classes can now execute
@@ -89,8 +92,9 @@ frontend.
 The setup boundary coordinates Platform, Artifacts, Deployment, Shared, and
 Console/status UI contracts:
 
-* Platform owns host preflight, Multipass, Docker installation, Docker Swarm,
-  network, VM, and resource readiness behavior.
+* Platform owns host preflight, LXD/Incus provider readiness, node lifecycle,
+  Multipass legacy/fallback behavior, Docker installation, Docker Swarm,
+  network, VM legacy, and resource readiness behavior.
 * Artifacts owns Nexus, registry, image publication, and repository readiness
   behavior.
 * Deployment owns Portainer, compose assets, service stack apply behavior, and
@@ -165,7 +169,8 @@ passwords, or secrets.
 `infra` contains infrastructure and deployment assets that are not Python
 application code.
 
-* `infra/config` contains command, VM, network, and compose configuration.
+* `infra/config` contains command, node-provider, VM legacy, network, and
+  compose configuration.
 * `infra/compose` contains image build-context assets.
 * `infra/prepare` contains retired notes for former direct service preparation
   helpers and must not contain executable setup entry points.

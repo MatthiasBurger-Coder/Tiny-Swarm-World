@@ -42,12 +42,12 @@ class TestComposition(unittest.TestCase):
         ) as build_platform_services:
             with patch.object(
                 composition,
-                "build_artifact_services",
+                "build_artifact_services_for_provider",
                 return_value=artifacts,
             ) as build_artifact_services:
                 with patch.object(
                     composition,
-                    "build_deployment_services",
+                    "build_deployment_services_for_provider",
                     return_value=deployment,
                 ) as build_deployment_services:
                     services = composition.build_application_services()
@@ -59,15 +59,18 @@ class TestComposition(unittest.TestCase):
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             live_consent=None,
         )
-        build_artifact_services.assert_called_once_with()
+        build_artifact_services.assert_called_once_with(node_provider_request=None)
         build_deployment_services.assert_called_once_with(
-            service_profile=ServiceStackProfile.SERVICE_ACCESS
+            service_profile=ServiceStackProfile.SERVICE_ACCESS,
+            node_provider_request=None,
         )
 
     def test_platform_services_contains_preflight_service(self):
         field_names = {field.name for field in fields(composition.PlatformServices)}
 
         self.assertIn("preflight", field_names)
+        self.assertIn("lxc_node_provider", field_names)
+        self.assertIn("node_provider_selection", field_names)
 
     def test_platform_services_contains_workflow_bundle(self):
         platform_field_names = {field.name for field in fields(composition.PlatformServices)}
@@ -75,6 +78,32 @@ class TestComposition(unittest.TestCase):
 
         self.assertIn("workflows", platform_field_names)
         self.assertEqual({"init", "reconcile", "reset", "destroy", "verify"}, workflow_field_names)
+
+    def test_wsl_lxc_user_namespace_gate_allows_missing_kernel_flag(self):
+        with patch.object(
+            composition,
+            "_linux_text_file_equals",
+            side_effect=AssertionError("missing WSL kernel flag must not be read"),
+        ):
+            self.assertTrue(
+                composition._wsl_unprivileged_userns_clone_available(
+                    _ExistingPath(exists=False)
+                )
+            )
+
+    def test_wsl_lxc_user_namespace_gate_honors_present_kernel_flag(self):
+        with patch.object(
+            composition,
+            "_linux_text_file_equals",
+            return_value=True,
+        ) as text_file_equals:
+            self.assertTrue(
+                composition._wsl_unprivileged_userns_clone_available(
+                    _ExistingPath(exists=True)
+                )
+            )
+
+        text_file_equals.assert_called_once()
 
     def test_artifact_and_deployment_service_bundles_exist(self):
         artifact_field_names = {field.name for field in fields(composition.ArtifactServices)}
@@ -97,12 +126,49 @@ class TestComposition(unittest.TestCase):
                 composition,
                 "PortNetplanRepositoryYaml",
             ) as netplan_repository_factory:
-                services = composition.build_platform_services()
+                with patch.object(
+                    composition,
+                    "NodeProviderConfigYamlRepository",
+                ) as node_config_repository_factory:
+                    with patch.object(
+                        composition,
+                        "AsyncLxcNodeCommandRunner",
+                    ) as lxc_runner_factory:
+                        with patch.object(
+                            composition,
+                            "_wsl_lxc_lifecycle_capability_available",
+                            return_value=True,
+                        ) as wsl_capability_probe:
+                            services = composition.build_platform_services()
 
         vm_repository_factory.assert_called_once_with()
         netplan_repository_factory.assert_called_once_with()
+        node_config_repository_factory.assert_called_once_with()
+        lxc_runner_factory.assert_called_once_with()
         self.assertIsInstance(services.preflight, PreflightService)
         self.assertIsInstance(services.preflight.host_probe, HostPreflightProbe)
+        self.assertIsInstance(services.lxc_node_provider, composition.LxcNodeProvider)
+        self.assertIs(
+            node_config_repository_factory.return_value,
+            services.lxc_node_provider.config_repository,
+        )
+        self.assertIs(
+            lxc_runner_factory.return_value,
+            services.lxc_node_provider.runner,
+        )
+        self.assertIsInstance(
+            services.node_provider_selection,
+            composition.NodeProviderSelectionService,
+        )
+        self.assertIs(
+            services.lxc_node_provider,
+            services.node_provider_selection.node_lifecycle,
+        )
+        self.assertIs(
+            wsl_capability_probe,
+            services.node_provider_selection.readiness_probe.wsl_lxc_capability_available,
+        )
+        self.assertFalse(services.lxc_node_provider.allow_live_mutation)
 
     def test_build_platform_services_wires_workflow_objects(self):
         evidence_repository = _RecordingEvidenceRepository()
@@ -238,6 +304,63 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(5, len(services.workflows.apply.steps))
         self.assertEqual(8, len(services.workflows.verify.checks))
 
+    def test_default_provider_artifact_services_do_not_construct_multipass_clients(self):
+        with patch.object(
+            composition,
+            "MultipassNexusHttpClient",
+            side_effect=AssertionError("default artifact services must not use Multipass"),
+        ):
+            services = composition.build_artifact_services_for_provider()
+
+        result = asyncio.run(services.workflows.prepare.run())
+
+        self.assertEqual("blocked", result.status.value)
+        self.assertIn("multipass_legacy", result.reason)
+
+    def test_default_provider_deployment_services_do_not_construct_multipass_clients(self):
+        with patch.object(
+            composition,
+            "MultipassSwarmRuntime",
+            side_effect=AssertionError("default deployment services must not use Multipass"),
+        ):
+            services = composition.build_deployment_services_for_provider()
+
+        result = asyncio.run(services.workflows.apply.run())
+
+        self.assertEqual("blocked", result.status.value)
+        self.assertIn("multipass_legacy", result.reason)
+
+    def test_explicit_legacy_provider_uses_existing_multipass_artifact_services(self):
+        request = composition.NodeProviderSelectionRequest(
+            requested_provider=composition.NodeProviderKind.MULTIPASS_LEGACY
+        )
+
+        with patch.object(composition, "MultipassNexusHttpClient") as nexus_client:
+            with patch.object(composition, "MultipassContainerRuntime"):
+                with patch.object(composition, "MultipassContainerImagePublisher"):
+                    services = composition.build_artifact_services_for_provider(
+                        node_provider_request=request
+                    )
+
+        nexus_client.assert_called_once_with()
+        self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
+
+    def test_explicit_legacy_provider_uses_existing_multipass_deployment_services(self):
+        request = composition.NodeProviderSelectionRequest(
+            requested_provider=composition.NodeProviderKind.MULTIPASS_LEGACY
+        )
+
+        with patch.object(composition, "ComposeFileRepositoryYaml"):
+            with patch.object(composition, "MultipassSwarmRuntime") as swarm_runtime:
+                with patch.object(composition, "MultipassPortainerAdminClient"):
+                    with patch.object(composition, "PortainerHttpClient"):
+                        services = composition.build_deployment_services_for_provider(
+                            node_provider_request=request
+                        )
+
+        swarm_runtime.assert_called_once_with()
+        self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
+
     def test_build_deployment_services_uses_named_portainer_api_default(self):
         with patch.object(composition, "PortainerHttpClient") as portainer_client:
             with patch.object(composition, "ComposeFileRepositoryYaml"):
@@ -346,8 +469,14 @@ class TestComposition(unittest.TestCase):
     def test_build_setup_services_wires_phase_orchestrator_without_running_phases(self):
         with patch.object(composition, "build_preflight_service") as build_preflight:
             with patch.object(composition, "build_platform_services") as build_platform:
-                with patch.object(composition, "build_artifact_services") as build_artifacts:
-                    with patch.object(composition, "build_deployment_services") as build_deployment:
+                with patch.object(
+                    composition,
+                    "build_artifact_services_for_provider",
+                ) as build_artifacts:
+                    with patch.object(
+                        composition,
+                        "build_deployment_services_for_provider",
+                    ) as build_deployment:
                         build_preflight.return_value = _phase_bundle()
                         build_platform.return_value = _platform_phase_bundle()
                         build_artifacts.return_value = _artifact_phase_bundle()
@@ -376,7 +505,11 @@ class TestComposition(unittest.TestCase):
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             live_consent=services.workflows.run.live_consent,
         )
-        build_deployment.assert_called_once_with(service_profile=ServiceStackProfile.SERVICE_ACCESS)
+        build_artifacts.assert_called_once_with(node_provider_request=None)
+        build_deployment.assert_called_once_with(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS,
+            node_provider_request=None,
+        )
         build_preflight.return_value.run.assert_not_called()
         build_platform.return_value.workflows.init.run.assert_not_called()
         build_artifacts.return_value.workflows.prepare.run.assert_not_called()
@@ -398,6 +531,7 @@ class TestComposition(unittest.TestCase):
                 services = composition.build_platform_services(live_consent=live_consent)
 
         self.assertIsNotNone(services.workflows.init.pre_apply_guard)
+        self.assertTrue(services.lxc_node_provider.allow_live_mutation)
 
     def test_build_setup_services_wires_live_consent_into_platform_init_guard(self):
         live_consent = _accepted_live_consent()
@@ -410,10 +544,14 @@ class TestComposition(unittest.TestCase):
 
         with patch.object(composition, "build_preflight_service", return_value=_phase_bundle()):
             with patch.object(composition, "build_platform_services", side_effect=build_platform):
-                with patch.object(composition, "build_artifact_services", return_value=_artifact_phase_bundle()):
+                with patch.object(
+                    composition,
+                    "build_artifact_services_for_provider",
+                    return_value=_artifact_phase_bundle(),
+                ):
                     with patch.object(
                         composition,
-                        "build_deployment_services",
+                        "build_deployment_services_for_provider",
                         return_value=_deployment_phase_bundle(),
                     ):
                         composition.build_setup_services(live_consent)
@@ -433,9 +571,55 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsInstance(services, composition.ApplicationServices)
 
-    def test_composed_init_workflow_blocks_before_live_step_execution(self):
+    def test_composed_default_lxc_init_workflow_blocks_before_live_step_execution(self):
+        evidence_repository = _RecordingEvidenceRepository()
+        blocked_result = VerificationResult(
+            target_id="platform:node-provider:lxc_native",
+            status=VerificationStatus.BLOCKED,
+            message="Provider selection blocked node lifecycle before apply.",
+            evidence={
+                "phase": "pre_apply",
+                "reason": "provider_selection_blocked",
+            },
+        )
+        with patch.object(composition, "PortVmRepositoryYaml"):
+            with patch.object(composition, "PortNetplanRepositoryYaml"):
+                with patch.object(
+                    composition,
+                    "VerificationEvidenceLocalRepository",
+                    return_value=evidence_repository,
+                ):
+                    with patch.object(
+                        composition.NodeProviderSelectionService,
+                        "ensure_node",
+                        return_value=blocked_result,
+                    ):
+                        with patch.object(
+                            composition.MultipassInitVms,
+                            "run",
+                            side_effect=AssertionError("default init must not run Multipass"),
+                        ):
+                            services = composition.build_platform_services()
+                            result = asyncio.run(services.workflows.init.run())
+
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual(
+            "platform:node-provider:lxc_native",
+            result.verification_results[0].target_id,
+        )
+        self.assertEqual(
+            "provider_selection_blocked",
+            result.verification_results[0].evidence["reason"],
+        )
+        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+
+    def test_explicit_legacy_init_workflow_keeps_multipass_contract(self):
         evidence_repository = _RecordingEvidenceRepository()
         blocked_result = _blocked_contract_result("platform:init:multipass-vms")
+        request = composition.NodeProviderSelectionRequest(
+            requested_provider=composition.NodeProviderKind.MULTIPASS_LEGACY
+        )
         with patch.object(composition, "PortVmRepositoryYaml"):
             with patch.object(composition, "PortNetplanRepositoryYaml"):
                 with patch.object(
@@ -453,24 +637,65 @@ class TestComposition(unittest.TestCase):
                             "run",
                             side_effect=AssertionError("init step must not run"),
                         ):
-                            services = composition.build_platform_services()
+                            services = composition.build_platform_services(
+                                node_provider_request=request
+                            )
                             result = asyncio.run(services.workflows.init.run())
 
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
-        self.assertFalse(result.executed)
         self.assertEqual(
             "platform:init:multipass-vms",
             result.verification_results[0].target_id,
         )
+        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+
+    def test_composed_default_lxc_reconcile_blocks_before_multipass_execution(self):
+        evidence_repository = _RecordingEvidenceRepository()
+        with patch.object(composition, "PortVmRepositoryYaml"):
+            with patch.object(composition, "PortNetplanRepositoryYaml"):
+                with patch.object(
+                    composition,
+                    "VerificationEvidenceLocalRepository",
+                    return_value=evidence_repository,
+                ):
+                    with patch.object(
+                        composition.CommandWorkflow,
+                        "verify_config_contract",
+                        side_effect=AssertionError(
+                            "default reconcile must not inspect Multipass command contracts"
+                        ),
+                    ) as verify_config_contract:
+                        with patch.object(
+                            composition.VmIpList,
+                            "run",
+                            side_effect=AssertionError("default reconcile must not run VmIpList"),
+                        ):
+                            services = composition.build_platform_services()
+                            result = asyncio.run(services.workflows.reconcile.run())
+
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        verify_config_contract.assert_not_called()
         self.assertEqual(
-            "command_backed_verification_missing",
+            "platform:reconcile:lxc-native-provider-boundary",
+            result.verification_results[0].target_id,
+        )
+        self.assertEqual(
+            "multipass_legacy_required",
             result.verification_results[0].evidence["reason"],
+        )
+        self.assertEqual(
+            "lxc_native",
+            result.verification_results[0].evidence["requested_provider"],
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
-    def test_composed_reconcile_workflow_blocks_before_live_step_execution(self):
+    def test_explicit_legacy_reconcile_workflow_keeps_multipass_contract(self):
         evidence_repository = _RecordingEvidenceRepository()
         blocked_result = _blocked_contract_result("platform:reconcile:vm-ip-list")
+        request = composition.NodeProviderSelectionRequest(
+            requested_provider=composition.NodeProviderKind.MULTIPASS_LEGACY
+        )
         with patch.object(composition, "PortVmRepositoryYaml"):
             with patch.object(composition, "PortNetplanRepositoryYaml"):
                 with patch.object(
@@ -488,7 +713,9 @@ class TestComposition(unittest.TestCase):
                             "run",
                             side_effect=AssertionError("reconcile step must not run"),
                         ):
-                            services = composition.build_platform_services()
+                            services = composition.build_platform_services(
+                                node_provider_request=request
+                            )
                             result = asyncio.run(services.workflows.reconcile.run())
 
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
@@ -533,6 +760,14 @@ class _RecordingEvidenceRepository:
 
     def list_all(self) -> tuple[VerificationResult, ...]:
         return tuple(self.results)
+
+
+class _ExistingPath:
+    def __init__(self, *, exists: bool):
+        self._exists = exists
+
+    def exists(self):
+        return self._exists
 
 
 def _phase_bundle():

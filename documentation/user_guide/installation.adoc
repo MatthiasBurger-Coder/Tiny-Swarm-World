@@ -10,7 +10,9 @@ Install these tools before running project automation:
 
 * Python 3.12
 * Git
-* Multipass with the QEMU driver
+* Incus or LXD for the default `lxc_native` node provider
+* WSL2 with systemd, cgroup, and user-namespace support when running under WSL
+* Multipass with the QEMU driver only for explicit legacy/fallback runs
 * Docker CLI access from the shell that will run the scripts
 * `socat`, when WSL port forwarding is needed
 
@@ -53,7 +55,53 @@ If a virtual environment is active, its interpreter can be used instead:
 
 The quality gate sets `PYTHONPATH=src` automatically.
 
-== Multipass Baseline
+== LXC Native Provider Baseline
+
+The default provider is `lxc_native`. Prepare either Incus or LXD before a
+live setup run.
+
+For LXD on Ubuntu where Snap is available:
+
+[source,bash]
+----
+sudo snap install lxd
+getent group lxd | grep -qwF "$USER" || sudo usermod -aG lxd "$USER"
+newgrp lxd
+lxd init
+lxc version
+lxc info
+----
+
+For Incus, follow the official installation instructions for the host
+distribution, then verify access from the same shell:
+
+[source,bash]
+----
+incus version
+incus info
+----
+
+Run the project preflight before live mutation:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd --preflight
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
+----
+
+See `documentation/system/lxc-native-setup.adoc` for the full WSL2 and
+LXD/Incus setup notes and official references.
+
+== Multipass Legacy/Fallback Baseline
+
+Multipass is no longer the default provider. Use it only for explicit legacy
+runs:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --node-provider multipass_legacy setup run --live
+----
 
 Check the Multipass driver:
 
@@ -62,7 +110,7 @@ Check the Multipass driver:
 multipass get local.driver
 ----
 
-The expected driver for WSL/Linux usage is `qemu`. If needed:
+The expected driver for legacy WSL/Linux usage is `qemu`. If needed:
 
 [source,bash]
 ----
@@ -125,7 +173,7 @@ Without the complete live-consent contract, `setup run` refuses before setup
 services are constructed and prints `REFUSED_LIVE_CONSENT_MISSING`. This is
 the expected safe default.
 
-The canonical live operator command is:
+The canonical live operator command uses `lxc_native` by default:
 
 [source,bash]
 ----
@@ -148,9 +196,10 @@ calls the canonical live setup workflow.
 == Live Infrastructure Warning
 
 The canonical setup workflow and some legacy helper areas can create or delete
-virtual machines, change networking, install Docker, or deploy stacks. Run live
-automation only when you intend to change local infrastructure state. Former
-direct preparation helpers under `infra/prepare` and host-side compose
+provider nodes or virtual machines, change networking, install Docker, or
+deploy stacks. Run live automation only when you intend to change local
+infrastructure state. Former direct preparation helpers under `infra/prepare`
+and host-side compose
 orchestration scripts have been retired.
 The canonical classification for these live-operation surfaces is
 `documentation/system/live-operation-surfaces.adoc`.
@@ -170,9 +219,9 @@ live-operation surface catalog:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-When prompted, answer `y` only if changing the local Multipass, Docker Swarm,
-networking, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX
-environment is intentional.
+When prompted, answer `y` only if changing the local LXD/Incus/LXC or explicit
+Multipass legacy provider state, Docker Swarm, networking, Portainer, Nexus,
+Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX environment is intentional.
 
 == Service Access Management Prerequisites
 

@@ -50,17 +50,26 @@ infrastructure side effects by default.
 Quality scenarios:
 
 * mutating setup without all required live-consent signals is refused before
-  Multipass, Docker Swarm, netplan, socat, compose, Portainer, Nexus, service
-  bootstrap, image build, image push, or stack upload commands can run;
+  LXD, Incus, LXC container lifecycle, Multipass, Docker Swarm, netplan,
+  socat, compose, Portainer, Nexus, service bootstrap, image build, image
+  push, or stack upload commands can run;
 * preflight reports missing host prerequisites, resource limits, credentials,
   port conflicts, or configuration blockers before mutation;
-* accepted live preflight distinguishes Multipass executable presence from
-  daemon, socket, permission, and driver readiness before VM mutation;
+* accepted live preflight distinguishes LXD/Incus executable presence, daemon
+  access, backend ambiguity, WSL2 capability, and Docker-in-container profile
+  requirements before LXC-native node mutation;
+* explicit `multipass_legacy` preflight distinguishes Multipass executable
+  presence from daemon, socket, permission, and driver readiness before legacy
+  VM mutation;
 * direct `platform init --live` and setup-driven platform init both stop before
   mutating steps when the shared live preflight guard fails;
-* Multipass readiness diagnostics expose safe classifications and return codes,
+* provider readiness diagnostics expose safe classifications and return codes,
   not raw stdout, stderr, command payloads, socket paths, user names, or
   host-specific paths;
+* default `lxc_native` setup and platform paths do not construct Multipass
+  clients unless `--node-provider multipass_legacy` is explicit;
+* default provider-native artifact and deployment gaps return blocked
+  workflow results instead of using Multipass silently;
 * missing verification contracts return `blocked`, not success;
 * apply failures return `failed_to_apply` and stop later setup phases;
 * verification failures return `failed_to_verify` and stop later setup phases;

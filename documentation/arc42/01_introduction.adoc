@@ -1,10 +1,11 @@
 == Introduction & Goals
 
 Tiny Swarm World is a Linux/WSL-only Python automation project for operating a
-production-like local Docker Swarm environment on Multipass virtual machines.
-It provides workflow-level commands for platform preparation and verification,
-plus infrastructure assets for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
-and Swagger/NGINX.
+production-like local Docker Swarm environment on managed provider nodes. The
+default provider path is `lxc_native` through LXD or Incus. Multipass remains
+an explicit legacy/fallback provider. The project provides workflow-level
+commands for platform preparation and verification, plus infrastructure assets
+for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX.
 
 The current architecture goals are:
 
@@ -20,5 +21,6 @@ The current architecture goals are:
 * store observed runtime state and verification evidence only under the
   ignored `.tiny-swarm-world/` local state root;
 * require verify-after-apply behavior for mutating workflow steps;
-* keep live Multipass, Docker Swarm, netplan, socat, compose, and service
-  bootstrap commands out of the default quality gate.
+* keep live LXD, Incus, LXC container lifecycle, Multipass legacy, Docker
+  Swarm, netplan, socat, compose, and service bootstrap commands out of the
+  default quality gate.

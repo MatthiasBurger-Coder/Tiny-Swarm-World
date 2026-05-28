@@ -42,10 +42,10 @@ setup run --node-provider multipass_legacy:
 feature/workflow-lxc-node-provider-20260526
 ```
 
-- Root `AGENTS.md` currently identifies Tiny Swarm World as a
-  Multipass-backed Docker Swarm automation project. The user request changes
-  that product direction, so later workflow slices must update governance and
-  documentation after the architecture decision is recorded.
+- At workflow creation, root `AGENTS.md` identified Multipass as the primary
+  provider for the Docker Swarm automation. Slice 10 updates that product
+  identity to LXC-native through LXD/Incus as the default direction with
+  Multipass retained as explicit legacy/fallback.
 - Root `QUALITY.md` defines the authoritative quality gate:
 
 ```bash
@@ -213,8 +213,9 @@ Risks:
   provider-neutral migration needs compatibility shims and staged naming.
 - Existing architecture tests reject undeclared application service
   directories.
-- Documentation currently presents Multipass as the baseline; docs must be
-  changed only when behavior is implemented or clearly marked as planned.
+- Documentation started from a Multipass baseline; Slice 10 must keep it
+  aligned with implemented provider behavior and mark remaining LXC-native
+  gaps as blocked or unverified.
 
 Open questions:
 
@@ -320,10 +321,10 @@ Current answer:
 PARTIALLY, WITH PLANNED PROVIDER DRIFT.
 ```
 
-The autonomous runnable setup EPIC currently names Multipass as the platform
-state provider. This workflow intentionally changes that provider direction.
-Slice 01 must record the architecture decision and update EPIC/arc42 references
-before implementation slices claim the new baseline.
+At workflow creation, the autonomous runnable setup EPIC named Multipass as
+the platform state provider. This workflow intentionally changed that provider
+direction. Slice 01 recorded the architecture decision before implementation
+slices claimed the new baseline.
 
 ## Architecture Constraints
 
@@ -454,7 +455,11 @@ affected_files:
   - "documentation/arc42/02_constraints.adoc"
   - "documentation/arc42/06_runtime_view.adoc"
   - "documentation/arc42/07_deployment_view.adoc"
+  - "documentation/arc42/09_architecture_decisions.adoc"
   - "documentation/arc42/11_risks_and_debt.adoc"
+  - "documentation/workflow/workflow.md"
+  - "documentation/workflow/context-pack.md"
+  - "documentation/workflow/context-pack.json"
 affected_modules: []
 affected_contracts:
   - "provider architecture decision"
@@ -466,7 +471,11 @@ file_locks:
   - "documentation/architecture/adr-lxc-native-node-provider.adoc"
   - "documentation/epics/autonomous-runnable-setup.md"
   - "documentation/epics/system-unification.md"
+  - "documentation/arc42/09_architecture_decisions.adoc"
   - "documentation/arc42/**"
+  - "documentation/workflow/workflow.md"
+  - "documentation/workflow/context-pack.md"
+  - "documentation/workflow/context-pack.json"
 contract_locks:
   - "default provider changes only after ADR is recorded"
 architecture_locks:
@@ -930,17 +939,22 @@ affected_files:
   - "src/tiny_swarm_world/application/services/multipass/**"
   - "src/tiny_swarm_world/infrastructure/adapters/clients/multipass_*.py"
   - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/__main__.py"
   - "infra/config/multipass/**"
   - "infra/config/docker/command_multipass_*.yaml"
   - "tests/application/services/multipass/**"
   - "tests/infrastructure/adapters/clients/test_multipass_*.py"
+  - "tests/infrastructure/test_composition.py"
+  - "tests/test_package_entrypoint.py"
 affected_modules:
   - "tiny_swarm_world.domain.multipass"
   - "tiny_swarm_world.application.services.multipass"
   - "tiny_swarm_world.infrastructure.adapters.clients"
+  - "tiny_swarm_world.infrastructure.composition"
 affected_contracts:
   - "multipass legacy provider"
   - "legacy fallback selection"
+  - "standalone artifact and deployment provider guard"
 dependencies:
   - "03"
   - "08"
@@ -950,34 +964,41 @@ file_locks:
   - "src/tiny_swarm_world/application/services/multipass/**"
   - "src/tiny_swarm_world/infrastructure/adapters/clients/multipass_*.py"
   - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/__main__.py"
   - "infra/config/multipass/**"
   - "infra/config/docker/command_multipass_*.yaml"
   - "tests/application/services/multipass/**"
   - "tests/infrastructure/adapters/clients/test_multipass_*.py"
+  - "tests/infrastructure/test_composition.py"
+  - "tests/test_package_entrypoint.py"
 contract_locks:
   - "Multipass legacy must be explicit"
   - "destructive Multipass cleanup remains guarded"
+  - "default artifact/deployment workflows must not construct Multipass clients"
 architecture_locks:
   - "legacy adapter remains infrastructure-owned"
+  - "entry point remains thin"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.application.services.multipass tests.infrastructure.adapters.clients.test_multipass_swarm_runtime tests.infrastructure.adapters.clients.test_multipass_container_image_publisher"
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.multipass tests.infrastructure.adapters.clients.test_multipass_swarm_runtime tests.infrastructure.adapters.clients.test_multipass_container_image_publisher tests.infrastructure.adapters.clients.test_multipass_portainer_admin_client tests.infrastructure.test_composition tests.test_package_entrypoint tests.application.services.platform.test_node_provider_selection tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository"
   required:
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "deployment view demotes Multipass after behavior exists"
+  arc42: "deployment view demotes Multipass in Slice 10 documentation sync"
   adr: "provider ADR checked"
 stop_conditions:
   - "Multipass remains default provider"
   - "Multipass repair work expands instead of being isolated"
   - "legacy fallback runs without explicit provider selection"
+  - "default artifact or deployment workflows construct Multipass clients"
 ```
 
 Done criteria:
 
 - Existing Multipass behavior remains test-covered but is no longer default.
 - Fallback selection is explicit and operator-visible.
-- Documentation and CLI warnings identify Multipass as legacy/fallback.
+- CLI warnings identify Multipass as legacy/fallback for explicit selection.
+- General documentation updates remain deferred to Slice 10.
 
 ### Slice 10: Documentation And Governance Synchronization
 
@@ -995,6 +1016,9 @@ secondary_reviewers:
 affected_files:
   - "AGENTS.md"
   - "README.md"
+  - "documentation/epics/autonomous-runnable-setup.md"
+  - "documentation/epics/service-access-dashboard-vaultwarden.md"
+  - "documentation/epics/system-unification.md"
   - "documentation/system/multipass-setup.adoc"
   - "documentation/system/lxc-native-setup.adoc"
   - "documentation/system/network.adoc"
@@ -1004,6 +1028,11 @@ affected_files:
   - "documentation/deployment/system.adoc"
   - "documentation/arc42/**"
   - "documentation/architecture/adr-lxc-native-node-provider.adoc"
+  - "documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc"
+  - "documentation/workflow/context-pack.md"
+  - "documentation/workflow/context-pack.json"
+  - "documentation/workflow/workflow.md"
+  - "documentation/workflow/reports/02-architecture-baseline.md"
 affected_modules: []
 affected_contracts:
   - "operator documentation"
@@ -1016,11 +1045,19 @@ parallel_group: "H"
 file_locks:
   - "AGENTS.md"
   - "README.md"
+  - "documentation/epics/autonomous-runnable-setup.md"
+  - "documentation/epics/service-access-dashboard-vaultwarden.md"
+  - "documentation/epics/system-unification.md"
   - "documentation/system/**"
   - "documentation/user_guide/**"
   - "documentation/deployment/**"
   - "documentation/arc42/**"
   - "documentation/architecture/adr-lxc-native-node-provider.adoc"
+  - "documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc"
+  - "documentation/workflow/context-pack.md"
+  - "documentation/workflow/context-pack.json"
+  - "documentation/workflow/workflow.md"
+  - "documentation/workflow/reports/02-architecture-baseline.md"
 contract_locks:
   - "planned behavior is not documented as implemented behavior"
 architecture_locks:

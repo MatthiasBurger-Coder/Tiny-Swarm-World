@@ -208,7 +208,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
             try:
                 sock.bind(("127.0.0.1", port))
             except PermissionError:
-                return False
+                return _privileged_port_without_listener(port)
             except OSError:
                 return False
         return True
@@ -470,6 +470,17 @@ def _http_service_available(
         if not expected_markers or any(marker in normalized_text for marker in expected_markers):
             return True
     return False
+
+
+def _privileged_port_without_listener(port: int) -> bool:
+    if port >= 1024:
+        return False
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.5)
+        try:
+            return sock.connect_ex(("127.0.0.1", port)) != 0
+        except OSError:
+            return False
 
 
 def _read_http_response(port: int, path: str) -> tuple[int, str]:

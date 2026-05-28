@@ -1,0 +1,80 @@
+schema_version: "1"
+default_provider: lxc_native
+backend_selection:
+  preferred_backend: null
+  candidates:
+    - incus
+    - lxd
+legacy_fallbacks:
+  - provider: multipass_legacy
+    selection_policy: explicit_only
+    automatic: false
+nodes:
+  - name: swarm-manager
+    role: manager
+    provider: lxc_native
+    backend: null
+    profile: docker-swarm
+    image_alias: ubuntu-24.04
+    resources:
+      cpu: "2"
+      memory: 4GiB
+      disk: 20GiB
+    networks:
+      - control
+  - name: swarm-worker-1
+    role: worker
+    provider: lxc_native
+    backend: null
+    profile: docker-swarm
+    image_alias: ubuntu-24.04
+    resources:
+      cpu: "2"
+      memory: 8GiB
+      disk: 50GiB
+    networks:
+      - control
+  - name: swarm-worker-2
+    role: worker
+    provider: lxc_native
+    backend: null
+    profile: docker-swarm
+    image_alias: ubuntu-24.04
+    resources:
+      cpu: "1"
+      memory: 2GiB
+      disk: 10GiB
+    networks:
+      - control
+profiles:
+  docker-swarm:
+    backend_support:
+      - incus
+      - lxd
+    risk_labels:
+      - docker_in_container_requires_nesting
+      - docker_in_container_syscall_interception
+      - docker_swarm_in_lxc_unverified
+      - provider_profile_mutation_requires_live_consent
+      - privileged_profile_forbidden_default
+      - host_access_forbidden_default
+      - wsl2_live_evidence_required
+    privileged_default: false
+    nesting_required: true
+    syscall_interception_required: true
+    cgroup_policy: v2_required
+    apparmor_policy: provider_default
+    seccomp_policy: provider_default
+    capability_additions: []
+    host_network: false
+    host_mounts: []
+    live_mutation_consent_required: true
+    blocks_mutation_when_missing: true
+verification_metadata:
+  readiness_timeout_seconds: 5
+  evidence_policy:
+    summary_only: true
+    store_raw_output: false
+  checks:
+    - backend_readiness
+    - profile_requirements

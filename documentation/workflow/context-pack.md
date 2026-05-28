@@ -57,6 +57,7 @@ privileged container risk handling.
 - `tests/infrastructure/adapters/clients`
 - `tests/infrastructure/adapters/repositories`
 - `documentation/architecture`
+- `documentation/epics`
 - `documentation/system`
 - `documentation/user_guide`
 - `documentation/deployment`
@@ -119,6 +120,7 @@ PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lx
 PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
 PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
 PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
+PYTHONPATH=src python3 -m unittest tests.application.services.multipass tests.infrastructure.adapters.clients.test_multipass_swarm_runtime tests.infrastructure.adapters.clients.test_multipass_container_image_publisher tests.infrastructure.adapters.clients.test_multipass_portainer_admin_client tests.infrastructure.test_composition tests.application.services.platform.test_node_provider_selection tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository
 ```
 
 ## Governing File Hashes
@@ -127,19 +129,39 @@ Git blob hashes:
 
 | File | Hash |
 | --- | --- |
-| `AGENTS.md` | `13a61789bff97a4b0b7c99424aca1d79f013d55e` |
+| `documentation/workflow/workflow.md` | `64d910a8d0b273b78c1777679e8ec746414241a8` |
+| `AGENTS.md` | `05de31b1c980f393d9dd83e744a2debfdc1b6e0a` |
+| `README.md` | `794bbdb15674ce45c8fac6b8314eed8a00ff52e4` |
 | `QUALITY.md` | `17002150bab9f168eb60be85d55b7a0c1cb441e5` |
-| `documentation/epics/autonomous-runnable-setup.md` | `cc9c7ae0e5a116395bd4582eb2049a17e54e7e08` |
-| `documentation/epics/system-unification.md` | `c1810e090ec3a53938d0a8b1174dc407e0763262` |
-| `documentation/system/live-operation-surfaces.adoc` | `007b9c42d1111aa24206f675e81a567685f59fb4` |
-| `documentation/system/multipass-setup.adoc` | `ad6a4eff60ad4c46ffe8a8fd05288048d20a275f` |
-| `documentation/system/network.adoc` | `e5e7eb7cfb21f023a76b534bbd4febbf226fa5ed` |
-| `documentation/arc42/02_constraints.adoc` | `535551ede77e366a78c253583724aa068bb2454b` |
-| `documentation/arc42/06_runtime_view.adoc` | `5a16efb85a04e5099b1ba31b84830eb672af0825` |
-| `documentation/arc42/07_deployment_view.adoc` | `3e0e76f65979ba7bbc384379def3ffbe795e174b` |
-| `documentation/arc42/11_risks_and_debt.adoc` | `0ad988ec0b27d59f82b265a475110e9cddaeb99c` |
+| `documentation/arc42/01_introduction.adoc` | `30ab3c65d058fe57c525dff99f15cbede9b4e792` |
+| `documentation/arc42/02_constraints.adoc` | `8a39526e30889ebcff4d0afba2a0d712359ace42` |
+| `documentation/arc42/03_solution_strategy.adoc` | `83619aaf3d678d8e83490323591d465faaeef044` |
+| `documentation/arc42/04_context_and_scope.adoc` | `98e9c614e8dbae284b020aed16367b2a497995da` |
+| `documentation/arc42/05_building_blocks.adoc` | `84a80bead3d48cfde0d801a33a129154f44ebc37` |
+| `documentation/arc42/06_runtime_view.adoc` | `cc07c5ba4f0428184b4941053e285a9352297cf1` |
+| `documentation/arc42/07_deployment_view.adoc` | `ba254a609b9026e23d58c55589d397a7af6e9661` |
+| `documentation/arc42/08_concepts.adoc` | `f6f01231a48469b5288009640310ca7961a0e05f` |
+| `documentation/arc42/09_architecture_decisions.adoc` | `31501579a175be2a0576a74fa9f3478534949fdd` |
+| `documentation/arc42/10_quality_requirements.adoc` | `f7331a4d5a9c78b27b610fb266985652d7196045` |
+| `documentation/arc42/11_risks_and_debt.adoc` | `4f54becbf3408ee8622ca2ade1df403843e95292` |
+| `documentation/arc42/12_glossary.adoc` | `3eb632b4c513599594cbd66cab1c27ac4766b2c1` |
 | `documentation/architecture/adr-autonomous-setup-safety.adoc` | `3c6c88c479ac3db7aa8d8cdf03e06fc045d074a0` |
+| `documentation/architecture/adr-lxc-native-node-provider.adoc` | `2446eff28ef1f2477f4c7633b187e2162d934784` |
+| `documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc` | `cc718ff1d91b9fe42e968f5da5fc685e87dd7b9c` |
+| `documentation/deployment/system.adoc` | `c42fc11b5476bdc3c01a7556aa791ba1b7e90616` |
+| `documentation/epics/autonomous-runnable-setup.md` | `1b63126744e4b6044e90eb862b6228e35caf1258` |
+| `documentation/epics/service-access-dashboard-vaultwarden.md` | `7755fc1960ecbb076feb5db14aed032fbed76c0c` |
+| `documentation/epics/system-unification.md` | `32db9f619ea1b97333e2ed1ac64370bd69a654ae` |
 | `documentation/process/workflow-create.md` | `78f2b31e96ab0731ee7b61cc2066f3446f3e1bcf` |
+| `documentation/system/live-operation-surfaces.adoc` | `490b65851b74efb109bcfaf44a40dec28350b94d` |
+| `documentation/system/lxc-native-setup.adoc` | `e3e33c479e250ea35b40b5fa1cb713901cdc220a` |
+| `documentation/system/multipass-setup.adoc` | `b9e6855ce6537dff6b5370c449af17d28bbedc6d` |
+| `documentation/system/network.adoc` | `153401597ae96b4c08041f8a9ad296f433507cae` |
+| `documentation/system/system.adoc` | `8f25ec014c584b778df668291b3bce875c1df28c` |
+| `documentation/user_guide/installation.adoc` | `f4cf28c595470d6bf5b5c8b2242cee870f6af0ed` |
+| `documentation/user_guide/troubleshooting.adoc` | `edcfc8f7a4943d06e4b9d21266959c395baddcc7` |
+| `documentation/user_guide/usage.adoc` | `e92bb670814447c756d421551246cd6202e168e2` |
+| `documentation/workflow/reports/02-architecture-baseline.md` | `c285036e5b9b8fda4b194ad455ddb4eafb5e3f2e` |
 | `.agents/skills/workflow-authoring/SKILL.md` | `6ccd9a0e322437fbca49e388ae3b387ac515758b` |
 | `.agents/skills/three-amigos-requirement-gatekeeper/SKILL.md` | `a11ed5c6b901e8a5ad5f9c13ce37bfc67886e1b0` |
 | `.agents/skills/execution-profile-router/SKILL.md` | `007dd37d35028e99a119219084ad321ffb4da25e` |

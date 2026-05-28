@@ -28,9 +28,11 @@ repository-visible sources:
   `documentation/architecture/adr-autonomous-setup-safety.adoc`.
 
 This EPIC is the requirement baseline for service access and credential
-visibility. It does not claim that a Vaultwarden stack, dashboard stack,
-routing configuration, persistence, backup, readiness check, or live deployment
-is implemented.
+visibility. Repository-level compose assets, dashboard/NGINX image assets,
+service-stack contracts, setup-manifest requirements, and static tests now
+exist. This EPIC does not claim provider-native live deployment, service
+readiness, Vaultwarden persistence hardening, backup, restore, or a
+live-verified central route for the default `lxc_native` provider.
 
 ## Relationship To System Unification
 
@@ -44,23 +46,23 @@ automation system with in-process responsibility boundaries:
 - Console/status UI.
 
 The service-access dashboard and Vaultwarden capability belongs to the
-Deployment responsibility boundary as a future Docker Swarm service stack. It
-is not a new microservice, not a Spring Boot application, not a React frontend
-project, and not a Kubernetes-first deployment.
+Deployment responsibility boundary as a Docker Swarm service-stack capability.
+It is not a new microservice, not a Spring Boot application, not a React
+frontend project, and not a Kubernetes-first deployment.
 
 ## Relationship To Autonomous Runnable Setup
 
 The autonomous runnable setup EPIC defines the guarded setup path for a local
-Linux/WSL Docker Swarm-first environment. Service access and Vaultwarden may
-become part of a selected runnable profile only after implementation provides
-test-backed stack contracts, credential-source validation, persistence
-ownership, readiness evidence, and documentation synchronized with actual
-behavior.
+Linux/WSL Docker Swarm-first environment. Service access and Vaultwarden are
+now selected by the full setup profile as repository assets and contracts, but
+the selected profile is runnable only after provider-native deployment,
+credential-source validation, persistence ownership, readiness evidence, and
+documentation are synchronized with actual behavior.
 
-Until then, the current implementation state remains:
+The current implementation state is:
 
 ```text
-NO, REQUIREMENT BASELINE ONLY
+PARTIAL: ASSETS AND CONTRACTS IMPLEMENTED, LIVE RUNTIME UNVERIFIED
 ```
 
 ## Mandatory EPIC Question
@@ -69,13 +71,16 @@ Does the implementation currently provide the service-access dashboard and
 Vaultwarden stack?
 
 ```text
-NO, REQUIREMENT BASELINE ONLY
+PARTIAL: REPOSITORY ASSETS AND CONTRACTS ONLY
 ```
 
-The repository currently contains the workflow and governance baseline. It
-does not contain a committed service-access compose stack, Vaultwarden stack,
-dashboard asset, route, Portainer-managed stack wiring, service readiness
-verification, or live deployment evidence for this capability.
+The repository contains the workflow and governance baseline, the
+service-access compose stack, image-packaged dashboard and NGINX assets,
+service-stack contracts, setup-manifest requirements, and static tests. The
+default `lxc_native` path still blocks before provider-native image
+publication, stack deployment, and service-readiness verification are
+complete. Provider-specific evidence is required before default LXD/Incus
+runtime success can be claimed.
 
 ## Intent
 
@@ -97,24 +102,24 @@ password reveal or copy behavior.
 
 In scope:
 
-- Deployment-owned Docker Swarm stack planning for a service-access dashboard
-  and Vaultwarden.
+- Deployment-owned Docker Swarm stack assets and contracts for a
+  service-access dashboard and Vaultwarden.
 - NGINX-first routing as the current repository-backed direction.
 - Portainer-managed stack create/update only after Portainer is reachable.
 - A dashboard that shows service names, access routes, reachability state,
   credential labels, and Vaultwarden item references.
 - Vaultwarden as the credential store and password-visible UI.
-- Setup preflight and manifest planning for required ports and secret source
-  names.
+- Setup preflight and manifest requirements for required ports and secret
+  source names.
 - Static and mocked tests for stack contracts, YAML, preflight, deployment
   planning, and secret-safety behavior.
 - Documentation and arc42/ADR synchronization.
 
 Out of scope:
 
-- Live deployment during requirement-baseline slices.
+- Live deployment during default quality gates.
 - Claiming Vaultwarden, dashboard, routing, or service reachability as
-  implemented before evidence exists.
+  live-installed or healthy before provider-specific evidence exists.
 - Displaying, caching, logging, exporting, or persisting password values
   outside Vaultwarden's authenticated UI.
 - Committed Vaultwarden admin token values, default passwords,
@@ -170,13 +175,15 @@ these facts are verified through tests or explicit live smoke evidence:
 
 - This EPIC is linked from system-unification and autonomous setup EPICs.
 - The ADR for service access and Vaultwarden exists and is indexed in arc42.
+- Repository assets and contracts for service-access are present without
+  weakening the Deployment responsibility boundary.
 - Credential display policy is explicit: password values are visible only
   through Vaultwarden's authenticated UI.
 - The dashboard is explicitly a service-access infrastructure GUI, not a
   repository React app.
 - Vaultwarden bootstrap, persistence, backup, admin-token rotation, and
-  rollback responsibilities are decision-recorded before implementation
-  claims production-like behavior.
+  rollback responsibilities are decision-recorded before documentation claims
+  production-like behavior.
 - NGINX-first routing is accepted as the baseline direction, with port or
   shared-ingress details deferred to the routing slice.
 - Default verification remains static or mocked and must not run live
@@ -222,8 +229,8 @@ Stop execution when:
 - Traefik is selected without ADR and tests;
 - Portainer becomes a bootstrap dependency for Portainer;
 - service reachability is claimed without observed evidence;
-- documentation claims this capability is implemented before code, config, and
-  verification evidence exist;
+- documentation claims this capability is live-installed, reachable, or
+  healthy before provider-specific verification evidence exists;
 - implementation would require live infrastructure commands without explicit
   user approval;
 - architecture or quality gates would be weakened.

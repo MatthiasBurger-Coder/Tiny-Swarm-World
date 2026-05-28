@@ -20,11 +20,21 @@ delegates all sequencing to the setup application workflow.
 The composition root builds `ApplicationServices` as an aggregate of three
 service bundles:
 
-* `platform` for current VM, network, Docker, Swarm, preflight, VM IP, and
-  socat automation.
+* `platform` for default LXC-native provider selection, LXD/Incus readiness,
+  managed node lifecycle, explicit Multipass legacy/fallback behavior,
+  network, Docker, Swarm, preflight, node/VM IP, and socat automation.
 * `artifacts` for artifact registry and publishing workflow contracts.
 * `deployment` for stack lifecycle behavior, starting with Nexus stack
   create/update ownership in the application service namespace.
+
+Provider migration status: LXC-native through LXD or Incus is the implemented
+default selection and setup/platform init direction. The runtime now has
+provider-neutral contracts, LXD/Incus readiness checks, node lifecycle
+adapters, setup integration, and an explicit `multipass_legacy` boundary.
+Default platform reconcile, artifact workflows, and deployment workflows still
+block at provider-native boundaries until their LXC-native contracts are wired.
+No documentation may claim Docker Swarm-in-container or WSL2 live success
+without target-specific evidence.
 
 At this stage, Artifacts and Deployment are composition boundaries inside the
 same Python automation process, not independently deployable microservices.
@@ -62,10 +72,11 @@ The current artifact and deployment runtime flow is deliberately fail-closed:
   `DeploymentApplyWorkflow`, and can run configured stack apply contracts only
   when they expose verify-after-apply evidence. The tested
   `EnsureServiceStack` contract can create or update Portainer-managed stacks
-  and then verify stack registration through `PortPortainerClient`. The
-  default CLI composition now wires these Portainer-managed apply steps for
-  the selected service profile, while first-time Portainer and Nexus bootstrap
-  remain separate setup phases.
+  and then verify stack registration through `PortPortainerClient`. On the
+  default `lxc_native` path, CLI composition currently returns blocked
+  provider-boundary workflows instead of wiring Portainer-managed apply steps.
+  Explicit `multipass_legacy` keeps the legacy fallback deployment clients
+  available.
 * `deployment verify` dispatches without live consent and returns `blocked`
   by default. When configured with the current default service stack checks,
   it can observe Portainer stack registration but still returns `blocked`
@@ -123,9 +134,10 @@ targets under `infra/config`. Verification evidence stores typed summaries
 through `VerificationResult`; raw command strings, stdout, stderr, environment
 payloads, and keys that imply secrets are rejected before persistence.
 
-No live Multipass, Docker Swarm, netplan, socat, Portainer, Nexus, Jenkins,
-RabbitMQ, SonarQube, compose, or stack deployment command is required to create
-or round-trip these inventory artifacts in tests.
+No live LXD, Incus, LXC container lifecycle, Multipass, Docker Swarm, netplan,
+socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, compose, or stack
+deployment command is required to create or round-trip these inventory
+artifacts in tests.
 
 === Verify After Apply Runtime Gate
 
@@ -134,14 +146,14 @@ apply-then-verify gate. A mutating step must expose a verification path before
 the workflow runs it. If that path is missing, the workflow returns `blocked`
 and does not apply the step.
 
-The gate itself is implemented as fail-closed workflow behavior. At the current
-system-unification baseline, the composed `platform init` and
-`platform reconcile` steps expose explicit verification target IDs and
-operator-safe block reasons, but they still do not expose concrete
-command-backed verification contracts. These workflows therefore return
-`blocked` before running live steps. This keeps Multipass, Docker Swarm,
-netplan, and VM reconciliation commands from running until later slices add
-tested verification wrappers or equivalent verifiable step contracts.
+The gate itself is implemented as fail-closed workflow behavior. Default
+`platform init` now uses LXC-native node-provider steps with verification
+target IDs and LXD/Incus provider readiness guards. It blocks before mutation
+when readiness, backend selection, WSL2 capability, or provider profile
+requirements are not satisfied. Default `platform reconcile` still blocks at
+the LXC-native provider boundary until native reconcile contracts exist.
+Explicit `multipass_legacy` selection keeps the legacy Multipass init and
+reconcile steps separate from the default path.
 
 Continuation requires both parts:
 
@@ -161,6 +173,12 @@ the typed verification result before making the continuation decision.
 The non-mutating `platform verify` workflow also interprets preflight results.
 Failed preflight checks now return `failed_to_verify` with summary-only
 verification evidence instead of reporting a completed verify workflow.
+Static preflight does not claim live provider readiness. The default
+`lxc_native` path removes Multipass as a required dependency for static
+preflight, while LXD/Incus readiness, WSL2 capability, backend ambiguity, and
+Docker-in-container profile requirements are evaluated by the platform init
+provider guard before mutation. Explicit `multipass_legacy` selection keeps
+the legacy Multipass readiness path separate.
 
 === Autonomous Setup Runtime Flow
 
@@ -188,6 +206,12 @@ artifact/registry live steps, missing external Swarm inputs, and missing
 observed service readiness must be reported as `refused`, `blocked`,
 `resource_gated`, `failed_to_apply`, `failed_to_prepare`, or
 `failed_to_verify`, never as success.
+
+The provider selected by setup defaults to `lxc_native` through LXD or Incus.
+If both managed backends are usable, the operator must choose one explicitly
+with `--lxc-backend`. Multipass is available only through explicit
+`--node-provider multipass_legacy` selection; it must not be used as a silent
+fallback after LXD/Incus readiness fails.
 
 Optional live smoke validation remains a separate operator action and is not
 part of default architecture tests or the default quality gate.

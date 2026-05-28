@@ -3,9 +3,11 @@
 ## Project Identity
 
 Tiny Swarm World is a Linux/WSL-only local infrastructure automation project.
-It provisions and operates a production-like Docker Swarm environment on
-Multipass virtual machines and ships ready-to-use service stacks such as
-Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX.
+Its default node-provider direction is managed LXC through LXD or Incus for a
+Docker Swarm target environment. It ships guarded workflow boundaries and
+service-stack configuration for Portainer, Nexus, Jenkins, RabbitMQ,
+SonarQube, and Swagger/NGINX. Multipass is retained only as an explicit
+legacy/fallback node provider.
 
 The project is a Python automation codebase using a hexagonal architecture.
 Do not reintroduce Java, Maven, or Spring Boot project structure unless a later
@@ -30,7 +32,8 @@ explicit task changes the product scope.
   management, UI, and external clients.
 - `src/tiny_swarm_world/infrastructure`: concrete adapters, dependency wiring, logging,
   YAML handling, command runners, UI adapters, and file management.
-- `infra/config`: YAML command, VM, network, and compose stack configuration data.
+- `infra/config`: YAML command, node-provider, network, and compose stack
+  configuration data.
 - `infra/compose`: image build contexts and related Dockerfiles for stack services.
 - `infra/prepare`: retired notes for former direct local-service preparation
   helpers; it must not contain executable setup entry points.
@@ -71,8 +74,8 @@ explicit task changes the product scope.
 - Use `asyncio` consistently for asynchronous command orchestration.
 - Do not hide external command execution in constructors or import-time side
   effects.
-- Prefer typed value objects and small domain classes for command, VM, network,
-  deployment, and Nexus concepts.
+- Prefer typed value objects and small domain classes for command,
+  node-provider, VM legacy, network, deployment, and Nexus concepts.
 
 ## Configuration And YAML
 
@@ -88,10 +91,13 @@ explicit task changes the product scope.
 
 ## External System Safety
 
-Many project commands can create VMs, change networking, install Docker, or
-deploy stacks. Do not run these unless the user explicitly asks for live
-infrastructure changes:
+Many project commands can create provider nodes, change networking, install
+Docker, or deploy stacks. Do not run these unless the user explicitly asks for
+live infrastructure changes:
 
+- `incus`
+- `lxc`
+- LXD or Incus daemon initialization, profile, storage, or network changes
 - `multipass`
 - `docker swarm`
 - compose deployments
@@ -118,8 +124,8 @@ inspection.
   `tests.architecture.test_hexagonal_imports`.
 - Add or update tests when changing domain behavior, application orchestration,
   command construction, YAML parsing, path handling, repositories, or adapters.
-- Mock command execution, network calls, VM operations, and Docker operations
-  unless the task explicitly requests an integration run.
+- Mock command execution, network calls, node-provider or VM operations, and
+  Docker operations unless the task explicitly requests an integration run.
 - Keep Linux/WSL behavior as the baseline in tests.
 
 ## Documentation

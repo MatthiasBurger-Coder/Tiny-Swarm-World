@@ -132,6 +132,37 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.BLOCKED, result.verification_results[0].status)
         self.assertEqual("1", result.verification_results[0].evidence["runtime_failure_count"])
 
+    async def test_init_provider_guard_blocks_before_any_platform_step(self):
+        guard = _ProviderGuardAction(
+            VerificationResult(
+                target_id="platform:node-provider:lxc_native",
+                status=VerificationStatus.BLOCKED,
+                message="Provider selection blocked platform mutation.",
+                evidence={
+                    "phase": "pre_apply",
+                    "reason": "provider_selection_blocked",
+                    "requested_provider": "lxc_native",
+                    "selected_provider": "lxc_native",
+                    "selection_status": "blocked",
+                    "backend_status": "missing",
+                    "backend_candidate_count": "0",
+                    "remediation_count": "1",
+                },
+            )
+        )
+        step = _RecordingAction("init")
+
+        result = await PlatformInitWorkflow([step], pre_apply_guard=guard).run()
+
+        self.assertEqual(["provider"], guard.calls)
+        self.assertEqual([], step.calls)
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual("platform:node-provider:lxc_native", result.verification_results[0].target_id)
+        self.assertEqual("provider_selection_blocked", result.verification_results[0].evidence["reason"])
+        self.assertEqual("lxc_native", result.verification_results[0].evidence["requested_provider"])
+        self.assertNotIn("multipass_legacy", repr(result.to_dict()))
+
     async def test_init_pre_apply_guard_passes_before_steps(self):
         guard = _PreflightAction(PreflightResult(()))
         step = _RecordingAction("init")
@@ -279,6 +310,52 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             tuple(item.evidence["phase"] for item in result.verification_results),
         )
         self.assertEqual("Verification evidence is missing.", result.verification_results[1].message)
+
+    async def test_verification_result_step_records_provider_lifecycle_result(self):
+        step = _VerificationResultAction(
+            VerificationResult(
+                target_id="platform:node:swarm-manager",
+                status=VerificationStatus.VERIFIED,
+                message="LXC node lifecycle reached the desired state.",
+                evidence={
+                    "phase": "verify",
+                    "classification": "verified",
+                    "provider": "lxc_native",
+                    "node": "swarm-manager",
+                    "backend": "incus",
+                },
+            )
+        )
+
+        result = await PlatformInitWorkflow([step]).run()
+
+        self.assertEqual(["platform:node:swarm-manager"], step.calls)
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual("platform:node:swarm-manager", result.verification_results[0].target_id)
+        self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
+
+    async def test_blocked_verification_result_step_stops_before_later_steps(self):
+        blocked_step = _VerificationResultAction(
+            VerificationResult(
+                target_id="platform:node:swarm-manager",
+                status=VerificationStatus.BLOCKED,
+                message="LXC node lifecycle is blocked before mutation.",
+                evidence={
+                    "phase": "pre_apply",
+                    "classification": "live_mutation_consent_missing",
+                    "provider": "lxc_native",
+                    "node": "swarm-manager",
+                },
+            )
+        )
+        later_step = _RecordingAction("later")
+
+        result = await PlatformInitWorkflow([blocked_step, later_step]).run()
+
+        self.assertEqual(["platform:node:swarm-manager"], blocked_step.calls)
+        self.assertEqual([], later_step.calls)
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual("platform:node:swarm-manager", result.verification_results[0].target_id)
 
     async def test_pre_apply_verified_step_completes_with_observed_verification(self):
         step = _PreApplyVerifiableAction(
@@ -486,6 +563,29 @@ class _PreflightAction:
 
     async def run(self) -> PreflightResult:
         self.calls.append("preflight")
+        return self.result
+
+
+class _ProviderGuardAction:
+    def __init__(self, result: VerificationResult):
+        self.result = result
+        self.calls: list[str] = []
+
+    async def run(self) -> VerificationResult:
+        self.calls.append("provider")
+        return self.result
+
+
+class _VerificationResultAction:
+    returns_verification_result = True
+
+    def __init__(self, result: VerificationResult):
+        self.result = result
+        self.verification_target_id = result.target_id
+        self.calls: list[str] = []
+
+    async def run(self) -> VerificationResult:
+        self.calls.append(self.verification_target_id)
         return self.result
 
 

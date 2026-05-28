@@ -5,7 +5,11 @@
 
 == Purpose
 
-Tiny Swarm World deploys local infrastructure services into a Docker Swarm environment that is usually backed by Multipass virtual machines. The deployment documentation is intentionally limited to the workflows that exist in this repository today.
+Tiny Swarm World deploys local infrastructure services into a Docker Swarm
+environment whose default node provider is managed LXC through LXD or Incus.
+Multipass remains an explicit legacy/fallback provider. The deployment
+documentation is intentionally limited to the workflows that exist in this
+repository today.
 
 This project is developed and operated from WSL or Linux shells. Windows-specific shell commands are not the default execution model.
 
@@ -20,18 +24,20 @@ The repository separates deployment work into three areas:
 The active Python entry point exposes workflow-level commands. Running without
 arguments does not execute infrastructure commands, and `--list-workflows`
 returns the declared workflow list without building application services.
-Static preflight is available through `--preflight`.
+Static preflight is available through `--preflight` for the default
+`lxc_native` provider.
 
 Implemented platform workflows are `platform init`, `platform reconcile`,
 `platform verify`, `platform reset`, and `platform destroy`. Mutating platform
 workflows require live consent before service construction. Reset and destroy
 also require exact confirmation and currently block after confirmation until
-retention and teardown semantics are implemented. Artifact and deployment
-workflow names dispatch to explicit fail-closed workflow contracts until live
-Nexus, registry, Portainer, image publication, and observed-state verification
-contracts are wired in composition. The artifact workflow contracts can now
-run configured Nexus repository checks with typed verification evidence, but
-the default CLI composition still keeps artifact live behavior blocked.
+retention and teardown semantics are implemented. Default platform init uses
+the `lxc_native` provider selection path and blocks before mutation when
+LXD/Incus readiness or profile requirements are not satisfied. Default
+platform reconcile, artifact workflows, and deployment workflows block at
+provider-native boundaries until their LXC-native contracts are wired.
+Explicit `--node-provider multipass_legacy` routes to legacy fallback
+behavior.
 
 The Deployment boundary now contains a tested post-bootstrap
 `EnsurePortainerStack` application service and a sanitized Portainer HTTP
@@ -74,13 +80,15 @@ python3 tools/quality_gate.py quality
 When a virtual environment is active, `python` can be used instead of `python3`.
 
 The quality gate covers linting, import architecture checks, architecture
-tests, type checks, and unittest discovery. It does not start Multipass VMs,
-initialize Docker Swarm, or deploy live services.
+tests, type checks, and unittest discovery. It does not start LXD/Incus/LXC
+containers, Multipass VMs, initialize Docker Swarm, or deploy live services.
 
 == Service preparation
 
-Portainer, Nexus, image publication, and stack deployment are started through
-the canonical setup workflow:
+Portainer, Nexus, image publication, and stack deployment are owned by the
+canonical setup workflow boundaries. On the default `lxc_native` path they
+remain blocked until provider-native artifact, deployment, and observed-state
+contracts are wired:
 
 [source,bash]
 ----
@@ -100,9 +108,11 @@ The canonical live-operation surface catalog is
 
 == Nexus bootstrap
 
-Nexus setup is owned by the Python setup workflow. The workflow creates or
-updates the Nexus stack through the deployment boundary, establishes
-administrator access, and applies artifact repository readiness contracts.
+Nexus setup is owned by the Python setup workflow boundary. The default
+`lxc_native` path does not yet claim live Nexus stack creation,
+administrator-access establishment, or repository readiness success. Those
+steps remain blocked until provider-native artifact and deployment contracts
+are wired and verified.
 
 Important environment variables:
 
@@ -128,16 +138,21 @@ proof that a service is live or healthy.
 
 == Stack deployment
 
-The supported stack deployment path is the workflow-level setup command. Compose
-files under `infra/config/compose` are read by Python deployment adapters and
-deployed through the reviewed setup workflow.
+The supported stack deployment boundary is the workflow-level setup command.
+Compose files under `infra/config/compose` are read by Python deployment
+adapters. On the default `lxc_native` path, provider-native stack deployment
+remains blocked until the reviewed setup workflow wires and verifies those
+contracts.
 
 == Service-access routing and Vaultwarden
 
-The service-access dashboard and Vaultwarden capability is implemented as the
-full guided setup's management surface. The current repository design makes
-the service-access NGINX the central local HTTP entry point at
-`http://localhost`. Swagger/NGINX moves to its own `8084` published route.
+The service-access dashboard and Vaultwarden capability is implemented as
+repository assets, setup-selected service contracts, and routing design. It is
+not claimed as a live-installed management surface for the default
+`lxc_native` path until provider-native deployment and service readiness are
+verified. The current repository design makes the service-access NGINX the
+intended central local HTTP entry point at `http://localhost`. Swagger/NGINX
+moves to its own `8084` published route after a verified deployment.
 
 Implemented repository behavior:
 
@@ -147,8 +162,9 @@ Implemented repository behavior:
   `infra/compose/service-access/nginx/**` provide image-packaged static
   assets for the Portainer-managed path.
 * The setup CLI uses `ServiceStackProfile.SERVICE_ACCESS` by default so the
-  installed environment has the service-access landing page. Operators can use
-  `--service-profile default` to run only the older base service set.
+  selected setup profile includes the service-access landing page contract.
+  Operators can use `--service-profile default` to run only the older base
+  service set.
 * The setup manifest for the service-access profile records ports `80` and `8086`
   plus the `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
   It does not record a token value.
@@ -179,24 +195,10 @@ The static dashboard is a management table with `Server`, `URL`, `user` and
 references. Password values remain visible only through Vaultwarden's
 authenticated reveal/copy flow.
 
-Observed live smoke evidence from 2026-05-25:
-
-* The Portainer stack `service-access` was created and updated on endpoint
-  `local`.
-* Swarm tasks for the dashboard, Vaultwarden and service-access NGINX reached
-  `running`, and Vaultwarden reported healthy.
-* The service-access dashboard returned HTTP `200` on three Swarm node IPs
-  through port `8085`.
-* Vaultwarden returned HTTP `200` on three Swarm node IPs through port `8086`.
-* The dashboard path `/vaultwarden` redirected to the same host on port
-  `8086`.
-
 Current live verification note:
 
-* The previous 2026-05-25 live smoke verified the older dedicated `8085`
-  dashboard route on Swarm node IPs. The central `http://localhost` route
-  requires a fresh service-access stack deployment before it is claimed as
-  live-verified.
+* The central `http://localhost` route requires a fresh provider-specific
+  service-access stack deployment before it is claimed as live-verified.
 
 == Verification
 
@@ -204,11 +206,15 @@ Useful checks after deployment:
 
 [source,bash]
 ----
-multipass list
+incus list swarm-manager --format json
+lxc list swarm-manager --format json
 docker node ls
 docker stack ls
 docker service ls
 ----
+
+Use either the `incus` or `lxc` command according to the selected backend. Use
+`multipass list` only for explicit `--node-provider multipass_legacy` runs.
 
 Service-specific web interfaces depend on the published stack ports. Typical local defaults are documented in `documentation/Howto.adoc`.
 
@@ -220,14 +226,15 @@ and should be run only on a disposable or recoverable local Swarm target:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-When prompted, answer `y` only if the operator intentionally accepts local VM,
-Docker Swarm, networking, service bootstrap, image, and stack changes. A live
-smoke result is evidence for that local run only and must not be treated as
-the default repository quality gate.
+When prompted, answer `y` only if the operator intentionally accepts local
+LXD/Incus/LXC or explicit Multipass legacy provider state, Docker Swarm,
+networking, service bootstrap, image, and stack changes. A live smoke result
+is evidence for that local run only and must not be treated as the default
+repository quality gate.
 
 == Operational caution
 
-The guided setup workflow can create or modify virtual machines, Docker
+The guided setup workflow can create or modify provider nodes, Docker
 configuration, Swarm state, network settings, and service credentials. Review
 the live-operation surface catalog and environment values before running it
 against an existing local environment.

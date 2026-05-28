@@ -26,8 +26,9 @@ passes the active workflow identifier through the command port and validates
 catalog entries before runner-specific executable commands are created.
 
 Tests and quality gates parse and validate command YAML without running live
-Multipass, Docker Swarm, netplan, socat, compose, Portainer, Nexus, Jenkins,
-RabbitMQ, SonarQube, or Swagger/NGINX commands.
+LXD, Incus, LXC container lifecycle, Multipass, Docker Swarm, netplan, socat,
+compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX
+commands.
 
 === Desired Inventory, Observed State, And Evidence
 

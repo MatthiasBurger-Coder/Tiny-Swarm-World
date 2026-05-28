@@ -1,3 +1,5 @@
+include::lxc-native-setup.adoc[]
+
 include::multipass-setup.adoc[]
 
 include::network.adoc[]

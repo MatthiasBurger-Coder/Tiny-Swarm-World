@@ -1,14 +1,14 @@
 = ADR: Service Access Dashboard And Vaultwarden Baseline
 
-Status: Accepted as requirement and security baseline; implemented as the full setup service-access profile with residual operational hardening
+Status: Accepted as requirement and security baseline; repository assets and contracts implemented, live provider runtime unverified
 
 Date: 2026-05-25
 
 == Implementation Status
 
 The workflow has implemented repository-level service-access assets and
-contracts, and a post-workflow live smoke test verified the Portainer-managed
-stack on Swarm node IPs.
+contracts. Historical smoke evidence from earlier targets must not be treated
+as proof for the default `lxc_native` provider.
 
 Implemented repository behavior:
 
@@ -22,8 +22,9 @@ Implemented repository behavior:
   pass `--service-profile default` to run only the older base service set.
 * The service-access setup manifest records ports `80` and `8086` plus the
   `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
-* The artifact workflow builds and publishes the image-packaged
-  `service-access-dashboard` and `service-access-nginx` assets for setup.
+* Artifact contracts include the image-packaged `service-access-dashboard` and
+  `service-access-nginx` assets, but the default `lxc_native` path still
+  blocks until provider-native image publication is wired and verified.
 * Static tests verify the compose boundary, image packaging, central route
   links, Vaultwarden item references and no React/Vite/live-orchestration
   surface.
@@ -31,17 +32,19 @@ Implemented repository behavior:
 Not implemented or not verified:
 
 * the central `http://localhost` service-access route requires a fresh live
-  redeployment before it is claimed as live-verified;
+  provider-specific redeployment before it is claimed as live-verified;
+* provider-native deployment, observed service readiness, and live LXD/Incus
+  evidence remain incomplete;
 * Vaultwarden backup, restore, admin-token rotation and rollback remain
   future work.
 
 == Context
 
-Tiny Swarm World is a Linux/WSL-only Python automation project that provisions
-and operates a local Docker Swarm environment. Existing service stacks such as
-Portainer, Nexus, Jenkins, RabbitMQ, SonarQube and Swagger/NGINX are governed
-through Deployment responsibility boundaries, compose assets, explicit
-verification contracts and live-infrastructure consent rules.
+Tiny Swarm World is a Linux/WSL-only Python automation project for a local
+Docker Swarm target environment. Existing service stacks such as Portainer,
+Nexus, Jenkins, RabbitMQ, SonarQube and Swagger/NGINX are governed through
+Deployment responsibility boundaries, compose assets, explicit verification
+contracts and live-infrastructure consent rules.
 
 The requested capability adds a service-access GUI and a Vaultwarden
 credential store. The user requirement includes password visibility for
@@ -89,12 +92,15 @@ The baseline rules are:
 * Missing required secrets must fail preflight before stack deployment.
 * Vaultwarden admin-token ownership, rotation, persistence, backup, restore
   and rollback behavior are blockers before production-like claims.
-* The full guided setup includes service access by default so the installed
-  environment has a management landing page. The older base service set
-  remains available through `--service-profile default`.
+* The full guided setup selects service access by default so the selected
+  profile includes the management landing page contract. A live installed
+  landing page may be claimed only after provider-specific deployment evidence
+  exists. The older base service set remains available through
+  `--service-profile default`.
 * The accepted routing decision is `SERVICE_ACCESS_CENTRAL_NGINX`.
-* The service-access stack owns published port `80` and serves the management
-  overview at `http://localhost`.
+* The service-access stack is the accepted owner of published port `80` and
+  is intended to serve the management overview at `http://localhost` after a
+  verified provider-specific live deployment.
 * The service-access NGINX manages stable central paths for Jenkins, Nexus,
   Portainer, RabbitMQ, SonarQube, Swagger and Vaultwarden.
 * Swagger/NGINX moves to published port `8084`.
@@ -140,7 +146,9 @@ TypeScript, Vite, TSX/JSX or browser frontend project setup.
 == Consequences
 
 Implementation preserves the accepted routing, port allocation and asset
-packaging decision in committed compose and image assets.
+packaging decision in committed compose and image assets. It does not prove
+provider-native live deployment or service health on the default `lxc_native`
+provider.
 
 Implementation must preserve the hexagonal architecture:
 
@@ -170,8 +178,8 @@ Open follow-up items:
 * add and document an operator-facing way to select the service-access profile
   when live setup is ready for it;
 * optionally revisit shared NGINX ingress in a later ADR;
-* add service-access image publication contracts for the dashboard and NGINX
-  images;
+* wire and verify provider-native service-access image publication for the
+  dashboard and NGINX images;
 * define Vaultwarden backup, restore, admin-token rotation and rollback
   operations;
 * define optional TLS and external exposure policy if local-only HTTP becomes

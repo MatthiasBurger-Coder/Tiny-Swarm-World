@@ -1,3 +1,4 @@
+sandbox_mode = "danger-full-access"
 [agents]
 max_threads = 15
 max_depth = 10
