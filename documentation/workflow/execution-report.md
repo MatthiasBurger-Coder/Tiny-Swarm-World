@@ -39,6 +39,7 @@ were run during workflow authoring.
 | Slice 02 | completed | Provider-neutral Docker runtime and Swarm bootstrap domain/application contracts added with fake-port tests. |
 | Slice 03 | completed | LXD/Incus Docker runtime adapter added with structured exec argv and fake-runner infrastructure tests. |
 | Slice 04 | completed | LXC Docker install application step aggregates node runtime results for Platform init workflow continuation. |
+| Slice 05 | completed | LXD/Incus Swarm manager, token, worker join, and manager identity adapters added with token-redaction tests. |
 | implementation | not started | Requires `workflow execute`. |
 | quality gate | pending | Workflow creation checks only run after files are authored. |
 | live smoke | not approved | Requires explicit later approval. |
@@ -191,6 +192,66 @@ Rollback reference:
 
 ```text
 92b61d5
+```
+
+arc42 update:
+
+```text
+not required
+```
+
+ADR update:
+
+```text
+not required
+```
+
+## Slice 05 Result
+
+```text
+COMPLETED
+```
+
+Responsible role:
+
+```text
+Senior DevOps Engineer
+```
+
+Changed files:
+
+```text
+src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_swarm_bootstrap.py
+tests/infrastructure/adapters/clients/test_lxc_container_swarm_bootstrap.py
+documentation/workflow/execution-report.md
+```
+
+Implementation summary:
+
+- Added `LxcContainerSwarmBootstrap` for manager inspection, manager init,
+  worker credential retrieval, worker inspection, and worker join.
+- Added `LxcContainerNetworkIdentity` for manager advertise-address lookup.
+- Uses selected managed backend command prefixes: `incus exec` or `lxc exec`.
+- Keeps Swarm worker credentials memory-only in domain outcomes and test
+  assertions.
+- Requires explicit live-mutation allowance before manager init or worker join
+  commands run.
+
+Quality gates:
+
+```text
+PYTHONPATH=src .venv/bin/python -m unittest tests.infrastructure.adapters.clients.test_lxc_container_swarm_bootstrap tests.application.services.platform.test_lxc_swarm_bootstrap tests.application.services.platform.test_docker_swarm_lxc_contract: passed
+PYTHONPATH=src .venv/bin/python -m unittest discover tests/application: passed
+PYTHONPATH=src .venv/bin/python -m unittest discover tests/infrastructure: passed
+.venv/bin/python tools/quality_gate.py lint: passed
+.venv/bin/python tools/quality_gate.py typecheck: passed
+git diff --check: passed
+```
+
+Rollback reference:
+
+```text
+1ce7637
 ```
 
 arc42 update:
