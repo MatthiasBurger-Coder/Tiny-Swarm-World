@@ -37,6 +37,7 @@ were run during workflow authoring.
 | S3D metadata repair | completed | Slice dependencies, affected surfaces, locks, quality gates, documentation flags, and stop conditions made machine-readable. |
 | Slice 01 | completed | Requirement review confirmed current baseline reports satisfy the Multipass-to-LXC contract mapping. No content edits required. |
 | Slice 02 | completed | Provider-neutral Docker runtime and Swarm bootstrap domain/application contracts added with fake-port tests. |
+| Slice 03 | completed | LXD/Incus Docker runtime adapter added with structured exec argv and fake-runner infrastructure tests. |
 | implementation | not started | Requires `workflow execute`. |
 | quality gate | pending | Workflow creation checks only run after files are authored. |
 | live smoke | not approved | Requires explicit later approval. |
@@ -189,6 +190,62 @@ Rollback reference:
 
 ```text
 92b61d5
+```
+
+arc42 update:
+
+```text
+not required
+```
+
+ADR update:
+
+```text
+not required
+```
+
+## Slice 03 Result
+
+```text
+COMPLETED
+```
+
+Responsible role:
+
+```text
+Senior DevOps Engineer
+```
+
+Changed files:
+
+```text
+src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_docker_runtime.py
+tests/infrastructure/adapters/clients/test_lxc_container_docker_runtime.py
+documentation/workflow/execution-report.md
+```
+
+Implementation summary:
+
+- Added `LxcContainerDockerRuntime` as the concrete LXD/Incus implementation
+  of `PortContainerDockerRuntime`.
+- Uses selected managed backend command prefixes: `incus exec` or `lxc exec`.
+- Keeps command output out of domain outcomes and verification evidence.
+- Requires explicit live-mutation allowance before install commands are run.
+- Leaves composition wiring to later workflow slices.
+
+Quality gates:
+
+```text
+PYTHONPATH=src .venv/bin/python -m unittest tests.infrastructure.adapters.clients.test_lxc_container_docker_runtime tests.infrastructure.adapters.clients.test_lxc_node_provider: passed
+PYTHONPATH=src .venv/bin/python -m unittest discover tests/infrastructure: passed
+.venv/bin/python tools/quality_gate.py lint: passed
+git diff --check: passed
+```
+
+Rollback reference:
+
+```text
+70c8057
 ```
 
 arc42 update:
