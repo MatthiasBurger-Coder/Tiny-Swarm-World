@@ -89,9 +89,9 @@ first-time stack bootstrap, and service readiness.
 
 The accepted LXC-native provider direction is requirement drift that is now
 tracked by ADR and implemented for default provider selection, readiness
-checks, node lifecycle adapters, and setup/platform init wiring. The
-implementation does not yet prove Docker Swarm inside LXD/Incus containers,
-does not yet provide provider-native platform reconcile, and keeps default
+checks, node lifecycle adapters, Docker Engine setup, Swarm bootstrap, and
+setup/platform init wiring. The implementation does not yet prove Docker
+Swarm inside LXD/Incus containers on a live target, and keeps default
 artifact/deployment workflows blocked until native contracts are wired.
 
 ## Intent
@@ -241,7 +241,8 @@ smoke validation is a separate operator action and requires:
 - Service health is never claimed without observed-state or smoke-test
   evidence.
 - LXC-native through LXD or Incus is the default provider direction, while
-  remaining provider-native reconcile, artifact, deployment, and live
+  provider-native Platform init now covers Docker Engine setup and Swarm
+  bootstrap. Remaining artifact, deployment, service-readiness, and live
   validation gaps remain explicit.
 - Multipass fallback must be explicit and operator-visible; it must not hide a
   failed LXD/Incus readiness check.

@@ -10,13 +10,15 @@ This ADR records the provider direction for the LXC-native node provider
 migration workflow. The implementation now selects `lxc_native` by default,
 uses managed LXC through LXD or Incus, models provider configuration and
 profile requirements, checks provider readiness, wires LXC-native lifecycle
-adapters into setup/platform init, and keeps Multipass behind explicit
-`multipass_legacy` selection.
+adapters into setup/platform init, installs or verifies Docker Engine inside
+the managed LXC nodes through provider-selected adapters, bootstraps or
+verifies the Docker Swarm manager and workers, and keeps Multipass behind
+explicit `multipass_legacy` selection.
 
 This ADR does not claim full live success. Docker Swarm inside LXD/Incus
-containers, WSL2 live validation, provider-native platform reconcile,
-provider-native artifact publication, provider-native deployment, and
-end-to-end service readiness remain incomplete or blocked.
+containers and WSL2 remain unverified until target-specific live smoke
+evidence exists. Provider-native artifact publication, provider-native
+deployment, and end-to-end service readiness remain incomplete or blocked.
 
 == Context
 
@@ -127,14 +129,15 @@ approved before use.
 
 Completed implementation slices have introduced provider-neutral node and
 readiness concepts, LXD/Incus readiness checks, provider configuration,
-provider lifecycle adapters, setup/platform init wiring, and an explicit
-Multipass legacy boundary.
+provider lifecycle adapters, setup/platform init wiring, provider-selected
+Docker Engine setup and Swarm bootstrap inside managed LXC nodes, and an
+explicit Multipass legacy boundary.
 
 The ADR, EPIC, and arc42 documentation may describe LXC-native through
 LXD/Incus as the implemented default selection and setup/platform init
-direction. They must continue to describe provider-native platform reconcile,
-artifact publication, deployment, Docker Swarm-in-container health, and WSL2
-live success as blocked or unverified until later slices provide evidence.
+direction. They must continue to describe artifact publication, deployment,
+Docker Swarm-in-container live health, and WSL2 live success as blocked or
+unverified until later slices provide evidence.
 
 Provider readiness checks must be non-mutating by default, timeout-bound,
 sanitized, and able to distinguish missing executable, missing daemon access,

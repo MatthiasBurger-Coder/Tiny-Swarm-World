@@ -39,8 +39,9 @@ The LXC-native node provider migration also extends this EPIC:
 
 That extension accepts `lxc_native` through LXD or Incus as the default
 provider direction. The implementation now keeps Multipass behind explicit
-`multipass_legacy` selection and fails closed for remaining provider-native
-reconcile, artifact, deployment, and live validation gaps.
+`multipass_legacy` selection, wires provider-native Platform init through
+Docker Engine setup and Swarm bootstrap, and fails closed for remaining
+provider-native artifact, deployment, and live validation gaps.
 
 The service-access dashboard and Vaultwarden baseline also extends this EPIC:
 
@@ -113,10 +114,11 @@ Planned or incomplete:
   bootstrap, and service readiness evidence are wired.
 - The LXC-native provider direction is implemented for default provider
   selection, provider-neutral contracts, LXD/Incus readiness, node lifecycle
-  adapters, setup/platform init integration, and the explicit Multipass legacy
-  boundary. Provider-native platform reconcile, artifact/deployment wiring,
-  Docker Swarm-in-container live validation, and WSL2 live proof remain
-  incomplete and fail closed.
+  adapters, Docker Engine setup inside managed LXC nodes, Docker Swarm
+  bootstrap inside those nodes, setup/platform init integration, LXC-native
+  reconcile no-op completion, and the explicit Multipass legacy boundary.
+  Artifact/deployment wiring, Docker Swarm-in-container live validation, and
+  WSL2 live proof remain incomplete and fail closed.
 - The service-access dashboard and Vaultwarden EPIC extension now has
   repository assets and contracts, but provider-native deployment,
   persistence hardening, service readiness, and live `lxc_native` evidence
@@ -172,9 +174,10 @@ Out of scope:
 - Provider migration requirements preserve the Platform responsibility
   boundary and hexagonal architecture. Documentation may describe LXC-native
   through LXD/Incus as the implemented default selection and setup/platform
-  init direction, but must not present provider-native reconcile,
-  artifact/deployment behavior, Docker Swarm-in-container health, or WSL2 live
-  success as complete until source, tests, and verification evidence exist.
+  init direction, including provider-native Docker Engine setup and Swarm
+  bootstrap contracts, but must not present artifact/deployment behavior,
+  Docker Swarm-in-container live health, or WSL2 live success as complete until
+  source, tests, and verification evidence exist.
 - Service-access dashboard and Vaultwarden requirements preserve the
   Deployment responsibility boundary. Documentation must not present the
   service-access dashboard, Vaultwarden, routing, or credential migration as

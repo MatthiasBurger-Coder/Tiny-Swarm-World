@@ -41,7 +41,8 @@ were run during workflow authoring.
 | Slice 04 | completed | LXC Docker install application step aggregates node runtime results for Platform init workflow continuation. |
 | Slice 05 | completed | LXD/Incus Swarm manager, token, worker join, and manager identity adapters added with token-redaction tests. |
 | Slice 06 | completed | Platform composition now wires default LXC init through node creation, container runtime setup, and Swarm bootstrap steps. |
-| implementation | in progress | Slices 01-06 completed; documentation sync and final quality/live-smoke boundary remain. |
+| Slice 07 | completed | Operator, EPIC, arc42, ADR, and live-operation-surface documentation synchronized with the implemented LXC Platform init path. |
+| implementation | in progress | Slices 01-07 completed; final quality/live-smoke boundary remains. |
 | quality gate | passed | Full repository quality gate passed after Slice 06 changes. |
 | live smoke | not approved | Requires explicit later approval. |
 
@@ -298,6 +299,71 @@ ADR update:
 
 ```text
 not required
+```
+
+## Slice 07 Result
+
+```text
+COMPLETED
+```
+
+Responsible role:
+
+```text
+Senior Documentation Engineer
+```
+
+Changed files:
+
+```text
+README.md
+OPERATIONAL_READINESS_CHECKLIST.md
+documentation/architecture/adr-lxc-native-node-provider.adoc
+documentation/arc42/06_runtime_view.adoc
+documentation/arc42/11_risks_and_debt.adoc
+documentation/epics/autonomous-runnable-setup.md
+documentation/epics/system-unification.md
+documentation/system/live-operation-surfaces.adoc
+documentation/system/lxc-native-setup.adoc
+documentation/workflow/execution-report.md
+```
+
+Implementation summary:
+
+- Updated operator-facing setup language from planned/future Docker and Swarm
+  work to implemented Platform init behavior.
+- Preserved the distinction between test-backed implementation and
+  target-specific live evidence.
+- Documented default `lxc_native` reconcile as a verified no-op boundary after
+  Platform init.
+- Kept artifact publication, deployment, service readiness, and live
+  Docker-in-LXC proof documented as separate remaining work.
+- Added LXC-native readiness and Docker-in-container recovery notes without
+  documenting automatic host repair.
+
+Quality gates:
+
+```text
+rg -n "future provider-native Docker|provider-native platform reconcile|platform reconcile.*block|Docker installed on all VMs|Docker-in-container health" README.md OPERATIONAL_READINESS_CHECKLIST.md documentation/epics documentation/arc42 documentation/architecture documentation/system: no matches
+git diff --check: passed
+```
+
+Rollback reference:
+
+```text
+bac1863
+```
+
+arc42 update:
+
+```text
+updated
+```
+
+ADR update:
+
+```text
+reviewed and updated
 ```
 
 ## Slice 05 Result
