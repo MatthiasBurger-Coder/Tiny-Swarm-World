@@ -45,7 +45,7 @@ jobs:
 
       - name: Generate Coverage Report
         run: |
-          coverage run --branch -m unittest discover -s tests -t .
+          PYTHONPATH=src coverage run --branch -m unittest discover -s tests -t .
           coverage xml -o coverage.xml
 
       - name: SonarCloud Scan
