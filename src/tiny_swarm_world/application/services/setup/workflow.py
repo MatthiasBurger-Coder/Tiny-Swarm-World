@@ -113,9 +113,11 @@ class SetupWorkflow:
 
         phase_results: list[SetupPhaseResult] = []
         for phase in self.phases:
+            _print_phase_progress(phase.name, "START")
             try:
                 phase_output = await phase.run()
             except Exception as exc:
+                _print_phase_progress(phase.name, "FAILED", exc.__class__.__name__)
                 return SetupWorkflowResult(
                     kind=SetupWorkflowKind.RUN,
                     status=SetupWorkflowStatus.FAILED,
@@ -128,6 +130,7 @@ class SetupWorkflow:
             try:
                 _result_to_dict(phase_output)
             except ValueError:
+                _print_phase_progress(phase.name, "FAILED", "unsafe result payload")
                 phase_results.append(
                     SetupPhaseResult(
                         name=phase.name,
@@ -151,6 +154,7 @@ class SetupWorkflow:
                 )
 
             phase_status = _result_status_value(phase_output)
+            _print_phase_progress(phase.name, phase_status.upper())
             phase_result = SetupPhaseResult(
                 name=phase.name,
                 status=phase_status,
@@ -181,6 +185,13 @@ class SetupWorkflow:
             executed=True,
             phase_results=tuple(phase_results),
         )
+
+
+def _print_phase_progress(phase_name: str, status: str, detail: str | None = None) -> None:
+    message = f"[setup] {phase_name}: {status}"
+    if detail:
+        message = f"{message} ({detail})"
+    print(message, flush=True)
 
 
 def _result_status_value(result: object) -> str:

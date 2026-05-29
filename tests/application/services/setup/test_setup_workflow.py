@@ -1,4 +1,6 @@
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from tests.support.sonar_safe_literals import sensitive_assignment
 
 from tiny_swarm_world.application.services.artifacts import (
@@ -70,6 +72,25 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.executed)
         self.assertEqual(["preflight", "platform init"], calls)
         self.assertEqual(["preflight", "platform init"], [phase.name for phase in result.phase_results])
+
+    async def test_prints_progress_for_each_configured_phase(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+        output = StringIO()
+
+        with redirect_stdout(output):
+            await workflow.run()
+
+        self.assertIn("[setup] preflight: START", output.getvalue())
+        self.assertIn("[setup] preflight: COMPLETED", output.getvalue())
+        self.assertIn("[setup] platform init: START", output.getvalue())
+        self.assertIn("[setup] platform init: COMPLETED", output.getvalue())
 
     async def test_stops_on_blocked_phase_without_running_later_phases(self):
         calls: list[str] = []

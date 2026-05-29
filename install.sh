@@ -3,7 +3,6 @@ set -Eeuo pipefail
 
 SERVICE_PROFILE="${SERVICE_PROFILE:-service-access}"
 GENERATE_SECRETS=1
-CONFIRM_PHRASE="RUN TINY SWARM WORLD LIVE INSTALLATION"
 SECRET_ENV_FILE="${TSW_INSTALL_ENV_FILE:-.tiny-swarm-world/local/live-installation.env}"
 
 REQUIRED_SECRETS=(
@@ -137,6 +136,7 @@ cd "$SCRIPT_DIR"
 [[ "$(uname -s)" == "Linux" ]] || fail "Tiny Swarm World installation is supported only on Linux/WSL."
 [[ -d src/tiny_swarm_world ]] || fail "Run this script from the Tiny Swarm World repository root."
 require_command python3
+require_command script
 
 mkdir -p "$(dirname "$SECRET_ENV_FILE")"
 touch "$SECRET_ENV_FILE"
@@ -192,21 +192,12 @@ Secret file:     $SECRET_ENV_FILE
 
 This will run live infrastructure automation. It may create or change VMs,
 Docker resources, local service state, networks, and deployment artifacts.
-
-Type exactly this phrase to continue:
-  $CONFIRM_PHRASE
 EOF
 
-read -r confirmation
-if [[ "$confirmation" != "$CONFIRM_PHRASE" ]]; then
-  printf 'Installation cancelled. Evidence context remains at %s\n' "$EVIDENCE_DIR"
-  exit 2
-fi
-
-printf 'Starting live setup. Full log: %s/setup-run.log\n' "$EVIDENCE_DIR"
+printf 'Starting live setup. Terminal UI is visible and recorded at: %s/setup-run.log\n' "$EVIDENCE_DIR"
 set +e
-printf 'ja\n' | PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --service-profile "$SERVICE_PROFILE" \
-  >"$EVIDENCE_DIR/setup-run.log" 2>&1
+script -q -e -c "PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --service-profile $(shell_quote "$SERVICE_PROFILE")" \
+  "$EVIDENCE_DIR/setup-run.log"
 setup_exit=$?
 set -e
 
