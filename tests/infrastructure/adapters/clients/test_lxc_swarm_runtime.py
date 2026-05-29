@@ -29,6 +29,33 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertIn("TSW_REMOTE_STACK_ROOT=/custom/stacks docker stack deploy", deploy_script)
         self.assertIn("-c /custom/stacks/swagger/docker-compose.yml swagger", deploy_script)
 
+    def test_deploy_stack_reconciles_existing_host_published_ports(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+        compose = """
+services:
+  nexus:
+    image: sonatype/nexus3:3.75.1
+    ports:
+      - target: 8081
+        published: 8081
+        protocol: tcp
+        mode: host
+"""
+
+        with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+            with patch.object(runtime, "_transfer_stack_assets"):
+                runtime.deploy_stack(StackDefinition(name="nexus", compose_content=compose))
+
+        scripts = [call.args[0] for call in run_manager_shell.call_args_list]
+        self.assertIn(
+            "docker service update --publish-rm 8081 nexus_nexus >/dev/null 2>&1 || true",
+            scripts,
+        )
+        self.assertIn(
+            "docker service update --publish-add published=8081,target=8081,protocol=tcp,mode=host nexus_nexus",
+            scripts,
+        )
+
     def test_stack_exists_reads_docker_stack_names_through_lxc(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
 

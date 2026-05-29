@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 import requests
+from ruamel.yaml import YAML
 
 from tiny_swarm_world.application.ports.clients.port_container_image_publisher import (
     PortContainerImagePublisher,
@@ -39,6 +40,7 @@ from tiny_swarm_world.infrastructure.project_paths import infra_root
 
 REPLICA_PATTERN = re.compile(r"^(?P<current>\d+)/(?:\s*)?(?P<desired>\d+)$")
 STACK_ENVIRONMENT_NAME_PATTERN = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+_YAML = YAML(typ="safe")
 
 _BACKEND_CLI = {
     ManagedLxcBackend.INCUS: "incus",
@@ -86,6 +88,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             f"docker stack deploy --detach=true -c {shlex.quote(compose_path)} "
             f"{shlex.quote(stack_definition.name)}"
         )
+        self._reconcile_host_published_ports(stack_definition)
 
     def stack_exists(self, stack_name: str) -> bool:
         result = self._run_manager_shell(
@@ -122,6 +125,25 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         self._run_manager_shell(
             "sysctl -w vm.max_map_count=524288 fs.file-max=131072 >/dev/null",
         )
+
+    def _reconcile_host_published_ports(self, stack_definition: StackDefinition) -> None:
+        for service_name, ports in _host_published_ports_by_service(stack_definition).items():
+            swarm_service_name = f"{stack_definition.name}_{service_name}"
+            for port in ports:
+                published = str(port["published"])
+                target = str(port["target"])
+                protocol = str(port.get("protocol", "tcp"))
+                self._run_manager_shell(
+                    f"docker service update --publish-rm {shlex.quote(published)} "
+                    f"{shlex.quote(swarm_service_name)} >/dev/null 2>&1 || true"
+                )
+                self._run_manager_shell(
+                    "docker service update "
+                    f"--publish-add published={shlex.quote(published)},"
+                    f"target={shlex.quote(target)},"
+                    f"protocol={shlex.quote(protocol)},mode=host "
+                    f"{shlex.quote(swarm_service_name)}"
+                )
 
     def _transfer_stack_assets(self, stack_name: str, remote_dir: str) -> None:
         if stack_name != "swagger":
@@ -599,6 +621,38 @@ def _parse_service_status(line: str) -> SwarmServiceStatus | None:
         current_replicas=int(match.group("current")),
         desired_replicas=int(match.group("desired")),
     )
+
+
+def _host_published_ports_by_service(
+    stack_definition: StackDefinition,
+) -> dict[str, tuple[Mapping[str, object], ...]]:
+    payload = _YAML.load(stack_definition.compose_content) or {}
+    if not isinstance(payload, Mapping):
+        return {}
+    services = payload.get("services", {})
+    if not isinstance(services, Mapping):
+        return {}
+
+    selected: dict[str, tuple[Mapping[str, object], ...]] = {}
+    for service_name, service_payload in services.items():
+        if not isinstance(service_name, str) or not isinstance(service_payload, Mapping):
+            continue
+        ports = service_payload.get("ports", ())
+        if not isinstance(ports, list):
+            continue
+        host_ports = tuple(
+            port
+            for port in ports
+            if (
+                isinstance(port, Mapping)
+                and port.get("mode") == "host"
+                and "published" in port
+                and "target" in port
+            )
+        )
+        if host_ports:
+            selected[service_name] = host_ports
+    return selected
 
 
 def _stack_environment_prefix(environment: Mapping[str, str]) -> str:
