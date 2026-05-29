@@ -1,4 +1,5 @@
 import unittest
+from tests.support.async_helpers import async_checkpoint
 
 from tiny_swarm_world.domain.inventory import VerificationStatus
 from tiny_swarm_world.domain.node_provider import (
@@ -335,6 +336,7 @@ class _FakeRunner:
         args,
         timeout_seconds,
     ) -> LxcNodeCommandResult:
+        await async_checkpoint()
         self.calls.append((tuple(args), timeout_seconds))
         _assert_safe_lifecycle_command(args)
         if not self.results:

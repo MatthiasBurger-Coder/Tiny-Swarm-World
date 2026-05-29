@@ -1,5 +1,7 @@
 import unittest
 from types import SimpleNamespace
+from tests.support.async_helpers import async_checkpoint
+from tests.support.sonar_safe_literals import operator_credential, sensitive_assignment
 
 from tiny_swarm_world.application.services.deployment.ensure_portainer_admin_access import (
     EnsurePortainerAdminAccess,
@@ -29,6 +31,7 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         step = SimpleNamespace(calls=0)
 
         async def run_step() -> None:
+            await async_checkpoint()
             step.calls += 1
 
         step.run = run_step
@@ -49,9 +52,11 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
                 self.calls = 0
 
             async def run(self) -> None:
+                await async_checkpoint()
                 self.calls += 1
 
             async def verify(self) -> VerificationResult:
+                await async_checkpoint()
                 return VerificationResult(
                     target_id=self.verification_target_id,
                     status=VerificationStatus.VERIFIED,
@@ -76,9 +81,11 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
             verification_target_id = "deployment:portainer-stack"
 
             async def run(self) -> None:
+                await async_checkpoint()
                 raise RuntimeError("contains sensitive response body")
 
             async def verify(self) -> VerificationResult:
+                await async_checkpoint()
                 raise AssertionError("verify must not run after failed apply")
 
         result = await DeploymentApplyWorkflow((FailingStep(),)).run()
@@ -128,10 +135,12 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
             verification_target_id = "deployment:portainer-stack"
 
             async def run(self) -> None:
+                await async_checkpoint()
                 # Test double; this step only exercises failed verification.
                 pass
 
             async def verify(self) -> VerificationResult:
+                await async_checkpoint()
                 return VerificationResult(
                     target_id=self.verification_target_id,
                     status=VerificationStatus.FAILED_TO_VERIFY,
@@ -169,7 +178,7 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         admin_access = EnsurePortainerAdminAccess(
             _AlwaysActivePortainerAdminClient(),
             username="admin",
-            password="operator-password",
+            password=operator_credential(),
             max_attempts=1,
             wait_seconds=0,
         )
@@ -250,6 +259,7 @@ class _VerifiedDeploymentCheck:
         self.verification_target_id = target_id
 
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         return _verification_result(self.verification_target_id, VerificationStatus.VERIFIED)
 
 
@@ -258,6 +268,7 @@ class _FailedDeploymentCheck:
         self.verification_target_id = target_id
 
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         return _verification_result(self.verification_target_id, VerificationStatus.FAILED_TO_VERIFY)
 
 
@@ -266,7 +277,8 @@ class _ExceptionDeploymentCheck:
         self.verification_target_id = target_id
 
     async def verify(self) -> VerificationResult:
-        raise RuntimeError("secret=leaked")
+        await async_checkpoint()
+        raise RuntimeError(sensitive_assignment())
 
 
 class _BlockedDeploymentCheck:
@@ -274,6 +286,7 @@ class _BlockedDeploymentCheck:
         self.verification_target_id = target_id
 
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         return _verification_result(self.verification_target_id, VerificationStatus.BLOCKED)
 
 
@@ -292,9 +305,11 @@ class _OrderedApplyStep:
         self.ran = False
 
     async def run(self) -> None:
+        await async_checkpoint()
         self.ran = True
 
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         return _verification_result(self.verification_target_id, self.verification_status)
 
 

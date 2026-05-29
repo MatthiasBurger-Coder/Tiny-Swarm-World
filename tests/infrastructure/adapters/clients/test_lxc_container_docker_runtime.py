@@ -1,4 +1,5 @@
 import unittest
+from tests.support.async_helpers import async_checkpoint
 
 from tiny_swarm_world.domain.node_provider import (
     DockerEngineState,
@@ -93,6 +94,7 @@ class _FakeRunner:
         args,
         timeout_seconds,
     ) -> LxcNodeCommandResult:
+        await async_checkpoint()
         self.calls.append((tuple(args), timeout_seconds))
         self.redacted_calls.append((redact_argv_for_test(args), timeout_seconds))
         if not self.results:

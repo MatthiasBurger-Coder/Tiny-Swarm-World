@@ -249,125 +249,247 @@ async def _run_mutating_steps(
 ) -> PlatformWorkflowResult:
     verification_results: list[VerificationResult] = list(initial_verification_results)
     for step in steps:
-        pre_apply_verification = _pre_apply_verification(step)
-        if pre_apply_verification is not None:
-            _append_evidence(verification_evidence_repository, pre_apply_verification)
-            verification_results.append(pre_apply_verification)
-            if pre_apply_verification.status != VerificationStatus.VERIFIED:
-                return PlatformWorkflowResult.blocked(
-                    semantics,
-                    f"{semantics.kind.value} step {pre_apply_verification.target_id} "
-                    "is blocked before apply: command-backed verification is not configured",
-                    tuple(verification_results),
-                )
+        blocking_result = _pre_apply_blocking_result(
+            step,
+            semantics,
+            verification_evidence_repository,
+            verification_results,
+        )
+        if blocking_result is not None:
+            return blocking_result
 
         if not _step_has_verification_contract(step):
-            target_id = _verification_target_id(step)
-            operator_reason = _operator_block_reason(step)
-            result = VerificationResult(
-                target_id=target_id,
-                status=VerificationStatus.BLOCKED,
-                message=f"Blocked before apply: {operator_reason}",
-                evidence={"phase": "pre_apply", "reason": operator_reason},
-            )
-            _append_evidence(verification_evidence_repository, result)
-            verification_results.append(result)
-            return PlatformWorkflowResult.blocked(
+            return _missing_verification_contract_result(
+                step,
                 semantics,
-                f"{semantics.kind.value} step {target_id} is blocked before apply: "
-                f"{operator_reason}",
-                tuple(verification_results),
+                verification_evidence_repository,
+                verification_results,
             )
 
         target_id = _verification_target_id(step)
         try:
             apply_result = await step.run()
         except Exception as exc:
-            result = VerificationResult(
-                target_id=target_id,
-                status=VerificationStatus.FAILED_TO_APPLY,
-                message=f"Apply failed for {target_id}: {exc.__class__.__name__}",
-                evidence={"phase": "apply"},
-            )
-            _append_evidence(verification_evidence_repository, result)
-            verification_results.append(result)
-            return PlatformWorkflowResult.failed_to_apply(
+            return _failed_apply_result_from_exception(
+                exc,
+                target_id,
                 semantics,
-                f"{semantics.kind.value} apply failed for {target_id}.",
-                tuple(verification_results),
+                verification_evidence_repository,
+                verification_results,
             )
 
         failed_apply_result = _failed_apply_result(apply_result)
         if failed_apply_result is not None:
-            result = failed_apply_result
-            _append_evidence(verification_evidence_repository, result)
-            verification_results.append(result)
-            return PlatformWorkflowResult.failed_to_apply(
+            return _failed_apply_workflow_result(
+                failed_apply_result,
+                target_id,
                 semantics,
-                f"{semantics.kind.value} apply failed for {target_id}.",
-                tuple(verification_results),
+                verification_evidence_repository,
+                verification_results,
             )
 
         direct_verification = _direct_verification_result(apply_result)
         if direct_verification is not None:
-            _append_evidence(verification_evidence_repository, direct_verification)
-            verification_results.append(direct_verification)
-            if direct_verification.status == VerificationStatus.VERIFIED:
-                continue
-            if direct_verification.status == VerificationStatus.BLOCKED:
-                return PlatformWorkflowResult.blocked(
-                    semantics,
-                    f"{semantics.kind.value} step {target_id} is blocked.",
-                    tuple(verification_results),
-                )
-            if direct_verification.status == VerificationStatus.FAILED_TO_APPLY:
-                return PlatformWorkflowResult.failed_to_apply(
-                    semantics,
-                    f"{semantics.kind.value} apply failed for {target_id}.",
-                    tuple(verification_results),
-                )
-            return PlatformWorkflowResult.failed_to_verify(
+            direct_result = _workflow_result_from_direct_verification(
+                direct_verification,
+                target_id,
                 semantics,
-                f"{semantics.kind.value} verification failed for {target_id}.",
-                tuple(verification_results),
+                verification_evidence_repository,
+                verification_results,
             )
+            if direct_result is None:
+                continue
+            return direct_result
 
         verification = await _verify_step(step, target_id)
         if verification is None:
-            result = VerificationResult(
-                target_id=target_id,
-                status=VerificationStatus.BLOCKED,
-                message="Verification evidence is missing.",
-                evidence={"phase": "verify"},
-            )
-            _append_evidence(verification_evidence_repository, result)
-            verification_results.append(result)
-            return PlatformWorkflowResult.blocked(
+            return _missing_verification_evidence_result(
+                target_id,
                 semantics,
-                f"{semantics.kind.value} verification evidence is missing for {target_id}.",
-                tuple(verification_results),
+                verification_evidence_repository,
+                verification_results,
             )
 
-        _append_evidence(verification_evidence_repository, verification)
-        verification_results.append(verification)
-        if verification.status == VerificationStatus.BLOCKED:
-            return PlatformWorkflowResult.blocked(
-                semantics,
-                f"{semantics.kind.value} verification is blocked for {target_id}.",
-                tuple(verification_results),
-            )
-        if verification.status != VerificationStatus.VERIFIED:
-            return PlatformWorkflowResult.failed_to_verify(
-                semantics,
-                f"{semantics.kind.value} verification failed for {target_id}.",
-                tuple(verification_results),
-            )
+        verification_result = _workflow_result_from_verification(
+            verification,
+            target_id,
+            semantics,
+            verification_evidence_repository,
+            verification_results,
+        )
+        if verification_result is not None:
+            return verification_result
 
     return PlatformWorkflowResult.completed(
         semantics,
         executed=bool(steps),
         verification_results=tuple(verification_results),
     )
+
+
+def _pre_apply_blocking_result(
+    step: AsyncWorkflowStep,
+    semantics: PlatformWorkflowSemantics,
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    verification_results: list[VerificationResult],
+) -> PlatformWorkflowResult | None:
+    pre_apply_verification = _pre_apply_verification(step)
+    if pre_apply_verification is None:
+        return None
+    _record_evidence(
+        verification_evidence_repository,
+        verification_results,
+        pre_apply_verification,
+    )
+    if pre_apply_verification.status == VerificationStatus.VERIFIED:
+        return None
+    return PlatformWorkflowResult.blocked(
+        semantics,
+        f"{semantics.kind.value} step {pre_apply_verification.target_id} "
+        "is blocked before apply: command-backed verification is not configured",
+        tuple(verification_results),
+    )
+
+
+def _missing_verification_contract_result(
+    step: AsyncWorkflowStep,
+    semantics: PlatformWorkflowSemantics,
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    verification_results: list[VerificationResult],
+) -> PlatformWorkflowResult:
+    target_id = _verification_target_id(step)
+    operator_reason = _operator_block_reason(step)
+    result = VerificationResult(
+        target_id=target_id,
+        status=VerificationStatus.BLOCKED,
+        message=f"Blocked before apply: {operator_reason}",
+        evidence={"phase": "pre_apply", "reason": operator_reason},
+    )
+    _record_evidence(verification_evidence_repository, verification_results, result)
+    return PlatformWorkflowResult.blocked(
+        semantics,
+        f"{semantics.kind.value} step {target_id} is blocked before apply: "
+        f"{operator_reason}",
+        tuple(verification_results),
+    )
+
+
+def _failed_apply_result_from_exception(
+    exc: Exception,
+    target_id: str,
+    semantics: PlatformWorkflowSemantics,
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    verification_results: list[VerificationResult],
+) -> PlatformWorkflowResult:
+    result = VerificationResult(
+        target_id=target_id,
+        status=VerificationStatus.FAILED_TO_APPLY,
+        message=f"Apply failed for {target_id}: {exc.__class__.__name__}",
+        evidence={"phase": "apply"},
+    )
+    return _failed_apply_workflow_result(
+        result,
+        target_id,
+        semantics,
+        verification_evidence_repository,
+        verification_results,
+    )
+
+
+def _failed_apply_workflow_result(
+    result: VerificationResult,
+    target_id: str,
+    semantics: PlatformWorkflowSemantics,
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    verification_results: list[VerificationResult],
+) -> PlatformWorkflowResult:
+    _record_evidence(verification_evidence_repository, verification_results, result)
+    return PlatformWorkflowResult.failed_to_apply(
+        semantics,
+        f"{semantics.kind.value} apply failed for {target_id}.",
+        tuple(verification_results),
+    )
+
+
+def _workflow_result_from_direct_verification(
+    verification: VerificationResult,
+    target_id: str,
+    semantics: PlatformWorkflowSemantics,
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    verification_results: list[VerificationResult],
+) -> PlatformWorkflowResult | None:
+    _record_evidence(verification_evidence_repository, verification_results, verification)
+    if verification.status == VerificationStatus.VERIFIED:
+        return None
+    if verification.status == VerificationStatus.BLOCKED:
+        return PlatformWorkflowResult.blocked(
+            semantics,
+            f"{semantics.kind.value} step {target_id} is blocked.",
+            tuple(verification_results),
+        )
+    if verification.status == VerificationStatus.FAILED_TO_APPLY:
+        return PlatformWorkflowResult.failed_to_apply(
+            semantics,
+            f"{semantics.kind.value} apply failed for {target_id}.",
+            tuple(verification_results),
+        )
+    return PlatformWorkflowResult.failed_to_verify(
+        semantics,
+        f"{semantics.kind.value} verification failed for {target_id}.",
+        tuple(verification_results),
+    )
+
+
+def _missing_verification_evidence_result(
+    target_id: str,
+    semantics: PlatformWorkflowSemantics,
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    verification_results: list[VerificationResult],
+) -> PlatformWorkflowResult:
+    result = VerificationResult(
+        target_id=target_id,
+        status=VerificationStatus.BLOCKED,
+        message="Verification evidence is missing.",
+        evidence={"phase": "verify"},
+    )
+    _record_evidence(verification_evidence_repository, verification_results, result)
+    return PlatformWorkflowResult.blocked(
+        semantics,
+        f"{semantics.kind.value} verification evidence is missing for {target_id}.",
+        tuple(verification_results),
+    )
+
+
+def _workflow_result_from_verification(
+    verification: VerificationResult,
+    target_id: str,
+    semantics: PlatformWorkflowSemantics,
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    verification_results: list[VerificationResult],
+) -> PlatformWorkflowResult | None:
+    _record_evidence(verification_evidence_repository, verification_results, verification)
+    if verification.status == VerificationStatus.VERIFIED:
+        return None
+    if verification.status == VerificationStatus.BLOCKED:
+        return PlatformWorkflowResult.blocked(
+            semantics,
+            f"{semantics.kind.value} verification is blocked for {target_id}.",
+            tuple(verification_results),
+        )
+    return PlatformWorkflowResult.failed_to_verify(
+        semantics,
+        f"{semantics.kind.value} verification failed for {target_id}.",
+        tuple(verification_results),
+    )
+
+
+def _record_evidence(
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    verification_results: list[VerificationResult],
+    result: VerificationResult,
+) -> None:
+    _append_evidence(verification_evidence_repository, result)
+    verification_results.append(result)
 
 
 def _step_has_verification(step: AsyncWorkflowStep) -> bool:

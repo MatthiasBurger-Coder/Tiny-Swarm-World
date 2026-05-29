@@ -1,4 +1,5 @@
 import unittest
+from tests.support.async_helpers import async_checkpoint
 
 from tiny_swarm_world.application.services.platform import (
     DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
@@ -459,10 +460,12 @@ class _RecordingAction:
         self.verification_target_id = name
 
     async def run(self) -> object:
+        await async_checkpoint()
         self.calls.append(self.name)
         return self.name
 
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         self.verifications.append(self.name)
         return VerificationResult(
             target_id=self.verification_target_id,
@@ -481,6 +484,7 @@ class _PreApplyAction:
         self.pre_apply_result = pre_apply_result
 
     async def run(self) -> object:
+        await async_checkpoint()
         self.calls.append(self.name)
         return self.name
 
@@ -488,11 +492,13 @@ class _PreApplyAction:
         return self.pre_apply_result
 
     async def verify(self) -> object:
+        await async_checkpoint()
         return None
 
 
 class _PreApplyVerifiableAction(_PreApplyAction):
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         self.verifications.append(self.name)
         return VerificationResult(
             target_id=self.verification_target_id,
@@ -508,18 +514,21 @@ class _ApplyOnlyAction:
         self.calls: list[str] = []
 
     async def run(self) -> object:
+        await async_checkpoint()
         self.calls.append(self.name)
         return self.name
 
 
 class _FailingApplyAction(_RecordingAction):
     async def run(self) -> object:
+        await async_checkpoint()
         self.calls.append(self.name)
         raise RuntimeError("apply failed")
 
 
 class _FailedApplyResultAction(_RecordingAction):
     async def run(self) -> object:
+        await async_checkpoint()
         self.calls.append(self.name)
         return VerificationResult(
             target_id=self.verification_target_id,
@@ -531,6 +540,7 @@ class _FailedApplyResultAction(_RecordingAction):
 
 class _FailingVerifyAction(_RecordingAction):
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         self.verifications.append(self.name)
         raise RuntimeError("verify failed")
 
@@ -543,16 +553,19 @@ class _MissingEvidenceAction:
         self.verification_target_id = name
 
     async def run(self) -> object:
+        await async_checkpoint()
         self.calls.append(self.name)
         return self.name
 
     async def verify(self) -> object:
+        await async_checkpoint()
         self.verifications.append(self.name)
         return None
 
 
 class _ForbiddenAction:
     async def run(self) -> object:
+        await async_checkpoint()
         raise AssertionError("destructive step must not run without confirmation")
 
 
@@ -562,6 +575,7 @@ class _PreflightAction:
         self.calls: list[str] = []
 
     async def run(self) -> PreflightResult:
+        await async_checkpoint()
         self.calls.append("preflight")
         return self.result
 
@@ -572,6 +586,7 @@ class _ProviderGuardAction:
         self.calls: list[str] = []
 
     async def run(self) -> VerificationResult:
+        await async_checkpoint()
         self.calls.append("provider")
         return self.result
 
@@ -585,6 +600,7 @@ class _VerificationResultAction:
         self.calls: list[str] = []
 
     async def run(self) -> VerificationResult:
+        await async_checkpoint()
         self.calls.append(self.verification_target_id)
         return self.result
 

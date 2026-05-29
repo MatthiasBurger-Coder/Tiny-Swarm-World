@@ -67,30 +67,30 @@ $Script:HadErrors = $false
 function Write-Section {
     param([string]$Title)
 
-    Write-Host ""
-    Write-Host "================================================================================" -ForegroundColor DarkGray
-    Write-Host $Title -ForegroundColor Cyan
-    Write-Host "================================================================================" -ForegroundColor DarkGray
+    Write-Output ""
+    Write-Output "================================================================================"
+    Write-Output $Title
+    Write-Output "================================================================================"
 }
 
 function Write-Ok {
     param([string]$Message)
 
-    Write-Host "[OK] $Message" -ForegroundColor Green
+    Write-Output "[OK] $Message"
 }
 
 function Write-Warn {
     param([string]$Message)
 
     $Script:HadWarnings = $true
-    Write-Host "[WARN] $Message" -ForegroundColor Yellow
+    Write-Output "[WARN] $Message"
 }
 
 function Write-Fail {
     param([string]$Message)
 
     $Script:HadErrors = $true
-    Write-Host "[FAIL] $Message" -ForegroundColor Red
+    Write-Output "[FAIL] $Message"
 }
 
 function Invoke-External {
@@ -104,13 +104,13 @@ function Invoke-External {
         [switch]$IgnoreExitCode
     )
 
-    Write-Host "> $FilePath $($Arguments -join ' ')" -ForegroundColor DarkGray
+    Write-Output "> $FilePath $($Arguments -join ' ')"
 
     $output = & $FilePath @Arguments 2>&1
     $exitCode = $LASTEXITCODE
 
     if ($null -ne $output) {
-        $output | ForEach-Object { Write-Host $_ }
+        $output | ForEach-Object { Write-Output $_ }
     }
 
     if ($exitCode -ne 0 -and -not $IgnoreExitCode) {
@@ -143,15 +143,15 @@ function Invoke-WslBash {
     $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($normalizedScriptText))
     $bashCommand = "printf '%s' '$encoded' | base64 -d | bash"
 
-    $args = @("-d", $Distro)
+    $wslArguments = @("-d", $Distro)
 
     if ($AsRoot) {
-        $args += @("-u", "root")
+        $wslArguments += @("-u", "root")
     }
 
-    $args += @("--", "bash", "-lc", $bashCommand)
+    $wslArguments += @("--", "bash", "-lc", $bashCommand)
 
-    return Invoke-External -FilePath "wsl.exe" -Arguments $args -IgnoreExitCode:$IgnoreExitCode
+    return Invoke-External -FilePath "wsl.exe" -Arguments $wslArguments -IgnoreExitCode:$IgnoreExitCode
 }
 
 function Get-WslDistributions {
@@ -342,6 +342,68 @@ fi
     Invoke-WslBash -Distro $Distro -ScriptText $scriptText -IgnoreExitCode | Out-Null
 }
 
+function Find-IniSectionIndex {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Lines,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Section
+    )
+
+    $sectionPattern = "^\s*\[" + [regex]::Escape($Section) + "\]\s*$"
+    for ($index = 0; $index -lt $Lines.Count; $index++) {
+        if ($Lines[$index] -match $sectionPattern) {
+            return $index
+        }
+    }
+
+    return -1
+}
+
+function Find-NextIniSectionIndex {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Lines,
+
+        [Parameter(Mandatory = $true)]
+        [int]$StartIndex
+    )
+
+    for ($index = $StartIndex; $index -lt $Lines.Count; $index++) {
+        if ($Lines[$index].Trim() -match "^\[(.+)\]\s*$") {
+            return $index
+        }
+    }
+
+    return $Lines.Count
+}
+
+function Find-IniKeyIndex {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Lines,
+
+        [Parameter(Mandatory = $true)]
+        [int]$StartIndex,
+
+        [Parameter(Mandatory = $true)]
+        [int]$EndIndex,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Key
+    )
+
+    $keyPattern = "^\s*" + [regex]::Escape($Key) + "\s*="
+    for ($index = $StartIndex; $index -lt $EndIndex; $index++) {
+        if ($Lines[$index].Trim() -match $keyPattern) {
+            return $index
+        }
+    }
+
+    return -1
+}
+
 function Set-IniValue {
     param(
         [Parameter(Mandatory = $true)]
@@ -358,56 +420,25 @@ function Set-IniValue {
     )
 
     $lines = @()
-
     if (Test-Path $Path) {
         $lines = Get-Content -Path $Path
     }
 
-    $out = New-Object System.Collections.Generic.List[string]
-    $inSection = $false
-    $sectionFound = $false
-    $keyWritten = $false
-    $keyPattern = "^\s*" + [regex]::Escape($Key) + "\s*="
+    $out = [System.Collections.Generic.List[string]]::new($lines)
+    $sectionIndex = Find-IniSectionIndex -Lines $lines -Section $Section
 
-    foreach ($line in $lines) {
-        $trim = $line.Trim()
-
-        if ($trim -match "^\[(.+)\]\s*$") {
-            if ($inSection -and -not $keyWritten) {
-                $out.Add("$Key=$Value")
-                $keyWritten = $true
-            }
-
-            $currentSection = $Matches[1].Trim()
-            $inSection = ($currentSection.ToLowerInvariant() -eq $Section.ToLowerInvariant())
-
-            if ($inSection) {
-                $sectionFound = $true
-            }
-
-            $out.Add($line)
-            continue
+    if ($sectionIndex -ge 0) {
+        $sectionEndIndex = Find-NextIniSectionIndex -Lines $lines -StartIndex ($sectionIndex + 1)
+        $keyIndex = Find-IniKeyIndex -Lines $lines -StartIndex ($sectionIndex + 1) -EndIndex $sectionEndIndex -Key $Key
+        if ($keyIndex -ge 0) {
+            $out[$keyIndex] = "$Key=$Value"
+        } else {
+            $out.Insert($sectionEndIndex, "$Key=$Value")
         }
-
-        if ($inSection -and $trim -match $keyPattern) {
-            $out.Add("$Key=$Value")
-            $keyWritten = $true
-            continue
-        }
-
-        $out.Add($line)
-    }
-
-    if ($inSection -and -not $keyWritten) {
-        $out.Add("$Key=$Value")
-        $keyWritten = $true
-    }
-
-    if (-not $sectionFound) {
+    } else {
         if ($out.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($out[$out.Count - 1])) {
             $out.Add("")
         }
-
         $out.Add("[$Section]")
         $out.Add("$Key=$Value")
     }
@@ -459,11 +490,11 @@ systemctl is-active lxd 2>/dev/null || true
 
         if ($result.Output -notmatch "lxc") {
             Write-Warn "LXD/lxc was not detected inside the distro."
-            Write-Host "Suggested WSL commands after systemd is active:" -ForegroundColor DarkGray
-            Write-Host "  sudo snap install lxd" -ForegroundColor DarkGray
-            Write-Host "  sudo lxd init" -ForegroundColor DarkGray
-            Write-Host "Or rerun this script with:" -ForegroundColor DarkGray
-            Write-Host "  -Provider lxd -InstallProvider -InitializeProvider" -ForegroundColor DarkGray
+            Write-Output "Suggested WSL commands after systemd is active:"
+            Write-Output "  sudo snap install lxd"
+            Write-Output "  sudo lxd init"
+            Write-Output "Or rerun this script with:"
+            Write-Output "  -Provider lxd -InstallProvider -InitializeProvider"
         }
 
         return
@@ -685,36 +716,36 @@ function Write-Summary {
         Write-Ok "Preparation finished without detected errors."
     }
 
-    Write-Host ""
-    Write-Host "Selected distro: $SelectedDistro"
-    Write-Host "Provider target: $Provider"
-    Write-Host "CheckOnly: $CheckOnly"
-    Write-Host "InstallProvider: $InstallProvider"
-    Write-Host "InitializeProvider: $InitializeProvider"
-    Write-Host "RunProviderSmokeTest: $RunProviderSmokeTest"
-    Write-Host "Changed WSL configuration: $Script:ChangedWslConfiguration"
+    Write-Output ""
+    Write-Output "Selected distro: $SelectedDistro"
+    Write-Output "Provider target: $Provider"
+    Write-Output "CheckOnly: $CheckOnly"
+    Write-Output "InstallProvider: $InstallProvider"
+    Write-Output "InitializeProvider: $InitializeProvider"
+    Write-Output "RunProviderSmokeTest: $RunProviderSmokeTest"
+    Write-Output "Changed WSL configuration: $Script:ChangedWslConfiguration"
 
     if ($Script:ChangedWslConfiguration -and $ShutdownAfterChange -and -not $CheckOnly) {
-        Write-Host ""
+        Write-Output ""
         Write-Warn "WSL configuration was changed. The script can run 'wsl --shutdown' so changes take effect."
     } elseif ($Script:ChangedWslConfiguration -and -not $CheckOnly) {
-        Write-Host ""
+        Write-Output ""
         Write-Warn "WSL configuration was changed. Run 'wsl --shutdown' manually before continuing."
     }
 
-    Write-Host ""
-    Write-Host "Next recommended checks after WSL restart:" -ForegroundColor Cyan
-    Write-Host "  wsl -d $SelectedDistro -- systemctl is-system-running"
-    Write-Host "  wsl -d $SelectedDistro -- bash -lc 'cat /proc/sys/kernel/osrelease; echo `$WSL_INTEROP; echo `$WSL_DISTRO_NAME'"
+    Write-Output ""
+    Write-Output "Next recommended checks after WSL restart:"
+    Write-Output "  wsl -d $SelectedDistro -- systemctl is-system-running"
+    Write-Output "  wsl -d $SelectedDistro -- bash -lc 'cat /proc/sys/kernel/osrelease; echo `$WSL_INTEROP; echo `$WSL_DISTRO_NAME'"
 
     if ($Provider -eq "lxd") {
-        Write-Host "  wsl -d $SelectedDistro -- bash -lc 'command -v lxc && lxc version'"
-        Write-Host "  wsl -d $SelectedDistro -- bash -lc 'id -nG; lxc list'"
-        Write-Host "  wsl -d $SelectedDistro -- bash -lc 'lxc launch ubuntu:24.04 test-lxc; lxc exec test-lxc -- bash -lc `"cat /etc/os-release && getent hosts archive.ubuntu.com`"; lxc delete test-lxc --force'"
+        Write-Output "  wsl -d $SelectedDistro -- bash -lc 'command -v lxc && lxc version'"
+        Write-Output "  wsl -d $SelectedDistro -- bash -lc 'id -nG; lxc list'"
+        Write-Output "  wsl -d $SelectedDistro -- bash -lc 'lxc launch ubuntu:24.04 test-lxc; lxc exec test-lxc -- bash -lc `"cat /etc/os-release && getent hosts archive.ubuntu.com`"; lxc delete test-lxc --force'"
     }
 
     if ($Provider -eq "incus") {
-        Write-Host "  wsl -d $SelectedDistro -- bash -lc 'command -v incus && incus version'"
+        Write-Output "  wsl -d $SelectedDistro -- bash -lc 'command -v incus && incus version'"
     }
 }
 
@@ -729,8 +760,8 @@ try {
     }
 
     Write-Section "Tiny Swarm World WSL/LXC prerequisite preparation"
-    Write-Host "Evidence log: $logFile"
-    Write-Host "Mode: $(if ($CheckOnly) { 'CHECK ONLY' } else { 'APPLY' })"
+    Write-Output "Evidence log: $logFile"
+    Write-Output "Mode: $(if ($CheckOnly) { 'CHECK ONLY' } else { 'APPLY' })"
 
     Write-Section "Check WSL availability"
     Invoke-External -FilePath "wsl.exe" -Arguments @("--status") -IgnoreExitCode | Out-Null
@@ -751,7 +782,7 @@ try {
 
     Write-Section "Select WSL distribution"
     $distros = @(Get-WslDistributions)
-    $distros | Format-Table -AutoSize | Out-String | Write-Host
+    $distros | Format-Table -AutoSize | Out-String | Write-Output
 
     $selected = Select-WslDistribution -Distributions $distros -RequestedName $DistroName
     $selectedName = $selected.Name
@@ -876,14 +907,14 @@ try {
 }
 catch {
     Write-Fail $_.Exception.Message
-    Write-Host ""
-    Write-Host "Rerun with -CheckOnly for diagnostics or with -Force to skip interactive confirmations where appropriate." -ForegroundColor Yellow
+    Write-Output ""
+    Write-Output "Rerun with -CheckOnly for diagnostics or with -Force to skip interactive confirmations where appropriate."
     exit 1
 }
 finally {
     try {
         Stop-Transcript | Out-Null
     } catch {
-        # Transcript may not have been started.
+        Write-Verbose "Transcript was not active or could not be stopped."
     }
 }

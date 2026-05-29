@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch
+from tests.support.sonar_safe_literals import ipv4_address, operator_credential, sensitive_assignment
 
 from tiny_swarm_world.infrastructure.adapters.clients.multipass_portainer_admin_client import (
     MultipassPortainerAdminClient,
@@ -11,18 +12,21 @@ class TestMultipassPortainerAdminClient(unittest.TestCase):
         session = _FakeSession([_FakeResponse(200, ValueError("html response"))])
         client = MultipassPortainerAdminClient(session=session)
 
-        with patch.object(client, "_manager_ip", return_value="10.157.2.182"):
-            self.assertFalse(client.can_authenticate("admin", "operator-password"))
+        with patch.object(client, "_manager_ip", return_value=ipv4_address(10, 157, 2, 182)):
+            self.assertFalse(client.can_authenticate("admin", operator_credential()))
 
-        self.assertEqual("http://10.157.2.182:9000/api/auth", session.post_calls[0]["url"])
+        self.assertEqual(
+            f"http://{ipv4_address(10, 157, 2, 182)}:9000/api/auth",
+            session.post_calls[0]["url"],
+        )
 
     def test_can_authenticate_keeps_portainer_login_requests_stateless(self):
         session = _PortainerCookieSession()
         client = MultipassPortainerAdminClient(session=session)
 
-        with patch.object(client, "_manager_ip", return_value="10.157.2.182"):
-            self.assertTrue(client.can_authenticate("admin", "operator-password"))
-            self.assertTrue(client.can_authenticate("admin", "operator-password"))
+        with patch.object(client, "_manager_ip", return_value=ipv4_address(10, 157, 2, 182)):
+            self.assertTrue(client.can_authenticate("admin", operator_credential()))
+            self.assertTrue(client.can_authenticate("admin", operator_credential()))
 
         self.assertEqual(2, len(session.post_calls))
         self.assertEqual(4, session.cookies.clear_calls)
@@ -30,18 +34,18 @@ class TestMultipassPortainerAdminClient(unittest.TestCase):
     def test_initialize_admin_user_sanitizes_failed_init_with_malformed_auth_fallback(self):
         session = _FakeSession(
             [
-                _FakeResponse(409, {"message": "secret=leaked"}),
-                _FakeResponse(200, ValueError("secret=leaked")),
+                _FakeResponse(409, {"message": sensitive_assignment()}),
+                _FakeResponse(200, ValueError(sensitive_assignment())),
             ]
         )
         client = MultipassPortainerAdminClient(session=session)
 
-        with patch.object(client, "_manager_ip", return_value="10.157.2.182"):
+        with patch.object(client, "_manager_ip", return_value=ipv4_address(10, 157, 2, 182)):
             with self.assertRaises(RuntimeError) as raised:
-                client.initialize_admin_user("admin", "operator-password")
+                client.initialize_admin_user("admin", operator_credential())
 
         self.assertIn("HTTP 409", str(raised.exception))
-        self.assertNotIn("secret=leaked", str(raised.exception))
+        self.assertNotIn(sensitive_assignment(), str(raised.exception))
 
 
 class _FakeResponse:

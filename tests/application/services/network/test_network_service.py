@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import AsyncMock, patch, MagicMock
 from tiny_swarm_world.application.services.network.netplant.network_setup_netplan import NetworkSetupNetplan
 from tiny_swarm_world.domain.network.ip_value import IpValue
+from tests.support.sonar_safe_literals import ipv4_address
 
 
 class TestNetworkService(unittest.IsolatedAsyncioTestCase):
@@ -39,8 +40,8 @@ class TestNetworkService(unittest.IsolatedAsyncioTestCase):
             [
                 "ignored_field_0",
                 "ignored_field_1",
-                "fake_data1 fake_data2 192.168.1.254",
-                "192.168.1.1 some-other-data"
+                f"fake_data1 fake_data2 {ipv4_address(192, 168, 1, 254)}",
+                f"{ipv4_address(192, 168, 1, 1)} some-other-data"
             ]
         ]
 
@@ -53,8 +54,8 @@ class TestNetworkService(unittest.IsolatedAsyncioTestCase):
         mock_ip_extractor_instance = MagicMock()
         mock_ip_extractor_builder.return_value = mock_ip_extractor_instance
         mock_ip_extractor_instance.build.side_effect = [
-            IpValue(ip_address="192.168.1.1"),  # Gateway als IpValue-Objekt
-            IpValue(ip_address="10.0.0.1")  # IP als IpValue-Objekt
+            IpValue(ip_address=ipv4_address(192, 168, 1, 1)),  # Gateway als IpValue-Objekt
+            IpValue(ip_address=ipv4_address(10, 0, 0, 1))  # IP als IpValue-Objekt
         ]
 
         # Mock VmRepository

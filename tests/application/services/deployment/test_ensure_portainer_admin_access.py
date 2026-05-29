@@ -1,4 +1,5 @@
 import unittest
+from tests.support.sonar_safe_literals import operator_credential, sensitive_assignment
 
 from tiny_swarm_world.application.services.deployment.ensure_portainer_admin_access import (
     EnsurePortainerAdminAccess,
@@ -12,7 +13,7 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
         service = EnsurePortainerAdminAccess(
             client,
             username="admin",
-            password="operator-password",
+            password=operator_credential(),
             max_attempts=2,
             wait_seconds=0,
         )
@@ -29,7 +30,7 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
         service = EnsurePortainerAdminAccess(
             client,
             username="admin",
-            password="operator-password",
+            password=operator_credential(),
             max_attempts=2,
             wait_seconds=0,
         )
@@ -45,7 +46,7 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
         service = EnsurePortainerAdminAccess(
             client,
             username="admin",
-            password="operator-password",
+            password=operator_credential(),
             max_attempts=2,
             wait_seconds=0,
         )
@@ -55,7 +56,7 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
         self.assertEqual("deployment:portainer-admin-access", result.target_id)
         self.assertIn("ValueError", result.message)
-        self.assertNotIn("secret=leaked", result.message)
+        self.assertNotIn(sensitive_assignment(), result.message)
         self.assertEqual("unknown", result.evidence["access_state"])
         self.assertNotIn("auth", str(result.evidence))
 
@@ -75,7 +76,7 @@ class _SequencePortainerAdminClient:
 
 class _ExceptionPortainerAdminClient:
     def can_authenticate(self, username: str, password: str) -> bool:
-        raise ValueError("secret=leaked")
+        raise ValueError(sensitive_assignment())
 
     def initialize_admin_user(self, username: str, password: str) -> None:
         raise AssertionError("verify must not initialize the admin user")

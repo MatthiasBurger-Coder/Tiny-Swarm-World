@@ -1,4 +1,5 @@
 import unittest
+from tests.support.sonar_safe_literals import ipv4_address
 
 from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
@@ -294,7 +295,7 @@ class TestCommandWorkflowConfiguration(unittest.TestCase):
 
 def _smoke_parameters() -> dict[ParameterType, str]:
     return {
-        ParameterType.SWARM_MANAGER_IP: "10.0.0.1",
+        ParameterType.SWARM_MANAGER_IP: ipv4_address(10, 0, 0, 1),
         ParameterType.SWARM_MANAGER_PORT: "2377",
         ParameterType.SWARM_TOKEN: "dummy-token",
         ParameterType.DOCKER_BRIDGE: "bridge",

@@ -7,7 +7,7 @@ check_swarm_status() {
     VM=$1
     SWARM_STATUS=$(multipass exec "$VM" -- bash -c "docker info --format '{{ .Swarm.LocalNodeState }}'" 2>/dev/null)
 
-    if [ "$SWARM_STATUS" == "active" ]; then
+    if [[ "$SWARM_STATUS" == "active" ]]; then
         printf "Swarm is already initialized on %s.\n" "$VM"
         return 0
     else
@@ -30,6 +30,7 @@ progress_bar() {
     progress=$(printf '#%.0s' $(seq 1 "$i"))
     printf "\r[%-30s]" "$progress"
     sleep "$step_duration"
-  done
-  echo
-}
+	  done
+	  echo
+	  return 0
+	}

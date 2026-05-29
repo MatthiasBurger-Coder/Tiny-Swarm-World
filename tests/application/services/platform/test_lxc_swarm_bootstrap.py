@@ -1,4 +1,5 @@
 import unittest
+from tests.support.async_helpers import async_checkpoint
 
 from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapService,
@@ -81,7 +82,8 @@ class TestLxcSwarmBootstrapService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(1, swarm.init_calls)
         self.assertEqual(1, swarm.join_calls)
         self.assertEqual(1, swarm.credential_calls)
-        self.assertNotIn("sensitive-value", repr(swarm.credentials_seen[0]))
+        credential = next(iter(swarm.credentials_seen))
+        self.assertNotIn("sensitive-value", repr(credential))
 
     async def test_failed_worker_join_does_not_persist_credential_in_results(self):
         swarm = _SwarmBootstrap(
@@ -167,6 +169,7 @@ class TestLxcSwarmBootstrapService(unittest.IsolatedAsyncioTestCase):
 
 class _NetworkIdentity:
     async def manager_advertise_address(self, node: NodeSpec) -> str:
+        await async_checkpoint()
         return "manager-address"
 
 
@@ -189,6 +192,7 @@ class _SwarmBootstrap:
         self.credentials_seen: list[SwarmWorkerJoinCredential] = []
 
     async def inspect_manager(self, node: NodeSpec) -> SwarmManagerBootstrapOutcome:
+        await async_checkpoint()
         return self.manager
 
     async def initialize_manager(
@@ -196,16 +200,19 @@ class _SwarmBootstrap:
         node: NodeSpec,
         advertise_address: str,
     ) -> SwarmManagerBootstrapOutcome:
+        await async_checkpoint()
         self.init_calls += 1
         if self.initialized_manager is None:
             raise AssertionError("initialize_manager was not expected")
         return self.initialized_manager
 
     async def worker_join_credential(self, node: NodeSpec) -> SwarmWorkerJoinCredential:
+        await async_checkpoint()
         self.credential_calls += 1
         return SwarmWorkerJoinCredential("sensitive-value")
 
     async def inspect_worker(self, node: NodeSpec) -> SwarmWorkerJoinOutcome:
+        await async_checkpoint()
         return self.worker
 
     async def join_worker(
@@ -214,6 +221,7 @@ class _SwarmBootstrap:
         manager_address: str,
         credential: SwarmWorkerJoinCredential,
     ) -> SwarmWorkerJoinOutcome:
+        await async_checkpoint()
         self.join_calls += 1
         self.credentials_seen.append(credential)
         if self.joined_worker is None:

@@ -1,4 +1,6 @@
 import unittest
+from tests.support.async_helpers import async_checkpoint
+from tests.support.sonar_safe_literals import sensitive_assignment
 
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.application.services.artifacts.workflows import (
@@ -99,9 +101,11 @@ class _VerifiedPrepareStep:
         self.ran = False
 
     async def run(self) -> None:
+        await async_checkpoint()
         self.ran = True
 
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         return _verification_result(self.verification_target_id, VerificationStatus.VERIFIED)
 
 
@@ -112,6 +116,7 @@ class _PrepareStepWithoutVerification:
         self.ran = False
 
     async def run(self) -> None:
+        await async_checkpoint()
         self.ran = True
 
 
@@ -119,9 +124,11 @@ class _FailingPrepareStep:
     verification_target_id = "artifacts:nexus-docker-hosted-repository"
 
     async def run(self) -> None:
-        raise RuntimeError("secret=leaked")
+        await async_checkpoint()
+        raise RuntimeError(sensitive_assignment())
 
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         return _verification_result(self.verification_target_id, VerificationStatus.VERIFIED)
 
 
@@ -129,9 +136,11 @@ class _FailedVerificationPrepareStep:
     verification_target_id = "artifacts:nexus-maven-proxy-repository"
 
     async def run(self) -> None:
+        await async_checkpoint()
         return None
 
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         return _verification_result(self.verification_target_id, VerificationStatus.FAILED_TO_VERIFY)
 
 
@@ -140,6 +149,7 @@ class _VerifiedCheck:
         self.verification_target_id = target_id
 
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         return _verification_result(self.verification_target_id, VerificationStatus.VERIFIED)
 
 
@@ -148,6 +158,7 @@ class _BlockedCheck:
         self.verification_target_id = target_id
 
     async def verify(self) -> VerificationResult:
+        await async_checkpoint()
         return _verification_result(self.verification_target_id, VerificationStatus.BLOCKED)
 
 

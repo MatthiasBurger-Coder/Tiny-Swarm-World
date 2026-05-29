@@ -163,53 +163,20 @@ async def main(argv: Sequence[str] | None = None) -> None:
     logger.info("Starting application")
 
     if args.list_workflows:
-        for workflow in CLI_WORKFLOWS:
-            print(f"{workflow.name}\tmutating={workflow.mutating}\tdestructive={workflow.destructive}")
+        _print_workflow_list()
         return
 
     if args.preflight:
-        node_provider_request = _node_provider_request_from_args(args)
-        _print_legacy_provider_warning(node_provider_request)
-        preflight = build_preflight_service(
-            service_profile=args.service_profile,
-            node_provider_request=node_provider_request,
-        )
-        live_consent = _live_consent_from_args(args) if args.live else None
-        result = await preflight.run(live_consent)
-        print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
-        _print_preflight_summary(result, live=args.live)
-        if not result.passed:
-            raise SystemExit(1)
+        await _run_preflight_command(args)
         return
 
-    workflow = args.workflow
+    workflow = _selected_workflow(args)
     if workflow is None:
-        print("No workflow selected. Use --list-workflows to inspect available workflows.")
         return
 
-    if workflow.confirmation_phrase is not None and args.confirm != workflow.confirmation_phrase:
-        print(f"REFUSED_WORKFLOW_CONFIRMATION_MISSING: {workflow.name}")
-        print(f"Expected --confirm {workflow.confirmation_phrase}")
-        raise SystemExit(2)
-
-    if not workflow.implemented:
-        print(
-            json.dumps(
-                _blocked_workflow_result(workflow),
-                indent=2,
-                sort_keys=True,
-            )
-        )
-        raise SystemExit(1)
-
-    live_consent: LiveConsent | None = None
-    if workflow.mutating:
-        live_consent = _live_consent_from_args(args)
-        if not live_consent.accepted:
-            print("REFUSED_LIVE_CONSENT_MISSING")
-            for reason in live_consent.missing_reasons:
-                print(f"- {reason}")
-            raise SystemExit(2)
+    _enforce_workflow_confirmation(workflow, args.confirm)
+    _enforce_workflow_implementation(workflow)
+    live_consent = _live_consent_for_workflow(workflow, args)
 
     logger.info("Running workflow: %s", workflow.name)
     node_provider_request = _node_provider_request_from_args(args)
@@ -233,6 +200,69 @@ async def main(argv: Sequence[str] | None = None) -> None:
         raise SystemExit(1)
 
     logger.info("Done")
+
+
+def _print_workflow_list() -> None:
+    for workflow in CLI_WORKFLOWS:
+        print(f"{workflow.name}\tmutating={workflow.mutating}\tdestructive={workflow.destructive}")
+
+
+async def _run_preflight_command(args: Namespace) -> None:
+    node_provider_request = _node_provider_request_from_args(args)
+    _print_legacy_provider_warning(node_provider_request)
+    preflight = build_preflight_service(
+        service_profile=args.service_profile,
+        node_provider_request=node_provider_request,
+    )
+    live_consent = _live_consent_from_args(args) if args.live else None
+    result = await preflight.run(live_consent)
+    print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+    _print_preflight_summary(result, live=args.live)
+    if not result.passed:
+        raise SystemExit(1)
+
+
+def _selected_workflow(args: Namespace) -> CliWorkflow | None:
+    workflow = args.workflow
+    if workflow is None:
+        print("No workflow selected. Use --list-workflows to inspect available workflows.")
+    return workflow
+
+
+def _enforce_workflow_confirmation(workflow: CliWorkflow, confirmation: str | None) -> None:
+    if workflow.confirmation_phrase is None or confirmation == workflow.confirmation_phrase:
+        return
+    print(f"REFUSED_WORKFLOW_CONFIRMATION_MISSING: {workflow.name}")
+    print(f"Expected --confirm {workflow.confirmation_phrase}")
+    raise SystemExit(2)
+
+
+def _enforce_workflow_implementation(workflow: CliWorkflow) -> None:
+    if workflow.implemented:
+        return
+    print(
+        json.dumps(
+            _blocked_workflow_result(workflow),
+            indent=2,
+            sort_keys=True,
+        )
+    )
+    raise SystemExit(1)
+
+
+def _live_consent_for_workflow(
+    workflow: CliWorkflow,
+    args: Namespace,
+) -> LiveConsent | None:
+    if not workflow.mutating:
+        return None
+    live_consent = _live_consent_from_args(args)
+    if live_consent.accepted:
+        return live_consent
+    print("REFUSED_LIVE_CONSENT_MISSING")
+    for reason in live_consent.missing_reasons:
+        print(f"- {reason}")
+    raise SystemExit(2)
 
 
 async def run_cli_workflow(

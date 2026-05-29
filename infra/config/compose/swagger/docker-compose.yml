@@ -20,7 +20,7 @@ services:
         protocol: tcp
         mode: host
     volumes:
-      - ${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro
+      - ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro
     environment:
       SWAGGER_JSON: /openapi.json
       # API_URL: ""
@@ -33,7 +33,7 @@ services:
   swagger-api:
     image: danielgtaylor/apisprout
     volumes:
-      - ${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro
+      - ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro
     command: /openapi.json
     networks:
       swagger_link:
@@ -53,7 +53,7 @@ services:
         protocol: tcp
         mode: host
     volumes:
-      - ${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       swagger_link:
         aliases:

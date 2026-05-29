@@ -1,4 +1,5 @@
 import unittest
+from tests.support.async_helpers import async_checkpoint
 
 from tiny_swarm_world.application.services.platform.lxc_docker_install import (
     LxcDockerInstallService,
@@ -143,15 +144,18 @@ class _DockerRuntime:
         self.verify_calls = 0
 
     async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        await async_checkpoint()
         return self.initial
 
     async def install_docker(self, node: NodeSpec) -> ContainerDockerInstallOutcome:
+        await async_checkpoint()
         self.installed_nodes.append(node.name)
         if self.install is None:
             raise AssertionError("install_docker was not expected")
         return self.install
 
     async def verify_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        await async_checkpoint()
         self.verify_calls += 1
         if self.verified is None:
             raise AssertionError("verify_docker was not expected")

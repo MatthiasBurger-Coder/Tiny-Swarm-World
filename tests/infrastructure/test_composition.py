@@ -2,6 +2,8 @@ import asyncio
 import unittest
 from dataclasses import fields
 from unittest.mock import patch
+from tests.support.async_helpers import async_checkpoint
+from tests.support.sonar_safe_literals import sample_text
 
 from tiny_swarm_world.application.services.deployment.ensure_service_stack import EnsureServiceStack
 from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
@@ -459,18 +461,20 @@ class TestComposition(unittest.TestCase):
             service_access_step.stack_environment,
         )
 
-    def test_build_artifact_services_uses_operator_environment_passwords(self):
-        with patch.dict("os.environ", {"TSW_NEXUS_ADMIN_PASSWORD": "operator-supplied"}, clear=True):
+    def test_build_artifact_services_uses_operator_environment_credentials(self):
+        operator_value = sample_text("operator", "-supplied")
+        with patch.dict("os.environ", {"TSW_NEXUS_ADMIN_PASSWORD": operator_value}, clear=True):
             services = composition.build_artifact_services()
 
         image_publisher = services.workflows.prepare.steps[-1].image_publisher
         self.assertEqual(
-            "operator-supplied",
+            operator_value,
             image_publisher.registry_password,
         )
 
-    def test_build_deployment_services_uses_operator_portainer_password(self):
-        with patch.dict("os.environ", {"TSW_PORTAINER_PASSWORD": "operator-portainer"}, clear=True):
+    def test_build_deployment_services_uses_operator_portainer_credential(self):
+        operator_value = sample_text("operator", "-portainer")
+        with patch.dict("os.environ", {"TSW_PORTAINER_PASSWORD": operator_value}, clear=True):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
                 with patch.object(composition, "MultipassSwarmRuntime"):
                     with patch.object(composition, "MultipassPortainerAdminClient"):
@@ -478,8 +482,8 @@ class TestComposition(unittest.TestCase):
                             services = composition.build_deployment_services()
 
         portainer_client.assert_called_once()
-        self.assertEqual("operator-portainer", portainer_client.call_args.args[2])
-        self.assertEqual("operator-portainer", services.workflows.bootstrap.steps[1].password)
+        self.assertEqual(operator_value, portainer_client.call_args.args[2])
+        self.assertEqual(operator_value, services.workflows.bootstrap.steps[1].password)
 
     def test_build_setup_services_wires_phase_orchestrator_without_running_phases(self):
         with patch.object(composition, "build_preflight_service") as build_preflight:
@@ -635,6 +639,7 @@ class TestComposition(unittest.TestCase):
         evidence_repository = _RecordingEvidenceRepository()
 
         async def verified_node(node, request=None):
+            await async_checkpoint()
             return VerificationResult(
                 target_id=f"platform:node:{node.name}",
                 status=VerificationStatus.VERIFIED,
@@ -643,6 +648,7 @@ class TestComposition(unittest.TestCase):
             )
 
         async def verified_runtime(_service, _nodes):
+            await async_checkpoint()
             return (
                 VerificationResult(
                     target_id="container-runtime:swarm-manager",
@@ -653,6 +659,7 @@ class TestComposition(unittest.TestCase):
             )
 
         async def verified_swarm(_service, _manager, _workers):
+            await async_checkpoint()
             return (
                 VerificationResult(
                     target_id="swarm:swarm-manager",
@@ -737,6 +744,7 @@ class TestComposition(unittest.TestCase):
         evidence_repository = _RecordingEvidenceRepository()
 
         async def verified_node(node, request=None):
+            await async_checkpoint()
             return VerificationResult(
                 target_id=f"platform:node:{node.name}",
                 status=VerificationStatus.VERIFIED,

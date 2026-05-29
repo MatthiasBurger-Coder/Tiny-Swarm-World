@@ -104,26 +104,13 @@ class DeploymentApplyWorkflow:
             )
 
         verification_results: list[VerificationResult] = []
-        for check in self.pre_apply_checks:
-            target_id = _verification_target_id(check, "deployment:pre-apply-check")
-            verification = await _verify_step(check, target_id)
-            verification_results.append(verification)
-            if verification.status == VerificationStatus.BLOCKED:
-                return DeploymentWorkflowResult(
-                    kind=self.kind,
-                    status=DeploymentWorkflowStatus.BLOCKED,
-                    message="deployment apply is blocked by pre-apply verification.",
-                    reason=f"pre-apply verification is blocked for {target_id}",
-                    verification_results=tuple(verification_results),
-                )
-            if verification.status != VerificationStatus.VERIFIED:
-                return DeploymentWorkflowResult(
-                    kind=self.kind,
-                    status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
-                    message="deployment apply failed pre-apply verification.",
-                    reason=f"pre-apply verification failed for {target_id}",
-                    verification_results=tuple(verification_results),
-                )
+        pre_apply_result = await _run_pre_apply_checks(
+            self.pre_apply_checks,
+            self.kind,
+            verification_results,
+        )
+        if pre_apply_result is not None:
+            return pre_apply_result
 
         for step in self.steps:
             target_id = _verification_target_id(step, "deployment:apply-step")
@@ -260,6 +247,34 @@ def _verification_target_id(
     return fallback
 
 
+async def _run_pre_apply_checks(
+    checks: Sequence[DeploymentPreApplyCheck],
+    kind: DeploymentWorkflowKind,
+    verification_results: list[VerificationResult],
+) -> DeploymentWorkflowResult | None:
+    for check in checks:
+        target_id = _verification_target_id(check, "deployment:pre-apply-check")
+        verification = await _verify_step(check, target_id)
+        verification_results.append(verification)
+        if verification.status == VerificationStatus.BLOCKED:
+            return DeploymentWorkflowResult(
+                kind=kind,
+                status=DeploymentWorkflowStatus.BLOCKED,
+                message="deployment apply is blocked by pre-apply verification.",
+                reason=f"pre-apply verification is blocked for {target_id}",
+                verification_results=tuple(verification_results),
+            )
+        if verification.status != VerificationStatus.VERIFIED:
+            return DeploymentWorkflowResult(
+                kind=kind,
+                status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
+                message="deployment apply failed pre-apply verification.",
+                reason=f"pre-apply verification failed for {target_id}",
+                verification_results=tuple(verification_results),
+            )
+    return None
+
+
 async def _verify_step(
     step: DeploymentApplyStep | DeploymentVerifyCheck | DeploymentPreApplyCheck,
     target_id: str,
@@ -269,7 +284,7 @@ async def _verify_step(
         return VerificationResult(
             target_id=target_id,
             status=VerificationStatus.BLOCKED,
-            message="Verification evidence is missing.",
+            message=VERIFICATION_EVIDENCE_MISSING_MESSAGE,
             evidence={"phase": "verify"},
         )
     try:
@@ -288,6 +303,6 @@ async def _verify_step(
     return VerificationResult(
         target_id=target_id,
         status=VerificationStatus.BLOCKED,
-        message="Verification evidence is missing.",
+        message=VERIFICATION_EVIDENCE_MISSING_MESSAGE,
         evidence={"phase": "verify"},
     )

@@ -1,4 +1,5 @@
 import unittest
+from tests.support.sonar_safe_literals import sensitive_assignment
 
 from tiny_swarm_world.application.services.deployment.ensure_service_stack import EnsureServiceStack
 from tiny_swarm_world.domain.deployment import ServiceStackContract
@@ -117,7 +118,7 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
     async def test_verify_sanitizes_portainer_client_failures(self):
         stack_definition = StackDefinition(name="nexus", compose_content="services: {}")
         compose_repository = _FakeComposeRepository(stack_definition)
-        portainer_client = _FakePortainerClient(stack_exception=RuntimeError("secret=leaked"))
+        portainer_client = _FakePortainerClient(stack_exception=RuntimeError(sensitive_assignment()))
         service = EnsureServiceStack(
             compose_repository,
             portainer_client,

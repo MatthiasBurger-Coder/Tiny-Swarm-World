@@ -198,40 +198,54 @@ class CommandEntity(BaseModel):
 
     @model_validator(mode="after")
     def validate_safety_contract(self) -> "CommandEntity":
+        self._validate_destructive_pattern_policy()
+        self._validate_verification_policy()
+        self._validate_evidence_policy()
+        self._validate_effect_policy()
+        self._validate_sensitive_output_policy()
+        self._validate_destructive_workflow_policy()
+        return self
+
+    def _validate_destructive_pattern_policy(self) -> None:
         if self.uses_destructive_shell_pattern() and self.safety_class != CommandSafetyClass.DESTRUCTIVE:
             raise ValueError("destructive shell patterns require safety_class=destructive")
 
+    def _validate_verification_policy(self) -> None:
         if self.safety_class != CommandSafetyClass.SAFE_READ and self.verify.type == CommandVerifyType.NONE:
             raise ValueError("mutating commands require a verify specification")
 
+    def _validate_evidence_policy(self) -> None:
         if self.evidence_policy and self.evidence_policy.store_raw_output:
             raise ValueError("command evidence policy must not store raw output")
 
+    def _validate_effect_policy(self) -> None:
         if CommandEffect.RUNTIME_CHANGE.value in self.effects and self.safety_class == CommandSafetyClass.SAFE_READ:
             raise ValueError("runtime_change commands must not use safety_class=safe_read")
 
-        if self.produces_sensitive_output:
-            if self.safety_class != CommandSafetyClass.CREDENTIAL_MUTATION:
-                raise ValueError(
-                    "credential_output commands require safety_class=credential_mutation"
-                )
-            if not self.evidence_policy or not self.evidence_policy.redact_output:
-                raise ValueError(
-                    "credential_output commands require a redacted evidence policy"
-                )
+    def _validate_sensitive_output_policy(self) -> None:
+        if not self.produces_sensitive_output:
+            return
+        if self.safety_class != CommandSafetyClass.CREDENTIAL_MUTATION:
+            raise ValueError(
+                "credential_output commands require safety_class=credential_mutation"
+            )
+        if not self.evidence_policy or not self.evidence_policy.redact_output:
+            raise ValueError(
+                "credential_output commands require a redacted evidence policy"
+            )
 
-        if self.safety_class == CommandSafetyClass.DESTRUCTIVE:
-            disallowed = [
-                workflow
-                for workflow in self.allowed_workflows
-                if workflow not in DESTRUCTIVE_WORKFLOWS
-            ]
-            if disallowed:
-                raise ValueError(
-                    f"destructive commands may only be allowed in reset/destroy workflows: {disallowed}"
-                )
-
-        return self
+    def _validate_destructive_workflow_policy(self) -> None:
+        if self.safety_class != CommandSafetyClass.DESTRUCTIVE:
+            return
+        disallowed = [
+            workflow
+            for workflow in self.allowed_workflows
+            if workflow not in DESTRUCTIVE_WORKFLOWS
+        ]
+        if disallowed:
+            raise ValueError(
+                f"destructive commands may only be allowed in reset/destroy workflows: {disallowed}"
+            )
 
     def uses_destructive_shell_pattern(self) -> bool:
         return any(pattern.search(self.command) for pattern in DESTRUCTIVE_COMMAND_PATTERNS)

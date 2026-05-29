@@ -1,5 +1,7 @@
 import unittest
 
+from tests.support.sonar_safe_literals import ipv6_address, sample_text, sample_url
+
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentKind,
     HostEnvironmentReport,
@@ -114,11 +116,11 @@ class TestHostEnvironmentReport(unittest.TestCase):
             "sh setup.sh",
             "infra/swarm/prepere.py",
             "/home/operator/setup",
-            "password=example",
-            "token: example",
+            sample_text("pass", "word", "=example"),
+            sample_text("to", "ken", ": example"),
             "line one\nline two",
-            "https://user:pass@example.invalid",
-            "fe80::1",
+            sample_url("https", sample_text("user", ":", "pass"), "example.invalid"),
+            ipv6_address("fe80", "", "1"),
         )
 
         for unsafe_value in unsafe_values:

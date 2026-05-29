@@ -4,7 +4,7 @@ import unittest
 
 def load_tests(
     loader: unittest.TestLoader,
-    tests: unittest.TestSuite,
+    _tests: unittest.TestSuite,
     pattern: str | None,
 ) -> unittest.TestSuite:
     suite = unittest.TestSuite()

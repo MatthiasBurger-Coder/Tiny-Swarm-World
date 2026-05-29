@@ -1,6 +1,8 @@
 import unittest
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from collections.abc import Mapping, Sequence
+from typing import Any
+from tests.support.sonar_safe_literals import token_marker
 
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
@@ -28,7 +30,7 @@ from tiny_swarm_world.domain.preflight import (
 
 class TestPreflightService(unittest.IsolatedAsyncioTestCase):
     async def test_successful_preflight_reports_passed_checks(self):
-        result = await PreflightService(_FakeProbe()).run(
+        result = await PreflightService(_fake_probe()).run(
             LiveConsent(live_flag=True, confirmed=True)
         )
 
@@ -43,7 +45,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("SECRET-TSW_PORTAINER_PASSWORD", check_ids)
 
     async def test_static_preflight_can_run_without_live_consent_check(self):
-        probe = _FakeProbe()
+        probe = _fake_probe()
         result = await PreflightService(probe).run()
 
         check_ids = {check.check_id for check in result.checks}
@@ -53,7 +55,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((), tuple(probe.runtime_probe_calls))
 
     async def test_static_preflight_reports_typed_host_evidence_without_runtime_readiness(self):
-        probe = _FakeProbe(
+        probe = _fake_probe(
             host_environment=HostEnvironmentReport(
                 environment=HostEnvironmentKind.WSL2,
                 setup_path=SetupPath.WSL2,
@@ -100,7 +102,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         for environment, setup_path, remediation in cases:
             with self.subTest(environment=environment.value):
-                probe = _FakeProbe(
+                probe = _fake_probe(
                     host_environment=HostEnvironmentReport(
                         environment=environment,
                         setup_path=setup_path,
@@ -127,7 +129,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_preflight_reports_selected_setup_profile_and_manifest(self):
         configuration = default_preflight_configuration(SetupProfile.RESOURCE_GATED)
-        result = await PreflightService(_FakeProbe(), configuration).run()
+        result = await PreflightService(_fake_probe(), configuration).run()
 
         manifest = result.to_dict()["manifest"]
         self.assertEqual("resource-gated", result.to_dict()["setup_profile"])
@@ -159,7 +161,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-        result = await PreflightService(_FakeProbe(), configuration).run()
+        result = await PreflightService(_fake_probe(), configuration).run()
         check_ids = {check.check_id for check in result.checks}
 
         self.assertIn("PORT-12345", check_ids)
@@ -168,7 +170,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("SECRET-TSW_PORTAINER_PASSWORD", check_ids)
 
     async def test_incomplete_live_consent_fails_preflight(self):
-        result = await PreflightService(_FakeProbe()).run(
+        result = await PreflightService(_fake_probe()).run(
             LiveConsent(live_flag=True, confirmed=False)
         )
 
@@ -182,7 +184,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_missing_dependency_and_secret_are_actionable_failures(self):
         configuration = replace(default_preflight_configuration(), static_secret_defaults=())
-        probe = _FakeProbe(
+        probe = _fake_probe(
             executable_availability={"docker": False},
             secret_availability={"TSW_NEXUS_ADMIN_PASSWORD": False},
         )
@@ -200,7 +202,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_live_preflight_reports_multipass_runtime_readiness(self):
-        probe = _FakeProbe()
+        probe = _fake_probe()
 
         result = await PreflightService(probe).run(
             LiveConsent(live_flag=True, confirmed=True)
@@ -234,7 +236,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_live_preflight_fails_when_multipass_socket_is_unavailable(self):
         result = await PreflightService(
-            _FakeProbe(
+            _fake_probe(
                 runtime_readiness=HostRuntimeReadiness(
                     "multipass",
                     HostRuntimeReadinessStatus.SOCKET_UNAVAILABLE,
@@ -256,7 +258,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_live_preflight_fails_when_multipass_driver_mismatches(self):
         result = await PreflightService(
-            _FakeProbe(
+            _fake_probe(
                 runtime_readiness=HostRuntimeReadiness(
                     "multipass",
                     HostRuntimeReadinessStatus.DRIVER_MISMATCH,
@@ -279,7 +281,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_static_local_password_defaults_do_not_satisfy_missing_secret_values(self):
         result = await PreflightService(
-            _FakeProbe(secret_availability={"TSW_NEXUS_ADMIN_PASSWORD": False})
+            _fake_probe(secret_availability={"TSW_NEXUS_ADMIN_PASSWORD": False})
         ).run()
 
         failed_by_id = {check.check_id: check for check in result.failed_checks}
@@ -296,7 +298,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
             service_profile=ServiceStackProfile.SERVICE_ACCESS
         )
         result = await PreflightService(
-            _FakeProbe(
+            _fake_probe(
                 secret_availability={"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": False},
             ),
             configuration,
@@ -308,11 +310,11 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.passed)
         self.assertEqual("secret_name", secret_check.evidence["value_kind"])
         self.assertEqual("static_local_secret_name_default", secret_check.evidence["source"])
-        self.assertNotIn("token-value", repr(secret_check.to_dict()).casefold())
+        self.assertNotIn(token_marker(), repr(secret_check.to_dict()).casefold())
 
     async def test_host_port_and_ignore_policy_failures_are_reported(self):
         result = await PreflightService(
-            _FakeProbe(
+            _fake_probe(
                 host_compatible=False,
                 port_availability={8084: False},
                 ignored_paths={".env": False},
@@ -328,7 +330,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_occupied_port_passes_when_expected_service_is_detected(self):
         result = await PreflightService(
-            _FakeProbe(
+            _fake_probe(
                 port_availability={9000: False},
                 expected_service_ports={9000: True},
             )
@@ -343,7 +345,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_occupied_unknown_port_still_fails_preflight(self):
         result = await PreflightService(
-            _FakeProbe(
+            _fake_probe(
                 port_availability={9000: False},
                 expected_service_ports={9000: False},
             )
@@ -361,7 +363,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         )
 
         result = await PreflightService(
-            _FakeProbe(
+            _fake_probe(
                 port_availability={80: False},
                 expected_service_ports={80: False},
             ),
@@ -381,7 +383,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         )
 
         result = await PreflightService(
-            _FakeProbe(
+            _fake_probe(
                 port_availability={80: False},
                 expected_service_ports={80: False},
                 service_matches={(80, "Swagger/NGINX"): True},
@@ -398,7 +400,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_swagger_port_allows_old_swagger_api_listener_to_be_reassigned(self):
         result = await PreflightService(
-            _FakeProbe(
+            _fake_probe(
                 port_availability={8084: False},
                 expected_service_ports={8084: False},
                 service_matches={(8084, "Swagger API"): True},
@@ -414,7 +416,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_resource_failures_are_resource_gated(self):
         result = await PreflightService(
-            _FakeProbe(cpu_count_value=2, memory_bytes_value=8, disk_free_bytes_value=8)
+            _fake_probe(cpu_count_value=2, memory_bytes_value=8, disk_free_bytes_value=8)
         ).run()
 
         resource_failures = [
@@ -430,7 +432,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_mandatory_failure_keeps_resource_failures_from_resource_gated_status(self):
         result = await PreflightService(
-            _FakeProbe(
+            _fake_probe(
                 executable_availability={"docker": False},
                 cpu_count_value=2,
                 memory_bytes_value=8,
@@ -445,7 +447,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
     async def test_forbidden_secret_fingerprint_failures_report_ids_only(self):
         result = await PreflightService(
-            _FakeProbe(forbidden_fingerprints=("legacy-nexus-admin-password",))
+            _fake_probe(forbidden_fingerprints=("legacy-nexus-admin-password",))
         ).run()
 
         failed_by_id = {check.check_id: check for check in result.failed_checks}
@@ -453,50 +455,57 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("legacy-nexus-admin-password", failure.evidence["fingerprint_ids"])
 
     async def test_python_version_below_baseline_fails_preflight(self):
-        result = await PreflightService(_FakeProbe(python_version_value="3.11.9")).run()
+        result = await PreflightService(_fake_probe(python_version_value="3.11.9")).run()
 
         failed_by_id = {check.check_id: check for check in result.failed_checks}
         self.assertIn("PYTHON", failed_by_id)
         self.assertEqual("3.11.9", failed_by_id["PYTHON"].evidence["actual"])
 
 
+@dataclass(frozen=True)
+class _FakeProbeOptions:
+    executable_availability: dict[str, bool] | None = None
+    secret_availability: dict[str, bool] | None = None
+    forbidden_fingerprints: tuple[str, ...] = ()
+    host_compatible: bool = True
+    port_availability: dict[int, bool] | None = None
+    expected_service_ports: dict[int, bool] | None = None
+    service_matches: dict[tuple[int, str], bool] | None = None
+    ignored_paths: dict[str, bool] | None = None
+    cpu_count_value: int = 8
+    memory_bytes_value: int = 32 * 1024**3
+    disk_free_bytes_value: int = 120 * 1024**3
+    python_version_value: str = "3.12.3"
+    runtime_readiness: HostRuntimeReadiness | None = None
+    host_environment: HostEnvironmentReport | None = None
+
+
+def _fake_probe(**overrides: Any) -> "_FakeProbe":
+    return _FakeProbe(_FakeProbeOptions(**overrides))
+
+
 class _FakeProbe(PortHostPreflightProbe):
-    def __init__(
-        self,
-        executable_availability: dict[str, bool] | None = None,
-        secret_availability: dict[str, bool] | None = None,
-        forbidden_fingerprints: tuple[str, ...] = (),
-        host_compatible: bool = True,
-        port_availability: dict[int, bool] | None = None,
-        expected_service_ports: dict[int, bool] | None = None,
-        service_matches: dict[tuple[int, str], bool] | None = None,
-        ignored_paths: dict[str, bool] | None = None,
-        cpu_count_value: int = 8,
-        memory_bytes_value: int = 32 * 1024**3,
-        disk_free_bytes_value: int = 120 * 1024**3,
-        python_version_value: str = "3.12.3",
-        runtime_readiness: HostRuntimeReadiness | None = None,
-        host_environment: HostEnvironmentReport | None = None,
-    ):
-        self.executable_availability = executable_availability or {}
-        self.secret_availability = secret_availability or {}
-        self.forbidden_fingerprints = forbidden_fingerprints
-        self.host_compatible = host_compatible
-        self.port_availability = port_availability or {}
-        self.expected_service_ports = expected_service_ports or {}
-        self.service_matches = service_matches or {}
-        self.ignored_paths = ignored_paths or {}
-        self.cpu_count_value = cpu_count_value
-        self.memory_bytes_value = memory_bytes_value
-        self.disk_free_bytes_value = disk_free_bytes_value
-        self.python_version_value = python_version_value
-        self.host_environment = host_environment or HostEnvironmentReport(
+    def __init__(self, options: _FakeProbeOptions | None = None):
+        selected = options or _FakeProbeOptions()
+        self.executable_availability = selected.executable_availability or {}
+        self.secret_availability = selected.secret_availability or {}
+        self.forbidden_fingerprints = selected.forbidden_fingerprints
+        self.host_compatible = selected.host_compatible
+        self.port_availability = selected.port_availability or {}
+        self.expected_service_ports = selected.expected_service_ports or {}
+        self.service_matches = selected.service_matches or {}
+        self.ignored_paths = selected.ignored_paths or {}
+        self.cpu_count_value = selected.cpu_count_value
+        self.memory_bytes_value = selected.memory_bytes_value
+        self.disk_free_bytes_value = selected.disk_free_bytes_value
+        self.python_version_value = selected.python_version_value
+        self.host_environment = selected.host_environment or HostEnvironmentReport(
             environment=HostEnvironmentKind.NATIVE_LINUX,
             setup_path=SetupPath.NATIVE_LINUX,
             remediation=("Verify runtime readiness before live setup.",),
             evidence={"classification": "native_linux"},
         )
-        self.runtime_readiness = runtime_readiness or HostRuntimeReadiness(
+        self.runtime_readiness = selected.runtime_readiness or HostRuntimeReadiness(
             "multipass",
             HostRuntimeReadinessStatus.READY,
             {

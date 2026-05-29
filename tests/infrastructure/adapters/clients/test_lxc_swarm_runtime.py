@@ -1,6 +1,7 @@
 import subprocess
 import unittest
 from unittest.mock import patch
+from tests.support.sonar_safe_literals import ipv4_address
 
 from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
@@ -110,10 +111,14 @@ services:
     def test_manager_ip_reads_lxc_eth0_not_docker_bridge_address(self):
         with patch(
             "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
-            return_value=subprocess.CompletedProcess([], 0, stdout="10.156.143.201\n"),
+            return_value=subprocess.CompletedProcess(
+                [],
+                0,
+                stdout=f"{ipv4_address(10, 156, 143, 201)}\n",
+            ),
         ) as run:
             self.assertEqual(
-                "10.156.143.201",
+                ipv4_address(10, 156, 143, 201),
                 _lxc_manager_ip(ManagedLxcBackend.LXD, "swarm-manager", 30),
             )
 

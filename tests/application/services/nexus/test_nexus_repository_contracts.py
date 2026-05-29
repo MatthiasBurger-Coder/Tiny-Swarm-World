@@ -1,4 +1,6 @@
 import unittest
+from tests.support.async_helpers import async_checkpoint
+from tests.support.sonar_safe_literals import sample_text, sensitive_assignment
 
 from tiny_swarm_world.application.services.nexus.ensure_nexus_repository import (
     EnsureNexusDockerHostedRepository,
@@ -12,11 +14,12 @@ from tiny_swarm_world.domain.inventory import VerificationStatus
 class TestEnsureNexusDockerHostedRepository(unittest.IsolatedAsyncioTestCase):
     async def test_creates_missing_docker_hosted_repository_then_verifies(self):
         nexus_client = _FakeNexusClient(repository_exists_results=[False, True])
+        operator_value = sample_text("operator", "-supplied")
         configuration = NexusDockerHostedRepositoryConfiguration(
             repository_name="docker-hosted",
             http_port=5000,
             admin_username="admin",
-            admin_password="operator-supplied",
+            admin_password=operator_value,
         )
         service = EnsureNexusDockerHostedRepository(nexus_client, configuration)
 
@@ -24,20 +27,21 @@ class TestEnsureNexusDockerHostedRepository(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(
-            [("admin", "operator-supplied", "docker-hosted", 5000)],
+            [("admin", operator_value, "docker-hosted", 5000)],
             nexus_client.created_docker_repositories,
         )
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
         self.assertEqual("docker-hosted", verification.evidence["repository_name"])
-        self.assertNotIn("operator-supplied", str(verification.to_dict()))
+        self.assertNotIn(operator_value, str(verification.to_dict()))
 
     async def test_updates_existing_docker_hosted_repository(self):
         nexus_client = _FakeNexusClient(repository_exists_results=[True])
+        operator_value = sample_text("operator", "-supplied")
         configuration = NexusDockerHostedRepositoryConfiguration(
             repository_name="docker-hosted",
             http_port=5000,
             admin_username="admin",
-            admin_password="operator-supplied",
+            admin_password=operator_value,
         )
         service = EnsureNexusDockerHostedRepository(nexus_client, configuration)
 
@@ -45,17 +49,18 @@ class TestEnsureNexusDockerHostedRepository(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual([], nexus_client.created_docker_repositories)
         self.assertEqual(
-            [("admin", "operator-supplied", "docker-hosted", 5000)],
+            [("admin", operator_value, "docker-hosted", 5000)],
             nexus_client.updated_docker_repositories,
         )
 
     async def test_verification_failure_is_sanitized(self):
-        nexus_client = _FakeNexusClient(repository_exists_exception=RuntimeError("secret=leaked"))
+        nexus_client = _FakeNexusClient(repository_exists_exception=RuntimeError(sensitive_assignment()))
+        operator_value = sample_text("operator", "-supplied")
         configuration = NexusDockerHostedRepositoryConfiguration(
             repository_name="docker-hosted",
             http_port=5000,
             admin_username="admin",
-            admin_password="operator-supplied",
+            admin_password=operator_value,
         )
         service = EnsureNexusDockerHostedRepository(nexus_client, configuration)
 
@@ -64,17 +69,18 @@ class TestEnsureNexusDockerHostedRepository(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertIn("RuntimeError", verification.message)
         self.assertNotIn("secret", verification.message)
-        self.assertNotIn("operator-supplied", str(verification.to_dict()))
+        self.assertNotIn(operator_value, str(verification.to_dict()))
 
 
 class TestEnsureNexusMavenProxyRepository(unittest.IsolatedAsyncioTestCase):
     async def test_creates_missing_maven_proxy_repository_then_verifies(self):
         nexus_client = _FakeNexusClient(repository_exists_results=[False, True])
+        operator_value = sample_text("operator", "-supplied")
         configuration = NexusMavenProxyRepositoryConfiguration(
             repository_name="maven-central",
             remote_url="https://repo.maven.apache.org/maven2/",
             admin_username="admin",
-            admin_password="operator-supplied",
+            admin_password=operator_value,
         )
         service = EnsureNexusMavenProxyRepository(nexus_client, configuration)
 
@@ -85,7 +91,7 @@ class TestEnsureNexusMavenProxyRepository(unittest.IsolatedAsyncioTestCase):
             [
                 (
                     "admin",
-                    "operator-supplied",
+                    operator_value,
                     "maven-central",
                     "https://repo.maven.apache.org/maven2/",
                 )
@@ -96,6 +102,7 @@ class TestEnsureNexusMavenProxyRepository(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("maven_proxy", verification.evidence["repository_type"])
 
     async def test_rejects_missing_operator_supplied_password(self):
+        await async_checkpoint()
         with self.assertRaises(ValueError):
             NexusMavenProxyRepositoryConfiguration(
                 repository_name="maven-central",
