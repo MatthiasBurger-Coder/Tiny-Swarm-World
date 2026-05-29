@@ -22,6 +22,10 @@ from tiny_swarm_world.application.services.network.socat.socat_manager import (
     SocatManager as ExistingSocatManager,
 )
 from tiny_swarm_world.application.services.platform import (
+    LxcDockerInstallService,
+    LxcDockerInstallStep,
+    LxcSwarmBootstrapService,
+    LxcSwarmBootstrapStep,
     MultipassDockerInstall,
     MultipassDockerSwarmInit,
     MultipassInitVms,
@@ -36,6 +40,18 @@ from tiny_swarm_world.application.services.platform import (
     PreflightService,
     SocatManager,
     VmIpList,
+)
+from tiny_swarm_world.application.services.platform.lxc_docker_install import (
+    LxcDockerInstallService as ExistingLxcDockerInstallService,
+)
+from tiny_swarm_world.application.services.platform.lxc_docker_install import (
+    LxcDockerInstallStep as ExistingLxcDockerInstallStep,
+)
+from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
+    LxcSwarmBootstrapService as ExistingLxcSwarmBootstrapService,
+)
+from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
+    LxcSwarmBootstrapStep as ExistingLxcSwarmBootstrapStep,
 )
 from tiny_swarm_world.application.services.platform.workflows import (
     PlatformDestroyWorkflow as ExistingPlatformDestroyWorkflow,
@@ -61,6 +77,10 @@ from tiny_swarm_world.application.services.vm.vm_ip_list import VmIpList as Exis
 class TestPlatformServiceExports(unittest.TestCase):
     def test_platform_namespace_exports_existing_services(self):
         self.assertIs(MultipassDockerInstall, ExistingMultipassDockerInstall)
+        self.assertIs(LxcDockerInstallService, ExistingLxcDockerInstallService)
+        self.assertIs(LxcDockerInstallStep, ExistingLxcDockerInstallStep)
+        self.assertIs(LxcSwarmBootstrapService, ExistingLxcSwarmBootstrapService)
+        self.assertIs(LxcSwarmBootstrapStep, ExistingLxcSwarmBootstrapStep)
         self.assertIs(MultipassDockerSwarmInit, ExistingMultipassDockerSwarmInit)
         self.assertIs(MultipassInitVms, ExistingMultipassInitVms)
         self.assertIs(MultipassRestartVMs, ExistingMultipassRestartVMs)

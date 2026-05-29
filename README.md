@@ -21,8 +21,11 @@ The system follows a hexagonal architecture and provides async Python automation
 ## Features
 
 - LXC-native node-provider selection, readiness checks, and node lifecycle through LXD or Incus.
+- LXC-native Docker Engine setup and Docker Swarm bootstrap inside the managed
+  LXC nodes after accepted live consent.
 - Explicit Multipass legacy/fallback mode through `--node-provider multipass_legacy`.
-- Fail-closed workflow boundaries for future provider-native Docker installation and Docker Swarm initialization.
+- Fail-closed workflow boundaries for provider-native platform, artifact, and
+  deployment behavior.
 - Portainer-facing service management contracts and compose assets.
 - Component configuration assets for:
   - Nexus (local Docker + Maven repository)
@@ -48,7 +51,9 @@ The system follows a hexagonal architecture and provides async Python automation
 - Incus or LXD installed and initialized for the default `lxc_native` provider
 - WSL2 with systemd, cgroup, and user-namespace support when running under WSL
 - Multipass with the QEMU backend only for explicit legacy/fallback runs
-- Docker Engine or Docker CLI access to the target Docker/Swarm environment
+- Docker CLI access for local diagnostics; the default `lxc_native` platform
+  path installs and verifies Docker Engine inside managed LXC nodes only after
+  accepted live consent
 - socat if using WSL2 port-forwarding
 
 Optional but recommended:
@@ -170,11 +175,14 @@ controls before application services are constructed:
 The current default provider is `lxc_native`. `platform init` selects the
 LXD/Incus provider path after provider readiness checks and blocks before
 mutation when backend selection, daemon access, WSL2 capability, or profile
-requirements are not satisfied. `platform reconcile`, default artifact
-workflows, and default deployment workflows still block at provider boundaries
-until provider-native reconciliation, publication, and deployment contracts are
-wired. Explicit `--node-provider multipass_legacy` keeps the old Multipass
-fallback behavior visible and isolated.
+requirements are not satisfied. After accepted live consent, default
+`platform init` continues from LXC node lifecycle into Docker Engine setup and
+Docker Swarm bootstrap inside `swarm-manager`, `swarm-worker-1`, and
+`swarm-worker-2`. Default `platform reconcile` is currently a verified no-op
+boundary for `lxc_native`; default artifact and deployment workflows still
+block at provider boundaries until provider-native publication and deployment
+contracts are wired. Explicit `--node-provider multipass_legacy` keeps the old
+Multipass fallback behavior visible and isolated.
 
 `platform reset` and `platform destroy` additionally require
 `RESET_TINY_SWARM_PLATFORM` or `DESTROY_TINY_SWARM_PLATFORM` through
@@ -210,8 +218,10 @@ or Incus. Current default flow is fail-closed:
 - Select and verify the node provider (`lxc_native` by default)
 - Ensure provider nodes from `infra/config/node-providers/provider_config.yaml`
   only when live consent and provider guards allow mutation
-- Block before provider networking, Docker installation, or Swarm
-  initialization when provider-native checks or contracts are incomplete
+- Install and verify Docker Engine inside the managed LXC nodes when provider
+  checks, profile contracts, and live consent allow mutation
+- Initialize or verify the Docker Swarm manager and join or verify the worker
+  nodes from inside those managed LXC containers
 - Keep default stack deployment blocked until provider-native deployment contracts are wired
 
 Where to find the scripts/services:

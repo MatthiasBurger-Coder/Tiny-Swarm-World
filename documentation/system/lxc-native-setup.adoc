@@ -122,6 +122,29 @@ The command still requires the live confirmation prompt. It blocks rather than
 claiming success when provider readiness, profile requirements, artifacts,
 deployment, or service readiness are incomplete.
 
+== Platform Init Behavior
+
+With accepted live consent, the default `lxc_native` Platform init path now
+uses the selected managed backend to:
+
+* ensure `swarm-manager`, `swarm-worker-1`, and `swarm-worker-2` exist;
+* inspect Docker Engine state inside each managed LXC node;
+* install Docker Engine inside a node only when the observed state is not
+  already ready and the setup remains live-consented;
+* verify Docker Engine after setup;
+* initialize or detect the Swarm manager inside `swarm-manager`;
+* join or verify workers from inside `swarm-worker-1` and `swarm-worker-2`.
+
+The implementation is test-backed with fake command runners and composition
+tests. It is not, by itself, live proof that a specific WSL2/LXD, WSL2/Incus,
+native-Linux/LXD, or native-Linux/Incus target has succeeded. Store any
+approved live-smoke result separately under the ignored local evidence tree.
+
+Default `platform reconcile` is currently a verified no-op boundary for
+`lxc_native` after Platform init. Artifact publication, service deployment,
+and service readiness remain separate provider-native work and still block
+until their contracts are implemented and verified.
+
 == Docker-In-Container Profile Notes
 
 Docker Swarm remains the runtime target. Running Docker inside managed LXC
@@ -132,6 +155,16 @@ mode disabled by default, and forbids host network and host mounts by default.
 Tiny Swarm World does not silently create or repair provider profiles during
 normal quality gates. Profile creation or mutation is a live infrastructure
 operation and needs explicit operator consent.
+
+Common failure modes to check manually before rerunning live setup:
+
+* backend ambiguity: select `--lxc-backend lxd` or `--lxc-backend incus`;
+* daemon access denied: repair local LXD/Incus group or socket access outside
+  Tiny Swarm World, then reopen the shell;
+* profile or nesting issue: inspect the provider profile and confirm nesting
+  plus syscall interception are available;
+* Docker repository access failure inside a container: verify DNS and outbound
+  package repository access from an operator-created disposable container.
 
 == Manual Smoke Check
 
@@ -162,6 +195,38 @@ Passing this smoke check proves only the local provider/container/DNS path for
 that host. It is not proof that Docker Swarm, Portainer, Nexus, Jenkins,
 RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image publication, or stack
 deployment is complete.
+
+== Optional Live Setup Smoke Evidence
+
+This sequence is not part of repository quality gates. Run it only after an
+operator explicitly approves live infrastructure mutation for the current
+target.
+
+[source,bash]
+----
+export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+When prompted, answer `y` only for an intentional local run. Classify the
+target before interpreting the result:
+
+* native Linux with LXD;
+* native Linux with Incus;
+* WSL2 with LXD;
+* WSL2 with Incus.
+
+Evidence checklist:
+
+* store output under `.tiny-swarm-world/evidence/live-installation/<run-id>/`;
+* keep the run target classification with the evidence;
+* keep setup phase results separate from repository quality-gate output;
+* redact secrets, worker join tokens, local IP addresses, and host-specific
+  usernames before sharing evidence;
+* do not generalize one target's result to another target class;
+* do not report service-stack success unless deployment and service readiness
+  phases are also verified for that run.
 
 == References
 

@@ -30,11 +30,13 @@ service bundles:
 Provider migration status: LXC-native through LXD or Incus is the implemented
 default selection and setup/platform init direction. The runtime now has
 provider-neutral contracts, LXD/Incus readiness checks, node lifecycle
-adapters, setup integration, and an explicit `multipass_legacy` boundary.
-Default platform reconcile, artifact workflows, and deployment workflows still
-block at provider-native boundaries until their LXC-native contracts are wired.
-No documentation may claim Docker Swarm-in-container or WSL2 live success
-without target-specific evidence.
+adapters, Docker Engine setup and Swarm bootstrap adapters, setup integration,
+and an explicit `multipass_legacy` boundary. Default platform reconcile is
+currently a verified no-op boundary for `lxc_native` after Platform init.
+Artifact workflows and deployment workflows still block at provider-native
+boundaries until their LXC-native contracts are wired. No documentation may
+claim Docker Swarm-in-container or WSL2 live success without target-specific
+evidence.
 
 At this stage, Artifacts and Deployment are composition boundaries inside the
 same Python automation process, not independently deployable microservices.
@@ -148,12 +150,13 @@ and does not apply the step.
 
 The gate itself is implemented as fail-closed workflow behavior. Default
 `platform init` now uses LXC-native node-provider steps with verification
-target IDs and LXD/Incus provider readiness guards. It blocks before mutation
-when readiness, backend selection, WSL2 capability, or provider profile
-requirements are not satisfied. Default `platform reconcile` still blocks at
-the LXC-native provider boundary until native reconcile contracts exist.
-Explicit `multipass_legacy` selection keeps the legacy Multipass init and
-reconcile steps separate from the default path.
+target IDs and LXD/Incus provider readiness guards, then continues to
+container Docker setup and Swarm bootstrap when live consent and provider
+contracts allow mutation. It blocks before mutation when readiness, backend
+selection, WSL2 capability, or provider profile requirements are not
+satisfied. Default `platform reconcile` returns a verified `lxc_native` no-op
+boundary after Platform init. Explicit `multipass_legacy` selection keeps the
+legacy Multipass init and reconcile steps separate from the default path.
 
 Continuation requires both parts:
 

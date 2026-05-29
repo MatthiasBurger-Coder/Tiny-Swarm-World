@@ -1,550 +1,593 @@
-# Workflow Execution Report
+# Workflow Execution Report: LXC Docker Swarm Bootstrap
 
-Status: `IN_PROGRESS`
+## Status
 
-Active workflow: `lxc-native-node-provider-v1.0.0`
-
-Branch:
-
-```bash
-feature/workflow-lxc-node-provider-20260526
+```text
+READY_FOR_EXECUTION
 ```
 
-Checkpoint execution has started on the workflow branch.
+## Workflow
 
-## Creation Verification
-
-Planned workflow creation gate:
-
-```bash
-git diff --check
+```text
+lxc-docker-swarm-bootstrap-v1.0.0
 ```
 
-## Slice Execution Notes
+## Branch
 
-Keep live LXD/Incus, Multipass, Docker Swarm, networking, service bootstrap,
-and optional smoke evidence separate from default mocked/static quality-gate
-evidence.
+```text
+feature/workflow-lxc-docker-install-20260529
+```
 
-### Metadata Repair: Workflow Scope Alignment
+## Creation Summary
 
-Commit: `ebb190447f555ddd284db80d0c8d418243641289`
+The workflow has been authored for the request to install Docker inside the
+managed LXC containers and to adapt the existing Multipass Docker/Swarm
+approach for the LXC-native provider path.
 
-Title: `docs(workflow): include ADR index in slice scope`
+This report records workflow creation only. No live infrastructure commands
+were run during workflow authoring.
 
-Result: `PASSED`
+## Initial Phase State
 
-Reason: Slice 01 needed the ADR index and context-pack provenance in scope
-before recording the provider decision.
+| Phase | State | Notes |
+| --- | --- | --- |
+| requirement clarification | completed | Proceed with accepted assumptions. |
+| baseline review | completed | Multipass Docker install/Swarm and LXC provider baseline inspected. |
+| workflow authoring | completed | Workflow, context pack, JSON context, and reports created. |
+| S3D metadata repair | completed | Slice dependencies, affected surfaces, locks, quality gates, documentation flags, and stop conditions made machine-readable. |
+| Slice 01 | completed | Requirement review confirmed current baseline reports satisfy the Multipass-to-LXC contract mapping. No content edits required. |
+| Slice 02 | completed | Provider-neutral Docker runtime and Swarm bootstrap domain/application contracts added with fake-port tests. |
+| Slice 03 | completed | LXD/Incus Docker runtime adapter added with structured exec argv and fake-runner infrastructure tests. |
+| Slice 04 | completed | LXC Docker install application step aggregates node runtime results for Platform init workflow continuation. |
+| Slice 05 | completed | LXD/Incus Swarm manager, token, worker join, and manager identity adapters added with token-redaction tests. |
+| Slice 06 | completed | Platform composition now wires default LXC init through node creation, container runtime setup, and Swarm bootstrap steps. |
+| Slice 07 | completed | Operator, EPIC, arc42, ADR, and live-operation-surface documentation synchronized with the implemented LXC Platform init path. |
+| Slice 08 | completed | Full quality gate and optional live-smoke evidence boundary recorded without running live infrastructure. |
+| implementation | completed | Slices 01-08 completed. |
+| quality gate | passed | Full repository quality gate passed after final workflow changes. |
+| live smoke | not approved | Requires explicit later approval. |
 
-Changed files:
+## Current Implementation Target
 
-- `documentation/workflow/workflow.md`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/context-pack.json`
+The remaining execution should continue with documentation sync and final
+quality/live-smoke boundary review. The target is not service deployment; it
+is provider-native Platform completion through:
 
-Quality gates:
+- LXC node existence;
+- Docker Engine installed inside each configured LXC node;
+- Docker daemon verified inside each node;
+- Docker Swarm manager initialized inside `swarm-manager`;
+- workers joined from inside `swarm-worker-1` and `swarm-worker-2`;
+- typed redacted evidence collected.
 
-- `git diff --check` passed.
+## Known Live Environment Clue
 
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+Previous operator output showed LXD available in WSL2 and LXC nodes could be
+created, while setup stopped before provider-native Docker/Swarm work. That
+output is useful operational context, but it is not committed live evidence
+for this new workflow.
 
-Rollback reference: previous branch commit `e1f87f4`.
+## Stop Reminder
 
-### Slice 01: Provider Decision And Governance Baseline
+Execution must stop before any live LXD, Incus, LXC, Docker, Swarm, compose,
+stack, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or service bootstrap
+command unless the user explicitly approves live infrastructure execution.
 
-Responsible agent: Senior Requirement Engineer.
+## S3D Metadata Repair
 
-Commit: `173b72b701732f28004351218c4c5799437e1a52`
+The first `workflow execute with subagents` attempt stopped before
+write-capable execution because the initial workflow slice YAML blocks did not
+carry every S3D-required metadata field in machine-readable form.
 
-Title: `docs(workflow): record LXC native provider decision`
+Repair status:
 
-Result: `PASSED`
+```text
+COMPLETED
+```
 
-Changed files:
+Repair details:
 
-- `documentation/architecture/adr-lxc-native-node-provider.adoc`
-- `documentation/epics/autonomous-runnable-setup.md`
-- `documentation/epics/system-unification.md`
-- `documentation/arc42/02_constraints.adoc`
-- `documentation/arc42/06_runtime_view.adoc`
-- `documentation/arc42/07_deployment_view.adoc`
-- `documentation/arc42/09_architecture_decisions.adoc`
-- `documentation/arc42/11_risks_and_debt.adoc`
-- `documentation/workflow/workflow.md`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/context-pack.json`
+- Added concrete dependencies for slices `01` through `08`.
+- Added `profile`, `secondary_reviewers`, `affected_files`,
+  `affected_modules`, `affected_contracts`, `parallel_group`, `file_locks`,
+  `contract_locks`, `architecture_locks`, structured `quality_gates`,
+  `documentation`, and `stop_conditions` to every slice.
+- Kept execution serial because later slices share Platform, adapter,
+  composition, test, and documentation surfaces.
+- No live infrastructure commands were run.
 
-Quality gates:
+## Slice 01 Result
 
-- `git diff --check` passed.
-- `git diff --cached --check` passed.
-- `python3 tools/quality_gate.py quality` passed.
+```text
+COMPLETED
+```
 
-arc42 update status: updated.
+Responsible role:
 
-ADR update status: created and indexed in the architecture decision view.
+```text
+Senior Requirement Engineer
+```
 
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+Reviewer evidence:
 
-Rollback reference: `ebb190447f555ddd284db80d0c8d418243641289`.
-
-### Slice 02: Provider-Neutral Domain Model
-
-Responsible agent: Senior Python Automation Developer.
-
-Commit: `19429c4707b2921271dc5a1fa5a2c800fa1c0d8f`
-
-Title: `feat(domain): add node provider model`
-
-Result: `PASSED`
-
-Changed files:
-
-- `src/tiny_swarm_world/domain/node_provider/__init__.py`
-- `src/tiny_swarm_world/domain/node_provider/provider_model.py`
-- `tests/domain/node_provider/__init__.py`
-- `tests/domain/node_provider/test_provider_model.py`
-- `tests/domain/preflight/__init__.py`
-
-Quality gates:
-
-- `PYTHONPATH=src python3 -m unittest tests.domain.node_provider tests.domain.preflight` passed.
-- `python3 -m ruff check src/tiny_swarm_world/domain/node_provider tests/domain/node_provider tests/domain/preflight/__init__.py` passed.
-- `python3 tools/quality_gate.py arch-tests` passed.
-- `git diff --check` passed.
-- `git diff --cached --check` passed.
-- `python3 tools/quality_gate.py quality` passed.
-
-arc42 update status: not applicable for this domain-model slice.
-
-ADR update status: provider ADR checked.
-
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
-
-Rollback reference: `173b72b701732f28004351218c4c5799437e1a52`.
-
-### Slice 03: Provider Ports And Selection Contract
-
-Responsible agent: Senior Python Automation Developer.
-
-Commit: `54efdef03d9694038e02f071e42585e7319d63cb`
-
-Title: `feat(application): add node provider selection contract`
-
-Result: `PASSED`
-
-Changed files:
-
-- `src/tiny_swarm_world/application/ports/node_provider/__init__.py`
-- `src/tiny_swarm_world/application/ports/node_provider/port_node_lifecycle.py`
-- `src/tiny_swarm_world/application/ports/node_provider/port_node_provider_readiness.py`
-- `src/tiny_swarm_world/application/services/platform/__init__.py`
-- `src/tiny_swarm_world/application/services/platform/node_provider_selection.py`
-- `tests/application/services/platform/test_node_provider_selection.py`
+- Slice 01 `baseline-multipass-lxc-contract` is satisfied by the current
+  workflow and reports.
+- `documentation/workflow/reports/02-multipass-docker-baseline.md` separates
+  Multipass behavior to preserve, adapt, and reject.
+- `documentation/workflow/reports/03-architecture-baseline.md` records that no
+  new ADR is needed unless execution requires privileged containers, broad
+  host mounts, host repair, non-interactive consent, or evidence/credential
+  semantic changes.
+- Documentation explicitly avoids claiming Docker-in-LXC or Swarm-in-LXC live
+  success before implementation and target-specific evidence exist.
 
 Quality gates:
 
-- `PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_node_provider_selection` passed.
-- `python3 -m ruff check src/tiny_swarm_world/application/ports/node_provider src/tiny_swarm_world/application/services/platform/node_provider_selection.py tests/application/services/platform/test_node_provider_selection.py` passed.
-- `python3 tools/quality_gate.py arch-tests` passed.
-- `python3 tools/quality_gate.py typecheck` passed.
-- `python3 tools/quality_gate.py test` passed.
-- `git diff --check` passed.
-- `git diff --cached --check` passed.
-- `python3 tools/quality_gate.py quality` passed.
-
-arc42 update status: provider selection guardrails already recorded by Slice 01;
-no additional arc42 file changed in this application-contract slice.
-
-ADR update status: provider ADR checked.
-
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
-
-Rollback reference: `d7d90fc6861e0287a0c9378e77e5e1549086fc66`.
-
-### Slice 04: LXD/Incus Readiness Preflight Adapter
-
-Responsible agent: Senior Python Automation Developer.
-
-Commit: `9b4646ad7c715c169c76892e176f8d4ce95b191a`
-
-Title: `feat(infrastructure): add LXC provider readiness preflight`
-
-Result: `PASSED`
+```text
+git diff --check: passed
+```
 
 Changed files:
 
-- `src/tiny_swarm_world/infrastructure/adapters/preflight/__init__.py`
-- `src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py`
-- `tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py`
+```text
+documentation/workflow/execution-report.md
+```
 
-Quality gates:
+Rollback reference:
 
-- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_lxc_provider_preflight` passed.
-- `python3 -m ruff check src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py` passed.
-- `python3 tools/quality_gate.py arch-tests` passed.
-- `python3 tools/quality_gate.py typecheck` passed.
-- `python3 tools/quality_gate.py test` passed.
-- `git diff --check` passed.
-- `git diff --cached --check` passed.
-- `python3 tools/quality_gate.py quality` passed.
+```text
+6c54123
+```
 
-arc42 update status: runtime view already distinguishes static readiness,
-provider readiness and WSL2 capability gates from Slice 01; no additional
-arc42 file changed in this infrastructure-adapter slice.
+## Slice 02 Result
 
-ADR update status: provider ADR checked. No host repair, package installation
-or privileged profile default was added.
+```text
+COMPLETED
+```
 
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+Responsible role:
 
-Rollback reference: `13ef3cb90b00db4fbf1cfa979d993afd136d4b42`.
+```text
+Senior Python Automation Developer
+```
 
-### Slice 05: LXC-Native Provider Configuration
+Reviewer evidence:
 
-Responsible agent: Senior Python Automation Developer.
-
-Commit: `d3d590eba7df506a58559215febbc7be5a69a453`
-
-Title: `feat(config): add LXC node provider configuration`
-
-Result: `PASSED`
+- Senior Python Automation Developer confirmed Slice 02 must stay
+  contract-only and avoid infrastructure, composition, adapter, and Docker
+  command configuration changes.
+- Senior DevOps confirmed the new domain and port surfaces match later LXC
+  adapter and Swarm bootstrap needs while leaving concrete LXD/Incus command
+  behavior to Slice 03 and integration wiring to later slices.
 
 Changed files:
 
-- `infra/config/node-providers/provider_config.yaml`
-- `src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py`
-- `tests/infrastructure/adapters/repositories/__init__.py`
-- `tests/infrastructure/adapters/repositories/test_node_provider_config_yaml_repository.py`
+```text
+src/tiny_swarm_world/domain/node_provider/docker_swarm_lxc.py
+src/tiny_swarm_world/domain/node_provider/__init__.py
+src/tiny_swarm_world/application/ports/node_provider/__init__.py
+src/tiny_swarm_world/application/ports/node_provider/port_container_docker_runtime.py
+src/tiny_swarm_world/application/ports/node_provider/port_container_network_identity.py
+src/tiny_swarm_world/application/ports/node_provider/port_container_swarm_bootstrap.py
+src/tiny_swarm_world/application/services/platform/docker_swarm_lxc_contract.py
+src/tiny_swarm_world/application/services/platform/lxc_docker_install.py
+src/tiny_swarm_world/application/services/platform/lxc_swarm_bootstrap.py
+src/tiny_swarm_world/application/services/platform/__init__.py
+tests/domain/node_provider/test_docker_swarm_lxc_contract.py
+tests/application/services/platform/test_docker_swarm_lxc_contract.py
+tests/application/services/platform/test_lxc_docker_install.py
+tests/application/services/platform/test_lxc_swarm_bootstrap.py
+tests/application/services/platform/test_platform_service_exports.py
+documentation/workflow/execution-report.md
+```
 
 Quality gates:
 
-- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories` passed.
-- `python3 -m ruff check src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py tests/infrastructure/adapters/repositories/test_node_provider_config_yaml_repository.py tests/infrastructure/adapters/repositories/__init__.py` passed.
-- Provider-config forbidden-value search passed with no matches.
-- `python3 tools/quality_gate.py typecheck` passed.
-- `python3 tools/quality_gate.py test` passed.
-- `git diff --check` passed.
-- `git diff --cached --check` passed.
-- `python3 tools/quality_gate.py quality` passed.
+```text
+PYTHONPATH=src .venv/bin/python -m unittest tests.domain.node_provider.test_docker_swarm_lxc_contract tests.application.services.platform.test_docker_swarm_lxc_contract tests.application.services.platform.test_lxc_docker_install tests.application.services.platform.test_lxc_swarm_bootstrap tests.application.services.platform.test_platform_service_exports: passed
+.venv/bin/python tools/quality_gate.py lint: passed
+.venv/bin/python tools/quality_gate.py arch-tests: passed
+.venv/bin/python tools/quality_gate.py typecheck: passed
+git diff --check: passed
+```
 
-arc42 update status: Slice 05 metadata references deployment documentation,
-but documentation files are outside the Slice 05 file locks. No arc42 file was
-changed in this configuration slice.
+Rollback reference:
 
-ADR update status: provider ADR checked. No privileged default, committed
-secret, host IP, username, or host-local path was added.
+```text
+92b61d5
+```
 
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+arc42 update:
 
-Rollback reference: `134f28f3fcbce49fc98fb9d257b42b4ea1eb022c`.
+```text
+not required
+```
 
-### Slice 06: LXD/Incus Node Lifecycle Adapter
+ADR update:
 
-Responsible agent: Senior Python Automation Developer.
+```text
+not required
+```
 
-Commit: `ae5732f58597e5b879ff449ff7fc5e9a5663c880`
+## Slice 06 Result
 
-Title: `feat(infrastructure): add LXC node lifecycle adapter`
+```text
+COMPLETED
+```
 
-Result: `PASSED`
+Responsible role:
+
+```text
+Senior Python Automation Developer
+```
+
+Reviewer evidence:
+
+- Senior Tester reviewed the Slice 06 diff and confirmed the default LXC init
+  path is covered.
+- Follow-up test hardening from the review verifies runtime node arguments,
+  Swarm manager/worker arguments, and live-consent propagation into the new
+  LXC runtime and Swarm wrappers.
+- Senior System Architect review found no hexagonal import violation and
+  accepted the private provider-selected wrappers as composition-owned
+  infrastructure wiring. Follow-up fixes made default LXC reconcile a verified
+  no-op boundary, enforced expected Swarm node-result coverage, and made
+  direct composition execution without live consent fail closed before LXC
+  runtime probes.
 
 Changed files:
 
-- `src/tiny_swarm_world/infrastructure/adapters/clients/__init__.py`
-- `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
-- `tests/infrastructure/adapters/clients/test_lxc_node_provider.py`
-- `tests/infrastructure/test_composition.py`
+```text
+src/tiny_swarm_world/application/services/platform/__init__.py
+src/tiny_swarm_world/application/services/platform/lxc_docker_install.py
+src/tiny_swarm_world/application/services/platform/lxc_swarm_bootstrap.py
+src/tiny_swarm_world/infrastructure/composition.py
+tests/application/services/platform/test_lxc_docker_install.py
+tests/application/services/platform/test_lxc_swarm_bootstrap.py
+tests/application/services/platform/test_platform_service_exports.py
+tests/infrastructure/test_composition.py
+documentation/workflow/execution-report.md
+```
+
+Implementation summary:
+
+- Added `LxcSwarmBootstrapStep` so Platform init can aggregate manager and
+  worker Swarm bootstrap results as a direct `VerificationResult`.
+- Wired default LXC Platform init to run node lifecycle, container runtime
+  setup, and Swarm bootstrap steps in order.
+- Added provider-selected LXC runtime wrappers in composition so the selected
+  Incus or LXD backend is resolved at runtime and passed to concrete
+  infrastructure adapters.
+- Reused one LXC command runner for node lifecycle, runtime setup, network
+  identity, and Swarm bootstrap.
+- Propagated live consent to the new runtime and Swarm mutation wrappers while
+  preserving the explicit Multipass legacy init path.
+- Made default LXC reconcile complete as an explicit verified no-op boundary so
+  setup can progress past platform reconciliation after provider-native init.
+- Blocked runtime setup when container Docker state is unobserved instead of
+  attempting a blind install.
+- Required Swarm bootstrap aggregation to include the expected manager and all
+  workers before reporting the step verified.
+- Deferred worker join credential retrieval until a worker actually needs to
+  join.
 
 Quality gates:
 
-- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider tests.infrastructure.test_composition` passed.
-- `python3 -m ruff check src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py src/tiny_swarm_world/infrastructure/adapters/clients/__init__.py src/tiny_swarm_world/infrastructure/composition.py tests/infrastructure/adapters/clients/test_lxc_node_provider.py tests/infrastructure/test_composition.py` passed.
-- `python3 tools/quality_gate.py arch-tests` passed.
-- `python3 tools/quality_gate.py typecheck` passed.
-- `git diff --check` passed.
-- `git diff --cached --check` passed.
-- `python3 tools/quality_gate.py quality` passed.
+```text
+PYTHONPATH=src .venv/bin/python -m unittest tests.infrastructure.test_composition tests.application.services.platform.test_lxc_docker_install tests.application.services.platform.test_lxc_swarm_bootstrap tests.application.services.platform.test_platform_service_exports: passed
+PYTHONPATH=src .venv/bin/python -m unittest discover tests/application: passed
+PYTHONPATH=src .venv/bin/python -m unittest discover tests/infrastructure: passed
+.venv/bin/python tools/quality_gate.py lint: passed
+.venv/bin/python tools/quality_gate.py arch-tests: passed
+.venv/bin/python tools/quality_gate.py typecheck: passed
+.venv/bin/python tools/quality_gate.py quality: passed
+git diff --check: passed
+```
 
-Reviewer status:
+Rollback reference:
 
-- Senior Tester: READY.
-- Senior System Architect: READY.
-- Senior Security/Sandbox Engineer: READY after live-mutation, managed-node,
-  provider-profile and device allowlist hardening.
-- Senior DevOps Engineer: READY in read-only pre-implementation review.
+```text
+20373ed
+```
 
-arc42 update status: runtime and deployment documentation are updated in later
-documentation slices. Slice 06 remained inside infrastructure adapter and
-composition locks.
+arc42 update:
 
-ADR update status: provider ADR checked. No automatic host repair, package
-installation, privileged profile default, host networking, host mount default
-or destructive lifecycle operation was added.
+```text
+not required
+```
 
-External documentation status: official Incus and LXD command references were
-checked for managed CLI command shape (`list`, `launch`, `profile show`).
+ADR update:
 
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+```text
+not required
+```
 
-Rollback reference: `b1594ec485b91043c1ca1c95111160b8bbda99ad`.
+## Slice 07 Result
 
-### Slice 07: Docker Swarm-In-LXC Contract
+```text
+COMPLETED
+```
 
-Responsible agent: Senior Python Automation Developer.
+Responsible role:
 
-Commit: `2439a49f591fe22470e324539f57a5531fd3e308`
-
-Title: `feat(platform): add Docker Swarm LXC contracts`
-
-Result: `PASSED`
+```text
+Senior Documentation Engineer
+```
 
 Changed files:
 
-- `src/tiny_swarm_world/domain/node_provider/docker_swarm_lxc.py`
-- `src/tiny_swarm_world/domain/node_provider/__init__.py`
-- `src/tiny_swarm_world/domain/network/container_network_plan.py`
-- `src/tiny_swarm_world/domain/network/__init__.py`
-- `src/tiny_swarm_world/application/services/platform/docker_swarm_lxc_contract.py`
-- `src/tiny_swarm_world/application/services/platform/__init__.py`
-- `tests/domain/node_provider/test_docker_swarm_lxc_contract.py`
-- `tests/domain/network/test_container_network_plan.py`
-- `tests/domain/network/__init__.py`
-- `tests/application/services/platform/test_docker_swarm_lxc_contract.py`
-- `tests/application/services/platform/__init__.py`
+```text
+README.md
+OPERATIONAL_READINESS_CHECKLIST.md
+documentation/architecture/adr-lxc-native-node-provider.adoc
+documentation/arc42/06_runtime_view.adoc
+documentation/arc42/11_risks_and_debt.adoc
+documentation/epics/autonomous-runnable-setup.md
+documentation/epics/system-unification.md
+documentation/system/live-operation-surfaces.adoc
+documentation/system/lxc-native-setup.adoc
+documentation/workflow/execution-report.md
+```
+
+Implementation summary:
+
+- Updated operator-facing setup language from planned/future Docker and Swarm
+  work to implemented Platform init behavior.
+- Preserved the distinction between test-backed implementation and
+  target-specific live evidence.
+- Documented default `lxc_native` reconcile as a verified no-op boundary after
+  Platform init.
+- Kept artifact publication, deployment, service readiness, and live
+  Docker-in-LXC proof documented as separate remaining work.
+- Added LXC-native readiness and Docker-in-container recovery notes without
+  documenting automatic host repair.
 
 Quality gates:
 
-- `PYTHONPATH=src python3 -m unittest tests.domain.node_provider tests.domain.network tests.application.services.platform` passed with 112 tests.
-- Targeted Ruff check for the Slice 07 source and test paths passed.
-- `python3 tools/quality_gate.py typecheck` passed.
-- `python3 tools/quality_gate.py arch-tests` passed.
-- `git diff --check` passed for the Slice 07 file scope; global WSL Git output
-  reported unrelated CRLF warnings in untouched legacy files only.
-- `git diff --cached --check` passed.
-- `python3 tools/quality_gate.py quality` passed with 579 tests and 1 skipped.
+```text
+rg -n "future provider-native Docker|provider-native platform reconcile|platform reconcile.*block|Docker installed on all VMs|Docker-in-container health" README.md OPERATIONAL_READINESS_CHECKLIST.md documentation/epics documentation/arc42 documentation/architecture documentation/system: no matches
+git diff --check: passed
+```
 
-Reviewer status:
+Rollback reference:
 
-- Senior Tester: READY after package-discovery verification and targeted
-  regression rerun.
-- Senior DevOps Engineer: READY after observed-role, IP-literal network name,
-  AppArmor and Seccomp contract fixes.
-- Senior Security/Sandbox Engineer: READY after confirming non-privileged
-  defaults, no host networking, no host bridge/firewall mutation and
-  summary-only evidence.
-- Git commit reviewer: READY for workflow checkpoint commit scope.
+```text
+bac1863
+```
 
-arc42 update status: documentation synchronization remains assigned to the
-later documentation slice. No arc42 file was changed in this contract-model
-slice.
+arc42 update:
 
-ADR update status: provider ADR checked. Privileged containers, host
-networking, host mounts, host bridge/firewall mutation and unobserved health
-claims remain forbidden defaults.
+```text
+updated
+```
 
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+ADR update:
 
-Rollback reference: `3fe0bf099a970153d7ce4c11aa364eb775eab17a`.
+```text
+reviewed and updated
+```
 
-### Slice 08: Platform And Setup Integration
+## Slice 08 Result
 
-Responsible agent: Senior Python Automation Developer.
+```text
+COMPLETED
+```
 
-Commit: `c7aa63213f8b2eb9593036255e912034dea4a34a`
+Responsible role:
 
-Title: `feat(platform): wire LXC provider into setup flow`
-
-Result: `PASSED`
+```text
+Senior Tester
+```
 
 Changed files:
 
-- `src/tiny_swarm_world/__main__.py`
-- `src/tiny_swarm_world/application/services/platform/__init__.py`
-- `src/tiny_swarm_world/application/services/platform/node_provider_selection.py`
-- `src/tiny_swarm_world/application/services/platform/workflows.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
-- `tests/application/services/platform/test_platform_workflows.py`
-- `tests/application/services/setup/test_setup_workflow.py`
-- `tests/test_package_entrypoint.py`
+```text
+documentation/system/lxc-native-setup.adoc
+documentation/workflow/execution-report.md
+```
+
+Implementation summary:
+
+- Recorded the optional live setup smoke command sequence without executing
+  it.
+- Added the target-classification and redacted evidence checklist for future
+  live validation.
+- Kept live smoke separate from repository quality evidence.
 
 Quality gates:
 
-- `PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow tests.application.services.platform.test_platform_workflows tests.test_package_entrypoint` passed with 63 tests.
-- The targeted Slice 08 test set plus `tests.infrastructure.test_composition` passed with 88 tests.
-- Targeted Ruff check for the Slice 08 source and test paths passed.
-- `.venv/bin/python tools/quality_gate.py typecheck` passed.
-- `.venv/bin/python tools/quality_gate.py arch-tests` passed.
-- `.venv/bin/python tools/quality_gate.py arch-lint` passed.
-- `git diff --check` passed.
-- `git diff --cached --check` passed.
-- `.venv/bin/python tools/quality_gate.py quality` passed with 586 tests and 1 skipped.
+```text
+.venv/bin/python tools/quality_gate.py quality: passed
+git diff --check: passed
+```
 
-Reviewer status:
+Rollback reference:
 
-- Senior System Architect: READY.
-- Senior Tester: READY after targeted and full quality reruns.
-- Console/status UI reviewer: READY after setup target wording, static
-  preflight wording, provider-aware preflight configuration and provider
-  evidence fixes.
-- Git commit reviewer: READY for workflow checkpoint commit scope.
+```text
+2f505a7
+```
 
-arc42 update status: documentation synchronization remains assigned to Slice
-10. No arc42 file was changed in this implementation slice.
+arc42 update:
 
-ADR update status: provider ADR checked. Default setup/platform flow now uses
-`lxc_native` provider selection before mutation; `multipass_legacy` remains
-explicit and is not selected as an automatic fallback.
+```text
+not required
+```
 
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+ADR update:
 
-Rollback reference: `5b7fb155810f1acaf217fc94bdd717ce217ecedd`.
+```text
+not required
+```
 
-### Metadata Repair: Slice 09 Legacy Boundary Scope
+## Slice 05 Result
 
-Commit: `2bb01db3bf1e552ba8f500f35a20dfccd55fcc11`
+```text
+COMPLETED
+```
 
-Title: `docs(workflow): expand slice 09 legacy boundary scope`
+Responsible role:
 
-Result: `PASSED`
-
-Reason: Slice 09 implementation blockers showed that the declared locks did
-not include the entrypoint and composition tests needed to prove Multipass is
-never selected without explicit `multipass_legacy` intent.
+```text
+Senior DevOps Engineer
+```
 
 Changed files:
 
-- `documentation/workflow/workflow.md`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/context-pack.json`
+```text
+src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_swarm_bootstrap.py
+tests/infrastructure/adapters/clients/test_lxc_container_swarm_bootstrap.py
+documentation/workflow/execution-report.md
+```
+
+Implementation summary:
+
+- Added `LxcContainerSwarmBootstrap` for manager inspection, manager init,
+  worker credential retrieval, worker inspection, and worker join.
+- Added `LxcContainerNetworkIdentity` for manager advertise-address lookup.
+- Uses selected managed backend command prefixes: `incus exec` or `lxc exec`.
+- Keeps Swarm worker credentials memory-only in domain outcomes and test
+  assertions.
+- Requires explicit live-mutation allowance before manager init or worker join
+  commands run.
 
 Quality gates:
 
-- `git diff --check` passed for the workflow and context-pack files.
-- `context-pack.json` parsed successfully.
+```text
+PYTHONPATH=src .venv/bin/python -m unittest tests.infrastructure.adapters.clients.test_lxc_container_swarm_bootstrap tests.application.services.platform.test_lxc_swarm_bootstrap tests.application.services.platform.test_docker_swarm_lxc_contract: passed
+PYTHONPATH=src .venv/bin/python -m unittest discover tests/application: passed
+PYTHONPATH=src .venv/bin/python -m unittest discover tests/infrastructure: passed
+.venv/bin/python tools/quality_gate.py lint: passed
+.venv/bin/python tools/quality_gate.py typecheck: passed
+git diff --check: passed
+```
 
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+Rollback reference:
 
-Rollback reference: `ece2501b253c807d5ff8ac2d2078a0e7ad085bb9`.
+```text
+1ce7637
+```
 
-### Slice 09: Multipass Legacy/Fallback Boundary
+arc42 update:
 
-Responsible agent: Senior Python Automation Developer.
+```text
+not required
+```
 
-Commit: `96bde4b86b73484998b7b009de1467164a521aa6`
+ADR update:
 
-Title: `feat(platform): isolate Multipass legacy fallback`
+```text
+not required
+```
 
-Result: `PASSED`
+## Slice 04 Result
+
+```text
+COMPLETED
+```
+
+Responsible role:
+
+```text
+Senior Python Automation Developer
+```
 
 Changed files:
 
-- `src/tiny_swarm_world/__main__.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
-- `tests/infrastructure/test_composition.py`
-- `tests/test_package_entrypoint.py`
+```text
+src/tiny_swarm_world/application/services/platform/lxc_docker_install.py
+src/tiny_swarm_world/application/services/platform/__init__.py
+tests/application/services/platform/test_lxc_docker_install.py
+tests/application/services/platform/test_platform_service_exports.py
+documentation/workflow/execution-report.md
+```
+
+Implementation summary:
+
+- Added `LxcDockerInstallStep` as a Platform workflow step that returns a
+  direct `VerificationResult`.
+- Aggregates per-node container runtime results into one Platform init result
+  so workflow continuation stays apply-then-verify compatible.
+- Leaves concrete composition wiring and backend selection handoff for later
+  setup/platform integration slices.
 
 Quality gates:
 
-- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -B -m unittest tests.application.services.multipass tests.infrastructure.adapters.clients.test_multipass_swarm_runtime tests.infrastructure.adapters.clients.test_multipass_container_image_publisher tests.infrastructure.adapters.clients.test_multipass_portainer_admin_client tests.infrastructure.test_composition tests.test_package_entrypoint tests.application.services.platform.test_node_provider_selection tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository` passed with 98 tests.
-- `python tools/quality_gate.py lint` passed.
-- `python tools/quality_gate.py typecheck` passed.
-- `git diff --check` passed.
-- `.venv/bin/python tools/quality_gate.py quality` passed with lint OK,
-  arch-lint 3 kept and 0 broken, arch-tests OK, mypy success, 595 tests
-  OK, and 1 skipped.
-- `git diff --cached --check` passed before commit.
+```text
+PYTHONPATH=src .venv/bin/python -m unittest tests.application.services.platform.test_lxc_docker_install tests.application.services.platform.test_platform_workflows tests.application.services.platform.test_platform_service_exports tests.infrastructure.adapters.clients.test_lxc_container_docker_runtime: passed
+.venv/bin/python tools/quality_gate.py typecheck: passed
+git diff --check: passed
+```
 
-Reviewer status:
+Rollback reference:
 
-- Senior System Architect: READY after default platform reconcile was moved
-  behind a fail-closed LXC-native provider boundary and explicit
-  `multipass_legacy` kept the old `VmIpList` contract.
-- Senior Tester: READY after explicit `multipass_legacy` forwarding was
-  covered for platform, artifact, deployment, and setup CLI branches.
-- Senior Documentation Engineer: READY. General operator documentation and
-  arc42 synchronization remain assigned to Slice 10.
-- Git commit reviewer: READY for workflow checkpoint commit scope.
+```text
+57e0538
+```
 
-arc42 update status: documentation synchronization remains assigned to Slice
-10. No arc42 file was changed in this implementation slice.
+arc42 update:
 
-ADR update status: provider ADR checked. Multipass is now isolated behind
-explicit `multipass_legacy` selection for platform init, platform reconcile,
-artifact workflows, deployment workflows, and setup composition.
+```text
+not required
+```
 
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
+ADR update:
 
-Rollback reference: `140aafe6b6e23358722c2c80b4c5a137c81b0ad6`.
+```text
+not required
+```
 
-### Slice 10: Documentation And Governance Synchronization
+## Slice 03 Result
 
-Responsible agent: Senior Documentation Engineer.
+```text
+COMPLETED
+```
 
-Commit: `4b2d8765b1d119fc0a75bf61a05be9c530fcd8f5`
+Responsible role:
 
-Title: `docs(lxc-provider): synchronize Slice 10 provider documentation`
-
-Result: `PASSED`
+```text
+Senior DevOps Engineer
+```
 
 Changed files:
 
-- `AGENTS.md`
-- `README.md`
-- `documentation/arc42/**`
-- `documentation/architecture/adr-lxc-native-node-provider.adoc`
-- `documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc`
-- `documentation/deployment/system.adoc`
-- `documentation/epics/autonomous-runnable-setup.md`
-- `documentation/epics/service-access-dashboard-vaultwarden.md`
-- `documentation/epics/system-unification.md`
-- `documentation/system/**`
-- `documentation/user_guide/**`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/reports/02-architecture-baseline.md`
-- `documentation/workflow/workflow.md`
+```text
+src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_docker_runtime.py
+tests/infrastructure/adapters/clients/test_lxc_container_docker_runtime.py
+documentation/workflow/execution-report.md
+```
+
+Implementation summary:
+
+- Added `LxcContainerDockerRuntime` as the concrete LXD/Incus implementation
+  of `PortContainerDockerRuntime`.
+- Uses selected managed backend command prefixes: `incus exec` or `lxc exec`.
+- Keeps command output out of domain outcomes and verification evidence.
+- Requires explicit live-mutation allowance before install commands are run.
+- Leaves composition wiring to later workflow slices.
 
 Quality gates:
 
-- `git diff --check` passed. WSL Git emitted CRLF normalization warnings for
-  unrelated untouched files.
-- `git diff --cached --check` passed before commit.
-- `python3 -m json.tool documentation/workflow/context-pack.json >/dev/null`
-  passed.
-- Context-pack governing hashes matched current working-tree blobs: 38/38.
-- Context-pack Markdown hash table matched JSON: 38/38.
-- `python3 tools/quality_gate.py quality` was not run because Slice 10 is a
-  documentation-only checkpoint whose required gate is `git diff --check`.
+```text
+PYTHONPATH=src .venv/bin/python -m unittest tests.infrastructure.adapters.clients.test_lxc_container_docker_runtime tests.infrastructure.adapters.clients.test_lxc_node_provider: passed
+PYTHONPATH=src .venv/bin/python -m unittest discover tests/infrastructure: passed
+.venv/bin/python tools/quality_gate.py lint: passed
+git diff --check: passed
+```
 
-Reviewer status:
+Rollback reference:
 
-- Senior System Architect: READY for the architecture documentation alignment
-  after LXC-native default provider behavior and legacy Multipass boundaries
-  were kept explicit.
-- Senior Tester: READY for documentation-only verification with no
-  source/test/runtime file changes.
-- Senior Requirement Engineer: READY after EPIC and ADR wording distinguished
-  implemented assets/contracts from unverified live provider runtime behavior.
-- Senior Documentation Engineer: READY after stale Multipass-primary wording,
-  stale smoke-test proof, and provider address examples were repaired.
-- Git commit reviewer: READY after context-pack hashes were refreshed and the
-  context-pack files were added to Slice 10 affected files and file locks.
+```text
+70c8057
+```
 
-arc42 update status: updated for introduction, constraints, solution strategy,
-context, building blocks, runtime view, deployment view, concepts, ADR index,
-quality requirements, risks, and glossary.
+arc42 update:
 
-ADR update status: updated for the LXC-native node provider and service-access
-dashboard/Vaultwarden decision records.
+```text
+not required
+```
 
-External source status: setup guidance uses official Microsoft WSL, Ubuntu LXD,
-Ubuntu Docker-in-LXD, Linux Containers Incus, and Linux Containers LXC security
-documentation as references. No live LXD/Incus, WSL2, Docker Swarm-in-container,
-artifact, deployment, or service-readiness success was claimed.
+ADR update:
 
-Push result: pushed to `origin/feature/workflow-lxc-node-provider-20260526`.
-
-Rollback reference: `7e115a036428119d29602136b79a9ca6e55dcb1c`.
+```text
+not required
+```

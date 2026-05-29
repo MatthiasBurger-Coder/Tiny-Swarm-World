@@ -3,8 +3,12 @@
 ## Host environment readiness
 - [ ] Host OS and version documented.
 - [ ] Python version meets project requirement.
-- [ ] Multipass installed and accessible.
-- [ ] Docker CLI/Engine installed and accessible.
+- [ ] LXD or Incus installed, initialized, and accessible for the default
+      `lxc_native` provider.
+- [ ] Multipass installed and accessible only when validating explicit
+      `--node-provider multipass_legacy`.
+- [ ] Docker CLI/Engine installed on the host only when needed for local
+      diagnostics or explicit legacy/service checks.
 - [ ] WSL2 status verified when on Windows.
 - [ ] Full-run resources meet the integration contract: 4 vCPU, 16 GiB RAM,
       and 60 GiB free disk available to the Linux/WSL target.
@@ -16,14 +20,21 @@
 - [ ] `python3 tools/quality_gate.py quality` runs as the authoritative
       default quality gate.
 
-## Multipass readiness
-- [ ] VM definitions validated against config schema.
+## LXC-native provider readiness
+- [ ] Backend selection is unambiguous or explicitly set with `--lxc-backend`.
+- [ ] `lxc info` or `incus info` works from the same shell that runs setup.
+- [ ] Docker-in-container profile requirements are verified before mutation.
+
+## Multipass legacy readiness
+- [ ] VM definitions validated against config schema when
+      `--node-provider multipass_legacy` is selected.
 - [ ] Provisioning is idempotent (no implicit destructive reset).
 - [ ] VM state checks and recovery logic documented.
 
-## VM provisioning readiness
+## Provider node readiness
 - [ ] Manager and worker creation verified.
-- [ ] VM IP discovery validated.
+- [ ] Node address discovery validated without persisting local IPs as trusted
+      repository evidence.
 - [ ] Re-run behavior verified.
 
 ## Network readiness
@@ -32,13 +43,13 @@
 - [ ] WSL2 forwarding procedure verified and reversible.
 
 ## Docker readiness
-- [ ] Docker installed on all VMs.
-- [ ] Docker daemon active (`docker info`) on all nodes.
+- [ ] Docker installed or detected inside all selected provider nodes.
+- [ ] Docker daemon active (`docker info`) inside all nodes.
 - [ ] Group/permission model documented.
 
 ## Swarm readiness
 - [ ] Manager initialized or detected as active.
-- [ ] Worker join token retrieval validated.
+- [ ] Worker join token retrieval validated without persisting the token.
 - [ ] Workers joined and visible in `docker node ls`.
 
 ## Compose/stack deployment readiness

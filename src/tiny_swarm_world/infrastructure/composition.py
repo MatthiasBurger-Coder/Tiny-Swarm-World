@@ -36,8 +36,17 @@ from tiny_swarm_world.application.services.deployment.service_stack_plan import 
     DEFAULT_PORTAINER_ENDPOINT_NAME,
     build_service_stack_steps,
 )
+from tiny_swarm_world.application.ports.node_provider import (
+    PortContainerDockerRuntime,
+    PortContainerNetworkIdentity,
+    PortContainerSwarmBootstrap,
+)
 from tiny_swarm_world.application.services.platform import (
     AsyncWorkflowStep,
+    LxcDockerInstallService,
+    LxcDockerInstallStep,
+    LxcSwarmBootstrapService,
+    LxcSwarmBootstrapStep,
     MultipassDockerInstall,
     MultipassDockerSwarmInit,
     MultipassInitVms,
@@ -63,7 +72,21 @@ from tiny_swarm_world.domain.deployment import (
     service_stack_contracts_for_profile,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
-from tiny_swarm_world.domain.node_provider import NodeProviderKind, NodeRole, NodeSpec
+from tiny_swarm_world.domain.node_provider import (
+    ContainerDockerInstallOutcome,
+    ContainerDockerReadiness,
+    DockerEngineState,
+    DockerInstallState,
+    ManagedLxcBackend,
+    NodeProviderKind,
+    NodeRole,
+    NodeSpec,
+    SwarmManagerBootstrapOutcome,
+    SwarmManagerState,
+    SwarmWorkerJoinCredential,
+    SwarmWorkerJoinOutcome,
+    WorkerJoinState,
+)
 from tiny_swarm_world.domain.preflight import (
     LiveConsent,
     PreflightConfiguration,
@@ -87,7 +110,15 @@ from tiny_swarm_world.infrastructure.adapters.clients.multipass_swarm_runtime im
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     AsyncLxcNodeCommandRunner,
+    LxcNodeCommandRunner,
     LxcNodeProvider,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime import (
+    LxcContainerDockerRuntime,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_swarm_bootstrap import (
+    LxcContainerNetworkIdentity,
+    LxcContainerSwarmBootstrap,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import PortainerHttpClient
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
@@ -129,6 +160,10 @@ LEGACY_RECONCILE_PROVIDER_REQUIRED_MESSAGE = (
     "platform reconcile still uses Multipass legacy VM inventory; select "
     "explicit --node-provider multipass_legacy to use the legacy fallback path"
 )
+LXC_RECONCILE_VERIFIED_REASON = "lxc_native_reconcile_noop"
+LXC_RECONCILE_VERIFIED_MESSAGE = (
+    "platform reconcile is satisfied by LXC-native platform init boundaries."
+)
 
 
 @dataclass(frozen=True)
@@ -151,6 +186,8 @@ class PlatformServices:
     multipass_restart_vms: MultipassRestartVMs
     multipass_docker_install: MultipassDockerInstall
     multipass_docker_swarm_init: MultipassDockerSwarmInit
+    lxc_docker_install: LxcDockerInstallService
+    lxc_swarm_bootstrap: LxcSwarmBootstrapService
     preflight: PreflightService
     lxc_node_provider: LxcNodeProvider
     node_provider_selection: NodeProviderSelectionService
@@ -301,6 +338,231 @@ class _BlockedPlatformProviderStep:
         )
 
 
+class _VerifiedPlatformProviderStep:
+    returns_verification_result = True
+
+    def __init__(
+        self,
+        *,
+        target_id: str,
+        provider_request: NodeProviderSelectionRequest,
+        message: str,
+        reason: str,
+    ):
+        self.verification_target_id = target_id
+        self.provider_request = provider_request
+        self.message = message
+        self.reason = reason
+
+    async def run(self) -> VerificationResult:
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.VERIFIED,
+            message=self.message,
+            evidence={
+                "phase": "verify",
+                "reason": self.reason,
+                "requested_provider": self.provider_request.requested_provider.value,
+            },
+        )
+
+
+class _ProviderSelectedLxcDockerRuntime(PortContainerDockerRuntime):
+    def __init__(
+        self,
+        *,
+        provider_selection: NodeProviderSelectionService,
+        provider_request: NodeProviderSelectionRequest,
+        runner: LxcNodeCommandRunner,
+        allow_live_mutation: bool,
+    ) -> None:
+        self.provider_selection = provider_selection
+        self.provider_request = provider_request
+        self.runner = runner
+        self.allow_live_mutation = allow_live_mutation
+
+    async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        if not self.allow_live_mutation:
+            return ContainerDockerReadiness(
+                node=node,
+                observed=False,
+                engine_state=DockerEngineState.UNKNOWN,
+            )
+        delegate = await self._delegate()
+        if delegate is None:
+            return ContainerDockerReadiness(
+                node=node,
+                observed=False,
+                engine_state=DockerEngineState.UNKNOWN,
+            )
+        return await delegate.inspect_docker(node)
+
+    async def install_docker(self, node: NodeSpec) -> ContainerDockerInstallOutcome:
+        if not self.allow_live_mutation:
+            return ContainerDockerInstallOutcome(
+                node=node,
+                state=DockerInstallState.FAILED,
+                verified=False,
+            )
+        delegate = await self._delegate()
+        if delegate is None:
+            return ContainerDockerInstallOutcome(
+                node=node,
+                state=DockerInstallState.FAILED,
+                verified=False,
+            )
+        return await delegate.install_docker(node)
+
+    async def verify_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        if not self.allow_live_mutation:
+            return ContainerDockerReadiness(
+                node=node,
+                observed=False,
+                engine_state=DockerEngineState.UNKNOWN,
+            )
+        delegate = await self._delegate()
+        if delegate is None:
+            return ContainerDockerReadiness(
+                node=node,
+                observed=False,
+                engine_state=DockerEngineState.UNKNOWN,
+            )
+        return await delegate.verify_docker(node)
+
+    async def _delegate(self) -> LxcContainerDockerRuntime | None:
+        backend = await _selected_lxc_backend(
+            self.provider_selection,
+            self.provider_request,
+        )
+        if backend is None:
+            return None
+        return LxcContainerDockerRuntime(
+            backend=backend,
+            runner=self.runner,
+            allow_live_mutation=self.allow_live_mutation,
+        )
+
+
+class _ProviderSelectedLxcSwarmRuntime(
+    PortContainerNetworkIdentity,
+    PortContainerSwarmBootstrap,
+):
+    def __init__(
+        self,
+        *,
+        provider_selection: NodeProviderSelectionService,
+        provider_request: NodeProviderSelectionRequest,
+        runner: LxcNodeCommandRunner,
+        allow_live_mutation: bool,
+    ) -> None:
+        self.provider_selection = provider_selection
+        self.provider_request = provider_request
+        self.runner = runner
+        self.allow_live_mutation = allow_live_mutation
+
+    async def manager_advertise_address(self, node: NodeSpec) -> str:
+        if not self.allow_live_mutation:
+            return ""
+        backend = await _selected_lxc_backend(
+            self.provider_selection,
+            self.provider_request,
+        )
+        if backend is None:
+            return ""
+        return await LxcContainerNetworkIdentity(
+            backend=backend,
+            runner=self.runner,
+        ).manager_advertise_address(node)
+
+    async def inspect_manager(self, node: NodeSpec) -> SwarmManagerBootstrapOutcome:
+        if not self.allow_live_mutation:
+            return SwarmManagerBootstrapOutcome(node=node, state=SwarmManagerState.UNKNOWN)
+        delegate = await self._delegate()
+        if delegate is None:
+            return SwarmManagerBootstrapOutcome(node=node, state=SwarmManagerState.UNKNOWN)
+        return await delegate.inspect_manager(node)
+
+    async def initialize_manager(
+        self,
+        node: NodeSpec,
+        advertise_address: str,
+    ) -> SwarmManagerBootstrapOutcome:
+        if not self.allow_live_mutation:
+            return SwarmManagerBootstrapOutcome(node=node, state=SwarmManagerState.ERROR)
+        delegate = await self._delegate()
+        if delegate is None:
+            return SwarmManagerBootstrapOutcome(node=node, state=SwarmManagerState.ERROR)
+        return await delegate.initialize_manager(node, advertise_address)
+
+    async def worker_join_credential(self, node: NodeSpec) -> SwarmWorkerJoinCredential:
+        if not self.allow_live_mutation:
+            return SwarmWorkerJoinCredential("<unavailable>")
+        delegate = await self._delegate()
+        if delegate is None:
+            return SwarmWorkerJoinCredential("<unavailable>")
+        return await delegate.worker_join_credential(node)
+
+    async def inspect_worker(self, node: NodeSpec) -> SwarmWorkerJoinOutcome:
+        if not self.allow_live_mutation:
+            return SwarmWorkerJoinOutcome(
+                node=node,
+                state=WorkerJoinState.UNKNOWN,
+                verified=False,
+            )
+        delegate = await self._delegate()
+        if delegate is None:
+            return SwarmWorkerJoinOutcome(
+                node=node,
+                state=WorkerJoinState.UNKNOWN,
+                verified=False,
+            )
+        return await delegate.inspect_worker(node)
+
+    async def join_worker(
+        self,
+        node: NodeSpec,
+        manager_address: str,
+        credential: SwarmWorkerJoinCredential,
+    ) -> SwarmWorkerJoinOutcome:
+        if not self.allow_live_mutation:
+            return SwarmWorkerJoinOutcome(
+                node=node,
+                state=WorkerJoinState.FAILED,
+                verified=False,
+            )
+        delegate = await self._delegate()
+        if delegate is None:
+            return SwarmWorkerJoinOutcome(
+                node=node,
+                state=WorkerJoinState.FAILED,
+                verified=False,
+            )
+        return await delegate.join_worker(node, manager_address, credential)
+
+    async def _delegate(self) -> LxcContainerSwarmBootstrap | None:
+        backend = await _selected_lxc_backend(
+            self.provider_selection,
+            self.provider_request,
+        )
+        if backend is None:
+            return None
+        return LxcContainerSwarmBootstrap(
+            backend=backend,
+            runner=self.runner,
+            allow_live_mutation=self.allow_live_mutation,
+        )
+
+
+async def _selected_lxc_backend(
+    provider_selection: NodeProviderSelectionService,
+    provider_request: NodeProviderSelectionRequest,
+) -> ManagedLxcBackend | None:
+    selection = await provider_selection.select_provider(provider_request)
+    if selection.blocks_mutation or selection.backend_selection is None:
+        return None
+    return selection.backend_selection.backend
+
+
 def configure_infrastructure_container() -> None:
     infra_core_container.register(PathFactory)
     infra_core_container.register(FileManager)
@@ -329,9 +591,10 @@ def build_platform_services(
     command_workflow = CommandWorkflow(vm_repository=vm_repository)
     verification_evidence_repository = VerificationEvidenceLocalRepository()
     preflight = _build_preflight_service_for_request(service_profile, node_provider_request)
+    lxc_runner = AsyncLxcNodeCommandRunner()
     lxc_node_provider = LxcNodeProvider(
         config_repository=NodeProviderConfigYamlRepository(),
-        runner=AsyncLxcNodeCommandRunner(),
+        runner=lxc_runner,
         allow_live_mutation=False if live_consent is None else live_consent.accepted
     )
     node_provider_selection = NodeProviderSelectionService(
@@ -350,6 +613,23 @@ def build_platform_services(
     multipass_restart_vms = MultipassRestartVMs(command_workflow)
     multipass_docker_install = MultipassDockerInstall(command_workflow)
     multipass_docker_swarm_init = MultipassDockerSwarmInit(command_workflow)
+    lxc_docker_runtime = _ProviderSelectedLxcDockerRuntime(
+        provider_selection=node_provider_selection,
+        provider_request=provider_request,
+        runner=lxc_runner,
+        allow_live_mutation=False if live_consent is None else live_consent.accepted,
+    )
+    lxc_docker_install = LxcDockerInstallService(lxc_docker_runtime)
+    lxc_swarm_runtime = _ProviderSelectedLxcSwarmRuntime(
+        provider_selection=node_provider_selection,
+        provider_request=provider_request,
+        runner=lxc_runner,
+        allow_live_mutation=False if live_consent is None else live_consent.accepted,
+    )
+    lxc_swarm_bootstrap = LxcSwarmBootstrapService(
+        lxc_swarm_runtime,
+        lxc_swarm_runtime,
+    )
     vm_ip_list = VmIpList(command_workflow=command_workflow, vm_repository=vm_repository)
     socat_manager = SocatManager()
     init_steps = _platform_init_steps(
@@ -362,6 +642,10 @@ def build_platform_services(
             multipass_restart_vms,
             multipass_docker_install,
             multipass_docker_swarm_init,
+        ),
+        lxc_steps=(
+            LxcDockerInstallStep(lxc_docker_install, DEFAULT_LXC_PLATFORM_NODES),
+            LxcSwarmBootstrapStep(lxc_swarm_bootstrap, DEFAULT_LXC_PLATFORM_NODES),
         ),
     )
     workflows = PlatformWorkflows(
@@ -405,6 +689,8 @@ def build_platform_services(
         multipass_restart_vms=multipass_restart_vms,
         multipass_docker_install=multipass_docker_install,
         multipass_docker_swarm_init=multipass_docker_swarm_init,
+        lxc_docker_install=lxc_docker_install,
+        lxc_swarm_bootstrap=lxc_swarm_bootstrap,
         preflight=preflight,
         lxc_node_provider=lxc_node_provider,
         node_provider_selection=node_provider_selection,
@@ -722,13 +1008,15 @@ def _platform_init_steps(
     provider_request: NodeProviderSelectionRequest,
     node_provider_selection: NodeProviderSelectionService,
     multipass_steps: tuple[AsyncWorkflowStep, ...],
+    lxc_steps: tuple[AsyncWorkflowStep, ...],
 ) -> tuple[AsyncWorkflowStep, ...]:
     if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
         return multipass_steps
-    return tuple(
+    node_steps = tuple(
         NodeProviderEnsureNodeStep(node, node_provider_selection, provider_request)
         for node in DEFAULT_LXC_PLATFORM_NODES
     )
+    return (*node_steps, *lxc_steps)
 
 
 def _platform_reconcile_steps(
@@ -738,11 +1026,11 @@ def _platform_reconcile_steps(
     if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
         return (vm_ip_list,)
     return (
-        _BlockedPlatformProviderStep(
+        _VerifiedPlatformProviderStep(
             target_id="platform:reconcile:lxc-native-provider-boundary",
             provider_request=provider_request,
-            message=LEGACY_RECONCILE_PROVIDER_REQUIRED_MESSAGE,
-            reason=LEGACY_RECONCILE_PROVIDER_REQUIRED_REASON,
+            message=LXC_RECONCILE_VERIFIED_MESSAGE,
+            reason=LXC_RECONCILE_VERIFIED_REASON,
         ),
     )
 
