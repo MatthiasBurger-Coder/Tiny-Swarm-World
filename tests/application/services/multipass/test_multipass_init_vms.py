@@ -1,6 +1,7 @@
 import unittest
 from dataclasses import dataclass
 from typing import Any
+from tests.support.async_helpers import async_checkpoint
 
 from tiny_swarm_world.application.ports.commands.executable_command import (
     ExecutableCommandEntity,
@@ -48,6 +49,7 @@ class TestMultipassInitVms(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_verify_pre_apply_checks_init_repository_contract(self):
+        await async_checkpoint()
         command_workflow = _RecordingCommandWorkflow()
 
         result = MultipassInitVms(command_workflow).verify_pre_apply()
@@ -113,6 +115,7 @@ class _RecordingCommandWorkflow(PortCommandWorkflow):
         *,
         workflow_id: str,
     ) -> Any:
+        await async_checkpoint()
         self.async_calls.append(_WorkflowCall(config_file, parameter, workflow_id))
         return f"ran {config_file}"
 
@@ -123,6 +126,7 @@ class _RecordingCommandWorkflow(PortCommandWorkflow):
         *,
         workflow_id: str,
     ) -> Any:
+        await async_checkpoint()
         self.sync_calls.append(_WorkflowCall(config_file, parameter, workflow_id))
         return f"ran {config_file}"
 

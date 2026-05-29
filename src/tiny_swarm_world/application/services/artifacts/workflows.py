@@ -242,7 +242,7 @@ async def _verify_step(
         return VerificationResult(
             target_id=target_id,
             status=VerificationStatus.BLOCKED,
-            message="Verification evidence is missing.",
+            message=VERIFICATION_EVIDENCE_MISSING_MESSAGE,
             evidence={"phase": "verify"},
         )
     try:
@@ -261,6 +261,6 @@ async def _verify_step(
     return VerificationResult(
         target_id=target_id,
         status=VerificationStatus.BLOCKED,
-        message="Verification evidence is missing.",
+        message=VERIFICATION_EVIDENCE_MISSING_MESSAGE,
         evidence={"phase": "verify"},
     )

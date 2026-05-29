@@ -373,7 +373,7 @@ _COMMAND_PATTERN = re.compile(
 )
 _SCRIPT_PATH_PATTERN = re.compile(r"\b\S+\.(?:py|sh|ps1|bat)\b")
 _SECRET_ASSIGNMENT_PATTERN = re.compile(
-    r"\b(?:api[_-]?key|passphrase|password|secret|token)\s*[:=]",
+    r"\b(?:api(?:_|-)?key|passphrase|password|secret|token)\s*[:=]",
     re.IGNORECASE,
 )
 _URL_USERINFO_PATTERN = re.compile(r"\b[a-z][a-z0-9+.-]*://[^/\s:@]+:[^/\s@]+@")

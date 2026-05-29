@@ -123,7 +123,7 @@ RAW_EVIDENCE_VALUE_PATTERNS = (
     re.compile(r"\bcurl\s+https?://", re.IGNORECASE),
     re.compile(r"\bsocat\s+(tcp|udp|unix|stdio|exec|fork|open|pty|file|system|pipe)", re.IGNORECASE),
     re.compile(
-        r"(^|[^A-Za-z0-9])(bearer|authorization|api[_-]?key|credential|token|password|secret)([^A-Za-z0-9]|$)",
+        r"(^|[^a-z0-9])(bearer|authorization|api(?:_|-)?key|credential|token|password|secret)([^a-z0-9]|$)",
         re.IGNORECASE,
     ),
     re.compile(r"-----BEGIN [A-Z ]+-----"),
@@ -143,7 +143,7 @@ RAW_MESSAGE_VALUE_PATTERNS = (
     re.compile(r"\bcurl\s+https?://", re.IGNORECASE),
     re.compile(r"\bsocat\s+(tcp|udp|unix|stdio|exec|fork|open|pty|file|system|pipe)", re.IGNORECASE),
     re.compile(
-        r"(^|[^A-Za-z0-9])(bearer|authorization|api[_-]?key|credential|token|password|secret)([^A-Za-z0-9]|$)",
+        r"(^|[^a-z0-9])(bearer|authorization|api(?:_|-)?key|credential|token|password|secret)([^a-z0-9]|$)",
         re.IGNORECASE,
     ),
     re.compile(r"-----BEGIN [A-Z ]+-----"),

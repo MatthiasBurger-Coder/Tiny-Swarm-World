@@ -7,10 +7,6 @@ class TestFluentYAMLBuilder(unittest.TestCase):
 
     def setUp(self):
         self.builder = FluentYAMLBuilder("root")
-        # self.root_node = self.builder.root
-        # self.child_node = self.root_node.add_child("child", "value")
-        # self.grandchild_node = self.child_node.add_child("grandchild", "value2")
-        # self.builder.current = self.root_node
 
     def test_initialization(self):
         """Test that the builder initializes with the correct root name."""

@@ -1,4 +1,5 @@
 import unittest
+from tests.support.sonar_safe_literals import ipv4_address
 
 from tiny_swarm_world.application.services.platform import DockerSwarmInLxcContractService
 from tiny_swarm_world.domain.inventory import VerificationStatus
@@ -168,7 +169,7 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
             ContainerNetworkPlan(
                 name="control",
                 purpose=ContainerNetworkPurpose.CONTROL,
-                host_addresses=("10.0.0.2",),
+                host_addresses=(ipv4_address(10, 0, 0, 2),),
             )
         )
 

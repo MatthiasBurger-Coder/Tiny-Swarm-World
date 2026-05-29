@@ -14,15 +14,16 @@ from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.project_paths import infra_root
 
 
-REPLICA_PATTERN = re.compile(r"^(?P<current>\d+)/(?:\s*)?(?P<desired>\d+)$")
+REPLICA_PATTERN = re.compile(r"^(?P<current>\d+)/\s*(?P<desired>\d+)$")
 STACK_ENVIRONMENT_NAME_PATTERN = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+REMOTE_WORKDIR_PREFIX = "$PWD/"
 
 
 class MultipassSwarmRuntime(PortSwarmStackRuntime):
     def __init__(
         self,
         manager_vm: str = "swarm-manager",
-        remote_stack_root: str = "/tmp/tiny-swarm-world/stacks",
+        remote_stack_root: str = "$PWD/.tiny-swarm-world/stacks",
         timeout_seconds: int = 900,
     ):
         if timeout_seconds <= 0:
@@ -41,8 +42,8 @@ class MultipassSwarmRuntime(PortSwarmStackRuntime):
         remote_dir = f"{self.remote_stack_root}/{stack_definition.name}"
         compose_path = f"{remote_dir}/docker-compose.yml"
         script = (
-            f"set -e; mkdir -p {shlex.quote(remote_dir)}; "
-            f"cat > {shlex.quote(compose_path)}"
+            f"set -e; mkdir -p {_quote_remote_path(remote_dir)}; "
+            f"cat > {_quote_remote_path(compose_path)}"
         )
         self._run_manager_shell(script, input_text=stack_definition.compose_content)
         self._transfer_stack_assets(stack_definition.name, remote_dir)
@@ -52,7 +53,7 @@ class MultipassSwarmRuntime(PortSwarmStackRuntime):
         }
         self._run_manager_shell(
             f"{_stack_environment_prefix(environment)} "
-            f"docker stack deploy --detach=true -c {shlex.quote(compose_path)} "
+            f"docker stack deploy --detach=true -c {_quote_remote_path(compose_path)} "
             f"{shlex.quote(stack_definition.name)}"
         )
 
@@ -98,13 +99,13 @@ class MultipassSwarmRuntime(PortSwarmStackRuntime):
         openapi_file = infra_root() / "compose" / "swagger" / "swagger" / "openapi.json"
         nginx_config = infra_root() / "compose" / "swagger" / "nginx" / "default.conf"
         script = (
-            f"set -e; mkdir -p {shlex.quote(remote_dir + '/swagger')}; "
-            f"cat > {shlex.quote(remote_dir + '/swagger/openapi.json')}"
+            f"set -e; mkdir -p {_quote_remote_path(remote_dir + '/swagger')}; "
+            f"cat > {_quote_remote_path(remote_dir + '/swagger/openapi.json')}"
         )
         self._run_manager_shell(script, input_text=openapi_file.read_text(encoding="utf-8"))
         script = (
-            f"set -e; mkdir -p {shlex.quote(remote_dir + '/nginx')}; "
-            f"cat > {shlex.quote(remote_dir + '/nginx/default.conf')}"
+            f"set -e; mkdir -p {_quote_remote_path(remote_dir + '/nginx')}; "
+            f"cat > {_quote_remote_path(remote_dir + '/nginx/default.conf')}"
         )
         self._run_manager_shell(script, input_text=nginx_config.read_text(encoding="utf-8"))
 
@@ -152,5 +153,11 @@ def _stack_environment_prefix(environment: Mapping[str, str]) -> str:
     for name, value in sorted(environment.items()):
         if not STACK_ENVIRONMENT_NAME_PATTERN.fullmatch(name):
             raise ValueError("Stack environment name contains invalid characters.")
-        assignments.append(f"{name}={shlex.quote(str(value))}")
+        assignments.append(f"{name}={_quote_remote_path(str(value))}")
     return " ".join(assignments)
+
+
+def _quote_remote_path(path: str) -> str:
+    if path.startswith(REMOTE_WORKDIR_PREFIX):
+        return f"{REMOTE_WORKDIR_PREFIX}{shlex.quote(path.removeprefix(REMOTE_WORKDIR_PREFIX))}"
+    return shlex.quote(path)

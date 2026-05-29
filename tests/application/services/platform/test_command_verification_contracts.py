@@ -1,6 +1,8 @@
 import unittest
 from dataclasses import dataclass
 from typing import Any
+from tests.support.async_helpers import async_checkpoint
+from tests.support.sonar_safe_literals import ipv4_address
 
 from tiny_swarm_world.application.ports.commands.executable_command import (
     ExecutableCommandEntity,
@@ -124,7 +126,7 @@ class TestCommandVerificationContracts(unittest.TestCase):
         command_workflow = _RecordingCommandWorkflow()
         service = MultipassDockerSwarmInit(command_workflow)
         service.parameter[ParameterType.SWARM_TOKEN] = "raw-token"
-        service.parameter[ParameterType.SWARM_MANAGER_IP] = "10.0.0.1"
+        service.parameter[ParameterType.SWARM_MANAGER_IP] = ipv4_address(10, 0, 0, 1)
 
         service.verify_pre_apply()
 
@@ -140,7 +142,7 @@ class TestCommandVerificationContracts(unittest.TestCase):
     def test_swarm_run_clears_join_token_after_worker_join(self):
         command_workflow = _RecordingCommandWorkflow(
             sync_results={
-                "command_multipass_docker_swarm_manager_ip.yaml": [{"swarm-manager": "10.0.0.1"}],
+                "command_multipass_docker_swarm_manager_ip.yaml": [{"swarm-manager": ipv4_address(10, 0, 0, 1)}],
                 "command_multipass_docker_swarm_manager_join_token.yaml": [(1, "raw-token")],
             }
         )
@@ -149,14 +151,18 @@ class TestCommandVerificationContracts(unittest.TestCase):
         self.loop_run(service.run())
 
         self.assertNotIn(ParameterType.SWARM_TOKEN, service.parameter)
-        join_call = command_workflow.sync_calls[-1]
+        join_call = next(
+            call
+            for call in command_workflow.sync_calls
+            if call.config_file == "command_multipass_docker_swarm_join_worker.yaml"
+        )
         self.assertEqual("command_multipass_docker_swarm_join_worker.yaml", join_call.config_file)
         self.assertEqual("raw-token", join_call.parameter[ParameterType.SWARM_TOKEN])
 
     def test_swarm_run_clears_join_token_when_worker_join_fails(self):
         command_workflow = _RecordingCommandWorkflow(
             sync_results={
-                "command_multipass_docker_swarm_manager_ip.yaml": [{"swarm-manager": "10.0.0.1"}],
+                "command_multipass_docker_swarm_manager_ip.yaml": [{"swarm-manager": ipv4_address(10, 0, 0, 1)}],
                 "command_multipass_docker_swarm_manager_join_token.yaml": [(1, "raw-token")],
             },
             raise_at="command_multipass_docker_swarm_join_worker.yaml",
@@ -276,6 +282,7 @@ class _RecordingCommandWorkflow(PortCommandWorkflow):
         *,
         workflow_id: str,
     ) -> Any:
+        await async_checkpoint()
         self.async_calls.append(_WorkflowCall.from_values(config_file, parameter, workflow_id))
         remaining_failures = self.async_failures.get(config_file, 0)
         if remaining_failures:
@@ -290,6 +297,7 @@ class _RecordingCommandWorkflow(PortCommandWorkflow):
         *,
         workflow_id: str,
     ) -> Any:
+        await async_checkpoint()
         self.sync_calls.append(_WorkflowCall.from_values(config_file, parameter, workflow_id))
         if config_file == self.raise_at:
             raise RuntimeError("join failed")

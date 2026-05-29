@@ -393,7 +393,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                     )
                 runs[(namespace, action)].assert_awaited_once_with()
                 payload = _json_payload_from_output(output.getvalue())
-                self.assertEqual(False, payload["executed"])
+                self.assertFalse(payload["executed"])
                 self.assertEqual("blocked", payload["status"])
                 self.assertEqual(f"{namespace} {action}", payload["workflow"])
                 self.assertIn(expected_reason, str(payload["reason"]))

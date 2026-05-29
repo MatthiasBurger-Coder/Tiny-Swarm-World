@@ -20,7 +20,7 @@ class MultipassContainerImagePublisher(PortContainerImagePublisher):
         registry_username: str,
         registry_password: str,
         manager_vm: str = "swarm-manager",
-        remote_image_root: str = "/tmp/tiny-swarm-world/images",
+        remote_image_root: str = "$PWD/.tiny-swarm-world/images",
         timeout_seconds: int = 1800,
     ):
         if timeout_seconds <= 0:
@@ -37,7 +37,7 @@ class MultipassContainerImagePublisher(PortContainerImagePublisher):
         remote_context_path = f"{self.remote_image_root}/{contract.build_context}"
         self._transfer_context(context_path, remote_context_path)
         self._run_manager_shell(
-            f"docker build -t {shlex.quote(contract.image_ref)} {shlex.quote(remote_context_path)}",
+            f"docker build -t {shlex.quote(contract.image_ref)} {_quote_remote_path(remote_context_path)}",
             timeout_seconds=self.timeout_seconds,
         )
         self._docker_login()
@@ -74,8 +74,8 @@ class MultipassContainerImagePublisher(PortContainerImagePublisher):
                     tar.add(source_file, arcname=source_file.name)
         archive.seek(0)
         self._run_manager_shell_bytes(
-            f"set -e; mkdir -p {shlex.quote(remote_context_path)}; "
-            f"tar -x -C {shlex.quote(remote_context_path)}",
+            f"set -e; mkdir -p {_quote_remote_path(remote_context_path)}; "
+            f"tar -x -C {_quote_remote_path(remote_context_path)}",
             input_bytes=archive.getvalue(),
             timeout_seconds=self.timeout_seconds,
         )
@@ -133,3 +133,10 @@ class MultipassContainerImagePublisher(PortContainerImagePublisher):
         if result.returncode != 0:
             raise RuntimeError(f"Manager image transfer failed with exit code {result.returncode}.")
         return result
+
+
+def _quote_remote_path(path: str) -> str:
+    remote_workdir_prefix = "$PWD/"
+    if path.startswith(remote_workdir_prefix):
+        return f"{remote_workdir_prefix}{shlex.quote(path.removeprefix(remote_workdir_prefix))}"
+    return shlex.quote(path)

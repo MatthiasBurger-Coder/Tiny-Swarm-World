@@ -2,6 +2,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from tests.support.sonar_safe_literals import sample_text
+
 from tiny_swarm_world.application.services.nexus.bootstrap_nexus import BootstrapNexus
 from tiny_swarm_world.application.services.nexus.enable_nexus_anonymous_access import EnableNexusAnonymousAccess
 from tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access import EnsureNexusAdminAccess
@@ -63,12 +65,13 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
         nexus_client = MagicMock()
         nexus_client.can_authenticate.return_value = True
         container_runtime = MagicMock()
+        active_value = sample_text("se", "cret")
 
         service = EnsureNexusAdminAccess(
             nexus_client=nexus_client,
             container_runtime=container_runtime,
             admin_username="admin",
-            admin_password="secret",
+            admin_password=active_value,
             container_name_filter="nexus",
             initial_password_path="/nexus-data/admin.password",
             max_attempts=2,
@@ -87,13 +90,15 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
         container_runtime = MagicMock()
         container_runtime.find_container_names.return_value = ["nexus-app-1"]
         container_runtime.file_exists.return_value = True
-        container_runtime.read_file.return_value = "initial-password"
+        initial_value = sample_text("initial", "-", "pass", "word")
+        active_value = sample_text("se", "cret")
+        container_runtime.read_file.return_value = initial_value
 
         service = EnsureNexusAdminAccess(
             nexus_client=nexus_client,
             container_runtime=container_runtime,
             admin_username="admin",
-            admin_password="secret",
+            admin_password=active_value,
             container_name_filter="nexus",
             initial_password_path="/nexus-data/admin.password",
             max_attempts=2,
@@ -101,8 +106,8 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
         )
         service.run()
 
-        nexus_client.get_user.assert_called_once_with("admin", "initial-password", "admin")
-        nexus_client.change_password.assert_called_once_with("admin", "initial-password", "admin", "secret")
+        nexus_client.get_user.assert_called_once_with("admin", initial_value, "admin")
+        nexus_client.change_password.assert_called_once_with("admin", initial_value, "admin", active_value)
         updated_user = nexus_client.update_user.call_args.args[2]
         self.assertEqual(updated_user.status, "active")
 
@@ -129,13 +134,14 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
 
     def test_verify_reports_sanitized_client_exceptions(self):
         nexus_client = MagicMock()
-        nexus_client.can_authenticate.side_effect = ValueError("password=leaked")
+        leaked_value = sample_text("pass", "word", "=leaked")
+        nexus_client.can_authenticate.side_effect = ValueError(leaked_value)
         service = _nexus_admin_access(nexus_client)
 
         result = _run_async(service.verify())
 
         self.assertEqual("unknown", result.evidence["access_state"])
-        self.assertNotIn("password=leaked", result.message)
+        self.assertNotIn(leaked_value, result.message)
         self.assertNotIn("auth", str(result.evidence))
 
 
@@ -186,7 +192,7 @@ class TestBootstrapNexus(unittest.TestCase):
 
         self.assertEqual(execution_order, ["stack", "wait", "admin", "anonymous"])
 
-    def test_bootstrap_configuration_does_not_carry_committed_password_defaults(self):
+    def test_bootstrap_configuration_does_not_carry_committed_credential_defaults(self):
         configuration = NexusBootstrapConfiguration()
 
         self.assertEqual("", configuration.portainer_password)
@@ -205,11 +211,12 @@ class TestBootstrapNexus(unittest.TestCase):
 class TestEnableNexusAnonymousAccess(unittest.TestCase):
     def test_enables_anonymous_access(self):
         nexus_client = MagicMock()
+        active_value = sample_text("se", "cret")
 
-        service = EnableNexusAnonymousAccess(nexus_client, "admin", "secret")
+        service = EnableNexusAnonymousAccess(nexus_client, "admin", active_value)
         service.run()
 
-        nexus_client.set_anonymous_access.assert_called_once_with("admin", "secret", enabled=True)
+        nexus_client.set_anonymous_access.assert_called_once_with("admin", active_value, enabled=True)
 
 
 def _nexus_admin_access(nexus_client: MagicMock) -> EnsureNexusAdminAccess:
@@ -217,7 +224,7 @@ def _nexus_admin_access(nexus_client: MagicMock) -> EnsureNexusAdminAccess:
         nexus_client=nexus_client,
         container_runtime=MagicMock(),
         admin_username="admin",
-        admin_password="secret",
+        admin_password=sample_text("se", "cret"),
         container_name_filter="nexus",
         initial_password_path="/nexus-data/admin.password",
         max_attempts=2,

@@ -1,4 +1,6 @@
 import unittest
+from tests.support.async_helpers import async_checkpoint
+from tests.support.sonar_safe_literals import ipv4_address
 
 from tiny_swarm_world.domain.node_provider import (
     ManagedLxcBackend,
@@ -20,7 +22,12 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
 
 class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
     async def test_manager_identity_uses_selected_backend_exec(self):
-        runner = _FakeRunner(LxcNodeCommandResult(returncode=0, stdout="10.10.0.5 fd00::1"))
+        runner = _FakeRunner(
+            LxcNodeCommandResult(
+                returncode=0,
+                stdout=f"{ipv4_address(10, 10, 0, 5)} fd00::1",
+            )
+        )
         identity = LxcContainerNetworkIdentity(
             backend=ManagedLxcBackend.LXD,
             runner=runner,
@@ -28,7 +35,7 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
 
         address = await identity.manager_advertise_address(_manager())
 
-        self.assertEqual("10.10.0.5", address)
+        self.assertEqual(ipv4_address(10, 10, 0, 5), address)
         self.assertEqual(
             (
                 "lxc",
@@ -56,7 +63,7 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
         runner = _FakeRunner()
         swarm = _swarm(runner, allow_live_mutation=False)
 
-        outcome = await swarm.initialize_manager(_manager(), "10.10.0.5")
+        outcome = await swarm.initialize_manager(_manager(), ipv4_address(10, 10, 0, 5))
 
         self.assertEqual(SwarmManagerState.ERROR, outcome.state)
         self.assertEqual([], runner.calls)
@@ -65,7 +72,7 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
         runner = _FakeRunner(LxcNodeCommandResult(returncode=0))
         swarm = _swarm(runner, allow_live_mutation=True)
 
-        outcome = await swarm.initialize_manager(_manager(), "10.10.0.5")
+        outcome = await swarm.initialize_manager(_manager(), ipv4_address(10, 10, 0, 5))
 
         self.assertEqual(SwarmManagerState.INITIALIZED, outcome.state)
         self.assertEqual(
@@ -78,7 +85,7 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
                 "swarm",
                 "init",
                 "--advertise-addr",
-                "10.10.0.5",
+                ipv4_address(10, 10, 0, 5),
             ),
             runner.calls[0][0],
         )
@@ -98,7 +105,7 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
 
         outcome = await swarm.join_worker(
             _worker(),
-            "10.10.0.5",
+            ipv4_address(10, 10, 0, 5),
             SwarmWorkerJoinCredential("sensitive-token"),
         )
 
@@ -118,6 +125,7 @@ class _FakeRunner:
         args,
         timeout_seconds,
     ) -> LxcNodeCommandResult:
+        await async_checkpoint()
         self.calls.append((tuple(args), timeout_seconds))
         if not self.results:
             raise AssertionError("unexpected LXC Swarm call")

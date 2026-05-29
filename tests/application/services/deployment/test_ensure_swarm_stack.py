@@ -1,4 +1,5 @@
 import unittest
+from tests.support.sonar_safe_literals import sensitive_assignment
 
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
     SwarmServiceStatus,
@@ -90,7 +91,7 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
     async def test_verify_sanitizes_runtime_failure_and_does_not_deploy(self):
         runtime = _FakeSwarmRuntime(
             stack_exists=True,
-            stack_exception=RuntimeError("secret=leaked"),
+            stack_exception=RuntimeError(sensitive_assignment()),
         )
         service = EnsureSwarmStack(
             _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}")),

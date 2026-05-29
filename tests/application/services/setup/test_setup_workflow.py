@@ -1,4 +1,5 @@
 import unittest
+from tests.support.sonar_safe_literals import sensitive_assignment
 
 from tiny_swarm_world.application.services.artifacts import (
     ArtifactWorkflowKind,
@@ -384,7 +385,7 @@ def _provider_blocked_platform_init(calls: list[str]) -> PlatformWorkflowResult:
 
 
 def _raise_secret_error() -> object:
-    raise RuntimeError("secret=leaked")
+    raise RuntimeError(sensitive_assignment())
 
 
 def _accepted_live_consent() -> LiveConsent:

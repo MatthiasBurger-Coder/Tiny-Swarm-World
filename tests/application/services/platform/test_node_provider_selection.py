@@ -1,4 +1,5 @@
 import unittest
+from tests.support.async_helpers import async_checkpoint
 
 from tiny_swarm_world.application.ports.node_provider import (
     PortNodeLifecycle,
@@ -225,8 +226,9 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(1, len(lifecycle.ensure_calls))
-        self.assertIs(node, lifecycle.ensure_calls[0][0])
-        self.assertEqual(ManagedLxcBackend.INCUS, lifecycle.ensure_calls[0][1].backend_selection.backend)
+        ensure_call, = lifecycle.ensure_calls
+        self.assertIs(node, ensure_call[0])
+        self.assertEqual(ManagedLxcBackend.INCUS, ensure_call[1].backend_selection.backend)
 
 
 class _ReadinessProbe(PortNodeProviderReadiness):
@@ -239,6 +241,7 @@ class _ReadinessProbe(PortNodeProviderReadiness):
         provider: NodeProviderKind,
         preferred_backend: ManagedLxcBackend | None = None,
     ) -> ProviderReadiness:
+        await async_checkpoint()
         self.calls.append((provider, preferred_backend))
         return self.readiness
 
@@ -252,6 +255,7 @@ class _RecordingNodeLifecycle(PortNodeLifecycle):
         node: NodeSpec,
         selection: ProviderSelection,
     ) -> VerificationResult:
+        await async_checkpoint()
         self.ensure_calls.append((node, selection))
         return VerificationResult(
             target_id=f"platform:node:{node.name}",

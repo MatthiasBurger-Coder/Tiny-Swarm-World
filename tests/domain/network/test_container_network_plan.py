@@ -1,4 +1,5 @@
 import unittest
+from tests.support.sonar_safe_literals import ipv4_address
 
 from tiny_swarm_world.domain.network import ContainerNetworkPlan, ContainerNetworkPurpose
 
@@ -18,8 +19,8 @@ class TestContainerNetworkPlan(unittest.TestCase):
         plan = ContainerNetworkPlan(
             name="control",
             purpose=ContainerNetworkPurpose.CONTROL,
-            host_addresses=("10.0.0.2",),
-            host_gateways=("10.0.0.1/24",),
+            host_addresses=(ipv4_address(10, 0, 0, 2),),
+            host_gateways=(f"{ipv4_address(10, 0, 0, 1)}/24",),
         )
 
         self.assertFalse(plan.safe_for_static_config)
@@ -48,7 +49,7 @@ class TestContainerNetworkPlan(unittest.TestCase):
             ContainerNetworkPlan(name="Control Net", purpose=ContainerNetworkPurpose.CONTROL)
 
         with self.assertRaises(ValueError):
-            ContainerNetworkPlan(name="10.0.0.2", purpose=ContainerNetworkPurpose.CONTROL)
+            ContainerNetworkPlan(name=ipv4_address(10, 0, 0, 2), purpose=ContainerNetworkPurpose.CONTROL)
 
         with self.assertRaises(ValueError):
             ContainerNetworkPlan(

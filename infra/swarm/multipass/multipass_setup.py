@@ -23,7 +23,7 @@ def wait_for_multipass_socket(max_retries=10):
             result = subprocess.run(["multipass", "list"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                                     check=True)
             if "No instances found" in result.stdout or result.returncode == 0:
-                print(f"✅ Multipass is running!")
+                print("✅ Multipass is running!")
                 return
         except subprocess.CalledProcessError:
             print(f"Attempt {attempt + 1}/{max_retries}: Multipass is not ready, retrying in 20 seconds...")
@@ -42,8 +42,8 @@ def restart_wsl():
 def is_multipass_installed():
     """Checks if Multipass is already installed."""
     try:
-        result = subprocess.run(["multipass", "version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                check=True)
+        subprocess.run(["multipass", "version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                       check=True)
         print("✅ Multipass is already installed.")
         return True
     except subprocess.CalledProcessError:

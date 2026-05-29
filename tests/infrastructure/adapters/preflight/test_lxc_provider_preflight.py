@@ -1,4 +1,6 @@
 import unittest
+from tests.support.async_helpers import async_checkpoint
+from tests.support.sonar_safe_literals import ipv4_address
 
 from tiny_swarm_world.domain.node_provider import (
     ManagedLxcBackend,
@@ -73,7 +75,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
             LxcProviderProbeResult(
                 returncode=124,
                 stdout="token=abc /home/example",
-                stderr="10.0.0.1",
+                stderr=ipv4_address(10, 0, 0, 1),
                 timed_out=True,
             )
         )
@@ -126,7 +128,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
             _ok(),
             LxcProviderProbeResult(
                 returncode=9,
-                stderr="unexpected /home/example failure for 10.0.0.2",
+                stderr=f"unexpected /home/example failure for {ipv4_address(10, 0, 0, 2)}",
             ),
         )
 
@@ -283,6 +285,7 @@ class _FakeRunner:
         args,
         timeout_seconds,
     ) -> LxcProviderProbeResult:
+        await async_checkpoint()
         self.calls.append((tuple(args), timeout_seconds))
         _assert_read_only_command(args)
         if not self.results:

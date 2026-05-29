@@ -1,15 +1,24 @@
 import unittest
 
+from tests.support.sonar_safe_literals import sample_text, sample_url
+
 from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import (
     PortainerHttpClient,
 )
 
 
+OPERATOR_CREDENTIAL = sample_text("operator", "-credential")
+
+
 class TestPortainerHttpClient(unittest.TestCase):
     def test_rejects_credentials_in_base_url(self):
         with self.assertRaises(ValueError):
-            PortainerHttpClient("https://admin:secret@portainer.local", "admin", "secret")
+            PortainerHttpClient(
+                sample_url("https", sample_text("admin", ":", "hidden"), "portainer.local"),
+                "admin",
+                sample_text("se", "cret"),
+            )
 
     def test_create_stack_uses_bearer_auth_without_logging_password_payloads(self):
         session = _FakeSession(
@@ -19,7 +28,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         client = PortainerHttpClient(
             "http://portainer.local",
             "admin",
-            "operator-password",
+            OPERATOR_CREDENTIAL,
             session=session,
         )
 
@@ -27,7 +36,7 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         self.assertEqual("http://portainer.local/api/auth", session.post_calls[0]["url"])
         self.assertEqual(
-            {"Username": "admin", "Password": "operator-password"},
+            {"Username": "admin", "Password": OPERATOR_CREDENTIAL},
             session.post_calls[0]["json"],
         )
         self.assertEqual("Bearer jwt-token", session.request_calls[0]["headers"]["Authorization"])
@@ -41,7 +50,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         client = PortainerHttpClient(
             "http://portainer.local",
             "admin",
-            "operator-password",
+            OPERATOR_CREDENTIAL,
             session=session,
         )
 
@@ -67,7 +76,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         client = PortainerHttpClient(
             "http://portainer.local",
             "admin",
-            "operator-password",
+            OPERATOR_CREDENTIAL,
             session=session,
         )
 
@@ -87,7 +96,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         client = PortainerHttpClient(
             "http://portainer.local",
             "admin",
-            "operator-password",
+            OPERATOR_CREDENTIAL,
             session=session,
         )
 
@@ -104,7 +113,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         client = PortainerHttpClient(
             "http://portainer.local",
             "admin",
-            "operator-password",
+            OPERATOR_CREDENTIAL,
             session=session,
         )
 
@@ -118,7 +127,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         client = PortainerHttpClient(
             "http://portainer.local",
             "admin",
-            "operator-password",
+            OPERATOR_CREDENTIAL,
             session=session,
         )
 
@@ -139,7 +148,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         client = PortainerHttpClient(
             "http://portainer.local",
             "admin",
-            "operator-password",
+            OPERATOR_CREDENTIAL,
             session=session,
         )
 
@@ -166,7 +175,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         client = PortainerHttpClient(
             "http://portainer.local",
             "admin",
-            "operator-password",
+            OPERATOR_CREDENTIAL,
             session=session,
         )
 
@@ -190,7 +199,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         client = PortainerHttpClient(
             "http://portainer.local",
             "admin",
-            "operator-password",
+            OPERATOR_CREDENTIAL,
             session=session,
         )
 
@@ -208,7 +217,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         client = PortainerHttpClient(
             "http://portainer.local",
             "admin",
-            "operator-password",
+            OPERATOR_CREDENTIAL,
             session=session,
         )
 

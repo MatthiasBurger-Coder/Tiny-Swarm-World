@@ -1,6 +1,7 @@
 import asyncio
 import unittest
 from unittest.mock import AsyncMock, patch
+from tests.support.async_helpers import async_checkpoint
 
 from tiny_swarm_world.application.ports.commands.port_command_runner import PortCommandRunner
 from tiny_swarm_world.application.ports.ui.port_ui import (
@@ -183,6 +184,7 @@ def _commands_for(vm_instance_name: str, runner: PortCommandRunner):
 
 class FailingRunner(PortCommandRunner):
     async def run(self, command: str) -> str:
+        await async_checkpoint()
         raise CommandExecutionError(
             command=command,
             return_code=2,
@@ -193,6 +195,7 @@ class FailingRunner(PortCommandRunner):
 
 class SuccessfulRunner(PortCommandRunner):
     async def run(self, command: str) -> str:
+        await async_checkpoint()
         self.status["current_step"] = "Completed"
         self.status["result"] = STATUS_SUCCESS
         return "ok"
@@ -200,6 +203,7 @@ class SuccessfulRunner(PortCommandRunner):
 
 class StatusOnlyFailureRunner(PortCommandRunner):
     async def run(self, command: str) -> str:
+        await async_checkpoint()
         self.status["current_step"] = "Verified"
         self.status["result"] = STATUS_FAILED_TO_VERIFY
         return "blocked"

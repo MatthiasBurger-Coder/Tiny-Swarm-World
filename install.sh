@@ -46,7 +46,8 @@ warn() {
 }
 
 require_command() {
-  command -v "$1" >/dev/null 2>&1 || fail "Required command '$1' is not available."
+  local command_name="$1"
+  command -v "$command_name" >/dev/null 2>&1 || fail "Required command '$command_name' is not available."
 }
 
 shell_quote() {
@@ -171,10 +172,9 @@ for secret_name in "${REQUIRED_SECRETS[@]}"; do
   export "$secret_name=${!secret_name}"
 done
 
-if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  if ! git check-ignore -q .tiny-swarm-world/ >/dev/null 2>&1; then
-    warn ".tiny-swarm-world/ is not ignored by git; do not commit local evidence or generated secrets."
-  fi
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
+  ! git check-ignore -q .tiny-swarm-world/ >/dev/null 2>&1; then
+  warn ".tiny-swarm-world/ is not ignored by git; do not commit local evidence or generated secrets."
 fi
 
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"

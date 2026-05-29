@@ -159,11 +159,11 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         )
         self.assertIn("SWAGGER_JSON: /openapi.json", compose_content)
         self.assertIn(
-            "${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro",
+            "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro",
             compose_content,
         )
         self.assertIn(
-            "${TSW_REMOTE_STACK_ROOT:-/tmp/tiny-swarm-world/stacks}/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro",
+            "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro",
             compose_content,
         )
         self.assertNotIn("127.0.0.1:5000/swagger-nginx", compose_content)

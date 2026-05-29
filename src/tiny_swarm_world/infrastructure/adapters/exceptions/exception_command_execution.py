@@ -1,3 +1,6 @@
+REDACTED_VALUE = "<redacted>"
+
+
 class CommandExecutionError(Exception):
     """
     Custom exception for command execution errors.
@@ -16,10 +19,10 @@ class CommandExecutionError(Exception):
         super().__init__(
             f"Command failed with return code {return_code}. Diagnostic payload redacted."
         )
-        self.command = "<redacted>"
+        self.command = REDACTED_VALUE
         self.returnCode = return_code
-        self.stdout = "<redacted>" if stdout else ""
-        self.stderr = "<redacted>" if stderr else ""
+        self.stdout = REDACTED_VALUE if stdout else ""
+        self.stderr = REDACTED_VALUE if stderr else ""
 
     def __str__(self):
         """

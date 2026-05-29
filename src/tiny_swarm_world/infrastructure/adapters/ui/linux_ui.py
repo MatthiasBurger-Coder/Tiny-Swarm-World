@@ -1,7 +1,8 @@
-
-import time
 import curses
+import time
+
 from tiny_swarm_world.application.ports.ui.port_ui import PortUI
+
 
 class LinuxUI(PortUI):
     def __init__(self, instances, test_mode=False):
@@ -18,86 +19,110 @@ class LinuxUI(PortUI):
         """
         Draws the UI using curses.
         """
-        curses.curs_set(0)  # Hide cursor
-        stdscr.nodelay(True)
-        stdscr.timeout(500)
-
-        previous_status = {instance: {"current_task": "", "current_step": "", "result": ""} for instance in
-                           self.instances}
+        self._configure_screen(stdscr)
+        previous_status = self._initial_previous_status()
 
         while True:
-            height, width = stdscr.getmaxyx()
-
-            # Limiting the column width between 20 and 50 characters
-            col_width = max(20, min(width // len(self.instances), 50))
-
+            height, width, col_width = self._screen_dimensions(stdscr)
             stdscr.clear()
 
-            # Check if the terminal is large enough
-            if height < max(len(self.instances) + 8, 8):
-                stdscr.addstr(0, 0, f"Terminal too small ({height}x{width})!".center(width), curses.A_BOLD)
-                stdscr.refresh()
-                time.sleep(3)
+            if self._terminal_too_small(stdscr, height, width):
                 return
 
-            # Print headers
-            for idx, instance in enumerate(self.instances):
-                stdscr.addstr(0, idx * col_width, instance.center(col_width), curses.A_BOLD)
-
-            changed = False
-            with self.lock:
-                for idx, instance in enumerate(self.instances):
-                    current_task = self.status[instance]["current_task"]
-                    current_step = self.status[instance]["current_step"]
-                    current_result = self.status[instance]["result"]
-
-                    if (previous_status[instance]["current_step"] != current_step or
-                            previous_status[instance]["result"] != current_result or
-                            previous_status[instance]["current_task"] != current_task):
-                        changed = True
-                        previous_status[instance]["current_task"] = current_task
-                        previous_status[instance]["current_step"] = current_step
-                        previous_status[instance]["result"] = current_result
-
-                    # Ensure content does not exceed column width
-                    stdscr.addstr(2, idx * col_width, f"Task: {current_task[:col_width - 7]}")
-                    stdscr.addstr(3, idx * col_width, f"Step: {current_step[:col_width - 7]}")
-                    stdscr.addstr(4, idx * col_width, f"Status: {current_result[:col_width - 7]}")
-                    recovery_action = self.recovery_action(current_result)
-                    if recovery_action:
-                        stdscr.addstr(5, idx * col_width, f"Action: {recovery_action[:col_width - 8]}")
-
-                aggregate_result = self.aggregate_status["result"]
-                if self.is_terminal_result(aggregate_result):
-                    stdscr.addstr(6, 0, f"Overall: {aggregate_result}"[:width], curses.A_BOLD)
-                    aggregate_recovery = self.recovery_action(aggregate_result)
-                    if aggregate_recovery:
-                        stdscr.addstr(7, 0, f"Action: {aggregate_recovery}"[:width])
+            self._draw_headers(stdscr, col_width)
+            changed = self._draw_status_columns(stdscr, col_width, previous_status)
+            self._draw_aggregate_status(stdscr, width)
 
             if changed:
                 stdscr.refresh()
 
             time.sleep(0.5)
 
-            # Handle completion of all instances
-            if self.all_instances_terminal():
-                completion_summary = self.completion_summary()
-                # Ensure "All instances completed" fits within the terminal
-                summary_row = len(self.instances) + 7
-                if summary_row < height:
-                    stdscr.addstr(summary_row, 0, completion_summary.center(width)[:width],
-                                  curses.A_BOLD)
-                else:
-                    # Print in the last line if there's no space
-                    stdscr.addstr(height - 1, 0, completion_summary.center(width)[:width], curses.A_BOLD)
-
-                stdscr.refresh()
-                if not self.test_mode:
-                    time.sleep(2)
-                    break
+            if self._draw_completion_if_terminal(stdscr, height, width):
+                break
 
             if self.test_mode:
                 break
+
+    def _configure_screen(self, stdscr):
+        curses.curs_set(0)
+        stdscr.nodelay(True)
+        stdscr.timeout(500)
+
+    def _initial_previous_status(self):
+        return {
+            instance: {"current_task": "", "current_step": "", "result": ""}
+            for instance in self.instances
+        }
+
+    def _screen_dimensions(self, stdscr):
+        height, width = stdscr.getmaxyx()
+        instance_count = max(len(self.instances), 1)
+        col_width = max(20, min(width // instance_count, 50))
+        return height, width, col_width
+
+    def _terminal_too_small(self, stdscr, height, width):
+        if height >= max(len(self.instances) + 8, 8):
+            return False
+        stdscr.addstr(0, 0, f"Terminal too small ({height}x{width})!".center(width), curses.A_BOLD)
+        stdscr.refresh()
+        time.sleep(3)
+        return True
+
+    def _draw_headers(self, stdscr, col_width):
+        for idx, instance in enumerate(self.instances):
+            stdscr.addstr(0, idx * col_width, instance.center(col_width), curses.A_BOLD)
+
+    def _draw_status_columns(self, stdscr, col_width, previous_status):
+        changed = False
+        with self.lock:
+            for idx, instance in enumerate(self.instances):
+                current_status = self.status[instance]
+                if self._status_changed(previous_status[instance], current_status):
+                    changed = True
+                    previous_status[instance].update(current_status)
+                self._draw_instance_status(stdscr, idx, col_width, current_status)
+        return changed
+
+    def _status_changed(self, previous_status, current_status):
+        return (
+            previous_status["current_step"] != current_status["current_step"]
+            or previous_status["result"] != current_status["result"]
+            or previous_status["current_task"] != current_status["current_task"]
+        )
+
+    def _draw_instance_status(self, stdscr, idx, col_width, current_status):
+        column = idx * col_width
+        current_task = current_status["current_task"]
+        current_step = current_status["current_step"]
+        current_result = current_status["result"]
+        stdscr.addstr(2, column, f"Task: {current_task[:col_width - 7]}")
+        stdscr.addstr(3, column, f"Step: {current_step[:col_width - 7]}")
+        stdscr.addstr(4, column, f"Status: {current_result[:col_width - 7]}")
+        recovery_action = self.recovery_action(current_result)
+        if recovery_action:
+            stdscr.addstr(5, column, f"Action: {recovery_action[:col_width - 8]}")
+
+    def _draw_aggregate_status(self, stdscr, width):
+        aggregate_result = self.aggregate_status["result"]
+        if not self.is_terminal_result(aggregate_result):
+            return
+        stdscr.addstr(6, 0, f"Overall: {aggregate_result}"[:width], curses.A_BOLD)
+        aggregate_recovery = self.recovery_action(aggregate_result)
+        if aggregate_recovery:
+            stdscr.addstr(7, 0, f"Action: {aggregate_recovery}"[:width])
+
+    def _draw_completion_if_terminal(self, stdscr, height, width):
+        if not self.all_instances_terminal():
+            return False
+        completion_summary = self.completion_summary()
+        summary_row = min(len(self.instances) + 7, height - 1)
+        stdscr.addstr(summary_row, 0, completion_summary.center(width)[:width], curses.A_BOLD)
+        stdscr.refresh()
+        if self.test_mode:
+            return False
+        time.sleep(2)
+        return True
 
     def start(self):
         """

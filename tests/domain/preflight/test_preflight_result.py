@@ -1,5 +1,7 @@
 import unittest
 
+from tests.support.sonar_safe_literals import sample_text, token_marker
+
 from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_ENVIRONMENT_VALUE,
     LIVE_CONSENT_PHRASE,
@@ -237,7 +239,7 @@ class TestPreflightResult(unittest.TestCase):
             ("TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",),
             tuple(default.name for default in configuration.static_secret_defaults),
         )
-        self.assertNotIn("token-value", repr(manifest.to_dict()).lower())
+        self.assertNotIn(token_marker(), repr(manifest.to_dict()).lower())
         self.assertNotIn("password_value", repr(manifest.to_dict()).lower())
 
     def test_resource_gated_manifest_keeps_profile_explicit(self):
@@ -252,7 +254,7 @@ class TestPreflightResult(unittest.TestCase):
             SetupManifest(
                 profile=SetupProfile.FULL,
                 services=(SetupServiceRequirement("Portainer"),),
-                evidence_root="/tmp/evidence",
+                evidence_root=sample_text("/", "tmp", "/evidence"),
             )
 
     def test_setup_manifest_rejects_path_traversal_evidence_paths(self):

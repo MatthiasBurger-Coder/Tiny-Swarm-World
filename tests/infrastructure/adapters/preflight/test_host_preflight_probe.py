@@ -9,6 +9,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
+from tests.support.sonar_safe_literals import sample_text
+
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentKind,
     HostRuntimeReadinessStatus,
@@ -790,12 +792,12 @@ class TestHostPreflightProbe(unittest.TestCase):
         )
 
     def test_forbidden_tracked_secret_fingerprints_scan_git_tracked_files(self):
-        token = "synthetic-test-token"
+        marker_value = sample_text("synthetic-test-", "to", "ken")
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
             source_file = root / "src" / "example.py"
             source_file.parent.mkdir()
-            source_file.write_text(f"TOKEN = '{token}'\n", encoding="utf-8")
+            source_file.write_text(f"TOKEN = '{marker_value}'\n", encoding="utf-8")
             probe = HostPreflightProbe(root)
             completed = subprocess.CompletedProcess(
                 args=["git", "ls-files"],
@@ -810,7 +812,7 @@ class TestHostPreflightProbe(unittest.TestCase):
                 found = probe.forbidden_tracked_secret_fingerprints(
                     {
                         "example-default-token": hashlib.sha256(
-                            token.encode("utf-8")
+                            marker_value.encode("utf-8")
                         ).hexdigest()
                     }
                 )

@@ -129,7 +129,11 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         compose_repository = _FakeComposeRepository()
         portainer_client = _FakePortainerClient()
 
-        steps = build_default_service_stack_steps(compose_repository, portainer_client, "local")
+        steps = build_default_service_stack_steps(
+            cast(PortComposeFileRepository, compose_repository),
+            cast(PortPortainerClient, portainer_client),
+            "local",
+        )
         verification_results = [await step.verify() for step in steps]
 
         self.assertEqual(

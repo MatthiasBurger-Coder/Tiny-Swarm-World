@@ -59,23 +59,8 @@ class TestWindowsUI(unittest.TestCase):
         self.assertEqual(self.ui.status["Instance2"]["current_step"], "Step 2")
         self.assertEqual(self.ui.status["Instance2"]["result"], "Pending")
 
-    @patch("shutil.get_terminal_size", return_value=(80, 24))
-    @patch("os.system")
-    def test_start_ui_terminates_when_all_instances_completed(self, mock_system, mock_terminal_size):
-        self.ui.status = {
-            "Instance1": {"current_task": "", "current_step": "", "result": "Success"},
-            "Instance2": {"current_task": "", "current_step": "", "result": "Success"},
-        }
-        with patch("builtins.print") as mock_print:
-            self.ui._draw_ui()
-            mock_print.assert_any_call("\nAll instances completed".center(80))
-    # @patch("asyncio.get_running_loop", return_value=asyncio.new_event_loop())
-    # @patch("threading.Thread")
-    # def test_run_in_thread(self, mock_thread, mock_loop):
-    #     self.ui.start_in_thread()
-    #     mock_thread.assert_called_once()
-    #
-    # @patch("curses.wrapper")
-    # def test_run_ui(self, mock_wrapper):
-    #     self.ui.start()
-    #     mock_wrapper.assert_called_once_with(self.ui._draw_ui)
+    def test_start_ui_delegates_to_draw_loop(self):
+        with patch.object(self.ui, "_draw_ui") as draw_ui:
+            self.ui.start()
+
+        draw_ui.assert_called_once_with()

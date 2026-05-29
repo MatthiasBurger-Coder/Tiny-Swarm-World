@@ -1,6 +1,7 @@
 import subprocess
 import unittest
 from unittest.mock import patch
+from tests.support.sonar_safe_literals import sensitive_assignment
 
 from tiny_swarm_world.infrastructure.adapters.clients.docker_cli_runtime import DockerCliRuntime
 
@@ -47,7 +48,7 @@ class TestDockerCliRuntime(unittest.TestCase):
             args=["docker"],
             returncode=1,
             stdout="",
-            stderr="secret=leaked",
+            stderr=sensitive_assignment(),
         )
         with patch("tiny_swarm_world.infrastructure.adapters.clients.docker_cli_runtime.subprocess.run") as run:
             run.return_value = completed_process
@@ -58,7 +59,7 @@ class TestDockerCliRuntime(unittest.TestCase):
 
         message = str(raised.exception)
         self.assertIn("exit code 1", message)
-        self.assertNotIn("secret=leaked", message)
+        self.assertNotIn(sensitive_assignment(), message)
         self.assertNotIn("docker exec", message)
 
     def test_timeout_failure_is_sanitized(self):

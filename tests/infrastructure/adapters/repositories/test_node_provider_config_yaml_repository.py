@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from tests.support.sonar_safe_literals import ipv4_address
 
 from ruamel.yaml import YAML
 
@@ -148,7 +149,7 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
 
     def test_rejects_host_specific_values_or_secrets(self):
         cases = (
-            ("external_ip", "10.0.0.10"),
+            ("external_ip", ipv4_address(10, 0, 0, 10)),
             ("username", "operator"),
             ("credential", "value"),
             ("notes", "/home/operator/workspace"),

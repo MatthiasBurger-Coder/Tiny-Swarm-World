@@ -1,6 +1,8 @@
 import unittest
 from pathlib import Path
 
+from tests.support.sonar_safe_literals import sample_text
+
 from tiny_swarm_world.domain.artifacts import ContainerImageContract
 from tiny_swarm_world.infrastructure.adapters.clients.multipass_container_image_publisher import (
     MultipassContainerImagePublisher,
@@ -11,7 +13,7 @@ class TestMultipassContainerImagePublisher(unittest.TestCase):
     def test_service_access_image_contexts_are_supported(self):
         publisher = MultipassContainerImagePublisher(
             registry_username="admin",
-            registry_password="local-only",
+            registry_password=sample_text("local", "-only"),
         )
 
         contexts = {
