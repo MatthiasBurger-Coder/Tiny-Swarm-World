@@ -42,8 +42,9 @@ were run during workflow authoring.
 | Slice 05 | completed | LXD/Incus Swarm manager, token, worker join, and manager identity adapters added with token-redaction tests. |
 | Slice 06 | completed | Platform composition now wires default LXC init through node creation, container runtime setup, and Swarm bootstrap steps. |
 | Slice 07 | completed | Operator, EPIC, arc42, ADR, and live-operation-surface documentation synchronized with the implemented LXC Platform init path. |
-| implementation | in progress | Slices 01-07 completed; final quality/live-smoke boundary remains. |
-| quality gate | passed | Full repository quality gate passed after Slice 06 changes. |
+| Slice 08 | completed | Full quality gate and optional live-smoke evidence boundary recorded without running live infrastructure. |
+| implementation | completed | Slices 01-08 completed. |
+| quality gate | passed | Full repository quality gate passed after final workflow changes. |
 | live smoke | not approved | Requires explicit later approval. |
 
 ## Current Implementation Target
@@ -364,6 +365,58 @@ ADR update:
 
 ```text
 reviewed and updated
+```
+
+## Slice 08 Result
+
+```text
+COMPLETED
+```
+
+Responsible role:
+
+```text
+Senior Tester
+```
+
+Changed files:
+
+```text
+documentation/system/lxc-native-setup.adoc
+documentation/workflow/execution-report.md
+```
+
+Implementation summary:
+
+- Recorded the optional live setup smoke command sequence without executing
+  it.
+- Added the target-classification and redacted evidence checklist for future
+  live validation.
+- Kept live smoke separate from repository quality evidence.
+
+Quality gates:
+
+```text
+.venv/bin/python tools/quality_gate.py quality: passed
+git diff --check: passed
+```
+
+Rollback reference:
+
+```text
+2f505a7
+```
+
+arc42 update:
+
+```text
+not required
+```
+
+ADR update:
+
+```text
+not required
 ```
 
 ## Slice 05 Result

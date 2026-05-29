@@ -196,6 +196,38 @@ that host. It is not proof that Docker Swarm, Portainer, Nexus, Jenkins,
 RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image publication, or stack
 deployment is complete.
 
+== Optional Live Setup Smoke Evidence
+
+This sequence is not part of repository quality gates. Run it only after an
+operator explicitly approves live infrastructure mutation for the current
+target.
+
+[source,bash]
+----
+export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+When prompted, answer `y` only for an intentional local run. Classify the
+target before interpreting the result:
+
+* native Linux with LXD;
+* native Linux with Incus;
+* WSL2 with LXD;
+* WSL2 with Incus.
+
+Evidence checklist:
+
+* store output under `.tiny-swarm-world/evidence/live-installation/<run-id>/`;
+* keep the run target classification with the evidence;
+* keep setup phase results separate from repository quality-gate output;
+* redact secrets, worker join tokens, local IP addresses, and host-specific
+  usernames before sharing evidence;
+* do not generalize one target's result to another target class;
+* do not report service-stack success unless deployment and service readiness
+  phases are also verified for that run.
+
 == References
 
 Official references used for this setup baseline:
