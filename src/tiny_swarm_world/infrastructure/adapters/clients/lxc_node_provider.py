@@ -38,8 +38,8 @@ _BACKEND_CLI = {
     ManagedLxcBackend.LXD: "lxc",
 }
 _RESOURCE_KEYS = frozenset(("cpu", "memory", "disk"))
-_CPU_PATTERN = re.compile(r"^[1-9][0-9]*$")
-_SIZE_PATTERN = re.compile(r"^[1-9][0-9]*(?:[KMGT]i?B?|[KMGT])$")
+_CPU_PATTERN = re.compile(r"^[1-9]\d*$")
+_SIZE_PATTERN = re.compile(r"^[1-9]\d*[KMGT]i?B?$")
 _YAML = YAML(typ="safe")
 
 
@@ -57,11 +57,13 @@ class LxcNodeCommandRunner(Protocol):
         args: Sequence[str],
         timeout_seconds: float,
     ) -> LxcNodeCommandResult:
+        # Protocol declaration; concrete runners execute the provider command.
         pass
 
 
 class NodeProviderConfigRepository(Protocol):
     def load(self) -> NodeProviderConfig:
+        # Protocol declaration; concrete repositories load provider configuration.
         pass
 
 
@@ -125,18 +127,10 @@ class LxcNodeProvider(PortNodeLifecycle):
         node: NodeSpec,
         selection: ProviderSelection,
     ) -> VerificationResult:
-        if selection.blocks_mutation:
-            return _blocked(node, selection, "provider_selection_blocked")
-        if node.provider != NodeProviderKind.LXC_NATIVE:
-            return _blocked(node, selection, "unsupported_node_provider")
-        if selection.selected_provider != NodeProviderKind.LXC_NATIVE:
-            return _blocked(node, selection, "unsupported_selected_provider")
-
-        backend = None if selection.backend_selection is None else selection.backend_selection.backend
-        if backend is None:
-            return _blocked(node, selection, "selected_backend_missing")
-        if node.backend is not None and node.backend != backend:
-            return _blocked(node, selection, "node_backend_mismatch", backend=backend)
+        backend_selection = _selected_backend(node, selection)
+        if isinstance(backend_selection, VerificationResult):
+            return backend_selection
+        backend = backend_selection
 
         config_result = _load_config(self.config_repository, node, selection, backend)
         if isinstance(config_result, VerificationResult):
@@ -164,22 +158,14 @@ class LxcNodeProvider(PortNodeLifecycle):
                 timed_out=lookup.timed_out,
             )
         if lookup.node is not None:
-            if not lookup.node.matches_expected(node_config):
-                return _blocked(
-                    node,
-                    selection,
-                    "existing_node_not_managed",
-                    backend=backend,
-                )
-            if lookup.node.running:
-                return _verified(node, backend, "already_present")
-            return await self._start_existing_node(
+            return await self._handle_existing_node(
                 node,
                 selection,
                 backend,
                 config,
                 node_config,
                 profile,
+                lookup.node,
             )
 
         mutation_block = self._mutation_block(node, selection, backend, profile)
@@ -191,38 +177,24 @@ class LxcNodeProvider(PortNodeLifecycle):
             self.launch_timeout_seconds,
         )
         if _command_failed(launch_result):
-            raced_lookup = await self._lookup_node(node, backend, config)
-            if (
-                _result_indicates_existing_node(launch_result)
-                and not raced_lookup.failed
-                and raced_lookup.node is not None
-                and raced_lookup.node.matches_expected(node_config)
-                and raced_lookup.node.running
-            ):
-                return _verified(node, backend, "already_present")
-            return _apply_failed(
+            return await self._handle_launch_failure(
                 node,
                 selection,
-                "launch_failed",
-                backend=backend,
-                result=launch_result,
+                backend,
+                config,
+                node_config,
+                launch_result,
             )
 
-        verify = await self._lookup_node(node, backend, config)
-        if (
-            verify.failed
-            or verify.node is None
-            or not verify.node.running
-            or not verify.node.matches_expected(node_config)
-        ):
-            return _verify_failed(
-                node,
-                selection,
-                "created_node_not_verified",
-                backend=backend,
-                return_code=verify.returncode,
-                timed_out=verify.timed_out,
-            )
+        verification_failure = await self._created_node_verification_failure(
+            node,
+            selection,
+            backend,
+            config,
+            node_config,
+        )
+        if verification_failure is not None:
+            return verification_failure
         return _verified(node, backend, "created")
 
     def _mutation_block(
@@ -353,6 +325,74 @@ class LxcNodeProvider(PortNodeLifecycle):
             )
         return _verified(node, backend, "started")
 
+    async def _handle_existing_node(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+        node_config: NodeProviderNodeConfig,
+        profile: NodeProviderProfileRequirement,
+        observed_node: _ObservedNode,
+    ) -> VerificationResult:
+        if not observed_node.matches_expected(node_config):
+            return _blocked(
+                node,
+                selection,
+                "existing_node_not_managed",
+                backend=backend,
+            )
+        if observed_node.running:
+            return _verified(node, backend, "already_present")
+        return await self._start_existing_node(
+            node,
+            selection,
+            backend,
+            config,
+            node_config,
+            profile,
+        )
+
+    async def _handle_launch_failure(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+        node_config: NodeProviderNodeConfig,
+        launch_result: LxcNodeCommandResult,
+    ) -> VerificationResult:
+        raced_lookup = await self._lookup_node(node, backend, config)
+        if _launch_race_recovered(launch_result, raced_lookup, node_config):
+            return _verified(node, backend, "already_present")
+        return _apply_failed(
+            node,
+            selection,
+            "launch_failed",
+            backend=backend,
+            result=launch_result,
+        )
+
+    async def _created_node_verification_failure(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+        node_config: NodeProviderNodeConfig,
+    ) -> VerificationResult | None:
+        verify = await self._lookup_node(node, backend, config)
+        if _lookup_matches_expected(verify, node_config):
+            return None
+        return _verify_failed(
+            node,
+            selection,
+            "created_node_not_verified",
+            backend=backend,
+            return_code=verify.returncode,
+            timed_out=verify.timed_out,
+        )
+
 
 @dataclass(frozen=True)
 class _ObservedNode:
@@ -395,6 +435,48 @@ class _NodeLookup:
         return cls(returncode=result.returncode, timed_out=result.timed_out)
 
 
+def _selected_backend(
+    node: NodeSpec,
+    selection: ProviderSelection,
+) -> ManagedLxcBackend | VerificationResult:
+    if selection.blocks_mutation:
+        return _blocked(node, selection, "provider_selection_blocked")
+    if node.provider != NodeProviderKind.LXC_NATIVE:
+        return _blocked(node, selection, "unsupported_node_provider")
+    if selection.selected_provider != NodeProviderKind.LXC_NATIVE:
+        return _blocked(node, selection, "unsupported_selected_provider")
+
+    backend = None if selection.backend_selection is None else selection.backend_selection.backend
+    if backend is None:
+        return _blocked(node, selection, "selected_backend_missing")
+    if node.backend is not None and node.backend != backend:
+        return _blocked(node, selection, "node_backend_mismatch", backend=backend)
+    return backend
+
+
+def _launch_race_recovered(
+    launch_result: LxcNodeCommandResult,
+    raced_lookup: _NodeLookup,
+    node_config: NodeProviderNodeConfig,
+) -> bool:
+    return (
+        _result_indicates_existing_node(launch_result)
+        and _lookup_matches_expected(raced_lookup, node_config)
+    )
+
+
+def _lookup_matches_expected(
+    lookup: _NodeLookup,
+    node_config: NodeProviderNodeConfig,
+) -> bool:
+    return (
+        not lookup.failed
+        and lookup.node is not None
+        and lookup.node.running
+        and lookup.node.matches_expected(node_config)
+    )
+
+
 def _load_config(
     repository: NodeProviderConfigRepository,
     node: NodeSpec,
@@ -409,17 +491,8 @@ def _load_config(
     node_config = _node_config(config, node.name)
     if node_config is None:
         return _blocked(node, selection, "node_config_missing", backend=backend)
-    if node_config.spec != node:
-        if (
-            node_config.spec.name != node.name
-            or node_config.spec.role != node.role
-            or node_config.spec.provider != node.provider
-            or (
-                node_config.spec.backend is not None
-                and node_config.spec.backend != node.backend
-            )
-        ):
-            return _blocked(node, selection, "node_config_mismatch", backend=backend)
+    if node_config.spec != node and _node_spec_mismatches(node_config, node):
+        return _blocked(node, selection, "node_config_mismatch", backend=backend)
     if node_config.spec.backend is not None and node_config.spec.backend != backend:
         return _blocked(node, selection, "config_backend_mismatch", backend=backend)
 
@@ -448,6 +521,18 @@ def _profile(
     profile_name: str,
 ) -> NodeProviderProfileRequirement | None:
     return next((item for item in config.profiles if item.name == profile_name), None)
+
+
+def _node_spec_mismatches(node_config: NodeProviderNodeConfig, node: NodeSpec) -> bool:
+    return (
+        node_config.spec.name != node.name
+        or node_config.spec.role != node.role
+        or node_config.spec.provider != node.provider
+        or (
+            node_config.spec.backend is not None
+            and node_config.spec.backend != node.backend
+        )
+    )
 
 
 def _resources_supported(resources: Mapping[str, str]) -> bool:
@@ -548,21 +633,24 @@ def _has_unsafe_instance_config(config: Mapping[str, str]) -> bool:
 
 
 def _has_unsafe_instance_devices(devices: Mapping[str, Mapping[str, str]]) -> bool:
-    for device in devices.values():
-        device_type = device.get("type", "").casefold()
-        if device_type == "disk":
-            if "source" in device:
-                return True
-            continue
-        if device_type == "nic":
-            if "parent" in device or "network" not in device:
-                return True
-            if device.get("nictype", "").casefold() in {"macvlan", "physical", "sriov"}:
-                return True
-            continue
-        if device_type:
-            return True
-    return False
+    return any(_unsafe_instance_device(device) for device in devices.values())
+
+
+def _unsafe_instance_device(device: Mapping[str, str]) -> bool:
+    device_type = device.get("type", "").casefold()
+    if device_type == "disk":
+        return "source" in device
+    if device_type == "nic":
+        return _unsafe_network_device(device)
+    return bool(device_type)
+
+
+def _unsafe_network_device(device: Mapping[str, str]) -> bool:
+    return (
+        "parent" in device
+        or "network" not in device
+        or device.get("nictype", "").casefold() in {"macvlan", "physical", "sriov"}
+    )
 
 
 def _profile_output_safe(output: str, profile_name: str) -> bool:

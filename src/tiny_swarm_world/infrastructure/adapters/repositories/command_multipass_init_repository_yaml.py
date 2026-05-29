@@ -61,7 +61,7 @@ class PortCommandRepositoryYaml(PortCommandRepository):
 
             try:
                 command_entity = CommandEntity(**command)
-            except (ValidationError, ValueError, TypeError) as exc:
+            except (ValidationError, TypeError) as exc:
                 raise CommandCatalogValidationError(
                     f"{self.filename}: command entry {position} failed validation: {exc}"
                 ) from exc

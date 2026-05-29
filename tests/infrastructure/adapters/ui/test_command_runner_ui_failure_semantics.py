@@ -228,6 +228,7 @@ class RecordingUI(PortUI):
         )
 
     def start(self):
+        # Test double; the UI event loop is driven directly by the test.
         pass
 
 

@@ -306,31 +306,44 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(5, len(services.workflows.apply.steps))
         self.assertEqual(8, len(services.workflows.verify.checks))
 
-    def test_default_provider_artifact_services_do_not_construct_multipass_clients(self):
+    def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
         with patch.object(
             composition,
             "MultipassNexusHttpClient",
             side_effect=AssertionError("default artifact services must not use Multipass"),
         ):
-            services = composition.build_artifact_services_for_provider()
+            with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
+                services = composition.build_artifact_services_for_provider()
 
-        result = asyncio.run(services.workflows.prepare.run())
+        self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
+        self.assertEqual(7, len(services.workflows.prepare.steps))
 
-        self.assertEqual("blocked", result.status.value)
-        self.assertIn("multipass_legacy", result.reason)
-
-    def test_default_provider_deployment_services_do_not_construct_multipass_clients(self):
+    def test_default_provider_deployment_services_use_lxc_clients_when_backend_is_available(self):
         with patch.object(
             composition,
             "MultipassSwarmRuntime",
             side_effect=AssertionError("default deployment services must not use Multipass"),
         ):
+            with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
+                services = composition.build_deployment_services_for_provider()
+
+        self.assertIsInstance(services.workflows.bootstrap, composition.DeploymentApplyWorkflow)
+        self.assertEqual(
+            (
+                "deployment:portainer-stack",
+                "deployment:portainer-admin-access",
+                "deployment:nexus-stack",
+            ),
+            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
+        )
+
+    def test_default_provider_deployment_services_fail_closed_without_lxc_backend(self):
+        with patch.object(composition.shutil, "which", return_value=None):
             services = composition.build_deployment_services_for_provider()
 
         result = asyncio.run(services.workflows.apply.run())
 
         self.assertEqual("blocked", result.status.value)
-        self.assertIn("multipass_legacy", result.reason)
 
     def test_explicit_legacy_provider_uses_existing_multipass_artifact_services(self):
         request = composition.NodeProviderSelectionRequest(

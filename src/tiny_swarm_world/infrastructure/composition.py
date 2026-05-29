@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import os
+import shutil
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import cast
@@ -40,6 +42,9 @@ from tiny_swarm_world.application.ports.node_provider import (
     PortContainerDockerRuntime,
     PortContainerNetworkIdentity,
     PortContainerSwarmBootstrap,
+)
+from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
+    PortSwarmStackRuntime,
 )
 from tiny_swarm_world.application.services.platform import (
     AsyncWorkflowStep,
@@ -119,6 +124,14 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runti
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_swarm_bootstrap import (
     LxcContainerNetworkIdentity,
     LxcContainerSwarmBootstrap,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
+    LxcContainerImagePublisher,
+    LxcContainerRuntime,
+    LxcNexusHttpClient,
+    LxcPortainerAdminClient,
+    LxcPortainerHttpClient,
+    LxcSwarmRuntime,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import PortainerHttpClient
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
@@ -280,6 +293,7 @@ class _BlockedArtifactWorkflow:
         self.checks = ()
 
     async def run(self) -> ArtifactWorkflowResult:
+        await asyncio.sleep(0)
         return ArtifactWorkflowResult(
             kind=self.kind,
             status=ArtifactWorkflowStatus.BLOCKED,
@@ -299,6 +313,7 @@ class _BlockedDeploymentWorkflow:
         self.checks = ()
 
     async def run(self) -> DeploymentWorkflowResult:
+        await asyncio.sleep(0)
         return DeploymentWorkflowResult(
             kind=self.kind,
             status=DeploymentWorkflowStatus.BLOCKED,
@@ -326,6 +341,7 @@ class _BlockedPlatformProviderStep:
         self.reason = reason
 
     async def run(self) -> VerificationResult:
+        await asyncio.sleep(0)
         return VerificationResult(
             target_id=self.verification_target_id,
             status=VerificationStatus.BLOCKED,
@@ -355,6 +371,7 @@ class _VerifiedPlatformProviderStep:
         self.reason = reason
 
     async def run(self) -> VerificationResult:
+        await asyncio.sleep(0)
         return VerificationResult(
             target_id=self.verification_target_id,
             status=VerificationStatus.VERIFIED,
@@ -771,6 +788,9 @@ def build_artifact_services_for_provider(
     provider_request = node_provider_request or NodeProviderSelectionRequest()
     if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
         return build_artifact_services()
+    backend = _lxc_backend_for_provider_request(provider_request)
+    if backend is not None:
+        return build_lxc_artifact_services(backend=backend)
     return ArtifactServices(
         workflows=ArtifactWorkflows(
             prepare=cast(
@@ -787,6 +807,72 @@ def build_artifact_services_for_provider(
                     LEGACY_ARTIFACT_PROVIDER_REQUIRED_REASON,
                 ),
             ),
+        )
+    )
+
+
+def build_lxc_artifact_services(*, backend: ManagedLxcBackend) -> ArtifactServices:
+    nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD")
+    nexus_client = LxcNexusHttpClient(backend=backend)
+    container_runtime = LxcContainerRuntime(backend=backend)
+    image_publisher = LxcContainerImagePublisher(
+        backend=backend,
+        registry_username="admin",
+        registry_password=nexus_admin_password,
+    )
+    wait_for_nexus_ready = WaitForNexusReady(
+        nexus_client=nexus_client,
+        max_attempts=60,
+        wait_seconds=10,
+    )
+    ensure_nexus_admin_access = EnsureNexusAdminAccess(
+        nexus_client=nexus_client,
+        container_runtime=container_runtime,
+        admin_username="admin",
+        admin_password=nexus_admin_password,
+        container_name_filter="nexus",
+        initial_password_path="/nexus-data/admin.password",
+        max_attempts=60,
+        wait_seconds=10,
+    )
+    nexus_repository_steps = (
+        EnsureNexusDockerHostedRepository(
+            nexus_client=nexus_client,
+            configuration=NexusDockerHostedRepositoryConfiguration(
+                repository_name="docker-hosted",
+                http_port=5000,
+                admin_username="admin",
+                admin_password=nexus_admin_password,
+            ),
+        ),
+        EnsureNexusMavenProxyRepository(
+            nexus_client=nexus_client,
+            configuration=NexusMavenProxyRepositoryConfiguration(
+                repository_name="maven-central-proxy",
+                remote_url="https://repo1.maven.org/maven2/",
+                admin_username="admin",
+                admin_password=nexus_admin_password,
+            ),
+        ),
+    )
+    image_steps = tuple(
+        EnsureContainerImage(image_publisher, contract)
+        for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS
+    )
+    checks = cast(
+        tuple[ArtifactPrepareStep, ...],
+        (
+            wait_for_nexus_ready,
+            ensure_nexus_admin_access,
+            *nexus_repository_steps,
+            *image_steps,
+        ),
+    )
+    verify_checks = cast(tuple[ArtifactVerifyCheck, ...], checks)
+    return ArtifactServices(
+        workflows=ArtifactWorkflows(
+            prepare=ArtifactPrepareWorkflow(checks),
+            verify=ArtifactVerifyWorkflow(verify_checks),
         )
     )
 
@@ -868,6 +954,12 @@ def build_deployment_services_for_provider(
     provider_request = node_provider_request or NodeProviderSelectionRequest()
     if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
         return build_deployment_services(service_profile=service_profile)
+    backend = _lxc_backend_for_provider_request(provider_request)
+    if backend is not None:
+        return build_lxc_deployment_services(
+            service_profile=service_profile,
+            backend=backend,
+        )
     return DeploymentServices(
         workflows=DeploymentWorkflows(
             bootstrap=cast(
@@ -891,6 +983,78 @@ def build_deployment_services_for_provider(
                     LEGACY_DEPLOYMENT_PROVIDER_REQUIRED_REASON,
                 ),
             ),
+        )
+    )
+
+
+def build_lxc_deployment_services(
+    *,
+    backend: ManagedLxcBackend,
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+) -> DeploymentServices:
+    selected_service_profile = ServiceStackProfile(service_profile)
+    service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
+    swarm_runtime = LxcSwarmRuntime(backend=backend)
+    service_access_environment = _service_access_stack_environment(selected_service_profile)
+    external_input_checks = _service_access_external_input_checks(
+        selected_service_profile,
+        swarm_runtime=swarm_runtime,
+    )
+    compose_repository = ComposeFileRepositoryYaml()
+    portainer_admin_client = LxcPortainerAdminClient(backend=backend)
+    portainer_client = LxcPortainerHttpClient(
+        backend=backend,
+        username="admin",
+        password=_operator_secret_value("TSW_PORTAINER_PASSWORD"),
+    )
+    stack_steps = {
+        contract.stack_name: EnsureSwarmStack(
+            compose_repository=compose_repository,
+            swarm_runtime=swarm_runtime,
+            service_stack=contract,
+            stack_environment=service_access_environment.get(contract.stack_name),
+        )
+        for contract in service_stack_contracts
+    }
+    bootstrap_steps = (
+        stack_steps["portainer"],
+        EnsurePortainerAdminAccess(
+            portainer_admin_client=portainer_admin_client,
+            username="admin",
+            password=_operator_secret_value("TSW_PORTAINER_PASSWORD"),
+            max_attempts=60,
+            wait_seconds=5,
+        ),
+        stack_steps["nexus"],
+    )
+    application_steps = build_service_stack_steps(
+        compose_repository=compose_repository,
+        portainer_client=portainer_client,
+        endpoint_name=DEFAULT_PORTAINER_ENDPOINT_NAME,
+        service_profile=selected_service_profile,
+        excluded_stack_names=("nexus",),
+        stack_environments=service_access_environment,
+    )
+    readiness_checks = tuple(
+        VerifySwarmServiceReadiness(
+            swarm_runtime=swarm_runtime,
+            service_stack=contract,
+            max_attempts=60,
+            wait_seconds=10,
+        )
+        for contract in service_stack_contracts
+    )
+    return DeploymentServices(
+        workflows=DeploymentWorkflows(
+            bootstrap=DeploymentApplyWorkflow(
+                bootstrap_steps,
+                kind=DeploymentWorkflowKind.BOOTSTRAP,
+            ),
+            apply=DeploymentApplyWorkflow(
+                application_steps,
+                pre_apply_checks=external_input_checks,
+            ),
+            verify=DeploymentVerifyWorkflow((*external_input_checks, *readiness_checks)),
         )
     )
 
@@ -982,6 +1146,20 @@ def _build_preflight_service_for_request(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
     )
+
+
+def _lxc_backend_for_provider_request(
+    provider_request: NodeProviderSelectionRequest,
+) -> ManagedLxcBackend | None:
+    if provider_request.requested_provider != NodeProviderKind.LXC_NATIVE:
+        return None
+    if provider_request.preferred_backend is not None:
+        return provider_request.preferred_backend
+    if shutil.which("lxc"):
+        return ManagedLxcBackend.LXD
+    if shutil.which("incus"):
+        return ManagedLxcBackend.INCUS
+    return None
 
 
 def _preflight_configuration_for_provider(
@@ -1102,11 +1280,12 @@ def _service_access_stack_environment(
 def _service_access_external_input_checks(
     service_profile: ServiceStackProfile,
     *,
-    swarm_runtime: MultipassSwarmRuntime,
+    swarm_runtime: PortSwarmStackRuntime,
 ) -> tuple[VerifyExternalSwarmInput, ...]:
+    checks: list[VerifyExternalSwarmInput] = []
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
-        return ()
-    return (
+        return tuple(checks)
+    checks.append(
         VerifyExternalSwarmInput(
             swarm_runtime=swarm_runtime,
             resource_name=_operator_config_value(
@@ -1116,3 +1295,4 @@ def _service_access_external_input_checks(
             source_ref=_operator_config_source_ref(VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT),
         ),
     )
+    return tuple(checks)

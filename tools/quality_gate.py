@@ -85,7 +85,7 @@ COMMANDS: dict[str, list[str]] = {
 QUALITY_GATE_ORDER = ["lint", "arch-lint", "arch-tests", "typecheck", "test"]
 
 
-def main() -> int:
+def main() -> None:
     parser = argparse.ArgumentParser(description="Run local and CI quality gates.")
     parser.add_argument(
         "command",
@@ -99,10 +99,9 @@ def main() -> int:
     if args.command == "quality":
         for command_name in QUALITY_GATE_ORDER:
             _run_named_command(command_name)
-        return 0
+        return
 
     _run_named_command(args.command)
-    return 0
 
 
 def _run_named_command(command_name: str) -> None:
@@ -149,4 +148,4 @@ def _prepend_environment_path(path: str, existing_path: str | None) -> str:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

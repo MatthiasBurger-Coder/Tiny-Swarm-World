@@ -31,6 +31,7 @@ class SetupPhase(Protocol):
     name: str
 
     async def run(self) -> object:
+        # Protocol declaration; concrete setup phases perform the work.
         pass
 
 

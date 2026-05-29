@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
@@ -65,6 +66,7 @@ class NetworkPrepareNetplan:
         )
 
     async def verify(self):
+        await asyncio.sleep(0)
         try:
             data = self.netplan_repository.load()
         except Exception as exc:

@@ -27,7 +27,7 @@ class CommandParameterBuilder:
         :param params: Dictionary with Enum keys and their corresponding values
         :raises ValueError: If an invalid parameter key is found
         """
-        allowed_keys = {param for param in ParameterType}
+        allowed_keys = set(ParameterType)
         invalid_keys = [key for key in params if key not in allowed_keys]
 
         if invalid_keys:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
@@ -52,6 +53,7 @@ class EnsureNexusDockerHostedRepository:
         self.configuration = configuration
 
     async def run(self) -> None:
+        await asyncio.sleep(0)
         if self._repository_exists():
             self.nexus_client.update_docker_hosted_repository(
                 self.configuration.admin_username,
@@ -68,6 +70,7 @@ class EnsureNexusDockerHostedRepository:
         )
 
     async def verify(self) -> VerificationResult:
+        await asyncio.sleep(0)
         try:
             repository_exists = self._repository_exists()
         except Exception as exc:
@@ -112,6 +115,7 @@ class EnsureNexusMavenProxyRepository:
         self.configuration = configuration
 
     async def run(self) -> None:
+        await asyncio.sleep(0)
         if self._repository_exists():
             return
         self.nexus_client.create_maven_proxy_repository(
@@ -122,6 +126,7 @@ class EnsureNexusMavenProxyRepository:
         )
 
     async def verify(self) -> VerificationResult:
+        await asyncio.sleep(0)
         try:
             repository_exists = self._repository_exists()
         except Exception as exc:

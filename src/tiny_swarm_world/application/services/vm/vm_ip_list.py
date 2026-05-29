@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Dict, List
 
@@ -69,6 +70,7 @@ class VmIpList:
         )
 
     async def verify(self):
+        await asyncio.sleep(0)
         vm_list = self.vm_repository.get_all_vms()
         if not vm_list:
             return VerificationResult(

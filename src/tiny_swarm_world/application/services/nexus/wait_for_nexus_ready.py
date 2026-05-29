@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 
@@ -39,6 +40,7 @@ class WaitForNexusReady:
         raise error
 
     async def verify(self) -> VerificationResult:
+        await asyncio.sleep(0)
         try:
             available = self.nexus_client.is_available()
         except Exception as exc:

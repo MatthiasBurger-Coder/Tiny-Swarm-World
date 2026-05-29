@@ -20,7 +20,7 @@ class StepManagerIp:
             "command_multipass_docker_swarm_manager_ip.yaml",
             workflow_id=CommandWorkflowId.PLATFORM_RECONCILE.value,
         )
-        ipaddress = list(result[0].values())[0].split()[0]
+        ipaddress = next(iter(result[0].values())).split()[0]
         #ToDo listinig the correct vm ip use command vm_ip_list!!!
         self.docker_ip_list.external_ip = ipaddress
         self.logger.info("Manager IP result received")

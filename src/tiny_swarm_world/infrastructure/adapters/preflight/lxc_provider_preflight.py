@@ -53,6 +53,7 @@ class LxcProviderProbeRunner(Protocol):
         args: Sequence[str],
         timeout_seconds: float,
     ) -> LxcProviderProbeResult:
+        # Protocol declaration; concrete runners probe the selected LXC backend.
         pass
 
 

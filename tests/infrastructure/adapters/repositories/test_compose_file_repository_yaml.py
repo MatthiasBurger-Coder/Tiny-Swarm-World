@@ -149,12 +149,12 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertIn("image: docker.swagger.io/swaggerapi/swagger-ui", compose_content)
         self.assertIn("image: nginx:mainline-alpine", compose_content)
         self.assertEqual(
-            [{"target": 80, "published": 8082, "protocol": "tcp"}],
+            [{"target": 80, "published": 8082, "protocol": "tcp", "mode": "host"}],
             compose_data["services"]["swagger-editor"]["ports"],
         )
         self.assertNotIn("ports", compose_data["services"]["swagger-api"])
         self.assertEqual(
-            [{"target": 8084, "published": 8084, "protocol": "tcp"}],
+            [{"target": 8084, "published": 8084, "protocol": "tcp", "mode": "host"}],
             compose_data["services"]["swagger-nginx"]["ports"],
         )
         self.assertIn("SWAGGER_JSON: /openapi.json", compose_content)
@@ -189,8 +189,8 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         )
         self.assertEqual(
             [
-                {"target": 80, "published": 80, "protocol": "tcp"},
-                {"target": 8086, "published": 8086, "protocol": "tcp"},
+                {"target": 80, "published": 80, "protocol": "tcp", "mode": "host"},
+                {"target": 8086, "published": 8086, "protocol": "tcp", "mode": "host"},
             ],
             services["service-access-nginx"]["ports"],
         )

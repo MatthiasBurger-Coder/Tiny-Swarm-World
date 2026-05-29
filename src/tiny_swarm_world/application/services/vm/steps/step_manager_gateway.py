@@ -24,7 +24,7 @@ class StepManagerGateway:
         )
         self.logger.info("Manager gateway result received")
 
-        text = list(result[0].values())[0]
+        text = next(iter(result[0].values()))
 
         match = re.search(r'default via ([\d.]+)', text)
         if match:

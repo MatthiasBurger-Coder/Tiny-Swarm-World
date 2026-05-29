@@ -113,29 +113,31 @@ class AsyncPortCommandRunner(PortCommandRunner):
         if killpg is not None and getpgid is not None and process_pid is not None:
             with suppress(ProcessLookupError, PermissionError):
                 killpg(getpgid(process_pid), signal.SIGTERM)
-            if await self._wait_for_exit(process, timeout=5):
+            if await self._wait_for_exit(process, timeout_seconds=5):
                 return
             with suppress(ProcessLookupError, PermissionError):
                 killpg(getpgid(process_pid), signal.SIGKILL)
-            await self._wait_for_exit(process, timeout=5)
+            await self._wait_for_exit(process, timeout_seconds=5)
             return
 
         kill_result = cast(Any, process).kill()
         if inspect.isawaitable(kill_result):
             await kill_result
-        await self._wait_for_exit(process, timeout=5)
+        await self._wait_for_exit(process, timeout_seconds=5)
 
     @staticmethod
-    async def _wait_for_exit(process: asyncio.subprocess.Process, timeout: int) -> bool:
+    async def _wait_for_exit(process: asyncio.subprocess.Process, timeout_seconds: int) -> bool:
         wait_method = getattr(process, "wait", None)
         if wait_method is None:
             with suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(process.communicate(), timeout=timeout)
+                async with asyncio.timeout(timeout_seconds):
+                    await process.communicate()
                 return True
             return False
 
         try:
-            await asyncio.wait_for(wait_method(), timeout=timeout)
+            async with asyncio.timeout(timeout_seconds):
+                await wait_method()
             return True
         except asyncio.TimeoutError:
             return False

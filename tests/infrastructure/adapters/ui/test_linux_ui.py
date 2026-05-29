@@ -222,6 +222,7 @@ class TestLinuxUI(unittest.TestCase):
     @patch("tiny_swarm_world.infrastructure.adapters.ui.linux_ui.curses.endwin")
     def test_draw_ui_basic_execution(self, mock_endwin, mock_initscr, mock_curs_set):
         def stdscr_mock(*args, **kwargs):
+            # Test callback placeholder; the mocked curses window is configured below.
             pass
 
         mock_stdscr = MagicMock()

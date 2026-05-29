@@ -142,7 +142,15 @@ def _hostname_ip_args(
     backend: ManagedLxcBackend,
     node: NodeSpec,
 ) -> tuple[str, ...]:
-    return (_BACKEND_CLI[backend], "exec", node.name, "--", "hostname", "-I")
+    return (
+        _BACKEND_CLI[backend],
+        "exec",
+        node.name,
+        "--",
+        "sh",
+        "-lc",
+        "ip -4 -o addr show dev eth0 | awk '{print $4}' | cut -d/ -f1",
+    )
 
 
 def _swarm_state_args(

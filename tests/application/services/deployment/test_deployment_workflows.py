@@ -128,6 +128,7 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
             verification_target_id = "deployment:portainer-stack"
 
             async def run(self) -> None:
+                # Test double; this step only exercises failed verification.
                 pass
 
             async def verify(self) -> VerificationResult:

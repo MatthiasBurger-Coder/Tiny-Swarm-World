@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient
@@ -23,6 +24,7 @@ class EnsurePortainerStack:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self) -> None:
+        await asyncio.sleep(0)
         stack_definition = self.compose_repository.get_compose_of(self.stack_name)
         endpoint_id = self.portainer_client.get_endpoint_id_by_name(self.endpoint_name)
         stack_id = self.portainer_client.find_stack_id_by_name(stack_definition.name)

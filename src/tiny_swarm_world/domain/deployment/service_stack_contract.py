@@ -6,9 +6,10 @@ from enum import Enum
 from urllib.parse import urlparse
 
 
-STACK_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
-SERVICE_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
-ENDPOINT_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
+SERVICE_IDENTIFIER_PATTERN = r"^[a-z0-9][a-z0-9_.-]*$"
+STACK_NAME_PATTERN = re.compile(SERVICE_IDENTIFIER_PATTERN)
+SERVICE_NAME_PATTERN = re.compile(SERVICE_IDENTIFIER_PATTERN)
+ENDPOINT_NAME_PATTERN = re.compile(SERVICE_IDENTIFIER_PATTERN)
 
 
 class ServiceStackProfile(str, Enum):

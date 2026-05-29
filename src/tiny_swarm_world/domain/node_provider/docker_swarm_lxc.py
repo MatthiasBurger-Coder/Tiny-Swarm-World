@@ -162,11 +162,12 @@ class ContainerDockerReadiness:
         return not self.readiness_errors()
 
     def readiness_errors(self) -> tuple[str, ...]:
+        errors: list[str] = []
         if not self.observed:
-            return ("docker_observed_state_missing",)
-        if self.engine_state != DockerEngineState.READY:
-            return (f"docker_engine_{self.engine_state.value}",)
-        return ()
+            errors.append("docker_observed_state_missing")
+        elif self.engine_state != DockerEngineState.READY:
+            errors.append(f"docker_engine_{self.engine_state.value}")
+        return tuple(errors)
 
 
 @dataclass(frozen=True)
@@ -183,11 +184,12 @@ class ContainerDockerInstallOutcome:
         return not self.install_errors()
 
     def install_errors(self) -> tuple[str, ...]:
+        errors: list[str] = []
         if self.state == DockerInstallState.FAILED:
-            return ("docker_install_failed",)
-        if not self.verified:
-            return ("docker_install_not_verified",)
-        return ()
+            errors.append("docker_install_failed")
+        elif not self.verified:
+            errors.append("docker_install_not_verified")
+        return tuple(errors)
 
 
 @dataclass(frozen=True)

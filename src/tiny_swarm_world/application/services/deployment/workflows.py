@@ -25,19 +25,23 @@ class DeploymentWorkflowStatus(str, Enum):
 
 class DeploymentApplyStep(Protocol):
     def run(self) -> object:
+        # Protocol declaration; concrete steps apply stack changes.
         pass
 
     def verify(self) -> object:
+        # Protocol declaration; concrete steps report post-apply evidence.
         pass
 
 
 class DeploymentVerifyCheck(Protocol):
     def verify(self) -> object:
+        # Protocol declaration; concrete checks inspect deployed state.
         pass
 
 
 class DeploymentPreApplyCheck(Protocol):
     def verify(self) -> object:
+        # Protocol declaration; concrete checks enforce pre-apply readiness.
         pass
 
 
@@ -71,6 +75,10 @@ DEFAULT_DEPLOYMENT_APPLY_BLOCK_REASON = (
     "Portainer stack changes require command-backed verification and live "
     "operation contracts before apply can run"
 )
+DEPLOYMENT_APPLY_CONTRACTS_BLOCKED_MESSAGE = (
+    "deployment apply is blocked until stack deployment contracts are wired."
+)
+VERIFICATION_EVIDENCE_MISSING_MESSAGE = "Verification evidence is missing."
 
 
 class DeploymentApplyWorkflow:
@@ -91,7 +99,7 @@ class DeploymentApplyWorkflow:
             return DeploymentWorkflowResult(
                 kind=self.kind,
                 status=DeploymentWorkflowStatus.BLOCKED,
-                message="deployment apply is blocked until stack deployment contracts are wired.",
+                message=DEPLOYMENT_APPLY_CONTRACTS_BLOCKED_MESSAGE,
                 reason=self.blocked_reason,
             )
 
@@ -123,14 +131,14 @@ class DeploymentApplyWorkflow:
                 blocked_verification = VerificationResult(
                     target_id=target_id,
                     status=VerificationStatus.BLOCKED,
-                    message="Verification evidence is missing.",
+                    message=VERIFICATION_EVIDENCE_MISSING_MESSAGE,
                     evidence={"phase": "pre_apply", "reason": "verify_after_apply_missing"},
                 )
                 verification_results.append(blocked_verification)
                 return DeploymentWorkflowResult(
                     kind=self.kind,
                     status=DeploymentWorkflowStatus.BLOCKED,
-                    message="deployment apply is blocked until stack deployment contracts are wired.",
+                    message=DEPLOYMENT_APPLY_CONTRACTS_BLOCKED_MESSAGE,
                     reason="verify-after-apply contract is missing for deployment apply",
                     verification_results=tuple(verification_results),
                 )
@@ -163,7 +171,7 @@ class DeploymentApplyWorkflow:
                 return DeploymentWorkflowResult(
                     kind=self.kind,
                     status=DeploymentWorkflowStatus.BLOCKED,
-                    message="deployment apply is blocked until stack deployment contracts are wired.",
+                    message=DEPLOYMENT_APPLY_CONTRACTS_BLOCKED_MESSAGE,
                     reason=f"verification is blocked for {target_id}",
                     executed=True,
                     verification_results=tuple(verification_results),

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 
@@ -62,7 +63,7 @@ class EnsureNexusAdminAccess:
         for attempt in range(1, self.max_attempts + 1):
             container_names = self.container_runtime.find_container_names(self.container_name_filter)
             if container_names:
-                container_name = sorted(container_names)[0]
+                container_name = min(container_names)
                 self.logger.info(f"Using Nexus container '{container_name}'.")
                 return container_name
 
@@ -93,6 +94,7 @@ class EnsureNexusAdminAccess:
         raise RuntimeError(f"Could not read Nexus admin password from '{self.initial_password_path}'.")
 
     async def verify(self) -> VerificationResult:
+        await asyncio.sleep(0)
         try:
             authenticated = self.nexus_client.can_authenticate(self.admin_username, self.admin_password)
         except Exception as exc:

@@ -85,7 +85,7 @@ _FORBIDDEN_KEY_PARTS = (
 )
 _IPV4_PATTERN = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b")
 _IPV6_PATTERN = re.compile(r"\b(?:[0-9a-fA-F]{0,4}:){2,}[0-9a-fA-F]{0,4}\b")
-_ABSOLUTE_PATH_PATTERN = re.compile(r"(^|[\s=:])(?:/(?:home|mnt|Users|var/lib/docker|var/run)[/\w.-]*)")
+_ABSOLUTE_PATH_PATTERN = re.compile(r"(^|[\s=:])/(?:home|mnt|Users|var/lib/docker|var/run)[/\w.-]*")
 _WINDOWS_PATH_PATTERN = re.compile(r"\b[A-Za-z]:\\")
 _COMMAND_PATTERN = re.compile(
     r"\b(?:bash|curl|docker|docker-compose|incus|lxc|multipass|netplan|python3?|sh|"

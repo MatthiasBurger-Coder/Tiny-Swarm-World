@@ -7,6 +7,9 @@ from tiny_swarm_world.application.ports.commands.executable_command import Execu
 from tiny_swarm_world.domain.command.command_entity import CommandWorkflowId
 
 
+MANAGER_JOIN_TOKEN_COMMAND = "command_multipass_docker_swarm_manager_join_token.yaml"
+
+
 class MultipassDockerSwarmInit:
     verification_target_id = "platform:init:multipass-docker-swarm-init"
     operator_block_reason = "post-apply verification is not implemented"
@@ -27,7 +30,7 @@ class MultipassDockerSwarmInit:
 
         self.logger.info("Getting join-token for the worker")
         await self.command_workflow.run_sync(
-            "command_multipass_docker_swarm_manager_join_token.yaml",
+            MANAGER_JOIN_TOKEN_COMMAND,
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
         )
         self.logger.info("Getting join-token for the worker completed with redacted output")
@@ -37,14 +40,14 @@ class MultipassDockerSwarmInit:
             "command_multipass_docker_swarm_manager_ip.yaml",
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
         )
-        ipaddress = list(result[0].values())[0].split()[0]
+        ipaddress = next(iter(result[0].values())).split()[0]
         self.parameter[ParameterType.SWARM_MANAGER_IP] = ipaddress
         self.parameter[ParameterType.SWARM_MANAGER_PORT] = "2377"
         self.logger.info("Getting Manager IP completed")
 
         self.logger.info("Getting join token")
         result = await self.command_workflow.run_sync(
-            "command_multipass_docker_swarm_manager_join_token.yaml",
+            MANAGER_JOIN_TOKEN_COMMAND,
             workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
         )
         token = result[0][1]

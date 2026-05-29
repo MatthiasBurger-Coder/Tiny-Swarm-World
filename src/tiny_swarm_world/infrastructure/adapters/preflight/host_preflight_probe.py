@@ -25,7 +25,7 @@ from tiny_swarm_world.domain.preflight import (
 from tiny_swarm_world.infrastructure.project_paths import repository_root
 
 
-SECRET_TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_-]{2,}")
+SECRET_TOKEN_PATTERN = re.compile(r"\w[\w-]{2,}", re.ASCII)
 COMMON_LINUX_EXECUTABLE_DIRECTORIES = (Path("/snap/bin"),)
 KNOWN_MULTIPASS_DRIVERS = frozenset(("qemu", "lxd", "libvirt", "hyperv", "hyperkit", "virtualbox"))
 CI_ENVIRONMENT_KEYS = frozenset(

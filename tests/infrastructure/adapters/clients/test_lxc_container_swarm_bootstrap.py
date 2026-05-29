@@ -29,7 +29,18 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
         address = await identity.manager_advertise_address(_manager())
 
         self.assertEqual("10.10.0.5", address)
-        self.assertEqual(("lxc", "exec", "swarm-manager", "--", "hostname", "-I"), runner.calls[0][0])
+        self.assertEqual(
+            (
+                "lxc",
+                "exec",
+                "swarm-manager",
+                "--",
+                "sh",
+                "-lc",
+                "ip -4 -o addr show dev eth0 | awk '{print $4}' | cut -d/ -f1",
+            ),
+            runner.calls[0][0],
+        )
 
     async def test_active_manager_is_observed_without_mutation(self):
         runner = _FakeRunner(LxcNodeCommandResult(returncode=0, stdout="active true"))

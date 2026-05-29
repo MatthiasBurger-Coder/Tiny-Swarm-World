@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Mapping
 
@@ -30,6 +31,7 @@ class EnsureServiceStack:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self) -> None:
+        await asyncio.sleep(0)
         stack_definition = self.compose_repository.get_compose_of(self.service_stack.stack_name)
         if stack_definition.name != self.service_stack.stack_name:
             raise ValueError("compose stack definition name does not match the service stack contract")
@@ -54,6 +56,7 @@ class EnsureServiceStack:
         )
 
     async def verify(self) -> VerificationResult:
+        await asyncio.sleep(0)
         try:
             stack_id = self.portainer_client.find_stack_id_by_name(self.service_stack.stack_name)
         except Exception as exc:

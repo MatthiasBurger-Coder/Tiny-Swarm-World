@@ -98,12 +98,16 @@ COMMAND_VERBS = frozenset(
 )
 URL_USERINFO_PATTERN = re.compile(r"://[^/\s@]+@")
 SENSITIVE_LABEL_PATTERN = re.compile(
-    r"(?<![A-Za-z0-9_])[\"']?([A-Za-z][A-Za-z0-9_-]{1,120})[\"']?\s*[:=]"
+    r"(?<!\w)[\"']?([A-Za-z][\w-]{1,120})[\"']?\s*[:=]",
+    re.ASCII,
 )
 SENSITIVE_ASSIGNMENT_TERMS = frozenset(
     {"auth", "authorization", "credential", "key", "password", "secret", "token"}
 )
-TARGET_ID_PATTERN = re.compile(r"^(?:[a-z0-9][a-z0-9:._-]*|_[A-Za-z][A-Za-z0-9_]*)$")
+TARGET_ID_PATTERN = re.compile(
+    r"^(?:[a-z0-9][a-z0-9:._-]*|_[A-Za-z]\w*)$",
+    re.ASCII,
+)
 RAW_EVIDENCE_VALUE_PATTERNS = (
     re.compile(r"[\r\n]"),
     re.compile(r"\b(stdout|stderr)\b", re.IGNORECASE),

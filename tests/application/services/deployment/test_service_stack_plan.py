@@ -1,5 +1,10 @@
 import unittest
+from typing import cast
 
+from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient
+from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
+    PortComposeFileRepository,
+)
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
     DEFAULT_PORTAINER_ENDPOINT_NAME,
     build_default_service_stack_steps,
@@ -12,8 +17,8 @@ from tiny_swarm_world.domain.inventory import VerificationStatus
 
 class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
     def test_builds_default_service_stack_steps_without_concrete_adapters(self):
-        compose_repository = object()
-        portainer_client = object()
+        compose_repository = _compose_repository_stub()
+        portainer_client = _portainer_client_stub()
 
         steps = build_default_service_stack_steps(compose_repository, portainer_client, "local")
 
@@ -33,12 +38,19 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(step.endpoint_name == "local" for step in steps))
 
     def test_default_service_stack_steps_do_not_include_portainer_bootstrap_cycle(self):
-        steps = build_default_service_stack_steps(object(), object(), "local")
+        steps = build_default_service_stack_steps(
+            _compose_repository_stub(),
+            _portainer_client_stub(),
+            "local",
+        )
 
         self.assertNotIn("portainer", [step.service_stack.stack_name for step in steps])
 
     def test_default_service_stack_steps_use_named_portainer_endpoint_default(self):
-        steps = build_default_service_stack_steps(object(), object())
+        steps = build_default_service_stack_steps(
+            _compose_repository_stub(),
+            _portainer_client_stub(),
+        )
 
         self.assertEqual("local", DEFAULT_PORTAINER_ENDPOINT_NAME)
         self.assertTrue(
@@ -46,15 +58,18 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         )
 
     def test_service_stack_steps_use_named_portainer_endpoint_default(self):
-        steps = build_service_stack_steps(object(), object())
+        steps = build_service_stack_steps(
+            _compose_repository_stub(),
+            _portainer_client_stub(),
+        )
 
         self.assertTrue(
             all(step.endpoint_name == DEFAULT_PORTAINER_ENDPOINT_NAME for step in steps)
         )
 
     def test_service_access_profile_steps_include_selected_stack(self):
-        compose_repository = object()
-        portainer_client = object()
+        compose_repository = _compose_repository_stub()
+        portainer_client = _portainer_client_stub()
 
         steps = build_service_stack_steps(
             compose_repository,
@@ -74,8 +89,8 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
 
     def test_service_stack_steps_can_exclude_bootstrap_owned_stacks(self):
         steps = build_service_stack_steps(
-            object(),
-            object(),
+            _compose_repository_stub(),
+            _portainer_client_stub(),
             "local",
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             excluded_stack_names=("nexus",),
@@ -88,8 +103,8 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
 
     def test_service_stack_steps_attach_stack_specific_environment(self):
         steps = build_service_stack_steps(
-            object(),
-            object(),
+            _compose_repository_stub(),
+            _portainer_client_stub(),
             "local",
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             stack_environments={
@@ -151,3 +166,11 @@ class _FakePortainerClient:
 
     def find_stack_id_by_name(self, stack_name: str) -> int | None:
         return 42
+
+
+def _compose_repository_stub() -> PortComposeFileRepository:
+    return cast(PortComposeFileRepository, object())
+
+
+def _portainer_client_stub() -> PortPortainerClient:
+    return cast(PortPortainerClient, object())

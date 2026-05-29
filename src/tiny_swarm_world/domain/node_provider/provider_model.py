@@ -331,8 +331,6 @@ def _validate_provider_selection(
     if selected_provider != requested_provider:
         raise ValueError("provider selection must not change the requested provider")
     if requested_provider == NodeProviderKind.LXC_NATIVE:
-        if selected_provider != NodeProviderKind.LXC_NATIVE:
-            raise ValueError("lxc_native selection must not silently select another provider")
         if backend_selection is None:
             raise ValueError("lxc_native selection requires managed backend selection")
         if status == ProviderSelectionStatus.SELECTED and not backend_selection.selected:

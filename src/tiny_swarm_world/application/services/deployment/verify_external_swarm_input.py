@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
     PortSwarmStackRuntime,
 )
@@ -22,6 +24,7 @@ class VerifyExternalSwarmInput:
         self.source_ref = _safe_source_ref(source_ref)
 
     async def verify(self) -> VerificationResult:
+        await asyncio.sleep(0)
         try:
             present = self.swarm_runtime.external_secret_exists(self.resource_name)
         except Exception as exc:

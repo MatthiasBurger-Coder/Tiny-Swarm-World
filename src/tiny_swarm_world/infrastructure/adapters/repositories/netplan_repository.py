@@ -1,3 +1,4 @@
+from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,10 @@ from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 GENERATED_NETPLAN_PATH = Path("generated/cloud-init-manager.yaml")
+DEFAULT_NAMESERVERS = (
+    str(IPv4Address(0x08080808)),
+    str(IPv4Address(0x08080404)),
+)
 
 
 class PortNetplanRepositoryYaml(PortYamlRepository):
@@ -44,7 +49,7 @@ class PortNetplanRepositoryYaml(PortYamlRepository):
             .add_child("routes", [{"to": "0.0.0.0/0", "via": f"{data.gateway.ip_address}"}],
                        stay=True)  # Define a list for IP addresses
             .add_child("nameservers")
-            .add_child("addresses", ["8.8.8.8", "8.8.4.4"], stay=True)
+            .add_child("addresses", list(DEFAULT_NAMESERVERS), stay=True)
             .build()
         )
 

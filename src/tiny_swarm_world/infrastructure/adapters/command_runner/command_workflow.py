@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 from tiny_swarm_world.application.ports.commands.port_command_workflow import PortCommandWorkflow
@@ -20,6 +21,15 @@ from tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui import S
 
 
 CommandRepositoryFactory = Callable[[str], PortCommandRepository]
+
+
+@dataclass(frozen=True)
+class _VerificationCounts:
+    mutating: int = 0
+    missing: int = 0
+    manual: int = 0
+    command_backed: int = 0
+    unknown_probe: int = 0
 
 
 class CommandWorkflow(PortCommandWorkflow):
@@ -86,7 +96,7 @@ class CommandWorkflow(PortCommandWorkflow):
                 parameter,
                 workflow_id=workflow_id,
             )
-        except (CommandCatalogValidationError, ValueError, TypeError):
+        except (CommandCatalogValidationError, TypeError):
             return VerificationResult(
                 target_id=target_id,
                 status=VerificationStatus.BLOCKED,
@@ -94,30 +104,9 @@ class CommandWorkflow(PortCommandWorkflow):
                 evidence={"phase": "pre_apply", "reason": "catalog_validation_failed"},
             )
 
-        mutating_count = 0
-        missing_count = 0
-        manual_count = 0
-        command_backed_count = 0
-        unknown_probe_count = 0
-        for commands in command_list.values():
-            for command in commands.values():
-                if not command.mutating:
-                    continue
-                mutating_count += 1
-                if command.verify is None:
-                    missing_count += 1
-                elif command.verify.is_manual_only:
-                    manual_count += 1
-                elif command.verify.is_command_backed:
-                    probe_id = command.verify.command or ""
-                    if is_probe_allowed_for_workflow(probe_id, workflow_id):
-                        command_backed_count += 1
-                    else:
-                        unknown_probe_count += 1
-                else:
-                    missing_count += 1
+        counts = _verification_counts(command_list, workflow_id)
 
-        if mutating_count == 0:
+        if counts.mutating == 0:
             return VerificationResult(
                 target_id=target_id,
                 status=VerificationStatus.VERIFIED,
@@ -125,7 +114,7 @@ class CommandWorkflow(PortCommandWorkflow):
                 evidence={"phase": "pre_apply", "mutating_count": "0"},
             )
 
-        if unknown_probe_count:
+        if counts.unknown_probe:
             return VerificationResult(
                 target_id=target_id,
                 status=VerificationStatus.BLOCKED,
@@ -133,12 +122,12 @@ class CommandWorkflow(PortCommandWorkflow):
                 evidence={
                     "phase": "pre_apply",
                     "reason": "verification_probe_not_registered",
-                    "mutating_count": str(mutating_count),
-                    "unknown_probe_count": str(unknown_probe_count),
+                    "mutating_count": str(counts.mutating),
+                    "unknown_probe_count": str(counts.unknown_probe),
                 },
             )
 
-        if missing_count or manual_count:
+        if counts.missing or counts.manual:
             return VerificationResult(
                 target_id=target_id,
                 status=VerificationStatus.BLOCKED,
@@ -146,9 +135,9 @@ class CommandWorkflow(PortCommandWorkflow):
                 evidence={
                     "phase": "pre_apply",
                     "reason": "command_backed_verification_missing",
-                    "mutating_count": str(mutating_count),
-                    "manual_verify_count": str(manual_count),
-                    "missing_verify_count": str(missing_count),
+                    "mutating_count": str(counts.mutating),
+                    "manual_verify_count": str(counts.manual),
+                    "missing_verify_count": str(counts.missing),
                 },
             )
 
@@ -158,11 +147,59 @@ class CommandWorkflow(PortCommandWorkflow):
             message="Command-backed verification contract is configured.",
             evidence={
                 "phase": "pre_apply",
-                "mutating_count": str(mutating_count),
-                "command_backed_verify_count": str(command_backed_count),
+                "mutating_count": str(counts.mutating),
+                "command_backed_verify_count": str(counts.command_backed),
             },
         )
 
     @staticmethod
     def _command_repository(config_file: str) -> PortCommandRepository:
         return PortCommandRepositoryYaml(filename=config_file)
+
+
+def _verification_counts(
+    command_list: Dict[str, Dict[int, ExecutableCommandEntity]],
+    workflow_id: str,
+) -> _VerificationCounts:
+    mutating_count = 0
+    missing_count = 0
+    manual_count = 0
+    command_backed_count = 0
+    unknown_probe_count = 0
+    for commands in command_list.values():
+        for command in commands.values():
+            if not command.mutating:
+                continue
+            mutating_count += 1
+            classification = _verification_classification(command, workflow_id)
+            if classification == "missing":
+                missing_count += 1
+            elif classification == "manual":
+                manual_count += 1
+            elif classification == "command_backed":
+                command_backed_count += 1
+            else:
+                unknown_probe_count += 1
+    return _VerificationCounts(
+        mutating=mutating_count,
+        missing=missing_count,
+        manual=manual_count,
+        command_backed=command_backed_count,
+        unknown_probe=unknown_probe_count,
+    )
+
+
+def _verification_classification(
+    command: ExecutableCommandEntity,
+    workflow_id: str,
+) -> str:
+    if command.verify is None:
+        return "missing"
+    if command.verify.is_manual_only:
+        return "manual"
+    if not command.verify.is_command_backed:
+        return "missing"
+    probe_id = command.verify.command or ""
+    if is_probe_allowed_for_workflow(probe_id, workflow_id):
+        return "command_backed"
+    return "unknown_probe"

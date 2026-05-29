@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
@@ -29,10 +30,12 @@ class EnsureSwarmStack:
         self.verification_target_id = service_stack.stack_target_id
 
     async def run(self) -> None:
+        await asyncio.sleep(0)
         stack_definition = self.compose_repository.get_compose_of(self.service_stack.stack_name)
         self.swarm_runtime.deploy_stack(stack_definition, self.stack_environment)
 
     async def verify(self) -> VerificationResult:
+        await asyncio.sleep(0)
         try:
             stack_exists = self.swarm_runtime.stack_exists(self.service_stack.stack_name)
             observed_services = _observed_service_names(

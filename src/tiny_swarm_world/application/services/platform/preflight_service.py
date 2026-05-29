@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
@@ -28,6 +29,7 @@ class PreflightService:
         self.configuration = configuration or default_preflight_configuration()
 
     async def run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
+        await asyncio.sleep(0)
         host_environment = self.host_probe.host_environment_report()
         checks = [
             self._setup_manifest_check(),

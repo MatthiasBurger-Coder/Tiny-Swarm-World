@@ -23,14 +23,17 @@ class ArtifactWorkflowStatus(str, Enum):
 
 class ArtifactPrepareStep(Protocol):
     def run(self) -> object:
+        # Protocol declaration; concrete steps prepare artifact resources.
         pass
 
     def verify(self) -> object:
+        # Protocol declaration; concrete steps report preparation evidence.
         pass
 
 
 class ArtifactVerifyCheck(Protocol):
     def verify(self) -> object:
+        # Protocol declaration; concrete checks inspect artifact resources.
         pass
 
 
@@ -68,6 +71,10 @@ DEFAULT_ARTIFACT_VERIFY_BLOCK_REASON = (
     "Nexus repository and registry observed-state verification is not "
     "implemented through artifact ports"
 )
+ARTIFACT_PREPARE_CONTRACTS_BLOCKED_MESSAGE = (
+    "artifacts prepare is blocked until artifact preparation contracts are wired."
+)
+VERIFICATION_EVIDENCE_MISSING_MESSAGE = "Verification evidence is missing."
 
 
 class ArtifactPrepareWorkflow:
@@ -84,7 +91,7 @@ class ArtifactPrepareWorkflow:
             return ArtifactWorkflowResult(
                 kind=ArtifactWorkflowKind.PREPARE,
                 status=ArtifactWorkflowStatus.BLOCKED,
-                message="artifacts prepare is blocked until artifact preparation contracts are wired.",
+                message=ARTIFACT_PREPARE_CONTRACTS_BLOCKED_MESSAGE,
                 reason=self.blocked_reason,
             )
 
@@ -95,14 +102,14 @@ class ArtifactPrepareWorkflow:
                 blocked_verification = VerificationResult(
                     target_id=target_id,
                     status=VerificationStatus.BLOCKED,
-                    message="Verification evidence is missing.",
+                    message=VERIFICATION_EVIDENCE_MISSING_MESSAGE,
                     evidence={"phase": "pre_prepare", "reason": "verify_after_prepare_missing"},
                 )
                 verification_results.append(blocked_verification)
                 return ArtifactWorkflowResult(
                     kind=ArtifactWorkflowKind.PREPARE,
                     status=ArtifactWorkflowStatus.BLOCKED,
-                    message="artifacts prepare is blocked until artifact preparation contracts are wired.",
+                    message=ARTIFACT_PREPARE_CONTRACTS_BLOCKED_MESSAGE,
                     reason="verify-after-prepare contract is missing for artifacts prepare",
                     verification_results=tuple(verification_results),
                 )
