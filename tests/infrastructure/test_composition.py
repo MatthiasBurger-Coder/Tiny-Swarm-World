@@ -71,6 +71,8 @@ class TestComposition(unittest.TestCase):
         self.assertIn("preflight", field_names)
         self.assertIn("lxc_node_provider", field_names)
         self.assertIn("node_provider_selection", field_names)
+        self.assertIn("lxc_docker_install", field_names)
+        self.assertIn("lxc_swarm_bootstrap", field_names)
 
     def test_platform_services_contains_workflow_bundle(self):
         platform_field_names = {field.name for field in fields(composition.PlatformServices)}
@@ -532,6 +534,8 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsNotNone(services.workflows.init.pre_apply_guard)
         self.assertTrue(services.lxc_node_provider.allow_live_mutation)
+        self.assertTrue(services.lxc_docker_install.runtime.allow_live_mutation)
+        self.assertTrue(services.lxc_swarm_bootstrap.swarm.allow_live_mutation)
 
     def test_build_setup_services_wires_live_consent_into_platform_init_guard(self):
         live_consent = _accepted_live_consent()
@@ -614,6 +618,153 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
+    def test_composed_default_lxc_init_runs_container_runtime_and_swarm_steps(self):
+        evidence_repository = _RecordingEvidenceRepository()
+
+        async def verified_node(node, request=None):
+            return VerificationResult(
+                target_id=f"platform:node:{node.name}",
+                status=VerificationStatus.VERIFIED,
+                message="Node lifecycle is verified.",
+                evidence={"phase": "verify", "classification": "node_verified"},
+            )
+
+        async def verified_runtime(_service, _nodes):
+            return (
+                VerificationResult(
+                    target_id="container-runtime:swarm-manager",
+                    status=VerificationStatus.VERIFIED,
+                    message="Container runtime is verified.",
+                    evidence={"phase": "verify"},
+                ),
+            )
+
+        async def verified_swarm(_service, _manager, _workers):
+            return (
+                VerificationResult(
+                    target_id="swarm:swarm-manager",
+                    status=VerificationStatus.VERIFIED,
+                    message="Swarm manager is verified.",
+                    evidence={"phase": "verify", "node": "swarm-manager"},
+                ),
+                VerificationResult(
+                    target_id="swarm:swarm-worker-1",
+                    status=VerificationStatus.VERIFIED,
+                    message="Swarm worker is verified.",
+                    evidence={"phase": "verify", "node": "swarm-worker-1"},
+                ),
+                VerificationResult(
+                    target_id="swarm:swarm-worker-2",
+                    status=VerificationStatus.VERIFIED,
+                    message="Swarm worker is verified.",
+                    evidence={"phase": "verify", "node": "swarm-worker-2"},
+                ),
+            )
+
+        with patch.object(composition, "PortVmRepositoryYaml"):
+            with patch.object(composition, "PortNetplanRepositoryYaml"):
+                with patch.object(
+                    composition,
+                    "VerificationEvidenceLocalRepository",
+                    return_value=evidence_repository,
+                ):
+                    with patch.object(
+                        composition.NodeProviderSelectionService,
+                        "ensure_node",
+                        side_effect=verified_node,
+                    ):
+                        with patch.object(
+                            composition.LxcDockerInstallService,
+                            "ensure_docker_installed",
+                            autospec=True,
+                            side_effect=verified_runtime,
+                        ) as ensure_runtime:
+                            with patch.object(
+                                composition.LxcSwarmBootstrapService,
+                                "bootstrap_swarm",
+                                autospec=True,
+                                side_effect=verified_swarm,
+                            ) as bootstrap_swarm:
+                                with patch.object(
+                                    composition.MultipassInitVms,
+                                    "run",
+                                    side_effect=AssertionError(
+                                        "default init must not run Multipass"
+                                    ),
+                                ):
+                                    services = composition.build_platform_services()
+                                    result = asyncio.run(services.workflows.init.run())
+
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertTrue(result.executed)
+        self.assertEqual(
+            (
+                "platform:node:swarm-manager",
+                "platform:node:swarm-worker-1",
+                "platform:node:swarm-worker-2",
+                "platform:init:lxc-container-runtime",
+                "platform:init:lxc-swarm-bootstrap",
+            ),
+            tuple(item.target_id for item in result.verification_results),
+        )
+        ensure_runtime.assert_called_once()
+        bootstrap_swarm.assert_called_once()
+        self.assertEqual(
+            composition.DEFAULT_LXC_PLATFORM_NODES,
+            ensure_runtime.call_args.args[1],
+        )
+        self.assertEqual("swarm-manager", bootstrap_swarm.call_args.args[1].name)
+        self.assertEqual(
+            ("swarm-worker-1", "swarm-worker-2"),
+            tuple(worker.name for worker in bootstrap_swarm.call_args.args[2]),
+        )
+        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+
+    def test_composed_default_lxc_init_without_live_consent_fails_closed_before_runtime_probe(self):
+        evidence_repository = _RecordingEvidenceRepository()
+
+        async def verified_node(node, request=None):
+            return VerificationResult(
+                target_id=f"platform:node:{node.name}",
+                status=VerificationStatus.VERIFIED,
+                message="Node lifecycle is verified.",
+                evidence={"phase": "verify", "classification": "node_verified"},
+            )
+
+        with patch.object(composition, "PortVmRepositoryYaml"):
+            with patch.object(composition, "PortNetplanRepositoryYaml"):
+                with patch.object(
+                    composition,
+                    "VerificationEvidenceLocalRepository",
+                    return_value=evidence_repository,
+                ):
+                    with patch.object(
+                        composition.NodeProviderSelectionService,
+                        "ensure_node",
+                        side_effect=verified_node,
+                    ):
+                        with patch.object(
+                            composition,
+                            "LxcContainerDockerRuntime",
+                            side_effect=AssertionError(
+                                "runtime adapter must not be constructed without consent"
+                            ),
+                        ):
+                            services = composition.build_platform_services()
+                            result = asyncio.run(services.workflows.init.run())
+
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual(
+            "platform:init:lxc-container-runtime",
+            result.verification_results[-1].target_id,
+        )
+        self.assertEqual(
+            "container_runtime_not_verified",
+            result.verification_results[-1].evidence["classification"],
+        )
+        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+
     def test_explicit_legacy_init_workflow_keeps_multipass_contract(self):
         evidence_repository = _RecordingEvidenceRepository()
         blocked_result = _blocked_contract_result("platform:init:multipass-vms")
@@ -649,7 +800,7 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
-    def test_composed_default_lxc_reconcile_blocks_before_multipass_execution(self):
+    def test_composed_default_lxc_reconcile_completes_without_multipass_execution(self):
         evidence_repository = _RecordingEvidenceRepository()
         with patch.object(composition, "PortVmRepositoryYaml"):
             with patch.object(composition, "PortNetplanRepositoryYaml"):
@@ -673,15 +824,15 @@ class TestComposition(unittest.TestCase):
                             services = composition.build_platform_services()
                             result = asyncio.run(services.workflows.reconcile.run())
 
-        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
-        self.assertFalse(result.executed)
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertTrue(result.executed)
         verify_config_contract.assert_not_called()
         self.assertEqual(
             "platform:reconcile:lxc-native-provider-boundary",
             result.verification_results[0].target_id,
         )
         self.assertEqual(
-            "multipass_legacy_required",
+            "lxc_native_reconcile_noop",
             result.verification_results[0].evidence["reason"],
         )
         self.assertEqual(

@@ -26,6 +26,7 @@ from tiny_swarm_world.application.services.platform.lxc_docker_install import (
 )
 from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapService,
+    LxcSwarmBootstrapStep,
 )
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.application.services.platform.node_provider_selection import (
@@ -68,6 +69,7 @@ __all__ = [
     "LxcDockerInstallService",
     "LxcDockerInstallStep",
     "LxcSwarmBootstrapService",
+    "LxcSwarmBootstrapStep",
     "NodeProviderEnsureNodeStep",
     "NodeProviderSelectionRequest",
     "NodeProviderSelectionService",

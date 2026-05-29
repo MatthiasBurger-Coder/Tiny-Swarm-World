@@ -28,6 +28,9 @@ class LxcDockerInstallService:
             if readiness_result.status == VerificationStatus.VERIFIED:
                 results.append(readiness_result)
                 continue
+            if readiness_result.status == VerificationStatus.BLOCKED:
+                results.append(readiness_result)
+                continue
 
             install_outcome = await self.runtime.install_docker(node)
             install_result = self.contract_service.verify_container_docker_install(

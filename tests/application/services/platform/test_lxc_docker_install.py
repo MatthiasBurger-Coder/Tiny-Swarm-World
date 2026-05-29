@@ -88,6 +88,23 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, results[0].status)
         self.assertEqual(0, runtime.verify_calls)
 
+    async def test_unobserved_runtime_state_blocks_before_install(self):
+        runtime = _DockerRuntime(
+            initial=ContainerDockerReadiness(
+                node=_node(),
+                observed=False,
+                engine_state=DockerEngineState.UNKNOWN,
+            ),
+        )
+
+        results = await LxcDockerInstallService(runtime).ensure_docker_installed(
+            (_node(),),
+        )
+
+        self.assertEqual(1, len(results))
+        self.assertEqual(VerificationStatus.BLOCKED, results[0].status)
+        self.assertEqual([], runtime.installed_nodes)
+
     async def test_install_step_aggregates_node_results_for_platform_workflow(self):
         runtime = _DockerRuntime(
             initial=ContainerDockerReadiness(

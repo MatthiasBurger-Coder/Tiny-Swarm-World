@@ -25,6 +25,7 @@ from tiny_swarm_world.application.services.platform import (
     LxcDockerInstallService,
     LxcDockerInstallStep,
     LxcSwarmBootstrapService,
+    LxcSwarmBootstrapStep,
     MultipassDockerInstall,
     MultipassDockerSwarmInit,
     MultipassInitVms,
@@ -48,6 +49,9 @@ from tiny_swarm_world.application.services.platform.lxc_docker_install import (
 )
 from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapService as ExistingLxcSwarmBootstrapService,
+)
+from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
+    LxcSwarmBootstrapStep as ExistingLxcSwarmBootstrapStep,
 )
 from tiny_swarm_world.application.services.platform.workflows import (
     PlatformDestroyWorkflow as ExistingPlatformDestroyWorkflow,
@@ -76,6 +80,7 @@ class TestPlatformServiceExports(unittest.TestCase):
         self.assertIs(LxcDockerInstallService, ExistingLxcDockerInstallService)
         self.assertIs(LxcDockerInstallStep, ExistingLxcDockerInstallStep)
         self.assertIs(LxcSwarmBootstrapService, ExistingLxcSwarmBootstrapService)
+        self.assertIs(LxcSwarmBootstrapStep, ExistingLxcSwarmBootstrapStep)
         self.assertIs(MultipassDockerSwarmInit, ExistingMultipassDockerSwarmInit)
         self.assertIs(MultipassInitVms, ExistingMultipassInitVms)
         self.assertIs(MultipassRestartVMs, ExistingMultipassRestartVMs)

@@ -40,15 +40,16 @@ were run during workflow authoring.
 | Slice 03 | completed | LXD/Incus Docker runtime adapter added with structured exec argv and fake-runner infrastructure tests. |
 | Slice 04 | completed | LXC Docker install application step aggregates node runtime results for Platform init workflow continuation. |
 | Slice 05 | completed | LXD/Incus Swarm manager, token, worker join, and manager identity adapters added with token-redaction tests. |
-| implementation | not started | Requires `workflow execute`. |
-| quality gate | pending | Workflow creation checks only run after files are authored. |
+| Slice 06 | completed | Platform composition now wires default LXC init through node creation, container runtime setup, and Swarm bootstrap steps. |
+| implementation | in progress | Slices 01-06 completed; documentation sync and final quality/live-smoke boundary remain. |
+| quality gate | passed | Full repository quality gate passed after Slice 06 changes. |
 | live smoke | not approved | Requires explicit later approval. |
 
 ## Current Implementation Target
 
-The next execution should start with Slice 01 and preserve the Platform
-boundary. The target is not service deployment; it is provider-native Platform
-completion through:
+The remaining execution should continue with documentation sync and final
+quality/live-smoke boundary review. The target is not service deployment; it
+is provider-native Platform completion through:
 
 - LXC node existence;
 - Docker Engine installed inside each configured LXC node;
@@ -192,6 +193,99 @@ Rollback reference:
 
 ```text
 92b61d5
+```
+
+arc42 update:
+
+```text
+not required
+```
+
+ADR update:
+
+```text
+not required
+```
+
+## Slice 06 Result
+
+```text
+COMPLETED
+```
+
+Responsible role:
+
+```text
+Senior Python Automation Developer
+```
+
+Reviewer evidence:
+
+- Senior Tester reviewed the Slice 06 diff and confirmed the default LXC init
+  path is covered.
+- Follow-up test hardening from the review verifies runtime node arguments,
+  Swarm manager/worker arguments, and live-consent propagation into the new
+  LXC runtime and Swarm wrappers.
+- Senior System Architect review found no hexagonal import violation and
+  accepted the private provider-selected wrappers as composition-owned
+  infrastructure wiring. Follow-up fixes made default LXC reconcile a verified
+  no-op boundary, enforced expected Swarm node-result coverage, and made
+  direct composition execution without live consent fail closed before LXC
+  runtime probes.
+
+Changed files:
+
+```text
+src/tiny_swarm_world/application/services/platform/__init__.py
+src/tiny_swarm_world/application/services/platform/lxc_docker_install.py
+src/tiny_swarm_world/application/services/platform/lxc_swarm_bootstrap.py
+src/tiny_swarm_world/infrastructure/composition.py
+tests/application/services/platform/test_lxc_docker_install.py
+tests/application/services/platform/test_lxc_swarm_bootstrap.py
+tests/application/services/platform/test_platform_service_exports.py
+tests/infrastructure/test_composition.py
+documentation/workflow/execution-report.md
+```
+
+Implementation summary:
+
+- Added `LxcSwarmBootstrapStep` so Platform init can aggregate manager and
+  worker Swarm bootstrap results as a direct `VerificationResult`.
+- Wired default LXC Platform init to run node lifecycle, container runtime
+  setup, and Swarm bootstrap steps in order.
+- Added provider-selected LXC runtime wrappers in composition so the selected
+  Incus or LXD backend is resolved at runtime and passed to concrete
+  infrastructure adapters.
+- Reused one LXC command runner for node lifecycle, runtime setup, network
+  identity, and Swarm bootstrap.
+- Propagated live consent to the new runtime and Swarm mutation wrappers while
+  preserving the explicit Multipass legacy init path.
+- Made default LXC reconcile complete as an explicit verified no-op boundary so
+  setup can progress past platform reconciliation after provider-native init.
+- Blocked runtime setup when container Docker state is unobserved instead of
+  attempting a blind install.
+- Required Swarm bootstrap aggregation to include the expected manager and all
+  workers before reporting the step verified.
+- Deferred worker join credential retrieval until a worker actually needs to
+  join.
+
+Quality gates:
+
+```text
+PYTHONPATH=src .venv/bin/python -m unittest tests.infrastructure.test_composition tests.application.services.platform.test_lxc_docker_install tests.application.services.platform.test_lxc_swarm_bootstrap tests.application.services.platform.test_platform_service_exports: passed
+PYTHONPATH=src .venv/bin/python -m unittest discover tests/application: passed
+PYTHONPATH=src .venv/bin/python -m unittest discover tests/infrastructure: passed
+.venv/bin/python tools/quality_gate.py lint: passed
+.venv/bin/python tools/quality_gate.py arch-tests: passed
+.venv/bin/python tools/quality_gate.py typecheck: passed
+.venv/bin/python tools/quality_gate.py quality: passed
+git diff --check: passed
+```
+
+Rollback reference:
+
+```text
+20373ed
 ```
 
 arc42 update:
