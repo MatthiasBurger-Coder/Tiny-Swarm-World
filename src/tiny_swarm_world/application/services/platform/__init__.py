@@ -22,6 +22,7 @@ from tiny_swarm_world.application.services.platform.docker_swarm_lxc_contract im
 )
 from tiny_swarm_world.application.services.platform.lxc_docker_install import (
     LxcDockerInstallService,
+    LxcDockerInstallStep,
 )
 from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapService,
@@ -65,6 +66,7 @@ __all__ = [
     "MultipassRestartVMs",
     "DockerSwarmInLxcContractService",
     "LxcDockerInstallService",
+    "LxcDockerInstallStep",
     "LxcSwarmBootstrapService",
     "NodeProviderEnsureNodeStep",
     "NodeProviderSelectionRequest",

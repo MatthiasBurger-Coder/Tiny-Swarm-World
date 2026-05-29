@@ -2,7 +2,9 @@ import unittest
 
 from tiny_swarm_world.application.services.platform.lxc_docker_install import (
     LxcDockerInstallService,
+    LxcDockerInstallStep,
 )
+from tiny_swarm_world.application.services.platform.workflows import PlatformInitWorkflow
 from tiny_swarm_world.domain.inventory import VerificationStatus
 from tiny_swarm_world.domain.node_provider import (
     ContainerDockerInstallOutcome,
@@ -85,6 +87,28 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(1, len(results))
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, results[0].status)
         self.assertEqual(0, runtime.verify_calls)
+
+    async def test_install_step_aggregates_node_results_for_platform_workflow(self):
+        runtime = _DockerRuntime(
+            initial=ContainerDockerReadiness(
+                node=_node(),
+                observed=True,
+                engine_state=DockerEngineState.READY,
+            ),
+        )
+        step = LxcDockerInstallStep(
+            LxcDockerInstallService(runtime),
+            (_node(),),
+        )
+
+        result = await PlatformInitWorkflow([step]).run()
+
+        self.assertEqual("completed", result.status.value)
+        self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
+        self.assertEqual(
+            "container_runtime_verified",
+            result.verification_results[0].evidence["classification"],
+        )
 
 
 class _DockerRuntime:

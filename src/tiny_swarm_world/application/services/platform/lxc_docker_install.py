@@ -44,3 +44,80 @@ class LxcDockerInstallService:
                 )
             )
         return tuple(results)
+
+
+class LxcDockerInstallStep:
+    returns_verification_result = True
+    verification_target_id = "platform:init:lxc-container-runtime"
+
+    def __init__(
+        self,
+        service: LxcDockerInstallService,
+        nodes: tuple[NodeSpec, ...],
+    ) -> None:
+        self.service = service
+        self.nodes = nodes
+
+    async def run(self) -> VerificationResult:
+        results = await self.service.ensure_docker_installed(self.nodes)
+        return _aggregate_install_results(results)
+
+
+def _aggregate_install_results(
+    results: tuple[VerificationResult, ...],
+) -> VerificationResult:
+    if not results:
+        return VerificationResult(
+            target_id=LxcDockerInstallStep.verification_target_id,
+            status=VerificationStatus.BLOCKED,
+            message="Container runtime phase has no node results.",
+            evidence={"phase": "verify", "classification": "node_results_missing"},
+        )
+
+    status = _aggregate_status(results)
+    classification = (
+        "container_runtime_verified"
+        if status == VerificationStatus.VERIFIED
+        else "container_runtime_not_verified"
+    )
+    return VerificationResult(
+        target_id=LxcDockerInstallStep.verification_target_id,
+        status=status,
+        message="Container runtime phase reached a terminal state.",
+        evidence={
+            "phase": "verify",
+            "classification": classification,
+            "result_count": str(len(results)),
+            "verified_count": str(
+                sum(1 for result in results if result.status == VerificationStatus.VERIFIED)
+            ),
+            "blocked_count": str(
+                sum(1 for result in results if result.status == VerificationStatus.BLOCKED)
+            ),
+            "failed_apply_count": str(
+                sum(
+                    1
+                    for result in results
+                    if result.status == VerificationStatus.FAILED_TO_APPLY
+                )
+            ),
+            "failed_verify_count": str(
+                sum(
+                    1
+                    for result in results
+                    if result.status == VerificationStatus.FAILED_TO_VERIFY
+                )
+            ),
+        },
+    )
+
+
+def _aggregate_status(results: tuple[VerificationResult, ...]) -> VerificationStatus:
+    statuses = tuple(result.status for result in results)
+    if all(status == VerificationStatus.VERIFIED for status in statuses):
+        return VerificationStatus.VERIFIED
+    if VerificationStatus.FAILED_TO_APPLY in statuses:
+        return VerificationStatus.FAILED_TO_APPLY
+    if VerificationStatus.BLOCKED in statuses:
+        return VerificationStatus.BLOCKED
+    return VerificationStatus.FAILED_TO_VERIFY

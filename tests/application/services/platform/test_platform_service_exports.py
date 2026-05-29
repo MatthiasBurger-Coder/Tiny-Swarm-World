@@ -23,6 +23,7 @@ from tiny_swarm_world.application.services.network.socat.socat_manager import (
 )
 from tiny_swarm_world.application.services.platform import (
     LxcDockerInstallService,
+    LxcDockerInstallStep,
     LxcSwarmBootstrapService,
     MultipassDockerInstall,
     MultipassDockerSwarmInit,
@@ -41,6 +42,9 @@ from tiny_swarm_world.application.services.platform import (
 )
 from tiny_swarm_world.application.services.platform.lxc_docker_install import (
     LxcDockerInstallService as ExistingLxcDockerInstallService,
+)
+from tiny_swarm_world.application.services.platform.lxc_docker_install import (
+    LxcDockerInstallStep as ExistingLxcDockerInstallStep,
 )
 from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapService as ExistingLxcSwarmBootstrapService,
@@ -70,6 +74,7 @@ class TestPlatformServiceExports(unittest.TestCase):
     def test_platform_namespace_exports_existing_services(self):
         self.assertIs(MultipassDockerInstall, ExistingMultipassDockerInstall)
         self.assertIs(LxcDockerInstallService, ExistingLxcDockerInstallService)
+        self.assertIs(LxcDockerInstallStep, ExistingLxcDockerInstallStep)
         self.assertIs(LxcSwarmBootstrapService, ExistingLxcSwarmBootstrapService)
         self.assertIs(MultipassDockerSwarmInit, ExistingMultipassDockerSwarmInit)
         self.assertIs(MultipassInitVms, ExistingMultipassInitVms)
