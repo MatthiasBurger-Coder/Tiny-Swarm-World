@@ -226,16 +226,47 @@ Specialist skills:
 slice: 01
 name: baseline-multipass-lxc-contract
 status: READY
+profile: NORMAL_PATH
 owner: Senior Requirement Engineer
+secondary_reviewers:
+  - Senior System Architect
+  - Senior DevOps Engineer
+  - Senior Tester
 allowed_files:
   - documentation/workflow/**
   - documentation/architecture/**
   - documentation/arc42/**
   - documentation/epics/**
-locks:
-  - workflow-contract
+affected_files:
+  - documentation/workflow/**
+  - documentation/architecture/**
+  - documentation/arc42/**
+  - documentation/epics/**
+affected_modules:
+  - Platform documentation
+  - workflow governance
+affected_contracts:
+  - LXC Docker install contract
+  - LXC Docker Swarm bootstrap contract
+dependencies: []
+parallel_group: serial-01
+file_locks:
+  - slice-01-workflow-contract-files
+contract_locks:
+  - slice-01-platform-contract-baseline
+architecture_locks:
+  - slice-01-platform-architecture-baseline
 quality_gates:
-  - git diff --check
+  targeted:
+    - git diff --check
+  required:
+    - git diff --check
+documentation:
+  arc42: review-required
+  adr: review-required
+stop_conditions:
+  - Missing Multipass baseline evidence.
+  - Documentation would claim implemented Docker-in-LXC behavior.
 live_infrastructure: prohibited
 ```
 
@@ -261,18 +292,53 @@ Done:
 slice: 02
 name: lxc-docker-domain-application-contracts
 status: READY
+profile: NORMAL_PATH
 owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Senior System Architect
+  - Senior Tester
+  - Senior DevOps Engineer
 allowed_files:
   - src/tiny_swarm_world/domain/**
   - src/tiny_swarm_world/application/ports/**
   - src/tiny_swarm_world/application/services/platform/**
   - tests/domain/**
   - tests/application/**
-locks:
-  - platform-domain-contracts
+affected_files:
+  - src/tiny_swarm_world/domain/**
+  - src/tiny_swarm_world/application/ports/**
+  - src/tiny_swarm_world/application/services/platform/**
+  - tests/domain/**
+  - tests/application/**
+affected_modules:
+  - tiny_swarm_world.domain
+  - tiny_swarm_world.application.ports
+  - tiny_swarm_world.application.services.platform
+affected_contracts:
+  - container Docker readiness
+  - Docker install result
+  - Swarm manager state
+  - worker join state
+dependencies:
+  - "01"
+parallel_group: serial-02
+file_locks:
+  - slice-02-platform-domain-application-files
+contract_locks:
+  - slice-02-platform-domain-contracts
+architecture_locks:
+  - slice-02-hexagonal-domain-application-boundary
 quality_gates:
-  - PYTHONPATH=src python -m unittest discover tests/domain tests/application
-  - python3 tools/quality_gate.py lint
+  targeted:
+    - PYTHONPATH=src python -m unittest discover tests/domain tests/application
+  required:
+    - python3 tools/quality_gate.py lint
+documentation:
+  arc42: not applicable
+  adr: not applicable
+stop_conditions:
+  - Domain code would import application or infrastructure concerns.
+  - Application services would embed LXD, Incus, shell, filesystem, or Docker CLI details.
 live_infrastructure: prohibited
 ```
 
@@ -299,18 +365,50 @@ Done:
 slice: 03
 name: lxc-docker-install-adapter
 status: READY
+profile: NORMAL_PATH
 owner: Senior DevOps Engineer
+secondary_reviewers:
+  - Senior Python Automation Developer
+  - Senior Tester
+  - Senior System Architect
 allowed_files:
   - src/tiny_swarm_world/infrastructure/adapters/**
   - src/tiny_swarm_world/infrastructure/composition.py
   - infra/config/docker/**
   - tests/infrastructure/**
-locks:
-  - lxc-provider-adapters
-  - docker-command-config
+affected_files:
+  - src/tiny_swarm_world/infrastructure/adapters/**
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - infra/config/docker/**
+  - tests/infrastructure/**
+affected_modules:
+  - tiny_swarm_world.infrastructure.adapters
+  - tiny_swarm_world.infrastructure.composition
+  - infra.config.docker
+affected_contracts:
+  - LXD exec command adapter
+  - Incus exec command adapter
+  - Docker install command configuration
+dependencies:
+  - "02"
+parallel_group: serial-03
+file_locks:
+  - slice-03-lxc-install-adapter-files
+contract_locks:
+  - slice-03-lxc-exec-docker-install-contracts
+architecture_locks:
+  - slice-03-infrastructure-adapter-boundary
 quality_gates:
-  - PYTHONPATH=src python -m unittest discover tests/infrastructure
-  - python3 tools/quality_gate.py lint
+  targeted:
+    - PYTHONPATH=src python -m unittest discover tests/infrastructure
+  required:
+    - python3 tools/quality_gate.py lint
+documentation:
+  arc42: not applicable
+  adr: not applicable
+stop_conditions:
+  - LXD and Incus cannot share a provider-neutral application contract.
+  - Raw command output or command payloads would leave the infrastructure boundary.
 live_infrastructure: prohibited
 ```
 
@@ -338,17 +436,49 @@ Done:
 slice: 04
 name: lxc-docker-install-workflow
 status: READY
+profile: NORMAL_PATH
 owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Senior DevOps Engineer
+  - Senior Tester
+  - Senior System Architect
 allowed_files:
   - src/tiny_swarm_world/application/services/platform/**
   - src/tiny_swarm_world/infrastructure/composition.py
   - tests/application/**
   - tests/infrastructure/**
-locks:
-  - platform-init-workflow
+affected_files:
+  - src/tiny_swarm_world/application/services/platform/**
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/application/**
+  - tests/infrastructure/**
+affected_modules:
+  - tiny_swarm_world.application.services.platform
+  - tiny_swarm_world.infrastructure.composition
+affected_contracts:
+  - platform init Docker install phase
+  - verify-after-apply continuation gate
+dependencies:
+  - "02"
+  - "03"
+parallel_group: serial-04
+file_locks:
+  - slice-04-platform-docker-install-workflow-files
+contract_locks:
+  - slice-04-platform-init-docker-install-contract
+architecture_locks:
+  - slice-04-platform-application-composition-boundary
 quality_gates:
-  - PYTHONPATH=src python -m unittest discover tests/application tests/infrastructure
-  - python3 tools/quality_gate.py typecheck
+  targeted:
+    - PYTHONPATH=src python -m unittest discover tests/application tests/infrastructure
+  required:
+    - python3 tools/quality_gate.py typecheck
+documentation:
+  arc42: not applicable
+  adr: not applicable
+stop_conditions:
+  - Docker install can continue without verified evidence.
+  - Platform failure states would be collapsed into success.
 live_infrastructure: prohibited
 ```
 
@@ -374,7 +504,13 @@ Done:
 slice: 05
 name: lxc-docker-swarm-init-join
 status: READY
+profile: NORMAL_PATH
 owner: Senior DevOps Engineer
+secondary_reviewers:
+  - Senior Python Automation Developer
+  - Senior Tester
+  - Senior System Architect
+  - Senior Security Sandbox Engineer
 allowed_files:
   - src/tiny_swarm_world/application/services/platform/**
   - src/tiny_swarm_world/infrastructure/adapters/**
@@ -382,12 +518,42 @@ allowed_files:
   - infra/config/docker/**
   - tests/application/**
   - tests/infrastructure/**
-locks:
-  - swarm-bootstrap
-  - lxc-provider-adapters
+affected_files:
+  - src/tiny_swarm_world/application/services/platform/**
+  - src/tiny_swarm_world/infrastructure/adapters/**
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - infra/config/docker/**
+  - tests/application/**
+  - tests/infrastructure/**
+affected_modules:
+  - tiny_swarm_world.application.services.platform
+  - tiny_swarm_world.infrastructure.adapters
+  - tiny_swarm_world.infrastructure.composition
+  - infra.config.docker
+affected_contracts:
+  - Docker Swarm manager init
+  - Docker Swarm worker join
+  - Swarm token redaction
+dependencies:
+  - "04"
+parallel_group: serial-05
+file_locks:
+  - slice-05-lxc-swarm-bootstrap-files
+contract_locks:
+  - slice-05-swarm-bootstrap-token-contracts
+architecture_locks:
+  - slice-05-platform-swarm-boundary
 quality_gates:
-  - PYTHONPATH=src python -m unittest discover tests/application tests/infrastructure
-  - python3 tools/quality_gate.py typecheck
+  targeted:
+    - PYTHONPATH=src python -m unittest discover tests/application tests/infrastructure
+  required:
+    - python3 tools/quality_gate.py typecheck
+documentation:
+  arc42: not applicable
+  adr: not applicable
+stop_conditions:
+  - Swarm join token would be persisted in evidence, logs, exceptions, or committed files.
+  - Manager advertise address would be committed as configuration.
 live_infrastructure: prohibited
 ```
 
@@ -414,7 +580,12 @@ Done:
 slice: 06
 name: setup-platform-integration
 status: READY
+profile: NORMAL_PATH
 owner: Senior System Architect
+secondary_reviewers:
+  - Senior Python Automation Developer
+  - Senior DevOps Engineer
+  - Senior Tester
 allowed_files:
   - src/tiny_swarm_world/application/services/setup/**
   - src/tiny_swarm_world/application/services/platform/**
@@ -422,12 +593,42 @@ allowed_files:
   - src/tiny_swarm_world/__main__.py
   - tests/application/**
   - tests/infrastructure/**
-locks:
-  - setup-run-phases
-  - composition-root
+affected_files:
+  - src/tiny_swarm_world/application/services/setup/**
+  - src/tiny_swarm_world/application/services/platform/**
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - src/tiny_swarm_world/__main__.py
+  - tests/application/**
+  - tests/infrastructure/**
+affected_modules:
+  - tiny_swarm_world.application.services.setup
+  - tiny_swarm_world.application.services.platform
+  - tiny_swarm_world.infrastructure.composition
+  - tiny_swarm_world.__main__
+affected_contracts:
+  - setup platform phase sequence
+  - direct platform init contract
+  - artifact and deployment blocked-boundary compatibility
+dependencies:
+  - "05"
+parallel_group: serial-06
+file_locks:
+  - slice-06-setup-platform-integration-files
+contract_locks:
+  - slice-06-setup-platform-phase-contracts
+architecture_locks:
+  - slice-06-composition-entrypoint-boundary
 quality_gates:
-  - PYTHONPATH=src python -m unittest discover tests/application tests/infrastructure
-  - python3 tools/quality_gate.py test
+  targeted:
+    - PYTHONPATH=src python -m unittest discover tests/application tests/infrastructure
+  required:
+    - python3 tools/quality_gate.py test
+documentation:
+  arc42: review-required
+  adr: review-required
+stop_conditions:
+  - Entry point would construct concrete infrastructure adapters directly.
+  - Artifacts or Deployment would be implemented outside their workflow scope.
 live_infrastructure: prohibited
 ```
 
@@ -454,15 +655,47 @@ Done:
 slice: 07
 name: docs-architecture-sync
 status: READY
+profile: NORMAL_PATH
 owner: Senior Documentation Engineer
+secondary_reviewers:
+  - Senior Requirement Engineer
+  - Senior System Architect
+  - Senior Tester
 allowed_files:
   - README.md
   - documentation/**
   - OPERATIONAL_READINESS_CHECKLIST.md
-locks:
+affected_files:
+  - README.md
+  - documentation/**
+  - OPERATIONAL_READINESS_CHECKLIST.md
+affected_modules:
   - documentation
+  - operational readiness
+affected_contracts:
+  - operator setup documentation
+  - arc42 runtime/deployment documentation
+  - ADR index documentation
+dependencies:
+  - "06"
+parallel_group: serial-07
+file_locks:
+  - slice-07-documentation-sync-files
+contract_locks:
+  - slice-07-documentation-truth-contracts
+architecture_locks:
+  - slice-07-arc42-adr-alignment
 quality_gates:
-  - git diff --check
+  targeted:
+    - git diff --check
+  required:
+    - git diff --check
+documentation:
+  arc42: required
+  adr: review-required
+stop_conditions:
+  - Documentation would present planned or mocked behavior as live-verified.
+  - Operator docs would describe automatic host repair as default behavior.
 live_infrastructure: prohibited
 ```
 
@@ -487,17 +720,50 @@ Done:
 slice: 08
 name: quality-live-smoke-boundary
 status: READY
+profile: NORMAL_PATH
 owner: Senior Tester
+secondary_reviewers:
+  - Senior DevOps Engineer
+  - Senior System Architect
+  - Senior Documentation Engineer
 allowed_files:
   - tests/**
   - tools/**
   - documentation/workflow/**
   - documentation/system/**
-locks:
-  - quality-gates
-  - live-smoke-boundary
+affected_files:
+  - tests/**
+  - tools/**
+  - documentation/workflow/**
+  - documentation/system/**
+affected_modules:
+  - tests
+  - tools
+  - workflow evidence
+  - system documentation
+affected_contracts:
+  - repository quality gate
+  - optional live smoke evidence contract
+dependencies:
+  - "07"
+parallel_group: serial-08
+file_locks:
+  - slice-08-quality-live-smoke-files
+contract_locks:
+  - slice-08-quality-live-smoke-contracts
+architecture_locks:
+  - slice-08-quality-evidence-boundary
 quality_gates:
-  - python3 tools/quality_gate.py quality
+  targeted:
+    - python3 tools/quality_gate.py quality
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: review-required
+  adr: review-required
+stop_conditions:
+  - Live smoke would run without explicit user approval.
+  - Live evidence would be generalized across native Linux and WSL2 targets.
 live_infrastructure: optional_after_explicit_user_approval
 ```
 

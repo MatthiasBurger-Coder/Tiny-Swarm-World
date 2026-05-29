@@ -34,6 +34,7 @@ were run during workflow authoring.
 | requirement clarification | completed | Proceed with accepted assumptions. |
 | baseline review | completed | Multipass Docker install/Swarm and LXC provider baseline inspected. |
 | workflow authoring | completed | Workflow, context pack, JSON context, and reports created. |
+| S3D metadata repair | completed | Slice dependencies, affected surfaces, locks, quality gates, documentation flags, and stop conditions made machine-readable. |
 | implementation | not started | Requires `workflow execute`. |
 | quality gate | pending | Workflow creation checks only run after files are authored. |
 | live smoke | not approved | Requires explicit later approval. |
@@ -63,3 +64,26 @@ for this new workflow.
 Execution must stop before any live LXD, Incus, LXC, Docker, Swarm, compose,
 stack, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or service bootstrap
 command unless the user explicitly approves live infrastructure execution.
+
+## S3D Metadata Repair
+
+The first `workflow execute with subagents` attempt stopped before
+write-capable execution because the initial workflow slice YAML blocks did not
+carry every S3D-required metadata field in machine-readable form.
+
+Repair status:
+
+```text
+COMPLETED
+```
+
+Repair details:
+
+- Added concrete dependencies for slices `01` through `08`.
+- Added `profile`, `secondary_reviewers`, `affected_files`,
+  `affected_modules`, `affected_contracts`, `parallel_group`, `file_locks`,
+  `contract_locks`, `architecture_locks`, structured `quality_gates`,
+  `documentation`, and `stop_conditions` to every slice.
+- Kept execution serial because later slices share Platform, adapter,
+  composition, test, and documentation surfaces.
+- No live infrastructure commands were run.

@@ -21,6 +21,12 @@ workflow create:
 feature/workflow-lxc-docker-install-20260529
 ```
 
+## Active Workflow Hash
+
+```text
+28cbccd6c52daa32147a58d2e27775b548dc03d768c5af139bee2ea82e23af50  documentation/workflow/workflow.md
+```
+
 ## Current Repository Baseline
 
 - Tiny Swarm World is Linux/WSL-only and Docker Swarm-first.
@@ -48,6 +54,12 @@ feature/workflow-lxc-docker-install-20260529
 
 ## Implementation Notes For Executors
 
+- Slice metadata is S3D-ready: every slice has concrete dependencies, affected
+  files/modules/contracts, file locks, contract locks, architecture locks,
+  targeted quality gates, required quality gates, and stop conditions.
+- The execution graph is serial by design. Later slices touch shared Platform,
+  adapter, composition, test, and documentation surfaces, so parallel writes
+  are not authorized by this workflow.
 - Start by reading the Multipass Docker install and Swarm services to preserve
   sequence and failure semantics.
 - Do not copy `multipass exec` into application code. The LXC path needs a

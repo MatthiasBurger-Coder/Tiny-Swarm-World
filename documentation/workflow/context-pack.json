@@ -6,6 +6,11 @@
   "request": "Überarbeite die stelle damit auf den LXC Container docker installiert wird. Nimm als grundlage die multipass vorgehenweise und passe diese für die LXC an",
   "process_strand": "S3D",
   "execution_profile": "NORMAL_PATH",
+  "active_workflow": {
+    "path": "documentation/workflow/workflow.md",
+    "sha256": "28cbccd6c52daa32147a58d2e27775b548dc03d768c5af139bee2ea82e23af50",
+    "s3d_metadata": "complete"
+  },
   "primary_boundary": "Platform",
   "provider_target": "lxc_native",
   "legacy_reference": "multipass_legacy",
@@ -98,14 +103,61 @@
     }
   ],
   "slices": [
-    "baseline-multipass-lxc-contract",
-    "lxc-docker-domain-application-contracts",
-    "lxc-docker-install-adapter",
-    "lxc-docker-install-workflow",
-    "lxc-docker-swarm-init-join",
-    "setup-platform-integration",
-    "docs-architecture-sync",
-    "quality-live-smoke-boundary"
+    {
+      "slice_id": "01",
+      "name": "baseline-multipass-lxc-contract",
+      "dependencies": []
+    },
+    {
+      "slice_id": "02",
+      "name": "lxc-docker-domain-application-contracts",
+      "dependencies": [
+        "01"
+      ]
+    },
+    {
+      "slice_id": "03",
+      "name": "lxc-docker-install-adapter",
+      "dependencies": [
+        "02"
+      ]
+    },
+    {
+      "slice_id": "04",
+      "name": "lxc-docker-install-workflow",
+      "dependencies": [
+        "02",
+        "03"
+      ]
+    },
+    {
+      "slice_id": "05",
+      "name": "lxc-docker-swarm-init-join",
+      "dependencies": [
+        "04"
+      ]
+    },
+    {
+      "slice_id": "06",
+      "name": "setup-platform-integration",
+      "dependencies": [
+        "05"
+      ]
+    },
+    {
+      "slice_id": "07",
+      "name": "docs-architecture-sync",
+      "dependencies": [
+        "06"
+      ]
+    },
+    {
+      "slice_id": "08",
+      "name": "quality-live-smoke-boundary",
+      "dependencies": [
+        "07"
+      ]
+    }
   ],
   "stop_conditions": [
     "Live infrastructure commands would run without explicit user approval.",
