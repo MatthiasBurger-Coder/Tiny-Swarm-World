@@ -1,7 +1,7 @@
 # Runtime dependencies used directly by Tiny Swarm World.
 #
 # Development quality tools are installed separately:
-#   python -m pip install ruff mypy import-linter
+#   python -m pip install ruff mypy import-linter types-requests
 
 pydantic==2.10.6
 PyYAML==6.0.1

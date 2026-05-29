@@ -82,7 +82,7 @@ source .venv/bin/activate
 ```bash
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
-python3 -m pip install ruff mypy import-linter
+python3 -m pip install ruff mypy import-linter types-requests
 ```
 
 4. Run the development quality gate
@@ -387,7 +387,7 @@ Prepare a local environment:
 - `source .venv/bin/activate`
 - `python3 -m pip install --upgrade pip`
 - `python3 -m pip install -r requirements.txt`
-- `python3 -m pip install ruff mypy import-linter`
+- `python3 -m pip install ruff mypy import-linter types-requests`
 
 Run the full gate before handing off a change:
 
