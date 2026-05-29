@@ -36,6 +36,7 @@ were run during workflow authoring.
 | workflow authoring | completed | Workflow, context pack, JSON context, and reports created. |
 | S3D metadata repair | completed | Slice dependencies, affected surfaces, locks, quality gates, documentation flags, and stop conditions made machine-readable. |
 | Slice 01 | completed | Requirement review confirmed current baseline reports satisfy the Multipass-to-LXC contract mapping. No content edits required. |
+| Slice 02 | completed | Provider-neutral Docker runtime and Swarm bootstrap domain/application contracts added with fake-port tests. |
 | implementation | not started | Requires `workflow execute`. |
 | quality gate | pending | Workflow creation checks only run after files are authored. |
 | live smoke | not approved | Requires explicit later approval. |
@@ -130,4 +131,74 @@ Rollback reference:
 
 ```text
 6c54123
+```
+
+## Slice 02 Result
+
+```text
+COMPLETED
+```
+
+Responsible role:
+
+```text
+Senior Python Automation Developer
+```
+
+Reviewer evidence:
+
+- Senior Python Automation Developer confirmed Slice 02 must stay
+  contract-only and avoid infrastructure, composition, adapter, and Docker
+  command configuration changes.
+- Senior DevOps confirmed the new domain and port surfaces match later LXC
+  adapter and Swarm bootstrap needs while leaving concrete LXD/Incus command
+  behavior to Slice 03 and integration wiring to later slices.
+
+Changed files:
+
+```text
+src/tiny_swarm_world/domain/node_provider/docker_swarm_lxc.py
+src/tiny_swarm_world/domain/node_provider/__init__.py
+src/tiny_swarm_world/application/ports/node_provider/__init__.py
+src/tiny_swarm_world/application/ports/node_provider/port_container_docker_runtime.py
+src/tiny_swarm_world/application/ports/node_provider/port_container_network_identity.py
+src/tiny_swarm_world/application/ports/node_provider/port_container_swarm_bootstrap.py
+src/tiny_swarm_world/application/services/platform/docker_swarm_lxc_contract.py
+src/tiny_swarm_world/application/services/platform/lxc_docker_install.py
+src/tiny_swarm_world/application/services/platform/lxc_swarm_bootstrap.py
+src/tiny_swarm_world/application/services/platform/__init__.py
+tests/domain/node_provider/test_docker_swarm_lxc_contract.py
+tests/application/services/platform/test_docker_swarm_lxc_contract.py
+tests/application/services/platform/test_lxc_docker_install.py
+tests/application/services/platform/test_lxc_swarm_bootstrap.py
+tests/application/services/platform/test_platform_service_exports.py
+documentation/workflow/execution-report.md
+```
+
+Quality gates:
+
+```text
+PYTHONPATH=src .venv/bin/python -m unittest tests.domain.node_provider.test_docker_swarm_lxc_contract tests.application.services.platform.test_docker_swarm_lxc_contract tests.application.services.platform.test_lxc_docker_install tests.application.services.platform.test_lxc_swarm_bootstrap tests.application.services.platform.test_platform_service_exports: passed
+.venv/bin/python tools/quality_gate.py lint: passed
+.venv/bin/python tools/quality_gate.py arch-tests: passed
+.venv/bin/python tools/quality_gate.py typecheck: passed
+git diff --check: passed
+```
+
+Rollback reference:
+
+```text
+92b61d5
+```
+
+arc42 update:
+
+```text
+not required
+```
+
+ADR update:
+
+```text
+not required
 ```

@@ -1,6 +1,10 @@
 import unittest
 
 from tiny_swarm_world.domain.node_provider import (
+    ContainerDockerInstallOutcome,
+    ContainerDockerReadiness,
+    DockerEngineState,
+    DockerInstallState,
     DockerSwarmInLxcProfileContract,
     DockerSwarmLxcRiskLabel,
     ManagedLxcBackend,
@@ -8,8 +12,13 @@ from tiny_swarm_world.domain.node_provider import (
     NodeRole,
     NodeSpec,
     REQUIRED_DOCKER_SWARM_LXC_RISK_LABELS,
+    SwarmManagerBootstrapOutcome,
+    SwarmManagerState,
     SwarmNodeReadinessEvidence,
     SwarmNodeState,
+    SwarmWorkerJoinCredential,
+    SwarmWorkerJoinOutcome,
+    WorkerJoinState,
 )
 
 
@@ -147,11 +156,114 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
             readiness.readiness_errors(),
         )
 
+    def test_container_docker_readiness_requires_observed_ready_engine(self):
+        readiness = ContainerDockerReadiness(
+            node=_manager_node(),
+            observed=True,
+            engine_state=DockerEngineState.READY,
+        )
+
+        self.assertTrue(readiness.ready)
+        self.assertEqual((), readiness.readiness_errors())
+
+        missing = ContainerDockerReadiness(
+            node=_manager_node(),
+            observed=False,
+            engine_state=DockerEngineState.READY,
+        )
+
+        self.assertFalse(missing.ready)
+        self.assertEqual(
+            ("docker_observed_state_missing",),
+            missing.readiness_errors(),
+        )
+
+    def test_container_docker_install_outcome_requires_verified_non_failed_state(self):
+        installed = ContainerDockerInstallOutcome(
+            node=_manager_node(),
+            state=DockerInstallState.INSTALLED,
+            verified=True,
+        )
+
+        self.assertTrue(installed.successful)
+        self.assertEqual((), installed.install_errors())
+
+        failed = ContainerDockerInstallOutcome(
+            node=_manager_node(),
+            state=DockerInstallState.FAILED,
+            verified=False,
+        )
+
+        self.assertFalse(failed.successful)
+        self.assertEqual(("docker_install_failed",), failed.install_errors())
+
+    def test_swarm_manager_bootstrap_requires_manager_role_and_active_state(self):
+        active = SwarmManagerBootstrapOutcome(
+            node=_manager_node(),
+            state=SwarmManagerState.ACTIVE,
+            manager_count=1,
+        )
+
+        self.assertTrue(active.active)
+        self.assertEqual((), active.bootstrap_errors())
+
+        wrong_role = SwarmManagerBootstrapOutcome(
+            node=_worker_node(),
+            state=SwarmManagerState.ACTIVE,
+            manager_count=1,
+        )
+
+        self.assertFalse(wrong_role.active)
+        self.assertIn("manager_node_role_required", wrong_role.bootstrap_errors())
+
+    def test_worker_join_outcome_requires_worker_role_joined_state_and_verification(self):
+        joined = SwarmWorkerJoinOutcome(
+            node=_worker_node(),
+            state=WorkerJoinState.JOINED,
+            verified=True,
+        )
+
+        self.assertTrue(joined.joined)
+        self.assertEqual((), joined.join_errors())
+
+        failed = SwarmWorkerJoinOutcome(
+            node=_manager_node(),
+            state=WorkerJoinState.FAILED,
+            verified=False,
+        )
+
+        self.assertFalse(failed.joined)
+        self.assertEqual(
+            (
+                "worker_node_role_required",
+                "worker_join_failed",
+                "worker_join_not_verified",
+            ),
+            failed.join_errors(),
+        )
+
+    def test_worker_join_credential_redacts_repr_and_string(self):
+        credential = SwarmWorkerJoinCredential("sensitive-value")
+
+        self.assertNotIn("sensitive-value", repr(credential))
+        self.assertNotIn("sensitive-value", str(credential))
+
+        with self.assertRaises(ValueError):
+            SwarmWorkerJoinCredential("")
+
 
 def _manager_node() -> NodeSpec:
     return NodeSpec(
         name="swarm-manager",
         role=NodeRole.MANAGER,
+        provider=NodeProviderKind.LXC_NATIVE,
+    )
+
+
+def _worker_node() -> NodeSpec:
+    return NodeSpec(
+        name="swarm-worker-1",
+        role=NodeRole.WORKER,
         provider=NodeProviderKind.LXC_NATIVE,
     )
 

@@ -44,6 +44,34 @@ class SwarmNodeState(str, Enum):
     ERROR = "error"
 
 
+class DockerEngineState(str, Enum):
+    READY = "ready"
+    MISSING = "missing"
+    UNKNOWN = "unknown"
+    ERROR = "error"
+
+
+class DockerInstallState(str, Enum):
+    ALREADY_INSTALLED = "already_installed"
+    INSTALLED = "installed"
+    FAILED = "failed"
+
+
+class SwarmManagerState(str, Enum):
+    ACTIVE = "active"
+    INITIALIZED = "initialized"
+    PENDING = "pending"
+    ERROR = "error"
+    UNKNOWN = "unknown"
+
+
+class WorkerJoinState(str, Enum):
+    ALREADY_JOINED = "already_joined"
+    JOINED = "joined"
+    FAILED = "failed"
+    UNKNOWN = "unknown"
+
+
 @dataclass(frozen=True)
 class DockerSwarmInLxcProfileContract:
     profile_name: str = "docker-swarm"
@@ -121,6 +149,113 @@ class DockerSwarmInLxcProfileContract:
 
 
 @dataclass(frozen=True)
+class ContainerDockerReadiness:
+    node: NodeSpec
+    observed: bool
+    engine_state: DockerEngineState
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "engine_state", _docker_engine_state(self.engine_state))
+
+    @property
+    def ready(self) -> bool:
+        return not self.readiness_errors()
+
+    def readiness_errors(self) -> tuple[str, ...]:
+        if not self.observed:
+            return ("docker_observed_state_missing",)
+        if self.engine_state != DockerEngineState.READY:
+            return (f"docker_engine_{self.engine_state.value}",)
+        return ()
+
+
+@dataclass(frozen=True)
+class ContainerDockerInstallOutcome:
+    node: NodeSpec
+    state: DockerInstallState
+    verified: bool
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "state", _docker_install_state(self.state))
+
+    @property
+    def successful(self) -> bool:
+        return not self.install_errors()
+
+    def install_errors(self) -> tuple[str, ...]:
+        if self.state == DockerInstallState.FAILED:
+            return ("docker_install_failed",)
+        if not self.verified:
+            return ("docker_install_not_verified",)
+        return ()
+
+
+@dataclass(frozen=True)
+class SwarmManagerBootstrapOutcome:
+    node: NodeSpec
+    state: SwarmManagerState
+    manager_count: int | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "state", _swarm_manager_state(self.state))
+        if self.manager_count is not None and self.manager_count < 0:
+            raise ValueError("manager count must not be negative")
+
+    @property
+    def active(self) -> bool:
+        return not self.bootstrap_errors()
+
+    def bootstrap_errors(self) -> tuple[str, ...]:
+        errors: list[str] = []
+        if self.node.role != NodeRole.MANAGER:
+            errors.append("manager_node_role_required")
+        if self.state not in (SwarmManagerState.ACTIVE, SwarmManagerState.INITIALIZED):
+            errors.append(f"swarm_manager_{self.state.value}")
+        if self.manager_count is not None and self.manager_count < 1:
+            errors.append("manager_quorum_missing")
+        return tuple(errors)
+
+
+@dataclass(frozen=True, repr=False)
+class SwarmWorkerJoinCredential:
+    value: str
+
+    def __post_init__(self) -> None:
+        if not self.value or self.value.isspace():
+            raise ValueError("worker join credential must not be empty")
+
+    def __repr__(self) -> str:
+        return "SwarmWorkerJoinCredential(<redacted>)"
+
+    def __str__(self) -> str:
+        return "<redacted>"
+
+
+@dataclass(frozen=True)
+class SwarmWorkerJoinOutcome:
+    node: NodeSpec
+    state: WorkerJoinState
+    verified: bool
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "state", _worker_join_state(self.state))
+
+    @property
+    def joined(self) -> bool:
+        return not self.join_errors()
+
+    def join_errors(self) -> tuple[str, ...]:
+        errors: list[str] = []
+        if self.node.role != NodeRole.WORKER:
+            errors.append("worker_node_role_required")
+        if self.state not in (WorkerJoinState.ALREADY_JOINED, WorkerJoinState.JOINED):
+            errors.append(f"worker_join_{self.state.value}")
+        if not self.verified:
+            errors.append("worker_join_not_verified")
+        return tuple(errors)
+
+
+@dataclass(frozen=True)
 class SwarmNodeReadinessEvidence:
     node: NodeSpec
     docker_engine_observed: bool
@@ -186,6 +321,22 @@ def _risk_label(value: DockerSwarmLxcRiskLabel | str) -> DockerSwarmLxcRiskLabel
 
 def _swarm_state(value: SwarmNodeState | str) -> SwarmNodeState:
     return value if isinstance(value, SwarmNodeState) else SwarmNodeState(str(value))
+
+
+def _docker_engine_state(value: DockerEngineState | str) -> DockerEngineState:
+    return value if isinstance(value, DockerEngineState) else DockerEngineState(str(value))
+
+
+def _docker_install_state(value: DockerInstallState | str) -> DockerInstallState:
+    return value if isinstance(value, DockerInstallState) else DockerInstallState(str(value))
+
+
+def _swarm_manager_state(value: SwarmManagerState | str) -> SwarmManagerState:
+    return value if isinstance(value, SwarmManagerState) else SwarmManagerState(str(value))
+
+
+def _worker_join_state(value: WorkerJoinState | str) -> WorkerJoinState:
+    return value if isinstance(value, WorkerJoinState) else WorkerJoinState(str(value))
 
 
 def _node_role(value: NodeRole | str) -> NodeRole:

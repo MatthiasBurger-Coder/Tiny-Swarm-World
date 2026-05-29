@@ -1,3 +1,12 @@
+from tiny_swarm_world.application.ports.node_provider.port_container_docker_runtime import (
+    PortContainerDockerRuntime,
+)
+from tiny_swarm_world.application.ports.node_provider.port_container_network_identity import (
+    PortContainerNetworkIdentity,
+)
+from tiny_swarm_world.application.ports.node_provider.port_container_swarm_bootstrap import (
+    PortContainerSwarmBootstrap,
+)
 from tiny_swarm_world.application.ports.node_provider.port_node_lifecycle import (
     PortNodeLifecycle,
 )
@@ -6,6 +15,9 @@ from tiny_swarm_world.application.ports.node_provider.port_node_provider_readine
 )
 
 __all__ = [
+    "PortContainerDockerRuntime",
+    "PortContainerNetworkIdentity",
+    "PortContainerSwarmBootstrap",
     "PortNodeLifecycle",
     "PortNodeProviderReadiness",
 ]
