@@ -2,12 +2,12 @@
 
 == Quality Gate Fails: Missing Tool
 
-If Ruff, mypy, or import-linter is missing, install the development tools in
-the active Python environment:
+If Ruff, mypy, import-linter, or the Requests type stubs are missing, install
+the development tools in the active Python environment:
 
 [source,bash]
 ----
-python3 -m pip install ruff mypy import-linter
+python3 -m pip install ruff mypy import-linter types-requests
 ----
 
 Then rerun:

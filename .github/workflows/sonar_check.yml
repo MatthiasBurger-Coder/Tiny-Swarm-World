@@ -38,14 +38,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          python -m pip install coverage import-linter mypy ruff
+          python -m pip install coverage import-linter mypy ruff types-requests
 
       - name: Quality Gate
         run: python tools/quality_gate.py quality
 
       - name: Generate Coverage Report
         run: |
-          coverage run --branch -m unittest discover -s tests -t .
+          PYTHONPATH=src coverage run --branch -m unittest discover -s tests -t .
           coverage xml -o coverage.xml
 
       - name: SonarCloud Scan
