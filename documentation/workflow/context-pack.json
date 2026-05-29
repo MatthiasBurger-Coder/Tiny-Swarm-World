@@ -1,155 +1,117 @@
 {
-  "active_workflow": {
-    "version": "lxc-native-node-provider-v1.0.0",
-    "branch": "feature/workflow-lxc-node-provider-20260526",
-    "source_label": "user request in current thread: LXC/LXD/Incus default provider, Multipass legacy/fallback",
-    "source_sha256": null,
-    "decision": "PROCEED_WITH_ACCEPTED_ASSUMPTIONS",
-    "execution_profile": "FULL_PATH",
-    "external_source_report": "documentation/workflow/reports/03-external-wsl-provider-sources.md",
-    "process_strand": [
-      "workflow-authoring",
-      "provider-architecture",
-      "setup-preflight",
-      "platform-setup",
-      "lxd-incus-readiness",
-      "docker-swarm-node-lifecycle",
-      "multipass-legacy-fallback",
-      "evidence",
-      "documentation",
-      "quality-validation"
-    ]
-  },
-  "affected_areas": [
-    "src/tiny_swarm_world/domain/node_provider",
-    "src/tiny_swarm_world/domain/preflight",
-    "src/tiny_swarm_world/domain/network",
-    "src/tiny_swarm_world/domain/multipass",
-    "src/tiny_swarm_world/application/ports/node_provider",
-    "src/tiny_swarm_world/application/ports/preflight",
-    "src/tiny_swarm_world/application/services/platform",
-    "src/tiny_swarm_world/application/services/setup",
-    "src/tiny_swarm_world/application/services/multipass",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight",
-    "src/tiny_swarm_world/infrastructure/adapters/clients",
-    "src/tiny_swarm_world/infrastructure/adapters/repositories",
-    "src/tiny_swarm_world/infrastructure/composition.py",
-    "src/tiny_swarm_world/__main__.py",
-    "infra/config/node-providers",
-    "infra/config/multipass",
-    "infra/config/docker",
-    "tests/domain",
-    "tests/application/services/platform",
-    "tests/application/services/setup",
-    "tests/application/services/multipass",
-    "tests/infrastructure/adapters/preflight",
-    "tests/infrastructure/adapters/clients",
-    "tests/infrastructure/adapters/repositories",
-    "documentation/architecture",
-    "documentation/epics",
-    "documentation/system",
-    "documentation/user_guide",
-    "documentation/deployment",
-    "documentation/arc42",
-    "AGENTS.md",
-    "README.md"
+  "workflow_id": "lxc-docker-swarm-bootstrap-v1.0.0",
+  "created": "2026-05-29",
+  "branch": "feature/workflow-lxc-docker-install-20260529",
+  "status": "READY_FOR_EXECUTION",
+  "request": "Überarbeite die stelle damit auf den LXC Container docker installiert wird. Nimm als grundlage die multipass vorgehenweise und passe diese für die LXC an",
+  "process_strand": "S3D",
+  "execution_profile": "NORMAL_PATH",
+  "primary_boundary": "Platform",
+  "provider_target": "lxc_native",
+  "legacy_reference": "multipass_legacy",
+  "live_infrastructure_default": false,
+  "accepted_assumptions": [
+    "Docker is installed inside managed LXC containers, not on the host.",
+    "The Multipass Docker install and Swarm sequence is the behavioral baseline.",
+    "LXD and Incus are supported through the selected managed backend.",
+    "Docker install and Swarm bootstrap remain live-consent-gated mutations.",
+    "Swarm tokens, raw command output, local IPs, and host-specific values are not persisted as trusted evidence."
   ],
-  "forbidden_areas": [
-    "Java/Maven/Spring Boot/Gradle/JUnit/ArchUnit build surfaces",
-    "browser React/frontend modules or package-manager tooling",
-    "Kubernetes-first implementation",
-    "raw low-level LXC-only provider as the first implementation",
-    "direct execution or promotion of infra/swarm scripts",
-    "live infrastructure commands during normal tests or quality gates",
-    "committed secrets, host IPs, usernames, local paths, raw output, environment payloads, or Swarm join tokens"
+  "governing_inputs": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "131aa2183b9598aeb86fed0af1e66b09ed6b29e5b54a4993a898d3c2782d3856"
+    },
+    {
+      "path": "QUALITY.md",
+      "sha256": "458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6"
+    },
+    {
+      "path": "documentation/epics/system-unification.md",
+      "sha256": "5a36d5fba27af89b134cdb2a3ee25e4a5b9122f92c3287a3462d28435884cc95"
+    },
+    {
+      "path": "documentation/epics/autonomous-runnable-setup.md",
+      "sha256": "7d536929ed42f15c720929d13269fa4491c5b9c98f921e16f870a6944b76aa33"
+    },
+    {
+      "path": "documentation/architecture/adr-lxc-native-node-provider.adoc",
+      "sha256": "150ac249a1e7ecb56a5cefb6051ba2729969523475da0851506b0c15d8607419"
+    },
+    {
+      "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
+      "sha256": "b350f855f508a083583e6433c494a5abd36c1ed68164d899984acafced0083ca"
+    },
+    {
+      "path": "documentation/arc42/06_runtime_view.adoc",
+      "sha256": "e6223a4adf715acdea0f125ae0aefe0206ecc94b906b60e5091cccd4f3369072"
+    },
+    {
+      "path": "documentation/arc42/07_deployment_view.adoc",
+      "sha256": "22e5ce1b50d43225af70535810b6a0cdd2b0649115b71b074d39c812e582e39d"
+    },
+    {
+      "path": "documentation/arc42/09_architecture_decisions.adoc",
+      "sha256": "2a39a0eddd1b50747542a6b1757229c34221ea8b245568cce0dfe67c7507b3c1"
+    },
+    {
+      "path": "src/tiny_swarm_world/application/services/multipass/multipass_docker_install.py",
+      "sha256": "caf62007139333fb2e0526a9a9ea0c0dbe203031c41decbaad1e325abf1781f3"
+    },
+    {
+      "path": "src/tiny_swarm_world/application/services/multipass/multipass_docker_swarm_init.py",
+      "sha256": "1cd82bb7065e9359e72b19c57ac4b17cb037f9656c39c4e8488cc9652f782ae8"
+    },
+    {
+      "path": "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py",
+      "sha256": "da02d975754c936a4af56318287694a201de0c485a0b2aa1c154c20d6af8dc70"
+    },
+    {
+      "path": "infra/config/docker/command_multipass_docker_install_yaml.yaml",
+      "sha256": "de6d615208b6d05f3c6dba0da75732768b108aa34c0b79f6ce4ec9cd0d2f3cdb"
+    },
+    {
+      "path": "infra/config/docker/command_multipass_docker_prepare_repository_yaml.yaml",
+      "sha256": "0aea4369f3e46c5aca1a3bdd2b6927e58935152a8c1fe6f7f1df9d8da0491af9"
+    },
+    {
+      "path": "infra/config/docker/command_multipass_docker_verify_yaml.yaml",
+      "sha256": "4fb24ace0d87767386ef584cb21fcd8134bab715fe53dd041f0f8f87c77a5843"
+    },
+    {
+      "path": "infra/config/node-providers/provider_config.yaml",
+      "sha256": "c832527bc4068f916bae41527e7a1fbabc811e7b62e1298d214860ce6aade012"
+    }
   ],
-  "required_roles": [
-    "Senior Workflow Architect",
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior React Frontend Developer",
-    "Senior Tester",
-    "Senior Documentation Engineer"
+  "external_sources": [
+    {
+      "name": "Docker Engine on Ubuntu",
+      "url": "https://docs.docker.com/engine/install/ubuntu/"
+    },
+    {
+      "name": "LXD FAQ: Docker inside a LXD container",
+      "url": "https://documentation.ubuntu.com/lxd/latest/faq/"
+    },
+    {
+      "name": "Incus FAQ: Docker inside an Incus container",
+      "url": "https://linuxcontainers.org/incus/docs/main/faq/"
+    }
   ],
-  "conditional_roles": [
-    "Senior DevOps Engineer",
-    "Security/Sandbox Engineer",
-    "Console/status UI skills",
-    "Git commit preparation skills"
+  "slices": [
+    "baseline-multipass-lxc-contract",
+    "lxc-docker-domain-application-contracts",
+    "lxc-docker-install-adapter",
+    "lxc-docker-install-workflow",
+    "lxc-docker-swarm-init-join",
+    "setup-platform-integration",
+    "docs-architecture-sync",
+    "quality-live-smoke-boundary"
   ],
-  "quality_commands": {
-    "documentation_only": [
-      "git diff --check"
-    ],
-    "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.domain.node_provider",
-      "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_node_provider_selection",
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_lxc_provider_preflight",
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider",
-      "PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow",
-      "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows",
-      "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint",
-      "PYTHONPATH=src python3 -m unittest tests.application.services.multipass tests.infrastructure.adapters.clients.test_multipass_swarm_runtime tests.infrastructure.adapters.clients.test_multipass_container_image_publisher tests.infrastructure.adapters.clients.test_multipass_portainer_admin_client tests.infrastructure.test_composition tests.application.services.platform.test_node_provider_selection tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository"
-    ],
-    "required": [
-      "python3 tools/quality_gate.py quality"
-    ],
-    "available_subgates": [
-      "python3 tools/quality_gate.py lint",
-      "python3 tools/quality_gate.py arch-lint",
-      "python3 tools/quality_gate.py arch-tests",
-      "python3 tools/quality_gate.py typecheck",
-      "python3 tools/quality_gate.py test"
-    ]
-  },
-  "governing_hashes": {
-    "documentation/workflow/workflow.md": "64d910a8d0b273b78c1777679e8ec746414241a8",
-    "AGENTS.md": "05de31b1c980f393d9dd83e744a2debfdc1b6e0a",
-    "README.md": "794bbdb15674ce45c8fac6b8314eed8a00ff52e4",
-    "QUALITY.md": "17002150bab9f168eb60be85d55b7a0c1cb441e5",
-    "documentation/arc42/01_introduction.adoc": "30ab3c65d058fe57c525dff99f15cbede9b4e792",
-    "documentation/arc42/02_constraints.adoc": "8a39526e30889ebcff4d0afba2a0d712359ace42",
-    "documentation/arc42/03_solution_strategy.adoc": "83619aaf3d678d8e83490323591d465faaeef044",
-    "documentation/arc42/04_context_and_scope.adoc": "98e9c614e8dbae284b020aed16367b2a497995da",
-    "documentation/arc42/05_building_blocks.adoc": "84a80bead3d48cfde0d801a33a129154f44ebc37",
-    "documentation/arc42/06_runtime_view.adoc": "cc07c5ba4f0428184b4941053e285a9352297cf1",
-    "documentation/arc42/07_deployment_view.adoc": "ba254a609b9026e23d58c55589d397a7af6e9661",
-    "documentation/arc42/08_concepts.adoc": "f6f01231a48469b5288009640310ca7961a0e05f",
-    "documentation/arc42/09_architecture_decisions.adoc": "31501579a175be2a0576a74fa9f3478534949fdd",
-    "documentation/arc42/10_quality_requirements.adoc": "f7331a4d5a9c78b27b610fb266985652d7196045",
-    "documentation/arc42/11_risks_and_debt.adoc": "4f54becbf3408ee8622ca2ade1df403843e95292",
-    "documentation/arc42/12_glossary.adoc": "3eb632b4c513599594cbd66cab1c27ac4766b2c1",
-    "documentation/architecture/adr-autonomous-setup-safety.adoc": "3c6c88c479ac3db7aa8d8cdf03e06fc045d074a0",
-    "documentation/architecture/adr-lxc-native-node-provider.adoc": "2446eff28ef1f2477f4c7633b187e2162d934784",
-    "documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc": "cc718ff1d91b9fe42e968f5da5fc685e87dd7b9c",
-    "documentation/deployment/system.adoc": "c42fc11b5476bdc3c01a7556aa791ba1b7e90616",
-    "documentation/epics/autonomous-runnable-setup.md": "1b63126744e4b6044e90eb862b6228e35caf1258",
-    "documentation/epics/service-access-dashboard-vaultwarden.md": "7755fc1960ecbb076feb5db14aed032fbed76c0c",
-    "documentation/epics/system-unification.md": "32db9f619ea1b97333e2ed1ac64370bd69a654ae",
-    "documentation/process/workflow-create.md": "78f2b31e96ab0731ee7b61cc2066f3446f3e1bcf",
-    "documentation/system/live-operation-surfaces.adoc": "490b65851b74efb109bcfaf44a40dec28350b94d",
-    "documentation/system/lxc-native-setup.adoc": "e3e33c479e250ea35b40b5fa1cb713901cdc220a",
-    "documentation/system/multipass-setup.adoc": "b9e6855ce6537dff6b5370c449af17d28bbedc6d",
-    "documentation/system/network.adoc": "153401597ae96b4c08041f8a9ad296f433507cae",
-    "documentation/system/system.adoc": "8f25ec014c584b778df668291b3bce875c1df28c",
-    "documentation/user_guide/installation.adoc": "f4cf28c595470d6bf5b5c8b2242cee870f6af0ed",
-    "documentation/user_guide/troubleshooting.adoc": "edcfc8f7a4943d06e4b9d21266959c395baddcc7",
-    "documentation/user_guide/usage.adoc": "e92bb670814447c756d421551246cd6202e168e2",
-    "documentation/workflow/reports/02-architecture-baseline.md": "c285036e5b9b8fda4b194ad455ddb4eafb5e3f2e",
-    ".agents/skills/workflow-authoring/SKILL.md": "6ccd9a0e322437fbca49e388ae3b387ac515758b",
-    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "a11ed5c6b901e8a5ad5f9c13ce37bfc67886e1b0",
-    ".agents/skills/execution-profile-router/SKILL.md": "007dd37d35028e99a119219084ad321ffb4da25e",
-    ".agents/orchestrator/routing-rules.md": "3d7998b6413102c3dd69e4299d70b63a06323923",
-    "documentation/process/branch-governance.md": "1b4479ac69e659ebfe236fa662c54e6c325412e5"
-  },
-  "stale_when": [
-    "any governing hash changes",
-    "active branch differs from feature/workflow-lxc-node-provider-20260526",
-    "workflow.md changes without context-pack.json update",
-    "external WSL/LXD/Incus source assumptions change without updating reports/03-external-wsl-provider-sources.md",
-    "architecture, quality, provider, or live-consent semantics change outside workflow scope",
-    "slice order, locks, or required quality gates change"
-  ],
-  "live_validation_rule": "Sandbox validates only mocked/static behavior; native Linux, WSL2, and Multipass legacy evidence must be evaluated separately."
+  "stop_conditions": [
+    "Live infrastructure commands would run without explicit user approval.",
+    "Privileged containers or broad host mounts become necessary.",
+    "Application or domain code would import infrastructure adapters.",
+    "Swarm join tokens or raw command output would be persisted.",
+    "Documentation would claim live success from mocked or static verification."
+  ]
 }
