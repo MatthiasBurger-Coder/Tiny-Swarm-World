@@ -34,10 +34,10 @@ from tiny_swarm_world.infrastructure.composition import (
     build_artifact_services_for_provider,
     build_deployment_services_for_provider,
     build_preflight_service,
-    build_setup_services,
+    build_application_logger,
+    run_setup_with_terminal_status,
 )
 from tiny_swarm_world.infrastructure.adapters.preflight import ensure_common_executable_paths
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 WorkflowResult = (
     PlatformWorkflowResult
@@ -159,7 +159,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
     ensure_common_executable_paths()
     args = parse_args(argv)
 
-    logger = LoggerFactory.get_logger("application")
+    logger = build_application_logger()
     logger.info("Starting application")
 
     if args.list_workflows:
@@ -297,12 +297,12 @@ async def run_cli_workflow(
     if workflow.namespace == "setup":
         if live_consent is None or not live_consent.accepted:
             raise ValueError("setup run requires accepted live consent")
-        services = build_setup_services(
+        return await run_setup_with_terminal_status(
             live_consent,
+            workflow.action,
             service_profile=service_profile,
             node_provider_request=node_provider_request,
         )
-        return await run_setup_workflow(services, workflow.action)
     raise ValueError(f"Unsupported workflow: {workflow.name}")
 
 

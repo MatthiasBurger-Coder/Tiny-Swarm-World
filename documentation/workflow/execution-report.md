@@ -1,6 +1,6 @@
 # Execution Report
 
-Status: Slice 09 completed; CLI console lifecycle pending.
+Status: Slice 10 completed; documentation and final quality gate pending.
 
 Created on branch:
 
@@ -488,6 +488,62 @@ Changed files:
 - `tests/infrastructure/adapters/ui/test_command_runner_ui_failure_semantics.py`
 - `tests/infrastructure/adapters/ui/test_progress_trace_ui.py`
 - `tests/infrastructure/logging/test_progress_trace_logging.py`
+- `tests/infrastructure/test_composition.py`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/execution-report.md`
+
+Live infrastructure:
+
+- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
+  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
+  Swagger/NGINX commands were run.
+
+## Slice 10 - CLI Console Lifecycle
+
+Status: completed.
+
+S3/S3D verification:
+
+- active branch checked:
+  `feature/workflow-install-observability-20260529`
+- dependency status: Slice 09 completed in commit `b3fffe7`
+- scope: setup-run terminal lifecycle facade, entrypoint boundary tests, and
+  composition lifecycle tests
+
+Role review results:
+
+- Senior Python Automation Developer: moved setup terminal status lifecycle into
+  a composition-owned `run_setup_with_terminal_status` facade.
+- Senior Tester: sidecar review blocked entrypoint-owned UI start/stop and
+  logger internals; tests now forbid those imports and identifiers in
+  `__main__.py`.
+- Console/status UI skills: setup UI construction and terminal thread lifecycle
+  are verified through composition, and failure-preserving aggregate status is
+  tested at the setup-run lifecycle level.
+- Senior System Architect: `__main__.py` remains thin and delegates concrete
+  logging and UI lifecycle behavior to infrastructure composition.
+
+Quality evidence:
+
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.infrastructure.test_composition`
+- result: passed, 72 tests
+- required command: `source venv/bin/activate && python3 tools/quality_gate.py test`
+- result: passed, 661 tests, 1 skipped
+- additional command: `source venv/bin/activate && python3 tools/quality_gate.py lint`
+- result: passed
+- additional command: `source venv/bin/activate && python3 tools/quality_gate.py typecheck`
+- result: passed
+- command: `git diff --check`
+- result: passed
+- command: `python3 -m json.tool documentation/workflow/context-pack.json >/dev/null`
+- result: passed
+
+Changed files:
+
+- `src/tiny_swarm_world/__main__.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `tests/test_package_entrypoint.py`
 - `tests/infrastructure/test_composition.py`
 - `documentation/workflow/context-pack.json`
 - `documentation/workflow/context-pack.md`

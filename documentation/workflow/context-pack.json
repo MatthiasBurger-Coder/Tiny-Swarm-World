@@ -62,12 +62,15 @@
     "tests/architecture/test_installation_method_trace_coverage.py": "a31d093c54740c269f554030b790fdc150b98916",
     "src/tiny_swarm_world/application/services/setup/workflow.py": "668ce756f7854bea8fcb3e0531418540340f6634",
     "src/tiny_swarm_world/application/services/platform/workflows.py": "59029e9b114f792f1616572aeb64d1cb111d236b",
-    "src/tiny_swarm_world/infrastructure/composition.py": "9930db4856f5cebd26566823d1eae216da4c0bc2",
+    "src/tiny_swarm_world/infrastructure/composition.py": "74f368e97a2bee834cad853b8a8c8b92964664bc",
+    "src/tiny_swarm_world/__main__.py": "4d65cc09e5bbc68cd205f179141cba4025b56b93",
     "src/tiny_swarm_world/infrastructure/adapters/ui/progress_trace_ui.py": "6d8ec50d3844277b2cb66a9cc0b5b11625f0eec8",
     "src/tiny_swarm_world/infrastructure/logging/progress_trace_logging.py": "da6b8ce7d0152e2cc84a5d14f69dc9721bcd807e",
     "src/tiny_swarm_world/infrastructure/adapters/ui/command_async_runner_ui.py": "8ed34bb8eb4a2a5a3bcf6fe27b52a5adb5fee69d",
     "src/tiny_swarm_world/infrastructure/adapters/ui/command_sync_runner_ui.py": "660c845ac03e1b81b3e38f70a7263a8d74fc6f24",
     "tests/infrastructure/adapters/ui/test_progress_trace_ui.py": "28336e3e9ec68fe9f1c2a2d5fb11727bb3765588",
-    "tests/infrastructure/logging/test_progress_trace_logging.py": "190de2300d989806ecd943e490c850c3cb0b230d"
+    "tests/infrastructure/logging/test_progress_trace_logging.py": "190de2300d989806ecd943e490c850c3cb0b230d",
+    "tests/test_package_entrypoint.py": "b1d79ef188fe18b28ab7927efbb33ea73e6a2456",
+    "tests/infrastructure/test_composition.py": "4cdfb7f875ac6c8397a45f61e106139880873a1c"
   }
 }

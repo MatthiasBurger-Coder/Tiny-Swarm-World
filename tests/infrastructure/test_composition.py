@@ -7,9 +7,19 @@ from tests.support.async_helpers import async_checkpoint
 from tests.support.sonar_safe_literals import sample_text
 
 from tiny_swarm_world.application.services.deployment.ensure_service_stack import EnsureServiceStack
-from tiny_swarm_world.application.ports.ui.port_ui import PortUI
+from tiny_swarm_world.application.ports.ui.port_ui import (
+    AGGREGATE_INSTANCE,
+    STATUS_ERROR,
+    STATUS_SUCCESS,
+    PortUI,
+)
 from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
+from tiny_swarm_world.application.services.setup import (
+    SetupWorkflowKind,
+    SetupWorkflowResult,
+    SetupWorkflowStatus,
+)
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.preflight import (
@@ -266,6 +276,148 @@ class TestComposition(unittest.TestCase):
                 for sink in method_trace_sinks
             )
         )
+
+    def test_build_setup_ui_uses_ui_factory_without_starting_thread(self):
+        ui = _RecordingUI()
+
+        with patch.object(composition, "FactoryUI") as factory:
+            factory.return_value.get_ui.return_value = ui
+
+            result = composition.build_setup_ui(test_mode=True)
+
+        self.assertIs(ui, result)
+        factory.return_value.get_ui.assert_called_once_with(
+            instances=(),
+            test_mode=True,
+        )
+        self.assertIsNone(ui.ui_thread)
+
+    def test_run_setup_with_terminal_status_runs_composed_lifecycle_after_consent(self):
+        calls: list[str] = []
+        live_consent = _accepted_live_consent()
+        recording_ui = _LifecycleRecordingUI(calls)
+        result = _setup_result(SetupWorkflowStatus.COMPLETED)
+
+        def build_setup_ui():
+            calls.append("ui built")
+            return recording_ui
+
+        def build_setup_services(
+            consent,
+            *,
+            service_profile,
+            node_provider_request,
+            ui,
+        ):
+            calls.append("services built")
+            self.assertIs(live_consent, consent)
+            self.assertEqual(ServiceStackProfile.SERVICE_ACCESS, service_profile)
+            self.assertEqual(composition.NodeProviderSelectionRequest(), node_provider_request)
+            self.assertIs(recording_ui, ui)
+            return _setup_lifecycle_bundle(calls, result)
+
+        with patch.object(composition, "build_setup_ui", side_effect=build_setup_ui):
+            with patch.object(
+                composition,
+                "build_setup_services",
+                side_effect=build_setup_services,
+            ):
+                actual = asyncio.run(
+                    composition.run_setup_with_terminal_status(
+                        live_consent,
+                        "run",
+                        service_profile=ServiceStackProfile.SERVICE_ACCESS,
+                        node_provider_request=composition.NodeProviderSelectionRequest(),
+                    )
+                )
+
+        self.assertIs(result, actual)
+        self.assertEqual(
+            [
+                "ui built",
+                "ui started",
+                "services built",
+                "workflow run",
+                "ui update completed",
+                "ui awaited",
+            ],
+            calls,
+        )
+        self.assertEqual(
+            SetupWorkflowStatus.COMPLETED.value,
+            recording_ui.aggregate_status["result"],
+        )
+
+    def test_run_setup_with_terminal_status_rejects_missing_consent_before_ui(self):
+        live_consent = LiveConsent(live_flag=False)
+
+        with patch.object(composition, "build_setup_ui") as build_setup_ui:
+            with self.assertRaises(ValueError):
+                asyncio.run(
+                    composition.run_setup_with_terminal_status(
+                        live_consent,
+                        "run",
+                    )
+                )
+
+        build_setup_ui.assert_not_called()
+
+    def test_run_setup_with_terminal_status_marks_ui_error_when_workflow_raises(self):
+        calls: list[str] = []
+        ui = _LifecycleRecordingUI(calls)
+
+        with patch.object(composition, "build_setup_ui", return_value=ui):
+            with patch.object(
+                composition,
+                "build_setup_services",
+                return_value=_setup_lifecycle_bundle(
+                    calls,
+                    RuntimeError("boom"),
+                ),
+            ):
+                with self.assertRaises(RuntimeError):
+                    asyncio.run(
+                        composition.run_setup_with_terminal_status(
+                            _accepted_live_consent(),
+                            "run",
+                        )
+                    )
+
+        self.assertIn(
+            (AGGREGATE_INSTANCE, "setup run", "exception", STATUS_ERROR),
+            ui.updates,
+        )
+        self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
+        self.assertIn("ui awaited", calls)
+
+    def test_run_setup_with_terminal_status_preserves_aggregate_failure(self):
+        calls: list[str] = []
+        ui = _LifecycleRecordingUI(calls)
+        result = _setup_result(SetupWorkflowStatus.COMPLETED)
+
+        with patch.object(composition, "build_setup_ui", return_value=ui):
+            with patch.object(
+                composition,
+                "build_setup_services",
+                return_value=_setup_lifecycle_bundle(
+                    calls,
+                    result,
+                    ui=ui,
+                    status_updates=(
+                        SetupWorkflowStatus.BLOCKED.value,
+                        STATUS_SUCCESS,
+                    ),
+                ),
+            ):
+                actual = asyncio.run(
+                    composition.run_setup_with_terminal_status(
+                        _accepted_live_consent(),
+                        "run",
+                    )
+                )
+
+        self.assertIs(result, actual)
+        self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
 
     def test_build_artifact_services_wires_artifact_contracts_without_running_clients(self):
         services = composition.build_artifact_services()
@@ -619,6 +771,66 @@ class TestComposition(unittest.TestCase):
         build_platform.return_value.workflows.init.run.assert_not_called()
         build_artifacts.return_value.workflows.prepare.run.assert_not_called()
         build_deployment.return_value.workflows.apply.run.assert_not_called()
+
+    def test_build_setup_services_passes_ui_to_platform_and_setup_terminal_sinks(self):
+        live_consent = _accepted_live_consent()
+        ui = _RecordingUI()
+        captured: dict[str, object] = {}
+
+        def build_platform(
+            *,
+            service_profile: object,
+            live_consent: LiveConsent | None = None,
+            ui: object | None = None,
+            trace_correlation_id: str | None = None,
+        ):
+            captured["service_profile"] = service_profile
+            captured["live_consent"] = live_consent
+            captured["ui"] = ui
+            captured["trace_correlation_id"] = trace_correlation_id
+            return _platform_phase_bundle()
+
+        with patch.object(composition, "build_preflight_service", return_value=_phase_bundle()):
+            with patch.object(composition, "build_platform_services", side_effect=build_platform):
+                with patch.object(
+                    composition,
+                    "build_artifact_services_for_provider",
+                    return_value=_artifact_phase_bundle(),
+                ):
+                    with patch.object(
+                        composition,
+                        "build_deployment_services_for_provider",
+                        return_value=_deployment_phase_bundle(),
+                    ):
+                        services = composition.build_setup_services(live_consent, ui=ui)
+
+        progress_sink = services.workflows.run.progress
+        method_trace_sink = services.workflows.run.method_trace
+        self.assertIsInstance(progress_sink, composition.CompositeWorkflowProgress)
+        self.assertIsInstance(method_trace_sink, composition.CompositeMethodTrace)
+        progress_sinks = cast(composition.CompositeWorkflowProgress, progress_sink).sinks
+        method_trace_sinks = cast(composition.CompositeMethodTrace, method_trace_sink).sinks
+
+        self.assertIs(ui, captured["ui"])
+        self.assertIs(live_consent, captured["live_consent"])
+        self.assertEqual(
+            services.workflows.run.trace_correlation_id,
+            captured["trace_correlation_id"],
+        )
+        self.assertTrue(
+            any(
+                isinstance(sink, composition.TerminalWorkflowProgress)
+                and sink.ui is ui
+                for sink in progress_sinks
+            )
+        )
+        self.assertTrue(
+            any(
+                isinstance(sink, composition.TerminalMethodTrace)
+                and sink.ui is ui
+                for sink in method_trace_sinks
+            )
+        )
 
     def test_build_application_services_wires_preflight_through_platform_bundle(self):
         with patch.object(composition, "PortVmRepositoryYaml"):
@@ -1048,6 +1260,31 @@ class _RecordingUI(PortUI):
         pass
 
 
+class _LifecycleRecordingUI(PortUI):
+    def __init__(self, calls: list[str]):
+        super().__init__(instances=(), test_mode=True)
+        self.calls = calls
+        self.updates: list[tuple[str, str, str, str | None]] = []
+
+    def start_in_thread(self):
+        self.calls.append("ui started")
+        self.ui_thread = _record_ui_awaited(self.calls)
+
+    def update_status(self, instance, task, step, result=None):
+        super().update_status(instance, task, step, result)
+        status = self._status_for_instance(instance)
+        self.updates.append((instance, task, step, status["result"]))
+        if instance == AGGREGATE_INSTANCE and step in {"finished", "exception"}:
+            self.calls.append(f"ui update {status['result']}")
+
+    def start(self):
+        pass
+
+
+async def _record_ui_awaited(calls: list[str]):
+    calls.append("ui awaited")
+
+
 def _phase_bundle():
     from unittest.mock import AsyncMock
 
@@ -1075,3 +1312,40 @@ def _artifact_phase_bundle():
 
 def _deployment_phase_bundle():
     return _workflow_bundle("bootstrap", "apply", "verify")
+
+
+def _setup_lifecycle_bundle(
+    calls: list[str],
+    result: SetupWorkflowResult | Exception,
+    *,
+    ui: PortUI | None = None,
+    status_updates: tuple[str, ...] = (),
+):
+    from types import SimpleNamespace
+
+    class SetupRun:
+        async def run(self):
+            calls.append("workflow run")
+            if ui is not None:
+                for status in status_updates:
+                    ui.update_status(
+                        AGGREGATE_INSTANCE,
+                        task="setup run",
+                        step="workflow progress",
+                        result=status,
+                    )
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+    return SimpleNamespace(workflows=SimpleNamespace(run=SetupRun()))
+
+
+def _setup_result(status: SetupWorkflowStatus) -> SetupWorkflowResult:
+    return SetupWorkflowResult(
+        kind=SetupWorkflowKind.RUN,
+        status=status,
+        message=f"setup run {status.value}.",
+        reason=status.value,
+        executed=True,
+    )

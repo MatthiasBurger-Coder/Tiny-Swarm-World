@@ -49,7 +49,11 @@ from tiny_swarm_world.application.ports.progress import PortWorkflowProgress
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
     PortSwarmStackRuntime,
 )
-from tiny_swarm_world.application.ports.ui.port_ui import PortUI
+from tiny_swarm_world.application.ports.ui.port_ui import (
+    AGGREGATE_INSTANCE,
+    STATUS_ERROR,
+    PortUI,
+)
 from tiny_swarm_world.application.services.platform import (
     AsyncWorkflowStep,
     LxcDockerInstallService,
@@ -74,7 +78,11 @@ from tiny_swarm_world.application.services.platform import (
     SocatManager,
     VmIpList,
 )
-from tiny_swarm_world.application.services.setup import SetupWorkflow, SetupWorkflowPhase
+from tiny_swarm_world.application.services.setup import (
+    SetupWorkflow,
+    SetupWorkflowPhase,
+    SetupWorkflowResult,
+)
 from tiny_swarm_world.domain.artifacts import DEFAULT_CONTAINER_IMAGE_CONTRACTS
 from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
@@ -144,6 +152,7 @@ from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
     TerminalMethodTrace,
     TerminalWorkflowProgress,
 )
+from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe, LxcProviderPreflightProbe
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
     ComposeFileRepositoryYaml,
@@ -600,6 +609,10 @@ def configure_infrastructure_container() -> None:
     infra_core_container.register(FileManager)
 
 
+def build_application_logger():
+    return LoggerFactory.get_logger("application")
+
+
 def build_preflight_service(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
@@ -630,6 +643,57 @@ def _build_method_trace_sink(ui: PortUI | None = None) -> PortMethodTrace:
 
 def _new_installation_trace_correlation_id() -> str:
     return f"trace-installation-{uuid4().hex}"
+
+
+def build_setup_ui(*, test_mode: bool = False) -> PortUI:
+    return FactoryUI().get_ui(instances=(), test_mode=test_mode)
+
+
+async def run_setup_with_terminal_status(
+    live_consent: LiveConsent,
+    action: str,
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
+) -> SetupWorkflowResult:
+    if not live_consent.accepted:
+        raise ValueError("setup run requires accepted live consent")
+
+    ui = build_setup_ui()
+    ui.start_in_thread()
+    try:
+        services = build_setup_services(
+            live_consent,
+            service_profile=service_profile,
+            node_provider_request=node_provider_request,
+            ui=ui,
+        )
+        match action:
+            case "run":
+                result = await services.workflows.run.run()
+            case _:
+                raise ValueError(f"Unsupported setup workflow action: {action}")
+        ui.update_status(
+            AGGREGATE_INSTANCE,
+            task="setup run",
+            step="finished",
+            result=_setup_result_status(result),
+        )
+        return result
+    except Exception:
+        ui.update_status(
+            AGGREGATE_INSTANCE,
+            task="setup run",
+            step="exception",
+            result=STATUS_ERROR,
+        )
+        raise
+    finally:
+        if ui.ui_thread is not None:
+            await ui.ui_thread
+
+
+def _setup_result_status(result: SetupWorkflowResult) -> str:
+    return result.status.value
 
 
 def build_platform_services(

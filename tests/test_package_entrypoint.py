@@ -325,7 +325,10 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                             entrypoint,
                             "build_deployment_services_for_provider",
                         ) as build_deployment_services:
-                            with patch.object(entrypoint, "build_setup_services") as build_setup_services:
+                            with patch.object(
+                                entrypoint,
+                                "run_setup_with_terminal_status",
+                            ) as run_setup:
                                 with redirect_stdout(output):
                                     with self.assertRaises(SystemExit) as raised:
                                         await entrypoint.main(command)
@@ -334,7 +337,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 build_services.assert_not_called()
                 build_artifact_services.assert_not_called()
                 build_deployment_services.assert_not_called()
-                build_setup_services.assert_not_called()
+                run_setup.assert_not_called()
                 self.assertIn("REFUSED_LIVE_CONSENT_MISSING", output.getvalue())
                 await asyncio.sleep(0)
 
@@ -455,25 +458,21 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("LEGACY_NODE_PROVIDER_SELECTED", output.getvalue())
 
     async def test_setup_run_dispatches_to_setup_workflow_after_live_consent(self):
-        setup_services = SimpleNamespace(
-            workflows=SimpleNamespace(
-                run=SimpleNamespace(
-                    run=AsyncMock(
-                        return_value=SetupWorkflowResult(
-                            kind=SetupWorkflowKind.RUN,
-                            status=SetupWorkflowStatus.BLOCKED,
-                            message="setup run stopped during phase 'platform init'.",
-                            reason="phase 'platform init' returned blocked",
-                            executed=True,
-                        )
-                    )
-                )
-            )
+        setup_result = SetupWorkflowResult(
+            kind=SetupWorkflowKind.RUN,
+            status=SetupWorkflowStatus.BLOCKED,
+            message="setup run stopped during phase 'platform init'.",
+            reason="phase 'platform init' returned blocked",
+            executed=True,
         )
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(entrypoint, "build_setup_services", return_value=setup_services) as build_setup:
+            with patch.object(
+                entrypoint,
+                "run_setup_with_terminal_status",
+                return_value=setup_result,
+            ) as run_setup:
                 with patch.object(
                     entrypoint,
                     "build_application_services",
@@ -484,36 +483,28 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                             await entrypoint.main(["setup", "run", "--live"])
 
         self.assertEqual(1, raised.exception.code)
-        build_setup.assert_called_once()
-        live_consent = build_setup.call_args.args[0]
+        run_setup.assert_awaited_once()
+        live_consent = run_setup.call_args.args[0]
         self.assertTrue(live_consent.accepted)
+        self.assertEqual("run", run_setup.call_args.args[1])
         self.assertEqual(
             {
                 "service_profile": ServiceStackProfile.SERVICE_ACCESS.value,
                 "node_provider_request": entrypoint.NodeProviderSelectionRequest(),
             },
-            build_setup.call_args.kwargs,
+            run_setup.call_args.kwargs,
         )
-        setup_services.workflows.run.run.assert_awaited_once_with()
         payload = _json_payload_from_output(output.getvalue())
         self.assertEqual("setup run", payload["workflow"])
         self.assertEqual("blocked", payload["status"])
 
-    async def test_explicit_multipass_provider_is_forwarded_to_setup_builder(self):
-        setup_services = SimpleNamespace(
-            workflows=SimpleNamespace(
-                run=SimpleNamespace(
-                    run=AsyncMock(
-                        return_value=SetupWorkflowResult(
-                            kind=SetupWorkflowKind.RUN,
-                            status=SetupWorkflowStatus.BLOCKED,
-                            message="setup run stopped during phase 'platform init'.",
-                            reason="phase 'platform init' returned blocked",
-                            executed=True,
-                        )
-                    )
-                )
-            )
+    async def test_explicit_multipass_provider_is_forwarded_to_setup_lifecycle(self):
+        setup_result = SetupWorkflowResult(
+            kind=SetupWorkflowKind.RUN,
+            status=SetupWorkflowStatus.BLOCKED,
+            message="setup run stopped during phase 'platform init'.",
+            reason="phase 'platform init' returned blocked",
+            executed=True,
         )
         legacy_request = entrypoint.NodeProviderSelectionRequest(
             requested_provider=NodeProviderKind.MULTIPASS_LEGACY
@@ -521,7 +512,11 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(entrypoint, "build_setup_services", return_value=setup_services) as build_setup:
+            with patch.object(
+                entrypoint,
+                "run_setup_with_terminal_status",
+                return_value=setup_result,
+            ) as run_setup:
                 with redirect_stdout(output):
                     with self.assertRaises(SystemExit) as raised:
                         await entrypoint.main(
@@ -535,17 +530,30 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                         )
 
         self.assertEqual(1, raised.exception.code)
-        live_consent = build_setup.call_args.args[0]
+        live_consent = run_setup.call_args.args[0]
         self.assertTrue(live_consent.accepted)
+        self.assertEqual("run", run_setup.call_args.args[1])
         self.assertEqual(
             {
                 "service_profile": ServiceStackProfile.SERVICE_ACCESS.value,
                 "node_provider_request": legacy_request,
             },
-            build_setup.call_args.kwargs,
+            run_setup.call_args.kwargs,
         )
-        setup_services.workflows.run.run.assert_awaited_once_with()
         self.assertIn("LEGACY_NODE_PROVIDER_SELECTED", output.getvalue())
+
+    async def test_setup_run_propagates_composition_lifecycle_failure(self):
+        with patch("builtins.input", return_value="y"):
+            with patch.object(
+                entrypoint,
+                "run_setup_with_terminal_status",
+                side_effect=RuntimeError("boom"),
+            ) as run_setup:
+                with redirect_stdout(io.StringIO()):
+                    with self.assertRaises(RuntimeError):
+                        await entrypoint.main(["setup", "run", "--live"])
+
+        run_setup.assert_awaited_once()
 
     async def test_static_preflight_runs_without_live_consent(self):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))
@@ -580,9 +588,13 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         imports = _direct_imports(ENTRYPOINT_PATH)
         forbidden_prefixes = (
             "tiny_swarm_world.infrastructure.adapters.command_runner",
+            "tiny_swarm_world.infrastructure.adapters.ui",
             "tiny_swarm_world.infrastructure.adapters.repositories",
             "tiny_swarm_world.infrastructure.adapters.yaml",
             "tiny_swarm_world.infrastructure.adapters.file_management",
+            "tiny_swarm_world.infrastructure.logging",
+            "tiny_swarm_world.application.ports.method_trace",
+            "tiny_swarm_world.application.ports.progress",
             "tiny_swarm_world.application.services.multipass",
             "tiny_swarm_world.application.services.network",
             "tiny_swarm_world.application.services.vm",
@@ -597,6 +609,22 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual([], violations)
 
+    def test_entrypoint_has_no_direct_console_or_logging_lifecycle_identifiers(self):
+        forbidden_identifiers = {
+            "AGGREGATE_INSTANCE",
+            "FactoryUI",
+            "LoggerFactory",
+            "STATUS_ERROR",
+            "build_setup_ui",
+            "start_in_thread",
+            "ui_thread",
+            "update_status",
+        }
+
+        violations = sorted(_referenced_identifiers(ENTRYPOINT_PATH) & forbidden_identifiers)
+
+        self.assertEqual([], violations)
+
 
 def _direct_imports(source_file: Path) -> list[str]:
     tree = ast.parse(source_file.read_text(encoding="utf-8"))
@@ -607,6 +635,17 @@ def _direct_imports(source_file: Path) -> list[str]:
         if isinstance(node, ast.ImportFrom) and node.module:
             imports.append(node.module)
     return imports
+
+
+def _referenced_identifiers(source_file: Path) -> set[str]:
+    tree = ast.parse(source_file.read_text(encoding="utf-8"))
+    identifiers: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            identifiers.add(node.id)
+        if isinstance(node, ast.Attribute):
+            identifiers.add(node.attr)
+    return identifiers
 
 
 class _FakePreflightResult:
