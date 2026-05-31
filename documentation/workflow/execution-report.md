@@ -339,3 +339,44 @@ Live infrastructure:
 - no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
   bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
   Swagger/NGINX commands were run.
+
+## Slice 07 - Installation Method Trace Coverage Guard
+
+Status: completed.
+
+S3/S3D verification:
+
+- active branch checked:
+  `feature/workflow-install-observability-20260529`
+- dependency status: Slice 06 completed in commit
+  `97eb5f9`
+- scope: architecture trace coverage guard and workflow context metadata
+
+Role review results:
+
+- Senior Tester: coverage guard must fail when public methods in the declared
+  installation runtime owner set lack a manifest entry or explicit exemption.
+- Senior System Architect: exemptions must stay narrow and avoid trace sink,
+  logger, and terminal render-loop recursion.
+
+Quality evidence:
+
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.architecture.test_installation_method_trace_coverage`
+- result: passed, 5 tests
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.architecture.test_hexagonal_imports tests.architecture.test_installation_method_trace_coverage`
+- result: passed, 21 tests
+- required command: `source venv/bin/activate && python3 tools/quality_gate.py arch-tests`
+- result: passed
+
+Changed files:
+
+- `tests/architecture/test_installation_method_trace_coverage.py`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/execution-report.md`
+
+Live infrastructure:
+
+- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
+  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
+  Swagger/NGINX commands were run.
