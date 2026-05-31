@@ -62,7 +62,7 @@ Governing input hashes:
 - `documentation/arc42/10_quality_requirements.adoc`: `373570e62bea2f3b94b2d977a5f4819f76bdd054`
 - `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`: `38904d22f0522ee1b3de70c1866f2d66fd06b243`
 - `src/tiny_swarm_world/application/services/setup/workflow.py`: `c615e01e0b1bacc6a8572d59475f5ce1164058f5`
-- `src/tiny_swarm_world/application/services/platform/workflows.py`: `43859c87570247770e60a8bff07ebcf4b5928207`
+- `src/tiny_swarm_world/application/services/platform/workflows.py`: `cda2514fb66707ed5c6fa6ed876d90c12a7eb187`
 
 Freshness rule:
 
