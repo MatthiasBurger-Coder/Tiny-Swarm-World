@@ -82,11 +82,20 @@ Quality scenarios:
 * optional live smoke validation is documented and invoked separately from the
   default quality gate.
 
-=== Installation Progress And Logging
+=== Installation Progress And Cross-Cutting Method Trace Logging
 
-Installation progress and logging must be completed through the planned
-structured progress path, not by spreading concrete terminal UI dependencies
-through setup or platform application services.
+Installation progress and logging must be completed through two correlated
+observability paths:
+
+* high-level workflow progress for operator-facing setup phase and platform
+  step status;
+* cross-cutting method trace logging for the covered installation runtime path,
+  including method entry, normal exit, and exception exit.
+
+ADR `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
+governs the method trace direction. The trace implementation must not spread
+concrete terminal UI or logger configuration dependencies through setup,
+platform, domain, or application services.
 
 Quality scenarios:
 
@@ -100,10 +109,20 @@ Quality scenarios:
   completed events;
 * refused, blocked, failed, failed-to-apply and failed-to-verify states are
   not overwritten by later success-like aggregate updates;
+* every method in the documented installation trace scope emits `entered`,
+  `returned`, and `raised` lifecycle events, or has an explicit tested
+  exemption;
+* exception paths emit a safe failure trace before propagation or conversion to
+  a workflow result;
+* asynchronous and nested method traces carry correlation and parent-span
+  metadata sufficient to reconstruct program flow;
 * progress events and logs carry only safe summaries and recovery hints;
-* raw command strings, stdout, stderr, tokens, passwords, environment
-  payloads, host-specific paths and local IP addresses are not logged,
-  displayed, persisted or treated as verification evidence;
+* trace events, progress events and logs do not contain raw arguments, return
+  payloads, raw exception messages, stack traces, raw command strings, stdout,
+  stderr, tokens, passwords, environment payloads, host-specific paths or local
+  IP addresses;
+* tests or static checks fail when a covered installation runtime method lacks
+  entry, returned, or raised trace coverage;
 * default tests and quality gates use mocks or static inspection and do not
   execute live LXD, Incus, LXC, Multipass, Docker Swarm, compose, Portainer,
   Nexus, Jenkins, RabbitMQ, SonarQube or service bootstrap commands.

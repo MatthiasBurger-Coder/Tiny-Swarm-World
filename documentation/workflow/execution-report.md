@@ -1,6 +1,6 @@
 # Execution Report
 
-Status: workflow created, implementation not started.
+Status: Slice 05 governance correction completed; method trace implementation pending.
 
 Created on branch:
 
@@ -23,8 +23,33 @@ Workflow authoring actions:
 - regenerated `documentation/workflow`
 - recorded requirement, architecture, and test agent findings
 - defined eight no-skip implementation slices
+- revised the workflow after user clarification that logging is a
+  cross-cutting module and method-level trace coverage, including exception
+  paths, is required
 
 No live infrastructure commands were run.
+
+## User Clarification - Cross-Cutting Method Trace Logging
+
+Status: accepted into workflow scope.
+
+Clarification:
+
+- logging is a cross-cutting module and therefore requires ADR coverage;
+- lueckenlose Nachverfolgung means method-level tracing for the installation
+  runtime path, not only phase or step progress;
+- covered methods must emit entry, normal return, and exception exit trace
+  events;
+- terminal UI output and central logging must be fed through architecture-safe
+  progress or trace ports and infrastructure adapters.
+
+Impact:
+
+- Slices 02-04 remain valid partial high-level progress work.
+- The previous pending PortUI/logging adapter slice was moved behind the
+  cross-cutting method trace ADR, trace contract, trace coverage guard, and
+  application runtime trace integration.
+- The workflow now continues with Slice 05 before further implementation.
 
 ## Slice 01 - Requirement And Baseline Audit
 
@@ -209,6 +234,56 @@ Changed files:
 - `documentation/workflow/context-pack.json`
 - `documentation/workflow/context-pack.md`
 - `documentation/workflow/execution-report.md`
+
+Live infrastructure:
+
+- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
+  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
+  Swagger/NGINX commands were run.
+
+## Slice 05 - Cross-Cutting Method Trace ADR And Scope
+
+Status: completed.
+
+S3/S3D verification:
+
+- active branch checked:
+  `feature/workflow-install-observability-20260529`
+- dependency status: Slice 04 completed in commit
+  `faf77c0`
+- scope: documentation, ADR, workflow governance, and arc42 alignment
+
+Role review results:
+
+- Senior Requirement Engineer: confirmed the current workflow had narrowed the
+  requirement to phase/step progress and must be corrected to method-level
+  trace acceptance criteria.
+- Senior System Architect: confirmed cross-cutting method-flow logging requires
+  a standalone ADR and must preserve hexagonal boundaries.
+- Senior Tester: confirmed existing tests prove high-level progress only and
+  proposed trace contract, wrapper, redaction, coverage, adapter, and
+  composition tests.
+
+Quality evidence:
+
+- required command: `git diff --check`
+- result: passed
+- command: `python3 -m json.tool documentation/workflow/context-pack.json`
+- result: passed
+
+Changed files:
+
+- `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/09_architecture_decisions.adoc`
+- `documentation/arc42/10_quality_requirements.adoc`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/execution-report.md`
+- `documentation/workflow/reports/01-requirement-agent-findings.md`
+- `documentation/workflow/reports/02-architecture-agent-findings.md`
+- `documentation/workflow/reports/03-test-agent-findings.md`
+- `documentation/workflow/workflow.md`
 
 Live infrastructure:
 

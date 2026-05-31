@@ -123,14 +123,19 @@ blocked, resource-gated, or failed states from being presented as success.
 No browser frontend, React component, JavaScript build tool, TSX/JSX file, or
 browser state is part of this console/status runtime flow.
 
-Installation progress status is partially implemented. Command-runner UI
-adapters and the shared terminal status vocabulary already exist, but
-`SetupWorkflow` still prints phase progress directly and platform workflows
-return typed results without continuous `PortUI` progress events. Workflow
-`install-observability-console-status-v1.0.0` plans the architecture-safe
-completion path: add a narrow application progress port, then wire
-infrastructure adapters that translate structured progress events to `PortUI`
-updates and centralized logging.
+Installation observability status is partially implemented. Command-runner UI
+adapters and the shared terminal status vocabulary already exist. The
+structured workflow progress port now covers setup and platform orchestration
+transitions, but this is still not complete fulfillment of the clarified
+runtime tracing requirement.
+
+ADR `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
+records that logging is a cross-cutting Shared observability module. The
+remaining runtime path must add method-level trace coverage for every covered
+installation method: entry, normal exit, and exception exit. That trace stream
+must feed centralized logging and a safe terminal `PortUI` projection through
+infrastructure adapters while keeping domain and application code free from
+concrete UI and logger configuration dependencies.
 
 === Inventory And Evidence Runtime Flow
 
