@@ -1,6 +1,6 @@
 # Execution Report
 
-Status: Slice 05 governance correction completed; method trace implementation pending.
+Status: Slice 09 completed; CLI console lifecycle pending.
 
 Created on branch:
 
@@ -22,7 +22,7 @@ Workflow authoring actions:
 - verified active workflow branch
 - regenerated `documentation/workflow`
 - recorded requirement, architecture, and test agent findings
-- defined eight no-skip implementation slices
+- defined no-skip implementation slices
 - revised the workflow after user clarification that logging is a
   cross-cutting module and method-level trace coverage, including exception
   paths, is required
@@ -421,6 +421,74 @@ Changed files:
 - `tests/application/services/setup/test_setup_workflow.py`
 - `tests/application/services/platform/test_platform_workflows.py`
 - `tests/application/services/commands/test_command_executer.py`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/execution-report.md`
+
+Live infrastructure:
+
+- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
+  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
+  Swagger/NGINX commands were run.
+
+## Slice 09 - PortUI Logging And Trace Adapter Wiring
+
+Status: completed.
+
+S3/S3D verification:
+
+- active branch checked:
+  `feature/workflow-install-observability-20260529`
+- dependency status: Slice 06 completed in commit
+  `97eb5f9`; Slice 08 completed in commit `f6e690f`
+- scope: infrastructure progress/trace adapters, composition wiring, command UI
+  trace wiring, and redacted command exception summaries
+
+Role review results:
+
+- Senior Python Automation Developer: added infrastructure composite sinks for
+  workflow progress and method trace events, with terminal UI and central
+  logging adapters kept outside application services.
+- Senior Tester: sidecar review found and closed the arbitrary runner exception
+  raw-text leak, required direct logging-adapter assertions, and required setup
+  to pass one installation trace correlation into nested platform workflows.
+- Console/status UI skills: terminal adapters update only `PortUI` aggregate
+  status and preserve failure state through the existing `PortUI` terminal
+  result rules.
+- Senior System Architect: composition owns concrete `LoggerFactory`,
+  terminal-adapter, and composite-sink wiring; application services still
+  depend only on ports.
+
+Quality evidence:
+
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui tests.infrastructure.logging.test_progress_trace_logging`
+- result: passed, 5 tests
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.services.commands.test_command_executer tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics`
+- result: passed, 16 tests
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_linux_ui tests.infrastructure.test_composition`
+- result: passed, 56 tests
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.architecture.test_installation_method_trace_coverage`
+- result: passed, 5 tests
+- required command: `source venv/bin/activate && python3 tools/quality_gate.py lint`
+- result: passed
+- additional command: `source venv/bin/activate && python3 tools/quality_gate.py typecheck`
+- result: passed
+- command: `git diff --check`
+- result: passed
+
+Changed files:
+
+- `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`
+- `src/tiny_swarm_world/infrastructure/adapters/ui/command_async_runner_ui.py`
+- `src/tiny_swarm_world/infrastructure/adapters/ui/command_sync_runner_ui.py`
+- `src/tiny_swarm_world/infrastructure/adapters/ui/progress_trace_ui.py`
+- `src/tiny_swarm_world/infrastructure/logging/progress_trace_logging.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `tests/application/services/commands/test_command_executer.py`
+- `tests/infrastructure/adapters/ui/test_command_runner_ui_failure_semantics.py`
+- `tests/infrastructure/adapters/ui/test_progress_trace_ui.py`
+- `tests/infrastructure/logging/test_progress_trace_logging.py`
+- `tests/infrastructure/test_composition.py`
 - `documentation/workflow/context-pack.json`
 - `documentation/workflow/context-pack.md`
 - `documentation/workflow/execution-report.md`

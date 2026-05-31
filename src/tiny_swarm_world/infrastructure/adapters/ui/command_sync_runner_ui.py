@@ -2,9 +2,19 @@ from typing import Dict
 
 from tiny_swarm_world.application.services.commands.command_executer.command_executer import CommandExecuter
 from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
-from tiny_swarm_world.application.ports.ui.port_ui import AGGREGATE_INSTANCE, STATUS_ERROR, STATUS_SUCCESS
+from tiny_swarm_world.application.ports.ui.port_ui import (
+    AGGREGATE_INSTANCE,
+    STATUS_ERROR,
+    STATUS_SUCCESS,
+    PortUI,
+)
 from tiny_swarm_world.infrastructure.adapters.ui.command_runner_ui import CommandRunnerUi
+from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import TerminalMethodTrace
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
+    CompositeMethodTrace,
+    LoggingMethodTrace,
+)
 from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI
 
 class SyncCommandRunnerUI(CommandRunnerUi):
@@ -22,7 +32,11 @@ class SyncCommandRunnerUI(CommandRunnerUi):
         self.command_list = command_list
         self.instances = list(command_list.keys())
         self.ui = FactoryUI().get_ui(instances=self.instances, test_mode=False)
-        self.command_execute = CommandExecuter(ui=self.ui)
+        self.command_execute = CommandExecuter(
+            ui=self.ui,
+            method_trace=_build_command_method_trace(self.ui),
+            trace_correlation_id="trace-command-execution",
+        )
         self.logger = LoggerFactory.get_logger(self.__class__)
         self.logger.info(f"CommandRunnerUI initialized {self.instances} instances")
 
@@ -71,3 +85,12 @@ class SyncCommandRunnerUI(CommandRunnerUi):
             raise failure
 
         return results
+
+
+def _build_command_method_trace(ui: PortUI) -> CompositeMethodTrace:
+    return CompositeMethodTrace(
+        (
+            LoggingMethodTrace(LoggerFactory.get_logger("MethodTrace")),
+            TerminalMethodTrace(ui),
+        )
+    )

@@ -63,6 +63,40 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
         self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_ERROR), ui.updates)
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
 
+    async def test_async_ui_redacts_arbitrary_runner_exception_text(self):
+        ui = RecordingUI()
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
+        ) as factory:
+            factory.return_value.get_ui.return_value = ui
+            runner_ui = AsyncCommandRunnerUI(_command_list(SensitiveRuntimeFailureRunner()))
+
+        with patch(
+            "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
+            new=AsyncMock(),
+        ):
+            await _assert_arbitrary_runner_ui_failure_redacted(runner_ui)
+
+        self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
+
+    async def test_sync_ui_redacts_arbitrary_runner_exception_text(self):
+        ui = RecordingUI()
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
+        ) as factory:
+            factory.return_value.get_ui.return_value = ui
+            runner_ui = SyncCommandRunnerUI(_command_list(SensitiveRuntimeFailureRunner()))
+
+        with patch(
+            "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
+            new=AsyncMock(),
+        ):
+            await _assert_arbitrary_runner_ui_failure_redacted(runner_ui)
+
+        self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
+
     async def test_sync_ui_aggregate_failure_is_terminal_with_pending_later_instances(self):
         ui = RecordingUI(["swarm-manager", "swarm-worker"])
 
@@ -209,6 +243,14 @@ class StatusOnlyFailureRunner(PortCommandRunner):
         return "blocked"
 
 
+class SensitiveRuntimeFailureRunner(PortCommandRunner):
+    async def run(self, command: str) -> str:
+        await async_checkpoint()
+        raise RuntimeError(
+            "raw runtime failure token stdout /home/operator 192.168.1.10"
+        )
+
+
 class RecordingUI(PortUI):
     def __init__(self, instances=None):
         super().__init__(instances or ["swarm-manager"], test_mode=True)
@@ -251,3 +293,28 @@ async def _assert_redacted_runner_ui_failure(runner_ui):
     unittest.TestCase().assertNotIn("cannot connect to the multipass socket", text)
     unittest.TestCase().assertNotIn("raw vm output", text)
     unittest.TestCase().assertNotIn("multipass info", text)
+
+
+async def _assert_arbitrary_runner_ui_failure_redacted(runner_ui):
+    with patch.object(runner_ui.command_execute.logger, "error") as command_error:
+        with patch.object(runner_ui.logger, "error") as ui_error:
+            with unittest.TestCase().assertRaises(CommandExecutionFailed) as context:
+                await runner_ui.run()
+
+    text = " ".join(
+        str(value)
+        for value in (
+            command_error.call_args_list,
+            ui_error.call_args_list,
+            context.exception,
+            runner_ui.ui.updates,
+        )
+    )
+    unittest.TestCase().assertIn("RuntimeError", text)
+    unittest.TestCase().assertIn("Diagnostic payload redacted", text)
+    unittest.TestCase().assertNotIn("token", text)
+    unittest.TestCase().assertNotIn("stdout", text)
+    unittest.TestCase().assertNotIn("/home/operator", text)
+    unittest.TestCase().assertNotIn("192.168.1.10", text)
+    unittest.TestCase().assertNotIn("raw runtime failure", text)
+    unittest.TestCase().assertNotIn("exit 1", text)

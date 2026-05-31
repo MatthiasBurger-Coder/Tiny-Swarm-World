@@ -41,7 +41,9 @@
     "PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow",
     "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows",
     "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_linux_ui",
+    "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui",
     "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics",
+    "PYTHONPATH=src python3 -m unittest tests.infrastructure.logging.test_progress_trace_logging",
     "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition tests.test_package_entrypoint",
     "python3 tools/quality_gate.py quality"
   ],
@@ -54,11 +56,18 @@
     "documentation/arc42/09_architecture_decisions.adoc": "218cd138207a6beb091677c875e13ff1968b4148",
     "documentation/arc42/10_quality_requirements.adoc": "a0ac540f5e2e8acd1a62937b2322fbfa19a343c0",
     "documentation/architecture/adr-cross-cutting-method-trace-logging.adoc": "65b57d3e9bcf5ee739735303400bf25fc7b61b16",
-    "src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py": "3ba027deaf744dbfbd079717c724908ed39a83cd",
+    "src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py": "f57e1c8806949b456344a6877984178344f27d1c",
     "src/tiny_swarm_world/application/ports/method_trace/port_method_trace.py": "b6569265188abc0d86869a13ba7083739f948777",
     "src/tiny_swarm_world/application/services/shared/method_trace_wrapper.py": "b4f11e3a6d66d6394f97259222565f0c3a5ddfa7",
     "tests/architecture/test_installation_method_trace_coverage.py": "a31d093c54740c269f554030b790fdc150b98916",
     "src/tiny_swarm_world/application/services/setup/workflow.py": "668ce756f7854bea8fcb3e0531418540340f6634",
-    "src/tiny_swarm_world/application/services/platform/workflows.py": "59029e9b114f792f1616572aeb64d1cb111d236b"
+    "src/tiny_swarm_world/application/services/platform/workflows.py": "59029e9b114f792f1616572aeb64d1cb111d236b",
+    "src/tiny_swarm_world/infrastructure/composition.py": "9930db4856f5cebd26566823d1eae216da4c0bc2",
+    "src/tiny_swarm_world/infrastructure/adapters/ui/progress_trace_ui.py": "6d8ec50d3844277b2cb66a9cc0b5b11625f0eec8",
+    "src/tiny_swarm_world/infrastructure/logging/progress_trace_logging.py": "da6b8ce7d0152e2cc84a5d14f69dc9721bcd807e",
+    "src/tiny_swarm_world/infrastructure/adapters/ui/command_async_runner_ui.py": "8ed34bb8eb4a2a5a3bcf6fe27b52a5adb5fee69d",
+    "src/tiny_swarm_world/infrastructure/adapters/ui/command_sync_runner_ui.py": "660c845ac03e1b81b3e38f70a7263a8d74fc6f24",
+    "tests/infrastructure/adapters/ui/test_progress_trace_ui.py": "28336e3e9ec68fe9f1c2a2d5fb11727bb3765588",
+    "tests/infrastructure/logging/test_progress_trace_logging.py": "190de2300d989806ecd943e490c850c3cb0b230d"
   }
 }

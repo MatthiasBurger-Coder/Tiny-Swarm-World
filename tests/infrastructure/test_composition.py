@@ -1,11 +1,13 @@
 import asyncio
 import unittest
 from dataclasses import fields
+from typing import cast
 from unittest.mock import patch
 from tests.support.async_helpers import async_checkpoint
 from tests.support.sonar_safe_literals import sample_text
 
 from tiny_swarm_world.application.services.deployment.ensure_service_stack import EnsureServiceStack
+from tiny_swarm_world.application.ports.ui.port_ui import PortUI
 from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
@@ -183,7 +185,9 @@ class TestComposition(unittest.TestCase):
                     "VerificationEvidenceLocalRepository",
                     return_value=evidence_repository,
                 ):
-                    services = composition.build_platform_services()
+                    services = composition.build_platform_services(
+                        trace_correlation_id="trace-test"
+                    )
 
         self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
         self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
@@ -199,6 +203,28 @@ class TestComposition(unittest.TestCase):
             evidence_repository,
             services.workflows.reconcile.verification_evidence_repository,
         )
+        self.assertIsInstance(
+            services.workflows.init.progress,
+            composition.CompositeWorkflowProgress,
+        )
+        self.assertIsInstance(
+            services.workflows.init.method_trace,
+            composition.CompositeMethodTrace,
+        )
+        self.assertIs(
+            services.workflows.init.progress,
+            services.workflows.reconcile.progress,
+        )
+        self.assertIs(
+            services.workflows.init.method_trace,
+            services.workflows.reconcile.method_trace,
+        )
+        self.assertEqual("trace-test", services.workflows.init.trace_correlation_id)
+        self.assertEqual(
+            "trace-test",
+            services.workflows.reconcile.trace_correlation_id,
+        )
+        self.assertEqual("trace-test", services.workflows.verify.trace_correlation_id)
 
     def test_build_platform_services_wires_workflow_types_without_evidence_patch(self):
         with patch.object(composition, "PortVmRepositoryYaml"):
@@ -210,6 +236,36 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
         self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
+
+    def test_build_platform_services_adds_terminal_sinks_when_ui_is_supplied(self):
+        ui = _RecordingUI()
+
+        with patch.object(composition, "PortVmRepositoryYaml"):
+            with patch.object(composition, "PortNetplanRepositoryYaml"):
+                services = composition.build_platform_services(ui=ui)
+
+        progress_sink = services.workflows.init.progress
+        method_trace_sink = services.workflows.init.method_trace
+        self.assertIsInstance(progress_sink, composition.CompositeWorkflowProgress)
+        self.assertIsInstance(method_trace_sink, composition.CompositeMethodTrace)
+
+        progress_sinks = cast(composition.CompositeWorkflowProgress, progress_sink).sinks
+        method_trace_sinks = cast(composition.CompositeMethodTrace, method_trace_sink).sinks
+
+        self.assertTrue(
+            any(
+                isinstance(sink, composition.TerminalWorkflowProgress)
+                and sink.ui is ui
+                for sink in progress_sinks
+            )
+        )
+        self.assertTrue(
+            any(
+                isinstance(sink, composition.TerminalMethodTrace)
+                and sink.ui is ui
+                for sink in method_trace_sinks
+            )
+        )
 
     def test_build_artifact_services_wires_artifact_contracts_without_running_clients(self):
         services = composition.build_artifact_services()
@@ -501,10 +557,38 @@ class TestComposition(unittest.TestCase):
                         build_artifacts.return_value = _artifact_phase_bundle()
                         build_deployment.return_value = _deployment_phase_bundle()
 
-                        services = composition.build_setup_services(_accepted_live_consent())
+                        with patch.object(
+                            composition,
+                            "_new_installation_trace_correlation_id",
+                            return_value="trace-test",
+                        ):
+                            services = composition.build_setup_services(
+                                _accepted_live_consent()
+                            )
 
         self.assertIsInstance(services.workflows.run, composition.SetupWorkflow)
         self.assertTrue(services.workflows.run.live_consent.accepted)
+        self.assertIsInstance(
+            services.workflows.run.progress,
+            composition.CompositeWorkflowProgress,
+        )
+        self.assertIsInstance(
+            services.workflows.run.method_trace,
+            composition.CompositeMethodTrace,
+        )
+        self.assertEqual("trace-test", services.workflows.run.trace_correlation_id)
+        self.assertTrue(
+            all(
+                phase.method_trace is services.workflows.run.method_trace
+                for phase in services.workflows.run.phases
+            )
+        )
+        self.assertTrue(
+            all(
+                phase.trace_correlation_id == services.workflows.run.trace_correlation_id
+                for phase in services.workflows.run.phases
+            )
+        )
         self.assertEqual(
             (
                 "preflight",
@@ -523,6 +607,8 @@ class TestComposition(unittest.TestCase):
         build_platform.assert_called_once_with(
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             live_consent=services.workflows.run.live_consent,
+            ui=None,
+            trace_correlation_id=services.workflows.run.trace_correlation_id,
         )
         build_artifacts.assert_called_once_with(node_provider_request=None)
         build_deployment.assert_called_once_with(
@@ -558,9 +644,17 @@ class TestComposition(unittest.TestCase):
         live_consent = _accepted_live_consent()
         captured: dict[str, object] = {}
 
-        def build_platform(*, service_profile: object, live_consent: LiveConsent | None = None):
+        def build_platform(
+            *,
+            service_profile: object,
+            live_consent: LiveConsent | None = None,
+            ui: object | None = None,
+            trace_correlation_id: str | None = None,
+        ):
             captured["service_profile"] = service_profile
             captured["live_consent"] = live_consent
+            captured["ui"] = ui
+            captured["trace_correlation_id"] = trace_correlation_id
             return _platform_phase_bundle()
 
         with patch.object(composition, "build_preflight_service", return_value=_phase_bundle()):
@@ -579,6 +673,10 @@ class TestComposition(unittest.TestCase):
 
         self.assertIs(live_consent, captured["live_consent"])
         self.assertEqual(ServiceStackProfile.SERVICE_ACCESS, captured["service_profile"])
+        self.assertIsNone(captured["ui"])
+        self.assertTrue(
+            str(captured["trace_correlation_id"]).startswith("trace-installation-")
+        )
 
     def test_build_application_services_does_not_run_constructed_services(self):
         with patch.object(composition.MultipassInitVms, "run", side_effect=AssertionError):
@@ -940,6 +1038,14 @@ class _ExistingPath:
 
     def exists(self):
         return self._exists
+
+
+class _RecordingUI(PortUI):
+    def __init__(self):
+        super().__init__(instances=(), test_mode=True)
+
+    def start(self):
+        pass
 
 
 def _phase_bundle():

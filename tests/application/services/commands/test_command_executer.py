@@ -156,6 +156,47 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("raw vm output", str(trace.events[-1].to_dict()))
         self.assertNotIn("cannot connect", str(trace.events[-1].to_dict()))
 
+    async def test_execute_redacts_arbitrary_runner_exception_text(self):
+        ui = RecordingUI()
+        trace = RecordingMethodTrace()
+        executer = CommandExecuter(
+            ui=ui,
+            method_trace=trace,
+            trace_correlation_id="trace-command",
+        )
+        command = ExecutableCommandEntity(
+            index=1,
+            vm_instance_name="swarm-manager",
+            description="runtime command",
+            command="exit 1",
+            runner=SensitiveRuntimeFailureRunner(),
+        )
+
+        with patch(
+            "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
+            new=AsyncMock(),
+        ):
+            with patch.object(executer.logger, "error") as log_error:
+                with self.assertRaises(CommandExecutionFailed) as context:
+                    await executer.execute({1: command})
+
+        text = " ".join(
+            (
+                str(context.exception),
+                str(ui.updates),
+                str(log_error.call_args_list),
+                str([event.to_dict() for event in trace.events]),
+            )
+        )
+        self.assertIn("RuntimeError", text)
+        self.assertIn("Diagnostic payload redacted", text)
+        self.assertNotIn("token", text)
+        self.assertNotIn("stdout", text)
+        self.assertNotIn("/home/operator", text)
+        self.assertNotIn("192.168.1.10", text)
+        self.assertNotIn("raw runtime failure", text)
+        self.assertEqual("CommandExecutionFailed", trace.events[-1].exception_type)
+
     async def test_execute_wraps_redacted_multipass_return_code_failure(self):
         ui = RecordingUI()
         executer = CommandExecuter(ui=ui)
@@ -230,6 +271,14 @@ class FailingRunner(PortCommandRunner):
             return_code=2,
             stdout="raw vm output",
             stderr="cannot connect to the multipass socket",
+        )
+
+
+class SensitiveRuntimeFailureRunner(PortCommandRunner):
+    async def run(self, command: str) -> str:
+        await async_checkpoint()
+        raise RuntimeError(
+            "raw runtime failure token stdout /home/operator 192.168.1.10"
         )
 
 
