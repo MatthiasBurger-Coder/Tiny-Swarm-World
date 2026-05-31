@@ -54,15 +54,15 @@ python3 tools/quality_gate.py quality
 
 Governing input hashes:
 
-- `AGENTS.md`: `05de31b1c980f393d9dd83e744a2debfdc1b6e0a`
-- `QUALITY.md`: `17002150bab9f168eb60be85d55b7a0c1cb441e5`
-- `documentation/epics/system-unification.md`: `ca0710c2a98c762c997f4f8e98d93d081bc6375c`
-- `documentation/epics/autonomous-runnable-setup.md`: `be3fbac77027c2d5af95e6f00794000949584d56`
-- `documentation/arc42/06_runtime_view.adoc`: `6546c837d3cfff9a3b0fb87263cac5aeb76606f9`
-- `documentation/arc42/10_quality_requirements.adoc`: `f7331a4d5a9c78b27b610fb266985652d7196045`
-- `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`: `96e0db019bd3efa70498f871e2cfc7a196a1e1c9`
-- `src/tiny_swarm_world/application/services/setup/workflow.py`: `e68f5b987628f14950063d98dd552a9619826b09`
-- `src/tiny_swarm_world/application/services/platform/workflows.py`: `160184a8429ad2730a28518f262989c7769d280b`
+- `AGENTS.md`: `e038d8a8b5baddbc2886e47a5a2596a4a5bf222a`
+- `QUALITY.md`: `08c7475fe511ac39c215284c5c1f23117848b567`
+- `documentation/epics/system-unification.md`: `489f0123f604cc40700721a45bacdf22ba0260a2`
+- `documentation/epics/autonomous-runnable-setup.md`: `db17388e1e92be425e253be89e8628a378d4532d`
+- `documentation/arc42/06_runtime_view.adoc`: `8fefba635998d3066fe198ab46116d1e2522b1f8`
+- `documentation/arc42/10_quality_requirements.adoc`: `373570e62bea2f3b94b2d977a5f4819f76bdd054`
+- `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`: `38904d22f0522ee1b3de70c1866f2d66fd06b243`
+- `src/tiny_swarm_world/application/services/setup/workflow.py`: `d297cd556aed7bae7545f8077091d259cf38ef26`
+- `src/tiny_swarm_world/application/services/platform/workflows.py`: `43859c87570247770e60a8bff07ebcf4b5928207`
 
 Freshness rule:
 

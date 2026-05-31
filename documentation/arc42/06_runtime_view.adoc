@@ -123,6 +123,15 @@ blocked, resource-gated, or failed states from being presented as success.
 No browser frontend, React component, JavaScript build tool, TSX/JSX file, or
 browser state is part of this console/status runtime flow.
 
+Installation progress status is partially implemented. Command-runner UI
+adapters and the shared terminal status vocabulary already exist, but
+`SetupWorkflow` still prints phase progress directly and platform workflows
+return typed results without continuous `PortUI` progress events. Workflow
+`install-observability-console-status-v1.0.0` plans the architecture-safe
+completion path: add a narrow application progress port, then wire
+infrastructure adapters that translate structured progress events to `PortUI`
+updates and centralized logging.
+
 === Inventory And Evidence Runtime Flow
 
 Desired inventory is a committed product configuration concern and can be read

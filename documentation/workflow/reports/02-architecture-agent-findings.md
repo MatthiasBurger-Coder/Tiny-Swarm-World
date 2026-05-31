@@ -21,3 +21,9 @@ Stop conditions:
   payloads, or host-specific data.
 - Validation requires live LXC, Incus, Docker, Swarm, compose, Portainer,
   Nexus, Jenkins, RabbitMQ, or SonarQube without explicit approval.
+
+Slice 01 disposition:
+
+- `arc42 review-required`: closable when `06_runtime_view` and
+  `10_quality_requirements` record the planned progress behavior explicitly.
+- ADR: not required for Slice 01.

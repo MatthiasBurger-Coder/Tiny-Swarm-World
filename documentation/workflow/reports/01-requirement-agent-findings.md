@@ -25,8 +25,42 @@ Primary gaps:
 - Logging style is inconsistent between direct class loggers and
   `LoggerFactory`.
 
+Required setup progress transitions:
+
+- refused;
+- blocked;
+- phase start;
+- phase completed;
+- phase failed;
+- stopped;
+- downstream `not_run`;
+- final completed.
+
+Required platform progress transitions:
+
+- pre-apply guard;
+- mutating step start;
+- apply result;
+- direct verification;
+- verify step;
+- blocked state;
+- failed apply;
+- failed verify;
+- completion.
+
 Workflow decision:
 
 - Use a narrow progress port and infrastructure adapters for `PortUI` and
   logging.
 - Do not inject concrete UI concerns across all application services.
+- Treat current behavior as partial until later slices implement the structured
+  progress port and infrastructure adapters: command-runner UI already uses
+  `PortUI`, `setup run` still uses direct phase printing, and platform
+  workflows return typed results without continuous `PortUI` progress.
+
+Slice 01 verification evidence:
+
+- branch checked: `feature/workflow-install-observability-20260529`;
+- read-only role reviews completed before documentation edits;
+- required quality gate: `git diff --check`;
+- no live infrastructure commands run.
