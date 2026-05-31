@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Protocol
 
+from tiny_swarm_world.application.ports.method_trace import (
+    NullMethodTrace,
+    PortMethodTrace,
+)
 from tiny_swarm_world.application.ports.progress import (
     NullWorkflowProgress,
     PortWorkflowProgress,
@@ -18,6 +22,7 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PlatformWorkflowSemantics,
     PlatformWorkflowStatus,
 )
+from tiny_swarm_world.application.services.shared import MethodTraceWrapper
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.preflight import PreflightResult
 
@@ -45,13 +50,20 @@ class PlatformInitWorkflow:
         verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
         pre_apply_guard: AsyncWorkflowStep | None = None,
         progress: PortWorkflowProgress | None = None,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
     ):
         self.steps = tuple(steps)
         self.verification_evidence_repository = verification_evidence_repository
         self.pre_apply_guard = pre_apply_guard
         self.progress = progress or NullWorkflowProgress()
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
 
     async def run(self) -> PlatformWorkflowResult:
+        return await _trace_platform_run(self, self._run)
+
+    async def _run(self) -> PlatformWorkflowResult:
         guard_verification, guard_result = await _run_pre_apply_guard(
             self.pre_apply_guard,
             self.semantics,
@@ -79,12 +91,19 @@ class PlatformReconcileWorkflow:
         steps: Sequence[AsyncWorkflowStep],
         verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
         progress: PortWorkflowProgress | None = None,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
     ):
         self.steps = tuple(steps)
         self.verification_evidence_repository = verification_evidence_repository
         self.progress = progress or NullWorkflowProgress()
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
 
     async def run(self) -> PlatformWorkflowResult:
+        return await _trace_platform_run(self, self._run)
+
+    async def _run(self) -> PlatformWorkflowResult:
         return await _run_mutating_steps(
             self.steps,
             self.semantics,
@@ -101,12 +120,19 @@ class PlatformResetWorkflow:
         steps: Sequence[AsyncWorkflowStep] = (),
         verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
         progress: PortWorkflowProgress | None = None,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
     ):
         self.steps = tuple(steps)
         self.verification_evidence_repository = verification_evidence_repository
         self.progress = progress or NullWorkflowProgress()
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
 
     async def run(self, confirmation: str | None = None) -> PlatformWorkflowResult:
+        return await _trace_platform_run(self, self._run, confirmation)
+
+    async def _run(self, confirmation: str | None = None) -> PlatformWorkflowResult:
         if not _confirmation_matches(self.semantics, confirmation):
             _report_workflow_progress(
                 self.progress,
@@ -143,12 +169,19 @@ class PlatformDestroyWorkflow:
         steps: Sequence[AsyncWorkflowStep] = (),
         verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
         progress: PortWorkflowProgress | None = None,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
     ):
         self.steps = tuple(steps)
         self.verification_evidence_repository = verification_evidence_repository
         self.progress = progress or NullWorkflowProgress()
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
 
     async def run(self, confirmation: str | None = None) -> PlatformWorkflowResult:
+        return await _trace_platform_run(self, self._run, confirmation)
+
+    async def _run(self, confirmation: str | None = None) -> PlatformWorkflowResult:
         if not _confirmation_matches(self.semantics, confirmation):
             _report_workflow_progress(
                 self.progress,
@@ -184,11 +217,18 @@ class PlatformVerifyWorkflow:
         self,
         steps: Sequence[AsyncWorkflowStep],
         progress: PortWorkflowProgress | None = None,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
     ):
         self.steps = tuple(steps)
         self.progress = progress or NullWorkflowProgress()
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
 
     async def run(self) -> PlatformWorkflowResult:
+        return await _trace_platform_run(self, self._run)
+
+    async def _run(self) -> PlatformWorkflowResult:
         verification_results: list[VerificationResult] = []
         for step in self.steps:
             target_id = _verification_target_id(step)
@@ -253,6 +293,24 @@ class PlatformVerifyWorkflow:
             executed=bool(self.steps),
             verification_results=tuple(verification_results),
         )
+
+
+async def _trace_platform_run(workflow: object, run_method, *args: object) -> PlatformWorkflowResult:
+    semantics = getattr(workflow, "semantics")
+    return await MethodTraceWrapper(
+        getattr(workflow, "method_trace"),
+        component="platform",
+        workflow=f"platform {semantics.kind.value}",
+        correlation_id=getattr(workflow, "trace_correlation_id"),
+    ).wrap_async(
+        run_method,
+        method_name="run",
+        result_classifier=_platform_trace_result,
+    )(*args)
+
+
+def _platform_trace_result(result: PlatformWorkflowResult) -> str:
+    return result.status.value
 
 
 async def _run_steps(steps: Sequence[AsyncWorkflowStep]) -> tuple[object, ...]:

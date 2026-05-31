@@ -380,3 +380,53 @@ Live infrastructure:
 - no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
   bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
   Swagger/NGINX commands were run.
+
+## Slice 08 - Setup Platform And Command Method Trace Integration
+
+Status: completed.
+
+S3/S3D verification:
+
+- active branch checked:
+  `feature/workflow-install-observability-20260529`
+- dependency status: Slice 06 completed in commit
+  `97eb5f9`; Slice 07 completed in commit `295c970`
+- scope: setup, platform, and command application runtime tracing
+
+Role review results:
+
+- Senior Python Automation Developer: integrated optional method trace ports
+  with null defaults and wrapper-based tracing for public runtime methods.
+- Senior System Architect: preserved application boundary; no infrastructure
+  logging, concrete UI, curses, Docker, LXD, Incus, or composition imports were
+  added to application services.
+- Senior Tester: added assertions for normal returned traces, converted
+  failure traces, raised exception traces, raw exception redaction, and coverage
+  guard continuity.
+
+Quality evidence:
+
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow tests.application.services.platform.test_platform_workflows tests.application.services.commands.test_command_executer tests.architecture.test_installation_method_trace_coverage`
+- result: passed, 60 tests
+- required command: `source venv/bin/activate && python3 tools/quality_gate.py typecheck`
+- result: passed
+
+Changed files:
+
+- `src/tiny_swarm_world/application/ports/method_trace/port_method_trace.py`
+- `src/tiny_swarm_world/application/services/shared/method_trace_wrapper.py`
+- `src/tiny_swarm_world/application/services/setup/workflow.py`
+- `src/tiny_swarm_world/application/services/platform/workflows.py`
+- `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`
+- `tests/application/services/setup/test_setup_workflow.py`
+- `tests/application/services/platform/test_platform_workflows.py`
+- `tests/application/services/commands/test_command_executer.py`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/execution-report.md`
+
+Live infrastructure:
+
+- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
+  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
+  Swagger/NGINX commands were run.

@@ -4,17 +4,34 @@ from typing import Dict
 import asyncio
 
 from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
+from tiny_swarm_world.application.ports.method_trace import NullMethodTrace, PortMethodTrace
 from tiny_swarm_world.application.ports.ui.port_ui import PortUI
+from tiny_swarm_world.application.services.shared import MethodTraceWrapper
 
 
 class CommandExecuter:
     executable_commands: Dict[str, Dict[int, ExecutableCommandEntity]]
 
-    def __init__(self, ui: PortUI):
+    def __init__(
+        self,
+        ui: PortUI,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
+    ):
         self.ui = ui
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
 
     async def execute(self, commands: dict[int, ExecutableCommandEntity]):
+        return await MethodTraceWrapper(
+            self.method_trace,
+            component="commands",
+            workflow="command execution",
+            correlation_id=self.trace_correlation_id,
+        ).wrap_async(self._execute, method_name="execute")(commands)
+
+    async def _execute(self, commands: dict[int, ExecutableCommandEntity]):
         self.logger.info("Command execution started with %d commands.", len(commands))
         current_vm = None
         run_result: dict[int, str] = {}

@@ -1,6 +1,10 @@
 import unittest
 from tests.support.async_helpers import async_checkpoint
 
+from tiny_swarm_world.application.ports.method_trace import (
+    MethodTraceEvent,
+    PortMethodTrace,
+)
 from tiny_swarm_world.application.ports.progress import (
     PortWorkflowProgress,
     WorkflowProgressEvent,
@@ -68,6 +72,47 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             ("reconcile",),
             tuple(item.target_id for item in reconcile_result.verification_results),
+        )
+
+    async def test_init_reports_method_trace_for_completion(self):
+        trace = _RecordingMethodTrace()
+        result = await PlatformInitWorkflow(
+            [_RecordingAction("init")],
+            method_trace=trace,
+            trace_correlation_id="trace-platform",
+        ).run()
+
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            [
+                ("PlatformInitWorkflow", "run", "entered", "pending", None),
+                ("PlatformInitWorkflow", "run", "returned", "completed", None),
+            ],
+            trace.summary(),
+        )
+        self.assertEqual({"trace-platform"}, {event.correlation_id for event in trace.events})
+
+    async def test_init_reports_safe_failure_trace_when_apply_exception_is_converted(self):
+        trace = _RecordingMethodTrace()
+        result = await PlatformInitWorkflow(
+            [_FailingApplyAction("init")],
+            method_trace=trace,
+            trace_correlation_id="trace-platform",
+        ).run()
+
+        self.assertEqual(PlatformWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual(
+            [
+                ("PlatformInitWorkflow", "run", "entered", "pending", None),
+                (
+                    "PlatformInitWorkflow",
+                    "run",
+                    "returned",
+                    "failed_to_apply",
+                    None,
+                ),
+            ],
+            trace.summary(),
         )
 
     async def test_verify_is_non_mutating_and_runs_configured_safe_steps(self):
@@ -779,6 +824,26 @@ class _RecordingProgress(PortWorkflowProgress):
     def summary(self) -> list[tuple[str, str, str, str]]:
         return [
             (event.phase, event.step, event.status, event.result)
+            for event in self.events
+        ]
+
+
+class _RecordingMethodTrace(PortMethodTrace):
+    def __init__(self) -> None:
+        self.events: list[MethodTraceEvent] = []
+
+    def report(self, event: MethodTraceEvent) -> None:
+        self.events.append(event)
+
+    def summary(self) -> list[tuple[str, str, str, str | None, str | None]]:
+        return [
+            (
+                event.class_name,
+                event.method_name,
+                event.status,
+                event.safe_result,
+                event.exception_type,
+            )
             for event in self.events
         ]
 

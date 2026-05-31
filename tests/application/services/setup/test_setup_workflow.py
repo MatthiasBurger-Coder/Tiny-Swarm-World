@@ -3,6 +3,10 @@ from contextlib import redirect_stdout
 from io import StringIO
 from tests.support.sonar_safe_literals import sensitive_assignment
 
+from tiny_swarm_world.application.ports.method_trace import (
+    MethodTraceEvent,
+    PortMethodTrace,
+)
 from tiny_swarm_world.application.ports.progress import (
     PortWorkflowProgress,
     WorkflowProgressEvent,
@@ -108,6 +112,65 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
             [("setup", "live consent", "refused", "refused")],
             progress.summary(),
         )
+
+    async def test_reports_method_trace_for_workflow_and_phase_completion(self):
+        trace = _RecordingMethodTrace()
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase(
+                    "preflight",
+                    lambda: _completed_result("preflight", []),
+                    method_trace=trace,
+                    trace_correlation_id="trace-setup",
+                ),
+            ),
+            live_consent=_accepted_live_consent(),
+            method_trace=trace,
+            trace_correlation_id="trace-setup",
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            [
+                ("SetupWorkflow", "run", "entered", "pending", None),
+                ("SetupWorkflowPhase", "run", "entered", "pending", None),
+                ("SetupWorkflowPhase", "run", "returned", "completed", None),
+                ("SetupWorkflow", "run", "returned", "completed", None),
+            ],
+            trace.summary(),
+        )
+        self.assertEqual({"trace-setup"}, {event.correlation_id for event in trace.events})
+
+    async def test_reports_method_trace_for_phase_exception_before_conversion(self):
+        trace = _RecordingMethodTrace()
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase(
+                    "preflight",
+                    _raise_secret_error,
+                    method_trace=trace,
+                    trace_correlation_id="trace-setup",
+                ),
+            ),
+            live_consent=_accepted_live_consent(),
+            method_trace=trace,
+            trace_correlation_id="trace-setup",
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
+        self.assertIn(
+            ("SetupWorkflowPhase", "run", "raised", "failed", "RuntimeError"),
+            trace.summary(),
+        )
+        self.assertEqual(
+            ("SetupWorkflow", "run", "returned", "failed", None),
+            trace.summary()[-1],
+        )
+        self.assertNotIn(sensitive_assignment(), str(trace.events[-2].to_dict()))
 
     async def test_reports_progress_for_blocked_setup_without_phases(self):
         progress = _RecordingProgress()
@@ -525,6 +588,26 @@ class _RecordingProgress(PortWorkflowProgress):
     def summary(self) -> list[tuple[str, str, str, str]]:
         return [
             (event.phase, event.step, event.status, event.result)
+            for event in self.events
+        ]
+
+
+class _RecordingMethodTrace(PortMethodTrace):
+    def __init__(self) -> None:
+        self.events: list[MethodTraceEvent] = []
+
+    def report(self, event: MethodTraceEvent) -> None:
+        self.events.append(event)
+
+    def summary(self) -> list[tuple[str, str, str, str | None, str | None]]:
+        return [
+            (
+                event.class_name,
+                event.method_name,
+                event.status,
+                event.safe_result,
+                event.exception_type,
+            )
             for event in self.events
         ]
 

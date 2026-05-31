@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
 
+from tiny_swarm_world.application.ports.method_trace import (
+    NullMethodTrace,
+    PortMethodTrace,
+)
 from tiny_swarm_world.application.ports.progress import (
     NullWorkflowProgress,
     PortWorkflowProgress,
@@ -14,6 +18,7 @@ from tiny_swarm_world.application.ports.progress import (
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import PlatformWorkflowResult
+from tiny_swarm_world.application.services.shared import MethodTraceWrapper
 from tiny_swarm_world.domain.preflight import LiveConsent, PreflightResult
 
 
@@ -44,8 +49,18 @@ class SetupPhase(Protocol):
 class SetupWorkflowPhase:
     name: str
     runner: Callable[[], object]
+    method_trace: PortMethodTrace | None = None
+    trace_correlation_id: str | None = None
 
     async def run(self) -> object:
+        return await MethodTraceWrapper(
+            self.method_trace,
+            component="setup",
+            workflow="setup run",
+            correlation_id=self.trace_correlation_id,
+        ).wrap_async(self._run, method_name="run")()
+
+    async def _run(self) -> object:
         result = self.runner()
         if inspect.isawaitable(result):
             return await result
@@ -96,12 +111,28 @@ class SetupWorkflow:
         phases: Sequence[SetupWorkflowPhase] = (),
         live_consent: LiveConsent | None = None,
         progress: PortWorkflowProgress | None = None,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
     ):
         self.phases = tuple(phases)
         self.live_consent = live_consent
         self.progress = progress or NullWorkflowProgress()
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
 
     async def run(self) -> SetupWorkflowResult:
+        return await MethodTraceWrapper(
+            self.method_trace,
+            component="setup",
+            workflow=f"setup {SetupWorkflowKind.RUN.value}",
+            correlation_id=self.trace_correlation_id,
+        ).wrap_async(
+            self._run,
+            method_name="run",
+            result_classifier=_setup_trace_result,
+        )()
+
+    async def _run(self) -> SetupWorkflowResult:
         if self.live_consent is None or not self.live_consent.accepted:
             self._report_progress(
                 phase="setup",
@@ -362,6 +393,10 @@ def _result_status_value(result: object) -> str:
     if isinstance(status, str):
         return status.lower()
     return "unknown"
+
+
+def _setup_trace_result(result: SetupWorkflowResult) -> str:
+    return result.status.value
 
 
 def _result_to_dict(result: object) -> dict[str, object]:

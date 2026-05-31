@@ -2,6 +2,10 @@ import unittest
 from unittest.mock import AsyncMock, patch
 from tests.support.async_helpers import async_checkpoint
 
+from tiny_swarm_world.application.ports.method_trace import (
+    MethodTraceEvent,
+    PortMethodTrace,
+)
 from tiny_swarm_world.application.ports.commands.port_command_runner import PortCommandRunner
 from tiny_swarm_world.application.services.commands.command_executer.command_executer import (
     CommandExecuter,
@@ -43,6 +47,38 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
             ui.updates,
         )
 
+    async def test_execute_reports_method_trace_for_success(self):
+        ui = RecordingUI()
+        trace = RecordingMethodTrace()
+        executer = CommandExecuter(
+            ui=ui,
+            method_trace=trace,
+            trace_correlation_id="trace-command",
+        )
+        command = ExecutableCommandEntity(
+            index=1,
+            vm_instance_name="swarm-manager",
+            description="successful command",
+            command="echo ok",
+            runner=SuccessfulRunner(),
+        )
+
+        with patch(
+            "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
+            new=AsyncMock(),
+        ):
+            result = await executer.execute({1: command})
+
+        self.assertEqual({1: "ok"}, result)
+        self.assertEqual(
+            [
+                ("CommandExecuter", "execute", "entered", "pending", None),
+                ("CommandExecuter", "execute", "returned", "completed", None),
+            ],
+            trace.summary(),
+        )
+        self.assertEqual({"trace-command"}, {event.correlation_id for event in trace.events})
+
     async def test_execute_raises_when_runner_fails(self):
         ui = RecordingUI()
         executer = CommandExecuter(ui=ui)
@@ -80,6 +116,45 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
             ("swarm-manager", "closing", "Finishing", "Success"),
             ui.updates,
         )
+
+    async def test_execute_reports_method_trace_for_failure_without_raw_exception_text(self):
+        ui = RecordingUI()
+        trace = RecordingMethodTrace()
+        executer = CommandExecuter(
+            ui=ui,
+            method_trace=trace,
+            trace_correlation_id="trace-command",
+        )
+        command = ExecutableCommandEntity(
+            index=1,
+            vm_instance_name="swarm-manager",
+            description="failing command",
+            command="exit 1",
+            runner=FailingRunner(),
+        )
+
+        with patch(
+            "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
+            new=AsyncMock(),
+        ):
+            with self.assertRaises(CommandExecutionFailed):
+                await executer.execute({1: command})
+
+        self.assertEqual(
+            [
+                ("CommandExecuter", "execute", "entered", "pending", None),
+                (
+                    "CommandExecuter",
+                    "execute",
+                    "raised",
+                    "failed",
+                    "CommandExecutionFailed",
+                ),
+            ],
+            trace.summary(),
+        )
+        self.assertNotIn("raw vm output", str(trace.events[-1].to_dict()))
+        self.assertNotIn("cannot connect", str(trace.events[-1].to_dict()))
 
     async def test_execute_wraps_redacted_multipass_return_code_failure(self):
         ui = RecordingUI()
@@ -164,3 +239,23 @@ class RecordingUI:
 
     def update_status(self, instance, task, step, result=None):
         self.updates.append((instance, task, step, result))
+
+
+class RecordingMethodTrace(PortMethodTrace):
+    def __init__(self):
+        self.events: list[MethodTraceEvent] = []
+
+    def report(self, event: MethodTraceEvent) -> None:
+        self.events.append(event)
+
+    def summary(self) -> list[tuple[str, str, str, str | None, str | None]]:
+        return [
+            (
+                event.class_name,
+                event.method_name,
+                event.status,
+                event.safe_result,
+                event.exception_type,
+            )
+            for event in self.events
+        ]

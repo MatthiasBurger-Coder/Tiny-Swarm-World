@@ -39,8 +39,12 @@ class MethodTraceWrapper:
         workflow: str | None = None,
         correlation_id: str | None = None,
         parent_span_id: str | None = None,
+        method_name: str | None = None,
+        result_classifier: Callable[[R], str] | None = None,
     ) -> Callable[P, R]:
         method_identity = _MethodIdentity.from_callable(method)
+        if method_name is not None:
+            method_identity = method_identity.with_method_name(method_name)
 
         def traced(*args: P.args, **kwargs: P.kwargs) -> R:
             context = self._trace_context(
@@ -55,7 +59,12 @@ class MethodTraceWrapper:
             except Exception as exc:
                 self._report(method_identity.raised(context, exc))
                 raise
-            self._report(method_identity.returned(context))
+            self._report(
+                method_identity.returned(
+                    context,
+                    safe_result=_safe_result(result, result_classifier),
+                )
+            )
             return result
 
         return traced
@@ -68,8 +77,12 @@ class MethodTraceWrapper:
         workflow: str | None = None,
         correlation_id: str | None = None,
         parent_span_id: str | None = None,
+        method_name: str | None = None,
+        result_classifier: Callable[[R], str] | None = None,
     ) -> Callable[P, Awaitable[R]]:
         method_identity = _MethodIdentity.from_callable(method)
+        if method_name is not None:
+            method_identity = method_identity.with_method_name(method_name)
 
         async def traced(*args: P.args, **kwargs: P.kwargs) -> R:
             context = self._trace_context(
@@ -84,7 +97,12 @@ class MethodTraceWrapper:
             except Exception as exc:
                 self._report(method_identity.raised(context, exc))
                 raise
-            self._report(method_identity.returned(context))
+            self._report(
+                method_identity.returned(
+                    context,
+                    safe_result=_safe_result(result, result_classifier),
+                )
+            )
             return result
 
         return traced
@@ -134,6 +152,13 @@ class _MethodIdentity:
         self.class_name = class_name
         self.method_name = method_name
 
+    def with_method_name(self, method_name: str) -> "_MethodIdentity":
+        return _MethodIdentity(
+            module=self.module,
+            class_name=self.class_name,
+            method_name=method_name,
+        )
+
     @classmethod
     def from_callable(cls, method: Callable[..., object]) -> "_MethodIdentity":
         module = getattr(method, "__module__", "unknown")
@@ -146,8 +171,8 @@ class _MethodIdentity:
     def entered(self, context: _TraceContext) -> MethodTraceEvent:
         return self._event(context, status="entered", safe_result="pending")
 
-    def returned(self, context: _TraceContext) -> MethodTraceEvent:
-        return self._event(context, status="returned", safe_result="completed")
+    def returned(self, context: _TraceContext, *, safe_result: str) -> MethodTraceEvent:
+        return self._event(context, status="returned", safe_result=safe_result)
 
     def raised(self, context: _TraceContext, exc: Exception) -> MethodTraceEvent:
         return self._event(
@@ -189,3 +214,9 @@ def _class_name_from_bound_method(method: Callable[..., object]) -> str:
         return method.__self__.__class__.__name__
 
     return "module"
+
+
+def _safe_result(result: R, result_classifier: Callable[[R], str] | None) -> str:
+    if result_classifier is None:
+        return "completed"
+    return result_classifier(result)

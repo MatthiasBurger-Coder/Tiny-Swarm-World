@@ -9,7 +9,8 @@ MethodTraceStatus = Literal["entered", "returned", "raised"]
 
 FORBIDDEN_METHOD_TRACE_TEXT_PARTS = (
     "args",
-    "command",
+    "command failed",
+    "command text",
     "context details",
     "environment",
     "exception text",
@@ -17,6 +18,7 @@ FORBIDDEN_METHOD_TRACE_TEXT_PARTS = (
     "password",
     "payload",
     "raw",
+    "raw command",
     "return value",
     "secret",
     "stack trace",
