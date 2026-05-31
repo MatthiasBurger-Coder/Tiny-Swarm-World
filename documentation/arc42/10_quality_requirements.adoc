@@ -84,7 +84,7 @@ Quality scenarios:
 
 === Installation Progress And Cross-Cutting Method Trace Logging
 
-Installation progress and logging must be completed through two correlated
+Installation progress and logging are implemented through two correlated
 observability paths:
 
 * high-level workflow progress for operator-facing setup phase and platform

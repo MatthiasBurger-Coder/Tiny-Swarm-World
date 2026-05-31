@@ -1,18 +1,26 @@
 = ADR: Cross-Cutting Method Trace Logging
 
-Status: Accepted as observability direction; implementation pending
+Status: Accepted and implemented for current installation runtime trace scope
 
 Date: 2026-05-31
 
 == Implementation Status
 
 This ADR records the clarified observability requirement for installation
-runtime flow. The currently implemented workflow progress events cover setup
-and platform orchestration transitions, but they do not yet provide complete
-method-level tracing across the installation execution path.
+runtime flow. The implementation now provides:
 
-Implementation must continue in later workflow slices before the project can
-claim gapless method-flow trace coverage.
+* a method trace event contract and port;
+* a shared wrapper for method entry, normal exit, and exception exit;
+* reflective coverage guard tests for the declared installation runtime owner
+  set;
+* setup, platform, and command-executor trace integration;
+* infrastructure logging and terminal `PortUI` trace/progress adapters;
+* composition-owned setup console lifecycle and trace correlation wiring.
+
+The implemented scope is the declared installation runtime path protected by
+`tests/architecture/test_installation_method_trace_coverage.py`. Future
+expansion of the runtime owner set must update that guard and the related
+tests.
 
 == Context
 
@@ -115,8 +123,9 @@ for operator UX, but it is not sufficient for gapless program-flow tracing.
 
 == Consequences
 
-Future observability slices must add a no-skip method trace contract before
-claiming installation observability complete.
+The implemented observability path must keep the no-skip method trace contract
+in force before any new installation runtime owner or public runtime method is
+added.
 
 Tests must prove entry, normal exit, and exception exit events for synchronous
 and asynchronous methods. Static or reflective coverage checks must verify
@@ -135,9 +144,10 @@ UI output must remain terminal-only and readable. It may show a compact
 method-flow indicator or detailed diagnostic mode, but it must not hide
 failures or overwrite non-success states with later success-like events.
 
-The existing progress-port implementation remains valid as partial high-level
-observability. It must be extended, not treated as complete fulfillment of this
-ADR.
+The existing progress-port implementation remains the high-level operator
+status path. It is now paired with method trace events through composition
+correlation and infrastructure adapters for the current installation runtime
+scope.
 
 == Risks And Follow-Up
 

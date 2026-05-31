@@ -68,7 +68,8 @@ Consequences:
 
 ADR: `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
 
-Status: accepted as observability direction; implementation pending.
+Status: accepted and implemented for the current installation runtime trace
+scope.
 
 Consequences:
 
@@ -85,9 +86,11 @@ Consequences:
   module, class, method, status, correlation identifier, and sanitized
   exception type, not raw arguments, return payloads, command output,
   credentials, tokens, host-specific paths, or local IP addresses;
-* the existing workflow progress port remains partial high-level status
-  coverage and must be correlated with method trace events before installation
-  observability can be called complete.
+* the existing workflow progress port remains the high-level status path and
+  is paired with method trace events through composition correlation and
+  infrastructure adapters;
+* `setup run` terminal lifecycle is composition-owned and starts only after
+  accepted live consent.
 
 === LXC Native Node Provider Direction
 

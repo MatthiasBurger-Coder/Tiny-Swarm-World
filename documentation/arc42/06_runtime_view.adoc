@@ -123,19 +123,24 @@ blocked, resource-gated, or failed states from being presented as success.
 No browser frontend, React component, JavaScript build tool, TSX/JSX file, or
 browser state is part of this console/status runtime flow.
 
-Installation observability status is partially implemented. Command-runner UI
-adapters and the shared terminal status vocabulary already exist. The
-structured workflow progress port now covers setup and platform orchestration
-transitions, but this is still not complete fulfillment of the clarified
-runtime tracing requirement.
+Installation observability is implemented for the current declared setup,
+platform, and command-executor runtime path. Command-runner UI adapters, the
+shared terminal status vocabulary, structured workflow progress, and
+cross-cutting method trace events are wired through ports and infrastructure
+adapters.
 
 ADR `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
-records that logging is a cross-cutting Shared observability module. The
-remaining runtime path must add method-level trace coverage for every covered
-installation method: entry, normal exit, and exception exit. That trace stream
-must feed centralized logging and a safe terminal `PortUI` projection through
-infrastructure adapters while keeping domain and application code free from
-concrete UI and logger configuration dependencies.
+records that logging is a cross-cutting Shared observability module. Covered
+installation runtime methods emit method entry, normal exit, and exception
+exit trace events through the application trace port. Composition wires the
+same safe event stream to centralized logging and terminal `PortUI`
+projections while keeping domain and application code free from concrete UI
+and logger configuration dependencies.
+
+`setup run` starts terminal status rendering only after accepted live consent.
+The entry point delegates this lifecycle to infrastructure composition; it does
+not construct concrete UI adapters, start terminal threads, or update aggregate
+terminal status directly.
 
 === Inventory And Evidence Runtime Flow
 

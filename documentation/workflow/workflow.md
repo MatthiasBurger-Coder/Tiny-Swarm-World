@@ -6,7 +6,7 @@
 workflow_id: install-observability-console-status-v1.0.0
 created: 2026-05-31
 branch: feature/workflow-install-observability-20260529
-status: READY_FOR_EXECUTION
+status: COMPLETED
 request: "Durchgehend Logging und GUI response fuer die komplette Installation; logging als Cross-Cutting-Modul mit lueckenloser Methoden-Nachverfolgung inklusive Exceptions; pruefen ob PortUI/self.ui und class logger ueberall genutzt werden; workflow create/execute with agents fortsetzen."
 process_strand: S3D
 execution_profile: NORMAL_PATH
@@ -20,15 +20,19 @@ live_infrastructure_default: false
 
 ## Executive Summary
 
-The current implementation only partially satisfies the requested behavior.
+At workflow authoring time, the implementation only partially satisfied the
+requested behavior.
 `CommandExecuter` already uses `PortUI`, `self.ui = ui`, and a class logger, but
 the canonical `setup run` and `platform` installation workflows do not flow
 through that executor. `SetupWorkflow` still prints phase progress directly,
 and platform steps report typed verification results without a continuous
 console GUI update path.
 
-This workflow creates a no-skip implementation plan for continuous, redacted
-installation observability. The clarified requirement is not limited to setup
+This workflow records a no-skip implementation plan for continuous, redacted
+installation observability. Slices 06-10 implement the method trace contract,
+runtime integration, infrastructure adapters, and setup console lifecycle for
+the current declared installation runtime scope. The clarified requirement is
+not limited to setup
 phase and platform step progress: the installation runtime path must also have
 gapless method-flow tracing for covered methods, including exception paths.
 
@@ -108,7 +112,7 @@ Open non-blocking questions:
 - Whether terminal UI should expose detailed method tracing by default or only
   in a diagnostic mode after the cross-cutting trace module exists.
 
-## Verified Baseline
+## Verified Baseline At Authoring
 
 - Active branch verified: `feature/workflow-install-observability-20260529`.
 - Existing `CommandExecuter` already imports `PortUI`, stores `self.ui = ui`,
@@ -130,7 +134,8 @@ Open non-blocking questions:
 
 ## Target Picture
 
-After implementation:
+After implementation, delivered through the completed slices and verified in
+`documentation/workflow/execution-report.md`:
 
 - `setup run` starts a terminal progress surface after live consent is accepted.
 - Every setup phase emits start and terminal status events.

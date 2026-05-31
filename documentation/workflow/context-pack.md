@@ -65,10 +65,11 @@ Governing input hashes:
 - `QUALITY.md`: `08c7475fe511ac39c215284c5c1f23117848b567`
 - `documentation/epics/system-unification.md`: `489f0123f604cc40700721a45bacdf22ba0260a2`
 - `documentation/epics/autonomous-runnable-setup.md`: `db17388e1e92be425e253be89e8628a378d4532d`
-- `documentation/arc42/06_runtime_view.adoc`: `c92d384c02f61b6deb866c3cb50e808962332b23`
-- `documentation/arc42/09_architecture_decisions.adoc`: `218cd138207a6beb091677c875e13ff1968b4148`
-- `documentation/arc42/10_quality_requirements.adoc`: `a0ac540f5e2e8acd1a62937b2322fbfa19a343c0`
-- `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`: `65b57d3e9bcf5ee739735303400bf25fc7b61b16`
+- `documentation/arc42/06_runtime_view.adoc`: `6be2a5208f050324fd06727e148d7bae95def7e8`
+- `documentation/arc42/09_architecture_decisions.adoc`: `45bf3590092cdc03b8d46b560f518c890361f87e`
+- `documentation/arc42/10_quality_requirements.adoc`: `bbb8de787bb5a0b28f70e267d929662216ee57e0`
+- `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`: `b250dab725233e0c304afe3e3d4aab285a94fa6d`
+- `documentation/workflow/workflow.md`: `d33caab516a97674605f6529f765519e185da8aa`
 - `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`: `f57e1c8806949b456344a6877984178344f27d1c`
 - `src/tiny_swarm_world/application/ports/method_trace/port_method_trace.py`: `b6569265188abc0d86869a13ba7083739f948777`
 - `src/tiny_swarm_world/application/services/shared/method_trace_wrapper.py`: `b4f11e3a6d66d6394f97259222565f0c3a5ddfa7`
