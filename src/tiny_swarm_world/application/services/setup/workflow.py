@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
 
+from tiny_swarm_world.application.ports.progress import (
+    NullWorkflowProgress,
+    PortWorkflowProgress,
+    WorkflowProgressEvent,
+)
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import PlatformWorkflowResult
@@ -90,12 +95,24 @@ class SetupWorkflow:
         self,
         phases: Sequence[SetupWorkflowPhase] = (),
         live_consent: LiveConsent | None = None,
+        progress: PortWorkflowProgress | None = None,
     ):
         self.phases = tuple(phases)
         self.live_consent = live_consent
+        self.progress = progress or NullWorkflowProgress()
 
     async def run(self) -> SetupWorkflowResult:
         if self.live_consent is None or not self.live_consent.accepted:
+            self._report_progress(
+                phase="setup",
+                target="setup",
+                task="Run setup workflow",
+                step="live consent",
+                status=SetupWorkflowStatus.REFUSED.value,
+                result=SetupWorkflowStatus.REFUSED.value,
+                safe_message="Setup run refused because live consent is incomplete.",
+                recovery_hint="Run with live consent before retrying.",
+            )
             return SetupWorkflowResult(
                 kind=SetupWorkflowKind.RUN,
                 status=SetupWorkflowStatus.REFUSED,
@@ -104,6 +121,16 @@ class SetupWorkflow:
             )
 
         if not self.phases:
+            self._report_progress(
+                phase="setup",
+                target="setup",
+                task="Run setup workflow",
+                step="phase configuration",
+                status=SetupWorkflowStatus.BLOCKED.value,
+                result=SetupWorkflowStatus.BLOCKED.value,
+                safe_message="Setup run is blocked until setup phases are configured.",
+                recovery_hint="Configure setup phases before retrying.",
+            )
             return SetupWorkflowResult(
                 kind=SetupWorkflowKind.RUN,
                 status=SetupWorkflowStatus.BLOCKED,
@@ -114,33 +141,74 @@ class SetupWorkflow:
         phase_results: list[SetupPhaseResult] = []
         for phase in self.phases:
             _print_phase_progress(phase.name, "START")
+            self._report_phase_progress(
+                phase_name=phase.name,
+                status="started",
+                result="pending",
+                safe_message="Setup phase started.",
+            )
             try:
                 phase_output = await phase.run()
             except Exception as exc:
                 _print_phase_progress(phase.name, "FAILED", exc.__class__.__name__)
+                failed_phase = SetupPhaseResult(
+                    name=phase.name,
+                    status=SetupWorkflowStatus.FAILED.value,
+                    result={
+                        "status": SetupWorkflowStatus.FAILED.value,
+                        "reason": "setup phase failed",
+                    },
+                )
+                phase_results.append(failed_phase)
+                not_run_phase_results = _not_run_phase_results(
+                    self.phases[len(phase_results) :]
+                )
+                self._report_phase_progress(
+                    phase_name=phase.name,
+                    status=SetupWorkflowStatus.FAILED.value,
+                    result=SetupWorkflowStatus.FAILED.value,
+                    safe_message=f"Setup phase failed with {exc.__class__.__name__}.",
+                    recovery_hint="Inspect the failed phase evidence before retrying.",
+                )
+                self._report_not_run_phase_progress(not_run_phase_results)
+                self._report_stopped_progress(SetupWorkflowStatus.FAILED.value)
                 return SetupWorkflowResult(
                     kind=SetupWorkflowKind.RUN,
                     status=SetupWorkflowStatus.FAILED,
                     message=f"setup run failed during phase '{phase.name}'.",
                     reason=f"phase '{phase.name}' failed with {exc.__class__.__name__}",
                     executed=True,
-                    phase_results=tuple(phase_results),
+                    phase_results=(
+                        *phase_results,
+                        *not_run_phase_results,
+                    ),
                 )
 
             try:
                 _result_to_dict(phase_output)
             except ValueError:
                 _print_phase_progress(phase.name, "FAILED", "unsafe result payload")
-                phase_results.append(
-                    SetupPhaseResult(
-                        name=phase.name,
-                        status=SetupWorkflowStatus.FAILED.value,
-                        result={
-                            "status": SetupWorkflowStatus.FAILED.value,
-                            "reason": "unsafe phase result payload",
-                        },
-                    )
+                failed_phase = SetupPhaseResult(
+                    name=phase.name,
+                    status=SetupWorkflowStatus.FAILED.value,
+                    result={
+                        "status": SetupWorkflowStatus.FAILED.value,
+                        "reason": "unsafe phase result payload",
+                    },
                 )
+                phase_results.append(failed_phase)
+                not_run_phase_results = _not_run_phase_results(
+                    self.phases[len(phase_results) :]
+                )
+                self._report_phase_progress(
+                    phase_name=phase.name,
+                    status=SetupWorkflowStatus.FAILED.value,
+                    result=SetupWorkflowStatus.FAILED.value,
+                    safe_message="Setup phase result was unsafe.",
+                    recovery_hint="Inspect the phase result contract before retrying.",
+                )
+                self._report_not_run_phase_progress(not_run_phase_results)
+                self._report_stopped_progress(SetupWorkflowStatus.FAILED.value)
                 return SetupWorkflowResult(
                     kind=SetupWorkflowKind.RUN,
                     status=SetupWorkflowStatus.FAILED,
@@ -149,7 +217,7 @@ class SetupWorkflow:
                     executed=True,
                     phase_results=(
                         *phase_results,
-                        *_not_run_phase_results(self.phases[len(phase_results) :]),
+                        *not_run_phase_results,
                     ),
                 )
 
@@ -161,10 +229,21 @@ class SetupWorkflow:
                 result=phase_output,
             )
             phase_results.append(phase_result)
+            self._report_phase_progress(
+                phase_name=phase.name,
+                status=phase_status,
+                result=phase_status,
+                safe_message=f"Setup phase {phase_status}.",
+            )
             if _is_success_status(phase_status):
                 continue
 
             setup_status = _setup_status_for_phase_status(phase_status)
+            not_run_phase_results = _not_run_phase_results(
+                self.phases[len(phase_results) :]
+            )
+            self._report_not_run_phase_progress(not_run_phase_results)
+            self._report_stopped_progress(setup_status.value)
             return SetupWorkflowResult(
                 kind=SetupWorkflowKind.RUN,
                 status=setup_status,
@@ -173,10 +252,19 @@ class SetupWorkflow:
                 executed=True,
                 phase_results=(
                     *phase_results,
-                    *_not_run_phase_results(self.phases[len(phase_results) :]),
+                    *not_run_phase_results,
                 ),
             )
 
+        self._report_progress(
+            phase="setup",
+            target="setup",
+            task="Run setup workflow",
+            step="workflow completed",
+            status=SetupWorkflowStatus.COMPLETED.value,
+            result=SetupWorkflowStatus.COMPLETED.value,
+            safe_message="Setup run completed all configured phases.",
+        )
         return SetupWorkflowResult(
             kind=SetupWorkflowKind.RUN,
             status=SetupWorkflowStatus.COMPLETED,
@@ -184,6 +272,77 @@ class SetupWorkflow:
             reason="preflight, platform, artifacts, deployment, and verification phases completed",
             executed=True,
             phase_results=tuple(phase_results),
+        )
+
+    def _report_phase_progress(
+        self,
+        *,
+        phase_name: str,
+        status: str,
+        result: str,
+        safe_message: str,
+        recovery_hint: str | None = None,
+    ) -> None:
+        self._report_progress(
+            phase=phase_name,
+            target=phase_name,
+            task="Run setup phase",
+            step="phase progress",
+            status=status,
+            result=result,
+            safe_message=safe_message,
+            recovery_hint=recovery_hint,
+        )
+
+    def _report_not_run_phase_progress(
+        self,
+        phase_results: Sequence[SetupPhaseResult],
+    ) -> None:
+        for phase_result in phase_results:
+            self._report_phase_progress(
+                phase_name=phase_result.name,
+                status="not_run",
+                result="not_run",
+                safe_message="Setup phase did not run.",
+                recovery_hint="Resolve the earlier stopped phase before retrying.",
+            )
+
+    def _report_stopped_progress(self, result: str) -> None:
+        self._report_progress(
+            phase="setup",
+            target="setup",
+            task="Run setup workflow",
+            step="workflow stopped",
+            status="stopped",
+            result=result,
+            safe_message="Setup run stopped after a non-success phase.",
+            recovery_hint="Resolve the stopped phase before retrying.",
+        )
+
+    def _report_progress(
+        self,
+        *,
+        phase: str,
+        target: str,
+        task: str,
+        step: str,
+        status: str,
+        result: str,
+        safe_message: str,
+        recovery_hint: str | None = None,
+    ) -> None:
+        self.progress.report(
+            WorkflowProgressEvent(
+                workflow=f"setup {SetupWorkflowKind.RUN.value}",
+                phase=phase,
+                target=target,
+                task=task,
+                step=step,
+                status=status,
+                result=result,
+                safe_message=safe_message,
+                recovery_hint=recovery_hint,
+            )
         )
 
 

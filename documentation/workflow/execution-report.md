@@ -115,3 +115,51 @@ Live infrastructure:
 - no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
   bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
   Swagger/NGINX commands were run.
+
+## Slice 03 - Setup Workflow Progress Integration
+
+Status: completed.
+
+S3/S3D verification:
+
+- active branch checked:
+  `feature/workflow-install-observability-20260529`
+- dependency status: Slice 02 completed in commit
+  `b76faff`
+- scope: setup workflow progress events and setup workflow tests
+
+Role review results:
+
+- Senior Python Automation Developer: approach approved after preserving the
+  unsafe result payload reason text; progress sink failures remain visible
+  instead of being silently swallowed.
+- Senior System Architect: approved; setup depends only on
+  `tiny_swarm_world.application.ports.progress`, with no infrastructure UI,
+  logging, `PortUI`, `FactoryUI`, `LoggerFactory`, or curses imports.
+- Senior Tester: targeted setup workflow coverage approved; recommended
+  failed-preflight progress assertions were added.
+
+Quality evidence:
+
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow`
+- result: passed, 19 tests
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.architecture.test_hexagonal_imports`
+- result: passed, 16 tests
+- required command: `source venv/bin/activate && python3 tools/quality_gate.py typecheck`
+- result: passed
+- command: `git diff --check`
+- result: passed
+
+Changed files:
+
+- `src/tiny_swarm_world/application/services/setup/workflow.py`
+- `tests/application/services/setup/test_setup_workflow.py`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/execution-report.md`
+
+Live infrastructure:
+
+- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
+  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
+  Swagger/NGINX commands were run.
