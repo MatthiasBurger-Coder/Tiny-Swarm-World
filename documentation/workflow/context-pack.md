@@ -68,6 +68,8 @@ Governing input hashes:
 - `documentation/arc42/10_quality_requirements.adoc`: `a0ac540f5e2e8acd1a62937b2322fbfa19a343c0`
 - `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`: `65b57d3e9bcf5ee739735303400bf25fc7b61b16`
 - `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`: `38904d22f0522ee1b3de70c1866f2d66fd06b243`
+- `src/tiny_swarm_world/application/ports/method_trace/port_method_trace.py`: `14a21e76ac7acf406cc403dd900424620e9061c1`
+- `src/tiny_swarm_world/application/services/shared/method_trace_wrapper.py`: `c1d670f25d7cb795cbf6930b5dc3d1c610006943`
 - `src/tiny_swarm_world/application/services/setup/workflow.py`: `c615e01e0b1bacc6a8572d59475f5ce1164058f5`
 - `src/tiny_swarm_world/application/services/platform/workflows.py`: `cda2514fb66707ed5c6fa6ed876d90c12a7eb187`
 

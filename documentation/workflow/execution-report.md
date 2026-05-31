@@ -290,3 +290,52 @@ Live infrastructure:
 - no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
   bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
   Swagger/NGINX commands were run.
+
+## Slice 06 - Method Trace Port And Wrapper Contract
+
+Status: completed.
+
+S3/S3D verification:
+
+- active branch checked:
+  `feature/workflow-install-observability-20260529`
+- dependency status: Slice 05 completed in commit
+  `18637fe`
+- scope: application method trace port, shared wrapper, and application tests
+
+Role review results:
+
+- Senior System Architect: approved application-owned package placement under
+  `application/ports/method_trace` and `application/services/shared`; no
+  infrastructure logging, concrete UI, curses, command runner, Docker, LXD or
+  Incus imports.
+- Senior Tester: approved regression expectations for safe trace event fields,
+  forbidden payload rejection, sync/async entered-returned and entered-raised
+  wrapper behavior, exception propagation, and correlation assertions.
+
+Quality evidence:
+
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.ports.test_method_trace`
+- result: passed, 8 tests
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.services.shared.test_method_trace_wrapper`
+- result: passed, 5 tests
+- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.ports.test_workflow_progress`
+- result: passed, 5 tests
+- required command: `source venv/bin/activate && python3 tools/quality_gate.py typecheck`
+- result: passed
+
+Changed files:
+
+- `src/tiny_swarm_world/application/ports/method_trace/__init__.py`
+- `src/tiny_swarm_world/application/ports/method_trace/port_method_trace.py`
+- `src/tiny_swarm_world/application/services/shared/__init__.py`
+- `src/tiny_swarm_world/application/services/shared/method_trace_wrapper.py`
+- `tests/application/ports/test_method_trace.py`
+- `tests/application/services/shared/test_method_trace_wrapper.py`
+- `documentation/workflow/execution-report.md`
+
+Live infrastructure:
+
+- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
+  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
+  Swagger/NGINX commands were run.
