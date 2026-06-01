@@ -19,6 +19,7 @@ from tiny_swarm_world.application.ports.clients.port_container_runtime import (
 )
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
 from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
+    PortainerAdminInitializationRejected,
     PortPortainerAdminClient,
 )
 from tiny_swarm_world.application.ports.clients.port_portainer_client import (
@@ -288,7 +289,7 @@ class LxcPortainerAdminClient(PortPortainerAdminClient):
         except requests.RequestException as exc:
             raise RuntimeError("Failed to initialize Portainer admin user.") from exc
         if response.status_code >= 400 and not self.can_authenticate(username, password):
-            raise RuntimeError(
+            raise PortainerAdminInitializationRejected(
                 f"Failed to initialize Portainer admin user. HTTP {response.status_code}."
             )
 

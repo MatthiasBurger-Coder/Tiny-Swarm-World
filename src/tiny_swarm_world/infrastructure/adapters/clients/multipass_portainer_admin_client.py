@@ -5,6 +5,7 @@ import subprocess
 import requests
 
 from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
+    PortainerAdminInitializationRejected,
     PortPortainerAdminClient,
 )
 
@@ -49,7 +50,9 @@ class MultipassPortainerAdminClient(PortPortainerAdminClient):
         except requests.RequestException as exc:
             raise RuntimeError("Failed to initialize Portainer admin user.") from exc
         if response.status_code >= 400 and not self.can_authenticate(username, password):
-            raise RuntimeError(f"Failed to initialize Portainer admin user. HTTP {response.status_code}.")
+            raise PortainerAdminInitializationRejected(
+                f"Failed to initialize Portainer admin user. HTTP {response.status_code}."
+            )
 
     def _base_url(self) -> str:
         return f"http://{self._manager_ip()}:{self.port}"

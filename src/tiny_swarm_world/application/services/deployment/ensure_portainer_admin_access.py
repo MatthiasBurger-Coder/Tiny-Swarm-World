@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 
 from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
+    PortainerAdminInitializationRejected,
     PortPortainerAdminClient,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
@@ -33,6 +34,8 @@ class EnsurePortainerAdminAccess:
 
             try:
                 self.portainer_admin_client.initialize_admin_user(self.username, self.password)
+            except PortainerAdminInitializationRejected:
+                raise
             except Exception:
                 if attempt >= self.max_attempts:
                     raise
