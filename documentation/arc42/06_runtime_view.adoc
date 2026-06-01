@@ -91,6 +91,16 @@ Portainer API behavior is covered by isolated adapter and application-service
 tests with fakes; live service readiness remains separate observed-state
 evidence and must not be inferred from endpoint configuration alone.
 
+Portainer admin initialization has a fail-fast rejection gate. Deployment
+automation may retry transient initialization errors while the service is
+becoming ready, but once a Portainer admin endpoint rejects initialization and
+the requested credentials still cannot authenticate, infrastructure adapters
+translate that response into the typed application-port rejection
+`PortainerAdminInitializationRejected`. The application deployment service
+re-raises that rejection instead of exhausting readiness retries. This keeps
+operator-visible failures prompt while preserving retries for genuine transient
+readiness errors.
+
 === Console Status Runtime Flow
 
 Console/status UI remains terminal-only. The application UI port now owns the

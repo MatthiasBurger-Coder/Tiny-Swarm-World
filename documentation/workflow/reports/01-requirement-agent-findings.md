@@ -1,98 +1,80 @@
 # Requirement Agent Findings
 
-EPIC check: partially implemented.
+Decision: `READY_FOR_WORKFLOW`
 
-The EPIC requires actionable terminal progress and recovery guidance, but the
-clarified observability requirement is stricter than phase-level status. The
-installation runtime path needs gapless method-flow tracing for every covered
-method, including exception paths.
+Confidence: `0.94`
+
+Current EPIC source:
+
+- `documentation/epics/autonomous-runnable-setup.md`
+- `documentation/epics/system-unification.md`
+
+Mandatory EPIC question:
+
+```text
+Does the implementation still match the EPIC?
+```
+
+Answer:
+
+```text
+YES FOR THIS DEPLOYMENT CONTRACT, WITH FAIL-CLOSED LIVE RUNTIME STILL PARTIAL
+```
+
+The normalized requirement is to preserve Portainer admin initialization
+semantics during deployment setup:
+
+- retry transient initialization failures;
+- fail fast when Portainer explicitly rejects admin initialization after it is
+  reachable;
+- prove both outcomes without live infrastructure.
 
 Requirement classification:
 
-- functional requirement: complete installation progress reporting
-- functional requirement: method entry, normal exit, and exception exit tracing
-  for every covered installation runtime method
-- UX requirement: console GUI response for task, step, result, and recovery
-- observability requirement: safe centralized logging
-- observability requirement: correlation data sufficient to reconstruct
-  program flow
-- architecture constraint: terminal-only in-process UI
-- architecture constraint: logging is a Shared cross-cutting module governed by
-  ADR
-- security requirement: redaction for commands, stdout, stderr, tokens,
-  passwords, environment payloads, host paths, and local IPs
-- quality requirement: mocked default gates and no live infrastructure
+- functional requirement: retry transient initialization failures and fail fast
+  on typed rejection;
+- architecture constraint: application services depend on ports, while
+  infrastructure adapters translate HTTP behavior;
+- resilience requirement: retry budget remains for transient readiness errors;
+- security requirement: tests and evidence must not expose credentials,
+  tokens, raw HTTP payloads, or live host facts;
+- quality-gate requirement: mocked unit tests must prove both outcomes before
+  commit or push;
+- assumption: "desired result" means the current source and test behavior
+  verified during workflow authoring.
 
-Primary gaps:
+Requirement process cycles:
 
-- `CommandExecuter` has the requested `PortUI` and class logger pattern.
-- `setup run` does not use `CommandExecuter` as its canonical execution path.
-- `SetupWorkflow` prints progress directly.
-- Platform workflows return verification results but do not update `PortUI`.
-- Logging style is inconsistent between direct class loggers and
-  `LoggerFactory`.
-- The previous workflow interpretation reduced "continuous" to setup phase and
-  platform step progress. That is not sufficient for the clarified method-level
-  trace requirement.
+1. Initial request was too broad because the desired result was not concrete.
+2. Repository evidence normalized the target to Portainer admin initialization
+   retry versus rejection semantics.
+3. Requirement, architecture, and tester review confirmed the target is
+   testable without live infrastructure and does not expand product scope.
 
-Required setup progress transitions:
+Confidence and push rule:
 
-- refused;
-- blocked;
-- phase start;
-- phase completed;
-- phase failed;
-- stopped;
-- downstream `not_run`;
-- final completed.
+- Confidence is `0.94`.
+- Push is allowed only when confidence is strictly greater than `0.92`.
+- Exactly `0.92` is not enough for push readiness.
 
-Required platform progress transitions:
+Traceability notes:
 
-- pre-apply guard;
-- mutating step start;
-- apply result;
-- direct verification;
-- verify step;
-- blocked state;
-- failed apply;
-- failed verify;
-- completion.
+- User request requires a self-checking workflow with stop-signal refinement.
+- `documentation/epics/autonomous-runnable-setup.md` requires fail-closed setup
+  behavior and no default live infrastructure gates.
+- `documentation/arc42/06_runtime_view.adoc` records the runtime rejection
+  gate.
+- `documentation/arc42/10_quality_requirements.adoc` records the quality
+  scenarios.
+- `QUALITY.md` provides the required full local quality command.
 
-Corrected workflow decision:
+Stop conditions:
 
-- Keep the narrow progress port for high-level setup/platform status.
-- Add ADR-governed cross-cutting method trace logging for method entry,
-  returned, and raised lifecycle events.
-- Do not inject concrete UI concerns across all application services.
-- Treat current behavior as partial until later slices implement both
-  method-level trace coverage and infrastructure adapters: command-runner UI
-  already uses `PortUI`, setup/platform now emit workflow progress events, but
-  method-flow tracing remains incomplete.
+- desired behavior cannot be proven by mocked tests;
+- application code would need concrete infrastructure imports;
+- adapter behavior would require live Portainer or provider execution;
+- confidence after three refinement cycles is less than or equal to `0.92`;
+- required D8 quality gates fail.
 
-Corrected method-trace acceptance criteria:
-
-- Document the installation method-trace scope, including setup run, setup
-  phases, platform workflows, command execution, progress adapters, composition
-  wiring, and related exception paths.
-- Every in-scope method emits `entered`, `returned`, and `raised` events, or
-  has an explicit tested exemption.
-- Failed events are emitted for caught and propagated exceptions before the
-  exception is re-raised or converted to a workflow result.
-- Trace events include only safe metadata: run ID, correlation ID, parent span
-  ID, method identity, component or layer, status, duration, safe summary, and
-  recovery hint when applicable.
-- UI output receives trace state through approved progress or trace ports and
-  infrastructure adapters, not direct `PortUI` injection into application or
-  domain services.
-- Central logging records the same trace lifecycle after redaction.
-- Domain code remains free of concrete UI, logging setup, command runner, YAML,
-  HTTP, Docker, curses, and composition imports.
-- Tests or static checks fail when an in-scope method lacks entry, returned, or
-  raised trace coverage.
-
-Slice 01 verification evidence:
-
-- branch checked: `feature/workflow-install-observability-20260529`;
-- read-only role reviews completed before documentation edits;
-- required quality gate: `git diff --check`;
-- no live infrastructure commands run.
+No blocking requirement questions remain. If execution evidence contradicts
+this interpretation, the workflow must return to the Requirements process.
