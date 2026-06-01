@@ -1,261 +1,220 @@
-# Workflow: LXC Docker Swarm Bootstrap
+# Workflow: Installation Observability And Console Status
 
 ## Metadata
 
 ```yaml
-workflow_id: lxc-docker-swarm-bootstrap-v1.0.0
-created: 2026-05-29
-branch: feature/workflow-lxc-docker-install-20260529
-status: READY_FOR_EXECUTION
-request: "Überarbeite die stelle damit auf den LXC Container docker installiert wird. Nimm als grundlage die multipass vorgehenweise und passe diese für die LXC an"
+workflow_id: install-observability-console-status-v1.0.0
+created: 2026-05-31
+branch: feature/workflow-install-observability-20260529
+status: COMPLETED
+request: "Durchgehend Logging und GUI response fuer die komplette Installation; logging als Cross-Cutting-Modul mit lueckenloser Methoden-Nachverfolgung inklusive Exceptions; pruefen ob PortUI/self.ui und class logger ueberall genutzt werden; workflow create/execute with agents fortsetzen."
 process_strand: S3D
 execution_profile: NORMAL_PATH
-primary_boundary: Platform
+primary_boundary: Console/status UI
 secondary_boundaries:
   - Shared
-  - Console/status UI
-provider_target: lxc_native
-legacy_reference: multipass_legacy
+  - Platform
+  - Setup
 live_infrastructure_default: false
 ```
 
 ## Executive Summary
 
-Create the implementation path that installs Docker Engine inside the managed
-LXC containers created by the default `lxc_native` provider and then
-initializes the Docker Swarm manager and workers inside those containers.
+At workflow authoring time, the implementation only partially satisfied the
+requested behavior.
+`CommandExecuter` already uses `PortUI`, `self.ui = ui`, and a class logger, but
+the canonical `setup run` and `platform` installation workflows do not flow
+through that executor. `SetupWorkflow` still prints phase progress directly,
+and platform steps report typed verification results without a continuous
+console GUI update path.
 
-The implementation must use the existing Multipass Docker install and Swarm
-initialization flow as the behavioral baseline:
+This workflow records a no-skip implementation plan for continuous, redacted
+installation observability. Slices 06-10 implement the method trace contract,
+runtime integration, infrastructure adapters, and setup console lifecycle for
+the current declared installation runtime scope. The clarified requirement is
+not limited to setup
+phase and platform step progress: the installation runtime path must also have
+gapless method-flow tracing for covered methods, including exception paths.
 
-- install Docker package prerequisites;
-- configure the official Docker apt repository;
-- install Docker Engine, CLI, containerd, Buildx, and Compose plugin;
-- verify Docker availability on each node;
-- initialize the Swarm manager;
-- retrieve the worker join token without persisting it;
-- join worker nodes;
-- verify the Swarm node state.
-
-The LXC version must adapt the execution surface from `multipass exec` to the
-managed LXD/Incus backend already selected by `lxc_native`. It must preserve
-the hexagonal architecture: application services orchestrate ports and domain
-objects, while concrete `lxc` or `incus` command execution remains in
-infrastructure adapters and configuration.
-
-This workflow does not deploy Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
-Swagger/NGINX, service-access, or Vaultwarden. It unblocks the Platform phase
-that currently stops after LXC node creation.
+The architecture-safe target is not to inject `PortUI`, `FactoryUI`,
+`LoggerFactory`, or concrete loggers into every service. Logging is accepted as
+a Shared cross-cutting observability module by ADR
+`documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`.
+High-level workflow progress remains a separate application progress contract;
+method-flow trace events must be correlated with it and projected to
+centralized logging and safe terminal UI output through infrastructure
+adapters.
 
 ## Requirement Clarification Gate
 
 ```yaml
 gate: requirement_clarification
-status: PROCEED_WITH_ACCEPTED_ASSUMPTIONS
-confidence: 0.88
-decision: "Create workflow for implementation; do not run live infrastructure during workflow authoring."
+status: REVISED_BY_USER_CLARIFICATION
+confidence: 0.95
+decision: "Continue workflow with ADR-governed cross-cutting method trace logging; existing progress slices remain partial high-level status coverage."
 ```
 
-Accepted interpretation:
+Original request:
 
-- "die stelle" means the current LXC-native setup gap after platform node
-  creation, where provider-native Docker installation and Docker Swarm
-  initialization are still blocked.
-- "auf den LXC Container docker installiert" means Docker Engine must be
-  installed inside each managed LXC node, not on the WSL/Linux host and not in
-  Multipass VMs.
-- "Nimm als grundlage die multipass vorgehenweise" means the Multipass install
-  and Swarm services/configuration are the functional template, but the new
-  code must be LXD/Incus-native and provider-safe.
+- Verify whether every installation operation uses `PortUI`, `self.ui = ui`,
+  and `logging.getLogger(self.__class__.__name__)`.
+- Ensure every step and failure is visible in the console GUI.
+- Use central logging for every step.
+- Insert logging and UI-visible trace output for every covered method in the
+  installation runtime path, including exception paths, so program flow can be
+  reconstructed without gaps.
+- Treat logging as a cross-cutting module that requires ADR coverage.
+- Continue `workflow create with agents` on a dedicated branch.
+- Do not skip required implementation coverage.
+
+Interpreted intent:
+
+- The full installation path must emit continuous status events for phase
+  start, step start, successful result, blocked result, failure, and final
+  aggregate state.
+- The full installation runtime path must emit method-level trace events for
+  `entered`, `returned`, and `raised` outcomes.
+- The console GUI must be driven from a single status channel.
+- Logging must be consistent and redacted.
+- The implementation must preserve hexagonal architecture.
 
 Accepted assumptions:
 
-- The default LXC node image remains Ubuntu-based and compatible with the
-  official Docker Engine apt repository.
-- The existing Docker-in-container profile baseline remains the starting
-  point: `security.nesting=true`,
-  `security.syscalls.intercept.mknod=true`, and
-  `security.syscalls.intercept.setxattr=true`.
-- LXD and Incus must both be supported through the selected managed backend.
-- Docker install and Swarm operations are live infrastructure mutations and
-  remain behind existing `--live` plus interactive consent.
-- Swarm join tokens, raw command output, local IP addresses, and host-specific
-  details must not be persisted as trusted evidence.
+- "Complete installation" means `setup run` plus its configured phases:
+  preflight, platform init, platform reconcile, platform verify, artifacts,
+  deployment, and final verification where present.
+- "Continuous" means deterministic event emission at each workflow phase,
+  verifiable installation step, and covered installation runtime method, not
+  arbitrary polling.
+- "Every method" means every method in the documented installation execution
+  path unless a method has an explicit tested exemption. Expanding this to all
+  pure domain value-object methods requires a later scope decision.
+- `PortUI` remains the terminal status implementation, but application logic
+  should depend on narrower progress or trace ports.
+- Concrete class loggers, logger factories, curses behavior, and terminal UI
+  adapters remain infrastructure concerns; domain code remains free of logging
+  concerns.
+- Live LXD, Incus, Docker, Swarm, compose, or service bootstrap commands are
+  not run during workflow authoring or default quality gates.
+
+Non-goals:
+
+- Browser UI, React frontend, web dashboard, or Kubernetes-first UI behavior.
+- Expanding Windows UI behavior.
+- Treating logs as verification evidence.
+- Persisting raw command output, commands, stdout, stderr, environment
+  payloads, tokens, passwords, Swarm join tokens, host paths, or local IPs.
+- Running live infrastructure without explicit approval.
 
 Open non-blocking questions:
 
-- Whether the Docker package version should remain "latest stable" from the
-  official apt repository or become a pinned operator option.
-- Whether a later reduced service profile should allow a single-node Swarm for
-  low-resource hosts.
+- Whether a later heartbeat event is needed during long-running live commands.
+- Whether terminal UI should expose detailed method tracing by default or only
+  in a diagnostic mode after the cross-cutting trace module exists.
 
-## External Planning Sources
+## Verified Baseline At Authoring
 
-These sources inform the workflow only. Repository code and ADRs remain
-authoritative for implementation.
+- Active branch verified: `feature/workflow-install-observability-20260529`.
+- Existing `CommandExecuter` already imports `PortUI`, stores `self.ui = ui`,
+  and uses `logging.getLogger(self.__class__.__name__)`.
+- `AsyncCommandRunnerUI` and `SyncCommandRunnerUI` instantiate `CommandExecuter`
+  with a concrete `PortUI`.
+- `SetupWorkflow` currently prints progress via `_print_phase_progress()`.
+- `PlatformInitWorkflow`, `PlatformReconcileWorkflow`, and related platform
+  steps use typed `VerificationResult` contracts but do not emit `PortUI`
+  updates.
+- Slices 02-04 added a high-level `PortWorkflowProgress` contract plus setup
+  and platform progress events. This remains partial status coverage, not
+  complete method-flow trace coverage.
+- Existing tests cover command executor UI updates, Linux UI status behavior,
+  setup phase printing, and platform workflow stop behavior.
+- Missing tests: setup-to-terminal UI integration, multi-command update order,
+  logger configuration behavior, no-skip progress event coverage, no-skip
+  method trace coverage, exception trace coverage, and trace redaction.
 
-- Docker's official Ubuntu install documentation uses the apt repository path
-  and installs `docker-ce`, `docker-ce-cli`, `containerd.io`,
-  `docker-buildx-plugin`, and `docker-compose-plugin`.
-- LXD documentation states that Docker-in-LXD requires
-  `security.nesting=true`, and OverlayFS-oriented Docker use should also set
-  syscall interception for `mknod` and `setxattr`.
-- Incus documentation mirrors the same Docker-in-container nesting direction
-  and keeps privileged-container choices security-sensitive.
+## Target Picture
 
-## Governing Inputs
+After implementation, delivered through the completed slices and verified in
+`documentation/workflow/execution-report.md`:
 
-- `AGENTS.md`
-- `QUALITY.md`
-- `documentation/epics/system-unification.md`
-- `documentation/epics/autonomous-runnable-setup.md`
-- `documentation/architecture/adr-lxc-native-node-provider.adoc`
-- `documentation/architecture/adr-autonomous-setup-safety.adoc`
-- `documentation/arc42/06_runtime_view.adoc`
-- `documentation/arc42/07_deployment_view.adoc`
-- `documentation/arc42/09_architecture_decisions.adoc`
-- `src/tiny_swarm_world/application/services/multipass/multipass_docker_install.py`
-- `src/tiny_swarm_world/application/services/multipass/multipass_docker_swarm_init.py`
-- `infra/config/docker/command_multipass_docker_install_yaml.yaml`
-- `infra/config/docker/command_multipass_docker_prepare_repository_yaml.yaml`
-- `infra/config/docker/command_multipass_docker_verify_yaml.yaml`
-- `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py`
-- `infra/config/node-providers/provider_config.yaml`
+- `setup run` starts a terminal progress surface after live consent is accepted.
+- Every setup phase emits start and terminal status events.
+- Every platform workflow step emits start, apply result, verification result,
+  and terminal status events.
+- Every covered installation runtime method emits trace events for entry,
+  normal return, and exception exit, or has an explicit tested exemption.
+- Command-backed legacy execution continues to update `PortUI` through
+  `CommandExecuter`.
+- Modern setup/platform execution updates `PortUI` through a structured
+  progress port and infrastructure adapter.
+- Central logging records both safe high-level progress and safe method-flow
+  trace events with correlation data.
+- A failure must remain visible and must not be overwritten by later aggregate
+  success.
+- Downstream `not_run` phases are explicitly reported.
+- Tests prove no workflow slice may skip required progress, method trace, or
+  logging behavior.
 
 ## Architecture Direction
 
-The implementation must preserve these ownership rules:
-
-- Platform owns LXD/Incus provider readiness, LXC node lifecycle, Docker
-  install, Docker Swarm initialization, node IP lookup, and platform
-  verification.
-- Artifacts and Deployment stay out of this workflow except for blocked-state
-  compatibility after Platform succeeds.
-- Domain code may receive provider-neutral value objects and result types, but
-  must not import command runners, YAML adapters, Docker clients, LXD/Incus
-  clients, logging, or composition.
-- Application services may orchestrate Docker install and Swarm steps through
-  ports and typed results, but must not embed low-level shell, filesystem, or
-  backend command details.
-- Infrastructure adapters own `lxc exec` and `incus exec` behavior, command
-  timeout handling, backend-specific error classification, and output
-  redaction.
-- `src/tiny_swarm_world/infrastructure/composition.py` remains the only normal
-  runtime wiring root.
+- Application services may emit structured progress events through an
+  application port.
+- Application services may participate in method tracing through an
+  application trace port or composition-applied wrapper, not through concrete
+  infrastructure logging imports.
+- Infrastructure adapters translate progress and method trace events to
+  `PortUI` and logging.
+- Concrete UI adapters, curses behavior, `FactoryUI`, and `LoggerFactory`
+  remain infrastructure concerns.
+- Domain code must not import logging, UI, infrastructure, curses, command
+  runners, or dependency wiring.
+- `src/tiny_swarm_world/infrastructure/composition.py` remains the wiring root.
 - `src/tiny_swarm_world/__main__.py` remains thin.
+- ADR `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
+  governs the cross-cutting trace module and its redaction boundaries.
 
-## Target Behavior
+## Role Ownership
 
-After this workflow is implemented and verified:
-
-- `setup run --live` with accepted interactive consent can continue from
-  LXC-native platform node creation into Docker installation on
-  `swarm-manager`, `swarm-worker-1`, and `swarm-worker-2`.
-- Direct `platform init --live` uses the same LXC-native Docker install and
-  Swarm bootstrap contracts as setup-driven platform init.
-- The Docker install step is idempotent: already-installed Docker is verified
-  and does not force a reinstall unless verification fails.
-- The install step uses the selected backend command prefix:
-  `lxc exec <node> -- ...` for LXD or `incus exec <node> -- ...` for Incus.
-- The Swarm manager is initialized only when the manager is not already part
-  of a Swarm.
-- Worker nodes join only when not already active in the target Swarm.
-- Re-runs report verified or reconciled state without requiring destructive
-  reset.
-- Verification returns typed, summary-only evidence for Docker version,
-  daemon active state, manager state, worker membership count, and failed
-  nodes.
-- Raw command strings, stdout, stderr, Swarm join tokens, and local node IPs
-  are redacted or omitted from persisted evidence.
-
-## Out Of Scope
-
-- Installing LXD, Incus, Docker, or other packages on the host.
-- Repairing host daemon, group, bridge, firewall, VPN, or snap state.
-- Changing the live-consent model.
-- Making privileged containers the silent default.
-- Deploying Portainer or application service stacks.
-- Building or publishing images.
-- Removing Multipass legacy support.
-- Browser or React frontend work.
-- Java, Maven, or Spring Boot structure.
-- Kubernetes-first behavior.
-
-## Roles
-
-Mandatory workflow roles:
-
-- Senior System Architect: validates Platform ownership, ADR/arc42 alignment,
-  and Docker-in-container risk boundaries.
-- Senior Requirement Engineer: keeps the German request, EPIC extension, and
-  acceptance criteria aligned.
-- Senior Documentation Engineer: updates workflow, ADR/arc42 references, and
-  operator documentation without claiming unverified live success.
-- Senior Tester: defines mocked regression gates, live-smoke boundaries, and
-  typed evidence expectations.
-- Senior DevOps Engineer: adapts Multipass Docker/Swarm behavior to
-  LXD/Incus-managed containers and reviews idempotency.
-- Senior Python Automation Developer: implements services, ports, adapters,
-  and composition wiring.
-- Senior React Frontend Developer: no implementation work; records that this
-  workflow has no browser or React frontend scope.
-
-Specialist skills:
-
-- `workflow-executor`
-- `workflow-slice-execution`
-- `python-automation`
-- `python-test-automation`
-- `devops-docker`
-- `linux-host-preparation`
-- `docker-engine-installation`
-- `docker-swarm-initialization`
-- `swarm-node-management`
-- `idempotent-platform-automation`
-- `platform-verification`
-- `secrets-and-config-management`
-- `observability-and-diagnostics`
-- `arc42-architecture-governance`
-- `adr-steward`
+- Senior Requirement Engineer: acceptance granularity, non-goals, EPIC drift.
+- Senior System Architect: hexagonal boundary and arc42 alignment.
+- Senior Python Automation Developer: progress port, service integration,
+  method trace port, wrapper behavior, and composition-safe wiring.
+- Senior Tester: regression strategy and no-skip evidence.
+- Senior React Frontend Developer: no implementation scope; records no browser
+  frontend involvement.
+- Console/status UI skills: terminal adapter behavior and aggregate state.
 
 ## Slice Plan
 
-### Slice 01 - Baseline Multipass Behavior And LXC Contract
+### Slice 01 - Requirement And Baseline Audit
 
 ```yaml
-slice: 01
-name: baseline-multipass-lxc-contract
-status: READY
+slice_id: "01"
 profile: NORMAL_PATH
 owner: Senior Requirement Engineer
 secondary_reviewers:
   - Senior System Architect
-  - Senior DevOps Engineer
   - Senior Tester
-allowed_files:
-  - documentation/workflow/**
-  - documentation/architecture/**
-  - documentation/arc42/**
-  - documentation/epics/**
 affected_files:
   - documentation/workflow/**
-  - documentation/architecture/**
-  - documentation/arc42/**
   - documentation/epics/**
+  - documentation/arc42/**
 affected_modules:
-  - Platform documentation
   - workflow governance
+  - setup requirements
+  - console status UI requirements
 affected_contracts:
-  - LXC Docker install contract
-  - LXC Docker Swarm bootstrap contract
+  - installation progress contract
+  - installation method trace contract
 dependencies: []
 parallel_group: serial-01
 file_locks:
-  - slice-01-workflow-contract-files
+  - workflow-observability-requirements
 contract_locks:
-  - slice-01-platform-contract-baseline
+  - installation-progress-contract
+  - installation-method-trace-contract
 architecture_locks:
-  - slice-01-platform-architecture-baseline
+  - console-status-architecture-baseline
 quality_gates:
   targeted:
     - git diff --check
@@ -263,428 +222,197 @@ quality_gates:
     - git diff --check
 documentation:
   arc42: review-required
-  adr: review-required
+  adr: superseded-by-cross-cutting-trace-adr
 stop_conditions:
-  - Missing Multipass baseline evidence.
-  - Documentation would claim implemented Docker-in-LXC behavior.
-live_infrastructure: prohibited
+  - Continuous status granularity cannot be defined without guessing.
+  - Documentation would claim implemented behavior before source changes exist.
 ```
 
-Tasks:
+Done criteria:
 
-- Map the existing Multipass Docker install and Swarm initialization sequence
-  into LXC-native requirements.
-- Define LXD and Incus command adaptation rules without implementing shell
-  details in application code.
-- Record idempotency expectations for install, manager init, token retrieval,
-  worker join, and verification.
-- Identify ADR updates if implementation needs any security contract beyond
-  the current Docker-in-container profile.
+- The requirement states exactly which setup/platform transitions must emit
+  progress.
+- The clarified method trace requirement is recorded as ADR-governed scope
+  before further adapter wiring.
+- EPIC drift is documented as "partially implemented" until runtime code is
+  changed.
+- No live infrastructure commands are run.
 
-Done:
-
-- A report states which Multipass behaviors are copied, adapted, or rejected.
-- No documentation claims live Docker-in-LXC success before evidence exists.
-
-### Slice 02 - Domain And Application Contracts
+### Slice 02 - Structured Progress Port
 
 ```yaml
-slice: 02
-name: lxc-docker-domain-application-contracts
-status: READY
+slice_id: "02"
 profile: NORMAL_PATH
 owner: Senior Python Automation Developer
 secondary_reviewers:
   - Senior System Architect
   - Senior Tester
-  - Senior DevOps Engineer
-allowed_files:
-  - src/tiny_swarm_world/domain/**
-  - src/tiny_swarm_world/application/ports/**
-  - src/tiny_swarm_world/application/services/platform/**
-  - tests/domain/**
-  - tests/application/**
 affected_files:
-  - src/tiny_swarm_world/domain/**
   - src/tiny_swarm_world/application/ports/**
-  - src/tiny_swarm_world/application/services/platform/**
-  - tests/domain/**
+  - src/tiny_swarm_world/application/services/setup/**
   - tests/application/**
 affected_modules:
-  - tiny_swarm_world.domain
   - tiny_swarm_world.application.ports
-  - tiny_swarm_world.application.services.platform
+  - tiny_swarm_world.application.services.setup
 affected_contracts:
-  - container Docker readiness
-  - Docker install result
-  - Swarm manager state
-  - worker join state
+  - PortWorkflowProgress
+  - workflow progress event
 dependencies:
   - "01"
 parallel_group: serial-02
 file_locks:
-  - slice-02-platform-domain-application-files
+  - application-progress-port
 contract_locks:
-  - slice-02-platform-domain-contracts
+  - structured-progress-event-contract
 architecture_locks:
-  - slice-02-hexagonal-domain-application-boundary
+  - application-port-boundary
 quality_gates:
   targeted:
-    - PYTHONPATH=src python -m unittest discover tests/domain tests/application
+    - PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
   required:
     - python3 tools/quality_gate.py lint
 documentation:
-  arc42: not applicable
-  adr: not applicable
+  arc42: review-required
+  adr: not-required-for-high-level-progress-only
 stop_conditions:
-  - Domain code would import application or infrastructure concerns.
-  - Application services would embed LXD, Incus, shell, filesystem, or Docker CLI details.
-live_infrastructure: prohibited
+  - Application code would import infrastructure UI, FactoryUI, LoggerFactory, or curses.
+  - Progress events allow raw command strings, stdout, stderr, secrets, tokens, or environment data.
 ```
 
-Tasks:
+Done criteria:
 
-- Add provider-neutral value objects/results for container Docker readiness,
-  Docker install outcome, Swarm manager state, worker join state, and
-  verification evidence summaries if existing types are insufficient.
-- Add or extend application ports for container command execution and
-  container network identity lookup.
-- Keep application services independent from LXD/Incus concrete adapters.
-- Add tests for already-installed Docker, missing Docker, failed install,
-  already-active manager, fresh manager init, already-joined worker, and failed
-  worker join.
+- A narrow progress port exists in `application/ports`.
+- Events include workflow, phase, target, task, step, status, result, safe
+  message, and optional recovery hint.
+- Unsafe payload keys are rejected or cannot be represented.
+- This slice remains high-level progress coverage only and does not claim
+  method trace completion.
 
-Done:
-
-- Domain imports remain infrastructure-free.
-- Application services can be tested entirely with fakes.
-
-### Slice 03 - LXD/Incus Docker Install Adapter
+### Slice 03 - Setup Workflow Progress Integration
 
 ```yaml
-slice: 03
-name: lxc-docker-install-adapter
-status: READY
+slice_id: "03"
 profile: NORMAL_PATH
-owner: Senior DevOps Engineer
+owner: Senior Python Automation Developer
 secondary_reviewers:
-  - Senior Python Automation Developer
   - Senior Tester
   - Senior System Architect
-allowed_files:
-  - src/tiny_swarm_world/infrastructure/adapters/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - infra/config/docker/**
-  - tests/infrastructure/**
 affected_files:
-  - src/tiny_swarm_world/infrastructure/adapters/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - infra/config/docker/**
-  - tests/infrastructure/**
+  - src/tiny_swarm_world/application/services/setup/**
+  - tests/application/services/setup/**
 affected_modules:
-  - tiny_swarm_world.infrastructure.adapters
-  - tiny_swarm_world.infrastructure.composition
-  - infra.config.docker
+  - tiny_swarm_world.application.services.setup
 affected_contracts:
-  - LXD exec command adapter
-  - Incus exec command adapter
-  - Docker install command configuration
+  - setup phase progress events
 dependencies:
   - "02"
 parallel_group: serial-03
 file_locks:
-  - slice-03-lxc-install-adapter-files
+  - setup-workflow-progress
 contract_locks:
-  - slice-03-lxc-exec-docker-install-contracts
+  - setup-progress-contract
 architecture_locks:
-  - slice-03-infrastructure-adapter-boundary
+  - setup-application-boundary
 quality_gates:
   targeted:
-    - PYTHONPATH=src python -m unittest discover tests/infrastructure
-  required:
-    - python3 tools/quality_gate.py lint
-documentation:
-  arc42: not applicable
-  adr: not applicable
-stop_conditions:
-  - LXD and Incus cannot share a provider-neutral application contract.
-  - Raw command output or command payloads would leave the infrastructure boundary.
-live_infrastructure: prohibited
-```
-
-Tasks:
-
-- Implement the concrete LXD/Incus exec adapter for Docker install commands.
-- Prefer structured command templates or existing YAML command helpers over
-  ad hoc string construction.
-- Keep the official Docker apt repository install path aligned with current
-  Docker documentation and the existing Multipass baseline.
-- Ensure command evidence is summarized and redacted before leaving the
-  infrastructure boundary.
-- Add deterministic tests that assert backend command prefix, node targeting,
-  timeout behavior, and redaction.
-
-Done:
-
-- Tests prove `lxc` and `incus` command variants are selected through backend
-  configuration, not hard-coded application branching.
-- No raw command output is persisted as verification evidence.
-
-### Slice 04 - LXC Docker Install Application Workflow
-
-```yaml
-slice: 04
-name: lxc-docker-install-workflow
-status: READY
-profile: NORMAL_PATH
-owner: Senior Python Automation Developer
-secondary_reviewers:
-  - Senior DevOps Engineer
-  - Senior Tester
-  - Senior System Architect
-allowed_files:
-  - src/tiny_swarm_world/application/services/platform/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - tests/application/**
-  - tests/infrastructure/**
-affected_files:
-  - src/tiny_swarm_world/application/services/platform/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - tests/application/**
-  - tests/infrastructure/**
-affected_modules:
-  - tiny_swarm_world.application.services.platform
-  - tiny_swarm_world.infrastructure.composition
-affected_contracts:
-  - platform init Docker install phase
-  - verify-after-apply continuation gate
-dependencies:
-  - "02"
-  - "03"
-parallel_group: serial-04
-file_locks:
-  - slice-04-platform-docker-install-workflow-files
-contract_locks:
-  - slice-04-platform-init-docker-install-contract
-architecture_locks:
-  - slice-04-platform-application-composition-boundary
-quality_gates:
-  targeted:
-    - PYTHONPATH=src python -m unittest discover tests/application tests/infrastructure
+    - PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
   required:
     - python3 tools/quality_gate.py typecheck
 documentation:
-  arc42: not applicable
-  adr: not applicable
+  arc42: not-required
+  adr: not-required-for-high-level-progress-only
 stop_conditions:
-  - Docker install can continue without verified evidence.
-  - Platform failure states would be collapsed into success.
-live_infrastructure: prohibited
+  - Phase failures can be overwritten by final success.
+  - Downstream not_run phases are not emitted.
 ```
 
-Tasks:
+Done criteria:
 
-- Wire Docker install after LXC node creation and before Swarm
-  initialization.
-- Preserve apply-then-verify semantics: do not continue when install evidence
-  is missing, failed, or non-verified.
-- Support re-run behavior for already-installed Docker.
-- Report blocked, failed-to-apply, and failed-to-verify states using existing
-  setup/platform vocabulary.
+- `SetupWorkflow` emits progress for refused, blocked, phase start, phase
+  completed, phase failed, stopped, downstream `not_run`, and final completed.
+- Existing CLI text behavior is either preserved behind the same port or
+  intentionally replaced by the progress adapter.
+- Tests prove no phase is skipped in status reporting.
+- This slice remains high-level progress coverage only and does not claim
+  method trace completion.
 
-Done:
-
-- `platform init` and `setup run` can reach a mocked verified Docker install
-  phase for all configured LXC nodes.
-- Failure on any required node stops later Swarm work.
-
-### Slice 05 - LXC Docker Swarm Init And Join
+### Slice 04 - Platform Workflow Progress Integration
 
 ```yaml
-slice: 05
-name: lxc-docker-swarm-init-join
-status: READY
+slice_id: "04"
 profile: NORMAL_PATH
-owner: Senior DevOps Engineer
+owner: Senior Python Automation Developer
 secondary_reviewers:
-  - Senior Python Automation Developer
-  - Senior Tester
   - Senior System Architect
-  - Senior Security Sandbox Engineer
-allowed_files:
-  - src/tiny_swarm_world/application/services/platform/**
-  - src/tiny_swarm_world/infrastructure/adapters/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - infra/config/docker/**
-  - tests/application/**
-  - tests/infrastructure/**
+  - Senior Tester
 affected_files:
   - src/tiny_swarm_world/application/services/platform/**
-  - src/tiny_swarm_world/infrastructure/adapters/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - infra/config/docker/**
-  - tests/application/**
-  - tests/infrastructure/**
+  - tests/application/services/platform/**
 affected_modules:
   - tiny_swarm_world.application.services.platform
-  - tiny_swarm_world.infrastructure.adapters
-  - tiny_swarm_world.infrastructure.composition
-  - infra.config.docker
 affected_contracts:
-  - Docker Swarm manager init
-  - Docker Swarm worker join
-  - Swarm token redaction
+  - platform step progress events
+dependencies:
+  - "02"
+parallel_group: serial-04
+file_locks:
+  - platform-workflow-progress
+contract_locks:
+  - platform-progress-contract
+architecture_locks:
+  - platform-application-boundary
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+  required:
+    - python3 tools/quality_gate.py typecheck
+documentation:
+  arc42: review-required
+  adr: not-required-for-high-level-progress-only
+stop_conditions:
+  - Platform workflow continues after failed apply or failed verification.
+  - Verification results are emitted without redaction review.
+```
+
+Done criteria:
+
+- Platform pre-apply guard, mutating steps, direct verification, verify steps,
+  blocked states, failed apply, failed verify, and completion emit progress.
+- `LxcDockerInstallStep` and `LxcSwarmBootstrapStep` expose node-result
+  summaries through safe progress events.
+- Tests assert event order and terminal state preservation.
+- This slice remains high-level progress coverage only and does not claim
+  method trace completion.
+
+### Slice 05 - Cross-Cutting Method Trace ADR And Scope
+
+```yaml
+slice_id: "05"
+profile: NORMAL_PATH
+owner: Senior System Architect
+secondary_reviewers:
+  - Senior Requirement Engineer
+  - Senior Tester
+  - Senior Python Automation Developer
+affected_files:
+  - documentation/architecture/**
+  - documentation/arc42/**
+  - documentation/workflow/**
+affected_modules:
+  - architecture documentation
+  - workflow governance
+affected_contracts:
+  - cross-cutting-method-trace-logging-adr
+  - installation-method-trace-scope
 dependencies:
   - "04"
 parallel_group: serial-05
 file_locks:
-  - slice-05-lxc-swarm-bootstrap-files
+  - observability-adr-and-workflow-scope
 contract_locks:
-  - slice-05-swarm-bootstrap-token-contracts
+  - installation-method-trace-contract
 architecture_locks:
-  - slice-05-platform-swarm-boundary
-quality_gates:
-  targeted:
-    - PYTHONPATH=src python -m unittest discover tests/application tests/infrastructure
-  required:
-    - python3 tools/quality_gate.py typecheck
-documentation:
-  arc42: not applicable
-  adr: not applicable
-stop_conditions:
-  - Swarm join token would be persisted in evidence, logs, exceptions, or committed files.
-  - Manager advertise address would be committed as configuration.
-live_infrastructure: prohibited
-```
-
-Tasks:
-
-- Initialize the manager inside `swarm-manager` when it is not already part of
-  the target Swarm.
-- Read the manager advertise address through provider/container network
-  identity lookup and keep the concrete IP out of committed files and trusted
-  evidence.
-- Retrieve worker join token only in-memory.
-- Join `swarm-worker-1` and `swarm-worker-2` idempotently.
-- Verify final Swarm state by manager and worker membership.
-
-Done:
-
-- Tests prove tokens are not stored in evidence, logs, reports, or thrown
-  exceptions.
-- Re-runs handle already-initialized manager and already-joined workers.
-
-### Slice 06 - Setup And Platform Integration
-
-```yaml
-slice: 06
-name: setup-platform-integration
-status: READY
-profile: NORMAL_PATH
-owner: Senior System Architect
-secondary_reviewers:
-  - Senior Python Automation Developer
-  - Senior DevOps Engineer
-  - Senior Tester
-allowed_files:
-  - src/tiny_swarm_world/application/services/setup/**
-  - src/tiny_swarm_world/application/services/platform/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - src/tiny_swarm_world/__main__.py
-  - tests/application/**
-  - tests/infrastructure/**
-affected_files:
-  - src/tiny_swarm_world/application/services/setup/**
-  - src/tiny_swarm_world/application/services/platform/**
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - src/tiny_swarm_world/__main__.py
-  - tests/application/**
-  - tests/infrastructure/**
-affected_modules:
-  - tiny_swarm_world.application.services.setup
-  - tiny_swarm_world.application.services.platform
-  - tiny_swarm_world.infrastructure.composition
-  - tiny_swarm_world.__main__
-affected_contracts:
-  - setup platform phase sequence
-  - direct platform init contract
-  - artifact and deployment blocked-boundary compatibility
-dependencies:
-  - "05"
-parallel_group: serial-06
-file_locks:
-  - slice-06-setup-platform-integration-files
-contract_locks:
-  - slice-06-setup-platform-phase-contracts
-architecture_locks:
-  - slice-06-composition-entrypoint-boundary
-quality_gates:
-  targeted:
-    - PYTHONPATH=src python -m unittest discover tests/application tests/infrastructure
-  required:
-    - python3 tools/quality_gate.py test
-documentation:
-  arc42: review-required
-  adr: review-required
-stop_conditions:
-  - Entry point would construct concrete infrastructure adapters directly.
-  - Artifacts or Deployment would be implemented outside their workflow scope.
-live_infrastructure: prohibited
-```
-
-Tasks:
-
-- Replace the default LXC `platform reconcile` blocker with the new
-  provider-native Docker install and Swarm bootstrap path where appropriate.
-- Ensure direct `platform init --live` and setup-driven platform init use the
-  same implementation path.
-- Keep Artifacts and Deployment blocked until their own provider-native
-  contracts are implemented.
-- Keep CLI changes thin and composition-owned.
-
-Done:
-
-- A mocked full Platform phase reaches verified LXC nodes, Docker installed,
-  and Swarm initialized.
-- The setup phase summary distinguishes Platform success from later
-  Artifacts/Deployment blockers.
-
-### Slice 07 - Operator Documentation And Architecture Sync
-
-```yaml
-slice: 07
-name: docs-architecture-sync
-status: READY
-profile: NORMAL_PATH
-owner: Senior Documentation Engineer
-secondary_reviewers:
-  - Senior Requirement Engineer
-  - Senior System Architect
-  - Senior Tester
-allowed_files:
-  - README.md
-  - documentation/**
-  - OPERATIONAL_READINESS_CHECKLIST.md
-affected_files:
-  - README.md
-  - documentation/**
-  - OPERATIONAL_READINESS_CHECKLIST.md
-affected_modules:
-  - documentation
-  - operational readiness
-affected_contracts:
-  - operator setup documentation
-  - arc42 runtime/deployment documentation
-  - ADR index documentation
-dependencies:
-  - "06"
-parallel_group: serial-07
-file_locks:
-  - slice-07-documentation-sync-files
-contract_locks:
-  - slice-07-documentation-truth-contracts
-architecture_locks:
-  - slice-07-arc42-adr-alignment
+  - shared-cross-cutting-observability-boundary
 quality_gates:
   targeted:
     - git diff --check
@@ -692,150 +420,406 @@ quality_gates:
     - git diff --check
 documentation:
   arc42: required
-  adr: review-required
+  adr: required
 stop_conditions:
-  - Documentation would present planned or mocked behavior as live-verified.
-  - Operator docs would describe automatic host repair as default behavior.
-live_infrastructure: prohibited
+  - Method-level trace logging is introduced without ADR coverage.
+  - Workflow still claims phase or step progress is sufficient for lueckenlose tracing.
+  - Documentation would claim method trace implementation before source changes exist.
 ```
 
-Tasks:
+Done criteria:
 
-- Update setup documentation to state that default LXC-native Platform now
-  installs Docker and initializes Swarm only after implementation evidence
-  exists.
-- Update EPIC, arc42 runtime/deployment, and ADR index language so planned,
-  implemented, blocked, and live-verified states remain distinct.
-- Add recovery notes for common LXD/Incus Docker-in-container failures without
-  documenting host mutation as automatic behavior.
+- ADR accepts logging as a Shared cross-cutting observability module.
+- arc42 distinguishes high-level workflow progress from method-level trace
+  logging.
+- Workflow acceptance criteria require `entered`, `returned`, and `raised`
+  coverage for every covered installation runtime method or an explicit tested
+  exemption.
+- Previous setup/platform progress slices are documented as partial status
+  coverage, not complete observability.
 
-Done:
-
-- Documentation is aligned with source and tests.
-- No service stack deployment success is claimed by Platform-only evidence.
-
-### Slice 08 - Quality And Optional Live Smoke Evidence
+### Slice 06 - Method Trace Port And Wrapper Contract
 
 ```yaml
-slice: 08
-name: quality-live-smoke-boundary
-status: READY
+slice_id: "06"
+profile: NORMAL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Senior System Architect
+  - Senior Tester
+affected_files:
+  - src/tiny_swarm_world/application/ports/**
+  - src/tiny_swarm_world/application/services/shared/**
+  - tests/application/ports/**
+  - tests/application/services/shared/**
+affected_modules:
+  - tiny_swarm_world.application.ports
+  - tiny_swarm_world.application.services.shared
+affected_contracts:
+  - PortMethodTrace
+  - MethodTraceEvent
+  - method trace wrapper
+dependencies:
+  - "05"
+parallel_group: serial-06
+file_locks:
+  - application-method-trace-contract
+contract_locks:
+  - method-trace-event-contract
+architecture_locks:
+  - application-port-boundary
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.application.ports.test_method_trace
+    - PYTHONPATH=src python3 -m unittest tests.application.services.shared.test_method_trace_wrapper
+  required:
+    - python3 tools/quality_gate.py typecheck
+documentation:
+  arc42: not-required
+  adr: implemented-by-slice-05
+stop_conditions:
+  - Trace events allow raw arguments, return payloads, command strings, stdout, stderr, tokens, paths, IPs, raw exception messages, or stack traces.
+  - The trace wrapper swallows or changes original exception behavior.
+  - Application code imports infrastructure logging, LoggerFactory, PortUI, FactoryUI, or curses.
+```
+
+Done criteria:
+
+- A method trace port and safe event contract exist in application-owned code.
+- Sync and async wrappers emit `entered` plus `returned` for normal execution.
+- Sync and async wrappers emit `entered` plus `raised` for exceptions while
+  preserving original exception propagation.
+- Trace events contain only safe structural metadata and sanitized exception
+  classification.
+
+### Slice 07 - Installation Method Trace Coverage Guard
+
+```yaml
+slice_id: "07"
 profile: NORMAL_PATH
 owner: Senior Tester
 secondary_reviewers:
-  - Senior DevOps Engineer
+  - Senior Python Automation Developer
   - Senior System Architect
-  - Senior Documentation Engineer
-allowed_files:
-  - tests/**
-  - tools/**
-  - documentation/workflow/**
-  - documentation/system/**
 affected_files:
-  - tests/**
-  - tools/**
+  - tests/architecture/**
   - documentation/workflow/**
-  - documentation/system/**
 affected_modules:
-  - tests
-  - tools
-  - workflow evidence
-  - system documentation
+  - architecture tests
+  - workflow governance
 affected_contracts:
-  - repository quality gate
-  - optional live smoke evidence contract
+  - installation method trace coverage manifest
+  - trace exemption contract
 dependencies:
+  - "06"
+parallel_group: serial-07
+file_locks:
+  - installation-method-trace-coverage
+contract_locks:
+  - method-trace-exemption-contract
+architecture_locks:
+  - architecture-test-boundary
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.architecture.test_installation_method_trace_coverage
+  required:
+    - python3 tools/quality_gate.py arch-tests
+documentation:
+  arc42: not-required
+  adr: implemented-by-slice-05
+stop_conditions:
+  - A covered runtime method can be added without trace coverage or an explicit tested exemption.
+  - Trace sink internals, logger factories, or terminal render loops recurse into self-tracing.
+```
+
+Done criteria:
+
+- An explicit installation trace coverage manifest exists for setup, platform,
+  command execution, composition-created installation objects, and trace/UI
+  adapter boundaries.
+- Static or reflective tests fail when an in-scope method lacks trace coverage
+  or an explicit exemption.
+- Exemptions are documented and limited to protocols, abstract declarations,
+  trace sinks, logger factories, terminal render loops, and methods outside
+  the installation runtime path.
+
+### Slice 08 - Setup Platform And Command Method Trace Integration
+
+```yaml
+slice_id: "08"
+profile: NORMAL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Senior Tester
+  - Senior System Architect
+affected_files:
+  - src/tiny_swarm_world/application/services/setup/**
+  - src/tiny_swarm_world/application/services/platform/**
+  - src/tiny_swarm_world/application/services/commands/command_executer/**
+  - tests/application/services/setup/**
+  - tests/application/services/platform/**
+  - tests/application/services/commands/**
+  - tests/architecture/**
+affected_modules:
+  - tiny_swarm_world.application.services.setup
+  - tiny_swarm_world.application.services.platform
+  - tiny_swarm_world.application.services.commands
+affected_contracts:
+  - setup method trace lifecycle
+  - platform method trace lifecycle
+  - command method trace lifecycle
+dependencies:
+  - "06"
   - "07"
 parallel_group: serial-08
 file_locks:
-  - slice-08-quality-live-smoke-files
+  - application-runtime-method-tracing
 contract_locks:
-  - slice-08-quality-live-smoke-contracts
+  - installation-method-trace-contract
 architecture_locks:
-  - slice-08-quality-evidence-boundary
+  - application-boundary
 quality_gates:
   targeted:
-    - python3 tools/quality_gate.py quality
+    - PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
+    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+    - PYTHONPATH=src python3 -m unittest tests.application.services.commands.test_command_executer
+    - PYTHONPATH=src python3 -m unittest tests.architecture.test_installation_method_trace_coverage
+  required:
+    - python3 tools/quality_gate.py typecheck
+documentation:
+  arc42: not-required
+  adr: implemented-by-slice-05
+stop_conditions:
+  - Any covered setup, platform, or command method lacks entered, returned, or raised coverage.
+  - Exception traces can be overwritten by later aggregate success.
+  - Concrete infrastructure UI or logging imports are added to application services.
+```
+
+Done criteria:
+
+- Setup, platform, and command execution runtime methods emit trace lifecycle
+  events through the application trace contract.
+- Refused, blocked, failed apply, failed verify, missing evidence, and raised
+  exception paths emit `raised` or safe failure trace events before propagation
+  or workflow result conversion.
+- Existing high-level progress assertions remain intact.
+- Architecture trace coverage tests pass with only explicit exemptions.
+
+### Slice 09 - PortUI Logging And Trace Adapter Wiring
+
+```yaml
+slice_id: "09"
+profile: NORMAL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Console/status UI skills
+  - Senior Tester
+  - Senior System Architect
+affected_files:
+  - src/tiny_swarm_world/infrastructure/adapters/ui/**
+  - src/tiny_swarm_world/infrastructure/logging/**
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/infrastructure/**
+affected_modules:
+  - tiny_swarm_world.infrastructure.adapters.ui
+  - tiny_swarm_world.infrastructure.logging
+  - tiny_swarm_world.infrastructure.composition
+affected_contracts:
+  - progress-to-PortUI adapter
+  - progress-to-logging adapter
+  - trace-to-PortUI adapter
+  - trace-to-logging adapter
+dependencies:
+  - "06"
+  - "08"
+parallel_group: serial-09
+file_locks:
+  - infrastructure-progress-and-trace-adapters
+contract_locks:
+  - terminal-progress-adapter-contract
+  - terminal-trace-adapter-contract
+architecture_locks:
+  - infrastructure-adapter-boundary
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_linux_ui tests.infrastructure.test_composition
+  required:
+    - python3 tools/quality_gate.py lint
+documentation:
+  arc42: review-required
+  adr: implemented-by-slice-05
+stop_conditions:
+  - UI thread lifecycle is controlled by application services.
+  - LoggerFactory is imported into application services.
+  - Trace logging records raw exception text, traceback, raw arguments, return payloads, commands, stdout, stderr, env, tokens, paths, or local IPs.
+```
+
+Done criteria:
+
+- Infrastructure provides a composite progress and trace sink that updates
+  `PortUI` and writes centralized logs.
+- Logging adapter tests prove one safe log record per trace event and no
+  `exc_info`, traceback, raw exception text, command output, or sensitive
+  payload.
+- Terminal adapter tests prove raised trace events remain visible and cannot be
+  overwritten by later success-like events.
+- Composition wires progress and trace sinks into setup/platform/command
+  installation services.
+- Non-interactive/test mode remains deterministic.
+
+### Slice 10 - CLI Console Lifecycle
+
+```yaml
+slice_id: "10"
+profile: NORMAL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Console/status UI skills
+  - Senior Tester
+affected_files:
+  - src/tiny_swarm_world/__main__.py
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/**
+affected_modules:
+  - tiny_swarm_world.__main__
+  - tiny_swarm_world.infrastructure.composition
+affected_contracts:
+  - setup run terminal lifecycle
+  - setup run trace correlation lifecycle
+dependencies:
+  - "08"
+  - "09"
+parallel_group: serial-10
+file_locks:
+  - cli-console-lifecycle
+contract_locks:
+  - setup-run-console-lifecycle
+architecture_locks:
+  - thin-entrypoint-boundary
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.infrastructure.test_composition
+  required:
+    - python3 tools/quality_gate.py test
+documentation:
+  arc42: review-required
+  adr: implemented-by-slice-05
+stop_conditions:
+  - Entry point constructs concrete UI adapters directly instead of using composition.
+  - Console UI starts before required live consent is accepted.
+```
+
+Done criteria:
+
+- `setup run` starts and stops terminal status rendering through composition.
+- Refused live consent does not start a live installation UI loop.
+- Final aggregate status is success only when no failure, blocked, refused, or
+  raised trace state occurred.
+- Trace correlation is initialized at the composition or entry boundary without
+  making `__main__.py` own concrete trace/logging internals.
+
+### Slice 11 - Documentation And Quality Gate
+
+```yaml
+slice_id: "11"
+profile: NORMAL_PATH
+owner: Senior Tester
+secondary_reviewers:
+  - Senior Documentation Engineer
+  - Senior Requirement Engineer
+  - Senior System Architect
+affected_files:
+  - documentation/**
+  - tests/**
+affected_modules:
+  - documentation
+  - tests
+affected_contracts:
+  - no-skip verification evidence
+  - no-skip method trace evidence
+dependencies:
+  - "10"
+parallel_group: serial-11
+file_locks:
+  - observability-documentation-quality
+contract_locks:
+  - observability-acceptance-contract
+architecture_locks:
+  - arc42-observability-alignment
+quality_gates:
+  targeted:
+    - git diff --check
+    - PYTHONPATH=src python3 -m unittest tests.application.ports.test_method_trace tests.application.services.shared.test_method_trace_wrapper tests.architecture.test_installation_method_trace_coverage tests.application.services.commands.test_command_executer tests.application.services.setup.test_setup_workflow tests.application.services.platform.test_platform_workflows tests.infrastructure.adapters.ui.test_linux_ui tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics tests.infrastructure.test_composition tests.test_package_entrypoint
   required:
     - python3 tools/quality_gate.py quality
 documentation:
-  arc42: review-required
+  arc42: required
   adr: review-required
 stop_conditions:
-  - Live smoke would run without explicit user approval.
-  - Live evidence would be generalized across native Linux and WSL2 targets.
-live_infrastructure: optional_after_explicit_user_approval
+  - Any required progress test is skipped.
+  - Any required method trace coverage test is skipped.
+  - Full quality gate fails or is not reported.
+  - Documentation presents mocked behavior as live-verified installation success.
 ```
 
-Tasks:
+Done criteria:
 
-- Run the full repository quality gate.
-- Define the optional live-smoke command sequence and evidence capture
-  checklist, but do not run it without explicit user approval.
-- If live smoke is approved, validate on the current target separately from
-  static tests and store only redacted local evidence under
-  `.tiny-swarm-world/evidence/live-installation/<run-id>/`.
-- Classify live smoke as native Linux LXD, native Linux Incus, WSL2 LXD, or
-  WSL2 Incus. Do not generalize one target to another.
+- arc42 documents the structured progress path and cross-cutting method trace
+  logging path.
+- arc42 documents method trace logging as a Shared observability module
+  governed by ADR.
+- Tests prove setup/platform/command paths report progress and method traces
+  without skips.
+- Full quality gate result is recorded.
 
-Done:
+## Dependency Graph
 
-- Mocked/static quality gate passes.
-- Optional live-smoke result, if executed, is clearly separated from
-  repository quality evidence.
-
-## Acceptance Criteria
-
-- LXC-native Docker install is implemented without using Multipass commands
-  on the default path.
-- Multipass remains available only behind explicit `multipass_legacy`.
-- Docker install and Swarm bootstrap run inside the managed LXC containers,
-  not on the host.
-- The implementation supports both LXD and Incus backend selection.
-- The implementation is idempotent for already-created nodes, already
-  installed Docker, already-initialized manager, and already-joined workers.
-- Platform workflow continuation remains apply-then-verify.
-- Artifacts and Deployment remain separate boundaries and are not presented as
-  complete by this Platform workflow.
-- Default tests do not run live LXD, Incus, LXC, Docker, Swarm, compose,
-  Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or service bootstrap
-  commands.
-- Raw command payloads, tokens, secrets, environment payloads, local IPs, and
-  host-specific paths are not persisted in committed files or trusted
-  evidence.
-- Documentation states only what is implemented and verified.
-
-## Stop Conditions
-
-Stop and report before continuing when:
-
-- implementation would require running live LXD, Incus, LXC, Docker, Swarm, or
-  stack commands without explicit user approval;
-- Docker-in-container requires privileged containers or broad host mounts
-  beyond the accepted profile baseline;
-- host package installation, daemon repair, group repair, bridge repair, or
-  firewall mutation becomes necessary;
-- LXD and Incus behavior cannot share a provider-neutral application contract;
-- application or domain code would need to import infrastructure adapters;
-- Swarm join tokens or raw command output would be persisted;
-- documentation would claim live success from mocked tests or static review;
-- the implementation would touch Artifacts or Deployment live behavior beyond
-  maintaining their blocked contracts.
+```text
+01 -> 02 -> 03
+          -> 04 -> 05 -> 06 -> 07 -> 08 -> 09 -> 10 -> 11
+```
 
 ## Verification Strategy
 
-Default verification:
+Targeted command set:
 
-- targeted unit tests for domain/application contracts;
-- infrastructure adapter tests with fake command runners;
-- composition tests with fake providers;
-- architecture/lint/typecheck through repository quality gates;
-- docs whitespace checks.
+```bash
+PYTHONPATH=src python3 -m unittest tests.application.ports.test_method_trace
+PYTHONPATH=src python3 -m unittest tests.application.services.shared.test_method_trace_wrapper
+PYTHONPATH=src python3 -m unittest tests.architecture.test_installation_method_trace_coverage
+PYTHONPATH=src python3 -m unittest tests.application.services.commands.test_command_executer
+PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_linux_ui
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition tests.test_package_entrypoint
+python3 tools/quality_gate.py quality
+```
 
-Optional live verification:
+Default verification must not run live LXD, Incus, LXC, Docker, Docker Swarm,
+compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or service bootstrap
+commands.
 
-- run only after explicit user approval;
-- use the existing `--live` and interactive confirmation contract;
-- collect redacted local evidence only;
-- report target-specific results for WSL2 LXD/Incus or native Linux
-  LXD/Incus.
+## Definition Of Done
+
+- Every setup phase has a progress event for start and terminal state.
+- Every platform step has a progress event for start and terminal state.
+- Every covered installation runtime method has trace coverage for entered,
+  returned, and raised events or an explicit tested exemption.
+- Command executor status updates remain covered and redacted.
+- Console GUI receives status and safe trace projection through `PortUI` via
+  infrastructure adapter.
+- Central logs receive the same safe progress and method trace lifecycle
+  information.
+- No required workflow test is skipped.
+- No unsafe payload is logged, displayed, or persisted.
+- Architecture checks keep domain independent and infrastructure isolated.
+- `python3 tools/quality_gate.py quality` passes or the exact blocker is
+  documented.
+
+## Handoff To Workflow Execute
+
+`workflow execute` may continue with Slice 05. Before any implementation write,
+verify the active branch is still
+`feature/workflow-install-observability-20260529`, verify the context pack is
+fresh, and apply the slice metadata locks above.

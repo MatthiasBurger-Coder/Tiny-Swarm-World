@@ -3,6 +3,14 @@ from contextlib import redirect_stdout
 from io import StringIO
 from tests.support.sonar_safe_literals import sensitive_assignment
 
+from tiny_swarm_world.application.ports.method_trace import (
+    MethodTraceEvent,
+    PortMethodTrace,
+)
+from tiny_swarm_world.application.ports.progress import (
+    PortWorkflowProgress,
+    WorkflowProgressEvent,
+)
 from tiny_swarm_world.application.services.artifacts import (
     ArtifactWorkflowKind,
     ArtifactWorkflowResult,
@@ -92,6 +100,118 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertIn("[setup] platform init: START", output.getvalue())
         self.assertIn("[setup] platform init: COMPLETED", output.getvalue())
 
+    async def test_reports_progress_for_refused_setup(self):
+        progress = _RecordingProgress()
+        result = await SetupWorkflow(
+            (SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", [])),),
+            progress=progress,
+        ).run()
+
+        self.assertEqual(SetupWorkflowStatus.REFUSED, result.status)
+        self.assertEqual(
+            [("setup", "live consent", "refused", "refused")],
+            progress.summary(),
+        )
+
+    async def test_reports_method_trace_for_workflow_and_phase_completion(self):
+        trace = _RecordingMethodTrace()
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase(
+                    "preflight",
+                    lambda: _completed_result("preflight", []),
+                    method_trace=trace,
+                    trace_correlation_id="trace-setup",
+                ),
+            ),
+            live_consent=_accepted_live_consent(),
+            method_trace=trace,
+            trace_correlation_id="trace-setup",
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            [
+                ("SetupWorkflow", "run", "entered", "pending", None),
+                ("SetupWorkflowPhase", "run", "entered", "pending", None),
+                ("SetupWorkflowPhase", "run", "returned", "completed", None),
+                ("SetupWorkflow", "run", "returned", "completed", None),
+            ],
+            trace.summary(),
+        )
+        self.assertEqual({"trace-setup"}, {event.correlation_id for event in trace.events})
+
+    async def test_reports_method_trace_for_phase_exception_before_conversion(self):
+        trace = _RecordingMethodTrace()
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase(
+                    "preflight",
+                    _raise_secret_error,
+                    method_trace=trace,
+                    trace_correlation_id="trace-setup",
+                ),
+            ),
+            live_consent=_accepted_live_consent(),
+            method_trace=trace,
+            trace_correlation_id="trace-setup",
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
+        self.assertIn(
+            ("SetupWorkflowPhase", "run", "raised", "failed", "RuntimeError"),
+            trace.summary(),
+        )
+        self.assertEqual(
+            ("SetupWorkflow", "run", "returned", "failed", None),
+            trace.summary()[-1],
+        )
+        self.assertNotIn(sensitive_assignment(), str(trace.events[-2].to_dict()))
+
+    async def test_reports_progress_for_blocked_setup_without_phases(self):
+        progress = _RecordingProgress()
+
+        result = await SetupWorkflow(
+            live_consent=_accepted_live_consent(),
+            progress=progress,
+        ).run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(
+            [("setup", "phase configuration", "blocked", "blocked")],
+            progress.summary(),
+        )
+
+    async def test_reports_progress_for_each_phase_and_final_completed(self):
+        calls: list[str] = []
+        progress = _RecordingProgress()
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            progress=progress,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            [
+                ("preflight", "phase progress", "started", "pending"),
+                ("preflight", "phase progress", "completed", "completed"),
+                ("platform init", "phase progress", "started", "pending"),
+                ("platform init", "phase progress", "completed", "completed"),
+                ("setup", "workflow completed", "completed", "completed"),
+            ],
+            progress.summary(),
+        )
+
     async def test_stops_on_blocked_phase_without_running_later_phases(self):
         calls: list[str] = []
         workflow = SetupWorkflow(
@@ -112,14 +232,44 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(3, len(result.phase_results))
         self.assertEqual("not_run", result.phase_results[2].status)
 
+    async def test_reports_stopped_and_downstream_not_run_progress(self):
+        calls: list[str] = []
+        progress = _RecordingProgress()
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("artifacts prepare", lambda: _blocked_result("artifacts prepare", calls)),
+                SetupWorkflowPhase("deployment apply", lambda: _completed_result("deployment apply", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            progress=progress,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(
+            [
+                ("preflight", "phase progress", "started", "pending"),
+                ("preflight", "phase progress", "completed", "completed"),
+                ("artifacts prepare", "phase progress", "started", "pending"),
+                ("artifacts prepare", "phase progress", "blocked", "blocked"),
+                ("deployment apply", "phase progress", "not_run", "not_run"),
+                ("setup", "workflow stopped", "stopped", "blocked"),
+            ],
+            progress.summary(),
+        )
+
     async def test_failed_preflight_stops_before_platform_init_phase(self):
         calls: list[str] = []
+        progress = _RecordingProgress()
         workflow = SetupWorkflow(
             (
                 SetupWorkflowPhase("preflight", lambda: _failed_preflight_result(calls)),
                 SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
             ),
             live_consent=_accepted_live_consent(),
+            progress=progress,
         )
 
         result = await workflow.run()
@@ -128,6 +278,15 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(["preflight"], calls)
         self.assertEqual("phase 'preflight' returned failed", result.reason)
         self.assertEqual("not_run", result.phase_results[1].status)
+        self.assertEqual(
+            [
+                ("preflight", "phase progress", "started", "pending"),
+                ("preflight", "phase progress", "failed", "failed"),
+                ("platform init", "phase progress", "not_run", "not_run"),
+                ("setup", "workflow stopped", "stopped", "failed"),
+            ],
+            progress.summary(),
+        )
 
     async def test_provider_blocked_platform_init_marks_downstream_phases_not_run(self):
         calls: list[str] = []
@@ -180,9 +339,11 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("cannot connect to the multipass socket", str(payload).lower())
 
     async def test_sanitizes_phase_exceptions(self):
+        progress = _RecordingProgress()
         workflow = SetupWorkflow(
             (SetupWorkflowPhase("deployment apply", _raise_secret_error),),
             live_consent=_accepted_live_consent(),
+            progress=progress,
         )
 
         result = await workflow.run()
@@ -190,6 +351,14 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
         self.assertEqual("phase 'deployment apply' failed with RuntimeError", result.reason)
         self.assertNotIn("secret", result.reason)
+        self.assertEqual(
+            [
+                ("deployment apply", "phase progress", "started", "pending"),
+                ("deployment apply", "phase progress", "failed", "failed"),
+                ("setup", "workflow stopped", "stopped", "failed"),
+            ],
+            progress.summary(),
+        )
 
     async def test_to_dict_preserves_phase_statuses(self):
         workflow = SetupWorkflow(
@@ -407,6 +576,40 @@ def _provider_blocked_platform_init(calls: list[str]) -> PlatformWorkflowResult:
 
 def _raise_secret_error() -> object:
     raise RuntimeError(sensitive_assignment())
+
+
+class _RecordingProgress(PortWorkflowProgress):
+    def __init__(self) -> None:
+        self.events: list[WorkflowProgressEvent] = []
+
+    def report(self, event: WorkflowProgressEvent) -> None:
+        self.events.append(event)
+
+    def summary(self) -> list[tuple[str, str, str, str]]:
+        return [
+            (event.phase, event.step, event.status, event.result)
+            for event in self.events
+        ]
+
+
+class _RecordingMethodTrace(PortMethodTrace):
+    def __init__(self) -> None:
+        self.events: list[MethodTraceEvent] = []
+
+    def report(self, event: MethodTraceEvent) -> None:
+        self.events.append(event)
+
+    def summary(self) -> list[tuple[str, str, str, str | None, str | None]]:
+        return [
+            (
+                event.class_name,
+                event.method_name,
+                event.status,
+                event.safe_result,
+                event.exception_type,
+            )
+            for event in self.events
+        ]
 
 
 def _accepted_live_consent() -> LiveConsent:

@@ -1,0 +1,168 @@
+= ADR: Cross-Cutting Method Trace Logging
+
+Status: Accepted and implemented for current installation runtime trace scope
+
+Date: 2026-05-31
+
+== Implementation Status
+
+This ADR records the clarified observability requirement for installation
+runtime flow. The implementation now provides:
+
+* a method trace event contract and port;
+* a shared wrapper for method entry, normal exit, and exception exit;
+* reflective coverage guard tests for the declared installation runtime owner
+  set;
+* setup, platform, and command-executor trace integration;
+* infrastructure logging and terminal `PortUI` trace/progress adapters;
+* composition-owned setup console lifecycle and trace correlation wiring.
+
+The implemented scope is the declared installation runtime path protected by
+`tests/architecture/test_installation_method_trace_coverage.py`. Future
+expansion of the runtime owner set must update that guard and the related
+tests.
+
+== Context
+
+Tiny Swarm World needs lueckenlose Nachverfolgung of the program flow during
+installation. The clarified requirement is stricter than phase-level progress:
+logging and terminal status output must include every relevant method in the
+installation runtime path, including exception paths.
+
+Logging is therefore a cross-cutting architecture concern. Treating it as
+ordinary per-service implementation code would duplicate behavior, create
+inconsistent exception handling, and make no-skip verification difficult.
+
+The repository also has active constraints that remain in force:
+
+* domain code must stay independent from infrastructure, UI, logging setup, and
+  dependency injection;
+* application services may depend on ports and domain objects, not concrete
+  infrastructure adapters;
+* terminal UI, curses behavior, logger configuration, and concrete log sinks
+  remain infrastructure concerns;
+* default quality gates must not run live LXD, Incus, LXC, Docker, Docker
+  Swarm, compose, service bootstrap, netplan, or `socat` commands;
+* logs, UI output, and persisted evidence must not expose raw command strings,
+  stdout, stderr, environment payloads, tokens, passwords, Swarm join tokens,
+  local IP addresses, host-specific paths, or user-specific host data.
+
+== Decision
+
+Tiny Swarm World accepts cross-cutting method trace logging as a Shared
+observability module.
+
+The implementation must introduce a trace contract that can record method
+entry, normal exit, and exception exit for the installation runtime path
+without importing infrastructure logging or concrete UI dependencies into
+domain code or application services.
+
+The target shape is:
+
+* a domain-safe trace event contract for method flow;
+* an application-visible trace port for emitting or forwarding trace events;
+* infrastructure logging adapters that write centralized safe logs;
+* infrastructure terminal adapters that project safe trace state into `PortUI`;
+* composition-root wiring that applies the tracing module to setup, platform,
+  command execution, and infrastructure adapter instances used by the
+  installation path;
+* explicit trace exemptions only where a method is not part of the runtime
+  installation flow, is a protocol or abstract declaration, or would create
+  recursive logging behavior.
+
+Trace events must carry safe structural metadata instead of raw payloads:
+
+* workflow or command context when available;
+* module, class, and method names;
+* event status: `entered`, `returned`, or `raised`;
+* correlation identifier and parent span identifier where available;
+* safe result or recovery classification where available;
+* sanitized exception type for raised paths.
+
+Trace events must not include raw arguments, return payloads, command strings,
+stdout, stderr, environment payloads, credentials, tokens, host-specific
+absolute paths, local IP addresses, or unsanitized exception text.
+
+Terminal UI output may aggregate or collapse method trace events to remain
+readable, but the trace stream feeding logging and UI must still include the
+method entry, normal exit, and exception exit lifecycle for every covered
+runtime method.
+
+The existing structured workflow progress port remains useful for phase and
+step semantics. It does not replace method-level tracing. Later implementation
+must connect progress events and method trace events through correlation data
+so an operator can follow both high-level installation status and detailed
+method execution order.
+
+== Rejected Alternatives
+
+=== Manual logger calls in every method
+
+Rejected as the primary mechanism. Manual logging in each method would be
+error-prone, difficult to verify for no-skip coverage, and likely to drift
+between setup, platform, command, and adapter code. It may still be used for
+domain-specific messages, but method lifecycle tracing must be provided by the
+cross-cutting trace module.
+
+=== Inject concrete `PortUI` or `LoggerFactory` everywhere
+
+Rejected because it would break the hexagonal architecture. Concrete terminal
+UI and logger configuration remain infrastructure concerns. Application code
+must use ports or be traced through composition-root wrapping.
+
+=== Log raw arguments, return values, command output, or tracebacks
+
+Rejected because runtime payloads can contain credentials, tokens, host data,
+paths, network addresses, or command output that must not be logged,
+displayed, or committed as evidence.
+
+=== Treat phase-level progress as sufficient
+
+Rejected by the clarified requirement. Phase and step progress is necessary
+for operator UX, but it is not sufficient for gapless program-flow tracing.
+
+== Consequences
+
+The implemented observability path must keep the no-skip method trace contract
+in force before any new installation runtime owner or public runtime method is
+added.
+
+Tests must prove entry, normal exit, and exception exit events for synchronous
+and asynchronous methods. Static or reflective coverage checks must verify
+that covered runtime methods are traced or explicitly exempted with a reason.
+
+The trace module must avoid recursive self-tracing around logger and UI sink
+internals. Exemptions for trace sinks, logger factories, and terminal rendering
+loops must be explicit and tested.
+
+The infrastructure logging adapter can use central Python logging, but it must
+sanitize metadata and must not use exception logging that records raw traceback
+payloads by default. Exception paths should record safe exception
+classification and correlation data.
+
+UI output must remain terminal-only and readable. It may show a compact
+method-flow indicator or detailed diagnostic mode, but it must not hide
+failures or overwrite non-success states with later success-like events.
+
+The existing progress-port implementation remains the high-level operator
+status path. It is now paired with method trace events through composition
+correlation and infrastructure adapters for the current installation runtime
+scope.
+
+== Risks And Follow-Up
+
+Method-level tracing can create high event volume and can expose sensitive data
+if payloads are accidentally included. The implementation must use safe
+metadata by default and keep raw values out of logs and UI.
+
+Tracing every internal helper can create noisy output and recursion risk. The
+coverage policy must define the installation runtime path precisely and require
+documented exemptions for methods outside that path.
+
+Future ADR coverage is required before:
+
+* enabling raw traceback logging by default;
+* persisting trace streams as long-lived evidence artifacts;
+* exporting trace data to external systems;
+* expanding this terminal observability contract into a browser UI or remote
+  telemetry backend.

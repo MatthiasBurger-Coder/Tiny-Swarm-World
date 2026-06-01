@@ -6,7 +6,9 @@ import shutil
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import cast
+from uuid import uuid4
 
+from tiny_swarm_world.application.ports.method_trace import PortMethodTrace
 from tiny_swarm_world.application.services.artifacts import (
     ArtifactPrepareStep,
     ArtifactPrepareWorkflow,
@@ -43,8 +45,14 @@ from tiny_swarm_world.application.ports.node_provider import (
     PortContainerNetworkIdentity,
     PortContainerSwarmBootstrap,
 )
+from tiny_swarm_world.application.ports.progress import PortWorkflowProgress
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
     PortSwarmStackRuntime,
+)
+from tiny_swarm_world.application.ports.ui.port_ui import (
+    AGGREGATE_INSTANCE,
+    STATUS_ERROR,
+    PortUI,
 )
 from tiny_swarm_world.application.services.platform import (
     AsyncWorkflowStep,
@@ -70,7 +78,11 @@ from tiny_swarm_world.application.services.platform import (
     SocatManager,
     VmIpList,
 )
-from tiny_swarm_world.application.services.setup import SetupWorkflow, SetupWorkflowPhase
+from tiny_swarm_world.application.services.setup import (
+    SetupWorkflow,
+    SetupWorkflowPhase,
+    SetupWorkflowResult,
+)
 from tiny_swarm_world.domain.artifacts import DEFAULT_CONTAINER_IMAGE_CONTRACTS
 from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
@@ -136,6 +148,11 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
 from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import PortainerHttpClient
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
+from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
+    TerminalMethodTrace,
+    TerminalWorkflowProgress,
+)
+from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe, LxcProviderPreflightProbe
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
     ComposeFileRepositoryYaml,
@@ -149,6 +166,13 @@ from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
+from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
+    CompositeMethodTrace,
+    CompositeWorkflowProgress,
+    LoggingMethodTrace,
+    LoggingWorkflowProgress,
+)
 
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
@@ -585,6 +609,10 @@ def configure_infrastructure_container() -> None:
     infra_core_container.register(FileManager)
 
 
+def build_application_logger():
+    return LoggerFactory.get_logger("application")
+
+
 def build_preflight_service(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
@@ -595,13 +623,91 @@ def build_preflight_service(
     )
 
 
+def _build_workflow_progress_sink(ui: PortUI | None = None) -> PortWorkflowProgress:
+    sinks: list[PortWorkflowProgress] = [
+        LoggingWorkflowProgress(LoggerFactory.get_logger("WorkflowProgress"))
+    ]
+    if ui is not None:
+        sinks.append(TerminalWorkflowProgress(ui))
+    return CompositeWorkflowProgress(sinks)
+
+
+def _build_method_trace_sink(ui: PortUI | None = None) -> PortMethodTrace:
+    sinks: list[PortMethodTrace] = [
+        LoggingMethodTrace(LoggerFactory.get_logger("MethodTrace"))
+    ]
+    if ui is not None:
+        sinks.append(TerminalMethodTrace(ui))
+    return CompositeMethodTrace(sinks)
+
+
+def _new_installation_trace_correlation_id() -> str:
+    return f"trace-installation-{uuid4().hex}"
+
+
+def build_setup_ui(*, test_mode: bool = False) -> PortUI:
+    return FactoryUI().get_ui(instances=(), test_mode=test_mode)
+
+
+async def run_setup_with_terminal_status(
+    live_consent: LiveConsent,
+    action: str,
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
+) -> SetupWorkflowResult:
+    if not live_consent.accepted:
+        raise ValueError("setup run requires accepted live consent")
+
+    ui = build_setup_ui()
+    ui.start_in_thread()
+    try:
+        services = build_setup_services(
+            live_consent,
+            service_profile=service_profile,
+            node_provider_request=node_provider_request,
+            ui=ui,
+        )
+        match action:
+            case "run":
+                result = await services.workflows.run.run()
+            case _:
+                raise ValueError(f"Unsupported setup workflow action: {action}")
+        ui.update_status(
+            AGGREGATE_INSTANCE,
+            task="setup run",
+            step="finished",
+            result=_setup_result_status(result),
+        )
+        return result
+    except Exception:
+        ui.update_status(
+            AGGREGATE_INSTANCE,
+            task="setup run",
+            step="exception",
+            result=STATUS_ERROR,
+        )
+        raise
+    finally:
+        if ui.ui_thread is not None:
+            await ui.ui_thread
+
+
+def _setup_result_status(result: SetupWorkflowResult) -> str:
+    return result.status.value
+
+
 def build_platform_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     live_consent: LiveConsent | None = None,
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    ui: PortUI | None = None,
+    trace_correlation_id: str | None = None,
 ) -> PlatformServices:
     configure_infrastructure_container()
     provider_request = node_provider_request or NodeProviderSelectionRequest()
+    workflow_progress = _build_workflow_progress_sink(ui)
+    method_trace = _build_method_trace_sink(ui)
+    trace_correlation_id = trace_correlation_id or _new_installation_trace_correlation_id()
 
     vm_repository = PortVmRepositoryYaml()
     netplan_repository = PortNetplanRepositoryYaml()
@@ -678,22 +784,41 @@ def build_platform_services(
                         provider_request,
                         live_consent,
                     ),
+                    method_trace=method_trace,
+                    trace_correlation_id=trace_correlation_id,
                 )
                 if live_consent is not None
                 else None
             ),
+            progress=workflow_progress,
+            method_trace=method_trace,
+            trace_correlation_id=trace_correlation_id,
         ),
         reconcile=PlatformReconcileWorkflow(
             _platform_reconcile_steps(provider_request, vm_ip_list),
             verification_evidence_repository=verification_evidence_repository,
+            progress=workflow_progress,
+            method_trace=method_trace,
+            trace_correlation_id=trace_correlation_id,
         ),
         reset=PlatformResetWorkflow(
             verification_evidence_repository=verification_evidence_repository,
+            progress=workflow_progress,
+            method_trace=method_trace,
+            trace_correlation_id=trace_correlation_id,
         ),
         destroy=PlatformDestroyWorkflow(
             verification_evidence_repository=verification_evidence_repository,
+            progress=workflow_progress,
+            method_trace=method_trace,
+            trace_correlation_id=trace_correlation_id,
         ),
-        verify=PlatformVerifyWorkflow((preflight,)),
+        verify=PlatformVerifyWorkflow(
+            (preflight,),
+            progress=workflow_progress,
+            method_trace=method_trace,
+            trace_correlation_id=trace_correlation_id,
+        ),
     )
 
     return PlatformServices(
@@ -1063,12 +1188,16 @@ def build_setup_services(
     live_consent: LiveConsent,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    ui: PortUI | None = None,
 ) -> SetupServices:
     preflight = _build_preflight_service_for_request(service_profile, node_provider_request)
+    trace_correlation_id = _new_installation_trace_correlation_id()
     platform = _build_platform_services_for_request(
         service_profile,
         live_consent,
         node_provider_request,
+        ui=ui,
+        trace_correlation_id=trace_correlation_id,
     )
     artifacts = build_artifact_services_for_provider(
         node_provider_request=node_provider_request
@@ -1077,22 +1206,53 @@ def build_setup_services(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
     )
+    workflow_progress = _build_workflow_progress_sink(ui)
+    method_trace = _build_method_trace_sink(ui)
+
+    def traced_phase(name: str, runner) -> SetupWorkflowPhase:
+        return SetupWorkflowPhase(
+            name,
+            runner,
+            method_trace=method_trace,
+            trace_correlation_id=trace_correlation_id,
+        )
 
     return SetupServices(
         workflows=SetupWorkflows(
             run=SetupWorkflow(
                 (
-                    SetupWorkflowPhase("preflight", lambda: preflight.run(live_consent)),
-                    SetupWorkflowPhase("platform init", lambda: platform.workflows.init.run()),
-                    SetupWorkflowPhase("platform reconcile", lambda: platform.workflows.reconcile.run()),
-                    SetupWorkflowPhase("deployment bootstrap", lambda: deployment.workflows.bootstrap.run()),
-                    SetupWorkflowPhase("artifacts prepare", lambda: artifacts.workflows.prepare.run()),
-                    SetupWorkflowPhase("artifacts verify", lambda: artifacts.workflows.verify.run()),
-                    SetupWorkflowPhase("deployment apply", lambda: deployment.workflows.apply.run()),
-                    SetupWorkflowPhase("deployment verify", lambda: deployment.workflows.verify.run()),
-                    SetupWorkflowPhase("platform verify", lambda: platform.workflows.verify.run()),
+                    traced_phase("preflight", lambda: preflight.run(live_consent)),
+                    traced_phase("platform init", lambda: platform.workflows.init.run()),
+                    traced_phase(
+                        "platform reconcile",
+                        lambda: platform.workflows.reconcile.run(),
+                    ),
+                    traced_phase(
+                        "deployment bootstrap",
+                        lambda: deployment.workflows.bootstrap.run(),
+                    ),
+                    traced_phase(
+                        "artifacts prepare",
+                        lambda: artifacts.workflows.prepare.run(),
+                    ),
+                    traced_phase(
+                        "artifacts verify",
+                        lambda: artifacts.workflows.verify.run(),
+                    ),
+                    traced_phase(
+                        "deployment apply",
+                        lambda: deployment.workflows.apply.run(),
+                    ),
+                    traced_phase(
+                        "deployment verify",
+                        lambda: deployment.workflows.verify.run(),
+                    ),
+                    traced_phase("platform verify", lambda: platform.workflows.verify.run()),
                 ),
                 live_consent=live_consent,
+                progress=workflow_progress,
+                method_trace=method_trace,
+                trace_correlation_id=trace_correlation_id,
             )
         )
     )
@@ -1102,12 +1262,14 @@ def build_application_services(
     live_consent: LiveConsent | None = None,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    ui: PortUI | None = None,
 ) -> ApplicationServices:
     return ApplicationServices(
         platform=_build_platform_services_for_request(
             service_profile,
             live_consent,
             node_provider_request,
+            ui=ui,
         ),
         artifacts=build_artifact_services_for_provider(
             node_provider_request=node_provider_request
@@ -1123,16 +1285,33 @@ def _build_platform_services_for_request(
     service_profile: ServiceStackProfile | str,
     live_consent: LiveConsent | None,
     node_provider_request: NodeProviderSelectionRequest | None,
+    ui: PortUI | None = None,
+    trace_correlation_id: str | None = None,
 ) -> PlatformServices:
     if node_provider_request is None:
+        if ui is None and trace_correlation_id is None:
+            return build_platform_services(
+                service_profile=service_profile,
+                live_consent=live_consent,
+            )
         return build_platform_services(
             service_profile=service_profile,
             live_consent=live_consent,
+            ui=ui,
+            trace_correlation_id=trace_correlation_id,
+        )
+    if ui is None and trace_correlation_id is None:
+        return build_platform_services(
+            service_profile=service_profile,
+            live_consent=live_consent,
+            node_provider_request=node_provider_request,
         )
     return build_platform_services(
         service_profile=service_profile,
         live_consent=live_consent,
         node_provider_request=node_provider_request,
+        ui=ui,
+        trace_correlation_id=trace_correlation_id,
     )
 
 

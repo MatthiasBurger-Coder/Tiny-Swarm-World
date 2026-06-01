@@ -1,6 +1,14 @@
 import unittest
 from tests.support.async_helpers import async_checkpoint
 
+from tiny_swarm_world.application.ports.method_trace import (
+    MethodTraceEvent,
+    PortMethodTrace,
+)
+from tiny_swarm_world.application.ports.progress import (
+    PortWorkflowProgress,
+    WorkflowProgressEvent,
+)
 from tiny_swarm_world.application.services.platform import (
     DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
     PLATFORM_WORKFLOW_TAXONOMY,
@@ -66,6 +74,47 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             tuple(item.target_id for item in reconcile_result.verification_results),
         )
 
+    async def test_init_reports_method_trace_for_completion(self):
+        trace = _RecordingMethodTrace()
+        result = await PlatformInitWorkflow(
+            [_RecordingAction("init")],
+            method_trace=trace,
+            trace_correlation_id="trace-platform",
+        ).run()
+
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            [
+                ("PlatformInitWorkflow", "run", "entered", "pending", None),
+                ("PlatformInitWorkflow", "run", "returned", "completed", None),
+            ],
+            trace.summary(),
+        )
+        self.assertEqual({"trace-platform"}, {event.correlation_id for event in trace.events})
+
+    async def test_init_reports_safe_failure_trace_when_apply_exception_is_converted(self):
+        trace = _RecordingMethodTrace()
+        result = await PlatformInitWorkflow(
+            [_FailingApplyAction("init")],
+            method_trace=trace,
+            trace_correlation_id="trace-platform",
+        ).run()
+
+        self.assertEqual(PlatformWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual(
+            [
+                ("PlatformInitWorkflow", "run", "entered", "pending", None),
+                (
+                    "PlatformInitWorkflow",
+                    "run",
+                    "returned",
+                    "failed_to_apply",
+                    None,
+                ),
+            ],
+            trace.summary(),
+        )
+
     async def test_verify_is_non_mutating_and_runs_configured_safe_steps(self):
         verify_step = _RecordingAction("verify")
 
@@ -107,6 +156,7 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_init_pre_apply_guard_blocks_before_steps(self):
+        progress = _RecordingProgress()
         guard = _PreflightAction(
             PreflightResult(
                 (
@@ -123,7 +173,11 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         )
         step = _RecordingAction("init")
 
-        result = await PlatformInitWorkflow([step], pre_apply_guard=guard).run()
+        result = await PlatformInitWorkflow(
+            [step],
+            pre_apply_guard=guard,
+            progress=progress,
+        ).run()
 
         self.assertEqual(["preflight"], guard.calls)
         self.assertEqual([], step.calls)
@@ -132,8 +186,17 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("platform:init:preflight", result.verification_results[0].target_id)
         self.assertEqual(VerificationStatus.BLOCKED, result.verification_results[0].status)
         self.assertEqual("1", result.verification_results[0].evidence["runtime_failure_count"])
+        self.assertEqual(
+            [
+                ("pre_apply", "pre-apply guard", "started", "pending"),
+                ("pre_apply", "pre-apply guard", "blocked", "blocked"),
+                ("platform", "workflow stopped", "blocked", "blocked"),
+            ],
+            progress.summary(),
+        )
 
     async def test_init_provider_guard_blocks_before_any_platform_step(self):
+        progress = _RecordingProgress()
         guard = _ProviderGuardAction(
             VerificationResult(
                 target_id="platform:node-provider:lxc_native",
@@ -153,7 +216,11 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         )
         step = _RecordingAction("init")
 
-        result = await PlatformInitWorkflow([step], pre_apply_guard=guard).run()
+        result = await PlatformInitWorkflow(
+            [step],
+            pre_apply_guard=guard,
+            progress=progress,
+        ).run()
 
         self.assertEqual(["provider"], guard.calls)
         self.assertEqual([], step.calls)
@@ -163,12 +230,25 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("provider_selection_blocked", result.verification_results[0].evidence["reason"])
         self.assertEqual("lxc_native", result.verification_results[0].evidence["requested_provider"])
         self.assertNotIn("multipass_legacy", repr(result.to_dict()))
+        self.assertEqual(
+            [
+                ("pre_apply", "pre-apply guard", "started", "pending"),
+                ("pre_apply", "pre-apply guard", "blocked", "blocked"),
+                ("platform", "workflow stopped", "blocked", "blocked"),
+            ],
+            progress.summary(),
+        )
 
     async def test_init_pre_apply_guard_passes_before_steps(self):
+        progress = _RecordingProgress()
         guard = _PreflightAction(PreflightResult(()))
         step = _RecordingAction("init")
 
-        result = await PlatformInitWorkflow([step], pre_apply_guard=guard).run()
+        result = await PlatformInitWorkflow(
+            [step],
+            pre_apply_guard=guard,
+            progress=progress,
+        ).run()
 
         self.assertEqual(["preflight"], guard.calls)
         self.assertEqual(["init"], step.calls)
@@ -180,6 +260,18 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             (VerificationStatus.VERIFIED, VerificationStatus.VERIFIED),
             tuple(item.status for item in result.verification_results),
+        )
+        self.assertEqual(
+            [
+                ("pre_apply", "pre-apply guard", "started", "pending"),
+                ("pre_apply", "pre-apply guard", "verified", "verified"),
+                ("apply", "apply", "started", "pending"),
+                ("apply", "apply", "completed", "completed"),
+                ("verify", "verify", "started", "pending"),
+                ("verify", "verify", "verified", "verified"),
+                ("platform", "workflow completed", "completed", "completed"),
+            ],
+            progress.summary(),
         )
 
     async def test_reset_refuses_missing_or_wrong_confirmation_before_running_steps(self):
@@ -313,6 +405,7 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("Verification evidence is missing.", result.verification_results[1].message)
 
     async def test_verification_result_step_records_provider_lifecycle_result(self):
+        progress = _RecordingProgress()
         step = _VerificationResultAction(
             VerificationResult(
                 target_id="platform:node:swarm-manager",
@@ -328,14 +421,24 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             )
         )
 
-        result = await PlatformInitWorkflow([step]).run()
+        result = await PlatformInitWorkflow([step], progress=progress).run()
 
         self.assertEqual(["platform:node:swarm-manager"], step.calls)
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertEqual("platform:node:swarm-manager", result.verification_results[0].target_id)
         self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
+        self.assertEqual(
+            [
+                ("apply", "apply", "started", "pending"),
+                ("apply", "apply", "completed", "completed"),
+                ("verify", "direct verification", "verified", "verified"),
+                ("platform", "workflow completed", "completed", "completed"),
+            ],
+            progress.summary(),
+        )
 
     async def test_blocked_verification_result_step_stops_before_later_steps(self):
+        progress = _RecordingProgress()
         blocked_step = _VerificationResultAction(
             VerificationResult(
                 target_id="platform:node:swarm-manager",
@@ -351,12 +454,24 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         )
         later_step = _RecordingAction("later")
 
-        result = await PlatformInitWorkflow([blocked_step, later_step]).run()
+        result = await PlatformInitWorkflow(
+            [blocked_step, later_step],
+            progress=progress,
+        ).run()
 
         self.assertEqual(["platform:node:swarm-manager"], blocked_step.calls)
         self.assertEqual([], later_step.calls)
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertEqual("platform:node:swarm-manager", result.verification_results[0].target_id)
+        self.assertEqual(
+            [
+                ("apply", "apply", "started", "pending"),
+                ("apply", "apply", "completed", "completed"),
+                ("pre_apply", "direct verification", "blocked", "blocked"),
+                ("platform", "workflow stopped", "blocked", "blocked"),
+            ],
+            progress.summary(),
+        )
 
     async def test_pre_apply_verified_step_completes_with_observed_verification(self):
         step = _PreApplyVerifiableAction(
@@ -380,48 +495,131 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_failed_apply_stops_workflow_before_verify_and_later_steps(self):
+        progress = _RecordingProgress()
         failing_step = _FailingApplyAction("failing")
         later_step = _RecordingAction("later")
 
-        result = await PlatformInitWorkflow([failing_step, later_step]).run()
+        result = await PlatformInitWorkflow(
+            [failing_step, later_step],
+            progress=progress,
+        ).run()
 
         self.assertEqual(PlatformWorkflowStatus.FAILED_TO_APPLY, result.status)
         self.assertEqual(["failing"], failing_step.calls)
         self.assertEqual([], failing_step.verifications)
         self.assertEqual([], later_step.calls)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
+        self.assertEqual(
+            [
+                ("apply", "apply", "started", "pending"),
+                ("apply", "apply result", "failed_to_apply", "failed_to_apply"),
+                ("platform", "workflow stopped", "failed_to_apply", "failed_to_apply"),
+            ],
+            progress.summary(),
+        )
 
     async def test_failed_apply_result_is_not_treated_as_success(self):
+        progress = _RecordingProgress()
         failing_step = _FailedApplyResultAction("failed-result")
 
-        result = await PlatformInitWorkflow([failing_step]).run()
+        result = await PlatformInitWorkflow([failing_step], progress=progress).run()
 
         self.assertEqual(PlatformWorkflowStatus.FAILED_TO_APPLY, result.status)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
         self.assertEqual([], failing_step.verifications)
+        self.assertEqual(
+            [
+                ("apply", "apply", "started", "pending"),
+                ("apply", "apply result", "failed_to_apply", "failed_to_apply"),
+                ("platform", "workflow stopped", "failed_to_apply", "failed_to_apply"),
+            ],
+            progress.summary(),
+        )
 
     async def test_failed_verify_stops_before_later_apply_steps(self):
+        progress = _RecordingProgress()
         failing_verify = _FailingVerifyAction("verify-fails")
         later_step = _RecordingAction("later")
 
-        result = await PlatformInitWorkflow([failing_verify, later_step]).run()
+        result = await PlatformInitWorkflow(
+            [failing_verify, later_step],
+            progress=progress,
+        ).run()
 
         self.assertEqual(PlatformWorkflowStatus.FAILED_TO_VERIFY, result.status)
         self.assertEqual(["verify-fails"], failing_verify.calls)
         self.assertEqual(["verify-fails"], failing_verify.verifications)
         self.assertEqual([], later_step.calls)
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.verification_results[0].status)
+        self.assertEqual(
+            [
+                ("apply", "apply", "started", "pending"),
+                ("apply", "apply", "completed", "completed"),
+                ("verify", "verify", "started", "pending"),
+                ("verify", "verify", "failed_to_verify", "failed_to_verify"),
+                ("platform", "workflow stopped", "failed_to_verify", "failed_to_verify"),
+            ],
+            progress.summary(),
+        )
+
+    async def test_lxc_aggregate_direct_verification_progress_uses_safe_counts(self):
+        progress = _RecordingProgress()
+        step = _VerificationResultAction(
+            VerificationResult(
+                target_id="platform:init:lxc-container-runtime",
+                status=VerificationStatus.VERIFIED,
+                message="Container runtime phase reached a terminal state.",
+                evidence={
+                    "phase": "verify",
+                    "classification": "container_runtime_verified",
+                    "result_count": "2",
+                    "verified_count": "2",
+                    "blocked_count": "0",
+                    "failed_apply_count": "0",
+                    "failed_verify_count": "0",
+                    "node": "swarm-manager",
+                },
+            )
+        )
+
+        result = await PlatformInitWorkflow([step], progress=progress).run()
+
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        direct_event = progress.events[2]
+        self.assertEqual("direct verification", direct_event.step)
+        self.assertIn("result_count=2", direct_event.safe_message)
+        self.assertIn("verified_count=2", direct_event.safe_message)
+        self.assertIn("blocked_count=0", direct_event.safe_message)
+        self.assertIn("failed_apply_count=0", direct_event.safe_message)
+        self.assertIn("failed_verify_count=0", direct_event.safe_message)
+        self.assertNotIn("swarm-manager", direct_event.safe_message)
+        self.assertNotIn("incus", direct_event.safe_message)
+        self.assertNotIn("container_runtime_verified", direct_event.safe_message)
 
     async def test_missing_verify_evidence_blocks_continuation(self):
+        progress = _RecordingProgress()
         missing_evidence = _MissingEvidenceAction("missing-evidence")
         later_step = _RecordingAction("later")
 
-        result = await PlatformInitWorkflow([missing_evidence, later_step]).run()
+        result = await PlatformInitWorkflow(
+            [missing_evidence, later_step],
+            progress=progress,
+        ).run()
 
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertEqual(["missing-evidence"], missing_evidence.calls)
         self.assertEqual(["missing-evidence"], missing_evidence.verifications)
         self.assertEqual([], later_step.calls)
+        self.assertEqual(
+            [
+                ("apply", "apply", "started", "pending"),
+                ("apply", "apply", "completed", "completed"),
+                ("verify", "verify", "started", "pending"),
+                ("verify", "verify", "blocked", "blocked"),
+                ("platform", "workflow stopped", "blocked", "blocked"),
+            ],
+            progress.summary(),
+        )
 
     async def test_verified_steps_append_evidence_when_repository_is_configured(self):
         evidence_repository = _RecordingEvidenceRepository()
@@ -614,6 +812,40 @@ class _RecordingEvidenceRepository:
 
     def list_all(self) -> tuple[VerificationResult, ...]:
         return tuple(self.results)
+
+
+class _RecordingProgress(PortWorkflowProgress):
+    def __init__(self) -> None:
+        self.events: list[WorkflowProgressEvent] = []
+
+    def report(self, event: WorkflowProgressEvent) -> None:
+        self.events.append(event)
+
+    def summary(self) -> list[tuple[str, str, str, str]]:
+        return [
+            (event.phase, event.step, event.status, event.result)
+            for event in self.events
+        ]
+
+
+class _RecordingMethodTrace(PortMethodTrace):
+    def __init__(self) -> None:
+        self.events: list[MethodTraceEvent] = []
+
+    def report(self, event: MethodTraceEvent) -> None:
+        self.events.append(event)
+
+    def summary(self) -> list[tuple[str, str, str, str | None, str | None]]:
+        return [
+            (
+                event.class_name,
+                event.method_name,
+                event.status,
+                event.safe_result,
+                event.exception_type,
+            )
+            for event in self.events
+        ]
 
 
 if __name__ == "__main__":

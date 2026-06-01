@@ -4,17 +4,34 @@ from typing import Dict
 import asyncio
 
 from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
+from tiny_swarm_world.application.ports.method_trace import NullMethodTrace, PortMethodTrace
 from tiny_swarm_world.application.ports.ui.port_ui import PortUI
+from tiny_swarm_world.application.services.shared import MethodTraceWrapper
 
 
 class CommandExecuter:
     executable_commands: Dict[str, Dict[int, ExecutableCommandEntity]]
 
-    def __init__(self, ui: PortUI):
+    def __init__(
+        self,
+        ui: PortUI,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
+    ):
         self.ui = ui
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
 
     async def execute(self, commands: dict[int, ExecutableCommandEntity]):
+        return await MethodTraceWrapper(
+            self.method_trace,
+            component="commands",
+            workflow="command execution",
+            correlation_id=self.trace_correlation_id,
+        ).wrap_async(self._execute, method_name="execute")(commands)
+
+    async def _execute(self, commands: dict[int, ExecutableCommandEntity]):
         self.logger.info("Command execution started with %d commands.", len(commands))
         current_vm = None
         run_result: dict[int, str] = {}
@@ -30,11 +47,16 @@ class CommandExecuter:
                 self.logger.info("Command executed successfully on VM '%s'.", current_vm)
 
             except Exception as e:
-                self.logger.error("Failed to execute command on VM '%s'. Error: %s", current_vm, str(e))
+                safe_error = _safe_exception_summary(e)
+                self.logger.error(
+                    "Failed to execute command on VM '%s'. Error: %s",
+                    current_vm,
+                    safe_error,
+                )
                 self.ui.update_status(instance=current_vm, task=executable_command.description, step="Error",
                                       result="Failed")
                 raise CommandExecutionFailed(
-                    f"Failed to execute command {key} on VM '{current_vm}': {e}"
+                    f"Failed to execute command {key} on VM '{current_vm}': {safe_error}"
                 ) from e
 
             self.logger.info("Updating status for VM '%s'.", current_vm)
@@ -57,3 +79,10 @@ class CommandExecuter:
 
 class CommandExecutionFailed(RuntimeError):
     """Raised when a command workflow step fails and execution must stop."""
+
+
+def _safe_exception_summary(exc: Exception) -> str:
+    return_code = getattr(exc, "returnCode", None)
+    if return_code is not None:
+        return f"{exc.__class__.__name__} return code {return_code}. Diagnostic payload redacted."
+    return f"{exc.__class__.__name__}. Diagnostic payload redacted."

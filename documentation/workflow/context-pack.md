@@ -1,100 +1,94 @@
-# Context Pack: LXC Docker Swarm Bootstrap
+# Workflow Context Pack
 
-## Purpose
+Workflow: `install-observability-console-status-v1.0.0`
 
-This context pack supports workflow
-`lxc-docker-swarm-bootstrap-v1.0.0`. The workflow creates the implementation
-plan for installing Docker Engine inside managed LXC containers and
-initializing Docker Swarm on those containers, using the existing Multipass
-Docker install and Swarm flow as the behavioral baseline.
+Branch: `feature/workflow-install-observability-20260529`
 
-## Request
+Process strand: `S3D`
 
-```text
-workflow create:
-Überarbeite die stelle damit auf den LXC Container docker installiert wird. Nimm als grundlage die multipass vorgehenweise und passe diese für die LXC an
+Execution profile: `NORMAL_PATH`
+
+Affected areas:
+
+- setup orchestration
+- platform workflows
+- command executor status behavior
+- terminal console status UI
+- centralized logging
+- cross-cutting method trace logging
+- installation runtime trace coverage
+- composition wiring
+
+Forbidden areas:
+
+- browser or React frontend
+- Kubernetes-first behavior
+- Java, Maven, or Spring Boot structure
+- live LXD/Incus/LXC/Docker/Swarm/compose/service bootstrap during default gates
+- Windows-specific expansion
+
+Required roles:
+
+- Senior Requirement Engineer
+- Senior System Architect
+- Senior Python Automation Developer
+- Senior Tester
+- Senior Documentation Engineer
+
+Conditional roles:
+
+- Console/status UI skills
+- Senior Documentation Engineer
+- Senior DevOps Engineer if live-command semantics are touched
+
+Quality commands:
+
+```bash
+git diff --check
+PYTHONPATH=src python3 -m unittest tests.application.ports.test_method_trace
+PYTHONPATH=src python3 -m unittest tests.application.services.shared.test_method_trace_wrapper
+PYTHONPATH=src python3 -m unittest tests.architecture.test_installation_method_trace_coverage
+PYTHONPATH=src python3 -m unittest tests.application.services.commands.test_command_executer
+PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_linux_ui
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics
+PYTHONPATH=src python3 -m unittest tests.infrastructure.logging.test_progress_trace_logging
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition tests.test_package_entrypoint
+python3 tools/quality_gate.py quality
 ```
 
-## Active Branch
+Governing input hashes:
 
-```text
-feature/workflow-lxc-docker-install-20260529
-```
+- `AGENTS.md`: `e038d8a8b5baddbc2886e47a5a2596a4a5bf222a`
+- `QUALITY.md`: `08c7475fe511ac39c215284c5c1f23117848b567`
+- `documentation/epics/system-unification.md`: `489f0123f604cc40700721a45bacdf22ba0260a2`
+- `documentation/epics/autonomous-runnable-setup.md`: `db17388e1e92be425e253be89e8628a378d4532d`
+- `documentation/arc42/06_runtime_view.adoc`: `6be2a5208f050324fd06727e148d7bae95def7e8`
+- `documentation/arc42/09_architecture_decisions.adoc`: `45bf3590092cdc03b8d46b560f518c890361f87e`
+- `documentation/arc42/10_quality_requirements.adoc`: `bbb8de787bb5a0b28f70e267d929662216ee57e0`
+- `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`: `b250dab725233e0c304afe3e3d4aab285a94fa6d`
+- `documentation/workflow/workflow.md`: `d33caab516a97674605f6529f765519e185da8aa`
+- `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`: `f57e1c8806949b456344a6877984178344f27d1c`
+- `src/tiny_swarm_world/application/ports/method_trace/port_method_trace.py`: `b6569265188abc0d86869a13ba7083739f948777`
+- `src/tiny_swarm_world/application/services/shared/method_trace_wrapper.py`: `b4f11e3a6d66d6394f97259222565f0c3a5ddfa7`
+- `tests/architecture/test_installation_method_trace_coverage.py`: `a31d093c54740c269f554030b790fdc150b98916`
+- `src/tiny_swarm_world/application/services/setup/workflow.py`: `668ce756f7854bea8fcb3e0531418540340f6634`
+- `src/tiny_swarm_world/application/services/platform/workflows.py`: `59029e9b114f792f1616572aeb64d1cb111d236b`
+- `src/tiny_swarm_world/infrastructure/composition.py`: `74f368e97a2bee834cad853b8a8c8b92964664bc`
+- `src/tiny_swarm_world/__main__.py`: `4d65cc09e5bbc68cd205f179141cba4025b56b93`
+- `src/tiny_swarm_world/infrastructure/adapters/ui/progress_trace_ui.py`: `6d8ec50d3844277b2cb66a9cc0b5b11625f0eec8`
+- `src/tiny_swarm_world/infrastructure/logging/progress_trace_logging.py`: `da6b8ce7d0152e2cc84a5d14f69dc9721bcd807e`
+- `src/tiny_swarm_world/infrastructure/adapters/ui/command_async_runner_ui.py`: `8ed34bb8eb4a2a5a3bcf6fe27b52a5adb5fee69d`
+- `src/tiny_swarm_world/infrastructure/adapters/ui/command_sync_runner_ui.py`: `660c845ac03e1b81b3e38f70a7263a8d74fc6f24`
+- `tests/infrastructure/adapters/ui/test_progress_trace_ui.py`: `28336e3e9ec68fe9f1c2a2d5fb11727bb3765588`
+- `tests/infrastructure/logging/test_progress_trace_logging.py`: `190de2300d989806ecd943e490c850c3cb0b230d`
+- `tests/test_package_entrypoint.py`: `b1d79ef188fe18b28ab7927efbb33ea73e6a2456`
+- `tests/infrastructure/test_composition.py`: `4cdfb7f875ac6c8397a45f61e106139880873a1c`
 
-## Active Workflow Hash
+Freshness rule:
 
-```text
-28cbccd6c52daa32147a58d2e27775b548dc03d768c5af139bee2ea82e23af50  documentation/workflow/workflow.md
-```
-
-## Current Repository Baseline
-
-- Tiny Swarm World is Linux/WSL-only and Docker Swarm-first.
-- `lxc_native` through LXD or Incus is the default provider direction.
-- Multipass remains explicit legacy/fallback behavior.
-- LXC node creation and provider readiness are implemented for platform init.
-- Docker-in-LXC, Swarm-in-LXC, provider-native reconcile, artifact
-  publication, deployment, and live WSL2 proof remain incomplete or blocked.
-- `setup run` is already live-consent gated and fail-closed.
-
-## Relevant Existing Source
-
-- Multipass Docker install service:
-  `src/tiny_swarm_world/application/services/multipass/multipass_docker_install.py`
-- Multipass Swarm service:
-  `src/tiny_swarm_world/application/services/multipass/multipass_docker_swarm_init.py`
-- Multipass Docker install YAML:
-  `infra/config/docker/command_multipass_docker_install_yaml.yaml`
-- Multipass Docker verify YAML:
-  `infra/config/docker/command_multipass_docker_verify_yaml.yaml`
-- LXC provider adapter:
-  `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py`
-- LXC provider config:
-  `infra/config/node-providers/provider_config.yaml`
-
-## Implementation Notes For Executors
-
-- Slice metadata is S3D-ready: every slice has concrete dependencies, affected
-  files/modules/contracts, file locks, contract locks, architecture locks,
-  targeted quality gates, required quality gates, and stop conditions.
-- The execution graph is serial by design. Later slices touch shared Platform,
-  adapter, composition, test, and documentation surfaces, so parallel writes
-  are not authorized by this workflow.
-- Start by reading the Multipass Docker install and Swarm services to preserve
-  sequence and failure semantics.
-- Do not copy `multipass exec` into application code. The LXC path needs a
-  backend-aware infrastructure adapter or structured command configuration.
-- Keep Swarm join tokens memory-only.
-- Treat local IP addresses as operational facts, not committed configuration.
-- Keep Artifacts and Deployment boundaries blocked unless later workflows own
-  them.
-- Use mocked command runners in tests. Live smoke is a separate explicit step.
-
-## External Source Notes
-
-- Docker Engine on Ubuntu should be installed from Docker's apt repository
-  unless a later workflow accepts a version-pinning policy.
-- LXD and Incus require Docker-in-container nesting support to be explicit.
-- Privileged-container changes are security-sensitive and require explicit
-  operator approval and possibly a later ADR.
-
-## Source Hashes
-
-```text
-131aa2183b9598aeb86fed0af1e66b09ed6b29e5b54a4993a898d3c2782d3856  AGENTS.md
-458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6  QUALITY.md
-5a36d5fba27af89b134cdb2a3ee25e4a5b9122f92c3287a3462d28435884cc95  documentation/epics/system-unification.md
-7d536929ed42f15c720929d13269fa4491c5b9c98f921e16f870a6944b76aa33  documentation/epics/autonomous-runnable-setup.md
-150ac249a1e7ecb56a5cefb6051ba2729969523475da0851506b0c15d8607419  documentation/architecture/adr-lxc-native-node-provider.adoc
-b350f855f508a083583e6433c494a5abd36c1ed68164d899984acafced0083ca  documentation/architecture/adr-autonomous-setup-safety.adoc
-e6223a4adf715acdea0f125ae0aefe0206ecc94b906b60e5091cccd4f3369072  documentation/arc42/06_runtime_view.adoc
-22e5ce1b50d43225af70535810b6a0cdd2b0649115b71b074d39c812e582e39d  documentation/arc42/07_deployment_view.adoc
-2a39a0eddd1b50747542a6b1757229c34221ea8b245568cce0dfe67c7507b3c1  documentation/arc42/09_architecture_decisions.adoc
-caf62007139333fb2e0526a9a9ea0c0dbe203031c41decbaad1e325abf1781f3  src/tiny_swarm_world/application/services/multipass/multipass_docker_install.py
-1cd82bb7065e9359e72b19c57ac4b17cb037f9656c39c4e8488cc9652f782ae8  src/tiny_swarm_world/application/services/multipass/multipass_docker_swarm_init.py
-da02d975754c936a4af56318287694a201de0c485a0b2aa1c154c20d6af8dc70  src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py
-de6d615208b6d05f3c6dba0da75732768b108aa34c0b79f6ce4ec9cd0d2f3cdb  infra/config/docker/command_multipass_docker_install_yaml.yaml
-0aea4369f3e46c5aca1a3bdd2b6927e58935152a8c1fe6f7f1df9d8da0491af9  infra/config/docker/command_multipass_docker_prepare_repository_yaml.yaml
-4fb24ace0d87767386ef584cb21fcd8134bab715fe53dd041f0f8f87c77a5843  infra/config/docker/command_multipass_docker_verify_yaml.yaml
-c832527bc4068f916bae41527e7a1fbabc811e7b62e1298d214860ce6aade012  infra/config/node-providers/provider_config.yaml
-```
+- This context pack is stale when any hash above changes, when active branch
+  differs from the recorded branch, or when a slice attempts to write outside
+  its allowed scope.

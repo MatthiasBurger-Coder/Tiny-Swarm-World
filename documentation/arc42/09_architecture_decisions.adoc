@@ -64,6 +64,34 @@ Consequences:
   payloads, secrets, Swarm tokens, host-specific addresses, or environment
   payloads.
 
+=== Cross-Cutting Method Trace Logging
+
+ADR: `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
+
+Status: accepted and implemented for the current installation runtime trace
+scope.
+
+Consequences:
+
+* installation observability requires method-level tracing for the runtime
+  installation path, not only setup phase or platform step progress;
+* covered runtime methods must emit entry, normal exit, and exception exit
+  trace events through a cross-cutting Shared observability module;
+* concrete terminal UI, logger configuration, and log sinks remain
+  infrastructure concerns;
+* application services must not import `PortUI`, `FactoryUI`,
+  `LoggerFactory`, curses, or infrastructure logging modules to satisfy trace
+  coverage;
+* method trace events must carry safe structural metadata such as workflow,
+  module, class, method, status, correlation identifier, and sanitized
+  exception type, not raw arguments, return payloads, command output,
+  credentials, tokens, host-specific paths, or local IP addresses;
+* the existing workflow progress port remains the high-level status path and
+  is paired with method trace events through composition correlation and
+  infrastructure adapters;
+* `setup run` terminal lifecycle is composition-owned and starts only after
+  accepted live consent.
+
 === LXC Native Node Provider Direction
 
 ADR: `documentation/architecture/adr-lxc-native-node-provider.adoc`
