@@ -1,612 +1,162 @@
-# Execution Report
+# Workflow Execution Report
 
-Status: completed.
+Workflow: `portainer-admin-init-rejection-v1.0.0`
 
-Created on branch:
+Branch: `feature/workflow-portainer-admin-init-20260601`
 
-```text
-feature/workflow-install-observability-20260529
+Status: `COMPLETED`
+
+Execution completed on the verified branch
+`feature/workflow-portainer-admin-init-20260601`.
+
+## Slice Results
+
+### Slice 01 - Requirement And Architecture Baseline
+
+Status: `COMPLETED`
+
+Owner: Senior Requirement Engineer
+
+Result:
+
+- Requirement normalized to Portainer admin initialization retry versus
+  fail-fast typed rejection semantics.
+- Requirement Subagent initially returned blockers for threshold wording,
+  under-evidenced report content, and invalid React role routing.
+- Blockers were routed through the Requirements process and corrected.
+- arc42 runtime and quality documentation now record the rejection gate.
+
+Verification:
+
+```bash
+git diff --check
 ```
 
-Branch verification:
+Result: passed.
 
-```text
-local-ref-ok
-feature/workflow-install-observability-20260529
+### Slice 02 - Application Service Self-Check
+
+Status: `COMPLETED`
+
+Owner: Senior Python Automation Developer
+
+Result:
+
+- Existing application-service tests verify transient initialization failures
+  retry and typed Portainer rejection fails fast.
+- Tester Subagent confirmed no blockers.
+
+Verification:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_admin_access
 ```
 
-Workflow authoring actions:
+Result: passed, 5 tests.
 
-- verified repository root
-- verified clean working tree before workflow regeneration
-- verified active workflow branch
-- regenerated `documentation/workflow`
-- recorded requirement, architecture, and test agent findings
-- defined no-skip implementation slices
-- revised the workflow after user clarification that logging is a
-  cross-cutting module and method-level trace coverage, including exception
-  paths, is required
+### Slice 03 - Adapter Contract Self-Check
 
-No live infrastructure commands were run.
+Status: `COMPLETED`
 
-## User Clarification - Cross-Cutting Method Trace Logging
+Owner: Senior Python Automation Developer
 
-Status: accepted into workflow scope.
+Result:
 
-Clarification:
+- Added LXC-native adapter tests for typed rejection and already-authenticated
+  fallback behavior.
+- Updated Multipass legacy adapter tests to assert the typed rejection and
+  already-authenticated fallback behavior.
+- Corrected the workflow adapter-discovery command after a stop signal exposed
+  the invalid `unittest discover tests.infrastructure.adapters.clients`
+  command shape.
+- Architecture Subagent confirmed no architecture blockers and no ADR need.
 
-- logging is a cross-cutting module and therefore requires ADR coverage;
-- lueckenlose Nachverfolgung means method-level tracing for the installation
-  runtime path, not only phase or step progress;
-- covered methods must emit entry, normal return, and exception exit trace
-  events;
-- terminal UI output and central logging must be fed through architecture-safe
-  progress or trace ports and infrastructure adapters.
+Verification:
 
-Impact:
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests/infrastructure/adapters/clients
+```
 
-- Slices 02-04 remain valid partial high-level progress work.
-- The previous pending PortUI/logging adapter slice was moved behind the
-  cross-cutting method trace ADR, trace contract, trace coverage guard, and
-  application runtime trace integration.
-- The workflow now continues with Slice 05 before further implementation.
+Result: passed, 70 tests.
 
-## Slice 01 - Requirement And Baseline Audit
+### Slice 04 - Full Quality Gate And Checkpoint Push
 
-Status: completed.
+Status: `COMPLETED_PENDING_PUSH`
 
-S3/S3D verification:
+Owner: Senior Tester
 
-- active branch checked:
-  `feature/workflow-install-observability-20260529`
-- local branch ref checked: present
-- working tree before Slice 01 edits: clean
-- S3D result: `EXECUTION_PLAN`
-- dependency status: no dependencies
-- scope: documentation/governance only
+Result:
 
-Role review results:
+- Initial `python3 tools/quality_gate.py quality` failed because the system
+  Python environment did not have `ruff`.
+- The documented local `.venv` path was used because the system Python is
+  externally managed.
+- Full D8 gate passed in `.venv`.
 
-- Senior Swarm Orchestrator: Slice 01 may proceed; no lock conflict.
-- Senior Requirement Engineer: Slice 01 required explicit setup and platform
-  progress transition documentation before closure.
-- Senior System Architect: direction approved; arc42 required current/planned
-  behavior boundary documentation before closure.
-- Senior Tester: Slice 01 quality gate is `git diff --check`.
+Verification:
 
-Quality evidence:
+```bash
+.venv/bin/python tools/quality_gate.py quality
+```
 
-- required command: `git diff --check`
-- result: passed
+Result: passed.
 
-Changed files:
+Quality summary:
 
-- `documentation/arc42/06_runtime_view.adoc`
-- `documentation/arc42/10_quality_requirements.adoc`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/execution-report.md`
-- `documentation/workflow/reports/01-requirement-agent-findings.md`
-- `documentation/workflow/reports/02-architecture-agent-findings.md`
+- `ruff`: passed.
+- `import-linter`: 3 contracts kept, 0 broken.
+- architecture tests: passed, 16 tests.
+- `mypy`: passed, 358 source files.
+- unit tests: passed, 663 tests, 1 skipped.
 
-Live infrastructure:
+## Stop.Signal Log
 
-- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
-  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
-  Swagger/NGINX commands were run.
+### Stop.Signal 01 - Invalid Adapter Discovery Command
 
-## Slice 02 - Structured Progress Port
+Type: `DOC_GOVERNANCE_FAILURE`
 
-Status: completed.
+Command:
 
-S3/S3D verification:
+```bash
+PYTHONPATH=src python3 -m unittest discover tests.infrastructure.adapters.clients
+```
 
-- active branch checked:
-  `feature/workflow-install-observability-20260529`
-- dependency status: Slice 01 completed in commit
-  `c06e80b2fc4c822ab4a135d95549300125e8519d`
-- scope: application progress port contract and application tests
+Result:
 
-Role review results:
+- Failed with a `unittest` discovery `TypeError`.
 
-- Senior Python Automation Developer: initial blocker for unsafe text
-  representation was resolved by validating progress event string fields.
-- Senior System Architect: approved for `application/ports/progress` plus port
-  tests only; no setup integration, UI bridge, logging adapter, or composition
-  wiring in Slice 02.
-- Senior Tester: behavior coverage approved; `/usr/bin/python3` lacks `ruff`,
-  so the lint gate was run through the repository virtual environment.
+Resolution:
 
-Quality evidence:
+- Workflow command corrected to:
 
-- command: `PYTHONPATH=src python3 -m unittest tests.application.ports.test_workflow_progress`
-- result: passed, 5 tests
-- command: `PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow`
-- result: passed, 15 tests
-- required command: `source venv/bin/activate && python3 tools/quality_gate.py lint`
-- result: passed
-- command: `git diff --check`
-- result: passed
-
-Changed files:
-
-- `src/tiny_swarm_world/application/ports/progress/__init__.py`
-- `src/tiny_swarm_world/application/ports/progress/port_workflow_progress.py`
-- `tests/application/ports/test_workflow_progress.py`
-- `documentation/workflow/execution-report.md`
-
-Live infrastructure:
-
-- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
-  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
-  Swagger/NGINX commands were run.
-
-## Slice 03 - Setup Workflow Progress Integration
-
-Status: completed.
-
-S3/S3D verification:
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests/infrastructure/adapters/clients
+```
 
-- active branch checked:
-  `feature/workflow-install-observability-20260529`
-- dependency status: Slice 02 completed in commit
-  `b76faff`
-- scope: setup workflow progress events and setup workflow tests
-
-Role review results:
+### Stop.Signal 02 - Missing Quality Tooling In System Python
 
-- Senior Python Automation Developer: approach approved after preserving the
-  unsafe result payload reason text; progress sink failures remain visible
-  instead of being silently swallowed.
-- Senior System Architect: approved; setup depends only on
-  `tiny_swarm_world.application.ports.progress`, with no infrastructure UI,
-  logging, `PortUI`, `FactoryUI`, `LoggerFactory`, or curses imports.
-- Senior Tester: targeted setup workflow coverage approved; recommended
-  failed-preflight progress assertions were added.
-
-Quality evidence:
-
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow`
-- result: passed, 19 tests
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.architecture.test_hexagonal_imports`
-- result: passed, 16 tests
-- required command: `source venv/bin/activate && python3 tools/quality_gate.py typecheck`
-- result: passed
-- command: `git diff --check`
-- result: passed
+Type: `BUILD_FAILURE`
 
-Changed files:
-
-- `src/tiny_swarm_world/application/services/setup/workflow.py`
-- `tests/application/services/setup/test_setup_workflow.py`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/execution-report.md`
-
-Live infrastructure:
-
-- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
-  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
-  Swagger/NGINX commands were run.
-
-## Slice 04 - Platform Workflow Progress Integration
-
-Status: completed.
-
-S3/S3D verification:
-
-- active branch checked:
-  `feature/workflow-install-observability-20260529`
-- dependency status: Slice 02 completed in commit
-  `b76faff`
-- scope: platform workflow progress events and platform workflow tests
-
-Role review results:
-
-- Senior Python Automation Developer: approach approved; progress is emitted
-  centrally from platform workflow helpers and LXC node detail stays out of
-  events.
-- Senior System Architect: approved after clarification that the pre-existing
-  verification evidence repository is an allowed application port dependency;
-  the new progress integration depends only on
-  `tiny_swarm_world.application.ports.progress`.
-- Senior Tester: targeted platform workflow coverage approved; provider guard,
-  blocked direct verification, and LXC aggregate safe-count assertions were
-  added.
-
-Quality evidence:
+Command:
 
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows`
-- result: passed, 26 tests
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.architecture.test_hexagonal_imports`
-- result: passed, 16 tests
-- command: `source venv/bin/activate && python3 tools/quality_gate.py lint`
-- result: passed
-- required command: `source venv/bin/activate && python3 tools/quality_gate.py typecheck`
-- result: passed
-- command: `git diff --check`
-- result: passed
-
-Changed files:
-
-- `src/tiny_swarm_world/application/services/platform/workflows.py`
-- `tests/application/services/platform/test_platform_workflows.py`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/execution-report.md`
-
-Live infrastructure:
-
-- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
-  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
-  Swagger/NGINX commands were run.
-
-## Slice 05 - Cross-Cutting Method Trace ADR And Scope
-
-Status: completed.
-
-S3/S3D verification:
+```bash
+python3 tools/quality_gate.py quality
+```
 
-- active branch checked:
-  `feature/workflow-install-observability-20260529`
-- dependency status: Slice 04 completed in commit
-  `faf77c0`
-- scope: documentation, ADR, workflow governance, and arc42 alignment
-
-Role review results:
+Result:
 
-- Senior Requirement Engineer: confirmed the current workflow had narrowed the
-  requirement to phase/step progress and must be corrected to method-level
-  trace acceptance criteria.
-- Senior System Architect: confirmed cross-cutting method-flow logging requires
-  a standalone ADR and must preserve hexagonal boundaries.
-- Senior Tester: confirmed existing tests prove high-level progress only and
-  proposed trace contract, wrapper, redaction, coverage, adapter, and
-  composition tests.
+- Failed because `ruff` was not installed in the system Python environment.
 
-Quality evidence:
-
-- required command: `git diff --check`
-- result: passed
-- command: `python3 -m json.tool documentation/workflow/context-pack.json`
-- result: passed
+Resolution:
 
-Changed files:
-
-- `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
-- `documentation/arc42/06_runtime_view.adoc`
-- `documentation/arc42/09_architecture_decisions.adoc`
-- `documentation/arc42/10_quality_requirements.adoc`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/execution-report.md`
-- `documentation/workflow/reports/01-requirement-agent-findings.md`
-- `documentation/workflow/reports/02-architecture-agent-findings.md`
-- `documentation/workflow/reports/03-test-agent-findings.md`
-- `documentation/workflow/workflow.md`
+- Used the repository-documented local virtual environment path.
+- Installed required development quality tools into ignored `.venv`.
+- Re-ran the full gate with `.venv/bin/python tools/quality_gate.py quality`.
 
-Live infrastructure:
+## Commit And Push Readiness
 
-- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
-  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
-  Swagger/NGINX commands were run.
+Confidence: `0.94`
 
-## Slice 06 - Method Trace Port And Wrapper Contract
+Push threshold: strictly greater than `0.92`
 
-Status: completed.
-
-S3/S3D verification:
-
-- active branch checked:
-  `feature/workflow-install-observability-20260529`
-- dependency status: Slice 05 completed in commit
-  `18637fe`
-- scope: application method trace port, shared wrapper, and application tests
-
-Role review results:
-
-- Senior System Architect: approved application-owned package placement under
-  `application/ports/method_trace` and `application/services/shared`; no
-  infrastructure logging, concrete UI, curses, command runner, Docker, LXD or
-  Incus imports.
-- Senior Tester: approved regression expectations for safe trace event fields,
-  forbidden payload rejection, sync/async entered-returned and entered-raised
-  wrapper behavior, exception propagation, and correlation assertions.
-
-Quality evidence:
-
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.ports.test_method_trace`
-- result: passed, 8 tests
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.services.shared.test_method_trace_wrapper`
-- result: passed, 5 tests
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.ports.test_workflow_progress`
-- result: passed, 5 tests
-- required command: `source venv/bin/activate && python3 tools/quality_gate.py typecheck`
-- result: passed
-
-Changed files:
-
-- `src/tiny_swarm_world/application/ports/method_trace/__init__.py`
-- `src/tiny_swarm_world/application/ports/method_trace/port_method_trace.py`
-- `src/tiny_swarm_world/application/services/shared/__init__.py`
-- `src/tiny_swarm_world/application/services/shared/method_trace_wrapper.py`
-- `tests/application/ports/test_method_trace.py`
-- `tests/application/services/shared/test_method_trace_wrapper.py`
-- `documentation/workflow/execution-report.md`
-
-Live infrastructure:
-
-- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
-  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
-  Swagger/NGINX commands were run.
-
-## Slice 07 - Installation Method Trace Coverage Guard
-
-Status: completed.
-
-S3/S3D verification:
-
-- active branch checked:
-  `feature/workflow-install-observability-20260529`
-- dependency status: Slice 06 completed in commit
-  `97eb5f9`
-- scope: architecture trace coverage guard and workflow context metadata
-
-Role review results:
-
-- Senior Tester: coverage guard must fail when public methods in the declared
-  installation runtime owner set lack a manifest entry or explicit exemption.
-- Senior System Architect: exemptions must stay narrow and avoid trace sink,
-  logger, and terminal render-loop recursion.
-
-Quality evidence:
-
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.architecture.test_installation_method_trace_coverage`
-- result: passed, 5 tests
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.architecture.test_hexagonal_imports tests.architecture.test_installation_method_trace_coverage`
-- result: passed, 21 tests
-- required command: `source venv/bin/activate && python3 tools/quality_gate.py arch-tests`
-- result: passed
-
-Changed files:
-
-- `tests/architecture/test_installation_method_trace_coverage.py`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/execution-report.md`
-
-Live infrastructure:
-
-- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
-  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
-  Swagger/NGINX commands were run.
-
-## Slice 08 - Setup Platform And Command Method Trace Integration
-
-Status: completed.
-
-S3/S3D verification:
-
-- active branch checked:
-  `feature/workflow-install-observability-20260529`
-- dependency status: Slice 06 completed in commit
-  `97eb5f9`; Slice 07 completed in commit `295c970`
-- scope: setup, platform, and command application runtime tracing
-
-Role review results:
-
-- Senior Python Automation Developer: integrated optional method trace ports
-  with null defaults and wrapper-based tracing for public runtime methods.
-- Senior System Architect: preserved application boundary; no infrastructure
-  logging, concrete UI, curses, Docker, LXD, Incus, or composition imports were
-  added to application services.
-- Senior Tester: added assertions for normal returned traces, converted
-  failure traces, raised exception traces, raw exception redaction, and coverage
-  guard continuity.
-
-Quality evidence:
-
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.services.setup.test_setup_workflow tests.application.services.platform.test_platform_workflows tests.application.services.commands.test_command_executer tests.architecture.test_installation_method_trace_coverage`
-- result: passed, 60 tests
-- required command: `source venv/bin/activate && python3 tools/quality_gate.py typecheck`
-- result: passed
-
-Changed files:
-
-- `src/tiny_swarm_world/application/ports/method_trace/port_method_trace.py`
-- `src/tiny_swarm_world/application/services/shared/method_trace_wrapper.py`
-- `src/tiny_swarm_world/application/services/setup/workflow.py`
-- `src/tiny_swarm_world/application/services/platform/workflows.py`
-- `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`
-- `tests/application/services/setup/test_setup_workflow.py`
-- `tests/application/services/platform/test_platform_workflows.py`
-- `tests/application/services/commands/test_command_executer.py`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/execution-report.md`
-
-Live infrastructure:
-
-- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
-  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
-  Swagger/NGINX commands were run.
-
-## Slice 09 - PortUI Logging And Trace Adapter Wiring
-
-Status: completed.
-
-S3/S3D verification:
-
-- active branch checked:
-  `feature/workflow-install-observability-20260529`
-- dependency status: Slice 06 completed in commit
-  `97eb5f9`; Slice 08 completed in commit `f6e690f`
-- scope: infrastructure progress/trace adapters, composition wiring, command UI
-  trace wiring, and redacted command exception summaries
-
-Role review results:
-
-- Senior Python Automation Developer: added infrastructure composite sinks for
-  workflow progress and method trace events, with terminal UI and central
-  logging adapters kept outside application services.
-- Senior Tester: sidecar review found and closed the arbitrary runner exception
-  raw-text leak, required direct logging-adapter assertions, and required setup
-  to pass one installation trace correlation into nested platform workflows.
-- Console/status UI skills: terminal adapters update only `PortUI` aggregate
-  status and preserve failure state through the existing `PortUI` terminal
-  result rules.
-- Senior System Architect: composition owns concrete `LoggerFactory`,
-  terminal-adapter, and composite-sink wiring; application services still
-  depend only on ports.
-
-Quality evidence:
-
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui tests.infrastructure.logging.test_progress_trace_logging`
-- result: passed, 5 tests
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.application.services.commands.test_command_executer tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics`
-- result: passed, 16 tests
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.ui.test_linux_ui tests.infrastructure.test_composition`
-- result: passed, 56 tests
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.architecture.test_installation_method_trace_coverage`
-- result: passed, 5 tests
-- required command: `source venv/bin/activate && python3 tools/quality_gate.py lint`
-- result: passed
-- additional command: `source venv/bin/activate && python3 tools/quality_gate.py typecheck`
-- result: passed
-- command: `git diff --check`
-- result: passed
-
-Changed files:
-
-- `src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py`
-- `src/tiny_swarm_world/infrastructure/adapters/ui/command_async_runner_ui.py`
-- `src/tiny_swarm_world/infrastructure/adapters/ui/command_sync_runner_ui.py`
-- `src/tiny_swarm_world/infrastructure/adapters/ui/progress_trace_ui.py`
-- `src/tiny_swarm_world/infrastructure/logging/progress_trace_logging.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
-- `tests/application/services/commands/test_command_executer.py`
-- `tests/infrastructure/adapters/ui/test_command_runner_ui_failure_semantics.py`
-- `tests/infrastructure/adapters/ui/test_progress_trace_ui.py`
-- `tests/infrastructure/logging/test_progress_trace_logging.py`
-- `tests/infrastructure/test_composition.py`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/execution-report.md`
-
-Live infrastructure:
-
-- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
-  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
-  Swagger/NGINX commands were run.
-
-## Slice 10 - CLI Console Lifecycle
-
-Status: completed.
-
-S3/S3D verification:
-
-- active branch checked:
-  `feature/workflow-install-observability-20260529`
-- dependency status: Slice 09 completed in commit `b3fffe7`
-- scope: setup-run terminal lifecycle facade, entrypoint boundary tests, and
-  composition lifecycle tests
-
-Role review results:
-
-- Senior Python Automation Developer: moved setup terminal status lifecycle into
-  a composition-owned `run_setup_with_terminal_status` facade.
-- Senior Tester: sidecar review blocked entrypoint-owned UI start/stop and
-  logger internals; tests now forbid those imports and identifiers in
-  `__main__.py`.
-- Console/status UI skills: setup UI construction and terminal thread lifecycle
-  are verified through composition, and failure-preserving aggregate status is
-  tested at the setup-run lifecycle level.
-- Senior System Architect: `__main__.py` remains thin and delegates concrete
-  logging and UI lifecycle behavior to infrastructure composition.
-
-Quality evidence:
-
-- command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.infrastructure.test_composition`
-- result: passed, 72 tests
-- required command: `source venv/bin/activate && python3 tools/quality_gate.py test`
-- result: passed, 661 tests, 1 skipped
-- additional command: `source venv/bin/activate && python3 tools/quality_gate.py lint`
-- result: passed
-- additional command: `source venv/bin/activate && python3 tools/quality_gate.py typecheck`
-- result: passed
-- command: `git diff --check`
-- result: passed
-- command: `python3 -m json.tool documentation/workflow/context-pack.json >/dev/null`
-- result: passed
-
-Changed files:
-
-- `src/tiny_swarm_world/__main__.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
-- `tests/test_package_entrypoint.py`
-- `tests/infrastructure/test_composition.py`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/execution-report.md`
-
-Live infrastructure:
-
-- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
-  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
-  Swagger/NGINX commands were run.
-
-## Slice 11 - Documentation And Quality Gate
-
-Status: completed.
-
-S3/S3D verification:
-
-- active branch checked:
-  `feature/workflow-install-observability-20260529`
-- dependency status: Slice 10 completed in commit `aff78c9`
-- scope: arc42/ADR/workflow documentation alignment and full quality gate
-
-Role review results:
-
-- Senior Documentation Engineer: updated ADR, arc42 runtime view, architecture
-  decisions, quality requirements, and workflow metadata from pending/partial
-  wording to implemented-for-current-runtime-scope wording.
-- Senior Requirement Engineer: retained the clarified requirement that
-  installation observability means method-level trace coverage including
-  exception paths, not only phase progress.
-- Senior System Architect: documentation now reflects the cross-cutting Shared
-  observability module and composition-owned setup terminal lifecycle.
-- Senior Tester: final quality gate completed successfully; no required method
-  trace coverage or progress tests were skipped.
-
-Quality evidence:
-
-- command: `source venv/bin/activate && python3 tools/quality_gate.py quality`
-- result: passed
-- gate details:
-  - lint: passed
-  - arch-lint: 3 contracts kept, 0 broken
-  - arch-tests: passed, 16 tests
-  - typecheck: passed, no issues found in 358 source files
-  - test: passed, 661 tests, 1 skipped
-- command: `git diff --check`
-- result: passed
-- command: `python3 -m json.tool documentation/workflow/context-pack.json >/dev/null`
-- result: passed
-
-Changed files:
-
-- `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
-- `documentation/arc42/06_runtime_view.adoc`
-- `documentation/arc42/09_architecture_decisions.adoc`
-- `documentation/arc42/10_quality_requirements.adoc`
-- `documentation/workflow/context-pack.json`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/execution-report.md`
-- `documentation/workflow/workflow.md`
-
-Live infrastructure:
-
-- no LXD, Incus, LXC, Multipass, Docker, Docker Swarm, compose, service
-  bootstrap, netplan, socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube or
-  Swagger/NGINX commands were run.
+Decision: `READY_FOR_CHECKPOINT_COMMIT_AND_PUSH`

@@ -1,12 +1,16 @@
 import subprocess
 import unittest
 from unittest.mock import patch
-from tests.support.sonar_safe_literals import ipv4_address
+from tests.support.sonar_safe_literals import ipv4_address, operator_credential, sensitive_assignment
 
+from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
+    PortainerAdminInitializationRejected,
+)
 from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
     LxcContainerRuntime,
+    LxcPortainerAdminClient,
     LxcSwarmRuntime,
     _lxc_manager_ip,
 )
@@ -134,3 +138,66 @@ services:
             ],
             run.call_args.args[0],
         )
+
+    def test_portainer_admin_client_raises_typed_rejection_for_failed_init(self):
+        session = _FakeSession(
+            [
+                _FakeResponse(409, {"message": sensitive_assignment()}),
+                _FakeResponse(200, ValueError(sensitive_assignment())),
+            ]
+        )
+        client = LxcPortainerAdminClient(backend=ManagedLxcBackend.LXD, session=session)
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
+            return_value=ipv4_address(10, 156, 143, 201),
+        ):
+            with self.assertRaises(PortainerAdminInitializationRejected) as raised:
+                client.initialize_admin_user("admin", operator_credential())
+
+        self.assertIn("HTTP 409", str(raised.exception))
+        self.assertNotIn(sensitive_assignment(), str(raised.exception))
+
+    def test_portainer_admin_client_accepts_failed_init_when_authentication_works(self):
+        session = _FakeSession(
+            [
+                _FakeResponse(409, {"message": "admin already initialized"}),
+                _FakeResponse(200, {"jwt": "jwt-token"}),
+            ]
+        )
+        client = LxcPortainerAdminClient(backend=ManagedLxcBackend.LXD, session=session)
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
+            return_value=ipv4_address(10, 156, 143, 201),
+        ):
+            client.initialize_admin_user("admin", operator_credential())
+
+        self.assertEqual(2, len(session.post_calls))
+
+
+class _FakeResponse:
+    def __init__(self, status_code: int, payload: object):
+        self.status_code = status_code
+        self.payload = payload
+
+    def json(self) -> object:
+        if isinstance(self.payload, ValueError):
+            raise self.payload
+        return self.payload
+
+
+class _FakeSession:
+    def __init__(self, post_responses: list[_FakeResponse]):
+        self.post_responses = list(post_responses)
+        self.post_calls: list[dict[str, object]] = []
+        self.cookies = _FakeCookies()
+
+    def post(self, url: str, **kwargs: object) -> _FakeResponse:
+        self.post_calls.append({"url": url, **kwargs})
+        return self.post_responses.pop(0)
+
+
+class _FakeCookies(dict[str, str]):
+    def clear(self) -> None:
+        super().clear()

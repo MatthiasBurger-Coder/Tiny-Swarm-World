@@ -2,6 +2,9 @@ import unittest
 from unittest.mock import patch
 from tests.support.sonar_safe_literals import ipv4_address, operator_credential, sensitive_assignment
 
+from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
+    PortainerAdminInitializationRejected,
+)
 from tiny_swarm_world.infrastructure.adapters.clients.multipass_portainer_admin_client import (
     MultipassPortainerAdminClient,
 )
@@ -41,11 +44,25 @@ class TestMultipassPortainerAdminClient(unittest.TestCase):
         client = MultipassPortainerAdminClient(session=session)
 
         with patch.object(client, "_manager_ip", return_value=ipv4_address(10, 157, 2, 182)):
-            with self.assertRaises(RuntimeError) as raised:
+            with self.assertRaises(PortainerAdminInitializationRejected) as raised:
                 client.initialize_admin_user("admin", operator_credential())
 
         self.assertIn("HTTP 409", str(raised.exception))
         self.assertNotIn(sensitive_assignment(), str(raised.exception))
+
+    def test_initialize_admin_user_accepts_rejected_init_when_credentials_already_work(self):
+        session = _FakeSession(
+            [
+                _FakeResponse(409, {"message": "admin already initialized"}),
+                _FakeResponse(200, {"jwt": "jwt-token"}),
+            ]
+        )
+        client = MultipassPortainerAdminClient(session=session)
+
+        with patch.object(client, "_manager_ip", return_value=ipv4_address(10, 157, 2, 182)):
+            client.initialize_admin_user("admin", operator_credential())
+
+        self.assertEqual(2, len(session.post_calls))
 
 
 class _FakeResponse:

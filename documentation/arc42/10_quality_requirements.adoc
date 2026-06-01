@@ -166,3 +166,23 @@ Quality scenarios:
 Service-access readiness must remain unknown or failed-to-verify until
 observed Swarm service state or a later HTTP evidence source verifies the
 selected service stack.
+
+=== Portainer Admin Initialization Rejection Gate
+
+Deployment quality gates must prove that Portainer admin bootstrap distinguishes
+transient readiness failures from explicit Portainer rejection.
+
+Quality scenarios:
+
+* transient admin initialization failures are retried until authentication
+  succeeds or the attempt budget is exhausted;
+* a typed `PortainerAdminInitializationRejected` failure fails fast and is not
+  retried as a readiness delay;
+* LXC-native and explicit Multipass legacy Portainer admin adapters translate
+  rejected HTTP initialization responses into the typed application-port
+  exception when the requested credentials cannot authenticate;
+* HTTP rejection after successful authentication is treated as already usable
+  admin access and does not raise the typed rejection;
+* tests use mocked clients or request sessions and do not execute live LXD,
+  Incus, LXC, Multipass, Docker Swarm, compose, Portainer, Nexus, Jenkins,
+  RabbitMQ, SonarQube or service bootstrap commands.
