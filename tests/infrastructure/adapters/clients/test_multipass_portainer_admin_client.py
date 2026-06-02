@@ -48,6 +48,7 @@ class TestMultipassPortainerAdminClient(unittest.TestCase):
                 client.initialize_admin_user("admin", operator_credential())
 
         self.assertIn("HTTP 409", str(raised.exception))
+        self.assertEqual(409, raised.exception.status_code)
         self.assertNotIn(sensitive_assignment(), str(raised.exception))
 
     def test_initialize_admin_user_accepts_rejected_init_when_credentials_already_work(self):

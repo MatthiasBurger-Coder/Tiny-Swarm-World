@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
     PortainerAdminInitializationRejected,
     PortPortainerAdminClient,
 )
+from tiny_swarm_world.application.ports.ui.port_ui import AGGREGATE_INSTANCE, PortUI
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
@@ -20,12 +22,15 @@ class EnsurePortainerAdminAccess:
         password: str,
         max_attempts: int = 30,
         wait_seconds: int = 5,
+        ui: PortUI | None = None,
     ):
         self.portainer_admin_client = portainer_admin_client
         self.username = username
         self.password = password
         self.max_attempts = max_attempts
         self.wait_seconds = wait_seconds
+        self.ui = ui
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self) -> None:
         for attempt in range(1, self.max_attempts + 1):
@@ -34,7 +39,19 @@ class EnsurePortainerAdminAccess:
 
             try:
                 self.portainer_admin_client.initialize_admin_user(self.username, self.password)
-            except PortainerAdminInitializationRejected:
+            except PortainerAdminInitializationRejected as exc:
+                safe_error = _safe_exception_summary(exc)
+                self.logger.error(
+                    "Failed to initialize Portainer admin access. Error: %s",
+                    safe_error,
+                )
+                if self.ui is not None:
+                    self.ui.update_status(
+                        instance=AGGREGATE_INSTANCE,
+                        task=self.deployment_target_id,
+                        step="Error",
+                        result="failed_to_apply",
+                    )
                 raise
             except Exception:
                 if attempt >= self.max_attempts:
@@ -85,3 +102,10 @@ class EnsurePortainerAdminAccess:
             return self.portainer_admin_client.can_authenticate(self.username, self.password)
         except Exception:
             return False
+
+
+def _safe_exception_summary(exc: Exception) -> str:
+    status_code = getattr(exc, "status_code", None)
+    if status_code is not None:
+        return f"{exc.__class__.__name__} HTTP {status_code}. Diagnostic payload redacted."
+    return f"{exc.__class__.__name__}. Diagnostic payload redacted."

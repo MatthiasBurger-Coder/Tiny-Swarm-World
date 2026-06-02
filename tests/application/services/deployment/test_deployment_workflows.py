@@ -6,6 +6,9 @@ from tests.support.sonar_safe_literals import operator_credential, sensitive_ass
 from tiny_swarm_world.application.services.deployment.ensure_portainer_admin_access import (
     EnsurePortainerAdminAccess,
 )
+from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
+    PortainerAdminInitializationRejected,
+)
 from tiny_swarm_world.application.services.deployment.workflows import (
     DeploymentApplyWorkflow,
     DeploymentVerifyWorkflow,
@@ -95,6 +98,37 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("prepare failed with RuntimeError", result.reason)
         self.assertNotIn("sensitive response", result.reason)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
+
+    async def test_apply_workflow_reports_portainer_admin_rejection_with_safe_diagnostics(self):
+        class RejectedPortainerAdminStep:
+            verification_target_id = "deployment:portainer-admin-access"
+
+            async def run(self) -> None:
+                await async_checkpoint()
+                raise PortainerAdminInitializationRejected(
+                    f"HTTP 409 {sensitive_assignment()}",
+                    status_code=409,
+                )
+
+            async def verify(self) -> VerificationResult:
+                await async_checkpoint()
+                raise AssertionError("verify must not run after failed apply")
+
+        with self.assertLogs("DeploymentApplyWorkflow", level="ERROR") as captured:
+            result = await DeploymentApplyWorkflow(
+                (RejectedPortainerAdminStep(),),
+                kind=DeploymentWorkflowKind.BOOTSTRAP,
+            ).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_PREPARE, result.status)
+        self.assertIn("PortainerAdminInitializationRejected HTTP 409", result.reason)
+        self.assertNotIn(sensitive_assignment(), result.reason)
+        self.assertIn("PortainerAdminInitializationRejected HTTP 409", captured.output[0])
+        self.assertNotIn(sensitive_assignment(), captured.output[0])
+        verification = result.verification_results[0]
+        self.assertEqual(VerificationStatus.FAILED_TO_APPLY, verification.status)
+        self.assertEqual("http_status_409", verification.evidence["diagnostic"])
+        self.assertIn("Portainer state", verification.evidence["operator_action"])
 
     async def test_apply_workflow_blocks_before_running_steps_when_pre_apply_check_blocks(self):
         pre_apply_check = _BlockedDeploymentCheck("deployment:service-access-external-input")

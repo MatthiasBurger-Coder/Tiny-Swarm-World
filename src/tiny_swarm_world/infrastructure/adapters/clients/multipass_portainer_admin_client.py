@@ -51,7 +51,8 @@ class MultipassPortainerAdminClient(PortPortainerAdminClient):
             raise RuntimeError("Failed to initialize Portainer admin user.") from exc
         if response.status_code >= 400 and not self.can_authenticate(username, password):
             raise PortainerAdminInitializationRejected(
-                f"Failed to initialize Portainer admin user. HTTP {response.status_code}."
+                f"Failed to initialize Portainer admin user. HTTP {response.status_code}.",
+                status_code=response.status_code,
             )
 
     def _base_url(self) -> str:

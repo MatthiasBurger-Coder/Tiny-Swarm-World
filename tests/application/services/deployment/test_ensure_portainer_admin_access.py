@@ -98,6 +98,32 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(1, client.initialize_calls)
 
+    async def test_run_logs_and_updates_ui_when_portainer_rejects_initialization(self):
+        client = _RejectedInitializationPortainerAdminClient(
+            message=f"HTTP 409 {sensitive_assignment()}",
+            status_code=409,
+        )
+        ui = _RecordingUI()
+        service = EnsurePortainerAdminAccess(
+            client,
+            username="admin",
+            password=operator_credential(),
+            max_attempts=60,
+            wait_seconds=0,
+            ui=ui,
+        )
+
+        with self.assertLogs("EnsurePortainerAdminAccess", level="ERROR") as captured:
+            with self.assertRaises(PortainerAdminInitializationRejected):
+                await service.run()
+
+        self.assertIn("PortainerAdminInitializationRejected HTTP 409", captured.output[0])
+        self.assertNotIn(sensitive_assignment(), captured.output[0])
+        self.assertEqual(
+            [("all", "deployment:portainer-admin-access", "Error", "failed_to_apply")],
+            ui.calls,
+        )
+
 
 class _SequencePortainerAdminClient:
     def __init__(self, authentication_results: list[bool]):
@@ -134,15 +160,32 @@ class _InitializeAfterTransientFailurePortainerAdminClient:
 
 
 class _RejectedInitializationPortainerAdminClient:
-    def __init__(self):
+    def __init__(
+        self,
+        message: str = "HTTP 409",
+        status_code: int | None = None,
+    ):
         self.initialize_calls = 0
+        self.message = message
+        self.status_code = status_code
 
     def can_authenticate(self, username: str, password: str) -> bool:
         return False
 
     def initialize_admin_user(self, username: str, password: str) -> None:
         self.initialize_calls += 1
-        raise PortainerAdminInitializationRejected("HTTP 409")
+        raise PortainerAdminInitializationRejected(
+            self.message,
+            status_code=self.status_code,
+        )
+
+
+class _RecordingUI:
+    def __init__(self):
+        self.calls: list[tuple[str, str, str, str]] = []
+
+    def update_status(self, instance, task, step, result=None):
+        self.calls.append((instance, task, step, result))
 
 
 if __name__ == "__main__":

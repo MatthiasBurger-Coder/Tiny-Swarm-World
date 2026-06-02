@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -85,6 +86,7 @@ class ArtifactPrepareWorkflow:
     ):
         self.steps = tuple(steps)
         self.blocked_reason = blocked_reason
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self) -> ArtifactWorkflowResult:
         if not self.steps:
@@ -119,19 +121,25 @@ class ArtifactPrepareWorkflow:
                 if inspect.isawaitable(prepare_result):
                     await prepare_result
             except Exception as exc:
+                safe_error = _safe_exception_summary(exc)
+                self.logger.error(
+                    "Failed to prepare artifact target '%s'. Error: %s",
+                    target_id,
+                    safe_error,
+                )
                 return ArtifactWorkflowResult(
                     kind=ArtifactWorkflowKind.PREPARE,
                     status=ArtifactWorkflowStatus.FAILED_TO_PREPARE,
                     message="artifacts prepare failed for a configured artifact contract.",
-                    reason=f"prepare failed with {exc.__class__.__name__}",
+                    reason=_prepare_failure_reason(target_id, exc),
                     executed=True,
                     verification_results=(
                         *verification_results,
                         VerificationResult(
                             target_id=target_id,
                             status=VerificationStatus.FAILED_TO_APPLY,
-                            message=f"Prepare failed for {target_id}: {exc.__class__.__name__}",
-                            evidence={"phase": "prepare"},
+                            message=f"Prepare failed for {target_id}: {safe_error}",
+                            evidence=_prepare_failure_evidence(exc),
                         ),
                     ),
                 )
@@ -264,3 +272,33 @@ async def _verify_step(
         message=VERIFICATION_EVIDENCE_MISSING_MESSAGE,
         evidence={"phase": "verify"},
     )
+
+
+def _safe_exception_summary(exc: Exception) -> str:
+    diagnostic = getattr(exc, "diagnostic", None)
+    if diagnostic:
+        return f"{exc.__class__.__name__}. Diagnostic: {diagnostic}."
+    status_code = getattr(exc, "status_code", None)
+    if status_code is not None:
+        return f"{exc.__class__.__name__} HTTP {status_code}. Diagnostic payload redacted."
+    return f"{exc.__class__.__name__}. Diagnostic payload redacted."
+
+
+def _prepare_failure_reason(target_id: str, exc: Exception) -> str:
+    if getattr(exc, "diagnostic", None):
+        return f"prepare failed for {target_id}: {_safe_exception_summary(exc)}"
+    return f"prepare failed with {exc.__class__.__name__}"
+
+
+def _prepare_failure_evidence(exc: Exception) -> dict[str, str]:
+    evidence = {"phase": "prepare", "failure_class": exc.__class__.__name__}
+    diagnostic = getattr(exc, "diagnostic", None)
+    if diagnostic:
+        evidence["diagnostic"] = str(diagnostic)
+    operator_action = getattr(exc, "operator_action", None)
+    if operator_action:
+        evidence["operator_action"] = str(operator_action)
+    status_code = getattr(exc, "status_code", None)
+    if status_code is not None:
+        evidence["http_status"] = str(status_code)
+    return evidence

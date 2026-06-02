@@ -156,6 +156,7 @@ services:
                 client.initialize_admin_user("admin", operator_credential())
 
         self.assertIn("HTTP 409", str(raised.exception))
+        self.assertEqual(409, raised.exception.status_code)
         self.assertNotIn(sensitive_assignment(), str(raised.exception))
 
     def test_portainer_admin_client_accepts_failed_init_when_authentication_works(self):

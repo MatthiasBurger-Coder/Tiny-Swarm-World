@@ -762,7 +762,7 @@ class TestComposition(unittest.TestCase):
             ui=None,
             trace_correlation_id=services.workflows.run.trace_correlation_id,
         )
-        build_artifacts.assert_called_once_with(node_provider_request=None)
+        build_artifacts.assert_called_once_with(node_provider_request=None, ui=None)
         build_deployment.assert_called_once_with(
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             node_provider_request=None,
@@ -790,6 +790,17 @@ class TestComposition(unittest.TestCase):
             captured["trace_correlation_id"] = trace_correlation_id
             return _platform_phase_bundle()
 
+        def build_deployment(
+            *,
+            service_profile: object,
+            node_provider_request: object | None = None,
+            ui: object | None = None,
+        ):
+            captured["deployment_service_profile"] = service_profile
+            captured["deployment_node_provider_request"] = node_provider_request
+            captured["deployment_ui"] = ui
+            return _deployment_phase_bundle()
+
         with patch.object(composition, "build_preflight_service", return_value=_phase_bundle()):
             with patch.object(composition, "build_platform_services", side_effect=build_platform):
                 with patch.object(
@@ -800,7 +811,7 @@ class TestComposition(unittest.TestCase):
                     with patch.object(
                         composition,
                         "build_deployment_services_for_provider",
-                        return_value=_deployment_phase_bundle(),
+                        side_effect=build_deployment,
                     ):
                         services = composition.build_setup_services(live_consent, ui=ui)
 
@@ -812,7 +823,10 @@ class TestComposition(unittest.TestCase):
         method_trace_sinks = cast(composition.CompositeMethodTrace, method_trace_sink).sinks
 
         self.assertIs(ui, captured["ui"])
+        self.assertIs(ui, captured["deployment_ui"])
         self.assertIs(live_consent, captured["live_consent"])
+        self.assertEqual(ServiceStackProfile.SERVICE_ACCESS, captured["deployment_service_profile"])
+        self.assertIsNone(captured["deployment_node_provider_request"])
         self.assertEqual(
             services.workflows.run.trace_correlation_id,
             captured["trace_correlation_id"],

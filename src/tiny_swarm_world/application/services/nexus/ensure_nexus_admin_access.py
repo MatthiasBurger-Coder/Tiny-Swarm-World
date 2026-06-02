@@ -4,7 +4,15 @@ import time
 
 from tiny_swarm_world.application.ports.clients.port_container_runtime import PortContainerRuntime
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
+from tiny_swarm_world.application.ports.ui.port_ui import AGGREGATE_INSTANCE, PortUI
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+
+
+class NexusAdminAccessRecoveryBlocked(RuntimeError):
+    def __init__(self, message: str, *, diagnostic: str, operator_action: str):
+        super().__init__(message)
+        self.diagnostic = diagnostic
+        self.operator_action = operator_action
 
 
 class EnsureNexusAdminAccess:
@@ -20,6 +28,7 @@ class EnsureNexusAdminAccess:
         initial_password_path: str,
         max_attempts: int,
         wait_seconds: int,
+        ui: PortUI | None = None,
     ):
         self.nexus_client = nexus_client
         self.container_runtime = container_runtime
@@ -29,9 +38,28 @@ class EnsureNexusAdminAccess:
         self.initial_password_path = initial_password_path
         self.max_attempts = max_attempts
         self.wait_seconds = wait_seconds
+        self.ui = ui
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def run(self) -> None:
+        try:
+            self._run()
+        except Exception as exc:
+            safe_error = _safe_exception_summary(exc)
+            self.logger.error(
+                "Failed to ensure Nexus admin access. Error: %s",
+                safe_error,
+            )
+            if self.ui is not None:
+                self.ui.update_status(
+                    instance=AGGREGATE_INSTANCE,
+                    task=self.verification_target_id,
+                    step="Error",
+                    result="failed_to_apply",
+                )
+            raise
+
+    def _run(self) -> None:
         if self.nexus_client.can_authenticate(self.admin_username, self.admin_password):
             self.logger.info("Nexus admin credentials are already active.")
             return
@@ -39,7 +67,11 @@ class EnsureNexusAdminAccess:
         container_name = self._resolve_container_name()
         initial_password = self._read_initial_password(container_name)
 
-        admin_user = self.nexus_client.get_user(self.admin_username, initial_password, self.admin_username)
+        admin_user = self.nexus_client.get_user(
+            self.admin_username,
+            initial_password,
+            self.admin_username,
+        )
         if admin_user.status != "active":
             self.logger.info("Activating Nexus admin user.")
             self.nexus_client.update_user(
@@ -57,7 +89,14 @@ class EnsureNexusAdminAccess:
         )
 
         if not self.nexus_client.can_authenticate(self.admin_username, self.admin_password):
-            raise RuntimeError("Nexus admin password rotation completed without producing valid credentials.")
+            raise NexusAdminAccessRecoveryBlocked(
+                "Nexus admin password rotation completed without producing valid credentials.",
+                diagnostic="rotated_credentials_inactive",
+                operator_action=(
+                    "Check configured Nexus admin access value or reset existing "
+                    "Nexus state before rerunning setup."
+                ),
+            )
 
     def _resolve_container_name(self) -> str:
         for attempt in range(1, self.max_attempts + 1):
@@ -74,7 +113,11 @@ class EnsureNexusAdminAccess:
                 )
                 time.sleep(self.wait_seconds)
 
-        raise RuntimeError(f"No container found for filter '{self.container_name_filter}'.")
+        raise NexusAdminAccessRecoveryBlocked(
+            f"No container found for filter '{self.container_name_filter}'.",
+            diagnostic="nexus_container_not_found",
+            operator_action="Verify the Nexus stack service is running before rerunning setup.",
+        )
 
     def _read_initial_password(self, container_name: str) -> str:
         for attempt in range(1, self.max_attempts + 1):
@@ -91,7 +134,14 @@ class EnsureNexusAdminAccess:
                 )
                 time.sleep(self.wait_seconds)
 
-        raise RuntimeError(f"Could not read Nexus admin password from '{self.initial_password_path}'.")
+        raise NexusAdminAccessRecoveryBlocked(
+            f"Could not read Nexus admin password from '{self.initial_password_path}'.",
+            diagnostic="initial_admin_value_unavailable",
+            operator_action=(
+                "Check configured Nexus admin access value or reset existing Nexus "
+                "state before rerunning setup."
+            ),
+        )
 
     async def verify(self) -> VerificationResult:
         await asyncio.sleep(0)
@@ -117,3 +167,10 @@ class EnsureNexusAdminAccess:
             message="Nexus admin credentials are not active.",
             evidence={"access_state": "inactive", "phase": "verify"},
         )
+
+
+def _safe_exception_summary(exc: Exception) -> str:
+    diagnostic = getattr(exc, "diagnostic", None)
+    if diagnostic:
+        return f"{exc.__class__.__name__}. Diagnostic: {diagnostic}."
+    return f"{exc.__class__.__name__}. Diagnostic payload redacted."

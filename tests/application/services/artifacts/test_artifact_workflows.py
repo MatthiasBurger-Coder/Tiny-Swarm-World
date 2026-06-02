@@ -9,6 +9,9 @@ from tiny_swarm_world.application.services.artifacts.workflows import (
     ArtifactWorkflowKind,
     ArtifactWorkflowStatus,
 )
+from tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access import (
+    NexusAdminAccessRecoveryBlocked,
+)
 
 
 class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
@@ -68,6 +71,20 @@ class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("secret", result.reason)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
 
+    async def test_prepare_workflow_reports_safe_diagnostic_evidence(self):
+        step = _DiagnosticFailingPrepareStep()
+
+        result = await ArtifactPrepareWorkflow((step,)).run()
+
+        self.assertEqual(ArtifactWorkflowStatus.FAILED_TO_PREPARE, result.status)
+        self.assertIn("initial_admin_value_unavailable", result.reason)
+        self.assertEqual("initial_admin_value_unavailable", result.verification_results[0].evidence["diagnostic"])
+        self.assertEqual(
+            "NexusAdminAccessRecoveryBlocked",
+            result.verification_results[0].evidence["failure_class"],
+        )
+        self.assertIn("reset existing Nexus state", result.verification_results[0].evidence["operator_action"])
+
     async def test_prepare_workflow_reports_failed_verification(self):
         step = _FailedVerificationPrepareStep()
 
@@ -126,6 +143,25 @@ class _FailingPrepareStep:
     async def run(self) -> None:
         await async_checkpoint()
         raise RuntimeError(sensitive_assignment())
+
+    async def verify(self) -> VerificationResult:
+        await async_checkpoint()
+        return _verification_result(self.verification_target_id, VerificationStatus.VERIFIED)
+
+
+class _DiagnosticFailingPrepareStep:
+    verification_target_id = "artifacts:nexus-admin-access"
+
+    async def run(self) -> None:
+        await async_checkpoint()
+        raise NexusAdminAccessRecoveryBlocked(
+            "Could not read Nexus admin password from configured path.",
+            diagnostic="initial_admin_value_unavailable",
+            operator_action=(
+                "Check configured Nexus admin access value or reset existing Nexus "
+                "state before rerunning setup."
+            ),
+        )
 
     async def verify(self) -> VerificationResult:
         await async_checkpoint()
