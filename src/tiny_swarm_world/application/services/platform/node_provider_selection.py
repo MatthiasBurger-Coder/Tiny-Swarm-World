@@ -40,18 +40,12 @@ class NodeProviderSelectionService:
         request: NodeProviderSelectionRequest | None = None,
     ) -> ProviderSelection:
         selection_request = request or NodeProviderSelectionRequest()
-        if selection_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
-            return ProviderSelection.explicit_multipass_legacy(
-                remediation=(
-                    "Multipass is a legacy provider and must be selected explicitly.",
-                )
-            )
         if selection_request.requested_provider == NodeProviderKind.UNSUPPORTED:
             return ProviderSelection(
                 requested_provider=NodeProviderKind.UNSUPPORTED,
                 selected_provider=NodeProviderKind.UNSUPPORTED,
                 status=ProviderSelectionStatus.UNSUPPORTED,
-                remediation=("Select lxc_native or explicit multipass_legacy.",),
+                remediation=("Select lxc_native.",),
             )
 
         readiness = await self.readiness_probe.provider_readiness(

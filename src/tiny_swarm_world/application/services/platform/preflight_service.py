@@ -6,8 +6,6 @@ from collections.abc import Mapping
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentReport,
-    HostRuntimeReadiness,
-    HostRuntimeReadinessStatus,
     LiveConsent,
     PreflightCategory,
     PreflightCheck,
@@ -164,13 +162,6 @@ class PreflightService:
     def _runtime_checks(self) -> tuple[PreflightCheck, ...]:
         checks: list[PreflightCheck] = []
         for runtime in self.configuration.required_runtime_readiness:
-            if runtime.name == "multipass":
-                checks.append(
-                    _runtime_readiness_check(
-                        self.host_probe.multipass_runtime_readiness(runtime.expected_driver)
-                    )
-                )
-                continue
             checks.append(
                 _failed(
                     f"RUNTIME-{runtime.name.upper()}-UNSUPPORTED",
@@ -451,95 +442,6 @@ def _failed(
         remediation=remediation,
         evidence=evidence or {},
     )
-
-
-def _runtime_readiness_check(readiness: HostRuntimeReadiness) -> PreflightCheck:
-    evidence = {
-        "runtime": readiness.runtime,
-        "classification": readiness.status.value.lower(),
-        **readiness.evidence,
-    }
-    if readiness.ready:
-        return _passed(
-            _runtime_check_id(readiness),
-            PreflightCategory.RUNTIME,
-            f"{_runtime_label(readiness.runtime)} runtime is reachable.",
-            evidence,
-        )
-
-    message, remediation = _runtime_failure_guidance(readiness)
-    return _failed(
-        _runtime_check_id(readiness),
-        PreflightCategory.RUNTIME,
-        message,
-        remediation,
-        evidence,
-    )
-
-
-def _runtime_check_id(readiness: HostRuntimeReadiness) -> str:
-    suffix_by_status = {
-        HostRuntimeReadinessStatus.READY: "",
-        HostRuntimeReadinessStatus.EXECUTABLE_MISSING: "-EXECUTABLE",
-        HostRuntimeReadinessStatus.SOCKET_UNAVAILABLE: "-SOCKET",
-        HostRuntimeReadinessStatus.DAEMON_UNAVAILABLE: "-DAEMON",
-        HostRuntimeReadinessStatus.PERMISSION_DENIED: "-PERMISSION",
-        HostRuntimeReadinessStatus.DRIVER_UNAVAILABLE: "-DRIVER",
-        HostRuntimeReadinessStatus.DRIVER_MISMATCH: "-DRIVER",
-        HostRuntimeReadinessStatus.UNKNOWN_FAILURE: "-UNKNOWN",
-    }
-    return f"RUNTIME-{readiness.runtime.upper()}{suffix_by_status[readiness.status]}"
-
-
-def _runtime_failure_guidance(readiness: HostRuntimeReadiness) -> tuple[str, str]:
-    runtime = _runtime_label(readiness.runtime)
-    if readiness.status == HostRuntimeReadinessStatus.EXECUTABLE_MISSING:
-        return (
-            f"{runtime} executable is not available.",
-            "Install Multipass or make it available on PATH before live setup.",
-        )
-    if readiness.status == HostRuntimeReadinessStatus.SOCKET_UNAVAILABLE:
-        return (
-            f"{runtime} daemon or socket is not reachable.",
-            (
-                "Start or repair the Multipass service and verify read-only access from "
-                "the same Linux/WSL shell before rerunning live setup."
-            ),
-        )
-    if readiness.status == HostRuntimeReadinessStatus.DAEMON_UNAVAILABLE:
-        return (
-            f"{runtime} daemon did not answer the readiness probe.",
-            "Start or repair the Multipass service before rerunning live setup.",
-        )
-    if readiness.status == HostRuntimeReadinessStatus.PERMISSION_DENIED:
-        return (
-            f"{runtime} is installed but not accessible for the current user.",
-            (
-                "Fix Multipass socket permissions or run from a Linux/WSL user with "
-                "access to the Multipass service."
-            ),
-        )
-    if readiness.status == HostRuntimeReadinessStatus.DRIVER_UNAVAILABLE:
-        return (
-            f"{runtime} driver state could not be read.",
-            "Repair Multipass driver configuration before live setup.",
-        )
-    if readiness.status == HostRuntimeReadinessStatus.DRIVER_MISMATCH:
-        expected_driver = readiness.evidence.get("expected_driver", "the expected driver")
-        return (
-            f"{runtime} uses an unsupported driver for this setup profile.",
-            f"Configure Multipass to use {expected_driver} or document an approved driver change.",
-        )
-    return (
-        f"{runtime} readiness could not be verified.",
-        "Repair the host runtime and rerun live preflight before mutation.",
-    )
-
-
-def _runtime_label(runtime: str) -> str:
-    if runtime == "multipass":
-        return "Multipass"
-    return runtime
 
 
 def _secret_present_message(value_kind: str, service: str) -> str:

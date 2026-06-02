@@ -223,7 +223,7 @@ class FailingRunner(PortCommandRunner):
             command=command,
             return_code=2,
             stdout="raw vm output",
-            stderr="cannot connect to the multipass socket",
+            stderr="cannot connect to the provider socket",
         )
 
 
@@ -290,9 +290,9 @@ async def _assert_redacted_runner_ui_failure(runner_ui):
     )
     text = f"{text} {context.exception}"
     unittest.TestCase().assertIn("return code 2", text)
-    unittest.TestCase().assertNotIn("cannot connect to the multipass socket", text)
+    unittest.TestCase().assertNotIn("cannot connect to the provider socket", text)
     unittest.TestCase().assertNotIn("raw vm output", text)
-    unittest.TestCase().assertNotIn("multipass info", text)
+    unittest.TestCase().assertNotIn("incus info", text)
 
 
 async def _assert_arbitrary_runner_ui_failure_redacted(runner_ui):

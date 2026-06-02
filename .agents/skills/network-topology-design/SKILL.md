@@ -42,7 +42,6 @@ keeping external mutations explicit and testable.
 
 ## Collaboration with other skills
 
-- Pair with `multipass-vm-provisioning`.
 - Pair with `swarm-volume-network-governance`.
 - Pair with `reverse-proxy-routing` for routing behavior.
 

@@ -7,9 +7,8 @@
 
 Tiny Swarm World deploys local infrastructure services into a Docker Swarm
 environment whose default node provider is managed LXC through LXD or Incus.
-Multipass remains an explicit legacy/fallback provider. The deployment
-documentation is intentionally limited to the workflows that exist in this
-repository today.
+The deployment documentation is intentionally limited to the workflows that
+exist in this repository today.
 
 This project is developed and operated from WSL or Linux shells. Windows-specific shell commands are not the default execution model.
 
@@ -36,8 +35,8 @@ the `lxc_native` provider selection path and blocks before mutation when
 LXD/Incus readiness or profile requirements are not satisfied. Default
 platform reconcile, artifact workflows, and deployment workflows block at
 provider-native boundaries until their LXC-native contracts are wired.
-Explicit `--node-provider multipass_legacy` routes to legacy fallback
-behavior.
+Unsupported node-provider values fail closed; they are not remapped to another
+provider.
 
 The Deployment boundary now contains a tested post-bootstrap
 `EnsurePortainerStack` application service and a sanitized Portainer HTTP
@@ -81,7 +80,7 @@ When a virtual environment is active, `python` can be used instead of `python3`.
 
 The quality gate covers linting, import architecture checks, architecture
 tests, type checks, and unittest discovery. It does not start LXD/Incus/LXC
-containers, Multipass VMs, initialize Docker Swarm, or deploy live services.
+containers, initialize Docker Swarm, or deploy live services.
 
 == Service preparation
 
@@ -213,8 +212,7 @@ docker stack ls
 docker service ls
 ----
 
-Use either the `incus` or `lxc` command according to the selected backend. Use
-`multipass list` only for explicit `--node-provider multipass_legacy` runs.
+Use either the `incus` or `lxc` command according to the selected backend.
 
 Service-specific web interfaces depend on the published stack ports. Typical local defaults are documented in `documentation/Howto.adoc`.
 
@@ -227,7 +225,7 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
 When prompted, answer `y` only if the operator intentionally accepts local
-LXD/Incus/LXC or explicit Multipass legacy provider state, Docker Swarm,
+LXD/Incus/LXC provider state, Docker Swarm,
 networking, service bootstrap, image, and stack changes. A live smoke result
 is evidence for that local run only and must not be treated as the default
 repository quality gate.

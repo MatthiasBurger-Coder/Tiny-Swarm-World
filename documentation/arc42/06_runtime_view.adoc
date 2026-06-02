@@ -20,9 +20,9 @@ delegates all sequencing to the setup application workflow.
 The composition root builds `ApplicationServices` as an aggregate of three
 service bundles:
 
-* `platform` for default LXC-native provider selection, LXD/Incus readiness,
-  managed node lifecycle, explicit Multipass legacy/fallback behavior,
-  network, Docker, Swarm, preflight, node/VM IP, and socat automation.
+* `platform` for LXC-native provider selection, LXD/Incus readiness, managed
+  node lifecycle, network, Docker, Swarm, preflight, node/VM IP, and socat
+  automation.
 * `artifacts` for artifact registry and publishing workflow contracts.
 * `deployment` for stack lifecycle behavior, starting with Nexus stack
   create/update ownership in the application service namespace.
@@ -31,7 +31,7 @@ Provider migration status: LXC-native through LXD or Incus is the implemented
 default selection and setup/platform init direction. The runtime now has
 provider-neutral contracts, LXD/Incus readiness checks, node lifecycle
 adapters, Docker Engine setup and Swarm bootstrap adapters, setup integration,
-and an explicit `multipass_legacy` boundary. Default platform reconcile is
+and fail-closed unsupported-provider behavior. Default platform reconcile is
 currently a verified no-op boundary for `lxc_native` after Platform init.
 Artifact workflows and deployment workflows still block at provider-native
 boundaries until their LXC-native contracts are wired. No documentation may
@@ -77,8 +77,6 @@ The current artifact and deployment runtime flow is deliberately fail-closed:
   and then verify stack registration through `PortPortainerClient`. On the
   default `lxc_native` path, CLI composition currently returns blocked
   provider-boundary workflows instead of wiring Portainer-managed apply steps.
-  Explicit `multipass_legacy` keeps the legacy fallback deployment clients
-  available.
 * `deployment verify` dispatches without live consent and returns `blocked`
   by default. When configured with the current default service stack checks,
   it can observe Portainer stack registration but still returns `blocked`
@@ -165,7 +163,7 @@ targets under `infra/config`. Verification evidence stores typed summaries
 through `VerificationResult`; raw command strings, stdout, stderr, environment
 payloads, and keys that imply secrets are rejected before persistence.
 
-No live LXD, Incus, LXC container lifecycle, Multipass, Docker Swarm, netplan,
+No live LXD, Incus, LXC container lifecycle, Docker Swarm, netplan,
 socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, compose, or stack
 deployment command is required to create or round-trip these inventory
 artifacts in tests.
@@ -184,8 +182,7 @@ container Docker setup and Swarm bootstrap when live consent and provider
 contracts allow mutation. It blocks before mutation when readiness, backend
 selection, WSL2 capability, or provider profile requirements are not
 satisfied. Default `platform reconcile` returns a verified `lxc_native` no-op
-boundary after Platform init. Explicit `multipass_legacy` selection keeps the
-legacy Multipass init and reconcile steps separate from the default path.
+boundary after Platform init.
 
 Continuation requires both parts:
 
@@ -206,11 +203,9 @@ The non-mutating `platform verify` workflow also interprets preflight results.
 Failed preflight checks now return `failed_to_verify` with summary-only
 verification evidence instead of reporting a completed verify workflow.
 Static preflight does not claim live provider readiness. The default
-`lxc_native` path removes Multipass as a required dependency for static
-preflight, while LXD/Incus readiness, WSL2 capability, backend ambiguity, and
-Docker-in-container profile requirements are evaluated by the platform init
-provider guard before mutation. Explicit `multipass_legacy` selection keeps
-the legacy Multipass readiness path separate.
+`lxc_native` path evaluates LXD/Incus readiness, WSL2 capability, backend
+ambiguity, and Docker-in-container profile requirements through the platform
+init provider guard before mutation.
 
 === Autonomous Setup Runtime Flow
 
@@ -241,9 +236,8 @@ observed service readiness must be reported as `refused`, `blocked`,
 
 The provider selected by setup defaults to `lxc_native` through LXD or Incus.
 If both managed backends are usable, the operator must choose one explicitly
-with `--lxc-backend`. Multipass is available only through explicit
-`--node-provider multipass_legacy` selection; it must not be used as a silent
-fallback after LXD/Incus readiness fails.
+with `--lxc-backend`. Unsupported provider values fail closed and are not used
+as silent fallbacks after LXD/Incus readiness fails.
 
 Optional live smoke validation remains a separate operator action and is not
 part of default architecture tests or the default quality gate.

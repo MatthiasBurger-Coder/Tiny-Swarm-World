@@ -96,7 +96,7 @@ class TestCommandSpec(unittest.TestCase):
                     allowed_workflows=[CommandWorkflowId.PLATFORM_RESET.value]
                     if safety_class == CommandSafetyClass.DESTRUCTIVE.value
                     else [CommandWorkflowId.PLATFORM_INIT.value],
-                    command="multipass delete --all"
+                    command="docker system prune --all"
                     if safety_class == CommandSafetyClass.DESTRUCTIVE.value
                     else "echo ok",
                 )
@@ -107,7 +107,7 @@ class TestCommandSpec(unittest.TestCase):
 
     def test_destructive_shell_pattern_requires_destructive_safety_class(self):
         spec = _command_spec(
-            command="multipass delete --all",
+            command="docker system prune --all",
             safety_class="safe_mutation",
             verify={"type": "manual", "description": "verify deletion"},
         )
@@ -117,7 +117,7 @@ class TestCommandSpec(unittest.TestCase):
 
     def test_destructive_commands_are_limited_to_reset_or_destroy(self):
         spec = _command_spec(
-            command="multipass purge",
+            command="docker volume rm tsw-data",
             safety_class="destructive",
             allowed_workflows=[CommandWorkflowId.PLATFORM_INIT.value],
             verify={"type": "manual", "description": "verify purge"},
@@ -189,7 +189,7 @@ def _command_spec(**overrides: object) -> dict[str, object]:
         "parameters": [],
         "effects": ["read"],
         "verify": {"type": "none", "description": "Read-only command."},
-        "command": "multipass list",
+        "command": "docker ps",
         "runner": "async",
         "command_type": "hostos",
         "vm_type": ["none"],

@@ -40,8 +40,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             "`infra/compose/service-access/dashboard/**`": "Supported Asset",
             "`infra/compose/service-access/nginx/**`": "Supported Asset",
             "`infra/swarm/**`": "Legacy",
-            "`infra/swarm/prepere.py`": "Legacy",
-            "`infra/swarm/network/network_manager.py`": "Legacy",
+            "`infra/swarm/file_copy.py`": "Legacy",
         }
 
         for path, status in expected_rows.items():
@@ -211,7 +210,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
     def test_swarm_legacy_area_documents_unsupported_entrypoint(self):
         readme = _read_infra_document("swarm/README.md")
 
-        self.assertIn("prepere.py", readme)
+        self.assertIn("file_copy.py", readme)
         self.assertIn("legacy", readme.lower())
         self.assertIn("src/tiny_swarm_world/__main__.py", readme)
         self.assertIn("normal development quality checks", readme)

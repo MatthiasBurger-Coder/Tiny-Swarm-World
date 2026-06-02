@@ -96,7 +96,7 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Set a provider backend preference.", selection.remediation)
         self.assertIn("Both managed LXC backends are usable.", selection.remediation)
 
-    async def test_missing_backend_blocks_without_multipass_fallback(self):
+    async def test_missing_backend_blocks_without_provider_fallback(self):
         readiness = _ReadinessProbe(
             ProviderReadiness(
                 provider=NodeProviderKind.LXC_NATIVE,
@@ -113,11 +113,10 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(selection.selected)
         self.assertEqual(NodeProviderKind.LXC_NATIVE, selection.requested_provider)
         self.assertEqual(NodeProviderKind.LXC_NATIVE, selection.selected_provider)
-        self.assertNotEqual(NodeProviderKind.MULTIPASS_LEGACY, selection.selected_provider)
         self.assertEqual(ProviderSelectionStatus.BLOCKED, selection.status)
         self.assertEqual(ManagedLxcBackendSelectionStatus.MISSING, selection.backend_selection.status)
 
-    async def test_unsupported_lxc_backend_blocks_without_multipass_fallback(self):
+    async def test_unsupported_lxc_backend_blocks_without_provider_fallback(self):
         readiness = _ReadinessProbe(
             ProviderReadiness(
                 provider=NodeProviderKind.LXC_NATIVE,
@@ -133,29 +132,7 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(selection.selected)
         self.assertEqual(NodeProviderKind.LXC_NATIVE, selection.selected_provider)
-        self.assertNotEqual(NodeProviderKind.MULTIPASS_LEGACY, selection.selected_provider)
         self.assertEqual(ManagedLxcBackendSelectionStatus.UNSUPPORTED, selection.backend_selection.status)
-
-    async def test_explicit_multipass_legacy_selection_is_operator_visible(self):
-        readiness = _ReadinessProbe(
-            ProviderReadiness(
-                provider=NodeProviderKind.LXC_NATIVE,
-                status=ProviderReadinessStatus.BACKEND_MISSING,
-                backend_selection=ManagedLxcBackendSelection.missing(),
-            )
-        )
-
-        selection = await NodeProviderSelectionService(readiness).select_provider(
-            NodeProviderSelectionRequest(
-                requested_provider=NodeProviderKind.MULTIPASS_LEGACY,
-            )
-        )
-
-        self.assertTrue(selection.selected)
-        self.assertEqual(NodeProviderKind.MULTIPASS_LEGACY, selection.requested_provider)
-        self.assertEqual(NodeProviderKind.MULTIPASS_LEGACY, selection.selected_provider)
-        self.assertIn("explicitly", " ".join(selection.remediation))
-        self.assertEqual([], readiness.calls)
 
     async def test_unsupported_provider_request_blocks_selection(self):
         readiness = _ReadinessProbe(

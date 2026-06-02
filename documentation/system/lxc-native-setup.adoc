@@ -2,8 +2,7 @@
 
 Tiny Swarm World uses `lxc_native` as the default node provider. The provider
 is managed through LXD or Incus, not through raw low-level LXC lifecycle
-commands. Multipass remains available only when an operator explicitly selects
-`--node-provider multipass_legacy`.
+commands. Multipass is not a supported node-provider path.
 
 This page documents host preparation and safe checks. It is not live proof
 that a particular Windows/WSL2, LXD, Incus, Docker-in-container, or Docker
@@ -28,7 +27,7 @@ cat /proc/sys/kernel/unprivileged_userns_clone
 
 The project preflight checks these capabilities before provider mutation. A
 failed WSL2 capability check blocks the default provider path; it does not
-silently fall back to Multipass.
+silently fall back to another provider.
 
 == LXD Installation
 
@@ -98,7 +97,6 @@ It declares:
 
 * `default_provider: lxc_native`;
 * candidate backends `incus` and `lxd`;
-* `multipass_legacy` as `explicit_only`;
 * node names `swarm-manager`, `swarm-worker-1`, and `swarm-worker-2`;
 * the `docker-swarm` profile requirements.
 

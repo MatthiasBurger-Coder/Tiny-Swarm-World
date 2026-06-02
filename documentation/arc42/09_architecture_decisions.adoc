@@ -29,8 +29,8 @@ Consequences:
 * `ApplicationServices` aggregates `PlatformServices`, `ArtifactServices`, and
   `DeploymentServices`;
 * Platform workflows own LXD/Incus provider readiness and node lifecycle,
-  Multipass legacy/fallback behavior, netplan legacy behavior, Docker install,
-  Swarm, preflight, and node or VM/IP behavior;
+  netplan legacy behavior, Docker install, Swarm, preflight, and node or
+  VM/IP behavior;
 * the Deployment namespace owns `EnsureNexusStack`, and deployment workflow
   composition owns explicit blocked contracts until live Portainer behavior is
   implemented;
@@ -109,8 +109,8 @@ Consequences:
 * default platform reconcile, artifact/deployment behavior, Docker
   Swarm-in-container health, and WSL2 live success remain unverified or
   blocked;
-* Multipass remains compatibility surface behind explicit
-  `multipass_legacy` provider selection rather than a silent fallback;
+* removed provider selections fail closed rather than becoming silent
+  fallbacks;
 * WSL2 LXD/Incus behavior is capability-gated and requires target-specific
   live evidence before it can be claimed as working;
 * Docker-in-container profile requirements, privileged profile choices, host

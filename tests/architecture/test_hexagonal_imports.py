@@ -13,9 +13,7 @@ ARCHITECTURE_DOCUMENTATION_ROOT = REPOSITORY_ROOT / "documentation" / "architect
 PACKAGE_NAME = "tiny_swarm_world"
 TARGET_RESPONSIBILITY_BOUNDARIES = ("platform", "artifacts", "deployment", "shared")
 PLATFORM_APPLICATION_SERVICE_ROOTS = (
-    APPLICATION_SERVICES_ROOT / "multipass",
     APPLICATION_SERVICES_ROOT / "network",
-    APPLICATION_SERVICES_ROOT / "vm",
     APPLICATION_SERVICES_ROOT / "platform",
 )
 DEPLOYMENT_APPLICATION_SERVICE_ROOTS = (
@@ -28,10 +26,8 @@ CONSOLE_UI_INFRASTRUCTURE_ROOT = SOURCE_ROOT / "infrastructure" / "adapters" / "
 CLI_ENTRYPOINT = SOURCE_ROOT / "__main__.py"
 ALLOWED_APPLICATION_SERVICE_DIRECTORIES = {
     "commands",
-    "multipass",
     "network",
     "nexus",
-    "vm",
     "setup",
     *TARGET_RESPONSIBILITY_BOUNDARIES,
 }
@@ -119,7 +115,7 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
         service_directories = {
             path.name
             for path in APPLICATION_SERVICES_ROOT.iterdir()
-            if path.is_dir() and not path.name.startswith("__")
+            if _is_application_service_directory(path)
         }
 
         unexpected_directories = sorted(service_directories - ALLOWED_APPLICATION_SERVICE_DIRECTORIES)
@@ -140,7 +136,6 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
 
     def test_deployment_application_services_have_no_platform_infrastructure_imports(self):
         forbidden_prefixes = (
-            "tiny_swarm_world.application.services.multipass",
             "tiny_swarm_world.application.services.network",
             "tiny_swarm_world.application.services.vm",
             "tiny_swarm_world.infrastructure",
@@ -195,7 +190,6 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
 
     def test_artifact_application_services_have_no_platform_or_deployment_imports(self):
         forbidden_prefixes = (
-            "tiny_swarm_world.application.services.multipass",
             "tiny_swarm_world.application.services.network",
             "tiny_swarm_world.application.services.vm",
             "tiny_swarm_world.application.services.deployment",
@@ -313,6 +307,15 @@ def _direct_imports(source_file: Path) -> list[tuple[str, int]]:
 
 def _is_forbidden_import(imported: str, forbidden_prefix: str) -> bool:
     return imported == forbidden_prefix or imported.startswith(f"{forbidden_prefix}.")
+
+
+def _is_application_service_directory(path: Path) -> bool:
+    if not path.is_dir() or path.name.startswith("__"):
+        return False
+    return any(
+        source_file.is_file() and "__pycache__" not in source_file.parts
+        for source_file in path.rglob("*.py")
+    )
 
 
 def _architecture_document(document_name: str) -> str:

@@ -17,7 +17,6 @@ from tiny_swarm_world.domain.node_provider import (
 class TestProviderModel(unittest.TestCase):
     def test_provider_kind_values_match_provider_adr(self):
         self.assertEqual("lxc_native", NodeProviderKind.LXC_NATIVE.value)
-        self.assertEqual("multipass_legacy", NodeProviderKind.MULTIPASS_LEGACY.value)
         self.assertEqual("unsupported", NodeProviderKind.UNSUPPORTED.value)
 
     def test_readiness_status_values_cover_provider_preflight_failures(self):
@@ -169,7 +168,7 @@ class TestProviderModel(unittest.TestCase):
                 self.assertFalse(readiness.ready)
                 self.assertTrue(readiness.blocks_mutation)
 
-    def test_lxc_native_failure_classification_does_not_select_multipass(self):
+    def test_lxc_native_failure_classification_blocks_without_fallback(self):
         selection = ProviderSelection.from_lxc_backend_selection(
             ManagedLxcBackendSelection.ambiguous(
                 candidates=(ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD),
@@ -182,7 +181,6 @@ class TestProviderModel(unittest.TestCase):
         self.assertEqual(ProviderSelectionStatus.BLOCKED, selection.status)
         self.assertTrue(selection.blocks_mutation)
         self.assertFalse(selection.selected)
-        self.assertNotEqual(NodeProviderKind.MULTIPASS_LEGACY, selection.selected_provider)
 
         with self.assertRaises(ValueError):
             ProviderSelection(
@@ -191,15 +189,6 @@ class TestProviderModel(unittest.TestCase):
                 status=ProviderSelectionStatus.SELECTED,
                 backend_selection=ManagedLxcBackendSelection.missing(),
             )
-
-    def test_explicit_multipass_legacy_selection_is_operator_visible(self):
-        selection = ProviderSelection.explicit_multipass_legacy(
-            remediation=("Legacy fallback selected explicitly.",),
-        )
-
-        self.assertTrue(selection.selected)
-        self.assertEqual(NodeProviderKind.MULTIPASS_LEGACY, selection.selected_provider)
-        self.assertEqual(["Legacy fallback selected explicitly."], selection.to_dict()["remediation"])
 
     def test_unsupported_provider_selection_blocks_mutation(self):
         selection = ProviderSelection(
@@ -215,11 +204,6 @@ class TestProviderModel(unittest.TestCase):
 
     def test_provider_selection_rejects_requested_selected_mismatch(self):
         cases = (
-            (
-                NodeProviderKind.MULTIPASS_LEGACY,
-                NodeProviderKind.LXC_NATIVE,
-                ProviderSelectionStatus.SELECTED,
-            ),
             (
                 NodeProviderKind.UNSUPPORTED,
                 NodeProviderKind.LXC_NATIVE,
@@ -254,14 +238,6 @@ class TestProviderModel(unittest.TestCase):
                 name="Manager One",
                 role=NodeRole.MANAGER,
                 provider=NodeProviderKind.LXC_NATIVE,
-            )
-
-        with self.assertRaises(ValueError):
-            NodeSpec(
-                name="legacy-worker",
-                role=NodeRole.WORKER,
-                provider=NodeProviderKind.MULTIPASS_LEGACY,
-                backend=ManagedLxcBackend.INCUS,
             )
 
         with self.assertRaises(ValueError):

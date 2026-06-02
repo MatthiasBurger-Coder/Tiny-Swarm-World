@@ -8,7 +8,7 @@ description: Use for Tiny Swarm World system architecture governance and project
 ## Purpose
 
 Preserve Tiny Swarm World's identity as a Linux/WSL-only Python automation
-project for Multipass-backed Docker Swarm environments.
+project for LXD/Incus-backed Docker Swarm environments.
 
 ## Responsibilities
 

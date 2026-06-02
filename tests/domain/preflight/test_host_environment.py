@@ -27,7 +27,7 @@ class TestHostEnvironmentReport(unittest.TestCase):
         report = HostEnvironmentReport(
             environment=HostEnvironmentKind.NATIVE_LINUX,
             setup_path=SetupPath.NATIVE_LINUX,
-            remediation=("Verify Multipass readiness before setup.",),
+            remediation=("Verify provider readiness before setup.",),
             evidence={"kernel_family": "linux"},
         )
 
@@ -107,8 +107,8 @@ class TestHostEnvironmentReport(unittest.TestCase):
 
     def test_evidence_rejects_unsafe_values_even_when_key_is_generic(self):
         unsafe_values = (
-            "multipass list",
-            "Multipass list",
+            "incus list",
+            "lxc list",
             "netplan apply",
             "curl http://example.invalid",
             "docker-compose up",

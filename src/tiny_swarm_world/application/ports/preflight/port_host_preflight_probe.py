@@ -6,7 +6,6 @@ from collections.abc import Mapping, Sequence
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentKind,
     HostEnvironmentReport,
-    HostRuntimeReadiness,
     SetupPath,
 )
 
@@ -37,13 +36,6 @@ class PortHostPreflightProbe(ABC):
 
     @abstractmethod
     def executable_available(self, name: str) -> bool:
-        pass
-
-    @abstractmethod
-    def multipass_runtime_readiness(
-        self,
-        expected_driver: str | None = None,
-    ) -> HostRuntimeReadiness:
         pass
 
     @abstractmethod

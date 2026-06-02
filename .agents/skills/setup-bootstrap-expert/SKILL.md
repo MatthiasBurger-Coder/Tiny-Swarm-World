@@ -31,7 +31,7 @@ development verification.
 
 ## Boundaries
 
-- Do not run `multipass`, Docker Swarm, compose deployment, netplan, `socat` or
+- Do not run LXD, Incus, LXC, Docker Swarm, compose deployment, netplan, `socat` or
   service bootstrap scripts unless explicitly requested.
 - Do not add Windows-native runtime behavior.
 

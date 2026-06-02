@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from tiny_swarm_world.domain.command.command_runner_type_enum import CommandRunnerType
 from tiny_swarm_world.domain.command.command_type_enum import CommandType
-from tiny_swarm_world.domain.multipass.vm_type import VmType
+from tiny_swarm_world.domain.command.vm_type import VmType
 
 
 class CommandCatalogValidationError(ValueError):
@@ -28,7 +28,6 @@ class CommandSafetyClass(str, Enum):
 class CommandScope(str, Enum):
     HOST = "host"
     VM = "vm"
-    MULTIPASS = "multipass"
     DOCKER = "docker"
     SWARM = "swarm"
     NETWORK = "network"
@@ -73,8 +72,6 @@ DESTRUCTIVE_WORKFLOWS = frozenset(
 )
 
 DESTRUCTIVE_COMMAND_PATTERNS = (
-    re.compile(r"\bmultipass\s+delete\b", re.IGNORECASE),
-    re.compile(r"\bmultipass\s+purge\b", re.IGNORECASE),
     re.compile(r"\bdocker\s+system\s+prune\b", re.IGNORECASE),
     re.compile(r"\bdocker\s+volume\s+rm\b", re.IGNORECASE),
     re.compile(r"\bdocker\s+stack\s+rm\b", re.IGNORECASE),
@@ -131,7 +128,7 @@ class CommandEntity(BaseModel):
     :param effects: Declared side effects or read effects
     :param verify: Verification specification for the command
     :param command: The actual command template
-    :param runner: CommandRunner type (async, multipass, ...)
+    :param runner: CommandRunner type (async, rest, ansible, ...)
     :param command_type: Command type (HOSTOS, VM, ...)
     :param vm_type: VM types (worker, manager, ...)
     """

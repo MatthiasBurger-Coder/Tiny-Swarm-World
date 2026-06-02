@@ -69,8 +69,8 @@ Remaining debt:
 The LXC-native provider direction is accepted and partially implemented.
 Default provider selection, LXD/Incus readiness, node lifecycle adapters,
 Docker Engine setup inside managed LXC nodes, Swarm bootstrap, setup/platform
-init integration, LXC-native reconcile no-op completion, and the explicit
-Multipass legacy boundary are implemented and test-backed.
+init integration, LXC-native reconcile no-op completion, and unsupported
+provider rejection are implemented and test-backed.
 
 Remaining risks and debt:
 

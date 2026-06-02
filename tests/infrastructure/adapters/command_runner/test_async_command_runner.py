@@ -83,12 +83,12 @@ class TestAsyncCommandRunner(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(mock_subprocess.call_args.kwargs["start_new_session"])
 
     @patch("asyncio.create_subprocess_shell")
-    async def test_run_multipass_socket_failure_preserves_return_code_and_redacts_payload(
+    async def test_run_provider_socket_failure_preserves_return_code_and_redacts_payload(
         self,
         mock_subprocess,
     ):
-        command = "multipass info swarm-manager"
-        raw_stderr = "cannot connect to the multipass socket"
+        command = "incus info swarm-manager"
+        raw_stderr = "cannot connect to the provider socket"
         mock_process = AsyncMock()
         mock_process.communicate.return_value = (b"raw vm output", raw_stderr.encode("utf-8"))
         mock_process.returncode = 2

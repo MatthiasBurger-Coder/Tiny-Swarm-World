@@ -10,20 +10,13 @@ CONFIG_ROOT = REPOSITORY_ROOT / "infra" / "config"
 APPLICATION_SERVICES_ROOT = (
     REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "application" / "services"
 )
-MULTIPASS_INIT_SERVICE = (
-    APPLICATION_SERVICES_ROOT / "multipass" / "multipass_init_vms.py"
-)
 
 DESTRUCTIVE_COMMAND_PATTERNS = (
-    "multipass delete --all",
-    "multipass purge",
     "docker system prune",
     "docker volume rm",
     "docker stack rm",
 )
-DESTRUCTIVE_COMMAND_YAML_FILES = {
-    "infra/config/multipass/command_multipass_clean_repository_yaml.yaml",
-}
+DESTRUCTIVE_COMMAND_YAML_FILES = set()
 DESTRUCTIVE_WORKFLOWS = {"platform:reset", "platform:destroy"}
 
 
@@ -54,17 +47,6 @@ class TestInitSafetyContracts(unittest.TestCase):
                     violations[command["id"]] = sorted(allowed_workflows)
 
         self.assertEqual({}, violations)
-
-    def test_init_application_service_does_not_reference_destructive_yaml(self):
-        selected_config_files = _run_async_config_file_literals(MULTIPASS_INIT_SERVICE)
-        destructive_config_file_names = {
-            Path(path).name for path in DESTRUCTIVE_COMMAND_YAML_FILES
-        }
-
-        self.assertEqual(
-            [],
-            sorted(selected_config_files & destructive_config_file_names),
-        )
 
     def test_reconcile_application_services_do_not_reference_destructive_yaml(self):
         destructive_config_file_names = {

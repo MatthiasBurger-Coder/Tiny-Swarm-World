@@ -39,7 +39,7 @@ The guided setup path is the Python workflow-level command:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-When prompted, answer `y` only if changing the local Multipass, Docker Swarm,
+When prompted, answer `y` only if changing the local LXD/Incus/LXC, Docker Swarm,
 networking, service bootstrap, image, and stack state is intentional. Former
 direct Portainer and Nexus preparation scripts under `infra/prepare` have been
 retired.

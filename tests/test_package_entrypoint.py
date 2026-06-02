@@ -95,30 +95,10 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(NodeProviderKind.LXC_NATIVE.value, args.node_provider)
         self.assertEqual(ManagedLxcBackend.INCUS.value, args.lxc_backend)
 
-    async def test_explicit_multipass_provider_prints_legacy_warning(self):
-        services, workflows = _application_services_with_platform_workflows()
-        output = io.StringIO()
-
-        with patch.object(
-            entrypoint,
-            "build_application_services",
-            return_value=services,
-        ) as build_services:
-            with redirect_stdout(output):
-                await entrypoint.main(
-                    ["--node-provider", "multipass_legacy", "platform", "verify"]
-                )
-
-        build_services.assert_called_once_with(
-            live_consent=None,
-            service_profile=ServiceStackProfile.SERVICE_ACCESS.value,
-            node_provider_request=entrypoint.NodeProviderSelectionRequest(
-                requested_provider=NodeProviderKind.MULTIPASS_LEGACY
-            ),
-        )
-        workflows.verify.run.assert_awaited_once_with()
-        self.assertIn("LEGACY_NODE_PROVIDER_SELECTED", output.getvalue())
-        self.assertIn("optional fallback path", output.getvalue())
+    def test_multipass_provider_option_is_rejected(self):
+        with redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                entrypoint.parse_args(["--node-provider", "multipass_legacy"])
 
     def test_setup_installation_plan_lists_service_access_landing_page(self):
         output = io.StringIO()
@@ -402,61 +382,6 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 self.assertIn(expected_reason, str(payload["reason"]))
                 await asyncio.sleep(0)
 
-    async def test_explicit_multipass_provider_is_forwarded_to_boundary_builders(self):
-        legacy_request = entrypoint.NodeProviderSelectionRequest(
-            requested_provider=NodeProviderKind.MULTIPASS_LEGACY
-        )
-        cases = (
-            ("artifacts", "verify"),
-            ("deployment", "verify"),
-        )
-
-        for namespace, action in cases:
-            with self.subTest(workflow=f"{namespace} {action}"):
-                artifact_services, deployment_services, runs = _boundary_service_bundles()
-                output = io.StringIO()
-
-                with patch.object(
-                    entrypoint,
-                    "build_application_services",
-                    side_effect=AssertionError("boundary workflow must not build platform services"),
-                ):
-                    with patch.object(
-                        entrypoint,
-                        "build_artifact_services_for_provider",
-                        return_value=artifact_services,
-                    ) as build_artifact_services:
-                        with patch.object(
-                            entrypoint,
-                            "build_deployment_services_for_provider",
-                            return_value=deployment_services,
-                        ) as build_deployment_services:
-                            with redirect_stdout(output):
-                                with self.assertRaises(SystemExit) as raised:
-                                    await entrypoint.main(
-                                        [
-                                            "--node-provider",
-                                            "multipass_legacy",
-                                            namespace,
-                                            action,
-                                        ]
-                                    )
-
-                self.assertEqual(1, raised.exception.code)
-                if namespace == "artifacts":
-                    build_artifact_services.assert_called_once_with(
-                        node_provider_request=legacy_request
-                    )
-                    build_deployment_services.assert_not_called()
-                else:
-                    build_artifact_services.assert_not_called()
-                    build_deployment_services.assert_called_once_with(
-                        service_profile=ServiceStackProfile.SERVICE_ACCESS.value,
-                        node_provider_request=legacy_request,
-                    )
-                runs[(namespace, action)].assert_awaited_once_with()
-                self.assertIn("LEGACY_NODE_PROVIDER_SELECTED", output.getvalue())
-
     async def test_setup_run_dispatches_to_setup_workflow_after_live_consent(self):
         setup_result = SetupWorkflowResult(
             kind=SetupWorkflowKind.RUN,
@@ -497,50 +422,6 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         payload = _json_payload_from_output(output.getvalue())
         self.assertEqual("setup run", payload["workflow"])
         self.assertEqual("blocked", payload["status"])
-
-    async def test_explicit_multipass_provider_is_forwarded_to_setup_lifecycle(self):
-        setup_result = SetupWorkflowResult(
-            kind=SetupWorkflowKind.RUN,
-            status=SetupWorkflowStatus.BLOCKED,
-            message="setup run stopped during phase 'platform init'.",
-            reason="phase 'platform init' returned blocked",
-            executed=True,
-        )
-        legacy_request = entrypoint.NodeProviderSelectionRequest(
-            requested_provider=NodeProviderKind.MULTIPASS_LEGACY
-        )
-        output = io.StringIO()
-
-        with patch("builtins.input", return_value="y"):
-            with patch.object(
-                entrypoint,
-                "run_setup_with_terminal_status",
-                return_value=setup_result,
-            ) as run_setup:
-                with redirect_stdout(output):
-                    with self.assertRaises(SystemExit) as raised:
-                        await entrypoint.main(
-                            [
-                                "--node-provider",
-                                "multipass_legacy",
-                                "setup",
-                                "run",
-                                "--live",
-                            ]
-                        )
-
-        self.assertEqual(1, raised.exception.code)
-        live_consent = run_setup.call_args.args[0]
-        self.assertTrue(live_consent.accepted)
-        self.assertEqual("run", run_setup.call_args.args[1])
-        self.assertEqual(
-            {
-                "service_profile": ServiceStackProfile.SERVICE_ACCESS.value,
-                "node_provider_request": legacy_request,
-            },
-            run_setup.call_args.kwargs,
-        )
-        self.assertIn("LEGACY_NODE_PROVIDER_SELECTED", output.getvalue())
 
     async def test_setup_run_propagates_composition_lifecycle_failure(self):
         with patch("builtins.input", return_value="y"):
@@ -595,7 +476,6 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.logging",
             "tiny_swarm_world.application.ports.method_trace",
             "tiny_swarm_world.application.ports.progress",
-            "tiny_swarm_world.application.services.multipass",
             "tiny_swarm_world.application.services.network",
             "tiny_swarm_world.application.services.vm",
         )
@@ -678,11 +558,6 @@ def _application_services_with_platform_workflows(
         reset=SimpleNamespace(run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.RESET))),
         destroy=SimpleNamespace(run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.DESTROY))),
     )
-    low_level_services = {
-        "multipass_init_vms": SimpleNamespace(run=AsyncMock(side_effect=AssertionError)),
-        "network_setup_netplan": SimpleNamespace(run=AsyncMock(side_effect=AssertionError)),
-        "vm_ip_list": SimpleNamespace(run=AsyncMock(side_effect=AssertionError)),
-    }
     preflight = SimpleNamespace(
         run=AsyncMock(return_value=preflight_result or _FakePreflightResult(True))
     )
@@ -690,7 +565,6 @@ def _application_services_with_platform_workflows(
         platform=SimpleNamespace(
             workflows=workflows,
             preflight=preflight,
-            **low_level_services,
         )
     ), workflows
 

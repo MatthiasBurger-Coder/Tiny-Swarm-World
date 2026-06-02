@@ -9,13 +9,14 @@ from tiny_swarm_world.application.services.commands.command_builder.vm_parameter
 from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 from tiny_swarm_world.domain.command.command_entity import CommandCatalogValidationError
+from tiny_swarm_world.domain.command.vm_entity import VmEntity
+from tiny_swarm_world.domain.command.vm_type import VmType
 from tiny_swarm_world.domain.command.verification_probe import is_probe_allowed_for_workflow
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_runner_factory import CommandRunnerFactory
-from tiny_swarm_world.infrastructure.adapters.repositories.command_multipass_init_repository_yaml import (
+from tiny_swarm_world.infrastructure.adapters.repositories.command_repository_yaml import (
     PortCommandRepositoryYaml,
 )
-from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
 from tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui import AsyncCommandRunnerUI
 from tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui import SyncCommandRunnerUI
 
@@ -40,7 +41,7 @@ class CommandWorkflow(PortCommandWorkflow):
         command_repository_factory: CommandRepositoryFactory | None = None,
     ):
         self.command_runner_factory = command_runner_factory or CommandRunnerFactory()
-        self.vm_repository = vm_repository or PortVmRepositoryYaml()
+        self.vm_repository = vm_repository or _EmptyVmRepository()
         self.command_repository_factory = command_repository_factory or self._command_repository
 
     def build_command_list(
@@ -203,3 +204,26 @@ def _verification_classification(
     if is_probe_allowed_for_workflow(probe_id, workflow_id):
         return "command_backed"
     return "unknown_probe"
+
+
+class _EmptyVmRepository(PortVmRepository):
+    def get_all_vms(self) -> list[VmEntity]:
+        return []
+
+    def get_vm_by_name(self, name: str) -> VmEntity | None:
+        return None
+
+    def add_vm(self, vm: VmEntity) -> None:
+        raise ValueError("VM repository is not configured")
+
+    def remove_vm(self, name: str) -> None:
+        raise ValueError("VM repository is not configured")
+
+    def update_vm(self, vm: VmEntity) -> None:
+        raise ValueError("VM repository is not configured")
+
+    def find_all_vms(self) -> list[VmEntity]:
+        return []
+
+    def find_vm_instances_by_type(self, vm_type: VmType) -> list[str]:
+        return []

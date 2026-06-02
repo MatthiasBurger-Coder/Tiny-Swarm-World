@@ -60,12 +60,6 @@ from tiny_swarm_world.application.services.platform import (
     LxcDockerInstallStep,
     LxcSwarmBootstrapService,
     LxcSwarmBootstrapStep,
-    MultipassDockerInstall,
-    MultipassDockerSwarmInit,
-    MultipassInitVms,
-    MultipassRestartVMs,
-    NetworkPrepareNetplan,
-    NetworkSetupNetplan,
     NodeProviderEnsureNodeStep,
     NodeProviderSelectionRequest,
     NodeProviderSelectionService,
@@ -76,7 +70,6 @@ from tiny_swarm_world.application.services.platform import (
     PlatformVerifyWorkflow,
     PreflightService,
     SocatManager,
-    VmIpList,
 )
 from tiny_swarm_world.application.services.setup import (
     SetupWorkflow,
@@ -110,21 +103,6 @@ from tiny_swarm_world.domain.preflight import (
     default_preflight_configuration,
 )
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
-from tiny_swarm_world.infrastructure.adapters.clients.multipass_container_image_publisher import (
-    MultipassContainerImagePublisher,
-)
-from tiny_swarm_world.infrastructure.adapters.clients.multipass_container_runtime import (
-    MultipassContainerRuntime,
-)
-from tiny_swarm_world.infrastructure.adapters.clients.multipass_nexus_http_client import (
-    MultipassNexusHttpClient,
-)
-from tiny_swarm_world.infrastructure.adapters.clients.multipass_portainer_admin_client import (
-    MultipassPortainerAdminClient,
-)
-from tiny_swarm_world.infrastructure.adapters.clients.multipass_swarm_runtime import (
-    MultipassSwarmRuntime,
-)
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     AsyncLxcNodeCommandRunner,
     LxcNodeCommandRunner,
@@ -157,14 +135,12 @@ from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProb
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
     ComposeFileRepositoryYaml,
 )
-from tiny_swarm_world.infrastructure.adapters.repositories.netplan_repository import PortNetplanRepositoryYaml
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderConfigYamlRepository,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
     VerificationEvidenceLocalRepository,
 )
-from tiny_swarm_world.infrastructure.adapters.repositories.vm_repository_yaml import PortVmRepositoryYaml
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
@@ -184,18 +160,9 @@ DEFAULT_LXC_PLATFORM_NODES = (
     NodeSpec("swarm-worker-1", NodeRole.WORKER, NodeProviderKind.LXC_NATIVE),
     NodeSpec("swarm-worker-2", NodeRole.WORKER, NodeProviderKind.LXC_NATIVE),
 )
-LEGACY_ARTIFACT_PROVIDER_REQUIRED_REASON = (
-    "artifact workflows still use Multipass legacy clients; select explicit "
-    "--node-provider multipass_legacy to use the legacy fallback path"
-)
-LEGACY_DEPLOYMENT_PROVIDER_REQUIRED_REASON = (
-    "deployment workflows still use Multipass legacy clients; select explicit "
-    "--node-provider multipass_legacy to use the legacy fallback path"
-)
-LEGACY_RECONCILE_PROVIDER_REQUIRED_REASON = "multipass_legacy_required"
-LEGACY_RECONCILE_PROVIDER_REQUIRED_MESSAGE = (
-    "platform reconcile still uses Multipass legacy VM inventory; select "
-    "explicit --node-provider multipass_legacy to use the legacy fallback path"
+LXC_BACKEND_REQUIRED_REASON = "lxc_backend_required"
+LXC_BACKEND_REQUIRED_MESSAGE = (
+    "LXC-native workflows require an available or explicitly selected Incus or LXD backend."
 )
 LXC_RECONCILE_VERIFIED_REASON = "lxc_native_reconcile_noop"
 LXC_RECONCILE_VERIFIED_MESSAGE = (
@@ -215,20 +182,11 @@ class PlatformWorkflows:
 @dataclass(frozen=True)
 class PlatformServices:
     command_workflow: CommandWorkflow
-    vm_repository: PortVmRepositoryYaml
-    netplan_repository: PortNetplanRepositoryYaml
-    multipass_init_vms: MultipassInitVms
-    network_prepare_netplan: NetworkPrepareNetplan
-    network_setup_netplan: NetworkSetupNetplan
-    multipass_restart_vms: MultipassRestartVMs
-    multipass_docker_install: MultipassDockerInstall
-    multipass_docker_swarm_init: MultipassDockerSwarmInit
     lxc_docker_install: LxcDockerInstallService
     lxc_swarm_bootstrap: LxcSwarmBootstrapService
     preflight: PreflightService
     lxc_node_provider: LxcNodeProvider
     node_provider_selection: NodeProviderSelectionService
-    vm_ip_list: VmIpList
     socat_manager: SocatManager
     workflows: PlatformWorkflows
 
@@ -273,36 +231,8 @@ class ApplicationServices:
     deployment: DeploymentServices
 
     @property
-    def multipass_init_vms(self) -> MultipassInitVms:
-        return self.platform.multipass_init_vms
-
-    @property
-    def network_prepare_netplan(self) -> NetworkPrepareNetplan:
-        return self.platform.network_prepare_netplan
-
-    @property
-    def network_setup_netplan(self) -> NetworkSetupNetplan:
-        return self.platform.network_setup_netplan
-
-    @property
-    def multipass_restart_vms(self) -> MultipassRestartVMs:
-        return self.platform.multipass_restart_vms
-
-    @property
-    def multipass_docker_install(self) -> MultipassDockerInstall:
-        return self.platform.multipass_docker_install
-
-    @property
-    def multipass_docker_swarm_init(self) -> MultipassDockerSwarmInit:
-        return self.platform.multipass_docker_swarm_init
-
-    @property
     def preflight(self) -> PreflightService:
         return self.platform.preflight
-
-    @property
-    def vm_ip_list(self) -> VmIpList:
-        return self.platform.vm_ip_list
 
     @property
     def socat_manager(self) -> SocatManager:
@@ -709,9 +639,7 @@ def build_platform_services(
     method_trace = _build_method_trace_sink(ui)
     trace_correlation_id = trace_correlation_id or _new_installation_trace_correlation_id()
 
-    vm_repository = PortVmRepositoryYaml()
-    netplan_repository = PortNetplanRepositoryYaml()
-    command_workflow = CommandWorkflow(vm_repository=vm_repository)
+    command_workflow = CommandWorkflow()
     verification_evidence_repository = VerificationEvidenceLocalRepository()
     preflight = _build_preflight_service_for_request(service_profile, node_provider_request)
     lxc_runner = AsyncLxcNodeCommandRunner()
@@ -726,16 +654,6 @@ def build_platform_services(
         ),
         lxc_node_provider,
     )
-    multipass_init_vms = MultipassInitVms(command_workflow)
-    network_prepare_netplan = NetworkPrepareNetplan(
-        command_workflow=command_workflow,
-        vm_repository=vm_repository,
-        netplan_repository=netplan_repository,
-    )
-    network_setup_netplan = NetworkSetupNetplan(command_workflow)
-    multipass_restart_vms = MultipassRestartVMs(command_workflow)
-    multipass_docker_install = MultipassDockerInstall(command_workflow)
-    multipass_docker_swarm_init = MultipassDockerSwarmInit(command_workflow)
     lxc_docker_runtime = _ProviderSelectedLxcDockerRuntime(
         provider_selection=node_provider_selection,
         provider_request=provider_request,
@@ -753,19 +671,10 @@ def build_platform_services(
         lxc_swarm_runtime,
         lxc_swarm_runtime,
     )
-    vm_ip_list = VmIpList(command_workflow=command_workflow, vm_repository=vm_repository)
     socat_manager = SocatManager()
     init_steps = _platform_init_steps(
         provider_request=provider_request,
         node_provider_selection=node_provider_selection,
-        multipass_steps=(
-            multipass_init_vms,
-            network_prepare_netplan,
-            network_setup_netplan,
-            multipass_restart_vms,
-            multipass_docker_install,
-            multipass_docker_swarm_init,
-        ),
         lxc_steps=(
             LxcDockerInstallStep(lxc_docker_install, DEFAULT_LXC_PLATFORM_NODES),
             LxcSwarmBootstrapStep(lxc_swarm_bootstrap, DEFAULT_LXC_PLATFORM_NODES),
@@ -795,7 +704,7 @@ def build_platform_services(
             trace_correlation_id=trace_correlation_id,
         ),
         reconcile=PlatformReconcileWorkflow(
-            _platform_reconcile_steps(provider_request, vm_ip_list),
+            _platform_reconcile_steps(provider_request),
             verification_evidence_repository=verification_evidence_repository,
             progress=workflow_progress,
             method_trace=method_trace,
@@ -823,88 +732,13 @@ def build_platform_services(
 
     return PlatformServices(
         command_workflow=command_workflow,
-        vm_repository=vm_repository,
-        netplan_repository=netplan_repository,
-        multipass_init_vms=multipass_init_vms,
-        network_prepare_netplan=network_prepare_netplan,
-        network_setup_netplan=network_setup_netplan,
-        multipass_restart_vms=multipass_restart_vms,
-        multipass_docker_install=multipass_docker_install,
-        multipass_docker_swarm_init=multipass_docker_swarm_init,
         lxc_docker_install=lxc_docker_install,
         lxc_swarm_bootstrap=lxc_swarm_bootstrap,
         preflight=preflight,
         lxc_node_provider=lxc_node_provider,
         node_provider_selection=node_provider_selection,
-        vm_ip_list=vm_ip_list,
         socat_manager=socat_manager,
         workflows=workflows,
-    )
-
-
-def build_artifact_services(ui: PortUI | None = None) -> ArtifactServices:
-    nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD")
-    nexus_client = MultipassNexusHttpClient()
-    container_runtime = MultipassContainerRuntime()
-    image_publisher = MultipassContainerImagePublisher(
-        registry_username="admin",
-        registry_password=nexus_admin_password,
-    )
-    wait_for_nexus_ready = WaitForNexusReady(
-        nexus_client=nexus_client,
-        max_attempts=60,
-        wait_seconds=10,
-    )
-    ensure_nexus_admin_access = EnsureNexusAdminAccess(
-        nexus_client=nexus_client,
-        container_runtime=container_runtime,
-        admin_username="admin",
-        admin_password=nexus_admin_password,
-        container_name_filter="nexus",
-        initial_password_path="/nexus-data/admin.password",
-        max_attempts=60,
-        wait_seconds=10,
-        ui=ui,
-    )
-    nexus_repository_steps = (
-        EnsureNexusDockerHostedRepository(
-            nexus_client=nexus_client,
-            configuration=NexusDockerHostedRepositoryConfiguration(
-                repository_name="docker-hosted",
-                http_port=5000,
-                admin_username="admin",
-                admin_password=nexus_admin_password,
-            ),
-        ),
-        EnsureNexusMavenProxyRepository(
-            nexus_client=nexus_client,
-            configuration=NexusMavenProxyRepositoryConfiguration(
-                repository_name="maven-central-proxy",
-                remote_url="https://repo1.maven.org/maven2/",
-                admin_username="admin",
-                admin_password=nexus_admin_password,
-            ),
-        ),
-    )
-    image_steps = tuple(
-        EnsureContainerImage(image_publisher, contract)
-        for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS
-    )
-    checks = cast(
-        tuple[ArtifactPrepareStep, ...],
-        (
-            wait_for_nexus_ready,
-            ensure_nexus_admin_access,
-            *nexus_repository_steps,
-            *image_steps,
-        ),
-    )
-    verify_checks = cast(tuple[ArtifactVerifyCheck, ...], checks)
-    return ArtifactServices(
-        workflows=ArtifactWorkflows(
-            prepare=ArtifactPrepareWorkflow(checks),
-            verify=ArtifactVerifyWorkflow(verify_checks),
-        )
     )
 
 
@@ -913,8 +747,6 @@ def build_artifact_services_for_provider(
     ui: PortUI | None = None,
 ) -> ArtifactServices:
     provider_request = node_provider_request or NodeProviderSelectionRequest()
-    if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
-        return build_artifact_services(ui=ui)
     backend = _lxc_backend_for_provider_request(provider_request)
     if backend is not None:
         return build_lxc_artifact_services(backend=backend, ui=ui)
@@ -924,14 +756,14 @@ def build_artifact_services_for_provider(
                 ArtifactPrepareWorkflow,
                 _BlockedArtifactWorkflow(
                     ArtifactWorkflowKind.PREPARE,
-                    LEGACY_ARTIFACT_PROVIDER_REQUIRED_REASON,
+                    LXC_BACKEND_REQUIRED_REASON,
                 ),
             ),
             verify=cast(
                 ArtifactVerifyWorkflow,
                 _BlockedArtifactWorkflow(
                     ArtifactWorkflowKind.VERIFY,
-                    LEGACY_ARTIFACT_PROVIDER_REQUIRED_REASON,
+                    LXC_BACKEND_REQUIRED_REASON,
                 ),
             ),
         )
@@ -1009,86 +841,12 @@ def build_lxc_artifact_services(
     )
 
 
-def build_deployment_services(
-    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
-    ui: PortUI | None = None,
-) -> DeploymentServices:
-    selected_service_profile = ServiceStackProfile(service_profile)
-    service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
-    swarm_runtime = MultipassSwarmRuntime()
-    service_access_environment = _service_access_stack_environment(selected_service_profile)
-    external_input_checks = _service_access_external_input_checks(
-        selected_service_profile,
-        swarm_runtime=swarm_runtime,
-    )
-    compose_repository = ComposeFileRepositoryYaml()
-    portainer_admin_client = MultipassPortainerAdminClient()
-    portainer_client = PortainerHttpClient(
-        DEFAULT_PORTAINER_API_URL,
-        "admin",
-        _operator_secret_value("TSW_PORTAINER_PASSWORD"),
-    )
-    stack_steps = {
-        contract.stack_name: EnsureSwarmStack(
-            compose_repository=compose_repository,
-            swarm_runtime=swarm_runtime,
-            service_stack=contract,
-            stack_environment=service_access_environment.get(contract.stack_name),
-        )
-        for contract in service_stack_contracts
-    }
-    bootstrap_steps = (
-        stack_steps["portainer"],
-        EnsurePortainerAdminAccess(
-            portainer_admin_client=portainer_admin_client,
-            username="admin",
-            password=_operator_secret_value("TSW_PORTAINER_PASSWORD"),
-            max_attempts=60,
-            wait_seconds=5,
-            ui=ui,
-        ),
-        stack_steps["nexus"],
-    )
-    application_steps = build_service_stack_steps(
-        compose_repository=compose_repository,
-        portainer_client=portainer_client,
-        endpoint_name=DEFAULT_PORTAINER_ENDPOINT_NAME,
-        service_profile=selected_service_profile,
-        excluded_stack_names=("nexus",),
-        stack_environments=service_access_environment,
-    )
-    readiness_checks = tuple(
-        VerifySwarmServiceReadiness(
-            swarm_runtime=swarm_runtime,
-            service_stack=contract,
-            max_attempts=60,
-            wait_seconds=10,
-        )
-        for contract in service_stack_contracts
-    )
-    return DeploymentServices(
-        workflows=DeploymentWorkflows(
-            bootstrap=DeploymentApplyWorkflow(
-                bootstrap_steps,
-                kind=DeploymentWorkflowKind.BOOTSTRAP,
-            ),
-            apply=DeploymentApplyWorkflow(
-                application_steps,
-                pre_apply_checks=external_input_checks,
-            ),
-            verify=DeploymentVerifyWorkflow((*external_input_checks, *readiness_checks)),
-        )
-    )
-
-
 def build_deployment_services_for_provider(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
 ) -> DeploymentServices:
     provider_request = node_provider_request or NodeProviderSelectionRequest()
-    if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
-        return build_deployment_services(service_profile=service_profile, ui=ui)
     backend = _lxc_backend_for_provider_request(provider_request)
     if backend is not None:
         return build_lxc_deployment_services(
@@ -1102,21 +860,21 @@ def build_deployment_services_for_provider(
                 DeploymentApplyWorkflow,
                 _BlockedDeploymentWorkflow(
                     DeploymentWorkflowKind.BOOTSTRAP,
-                    LEGACY_DEPLOYMENT_PROVIDER_REQUIRED_REASON,
+                    LXC_BACKEND_REQUIRED_REASON,
                 ),
             ),
             apply=cast(
                 DeploymentApplyWorkflow,
                 _BlockedDeploymentWorkflow(
                     DeploymentWorkflowKind.APPLY,
-                    LEGACY_DEPLOYMENT_PROVIDER_REQUIRED_REASON,
+                    LXC_BACKEND_REQUIRED_REASON,
                 ),
             ),
             verify=cast(
                 DeploymentVerifyWorkflow,
                 _BlockedDeploymentWorkflow(
                     DeploymentWorkflowKind.VERIFY,
-                    LEGACY_DEPLOYMENT_PROVIDER_REQUIRED_REASON,
+                    LXC_BACKEND_REQUIRED_REASON,
                 ),
             ),
         )
@@ -1378,30 +1136,15 @@ def _preflight_configuration_for_provider(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
 ) -> PreflightConfiguration:
-    configuration = default_preflight_configuration(service_profile=service_profile)
-    request = node_provider_request or NodeProviderSelectionRequest()
-    if request.requested_provider != NodeProviderKind.LXC_NATIVE:
-        return configuration
-    return replace(
-        configuration,
-        required_dependencies=tuple(
-            dependency
-            for dependency in configuration.required_dependencies
-            if dependency.name != "multipass"
-        ),
-        required_runtime_readiness=(),
-    )
+    return default_preflight_configuration(service_profile=service_profile)
 
 
 def _platform_init_steps(
     *,
     provider_request: NodeProviderSelectionRequest,
     node_provider_selection: NodeProviderSelectionService,
-    multipass_steps: tuple[AsyncWorkflowStep, ...],
     lxc_steps: tuple[AsyncWorkflowStep, ...],
 ) -> tuple[AsyncWorkflowStep, ...]:
-    if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
-        return multipass_steps
     node_steps = tuple(
         NodeProviderEnsureNodeStep(node, node_provider_selection, provider_request)
         for node in DEFAULT_LXC_PLATFORM_NODES
@@ -1411,10 +1154,7 @@ def _platform_init_steps(
 
 def _platform_reconcile_steps(
     provider_request: NodeProviderSelectionRequest,
-    vm_ip_list: VmIpList,
 ) -> tuple[AsyncWorkflowStep, ...]:
-    if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
-        return (vm_ip_list,)
     return (
         _VerifiedPlatformProviderStep(
             target_id="platform:reconcile:lxc-native-provider-boundary",

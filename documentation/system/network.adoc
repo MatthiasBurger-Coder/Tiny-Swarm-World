@@ -1,9 +1,7 @@
 = Networking
 
 Tiny Swarm World uses Docker Swarm networking on provider nodes. The default
-provider nodes are managed LXC containers through LXD or Incus. Multipass VM
-networking remains legacy/fallback behavior for explicit
-`--node-provider multipass_legacy` runs.
+provider nodes are managed LXC containers through LXD or Incus.
 
 Local access can still depend on WSL forwarding state, published Docker ports,
 provider bridge configuration, or optional `socat` forwarding. Do not
@@ -25,14 +23,6 @@ For LXD:
 lxc list swarm-manager --format json
 ----
 
-For the explicit Multipass legacy path:
-
-[source,bash]
-----
-multipass list
-multipass info swarm-manager
-----
-
 Use current provider output only for manual diagnosis. Do not commit
 host-specific IP addresses, gateway values, or forwarded port state.
 
@@ -42,22 +32,9 @@ LXD and Incus network, storage, and profile changes are live infrastructure
 mutations. They are not part of the default quality gate and must be performed
 only when the operator intentionally approves provider changes.
 
-Legacy netplan templates and helpers remain under:
-
-* `infra/config/network/netplant`
-* `src/tiny_swarm_world/application/services/network`
-
-Manual netplan commands for inspection inside a legacy VM include:
-
-[source,bash]
-----
-sudo netplan status
-sudo netplan generate
-sudo netplan try
-sudo netplan apply
-----
-
-Run netplan changes only when you intend to modify legacy VM networking.
+Netplan helper templates for legacy VM networking have been removed from the
+supported product path. Do not add host-specific netplan state to committed
+configuration.
 
 == WSL Port Forwarding
 

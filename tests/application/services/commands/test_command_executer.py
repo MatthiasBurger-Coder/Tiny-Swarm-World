@@ -101,12 +101,12 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
         message = str(context.exception)
         logged_messages = " ".join(str(call.args) for call in log_error.call_args_list)
         self.assertIn("return code 2", message)
-        self.assertNotIn("cannot connect to the multipass socket", message)
+        self.assertNotIn("cannot connect to the provider socket", message)
         self.assertNotIn("raw vm output", message)
-        self.assertNotIn("multipass info", message)
-        self.assertNotIn("cannot connect to the multipass socket", logged_messages)
+        self.assertNotIn("incus info", message)
+        self.assertNotIn("cannot connect to the provider socket", logged_messages)
         self.assertNotIn("raw vm output", logged_messages)
-        self.assertNotIn("multipass info", logged_messages)
+        self.assertNotIn("incus info", logged_messages)
 
         self.assertIn(
             ("swarm-manager", "failing command", "Error", "Failed"),
@@ -197,14 +197,14 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("raw runtime failure", text)
         self.assertEqual("CommandExecutionFailed", trace.events[-1].exception_type)
 
-    async def test_execute_wraps_redacted_multipass_return_code_failure(self):
+    async def test_execute_wraps_redacted_provider_return_code_failure(self):
         ui = RecordingUI()
         executer = CommandExecuter(ui=ui)
         command = ExecutableCommandEntity(
             index=1,
             vm_instance_name="swarm-manager",
-            description="multipass readiness command",
-            command="multipass info swarm-manager",
+            description="provider readiness command",
+            command="incus info swarm-manager",
             runner=FailingRunner(),
         )
 
@@ -219,14 +219,14 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
         message = str(context.exception)
         logged_messages = " ".join(str(call.args) for call in log_error.call_args_list)
         self.assertIn("return code 2", message)
-        self.assertNotIn("cannot connect to the multipass socket", message)
+        self.assertNotIn("cannot connect to the provider socket", message)
         self.assertNotIn("raw vm output", message)
-        self.assertNotIn("multipass info", message)
-        self.assertNotIn("cannot connect to the multipass socket", logged_messages)
+        self.assertNotIn("incus info", message)
+        self.assertNotIn("cannot connect to the provider socket", logged_messages)
         self.assertNotIn("raw vm output", logged_messages)
-        self.assertNotIn("multipass info", logged_messages)
+        self.assertNotIn("incus info", logged_messages)
         self.assertIn(
-            ("swarm-manager", "multipass readiness command", "Error", "Failed"),
+            ("swarm-manager", "provider readiness command", "Error", "Failed"),
             ui.updates,
         )
         self.assertNotIn(
@@ -270,7 +270,7 @@ class FailingRunner(PortCommandRunner):
             command=command,
             return_code=2,
             stdout="raw vm output",
-            stderr="cannot connect to the multipass socket",
+            stderr="cannot connect to the provider socket",
         )
 
 

@@ -12,7 +12,6 @@ Install these tools before running project automation:
 * Git
 * Incus or LXD for the default `lxc_native` node provider
 * WSL2 with systemd, cgroup, and user-namespace support when running under WSL
-* Multipass with the QEMU driver only for explicit legacy/fallback runs
 * Docker CLI access from the shell that will run the scripts
 * `socat`, when WSL port forwarding is needed
 
@@ -92,37 +91,6 @@ PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
 
 See `documentation/system/lxc-native-setup.adoc` for the full WSL2 and
 LXD/Incus setup notes and official references.
-
-== Multipass Legacy/Fallback Baseline
-
-Multipass is no longer the default provider. Use it only for explicit legacy
-runs:
-
-[source,bash]
-----
-PYTHONPATH=src python3 -m tiny_swarm_world --node-provider multipass_legacy setup run --live
-----
-
-Check the Multipass driver:
-
-[source,bash]
-----
-multipass get local.driver
-----
-
-The expected driver for legacy WSL/Linux usage is `qemu`. If needed:
-
-[source,bash]
-----
-multipass set local.driver=qemu
-----
-
-Check access:
-
-[source,bash]
-----
-multipass info
-----
 
 == Repository Runtime Model
 
@@ -219,8 +187,8 @@ live-operation surface catalog:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-When prompted, answer `y` only if changing the local LXD/Incus/LXC or explicit
-Multipass legacy provider state, Docker Swarm, networking, Portainer, Nexus,
+When prompted, answer `y` only if changing the local LXD/Incus/LXC provider
+state, Docker Swarm, networking, Portainer, Nexus,
 Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX environment is intentional.
 
 == Service Access Management Prerequisites

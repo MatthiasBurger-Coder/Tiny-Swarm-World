@@ -10,14 +10,13 @@ The following systems are outside the Python process and are treated as live
 infrastructure:
 
 * LXD or Incus and managed LXC provider nodes;
-* Multipass and the managed virtual machines for explicit legacy/fallback use;
 * Docker Engine and Docker Swarm inside or outside the provider nodes;
 * provider networking, netplan, and host/VM networking;
 * socat and WSL port-forwarding helpers;
 * Portainer and its API;
 * Nexus and its API;
 * Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, and other deployed stacks;
-* legacy shell scripts under `infra/swarm`.
+* legacy notes under `infra/swarm`.
 
 The default development quality gate does not call these systems. Tests use
 mocks, static inspection, architecture checks, and typed configuration

@@ -52,10 +52,6 @@ The default node-provider family for Tiny Swarm World. It uses managed LXC
 through LXD or Incus and fails closed when backend readiness or profile
 requirements are not satisfied.
 
-Multipass legacy provider::
-The explicit `multipass_legacy` fallback path. It must be selected by the
-operator and must not hide a failed LXD/Incus readiness check.
-
 Legacy quarantine::
 Documentation state for transitional scripts that may still exist but are not
 supported workflow entry points. Quarantined scripts must not run in default

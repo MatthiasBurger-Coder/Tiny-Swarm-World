@@ -19,8 +19,7 @@ Python package use `PYTHONPATH=src`.
 `src/tiny_swarm_world/infrastructure/composition.py` is the local composition
 root for the Python automation. It wires concrete infrastructure adapters into
 application services and keeps `src/tiny_swarm_world/__main__.py` thin. Services
-such as `VmIpList`, `MultipassInitVms`, and `NetworkPrepareNetplan` are
-constructed with explicit ports and repositories instead of creating
+are constructed with explicit ports and repositories instead of creating
 infrastructure adapters inside the application layer.
 
 The composition root now exposes separate in-process application service
@@ -30,9 +29,8 @@ microservices:
 
 * `PlatformServices` contains the current platform automation for default
   LXC-native provider selection, LXD/Incus readiness, managed node lifecycle,
-  Multipass legacy/fallback behavior, network setup, Docker installation,
-  Swarm initialization, preflight checks, node or VM IP discovery, socat
-  management, and workflow objects for platform `init`, `reconcile`,
+  network setup, Docker installation, Swarm initialization, preflight checks,
+  node discovery, socat management, and workflow objects for platform `init`, `reconcile`,
   `verify`, `reset`, and `destroy` commands.
 * `ArtifactServices` is the explicit artifacts boundary. It owns
   `artifacts prepare` and `artifacts verify` workflow contracts. The default
@@ -93,8 +91,8 @@ The setup boundary coordinates Platform, Artifacts, Deployment, Shared, and
 Console/status UI contracts:
 
 * Platform owns host preflight, LXD/Incus provider readiness, node lifecycle,
-  Multipass legacy/fallback behavior, Docker installation, Docker Swarm,
-  network, VM legacy, and resource readiness behavior.
+  Docker installation, Docker Swarm, network, VM legacy, and resource
+  readiness behavior.
 * Artifacts owns Nexus, registry, image publication, and repository readiness
   behavior.
 * Deployment owns Portainer, compose assets, service stack apply behavior, and
@@ -133,8 +131,8 @@ active workflow before executable command strings are built.
 
 The supported safety classes are `safe_read`, `safe_mutation`, `destructive`,
 `credential_mutation`, and `network_mutation`. Destructive command patterns
-such as Multipass delete or purge are accepted only when classified as
-`destructive` and limited to reset or destroy workflows. Mutating commands
+are accepted only when classified as `destructive` and limited to reset or
+destroy workflows. Mutating commands
 must declare a verification specification. Commands that declare
 `runtime_change` cannot be classified as `safe_read`. Commands that emit
 credential material must be classified as `credential_mutation` and must
@@ -174,8 +172,8 @@ application code.
 * `infra/compose` contains image build-context assets.
 * `infra/prepare` contains retired notes for former direct service preparation
   helpers and must not contain executable setup entry points.
-* `infra/swarm` contains legacy Swarm and Multipass helper scripts. This area
-  is quarantined as legacy live-infrastructure surface, not a supported
+* `infra/swarm` contains legacy Swarm helper material. This area is
+  quarantined as legacy live-infrastructure surface, not a supported
   workflow entry point. It must not run in default quality gates, and files
   should be removed or migrated only in an explicit cleanup slice with tests
   and rollback notes.

@@ -31,7 +31,7 @@ adding Windows-native runtime behavior.
 
 - Do not add PowerShell or backslash-path examples unless legacy cleanup asks
   for them.
-- Do not run netplan, Docker, Multipass or service bootstrap commands.
+- Do not run netplan, Docker, LXD, Incus, LXC or service bootstrap commands.
 
 ## STOP conditions
 

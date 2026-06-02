@@ -5,7 +5,7 @@ from tiny_swarm_world.application.services.commands.command_builder.vm_parameter
 from tiny_swarm_world.domain.command.command_entity import CommandEntity
 from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 from tiny_swarm_world.domain.command.command_runner_type_enum import CommandRunnerType
-from tiny_swarm_world.domain.multipass.vm_type import VmType
+from tiny_swarm_world.domain.command.vm_type import VmType
 
 
 class NoneStrategy(CommandBuilderStrategy):

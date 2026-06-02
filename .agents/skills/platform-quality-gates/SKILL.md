@@ -14,7 +14,7 @@ without weakening root `QUALITY.md`.
 
 - Map a slice to lint, architecture, typecheck, test and documentation checks.
 - Keep full quality gate evidence separate from skipped or not-applicable checks.
-- Prevent Docker, Multipass or service bootstrap operations from entering the
+- Prevent Docker, LXD/Incus/LXC or service bootstrap operations from entering the
   default gate.
 
 ## Inputs

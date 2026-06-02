@@ -336,7 +336,7 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("not_run", result.phase_results[2].status)
         self.assertNotIn("stdout", str(payload).lower())
         self.assertNotIn("stderr", str(payload).lower())
-        self.assertNotIn("cannot connect to the multipass socket", str(payload).lower())
+        self.assertNotIn("cannot connect to the provider socket", str(payload).lower())
 
     async def test_sanitizes_phase_exceptions(self):
         progress = _RecordingProgress()
@@ -374,7 +374,7 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
 
     async def test_to_dict_preserves_platform_verification_results(self):
         verification = VerificationResult(
-            target_id="platform:init:multipass-vms",
+            target_id="platform:init:lxc-nodes",
             status=VerificationStatus.BLOCKED,
             message="Command-backed verification is not configured.",
             evidence={"reason": "command_backed_verification_missing"},
@@ -399,7 +399,7 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
 
         phase_payload = payload["phase_results"][0]["result"]
         self.assertEqual("platform init", phase_payload["workflow"])
-        self.assertEqual("platform:init:multipass-vms", phase_payload["verification_results"][0]["target_id"])
+        self.assertEqual("platform:init:lxc-nodes", phase_payload["verification_results"][0]["target_id"])
 
     async def test_preserves_failed_to_verify_as_distinct_terminal_status(self):
         workflow = SetupWorkflow(
@@ -519,13 +519,13 @@ def _failed_preflight_result(calls: list[str]) -> PreflightResult:
     return PreflightResult(
         (
             PreflightCheck(
-                check_id="RUNTIME-MULTIPASS-SOCKET",
+                check_id="PROVIDER-LXC-DAEMON",
                 category=PreflightCategory.DEPENDENCY,
                 status=PreflightStatus.FAILED,
                 severity=PreflightSeverity.MANDATORY,
-                message="Multipass runtime is not reachable.",
-                remediation="Repair Multipass daemon/socket access and rerun setup.",
-                evidence={"classification": "multipass_socket_unavailable"},
+                message="LXC provider daemon is not reachable.",
+                remediation="Repair LXD/Incus daemon access and rerun setup.",
+                evidence={"classification": "provider_daemon_unavailable"},
             ),
         )
     )
@@ -536,13 +536,13 @@ def _failed_platform_init(calls: list[str]) -> PlatformWorkflowResult:
     return PlatformWorkflowResult(
         kind=PlatformWorkflowKind.INIT,
         status=PlatformWorkflowStatus.FAILED_TO_APPLY,
-        message="init apply failed for platform:init:multipass-vms.",
+        message="init apply failed for platform:init:lxc-nodes.",
         executed=True,
         verification_results=(
             VerificationResult(
-                target_id="platform:init:multipass-vms",
+                target_id="platform:init:lxc-nodes",
                 status=VerificationStatus.FAILED_TO_APPLY,
-                message="Apply failed for platform:init:multipass-vms: CommandExecutionFailed",
+                message="Apply failed for platform:init:lxc-nodes: CommandExecutionFailed",
                 evidence={"phase": "apply", "return_code": "2"},
             ),
         ),
