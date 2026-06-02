@@ -1,23 +1,22 @@
-# Architecture Agent Findings
+# Architecture Findings
 
-## Decision
+The current architecture already contains the right conceptual split:
 
-READY_FOR_WORKFLOW
+* `init` and `reconcile` are non-destructive.
+* `reset` and `destroy` are destructive and confirmation-gated.
+* `setup run` orchestrates platform, artifacts and deployment phases.
+* `install.sh` is a wrapper around `setup run --live`, not a reset wrapper.
+* The default install profile is already `service-access`.
+* Composition already contains service-access artifact and deployment target
+  IDs, but the workflow must prove they are reached after reset before install
+  success is reported.
 
-## Findings
+Implementation must fill the blocked destructive workflow gap instead of
+placing raw teardown commands in application services. Application code should
+define ports and workflow behavior; infrastructure adapters should own LXD,
+Incus, LXC and Docker command details.
 
-- Removing Multipass changes the node-provider architecture contract and must
-  update arc42 constraints, solution strategy, context, building blocks,
-  deployment view, risks, and glossary.
-- Domain removal must not leak infrastructure concerns into application code.
-- Composition must remain the only standard place where concrete adapters are
-  assembled.
-- Provider config validation must stop requiring a `multipass_legacy` fallback.
-- VM-neutral classes must be checked before deletion because some may still be
-  referenced by non-Multipass paths.
-
-## Required Subagent Handoff
-
-- Python implementation worker removes symbols dependency-first.
-- DevOps reviewer checks command YAML and preflight cleanup.
-- System architect reviews import boundaries with `arch-tests`.
+The update/reconcile surface should remain in place. Fresh install should use
+a destructive prelude only for `install.sh` or a dedicated reinstall path.
+The destructive adapter must delete only configured or marker-verified Tiny
+Swarm World managed resources, never every host LXC/Incus container.

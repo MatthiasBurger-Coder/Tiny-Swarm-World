@@ -1,24 +1,21 @@
-# Test Agent Findings
+# Test Findings
 
-## Decision
+Required regression areas:
 
-READY_FOR_WORKFLOW
+* `PlatformResetWorkflow` and `PlatformDestroyWorkflow` refuse without exact
+  confirmation.
+* Confirmed reset runs configured steps and verifies reset evidence.
+* Already-missing managed resources are successful reset evidence.
+* Reset failure prevents `setup run --live`.
+* `install.sh` records reset, setup, artifact and deployment evidence.
+* `install.sh` cannot report success when any selected artifact, deployment,
+  or readiness target is blocked or failed.
+* Existing update/reconcile tests remain valid.
+* Portainer admin initialization stays redacted and safe around HTTP 409.
+* Full guided setup acceptance covers service-access artifact image contracts,
+  service stack contracts, service readiness targets and dashboard
+  `index.html` packaging.
 
-## Findings
-
-- The workflow needs targeted tests before the full quality gate because
-  provider removal touches several layers.
-- Tests that currently assert explicit Multipass support must be removed or
-  rewritten to assert unsupported-provider behavior.
-- Infrastructure adapter tests for Multipass should be deleted with the
-  adapters.
-- Command YAML contract tests must no longer list Multipass YAML files after
-  those files are removed.
-- Final verification must include `python3 tools/quality_gate.py quality`.
-
-## Required Subagent Handoff
-
-- Tester owns final quality evidence and failure classification.
-- Python worker owns focused test rewrites during implementation slices.
-- Documentation reviewer owns `git diff --check` for documentation-heavy
-  slices.
+Tests must use fakes or mocked sessions. They must not execute live LXD,
+Incus, LXC, Docker Swarm, compose, Portainer, Nexus, Jenkins, RabbitMQ,
+SonarQube or service bootstrap commands.
