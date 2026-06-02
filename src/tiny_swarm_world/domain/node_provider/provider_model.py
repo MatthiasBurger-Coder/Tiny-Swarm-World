@@ -9,7 +9,6 @@ from typing import Mapping
 
 class NodeProviderKind(str, Enum):
     LXC_NATIVE = "lxc_native"
-    MULTIPASS_LEGACY = "multipass_legacy"
     UNSUPPORTED = "unsupported"
 
 
@@ -217,19 +216,6 @@ class ProviderSelection:
             remediation=backend_selection.remediation,
         )
 
-    @classmethod
-    def explicit_multipass_legacy(
-        cls,
-        *,
-        remediation: tuple[str, ...] = (),
-    ) -> ProviderSelection:
-        return cls(
-            requested_provider=NodeProviderKind.MULTIPASS_LEGACY,
-            selected_provider=NodeProviderKind.MULTIPASS_LEGACY,
-            status=ProviderSelectionStatus.SELECTED,
-            remediation=remediation,
-        )
-
     @property
     def selected(self) -> bool:
         return self.status == ProviderSelectionStatus.SELECTED
@@ -367,7 +353,7 @@ _IPV6_PATTERN = re.compile(r"\b(?:[0-9a-fA-F]{0,4}:){2,}[0-9a-fA-F]{0,4}\b")
 _ABSOLUTE_PATH_PATTERN = re.compile(r"(^|[\s=:])(?:/[\w.-]+){2,}")
 _WINDOWS_PATH_PATTERN = re.compile(r"\b[A-Za-z]:\\")
 _COMMAND_PATTERN = re.compile(
-    r"\b(?:bash|curl|docker|docker-compose|incus|iptables|lxc|lxd|multipass|"
+    r"\b(?:bash|curl|docker|docker-compose|incus|iptables|lxc|lxd|"
     r"netplan|netsh|python3?|sh|socat|sudo|wsl)\s+\S+",
     re.IGNORECASE,
 )

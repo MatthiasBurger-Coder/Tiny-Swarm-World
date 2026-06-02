@@ -100,9 +100,8 @@ The provider deployment target is now `lxc_native` through LXD or Incus by
 default. The committed provider configuration in
 `infra/config/node-providers/provider_config.yaml` declares Incus/LXD backend
 candidates, Docker Swarm node names, Docker-in-container profile risk labels,
-and explicit-only `multipass_legacy`. Deployment evidence must keep native
-Linux LXD/Incus, WSL2 LXD/Incus, and Multipass legacy fallback results
-separate.
+and verification metadata. Deployment evidence must keep native Linux
+LXD/Incus and WSL2 LXD/Incus results separate.
 
 For the LXC-native target, deployment must block before mutation when LXD or
 Incus readiness is absent, backend selection is ambiguous, WSL2 capability is

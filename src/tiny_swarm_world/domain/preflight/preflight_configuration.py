@@ -84,12 +84,9 @@ def default_preflight_configuration(
         setup_manifest=setup_manifest,
         required_dependencies=(
             RequiredDependency("python3"),
-            RequiredDependency("multipass"),
             RequiredDependency("docker"),
         ),
-        required_runtime_readiness=(
-            RequiredRuntimeReadiness("multipass", expected_driver="qemu"),
-        ),
+        required_runtime_readiness=(),
         required_ports=tuple(
             RequiredPort(port.port, port.service)
             for port in setup_manifest.required_ports

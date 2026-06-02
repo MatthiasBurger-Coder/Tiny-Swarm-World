@@ -112,10 +112,10 @@ class TestVerificationResult(unittest.TestCase):
             "docker ps",
             "docker logs portainer",
             sample_text("docker swarm join --", "to", "ken hidden"),
-            "multipass alias primary:docker docker",
-            "multipass info tsw-manager-1",
-            "multipass networks",
-            "multipass stop tsw-manager-1",
+            "incus exec swarm-manager -- docker ps",
+            "incus info swarm-manager",
+            "incus network list",
+            "incus stop swarm-manager",
             "netplan generate",
             "bash bootstrap.sh",
             "netplan apply",
@@ -176,10 +176,10 @@ class TestVerificationResult(unittest.TestCase):
             "docker ps",
             "docker logs portainer",
             sample_text("docker swarm join --", "to", "ken hidden"),
-            "multipass alias primary:docker docker",
-            "multipass info tsw-manager-1",
-            "multipass networks",
-            "multipass stop tsw-manager-1",
+            "incus exec swarm-manager -- docker ps",
+            "incus info swarm-manager",
+            "incus network list",
+            "incus stop swarm-manager",
             "netplan generate",
             "python3 bootstrap.py",
             "python -m http.server",
@@ -220,11 +220,11 @@ class TestVerificationResult(unittest.TestCase):
         result = VerificationResult(
             target_id="command:probe",
             message="Docker state not checked.",
-            evidence={"summary": "Multipass state unavailable."},
+            evidence={"summary": "Provider state unavailable."},
         )
 
         self.assertEqual("Docker state not checked.", result.message)
-        self.assertEqual("Multipass state unavailable.", result.evidence["summary"])
+        self.assertEqual("Provider state unavailable.", result.evidence["summary"])
 
 
 class TestInventoryModels(unittest.TestCase):
@@ -255,7 +255,7 @@ class TestInventoryModels(unittest.TestCase):
             target_id="vm:tsw-manager-1",
             status=VerificationStatus.VERIFIED,
             message="VM listed.",
-            evidence={"probe": "multipass-list-summary"},
+            evidence={"probe": "provider-list-summary"},
         )
         inventory = ObservedInventory(
             vms=(

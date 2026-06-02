@@ -37,7 +37,7 @@ COMMAND_EXECUTABLES = frozenset(
         "curl",
         "docker",
         "docker-compose",
-        "multipass",
+        "incus",
         "netplan",
         "python",
         "python3",
@@ -112,9 +112,9 @@ RAW_EVIDENCE_VALUE_PATTERNS = (
     re.compile(r"[\r\n]"),
     re.compile(r"\b(stdout|stderr)\b", re.IGNORECASE),
     re.compile(
-        r"\b(multipass|docker|sudo|netplan|socat)\s+"
+        r"\b(incus|docker|sudo|netplan|socat)\s+"
         r"(exec|info|inspect|logs|ps|swarm|system|volume|stack|run|compose|login|pull|push|network|"
-        r"service|node|secret|config|cp|ssh|launch|delete|purge|restart|list|"
+        r"service|secret|config|cp|ssh|launch|delete|purge|restart|list|"
         r"transfer|set|install|update|apply|version|images|container|context|events)\b",
         re.IGNORECASE,
     ),
@@ -132,9 +132,9 @@ RAW_MESSAGE_VALUE_PATTERNS = (
     re.compile(r"[\r\n]"),
     re.compile(r"\b(stdout|stderr)\b", re.IGNORECASE),
     re.compile(
-        r"\b(multipass|docker|sudo|netplan|socat)\s+"
+        r"\b(incus|docker|sudo|netplan|socat)\s+"
         r"(exec|info|inspect|logs|ps|swarm|system|volume|stack|run|compose|login|pull|push|network|"
-        r"service|node|secret|config|cp|ssh|launch|delete|purge|restart|list|"
+        r"service|secret|config|cp|ssh|launch|delete|purge|restart|list|"
         r"transfer|set|install|update|apply|version|images|container|context|events)\b",
         re.IGNORECASE,
     ),

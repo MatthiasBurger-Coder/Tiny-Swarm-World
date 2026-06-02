@@ -11,15 +11,12 @@ import sys
 import urllib.error
 import urllib.request
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 from pathlib import Path
 
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentKind,
     HostEnvironmentReport,
-    HostRuntimeReadiness,
-    HostRuntimeReadinessStatus,
     SetupPath,
 )
 from tiny_swarm_world.infrastructure.project_paths import repository_root
@@ -27,7 +24,6 @@ from tiny_swarm_world.infrastructure.project_paths import repository_root
 
 SECRET_TOKEN_PATTERN = re.compile(r"\w[\w-]{2,}", re.ASCII)
 COMMON_LINUX_EXECUTABLE_DIRECTORIES = (Path("/snap/bin"),)
-KNOWN_MULTIPASS_DRIVERS = frozenset(("qemu", "lxd", "libvirt", "hyperv", "hyperkit", "virtualbox"))
 CI_ENVIRONMENT_KEYS = frozenset(
     (
         "CI",
@@ -103,7 +99,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
         return HostEnvironmentReport(
             environment=HostEnvironmentKind.NATIVE_LINUX,
             setup_path=SetupPath.NATIVE_LINUX,
-            remediation=("Verify Multipass runtime readiness before live setup.",),
+            remediation=("Verify LXD or Incus readiness before live setup.",),
             evidence={
                 "classification": "native_linux",
                 "kernel_family": "linux",
@@ -120,69 +116,6 @@ class HostPreflightProbe(PortHostPreflightProbe):
             name,
             path=_executable_search_path(self.executable_fallback_directories),
         ) is not None
-
-    def multipass_runtime_readiness(
-        self,
-        expected_driver: str | None = None,
-    ) -> HostRuntimeReadiness:
-        if not self.executable_available("multipass"):
-            return HostRuntimeReadiness(
-                "multipass",
-                HostRuntimeReadinessStatus.EXECUTABLE_MISSING,
-                {"probe": "path", "classification_source": "executable_lookup"},
-            )
-
-        list_result = _run_multipass_probe(("multipass", "list"))
-        if list_result.returncode != 0:
-            return HostRuntimeReadiness(
-                "multipass",
-                _classify_multipass_failure(list_result),
-                _probe_evidence("list", list_result),
-            )
-
-        evidence = {"probe": "list"}
-        if expected_driver is None:
-            return HostRuntimeReadiness(
-                "multipass",
-                HostRuntimeReadinessStatus.READY,
-                evidence,
-            )
-
-        driver_result = _run_multipass_probe(("multipass", "get", "local.driver"))
-        if driver_result.returncode != 0:
-            status = _classify_multipass_failure(driver_result)
-            if status == HostRuntimeReadinessStatus.UNKNOWN_FAILURE:
-                status = HostRuntimeReadinessStatus.DRIVER_UNAVAILABLE
-            return HostRuntimeReadiness(
-                "multipass",
-                status,
-                {
-                    **_probe_evidence("driver", driver_result),
-                    "expected_driver": expected_driver,
-                },
-            )
-
-        actual_driver = _safe_driver_name(_first_line(driver_result.stdout))
-        if actual_driver != expected_driver:
-            return HostRuntimeReadiness(
-                "multipass",
-                HostRuntimeReadinessStatus.DRIVER_MISMATCH,
-                {
-                    "probe": "driver",
-                    "actual_driver": actual_driver or "unknown",
-                    "expected_driver": expected_driver,
-                },
-            )
-
-        return HostRuntimeReadiness(
-            "multipass",
-            HostRuntimeReadinessStatus.READY,
-            {
-                "probe": "list,driver",
-                "actual_driver": actual_driver,
-                "expected_driver": expected_driver,
-            },
-        )
 
     def cpu_count(self) -> int:
         return os.cpu_count() or 0
@@ -342,7 +275,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
             return HostEnvironmentReport(
                 environment=HostEnvironmentKind.WSL2,
                 setup_path=SetupPath.WSL2,
-                remediation=("Verify WSL2 Multipass runtime readiness before live setup.",),
+                remediation=("Verify WSL2 LXD or Incus readiness before live setup.",),
                 evidence={
                     "classification": "wsl2",
                     "kernel_family": "linux",
@@ -506,89 +439,6 @@ def _tcp_connects(port: int) -> bool:
             return True
     except OSError:
         return False
-
-
-@dataclass(frozen=True)
-class _RuntimeProbeResult:
-    returncode: int
-    stdout: str = ""
-    stderr: str = ""
-    timed_out: bool = False
-
-
-def _run_multipass_probe(args: Sequence[str]) -> _RuntimeProbeResult:
-    try:
-        completed = subprocess.run(
-            list(args),
-            check=False,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=5.0,
-        )
-    except subprocess.TimeoutExpired as exc:
-        return _RuntimeProbeResult(
-            returncode=124,
-            stdout=_safe_process_text(exc.stdout),
-            stderr=_safe_process_text(exc.stderr),
-            timed_out=True,
-        )
-    return _RuntimeProbeResult(
-        returncode=completed.returncode,
-        stdout=completed.stdout or "",
-        stderr=completed.stderr or "",
-    )
-
-
-def _classify_multipass_failure(
-    result: _RuntimeProbeResult,
-) -> HostRuntimeReadinessStatus:
-    if result.timed_out:
-        return HostRuntimeReadinessStatus.DAEMON_UNAVAILABLE
-
-    output = f"{result.stdout}\n{result.stderr}".casefold()
-    if "permission denied" in output or "access denied" in output:
-        return HostRuntimeReadinessStatus.PERMISSION_DENIED
-    if "multipass socket" in output or ("socket" in output and "multipass" in output):
-        return HostRuntimeReadinessStatus.SOCKET_UNAVAILABLE
-    if "daemon" in output or ("service" in output and "multipass" in output):
-        return HostRuntimeReadinessStatus.DAEMON_UNAVAILABLE
-    if "driver" in output:
-        return HostRuntimeReadinessStatus.DRIVER_UNAVAILABLE
-    return HostRuntimeReadinessStatus.UNKNOWN_FAILURE
-
-
-def _probe_evidence(probe: str, result: _RuntimeProbeResult) -> dict[str, str]:
-    evidence = {
-        "probe": probe,
-        "return_code": str(result.returncode),
-    }
-    if result.timed_out:
-        evidence["classification_source"] = "timeout"
-    return evidence
-
-
-def _safe_process_text(value: bytes | str | None) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, bytes):
-        return value.decode("utf-8", errors="ignore")
-    return value
-
-
-def _first_line(value: str) -> str:
-    for line in value.splitlines():
-        stripped = line.strip()
-        if stripped:
-            return stripped
-    return ""
-
-
-def _safe_driver_name(value: str) -> str:
-    normalized = value.strip().casefold()
-    if normalized in KNOWN_MULTIPASS_DRIVERS:
-        return normalized
-    return "unknown"
 
 
 def ensure_common_executable_paths(

@@ -27,7 +27,13 @@ live-infrastructure confirmation prompt.
 Command catalog::
 Typed YAML configuration under `infra/config/**/command_*.yaml` that declares
 command identity, intent, safety class, workflow allow-list, parameters,
-effects, and verification metadata.
+effects, and verification metadata. The current product baseline intentionally
+contains no command catalog files after Multipass command removal.
+
+Retained VM command-template naming::
+Legacy terminology that still exists in dormant command-builder and repository
+interfaces. It is not a supported Multipass provider surface and must not be
+used to claim current VM or Multipass runtime behavior.
 
 Desired inventory::
 Operator-approved target state. It may live in committed configuration under
@@ -51,10 +57,6 @@ LXC-native provider::
 The default node-provider family for Tiny Swarm World. It uses managed LXC
 through LXD or Incus and fails closed when backend readiness or profile
 requirements are not satisfied.
-
-Multipass legacy provider::
-The explicit `multipass_legacy` fallback path. It must be selected by the
-operator and must not hide a failed LXD/Incus readiness check.
 
 Legacy quarantine::
 Documentation state for transitional scripts that may still exist but are not

@@ -29,7 +29,7 @@ _IPV6_PATTERN = re.compile(r"\b(?:[0-9a-fA-F]{0,4}:){2,}[0-9a-fA-F]{0,4}\b")
 _ABSOLUTE_PATH_PATTERN = re.compile(r"(^|[\s=:])(?:/[\w.-]+){2,}")
 _WINDOWS_PATH_PATTERN = re.compile(r"\b[A-Za-z]:\\")
 _COMMAND_PATTERN = re.compile(
-    r"\b(?:bash|curl|docker|docker-compose|iptables|multipass|netplan|netsh|python3?|sh|socat|sudo|wsl)\s+\S+",
+    r"\b(?:bash|curl|docker|docker-compose|incus|iptables|lxc|netplan|netsh|python3?|sh|socat|sudo|wsl)\s+\S+",
     re.IGNORECASE,
 )
 _SCRIPT_PATH_PATTERN = re.compile(r"\b\S+\.(?:py|sh|ps1|bat)\b")

@@ -1,6 +1,6 @@
 # Tiny Swarm World
 
-Tiny Swarm World is a local development and test infrastructure to simulate a production-like microservices environment on your machine. Its default node-provider direction is managed LXC through LXD or Incus for Docker Swarm nodes, and it includes guarded workflow boundaries plus configuration for developer services such as Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger + NGINX. Multipass remains available only as an explicit legacy/fallback provider.
+Tiny Swarm World is a local development and test infrastructure to simulate a production-like microservices environment on your machine. Its node-provider direction is managed LXC through LXD or Incus for Docker Swarm nodes, and it includes guarded workflow boundaries plus configuration for developer services such as Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger + NGINX.
 
 This README gives you a clear entry point: what it is, how to set it up, how to run it, and where to find more documentation.
 
@@ -23,7 +23,6 @@ The system follows a hexagonal architecture and provides async Python automation
 - LXC-native node-provider selection, readiness checks, and node lifecycle through LXD or Incus.
 - LXC-native Docker Engine setup and Docker Swarm bootstrap inside the managed
   LXC nodes after accepted live consent.
-- Explicit Multipass legacy/fallback mode through `--node-provider multipass_legacy`.
 - Fail-closed workflow boundaries for provider-native platform, artifact, and
   deployment behavior.
 - Portainer-facing service management contracts and compose assets.
@@ -50,7 +49,6 @@ The system follows a hexagonal architecture and provides async Python automation
 - Git
 - Incus or LXD installed and initialized for the default `lxc_native` provider
 - WSL2 with systemd, cgroup, and user-namespace support when running under WSL
-- Multipass with the QEMU backend only for explicit legacy/fallback runs
 - Docker CLI access for local diagnostics; the default `lxc_native` platform
   path installs and verifies Docker Engine inside managed LXC nodes only after
   accepted live consent
@@ -110,8 +108,8 @@ Use an explicit workflow selection before running automation:
 PYTHONPATH=src python3 -m tiny_swarm_world platform verify
 ```
 
-Mutating workflows can call LXD/Incus/LXC, Multipass legacy, Docker,
-networking, or other local infrastructure commands. They require the
+Mutating workflows can call LXD/Incus/LXC, Docker, networking, or other local
+infrastructure commands. They require the
 live-infrastructure consent controls. Destructive workflows also require the
 exact `--confirm` phrase shown by the workflow contract.
 
@@ -134,12 +132,6 @@ Operators may select a managed LXC backend explicitly:
 ```bash
 PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd setup run --live
 PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
-```
-
-Multipass is a legacy/fallback path and must be requested explicitly:
-
-```bash
-PYTHONPATH=src python3 -m tiny_swarm_world --node-provider multipass_legacy setup run --live
 ```
 
 For repeatable WSL/Linux operator runs with evidence capture, use the repository
@@ -181,8 +173,7 @@ Docker Swarm bootstrap inside `swarm-manager`, `swarm-worker-1`, and
 `swarm-worker-2`. Default `platform reconcile` is currently a verified no-op
 boundary for `lxc_native`; default artifact and deployment workflows still
 block at provider boundaries until provider-native publication and deployment
-contracts are wired. Explicit `--node-provider multipass_legacy` keeps the old
-Multipass fallback behavior visible and isolated.
+contracts are wired.
 
 `platform reset` and `platform destroy` additionally require
 `RESET_TINY_SWARM_PLATFORM` or `DESTROY_TINY_SWARM_PLATFORM` through
@@ -191,7 +182,7 @@ reset/destroy steps remain blocked until retention semantics are implemented.
 
 These behaviors are verified by unit tests, architecture checks, and static
 quality gates. This repository workflow did not run live LXD, Incus, LXC
-container, Multipass, Docker Swarm, compose, netplan, socat, Portainer, Nexus,
+container, Docker Swarm, compose, netplan, socat, Portainer, Nexus,
 Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image build, image
 push, or stack deployment commands.
 
@@ -203,8 +194,8 @@ after reviewing the live-operation surface catalog:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ```
 
-When prompted, answer `y` only if changing the local LXD/Incus/LXC or explicit
-Multipass legacy provider state, Docker Swarm, networking, Portainer, Nexus,
+When prompted, answer `y` only if changing the local LXD/Incus/LXC provider
+state, Docker Swarm, networking, Portainer, Nexus,
 Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX environment is intentional.
 
 ---
@@ -228,7 +219,6 @@ Where to find the scripts/services:
 - `src/tiny_swarm_world/application/services/platform`
 - `src/tiny_swarm_world/application/ports/node_provider`
 - `infra/config/node-providers`
-- `src/tiny_swarm_world/application/services/multipass` for explicit legacy/fallback behavior
 - `src/tiny_swarm_world/application/services/network`
 - `src/tiny_swarm_world/application/services/commands`
 - `infra/swarm`
@@ -408,7 +398,7 @@ Notes:
 - `arch-lint` expects an `.importlinter` configuration.
 - `arch-tests` expects the architecture test module
   `tests.architecture.test_hexagonal_imports`.
-- Do not run live LXD, Incus, LXC container lifecycle, Multipass, Docker
+- Do not run live LXD, Incus, LXC container lifecycle, Docker
   Swarm, netplan, or service-bootstrap commands as part of the development
   quality gate.
 
@@ -419,9 +409,6 @@ Notes:
 - LXC-native provider not ready: verify `incus version`/`incus info` or
   `lxc version`/`lxc info`, and select `--lxc-backend` if both backends are
   installed.
-- Multipass not found: this matters only for explicit
-  `--node-provider multipass_legacy` runs. Ensure Multipass is installed and
-  accessible on `PATH` before using the legacy provider.
 - Docker connection issues: Verify Docker Engine or the Docker CLI target is available and your user has permission to access the Docker socket.
 - WSL2 networking/ports: Install `socat` and review `infra/config/network` for port-forwarding helpers.
 - Python import errors: Run commands from the repository root and set `PYTHONPATH=src` for direct script execution.
@@ -450,5 +437,4 @@ until a `LICENSE` file or explicit license statement is added.
 - LXD: https://documentation.ubuntu.com/lxd/
 - Incus: https://linuxcontainers.org/incus/
 - LXC: https://linuxcontainers.org/lxc/
-- Multipass: https://multipass.run/
 - Docker Swarm: https://docs.docker.com/engine/swarm/

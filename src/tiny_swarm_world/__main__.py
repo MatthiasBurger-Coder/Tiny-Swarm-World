@@ -127,7 +127,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     )
     parser.add_argument(
         "--node-provider",
-        choices=[NodeProviderKind.LXC_NATIVE.value, NodeProviderKind.MULTIPASS_LEGACY.value],
+        choices=[NodeProviderKind.LXC_NATIVE.value],
         default=NodeProviderKind.LXC_NATIVE.value,
         help="Node provider for platform setup; default is lxc_native.",
     )
@@ -180,7 +180,6 @@ async def main(argv: Sequence[str] | None = None) -> None:
 
     logger.info("Running workflow: %s", workflow.name)
     node_provider_request = _node_provider_request_from_args(args)
-    _print_legacy_provider_warning(node_provider_request)
     if workflow.namespace == "setup" and workflow.action == "run":
         _print_setup_installation_plan(
             service_profile=args.service_profile,
@@ -209,7 +208,6 @@ def _print_workflow_list() -> None:
 
 async def _run_preflight_command(args: Namespace) -> None:
     node_provider_request = _node_provider_request_from_args(args)
-    _print_legacy_provider_warning(node_provider_request)
     preflight = build_preflight_service(
         service_profile=args.service_profile,
         node_provider_request=node_provider_request,
@@ -443,17 +441,12 @@ def _print_setup_installation_plan(
     provider_request = node_provider_request or NodeProviderSelectionRequest()
     print()
     print("Tiny Swarm World guided installation")
-    if provider_request.requested_provider == NodeProviderKind.LXC_NATIVE:
-        print("Target: local Linux/WSL LXC-native Docker Swarm")
-        print(f"Default node provider: {provider_request.requested_provider.value}")
-        if provider_request.preferred_backend is None:
-            print("Managed backend: auto-detect Incus or LXD")
-        else:
-            print(f"Managed backend: {provider_request.preferred_backend.value}")
+    print("Target: local Linux/WSL LXC-native Docker Swarm")
+    print(f"Default node provider: {provider_request.requested_provider.value}")
+    if provider_request.preferred_backend is None:
+        print("Managed backend: auto-detect Incus or LXD")
     else:
-        print("Target: local Linux/WSL Multipass legacy Docker Swarm")
-        print(f"Explicit node provider: {provider_request.requested_provider.value}")
-        print("Managed backend: not applicable")
+        print(f"Managed backend: {provider_request.preferred_backend.value}")
     print("Provider readiness: checked before platform mutation")
     print(f"Service profile: {selected_service_profile.value}")
     print("Platform:")
@@ -499,17 +492,6 @@ def _print_setup_installation_plan(
             f"source {stack_sources.get(service.name, 'infra')}, published port(s) {ports}"
         )
     print()
-
-
-def _print_legacy_provider_warning(
-    node_provider_request: NodeProviderSelectionRequest,
-) -> None:
-    if node_provider_request.requested_provider != NodeProviderKind.MULTIPASS_LEGACY:
-        return
-    print(
-        "LEGACY_NODE_PROVIDER_SELECTED: multipass_legacy is an optional "
-        "fallback path and is not the default repair target."
-    )
 
 
 def _print_setup_installation_summary(result: SetupWorkflowResult) -> None:

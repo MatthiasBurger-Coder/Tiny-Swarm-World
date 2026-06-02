@@ -4,8 +4,7 @@ Tiny Swarm World contains two different kinds of workflows:
 
 * development workflows that are safe to run during normal coding
 * live infrastructure workflows that change LXD/Incus/LXC provider state,
-  explicit Multipass legacy state, Docker, Portainer, Nexus, networking, or
-  service stacks
+  Docker, Portainer, Nexus, networking, or service stacks
 
 Use a Linux or WSL shell from the repository root unless a command explicitly
 states otherwise.
@@ -89,13 +88,6 @@ PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd setup run --live
 PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
 ----
 
-Use Multipass only through the explicit legacy/fallback provider:
-
-[source,bash]
-----
-PYTHONPATH=src python3 -m tiny_swarm_world --node-provider multipass_legacy setup run --live
-----
-
 The command prompts for a short confirmation:
 
 [source,text]
@@ -127,7 +119,7 @@ observed-state verification contracts are implemented.
 Optional live smoke validation is a separate operator action, not part of
 `python3 tools/quality_gate.py quality`. Run `setup run --live` only on a
 disposable or recoverable local environment and only when LXD/Incus/LXC or
-explicit Multipass legacy provider state, Docker Swarm, networking, Portainer,
+provider state, Docker Swarm, networking, Portainer,
 Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, image, and stack changes
 are intentional.
 
@@ -136,7 +128,7 @@ are intentional.
 The workflow safety behavior is verified through unit tests, architecture
 checks, import-linter contracts, type checks, and static command catalog
 validation. The default quality gate does not run live LXD, Incus, LXC
-container lifecycle, Multipass, Docker Swarm, compose, netplan, socat,
+container lifecycle, Docker Swarm, compose, netplan, socat,
 Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX commands.
 
 == Service Preparation

@@ -37,10 +37,10 @@ The LXC-native node provider migration also extends this EPIC:
 - active workflow `documentation/workflow/workflow.md`, version
   `lxc-native-node-provider-v1.0.0`
 
-That extension accepts `lxc_native` through LXD or Incus as the default
-provider direction. The implementation now keeps Multipass behind explicit
-`multipass_legacy` selection, wires provider-native Platform init through
-Docker Engine setup and Swarm bootstrap, and fails closed for remaining
+That extension accepts `lxc_native` through LXD or Incus as the supported
+provider direction. The implementation rejects removed provider selections such
+as `multipass_legacy`, wires provider-native Platform init through Docker
+Engine setup and Swarm bootstrap, and fails closed for remaining
 provider-native artifact, deployment, and live validation gaps.
 
 The service-access dashboard and Vaultwarden baseline also extends this EPIC:
@@ -112,11 +112,12 @@ Planned or incomplete:
   runnable setup remains incomplete until command-backed platform
   verification, artifact publication, registry checks, first-time stack
   bootstrap, and service readiness evidence are wired.
-- The LXC-native provider direction is implemented for default provider
+- The LXC-native provider direction is implemented for supported provider
   selection, provider-neutral contracts, LXD/Incus readiness, node lifecycle
   adapters, Docker Engine setup inside managed LXC nodes, Docker Swarm
   bootstrap inside those nodes, setup/platform init integration, LXC-native
-  reconcile no-op completion, and the explicit Multipass legacy boundary.
+  reconcile no-op completion, and fail-closed rejection of removed provider
+  selections such as `multipass_legacy`.
   Artifact/deployment wiring, Docker Swarm-in-container live validation, and
   WSL2 live proof remain incomplete and fail closed.
 - The service-access dashboard and Vaultwarden EPIC extension now has

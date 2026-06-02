@@ -1,6 +1,7 @@
 # Legacy Swarm Setup Migration Analysis
 
-Status: Slice 01 migration evidence.
+Status: Slice 01 migration evidence; Multipass migration candidates superseded
+by `adr-retire-multipass-legacy-provider.adoc`.
 
 This document classifies the legacy `infra/swarm` helper area before runtime
 setup behavior changes. It is static repository evidence only. No
@@ -46,9 +47,9 @@ infrastructure command was run for this analysis.
 | Treating `infra/swarm` as a supported setup entry point | `REJECT` | `infra/swarm/README.md`; `documentation/workflow/workflow.md` | Keep the directory as migration evidence only. Supported setup stays behind the Python entry point and composition root. |
 | Legacy stage inventory in `prepere.py` | `DOCUMENT_ONLY` | `infra/swarm/prepere.py` | Use only as a clue about former setup intent. Missing imported modules prevent any implementation claim. |
 | `prepere.py` direct sudo relaunch and direct setup invocation | `REJECT` | `infra/swarm/prepere.py` | Do not migrate direct privilege escalation or script-driven orchestration. Live consent remains CLI-governed. |
-| Multipass executable, version, and list readiness probes | `MIGRATE_WITH_CHANGES` | `infra/swarm/multipass/multipass_setup.py` | Later slices may keep the read-only readiness concept, but must expose typed status, timeouts, sanitized evidence, and fail-closed results. |
-| Automatic Multipass installation | `DOCUMENT_ONLY` | `infra/swarm/multipass/multipass_setup.py`; `documentation/system/multipass-setup.adoc` | Keep as operator host-preparation guidance unless a later ADR authorizes package installation automation. |
-| Multipass group and socket repair | `DOCUMENT_ONLY` | `infra/swarm/multipass/multipass_setup.py`; `documentation/system/multipass-setup.adoc` | Keep as remediation guidance. Do not auto-repair permissions in default setup slices. |
+| Multipass executable, version, and list readiness probes | `SUPERSEDED` | `infra/swarm/multipass/multipass_setup.py` | Superseded by `adr-retire-multipass-legacy-provider.adoc`; do not migrate as current provider readiness. |
+| Automatic Multipass installation | `SUPERSEDED` | `infra/swarm/multipass/multipass_setup.py`; former `documentation/system/multipass-setup.adoc` | Superseded by provider retirement. Do not preserve as current operator guidance. |
+| Multipass group and socket repair | `SUPERSEDED` | `infra/swarm/multipass/multipass_setup.py`; former `documentation/system/multipass-setup.adoc` | Superseded by provider retirement. Do not preserve as current remediation guidance. |
 | Static Multipass passphrase configuration | `REJECT` | `infra/swarm/multipass/multipass_setup.py` | Do not migrate static passphrase behavior, example secrets, or credential-setting patterns. |
 | Socat forwarding as a WSL2 access concept | `MIGRATE_WITH_CHANGES` | `infra/swarm/multipass/multipass_socat_setup.py`; `documentation/system/network.adoc` | Later slices may model forwarding strategies as typed plans with placeholders and explicit operator approval. |
 | Socat install, restart, kill, and background process management | `REJECT` | `infra/swarm/multipass/multipass_socat_setup.py` | Do not migrate blind package installation, process termination, or process startup as default automation. |
@@ -62,15 +63,16 @@ infrastructure command was run for this analysis.
 
 ## Later Slice Handoff
 
-Slice 02 may introduce typed domain concepts for host environment, Multipass
-readiness, and forwarding plans. This document does not claim that those
-concepts are implemented yet.
+Slice 02 may introduce typed domain concepts for host environment and
+forwarding plans. Multipass readiness migration is superseded by
+`adr-retire-multipass-legacy-provider.adoc`; this document does not claim that
+those concepts are implemented.
 
-Slice 03 through Slice 06 may migrate read-only host and Multipass readiness
-concepts. They must preserve the hexagonal boundary: infrastructure adapters
-own subprocess, filesystem, platform, and host probing details; application
-services orchestrate ports and domain results; domain models remain independent
-from infrastructure.
+Slice 03 through Slice 06 may migrate read-only host readiness concepts for
+supported providers only. They must preserve the hexagonal boundary:
+infrastructure adapters own subprocess, filesystem, platform, and host probing
+details; application services orchestrate ports and domain results; domain
+models remain independent from infrastructure.
 
 Slice 07 may migrate WSL2 forwarding as planning and verification, not blind
 mutation. Forwarding strategies must be explicit, operator-readable, and free of

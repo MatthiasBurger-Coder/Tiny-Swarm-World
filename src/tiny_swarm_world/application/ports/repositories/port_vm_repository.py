@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from tiny_swarm_world.domain.multipass.vm_entity import VmEntity
-from tiny_swarm_world.domain.multipass.vm_type import VmType
+from tiny_swarm_world.domain.command.vm_entity import VmEntity
+from tiny_swarm_world.domain.command.vm_type import VmType
 
 
 class PortVmRepository(ABC):

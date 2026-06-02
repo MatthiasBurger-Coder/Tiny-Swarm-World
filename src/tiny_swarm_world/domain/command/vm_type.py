@@ -11,4 +11,4 @@ class VmType(str, Enum):
         for enum_member in VmType:
             if enum_member.value == value:
                 return enum_member
-        raise ValueError(f"Value '{value}' does not match any CommandRunnerType.")
+        raise ValueError(f"Value '{value}' does not match any VM type.")

@@ -30,7 +30,7 @@ automation model and Python hexagonal architecture.
 
 ## Boundaries
 
-- Do not run live Multipass, Docker Swarm, compose, netplan, `socat` or service
+- Do not run live LXD, Incus, LXC, Docker Swarm, compose, netplan, `socat` or service
   bootstrap commands.
 - Do not weaken architecture tests or import-linter contracts.
 

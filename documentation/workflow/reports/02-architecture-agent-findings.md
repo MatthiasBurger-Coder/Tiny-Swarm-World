@@ -1,17 +1,23 @@
 # Architecture Agent Findings
 
-Decision: `READY_FOR_WORKFLOW`
+## Decision
 
-The behavior fits the existing hexagonal architecture.
+READY_FOR_WORKFLOW
 
-- Application services depend on `PortPortainerAdminClient` and the typed
-  application-port exception.
-- Infrastructure adapters translate HTTP behavior into the application port
-  contract.
-- Domain code remains independent from Portainer, HTTP, command runners, and
-  concrete infrastructure adapters.
-- Multipass remains explicit legacy/fallback surface and does not become the
-  default provider path.
+## Findings
 
-No ADR is required because this is a contract clarification inside the existing
-deployment boundary, not a new architectural direction.
+- Removing Multipass changes the node-provider architecture contract and must
+  update arc42 constraints, solution strategy, context, building blocks,
+  deployment view, risks, and glossary.
+- Domain removal must not leak infrastructure concerns into application code.
+- Composition must remain the only standard place where concrete adapters are
+  assembled.
+- Provider config validation must stop requiring a `multipass_legacy` fallback.
+- VM-neutral classes must be checked before deletion because some may still be
+  referenced by non-Multipass paths.
+
+## Required Subagent Handoff
+
+- Python implementation worker removes symbols dependency-first.
+- DevOps reviewer checks command YAML and preflight cleanup.
+- System architect reviews import boundaries with `arch-tests`.

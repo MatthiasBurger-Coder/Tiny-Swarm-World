@@ -3,7 +3,6 @@ from enum import Enum
 
 class CommandRunnerType(str, Enum):
     ASYNC = "async"
-    MULTIPASS = "multipass"
     REST = "rest"
     ANSIBLE = "ansible"
 
@@ -13,4 +12,3 @@ class CommandRunnerType(str, Enum):
             if enum_member.value == value:
                 return enum_member
         raise ValueError(f"Value '{value}' does not match any CommandRunnerType.")
-

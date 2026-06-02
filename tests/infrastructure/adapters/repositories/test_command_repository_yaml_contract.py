@@ -5,7 +5,7 @@ from typing import Any, cast
 from tiny_swarm_world.domain.command.command_entity import CommandCatalogValidationError
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
-from tiny_swarm_world.infrastructure.adapters.repositories.command_multipass_init_repository_yaml import (
+from tiny_swarm_world.infrastructure.adapters.repositories.command_repository_yaml import (
     PortCommandRepositoryYaml,
 )
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import (
@@ -37,7 +37,7 @@ class TestCommandRepositoryYamlContract(unittest.TestCase):
     verify:
       type: none
       description: Read-only command.
-    command: "multipass list"
+    command: "docker ps"
     runner: "async"
     command_type: "hostos"
     vm_type:
@@ -64,7 +64,7 @@ class TestCommandRepositoryYamlContract(unittest.TestCase):
 
     def test_repository_rejects_destructive_shell_string_without_destructive_class(self):
         yaml_content = _catalog_yaml(
-            _command_yaml(command_id="unsafe.001", command="multipass delete --all")
+            _command_yaml(command_id="unsafe.001", command="docker system prune --all")
         )
 
         with self.assertRaises(CommandCatalogValidationError):
@@ -109,6 +109,11 @@ class TestCommandRepositoryYamlContract(unittest.TestCase):
                     self.assertNotIn(command.id, command_ids)
                     command_ids.add(command.id)
 
+    def test_product_command_catalog_is_intentionally_retired(self):
+        product_command_files = sorted(config_root().rglob("command_*.yaml"))
+
+        self.assertEqual([], product_command_files)
+
     def test_product_runtime_change_commands_are_not_read_classified(self):
         for config_file in sorted(config_root().rglob("command_*.yaml")):
             commands = PortCommandRepositoryYaml(config_file.name).get_all_commands()
@@ -131,18 +136,7 @@ class TestCommandRepositoryYamlContract(unittest.TestCase):
                         self.assertTrue(command.evidence_policy.redact_output)
                         self.assertFalse(command.evidence_policy.store_raw_output)
 
-        self.assertEqual(["multipass_docker_swarm_manager_join_token.001"], credential_output_commands)
-
-    def test_command_builder_preserves_verify_metadata_for_mutating_commands(self):
-        commands = PortCommandRepositoryYaml(
-            "command_multipass_init_repository_yaml.yaml"
-        ).get_all_commands()
-
-        mutating_command = commands[1]
-
-        self.assertEqual("safe_mutation", mutating_command.safety_class.value)
-        self.assertEqual("command", mutating_command.verify.type.value)
-        self.assertEqual("probe:platform:vm-created", mutating_command.verify.command)
+        self.assertEqual([], credential_output_commands)
 
 
 def _repository_for(yaml_content: str) -> PortCommandRepositoryYaml:
@@ -160,7 +154,7 @@ def _command_yaml(
     *,
     command_id: str,
     index: int = 1,
-    command: str = "multipass list",
+    command: str = "docker ps",
     safety_class: str = "safe_read",
     effects: tuple[str, ...] = ("read",),
     verify_type: str = "none",

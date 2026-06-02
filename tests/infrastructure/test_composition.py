@@ -137,28 +137,21 @@ class TestComposition(unittest.TestCase):
         self.assertEqual({"run"}, setup_workflow_names)
 
     def test_build_platform_services_wires_preflight_adapter(self):
-        with patch.object(composition, "PortVmRepositoryYaml") as vm_repository_factory:
+        with patch.object(
+            composition,
+            "NodeProviderConfigYamlRepository",
+        ) as node_config_repository_factory:
             with patch.object(
                 composition,
-                "PortNetplanRepositoryYaml",
-            ) as netplan_repository_factory:
+                "AsyncLxcNodeCommandRunner",
+            ) as lxc_runner_factory:
                 with patch.object(
                     composition,
-                    "NodeProviderConfigYamlRepository",
-                ) as node_config_repository_factory:
-                    with patch.object(
-                        composition,
-                        "AsyncLxcNodeCommandRunner",
-                    ) as lxc_runner_factory:
-                        with patch.object(
-                            composition,
-                            "_wsl_lxc_lifecycle_capability_available",
-                            return_value=True,
-                        ) as wsl_capability_probe:
-                            services = composition.build_platform_services()
+                    "_wsl_lxc_lifecycle_capability_available",
+                    return_value=True,
+                ) as wsl_capability_probe:
+                    services = composition.build_platform_services()
 
-        vm_repository_factory.assert_called_once_with()
-        netplan_repository_factory.assert_called_once_with()
         node_config_repository_factory.assert_called_once_with()
         lxc_runner_factory.assert_called_once_with()
         self.assertIsInstance(services.preflight, PreflightService)
@@ -188,16 +181,14 @@ class TestComposition(unittest.TestCase):
 
     def test_build_platform_services_wires_workflow_objects(self):
         evidence_repository = _RecordingEvidenceRepository()
-        with patch.object(composition, "PortVmRepositoryYaml"):
-            with patch.object(composition, "PortNetplanRepositoryYaml"):
-                with patch.object(
-                    composition,
-                    "VerificationEvidenceLocalRepository",
-                    return_value=evidence_repository,
-                ):
-                    services = composition.build_platform_services(
-                        trace_correlation_id="trace-test"
-                    )
+        with patch.object(
+            composition,
+            "VerificationEvidenceLocalRepository",
+            return_value=evidence_repository,
+        ):
+            services = composition.build_platform_services(
+                trace_correlation_id="trace-test"
+            )
 
         self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
         self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
@@ -237,9 +228,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual("trace-test", services.workflows.verify.trace_correlation_id)
 
     def test_build_platform_services_wires_workflow_types_without_evidence_patch(self):
-        with patch.object(composition, "PortVmRepositoryYaml"):
-            with patch.object(composition, "PortNetplanRepositoryYaml"):
-                services = composition.build_platform_services()
+        services = composition.build_platform_services()
 
         self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
         self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
@@ -250,9 +239,7 @@ class TestComposition(unittest.TestCase):
     def test_build_platform_services_adds_terminal_sinks_when_ui_is_supplied(self):
         ui = _RecordingUI()
 
-        with patch.object(composition, "PortVmRepositoryYaml"):
-            with patch.object(composition, "PortNetplanRepositoryYaml"):
-                services = composition.build_platform_services(ui=ui)
+        services = composition.build_platform_services(ui=ui)
 
         progress_sink = services.workflows.init.progress
         method_trace_sink = services.workflows.init.method_trace
@@ -420,7 +407,9 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
 
     def test_build_artifact_services_wires_artifact_contracts_without_running_clients(self):
-        services = composition.build_artifact_services()
+        services = composition.build_lxc_artifact_services(
+            backend=composition.ManagedLxcBackend.INCUS,
+        )
 
         self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.ArtifactVerifyWorkflow)
@@ -438,23 +427,18 @@ class TestComposition(unittest.TestCase):
         )
 
     def test_build_artifact_services_does_not_call_live_clients_during_construction(self):
-        with patch.object(composition, "MultipassNexusHttpClient") as nexus_client:
-            with patch.object(composition, "MultipassContainerRuntime") as container_runtime:
-                with patch.object(composition, "MultipassContainerImagePublisher") as image_publisher:
-                    services = composition.build_artifact_services()
+        services = composition.build_lxc_artifact_services(
+            backend=composition.ManagedLxcBackend.INCUS,
+        )
 
-        nexus_client.assert_called_once_with()
-        container_runtime.assert_called_once_with()
-        image_publisher.assert_called_once()
         self.assertEqual(7, len(services.workflows.prepare.steps))
         self.assertEqual(7, len(services.workflows.verify.checks))
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
         with patch.object(composition, "ComposeFileRepositoryYaml"):
-            with patch.object(composition, "MultipassSwarmRuntime"):
-                with patch.object(composition, "MultipassPortainerAdminClient"):
-                    with patch.object(composition, "PortainerHttpClient"):
-                        services = composition.build_deployment_services()
+            services = composition.build_lxc_deployment_services(
+                backend=composition.ManagedLxcBackend.INCUS,
+            )
 
         self.assertIsInstance(services.workflows.bootstrap, composition.DeploymentApplyWorkflow)
         self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
@@ -503,39 +487,25 @@ class TestComposition(unittest.TestCase):
 
     def test_build_deployment_services_does_not_call_runtime_during_construction(self):
         with patch.object(composition, "ComposeFileRepositoryYaml") as compose_repository:
-            with patch.object(composition, "MultipassSwarmRuntime") as swarm_runtime:
-                with patch.object(composition, "MultipassPortainerAdminClient") as portainer_client:
-                    with patch.object(composition, "PortainerHttpClient") as stack_client:
-                        services = composition.build_deployment_services()
+            services = composition.build_lxc_deployment_services(
+                backend=composition.ManagedLxcBackend.INCUS,
+            )
 
         compose_repository.assert_called_once_with()
-        swarm_runtime.assert_called_once_with()
-        portainer_client.assert_called_once_with()
-        stack_client.assert_called_once()
         self.assertEqual(3, len(services.workflows.bootstrap.steps))
         self.assertEqual(5, len(services.workflows.apply.steps))
         self.assertEqual(8, len(services.workflows.verify.checks))
 
     def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
-        with patch.object(
-            composition,
-            "MultipassNexusHttpClient",
-            side_effect=AssertionError("default artifact services must not use Multipass"),
-        ):
-            with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
-                services = composition.build_artifact_services_for_provider()
+        with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
+            services = composition.build_artifact_services_for_provider()
 
         self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
         self.assertEqual(7, len(services.workflows.prepare.steps))
 
     def test_default_provider_deployment_services_use_lxc_clients_when_backend_is_available(self):
-        with patch.object(
-            composition,
-            "MultipassSwarmRuntime",
-            side_effect=AssertionError("default deployment services must not use Multipass"),
-        ):
-            with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
-                services = composition.build_deployment_services_for_provider()
+        with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
+            services = composition.build_deployment_services_for_provider()
 
         self.assertIsInstance(services.workflows.bootstrap, composition.DeploymentApplyWorkflow)
         self.assertEqual(
@@ -555,57 +525,18 @@ class TestComposition(unittest.TestCase):
 
         self.assertEqual("blocked", result.status.value)
 
-    def test_explicit_legacy_provider_uses_existing_multipass_artifact_services(self):
-        request = composition.NodeProviderSelectionRequest(
-            requested_provider=composition.NodeProviderKind.MULTIPASS_LEGACY
-        )
-
-        with patch.object(composition, "MultipassNexusHttpClient") as nexus_client:
-            with patch.object(composition, "MultipassContainerRuntime"):
-                with patch.object(composition, "MultipassContainerImagePublisher"):
-                    services = composition.build_artifact_services_for_provider(
-                        node_provider_request=request
-                    )
-
-        nexus_client.assert_called_once_with()
-        self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
-
-    def test_explicit_legacy_provider_uses_existing_multipass_deployment_services(self):
-        request = composition.NodeProviderSelectionRequest(
-            requested_provider=composition.NodeProviderKind.MULTIPASS_LEGACY
-        )
-
-        with patch.object(composition, "ComposeFileRepositoryYaml"):
-            with patch.object(composition, "MultipassSwarmRuntime") as swarm_runtime:
-                with patch.object(composition, "MultipassPortainerAdminClient"):
-                    with patch.object(composition, "PortainerHttpClient"):
-                        services = composition.build_deployment_services_for_provider(
-                            node_provider_request=request
-                        )
-
-        swarm_runtime.assert_called_once_with()
-        self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
-
     def test_build_deployment_services_uses_named_portainer_api_default(self):
-        with patch.object(composition, "PortainerHttpClient") as portainer_client:
-            with patch.object(composition, "ComposeFileRepositoryYaml"):
-                with patch.object(composition, "MultipassSwarmRuntime"):
-                    with patch.object(composition, "MultipassPortainerAdminClient"):
-                        composition.build_deployment_services()
-
-        self.assertEqual(
-            composition.DEFAULT_PORTAINER_API_URL,
-            portainer_client.call_args.args[0],
+        services = composition.build_lxc_deployment_services(
+            backend=composition.ManagedLxcBackend.INCUS,
         )
+        self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
 
     def test_build_deployment_services_can_select_service_access_profile(self):
         with patch.object(composition, "ComposeFileRepositoryYaml"):
-            with patch.object(composition, "MultipassSwarmRuntime"):
-                with patch.object(composition, "MultipassPortainerAdminClient"):
-                    with patch.object(composition, "PortainerHttpClient"):
-                        services = composition.build_deployment_services(
-                            service_profile=ServiceStackProfile.SERVICE_ACCESS
-                        )
+            services = composition.build_lxc_deployment_services(
+                backend=composition.ManagedLxcBackend.INCUS,
+                service_profile=ServiceStackProfile.SERVICE_ACCESS,
+            )
 
         self.assertEqual(
             (
@@ -649,10 +580,9 @@ class TestComposition(unittest.TestCase):
             clear=True,
         ):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
-                with patch.object(composition, "MultipassSwarmRuntime") as swarm_runtime:
-                    with patch.object(composition, "MultipassPortainerAdminClient"):
-                        with patch.object(composition, "PortainerHttpClient"):
-                            services = composition.build_deployment_services()
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
 
         pre_apply_check = services.workflows.apply.pre_apply_checks[0]
         service_access_step = next(
@@ -661,7 +591,6 @@ class TestComposition(unittest.TestCase):
             if step.service_stack.stack_name == "service-access"
         )
 
-        self.assertIs(pre_apply_check.swarm_runtime, swarm_runtime.return_value)
         self.assertEqual("operator_defined", pre_apply_check.resource_name)
         self.assertEqual("operator_env", pre_apply_check.source_ref)
         self.assertEqual(
@@ -672,7 +601,9 @@ class TestComposition(unittest.TestCase):
     def test_build_artifact_services_uses_operator_environment_credentials(self):
         operator_value = sample_text("operator", "-supplied")
         with patch.dict("os.environ", {"TSW_NEXUS_ADMIN_PASSWORD": operator_value}, clear=True):
-            services = composition.build_artifact_services()
+            services = composition.build_lxc_artifact_services(
+                backend=composition.ManagedLxcBackend.INCUS,
+            )
 
         image_publisher = services.workflows.prepare.steps[-1].image_publisher
         self.assertEqual(
@@ -684,13 +615,10 @@ class TestComposition(unittest.TestCase):
         operator_value = sample_text("operator", "-portainer")
         with patch.dict("os.environ", {"TSW_PORTAINER_PASSWORD": operator_value}, clear=True):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
-                with patch.object(composition, "MultipassSwarmRuntime"):
-                    with patch.object(composition, "MultipassPortainerAdminClient"):
-                        with patch.object(composition, "PortainerHttpClient") as portainer_client:
-                            services = composition.build_deployment_services()
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
 
-        portainer_client.assert_called_once()
-        self.assertEqual(operator_value, portainer_client.call_args.args[2])
         self.assertEqual(operator_value, services.workflows.bootstrap.steps[1].password)
 
     def test_build_setup_services_wires_phase_orchestrator_without_running_phases(self):
@@ -847,9 +775,7 @@ class TestComposition(unittest.TestCase):
         )
 
     def test_build_application_services_wires_preflight_through_platform_bundle(self):
-        with patch.object(composition, "PortVmRepositoryYaml"):
-            with patch.object(composition, "PortNetplanRepositoryYaml"):
-                services = composition.build_application_services()
+        services = composition.build_application_services()
 
         self.assertIsInstance(services.platform.preflight, PreflightService)
         self.assertIs(services.preflight, services.platform.preflight)
@@ -857,9 +783,7 @@ class TestComposition(unittest.TestCase):
 
     def test_build_platform_services_wires_init_guard_when_live_consent_is_available(self):
         live_consent = _accepted_live_consent()
-        with patch.object(composition, "PortVmRepositoryYaml"):
-            with patch.object(composition, "PortNetplanRepositoryYaml"):
-                services = composition.build_platform_services(live_consent=live_consent)
+        services = composition.build_platform_services(live_consent=live_consent)
 
         self.assertIsNotNone(services.workflows.init.pre_apply_guard)
         self.assertTrue(services.lxc_node_provider.allow_live_mutation)
@@ -905,14 +829,7 @@ class TestComposition(unittest.TestCase):
         )
 
     def test_build_application_services_does_not_run_constructed_services(self):
-        with patch.object(composition.MultipassInitVms, "run", side_effect=AssertionError):
-            with patch.object(composition.MultipassDockerInstall, "run", side_effect=AssertionError):
-                with patch.object(
-                    composition.MultipassDockerSwarmInit,
-                    "run",
-                    side_effect=AssertionError,
-                ):
-                    services = composition.build_application_services()
+        services = composition.build_application_services()
 
         self.assertIsInstance(services, composition.ApplicationServices)
 
@@ -927,25 +844,18 @@ class TestComposition(unittest.TestCase):
                 "reason": "provider_selection_blocked",
             },
         )
-        with patch.object(composition, "PortVmRepositoryYaml"):
-            with patch.object(composition, "PortNetplanRepositoryYaml"):
-                with patch.object(
-                    composition,
-                    "VerificationEvidenceLocalRepository",
-                    return_value=evidence_repository,
-                ):
-                    with patch.object(
-                        composition.NodeProviderSelectionService,
-                        "ensure_node",
-                        return_value=blocked_result,
-                    ):
-                        with patch.object(
-                            composition.MultipassInitVms,
-                            "run",
-                            side_effect=AssertionError("default init must not run Multipass"),
-                        ):
-                            services = composition.build_platform_services()
-                            result = asyncio.run(services.workflows.init.run())
+        with patch.object(
+            composition,
+            "VerificationEvidenceLocalRepository",
+            return_value=evidence_repository,
+        ):
+            with patch.object(
+                composition.NodeProviderSelectionService,
+                "ensure_node",
+                return_value=blocked_result,
+            ):
+                services = composition.build_platform_services()
+                result = asyncio.run(services.workflows.init.run())
 
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
@@ -1005,39 +915,30 @@ class TestComposition(unittest.TestCase):
                 ),
             )
 
-        with patch.object(composition, "PortVmRepositoryYaml"):
-            with patch.object(composition, "PortNetplanRepositoryYaml"):
+        with patch.object(
+            composition,
+            "VerificationEvidenceLocalRepository",
+            return_value=evidence_repository,
+        ):
+            with patch.object(
+                composition.NodeProviderSelectionService,
+                "ensure_node",
+                side_effect=verified_node,
+            ):
                 with patch.object(
-                    composition,
-                    "VerificationEvidenceLocalRepository",
-                    return_value=evidence_repository,
-                ):
+                    composition.LxcDockerInstallService,
+                    "ensure_docker_installed",
+                    autospec=True,
+                    side_effect=verified_runtime,
+                ) as ensure_runtime:
                     with patch.object(
-                        composition.NodeProviderSelectionService,
-                        "ensure_node",
-                        side_effect=verified_node,
-                    ):
-                        with patch.object(
-                            composition.LxcDockerInstallService,
-                            "ensure_docker_installed",
-                            autospec=True,
-                            side_effect=verified_runtime,
-                        ) as ensure_runtime:
-                            with patch.object(
-                                composition.LxcSwarmBootstrapService,
-                                "bootstrap_swarm",
-                                autospec=True,
-                                side_effect=verified_swarm,
-                            ) as bootstrap_swarm:
-                                with patch.object(
-                                    composition.MultipassInitVms,
-                                    "run",
-                                    side_effect=AssertionError(
-                                        "default init must not run Multipass"
-                                    ),
-                                ):
-                                    services = composition.build_platform_services()
-                                    result = asyncio.run(services.workflows.init.run())
+                        composition.LxcSwarmBootstrapService,
+                        "bootstrap_swarm",
+                        autospec=True,
+                        side_effect=verified_swarm,
+                    ) as bootstrap_swarm:
+                        services = composition.build_platform_services()
+                        result = asyncio.run(services.workflows.init.run())
 
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertTrue(result.executed)
@@ -1076,27 +977,25 @@ class TestComposition(unittest.TestCase):
                 evidence={"phase": "verify", "classification": "node_verified"},
             )
 
-        with patch.object(composition, "PortVmRepositoryYaml"):
-            with patch.object(composition, "PortNetplanRepositoryYaml"):
+        with patch.object(
+            composition,
+            "VerificationEvidenceLocalRepository",
+            return_value=evidence_repository,
+        ):
+            with patch.object(
+                composition.NodeProviderSelectionService,
+                "ensure_node",
+                side_effect=verified_node,
+            ):
                 with patch.object(
                     composition,
-                    "VerificationEvidenceLocalRepository",
-                    return_value=evidence_repository,
+                    "LxcContainerDockerRuntime",
+                    side_effect=AssertionError(
+                        "runtime adapter must not be constructed without consent"
+                    ),
                 ):
-                    with patch.object(
-                        composition.NodeProviderSelectionService,
-                        "ensure_node",
-                        side_effect=verified_node,
-                    ):
-                        with patch.object(
-                            composition,
-                            "LxcContainerDockerRuntime",
-                            side_effect=AssertionError(
-                                "runtime adapter must not be constructed without consent"
-                            ),
-                        ):
-                            services = composition.build_platform_services()
-                            result = asyncio.run(services.workflows.init.run())
+                    services = composition.build_platform_services()
+                    result = asyncio.run(services.workflows.init.run())
 
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
@@ -1110,64 +1009,22 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
-    def test_explicit_legacy_init_workflow_keeps_multipass_contract(self):
+    def test_composed_default_lxc_reconcile_completes_without_provider_fallback(self):
         evidence_repository = _RecordingEvidenceRepository()
-        blocked_result = _blocked_contract_result("platform:init:multipass-vms")
-        request = composition.NodeProviderSelectionRequest(
-            requested_provider=composition.NodeProviderKind.MULTIPASS_LEGACY
-        )
-        with patch.object(composition, "PortVmRepositoryYaml"):
-            with patch.object(composition, "PortNetplanRepositoryYaml"):
-                with patch.object(
-                    composition,
-                    "VerificationEvidenceLocalRepository",
-                    return_value=evidence_repository,
-                ):
-                    with patch.object(
-                        composition.CommandWorkflow,
-                        "verify_config_contract",
-                        return_value=blocked_result,
-                    ):
-                        with patch.object(
-                            composition.MultipassInitVms,
-                            "run",
-                            side_effect=AssertionError("init step must not run"),
-                        ):
-                            services = composition.build_platform_services(
-                                node_provider_request=request
-                            )
-                            result = asyncio.run(services.workflows.init.run())
-
-        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
-        self.assertEqual(
-            "platform:init:multipass-vms",
-            result.verification_results[0].target_id,
-        )
-        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
-
-    def test_composed_default_lxc_reconcile_completes_without_multipass_execution(self):
-        evidence_repository = _RecordingEvidenceRepository()
-        with patch.object(composition, "PortVmRepositoryYaml"):
-            with patch.object(composition, "PortNetplanRepositoryYaml"):
-                with patch.object(
-                    composition,
-                    "VerificationEvidenceLocalRepository",
-                    return_value=evidence_repository,
-                ):
-                    with patch.object(
-                        composition.CommandWorkflow,
-                        "verify_config_contract",
-                        side_effect=AssertionError(
-                            "default reconcile must not inspect Multipass command contracts"
-                        ),
-                    ) as verify_config_contract:
-                        with patch.object(
-                            composition.VmIpList,
-                            "run",
-                            side_effect=AssertionError("default reconcile must not run VmIpList"),
-                        ):
-                            services = composition.build_platform_services()
-                            result = asyncio.run(services.workflows.reconcile.run())
+        with patch.object(
+            composition,
+            "VerificationEvidenceLocalRepository",
+            return_value=evidence_repository,
+        ):
+            with patch.object(
+                composition.CommandWorkflow,
+                "verify_config_contract",
+                side_effect=AssertionError(
+                    "default reconcile must not inspect command contracts"
+                ),
+            ) as verify_config_contract:
+                services = composition.build_platform_services()
+                result = asyncio.run(services.workflows.reconcile.run())
 
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertTrue(result.executed)
@@ -1186,45 +1043,6 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
-    def test_explicit_legacy_reconcile_workflow_keeps_multipass_contract(self):
-        evidence_repository = _RecordingEvidenceRepository()
-        blocked_result = _blocked_contract_result("platform:reconcile:vm-ip-list")
-        request = composition.NodeProviderSelectionRequest(
-            requested_provider=composition.NodeProviderKind.MULTIPASS_LEGACY
-        )
-        with patch.object(composition, "PortVmRepositoryYaml"):
-            with patch.object(composition, "PortNetplanRepositoryYaml"):
-                with patch.object(
-                    composition,
-                    "VerificationEvidenceLocalRepository",
-                    return_value=evidence_repository,
-                ):
-                    with patch.object(
-                        composition.CommandWorkflow,
-                        "verify_config_contract",
-                        return_value=blocked_result,
-                    ):
-                        with patch.object(
-                            composition.VmIpList,
-                            "run",
-                            side_effect=AssertionError("reconcile step must not run"),
-                        ):
-                            services = composition.build_platform_services(
-                                node_provider_request=request
-                            )
-                            result = asyncio.run(services.workflows.reconcile.run())
-
-        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
-        self.assertFalse(result.executed)
-        self.assertEqual(
-            "platform:reconcile:vm-ip-list",
-            result.verification_results[0].target_id,
-        )
-        self.assertEqual(
-            "command_backed_verification_missing",
-            result.verification_results[0].evidence["reason"],
-        )
-        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
 
 def _blocked_contract_result(target_id: str) -> VerificationResult:

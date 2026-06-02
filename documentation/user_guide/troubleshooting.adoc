@@ -70,30 +70,18 @@ Provider readiness checks are read-only. They do not install packages, start
 or repair daemons, create profiles, change group membership, or mutate
 provider networking.
 
-== Multipass Legacy/Fallback Is Not Available
+== Unsupported Node Provider Selection
 
-Multipass is relevant only for explicit legacy/fallback runs:
-
-[source,bash]
-----
-PYTHONPATH=src python3 -m tiny_swarm_world --node-provider multipass_legacy setup run --live
-----
-
-Verify Multipass installation and driver state:
+The supported node provider is `lxc_native`. If an old command line uses a
+removed provider value, rerun with the default provider or select an LXD/Incus
+backend explicitly:
 
 [source,bash]
 ----
-multipass version
-multipass get local.driver
-multipass info
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd setup run --live
 ----
-
-For legacy WSL/Linux usage, use the QEMU driver.
-
-If an explicit legacy run reports a `RUNTIME-MULTIPASS-*` blocker, repair
-Multipass access from the same WSL or Linux shell before retrying. The
-readiness check is read-only; it does not start services, change drivers,
-create VMs, or repair socket permissions.
 
 == IntelliJ Run Configuration Cannot Start Live Setup
 

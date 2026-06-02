@@ -161,12 +161,12 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             PreflightResult(
                 (
                     PreflightCheck(
-                        check_id="RUNTIME-MULTIPASS-SOCKET",
+                        check_id="PROVIDER-LXC-DAEMON",
                         category=PreflightCategory.RUNTIME,
                         status=PreflightStatus.FAILED,
                         severity=PreflightSeverity.MANDATORY,
-                        message="Multipass daemon or socket is not reachable.",
-                        remediation="Repair Multipass runtime access.",
+                        message="LXC provider daemon is not reachable.",
+                        remediation="Repair LXD/Incus runtime access.",
                     ),
                 )
             )
@@ -410,7 +410,7 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             VerificationResult(
                 target_id="platform:node:swarm-manager",
                 status=VerificationStatus.VERIFIED,
-                message="LXC node lifecycle reached the desired state.",
+                message="Provider lifecycle reached the desired state.",
                 evidence={
                     "phase": "verify",
                     "classification": "verified",
@@ -443,7 +443,7 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             VerificationResult(
                 target_id="platform:node:swarm-manager",
                 status=VerificationStatus.BLOCKED,
-                message="LXC node lifecycle is blocked before mutation.",
+                message="Provider lifecycle is blocked before mutation.",
                 evidence={
                     "phase": "pre_apply",
                     "classification": "live_mutation_consent_missing",

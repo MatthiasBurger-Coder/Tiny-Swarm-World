@@ -4,8 +4,8 @@ from typing import List, Optional
 from ruamel.yaml import YAML
 
 from tiny_swarm_world.application.ports.repositories.port_vm_repository import PortVmRepository
-from tiny_swarm_world.domain.multipass.vm_entity import VmEntity
-from tiny_swarm_world.domain.multipass.vm_type import VmType
+from tiny_swarm_world.domain.command.vm_entity import VmEntity
+from tiny_swarm_world.domain.command.vm_type import VmType
 from tiny_swarm_world.infrastructure.adapters.exceptions.exception_yaml_handling import YAMLHandlingError
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.yaml.yaml_builder import FluentYAMLBuilder

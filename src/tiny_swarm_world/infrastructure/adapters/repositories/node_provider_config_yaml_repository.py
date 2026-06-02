@@ -26,14 +26,12 @@ _ROOT_FIELDS = frozenset(
         "schema_version",
         "default_provider",
         "backend_selection",
-        "legacy_fallbacks",
         "nodes",
         "profiles",
         "verification_metadata",
     )
 )
 _BACKEND_SELECTION_FIELDS = frozenset(("preferred_backend", "candidates"))
-_LEGACY_FALLBACK_FIELDS = frozenset(("provider", "selection_policy", "automatic"))
 _NODE_FIELDS = frozenset(
     (
         "name",
@@ -88,7 +86,7 @@ _IPV6_PATTERN = re.compile(r"\b(?:[0-9a-fA-F]{0,4}:){2,}[0-9a-fA-F]{0,4}\b")
 _ABSOLUTE_PATH_PATTERN = re.compile(r"(^|[\s=:])/(?:home|mnt|Users|var/lib/docker|var/run)[/\w.-]*")
 _WINDOWS_PATH_PATTERN = re.compile(r"\b[A-Za-z]:\\")
 _COMMAND_PATTERN = re.compile(
-    r"\b(?:bash|curl|docker|docker-compose|incus|lxc|multipass|netplan|python3?|sh|"
+    r"\b(?:bash|curl|docker|docker-compose|incus|lxc|netplan|python3?|sh|"
     r"socat|sudo|wsl)\s+\S+",
     re.IGNORECASE,
 )
@@ -101,13 +99,6 @@ _SAFE_IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
 
 class NodeProviderConfigError(ValueError):
     pass
-
-
-@dataclass(frozen=True)
-class LegacyProviderFallback:
-    provider: NodeProviderKind
-    selection_policy: str
-    automatic: bool
 
 
 @dataclass(frozen=True)
@@ -151,7 +142,6 @@ class NodeProviderConfig:
     default_provider: NodeProviderKind
     preferred_backend: ManagedLxcBackend | None
     backend_candidates: tuple[ManagedLxcBackend, ...]
-    legacy_fallbacks: tuple[LegacyProviderFallback, ...]
     nodes: tuple[NodeProviderNodeConfig, ...]
     profiles: tuple[NodeProviderProfileRequirement, ...]
     verification_metadata: ProviderVerificationMetadata
@@ -200,16 +190,6 @@ def _config_from_mapping(data: Mapping[str, Any]) -> NodeProviderConfig:
     if set(backend_candidates) != {ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD}:
         raise NodeProviderConfigError("backend candidates must include incus and lxd")
 
-    legacy_fallbacks = tuple(
-        _legacy_fallback(item, index)
-        for index, item in enumerate(
-            _required_sequence(data, "legacy_fallbacks", "root"),
-            start=1,
-        )
-    )
-    if not any(fallback.provider == NodeProviderKind.MULTIPASS_LEGACY for fallback in legacy_fallbacks):
-        raise NodeProviderConfigError("multipass_legacy explicit fallback is required")
-
     profiles_mapping = _required_mapping(data, "profiles", "root")
     profiles = tuple(
         _profile_requirement(name, profile_data)
@@ -236,25 +216,10 @@ def _config_from_mapping(data: Mapping[str, Any]) -> NodeProviderConfig:
         default_provider=default_provider,
         preferred_backend=preferred_backend,
         backend_candidates=backend_candidates,
-        legacy_fallbacks=legacy_fallbacks,
         nodes=nodes,
         profiles=profiles,
         verification_metadata=verification_metadata,
     )
-
-
-def _legacy_fallback(item: object, index: int) -> LegacyProviderFallback:
-    if not isinstance(item, Mapping):
-        raise NodeProviderConfigError(f"legacy fallback {index} must be a mapping")
-    _reject_unknown_fields(item, _LEGACY_FALLBACK_FIELDS, f"legacy_fallbacks[{index}]")
-    provider = _provider(_required(item, "provider", f"legacy_fallbacks[{index}]"))
-    if provider != NodeProviderKind.MULTIPASS_LEGACY:
-        raise NodeProviderConfigError("legacy fallback provider must be multipass_legacy")
-    selection_policy = str(_required(item, "selection_policy", f"legacy_fallbacks[{index}]"))
-    automatic = _bool_value(_required(item, "automatic", f"legacy_fallbacks[{index}]"))
-    if selection_policy != "explicit_only" or automatic:
-        raise NodeProviderConfigError("multipass_legacy fallback must be explicit_only and non-automatic")
-    return LegacyProviderFallback(provider, selection_policy, automatic)
 
 
 def _node_config(

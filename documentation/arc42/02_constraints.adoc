@@ -12,7 +12,7 @@ rules.
   root for concrete adapters.
 * `src/tiny_swarm_world/__main__.py` remains a thin workflow entry point.
 * Normal `platform init` and `platform reconcile` must not select destructive
-  cleanup commands such as Multipass delete or purge.
+  cleanup commands.
 * `platform reset` and `platform destroy` require exact confirmation phrases.
   Their destructive execution remains blocked until retention semantics are
   implemented.
@@ -28,12 +28,11 @@ rules.
   returns `verified` evidence.
 * The default quality gate must not create provider nodes or VMs, mutate
   networking, initialize Docker Swarm, deploy stacks, or bootstrap services.
-* LXC-native through LXD or Incus is the default provider direction.
-  Multipass is retained only as explicit `multipass_legacy` fallback.
+* LXC-native through LXD or Incus is the supported provider direction.
 * Raw low-level LXC command automation is not an accepted first default
   provider path.
-* Multipass fallback must be explicit and operator-selected. A failed
-  LXD/Incus readiness check must not silently fall back to Multipass.
+* A failed LXD/Incus readiness check must not silently fall back to another
+  provider.
 * WSL2 is capability-gated for managed LXC provider behavior. WSL1 is not a
   supported provider target.
 * Host package installation, daemon repair, group membership changes,

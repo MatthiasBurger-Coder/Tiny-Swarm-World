@@ -34,15 +34,6 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
         )
         self.assertEqual(NodeRole.MANAGER, config.nodes[0].spec.role)
 
-    def test_committed_config_declares_multipass_legacy_only_as_explicit_fallback(self):
-        config = NodeProviderConfigYamlRepository().load()
-
-        fallback = config.legacy_fallbacks[0]
-
-        self.assertEqual(NodeProviderKind.MULTIPASS_LEGACY, fallback.provider)
-        self.assertEqual("explicit_only", fallback.selection_policy)
-        self.assertFalse(fallback.automatic)
-
     def test_committed_config_declares_incus_and_lxd_profiles(self):
         config = NodeProviderConfigYamlRepository().load()
         profile = config.profiles[0]
@@ -110,9 +101,9 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
         with self.assertRaises(NodeProviderConfigError):
             _repository_for(data).load()
 
-    def test_rejects_automatic_multipass_fallback(self):
+    def test_rejects_legacy_fallbacks_field(self):
         data = _valid_config()
-        data["legacy_fallbacks"][0]["automatic"] = True
+        data["legacy_fallbacks"] = []
 
         with self.assertRaises(NodeProviderConfigError):
             _repository_for(data).load()
@@ -212,13 +203,6 @@ def _valid_config() -> dict[str, Any]:
             "preferred_backend": None,
             "candidates": ["incus", "lxd"],
         },
-        "legacy_fallbacks": [
-            {
-                "provider": "multipass_legacy",
-                "selection_policy": "explicit_only",
-                "automatic": False,
-            }
-        ],
         "nodes": [
             {
                 "name": "swarm-manager",

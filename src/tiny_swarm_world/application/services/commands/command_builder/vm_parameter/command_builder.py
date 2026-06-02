@@ -5,7 +5,7 @@ from tiny_swarm_world.application.services.commands.command_builder.vm_parameter
 from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.strategies.none_strategy import NoneStrategy
 from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.strategies.worker_strategy import WorkerStrategy
 from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
-from tiny_swarm_world.domain.multipass.vm_type import VmType
+from tiny_swarm_world.domain.command.vm_type import VmType
 from tiny_swarm_world.application.ports.commands.port_command_runner_factory import PortCommandRunnerFactory
 from tiny_swarm_world.application.ports.repositories.port_command_repository import PortCommandRepository
 from tiny_swarm_world.application.ports.repositories.port_vm_repository import PortVmRepository
@@ -23,7 +23,7 @@ class CommandBuilder:
         workflow_id: str = "",
     ):
         """
-        :param command_repository: command repository of multipass init process
+        :param command_repository: command repository for VM-scoped command templates.
         """
         self.vm_repository = vm_repository
         self.command_runner_factory = command_runner_factory

@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field
 
-from tiny_swarm_world.domain.multipass.vm_type import VmType
+from tiny_swarm_world.domain.command.vm_type import VmType
 
 
 class VmEntity(BaseModel):
     vm_instance: str
-    vm_type: VmType = Field(default=VmType.MANAGER)  # worker
+    vm_type: VmType = Field(default=VmType.MANAGER)
     external_ip: str = Field(default="")
     docker_bridge_ip: str = Field(default="")
     docker_overlay_ip: str = Field(default="")

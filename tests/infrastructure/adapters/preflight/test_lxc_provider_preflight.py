@@ -244,16 +244,6 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ProviderReadinessStatus.HOST_UNSUPPORTED, readiness.status)
         self.assertEqual([], runner.calls)
 
-    async def test_unsupported_provider_request_reports_unsupported(self):
-        runner = _FakeRunner()
-
-        readiness = await _probe(available=("incus",), runner=runner).provider_readiness(
-            NodeProviderKind.MULTIPASS_LEGACY
-        )
-
-        self.assertEqual(ProviderReadinessStatus.UNSUPPORTED, readiness.status)
-        self.assertEqual([], runner.calls)
-
     def assertEvidenceIsSummaryOnly(self, readiness):
         rendered = repr(readiness.to_dict()).casefold()
         forbidden_fragments = (

@@ -1,6 +1,8 @@
 # Responsibility Separation Analysis
 
-Status: analysis and planning only.
+Status: analysis and planning only; pre-removal Multipass path references are
+archival and superseded by
+`documentation/architecture/adr-retire-multipass-legacy-provider.adoc`.
 
 This document records the current responsibility boundaries in Tiny Swarm World
 and identifies the files that should be owned by future bounded areas. No live
@@ -68,9 +70,9 @@ cluster substrate.
 
 ### Source Code
 
-- `src/tiny_swarm_world/domain/multipass`
+- former `src/tiny_swarm_world/domain/multipass` (superseded)
 - `src/tiny_swarm_world/domain/network`
-- `src/tiny_swarm_world/application/services/multipass`
+- former `src/tiny_swarm_world/application/services/multipass` (superseded)
 - `src/tiny_swarm_world/application/services/network`
 - `src/tiny_swarm_world/application/services/platform`
   compatibility namespace for the incremental platform boundary migration
@@ -84,7 +86,7 @@ cluster substrate.
 ### Infrastructure Assets
 
 - `infra/config/cloud-init-manager.yaml`
-- `infra/config/multipass`
+- former `infra/config/multipass` (superseded)
 - `infra/config/docker/command_multipass_docker_install_yaml.yaml`
 - `infra/config/docker/command_multipass_docker_prepare_repository_yaml.yaml`
 - `infra/config/docker/command_multipass_docker_swarm_join_worker.yaml`

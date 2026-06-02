@@ -30,7 +30,7 @@ commands by default.
 
 ## Boundaries
 
-- Do not run Multipass, Docker Swarm, compose, netplan, `socat` or service
+- Do not run LXD, Incus, LXC, Docker Swarm, compose, netplan, `socat` or service
   bootstrap commands unless explicitly requested.
 - Do not claim live health without evidence.
 

@@ -29,8 +29,8 @@ Consequences:
 * `ApplicationServices` aggregates `PlatformServices`, `ArtifactServices`, and
   `DeploymentServices`;
 * Platform workflows own LXD/Incus provider readiness and node lifecycle,
-  Multipass legacy/fallback behavior, netplan legacy behavior, Docker install,
-  Swarm, preflight, and node or VM/IP behavior;
+  netplan legacy behavior, Docker install, Swarm, preflight, and node or
+  VM/IP behavior;
 * the Deployment namespace owns `EnsureNexusStack`, and deployment workflow
   composition owns explicit blocked contracts until live Portainer behavior is
   implemented;
@@ -96,7 +96,9 @@ Consequences:
 
 ADR: `documentation/architecture/adr-lxc-native-node-provider.adoc`
 
-Status: accepted as provider direction; partially implemented.
+Status: accepted as provider direction; partially implemented; Multipass
+compatibility superseded by
+`documentation/architecture/adr-retire-multipass-legacy-provider.adoc`.
 
 Consequences:
 
@@ -104,19 +106,36 @@ Consequences:
 * raw low-level LXC lifecycle commands are not the first default provider
   surface;
 * provider-neutral domain contracts, application ports, readiness checks,
-  configuration, node lifecycle adapters, setup integration, and the explicit
-  legacy boundary are implemented for default selection and platform init;
+  configuration, node lifecycle adapters, setup integration, and fail-closed
+  removed-provider rejection are implemented for default selection and platform
+  init;
 * default platform reconcile, artifact/deployment behavior, Docker
   Swarm-in-container health, and WSL2 live success remain unverified or
   blocked;
-* Multipass remains compatibility surface behind explicit
-  `multipass_legacy` provider selection rather than a silent fallback;
+* removed provider selections fail closed rather than becoming silent
+  fallbacks;
 * WSL2 LXD/Incus behavior is capability-gated and requires target-specific
   live evidence before it can be claimed as working;
 * Docker-in-container profile requirements, privileged profile choices, host
   package installation, daemon repair, group changes, bridge/firewall changes,
   and non-interactive live consent remain explicit follow-up decisions rather
   than silent defaults.
+
+=== Retired Multipass Legacy Provider
+
+ADR: `documentation/architecture/adr-retire-multipass-legacy-provider.adoc`
+
+Status: accepted and implemented for current source, CLI, configuration, tests,
+and operator documentation.
+
+Consequences:
+
+* Multipass is not a supported node-provider path;
+* `--node-provider multipass_legacy` is rejected rather than remapped;
+* source, command configuration, composition, and preflight must not construct
+  or probe Multipass adapters;
+* historical Multipass references may remain only when clearly archival or
+  migration-audit evidence.
 
 === Service Access Dashboard And Vaultwarden Baseline
 

@@ -1,5 +1,9 @@
 # Agent Split Plan
 
+Status: archival planning baseline. Multipass path references are superseded by
+`documentation/architecture/adr-retire-multipass-legacy-provider.adoc` and must
+not be used as current routing or implementation targets.
+
 This plan breaks the follow-up work into specialized Codex agents. Each task is
 copy-paste-ready and should be run only after the architecture decision is
 accepted.
@@ -99,7 +103,7 @@ Role:
 
 Scope:
 
-- Multipass VM lifecycle.
+- historical Multipass VM lifecycle (superseded).
 - VM discovery.
 - netplan.
 - socat.
@@ -108,14 +112,14 @@ Scope:
 
 Allowed files after architecture approval:
 
-- `src/tiny_swarm_world/domain/multipass`
+- former `src/tiny_swarm_world/domain/multipass` (superseded)
 - `src/tiny_swarm_world/domain/network`
-- `src/tiny_swarm_world/application/services/multipass`
+- former `src/tiny_swarm_world/application/services/multipass` (superseded)
 - `src/tiny_swarm_world/application/services/network`
 - `src/tiny_swarm_world/application/services/vm`
 - platform-related ports
 - platform-related infrastructure adapters
-- `infra/config/multipass`
+- former `infra/config/multipass` (superseded)
 - `infra/config/docker` for daemon install and Swarm commands only
 - `infra/config/network`
 - `infra/config/vm`
@@ -283,7 +287,7 @@ Allowed files after architecture approval:
 
 Forbidden files:
 
-- Multipass VM creation.
+- Historical Multipass VM creation is superseded by the retired-provider ADR.
 - Docker daemon installation.
 - Swarm initialization.
 - netplan and socat.

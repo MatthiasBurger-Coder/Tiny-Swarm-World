@@ -15,7 +15,6 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeProvider,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
-    LegacyProviderFallback,
     NodeProviderConfig,
     NodeProviderNodeConfig,
     NodeProviderProfileRequirement,
@@ -391,13 +390,6 @@ def _config(
         default_provider=NodeProviderKind.LXC_NATIVE,
         preferred_backend=None,
         backend_candidates=(ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD),
-        legacy_fallbacks=(
-            LegacyProviderFallback(
-                provider=NodeProviderKind.MULTIPASS_LEGACY,
-                selection_policy="explicit_only",
-                automatic=False,
-            ),
-        ),
         nodes=(
             NodeProviderNodeConfig(
                 spec=_node_spec(),

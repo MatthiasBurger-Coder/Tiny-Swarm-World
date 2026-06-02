@@ -6,8 +6,7 @@ The implementation strategy is:
 
 * route operator intent through workflow-level CLI commands instead of
   low-level service dispatch;
-* select `lxc_native` through LXD or Incus as the default node provider while
-  keeping Multipass behind explicit `multipass_legacy` selection;
+* select `lxc_native` through LXD or Incus as the supported node provider;
 * model platform operations as `init`, `reconcile`, `verify`, `reset`, and
   `destroy` workflows with explicit mutating/destructive semantics;
 * keep destructive behavior isolated to reset/destroy command catalogs and
