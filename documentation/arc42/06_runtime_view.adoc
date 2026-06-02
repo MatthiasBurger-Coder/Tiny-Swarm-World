@@ -21,7 +21,7 @@ The composition root builds `ApplicationServices` as an aggregate of three
 service bundles:
 
 * `platform` for LXC-native provider selection, LXD/Incus readiness, managed
-  node lifecycle, network, Docker, Swarm, preflight, node/VM IP, and socat
+  node lifecycle, network, Docker, Swarm, preflight, node address, and socat
   automation.
 * `artifacts` for artifact registry and publishing workflow contracts.
 * `deployment` for stack lifecycle behavior, starting with Nexus stack

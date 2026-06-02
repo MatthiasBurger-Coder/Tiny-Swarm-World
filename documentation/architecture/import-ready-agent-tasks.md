@@ -1,5 +1,9 @@
 # Import-Ready Agent Tasks
 
+Status: archival planning baseline. Multipass path references are superseded by
+`documentation/architecture/adr-retire-multipass-legacy-provider.adoc` and must
+not be imported as current implementation tasks.
+
 This file follows the repository's existing Markdown issue-import style and
 does not modify `IMPORT_READY_GITHUB_ISSUES.md`, `github_issues_import.json`, or
 `github_project_import.csv`.
@@ -40,14 +44,17 @@ avoiding production-code changes.
 - Finding ID: A-002
 
 ### Summary
-Prepare the boundary for Multipass, VM lifecycle, network, netplan, socat,
-Docker daemon installation, and Swarm init/join behavior.
+Prepare the historical platform boundary. Multipass-specific evidence paths are
+superseded; current implementation must use LXC-native provider ownership,
+retained legacy command-template classification, network, guarded legacy
+netplan handling, socat, Docker daemon installation, and Swarm init/join
+behavior.
 
 ### Evidence
-- `src/tiny_swarm_world/application/services/multipass`
+- former `src/tiny_swarm_world/application/services/multipass` (superseded)
 - `src/tiny_swarm_world/application/services/network`
 - `src/tiny_swarm_world/application/services/vm`
-- `infra/config/multipass`
+- former `infra/config/multipass` (superseded)
 - `infra/config/docker`
 - `infra/config/network`
 - `infra/swarm`

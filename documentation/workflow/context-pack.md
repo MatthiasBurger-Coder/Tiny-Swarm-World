@@ -58,6 +58,7 @@ Targeted:
 - `PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_node_provider_selection`
 - `PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service`
 - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository`
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_command_repository_yaml_contract`
 - `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint`
 - `python3 tools/quality_gate.py arch-tests`
 - `python3 tools/quality_gate.py test`
@@ -71,7 +72,7 @@ Required final:
 ## Governing File Hashes
 
 ```text
-131aa2183b9598aeb86fed0af1e66b09ed6b29e5b54a4993a898d3c2782d3856  AGENTS.md
+ecba0ffcfb5ae1d2db209cbecff34d77fd79a60593e866d881f7e31c40907964  AGENTS.md
 458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6  QUALITY.md
 087658240296e3b1ec74205c60a96a9a4c67a17cf653f7867e6f316bd9afa94e  .agents/skills/workflow-authoring/SKILL.md
 bae552d4860614879871413918870df6940b95af185f6c1077a023caa88e3ddb  .agents/skills/workflow-slice/SKILL.md

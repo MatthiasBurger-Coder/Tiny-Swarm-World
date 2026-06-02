@@ -6,8 +6,8 @@ Tiny Swarm World now separates three repository roles explicitly.
 
 `src/tiny_swarm_world` contains the Python orchestration code.
 
-* `domain` contains core command, node-provider, VM legacy, network,
-  deployment, and Nexus concepts.
+* `domain` contains core command, node-provider, retained legacy command
+  template naming, network, deployment, and Nexus concepts.
 * `application` contains use cases, command orchestration services, and ports.
 * `infrastructure` contains adapters for command execution, HTTP clients,
   repositories, YAML handling, dependency wiring, logging, and local file
@@ -30,8 +30,8 @@ microservices:
 * `PlatformServices` contains the current platform automation for default
   LXC-native provider selection, LXD/Incus readiness, managed node lifecycle,
   network setup, Docker installation, Swarm initialization, preflight checks,
-  node discovery, socat management, and workflow objects for platform `init`, `reconcile`,
-  `verify`, `reset`, and `destroy` commands.
+  node discovery, socat management, and workflow objects for platform `init`,
+  `reconcile`, `verify`, `reset`, and `destroy` commands.
 * `ArtifactServices` is the explicit artifacts boundary. It owns
   `artifacts prepare` and `artifacts verify` workflow contracts. The default
   composition remains fail-closed, while the workflow classes can now execute
@@ -91,8 +91,8 @@ The setup boundary coordinates Platform, Artifacts, Deployment, Shared, and
 Console/status UI contracts:
 
 * Platform owns host preflight, LXD/Incus provider readiness, node lifecycle,
-  Docker installation, Docker Swarm, network, VM legacy, and resource
-  readiness behavior.
+  Docker installation, Docker Swarm, network, retained legacy command-template
+  naming, and resource readiness behavior.
 * Artifacts owns Nexus, registry, image publication, and repository readiness
   behavior.
 * Deployment owns Portainer, compose assets, service stack apply behavior, and
@@ -109,8 +109,11 @@ claim that the setup path installs a full runnable system.
 
 === Typed Command Catalog
 
-Command YAML files under `infra/config/**/command_*.yaml` are product
-configuration and are loaded as typed command catalog entries.
+Command YAML files under `infra/config/**/command_*.yaml`, when present, are
+product configuration and are loaded as typed command catalog entries. The
+current Multipass-removal baseline intentionally has no product command YAML
+files; retained VM-named command-builder helpers are dormant legacy
+command-template infrastructure, not a supported Multipass provider surface.
 
 The domain command model owns parser-independent metadata and safety rules:
 

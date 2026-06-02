@@ -30,17 +30,23 @@ Workflow executed on branch
 - S05 documentation and skill governance: current docs no longer present
   Multipass as a supported fallback; the Multipass provisioning skill entry was
   removed.
+- S06 governance reconciliation: added the accepted
+  `adr-retire-multipass-legacy-provider` decision, synchronized EPIC and arc42
+  wording, refreshed workflow metadata for the current test names, and
+  classified retained VM-named command-template helpers as dormant legacy
+  infrastructure rather than supported Multipass behavior.
 
 ## Verification
 
 - `git diff --check` passed.
+- `PYTHONPATH=src python3 -m unittest tests.domain.node_provider.test_provider_model tests.application.services.platform.test_node_provider_selection tests.application.services.platform.test_preflight_service tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository tests.infrastructure.adapters.repositories.test_command_repository_yaml_contract tests.test_package_entrypoint` passed, 98 tests.
 - `python3 tools/quality_gate.py arch-tests` passed, 16 tests.
-- Targeted regression group passed, 225 tests.
-- `python3 tools/quality_gate.py test` passed, 615 tests.
-- `python3 tools/quality_gate.py quality` blocked at lint startup because the
-  active interpreter does not have `ruff` installed.
-- `python3 tools/quality_gate.py typecheck` blocked because the active
-  interpreter does not have `mypy` installed.
+- `python3 tools/quality_gate.py test` passed, 616 tests.
+- `python3 tools/quality_gate.py quality` with system `/usr/bin/python3`
+  blocked at lint startup because that interpreter does not have `ruff`
+  installed.
+- `.venv/bin/python tools/quality_gate.py quality` passed: lint, arch-lint,
+  arch-tests, typecheck, and 616 tests.
 
 No live `incus`, `lxc`, Docker Swarm, compose, netplan, socat, or service
 bootstrap commands were executed.

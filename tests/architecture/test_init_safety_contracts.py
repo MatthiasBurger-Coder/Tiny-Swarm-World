@@ -16,7 +16,7 @@ DESTRUCTIVE_COMMAND_PATTERNS = (
     "docker volume rm",
     "docker stack rm",
 )
-DESTRUCTIVE_COMMAND_YAML_FILES = set()
+DESTRUCTIVE_COMMAND_YAML_FILES: set[str] = set()
 DESTRUCTIVE_WORKFLOWS = {"platform:reset", "platform:destroy"}
 
 

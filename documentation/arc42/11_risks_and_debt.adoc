@@ -4,11 +4,13 @@ Potential challenges and risks.
 
 === Remaining Command Execution Risk
 
-The command catalog now classifies command metadata and enforces workflow
-allow-lists before command building. The underlying runner still uses shell
-execution for the existing command templates because the current operational
-catalog is shell-oriented. Shell command replacement with argv-style execution
-remains future hardening work and must preserve current Linux/WSL behavior.
+The command catalog classifies command metadata and enforces workflow
+allow-lists before command building when product command YAML exists. The
+current Multipass-removal baseline intentionally has no product
+`command_*.yaml` files. Retained VM-named command-builder helpers are legacy
+command-template infrastructure and must not be treated as supported Multipass
+provider behavior. Shell command replacement with argv-style execution remains
+future hardening work if a command catalog is reintroduced.
 
 Command parameters are constrained by type-specific patterns before
 substitution. Runner logs no longer include the full raw command string,
@@ -17,10 +19,10 @@ and values before persistence.
 
 Remaining debt:
 
-* the runner still uses shell execution for the existing shell-oriented command
-  catalog;
-* command catalog entries mostly declare manual verification, so command-backed
-  verification remains planned work;
+* the runner still uses shell execution for command-template infrastructure
+  when a catalog is supplied;
+* no current product command catalog exists, so any reintroduced catalog must
+  restore non-vacuous command-backed verification coverage;
 * composed mutating platform workflows now block with explicit target IDs and
   operator-facing reasons before apply, but still need concrete command-backed
   verification contracts before they can safely execute live steps;

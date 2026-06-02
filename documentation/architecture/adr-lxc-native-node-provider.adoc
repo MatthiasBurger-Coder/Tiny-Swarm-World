@@ -1,6 +1,7 @@
 = ADR: LXC Native Node Provider
 
-Status: Accepted as provider direction; partially implemented
+Status: Accepted as provider direction; partially implemented; superseded for
+Multipass compatibility by `adr-retire-multipass-legacy-provider.adoc`
 
 Date: 2026-05-26
 
@@ -12,8 +13,9 @@ uses managed LXC through LXD or Incus, models provider configuration and
 profile requirements, checks provider readiness, wires LXC-native lifecycle
 adapters into setup/platform init, installs or verifies Docker Engine inside
 the managed LXC nodes through provider-selected adapters, bootstraps or
-verifies the Docker Swarm manager and workers, and keeps Multipass behind
-explicit `multipass_legacy` selection.
+verifies the Docker Swarm manager and workers. Multipass compatibility was
+removed by the later accepted decision in
+`documentation/architecture/adr-retire-multipass-legacy-provider.adoc`.
 
 This ADR does not claim full live success. Docker Swarm inside LXD/Incus
 containers and WSL2 remain unverified until target-specific live smoke
@@ -30,8 +32,7 @@ The accepted product direction changes the default node provider target:
 
 * LXC-native through LXD or Incus is the default provider path.
 * Raw low-level LXC command automation is not the first implementation path.
-* Multipass stops being the primary repair target and remains only as an
-  explicit legacy or fallback provider.
+* Multipass stops being a supported node provider.
 
 The external source baseline for WSL, LXD, Incus, Docker-in-container, and LXC
 security assumptions is recorded in
@@ -58,9 +59,9 @@ Provider selection must follow these target rules:
 * no usable backend blocks before mutation;
 * multiple usable backends without explicit preference blocks with
   remediation guidance;
-* Multipass is selected only when the operator explicitly chooses the
-  `multipass_legacy` provider path;
-* failure of the LXC-native path must not silently fall back to Multipass.
+* removed provider selections, including `multipass_legacy`, fail closed;
+* failure of the LXC-native path must not silently fall back to another
+  provider.
 
 The default static and mocked quality gates must not run live LXD, Incus,
 Multipass, Docker Swarm, compose, netplan, `socat`, bridge, firewall, or
@@ -84,7 +85,7 @@ The provider migration must preserve the hexagonal architecture:
 
 * domain code owns provider-neutral concepts and imports no infrastructure;
 * application services orchestrate ports and domain objects;
-* LXD, Incus, Multipass, Docker, socket, filesystem, subprocess, profile, and
+* LXD, Incus, Docker, socket, filesystem, subprocess, profile, and
   host-network details remain in infrastructure adapters;
 * `src/tiny_swarm_world/infrastructure/composition.py` remains the concrete
   wiring root;
@@ -94,10 +95,9 @@ The provider migration must preserve the hexagonal architecture:
 
 === Continue repairing Multipass as the primary path
 
-Rejected because the accepted product direction changes the default provider
-target to managed LXC through LXD or Incus. Multipass remains available only as
-an explicit legacy or fallback path until later compatibility decisions remove
-or retire it.
+Rejected because the accepted product direction changes the provider target to
+managed LXC through LXD or Incus. Multipass compatibility has since been
+retired by `adr-retire-multipass-legacy-provider.adoc`.
 
 === Raw LXC-only default provider
 
@@ -130,8 +130,8 @@ approved before use.
 Completed implementation slices have introduced provider-neutral node and
 readiness concepts, LXD/Incus readiness checks, provider configuration,
 provider lifecycle adapters, setup/platform init wiring, provider-selected
-Docker Engine setup and Swarm bootstrap inside managed LXC nodes, and an
-explicit Multipass legacy boundary.
+Docker Engine setup and Swarm bootstrap inside managed LXC nodes, and
+fail-closed rejection for removed provider selections.
 
 The ADR, EPIC, and arc42 documentation may describe LXC-native through
 LXD/Incus as the implemented default selection and setup/platform init
@@ -145,14 +145,14 @@ permission or group issues, unsupported WSL version, missing systemd,
 ambiguous backend selection, missing Docker-in-container profile support, and
 other blocked states without persisting raw command output.
 
-Multipass code and documentation remain compatibility surface behind explicit
-`multipass_legacy` selection. Default setup must not select it automatically.
+Multipass code, command configuration, and current operator documentation are
+not a supported compatibility surface. `multipass_legacy` must be rejected
+rather than selected automatically or manually.
 
 Optional live smoke evidence must be separated by target:
 
 * native Linux LXC-native;
-* WSL2 LXC-native;
-* Multipass legacy fallback.
+* WSL2 LXC-native.
 
 Evidence from one target must not be reported as proof for another target.
 
@@ -175,4 +175,4 @@ Future ADRs are required before changing these areas:
 * non-interactive live setup consent;
 * privileged container profiles as defaults;
 * host bridge, firewall, or broad mount mutation as default behavior;
-* removing Multipass compatibility after the explicit legacy path is verified.
+* reintroducing any alternate node provider compatibility path.

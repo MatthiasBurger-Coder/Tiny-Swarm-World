@@ -109,6 +109,11 @@ class TestCommandRepositoryYamlContract(unittest.TestCase):
                     self.assertNotIn(command.id, command_ids)
                     command_ids.add(command.id)
 
+    def test_product_command_catalog_is_intentionally_retired(self):
+        product_command_files = sorted(config_root().rglob("command_*.yaml"))
+
+        self.assertEqual([], product_command_files)
+
     def test_product_runtime_change_commands_are_not_read_classified(self):
         for config_file in sorted(config_root().rglob("command_*.yaml")):
             commands = PortCommandRepositoryYaml(config_file.name).get_all_commands()

@@ -1,0 +1,65 @@
+= ADR: Retire Multipass Legacy Provider
+
+Status: Accepted
+
+Date: 2026-06-02
+
+== Context
+
+Tiny Swarm World previously kept Multipass as an explicit legacy or fallback
+provider while the default provider direction moved to managed LXC through LXD
+or Incus.
+
+The later product decision removes that compatibility surface completely. The
+project remains Linux/WSL-only, Docker Swarm first, and LXC-native through LXD
+or Incus. Multipass is no longer a supported node-provider path, including the
+explicit `--node-provider multipass_legacy` mode.
+
+== Decision
+
+Tiny Swarm World retires the Multipass legacy provider.
+
+Current source, command configuration, CLI help, setup plans, tests, and
+operator documentation must not expose Multipass as supported behavior. Removed
+provider selections must fail closed with clear validation rather than being
+silently remapped to `lxc_native` or another provider.
+
+Historical audit and migration documents may retain Multipass references only
+when they are clearly archival or describe past coupling, rejected behavior, or
+static migration evidence.
+
+The default static and mocked quality gates must still not run live LXD, Incus,
+Docker Swarm, compose, netplan, `socat`, bridge, firewall, service bootstrap,
+or Multipass commands.
+
+== Consequences
+
+`lxc_native` through LXD or Incus is the only supported node-provider direction.
+Provider selection, preflight, composition, and command configuration must not
+construct or probe Multipass adapters.
+
+Documentation that describes current behavior must state that Multipass is not
+a supported provider. EPICs and arc42 summaries must describe removed
+compatibility as completed scope reduction, not as an available fallback.
+
+Reintroducing Multipass, or adding another alternate provider compatibility
+path, requires a new explicit product-scope decision and architecture review.
+
+== Rejected Alternatives
+
+=== Keep explicit Multipass fallback
+
+Rejected because the product scope now removes the legacy/fallback surface
+instead of carrying it as operator-selectable behavior.
+
+=== Silently map Multipass selection to LXC-native
+
+Rejected because it would hide unsupported configuration and could make
+automation appear to honor an operator-selected provider that is no longer
+implemented.
+
+=== Remove all historical Multipass references
+
+Rejected because migration and audit documents still need to preserve past
+evidence and rationale. Those references are allowed only when they are
+archival rather than current guidance.

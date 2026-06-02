@@ -392,8 +392,7 @@ affected_files:
   - infra/config/vm/**
   - infra/config/network/netplant/**
   - tests/application/services/multipass/**
-  - tests/application/services/platform/test_command_verification_contracts.py
-  - tests/infrastructure/adapters/command_runner/test_command_workflow_configuration.py
+  - tests/infrastructure/adapters/repositories/test_command_repository_yaml_contract.py
 affected_modules:
   - tiny_swarm_world.application.services.multipass
   - tiny_swarm_world.application.services.platform
@@ -413,8 +412,7 @@ architecture_locks:
   - application-depends-on-ports
 quality_gates:
   targeted:
-    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_command_verification_contracts
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_workflow_configuration
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_command_repository_yaml_contract
   required:
     - python3 tools/quality_gate.py test
 documentation:

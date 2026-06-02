@@ -1,6 +1,7 @@
 = ADR: Separate Platform, Artifacts, Deployment, and Shared Responsibilities
 
-Status: Accepted as responsibility direction; partially implemented
+Status: Accepted as responsibility direction; partially implemented; Multipass
+provider ownership superseded by `adr-retire-multipass-legacy-provider.adoc`
 
 Date: 2026-05-02
 
@@ -29,8 +30,10 @@ be documented as independently deployable services.
 Tiny Swarm World provisions and operates a production-like local Docker Swarm
 environment on Linux/WSL. The repository currently combines multiple concerns:
 
-* Multipass VM lifecycle, VM IP discovery, netplan, socat, Docker daemon
-  installation, and Docker Swarm initialization.
+* Historical platform provisioning coupled Multipass VM lifecycle, VM IP
+  discovery, netplan, socat, Docker daemon installation, and Docker Swarm
+  initialization. Current provider ownership is LXC-native through LXD or
+  Incus; Multipass is not supported.
 * Dockerfile generation, image build/tag/push, Nexus Docker registry setup,
   Nexus Maven repository setup, and artifact publication.
 * Compose stack definitions, Portainer stack upload, and deployment of services
@@ -106,13 +109,13 @@ should not be moved in a big bang.
 
 `platform` owns the local cluster substrate:
 
-* Multipass VM creation, restart, deletion, and discovery
+* LXD/Incus managed node creation, restart, deletion, and discovery
 * WSL/Linux network setup
-* netplan generation and application
+* network planning and guarded legacy netplan handling
 * socat forwarding
-* Docker daemon installation on VMs
+* Docker daemon installation on managed nodes
 * Docker Swarm init and join
-* VM and cluster state discovery
+* node and cluster state discovery
 
 `artifacts` owns build and publication:
 
@@ -225,8 +228,8 @@ It may expose boundary-specific builder functions such as
 
 The target structure should become:
 
-* `infra/platform`: Multipass, VM, network, netplan, Docker daemon install,
-  Swarm init/join.
+* `infra/platform`: LXD/Incus managed nodes, network, guarded legacy netplan
+  handling, Docker daemon install, Swarm init/join.
 * `infra/artifacts`: Dockerfile generation, image build/push, Nexus repository
   setup, Maven repository setup.
 * `infra/deployment`: compose files, Portainer bootstrap, stack upload, service
@@ -256,13 +259,14 @@ should protect responsibility ownership:
 
 * application platform services must not import artifact or deployment adapters.
 * artifact services must not deploy stacks directly after the deployment split.
-* deployment services must not own Multipass or netplan behavior.
+* deployment services must not own LXD/Incus provider lifecycle, network, or
+  guarded legacy netplan behavior.
 * shell scripts should be inspected by static tests for known live command
   usage, not executed by default quality gates.
 
-No test should run live Multipass, Docker Swarm, netplan, socat, Portainer, or
-Nexus commands unless explicitly marked as an integration test and invoked
-manually.
+No test should run live LXD, Incus, LXC lifecycle, Docker Swarm, netplan,
+socat, Portainer, Nexus, or removed-provider commands unless explicitly marked
+as an integration test and invoked manually.
 
 == Compatibility with `.importlinter`
 

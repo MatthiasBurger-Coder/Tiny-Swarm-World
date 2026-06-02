@@ -34,13 +34,13 @@ This EPIC is the requirement baseline for autonomous setup. The canonical
 live-consent-gated command, but this EPIC does not claim that the full live
 runnable system is installed successfully.
 
-The provider baseline has moved to `lxc_native` as the default node-provider
+The provider baseline has moved to `lxc_native` as the supported node-provider
 selection. The implementation now includes provider-neutral contracts,
 LXD/Incus readiness checks, node-provider configuration, LXC-native lifecycle
-adapters, setup/platform integration, and an explicit `multipass_legacy`
-selection path. Provider-native platform reconcile, artifact publication,
-deployment, Docker Swarm-in-container live validation, and WSL2 live proof
-remain incomplete and fail closed.
+adapters, setup/platform integration, and fail-closed rejection for removed
+provider selections such as `multipass_legacy`. Provider-native platform
+reconcile, artifact publication, deployment, Docker Swarm-in-container live
+validation, and WSL2 live proof remain incomplete and fail closed.
 
 ## EPIC Extensions
 
@@ -107,9 +107,9 @@ The setup path must:
 - preserve existing live-consent controls;
 - prepare or reconcile the selected provider's platform state only through
   governed Platform contracts;
-- use LXC-native through LXD or Incus as the default provider path;
-- keep Multipass available only through explicit legacy/fallback provider
-  selection;
+- use LXC-native through LXD or Incus as the supported provider path;
+- reject removed provider selections such as `multipass_legacy` instead of
+  selecting a legacy/fallback provider;
 - prepare artifact registry behavior through Artifacts contracts;
 - deploy and verify service stacks through Deployment contracts;
 - record redacted setup evidence under ignored local state;
@@ -126,9 +126,8 @@ through test-backed contracts or explicitly approved live smoke evidence:
 - Python 3.12 runtime and project dependencies are available;
 - the selected node provider prerequisites are satisfied and verified:
   LXD/Incus readiness, backend selection, WSL2 capability gates where
-  applicable, and Docker-in-container profile requirements for the default
-  `lxc_native` path, or Multipass readiness for explicit
-  `multipass_legacy`;
+  applicable, and Docker-in-container profile requirements for the supported
+  `lxc_native` path;
 - Docker CLI or Engine access required by the setup profile is available;
 - required local ports are available or a tested alternative mapping is used;
 - all required secret sources are present without committing secret values;
@@ -244,8 +243,8 @@ smoke validation is a separate operator action and requires:
   provider-native Platform init now covers Docker Engine setup and Swarm
   bootstrap. Remaining artifact, deployment, service-readiness, and live
   validation gaps remain explicit.
-- Multipass fallback must be explicit and operator-visible; it must not hide a
-  failed LXD/Incus readiness check.
+- Removed provider selections such as `multipass_legacy` must fail closed and
+  must not hide a failed LXD/Incus readiness check.
 - Direct scripts remain transitional, deprecated, or legacy until a later
   slice migrates behavior behind ports, adapters, tests, and consent controls.
 - Documentation examples use POSIX paths and Linux/WSL command forms.
