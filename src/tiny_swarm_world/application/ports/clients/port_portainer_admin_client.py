@@ -4,6 +4,10 @@ from abc import ABC, abstractmethod
 class PortainerAdminInitializationRejected(RuntimeError):
     """Raised when Portainer rejects admin initialization after becoming reachable."""
 
+    def __init__(self, message: str | None = None, *, status_code: int | None = None):
+        super().__init__(message or "Portainer rejected admin initialization.")
+        self.status_code = status_code
+
 
 class PortPortainerAdminClient(ABC):
     @abstractmethod

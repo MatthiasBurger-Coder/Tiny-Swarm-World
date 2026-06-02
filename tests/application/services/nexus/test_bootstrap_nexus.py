@@ -7,6 +7,9 @@ from tests.support.sonar_safe_literals import sample_text
 from tiny_swarm_world.application.services.nexus.bootstrap_nexus import BootstrapNexus
 from tiny_swarm_world.application.services.nexus.enable_nexus_anonymous_access import EnableNexusAnonymousAccess
 from tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access import EnsureNexusAdminAccess
+from tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access import (
+    NexusAdminAccessRecoveryBlocked,
+)
 from tiny_swarm_world.application.services.nexus.nexus_bootstrap_configuration import NexusBootstrapConfiguration
 from tiny_swarm_world.application.services.nexus.wait_for_nexus_ready import WaitForNexusReady
 from tiny_swarm_world.domain.nexus.nexus_user import NexusUser
@@ -144,6 +147,39 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
         self.assertNotIn(leaked_value, result.message)
         self.assertNotIn("auth", str(result.evidence))
 
+    @patch("tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access.time.sleep")
+    def test_run_logs_and_updates_ui_when_initial_password_is_unavailable(self, _mock_sleep):
+        nexus_client = MagicMock()
+        nexus_client.can_authenticate.return_value = False
+        container_runtime = MagicMock()
+        container_runtime.find_container_names.return_value = ["nexus-app-1"]
+        container_runtime.file_exists.return_value = False
+        ui = _RecordingUI()
+        service = EnsureNexusAdminAccess(
+            nexus_client=nexus_client,
+            container_runtime=container_runtime,
+            admin_username="admin",
+            admin_password=sample_text("se", "cret"),
+            container_name_filter="nexus",
+            initial_password_path="/nexus-data/admin.password",
+            max_attempts=1,
+            wait_seconds=0,
+            ui=ui,
+        )
+
+        with self.assertLogs("EnsureNexusAdminAccess", level="ERROR") as captured:
+            with self.assertRaises(NexusAdminAccessRecoveryBlocked) as raised:
+                service.run()
+
+        self.assertEqual("initial_admin_value_unavailable", raised.exception.diagnostic)
+        self.assertIn("NexusAdminAccessRecoveryBlocked", captured.output[0])
+        self.assertIn("initial_admin_value_unavailable", captured.output[0])
+        self.assertNotIn(sample_text("se", "cret"), captured.output[0])
+        self.assertEqual(
+            [("all", "artifacts:nexus-admin-access", "Error", "failed_to_apply")],
+            ui.calls,
+        )
+
 
 class TestBootstrapNexus(unittest.TestCase):
     def test_runs_bootstrap_steps_in_order_without_anonymous_access_by_default(self):
@@ -236,3 +272,11 @@ def _run_async(coro):
     import asyncio
 
     return asyncio.run(coro)
+
+
+class _RecordingUI:
+    def __init__(self):
+        self.calls: list[tuple[str, str, str, str]] = []
+
+    def update_status(self, instance, task, step, result=None):
+        self.calls.append((instance, task, step, result))

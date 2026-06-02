@@ -1,6 +1,6 @@
 services:
   portainer:
-    image: portainer/portainer-ce:2.25.1
+    image: portainer/portainer-ce:2.39.2
     restart: always
     volumes:
       - portainer_data:/data
@@ -17,7 +17,7 @@ services:
         constraints:
           - node.role == manager
   agent:
-    image: portainer/agent:2.25.1
+    image: portainer/agent:2.39.2
     environment:
       AGENT_CLUSTER_ADDR: tasks.agent # Swarm Communication
     volumes:

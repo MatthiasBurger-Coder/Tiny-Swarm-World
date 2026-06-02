@@ -842,7 +842,7 @@ def build_platform_services(
     )
 
 
-def build_artifact_services() -> ArtifactServices:
+def build_artifact_services(ui: PortUI | None = None) -> ArtifactServices:
     nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD")
     nexus_client = MultipassNexusHttpClient()
     container_runtime = MultipassContainerRuntime()
@@ -864,6 +864,7 @@ def build_artifact_services() -> ArtifactServices:
         initial_password_path="/nexus-data/admin.password",
         max_attempts=60,
         wait_seconds=10,
+        ui=ui,
     )
     nexus_repository_steps = (
         EnsureNexusDockerHostedRepository(
@@ -909,13 +910,14 @@ def build_artifact_services() -> ArtifactServices:
 
 def build_artifact_services_for_provider(
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    ui: PortUI | None = None,
 ) -> ArtifactServices:
     provider_request = node_provider_request or NodeProviderSelectionRequest()
     if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
-        return build_artifact_services()
+        return build_artifact_services(ui=ui)
     backend = _lxc_backend_for_provider_request(provider_request)
     if backend is not None:
-        return build_lxc_artifact_services(backend=backend)
+        return build_lxc_artifact_services(backend=backend, ui=ui)
     return ArtifactServices(
         workflows=ArtifactWorkflows(
             prepare=cast(
@@ -936,7 +938,11 @@ def build_artifact_services_for_provider(
     )
 
 
-def build_lxc_artifact_services(*, backend: ManagedLxcBackend) -> ArtifactServices:
+def build_lxc_artifact_services(
+    *,
+    backend: ManagedLxcBackend,
+    ui: PortUI | None = None,
+) -> ArtifactServices:
     nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD")
     nexus_client = LxcNexusHttpClient(backend=backend)
     container_runtime = LxcContainerRuntime(backend=backend)
@@ -959,6 +965,7 @@ def build_lxc_artifact_services(*, backend: ManagedLxcBackend) -> ArtifactServic
         initial_password_path="/nexus-data/admin.password",
         max_attempts=60,
         wait_seconds=10,
+        ui=ui,
     )
     nexus_repository_steps = (
         EnsureNexusDockerHostedRepository(
@@ -1004,6 +1011,7 @@ def build_lxc_artifact_services(*, backend: ManagedLxcBackend) -> ArtifactServic
 
 def build_deployment_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    ui: PortUI | None = None,
 ) -> DeploymentServices:
     selected_service_profile = ServiceStackProfile(service_profile)
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
@@ -1037,6 +1045,7 @@ def build_deployment_services(
             password=_operator_secret_value("TSW_PORTAINER_PASSWORD"),
             max_attempts=60,
             wait_seconds=5,
+            ui=ui,
         ),
         stack_steps["nexus"],
     )
@@ -1075,15 +1084,17 @@ def build_deployment_services(
 def build_deployment_services_for_provider(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    ui: PortUI | None = None,
 ) -> DeploymentServices:
     provider_request = node_provider_request or NodeProviderSelectionRequest()
     if provider_request.requested_provider == NodeProviderKind.MULTIPASS_LEGACY:
-        return build_deployment_services(service_profile=service_profile)
+        return build_deployment_services(service_profile=service_profile, ui=ui)
     backend = _lxc_backend_for_provider_request(provider_request)
     if backend is not None:
         return build_lxc_deployment_services(
             service_profile=service_profile,
             backend=backend,
+            ui=ui,
         )
     return DeploymentServices(
         workflows=DeploymentWorkflows(
@@ -1116,6 +1127,7 @@ def build_lxc_deployment_services(
     *,
     backend: ManagedLxcBackend,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    ui: PortUI | None = None,
 ) -> DeploymentServices:
     selected_service_profile = ServiceStackProfile(service_profile)
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
@@ -1149,6 +1161,7 @@ def build_lxc_deployment_services(
             password=_operator_secret_value("TSW_PORTAINER_PASSWORD"),
             max_attempts=60,
             wait_seconds=5,
+            ui=ui,
         ),
         stack_steps["nexus"],
     )
@@ -1200,11 +1213,13 @@ def build_setup_services(
         trace_correlation_id=trace_correlation_id,
     )
     artifacts = build_artifact_services_for_provider(
-        node_provider_request=node_provider_request
+        node_provider_request=node_provider_request,
+        ui=ui,
     )
-    deployment = build_deployment_services_for_provider(
+    deployment = _build_deployment_services_for_request(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
+        ui=ui,
     )
     workflow_progress = _build_workflow_progress_sink(ui)
     method_trace = _build_method_trace_sink(ui)
@@ -1274,9 +1289,10 @@ def build_application_services(
         artifacts=build_artifact_services_for_provider(
             node_provider_request=node_provider_request
         ),
-        deployment=build_deployment_services_for_provider(
+        deployment=_build_deployment_services_for_request(
             service_profile=service_profile,
             node_provider_request=node_provider_request,
+            ui=ui,
         ),
     )
 
@@ -1312,6 +1328,23 @@ def _build_platform_services_for_request(
         node_provider_request=node_provider_request,
         ui=ui,
         trace_correlation_id=trace_correlation_id,
+    )
+
+
+def _build_deployment_services_for_request(
+    service_profile: ServiceStackProfile | str,
+    node_provider_request: NodeProviderSelectionRequest | None,
+    ui: PortUI | None = None,
+) -> DeploymentServices:
+    if ui is None:
+        return build_deployment_services_for_provider(
+            service_profile=service_profile,
+            node_provider_request=node_provider_request,
+        )
+    return build_deployment_services_for_provider(
+        service_profile=service_profile,
+        node_provider_request=node_provider_request,
+        ui=ui,
     )
 
 

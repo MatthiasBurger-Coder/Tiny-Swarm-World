@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import inspect
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
 
+from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
+    PortainerAdminInitializationRejected,
+)
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
@@ -93,6 +97,7 @@ class DeploymentApplyWorkflow:
         self.pre_apply_checks = tuple(pre_apply_checks)
         self.blocked_reason = blocked_reason
         self.kind = kind
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self) -> DeploymentWorkflowResult:
         if not self.steps:
@@ -135,19 +140,25 @@ class DeploymentApplyWorkflow:
                 if inspect.isawaitable(apply_result):
                     await apply_result
             except Exception as exc:
+                safe_error = _safe_exception_summary(exc)
+                self.logger.error(
+                    "Failed to apply deployment target '%s'. Error: %s",
+                    target_id,
+                    safe_error,
+                )
                 return DeploymentWorkflowResult(
                     kind=self.kind,
                     status=DeploymentWorkflowStatus.FAILED_TO_PREPARE,
                     message="deployment prepare failed for a configured stack contract.",
-                    reason=f"prepare failed with {exc.__class__.__name__}",
+                    reason=_prepare_failure_reason(target_id, exc, safe_error),
                     executed=True,
                     verification_results=(
                         *verification_results,
                         VerificationResult(
                             target_id=target_id,
                             status=VerificationStatus.FAILED_TO_APPLY,
-                            message=f"Apply failed for {target_id}: {exc.__class__.__name__}",
-                            evidence={"phase": "apply"},
+                            message=f"Apply failed for {target_id}: {safe_error}",
+                            evidence=_apply_failure_evidence(exc),
                         ),
                     ),
                 )
@@ -232,6 +243,35 @@ class DeploymentVerifyWorkflow:
 
 def _step_has_verification(step: DeploymentApplyStep | DeploymentVerifyCheck) -> bool:
     return callable(getattr(step, "verify", None))
+
+
+def _safe_exception_summary(exc: Exception) -> str:
+    status_code = getattr(exc, "status_code", None)
+    if status_code is not None:
+        return f"{exc.__class__.__name__} HTTP {status_code}. Diagnostic payload redacted."
+    return f"{exc.__class__.__name__}. Diagnostic payload redacted."
+
+
+def _prepare_failure_reason(target_id: str, exc: Exception, safe_error: str) -> str:
+    if isinstance(exc, PortainerAdminInitializationRejected):
+        return f"prepare failed for {target_id}: {safe_error}"
+    return f"prepare failed with {exc.__class__.__name__}"
+
+
+def _apply_failure_evidence(exc: Exception) -> dict[str, str]:
+    evidence = {
+        "phase": "apply",
+        "failure_class": exc.__class__.__name__,
+    }
+    status_code = getattr(exc, "status_code", None)
+    if status_code is not None:
+        evidence["diagnostic"] = f"http_status_{status_code}"
+    if isinstance(exc, PortainerAdminInitializationRejected):
+        evidence["operator_action"] = (
+            "Check configured Portainer admin access value or reset existing "
+            "Portainer state before rerunning setup."
+        )
+    return evidence
 
 
 def _verification_target_id(
