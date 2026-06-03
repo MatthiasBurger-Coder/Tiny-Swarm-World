@@ -12,6 +12,12 @@ Status: created, not executed.
 * Existing `documentation/workflow` was regenerated.
 * Workflow was updated to require mandatory reset before setup and full
   deployment acceptance including service-access dashboard/index assets.
+* Follow-up S3D preflight reported an orchestration blocker before
+  write-capable execution: execution profile was too weak, prose
+  parallelization contradicted YAML dependencies, and file locks did not cover
+  all affected paths.
+* Workflow metadata was repaired to `FULL_PATH`, serial slice order, and
+  explicit file locks for all declared affected write paths.
 
 ## Commands Run During Creation
 

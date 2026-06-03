@@ -7,7 +7,7 @@ Branch: `feature/workflow-install-reset-reinstall-20260602`
 Process strand: installation wrapper, platform reset, setup run, artifact
 preparation, deployment apply/verify, service-access dashboard/index assets.
 
-Execution profile: `NORMAL_PATH`
+Execution profile: `FULL_PATH`
 
 ## Affected Areas
 
@@ -27,6 +27,7 @@ Execution profile: `NORMAL_PATH`
 * `documentation/user_guide`
 * `documentation/system`
 * `documentation/arc42`
+* `documentation/workflow`
 
 ## Forbidden Areas
 
@@ -83,8 +84,12 @@ ecba0ffcfb5ae1d2db209cbecff34d77fd79a60593e866d881f7e31c40907964  AGENTS.md
 458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6  QUALITY.md
 087658240296e3b1ec74205c60a96a9a4c67a17cf653f7867e6f316bd9afa94e  .agents/skills/workflow-authoring/SKILL.md
 dae7115594172e159c051c3ece15c0b535f1570efbb28fc67440aef0bbadc9c9  documentation/process/workflow-create.md
+c2ba662e79f871afdfed8af6fa7db45b67cfc6b8e3ccb706766bc710a00ff923  documentation/arc42/02_constraints.adoc
 3edb9c8429def576e5cd24dc087b005da2df4bb1204ede2a238f92c6eb615098  documentation/arc42/06_runtime_view.adoc
-c891afea2de6d4f12178cb91eb97e924069da02f7fcd0c82aef616594308cee5  documentation/arc42/12_glossary.adoc
+665973954b8b3d674e9e3548cd5b1d58d401fa0933a6acc28af22f5151f7c733  documentation/arc42/12_glossary.adoc
+863ca029e2e01a29f5b5d9854f9e2345eca1bcddbb3477319ecc295e19717302  documentation/system/live-operation-surfaces.adoc
+930eb2eb902a4177f6f944f7284d2ff12e0c6a8c08bc45e71cd5a0549ef05996  documentation/user_guide/installation.adoc
+76ae94f1205345b6cf4474f4d7e444b0345ff4bbac78dffa40586a9623c5bb37  documentation/workflow/workflow.md
 4a49673d13e7eeba00841f21f49dcf17637f7a03f7855368ec8639ff4eebf84a  install.sh
 39195d58426caa93a581f83e9904157cdfb81411f91f5ffd9b54c188e91e9113  src/tiny_swarm_world/application/services/platform/workflows.py
 6aea8f47ab064634649014573e546634dc9e66258f766c5a3128bd3321f23dba  src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py

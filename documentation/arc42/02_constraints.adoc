@@ -16,6 +16,11 @@ rules.
 * `platform reset` and `platform destroy` require exact confirmation phrases.
   Their destructive execution remains blocked until retention semantics are
   implemented.
+* Fresh-install reset scope is limited to Tiny Swarm World managed local
+  resources. LXC-native reset may target configured provider nodes or
+  marker-verified instances with `user.tiny_swarm_world.managed=true`; broad
+  host/provider commands that delete every LXD or Incus container are
+  forbidden.
 * Mutating workflows require live-infrastructure consent before services are
   constructed.
 * Command YAML under `infra/config/**/command_*.yaml` is product configuration

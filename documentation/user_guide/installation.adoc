@@ -161,6 +161,14 @@ The wrapper writes run context, setup logs and the setup exit code below
 printing secret values, then requires an explicit confirmation phrase before it
 calls the canonical live setup workflow.
 
+The active fresh-install workflow targets `install.sh` as a reset-before-setup
+entry point. That reset scope is intentionally narrow: it may discard only the
+managed Tiny Swarm World local system, such as configured LXC-native provider
+nodes or marker-verified project-owned instances. It must not delete all host
+LXD/Incus containers or unrelated provider resources. Until the workflow is
+implemented, `install.sh` remains a setup wrapper and stale Portainer or Swarm
+state may still block reruns.
+
 == Live Infrastructure Warning
 
 The canonical setup workflow and some legacy helper areas can create or delete

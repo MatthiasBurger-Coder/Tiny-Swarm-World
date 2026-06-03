@@ -13,7 +13,9 @@ Inspects or validates state without mutating local infrastructure.
 `reset`::
 Explicit destructive reinitialization workflow. It requires
 `RESET_TINY_SWARM_PLATFORM` and currently blocks until retention semantics are
-implemented.
+implemented. The accepted fresh-install reset scope is the managed Tiny Swarm
+World local system only: configured LXC-native nodes and marker-verified
+project-owned state. It must not remove unrelated host or provider resources.
 
 `destroy`::
 Explicit destructive teardown workflow. It requires

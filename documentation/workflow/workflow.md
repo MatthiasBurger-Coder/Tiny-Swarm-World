@@ -4,6 +4,8 @@
 workflow_id: fresh-install-reset-full-deploy-v1.1.0
 workflow_version: 1.1.0
 branch: feature/workflow-install-reset-reinstall-20260602
+execution_profile: FULL_PATH
+released_for_workflow_execute: true
 created_utc: "2026-06-02T00:00:00Z"
 request: "install.sh soll frisch installieren, vorher resetten, danach vollständig hochfahren und alle Deployments inklusive Service-Access index.html enthalten."
 decision: READY_FOR_WORKFLOW
@@ -311,12 +313,13 @@ default `service-access` profile.
 
 ```yaml
 slice_id: "01"
-profile: NORMAL_PATH
+profile: FULL_PATH
 owner: Senior System Architect
 secondary_reviewers:
   - Senior Requirement Engineer
   - Senior DevOps Engineer
 affected_files:
+  - documentation/arc42/02_constraints.adoc
   - documentation/arc42/06_runtime_view.adoc
   - documentation/arc42/12_glossary.adoc
   - documentation/system/live-operation-surfaces.adoc
@@ -329,8 +332,11 @@ affected_contracts:
 dependencies: []
 parallel_group: A
 file_locks:
+  - documentation/arc42/02_constraints.adoc
   - documentation/arc42/06_runtime_view.adoc
   - documentation/arc42/12_glossary.adoc
+  - documentation/system/live-operation-surfaces.adoc
+  - documentation/user_guide/installation.adoc
 contract_locks:
   - destructive-platform-semantics
 architecture_locks:
@@ -365,15 +371,15 @@ verify-after-reset evidence.
 
 ```yaml
 slice_id: "02"
-profile: NORMAL_PATH
+profile: FULL_PATH
 owner: Senior Python Automation Developer
 secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - src/tiny_swarm_world/application/ports/**
-  - src/tiny_swarm_world/application/services/platform/**
-  - tests/application/services/platform/**
+  - src/tiny_swarm_world/application/ports
+  - src/tiny_swarm_world/application/services/platform
+  - tests/application/services/platform
 affected_modules:
   - tiny_swarm_world.application
 affected_contracts:
@@ -383,7 +389,9 @@ dependencies:
   - "01"
 parallel_group: B
 file_locks:
+  - src/tiny_swarm_world/application/ports
   - src/tiny_swarm_world/application/services/platform
+  - tests/application/services/platform
 contract_locks:
   - platform-reset-result-contract
 architecture_locks:
@@ -419,26 +427,26 @@ host operation.
 
 ```yaml
 slice_id: "03"
-profile: NORMAL_PATH
+profile: FULL_PATH
 owner: Senior DevOps Engineer
 secondary_reviewers:
   - Senior Python Automation Developer
   - Senior Tester
 affected_files:
-  - src/tiny_swarm_world/infrastructure/adapters/clients/**
+  - src/tiny_swarm_world/infrastructure/adapters/clients
   - src/tiny_swarm_world/infrastructure/composition.py
-  - tests/infrastructure/**
+  - tests/infrastructure
 affected_modules:
   - tiny_swarm_world.infrastructure
 affected_contracts:
   - lxc_native reset adapter
 dependencies:
-  - "01"
   - "02"
 parallel_group: C
 file_locks:
   - src/tiny_swarm_world/infrastructure/adapters/clients
   - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/infrastructure
 contract_locks:
   - lxc-native-managed-resource-teardown
 architecture_locks:
@@ -473,25 +481,26 @@ before reporting installation success.
 
 ```yaml
 slice_id: "04"
-profile: NORMAL_PATH
+profile: FULL_PATH
 owner: Senior Python Automation Developer
 secondary_reviewers:
   - Senior DevOps Engineer
   - Senior Tester
 affected_files:
   - install.sh
-  - tests/**
+  - tests
   - documentation/user_guide/installation.adoc
 affected_modules:
   - installation wrapper
 affected_contracts:
   - install.sh fresh-install contract
 dependencies:
-  - "02"
   - "03"
 parallel_group: D
 file_locks:
   - install.sh
+  - tests
+  - documentation/user_guide/installation.adoc
 contract_locks:
   - install-wrapper-live-contract
 architecture_locks:
@@ -528,7 +537,7 @@ service-access dashboard/index inclusion.
 
 ```yaml
 slice_id: "05"
-profile: NORMAL_PATH
+profile: FULL_PATH
 owner: Senior Python Automation Developer
 secondary_reviewers:
   - Senior Tester
@@ -562,9 +571,19 @@ dependencies:
   - "04"
 parallel_group: E
 file_locks:
-  - infra/config/compose/service-access/docker-compose.yml
-  - infra/compose/service-access
   - src/tiny_swarm_world/infrastructure/composition.py
+  - src/tiny_swarm_world/domain/artifacts/container_image_contract.py
+  - src/tiny_swarm_world/domain/deployment/service_stack_contract.py
+  - infra/config/compose/service-access/docker-compose.yml
+  - infra/compose/service-access/dashboard/Dockerfile
+  - infra/compose/service-access/dashboard/index.html
+  - infra/compose/service-access/nginx/Dockerfile
+  - infra/compose/service-access/nginx/default.conf
+  - tests/infrastructure/test_composition.py
+  - tests/domain/deployment/test_service_stack_contract.py
+  - tests/application/services/deployment/test_service_stack_plan.py
+  - tests/application/services/deployment/test_verify_swarm_service_readiness.py
+  - tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py
 contract_locks:
   - service-access-deployment-contract
   - install-full-deploy-contract
@@ -607,7 +626,7 @@ Portainer admin idempotency only if needed after reset semantics.
 
 ```yaml
 slice_id: "06"
-profile: NORMAL_PATH
+profile: FULL_PATH
 owner: Senior Tester
 secondary_reviewers:
   - Senior Python Automation Developer
@@ -628,7 +647,10 @@ dependencies:
 parallel_group: F
 file_locks:
   - src/tiny_swarm_world/application/services/deployment/ensure_portainer_admin_access.py
+  - src/tiny_swarm_world/application/ports/clients/port_portainer_admin_client.py
   - src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py
+  - tests/application/services/deployment/test_ensure_portainer_admin_access.py
+  - tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py
 contract_locks:
   - portainer-admin-bootstrap
 architecture_locks:
@@ -665,7 +687,7 @@ quality gates.
 
 ```yaml
 slice_id: "07"
-profile: NORMAL_PATH
+profile: FULL_PATH
 owner: Senior Documentation Engineer
 secondary_reviewers:
   - Senior Tester
@@ -681,15 +703,14 @@ affected_modules:
 affected_contracts:
   - install fresh-install operator contract
 dependencies:
-  - "01"
-  - "02"
-  - "03"
-  - "04"
-  - "05"
   - "06"
 parallel_group: G
 file_locks:
-  - documentation
+  - documentation/user_guide/installation.adoc
+  - documentation/user_guide/troubleshooting.adoc
+  - documentation/system/live-operation-surfaces.adoc
+  - documentation/arc42/**
+  - documentation/workflow/**
 contract_locks:
   - documentation-runtime-alignment
 architecture_locks:
@@ -721,22 +742,26 @@ Done criteria:
 ```mermaid
 flowchart TD
   S01["Slice 01: Scope"] --> S02["Slice 02: App Contracts"]
-  S01 --> S03["Slice 03: LXC Adapter"]
-  S02 --> S04["Slice 04: install.sh"]
+  S02 --> S03
   S03 --> S04
   S04 --> S05["Slice 05: Full Deploy"]
   S05 --> S06["Slice 06: Portainer 409"]
   S06 --> S07["Slice 07: Docs & Gates"]
-  S01 --> S07
 ```
 
 ## Parallelization Opportunities
 
+* Execution is intentionally serial for this workflow because destructive
+  reset semantics, application contracts, LXC-native adapter behavior,
+  `install.sh`, deployment acceptance and final documentation all depend on
+  prior slice evidence.
 * Slice 01 must happen first.
-* Slices 02 and 03 can proceed in parallel after Slice 01 if port boundaries
-  are stable.
-* Slice 05 starts only after the fresh-install path exists.
-* Slice 06 starts only after full deployment acceptance is defined.
+* Slice 02 follows Slice 01.
+* Slice 03 follows Slice 02 because the infrastructure adapter must implement
+  the accepted application port/contract.
+* Slice 04 follows Slices 02 and 03.
+* Slice 05 follows Slice 04.
+* Slice 06 follows Slice 05.
 * Slice 07 closes after implementation and test evidence.
 
 ## Ownership Map
@@ -785,8 +810,11 @@ evidence.
 ## Commit And Push Plan
 
 * Commit workflow artifacts separately from implementation if requested.
+* The current user request explicitly includes `push && workflow execute`.
 * During execution, commit slices in dependency order after targeted tests pass.
-* Do not push or create a pull request unless explicitly requested.
+* Push each successful slice checkpoint to
+  `origin/feature/workflow-install-reset-reinstall-20260602`.
+* Do not create or merge a pull request unless explicitly requested.
 
 ## Definition Of Done
 
@@ -820,4 +848,4 @@ Before execution:
 
 arc42 has been checked during workflow creation. A small synchronization note
 was added to the runtime view to record the planned fresh-install reset target.
-Full arc42 behavior updates are part of Slice 06 after implementation evidence.
+Full arc42 behavior updates occur in Slice 07 after Slice 06 evidence.
