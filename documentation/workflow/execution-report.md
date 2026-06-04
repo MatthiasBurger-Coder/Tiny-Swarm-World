@@ -2,7 +2,7 @@
 
 Workflow: `fresh-install-reset-full-deploy-v1.1.0`
 
-Status: Slice 02 completed; ready to execute Slice 03.
+Status: Slice 03 completed; ready to execute Slice 04.
 
 ## Creation Evidence
 
@@ -185,6 +185,68 @@ Checkpoint commit: `d85939f`
 Rollback reference: `14d1e22`
 
 arc42Updated: false.
+
+adrUpdated: false.
+
+Push result: pushed to `origin/feature/workflow-install-reset-reinstall-20260602`.
+
+No live infrastructure commands were run.
+
+## Slice 03 Checkpoint
+
+Slice ID: `03`
+
+Title: Add LXC-Native Destructive Infrastructure Adapter
+
+Responsible agent roles:
+
+* Senior DevOps Engineer
+* Senior Python Automation Developer
+* Senior Tester
+
+Outcome:
+
+* `LxcNodeProvider` now implements the managed-node teardown port in addition
+  to the existing node lifecycle port.
+* Reset and destroy use only exact-name LXD/Incus lookups for configured Tiny
+  Swarm World nodes; no broad provider enumeration or delete-all operation was
+  added.
+* Teardown is two-phase: every requested node is selected, configured,
+  looked up, marker/profile/image verified, and live-consent checked before any
+  delete command is issued.
+* Already absent managed nodes are verified as successful reset/destroy
+  evidence.
+* Existing nodes with missing or mismatched Tiny Swarm World markers block
+  before mutation.
+* Delete commands are scoped to exact configured names with `--force`, and
+  absence is verified by a second exact-name lookup.
+* A delete command failure is rechecked with the same scoped lookup; if the
+  node is already absent, the operation is treated as idempotent success.
+* Composition wires the same `LxcNodeProvider` instance as both
+  `node_lifecycle` and `managed_node_teardown`, and reset/destroy workflows now
+  contain the managed-node teardown steps.
+* Subagent findings were incorporated: no partial multi-node delete before full
+  preflight success, idempotent delete-race handling, and teardown-specific
+  fake-runner command guards.
+
+Quality gates:
+
+```bash
+PATH=.venv/bin:$PATH PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider tests.infrastructure.test_composition
+git diff --check
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py quality
+```
+
+Result: passed.
+
+Full quality result: lint, arch-lint, arch-tests, typecheck, and 631 unit tests
+passed.
+
+Checkpoint commit: `d28becf`
+
+Rollback reference: `1026437`
+
+arc42Updated: false; pending Slice 05 documentation synchronization.
 
 adrUpdated: false.
 
