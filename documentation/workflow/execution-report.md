@@ -2,7 +2,7 @@
 
 Workflow: `fresh-install-reset-full-deploy-v1.1.0`
 
-Status: Slice 05 completed; ready to execute Slice 06.
+Status: Slice 06 completed; ready to execute Slice 07.
 
 ## Creation Evidence
 
@@ -93,6 +93,63 @@ Rollback reference: `de20f2d`
 arc42Updated: true.
 
 adrUpdated: existing ADR synchronized; no new ADR required.
+
+Push result: pushed to `origin/feature/workflow-install-reset-reinstall-20260602`.
+
+No live infrastructure commands were run.
+
+## Slice 06 Checkpoint
+
+Slice ID: `06`
+
+Title: Reconcile Portainer Admin 409 Behavior
+
+Responsible agent roles:
+
+* Senior Tester
+* Senior Python Automation Developer
+* Senior System Architect
+
+Outcome:
+
+* Portainer admin initialization keeps the reset-first fail-fast model when
+  the requested credentials still cannot authenticate after a typed rejection.
+* A typed `PortainerAdminInitializationRejected` is treated as achieved only
+  when the same configured username and password authenticate immediately
+  after the rejection.
+* Wrong credentials, stale unmanaged state, incomplete reset, and failed auth
+  probes still raise the typed rejection and produce redacted diagnostics.
+* The LXC-native Portainer adapter already enforced the safe adapter rule; its
+  regression tests now verify the `/api/auth` probe, configured credential
+  payload, auth transport failure, cookie clearing, and clean-reset init path.
+* The application service now protects the same race condition at the port
+  boundary without importing HTTP, LXC, or infrastructure details.
+* The port exception contract and arc42 runtime wording were synchronized.
+
+Quality gates:
+
+```bash
+PATH=.venv/bin:$PATH PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_admin_access
+PATH=.venv/bin:$PATH PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_swarm_runtime
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py lint
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py typecheck
+git diff --check
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py quality
+```
+
+Result: passed.
+
+Full quality result: lint, arch-lint, arch-tests, typecheck, and 639 unit
+tests passed.
+
+Checkpoint commit: `00eb7d9`
+
+Rollback reference: `b30ec65`
+
+arc42Updated: true.
+
+adrUpdated: false; no new safety contract beyond the existing guarded
+idempotency rule.
 
 Push result: pushed to `origin/feature/workflow-install-reset-reinstall-20260602`.
 
