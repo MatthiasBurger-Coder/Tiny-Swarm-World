@@ -4,6 +4,7 @@ set -Eeuo pipefail
 SERVICE_PROFILE="${SERVICE_PROFILE:-service-access}"
 GENERATE_SECRETS=1
 SECRET_ENV_FILE="${TSW_INSTALL_ENV_FILE:-.tiny-swarm-world/local/live-installation.env}"
+RESET_CONFIRMATION="RESET_TINY_SWARM_PLATFORM"
 
 REQUIRED_SECRETS=(
   TSW_PORTAINER_PASSWORD
@@ -30,7 +31,8 @@ Options:
 The script is Linux/WSL-only. It writes evidence under:
   .tiny-swarm-world/evidence/installation-tests/wsl2/<UTC timestamp>/
 
-It runs the canonical live setup command only after an explicit confirmation:
+It runs the governed reset command before the canonical live setup command:
+  PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM
   PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 EOF
 }
@@ -83,6 +85,7 @@ write_context() {
     printf 'git_branch=%s\n' "$(git branch --show-current 2>/dev/null || true)"
     printf 'git_head=%s\n' "$(git rev-parse --short HEAD 2>/dev/null || true)"
     printf 'service_profile=%s\n' "$SERVICE_PROFILE"
+    printf 'fresh_install_reset=required\n'
     printf 'secret_env_file=%s\n' "$SECRET_ENV_FILE"
     printf 'secrets_generated_count=%s\n' "$secrets_generated_count"
     printf 'platform_system=%s\n' "$(uname -s)"
@@ -99,6 +102,24 @@ write_context() {
       printf 'wsl_interop_present=no\n'
     fi
   } >"$evidence_dir/context.txt"
+}
+
+run_recorded_command() {
+  local command_line="$1"
+  local log_file="$2"
+
+  script -q -e -c "$command_line" "$log_file"
+}
+
+confirm_reset() {
+  local answer=""
+
+  printf 'Fresh install will reset configured Tiny Swarm World managed state.\n'
+  printf 'Type %s to continue: ' "$RESET_CONFIRMATION"
+  if ! IFS= read -r answer; then
+    fail "Fresh-install reset confirmation was not provided."
+  fi
+  [[ "$answer" == "$RESET_CONFIRMATION" ]] || fail "Fresh-install reset confirmation did not match."
 }
 
 while [[ $# -gt 0 ]]; do
@@ -192,16 +213,42 @@ Secret file:     $SECRET_ENV_FILE
 
 This will run live infrastructure automation. It may create or change VMs,
 Docker resources, local service state, networks, and deployment artifacts.
+Fresh install starts by resetting configured Tiny Swarm World managed state.
 EOF
+
+confirm_reset
+printf 'reset_confirmation_present=yes\n' >>"$EVIDENCE_DIR/context.txt"
+
+reset_command="PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm $RESET_CONFIRMATION --service-profile $(shell_quote "$SERVICE_PROFILE")"
+setup_command="PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --service-profile $(shell_quote "$SERVICE_PROFILE")"
+
+printf 'Starting fresh-install reset. Terminal UI is visible and recorded at: %s/reset-run.log\n' "$EVIDENCE_DIR"
+set +e
+run_recorded_command "$reset_command" "$EVIDENCE_DIR/reset-run.log"
+reset_exit=$?
+set -e
+
+printf '%s\n' "$reset_exit" >"$EVIDENCE_DIR/reset-run.exit"
+printf 'reset_exit=%s\n' "$reset_exit" >>"$EVIDENCE_DIR/context.txt"
+
+if (( reset_exit != 0 )); then
+  printf 'Fresh-install reset failed with exit code %s. Setup will not start.\n' "$reset_exit" >&2
+  printf 'Evidence directory: %s\n' "$EVIDENCE_DIR" >&2
+  printf 'setup_skipped_due_to_reset_failure=yes\n' >>"$EVIDENCE_DIR/context.txt"
+  printf 'finished_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$EVIDENCE_DIR/context.txt"
+  printf '\nLast reset log lines:\n' >&2
+  tail -n 80 "$EVIDENCE_DIR/reset-run.log" >&2 || true
+  exit "$reset_exit"
+fi
 
 printf 'Starting live setup. Terminal UI is visible and recorded at: %s/setup-run.log\n' "$EVIDENCE_DIR"
 set +e
-script -q -e -c "PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --service-profile $(shell_quote "$SERVICE_PROFILE")" \
-  "$EVIDENCE_DIR/setup-run.log"
+run_recorded_command "$setup_command" "$EVIDENCE_DIR/setup-run.log"
 setup_exit=$?
 set -e
 
 printf '%s\n' "$setup_exit" >"$EVIDENCE_DIR/setup-run.exit"
+printf 'setup_exit=%s\n' "$setup_exit" >>"$EVIDENCE_DIR/context.txt"
 printf 'finished_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$EVIDENCE_DIR/context.txt"
 
 if (( setup_exit == 0 )); then

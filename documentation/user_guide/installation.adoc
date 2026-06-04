@@ -155,19 +155,33 @@ For repeatable Linux or WSL operator runs with local evidence capture, use:
 ./install.sh
 ----
 
-The wrapper writes run context, setup logs and the setup exit code below
-`.tiny-swarm-world/evidence/installation-tests/`. It loads or generates local
-`TSW_*` secrets in `.tiny-swarm-world/local/live-installation.env` without
-printing secret values, then requires an explicit confirmation phrase before it
-calls the canonical live setup workflow.
+The wrapper writes run context, reset logs, setup logs and exit codes below
+`.tiny-swarm-world/evidence/installation-tests/`, including
+`reset-run.log`, `reset-run.exit`, `setup-run.log`, and `setup-run.exit`.
+It loads or generates local `TSW_*` secrets in
+`.tiny-swarm-world/local/live-installation.env` without printing secret
+values.
 
-The active fresh-install workflow targets `install.sh` as a reset-before-setup
-entry point. That reset scope is intentionally narrow: it may discard only the
-managed Tiny Swarm World local system, such as configured LXC-native provider
-nodes or marker-verified project-owned instances. It must not delete all host
-LXD/Incus containers or unrelated provider resources. Until the workflow is
-implemented, `install.sh` remains a setup wrapper and stale Portainer or Swarm
-state may still block reruns.
+`install.sh` is a fresh-install entry point. It first calls the governed
+destructive reset workflow:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM
+----
+
+Only after reset succeeds does it call the canonical live setup workflow:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+If reset is blocked or fails, setup is not started and the script exits with
+the reset exit code. The reset scope is intentionally narrow: it may discard
+only the managed Tiny Swarm World local system, such as configured LXC-native
+provider nodes or marker-verified project-owned instances. It must not delete
+all host LXD/Incus containers or unrelated provider resources.
 
 == Live Infrastructure Warning
 
