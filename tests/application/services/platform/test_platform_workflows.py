@@ -319,7 +319,12 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(["reset"], destructive_step.calls)
+        self.assertEqual(["reset"], destructive_step.verifications)
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            ("reset",),
+            tuple(item.target_id for item in result.verification_results),
+        )
 
     async def test_destroy_runs_steps_only_after_exact_confirmation(self):
         destructive_step = _RecordingAction("destroy")
@@ -329,10 +334,57 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(["destroy"], destructive_step.calls)
+        self.assertEqual(["destroy"], destructive_step.verifications)
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            ("destroy",),
+            tuple(item.target_id for item in result.verification_results),
+        )
+
+    async def test_destructive_workflows_run_all_steps_and_verifications_after_exact_confirmation(self):
+        cases = (
+            (
+                PlatformResetWorkflow,
+                RESET_TINY_SWARM_PLATFORM_CONFIRMATION,
+                ("reset-one", "reset-two"),
+            ),
+            (
+                PlatformDestroyWorkflow,
+                DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
+                ("destroy-one", "destroy-two"),
+            ),
+        )
+
+        for workflow_class, confirmation, names in cases:
+            with self.subTest(workflow=workflow_class.__name__):
+                steps = tuple(_RecordingAction(name) for name in names)
+
+                result = await workflow_class(steps).run(confirmation)
+
+                self.assertTrue(result.executed)
+                self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+                self.assertEqual(names, tuple(call for step in steps for call in step.calls))
+                self.assertEqual(
+                    names,
+                    tuple(verification for step in steps for verification in step.verifications),
+                )
+                self.assertEqual(
+                    names,
+                    tuple(item.target_id for item in result.verification_results),
+                )
+                self.assertEqual(
+                    (VerificationStatus.VERIFIED, VerificationStatus.VERIFIED),
+                    tuple(item.status for item in result.verification_results),
+                )
 
     async def test_confirmed_reset_without_steps_is_blocked_until_policy_exists(self):
         result = await PlatformResetWorkflow().run(RESET_TINY_SWARM_PLATFORM_CONFIRMATION)
+
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+
+    async def test_confirmed_destroy_without_steps_is_blocked_until_policy_exists(self):
+        result = await PlatformDestroyWorkflow().run(DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION)
 
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
@@ -382,6 +434,38 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             "command_backed_verification_missing",
             result.verification_results[0].evidence["reason"],
         )
+
+    async def test_destructive_workflows_block_on_pre_apply_verification_before_apply(self):
+        cases = (
+            (PlatformResetWorkflow, RESET_TINY_SWARM_PLATFORM_CONFIRMATION),
+            (PlatformDestroyWorkflow, DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION),
+        )
+
+        for workflow_class, confirmation in cases:
+            with self.subTest(workflow=workflow_class.__name__):
+                blocked_step = _PreApplyAction(
+                    "destructive-pre-apply-blocked",
+                    VerificationResult(
+                        target_id="destructive-pre-apply-blocked",
+                        status=VerificationStatus.BLOCKED,
+                        message="Command-backed verification is not configured.",
+                        evidence={
+                            "phase": "pre_apply",
+                            "reason": "command_backed_verification_missing",
+                        },
+                    ),
+                )
+                later_step = _RecordingAction("later")
+
+                result = await workflow_class([blocked_step, later_step]).run(confirmation)
+
+                self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+                self.assertFalse(result.executed)
+                self.assertEqual([], blocked_step.calls)
+                self.assertEqual([], blocked_step.verifications)
+                self.assertEqual([], later_step.calls)
+                self.assertEqual(VerificationStatus.BLOCKED, result.verification_results[0].status)
+                self.assertEqual("pre_apply", result.verification_results[0].evidence["phase"])
 
     async def test_pre_apply_verified_step_blocks_after_apply_without_observed_verification(self):
         step = _PreApplyAction(
@@ -561,6 +645,73 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             ],
             progress.summary(),
         )
+
+    async def test_reset_failed_verify_stops_before_later_destructive_step(self):
+        progress = _RecordingProgress()
+        failing_verify = _FailingVerifyAction("reset-verify-fails")
+        later_step = _RecordingAction("later-reset")
+
+        result = await PlatformResetWorkflow(
+            [failing_verify, later_step],
+            progress=progress,
+        ).run(RESET_TINY_SWARM_PLATFORM_CONFIRMATION)
+
+        self.assertEqual(PlatformWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertTrue(result.executed)
+        self.assertEqual(["reset-verify-fails"], failing_verify.calls)
+        self.assertEqual(["reset-verify-fails"], failing_verify.verifications)
+        self.assertEqual([], later_step.calls)
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.verification_results[0].status)
+        self.assertEqual(
+            [
+                ("apply", "apply", "started", "pending"),
+                ("apply", "apply", "completed", "completed"),
+                ("verify", "verify", "started", "pending"),
+                ("verify", "verify", "failed_to_verify", "failed_to_verify"),
+                ("platform", "workflow stopped", "failed_to_verify", "failed_to_verify"),
+            ],
+            progress.summary(),
+        )
+
+    async def test_destroy_missing_verify_evidence_blocks_before_later_destructive_step(self):
+        progress = _RecordingProgress()
+        missing_evidence = _MissingEvidenceAction("destroy-missing-evidence")
+        later_step = _RecordingAction("later-destroy")
+
+        result = await PlatformDestroyWorkflow(
+            [missing_evidence, later_step],
+            progress=progress,
+        ).run(DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION)
+
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertTrue(result.executed)
+        self.assertEqual(["destroy-missing-evidence"], missing_evidence.calls)
+        self.assertEqual(["destroy-missing-evidence"], missing_evidence.verifications)
+        self.assertEqual([], later_step.calls)
+        self.assertEqual(VerificationStatus.BLOCKED, result.verification_results[0].status)
+        self.assertEqual("Verification evidence is missing.", result.verification_results[0].message)
+
+    async def test_reset_blocked_direct_verification_after_apply_reports_executed(self):
+        blocked_step = _VerificationResultAction(
+            VerificationResult(
+                target_id="platform:reset:managed-nodes",
+                status=VerificationStatus.BLOCKED,
+                message="Managed node reset was blocked after apply.",
+                evidence={
+                    "phase": "verify",
+                    "classification": "reset_blocked",
+                    "applied": "true",
+                },
+            )
+        )
+
+        result = await PlatformResetWorkflow([blocked_step]).run(
+            RESET_TINY_SWARM_PLATFORM_CONFIRMATION
+        )
+
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertTrue(result.executed)
+        self.assertEqual(["platform:reset:managed-nodes"], blocked_step.calls)
 
     async def test_lxc_aggregate_direct_verification_progress_uses_safe_counts(self):
         progress = _RecordingProgress()

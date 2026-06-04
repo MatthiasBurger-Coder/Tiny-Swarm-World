@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 from tiny_swarm_world.application.ports.node_provider import (
+    PortManagedNodeTeardown,
     PortNodeLifecycle,
     PortNodeProviderReadiness,
 )
@@ -31,9 +33,11 @@ class NodeProviderSelectionService:
         self,
         readiness_probe: PortNodeProviderReadiness,
         node_lifecycle: PortNodeLifecycle | None = None,
+        managed_node_teardown: PortManagedNodeTeardown | None = None,
     ):
         self.readiness_probe = readiness_probe
         self.node_lifecycle = node_lifecycle
+        self.managed_node_teardown = managed_node_teardown
 
     async def select_provider(
         self,
@@ -102,6 +106,87 @@ class NodeProviderSelectionService:
         )
         return await self.node_lifecycle.ensure_node(node, selection)
 
+    async def reset_managed_nodes(
+        self,
+        nodes: tuple[NodeSpec, ...],
+        request: NodeProviderSelectionRequest | None = None,
+    ) -> VerificationResult:
+        selection_result = await self._selection_for_managed_node_teardown(
+            "reset",
+            nodes,
+            request,
+        )
+        if isinstance(selection_result, VerificationResult):
+            return selection_result
+        assert self.managed_node_teardown is not None
+        return await self.managed_node_teardown.reset_nodes(nodes, selection_result)
+
+    async def destroy_managed_nodes(
+        self,
+        nodes: tuple[NodeSpec, ...],
+        request: NodeProviderSelectionRequest | None = None,
+    ) -> VerificationResult:
+        selection_result = await self._selection_for_managed_node_teardown(
+            "destroy",
+            nodes,
+            request,
+        )
+        if isinstance(selection_result, VerificationResult):
+            return selection_result
+        assert self.managed_node_teardown is not None
+        return await self.managed_node_teardown.destroy_nodes(nodes, selection_result)
+
+    async def _selection_for_managed_node_teardown(
+        self,
+        operation: Literal["reset", "destroy"],
+        nodes: tuple[NodeSpec, ...],
+        request: NodeProviderSelectionRequest | None,
+    ) -> ProviderSelection | VerificationResult:
+        if not nodes:
+            return VerificationResult(
+                target_id=f"platform:{operation}:managed-nodes",
+                status=VerificationStatus.BLOCKED,
+                message=f"No managed nodes are configured for platform {operation}.",
+                evidence={"phase": "pre_apply", "reason": "managed_nodes_missing"},
+            )
+
+        selection_request = request or NodeProviderSelectionRequest(
+            requested_provider=nodes[0].provider,
+            preferred_backend=nodes[0].backend,
+        )
+        selection = await self.select_provider(selection_request)
+        if selection.blocks_mutation:
+            return _blocked_result(
+                selection,
+                f"Provider selection blocked managed node {operation} before apply.",
+                "provider_selection_blocked",
+            )
+
+        mismatched_node = next(
+            (node for node in nodes if node.provider != selection.selected_provider),
+            None,
+        )
+        if mismatched_node is not None:
+            return _blocked_result(
+                selection,
+                f"Managed node {operation} provider does not match the selected provider.",
+                f"{operation}_node_provider_mismatch",
+            )
+        backend_mismatched_node = _first_backend_mismatch(nodes, selection)
+        if backend_mismatched_node is not None:
+            return _blocked_result(
+                selection,
+                f"Managed node {operation} backend does not match the selected backend.",
+                f"{operation}_node_backend_mismatch",
+            )
+        if self.managed_node_teardown is None:
+            return _blocked_result(
+                selection,
+                "Managed node teardown port is not configured.",
+                "managed_node_teardown_port_missing",
+            )
+        return selection
+
 
 class NodeProviderEnsureNodeStep:
     returns_verification_result = True
@@ -121,6 +206,42 @@ class NodeProviderEnsureNodeStep:
         return await self.provider_selection.ensure_node(self.node, self.request)
 
 
+class NodeProviderResetManagedNodesStep:
+    returns_verification_result = True
+    verification_target_id = "platform:reset:managed-nodes"
+
+    def __init__(
+        self,
+        nodes: tuple[NodeSpec, ...],
+        provider_selection: NodeProviderSelectionService,
+        request: NodeProviderSelectionRequest | None = None,
+    ):
+        self.nodes = tuple(nodes)
+        self.provider_selection = provider_selection
+        self.request = request
+
+    async def run(self) -> VerificationResult:
+        return await self.provider_selection.reset_managed_nodes(self.nodes, self.request)
+
+
+class NodeProviderDestroyManagedNodesStep:
+    returns_verification_result = True
+    verification_target_id = "platform:destroy:managed-nodes"
+
+    def __init__(
+        self,
+        nodes: tuple[NodeSpec, ...],
+        provider_selection: NodeProviderSelectionService,
+        request: NodeProviderSelectionRequest | None = None,
+    ):
+        self.nodes = tuple(nodes)
+        self.provider_selection = provider_selection
+        self.request = request
+
+    async def run(self) -> VerificationResult:
+        return await self.provider_selection.destroy_managed_nodes(self.nodes, self.request)
+
+
 def _selection_from_lxc_readiness(readiness: ProviderReadiness) -> ProviderSelection:
     if readiness.provider != NodeProviderKind.LXC_NATIVE:
         raise ValueError("LXC-native selection requires LXC-native readiness")
@@ -138,6 +259,23 @@ def _selection_from_lxc_readiness(readiness: ProviderReadiness) -> ProviderSelec
         status=ProviderSelectionStatus.BLOCKED,
         backend_selection=backend_selection,
         remediation=remediation,
+    )
+
+
+def _first_backend_mismatch(
+    nodes: tuple[NodeSpec, ...],
+    selection: ProviderSelection,
+) -> NodeSpec | None:
+    backend_selection = selection.backend_selection
+    if backend_selection is None or backend_selection.backend is None:
+        return None
+    return next(
+        (
+            node
+            for node in nodes
+            if node.backend is not None and node.backend != backend_selection.backend
+        ),
+        None,
     )
 
 

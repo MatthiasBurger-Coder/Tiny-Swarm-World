@@ -94,12 +94,14 @@ class PlatformWorkflowResult:
         semantics: PlatformWorkflowSemantics,
         message: str,
         verification_results: tuple[VerificationResult, ...] = (),
+        *,
+        executed: bool = False,
     ) -> PlatformWorkflowResult:
         return cls(
             kind=semantics.kind,
             status=PlatformWorkflowStatus.BLOCKED,
             message=message,
-            executed=False,
+            executed=executed,
             verification_results=verification_results,
         )
 
