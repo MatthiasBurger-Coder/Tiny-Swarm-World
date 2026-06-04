@@ -2,7 +2,7 @@
 
 Workflow: `fresh-install-reset-full-deploy-v1.1.0`
 
-Status: Slice 06 completed; ready to execute Slice 07.
+Status: Slice 07 completed; workflow execution closed.
 
 ## Creation Evidence
 
@@ -150,6 +150,68 @@ arc42Updated: true.
 
 adrUpdated: false; no new safety contract beyond the existing guarded
 idempotency rule.
+
+Push result: pushed to `origin/feature/workflow-install-reset-reinstall-20260602`.
+
+No live infrastructure commands were run.
+
+## Slice 07 Checkpoint
+
+Slice ID: `07`
+
+Title: Documentation And Quality Closure
+
+Responsible agent roles:
+
+* Senior Documentation Engineer
+* Senior Tester
+* Senior System Architect
+
+Outcome:
+
+* Installation, troubleshooting, live-operation surface, arc42, workflow, and
+  README/usage guidance now describe the implemented fresh-install path:
+  `install.sh` prompts for `RESET_TINY_SWARM_PLATFORM`, runs governed
+  `platform reset` first, stops when reset fails, and then runs the selected
+  setup profile.
+* The default install/setup profile is documented as `service-access`,
+  including image-packaged dashboard `index.html` and NGINX assets, while
+  live reachability remains evidence-based.
+* Portainer 409 troubleshooting now explains stale/unmanaged state,
+  incomplete reset, and credential mismatch, and records the safe rule:
+  rejection is success only when the same configured credentials authenticate.
+* arc42 constraints, solution strategy, building blocks, runtime view,
+  decisions, quality requirements, risks, and glossary were synchronized with
+  the scoped managed-node reset/destroy behavior.
+* Workflow creation-baseline findings were marked as historical so they do not
+  contradict the post-Slice 06 implementation state.
+* Additional central documentation drift in `README.md` and
+  `documentation/user_guide/usage.adoc` was corrected during closure because
+  those files otherwise contradicted the implemented workflow.
+* No new ADR was required; existing safety/setup, LXC-native, service-access,
+  and workflow taxonomy decisions cover the closure.
+* No live end-to-end installation success is claimed without an explicit live
+  run and phase evidence.
+
+Quality gates:
+
+```bash
+git diff --check
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py quality
+```
+
+Result: passed.
+
+Full quality result: lint, arch-lint, arch-tests, typecheck, and 639 unit
+tests passed.
+
+Checkpoint commit: `46cd657`
+
+Rollback reference: `832b21f`
+
+arc42Updated: true.
+
+adrUpdated: false; no new ADR required.
 
 Push result: pushed to `origin/feature/workflow-install-reset-reinstall-20260602`.
 
