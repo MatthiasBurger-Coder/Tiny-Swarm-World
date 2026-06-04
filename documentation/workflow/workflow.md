@@ -324,11 +324,20 @@ affected_files:
   - documentation/arc42/12_glossary.adoc
   - documentation/system/live-operation-surfaces.adoc
   - documentation/user_guide/installation.adoc
+  - infra/prepare/README.md
+  - infra/prepare/portainer/README.md
+  - infra/prepare/nexus/README.md
+  - infra/platform/README.md
+  - infra/artifacts/README.md
+  - infra/deployment/README.md
+  - infra/shared/README.md
 affected_modules:
   - platform
+  - infra layout
 affected_contracts:
   - platform reset
   - platform destroy
+  - infra boundary marker documentation
 dependencies: []
 parallel_group: A
 file_locks:
@@ -337,12 +346,21 @@ file_locks:
   - documentation/arc42/12_glossary.adoc
   - documentation/system/live-operation-surfaces.adoc
   - documentation/user_guide/installation.adoc
+  - infra/prepare/README.md
+  - infra/prepare/portainer/README.md
+  - infra/prepare/nexus/README.md
+  - infra/platform/README.md
+  - infra/artifacts/README.md
+  - infra/deployment/README.md
+  - infra/shared/README.md
 contract_locks:
   - destructive-platform-semantics
 architecture_locks:
   - hexagonal-platform-boundary
+  - platform-layout-boundary
 quality_gates:
   targeted:
+    - PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation tests.architecture.test_infra_responsibility_boundaries
     - git diff --check
   required:
     - python3 tools/quality_gate.py quality
@@ -361,6 +379,8 @@ Done criteria:
 * The workflow explicitly chooses reset as mandatory first install action.
 * The full-deploy target includes service-access dashboard/index acceptance.
 * Destructive reset confirmation remains mandatory.
+* Infra boundary and retired-helper marker documentation required by
+  architecture tests is present without executable setup entry points.
 
 ### Slice 02: Implement Reset/Destroy Step Contracts
 

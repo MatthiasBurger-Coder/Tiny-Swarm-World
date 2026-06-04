@@ -2,7 +2,7 @@
 
 Workflow: `fresh-install-reset-full-deploy-v1.1.0`
 
-Status: created, not executed.
+Status: governance unblock completed; ready to resume Slice 01 execution.
 
 ## Creation Evidence
 
@@ -41,9 +41,56 @@ Passed during workflow artifact creation:
 git diff --check
 ```
 
-Full quality gate is reserved for implementation or commit readiness and was
-not executed for this governance-only workflow artifact update:
+Full quality gate during initial creation was reserved for implementation or
+commit readiness and was not executed for the original governance-only workflow
+artifact update:
 
 ```bash
 python3 tools/quality_gate.py quality
 ```
+
+## Governance Unblock: Slice 01 Infra Marker Locks
+
+During Slice 01 execution, the required full quality gate initially blocked on
+pre-existing architecture documentation drift:
+
+* `infra/prepare/README.md` was missing.
+* `infra/platform/README.md`, `infra/artifacts/README.md`,
+  `infra/deployment/README.md`, and `infra/shared/README.md` were missing.
+* `infra/prepare/portainer/README.md` and `infra/prepare/nexus/README.md`
+  were also required by the retired-helper documentation tests.
+
+Typed routing classified the failure as documentation governance drift surfaced
+through the `test` stage, with a Slice 01 file-lock conflict. The workflow was
+amended so Slice 01 explicitly owns the marker documentation required by the
+existing architecture tests.
+
+Files added or updated:
+
+* `documentation/workflow/workflow.md`
+* `documentation/workflow/context-pack.md`
+* `documentation/workflow/context-pack.json`
+* `infra/prepare/README.md`
+* `infra/prepare/portainer/README.md`
+* `infra/prepare/nexus/README.md`
+* `infra/platform/README.md`
+* `infra/artifacts/README.md`
+* `infra/deployment/README.md`
+* `infra/shared/README.md`
+
+Verification:
+
+```bash
+python3 -m json.tool documentation/workflow/context-pack.json >/dev/null
+PATH=.venv/bin:$PATH PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation tests.architecture.test_infra_responsibility_boundaries
+git diff --check
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py quality
+```
+
+Result:
+
+* Context-pack JSON parsed successfully.
+* Targeted architecture documentation tests passed: 15 tests.
+* Full quality gate passed: lint, arch-lint, arch-tests, typecheck, and 616
+  unit tests.
+* No live infrastructure commands were run.

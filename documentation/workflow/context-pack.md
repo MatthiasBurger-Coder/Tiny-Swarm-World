@@ -24,6 +24,11 @@ Execution profile: `FULL_PATH`
 * `infra/compose/service-access/dashboard/Dockerfile`
 * `infra/compose/service-access/nginx/default.conf`
 * `infra/compose/service-access/nginx/Dockerfile`
+* `infra/prepare`
+* `infra/platform`
+* `infra/artifacts`
+* `infra/deployment`
+* `infra/shared`
 * `documentation/user_guide`
 * `documentation/system`
 * `documentation/arc42`
@@ -68,6 +73,7 @@ PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_co
 PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_service_stack_plan
 PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_verify_swarm_service_readiness
 PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation tests.architecture.test_infra_responsibility_boundaries
 git diff --check
 ```
 
@@ -89,11 +95,18 @@ c2ba662e79f871afdfed8af6fa7db45b67cfc6b8e3ccb706766bc710a00ff923  documentation/
 665973954b8b3d674e9e3548cd5b1d58d401fa0933a6acc28af22f5151f7c733  documentation/arc42/12_glossary.adoc
 863ca029e2e01a29f5b5d9854f9e2345eca1bcddbb3477319ecc295e19717302  documentation/system/live-operation-surfaces.adoc
 930eb2eb902a4177f6f944f7284d2ff12e0c6a8c08bc45e71cd5a0549ef05996  documentation/user_guide/installation.adoc
-76ae94f1205345b6cf4474f4d7e444b0345ff4bbac78dffa40586a9623c5bb37  documentation/workflow/workflow.md
+28ee9f1fd5299739d4b67edd182f6d9785708841cc2c4f1d1bcfb9e53a35cfaa  documentation/workflow/workflow.md
 4a49673d13e7eeba00841f21f49dcf17637f7a03f7855368ec8639ff4eebf84a  install.sh
 39195d58426caa93a581f83e9904157cdfb81411f91f5ffd9b54c188e91e9113  src/tiny_swarm_world/application/services/platform/workflows.py
 6aea8f47ab064634649014573e546634dc9e66258f766c5a3128bd3321f23dba  src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py
 da82bfe359e14fc8626dc6baa3f1697fd75462ccfce8560a23236e46fe9248c4  src/tiny_swarm_world/__main__.py
+b560b1902e911f2d572b005f22b48fa5baed5dcf170bdfd0b9b580a0891b9b3e  infra/prepare/README.md
+d916dfc5e81b3da20366d13ae3c9e8f3f4c5dfb26fdc228eb3969410f93f637e  infra/prepare/portainer/README.md
+1518eb2766df77b87a0687611e08582e237a64fa44a38029ad6b11fabd037719  infra/prepare/nexus/README.md
+c2aadf9b97dd756fcf56eca54e6b8b0b970c73244ca73f15c23b858b9ec3674a  infra/platform/README.md
+1eca831263b64349aaab0568f9829b5b14fd14fffbfc3813bb052514e000f3db  infra/artifacts/README.md
+9a35165a1fbfbcde6f3e75ddc9180071e526984d53702f7ee0c63ba9a64d8719  infra/deployment/README.md
+3524cd534d08daf196d4396faa86a563d27e3aedd79874a614e96afadd03e00b  infra/shared/README.md
 ```
 
 This context pack is stale when any governing hash changes, when branch
