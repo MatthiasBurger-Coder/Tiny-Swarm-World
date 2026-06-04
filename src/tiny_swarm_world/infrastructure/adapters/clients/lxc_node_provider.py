@@ -6,12 +6,15 @@ import re
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Literal, Protocol
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 
-from tiny_swarm_world.application.ports.node_provider import PortNodeLifecycle
+from tiny_swarm_world.application.ports.node_provider import (
+    PortManagedNodeTeardown,
+    PortNodeLifecycle,
+)
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.node_provider import (
     ManagedLxcBackend,
@@ -97,7 +100,7 @@ class AsyncLxcNodeCommandRunner:
         )
 
 
-class LxcNodeProvider(PortNodeLifecycle):
+class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
     def __init__(
         self,
         *,
@@ -196,6 +199,131 @@ class LxcNodeProvider(PortNodeLifecycle):
         if verification_failure is not None:
             return verification_failure
         return _verified(node, backend, "created")
+
+    async def reset_nodes(
+        self,
+        nodes: Sequence[NodeSpec],
+        selection: ProviderSelection,
+    ) -> VerificationResult:
+        return await self._teardown_nodes(tuple(nodes), selection, "reset")
+
+    async def destroy_nodes(
+        self,
+        nodes: Sequence[NodeSpec],
+        selection: ProviderSelection,
+    ) -> VerificationResult:
+        return await self._teardown_nodes(tuple(nodes), selection, "destroy")
+
+    async def _teardown_nodes(
+        self,
+        nodes: tuple[NodeSpec, ...],
+        selection: ProviderSelection,
+        operation: Literal["reset", "destroy"],
+    ) -> VerificationResult:
+        results: list[VerificationResult] = []
+        plans: list[_TeardownNodePlan] = []
+        for node in nodes:
+            preflight = await self._teardown_node_preflight(node, selection, operation)
+            if isinstance(preflight, VerificationResult):
+                results.append(preflight)
+            else:
+                plans.append(preflight)
+
+        if any(result.status != VerificationStatus.VERIFIED for result in results):
+            return _teardown_summary(
+                operation,
+                results,
+                expected_count=len(nodes),
+                planned_count=len(plans),
+            )
+
+        for plan in plans:
+            results.append(await self._delete_teardown_node(plan, selection, operation))
+        return _teardown_summary(operation, results, expected_count=len(nodes))
+
+    async def _teardown_node_preflight(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        operation: Literal["reset", "destroy"],
+    ) -> _TeardownNodePlan | VerificationResult:
+        backend_selection = _selected_backend(node, selection)
+        if isinstance(backend_selection, VerificationResult):
+            return backend_selection
+        backend = backend_selection
+
+        config_result = _load_config(self.config_repository, node, selection, backend)
+        if isinstance(config_result, VerificationResult):
+            return config_result
+        config, node_config, profile = config_result
+
+        lookup = await self._lookup_node(node, backend, config)
+        if lookup.failed:
+            return _blocked(
+                node,
+                selection,
+                f"{operation}_node_lookup_failed",
+                backend=backend,
+                return_code=lookup.returncode,
+                timed_out=lookup.timed_out,
+            )
+        if lookup.node is None:
+            return _verified(node, backend, "already_absent")
+        if not lookup.node.matches_expected(node_config):
+            return _blocked(
+                node,
+                selection,
+                f"{operation}_existing_node_not_managed",
+                backend=backend,
+            )
+
+        mutation_block = self._mutation_block(node, selection, backend, profile)
+        if mutation_block is not None:
+            return mutation_block
+
+        return _TeardownNodePlan(node=node, backend=backend, config=config)
+
+    async def _delete_teardown_node(
+        self,
+        plan: _TeardownNodePlan,
+        selection: ProviderSelection,
+        operation: Literal["reset", "destroy"],
+    ) -> VerificationResult:
+        delete_result = await self.runner.run(
+            _delete_args(plan.backend, plan.node.name),
+            float(plan.config.verification_metadata.readiness_timeout_seconds),
+        )
+        if _command_failed(delete_result):
+            raced_lookup = await self._lookup_node(plan.node, plan.backend, plan.config)
+            if not raced_lookup.failed and raced_lookup.node is None:
+                return _verified(plan.node, plan.backend, "deleted", applied=True)
+            return _apply_failed(
+                plan.node,
+                selection,
+                f"{operation}_delete_failed",
+                backend=plan.backend,
+                result=delete_result,
+            )
+
+        verify = await self._lookup_node(plan.node, plan.backend, plan.config)
+        if verify.failed:
+            return _verify_failed(
+                plan.node,
+                selection,
+                f"{operation}_delete_lookup_failed",
+                backend=plan.backend,
+                return_code=verify.returncode,
+                timed_out=verify.timed_out,
+            )
+        if verify.node is not None:
+            return _verify_failed(
+                plan.node,
+                selection,
+                f"{operation}_delete_not_verified",
+                backend=plan.backend,
+                return_code=verify.returncode,
+            )
+        return _verified(plan.node, plan.backend, "deleted", applied=True)
 
     def _mutation_block(
         self,
@@ -395,6 +523,13 @@ class LxcNodeProvider(PortNodeLifecycle):
 
 
 @dataclass(frozen=True)
+class _TeardownNodePlan:
+    node: NodeSpec
+    backend: ManagedLxcBackend
+    config: NodeProviderConfig
+
+
+@dataclass(frozen=True)
 class _ObservedNode:
     name: str
     status: str
@@ -569,6 +704,13 @@ def _start_args(
     return (_BACKEND_CLI[backend], "start", node_name)
 
 
+def _delete_args(
+    backend: ManagedLxcBackend,
+    node_name: str,
+) -> tuple[str, ...]:
+    return (_BACKEND_CLI[backend], "delete", node_name, "--force")
+
+
 def _launch_args(
     backend: ManagedLxcBackend,
     node_config: NodeProviderNodeConfig,
@@ -681,6 +823,8 @@ def _verified(
     node: NodeSpec,
     backend: ManagedLxcBackend,
     outcome: str,
+    *,
+    applied: bool = False,
 ) -> VerificationResult:
     return VerificationResult(
         target_id=_target_id(node),
@@ -692,6 +836,7 @@ def _verified(
             node,
             backend,
             lifecycle_outcome=outcome,
+            applied=applied,
         ),
     )
 
@@ -780,6 +925,7 @@ def _evidence(
     return_code: int | None = None,
     timed_out: bool = False,
     selection_status: str | None = None,
+    applied: bool = False,
 ) -> dict[str, str]:
     evidence = {
         "phase": phase,
@@ -797,11 +943,120 @@ def _evidence(
         evidence["timed_out"] = "true"
     if selection_status is not None:
         evidence["selection_status"] = selection_status
+    if applied:
+        evidence["applied"] = "true"
     return evidence
 
 
 def _target_id(node: NodeSpec) -> str:
     return f"platform:node:{node.name}"
+
+
+def _teardown_summary(
+    operation: Literal["reset", "destroy"],
+    results: Sequence[VerificationResult],
+    *,
+    expected_count: int | None = None,
+    planned_count: int = 0,
+) -> VerificationResult:
+    status = _teardown_summary_status(results)
+    evidence = _teardown_summary_evidence(
+        operation,
+        results,
+        status,
+        expected_count=expected_count,
+        planned_count=planned_count,
+    )
+    return VerificationResult(
+        target_id=f"platform:{operation}:managed-nodes",
+        status=status,
+        message=f"LXC managed node {operation} reached summarized state.",
+        evidence=evidence,
+    )
+
+
+def _teardown_summary_status(
+    results: Sequence[VerificationResult],
+) -> VerificationStatus:
+    if all(result.status == VerificationStatus.VERIFIED for result in results):
+        return VerificationStatus.VERIFIED
+    if any(result.status == VerificationStatus.FAILED_TO_APPLY for result in results):
+        return VerificationStatus.FAILED_TO_APPLY
+    if any(result.status == VerificationStatus.FAILED_TO_VERIFY for result in results):
+        return VerificationStatus.FAILED_TO_VERIFY
+    return VerificationStatus.BLOCKED
+
+
+def _teardown_summary_evidence(
+    operation: Literal["reset", "destroy"],
+    results: Sequence[VerificationResult],
+    status: VerificationStatus,
+    *,
+    expected_count: int | None = None,
+    planned_count: int = 0,
+) -> dict[str, str]:
+    verified_count = _status_count(results, VerificationStatus.VERIFIED)
+    blocked_count = _status_count(results, VerificationStatus.BLOCKED)
+    failed_apply_count = _status_count(results, VerificationStatus.FAILED_TO_APPLY)
+    failed_verify_count = _status_count(results, VerificationStatus.FAILED_TO_VERIFY)
+    applied = _any_teardown_applied(results)
+    evidence = {
+        "phase": _teardown_summary_phase(status, applied),
+        "classification": _teardown_summary_classification(operation, status),
+        "provider": NodeProviderKind.LXC_NATIVE.value,
+        "expected_count": str(len(results) if expected_count is None else expected_count),
+        "verified_count": str(verified_count),
+        "blocked_count": str(blocked_count),
+        "failed_apply_count": str(failed_apply_count),
+        "failed_verify_count": str(failed_verify_count),
+    }
+    if planned_count:
+        evidence["planned_count"] = str(planned_count)
+    if applied:
+        evidence["applied"] = "true"
+    first_failure = next(
+        (result for result in results if result.status != VerificationStatus.VERIFIED),
+        None,
+    )
+    if first_failure is not None:
+        first_classification = first_failure.evidence.get("classification")
+        if first_classification is not None:
+            evidence["first_failure_classification"] = first_classification
+    return evidence
+
+
+def _status_count(
+    results: Sequence[VerificationResult],
+    status: VerificationStatus,
+) -> int:
+    return sum(1 for result in results if result.status == status)
+
+
+def _any_teardown_applied(results: Sequence[VerificationResult]) -> bool:
+    return any(result.evidence.get("applied") == "true" for result in results) or any(
+        result.status == VerificationStatus.FAILED_TO_APPLY for result in results
+    )
+
+
+def _teardown_summary_phase(status: VerificationStatus, applied: bool) -> str:
+    if status == VerificationStatus.FAILED_TO_APPLY:
+        return "apply"
+    if status == VerificationStatus.BLOCKED and not applied:
+        return "pre_apply"
+    return "verify"
+
+
+def _teardown_summary_classification(
+    operation: Literal["reset", "destroy"],
+    status: VerificationStatus,
+) -> str:
+    if status == VerificationStatus.VERIFIED:
+        return f"managed_nodes_{operation}"
+    if status == VerificationStatus.FAILED_TO_APPLY:
+        return f"managed_nodes_{operation}_apply_failed"
+    if status == VerificationStatus.BLOCKED:
+        return f"managed_nodes_{operation}_blocked"
+    return f"managed_nodes_{operation}_verify_failed"
 
 
 def _safe_process_text(value: bytes | str | None) -> str:

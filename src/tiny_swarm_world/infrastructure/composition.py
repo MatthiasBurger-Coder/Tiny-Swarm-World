@@ -60,7 +60,9 @@ from tiny_swarm_world.application.services.platform import (
     LxcDockerInstallStep,
     LxcSwarmBootstrapService,
     LxcSwarmBootstrapStep,
+    NodeProviderDestroyManagedNodesStep,
     NodeProviderEnsureNodeStep,
+    NodeProviderResetManagedNodesStep,
     NodeProviderSelectionRequest,
     NodeProviderSelectionService,
     PlatformDestroyWorkflow,
@@ -652,6 +654,7 @@ def build_platform_services(
             wsl_lxc_capability_available=_wsl_lxc_lifecycle_capability_available,
         ),
         lxc_node_provider,
+        lxc_node_provider,
     )
     lxc_docker_runtime = _ProviderSelectedLxcDockerRuntime(
         provider_selection=node_provider_selection,
@@ -710,12 +713,20 @@ def build_platform_services(
             trace_correlation_id=trace_correlation_id,
         ),
         reset=PlatformResetWorkflow(
+            _platform_reset_steps(
+                provider_request,
+                node_provider_selection,
+            ),
             verification_evidence_repository=verification_evidence_repository,
             progress=workflow_progress,
             method_trace=method_trace,
             trace_correlation_id=trace_correlation_id,
         ),
         destroy=PlatformDestroyWorkflow(
+            _platform_destroy_steps(
+                provider_request,
+                node_provider_selection,
+            ),
             verification_evidence_repository=verification_evidence_repository,
             progress=workflow_progress,
             method_trace=method_trace,
@@ -1160,6 +1171,32 @@ def _platform_reconcile_steps(
             provider_request=provider_request,
             message=LXC_RECONCILE_VERIFIED_MESSAGE,
             reason=LXC_RECONCILE_VERIFIED_REASON,
+        ),
+    )
+
+
+def _platform_reset_steps(
+    provider_request: NodeProviderSelectionRequest,
+    node_provider_selection: NodeProviderSelectionService,
+) -> tuple[AsyncWorkflowStep, ...]:
+    return (
+        NodeProviderResetManagedNodesStep(
+            DEFAULT_LXC_PLATFORM_NODES,
+            node_provider_selection,
+            provider_request,
+        ),
+    )
+
+
+def _platform_destroy_steps(
+    provider_request: NodeProviderSelectionRequest,
+    node_provider_selection: NodeProviderSelectionService,
+) -> tuple[AsyncWorkflowStep, ...]:
+    return (
+        NodeProviderDestroyManagedNodesStep(
+            DEFAULT_LXC_PLATFORM_NODES,
+            node_provider_selection,
+            provider_request,
         ),
     )
 

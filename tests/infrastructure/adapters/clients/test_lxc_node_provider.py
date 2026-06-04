@@ -291,6 +291,196 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("node_backend_mismatch", result.evidence["classification"])
         self.assertEqual([], runner.calls)
 
+    async def test_reset_managed_nodes_deletes_only_scoped_managed_nodes_and_verifies_absent(self):
+        nodes = (_node_spec(), _node_spec(name="swarm-worker-1", role=NodeRole.WORKER))
+        runner = _FakeTeardownRunner(
+            _list(_node("swarm-manager", "Running")),
+            _list(),
+            _ok(),
+            _list(),
+        )
+        provider = _provider(runner, config=_config(nodes=nodes))
+
+        result = await provider.reset_nodes(nodes, _selection(ManagedLxcBackend.INCUS))
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("platform:reset:managed-nodes", result.target_id)
+        self.assertEqual("managed_nodes_reset", result.evidence["classification"])
+        self.assertEqual("2", result.evidence["expected_count"])
+        self.assertEqual("2", result.evidence["verified_count"])
+        self.assertEqual("true", result.evidence["applied"])
+        self.assertEqual(
+            [
+                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+                (("incus", "list", "swarm-worker-1", "--format", "json"), 5.0),
+                (("incus", "delete", "swarm-manager", "--force"), 5.0),
+                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+            ],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_reset_preflights_all_nodes_before_any_delete(self):
+        nodes = (_node_spec(), _node_spec(name="swarm-worker-1", role=NodeRole.WORKER))
+        runner = _FakeTeardownRunner(
+            _list(_node("swarm-manager", "Running")),
+            _list(
+                _node(
+                    "swarm-worker-1",
+                    "Running",
+                    config={"user.tiny_swarm_world.managed": "false"},
+                )
+            ),
+        )
+        provider = _provider(runner, config=_config(nodes=nodes))
+
+        result = await provider.reset_nodes(nodes, _selection(ManagedLxcBackend.INCUS))
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("managed_nodes_reset_blocked", result.evidence["classification"])
+        self.assertEqual("2", result.evidence["expected_count"])
+        self.assertEqual("1", result.evidence["planned_count"])
+        self.assertEqual("1", result.evidence["blocked_count"])
+        self.assertNotIn("applied", result.evidence)
+        self.assertEqual(
+            [
+                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+                (("incus", "list", "swarm-worker-1", "--format", "json"), 5.0),
+            ],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_destroy_managed_nodes_blocks_marker_mismatch_before_delete(self):
+        runner = _FakeTeardownRunner(
+            _list(
+                _node(
+                    "swarm-manager",
+                    "Running",
+                    config={"user.tiny_swarm_world.managed": "false"},
+                )
+            ),
+        )
+        provider = _provider(runner)
+
+        result = await provider.destroy_nodes(
+            (_node_spec(),),
+            _selection(ManagedLxcBackend.INCUS),
+        )
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("platform:destroy:managed-nodes", result.target_id)
+        self.assertEqual("managed_nodes_destroy_blocked", result.evidence["classification"])
+        self.assertEqual(
+            "destroy_existing_node_not_managed",
+            result.evidence["first_failure_classification"],
+        )
+        self.assertEqual("1", result.evidence["blocked_count"])
+        self.assertEqual(
+            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_destroy_managed_nodes_treats_already_missing_nodes_as_verified(self):
+        runner = _FakeTeardownRunner(_list())
+        provider = _provider(runner)
+
+        result = await provider.destroy_nodes(
+            (_node_spec(),),
+            _selection(ManagedLxcBackend.LXD),
+        )
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("managed_nodes_destroy", result.evidence["classification"])
+        self.assertEqual("1", result.evidence["verified_count"])
+        self.assertNotIn("applied", result.evidence)
+        self.assertEqual(
+            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_reset_without_live_mutation_consent_never_deletes(self):
+        runner = _FakeTeardownRunner(_list(_node("swarm-manager", "Running")))
+        provider = _provider(runner, allow_live_mutation=False)
+
+        result = await provider.reset_nodes(
+            (_node_spec(),),
+            _selection(ManagedLxcBackend.INCUS),
+        )
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("managed_nodes_reset_blocked", result.evidence["classification"])
+        self.assertEqual(
+            "live_mutation_consent_missing",
+            result.evidence["first_failure_classification"],
+        )
+        self.assertEqual(
+            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_delete_failure_is_verified_when_scoped_lookup_is_already_absent(self):
+        runner = _FakeTeardownRunner(
+            _list(_node("swarm-manager", "Running")),
+            LxcNodeCommandResult(
+                returncode=1,
+                stderr="instance disappeared under /home/alice",
+            ),
+            _list(),
+        )
+        provider = _provider(runner)
+
+        result = await provider.reset_nodes(
+            (_node_spec(),),
+            _selection(ManagedLxcBackend.INCUS),
+        )
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("managed_nodes_reset", result.evidence["classification"])
+        self.assertEqual("true", result.evidence["applied"])
+        self.assertEqual(
+            [
+                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+                (("incus", "delete", "swarm-manager", "--force"), 5.0),
+                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+            ],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_teardown_failure_evidence_is_summary_only(self):
+        runner = _FakeTeardownRunner(
+            _list(_node("swarm-manager", "Running")),
+            LxcNodeCommandResult(
+                returncode=2,
+                stdout="token=secret",
+                stderr="failed under /home/alice",
+            ),
+            _list(_node("swarm-manager", "Running")),
+        )
+        provider = _provider(runner)
+
+        result = await provider.destroy_nodes(
+            (_node_spec(),),
+            _selection(ManagedLxcBackend.INCUS),
+        )
+
+        self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual(
+            "managed_nodes_destroy_apply_failed",
+            result.evidence["classification"],
+        )
+        self.assertEqual(
+            "destroy_delete_failed",
+            result.evidence["first_failure_classification"],
+        )
+        self.assertEqual("1", result.evidence["failed_apply_count"])
+        self.assertEqual("true", result.evidence["applied"])
+        self.assertEvidenceIsSummaryOnly(result)
+
     def test_timeouts_must_be_positive(self):
         with self.assertRaises(ValueError):
             LxcNodeProvider(
@@ -326,9 +516,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
 
 class _FakeRunner:
-    def __init__(self, *results: LxcNodeCommandResult):
+    def __init__(self, *results: LxcNodeCommandResult, command_guard=None):
         self.results = list(results)
         self.calls: list[tuple[tuple[str, ...], float]] = []
+        self.command_guard = command_guard or _assert_safe_lifecycle_command
 
     async def run(
         self,
@@ -337,10 +528,15 @@ class _FakeRunner:
     ) -> LxcNodeCommandResult:
         await async_checkpoint()
         self.calls.append((tuple(args), timeout_seconds))
-        _assert_safe_lifecycle_command(args)
+        self.command_guard(args)
         if not self.results:
             raise AssertionError("unexpected LXC lifecycle call")
         return self.results.pop(0)
+
+
+class _FakeTeardownRunner(_FakeRunner):
+    def __init__(self, *results: LxcNodeCommandResult):
+        super().__init__(*results, command_guard=_assert_safe_teardown_command)
 
 
 class _FakeConfigRepository:
@@ -372,10 +568,15 @@ def _selection(backend: ManagedLxcBackend) -> ProviderSelection:
     )
 
 
-def _node_spec(backend: ManagedLxcBackend | None = None) -> NodeSpec:
+def _node_spec(
+    backend: ManagedLxcBackend | None = None,
+    *,
+    name: str = "swarm-manager",
+    role: NodeRole = NodeRole.MANAGER,
+) -> NodeSpec:
     return NodeSpec(
-        name="swarm-manager",
-        role=NodeRole.MANAGER,
+        name=name,
+        role=role,
         provider=NodeProviderKind.LXC_NATIVE,
         backend=backend,
     )
@@ -384,20 +585,22 @@ def _node_spec(backend: ManagedLxcBackend | None = None) -> NodeSpec:
 def _config(
     *,
     resources: dict[str, str] | None = None,
+    nodes: tuple[NodeSpec, ...] | None = None,
 ) -> NodeProviderConfig:
     return NodeProviderConfig(
         schema_version="1",
         default_provider=NodeProviderKind.LXC_NATIVE,
         preferred_backend=None,
         backend_candidates=(ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD),
-        nodes=(
+        nodes=tuple(
             NodeProviderNodeConfig(
-                spec=_node_spec(),
+                spec=node,
                 profile="docker-swarm",
                 image_alias="ubuntu-24.04",
                 resources=resources or {"cpu": "2", "memory": "4GiB", "disk": "20GiB"},
                 networks=("control",),
-            ),
+            )
+            for node in (nodes or (_node_spec(),))
         ),
         profiles=(
             NodeProviderProfileRequirement(
@@ -503,6 +706,31 @@ def _assert_safe_lifecycle_command(args) -> None:
     shape = argv[:3] if argv[:2] in {("incus", "profile"), ("lxc", "profile")} else argv[:2]
     if shape not in allowed_shapes:
         raise AssertionError(f"unexpected provider command was called: {argv!r}")
+
+
+def _assert_safe_teardown_command(args) -> None:
+    argv = tuple(args)
+    if not argv or argv[0] not in {"incus", "lxc"}:
+        raise AssertionError(f"unexpected provider executable: {argv!r}")
+    if any(not isinstance(item, str) for item in argv):
+        raise AssertionError(f"provider argv must contain strings only: {argv!r}")
+    if argv[:2] in {("incus", "delete"), ("lxc", "delete")}:
+        if len(argv) != 4 or argv[2] not in {
+            "swarm-manager",
+            "swarm-worker-1",
+            "swarm-worker-2",
+        } or argv[3] != "--force":
+            raise AssertionError(f"unsafe provider delete was called: {argv!r}")
+        return
+    if argv[:2] in {("incus", "list"), ("lxc", "list")}:
+        if len(argv) != 5 or argv[2] not in {
+            "swarm-manager",
+            "swarm-worker-1",
+            "swarm-worker-2",
+        } or argv[3:] != ("--format", "json"):
+            raise AssertionError(f"unsafe provider list was called: {argv!r}")
+        return
+    raise AssertionError(f"unexpected provider teardown command was called: {argv!r}")
 
 
 if __name__ == "__main__":

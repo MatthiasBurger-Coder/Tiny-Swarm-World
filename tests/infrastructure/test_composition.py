@@ -174,6 +174,10 @@ class TestComposition(unittest.TestCase):
             services.node_provider_selection.node_lifecycle,
         )
         self.assertIs(
+            services.lxc_node_provider,
+            services.node_provider_selection.managed_node_teardown,
+        )
+        self.assertIs(
             wsl_capability_probe,
             services.node_provider_selection.readiness_probe.wsl_lxc_capability_available,
         )
@@ -225,7 +229,36 @@ class TestComposition(unittest.TestCase):
             "trace-test",
             services.workflows.reconcile.trace_correlation_id,
         )
+        self.assertEqual("trace-test", services.workflows.reset.trace_correlation_id)
+        self.assertEqual("trace-test", services.workflows.destroy.trace_correlation_id)
         self.assertEqual("trace-test", services.workflows.verify.trace_correlation_id)
+
+    def test_build_platform_services_wires_reset_destroy_managed_node_steps(self):
+        services = composition.build_platform_services()
+
+        self.assertEqual(1, len(services.workflows.reset.steps))
+        self.assertEqual(1, len(services.workflows.destroy.steps))
+        reset_step = services.workflows.reset.steps[0]
+        destroy_step = services.workflows.destroy.steps[0]
+
+        self.assertIsInstance(reset_step, composition.NodeProviderResetManagedNodesStep)
+        self.assertIsInstance(destroy_step, composition.NodeProviderDestroyManagedNodesStep)
+        self.assertEqual(composition.DEFAULT_LXC_PLATFORM_NODES, reset_step.nodes)
+        self.assertEqual(composition.DEFAULT_LXC_PLATFORM_NODES, destroy_step.nodes)
+        self.assertIs(services.node_provider_selection, reset_step.provider_selection)
+        self.assertIs(services.node_provider_selection, destroy_step.provider_selection)
+
+    def test_build_platform_services_does_not_run_lxc_commands_during_wiring(self):
+        async def fail_if_called(*_args, **_kwargs):
+            raise AssertionError("composition must not run LXC commands during wiring")
+
+        with patch.object(composition, "AsyncLxcNodeCommandRunner") as runner_factory:
+            runner_factory.return_value.run.side_effect = fail_if_called
+
+            services = composition.build_platform_services()
+
+        runner_factory.assert_called_once_with()
+        self.assertIsInstance(services.lxc_node_provider, composition.LxcNodeProvider)
 
     def test_build_platform_services_wires_workflow_types_without_evidence_patch(self):
         services = composition.build_platform_services()
