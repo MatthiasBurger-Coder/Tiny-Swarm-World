@@ -2,7 +2,7 @@
 
 Workflow: `fresh-install-reset-full-deploy-v1.1.0`
 
-Status: Slice 01 completed; ready to execute Slice 02.
+Status: Slice 02 completed; ready to execute Slice 03.
 
 ## Creation Evidence
 
@@ -137,3 +137,57 @@ adrUpdated: not required; existing platform separation and destructive
 reset/destroy policy decisions cover the Slice 01 scope.
 
 Push result: pushed to `origin/feature/workflow-install-reset-reinstall-20260602`.
+
+## Slice 02 Checkpoint
+
+Slice ID: `02`
+
+Title: Implement Reset/Destroy Step Contracts
+
+Responsible agent roles:
+
+* Senior Python Automation Developer
+* Senior System Architect
+* Senior Tester
+
+Outcome:
+
+* Added `PortManagedNodeTeardown` as an application port for managed node reset
+  and destroy operations.
+* Added reset/destroy managed-node steps behind `NodeProviderSelectionService`.
+* Provider selection, missing-node, missing-port, provider mismatch, and backend
+  mismatch blockers stop before adapter calls.
+* `PlatformWorkflowResult.blocked` can preserve `executed=True` only for
+  post-apply blocked paths; pre-apply/direct fail-closed blockers remain
+  `executed=False`.
+* Reset/destroy workflow regression tests use fakes only and prove exact
+  confirmation, step verification, pre-apply blocking, missing evidence, failed
+  verification, and direct post-apply blocked evidence.
+
+Quality gates:
+
+```bash
+PATH=.venv/bin:$PATH PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows tests.application.services.platform.test_node_provider_selection
+PATH=.venv/bin:$PATH PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition.TestComposition.test_composed_default_lxc_init_without_live_consent_fails_closed_before_runtime_probe tests.infrastructure.test_composition.TestComposition.test_composed_default_lxc_init_workflow_blocks_before_live_step_execution
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py lint
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py typecheck
+git diff --check
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py quality
+```
+
+Result: passed.
+
+Full quality result: lint, arch-lint, arch-tests, typecheck, and 629 unit tests
+passed.
+
+Checkpoint commit: `d85939f`
+
+Rollback reference: `14d1e22`
+
+arc42Updated: false.
+
+adrUpdated: false.
+
+Push result: pushed to `origin/feature/workflow-install-reset-reinstall-20260602`.
+
+No live infrastructure commands were run.
