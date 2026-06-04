@@ -235,15 +235,21 @@ observed service readiness must be reported as `refused`, `blocked`,
 `failed_to_verify`, never as success.
 
 The active workflow
-`documentation/workflow/workflow.md` targets a fresh-install and full-deploy
-contract for `install.sh`: the wrapper should reset the current managed Tiny
-Swarm World local system before running setup, then complete the selected
-setup profile including artifact preparation, service-stack deployments, and
-service-access dashboard/index assets. Existing non-destructive update and
-reconcile mechanisms should remain available unless they block
-reinstallation. This is a planned workflow target, not current implemented
-runtime behavior. Until that workflow is executed, `install.sh` remains a
-setup wrapper rather than a destructive reinstall entry point.
+`documentation/workflow/workflow.md` implements the fresh-install entry point
+for `install.sh`: the wrapper requires the destructive reset confirmation,
+runs `platform reset` for the configured managed Tiny Swarm World local
+system, stops when reset fails, and only then runs the selected setup profile.
+The selected setup path includes artifact preparation, service-stack
+deployments, service readiness checks, and service-access dashboard/index
+assets. Existing non-destructive update and reconcile mechanisms remain
+available through their own workflow commands.
+
+Repository-level wiring and static/mocked evidence cover the fresh-install
+sequence and service-access assets, but the repository still does not claim a
+verified end-to-end live installation of all runnable services. Live
+LXD/Incus, Docker Swarm, registry, Portainer, Nexus, service-access, and
+Vaultwarden evidence must be collected during an explicit operator live run
+before live success is claimed.
 
 The provider selected by setup defaults to `lxc_native` through LXD or Incus.
 If both managed backends are usable, the operator must choose one explicitly
