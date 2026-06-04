@@ -2,7 +2,7 @@
 
 Workflow: `fresh-install-reset-full-deploy-v1.1.0`
 
-Status: governance unblock completed; ready to resume Slice 01 execution.
+Status: Slice 01 completed; ready to execute Slice 02.
 
 ## Creation Evidence
 
@@ -94,3 +94,46 @@ Result:
 * Full quality gate passed: lint, arch-lint, arch-tests, typecheck, and 616
   unit tests.
 * No live infrastructure commands were run.
+
+## Slice 01 Checkpoint
+
+Slice ID: `01`
+
+Title: Define Fresh-Install Destructive Scope
+
+Responsible agent roles:
+
+* Senior System Architect
+* Senior Requirement Engineer
+* Senior DevOps Engineer
+
+Outcome:
+
+* Fresh install ownership boundary documented.
+* Update/reconcile preservation documented.
+* Mandatory reset-first install behavior selected for the active workflow.
+* Full deployment Durchstich includes service-access dashboard/index
+  acceptance.
+* Destructive reset confirmation remains mandatory.
+* Infra boundary marker documentation restored and owned by Slice 01.
+
+Quality gates:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation tests.architecture.test_infra_responsibility_boundaries
+git diff --check
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py quality
+```
+
+Result: passed.
+
+Checkpoint commit: `9d3b6e6`
+
+Rollback reference: `32c1103`
+
+arc42Updated: checked and already synchronized in the Slice 01 scope.
+
+adrUpdated: not required; existing platform separation and destructive
+reset/destroy policy decisions cover the Slice 01 scope.
+
+Push result: pushed to `origin/feature/workflow-install-reset-reinstall-20260602`.
