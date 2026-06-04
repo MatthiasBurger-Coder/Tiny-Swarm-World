@@ -2,7 +2,7 @@
 
 Workflow: `fresh-install-reset-full-deploy-v1.1.0`
 
-Status: Slice 03 completed; ready to execute Slice 04.
+Status: Slice 04 completed; ready to execute Slice 05.
 
 ## Creation Evidence
 
@@ -245,6 +245,64 @@ passed.
 Checkpoint commit: `d28becf`
 
 Rollback reference: `1026437`
+
+arc42Updated: false; pending Slice 05 documentation synchronization.
+
+adrUpdated: false.
+
+Push result: pushed to `origin/feature/workflow-install-reset-reinstall-20260602`.
+
+No live infrastructure commands were run.
+
+## Slice 04 Checkpoint
+
+Slice ID: `04`
+
+Title: Make install.sh Fresh-Install By Default
+
+Responsible agent roles:
+
+* Senior Python Automation Developer
+* Senior DevOps Engineer
+* Senior Tester
+
+Outcome:
+
+* `install.sh` now prompts the operator for the exact
+  `RESET_TINY_SWARM_PLATFORM` destructive confirmation before starting the
+  fresh-install reset prelude.
+* The wrapper runs `platform reset --live --confirm RESET_TINY_SWARM_PLATFORM`
+  before `setup run --live`.
+* Setup starts only after reset exits successfully.
+* Reset failures stop installation, write `reset-run.exit`, append
+  `reset_exit` and `setup_skipped_due_to_reset_failure=yes` to context, and
+  exit with the reset code.
+* Setup failures still write `setup-run.exit`, append `setup_exit`, and exit
+  with the setup code.
+* Evidence now distinguishes `reset-run.log`, `reset-run.exit`,
+  `setup-run.log`, `setup-run.exit`, and context markers.
+* Deterministic shell-level tests use a temporary fake repository plus fake
+  `script` and `python3` commands; no live infrastructure commands are run.
+* Installation documentation now describes reset-before-setup, failure-stop
+  behavior and the concrete evidence files.
+
+Quality gates:
+
+```bash
+bash -n install.sh
+PATH=.venv/bin:$PATH PYTHONPATH=src python3 -m unittest tests.test_install_script tests.test_package_entrypoint
+git diff --check -- install.sh documentation/user_guide/installation.adoc tests/test_install_script.py
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py quality
+```
+
+Result: passed.
+
+Full quality result: lint, arch-lint, arch-tests, typecheck, and 636 unit tests
+passed.
+
+Checkpoint commit: `1c59023`
+
+Rollback reference: `444dcba`
 
 arc42Updated: false; pending Slice 05 documentation synchronization.
 
