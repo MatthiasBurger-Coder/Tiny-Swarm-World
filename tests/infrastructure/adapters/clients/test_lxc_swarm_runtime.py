@@ -1,6 +1,8 @@
 import subprocess
 import unittest
 from unittest.mock import patch
+
+import requests
 from tests.support.sonar_safe_literals import ipv4_address, operator_credential, sensitive_assignment
 
 from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
@@ -159,7 +161,49 @@ services:
         self.assertEqual(409, raised.exception.status_code)
         self.assertNotIn(sensitive_assignment(), str(raised.exception))
 
+    def test_portainer_admin_client_rejects_409_when_auth_probe_fails(self):
+        session = _FakeSession(
+            [
+                _FakeResponse(409, {"message": "admin already initialized"}),
+                requests.ConnectionError("Portainer auth endpoint unavailable."),
+            ]
+        )
+        client = LxcPortainerAdminClient(backend=ManagedLxcBackend.LXD, session=session)
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
+            return_value=ipv4_address(10, 156, 143, 201),
+        ):
+            with self.assertRaises(PortainerAdminInitializationRejected) as raised:
+                client.initialize_admin_user("admin", operator_credential())
+
+        self.assertEqual(409, raised.exception.status_code)
+        self.assertEqual(2, len(session.post_calls))
+
     def test_portainer_admin_client_accepts_failed_init_when_authentication_works(self):
+        password = operator_credential()
+        session = _FakeSession(
+            [
+                _FakeResponse(409, {"message": "admin already initialized"}),
+                _FakeResponse(200, {"jwt": "jwt-token"}),
+            ]
+        )
+        client = LxcPortainerAdminClient(backend=ManagedLxcBackend.LXD, session=session)
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
+            return_value=ipv4_address(10, 156, 143, 201),
+        ):
+            client.initialize_admin_user("admin", password)
+
+        self.assertEqual(2, len(session.post_calls))
+        init_call, auth_call = session.post_calls
+        self.assertTrue(str(init_call["url"]).endswith("/api/users/admin/init"))
+        self.assertEqual({"username": "admin", "password": password}, init_call["json"])
+        self.assertTrue(str(auth_call["url"]).endswith("/api/auth"))
+        self.assertEqual({"Username": "admin", "Password": password}, auth_call["json"])
+
+    def test_portainer_admin_client_clears_cookies_before_409_auth_probe(self):
         session = _FakeSession(
             [
                 _FakeResponse(409, {"message": "admin already initialized"}),
@@ -174,7 +218,20 @@ services:
         ):
             client.initialize_admin_user("admin", operator_credential())
 
-        self.assertEqual(2, len(session.post_calls))
+        self.assertEqual(4, session.cookies.clear_calls)
+
+    def test_portainer_admin_client_initializes_clean_state_without_followup_auth_probe(self):
+        session = _FakeSession([_FakeResponse(200, {"message": "admin initialized"})])
+        client = LxcPortainerAdminClient(backend=ManagedLxcBackend.LXD, session=session)
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
+            return_value=ipv4_address(10, 156, 143, 201),
+        ):
+            client.initialize_admin_user("admin", operator_credential())
+
+        self.assertEqual(1, len(session.post_calls))
+        self.assertTrue(str(session.post_calls[0]["url"]).endswith("/api/users/admin/init"))
 
 
 class _FakeResponse:
@@ -189,16 +246,24 @@ class _FakeResponse:
 
 
 class _FakeSession:
-    def __init__(self, post_responses: list[_FakeResponse]):
+    def __init__(self, post_responses: list[_FakeResponse | requests.RequestException]):
         self.post_responses = list(post_responses)
         self.post_calls: list[dict[str, object]] = []
         self.cookies = _FakeCookies()
 
     def post(self, url: str, **kwargs: object) -> _FakeResponse:
         self.post_calls.append({"url": url, **kwargs})
-        return self.post_responses.pop(0)
+        response = self.post_responses.pop(0)
+        if isinstance(response, requests.RequestException):
+            raise response
+        return response
 
 
 class _FakeCookies(dict[str, str]):
+    def __init__(self):
+        super().__init__()
+        self.clear_calls = 0
+
     def clear(self) -> None:
+        self.clear_calls += 1
         super().clear()

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 
 class PortainerAdminInitializationRejected(RuntimeError):
-    """Raised when Portainer rejects admin initialization after becoming reachable."""
+    """Raised when admin initialization is rejected and requested credentials fail."""
 
     def __init__(self, message: str | None = None, *, status_code: int | None = None):
         super().__init__(message or "Portainer rejected admin initialization.")

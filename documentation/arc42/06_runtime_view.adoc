@@ -94,10 +94,12 @@ automation may retry transient initialization errors while the service is
 becoming ready, but once a Portainer admin endpoint rejects initialization and
 the requested credentials still cannot authenticate, infrastructure adapters
 translate that response into the typed application-port rejection
-`PortainerAdminInitializationRejected`. The application deployment service
-re-raises that rejection instead of exhausting readiness retries. This keeps
-operator-visible failures prompt while preserving retries for genuine transient
-readiness errors.
+`PortainerAdminInitializationRejected`. If the requested credentials become
+active after the rejection, the application deployment service treats the
+target state as achieved; otherwise it re-raises the typed rejection instead
+of exhausting readiness retries. This keeps operator-visible failures prompt
+while preserving retries for genuine transient readiness errors and avoiding a
+false success for wrong credentials.
 
 === Console Status Runtime Flow
 

@@ -83,6 +83,21 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(2, client.initialize_calls)
 
+    async def test_run_initializes_clean_portainer_after_reset_and_verifies_credentials(self):
+        client = _CleanInitializationPortainerAdminClient()
+        service = EnsurePortainerAdminAccess(
+            client,
+            username="admin",
+            password=operator_credential(),
+            max_attempts=2,
+            wait_seconds=0,
+        )
+
+        await service.run()
+
+        self.assertEqual(1, client.initialize_calls)
+        self.assertEqual(2, client.can_authenticate_calls)
+
     async def test_run_fails_fast_when_portainer_rejects_admin_initialization(self):
         client = _RejectedInitializationPortainerAdminClient()
         service = EnsurePortainerAdminAccess(
@@ -97,6 +112,27 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
             await service.run()
 
         self.assertEqual(1, client.initialize_calls)
+
+    async def test_run_accepts_rejected_initialization_when_credentials_become_active(self):
+        client = _RejectedAfterActivationPortainerAdminClient()
+        ui = _RecordingUI()
+        service = EnsurePortainerAdminAccess(
+            client,
+            username="admin",
+            password=operator_credential(),
+            max_attempts=60,
+            wait_seconds=0,
+            ui=ui,
+        )
+
+        with self.assertLogs("EnsurePortainerAdminAccess", level="INFO") as captured:
+            await service.run()
+
+        self.assertEqual(1, client.initialize_calls)
+        self.assertEqual(2, client.can_authenticate_calls)
+        self.assertEqual([], ui.calls)
+        self.assertIn("credentials became active", captured.output[0])
+        self.assertNotIn(sensitive_assignment(), captured.output[0])
 
     async def test_run_logs_and_updates_ui_when_portainer_rejects_initialization(self):
         client = _RejectedInitializationPortainerAdminClient(
@@ -159,6 +195,19 @@ class _InitializeAfterTransientFailurePortainerAdminClient:
             raise RuntimeError("Portainer is not ready yet.")
 
 
+class _CleanInitializationPortainerAdminClient:
+    def __init__(self):
+        self.initialize_calls = 0
+        self.can_authenticate_calls = 0
+
+    def can_authenticate(self, username: str, password: str) -> bool:
+        self.can_authenticate_calls += 1
+        return self.initialize_calls > 0
+
+    def initialize_admin_user(self, username: str, password: str) -> None:
+        self.initialize_calls += 1
+
+
 class _RejectedInitializationPortainerAdminClient:
     def __init__(
         self,
@@ -178,6 +227,20 @@ class _RejectedInitializationPortainerAdminClient:
             self.message,
             status_code=self.status_code,
         )
+
+
+class _RejectedAfterActivationPortainerAdminClient:
+    def __init__(self):
+        self.initialize_calls = 0
+        self.can_authenticate_calls = 0
+
+    def can_authenticate(self, username: str, password: str) -> bool:
+        self.can_authenticate_calls += 1
+        return self.initialize_calls > 0
+
+    def initialize_admin_user(self, username: str, password: str) -> None:
+        self.initialize_calls += 1
+        raise PortainerAdminInitializationRejected("HTTP 409", status_code=409)
 
 
 class _RecordingUI:
