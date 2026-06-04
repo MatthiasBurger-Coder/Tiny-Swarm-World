@@ -113,6 +113,36 @@ Check Portainer manually before running stack upload or Nexus bootstrap:
 curl -s http://localhost:9000
 ----
 
+== Portainer Admin Initialization Returns HTTP 409
+
+`PortainerAdminInitializationRejected HTTP 409` means Portainer rejected the
+administrator initialization call. In the fresh-install path, `install.sh`
+first runs the managed platform reset, so a 409 after that reset is evidence
+to review rather than a readiness delay.
+
+The deployment workflow treats a rejected initialization as already achieved
+only when the same configured Portainer username and password authenticate
+immediately afterward. If those requested credentials do not authenticate,
+the failure stays explicit because the remaining cause is usually stale or
+unmanaged Portainer state, an incomplete reset, or a credential mismatch.
+
+Check the reset evidence first:
+
+[source,bash]
+----
+RUN_ID=20260604T120000Z
+EVIDENCE_DIR=".tiny-swarm-world/evidence/installation-tests/wsl2/$RUN_ID"
+cat "$EVIDENCE_DIR/reset-run.exit"
+cat "$EVIDENCE_DIR/setup-run.exit"
+----
+
+Use the concrete run ID printed by the wrapper.
+
+Then verify that the operator-provided `TSW_PORTAINER_USERNAME` and
+`TSW_PORTAINER_PASSWORD` values are the intended values for this local
+installation. Do not paste password values into issue reports, logs, or
+committed documentation.
+
 == Setup Preflight Reports Occupied Ports
 
 `setup run --live` is intentionally re-runnable. During preflight, an occupied
@@ -157,11 +187,14 @@ If Nexus is still starting, increase:
 
 == Service Access Or Vaultwarden Is Not Reachable
 
-The full guided setup selects the service-access profile by default, but the
-default `lxc_native` path still blocks before provider-native image
-publication, stack deployment, and Swarm service-readiness verification are
-complete. Service-access dashboard and NGINX assets are committed repository
-inputs until a live provider-specific deployment path verifies them.
+The full guided setup selects the service-access profile by default. The
+default `lxc_native` path uses configured artifact image-publication, stack
+deployment, and Swarm service-readiness contracts, but each phase can still
+block or fail when live prerequisites such as registry access, external Swarm
+inputs, or observed service readiness are unavailable. Service-access
+dashboard and NGINX assets are committed repository inputs and are packaged
+into their respective images by the artifact workflow; live reachability still
+requires explicit deployment evidence.
 
 The committed dashboard is static catalog data. It intentionally renders
 service reachability as unknown until observed evidence exists. Password
@@ -247,9 +280,12 @@ PYTHONPATH=src python3 -m tiny_swarm_world platform reset --confirm RESET_TINY_S
 PYTHONPATH=src python3 -m tiny_swarm_world platform destroy --confirm DESTROY_TINY_SWARM_PLATFORM --live
 ----
 
-After confirmation, reset and destroy currently return `blocked` until
-retention and teardown semantics are implemented. Do not treat confirmation as
-proof that destructive teardown is wired.
+After confirmation, reset and destroy act only on configured managed
+LXC-native nodes whose Tiny Swarm World ownership evidence is verified before
+mutation. Already absent managed nodes are valid reset/destroy evidence.
+Missing, mismatched, or unmanaged ownership evidence blocks before deletion.
+Do not use these commands as broad LXD/Incus cleanup, and do not treat a
+confirmation phrase as permission to delete unrelated containers.
 
 == Git Shows Line Ending Only Changes
 

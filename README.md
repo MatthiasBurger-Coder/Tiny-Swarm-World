@@ -171,14 +171,15 @@ requirements are not satisfied. After accepted live consent, default
 `platform init` continues from LXC node lifecycle into Docker Engine setup and
 Docker Swarm bootstrap inside `swarm-manager`, `swarm-worker-1`, and
 `swarm-worker-2`. Default `platform reconcile` is currently a verified no-op
-boundary for `lxc_native`; default artifact and deployment workflows still
-block at provider boundaries until provider-native publication and deployment
-contracts are wired.
+boundary for `lxc_native`; default artifact and deployment workflows use
+guarded provider-native publication, deployment, external-input, and
+observed-state contracts and report blocked or failed phase evidence when live
+prerequisites are unavailable.
 
 `platform reset` and `platform destroy` additionally require
 `RESET_TINY_SWARM_PLATFORM` or `DESTROY_TINY_SWARM_PLATFORM` through
-`--confirm`. The confirmation contracts are implemented, but destructive
-reset/destroy steps remain blocked until retention semantics are implemented.
+`--confirm`. They act only on configured managed LXC-native nodes whose Tiny
+Swarm World ownership evidence is verified before mutation.
 
 These behaviors are verified by unit tests, architecture checks, and static
 quality gates. This repository workflow did not run live LXD, Incus, LXC
@@ -213,7 +214,8 @@ or Incus. Current default flow is fail-closed:
   checks, profile contracts, and live consent allow mutation
 - Initialize or verify the Docker Swarm manager and join or verify the worker
   nodes from inside those managed LXC containers
-- Keep default stack deployment blocked until provider-native deployment contracts are wired
+- Run guarded artifact publication, stack deployment, external-input, and
+  service-readiness contracts when live prerequisites are observable
 
 Where to find the scripts/services:
 - `src/tiny_swarm_world/application/services/platform`
@@ -257,9 +259,12 @@ orchestrates only non-destructive setup phases and reports refused, blocked,
 resource-gated, failed-to-apply, failed-to-verify, failed, or completed states
 without treating missing verification as success. `platform reset` and
 `platform destroy` additionally require the exact reset or destroy confirmation
-phrase. Direct no-argument construction from the old `docker` layout is no
-longer supported. Use `build_application_services()` for the standard local
-wiring, or pass compatible port implementations in tests.
+phrase and act only on configured managed LXC-native nodes whose Tiny Swarm
+World ownership evidence is verified before mutation. Already absent managed
+nodes count as reset/destroy evidence; unrelated provider resources are never
+a supported cleanup target. Direct no-argument construction from the old
+`docker` layout is no longer supported. Use `build_application_services()` for
+the standard local wiring, or pass compatible port implementations in tests.
 
 The canonical setup path is the workflow-level Python command. Former direct
 preparation scripts under `infra/prepare` and host-side compose orchestration
@@ -269,9 +274,10 @@ canonical static classification is maintained in
 `documentation/system/live-operation-surfaces.adoc`.
 
 Image publication and stack deployment are owned by workflow-level setup
-boundaries. On the default `lxc_native` path they remain blocked until
-provider-native artifact and deployment contracts are wired. Stack definitions
-live under `infra/config/compose`; image build contexts live under
+boundaries. On the default `lxc_native` path they run only through guarded
+artifact, image-publication, stack, external-input, and readiness contracts,
+and they still require explicit live evidence before success is claimed. Stack
+definitions live under `infra/config/compose`; image build contexts live under
 `infra/compose`.
 
 The full guided setup selects the `service-access` management stack profile by

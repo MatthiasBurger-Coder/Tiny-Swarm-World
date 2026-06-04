@@ -156,8 +156,9 @@ For repeatable Linux or WSL operator runs with local evidence capture, use:
 ----
 
 The wrapper writes run context, reset logs, setup logs and exit codes below
-`.tiny-swarm-world/evidence/installation-tests/`, including
-`reset-run.log`, `reset-run.exit`, `setup-run.log`, and `setup-run.exit`.
+`.tiny-swarm-world/evidence/installation-tests/wsl2/<UTC timestamp>/`,
+including `reset-run.log`, `reset-run.exit`, `setup-run.log`, and
+`setup-run.exit`.
 It loads or generates local `TSW_*` secrets in
 `.tiny-swarm-world/local/live-installation.env` without printing secret
 values.
@@ -170,11 +171,19 @@ destructive reset workflow:
 PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM
 ----
 
+The wrapper passes the selected service profile to reset and setup. The
+default is `service-access`, so the effective reset command is:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+----
+
 Only after reset succeeds does it call the canonical live setup workflow:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --service-profile service-access
 ----
 
 If reset is blocked or fails, setup is not started and the script exits with
@@ -199,6 +208,10 @@ Mutating workflow-level commands such as `platform init`, `platform reconcile`,
 
 * `--live`;
 * answering `y` at the short live-infrastructure confirmation prompt.
+
+`platform reset` and `platform destroy` additionally require their exact
+confirmation phrases. `install.sh` asks for
+`RESET_TINY_SWARM_PLATFORM` before it runs the reset prelude.
 
 Optional live smoke validation is separate from the default quality gate. Run
 it only on a disposable or recoverable local environment after reviewing the
@@ -238,4 +251,6 @@ attempting the Portainer stack create/update.
 
 The service-access dashboard is a static management table. It lists service
 links, users and Vaultwarden item references; password values are visible only
-through Vaultwarden's authenticated UI.
+through Vaultwarden's authenticated UI. The dashboard source is
+`infra/compose/service-access/dashboard/index.html`, and the dashboard
+Dockerfile packages that file into the default `service-access` setup path.

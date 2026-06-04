@@ -14,12 +14,12 @@ confidence: 95
 
 ## Executive Summary
 
-`install.sh` currently prepares local secrets and evidence, then runs
-`setup run --live`. It does not discard existing LXC-native, Docker Swarm,
-Portainer or service-stack state before setup. Existing product architecture
-already distinguishes non-destructive `init` and `reconcile` from destructive
-`reset` and `destroy`, but destructive execution remains blocked until
-retention and teardown semantics are implemented.
+At workflow creation time, `install.sh` prepared local secrets and evidence,
+then ran `setup run --live` without discarding existing LXC-native, Docker
+Swarm, Portainer or service-stack state before setup. Existing product
+architecture already distinguished non-destructive `init` and `reconcile`
+from destructive `reset` and `destroy`, but the fresh-install reset path still
+needed managed-resource teardown wiring.
 
 This workflow makes the installation wrapper mean fresh installation:
 before the canonical live setup run, the current managed local Tiny Swarm World
@@ -192,16 +192,18 @@ Decision:
 Update-style behavior remains available through non-install commands such as
 `platform reconcile` and existing deployment stack create/update services.
 
-## Verified Baseline
+## Creation-Time Verified Baseline
 
 * Active branch is `feature/workflow-install-reset-reinstall-20260602`.
-* `install.sh` calls `PYTHONPATH=src python3 -m tiny_swarm_world setup run --live`
-  and does not call `platform reset` or `platform destroy`.
+* At workflow creation time, `install.sh` called
+  `PYTHONPATH=src python3 -m tiny_swarm_world setup run --live` and did not
+  call `platform reset` or `platform destroy`.
 * `PlatformResetWorkflow` and `PlatformDestroyWorkflow` exist and require exact
   confirmation phrases.
-* Confirmed reset/destroy currently block when no steps are configured.
-* arc42 glossary states reset/destroy are destructive but currently blocked
-  until retention or teardown semantics are implemented.
+* At workflow creation time, confirmed reset/destroy blocked when no steps were
+  configured.
+* At workflow creation time, arc42 glossary stated reset/destroy were
+  destructive and still awaiting retention or teardown semantics.
 * Portainer admin initialization currently fails fast on typed HTTP rejection
   when requested credentials cannot authenticate.
 * The default `install.sh` service profile is `service-access`.
@@ -866,6 +868,7 @@ Before execution:
 
 ## arc42 Check Status
 
-arc42 has been checked during workflow creation. A small synchronization note
-was added to the runtime view to record the planned fresh-install reset target.
-Full arc42 behavior updates occur in Slice 07 after Slice 06 evidence.
+arc42 was checked during workflow creation and again during Slice 07 closure.
+Runtime, constraint, building-block, quality, risk, glossary and decision
+wording now reflect the implemented fresh-install reset path and guarded
+Portainer 409 behavior without claiming live end-to-end success.

@@ -108,13 +108,16 @@ PYTHONPATH=src python3 -m tiny_swarm_world platform destroy --confirm DESTROY_TI
 ----
 
 Reset and destroy are explicit confirmation contracts. Their destructive
-execution steps are not wired yet; after confirmation they currently block
-until retention and teardown semantics are implemented.
+execution is limited to configured managed LXC-native nodes whose Tiny Swarm
+World ownership evidence is verified before mutation. Already absent managed
+nodes count as successful evidence. Missing, mismatched, or unmanaged
+ownership evidence blocks before deletion.
 
 Artifact and deployment workflow command names are reserved by the CLI contract
-and dispatch to explicit blocked workflow contracts on the default
-`lxc_native` path until provider-native live Nexus, registry, Portainer, and
-observed-state verification contracts are implemented.
+and dispatch to guarded workflow contracts on the default `lxc_native` path.
+They require live consent for mutating phases and report blocked or failed
+phase evidence when live Nexus, registry, Portainer, Swarm, external-input, or
+observed-state prerequisites are unavailable.
 
 Optional live smoke validation is a separate operator action, not part of
 `python3 tools/quality_gate.py quality`. Run `setup run --live` only on a
@@ -135,8 +138,9 @@ Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX commands.
 
 The workflow-level CLI is the supported setup surface. Portainer, Nexus, image
 publication, stack deployment, and final verification belong to setup
-boundaries. On the default `lxc_native` path they remain blocked until
-provider-native artifact, deployment, and observed-state contracts are wired:
+boundaries. On the default `lxc_native` path they run only through guarded
+artifact, deployment, external-input, and observed-state contracts and report
+blocked or failed phase evidence when live prerequisites are unavailable:
 
 [source,bash]
 ----
@@ -195,9 +199,10 @@ Do not copy local compatibility defaults into new configuration or logs.
 == Stack Deployment
 
 Stack deployment is owned by the workflow-level setup boundary. On the default
-`lxc_native` path it remains blocked until provider-native deployment and
-observed-state contracts are wired. Direct Portainer upload scripts have been
-retired so compose assets cannot bypass the CLI consent gate.
+`lxc_native` path it runs only through guarded stack, external-input, and
+observed-state contracts, and live success still requires explicit deployment
+and readiness evidence. Direct Portainer upload scripts have been retired so
+compose assets cannot bypass the CLI consent gate.
 
 == Service Access Dashboard And Vaultwarden
 

@@ -33,10 +33,11 @@ provider-neutral contracts, LXD/Incus readiness checks, node lifecycle
 adapters, Docker Engine setup and Swarm bootstrap adapters, setup integration,
 and fail-closed unsupported-provider behavior. Default platform reconcile is
 currently a verified no-op boundary for `lxc_native` after Platform init.
-Artifact workflows and deployment workflows still block at provider-native
-boundaries until their LXC-native contracts are wired. No documentation may
-claim Docker Swarm-in-container or WSL2 live success without target-specific
-evidence.
+Artifact and deployment workflows use configured LXC-native contracts for
+Nexus, registry, image publication, stack deployment, external inputs, and
+service readiness. They return blocked or failed evidence when a live
+prerequisite is not observable. No documentation may claim Docker
+Swarm-in-container or WSL2 live success without target-specific evidence.
 
 At this stage, Artifacts and Deployment are composition boundaries inside the
 same Python automation process, not independently deployable microservices.
@@ -44,19 +45,20 @@ Their bundles are side-effect free when constructed. The public CLI no longer
 dispatches low-level service names through `--run`; transitional
 `ApplicationServices` properties remain only for migration and internal
 compatibility. Artifact and deployment workflow command names are declared by
-the CLI contract and dispatch to blocked workflow objects with stable reasons
-until later slices wire their runtime behavior. Mutating boundary workflows
-such as `artifacts prepare` and `deployment apply` still require live consent
-before their boundary service bundle is constructed, then return `blocked`
-because the default composition has no configured live artifact, registry, or
-deployment steps yet.
+the CLI contract. Mutating boundary workflows such as `artifacts prepare` and
+`deployment apply` require live consent before their boundary service bundle is
+constructed, then execute only configured contracts with verify-after-prepare
+or verify-after-apply evidence. Missing registry, Portainer, Swarm,
+external-input, or readiness evidence returns explicit blocked or failed phase
+states.
 
 Setup orchestration is also an in-process composition concern. It is not a new
 microservice boundary and it does not construct low-level adapters in the entry
 point. The setup bundle wires phase calls for preflight, platform init,
 platform reconcile, artifacts prepare, artifacts verify, deployment apply,
 deployment verify, and final platform verify. It does not wire platform reset
-or destroy behavior.
+or destroy behavior; the `install.sh` fresh-install wrapper owns the reset
+prelude before it invokes setup.
 
 === Artifact And Deployment Workflow Contract Flow
 
@@ -64,27 +66,28 @@ The current artifact and deployment runtime flow is deliberately fail-closed:
 
 * `artifacts prepare` requires live consent and dispatches to
   `ArtifactPrepareWorkflow`. The workflow can run configured artifact steps
-  only when each step provides verify-after-prepare evidence. The default
-  composition still returns `blocked` because no live Nexus, registry, image
-  build, or image push step is wired.
+  only when each step provides verify-after-prepare evidence. Missing live
+  Nexus, registry, image build, or image push evidence returns blocked or
+  failed artifact evidence.
 * `artifacts verify` dispatches without live consent and can evaluate
-  configured artifact verification checks. The default composition still
-  returns `blocked` until registry observed-state checks are wired.
+  configured artifact verification checks. Missing registry observed-state
+  evidence returns blocked verification evidence.
 * `deployment apply` requires live consent, dispatches to
   `DeploymentApplyWorkflow`, and can run configured stack apply contracts only
   when they expose verify-after-apply evidence. The tested
   `EnsureServiceStack` contract can create or update Portainer-managed stacks
-  and then verify stack registration through `PortPortainerClient`. On the
-  default `lxc_native` path, CLI composition currently returns blocked
-  provider-boundary workflows instead of wiring Portainer-managed apply steps.
+  and then verify stack registration through `PortPortainerClient`. The
+  default `lxc_native` path wires Portainer-admin bootstrap, stack contracts,
+  service-access external-input checks, and service-readiness verification
+  through deployment workflow ports.
 * `deployment verify` dispatches without live consent and returns `blocked`
-  by default. When configured with the current default service stack checks,
-  it can observe Portainer stack registration but still returns `blocked`
-  until required service readiness is observed. It does not claim container or
-  service health.
+  or `failed_to_verify` when observed stack or service-readiness evidence is
+  missing. It does not claim container or service health from endpoint
+  configuration alone.
 
-No Nexus repository mutation, Docker registry mutation, image build, or image
-push side effect is run by default CLI composition. Nexus repository and
+Nexus repository mutation, Docker registry mutation, image build, and image
+push side effects run only through live-consent-gated workflow execution, not
+through service construction or static verification. Nexus repository and
 Portainer API behavior is covered by isolated adapter and application-service
 tests with fakes; live service readiness remains separate observed-state
 evidence and must not be inferred from endpoint configuration alone.

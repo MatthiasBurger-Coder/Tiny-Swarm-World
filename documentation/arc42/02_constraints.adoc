@@ -14,8 +14,9 @@ rules.
 * Normal `platform init` and `platform reconcile` must not select destructive
   cleanup commands.
 * `platform reset` and `platform destroy` require exact confirmation phrases.
-  Their destructive execution remains blocked until retention semantics are
-  implemented.
+  Their destructive execution is limited to configured managed LXC-native
+  nodes or marker-verified project-owned state, and blocks before mutation
+  when ownership evidence is missing or mismatched.
 * Fresh-install reset scope is limited to Tiny Swarm World managed local
   resources. LXC-native reset may target configured provider nodes or
   marker-verified instances with `user.tiny_swarm_world.managed=true`; broad
