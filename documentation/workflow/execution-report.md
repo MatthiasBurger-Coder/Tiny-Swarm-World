@@ -2,7 +2,7 @@
 
 Workflow: `fresh-install-reset-full-deploy-v1.1.0`
 
-Status: Slice 04 completed; ready to execute Slice 05.
+Status: Slice 05 completed; ready to execute Slice 06.
 
 ## Creation Evidence
 
@@ -30,6 +30,71 @@ sed ...
 sha256sum ...
 rm -rf documentation/workflow && mkdir -p documentation/workflow/reports
 ```
+
+No live infrastructure commands were run.
+
+## Slice 05 Checkpoint
+
+Slice ID: `05`
+
+Title: Complete Full Deployment Durchstich
+
+Responsible agent roles:
+
+* Senior Python Automation Developer
+* Senior Tester
+* Senior DevOps Engineer
+* Senior System Architect
+
+Outcome:
+
+* Existing setup wiring was verified: the default setup profile includes
+  `service-access`, and setup phases include preflight, platform bootstrap,
+  deployment bootstrap, artifact prepare/verify, deployment apply/verify, and
+  platform verify.
+* Artifact contracts and composition include the service-access dashboard and
+  NGINX images.
+* A deterministic publisher regression test now proves that the
+  service-access dashboard build context packages `Dockerfile` plus
+  `index.html`, and that the NGINX build context packages `Dockerfile` plus
+  `default.conf`, without live LXC or Docker execution.
+* Deployment apply includes `deployment:service-access-stack`.
+* Deployment verify includes `deployment:service-access-service-readiness`.
+* Setup workflow result handling already stops on blocked or failed selected
+  phases, so install success cannot bypass selected artifact, stack, or
+  readiness failures.
+* arc42 runtime documentation and the existing service-access ADR were
+  synchronized with the verified reset and deployment sequence.
+* No live end-to-end installation success is claimed without an explicit live
+  run.
+
+Quality gates:
+
+```bash
+PATH=.venv/bin:$PATH PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+PATH=.venv/bin:$PATH PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract tests.domain.artifacts.test_container_image_contract
+PATH=.venv/bin:$PATH PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_service_stack_plan tests.application.services.deployment.test_verify_swarm_service_readiness tests.application.services.deployment.test_deployment_workflows
+PATH=.venv/bin:$PATH PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py lint
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py typecheck
+git diff --check
+PATH=.venv/bin:$PATH python3 tools/quality_gate.py quality
+```
+
+Result: passed.
+
+Full quality result: lint, arch-lint, arch-tests, typecheck, and 637 unit
+tests passed.
+
+Checkpoint commit: `acc7b0d`
+
+Rollback reference: `de20f2d`
+
+arc42Updated: true.
+
+adrUpdated: existing ADR synchronized; no new ADR required.
+
+Push result: pushed to `origin/feature/workflow-install-reset-reinstall-20260602`.
 
 No live infrastructure commands were run.
 
