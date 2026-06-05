@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -158,6 +159,12 @@ DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
 VAULTWARDEN_ADMIN_TOKEN_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN"
 VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"
 DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME = "tsw_vaultwarden_admin_token"
+SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
+DEFAULT_SWARM_REGISTRY_ENDPOINT = "swarm-manager:5000"
+JENKINS_IMAGE_ENVIRONMENT = "TSW_JENKINS_IMAGE"
+SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"
+SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_NGINX_IMAGE"
+REGISTRY_ENDPOINT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*(?::[0-9]{1,5})?$")
 DEFAULT_LXC_PLATFORM_NODES = (
     NodeSpec("swarm-manager", NodeRole.MANAGER, NodeProviderKind.LXC_NATIVE),
     NodeSpec("swarm-worker-1", NodeRole.WORKER, NodeProviderKind.LXC_NATIVE),
@@ -902,7 +909,7 @@ def build_lxc_deployment_services(
     selected_service_profile = ServiceStackProfile(service_profile)
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
     swarm_runtime = LxcSwarmRuntime(backend=backend)
-    service_access_environment = _service_access_stack_environment(selected_service_profile)
+    stack_environment = _deployment_stack_environment(selected_service_profile)
     external_input_checks = _service_access_external_input_checks(
         selected_service_profile,
         swarm_runtime=swarm_runtime,
@@ -923,7 +930,7 @@ def build_lxc_deployment_services(
             compose_repository=compose_repository,
             swarm_runtime=swarm_runtime,
             service_stack=contract,
-            stack_environment=service_access_environment.get(contract.stack_name),
+            stack_environment=stack_environment.get(contract.stack_name),
         )
         for contract in service_stack_contracts
     }
@@ -945,7 +952,7 @@ def build_lxc_deployment_services(
         endpoint_name=DEFAULT_PORTAINER_ENDPOINT_NAME,
         service_profile=selected_service_profile,
         excluded_stack_names=("nexus",),
-        stack_environments=service_access_environment,
+        stack_environments=stack_environment,
     )
     readiness_checks = tuple(
         VerifySwarmServiceReadiness(
@@ -1257,19 +1264,46 @@ def _operator_config_source_ref(name: str) -> str:
     return "default"
 
 
-def _service_access_stack_environment(
+def _deployment_stack_environment(
     service_profile: ServiceStackProfile,
 ) -> dict[str, dict[str, str]]:
-    if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
-        return {}
-    return {
-        "service-access": {
-            VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT: _operator_config_value(
-                VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
-                DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
+    registry_endpoint = _swarm_registry_endpoint()
+    environment = {
+        "jenkins": {
+            JENKINS_IMAGE_ENVIRONMENT: _operator_config_value(
+                JENKINS_IMAGE_ENVIRONMENT,
+                f"{registry_endpoint}/jenkins:latest",
             )
         }
     }
+    if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
+        return environment
+
+    environment["service-access"] = {
+        SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT: _operator_config_value(
+            SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT,
+            f"{registry_endpoint}/service-access-dashboard:latest",
+        ),
+        SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT: _operator_config_value(
+            SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT,
+            f"{registry_endpoint}/service-access-nginx:latest",
+        ),
+            VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT: _operator_config_value(
+                VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
+                DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
+        ),
+    }
+    return environment
+
+
+def _swarm_registry_endpoint() -> str:
+    endpoint = _operator_config_value(
+        SWARM_REGISTRY_ENDPOINT_ENVIRONMENT,
+        DEFAULT_SWARM_REGISTRY_ENDPOINT,
+    ).strip()
+    if not REGISTRY_ENDPOINT_PATTERN.fullmatch(endpoint):
+        raise ValueError("Swarm registry endpoint must be host[:port] without scheme or credentials.")
+    return endpoint
 
 
 def _service_access_external_input_steps(

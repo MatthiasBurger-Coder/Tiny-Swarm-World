@@ -52,11 +52,13 @@ class PortainerHttpClient(PortPortainerClient):
         endpoint_id: int,
         stack_environment: Mapping[str, str] | None = None,
     ) -> None:
+        swarm_id = self._get_swarm_id_by_endpoint_id(endpoint_id)
         payload = {
             "env": _portainer_environment(stack_environment),
             "name": stack_definition.name,
             "fromAppTemplate": False,
             "stackFileContent": stack_definition.compose_content,
+            "SwarmID": swarm_id,
         }
 
         response = self._send(
@@ -121,6 +123,16 @@ class PortainerHttpClient(PortPortainerClient):
         self._jwt_token = token
         return token
 
+    def _get_swarm_id_by_endpoint_id(self, endpoint_id: int) -> str:
+        response = self._send("GET", f"/api/endpoints/{endpoint_id}/docker/info")
+        self._ensure_success(response, f"fetch Swarm identity for Portainer endpoint '{endpoint_id}'")
+        swarm_id = _extract_swarm_id(response.json())
+        if not swarm_id:
+            raise RuntimeError(
+                f"Portainer endpoint '{endpoint_id}' did not report a Swarm cluster ID."
+            )
+        return swarm_id
+
     @staticmethod
     def _ensure_success(response: requests.Response, action: str) -> None:
         if response.status_code >= 400:
@@ -134,3 +146,18 @@ def _portainer_environment(
         {"name": name, "value": str(value)}
         for name, value in sorted(dict(stack_environment or {}).items())
     ]
+
+
+def _extract_swarm_id(payload: object) -> str:
+    if not isinstance(payload, Mapping):
+        return ""
+    swarm = payload.get("Swarm")
+    if not isinstance(swarm, Mapping):
+        return ""
+    cluster = swarm.get("Cluster")
+    if not isinstance(cluster, Mapping):
+        return ""
+    cluster_id = cluster.get("ID")
+    if not isinstance(cluster_id, str):
+        return ""
+    return cluster_id

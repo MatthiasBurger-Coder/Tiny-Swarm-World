@@ -23,7 +23,7 @@ class TestPortainerHttpClient(unittest.TestCase):
     def test_create_stack_uses_bearer_auth_without_logging_password_payloads(self):
         session = _FakeSession(
             post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
-            request_responses=[_FakeResponse(200, {})],
+            request_responses=[_swarm_info_response(), _FakeResponse(200, {})],
         )
         client = PortainerHttpClient(
             "http://portainer.local",
@@ -40,12 +40,17 @@ class TestPortainerHttpClient(unittest.TestCase):
             session.post_calls[0]["json"],
         )
         self.assertEqual("Bearer jwt-token", session.request_calls[0]["headers"]["Authorization"])
-        self.assertEqual("portainer", session.request_calls[0]["json"]["name"])
+        self.assertEqual(
+            "http://portainer.local/api/endpoints/1/docker/info",
+            session.request_calls[0]["url"],
+        )
+        self.assertEqual("portainer", session.request_calls[1]["json"]["name"])
+        self.assertEqual("swarm-cluster-id", session.request_calls[1]["json"]["SwarmID"])
 
     def test_create_stack_sends_allowlisted_stack_environment(self):
         session = _FakeSession(
             post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
-            request_responses=[_FakeResponse(200, {})],
+            request_responses=[_swarm_info_response(), _FakeResponse(200, {})],
         )
         client = PortainerHttpClient(
             "http://portainer.local",
@@ -62,7 +67,7 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         self.assertEqual(
             [{"name": "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET", "value": "operator_defined"}],
-            session.request_calls[0]["json"]["env"],
+            session.request_calls[1]["json"]["env"],
         )
 
     def test_get_endpoint_id_by_name_uses_cached_jwt(self):
@@ -122,7 +127,11 @@ class TestPortainerHttpClient(unittest.TestCase):
     def test_create_stack_falls_back_to_legacy_stack_endpoint(self):
         session = _FakeSession(
             post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
-            request_responses=[_FakeResponse(404, {}), _FakeResponse(200, {})],
+            request_responses=[
+                _swarm_info_response(),
+                _FakeResponse(404, {}),
+                _FakeResponse(200, {}),
+            ],
         )
         client = PortainerHttpClient(
             "http://portainer.local",
@@ -135,10 +144,29 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         self.assertEqual(
             "http://portainer.local/api/stacks/create/swarm/string?endpointId=7",
-            session.request_calls[0]["url"],
+            session.request_calls[1]["url"],
         )
-        self.assertEqual("http://portainer.local/api/stacks", session.request_calls[1]["url"])
-        self.assertEqual(7, session.request_calls[1]["json"]["endpointId"])
+        self.assertEqual("http://portainer.local/api/stacks", session.request_calls[2]["url"])
+        self.assertEqual(7, session.request_calls[2]["json"]["endpointId"])
+        self.assertEqual("swarm-cluster-id", session.request_calls[2]["json"]["SwarmID"])
+
+    def test_create_stack_requires_swarm_identity(self):
+        session = _FakeSession(
+            post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
+            request_responses=[_FakeResponse(200, {"Swarm": {"Cluster": {}}})],
+        )
+        client = PortainerHttpClient(
+            "http://portainer.local",
+            "admin",
+            OPERATOR_CREDENTIAL,
+            session=session,
+        )
+
+        with self.assertRaises(RuntimeError) as raised:
+            client.create_stack(StackDefinition(name="jenkins", compose_content="services: {}"), 7)
+
+        self.assertIn("Swarm cluster ID", str(raised.exception))
+        self.assertEqual(1, len(session.request_calls))
 
     def test_update_stack_sends_prune_payload(self):
         session = _FakeSession(
@@ -236,6 +264,10 @@ class _FakeResponse:
 
     def json(self) -> object:
         return self.payload
+
+
+def _swarm_info_response() -> _FakeResponse:
+    return _FakeResponse(200, {"Swarm": {"Cluster": {"ID": "swarm-cluster-id"}}})
 
 
 class _FakeSession:
