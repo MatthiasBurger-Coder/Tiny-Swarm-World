@@ -145,6 +145,27 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
 
         self.assertEqual({}, missing_services_by_stack)
 
+    def test_committed_jenkins_compose_uses_overridable_registry_image(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_path = (
+            repository_root / "infra" / "config" / "compose" / "jenkins" / "docker-compose.yml"
+        )
+        compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            "${TSW_JENKINS_IMAGE:-127.0.0.1:5000/jenkins:latest}",
+            compose_data["services"]["jenkins"]["image"],
+        )
+        self.assertEqual(
+            ["node.role == manager"],
+            compose_data["services"]["jenkins"]["deploy"]["placement"]["constraints"],
+        )
+        self.assertEqual(
+            ["jenkins_home:/var/lib/jenkins"],
+            compose_data["services"]["jenkins"]["volumes"],
+        )
+        self.assertNotIn("secrets", compose_data)
+
     def test_committed_swagger_compose_uses_official_images_and_remote_openapi_bind(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = repository_root / "infra" / "config" / "compose" / "swagger" / "docker-compose.yml"

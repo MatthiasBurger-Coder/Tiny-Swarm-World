@@ -93,11 +93,36 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
 
         result = await DeploymentApplyWorkflow((FailingStep(),)).run()
 
-        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_PREPARE, result.status)
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_APPLY, result.status)
         self.assertTrue(result.executed)
-        self.assertEqual("prepare failed with RuntimeError", result.reason)
+        self.assertEqual("apply failed with RuntimeError", result.reason)
         self.assertNotIn("sensitive response", result.reason)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
+
+    async def test_apply_workflow_preserves_actionable_safe_apply_failure_summary(self):
+        class FailingStep:
+            verification_target_id = "deployment:jenkins-stack"
+
+            async def run(self) -> None:
+                await async_checkpoint()
+                raise RuntimeError("Failed to create Portainer stack 'jenkins'. HTTP 500.")
+
+            async def verify(self) -> VerificationResult:
+                await async_checkpoint()
+                raise AssertionError("verify must not run after failed apply")
+
+        with self.assertLogs("DeploymentApplyWorkflow", level="ERROR") as captured:
+            result = await DeploymentApplyWorkflow((FailingStep(),)).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertIn(
+            "RuntimeError. Failed to create Portainer stack 'jenkins'. HTTP 500.",
+            captured.output[0],
+        )
+        self.assertIn(
+            "RuntimeError. Failed to create Portainer stack 'jenkins'. HTTP 500.",
+            result.verification_results[0].message,
+        )
 
     async def test_apply_workflow_reports_portainer_admin_rejection_with_safe_diagnostics(self):
         class RejectedPortainerAdminStep:
@@ -120,7 +145,7 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
                 kind=DeploymentWorkflowKind.BOOTSTRAP,
             ).run()
 
-        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_PREPARE, result.status)
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_APPLY, result.status)
         self.assertIn("PortainerAdminInitializationRejected HTTP 409", result.reason)
         self.assertNotIn(sensitive_assignment(), result.reason)
         self.assertIn("PortainerAdminInitializationRejected HTTP 409", captured.output[0])

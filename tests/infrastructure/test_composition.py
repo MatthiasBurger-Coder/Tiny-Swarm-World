@@ -468,10 +468,11 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(7, len(services.workflows.verify.checks))
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
-        with patch.object(composition, "ComposeFileRepositoryYaml"):
-            services = composition.build_lxc_deployment_services(
-                backend=composition.ManagedLxcBackend.INCUS,
-            )
+        with patch.dict("os.environ", {}, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
 
         self.assertIsInstance(services.workflows.bootstrap, composition.DeploymentApplyWorkflow)
         self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
@@ -499,6 +500,15 @@ class TestComposition(unittest.TestCase):
                 step.endpoint_name == composition.DEFAULT_PORTAINER_ENDPOINT_NAME
                 for step in services.workflows.apply.steps
             )
+        )
+        jenkins_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.service_stack.stack_name == "jenkins"
+        )
+        self.assertEqual(
+            {"TSW_JENKINS_IMAGE": "swarm-manager:5000/jenkins:latest"},
+            jenkins_step.stack_environment,
         )
         self.assertEqual(
             (
@@ -627,10 +637,47 @@ class TestComposition(unittest.TestCase):
         self.assertEqual("operator_defined", pre_apply_check.resource_name)
         self.assertEqual("operator_env", pre_apply_check.source_ref)
         self.assertEqual(
-            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+            {
+                "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE": (
+                    "swarm-manager:5000/service-access-dashboard:latest"
+                ),
+                "TSW_SERVICE_ACCESS_NGINX_IMAGE": (
+                    "swarm-manager:5000/service-access-nginx:latest"
+                ),
+                "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined",
+            },
             service_access_step.stack_environment,
         )
         self.assertEqual((), services.workflows.apply.pre_apply_steps)
+
+    def test_build_deployment_services_uses_operator_swarm_registry_endpoint_for_local_images(self):
+        with patch.dict(
+            "os.environ",
+            {"TSW_SWARM_REGISTRY_ENDPOINT": "registry.local:5000"},
+            clear=True,
+        ):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
+
+        environments = {
+            step.service_stack.stack_name: step.stack_environment
+            for step in services.workflows.apply.steps
+        }
+
+        self.assertEqual(
+            "registry.local:5000/jenkins:latest",
+            environments["jenkins"]["TSW_JENKINS_IMAGE"],
+        )
+        self.assertEqual(
+            "registry.local:5000/service-access-dashboard:latest",
+            environments["service-access"]["TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"],
+        )
+        self.assertEqual(
+            "registry.local:5000/service-access-nginx:latest",
+            environments["service-access"]["TSW_SERVICE_ACCESS_NGINX_IMAGE"],
+        )
 
     def test_build_deployment_services_prepares_service_access_external_input_from_operator_token(self):
         operator_token = sample_text("operator", "-token")

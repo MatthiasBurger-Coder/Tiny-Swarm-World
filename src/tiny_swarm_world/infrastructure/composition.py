@@ -1288,9 +1288,9 @@ def _deployment_stack_environment(
             SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT,
             f"{registry_endpoint}/service-access-nginx:latest",
         ),
-            VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT: _operator_config_value(
-                VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
-                DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
+        VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT: _operator_config_value(
+            VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
+            DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
         ),
     }
     return environment
@@ -1302,7 +1302,9 @@ def _swarm_registry_endpoint() -> str:
         DEFAULT_SWARM_REGISTRY_ENDPOINT,
     ).strip()
     if not REGISTRY_ENDPOINT_PATTERN.fullmatch(endpoint):
-        raise ValueError("Swarm registry endpoint must be host[:port] without scheme or credentials.")
+        raise ValueError(
+            "Swarm registry endpoint must be host[:port] without scheme or credentials."
+        )
     return endpoint
 
 

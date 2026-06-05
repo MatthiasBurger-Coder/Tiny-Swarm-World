@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+import textwrap
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -11,6 +12,7 @@ from tiny_swarm_world.application.ports.clients.port_portainer_admin_client impo
     PortainerAdminInitializationRejected,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.domain.inventory.safe_text import validate_message_text
 
 
 class DeploymentWorkflowKind(str, Enum):
@@ -94,6 +96,18 @@ DEPLOYMENT_APPLY_CONTRACTS_BLOCKED_MESSAGE = (
     "deployment apply is blocked until stack deployment contracts are wired."
 )
 VERIFICATION_EVIDENCE_MISSING_MESSAGE = "Verification evidence is missing."
+DIAGNOSTIC_PAYLOAD_REDACTED = "Diagnostic payload redacted."
+UNSAFE_EXCEPTION_DETAIL_TERMS = (
+    "authorization",
+    "credential",
+    "password",
+    "payload",
+    "response body",
+    "secret",
+    "stderr",
+    "stdout",
+    "token",
+)
 
 
 class DeploymentApplyWorkflow:
@@ -170,9 +184,9 @@ class DeploymentApplyWorkflow:
                 )
                 return DeploymentWorkflowResult(
                     kind=self.kind,
-                    status=DeploymentWorkflowStatus.FAILED_TO_PREPARE,
-                    message="deployment prepare failed for a configured stack contract.",
-                    reason=_prepare_failure_reason(target_id, exc, safe_error),
+                    status=DeploymentWorkflowStatus.FAILED_TO_APPLY,
+                    message="deployment apply failed for a configured stack contract.",
+                    reason=_apply_failure_reason(target_id, exc, safe_error),
                     executed=True,
                     verification_results=(
                         *verification_results,
@@ -269,15 +283,32 @@ def _step_has_verification(step: DeploymentApplyStep | DeploymentVerifyCheck) ->
 
 def _safe_exception_summary(exc: Exception) -> str:
     status_code = getattr(exc, "status_code", None)
+    safe_detail = _safe_exception_detail(exc)
+    detail = safe_detail or DIAGNOSTIC_PAYLOAD_REDACTED
     if status_code is not None:
-        return f"{exc.__class__.__name__} HTTP {status_code}. Diagnostic payload redacted."
-    return f"{exc.__class__.__name__}. Diagnostic payload redacted."
+        return f"{exc.__class__.__name__} HTTP {status_code}. {detail}"
+    return f"{exc.__class__.__name__}. {detail}"
 
 
-def _prepare_failure_reason(target_id: str, exc: Exception, safe_error: str) -> str:
+def _safe_exception_detail(exc: Exception) -> str:
+    detail = str(exc).strip()
+    if not detail or detail == exc.__class__.__name__:
+        return ""
+    normalized_detail = detail.casefold()
+    if any(term in normalized_detail for term in UNSAFE_EXCEPTION_DETAIL_TERMS):
+        return ""
+    detail = textwrap.shorten(detail, width=180, placeholder="...")
+    try:
+        validate_message_text("exception_summary", detail)
+    except ValueError:
+        return ""
+    return detail
+
+
+def _apply_failure_reason(target_id: str, exc: Exception, safe_error: str) -> str:
     if isinstance(exc, PortainerAdminInitializationRejected):
-        return f"prepare failed for {target_id}: {safe_error}"
-    return f"prepare failed with {exc.__class__.__name__}"
+        return f"apply failed for {target_id}: {safe_error}"
+    return f"apply failed with {exc.__class__.__name__}"
 
 
 def _apply_failure_evidence(exc: Exception) -> dict[str, str]:
