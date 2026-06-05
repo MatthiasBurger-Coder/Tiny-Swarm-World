@@ -313,7 +313,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
             [
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
                 (("incus", "list", "swarm-worker-1", "--format", "json"), 5.0),
-                (("incus", "delete", "swarm-manager", "--force"), 5.0),
+                (("incus", "delete", "swarm-manager", "--force"), 300.0),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
             runner.calls,
@@ -444,7 +444,31 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             [
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
-                (("incus", "delete", "swarm-manager", "--force"), 5.0),
+                (("incus", "delete", "swarm-manager", "--force"), 300.0),
+                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+            ],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_reset_delete_uses_dedicated_teardown_timeout(self):
+        runner = _FakeTeardownRunner(
+            _list(_node("swarm-manager", "Running")),
+            _ok(),
+            _list(),
+        )
+        provider = _provider(runner, teardown_timeout_seconds=42.0)
+
+        result = await provider.reset_nodes(
+            (_node_spec(),),
+            _selection(ManagedLxcBackend.INCUS),
+        )
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual(
+            [
+                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+                (("incus", "delete", "swarm-manager", "--force"), 42.0),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
             runner.calls,
@@ -493,6 +517,12 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
                 config_repository=_FakeConfigRepository(_config()),
                 runner=_FakeRunner(),
                 start_timeout_seconds=0,
+            )
+        with self.assertRaises(ValueError):
+            LxcNodeProvider(
+                config_repository=_FakeConfigRepository(_config()),
+                runner=_FakeRunner(),
+                teardown_timeout_seconds=0,
             )
 
     def assertEvidenceIsSummaryOnly(self, result):
@@ -554,11 +584,13 @@ def _provider(
     *,
     config: NodeProviderConfig | None = None,
     allow_live_mutation: bool = True,
+    teardown_timeout_seconds: float = 300.0,
 ) -> LxcNodeProvider:
     return LxcNodeProvider(
         config_repository=_FakeConfigRepository(config or _config()),
         runner=runner,
         allow_live_mutation=allow_live_mutation,
+        teardown_timeout_seconds=teardown_timeout_seconds,
     )
 
 

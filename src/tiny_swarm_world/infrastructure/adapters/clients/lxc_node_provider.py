@@ -31,6 +31,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
 
 DEFAULT_LXC_LAUNCH_TIMEOUT_SECONDS = 300.0
 DEFAULT_LXC_START_TIMEOUT_SECONDS = 60.0
+DEFAULT_LXC_TEARDOWN_TIMEOUT_SECONDS = 300.0
 DEFAULT_LXC_IMAGE_REFERENCES = {"ubuntu-24.04": "ubuntu:24.04"}
 MANAGED_MARKER = "user.tiny_swarm_world.managed"
 NODE_MARKER = "user.tiny_swarm_world.node"
@@ -108,6 +109,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         runner: LxcNodeCommandRunner,
         launch_timeout_seconds: float = DEFAULT_LXC_LAUNCH_TIMEOUT_SECONDS,
         start_timeout_seconds: float = DEFAULT_LXC_START_TIMEOUT_SECONDS,
+        teardown_timeout_seconds: float = DEFAULT_LXC_TEARDOWN_TIMEOUT_SECONDS,
         image_references: Mapping[str, str] | None = None,
         allow_live_mutation: bool = False,
     ):
@@ -115,10 +117,13 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             raise ValueError("LXC launch timeout must be positive.")
         if start_timeout_seconds <= 0:
             raise ValueError("LXC start timeout must be positive.")
+        if teardown_timeout_seconds <= 0:
+            raise ValueError("LXC teardown timeout must be positive.")
         self.config_repository = config_repository
         self.runner = runner
         self.launch_timeout_seconds = launch_timeout_seconds
         self.start_timeout_seconds = start_timeout_seconds
+        self.teardown_timeout_seconds = teardown_timeout_seconds
         self.allow_live_mutation = allow_live_mutation
         self.image_references = {
             **DEFAULT_LXC_IMAGE_REFERENCES,
@@ -291,7 +296,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
     ) -> VerificationResult:
         delete_result = await self.runner.run(
             _delete_args(plan.backend, plan.node.name),
-            float(plan.config.verification_metadata.readiness_timeout_seconds),
+            self.teardown_timeout_seconds,
         )
         if _command_failed(delete_result):
             raced_lookup = await self._lookup_node(plan.node, plan.backend, plan.config)
