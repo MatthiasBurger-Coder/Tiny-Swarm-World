@@ -95,7 +95,10 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_APPLY, result.status)
         self.assertTrue(result.executed)
-        self.assertEqual("apply failed with RuntimeError", result.reason)
+        self.assertEqual(
+            "apply failed for deployment:portainer-stack: RuntimeError. Diagnostic payload redacted.",
+            result.reason,
+        )
         self.assertNotIn("sensitive response", result.reason)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
 
@@ -122,6 +125,10 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertIn(
             "RuntimeError. Failed to create Portainer stack 'jenkins'. HTTP 500.",
             result.verification_results[0].message,
+        )
+        self.assertIn(
+            "RuntimeError. Failed to create Portainer stack 'jenkins'. HTTP 500.",
+            result.reason,
         )
 
     async def test_apply_workflow_reports_portainer_admin_rejection_with_safe_diagnostics(self):

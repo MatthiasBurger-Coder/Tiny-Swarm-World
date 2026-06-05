@@ -14,6 +14,7 @@ from tiny_swarm_world.application.services.platform import (
     PLATFORM_WORKFLOW_TAXONOMY,
     RESET_TINY_SWARM_PLATFORM_CONFIRMATION,
     PlatformDestroyWorkflow,
+    PlatformExposeWorkflow,
     PlatformInitWorkflow,
     PlatformReconcileWorkflow,
     PlatformResetWorkflow,
@@ -36,6 +37,7 @@ class TestPlatformWorkflowTaxonomy(unittest.TestCase):
         expected = {
             PlatformWorkflowKind.INIT: (True, False, False),
             PlatformWorkflowKind.RECONCILE: (True, False, False),
+            PlatformWorkflowKind.EXPOSE: (True, False, False),
             PlatformWorkflowKind.RESET: (True, True, True),
             PlatformWorkflowKind.DESTROY: (True, True, True),
             PlatformWorkflowKind.VERIFY: (False, False, False),
@@ -50,21 +52,27 @@ class TestPlatformWorkflowTaxonomy(unittest.TestCase):
 
 
 class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
-    async def test_init_and_reconcile_run_only_configured_safe_steps(self):
+    async def test_init_reconcile_and_expose_run_only_configured_safe_steps(self):
         init_step = _RecordingAction("init")
         reconcile_step = _RecordingAction("reconcile")
+        expose_step = _RecordingAction("expose")
 
         init_result = await PlatformInitWorkflow([init_step]).run()
         reconcile_result = await PlatformReconcileWorkflow([reconcile_step]).run()
+        expose_result = await PlatformExposeWorkflow([expose_step]).run()
 
         self.assertEqual(["init"], init_step.calls)
         self.assertEqual(["reconcile"], reconcile_step.calls)
+        self.assertEqual(["expose"], expose_step.calls)
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, init_result.status)
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, reconcile_result.status)
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, expose_result.status)
         self.assertFalse(PlatformInitWorkflow.semantics.destructive)
         self.assertFalse(PlatformReconcileWorkflow.semantics.destructive)
+        self.assertFalse(PlatformExposeWorkflow.semantics.destructive)
         self.assertEqual(1, len(init_step.verifications))
         self.assertEqual(1, len(reconcile_step.verifications))
+        self.assertEqual(1, len(expose_step.verifications))
         self.assertEqual(
             ("init",),
             tuple(item.target_id for item in init_result.verification_results),
@@ -72,6 +80,10 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             ("reconcile",),
             tuple(item.target_id for item in reconcile_result.verification_results),
+        )
+        self.assertEqual(
+            ("expose",),
+            tuple(item.target_id for item in expose_result.verification_results),
         )
 
     async def test_init_reports_method_trace_for_completion(self):

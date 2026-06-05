@@ -204,7 +204,7 @@ The canonical classification for these live-operation surfaces is
 `documentation/system/live-operation-surfaces.adoc`.
 
 Mutating workflow-level commands such as `platform init`, `platform reconcile`,
-`artifacts prepare`, `deployment apply`, and `setup run` require:
+`platform expose`, `artifacts prepare`, `deployment apply`, and `setup run` require:
 
 * `--live`;
 * answering `y` at the short live-infrastructure confirmation prompt.

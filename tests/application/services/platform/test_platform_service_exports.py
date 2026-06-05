@@ -6,9 +6,12 @@ from tiny_swarm_world.application.services.network.socat.socat_manager import (
 from tiny_swarm_world.application.services.platform import (
     LxcDockerInstallService,
     LxcDockerInstallStep,
+    LxcServiceExposureService,
+    LxcServiceExposureStep,
     LxcSwarmBootstrapService,
     LxcSwarmBootstrapStep,
     PlatformDestroyWorkflow,
+    PlatformExposeWorkflow,
     PlatformInitWorkflow,
     PlatformReconcileWorkflow,
     PlatformResetWorkflow,
@@ -22,6 +25,12 @@ from tiny_swarm_world.application.services.platform.lxc_docker_install import (
 from tiny_swarm_world.application.services.platform.lxc_docker_install import (
     LxcDockerInstallStep as ExistingLxcDockerInstallStep,
 )
+from tiny_swarm_world.application.services.platform.lxc_service_exposure import (
+    LxcServiceExposureService as ExistingLxcServiceExposureService,
+)
+from tiny_swarm_world.application.services.platform.lxc_service_exposure import (
+    LxcServiceExposureStep as ExistingLxcServiceExposureStep,
+)
 from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapService as ExistingLxcSwarmBootstrapService,
 )
@@ -30,6 +39,9 @@ from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
 )
 from tiny_swarm_world.application.services.platform.workflows import (
     PlatformDestroyWorkflow as ExistingPlatformDestroyWorkflow,
+)
+from tiny_swarm_world.application.services.platform.workflows import (
+    PlatformExposeWorkflow as ExistingPlatformExposeWorkflow,
 )
 from tiny_swarm_world.application.services.platform.workflows import (
     PlatformInitWorkflow as ExistingPlatformInitWorkflow,
@@ -52,9 +64,12 @@ class TestPlatformServiceExports(unittest.TestCase):
     def test_platform_namespace_exports_existing_services(self):
         self.assertIs(LxcDockerInstallService, ExistingLxcDockerInstallService)
         self.assertIs(LxcDockerInstallStep, ExistingLxcDockerInstallStep)
+        self.assertIs(LxcServiceExposureService, ExistingLxcServiceExposureService)
+        self.assertIs(LxcServiceExposureStep, ExistingLxcServiceExposureStep)
         self.assertIs(LxcSwarmBootstrapService, ExistingLxcSwarmBootstrapService)
         self.assertIs(LxcSwarmBootstrapStep, ExistingLxcSwarmBootstrapStep)
         self.assertIs(PlatformDestroyWorkflow, ExistingPlatformDestroyWorkflow)
+        self.assertIs(PlatformExposeWorkflow, ExistingPlatformExposeWorkflow)
         self.assertIs(PlatformInitWorkflow, ExistingPlatformInitWorkflow)
         self.assertIs(PlatformReconcileWorkflow, ExistingPlatformReconcileWorkflow)
         self.assertIs(PlatformResetWorkflow, ExistingPlatformResetWorkflow)

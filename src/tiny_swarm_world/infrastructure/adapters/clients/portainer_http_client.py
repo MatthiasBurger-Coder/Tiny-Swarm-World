@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from urllib.parse import urlparse
 
 import requests
@@ -27,15 +27,32 @@ class PortainerHttpClient(PortPortainerClient):
         self.logger = LoggerFactory.get_logger(self.__class__)
         self._jwt_token: str | None = None
 
+    def ensure_local_endpoint(self, endpoint_name: str) -> int:
+        endpoints = self._fetch_endpoints(f"ensure Portainer endpoint '{endpoint_name}'")
+        endpoint_id = _endpoint_id_by_name_or_local_fallback(endpoint_name, endpoints)
+        if endpoint_id is not None:
+            return endpoint_id
+
+        self._create_local_docker_endpoint(endpoint_name)
+        endpoints = self._fetch_endpoints(f"verify Portainer endpoint '{endpoint_name}'")
+        endpoint_id = _endpoint_id_by_name_or_local_fallback(endpoint_name, endpoints)
+        if endpoint_id is None:
+            raise RuntimeError(
+                f"Portainer endpoint '{endpoint_name}' could not be created. "
+                f"Available endpoints: {_available_endpoint_names(endpoints)}."
+            )
+        return endpoint_id
+
     def get_endpoint_id_by_name(self, endpoint_name: str) -> int:
-        response = self._send("GET", "/api/endpoints")
-        self._ensure_success(response, f"fetch Portainer endpoint '{endpoint_name}'")
+        endpoints = self._fetch_endpoints(f"fetch Portainer endpoint '{endpoint_name}'")
+        endpoint_id = _endpoint_id_by_name_or_local_fallback(endpoint_name, endpoints)
+        if endpoint_id is not None:
+            return endpoint_id
 
-        for endpoint in response.json():
-            if endpoint.get("Name") == endpoint_name:
-                return int(endpoint["Id"])
-
-        raise RuntimeError(f"Portainer endpoint '{endpoint_name}' was not found.")
+        raise RuntimeError(
+            f"Portainer endpoint '{endpoint_name}' was not found. "
+            f"Available endpoints: {_available_endpoint_names(endpoints)}."
+        )
 
     def find_stack_id_by_name(self, stack_name: str) -> int | None:
         response = self._send("GET", "/api/stacks")
@@ -94,6 +111,24 @@ class PortainerHttpClient(PortPortainerClient):
         )
         self._ensure_success(response, f"update Portainer stack '{stack_definition.name}'")
 
+    def _fetch_endpoints(self, action: str) -> tuple[Mapping[str, object], ...]:
+        response = self._send("GET", "/api/endpoints")
+        self._ensure_success(response, action)
+        return _endpoint_mappings(response.json())
+
+    def _create_local_docker_endpoint(self, endpoint_name: str) -> None:
+        response = self._send(
+            "POST",
+            "/api/endpoints",
+            files={
+                "Name": (None, endpoint_name),
+                "EndpointCreationType": (None, "1"),
+                "ContainerEngine": (None, "docker"),
+                "URL": (None, "unix:///var/run/docker.sock"),
+            },
+        )
+        self._ensure_success(response, f"create Portainer endpoint '{endpoint_name}'")
+
     def _send(self, method: str, path: str, **kwargs) -> requests.Response:
         headers = kwargs.pop("headers", {})
         headers["Authorization"] = f"Bearer {self._get_jwt_token()}"
@@ -146,6 +181,53 @@ def _portainer_environment(
         {"name": name, "value": str(value)}
         for name, value in sorted(dict(stack_environment or {}).items())
     ]
+
+
+def _endpoint_mappings(payload: object) -> tuple[Mapping[str, object], ...]:
+    if not isinstance(payload, Sequence) or isinstance(payload, str | bytes):
+        return ()
+    return tuple(endpoint for endpoint in payload if isinstance(endpoint, Mapping))
+
+
+def _local_endpoint_fallback_id(
+    endpoint_name: str,
+    endpoints: tuple[Mapping[str, object], ...],
+) -> int | None:
+    if endpoint_name != "local":
+        return None
+    for endpoint in endpoints:
+        name = str(endpoint.get("Name", "")).casefold()
+        if name in {"primary", "docker", "swarm"}:
+            return int(endpoint["Id"])
+    local_socket_endpoints = tuple(
+        endpoint
+        for endpoint in endpoints
+        if "docker.sock" in str(endpoint.get("URL", "")).casefold()
+    )
+    if len(local_socket_endpoints) == 1:
+        return int(local_socket_endpoints[0]["Id"])
+    return None
+
+
+def _endpoint_id_by_name_or_local_fallback(
+    endpoint_name: str,
+    endpoints: tuple[Mapping[str, object], ...],
+) -> int | None:
+    for endpoint in endpoints:
+        if endpoint.get("Name") == endpoint_name:
+            return int(endpoint["Id"])
+    return _local_endpoint_fallback_id(endpoint_name, endpoints)
+
+
+def _available_endpoint_names(endpoints: tuple[Mapping[str, object], ...]) -> str:
+    names = tuple(
+        name
+        for endpoint in endpoints
+        if (name := str(endpoint.get("Name", "")).strip())
+    )
+    if not names:
+        return "none"
+    return ",".join(sorted(names))
 
 
 def _extract_swarm_id(payload: object) -> str:

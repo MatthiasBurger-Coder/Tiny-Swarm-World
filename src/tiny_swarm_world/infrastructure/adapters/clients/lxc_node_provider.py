@@ -280,6 +280,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 selection,
                 f"{operation}_existing_node_not_managed",
                 backend=backend,
+                extra_evidence=_managed_node_mismatch_evidence(lookup.node, node_config),
             )
 
         mutation_block = self._mutation_block(node, selection, backend, profile)
@@ -474,6 +475,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 selection,
                 "existing_node_not_managed",
                 backend=backend,
+                extra_evidence=_managed_node_mismatch_evidence(observed_node, node_config),
             )
         if observed_node.running:
             return _verified(node, backend, "already_present")
@@ -548,15 +550,31 @@ class _ObservedNode:
         return self.status.casefold() == "running"
 
     def matches_expected(self, node_config: NodeProviderNodeConfig) -> bool:
-        return (
-            self.instance_type.casefold() == "container"
-            and node_config.profile in self.profiles
-            and self.config.get(MANAGED_MARKER) == "true"
-            and self.config.get(NODE_MARKER) == node_config.spec.name
-            and self.config.get(IMAGE_ALIAS_MARKER) == node_config.image_alias
-            and not _has_unsafe_instance_config(self.config)
-            and not _has_unsafe_instance_devices(self.devices)
-        )
+        return not self.mismatch_reasons(node_config)
+
+    def mismatch_reasons(
+        self,
+        node_config: NodeProviderNodeConfig,
+    ) -> tuple[str, ...]:
+        reasons: list[str] = []
+        if self.instance_type.casefold() != "container":
+            reasons.append("instance_type_not_container")
+        if node_config.profile not in self.profiles:
+            reasons.append("expected_profile_missing")
+        if self.config.get(MANAGED_MARKER) != "true":
+            if MANAGED_MARKER in self.config:
+                reasons.append("managed_marker_not_true")
+            else:
+                reasons.append("managed_marker_missing")
+        if self.config.get(NODE_MARKER) != node_config.spec.name:
+            reasons.append("node_marker_mismatch")
+        if self.config.get(IMAGE_ALIAS_MARKER) != node_config.image_alias:
+            reasons.append("image_alias_marker_mismatch")
+        if _has_unsafe_instance_config(self.config):
+            reasons.append("unsafe_instance_config")
+        if _has_unsafe_instance_devices(self.devices, allow_project_proxy_devices=True):
+            reasons.append("unsafe_instance_devices")
+        return tuple(reasons)
 
 
 @dataclass(frozen=True)
@@ -779,17 +797,80 @@ def _has_unsafe_instance_config(config: Mapping[str, str]) -> bool:
     )
 
 
-def _has_unsafe_instance_devices(devices: Mapping[str, Mapping[str, str]]) -> bool:
-    return any(_unsafe_instance_device(device) for device in devices.values())
+def _has_unsafe_instance_devices(
+    devices: Mapping[str, Mapping[str, str]],
+    *,
+    allow_project_proxy_devices: bool = False,
+) -> bool:
+    return any(
+        _unsafe_instance_device(
+            name,
+            device,
+            allow_project_proxy_devices=allow_project_proxy_devices,
+        )
+        for name, device in devices.items()
+    )
 
 
-def _unsafe_instance_device(device: Mapping[str, str]) -> bool:
+def _unsafe_instance_device(
+    name: str,
+    device: Mapping[str, str],
+    *,
+    allow_project_proxy_devices: bool,
+) -> bool:
     device_type = device.get("type", "").casefold()
     if device_type == "disk":
         return "source" in device
     if device_type == "nic":
         return _unsafe_network_device(device)
+    if allow_project_proxy_devices and _safe_project_proxy_device(name, device):
+        return False
     return bool(device_type)
+
+
+def _safe_project_proxy_device(name: str, device: Mapping[str, str]) -> bool:
+    name_match = _PROJECT_PROXY_DEVICE_NAME_PATTERN.fullmatch(name)
+    if name_match is None:
+        return False
+    return (
+        device.get("type", "").casefold() == "proxy"
+        and set(device) <= {"type", "listen", "connect"}
+        and _safe_proxy_endpoint_pair(
+            device.get("listen", ""),
+            device.get("connect", ""),
+            expected_port=int(name_match.group("port")),
+        )
+    )
+
+
+_PROJECT_PROXY_DEVICE_NAME_PATTERN = re.compile(r"^tsw-proxy-(?P<port>[1-9]\d{0,4})$")
+
+
+def _safe_proxy_endpoint_pair(listen: str, connect: str, *, expected_port: int) -> bool:
+    listen_endpoint = _parse_tcp_proxy_endpoint(listen)
+    connect_endpoint = _parse_tcp_proxy_endpoint(connect)
+    if listen_endpoint is None or connect_endpoint is None:
+        return False
+    listen_host, listen_port = listen_endpoint
+    connect_host, connect_port = connect_endpoint
+    return (
+        listen_host in {"0.0.0.0", "127.0.0.1"}
+        and connect_host == "127.0.0.1"
+        and listen_port == connect_port
+        and listen_port == expected_port
+        and 1 <= listen_port <= 65535
+    )
+
+
+def _parse_tcp_proxy_endpoint(value: str) -> tuple[str, int] | None:
+    prefix, separator, port_text = value.rpartition(":")
+    if not separator or not port_text.isdigit():
+        return None
+    scheme, scheme_separator, host = prefix.partition(":")
+    if scheme != "tcp" or scheme_separator != ":":
+        return None
+    port = int(port_text)
+    return host, port
 
 
 def _unsafe_network_device(device: Mapping[str, str]) -> bool:
@@ -854,20 +935,24 @@ def _blocked(
     backend: ManagedLxcBackend | None = None,
     return_code: int | None = None,
     timed_out: bool = False,
+    extra_evidence: Mapping[str, str] | None = None,
 ) -> VerificationResult:
+    evidence = _evidence(
+        "pre_apply",
+        reason,
+        node,
+        backend,
+        return_code=return_code,
+        timed_out=timed_out,
+        selection_status=selection.status.value,
+    )
+    if extra_evidence:
+        evidence.update(extra_evidence)
     return VerificationResult(
         target_id=_target_id(node),
         status=VerificationStatus.BLOCKED,
         message="LXC node lifecycle is blocked before mutation.",
-        evidence=_evidence(
-            "pre_apply",
-            reason,
-            node,
-            backend,
-            return_code=return_code,
-            timed_out=timed_out,
-            selection_status=selection.status.value,
-        ),
+        evidence=evidence,
     )
 
 
@@ -1027,7 +1112,54 @@ def _teardown_summary_evidence(
         first_classification = first_failure.evidence.get("classification")
         if first_classification is not None:
             evidence["first_failure_classification"] = first_classification
+        for key in _FIRST_FAILURE_SAFE_EVIDENCE_KEYS:
+            value = first_failure.evidence.get(key)
+            if value is not None:
+                evidence[f"first_failure_{key}"] = value
     return evidence
+
+
+_FIRST_FAILURE_SAFE_EVIDENCE_KEYS = (
+    "backend",
+    "expected_image_alias",
+    "expected_profile",
+    "mismatch_reasons",
+    "node",
+    "observed_image_alias_marker",
+    "observed_managed_marker",
+    "observed_node_marker",
+)
+
+
+def _managed_node_mismatch_evidence(
+    observed_node: _ObservedNode,
+    node_config: NodeProviderNodeConfig,
+) -> dict[str, str]:
+    return {
+        "expected_image_alias": node_config.image_alias,
+        "expected_profile": node_config.profile,
+        "mismatch_reasons": ",".join(observed_node.mismatch_reasons(node_config)),
+        "observed_image_alias_marker": _marker_state(
+            observed_node.config.get(IMAGE_ALIAS_MARKER),
+            expected=node_config.image_alias,
+        ),
+        "observed_managed_marker": _marker_state(
+            observed_node.config.get(MANAGED_MARKER),
+            expected="true",
+        ),
+        "observed_node_marker": _marker_state(
+            observed_node.config.get(NODE_MARKER),
+            expected=node_config.spec.name,
+        ),
+    }
+
+
+def _marker_state(value: str | None, *, expected: str) -> str:
+    if value is None:
+        return "missing"
+    if value == expected:
+        return "matches"
+    return "different"
 
 
 def _status_count(

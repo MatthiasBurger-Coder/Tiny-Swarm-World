@@ -306,9 +306,7 @@ def _safe_exception_detail(exc: Exception) -> str:
 
 
 def _apply_failure_reason(target_id: str, exc: Exception, safe_error: str) -> str:
-    if isinstance(exc, PortainerAdminInitializationRejected):
-        return f"apply failed for {target_id}: {safe_error}"
-    return f"apply failed with {exc.__class__.__name__}"
+    return f"apply failed for {target_id}: {safe_error}"
 
 
 def _apply_failure_evidence(exc: Exception) -> dict[str, str]:

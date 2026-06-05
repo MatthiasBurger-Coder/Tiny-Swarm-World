@@ -156,7 +156,7 @@ requirements are incomplete.
 
 ## Operator Safety Model
 
-Normal `platform init`, `platform reconcile`, and `setup run` are
+Normal `platform init`, `platform reconcile`, `platform expose`, and `setup run` are
 non-destructive: they do not select destructive cleanup catalogs. Mutating
 workflows are still live infrastructure operations. They require all of these
 controls before application services are constructed:
@@ -171,10 +171,16 @@ requirements are not satisfied. After accepted live consent, default
 `platform init` continues from LXC node lifecycle into Docker Engine setup and
 Docker Swarm bootstrap inside `swarm-manager`, `swarm-worker-1`, and
 `swarm-worker-2`. Default `platform reconcile` is currently a verified no-op
-boundary for `lxc_native`; default artifact and deployment workflows use
-guarded provider-native publication, deployment, external-input, and
+boundary for `lxc_native`. Default `platform expose` configures idempotent
+LXC proxy devices on `swarm-manager` for the published setup-manifest service
+ports so host traffic reaches the Swarm ingress mesh through the manager
+gateway. Default artifact and deployment workflows use guarded
+provider-native publication, deployment, external-input, and
 observed-state contracts and report blocked or failed phase evidence when live
 prerequisites are unavailable.
+Deployment bootstrap starts Portainer, activates admin access, and registers
+the local Docker endpoint before later stacks use Portainer as the deployment
+gateway.
 
 `platform reset` and `platform destroy` additionally require
 `RESET_TINY_SWARM_PLATFORM` or `DESTROY_TINY_SWARM_PLATFORM` through
@@ -253,7 +259,7 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 
 Platform workflows are constructed through the infrastructure composition root
 in `src/tiny_swarm_world/infrastructure/composition.py`. Mutating workflows
-such as `platform init`, `platform reconcile`, and `setup run` require
+such as `platform init`, `platform reconcile`, `platform expose`, and `setup run` require
 live-infrastructure consent before services are constructed. `setup run`
 orchestrates only non-destructive setup phases and reports refused, blocked,
 resource-gated, failed-to-apply, failed-to-verify, failed, or completed states

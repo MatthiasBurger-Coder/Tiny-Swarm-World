@@ -109,8 +109,10 @@ Consequences:
   configuration, node lifecycle adapters, setup integration, and fail-closed
   removed-provider rejection are implemented for default selection and platform
   init;
-* default platform reconcile is a verified LXC-native no-op after init, while
-  artifact/deployment live success, Docker Swarm-in-container health, and WSL2
+* default platform reconcile is a verified LXC-native no-op after init;
+* default platform expose configures manager-gateway LXC proxy devices for
+  published setup-manifest ports;
+* artifact/deployment live success, Docker Swarm-in-container health, and WSL2
   live success still require explicit operator evidence;
 * removed provider selections fail closed rather than becoming silent
   fallbacks;

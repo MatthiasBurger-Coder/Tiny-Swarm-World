@@ -143,6 +143,13 @@ Default `platform reconcile` is currently a verified no-op boundary for
 and service readiness remain separate provider-native work and still block
 until their contracts are implemented and verified.
 
+Default `platform expose` configures host reachability for published Swarm
+service ports by ensuring LXC proxy devices on `swarm-manager`. The proxy
+devices listen on the configured host-side address and connect to
+`127.0.0.1:<published-port>` inside the manager container. The Swarm ingress
+mesh remains responsible for routing from the manager to the service tasks; the
+workflow does not proxy individual service containers or worker nodes.
+
 == Docker-In-Container Profile Notes
 
 Docker Swarm remains the runtime target. Running Docker inside managed LXC

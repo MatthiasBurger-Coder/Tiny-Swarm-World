@@ -170,6 +170,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
         self.assertEqual("existing_node_not_managed", result.evidence["classification"])
+        self.assertEqual("managed_marker_not_true", result.evidence["mismatch_reasons"])
+        self.assertEqual("different", result.evidence["observed_managed_marker"])
+        self.assertEqual("matches", result.evidence["observed_node_marker"])
+        self.assertEqual("matches", result.evidence["observed_image_alias_marker"])
         self.assertEqual(
             [
                 (("incus", "profile", "show", "docker-swarm"), 5.0),
@@ -320,6 +324,70 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEvidenceIsSummaryOnly(result)
 
+    async def test_reset_managed_nodes_allows_project_proxy_devices_before_delete(self):
+        runner = _FakeTeardownRunner(
+            _list(
+                _node(
+                    "swarm-manager",
+                    "Running",
+                    devices={
+                        "tsw-proxy-8080": {
+                            "type": "proxy",
+                            "listen": "tcp:0.0.0.0:8080",
+                            "connect": "tcp:127.0.0.1:8080",
+                        }
+                    },
+                )
+            ),
+            _ok(),
+            _list(),
+        )
+        provider = _provider(runner)
+
+        result = await provider.reset_nodes((_node_spec(),), _selection(ManagedLxcBackend.LXD))
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("managed_nodes_reset", result.evidence["classification"])
+        self.assertEqual("true", result.evidence["applied"])
+        self.assertEqual(
+            [
+                (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
+                (("lxc", "delete", "swarm-manager", "--force"), 300.0),
+                (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
+            ],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_reset_managed_nodes_blocks_non_project_proxy_devices(self):
+        runner = _FakeTeardownRunner(
+            _list(
+                _node(
+                    "swarm-manager",
+                    "Running",
+                    devices={
+                        "operator-proxy": {
+                            "type": "proxy",
+                            "listen": "tcp:0.0.0.0:8080",
+                            "connect": "tcp:127.0.0.1:8080",
+                        }
+                    },
+                )
+            ),
+        )
+        provider = _provider(runner)
+
+        result = await provider.reset_nodes((_node_spec(),), _selection(ManagedLxcBackend.LXD))
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("managed_nodes_reset_blocked", result.evidence["classification"])
+        self.assertEqual("unsafe_instance_devices", result.evidence["first_failure_mismatch_reasons"])
+        self.assertEqual(
+            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
     async def test_reset_preflights_all_nodes_before_any_delete(self):
         nodes = (_node_spec(), _node_spec(name="swarm-worker-1", role=NodeRole.WORKER))
         runner = _FakeTeardownRunner(
@@ -341,6 +409,15 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("2", result.evidence["expected_count"])
         self.assertEqual("1", result.evidence["planned_count"])
         self.assertEqual("1", result.evidence["blocked_count"])
+        self.assertEqual("swarm-worker-1", result.evidence["first_failure_node"])
+        self.assertEqual(
+            "managed_marker_not_true",
+            result.evidence["first_failure_mismatch_reasons"],
+        )
+        self.assertEqual(
+            "different",
+            result.evidence["first_failure_observed_managed_marker"],
+        )
         self.assertNotIn("applied", result.evidence)
         self.assertEqual(
             [
@@ -374,6 +451,11 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             "destroy_existing_node_not_managed",
             result.evidence["first_failure_classification"],
+        )
+        self.assertEqual("swarm-manager", result.evidence["first_failure_node"])
+        self.assertEqual(
+            "managed_marker_not_true",
+            result.evidence["first_failure_mismatch_reasons"],
         )
         self.assertEqual("1", result.evidence["blocked_count"])
         self.assertEqual(

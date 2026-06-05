@@ -31,13 +31,15 @@ Provider migration status: LXC-native through LXD or Incus is the implemented
 default selection and setup/platform init direction. The runtime now has
 provider-neutral contracts, LXD/Incus readiness checks, node lifecycle
 adapters, Docker Engine setup and Swarm bootstrap adapters, setup integration,
-and fail-closed unsupported-provider behavior. Default platform reconcile is
-currently a verified no-op boundary for `lxc_native` after Platform init.
-Artifact and deployment workflows use configured LXC-native contracts for
-Nexus, registry, image publication, stack deployment, external inputs, and
-service readiness. They return blocked or failed evidence when a live
-prerequisite is not observable. No documentation may claim Docker
-Swarm-in-container or WSL2 live success without target-specific evidence.
+LXC proxy exposure, and fail-closed unsupported-provider behavior. Default
+platform reconcile is currently a verified no-op boundary for `lxc_native`
+after Platform init. Default platform expose uses `swarm-manager` as the
+host-reachable LXC gateway for published service ports. Artifact and
+deployment workflows use configured LXC-native contracts for Nexus, registry,
+image publication, stack deployment, external inputs, and service readiness.
+They return blocked or failed evidence when a live prerequisite is not
+observable. No documentation may claim Docker Swarm-in-container or WSL2 live
+success without target-specific evidence.
 
 At this stage, Artifacts and Deployment are composition boundaries inside the
 same Python automation process, not independently deployable microservices.
@@ -55,10 +57,12 @@ states.
 Setup orchestration is also an in-process composition concern. It is not a new
 microservice boundary and it does not construct low-level adapters in the entry
 point. The setup bundle wires phase calls for preflight, platform init,
-platform reconcile, artifacts prepare, artifacts verify, deployment apply,
-deployment verify, and final platform verify. It does not wire platform reset
-or destroy behavior; the `install.sh` fresh-install wrapper owns the reset
-prelude before it invokes setup.
+platform reconcile, platform expose, deployment bootstrap, artifacts prepare,
+artifacts verify, deployment apply, deployment verify, and final platform
+verify. `platform expose` configures the LXC-native manager gateway only; it
+does not proxy individual service containers or worker nodes. It does not wire
+platform reset or destroy behavior; the `install.sh` fresh-install wrapper owns
+the reset prelude before it invokes setup.
 
 === Artifact And Deployment Workflow Contract Flow
 
@@ -72,6 +76,10 @@ The current artifact and deployment runtime flow is deliberately fail-closed:
 * `artifacts verify` dispatches without live consent and can evaluate
   configured artifact verification checks. Missing registry observed-state
   evidence returns blocked verification evidence.
+* `deployment bootstrap` starts the Portainer stack, initializes admin access,
+  registers the local Docker endpoint in Portainer, and then prepares the
+  Nexus stack. Endpoint registration is a bootstrap contract because later
+  application stacks use Portainer as the deployment gateway.
 * `deployment apply` requires live consent, dispatches to
   `DeploymentApplyWorkflow`, and can run configured stack apply contracts only
   when they expose verify-after-apply evidence. The tested
@@ -187,7 +195,9 @@ container Docker setup and Swarm bootstrap when live consent and provider
 contracts allow mutation. It blocks before mutation when readiness, backend
 selection, WSL2 capability, or provider profile requirements are not
 satisfied. Default `platform reconcile` returns a verified `lxc_native` no-op
-boundary after Platform init.
+boundary after Platform init. Default `platform expose` returns verified
+evidence only after the configured manager-gateway proxy devices are present
+or updated.
 
 Continuation requires both parts:
 

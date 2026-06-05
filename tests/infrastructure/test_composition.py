@@ -86,6 +86,7 @@ class TestComposition(unittest.TestCase):
         self.assertIn("lxc_node_provider", field_names)
         self.assertIn("node_provider_selection", field_names)
         self.assertIn("lxc_docker_install", field_names)
+        self.assertIn("lxc_service_exposure", field_names)
         self.assertIn("lxc_swarm_bootstrap", field_names)
 
     def test_platform_services_contains_workflow_bundle(self):
@@ -93,7 +94,10 @@ class TestComposition(unittest.TestCase):
         workflow_field_names = {field.name for field in fields(composition.PlatformWorkflows)}
 
         self.assertIn("workflows", platform_field_names)
-        self.assertEqual({"init", "reconcile", "reset", "destroy", "verify"}, workflow_field_names)
+        self.assertEqual(
+            {"init", "reconcile", "expose", "reset", "destroy", "verify"},
+            workflow_field_names,
+        )
 
     def test_wsl_lxc_user_namespace_gate_allows_missing_kernel_flag(self):
         with patch.object(
@@ -196,6 +200,7 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
         self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
+        self.assertIsInstance(services.workflows.expose, composition.PlatformExposeWorkflow)
         self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
         self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
@@ -207,6 +212,10 @@ class TestComposition(unittest.TestCase):
         self.assertIs(
             evidence_repository,
             services.workflows.reconcile.verification_evidence_repository,
+        )
+        self.assertIs(
+            evidence_repository,
+            services.workflows.expose.verification_evidence_repository,
         )
         self.assertIsInstance(
             services.workflows.init.progress,
@@ -221,14 +230,23 @@ class TestComposition(unittest.TestCase):
             services.workflows.reconcile.progress,
         )
         self.assertIs(
+            services.workflows.init.progress,
+            services.workflows.expose.progress,
+        )
+        self.assertIs(
             services.workflows.init.method_trace,
             services.workflows.reconcile.method_trace,
+        )
+        self.assertIs(
+            services.workflows.init.method_trace,
+            services.workflows.expose.method_trace,
         )
         self.assertEqual("trace-test", services.workflows.init.trace_correlation_id)
         self.assertEqual(
             "trace-test",
             services.workflows.reconcile.trace_correlation_id,
         )
+        self.assertEqual("trace-test", services.workflows.expose.trace_correlation_id)
         self.assertEqual("trace-test", services.workflows.reset.trace_correlation_id)
         self.assertEqual("trace-test", services.workflows.destroy.trace_correlation_id)
         self.assertEqual("trace-test", services.workflows.verify.trace_correlation_id)
@@ -265,6 +283,7 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
         self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
+        self.assertIsInstance(services.workflows.expose, composition.PlatformExposeWorkflow)
         self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
         self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
@@ -481,6 +500,7 @@ class TestComposition(unittest.TestCase):
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
+                "deployment:portainer-local-endpoint",
                 "deployment:nexus-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
@@ -535,7 +555,7 @@ class TestComposition(unittest.TestCase):
             )
 
         compose_repository.assert_called_once_with()
-        self.assertEqual(3, len(services.workflows.bootstrap.steps))
+        self.assertEqual(4, len(services.workflows.bootstrap.steps))
         self.assertEqual(5, len(services.workflows.apply.steps))
         self.assertEqual(8, len(services.workflows.verify.checks))
 
@@ -555,6 +575,7 @@ class TestComposition(unittest.TestCase):
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
+                "deployment:portainer-local-endpoint",
                 "deployment:nexus-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
@@ -585,6 +606,7 @@ class TestComposition(unittest.TestCase):
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
+                "deployment:portainer-local-endpoint",
                 "deployment:nexus-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
@@ -775,6 +797,7 @@ class TestComposition(unittest.TestCase):
                 "preflight",
                 "platform init",
                 "platform reconcile",
+                "platform expose",
                 "deployment bootstrap",
                 "artifacts prepare",
                 "artifacts verify",
@@ -798,6 +821,7 @@ class TestComposition(unittest.TestCase):
         )
         build_preflight.return_value.run.assert_not_called()
         build_platform.return_value.workflows.init.run.assert_not_called()
+        build_platform.return_value.workflows.expose.run.assert_not_called()
         build_artifacts.return_value.workflows.prepare.run.assert_not_called()
         build_deployment.return_value.workflows.apply.run.assert_not_called()
 
@@ -889,6 +913,7 @@ class TestComposition(unittest.TestCase):
         self.assertIsNotNone(services.workflows.init.pre_apply_guard)
         self.assertTrue(services.lxc_node_provider.allow_live_mutation)
         self.assertTrue(services.lxc_docker_install.runtime.allow_live_mutation)
+        self.assertTrue(services.lxc_service_exposure.runtime.allow_live_mutation)
         self.assertTrue(services.lxc_swarm_bootstrap.swarm.allow_live_mutation)
 
     def test_build_setup_services_wires_live_consent_into_platform_init_guard(self):
@@ -1144,6 +1169,41 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
+    def test_composed_default_lxc_expose_uses_manager_gateway_and_setup_ports(self):
+        services = composition.build_platform_services()
+
+        self.assertEqual(1, len(services.workflows.expose.steps))
+        step = services.workflows.expose.steps[0]
+
+        self.assertIsInstance(step, composition.LxcServiceExposureStep)
+        self.assertIs(step.service, services.lxc_service_exposure)
+        self.assertEqual("swarm-manager", step.service.gateway_node.name)
+        self.assertEqual(
+            composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
+            step.service.listen_address,
+        )
+        self.assertEqual(10, len(step.service.setup_manifest.required_ports))
+        self.assertEqual("Service Access", step.service.setup_manifest.services[-1].name)
+
+    def test_composed_default_lxc_expose_without_live_consent_fails_closed(self):
+        with patch.object(
+            composition,
+            "LxcProxyDeviceRuntime",
+            side_effect=AssertionError("proxy runtime must not run without consent"),
+        ):
+            services = composition.build_platform_services()
+            result = asyncio.run(services.workflows.expose.run())
+
+        self.assertEqual(PlatformWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual(
+            "platform:expose:lxc-proxy-devices",
+            result.verification_results[0].target_id,
+        )
+        self.assertEqual(
+            "10",
+            result.verification_results[0].evidence["lookup_failure_count"],
+        )
+
 
 
 def _blocked_contract_result(target_id: str) -> VerificationResult:
@@ -1236,7 +1296,7 @@ def _workflow_bundle(*names: str):
 
 
 def _platform_phase_bundle():
-    return _workflow_bundle("init", "reconcile", "verify")
+    return _workflow_bundle("init", "reconcile", "expose", "verify")
 
 
 def _artifact_phase_bundle():

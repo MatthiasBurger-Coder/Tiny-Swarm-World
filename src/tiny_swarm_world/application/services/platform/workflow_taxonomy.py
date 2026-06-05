@@ -13,6 +13,7 @@ DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION = "DESTROY_TINY_SWARM_PLATFORM"
 class PlatformWorkflowKind(str, Enum):
     INIT = "init"
     RECONCILE = "reconcile"
+    EXPOSE = "expose"
     RESET = "reset"
     DESTROY = "destroy"
     VERIFY = "verify"
@@ -150,6 +151,13 @@ PLATFORM_WORKFLOW_TAXONOMY = {
         destructive=False,
         requires_confirmation=False,
         meaning="converge existing managed state",
+    ),
+    PlatformWorkflowKind.EXPOSE: PlatformWorkflowSemantics(
+        kind=PlatformWorkflowKind.EXPOSE,
+        mutating=True,
+        destructive=False,
+        requires_confirmation=False,
+        meaning="expose published Swarm service ports through the LXC gateway",
     ),
     PlatformWorkflowKind.RESET: PlatformWorkflowSemantics(
         kind=PlatformWorkflowKind.RESET,

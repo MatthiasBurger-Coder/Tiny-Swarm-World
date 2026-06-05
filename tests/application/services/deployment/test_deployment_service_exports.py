@@ -9,6 +9,7 @@ from tiny_swarm_world.application.services.deployment import (
     DeploymentWorkflowStatus,
     EnsureNexusStack,
     EnsurePortainerAdminAccess,
+    EnsurePortainerEndpoint,
     EnsurePortainerStack,
     EnsureServiceStack,
     VerifyExternalSwarmInput,
@@ -22,6 +23,9 @@ from tiny_swarm_world.application.services.deployment.ensure_portainer_stack imp
 )
 from tiny_swarm_world.application.services.deployment.ensure_portainer_admin_access import (
     EnsurePortainerAdminAccess as DeploymentEnsurePortainerAdminAccess,
+)
+from tiny_swarm_world.application.services.deployment.ensure_portainer_endpoint import (
+    EnsurePortainerEndpoint as DeploymentEnsurePortainerEndpoint,
 )
 from tiny_swarm_world.application.services.deployment.ensure_service_stack import (
     EnsureServiceStack as DeploymentEnsureServiceStack,
@@ -64,6 +68,7 @@ class TestDeploymentServiceExports(unittest.TestCase):
     def test_deployment_namespace_exports_deployment_stack_service(self):
         self.assertIs(EnsureNexusStack, DeploymentEnsureNexusStack)
         self.assertIs(EnsurePortainerAdminAccess, DeploymentEnsurePortainerAdminAccess)
+        self.assertIs(EnsurePortainerEndpoint, DeploymentEnsurePortainerEndpoint)
         self.assertIs(EnsurePortainerStack, DeploymentEnsurePortainerStack)
         self.assertIs(EnsureServiceStack, DeploymentEnsureServiceStack)
         self.assertIs(VerifyExternalSwarmInput, DeploymentVerifyExternalSwarmInput)

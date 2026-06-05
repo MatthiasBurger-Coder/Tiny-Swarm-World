@@ -11,8 +11,8 @@ rules.
 * `src/tiny_swarm_world/infrastructure/composition.py` remains the composition
   root for concrete adapters.
 * `src/tiny_swarm_world/__main__.py` remains a thin workflow entry point.
-* Normal `platform init` and `platform reconcile` must not select destructive
-  cleanup commands.
+* Normal `platform init`, `platform reconcile`, and `platform expose` must not
+  select destructive cleanup commands.
 * `platform reset` and `platform destroy` require exact confirmation phrases.
   Their destructive execution is limited to configured managed LXC-native
   nodes or marker-verified project-owned state, and blocks before mutation

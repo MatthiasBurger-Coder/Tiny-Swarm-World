@@ -426,6 +426,9 @@ class LxcPortainerHttpClient(PortPortainerClient):
     def get_endpoint_id_by_name(self, endpoint_name: str) -> int:
         return self._client().get_endpoint_id_by_name(endpoint_name)
 
+    def ensure_local_endpoint(self, endpoint_name: str) -> int:
+        return self._client().ensure_local_endpoint(endpoint_name)
+
     def find_stack_id_by_name(self, stack_name: str) -> int | None:
         return self._client().find_stack_id_by_name(stack_name)
 

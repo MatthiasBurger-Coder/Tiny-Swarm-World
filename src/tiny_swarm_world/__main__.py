@@ -68,6 +68,7 @@ class CliWorkflow:
 PLATFORM_WORKFLOW_ORDER = (
     PlatformWorkflowKind.INIT,
     PlatformWorkflowKind.RECONCILE,
+    PlatformWorkflowKind.EXPOSE,
     PlatformWorkflowKind.VERIFY,
     PlatformWorkflowKind.RESET,
     PlatformWorkflowKind.DESTROY,
@@ -315,6 +316,8 @@ async def run_platform_workflow(
             return await workflows.init.run()
         case PlatformWorkflowKind.RECONCILE:
             return await workflows.reconcile.run()
+        case PlatformWorkflowKind.EXPOSE:
+            return await workflows.expose.run()
         case PlatformWorkflowKind.VERIFY:
             return await workflows.verify.run()
         case PlatformWorkflowKind.RESET:
@@ -458,6 +461,7 @@ def _print_setup_installation_plan(
         "preflight",
         "platform init",
         "platform reconcile",
+        "platform expose",
         "deployment bootstrap",
         "artifacts prepare",
         "artifacts verify",

@@ -12,6 +12,9 @@ from tiny_swarm_world.application.services.deployment.ensure_nexus_stack import 
 from tiny_swarm_world.application.services.deployment.ensure_portainer_admin_access import (
     EnsurePortainerAdminAccess,
 )
+from tiny_swarm_world.application.services.deployment.ensure_portainer_endpoint import (
+    EnsurePortainerEndpoint,
+)
 from tiny_swarm_world.application.services.deployment.ensure_portainer_stack import EnsurePortainerStack
 from tiny_swarm_world.application.services.deployment.ensure_service_stack import EnsureServiceStack
 from tiny_swarm_world.application.services.deployment.ensure_swarm_stack import EnsureSwarmStack
@@ -43,6 +46,7 @@ __all__ = [
     "EnsureExternalSwarmSecret",
     "EnsureNexusStack",
     "EnsurePortainerAdminAccess",
+    "EnsurePortainerEndpoint",
     "EnsurePortainerStack",
     "EnsureServiceStack",
     "EnsureSwarmStack",

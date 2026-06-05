@@ -80,6 +80,10 @@ services are constructed and uses `lxc_native` by default:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
+The setup sequence includes `platform expose`, which configures the
+LXC-native manager gateway for published Swarm service ports after platform
+init/reconcile and before deployment bootstrap.
+
 Select a managed LXC backend explicitly when both LXD and Incus are available:
 
 [source,bash]

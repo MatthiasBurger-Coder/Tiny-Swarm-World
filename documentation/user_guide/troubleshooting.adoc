@@ -250,7 +250,8 @@ were accidentally added before continuing.
 == REFUSED_LIVE_CONSENT_MISSING
 
 Mutating workflow-level commands such as `setup run`, `platform init`,
-`platform reconcile`, `artifacts prepare`, and `deployment apply` require all
+`platform reconcile`, `platform expose`, `artifacts prepare`, and
+`deployment apply` require all
 live-consent controls. For the canonical setup path:
 
 [source,bash]
@@ -288,6 +289,18 @@ mutation. Already absent managed nodes are valid reset/destroy evidence.
 Missing, mismatched, or unmanaged ownership evidence blocks before deletion.
 Do not use these commands as broad LXD/Incus cleanup, and do not treat a
 confirmation phrase as permission to delete unrelated containers.
+
+If reset reports `managed_nodes_reset_blocked` with
+`first_failure_classification=reset_existing_node_not_managed`, a configured
+node name already exists but does not carry the expected Tiny Swarm World
+ownership markers. Inspect the reset evidence for `first_failure_node` and
+`first_failure_mismatch_reasons`. Resolve that named container manually before
+rerunning the installer: keep it if it is unrelated, rename/remove it only if
+you intentionally own that local resource, or recreate it through the guarded
+setup workflow so the managed markers are written by automation.
+Deterministic `tsw-proxy-<port>` devices created by `platform expose` are
+treated as project-owned reset state; if `unsafe_instance_devices` remains,
+the node still carries a non-project or unsafe runtime device.
 
 == Git Shows Line Ending Only Changes
 

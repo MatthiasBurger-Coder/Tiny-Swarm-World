@@ -6,6 +6,10 @@ from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 
 class PortPortainerClient(ABC):
     @abstractmethod
+    def ensure_local_endpoint(self, endpoint_name: str) -> int:
+        pass
+
+    @abstractmethod
     def get_endpoint_id_by_name(self, endpoint_name: str) -> int:
         pass
 

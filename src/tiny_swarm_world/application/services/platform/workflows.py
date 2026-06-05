@@ -112,6 +112,35 @@ class PlatformReconcileWorkflow:
         )
 
 
+class PlatformExposeWorkflow:
+    semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.EXPOSE]
+
+    def __init__(
+        self,
+        steps: Sequence[AsyncWorkflowStep],
+        verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
+        progress: PortWorkflowProgress | None = None,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
+    ):
+        self.steps = tuple(steps)
+        self.verification_evidence_repository = verification_evidence_repository
+        self.progress = progress or NullWorkflowProgress()
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
+
+    async def run(self) -> PlatformWorkflowResult:
+        return await _trace_platform_run(self, self._run)
+
+    async def _run(self) -> PlatformWorkflowResult:
+        return await _run_mutating_steps(
+            self.steps,
+            self.semantics,
+            self.verification_evidence_repository,
+            self.progress,
+        )
+
+
 class PlatformResetWorkflow:
     semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.RESET]
 
