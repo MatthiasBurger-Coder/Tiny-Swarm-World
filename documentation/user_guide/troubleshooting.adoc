@@ -206,8 +206,10 @@ Check the non-secret prerequisites before a live run:
 
 * the Swarm nodes expose `80` for the service-access landing page;
 * the Swarm nodes expose `8086` for Vaultwarden;
-* `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` names an external Swarm secret, or the
-  default Swarm secret name `tsw_vaultwarden_admin_token` exists;
+* `TSW_VAULTWARDEN_ADMIN_TOKEN` is present for setup-managed secret
+  preparation, or the configured external Swarm secret already exists;
+* `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` names only the external Swarm secret
+  when overriding the default name `tsw_vaultwarden_admin_token`;
 * a missing external Swarm input blocks before the service-access stack is
   uploaded through Portainer;
 * the service-access dashboard and NGINX images are available to the Swarm

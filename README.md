@@ -293,9 +293,11 @@ password values are visible only in Vaultwarden's authenticated UI. Operators
 who intentionally want the older base service set can pass
 `--service-profile default`.
 
-The service-access stack needs a pre-existing external Swarm secret for the
-Vaultwarden administrator token. The default secret name is
-`tsw_vaultwarden_admin_token`, and operators may override the name with
+The service-access stack needs an external Swarm secret for the Vaultwarden
+administrator token. The guided installer generates token material in
+`TSW_VAULTWARDEN_ADMIN_TOKEN` and the setup workflow prepares the external
+secret when that value is present. The default secret name is
+`tsw_vaultwarden_admin_token`, and operators may override only the name with
 `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Provider-native deployment must check
 that the configured external Swarm input is observable before uploading the
 stack and record only redacted presence/source evidence.

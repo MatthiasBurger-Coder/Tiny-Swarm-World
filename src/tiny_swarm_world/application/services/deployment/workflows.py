@@ -49,6 +49,17 @@ class DeploymentPreApplyCheck(Protocol):
         pass
 
 
+class DeploymentPreApplyStep(Protocol):
+    def run(self) -> object:
+        # Protocol declaration; concrete steps prepare pre-apply inputs.
+        pass
+
+
+DeploymentWorkflowComponent = (
+    DeploymentApplyStep | DeploymentVerifyCheck | DeploymentPreApplyCheck | DeploymentPreApplyStep
+)
+
+
 @dataclass(frozen=True)
 class DeploymentWorkflowResult:
     kind: DeploymentWorkflowKind
@@ -89,11 +100,13 @@ class DeploymentApplyWorkflow:
     def __init__(
         self,
         steps: Sequence[DeploymentApplyStep] = (),
+        pre_apply_steps: Sequence[DeploymentPreApplyStep] = (),
         pre_apply_checks: Sequence[DeploymentPreApplyCheck] = (),
         blocked_reason: str = DEFAULT_DEPLOYMENT_APPLY_BLOCK_REASON,
         kind: DeploymentWorkflowKind = DeploymentWorkflowKind.APPLY,
     ):
         self.steps = tuple(steps)
+        self.pre_apply_steps = tuple(pre_apply_steps)
         self.pre_apply_checks = tuple(pre_apply_checks)
         self.blocked_reason = blocked_reason
         self.kind = kind
@@ -109,6 +122,15 @@ class DeploymentApplyWorkflow:
             )
 
         verification_results: list[VerificationResult] = []
+        pre_apply_prepare_result = await _run_pre_apply_steps(
+            self.pre_apply_steps,
+            self.kind,
+            verification_results,
+            self.logger,
+        )
+        if pre_apply_prepare_result is not None:
+            return pre_apply_prepare_result
+
         pre_apply_result = await _run_pre_apply_checks(
             self.pre_apply_checks,
             self.kind,
@@ -275,7 +297,7 @@ def _apply_failure_evidence(exc: Exception) -> dict[str, str]:
 
 
 def _verification_target_id(
-    step: DeploymentApplyStep | DeploymentVerifyCheck | DeploymentPreApplyCheck,
+    step: DeploymentWorkflowComponent,
     fallback: str,
 ) -> str:
     target_id = getattr(step, "verification_target_id", "")
@@ -285,6 +307,47 @@ def _verification_target_id(
     if deployment_target_id:
         return str(deployment_target_id)
     return fallback
+
+
+async def _run_pre_apply_steps(
+    steps: Sequence[DeploymentPreApplyStep],
+    kind: DeploymentWorkflowKind,
+    verification_results: list[VerificationResult],
+    logger: logging.Logger,
+) -> DeploymentWorkflowResult | None:
+    for step in steps:
+        target_id = _verification_target_id(step, "deployment:pre-apply-step")
+        try:
+            prepare_result = step.run()
+            if inspect.isawaitable(prepare_result):
+                await prepare_result
+        except Exception as exc:
+            safe_error = _safe_exception_summary(exc)
+            logger.error(
+                "Failed to prepare deployment input '%s'. Error: %s",
+                target_id,
+                safe_error,
+            )
+            verification_results.append(
+                VerificationResult(
+                    target_id=target_id,
+                    status=VerificationStatus.FAILED_TO_APPLY,
+                    message=f"Pre-apply preparation failed for {target_id}: {safe_error}",
+                    evidence={
+                        "phase": "pre_apply",
+                        "failure_class": exc.__class__.__name__,
+                    },
+                )
+            )
+            return DeploymentWorkflowResult(
+                kind=kind,
+                status=DeploymentWorkflowStatus.FAILED_TO_PREPARE,
+                message="deployment prepare failed for a configured pre-apply contract.",
+                reason=f"pre-apply prepare failed with {exc.__class__.__name__}",
+                executed=True,
+                verification_results=tuple(verification_results),
+            )
+    return None
 
 
 async def _run_pre_apply_checks(
@@ -316,7 +379,7 @@ async def _run_pre_apply_checks(
 
 
 async def _verify_step(
-    step: DeploymentApplyStep | DeploymentVerifyCheck | DeploymentPreApplyCheck,
+    step: DeploymentWorkflowComponent,
     target_id: str,
 ) -> VerificationResult:
     verify = getattr(step, "verify", None)

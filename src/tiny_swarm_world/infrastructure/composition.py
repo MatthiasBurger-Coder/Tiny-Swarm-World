@@ -31,6 +31,7 @@ from tiny_swarm_world.application.services.deployment import (
     DeploymentWorkflowResult,
     DeploymentWorkflowStatus,
     DeploymentVerifyWorkflow,
+    EnsureExternalSwarmSecret,
     EnsurePortainerAdminAccess,
     EnsureSwarmStack,
     VerifyExternalSwarmInput,
@@ -154,6 +155,7 @@ from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
+VAULTWARDEN_ADMIN_TOKEN_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN"
 VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"
 DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME = "tsw_vaultwarden_admin_token"
 DEFAULT_LXC_PLATFORM_NODES = (
@@ -905,6 +907,10 @@ def build_lxc_deployment_services(
         selected_service_profile,
         swarm_runtime=swarm_runtime,
     )
+    external_input_steps = _service_access_external_input_steps(
+        selected_service_profile,
+        swarm_runtime=swarm_runtime,
+    )
     compose_repository = ComposeFileRepositoryYaml()
     portainer_admin_client = LxcPortainerAdminClient(backend=backend)
     portainer_client = LxcPortainerHttpClient(
@@ -958,6 +964,7 @@ def build_lxc_deployment_services(
             ),
             apply=DeploymentApplyWorkflow(
                 application_steps,
+                pre_apply_steps=external_input_steps,
                 pre_apply_checks=external_input_checks,
             ),
             verify=DeploymentVerifyWorkflow((*external_input_checks, *readiness_checks)),
@@ -1263,6 +1270,28 @@ def _service_access_stack_environment(
             )
         }
     }
+
+
+def _service_access_external_input_steps(
+    service_profile: ServiceStackProfile,
+    *,
+    swarm_runtime: PortSwarmStackRuntime,
+) -> tuple[EnsureExternalSwarmSecret, ...]:
+    if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
+        return ()
+    resource_value = os.environ.get(VAULTWARDEN_ADMIN_TOKEN_ENVIRONMENT)
+    if not resource_value:
+        return ()
+    return (
+        EnsureExternalSwarmSecret(
+            swarm_runtime=swarm_runtime,
+            resource_name=_operator_config_value(
+                VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
+                DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
+            ),
+            resource_value=resource_value,
+        ),
+    )
 
 
 def _service_access_external_input_checks(

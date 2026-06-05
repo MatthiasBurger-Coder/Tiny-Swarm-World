@@ -38,3 +38,7 @@ class PortSwarmStackRuntime(ABC):
     @abstractmethod
     def external_secret_exists(self, name: str) -> bool:
         pass
+
+    @abstractmethod
+    def ensure_external_secret(self, name: str, value: str) -> None:
+        pass

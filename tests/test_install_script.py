@@ -109,6 +109,25 @@ class TestInstallScript(unittest.TestCase):
             self.assertEqual([], fixture.recorded_commands())
             self.assertIn("confirmation did not match", result.stderr)
 
+    def test_install_uses_default_vaultwarden_secret_name_when_not_provided(self):
+        secret_environment = _required_secret_environment()
+        secret_environment.pop("TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET")
+        with _install_script_fixture(secret_environment=secret_environment) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(2, len(fixture.recorded_commands()))
+
+    def test_install_requires_vaultwarden_admin_token_value(self):
+        secret_environment = _required_secret_environment()
+        secret_environment.pop("TSW_VAULTWARDEN_ADMIN_TOKEN")
+        with _install_script_fixture(secret_environment=secret_environment) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(1, result.returncode)
+            self.assertEqual([], fixture.recorded_commands())
+            self.assertIn("TSW_VAULTWARDEN_ADMIN_TOKEN", result.stderr)
+
 
 class _InstallScriptFixture:
     def __init__(
@@ -117,11 +136,13 @@ class _InstallScriptFixture:
         setup_exit: int = 0,
         extra_args: tuple[str, ...] = (),
         reset_confirmation: str = "RESET_TINY_SWARM_PLATFORM",
+        secret_environment: dict[str, str] | None = None,
     ):
         self.reset_exit = reset_exit
         self.setup_exit = setup_exit
         self.extra_args = extra_args
         self.reset_confirmation = reset_confirmation
+        self.secret_environment = secret_environment
         self._tempdir = tempfile.TemporaryDirectory()
         self.root = Path(self._tempdir.name)
         self.fake_bin = self.root / "fake-bin"
@@ -136,8 +157,12 @@ class _InstallScriptFixture:
 
     def run(self) -> subprocess.CompletedProcess[str]:
         env = {
-            **os.environ,
-            **_required_secret_environment(),
+            **{
+                key: value
+                for key, value in os.environ.items()
+                if key not in _install_secret_environment_names()
+            },
+            **(self.secret_environment or _required_secret_environment()),
             "PATH": f"{self.fake_bin}:{os.environ['PATH']}",
             "TSW_FAKE_SCRIPT_COMMANDS": str(self.commands_file),
             "TSW_FAKE_RESET_EXIT": str(self.reset_exit),
@@ -184,12 +209,14 @@ def _install_script_fixture(
     setup_exit: int = 0,
     extra_args: tuple[str, ...] = (),
     reset_confirmation: str = "RESET_TINY_SWARM_PLATFORM",
+    secret_environment: dict[str, str] | None = None,
 ) -> _InstallScriptFixture:
     return _InstallScriptFixture(
         reset_exit=reset_exit,
         setup_exit=setup_exit,
         extra_args=extra_args,
         reset_confirmation=reset_confirmation,
+        secret_environment=secret_environment,
     )
 
 
@@ -201,8 +228,13 @@ def _required_secret_environment() -> dict[str, str]:
         "TSW_RABBITMQ_PASSWORD": "rabbitmq-password",
         "TSW_SONARQUBE_ADMIN_PASSWORD": "sonarqube-password",
         "TSW_POSTGRES_PASSWORD": "postgres-password",
-        "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "vaultwarden-token",
+        "TSW_VAULTWARDEN_ADMIN_TOKEN": "vaultwarden-token",
+        "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "vaultwarden-token-secret",
     }
+
+
+def _install_secret_environment_names() -> tuple[str, ...]:
+    return tuple(_required_secret_environment())
 
 
 def _write_executable(path: Path, content: str) -> None:

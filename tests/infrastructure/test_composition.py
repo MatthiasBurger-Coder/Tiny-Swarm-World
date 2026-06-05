@@ -630,6 +630,27 @@ class TestComposition(unittest.TestCase):
             {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
             service_access_step.stack_environment,
         )
+        self.assertEqual((), services.workflows.apply.pre_apply_steps)
+
+    def test_build_deployment_services_prepares_service_access_external_input_from_operator_token(self):
+        operator_token = sample_text("operator", "-token")
+        with patch.dict(
+            "os.environ",
+            {"TSW_VAULTWARDEN_ADMIN_TOKEN": operator_token},
+            clear=True,
+        ):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
+
+        pre_apply_step = services.workflows.apply.pre_apply_steps[0]
+        pre_apply_check = services.workflows.apply.pre_apply_checks[0]
+
+        self.assertEqual("tsw_vaultwarden_admin_token", pre_apply_step.resource_name)
+        self.assertEqual(operator_token, pre_apply_step.resource_value)
+        self.assertEqual("tsw_vaultwarden_admin_token", pre_apply_check.resource_name)
+        self.assertEqual("default", pre_apply_check.source_ref)
 
     def test_build_artifact_services_uses_operator_environment_credentials(self):
         operator_value = sample_text("operator", "-supplied")

@@ -238,11 +238,13 @@ port `8086` for the Vaultwarden route. WSL `localhost` forwarding is a
 separate host-network concern. Endpoint defaults are configuration hints, not
 service-health evidence. If localhost forwarding is stale, use the current
 Swarm node IP only for manual diagnosis until the forwarding issue is repaired.
-The Vaultwarden
-administrator token is provided through an external Swarm secret. By default
-the compose stack references `tsw_vaultwarden_admin_token`; operators may
-override the secret name through `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`.
-Document only the secret name, never the token value.
+The Vaultwarden administrator token is provided through an external Swarm
+secret. The guided installer generates token material in
+`TSW_VAULTWARDEN_ADMIN_TOKEN`, and the setup workflow prepares the external
+secret when that value is present. By default the compose stack references
+`tsw_vaultwarden_admin_token`; operators may override only the secret name
+through `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Document only the secret name,
+never the token value.
 
 During `deployment apply`, the setup checks that the configured external
 Swarm input is observable before uploading the service-access stack. A missing

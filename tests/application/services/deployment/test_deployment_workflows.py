@@ -164,6 +164,45 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
             result.reason,
         )
 
+    async def test_apply_workflow_prepares_external_inputs_before_pre_apply_checks(self):
+        pre_apply_step = _PreApplyStep("deployment:service-access-external-input")
+        pre_apply_check = _VerifiedDeploymentCheck("deployment:service-access-external-input")
+        step = _OrderedApplyStep("deployment:service-access-stack", VerificationStatus.VERIFIED)
+
+        result = await DeploymentApplyWorkflow(
+            (step,),
+            pre_apply_steps=(pre_apply_step,),
+            pre_apply_checks=(pre_apply_check,),
+        ).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.COMPLETED, result.status)
+        self.assertTrue(pre_apply_step.ran)
+        self.assertTrue(step.ran)
+        self.assertEqual(
+            ("deployment:service-access-external-input", "deployment:service-access-stack"),
+            tuple(verification.target_id for verification in result.verification_results),
+        )
+
+    async def test_apply_workflow_reports_pre_apply_prepare_failures_without_raw_payloads(self):
+        pre_apply_step = _PreApplyStep(
+            "deployment:service-access-external-input",
+            exception=RuntimeError(sensitive_assignment()),
+        )
+        pre_apply_check = _VerifiedDeploymentCheck("deployment:service-access-external-input")
+        step = _OrderedApplyStep("deployment:service-access-stack", VerificationStatus.VERIFIED)
+
+        result = await DeploymentApplyWorkflow(
+            (step,),
+            pre_apply_steps=(pre_apply_step,),
+            pre_apply_checks=(pre_apply_check,),
+        ).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_PREPARE, result.status)
+        self.assertTrue(result.executed)
+        self.assertFalse(step.ran)
+        self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
+        self.assertNotIn(sensitive_assignment(), str(result.to_dict()))
+
     async def test_apply_workflow_reports_verify_failures(self):
         class FailedVerifyStep:
             verification_target_id = "deployment:portainer-stack"
@@ -322,6 +361,19 @@ class _BlockedDeploymentCheck:
     async def verify(self) -> VerificationResult:
         await async_checkpoint()
         return _verification_result(self.verification_target_id, VerificationStatus.BLOCKED)
+
+
+class _PreApplyStep:
+    def __init__(self, target_id: str, exception: Exception | None = None):
+        self.verification_target_id = target_id
+        self.exception = exception
+        self.ran = False
+
+    async def run(self) -> None:
+        await async_checkpoint()
+        self.ran = True
+        if self.exception is not None:
+            raise self.exception
 
 
 class _AlwaysActivePortainerAdminClient:

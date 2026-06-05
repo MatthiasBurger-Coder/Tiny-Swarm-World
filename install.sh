@@ -13,7 +13,7 @@ REQUIRED_SECRETS=(
   TSW_RABBITMQ_PASSWORD
   TSW_SONARQUBE_ADMIN_PASSWORD
   TSW_POSTGRES_PASSWORD
-  TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET
+  TSW_VAULTWARDEN_ADMIN_TOKEN
 )
 
 usage() {
@@ -34,6 +34,10 @@ The script is Linux/WSL-only. It writes evidence under:
 It runs the governed reset command before the canonical live setup command:
   PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM
   PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+
+Generated local secret values include TSW_VAULTWARDEN_ADMIN_TOKEN. The
+TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET variable is only an optional Swarm secret
+name override; when omitted, setup uses tsw_vaultwarden_admin_token.
 EOF
 }
 
@@ -192,6 +196,9 @@ fi
 for secret_name in "${REQUIRED_SECRETS[@]}"; do
   export "$secret_name=${!secret_name}"
 done
+if [[ -n "${TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET:-}" ]]; then
+  export TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET
+fi
 
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
   ! git check-ignore -q .tiny-swarm-world/ >/dev/null 2>&1; then

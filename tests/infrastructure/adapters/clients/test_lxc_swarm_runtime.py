@@ -99,6 +99,54 @@ services:
         self.assertEqual((1, 0), tuple(service.current_replicas for service in services))
         self.assertEqual((1, 1), tuple(service.desired_replicas for service in services))
 
+    def test_external_secret_exists_inspects_secret_with_option_boundary(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+
+        with patch.object(
+            runtime,
+            "_run_manager_shell",
+            return_value=subprocess.CompletedProcess([], 0),
+        ) as run_manager_shell:
+            self.assertTrue(runtime.external_secret_exists("tsw_vaultwarden_admin_token"))
+
+        run_manager_shell.assert_called_once_with(
+            "docker secret inspect -- tsw_vaultwarden_admin_token >/dev/null 2>&1",
+            check=False,
+        )
+
+    def test_ensure_external_secret_creates_missing_secret_without_leaking_value(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+
+        with patch.object(
+            runtime,
+            "external_secret_exists",
+            return_value=False,
+        ) as external_secret_exists:
+            with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+                runtime.ensure_external_secret(
+                    "tsw_vaultwarden_admin_token",
+                    operator_credential(),
+                )
+
+        external_secret_exists.assert_called_once_with("tsw_vaultwarden_admin_token")
+        run_manager_shell.assert_called_once_with(
+            "docker secret create -- tsw_vaultwarden_admin_token -",
+            input_text=operator_credential(),
+        )
+        self.assertNotIn(operator_credential(), run_manager_shell.call_args.args[0])
+
+    def test_ensure_external_secret_leaves_existing_secret_unchanged(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+
+        with patch.object(runtime, "external_secret_exists", return_value=True):
+            with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+                runtime.ensure_external_secret(
+                    "tsw_vaultwarden_admin_token",
+                    operator_credential(),
+                )
+
+        run_manager_shell.assert_not_called()
+
     def test_container_runtime_runs_docker_inside_lxc_manager(self):
         runtime = LxcContainerRuntime(backend=ManagedLxcBackend.LXD)
 
