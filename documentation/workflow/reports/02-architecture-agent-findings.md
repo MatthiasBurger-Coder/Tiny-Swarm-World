@@ -1,23 +1,27 @@
-# Architecture Agent Findings
+# Architecture Findings
 
-## Decision
+These findings record the workflow creation baseline before Slices 01-06 were
+implemented. Later execution checkpoints supersede the stale implementation
+status statements while preserving the original architecture rationale.
 
-READY_FOR_WORKFLOW
+The current architecture already contains the right conceptual split:
 
-## Findings
+* `init` and `reconcile` are non-destructive.
+* `reset` and `destroy` are destructive and confirmation-gated.
+* `setup run` orchestrates platform, artifacts and deployment phases.
+* At workflow creation time, `install.sh` was a wrapper around
+  `setup run --live` without a reset prelude.
+* The default install profile is already `service-access`.
+* Composition already contains service-access artifact and deployment target
+  IDs, but the workflow must prove they are reached after reset before install
+  success is reported.
 
-- Removing Multipass changes the node-provider architecture contract and must
-  update arc42 constraints, solution strategy, context, building blocks,
-  deployment view, risks, and glossary.
-- Domain removal must not leak infrastructure concerns into application code.
-- Composition must remain the only standard place where concrete adapters are
-  assembled.
-- Provider config validation must stop requiring a `multipass_legacy` fallback.
-- VM-neutral classes must be checked before deletion because some may still be
-  referenced by non-Multipass paths.
+Implementation needed to fill the blocked destructive workflow gap instead of
+placing raw teardown commands in application services. Slices 02-04 implemented
+that path with application ports and infrastructure-owned LXD/Incus/LXC
+details.
 
-## Required Subagent Handoff
-
-- Python implementation worker removes symbols dependency-first.
-- DevOps reviewer checks command YAML and preflight cleanup.
-- System architect reviews import boundaries with `arch-tests`.
+The update/reconcile surface should remain in place. Fresh install should use
+a destructive prelude only for `install.sh` or a dedicated reinstall path.
+The destructive adapter must delete only configured or marker-verified Tiny
+Swarm World managed resources, never every host LXC/Incus container.

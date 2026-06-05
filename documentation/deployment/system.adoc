@@ -27,16 +27,23 @@ Static preflight is available through `--preflight` for the default
 `lxc_native` provider.
 
 Implemented platform workflows are `platform init`, `platform reconcile`,
-`platform verify`, `platform reset`, and `platform destroy`. Mutating platform
+`platform expose`, `platform verify`, `platform reset`, and `platform destroy`. Mutating platform
 workflows require live consent before service construction. Reset and destroy
 also require exact confirmation and currently block after confirmation until
 retention and teardown semantics are implemented. Default platform init uses
 the `lxc_native` provider selection path and blocks before mutation when
 LXD/Incus readiness or profile requirements are not satisfied. Default
-platform reconcile, artifact workflows, and deployment workflows block at
-provider-native boundaries until their LXC-native contracts are wired.
+platform expose creates or updates LXC proxy devices on `swarm-manager` for
+published setup-manifest ports. Platform reconcile, artifact workflows, and
+deployment workflows block at provider-native boundaries until their
+LXC-native contracts are wired.
 Unsupported node-provider values fail closed; they are not remapped to another
 provider.
+
+Deployment bootstrap includes Portainer application initialization. After the
+Portainer stack and admin credentials are available, the bootstrap workflow
+ensures the local Docker endpoint named `local` exists in Portainer before
+Portainer-managed application stacks are applied.
 
 The Deployment boundary now contains a tested post-bootstrap
 `EnsurePortainerStack` application service and a sanitized Portainer HTTP

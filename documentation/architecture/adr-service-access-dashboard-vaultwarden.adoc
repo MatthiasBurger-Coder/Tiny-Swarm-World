@@ -23,8 +23,9 @@ Implemented repository behavior:
 * The service-access setup manifest records ports `80` and `8086` plus the
   `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
 * Artifact contracts include the image-packaged `service-access-dashboard` and
-  `service-access-nginx` assets, but the default `lxc_native` path still
-  blocks until provider-native image publication is wired and verified.
+  `service-access-nginx` assets. The default `lxc_native` image publication
+  path is wired and statically verified for the dashboard and NGINX build
+  contexts, but live provider publication evidence is still outstanding.
 * Static tests verify the compose boundary, image packaging, central route
   links, Vaultwarden item references and no React/Vite/live-orchestration
   surface.

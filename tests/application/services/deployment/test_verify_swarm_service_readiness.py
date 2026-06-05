@@ -95,7 +95,7 @@ class _FakeSwarmRuntime:
     def __init__(self, services: tuple[SwarmServiceStatus, ...]):
         self.services = services
 
-    def deploy_stack(self, stack_definition):
+    def deploy_stack(self, stack_definition, stack_environment=None):
         raise AssertionError("readiness verification must not deploy")
 
     def stack_exists(self, stack_name: str) -> bool:
@@ -103,3 +103,9 @@ class _FakeSwarmRuntime:
 
     def list_stack_services(self, stack_name: str) -> tuple[SwarmServiceStatus, ...]:
         return self.services
+
+    def external_secret_exists(self, name: str) -> bool:
+        raise AssertionError("readiness verification must not inspect secrets")
+
+    def ensure_external_secret(self, name: str, value: str) -> None:
+        raise AssertionError("readiness verification must not create secrets")

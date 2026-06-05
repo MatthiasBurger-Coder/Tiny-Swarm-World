@@ -444,6 +444,25 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("phase 'deployment bootstrap' returned failed_to_verify", result.reason)
         self.assertEqual("not_run", result.phase_results[2].status)
 
+    async def test_preserves_deployment_apply_failure_as_failed_to_apply(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("deployment apply", lambda: _failed_deployment_apply(calls)),
+                SetupWorkflowPhase("deployment verify", lambda: _completed_result("deployment verify", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual(["preflight", "deployment apply"], calls)
+        self.assertEqual("phase 'deployment apply' returned failed_to_apply", result.reason)
+        self.assertEqual("failed_to_apply", result.phase_results[1].status)
+        self.assertEqual("not_run", result.phase_results[2].status)
+
     async def test_rejects_unknown_phase_payload_types_as_failed_status(self):
         class UnsafeResult:
             status = "completed"
@@ -510,6 +529,17 @@ def _failed_deployment_bootstrap(calls: list[str]) -> DeploymentWorkflowResult:
         status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
         message="deployment bootstrap failed.",
         reason="verification failed for deployment:portainer-admin-access",
+        executed=True,
+    )
+
+
+def _failed_deployment_apply(calls: list[str]) -> DeploymentWorkflowResult:
+    calls.append("deployment apply")
+    return DeploymentWorkflowResult(
+        kind=DeploymentWorkflowKind.APPLY,
+        status=DeploymentWorkflowStatus.FAILED_TO_APPLY,
+        message="deployment apply failed.",
+        reason="apply failed with RuntimeError",
         executed=True,
     )
 

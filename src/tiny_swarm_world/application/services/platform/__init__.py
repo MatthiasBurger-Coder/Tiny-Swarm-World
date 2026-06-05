@@ -12,13 +12,19 @@ from tiny_swarm_world.application.services.platform.lxc_docker_install import (
     LxcDockerInstallService,
     LxcDockerInstallStep,
 )
+from tiny_swarm_world.application.services.platform.lxc_service_exposure import (
+    LxcServiceExposureService,
+    LxcServiceExposureStep,
+)
 from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapService,
     LxcSwarmBootstrapStep,
 )
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.application.services.platform.node_provider_selection import (
+    NodeProviderDestroyManagedNodesStep,
     NodeProviderEnsureNodeStep,
+    NodeProviderResetManagedNodesStep,
     NodeProviderSelectionRequest,
     NodeProviderSelectionService,
 )
@@ -34,6 +40,7 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
 from tiny_swarm_world.application.services.platform.workflows import (
     AsyncWorkflowStep,
     PlatformDestroyWorkflow,
+    PlatformExposeWorkflow,
     PlatformInitWorkflow,
     PlatformReconcileWorkflow,
     PlatformResetWorkflow,
@@ -45,9 +52,13 @@ __all__ = [
     "DockerSwarmInLxcContractService",
     "LxcDockerInstallService",
     "LxcDockerInstallStep",
+    "LxcServiceExposureService",
+    "LxcServiceExposureStep",
     "LxcSwarmBootstrapService",
     "LxcSwarmBootstrapStep",
+    "NodeProviderDestroyManagedNodesStep",
     "NodeProviderEnsureNodeStep",
+    "NodeProviderResetManagedNodesStep",
     "NodeProviderSelectionRequest",
     "NodeProviderSelectionService",
     "PreflightService",
@@ -56,6 +67,7 @@ __all__ = [
     "RESET_TINY_SWARM_PLATFORM_CONFIRMATION",
     "AsyncWorkflowStep",
     "PlatformDestroyWorkflow",
+    "PlatformExposeWorkflow",
     "PlatformInitWorkflow",
     "PlatformReconcileWorkflow",
     "PlatformResetWorkflow",

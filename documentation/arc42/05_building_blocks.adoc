@@ -34,20 +34,21 @@ microservices:
   `reconcile`, `verify`, `reset`, and `destroy` commands.
 * `ArtifactServices` is the explicit artifacts boundary. It owns
   `artifacts prepare` and `artifacts verify` workflow contracts. The default
-  composition remains fail-closed, while the workflow classes can now execute
-  configured Nexus repository and registry-readiness checks only after each
-  step exposes typed verification evidence.
+  composition remains fail-closed, while configured Nexus repository,
+  registry-readiness, and LXC-native image-publication contracts execute only
+  after live consent and continue only when each step exposes typed
+  verification evidence.
 * `DeploymentServices` is the explicit deployment boundary. The deployment
   service namespace now owns `EnsurePortainerStack`, `EnsureNexusStack`, and
   the generic `EnsureServiceStack` contract for the base runnable-service
   stack set plus the service-access setup profile.
   `EnsurePortainerStack` is a post-bootstrap Portainer API contract for
   compose lookup plus stack create/update through `PortComposeFileRepository`
-  and `PortPortainerClient`. The composition bundle does not construct a
-  Portainer client or run a stack mutation during CLI dispatch in the current
-  slice. `deployment apply` and `deployment verify` can evaluate configured
-  stack contracts, but live success still depends on live consent, stack
-  bootstrap and observed service readiness.
+  and `PortPortainerClient`. Stack mutation is owned by live-consent-gated
+  workflow execution, not by service construction. `deployment apply` and
+  `deployment verify` can evaluate configured stack, external-input, and
+  readiness contracts, but live success still depends on observable registry,
+  Portainer, Swarm and service-readiness evidence.
 * `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
   instead of aliasing `PlatformServices`.
 
@@ -68,10 +69,10 @@ Vaultwarden item references, does not render password values, and does not
 introduce React/Vite files.
 
 The default Artifacts and Deployment workflow bundles are intentional
-fail-closed building blocks. They create stable composition boundaries while
-service ownership moves in dedicated workflow slices, and they keep later live
-Nexus, registry, image publication, Portainer and service-access work behind
-explicit contracts.
+fail-closed building blocks. They create stable composition boundaries for
+Nexus, registry, image publication, Portainer and service-access work, and
+they report blocked or failed phase states when required live evidence is not
+observable.
 Compatibility properties on `ApplicationServices` keep the existing
 service-level accessors available for migration, but the public Python
 entrypoint now routes through workflow-level commands.

@@ -116,10 +116,18 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
 
     def external_secret_exists(self, name: str) -> bool:
         result = self._run_manager_shell(
-            f"docker secret inspect {shlex.quote(name)} >/dev/null 2>&1",
+            f"docker secret inspect -- {shlex.quote(name)} >/dev/null 2>&1",
             check=False,
         )
         return result.returncode == 0
+
+    def ensure_external_secret(self, name: str, value: str) -> None:
+        if self.external_secret_exists(name):
+            return
+        self._run_manager_shell(
+            f"docker secret create -- {shlex.quote(name)} -",
+            input_text=value,
+        )
 
     def _ensure_stack_prerequisites(self, stack_name: str) -> None:
         if stack_name != "sonarqube":
@@ -417,6 +425,9 @@ class LxcPortainerHttpClient(PortPortainerClient):
 
     def get_endpoint_id_by_name(self, endpoint_name: str) -> int:
         return self._client().get_endpoint_id_by_name(endpoint_name)
+
+    def ensure_local_endpoint(self, endpoint_name: str) -> int:
+        return self._client().ensure_local_endpoint(endpoint_name)
 
     def find_stack_id_by_name(self, stack_name: str) -> int | None:
         return self._client().find_stack_id_by_name(stack_name)

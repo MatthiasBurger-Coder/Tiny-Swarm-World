@@ -86,6 +86,7 @@ class TestComposition(unittest.TestCase):
         self.assertIn("lxc_node_provider", field_names)
         self.assertIn("node_provider_selection", field_names)
         self.assertIn("lxc_docker_install", field_names)
+        self.assertIn("lxc_service_exposure", field_names)
         self.assertIn("lxc_swarm_bootstrap", field_names)
 
     def test_platform_services_contains_workflow_bundle(self):
@@ -93,7 +94,10 @@ class TestComposition(unittest.TestCase):
         workflow_field_names = {field.name for field in fields(composition.PlatformWorkflows)}
 
         self.assertIn("workflows", platform_field_names)
-        self.assertEqual({"init", "reconcile", "reset", "destroy", "verify"}, workflow_field_names)
+        self.assertEqual(
+            {"init", "reconcile", "expose", "reset", "destroy", "verify"},
+            workflow_field_names,
+        )
 
     def test_wsl_lxc_user_namespace_gate_allows_missing_kernel_flag(self):
         with patch.object(
@@ -174,6 +178,10 @@ class TestComposition(unittest.TestCase):
             services.node_provider_selection.node_lifecycle,
         )
         self.assertIs(
+            services.lxc_node_provider,
+            services.node_provider_selection.managed_node_teardown,
+        )
+        self.assertIs(
             wsl_capability_probe,
             services.node_provider_selection.readiness_probe.wsl_lxc_capability_available,
         )
@@ -192,6 +200,7 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
         self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
+        self.assertIsInstance(services.workflows.expose, composition.PlatformExposeWorkflow)
         self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
         self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
@@ -203,6 +212,10 @@ class TestComposition(unittest.TestCase):
         self.assertIs(
             evidence_repository,
             services.workflows.reconcile.verification_evidence_repository,
+        )
+        self.assertIs(
+            evidence_repository,
+            services.workflows.expose.verification_evidence_repository,
         )
         self.assertIsInstance(
             services.workflows.init.progress,
@@ -217,21 +230,60 @@ class TestComposition(unittest.TestCase):
             services.workflows.reconcile.progress,
         )
         self.assertIs(
+            services.workflows.init.progress,
+            services.workflows.expose.progress,
+        )
+        self.assertIs(
             services.workflows.init.method_trace,
             services.workflows.reconcile.method_trace,
+        )
+        self.assertIs(
+            services.workflows.init.method_trace,
+            services.workflows.expose.method_trace,
         )
         self.assertEqual("trace-test", services.workflows.init.trace_correlation_id)
         self.assertEqual(
             "trace-test",
             services.workflows.reconcile.trace_correlation_id,
         )
+        self.assertEqual("trace-test", services.workflows.expose.trace_correlation_id)
+        self.assertEqual("trace-test", services.workflows.reset.trace_correlation_id)
+        self.assertEqual("trace-test", services.workflows.destroy.trace_correlation_id)
         self.assertEqual("trace-test", services.workflows.verify.trace_correlation_id)
+
+    def test_build_platform_services_wires_reset_destroy_managed_node_steps(self):
+        services = composition.build_platform_services()
+
+        self.assertEqual(1, len(services.workflows.reset.steps))
+        self.assertEqual(1, len(services.workflows.destroy.steps))
+        reset_step = services.workflows.reset.steps[0]
+        destroy_step = services.workflows.destroy.steps[0]
+
+        self.assertIsInstance(reset_step, composition.NodeProviderResetManagedNodesStep)
+        self.assertIsInstance(destroy_step, composition.NodeProviderDestroyManagedNodesStep)
+        self.assertEqual(composition.DEFAULT_LXC_PLATFORM_NODES, reset_step.nodes)
+        self.assertEqual(composition.DEFAULT_LXC_PLATFORM_NODES, destroy_step.nodes)
+        self.assertIs(services.node_provider_selection, reset_step.provider_selection)
+        self.assertIs(services.node_provider_selection, destroy_step.provider_selection)
+
+    def test_build_platform_services_does_not_run_lxc_commands_during_wiring(self):
+        async def fail_if_called(*_args, **_kwargs):
+            raise AssertionError("composition must not run LXC commands during wiring")
+
+        with patch.object(composition, "AsyncLxcNodeCommandRunner") as runner_factory:
+            runner_factory.return_value.run.side_effect = fail_if_called
+
+            services = composition.build_platform_services()
+
+        runner_factory.assert_called_once_with()
+        self.assertIsInstance(services.lxc_node_provider, composition.LxcNodeProvider)
 
     def test_build_platform_services_wires_workflow_types_without_evidence_patch(self):
         services = composition.build_platform_services()
 
         self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
         self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
+        self.assertIsInstance(services.workflows.expose, composition.PlatformExposeWorkflow)
         self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
         self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
@@ -435,10 +487,11 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(7, len(services.workflows.verify.checks))
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
-        with patch.object(composition, "ComposeFileRepositoryYaml"):
-            services = composition.build_lxc_deployment_services(
-                backend=composition.ManagedLxcBackend.INCUS,
-            )
+        with patch.dict("os.environ", {}, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
 
         self.assertIsInstance(services.workflows.bootstrap, composition.DeploymentApplyWorkflow)
         self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
@@ -447,6 +500,7 @@ class TestComposition(unittest.TestCase):
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
+                "deployment:portainer-local-endpoint",
                 "deployment:nexus-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
@@ -466,6 +520,15 @@ class TestComposition(unittest.TestCase):
                 step.endpoint_name == composition.DEFAULT_PORTAINER_ENDPOINT_NAME
                 for step in services.workflows.apply.steps
             )
+        )
+        jenkins_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.service_stack.stack_name == "jenkins"
+        )
+        self.assertEqual(
+            {"TSW_JENKINS_IMAGE": "swarm-manager:5000/jenkins:latest"},
+            jenkins_step.stack_environment,
         )
         self.assertEqual(
             (
@@ -492,7 +555,7 @@ class TestComposition(unittest.TestCase):
             )
 
         compose_repository.assert_called_once_with()
-        self.assertEqual(3, len(services.workflows.bootstrap.steps))
+        self.assertEqual(4, len(services.workflows.bootstrap.steps))
         self.assertEqual(5, len(services.workflows.apply.steps))
         self.assertEqual(8, len(services.workflows.verify.checks))
 
@@ -512,6 +575,7 @@ class TestComposition(unittest.TestCase):
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
+                "deployment:portainer-local-endpoint",
                 "deployment:nexus-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
@@ -542,6 +606,7 @@ class TestComposition(unittest.TestCase):
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
+                "deployment:portainer-local-endpoint",
                 "deployment:nexus-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
@@ -594,9 +659,67 @@ class TestComposition(unittest.TestCase):
         self.assertEqual("operator_defined", pre_apply_check.resource_name)
         self.assertEqual("operator_env", pre_apply_check.source_ref)
         self.assertEqual(
-            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+            {
+                "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE": (
+                    "swarm-manager:5000/service-access-dashboard:latest"
+                ),
+                "TSW_SERVICE_ACCESS_NGINX_IMAGE": (
+                    "swarm-manager:5000/service-access-nginx:latest"
+                ),
+                "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined",
+            },
             service_access_step.stack_environment,
         )
+        self.assertEqual((), services.workflows.apply.pre_apply_steps)
+
+    def test_build_deployment_services_uses_operator_swarm_registry_endpoint_for_local_images(self):
+        with patch.dict(
+            "os.environ",
+            {"TSW_SWARM_REGISTRY_ENDPOINT": "registry.local:5000"},
+            clear=True,
+        ):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
+
+        environments = {
+            step.service_stack.stack_name: step.stack_environment
+            for step in services.workflows.apply.steps
+        }
+
+        self.assertEqual(
+            "registry.local:5000/jenkins:latest",
+            environments["jenkins"]["TSW_JENKINS_IMAGE"],
+        )
+        self.assertEqual(
+            "registry.local:5000/service-access-dashboard:latest",
+            environments["service-access"]["TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"],
+        )
+        self.assertEqual(
+            "registry.local:5000/service-access-nginx:latest",
+            environments["service-access"]["TSW_SERVICE_ACCESS_NGINX_IMAGE"],
+        )
+
+    def test_build_deployment_services_prepares_service_access_external_input_from_operator_token(self):
+        operator_token = sample_text("operator", "-token")
+        with patch.dict(
+            "os.environ",
+            {"TSW_VAULTWARDEN_ADMIN_TOKEN": operator_token},
+            clear=True,
+        ):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
+
+        pre_apply_step = services.workflows.apply.pre_apply_steps[0]
+        pre_apply_check = services.workflows.apply.pre_apply_checks[0]
+
+        self.assertEqual("tsw_vaultwarden_admin_token", pre_apply_step.resource_name)
+        self.assertEqual(operator_token, pre_apply_step.resource_value)
+        self.assertEqual("tsw_vaultwarden_admin_token", pre_apply_check.resource_name)
+        self.assertEqual("default", pre_apply_check.source_ref)
 
     def test_build_artifact_services_uses_operator_environment_credentials(self):
         operator_value = sample_text("operator", "-supplied")
@@ -674,6 +797,7 @@ class TestComposition(unittest.TestCase):
                 "preflight",
                 "platform init",
                 "platform reconcile",
+                "platform expose",
                 "deployment bootstrap",
                 "artifacts prepare",
                 "artifacts verify",
@@ -697,6 +821,7 @@ class TestComposition(unittest.TestCase):
         )
         build_preflight.return_value.run.assert_not_called()
         build_platform.return_value.workflows.init.run.assert_not_called()
+        build_platform.return_value.workflows.expose.run.assert_not_called()
         build_artifacts.return_value.workflows.prepare.run.assert_not_called()
         build_deployment.return_value.workflows.apply.run.assert_not_called()
 
@@ -788,6 +913,7 @@ class TestComposition(unittest.TestCase):
         self.assertIsNotNone(services.workflows.init.pre_apply_guard)
         self.assertTrue(services.lxc_node_provider.allow_live_mutation)
         self.assertTrue(services.lxc_docker_install.runtime.allow_live_mutation)
+        self.assertTrue(services.lxc_service_exposure.runtime.allow_live_mutation)
         self.assertTrue(services.lxc_swarm_bootstrap.swarm.allow_live_mutation)
 
     def test_build_setup_services_wires_live_consent_into_platform_init_guard(self):
@@ -1043,6 +1169,41 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
+    def test_composed_default_lxc_expose_uses_manager_gateway_and_setup_ports(self):
+        services = composition.build_platform_services()
+
+        self.assertEqual(1, len(services.workflows.expose.steps))
+        step = services.workflows.expose.steps[0]
+
+        self.assertIsInstance(step, composition.LxcServiceExposureStep)
+        self.assertIs(step.service, services.lxc_service_exposure)
+        self.assertEqual("swarm-manager", step.service.gateway_node.name)
+        self.assertEqual(
+            composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
+            step.service.listen_address,
+        )
+        self.assertEqual(10, len(step.service.setup_manifest.required_ports))
+        self.assertEqual("Service Access", step.service.setup_manifest.services[-1].name)
+
+    def test_composed_default_lxc_expose_without_live_consent_fails_closed(self):
+        with patch.object(
+            composition,
+            "LxcProxyDeviceRuntime",
+            side_effect=AssertionError("proxy runtime must not run without consent"),
+        ):
+            services = composition.build_platform_services()
+            result = asyncio.run(services.workflows.expose.run())
+
+        self.assertEqual(PlatformWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual(
+            "platform:expose:lxc-proxy-devices",
+            result.verification_results[0].target_id,
+        )
+        self.assertEqual(
+            "10",
+            result.verification_results[0].evidence["lookup_failure_count"],
+        )
+
 
 
 def _blocked_contract_result(target_id: str) -> VerificationResult:
@@ -1135,7 +1296,7 @@ def _workflow_bundle(*names: str):
 
 
 def _platform_phase_bundle():
-    return _workflow_bundle("init", "reconcile", "verify")
+    return _workflow_bundle("init", "reconcile", "expose", "verify")
 
 
 def _artifact_phase_bundle():

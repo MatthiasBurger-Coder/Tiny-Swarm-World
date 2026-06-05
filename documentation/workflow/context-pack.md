@@ -1,96 +1,140 @@
 # Workflow Context Pack
 
-## Identity
+Workflow: `fresh-install-reset-full-deploy-v1.1.0`
 
-- Workflow: Remove Multipass Legacy Provider
-- Version: remove-multipass-legacy-v1.0.0
-- Branch: `feature/workflow-remove-multipass-legacy-20260602`
-- Created: 2026-06-02
-- Process strand: S3D
-- Execution profile: FULL_PATH
+Branch: `feature/workflow-install-reset-reinstall-20260602`
 
-## Request
+Process strand: installation wrapper, platform reset, setup run, artifact
+preparation, deployment apply/verify, service-access dashboard/index assets.
 
-Remove the complete Multipass legacy/fallback provider surface, including the
-explicit `--node-provider multipass_legacy` mode.
+Execution profile: `FULL_PATH`
 
 ## Affected Areas
 
-- `src/tiny_swarm_world/domain/node_provider`
-- `src/tiny_swarm_world/domain/preflight`
-- `src/tiny_swarm_world/application/services/platform`
-- `src/tiny_swarm_world/application/services/multipass`
-- `src/tiny_swarm_world/infrastructure/adapters`
-- `src/tiny_swarm_world/infrastructure/composition.py`
-- `infra/config/multipass`
-- `infra/config/docker/command_multipass_*.yaml`
-- `infra/config/node-providers/provider_config.yaml`
-- `tests`
-- `README.md`
-- `documentation`
-- `.agents/skills` and skill-audit references where they describe current
-  Multipass support
+* `install.sh`
+* `src/tiny_swarm_world/application/services/platform`
+* `src/tiny_swarm_world/application/ports`
+* `src/tiny_swarm_world/infrastructure/adapters/clients`
+* `src/tiny_swarm_world/infrastructure/composition.py`
+* `src/tiny_swarm_world/__main__.py`
+* `src/tiny_swarm_world/domain/artifacts`
+* `src/tiny_swarm_world/domain/deployment`
+* `infra/config/compose/service-access/docker-compose.yml`
+* `infra/compose/service-access/dashboard/index.html`
+* `infra/compose/service-access/dashboard/Dockerfile`
+* `infra/compose/service-access/nginx/default.conf`
+* `infra/compose/service-access/nginx/Dockerfile`
+* `infra/prepare`
+* `infra/platform`
+* `infra/artifacts`
+* `infra/deployment`
+* `infra/shared`
+* `documentation/user_guide`
+* `documentation/system`
+* `documentation/arc42`
+* `documentation/workflow`
 
 ## Forbidden Areas
 
-- Java, Maven, Spring Boot project structure.
-- Browser React frontend implementation.
-- Kubernetes-first reorientation.
-- Live infrastructure mutation.
-- Unrelated legacy cleanup outside the Multipass removal surface.
+* Java, Maven, Spring Boot project structure
+* Browser React or frontend build tooling
+* Multipass provider restoration
+* Kubernetes-first implementation
+* Live infrastructure execution during tests
+* External static-analysis CI additions
 
-## Required Roles And Subagents
+## Required Roles
 
-- Senior Requirement Engineer: requirement classification and blocker routing.
-- Senior System Architect: architecture and arc42 review.
-- Senior Python Automation Developer: sequential implementation worker.
-- Senior React Frontend Developer: N/A impact check.
-- Senior Tester: regression and quality gates.
-- Senior Documentation Engineer: docs and governance synchronization.
-- Senior DevOps Engineer: command and no-live-infrastructure review.
-- Senior Execution Orchestrator: dependency graph and file locks.
+* Senior Requirement Engineer
+* Senior System Architect
+* Senior Python Automation Developer
+* Senior Tester
+
+## Conditional Roles
+
+* Senior DevOps Engineer
+* Console/status UI skills
+* Senior Documentation Engineer
+* ADR Steward
+* Quality Gate Orchestrator
 
 ## Quality Commands
 
 Targeted:
 
-- `PYTHONPATH=src python3 -m unittest tests.domain.node_provider.test_provider_model`
-- `PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_node_provider_selection`
-- `PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service`
-- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository`
-- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_command_repository_yaml_contract`
-- `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint`
-- `python3 tools/quality_gate.py arch-tests`
-- `python3 tools/quality_gate.py test`
-- `git diff --check`
+```bash
+bash -n install.sh
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_node_provider_selection
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_admin_access
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_swarm_runtime
+PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_service_stack_plan
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_verify_swarm_service_readiness
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation tests.architecture.test_infra_responsibility_boundaries
+git diff --check
+```
 
-Required final:
+Required:
 
-- `python3 tools/quality_gate.py quality`
-- `git diff --check`
+```bash
+python3 tools/quality_gate.py quality
+```
 
 ## Governing File Hashes
 
 ```text
 ecba0ffcfb5ae1d2db209cbecff34d77fd79a60593e866d881f7e31c40907964  AGENTS.md
 458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6  QUALITY.md
+bd2e098afe6b99fc7dd5f15927e632e61a1a0af9907ae13de175cf30f8fe38fe  README.md
 087658240296e3b1ec74205c60a96a9a4c67a17cf653f7867e6f316bd9afa94e  .agents/skills/workflow-authoring/SKILL.md
-bae552d4860614879871413918870df6940b95af185f6c1077a023caa88e3ddb  .agents/skills/workflow-slice/SKILL.md
-fad1651bb25b5dbd3ba5c98174aea0b24ff41b42b1bbf78926140304be44af95  .agents/skills/swarm-orchestration/SKILL.md
-b554ffd4c3c8de9b313b55d8a9c99deda8c3bf3910f559105000e338680263e9  .agents/skills/execution-profile-router/SKILL.md
-23de7d9aac9d2694eae26fac2765d65f369c101ac348dac24d5f3bbe9e2d3ba4  .agents/skills/three-amigos-requirement-gatekeeper/SKILL.md
-c11b3df9e77717bad7caacb464b74db4566b00c7794cea53e2dbe39a8065e71a  .agents/orchestrator/routing-rules.md
 dae7115594172e159c051c3ece15c0b535f1570efbb28fc67440aef0bbadc9c9  documentation/process/workflow-create.md
-2d75afaced2c8c68fc8071a6b1c9782d6b3a931264562f2f43fdf05f0ced24f5  documentation/process/branch-governance.md
+8ad5fdea112c40d85e273655c2043dffddd4d5ef26b501db4ad5448d54c3b339  documentation/arc42/02_constraints.adoc
+e52b21448f3bc45728c1f3cbcafbcaef8143862072ecba66e564c896aec2f2e3  documentation/arc42/03_solution_strategy.adoc
+68103505e9054e6564ed0120ac028ae731c6397a7b3e8b4667b1d86bcd1fb6a4  documentation/arc42/05_building_blocks.adoc
+db2270020e76cb7d5c2e207c75f5d230ec7d3308c6155d383fcf28d9acf01b03  documentation/arc42/06_runtime_view.adoc
+4a8b594d8beccdada8a9988a2921f64081cb5a25d77045ae76cd00f0b8c15d10  documentation/arc42/09_architecture_decisions.adoc
+c93fc5fb06eabdcadf999c4439a2650136cb369de10c98b9819a743903e1ba32  documentation/arc42/10_quality_requirements.adoc
+7d70f32c3ef711e92af03369c41186147f009f8763c18f036cd7c0729a5e0951  documentation/arc42/11_risks_and_debt.adoc
+ea2181d416d95441450b64c42c275bcc4460753c119dae34a31df04d18c14fb9  documentation/arc42/12_glossary.adoc
+aa54aba46e870c27fe6c8cc80f64cf50100d7c8726f28de0b89beabbc86913c9  documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc
+9cb78ec6f62583ddd45e17264b87356574c828cacdf88a516f7a4e5ab9e41513  documentation/system/live-operation-surfaces.adoc
+e8f49562968443e6c867f7d363e62bca723df8beb70923c48b09f650814b0710  documentation/user_guide/installation.adoc
+8d5d7b9eb706c0d6671f40ac99824524f841529384b0897515bc32c4f1a54b62  documentation/user_guide/troubleshooting.adoc
+a783932aca5366ba3a3e0af348213a54c4166e104bcca5d54aebc2991a5aa2a7  documentation/user_guide/usage.adoc
+b5d746bf3b0ebb0152474ec1245e7c6c155f0d292999b5f80f7ba8b0129beec0  documentation/workflow/workflow.md
+a6244874fb50eb49632dbf7207f87167b09d4e3aaa5604645fe0f0be4a6b4a83  documentation/workflow/reports/02-architecture-agent-findings.md
+de1b0c3dcbe199c96459dd10c806f4a967bf05a0590b39c75f0975b65a6a0733  install.sh
+a51d95168d3c9737dadde9be387895ce4cef371e437c27064a18e4c752f561cd  src/tiny_swarm_world/application/services/platform/workflows.py
+a648266b4c974fa940fd1a13ea4e91d0fe89348b965ac60005d2a0a9d4247533  src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py
+d3d3390ae5c523edbee712d945863a20d64769c840aac102d90c3e2e24a10c47  src/tiny_swarm_world/application/services/platform/node_provider_selection.py
+fec693cf136a516b7755e196b832e28e6651cd9506c02cb63f102a8cd69eb03b  src/tiny_swarm_world/application/ports/node_provider/port_managed_node_teardown.py
+e44317065f966d55a1f2ab566b8ad2b5768a52d7a70b57366904d95a73227ec6  src/tiny_swarm_world/application/ports/node_provider/__init__.py
+1a6b8751bc3c45d8abe6aa636a3dc8caad5089598c480d582b0ee4c6f7f7aef2  src/tiny_swarm_world/application/ports/clients/port_portainer_admin_client.py
+eba21e9abe974b9249586594a12fa6d0fde8b23042454e4ceaeeb45f3c455c80  src/tiny_swarm_world/application/services/deployment/ensure_portainer_admin_access.py
+8fb4615f130fcac45f1fc253fff3da829c98298e69e77ff7cdfa783f64696903  tests/application/services/platform/test_node_provider_selection.py
+ca94e11fa58549d4281a8b69fed7789d45ca523173b8f2df61b49c6b11287318  tests/application/services/platform/test_platform_workflows.py
+d3085b4e7df8f469c2f785f12155a387e32738c1ad8f9c48fcb304beae3ffe71  tests/application/services/deployment/test_ensure_portainer_admin_access.py
+da82bfe359e14fc8626dc6baa3f1697fd75462ccfce8560a23236e46fe9248c4  src/tiny_swarm_world/__main__.py
+a67ef61e5f3e706b3186d324ee87173462d95f72eee6b0ac0487f5d554e764ad  src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py
+959c9faab307aa7d74d549b09a7060b7a34a1b68380d1ad7f0ef3eff6580066b  src/tiny_swarm_world/infrastructure/composition.py
+8af47e83362c73a17143cdc390941ee269d9e962f5fb4234816b94eff13dbdfd  tests/infrastructure/adapters/clients/test_lxc_node_provider.py
+18f7074e87866e6c71b926338d57cc258577e156135a25cafd55a38a19b5aaa7  tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py
+c1bf2aa6c1307eb120e8288a34499e1a8026c98071df958b3ad96dff2e4c6c4d  tests/infrastructure/test_composition.py
+99e42bc8bd4a3c73dd4e36b3f4b96d70da58f5574b4866bb2b75c11ab6bf15bc  tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py
+daeba2c64e53521336060d6b560937162d280f346d63cfc52a17296fed48fb41  documentation/workflow/execution-report.md
+27c01d7dad639117968f65ced77b6715024ee299ab8cf104a9858e4dbf6c9be0  tests/test_install_script.py
+b560b1902e911f2d572b005f22b48fa5baed5dcf170bdfd0b9b580a0891b9b3e  infra/prepare/README.md
+d916dfc5e81b3da20366d13ae3c9e8f3f4c5dfb26fdc228eb3969410f93f637e  infra/prepare/portainer/README.md
+1518eb2766df77b87a0687611e08582e237a64fa44a38029ad6b11fabd037719  infra/prepare/nexus/README.md
+c2aadf9b97dd756fcf56eca54e6b8b0b970c73244ca73f15c23b858b9ec3674a  infra/platform/README.md
+1eca831263b64349aaab0568f9829b5b14fd14fffbfc3813bb052514e000f3db  infra/artifacts/README.md
+9a35165a1fbfbcde6f3e75ddc9180071e526984d53702f7ee0c63ba9a64d8719  infra/deployment/README.md
+3524cd534d08daf196d4396faa86a563d27e3aedd79874a614e96afadd03e00b  infra/shared/README.md
 ```
 
-## Staleness Rules
-
-This context pack is stale when:
-
-- any governing hash changes;
-- the active branch is not `feature/workflow-remove-multipass-legacy-20260602`;
-- slice metadata changes without updating this pack;
-- new Multipass references are discovered in current support paths;
-- root `AGENTS.md`, `QUALITY.md`, ADRs, arc42, routing rules, or workflow
-  process documents conflict.
+This context pack is stale when any governing hash changes, when branch
+verification fails, or when workflow execution changes destructive scope.

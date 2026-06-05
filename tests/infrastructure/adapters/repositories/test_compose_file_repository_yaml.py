@@ -1,14 +1,21 @@
 import tempfile
+import tarfile
 import unittest
+from io import BytesIO
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
 
 from ruamel.yaml import YAML
 
+from tiny_swarm_world.domain.artifacts import DEFAULT_CONTAINER_IMAGE_CONTRACTS
 from tiny_swarm_world.domain.deployment import (
     DEFAULT_SERVICE_STACK_CONTRACTS,
     SERVICE_ACCESS_STACK_CONTRACT,
+)
+from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
+from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
+    LxcContainerImagePublisher,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import ComposeFileRepositoryYaml
 
@@ -138,6 +145,27 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
 
         self.assertEqual({}, missing_services_by_stack)
 
+    def test_committed_jenkins_compose_uses_overridable_registry_image(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_path = (
+            repository_root / "infra" / "config" / "compose" / "jenkins" / "docker-compose.yml"
+        )
+        compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            "${TSW_JENKINS_IMAGE:-swarm-manager:5000/jenkins:latest}",
+            compose_data["services"]["jenkins"]["image"],
+        )
+        self.assertEqual(
+            ["node.role == manager"],
+            compose_data["services"]["jenkins"]["deploy"]["placement"]["constraints"],
+        )
+        self.assertEqual(
+            ["jenkins_home:/var/lib/jenkins"],
+            compose_data["services"]["jenkins"]["volumes"],
+        )
+        self.assertNotIn("secrets", compose_data)
+
     def test_committed_swagger_compose_uses_official_images_and_remote_openapi_bind(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = repository_root / "infra" / "config" / "compose" / "swagger" / "docker-compose.yml"
@@ -180,11 +208,11 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertEqual("service-access", ComposeFileRepositoryYaml().get_compose_of("service-access").name)
         self.assertEqual(set(SERVICE_ACCESS_STACK_CONTRACT.required_services), set(services))
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:5000/service-access-dashboard:latest}",
+            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-swarm-manager:5000/service-access-dashboard:latest}",
             services["service-access-dashboard"]["image"],
         )
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:5000/service-access-nginx:latest}",
+            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-swarm-manager:5000/service-access-nginx:latest}",
             services["service-access-nginx"]["image"],
         )
         self.assertEqual(
@@ -237,6 +265,26 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
                 dockerfile = dockerfile_path.read_text(encoding="utf-8")
                 self.assertIn("FROM nginx:mainline-alpine", dockerfile)
                 self.assertIn(copy_line, dockerfile)
+
+    def test_service_access_image_publisher_packages_dashboard_and_nginx_assets(self):
+        publisher = _CapturingImagePublisher()
+        expected_archives = {
+            "service-access-dashboard": {"Dockerfile", "index.html"},
+            "service-access-nginx": {"Dockerfile", "default.conf"},
+        }
+
+        for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS:
+            if contract.build_context in expected_archives:
+                with self.subTest(build_context=contract.build_context):
+                    context_path = publisher._context_path(contract)
+                    publisher._transfer_context(
+                        context_path,
+                        f"/remote/images/{contract.build_context}",
+                    )
+                    self.assertEqual(
+                        expected_archives[contract.build_context],
+                        publisher.archived_files[-1],
+                    )
 
     def test_service_access_dashboard_exposes_management_table_columns(self):
         dashboard = _service_access_dashboard_html()
@@ -325,6 +373,26 @@ def _extract_links(html: str) -> list[str]:
     collector = _LinkCollector()
     collector.feed(html)
     return collector.links
+
+
+class _CapturingImagePublisher(LxcContainerImagePublisher):
+    def __init__(self):
+        super().__init__(
+            backend=ManagedLxcBackend.LXD,
+            registry_username="registry-user",
+            registry_password="registry-password",
+        )
+        self.archived_files: list[set[str]] = []
+
+    def _run_manager_shell_bytes(
+        self,
+        script: str,
+        *,
+        input_bytes: bytes,
+        timeout_seconds: int,
+    ):
+        with tarfile.open(fileobj=BytesIO(input_bytes), mode="r") as archive:
+            self.archived_files.append(set(archive.getnames()))
 
 
 def _service_access_dashboard_html() -> str:

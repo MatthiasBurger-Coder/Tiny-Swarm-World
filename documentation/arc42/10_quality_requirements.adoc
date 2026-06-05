@@ -65,8 +65,9 @@ Quality scenarios:
   host-specific paths;
 * default `lxc_native` setup and platform paths do not construct removed
   provider clients;
-* default provider-native artifact and deployment gaps return blocked
-  workflow results instead of silently falling back to another provider;
+* missing provider-native artifact or deployment prerequisites return blocked
+  or failed workflow results instead of silently falling back to another
+  provider or claiming success;
 * missing verification contracts return `blocked`, not success;
 * apply failures return `failed_to_apply` and stop later setup phases;
 * verification failures return `failed_to_verify` and stop later setup phases;
@@ -173,8 +174,9 @@ Quality scenarios:
 
 * transient admin initialization failures are retried until authentication
   succeeds or the attempt budget is exhausted;
-* a typed `PortainerAdminInitializationRejected` failure fails fast and is not
-  retried as a readiness delay;
+* a typed `PortainerAdminInitializationRejected` failure fails fast when the
+  requested credentials still cannot authenticate, and is not retried as a
+  readiness delay;
 * LXC-native Portainer admin adapters translate
   rejected HTTP initialization responses into the typed application-port
   exception when the requested credentials cannot authenticate;

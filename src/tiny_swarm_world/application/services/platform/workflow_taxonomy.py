@@ -13,6 +13,7 @@ DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION = "DESTROY_TINY_SWARM_PLATFORM"
 class PlatformWorkflowKind(str, Enum):
     INIT = "init"
     RECONCILE = "reconcile"
+    EXPOSE = "expose"
     RESET = "reset"
     DESTROY = "destroy"
     VERIFY = "verify"
@@ -94,12 +95,14 @@ class PlatformWorkflowResult:
         semantics: PlatformWorkflowSemantics,
         message: str,
         verification_results: tuple[VerificationResult, ...] = (),
+        *,
+        executed: bool = False,
     ) -> PlatformWorkflowResult:
         return cls(
             kind=semantics.kind,
             status=PlatformWorkflowStatus.BLOCKED,
             message=message,
-            executed=False,
+            executed=executed,
             verification_results=verification_results,
         )
 
@@ -148,6 +151,13 @@ PLATFORM_WORKFLOW_TAXONOMY = {
         destructive=False,
         requires_confirmation=False,
         meaning="converge existing managed state",
+    ),
+    PlatformWorkflowKind.EXPOSE: PlatformWorkflowSemantics(
+        kind=PlatformWorkflowKind.EXPOSE,
+        mutating=True,
+        destructive=False,
+        requires_confirmation=False,
+        meaning="expose published Swarm service ports through the LXC gateway",
     ),
     PlatformWorkflowKind.RESET: PlatformWorkflowSemantics(
         kind=PlatformWorkflowKind.RESET,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+import textwrap
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -11,6 +12,7 @@ from tiny_swarm_world.application.ports.clients.port_portainer_admin_client impo
     PortainerAdminInitializationRejected,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.domain.inventory.safe_text import validate_message_text
 
 
 class DeploymentWorkflowKind(str, Enum):
@@ -49,6 +51,17 @@ class DeploymentPreApplyCheck(Protocol):
         pass
 
 
+class DeploymentPreApplyStep(Protocol):
+    def run(self) -> object:
+        # Protocol declaration; concrete steps prepare pre-apply inputs.
+        pass
+
+
+DeploymentWorkflowComponent = (
+    DeploymentApplyStep | DeploymentVerifyCheck | DeploymentPreApplyCheck | DeploymentPreApplyStep
+)
+
+
 @dataclass(frozen=True)
 class DeploymentWorkflowResult:
     kind: DeploymentWorkflowKind
@@ -83,17 +96,31 @@ DEPLOYMENT_APPLY_CONTRACTS_BLOCKED_MESSAGE = (
     "deployment apply is blocked until stack deployment contracts are wired."
 )
 VERIFICATION_EVIDENCE_MISSING_MESSAGE = "Verification evidence is missing."
+DIAGNOSTIC_PAYLOAD_REDACTED = "Diagnostic payload redacted."
+UNSAFE_EXCEPTION_DETAIL_TERMS = (
+    "authorization",
+    "credential",
+    "password",
+    "payload",
+    "response body",
+    "secret",
+    "stderr",
+    "stdout",
+    "token",
+)
 
 
 class DeploymentApplyWorkflow:
     def __init__(
         self,
         steps: Sequence[DeploymentApplyStep] = (),
+        pre_apply_steps: Sequence[DeploymentPreApplyStep] = (),
         pre_apply_checks: Sequence[DeploymentPreApplyCheck] = (),
         blocked_reason: str = DEFAULT_DEPLOYMENT_APPLY_BLOCK_REASON,
         kind: DeploymentWorkflowKind = DeploymentWorkflowKind.APPLY,
     ):
         self.steps = tuple(steps)
+        self.pre_apply_steps = tuple(pre_apply_steps)
         self.pre_apply_checks = tuple(pre_apply_checks)
         self.blocked_reason = blocked_reason
         self.kind = kind
@@ -109,6 +136,15 @@ class DeploymentApplyWorkflow:
             )
 
         verification_results: list[VerificationResult] = []
+        pre_apply_prepare_result = await _run_pre_apply_steps(
+            self.pre_apply_steps,
+            self.kind,
+            verification_results,
+            self.logger,
+        )
+        if pre_apply_prepare_result is not None:
+            return pre_apply_prepare_result
+
         pre_apply_result = await _run_pre_apply_checks(
             self.pre_apply_checks,
             self.kind,
@@ -148,9 +184,9 @@ class DeploymentApplyWorkflow:
                 )
                 return DeploymentWorkflowResult(
                     kind=self.kind,
-                    status=DeploymentWorkflowStatus.FAILED_TO_PREPARE,
-                    message="deployment prepare failed for a configured stack contract.",
-                    reason=_prepare_failure_reason(target_id, exc, safe_error),
+                    status=DeploymentWorkflowStatus.FAILED_TO_APPLY,
+                    message="deployment apply failed for a configured stack contract.",
+                    reason=_apply_failure_reason(target_id, exc, safe_error),
                     executed=True,
                     verification_results=(
                         *verification_results,
@@ -247,15 +283,30 @@ def _step_has_verification(step: DeploymentApplyStep | DeploymentVerifyCheck) ->
 
 def _safe_exception_summary(exc: Exception) -> str:
     status_code = getattr(exc, "status_code", None)
+    safe_detail = _safe_exception_detail(exc)
+    detail = safe_detail or DIAGNOSTIC_PAYLOAD_REDACTED
     if status_code is not None:
-        return f"{exc.__class__.__name__} HTTP {status_code}. Diagnostic payload redacted."
-    return f"{exc.__class__.__name__}. Diagnostic payload redacted."
+        return f"{exc.__class__.__name__} HTTP {status_code}. {detail}"
+    return f"{exc.__class__.__name__}. {detail}"
 
 
-def _prepare_failure_reason(target_id: str, exc: Exception, safe_error: str) -> str:
-    if isinstance(exc, PortainerAdminInitializationRejected):
-        return f"prepare failed for {target_id}: {safe_error}"
-    return f"prepare failed with {exc.__class__.__name__}"
+def _safe_exception_detail(exc: Exception) -> str:
+    detail = str(exc).strip()
+    if not detail or detail == exc.__class__.__name__:
+        return ""
+    normalized_detail = detail.casefold()
+    if any(term in normalized_detail for term in UNSAFE_EXCEPTION_DETAIL_TERMS):
+        return ""
+    detail = textwrap.shorten(detail, width=180, placeholder="...")
+    try:
+        validate_message_text("exception_summary", detail)
+    except ValueError:
+        return ""
+    return detail
+
+
+def _apply_failure_reason(target_id: str, exc: Exception, safe_error: str) -> str:
+    return f"apply failed for {target_id}: {safe_error}"
 
 
 def _apply_failure_evidence(exc: Exception) -> dict[str, str]:
@@ -275,7 +326,7 @@ def _apply_failure_evidence(exc: Exception) -> dict[str, str]:
 
 
 def _verification_target_id(
-    step: DeploymentApplyStep | DeploymentVerifyCheck | DeploymentPreApplyCheck,
+    step: DeploymentWorkflowComponent,
     fallback: str,
 ) -> str:
     target_id = getattr(step, "verification_target_id", "")
@@ -285,6 +336,47 @@ def _verification_target_id(
     if deployment_target_id:
         return str(deployment_target_id)
     return fallback
+
+
+async def _run_pre_apply_steps(
+    steps: Sequence[DeploymentPreApplyStep],
+    kind: DeploymentWorkflowKind,
+    verification_results: list[VerificationResult],
+    logger: logging.Logger,
+) -> DeploymentWorkflowResult | None:
+    for step in steps:
+        target_id = _verification_target_id(step, "deployment:pre-apply-step")
+        try:
+            prepare_result = step.run()
+            if inspect.isawaitable(prepare_result):
+                await prepare_result
+        except Exception as exc:
+            safe_error = _safe_exception_summary(exc)
+            logger.error(
+                "Failed to prepare deployment input '%s'. Error: %s",
+                target_id,
+                safe_error,
+            )
+            verification_results.append(
+                VerificationResult(
+                    target_id=target_id,
+                    status=VerificationStatus.FAILED_TO_APPLY,
+                    message=f"Pre-apply preparation failed for {target_id}: {safe_error}",
+                    evidence={
+                        "phase": "pre_apply",
+                        "failure_class": exc.__class__.__name__,
+                    },
+                )
+            )
+            return DeploymentWorkflowResult(
+                kind=kind,
+                status=DeploymentWorkflowStatus.FAILED_TO_PREPARE,
+                message="deployment prepare failed for a configured pre-apply contract.",
+                reason=f"pre-apply prepare failed with {exc.__class__.__name__}",
+                executed=True,
+                verification_results=tuple(verification_results),
+            )
+    return None
 
 
 async def _run_pre_apply_checks(
@@ -316,7 +408,7 @@ async def _run_pre_apply_checks(
 
 
 async def _verify_step(
-    step: DeploymentApplyStep | DeploymentVerifyCheck | DeploymentPreApplyCheck,
+    step: DeploymentWorkflowComponent,
     target_id: str,
 ) -> VerificationResult:
     verify = getattr(step, "verify", None)

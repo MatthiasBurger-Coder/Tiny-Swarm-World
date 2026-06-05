@@ -14,8 +14,9 @@ The implementation strategy is:
 * separate application composition into Platform, Artifacts, and Deployment
   service bundles while keeping them in one Python automation application;
 * move stack lifecycle ownership into the Deployment namespace while keeping
-  live deployment behavior blocked behind explicit workflow contracts until
-  Portainer, Nexus, registry, and observed-state contracts exist;
+  live deployment behavior behind explicit workflow contracts that require
+  consent plus observed registry, Portainer, Swarm, external-input, and
+  readiness evidence before success is claimed;
 * treat command YAML as a typed command catalog with safety classes,
   workflow allow-lists, typed parameters, effects, and verification metadata;
 * keep desired inventory separate from observed runtime state and local

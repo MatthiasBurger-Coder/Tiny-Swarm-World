@@ -1,319 +1,395 @@
-# Workflow: Remove Multipass Legacy Provider
-
-## Metadata
+# Workflow: Fresh Install Reset And Full Deploy
 
 ```yaml
-workflow_id: remove-multipass-legacy-v1.0.0
-created: 2026-06-02
-branch: feature/workflow-remove-multipass-legacy-20260602
-status: READY_FOR_EXECUTION
-request: "Remove the complete Multipass legacy/fallback provider surface, including explicit --node-provider multipass_legacy."
-process_strand: S3D
+workflow_id: fresh-install-reset-full-deploy-v1.1.0
+workflow_version: 1.1.0
+branch: feature/workflow-install-reset-reinstall-20260602
 execution_profile: FULL_PATH
-primary_boundary: Node provider architecture
-secondary_boundaries:
-  - Python automation
-  - Command configuration
-  - Host preflight
-  - Documentation governance
-  - Test and quality contracts
-live_infrastructure_default: false
-subagents_enabled: true
+released_for_workflow_execute: true
+created_utc: "2026-06-02T00:00:00Z"
+request: "install.sh soll frisch installieren, vorher resetten, danach vollständig hochfahren und alle Deployments inklusive Service-Access index.html enthalten."
+decision: READY_FOR_WORKFLOW
+confidence: 95
 ```
 
 ## Executive Summary
 
-Tiny Swarm World is now LXC-native through LXD or Incus and must no longer
-retain Multipass as an explicit legacy or fallback provider. This workflow
-removes the `multipass_legacy` product surface end to end: CLI selection,
-domain provider models, application services, infrastructure adapters,
-Multipass command YAML, tests, and documentation.
+At workflow creation time, `install.sh` prepared local secrets and evidence,
+then ran `setup run --live` without discarding existing LXC-native, Docker
+Swarm, Portainer or service-stack state before setup. Existing product
+architecture already distinguished non-destructive `init` and `reconcile`
+from destructive `reset` and `destroy`, but the fresh-install reset path still
+needed managed-resource teardown wiring.
 
-The work is FULL_PATH because it changes runtime provider scope, architecture
-documentation, command configuration, test contracts, and public usage
-instructions. No live infrastructure command is authorized. Verification uses
-static inspection, Python unit tests, architecture gates, and the repository
-quality gate.
+This workflow makes the installation wrapper mean fresh installation:
+before the canonical live setup run, the current managed local Tiny Swarm World
+system is explicitly reset through governed platform boundaries. After reset,
+`install.sh` must drive the full guided setup profile through platform,
+artifact preparation, deployment apply, deployment verify, and final platform
+verification. The Durchstich is complete only when the selected profile
+contains all expected deployments, including the service-access stack and its
+image-packaged dashboard `index.html`.
+
+Existing update and reconcile mechanisms must remain available for their own
+commands unless they block the fresh install path.
 
 ## Requirement Clarification Gate
 
-```yaml
-gate: requirement_clarification
-status: READY_FOR_WORKFLOW
-confidence: 0.94
-decision: READY_FOR_WORKFLOW
-clarification_attempts: 1
-```
-
 Original request:
 
-- "`Legacy/Fallback-Oberflaeche fuer explizites --node-provider multipass_legacy`
-  can be removed completely."
-- "Create a workflow create with subagents."
+* A previous Portainer admin initialization failure showed
+  `PortainerAdminInitializationRejected HTTP 409`.
+* The first desired step is not an idempotent Portainer-only workaround.
+* When `install.sh` is called, the current system should be discarded and
+  installed fresh.
+* If update mechanisms already exist, keep them unless they block
+  reinstallation.
+* The workflow must include a reset step.
+* The final outcome should be one complete `install.sh` run that brings the
+  system up and includes all deployments, including the project's own
+  service-access/index page.
 
 Interpreted intent:
 
-- Remove Multipass from supported and documented product behavior.
-- Remove `--node-provider multipass_legacy` as an accepted user-facing mode.
-- Remove Multipass-specific source modules, command YAML, tests, and docs where
-  they no longer describe supported behavior.
-- Keep the project Linux/WSL-only, Docker Swarm first, and LXC-native through
-  LXD or Incus.
+* Define and implement a destructive fresh-install prelude for `install.sh`.
+* Make that prelude a mandatory reset, not an optional cleanup note.
+* Complete the installation Durchstich through all configured setup phases and
+  deployments.
+* Include service-access dashboard assets, especially
+  `infra/compose/service-access/dashboard/index.html`, in acceptance.
+* Preserve non-destructive update/reconcile paths.
+* Treat Portainer 409 as evidence that persistent prior state must be handled
+  by reset or destroy before install, not only by retrying admin bootstrap.
 
 Change type:
 
-- Product scope reduction.
-- Architecture and documentation synchronization.
-- Python automation cleanup.
-- Test contract update.
+* Python automation behavior change.
+* Live installation wrapper behavior change.
+* Platform destructive workflow implementation.
+* Documentation and quality-gate synchronization.
 
 Affected process strand:
 
-- S3D workflow execution with subagent review.
+* `install.sh` live wrapper.
+* `platform reset`.
+* `setup run --live`.
+* Artifact image preparation.
+* Deployment apply and verify.
+* Service-access dashboard/index asset path.
 
 Affected architecture area:
 
-- Node provider selection.
-- Host preflight.
-- Command workflow configuration.
-- Infrastructure adapter composition.
-- User, deployment, system, and arc42 documentation.
+* Application platform workflows and ports.
+* Infrastructure composition for LXC-native destructive steps.
+* Entry-point consent handling.
+* Installation documentation and arc42 runtime view.
 
 Explicit requirements:
 
-- Remove the complete Multipass legacy/fallback provider surface.
-- Remove explicit `--node-provider multipass_legacy`.
-- Use subagents in the workflow.
+* `install.sh` means fresh installation.
+* `install.sh` must reset the managed local Tiny Swarm World system before
+  setup.
+* After reset, `install.sh` must run the complete guided setup and deployment
+  sequence for the selected profile.
+* The default `service-access` profile must include Portainer, Nexus, Jenkins,
+  RabbitMQ, SonarQube, Swagger, and service-access deployment contracts.
+* The service-access dashboard image must include the committed
+  `infra/compose/service-access/dashboard/index.html` file.
+* Existing update/reconcile mechanisms stay intact.
+* Update/reconcile behavior may be bypassed or constrained only when it blocks
+  the fresh installation path.
+* Do not run live infrastructure commands while implementing or testing this
+  workflow unless explicitly requested.
 
 Implicit requirements:
 
-- Preserve hexagonal architecture boundaries.
-- Keep default provider direction LXC-native through LXD or Incus.
-- Do not run live Multipass, LXC, Docker Swarm, compose, or service bootstrap
-  commands.
-- Update tests and documentation so no supported workflow mentions Multipass.
-- Preserve unrelated user changes.
+* Destructive reset must remain consent-gated.
+* Reset must use application ports and infrastructure adapters, not direct
+  application-layer shell details.
+* Reset must be scoped to configured Tiny Swarm World managed nodes and state,
+  not all host/provider containers.
+* Setup must stop if reset fails.
+* Deployment must not be reported complete until required service-access stack
+  and readiness evidence are available.
+* Tests must use fakes/mocks for LXD, Incus, LXC, Docker Swarm, compose,
+  Portainer and service bootstraps.
+* Documentation must not claim live success without evidence.
+* Generated secrets and local evidence must remain under ignored local state.
 
 Assumptions:
 
-- Historical audit files may retain Multipass references only when clearly
-  archival and not used as current instructions.
-- Skills or governance registry entries that mention Multipass are reviewed
-  separately from product runtime code; remove or update them only when they
-  state current product support.
-- VM-neutral concepts may remain only if they are still needed by LXC-native or
-  Incus/LXD behavior.
+* Fresh install may remove managed provider nodes, Docker/Swarm state,
+  Portainer state and deployed service stack state owned by Tiny Swarm World.
+* Fresh install must not delete the repository, committed `infra/config`,
+  operator-provided external tools, or unrelated host resources.
+* The first implementation can target the default `lxc_native` path through
+  LXD or Incus.
+* "All deploys" means the configured full guided setup profile,
+  `service-access`, unless the operator explicitly selects `default`.
+* A later update workflow can still use `platform reconcile` or stack
+  create/update behavior.
 
 Non-goals:
 
-- No Java, Maven, Spring Boot, React frontend, Kubernetes-first behavior, or
-  new external static-analysis CI.
-- No live infrastructure mutation.
-- No service-stack deployment changes except references needed to remove
-  Multipass assumptions.
-- No unrelated cleanup of legacy files outside the Multipass removal surface.
+* No Kubernetes-first behavior.
+* No Multipass provider restoration.
+* No Java, Maven, Spring Boot, React or browser frontend work.
+* No host package installation automation.
+* No live reset or live installation run during workflow creation.
+* No removal of update/reconcile code solely because fresh install bypasses it.
 
 Risks:
 
-- Multipass terms are used both as product behavior and as historical audit
-  evidence; execution must distinguish current support from archive text.
-- VM abstractions may be reused by non-Multipass code and must not be removed
-  blindly.
-- Removing provider enum values and config validation can cascade through CLI,
-  preflight, composition, and tests.
-- Documentation can drift if README, user guide, arc42, and deployment docs are
-  not updated in the same workflow.
+* Destructive scope could be too broad and remove non-project resources.
+* Destructive scope could be too narrow and leave Portainer or Swarm state that
+  triggers the same 409 failure.
+* LXD and Incus teardown commands differ and must be isolated behind adapters.
+* A reset-only implementation could pass but still leave artifact or deployment
+  gaps; this workflow requires full setup/deployment acceptance.
+* Service-access may be blocked by missing external Swarm inputs or image
+  publication gaps and must be reported as a blocker rather than success.
+* Existing blocked `reset`/`destroy` documentation must be updated only after
+  implementation evidence exists.
 
 Open questions:
 
-- None blocking.
+* Which exact managed resources are in scope for "current system" once the
+  provider node names become configurable?
+* Whether the reset call is implemented as an internal `platform reset`
+  invocation from `install.sh` or through a dedicated setup reinstall service
+  is an implementation detail, but the reset behavior is mandatory.
 
 Blocking questions:
 
-- None.
+* None for workflow authoring. The exact teardown command list is a Slice 01
+  design output and must be verified from current provider composition before
+  implementation.
 
-## Execution Profile
+Decision:
 
-```text
-executionProfile=FULL_PATH
-reason=The workflow changes provider architecture, CLI behavior, runtime preflight, command YAML, tests, and public documentation.
-requiredFullReviews=Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior React Frontend Developer impact check, Senior Tester, Senior Documentation Engineer, Senior DevOps Engineer
-allowedImpactChecks=Senior React Frontend Developer may record N/A because repository evidence says this is not a React frontend project.
-requiredQualityChecks=targeted unittest gates, python3 tools/quality_gate.py arch-tests, python3 tools/quality_gate.py test, python3 tools/quality_gate.py quality, git diff --check
-stopConditions=unclear current-vs-archive references, architecture ambiguity, live infrastructure requirement, failing quality gate, or overlapping file locks
-```
-
-## Verified Baseline At Authoring
-
-- Active branch verified:
-  `feature/workflow-remove-multipass-legacy-20260602`.
-- Root `AGENTS.md` states Multipass is retained only as explicit
-  legacy/fallback, and the user superseded that product scope for this
-  workflow.
-- `QUALITY.md` defines the quality gate as
-  `python3 tools/quality_gate.py quality`.
-- Multipass references currently exist in source, tests, `infra/config`,
-  `infra/swarm`, README, user docs, system docs, arc42, skill docs, and active
-  workflow artifacts.
-- `infra/config/multipass` currently contains five Multipass command YAML files.
-- `infra/config/docker` currently contains Multipass Docker/Swarm command YAML.
-- Multipass services currently exist under
-  `src/tiny_swarm_world/application/services/multipass`.
-- Multipass infrastructure clients currently exist under
-  `src/tiny_swarm_world/infrastructure/adapters/clients`.
+* `READY_FOR_WORKFLOW`.
 
 ## Target Picture
 
-After `workflow execute with subagents` completes:
+`./install.sh` performs a fresh install by default:
 
-- CLI help and argument handling no longer accept or advertise
-  `multipass_legacy`.
-- Domain provider models and preflight configuration no longer define
-  Multipass as a supported provider or runtime dependency.
-- Application and infrastructure Multipass modules are removed or replaced with
-  LXC-native equivalents where needed.
-- Multipass command YAML under `infra/config` is removed.
-- Tests no longer assert Multipass legacy support; regression tests prove the
-  remaining LXC-native provider path.
-- README, user guide, deployment, system, and arc42 docs consistently state
-  LXC-native through LXD/Incus as the supported node-provider direction.
-- Archival Multipass references are either removed from current guidance or
-  clearly marked historical.
-- Required quality gates pass without live infrastructure.
+1. loads or generates local secrets;
+2. writes evidence context;
+3. obtains live consent as today;
+4. runs a governed destructive reset of the managed local Tiny Swarm World
+   system;
+5. refuses to continue if reset is blocked or failed;
+6. runs the canonical `setup run --live --service-profile service-access`
+   path by default;
+7. prepares required artifacts, including service-access dashboard and NGINX
+   images;
+8. deploys all selected service stacks: Portainer, Nexus, Jenkins, RabbitMQ,
+   SonarQube, Swagger and service-access;
+9. verifies service readiness evidence, including service-access dashboard,
+   Vaultwarden and service-access NGINX services;
+10. records reset, setup, artifact and deployment evidence.
+
+Update-style behavior remains available through non-install commands such as
+`platform reconcile` and existing deployment stack create/update services.
+
+## Creation-Time Verified Baseline
+
+* Active branch is `feature/workflow-install-reset-reinstall-20260602`.
+* At workflow creation time, `install.sh` called
+  `PYTHONPATH=src python3 -m tiny_swarm_world setup run --live` and did not
+  call `platform reset` or `platform destroy`.
+* `PlatformResetWorkflow` and `PlatformDestroyWorkflow` exist and require exact
+  confirmation phrases.
+* At workflow creation time, confirmed reset/destroy blocked when no steps were
+  configured.
+* At workflow creation time, arc42 glossary stated reset/destroy were
+  destructive and still awaiting retention or teardown semantics.
+* Portainer admin initialization currently fails fast on typed HTTP rejection
+  when requested credentials cannot authenticate.
+* The default `install.sh` service profile is `service-access`.
+* Service-access dashboard assets exist at
+  `infra/compose/service-access/dashboard/index.html`.
+* Existing composition already wires artifact targets
+  `artifacts:service-access-dashboard-image` and
+  `artifacts:service-access-nginx-image`.
+* Existing composition already wires deployment targets
+  `deployment:service-access-stack`,
+  `deployment:service-access-external-input`, and
+  `deployment:service-access-service-readiness`.
+
+## Scope
+
+In scope:
+
+* Define fresh-install resource ownership and retention semantics.
+* Add LXC-native destructive platform step contracts and adapters.
+* Wire reset/destroy steps through composition while keeping confirmation.
+* Update `install.sh` to perform the destructive prelude before setup.
+* Ensure the install Durchstich executes the complete selected setup profile,
+  not only platform bootstrap.
+* Verify service-access compose and image assets, including the dashboard
+  `index.html`, are part of the default install path.
+* Preserve update/reconcile behavior for non-install workflows.
+* Add mocked tests and documentation updates.
+* Re-check Portainer 409 behavior after reset semantics are in place.
+
+Out of scope:
+
+* Live infrastructure execution in automated tests.
+* Production remote cluster lifecycle.
+* Kubernetes deployment.
+* External static-analysis CI additions.
 
 ## Architecture Constraints
 
-- Domain code remains independent from application and infrastructure.
-- Application services depend on ports and domain objects, not concrete
-  infrastructure adapters.
-- Infrastructure adapters own command runners, filesystem details, HTTP
-  clients, preflight probes, and YAML handling.
-- Standard runtime wiring remains in
+* Domain remains independent of application and infrastructure.
+* Application services depend on ports, not concrete LXC, Docker or shell
+  commands.
+* LXD/Incus, Docker and shell details stay in infrastructure adapters.
+* Standard runtime wiring remains in
   `src/tiny_swarm_world/infrastructure/composition.py`.
-- Entry-point code remains thin.
-- No Windows-specific or PowerShell behavior is introduced.
-- No live `multipass`, `lxc`, `incus`, `docker swarm`, compose, netplan, socat,
-  Nexus, Jenkins, Portainer, RabbitMQ, SonarQube, or Swagger/NGINX commands run
-  during verification.
+* `src/tiny_swarm_world/__main__.py` remains thin.
+* Destructive commands require `--live`, short interactive live consent and the
+  exact destructive confirmation phrase.
+* No live `incus`, `lxc`, `docker swarm`, compose, netplan, socat or service
+  bootstrap command may run during tests.
 
 ## Python Automation Assessment
 
-This workflow affects Python source in domain, application, infrastructure,
-composition, and tests. Removal must be dependency-driven:
-
-- remove or rewrite references from outer layers inward;
-- keep provider selection behavior explicit and test-backed;
-- remove command YAML contracts only after tests no longer depend on them;
-- verify package exports and CLI help do not expose removed names.
+Primary work is Python automation. Implement with typed ports, small services,
+deterministic fakes and existing platform workflow result contracts.
 
 ## Frontend Assessment
 
-Senior React Frontend Developer impact: N/A. Repository governance states Tiny
-Swarm World is not a React frontend project. No browser frontend module,
-package tooling, or React component is in scope.
-
-Console/status UI text may need updates if it displays Multipass provider names.
-That work routes to Python automation and console/status UI review, not React.
+No browser frontend or React work is involved. Console/status UI impact is
+limited to existing terminal status vocabulary for reset/setup progress.
 
 ## Test Strategy
 
-Use targeted gates first:
+Run targeted tests first:
 
-- `PYTHONPATH=src python3 -m unittest tests.domain.node_provider.test_provider_model`
-- `PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_node_provider_selection`
-- `PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service`
-- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository`
-- `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint`
-- `python3 tools/quality_gate.py arch-tests`
-- `python3 tools/quality_gate.py test`
+```bash
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_admin_access
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_swarm_runtime
+PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_service_stack_plan
+PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_verify_swarm_service_readiness
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+```
 
-Required final gate:
+Required gate before commit or push when practical:
 
-- `python3 tools/quality_gate.py quality`
-- `git diff --check`
+```bash
+python3 tools/quality_gate.py quality
+```
+
+Documentation-only checkpoints may use:
+
+```bash
+git diff --check
+```
 
 ## Resilience Requirements
 
-- Removal must fail closed: unsupported `multipass_legacy` selection must
-  produce a clear validation error instead of silently selecting another
-  provider.
-- Preflight must not probe Multipass once the provider is removed.
-- Command workflow validation must not expect removed YAML.
-- Documentation must not claim unimplemented compatibility.
-
-## Subagent Orchestration
-
-One write-capable implementation worker owns file mutations. Subagents are
-read-only reviewers unless a later execution workflow explicitly delegates a
-bounded write slice.
-
-Subagents:
-
-- `requirements_reviewer`: Senior Requirement Engineer, validates scope,
-  acceptance criteria, and current-vs-archive distinctions.
-- `architecture_reviewer`: Senior System Architect, validates provider boundary,
-  hexagonal imports, composition, and arc42 alignment.
-- `python_worker`: Senior Python Automation Developer, sequential
-  implementation owner.
-- `test_reviewer`: Senior Tester, validates regression coverage and quality
-  gates.
-- `documentation_reviewer`: Senior Documentation Engineer, validates README,
-  user guide, deployment, system, and arc42 consistency.
-- `devops_reviewer`: Senior DevOps Engineer, validates no live infrastructure
-  commands and command YAML cleanup.
-- `react_impact_reviewer`: Senior React Frontend Developer, records N/A impact
-  only.
+* Reset is idempotent for already-missing managed resources.
+* Reset evidence records sanitized target IDs and statuses only.
+* Partial reset failures stop before setup starts.
+* Setup does not run after destructive reset failure.
+* Artifact or deployment failures stop before reporting install success.
+* Service-access external-input or readiness blockers are surfaced explicitly.
+* Portainer 409 after reset is treated as a blocker requiring evidence review,
+  not hidden by repeated initialization attempts.
 
 ## Ordered Slices
 
-### Slice 01 - Requirement And Reference Classification
+### Slice 01: Define Fresh-Install Destructive Scope
+
+Purpose:
+
+Define exactly what `install.sh` may discard before setup and how reset differs
+from update/reconcile. Confirm that the Durchstich target includes the full
+default `service-access` profile.
 
 ```yaml
 slice_id: "01"
 profile: FULL_PATH
-owner: Senior Requirement Engineer
+owner: Senior System Architect
 secondary_reviewers:
-  - Senior Documentation Engineer
-  - Senior System Architect
+  - Senior Requirement Engineer
+  - Senior DevOps Engineer
 affected_files:
-  - documentation/workflow/**
-  - README.md
-  - documentation/**
-  - AGENTS.md
+  - documentation/arc42/02_constraints.adoc
+  - documentation/arc42/06_runtime_view.adoc
+  - documentation/arc42/12_glossary.adoc
+  - documentation/system/live-operation-surfaces.adoc
+  - documentation/user_guide/installation.adoc
+  - infra/prepare/README.md
+  - infra/prepare/portainer/README.md
+  - infra/prepare/nexus/README.md
+  - infra/platform/README.md
+  - infra/artifacts/README.md
+  - infra/deployment/README.md
+  - infra/shared/README.md
 affected_modules:
-  - workflow governance
-  - documentation
+  - platform
+  - infra layout
 affected_contracts:
-  - node-provider-support-contract
+  - platform reset
+  - platform destroy
+  - infra boundary marker documentation
 dependencies: []
-parallel_group: serial-01
+parallel_group: A
 file_locks:
-  - workflow-documents
-  - current-support-documentation
+  - documentation/arc42/02_constraints.adoc
+  - documentation/arc42/06_runtime_view.adoc
+  - documentation/arc42/12_glossary.adoc
+  - documentation/system/live-operation-surfaces.adoc
+  - documentation/user_guide/installation.adoc
+  - infra/prepare/README.md
+  - infra/prepare/portainer/README.md
+  - infra/prepare/nexus/README.md
+  - infra/platform/README.md
+  - infra/artifacts/README.md
+  - infra/deployment/README.md
+  - infra/shared/README.md
 contract_locks:
-  - node-provider-support-contract
+  - destructive-platform-semantics
 architecture_locks:
-  - provider-scope
+  - hexagonal-platform-boundary
+  - platform-layout-boundary
 quality_gates:
   targeted:
+    - PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation tests.architecture.test_infra_responsibility_boundaries
     - git diff --check
   required:
-    - git diff --check
+    - python3 tools/quality_gate.py quality
 documentation:
-  arc42: check-and-update
-  adr: check-needed
+  arc42: update runtime/glossary only after source semantics are clear
+  adr: decide whether reset semantics require ADR update
 stop_conditions:
-  - A Multipass reference cannot be classified as current support, historical archive, or removable dead code.
-  - Root governance and user request conflict in a way that requires owner decision.
+  - destructive scope would require guessing non-project resource ownership
+  - reset behavior conflicts with existing safety ADR
 ```
 
 Done criteria:
 
-- Current support references are separated from archival audit references.
-- Non-goals and stop conditions are confirmed.
-- ADR need is decided before implementation proceeds.
+* Fresh install ownership boundary is documented.
+* Update/reconcile preservation is explicit.
+* The workflow explicitly chooses reset as mandatory first install action.
+* The full-deploy target includes service-access dashboard/index acceptance.
+* Destructive reset confirmation remains mandatory.
+* Infra boundary and retired-helper marker documentation required by
+  architecture tests is present without executable setup entry points.
 
-### Slice 02 - Provider Model And CLI Removal
+### Slice 02: Implement Reset/Destroy Step Contracts
+
+Purpose:
+
+Add application-level step contracts for destructive managed-system reset and
+verify-after-reset evidence.
 
 ```yaml
 slice_id: "02"
@@ -323,240 +399,252 @@ secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - src/tiny_swarm_world/domain/node_provider/provider_model.py
-  - src/tiny_swarm_world/domain/preflight/preflight_configuration.py
-  - src/tiny_swarm_world/application/services/platform/node_provider_selection.py
-  - src/tiny_swarm_world/__main__.py
-  - tests/domain/node_provider/test_provider_model.py
-  - tests/application/services/platform/test_node_provider_selection.py
-  - tests/test_package_entrypoint.py
+  - src/tiny_swarm_world/application/ports
+  - src/tiny_swarm_world/application/services/platform
+  - tests/application/services/platform
 affected_modules:
-  - tiny_swarm_world.domain.node_provider
-  - tiny_swarm_world.domain.preflight
-  - tiny_swarm_world.application.services.platform
-  - tiny_swarm_world.__main__
+  - tiny_swarm_world.application
 affected_contracts:
-  - NodeProviderKind
-  - ProviderSelection
-  - CLI node-provider options
+  - PlatformResetWorkflow
+  - PlatformDestroyWorkflow
 dependencies:
   - "01"
-parallel_group: serial-02
+parallel_group: B
 file_locks:
-  - provider-model
-  - cli-entrypoint
+  - src/tiny_swarm_world/application/ports
+  - src/tiny_swarm_world/application/services/platform
+  - tests/application/services/platform
 contract_locks:
-  - node-provider-support-contract
-architecture_locks:
-  - domain-application-boundary
-quality_gates:
-  targeted:
-    - PYTHONPATH=src python3 -m unittest tests.domain.node_provider.test_provider_model
-    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_node_provider_selection
-    - PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
-  required:
-    - python3 tools/quality_gate.py arch-tests
-documentation:
-  arc42: update-provider-decision
-  adr: check-needed
-stop_conditions:
-  - CLI behavior would silently map multipass_legacy to another provider.
-  - Domain model removal breaks LXC-native provider selection semantics.
-```
-
-Done criteria:
-
-- `multipass_legacy` is not accepted by supported CLI options.
-- Provider selection tests cover remaining valid providers and removed-provider
-  failure behavior.
-- Domain provider model no longer exposes Multipass support.
-
-### Slice 03 - Application Services And Command Configuration Removal
-
-```yaml
-slice_id: "03"
-profile: FULL_PATH
-owner: Senior Python Automation Developer
-secondary_reviewers:
-  - Senior DevOps Engineer
-  - Senior Tester
-affected_files:
-  - src/tiny_swarm_world/application/services/multipass/**
-  - src/tiny_swarm_world/application/services/platform/__init__.py
-  - src/tiny_swarm_world/application/services/platform/preflight_service.py
-  - src/tiny_swarm_world/application/services/vm/**
-  - src/tiny_swarm_world/application/services/network/netplant/**
-  - src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/**
-  - infra/config/multipass/**
-  - infra/config/docker/command_multipass_*.yaml
-  - infra/config/vm/**
-  - infra/config/network/netplant/**
-  - tests/application/services/multipass/**
-  - tests/infrastructure/adapters/repositories/test_command_repository_yaml_contract.py
-affected_modules:
-  - tiny_swarm_world.application.services.multipass
-  - tiny_swarm_world.application.services.platform
-  - command configuration
-affected_contracts:
-  - CommandWorkflowId
-  - command YAML workflow configuration
-dependencies:
-  - "02"
-parallel_group: serial-03
-file_locks:
-  - application-multipass-services
-  - command-yaml-config
-contract_locks:
-  - command-workflow-configuration
+  - platform-reset-result-contract
 architecture_locks:
   - application-depends-on-ports
 quality_gates:
   targeted:
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_command_repository_yaml_contract
+    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
   required:
-    - python3 tools/quality_gate.py test
+    - python3 tools/quality_gate.py quality
 documentation:
-  arc42: update-runtime-and-building-blocks
-  adr: check-needed
+  arc42: pending Slice 05
+  adr: pending Slice 01 decision
 stop_conditions:
-  - A VM or netplan module is still required by LXC-native behavior and cannot be safely removed.
-  - Command YAML removal would leave dangling workflow validation references.
+  - application service needs concrete LXC/Docker shell details
+  - reset cannot produce safe verification evidence
 ```
 
 Done criteria:
 
-- Multipass application services are removed from exports and tests.
-- Multipass command YAML files are removed.
-- Remaining command workflow tests reflect supported LXC-native behavior only.
+* Confirmed reset/destroy can execute configured steps.
+* Missing confirmation refuses before mutation.
+* Missing or failed verification blocks or fails before setup.
+* Tests use fakes only.
 
-### Slice 04 - Infrastructure Adapter And Composition Removal
+### Slice 03: Add LXC-Native Destructive Infrastructure Adapter
+
+Purpose:
+
+Implement the LXD/Incus managed-resource teardown adapter behind the new port.
+The adapter must delete only configured or marker-verified Tiny Swarm World
+managed containers; it must not implement a broad "delete all LXC containers"
+host operation.
+
+```yaml
+slice_id: "03"
+profile: FULL_PATH
+owner: Senior DevOps Engineer
+secondary_reviewers:
+  - Senior Python Automation Developer
+  - Senior Tester
+affected_files:
+  - src/tiny_swarm_world/infrastructure/adapters/clients
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/infrastructure
+affected_modules:
+  - tiny_swarm_world.infrastructure
+affected_contracts:
+  - lxc_native reset adapter
+dependencies:
+  - "02"
+parallel_group: C
+file_locks:
+  - src/tiny_swarm_world/infrastructure/adapters/clients
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/infrastructure
+contract_locks:
+  - lxc-native-managed-resource-teardown
+architecture_locks:
+  - infrastructure-implements-ports
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: pending Slice 05
+  adr: pending Slice 01 decision
+stop_conditions:
+  - adapter would need to delete resources not provably owned by Tiny Swarm World
+  - implementation needs live provider commands in tests
+```
+
+Done criteria:
+
+* Adapter commands are deterministic and scoped to managed node names/state.
+* Adapter never deletes unmarked, unknown, or non-configured containers.
+* Already-missing resources are treated as successful reset evidence.
+* Composition wires reset/destroy steps only for supported provider selection.
+
+### Slice 04: Make install.sh Fresh-Install By Default
+
+Purpose:
+
+Call the governed destructive reset prelude from `install.sh` before
+`setup run --live`, then require the full selected setup profile to complete
+before reporting installation success.
 
 ```yaml
 slice_id: "04"
 profile: FULL_PATH
 owner: Senior Python Automation Developer
 secondary_reviewers:
-  - Senior System Architect
   - Senior DevOps Engineer
   - Senior Tester
 affected_files:
-  - src/tiny_swarm_world/infrastructure/adapters/clients/multipass_*.py
-  - src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py
-  - src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py
-  - src/tiny_swarm_world/infrastructure/adapters/repositories/vm_repository_yaml.py
-  - src/tiny_swarm_world/infrastructure/composition.py
-  - infra/config/node-providers/provider_config.yaml
-  - tests/infrastructure/adapters/clients/test_multipass_*.py
-  - tests/infrastructure/adapters/preflight/test_host_preflight_probe.py
-  - tests/infrastructure/adapters/repositories/test_node_provider_config_yaml_repository.py
-  - tests/infrastructure/test_composition.py
+  - install.sh
+  - tests
+  - documentation/user_guide/installation.adoc
 affected_modules:
-  - tiny_swarm_world.infrastructure.adapters.clients
-  - tiny_swarm_world.infrastructure.adapters.preflight
-  - tiny_swarm_world.infrastructure.adapters.repositories
-  - tiny_swarm_world.infrastructure.composition
+  - installation wrapper
 affected_contracts:
-  - host-preflight-probe
-  - node-provider-config-yaml
-  - composition-container
+  - install.sh fresh-install contract
 dependencies:
-  - "02"
   - "03"
-parallel_group: serial-04
+parallel_group: D
 file_locks:
-  - infrastructure-multipass-adapters
-  - composition
-  - node-provider-config
+  - install.sh
+  - tests
+  - documentation/user_guide/installation.adoc
 contract_locks:
-  - runtime-adapter-contract
-  - provider-config-contract
+  - install-wrapper-live-contract
 architecture_locks:
-  - infrastructure-implements-ports
+  - live-consent-contract
 quality_gates:
   targeted:
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe
+    - bash -n install.sh
+    - PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
   required:
-    - python3 tools/quality_gate.py arch-tests
-    - python3 tools/quality_gate.py test
+    - python3 tools/quality_gate.py quality
 documentation:
-  arc42: update-deployment-and-concepts
-  adr: check-needed
+  arc42: pending Slice 05
+  adr: pending Slice 01 decision
 stop_conditions:
-  - Composition still constructs removed Multipass adapters.
-  - Preflight still executes or expects Multipass probes.
-  - Provider config schema requires a legacy fallback.
+  - install.sh would bypass live consent or destructive confirmation
+  - setup can run after reset failure
 ```
 
 Done criteria:
 
-- Multipass infrastructure adapters and tests are gone or rewritten to
-  remaining provider behavior.
-- Composition does not register Multipass clients.
-- Provider config validation no longer requires `multipass_legacy`.
+* `install.sh` records reset and setup evidence.
+* Setup starts only after successful reset.
+* Install exits non-zero when reset is blocked or failed.
+* Existing non-install update/reconcile commands remain reachable.
+* Shell parsing validates with `bash -n install.sh`.
 
-### Slice 05 - Documentation And Governance Synchronization
+### Slice 05: Complete Full Deployment Durchstich
+
+Purpose:
+
+Ensure the post-reset `install.sh` path drives the complete guided setup:
+artifact preparation, stack deployment, service readiness checks, and
+service-access dashboard/index inclusion.
 
 ```yaml
 slice_id: "05"
 profile: FULL_PATH
-owner: Senior Documentation Engineer
+owner: Senior Python Automation Developer
 secondary_reviewers:
-  - Senior Requirement Engineer
-  - Senior System Architect
   - Senior Tester
+  - Senior DevOps Engineer
+  - Senior System Architect
 affected_files:
-  - README.md
-  - AGENTS.md
-  - documentation/arc42/**
-  - documentation/deployment/**
-  - documentation/system/**
-  - documentation/user_guide/**
-  - documentation/epics/**
-  - documentation/architecture/**
-  - documentation/skill-audit/**
-  - .agents/skills/**
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - src/tiny_swarm_world/domain/artifacts/container_image_contract.py
+  - src/tiny_swarm_world/domain/deployment/service_stack_contract.py
+  - infra/config/compose/service-access/docker-compose.yml
+  - infra/compose/service-access/dashboard/Dockerfile
+  - infra/compose/service-access/dashboard/index.html
+  - infra/compose/service-access/nginx/Dockerfile
+  - infra/compose/service-access/nginx/default.conf
+  - tests/infrastructure/test_composition.py
+  - tests/domain/deployment/test_service_stack_contract.py
+  - tests/application/services/deployment/test_service_stack_plan.py
+  - tests/application/services/deployment/test_verify_swarm_service_readiness.py
+  - tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py
 affected_modules:
-  - documentation
-  - governance
+  - tiny_swarm_world.domain.artifacts
+  - tiny_swarm_world.domain.deployment
+  - tiny_swarm_world.infrastructure
+  - service-access assets
 affected_contracts:
-  - product-operating-model
-  - node-provider-documentation
+  - full guided setup profile
+  - service-access stack
+  - service-access dashboard image
+  - service-access nginx image
 dependencies:
-  - "02"
-  - "03"
   - "04"
-parallel_group: serial-05
+parallel_group: E
 file_locks:
-  - documentation-provider-scope
-  - arc42-provider-scope
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - src/tiny_swarm_world/domain/artifacts/container_image_contract.py
+  - src/tiny_swarm_world/domain/deployment/service_stack_contract.py
+  - infra/config/compose/service-access/docker-compose.yml
+  - infra/compose/service-access/dashboard/Dockerfile
+  - infra/compose/service-access/dashboard/index.html
+  - infra/compose/service-access/nginx/Dockerfile
+  - infra/compose/service-access/nginx/default.conf
+  - tests/infrastructure/test_composition.py
+  - tests/domain/deployment/test_service_stack_contract.py
+  - tests/application/services/deployment/test_service_stack_plan.py
+  - tests/application/services/deployment/test_verify_swarm_service_readiness.py
+  - tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py
 contract_locks:
-  - product-operating-model
+  - service-access-deployment-contract
+  - install-full-deploy-contract
 architecture_locks:
-  - architecture-documentation-consistency
+  - deployment-profile-boundary
 quality_gates:
   targeted:
-    - git diff --check
-    - rg -n "multipass|Multipass|multipass_legacy" README.md documentation AGENTS.md .agents
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+    - PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+    - PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_service_stack_plan
+    - PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_verify_swarm_service_readiness
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
   required:
-    - git diff --check
+    - python3 tools/quality_gate.py quality
 documentation:
-  arc42: update
-  adr: check-needed
+  arc42: update deployment/runtime view after evidence
+  adr: none expected unless changing service-access ownership
 stop_conditions:
-  - Current user guidance still presents Multipass as supported.
-  - Archival references are ambiguous and could be read as current behavior.
+  - default setup path omits service-access after reset
+  - service-access dashboard index is no longer image-packaged
+  - deployment readiness is inferred without observed evidence
 ```
 
 Done criteria:
 
-- Current docs no longer advertise Multipass support.
-- arc42 constraints, context, solution strategy, building blocks, deployment
-  view, risks, and glossary align with LXC-native only support.
-- Any retained historical references are explicitly archival.
+* The default install profile includes all expected stacks.
+* Service-access dashboard and NGINX images are part of artifact preparation.
+* The dashboard Dockerfile copies `index.html` into the image.
+* Deployment apply includes `deployment:service-access-stack`.
+* Deployment verify includes `deployment:service-access-service-readiness`.
+* Install success cannot be reported when any selected artifact, stack, or
+  readiness target is blocked or failed.
 
-### Slice 06 - Final Quality Gate And Handoff
+### Slice 06: Reconcile Portainer Admin 409 Behavior
+
+Purpose:
+
+Verify whether fresh reset removes the Portainer 409 failure. Keep or adjust
+Portainer admin idempotency only if needed after reset semantics.
 
 ```yaml
 slice_id: "06"
@@ -565,150 +653,222 @@ owner: Senior Tester
 secondary_reviewers:
   - Senior Python Automation Developer
   - Senior System Architect
-  - Senior Documentation Engineer
 affected_files:
-  - src/**
-  - tests/**
-  - infra/config/**
-  - documentation/**
-  - README.md
+  - src/tiny_swarm_world/application/services/deployment/ensure_portainer_admin_access.py
+  - src/tiny_swarm_world/application/ports/clients/port_portainer_admin_client.py
+  - src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py
+  - tests/application/services/deployment/test_ensure_portainer_admin_access.py
+  - tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py
 affected_modules:
-  - full repository quality surface
+  - tiny_swarm_world.application.services.deployment
+  - tiny_swarm_world.infrastructure.adapters.clients
 affected_contracts:
-  - quality-gate-contract
+  - Portainer admin bootstrap
 dependencies:
   - "05"
-parallel_group: serial-06
+parallel_group: F
 file_locks:
-  - final-verification
+  - src/tiny_swarm_world/application/services/deployment/ensure_portainer_admin_access.py
+  - src/tiny_swarm_world/application/ports/clients/port_portainer_admin_client.py
+  - src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py
+  - tests/application/services/deployment/test_ensure_portainer_admin_access.py
+  - tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py
 contract_locks:
-  - quality-gate-contract
+  - portainer-admin-bootstrap
 architecture_locks:
-  - hexagonal-architecture
+  - deployment-client-port-boundary
 quality_gates:
   targeted:
-    - python3 tools/quality_gate.py arch-tests
-    - python3 tools/quality_gate.py test
-    - git diff --check
+    - PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_admin_access
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_swarm_runtime
   required:
     - python3 tools/quality_gate.py quality
-    - git diff --check
 documentation:
-  arc42: checked
-  adr: checked
+  arc42: update rejection-gate wording if behavior changes
+  adr: none expected unless changing safety contract
 stop_conditions:
-  - Any required quality gate fails.
-  - Removed Multipass behavior is still reachable through CLI, composition, config, tests, or current documentation.
+  - idempotency would hide wrong configured credentials
+  - Portainer API probing requires live network calls in unit tests
 ```
 
 Done criteria:
 
-- Full quality gate passes or a typed blocker report is produced.
-- `rg` evidence proves no current support references remain.
-- Handoff to commit/push is ready only after the user requests it.
+* If reset fully removes prior Portainer state, existing fail-fast rejection can
+  remain.
+* If retained Portainer state is intentionally supported, admin initialization
+  adds a safe initialized-state check or 409-as-success path only when the goal
+  is already achieved.
+* No credential payloads appear in logs or evidence.
 
-## Dependency Graph
+### Slice 07: Documentation And Quality Closure
+
+Purpose:
+
+Synchronize user docs, arc42, live-operation surfaces, workflow evidence and
+quality gates.
+
+```yaml
+slice_id: "07"
+profile: FULL_PATH
+owner: Senior Documentation Engineer
+secondary_reviewers:
+  - Senior Tester
+  - Senior System Architect
+affected_files:
+  - documentation/user_guide/installation.adoc
+  - documentation/user_guide/troubleshooting.adoc
+  - documentation/system/live-operation-surfaces.adoc
+  - documentation/arc42/**
+  - documentation/workflow/**
+affected_modules:
+  - documentation
+affected_contracts:
+  - install fresh-install operator contract
+dependencies:
+  - "06"
+parallel_group: G
+file_locks:
+  - documentation/user_guide/installation.adoc
+  - documentation/user_guide/troubleshooting.adoc
+  - documentation/system/live-operation-surfaces.adoc
+  - documentation/arc42/**
+  - documentation/workflow/**
+contract_locks:
+  - documentation-runtime-alignment
+architecture_locks:
+  - arc42-current-behavior-only
+quality_gates:
+  targeted:
+    - git diff --check
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: required
+  adr: required only if Slice 01 identifies a new decision
+stop_conditions:
+  - docs claim live end-to-end success without evidence
+  - docs describe planned reset behavior as implemented before code lands
+```
+
+Done criteria:
+
+* Installation guide says `install.sh` performs fresh install once implemented.
+* Installation guide states that default fresh install uses the `service-access`
+  profile and includes the service-access dashboard/index path.
+* Troubleshooting explains Portainer 409 as stale state or credential mismatch.
+* arc42 reflects actual implemented reset behavior.
+* Workflow execution report records commands and results.
+
+## Slice Dependency Graph
 
 ```mermaid
 flowchart TD
-  S01["Slice 01 Requirement And Reference Classification"] --> S02["Slice 02 Provider Model And CLI Removal"]
-  S02 --> S03["Slice 03 Application Services And Command Configuration Removal"]
-  S02 --> S04["Slice 04 Infrastructure Adapter And Composition Removal"]
+  S01["Slice 01: Scope"] --> S02["Slice 02: App Contracts"]
+  S02 --> S03
   S03 --> S04
-  S04 --> S05["Slice 05 Documentation And Governance Synchronization"]
-  S05 --> S06["Slice 06 Final Quality Gate And Handoff"]
+  S04 --> S05["Slice 05: Full Deploy"]
+  S05 --> S06["Slice 06: Portainer 409"]
+  S06 --> S07["Slice 07: Docs & Gates"]
 ```
 
 ## Parallelization Opportunities
 
-Default execution is serial because provider model, command configuration,
-composition, tests, and documentation share the same product contract. Read-only
-subagent reviews may run in parallel after each slice, but the implementation
-worker remains sequential.
+* Execution is intentionally serial for this workflow because destructive
+  reset semantics, application contracts, LXC-native adapter behavior,
+  `install.sh`, deployment acceptance and final documentation all depend on
+  prior slice evidence.
+* Slice 01 must happen first.
+* Slice 02 follows Slice 01.
+* Slice 03 follows Slice 02 because the infrastructure adapter must implement
+  the accepted application port/contract.
+* Slice 04 follows Slices 02 and 03.
+* Slice 05 follows Slice 04.
+* Slice 06 follows Slice 05.
+* Slice 07 closes after implementation and test evidence.
 
-Potential parallel read-only reviews:
+## Ownership Map
 
-- Documentation reviewer can classify references during Slice 01.
-- React impact reviewer can record N/A at any point after Slice 01.
-- Tester can inspect expected failing tests while Python worker handles Slice 02.
+* Senior Requirement Engineer: requirement drift, non-goals, acceptance.
+* Senior System Architect: destructive boundary and ADR decision.
+* Senior Python Automation Developer: application services, wrapper behavior.
+* Senior Tester: fake-based regression suite and quality-gate evidence.
+* Senior DevOps Engineer: LXD/Incus/Docker Swarm command safety review.
+* Senior Documentation Engineer: documentation and workflow consistency.
+* Frontend assessment: no browser or React execution route; use console/status
+  UI skills only if terminal progress vocabulary changes.
+* Console/status UI skills: terminal status only if reset progress vocabulary
+  changes.
 
 ## Documentation Synchronization Points
 
-- Slice 01: classify docs as current guidance versus archival evidence.
-- Slice 02: update provider-selection docs after CLI contract changes.
-- Slice 04: update architecture docs after composition and adapter removal.
-- Slice 05: synchronize README, user guide, deployment docs, system docs, arc42,
-  skill audit, and governance references.
-- Slice 06: record final verification evidence.
+* After Slice 01: document planned destructive scope without claiming
+  implementation.
+* After Slice 04: update installation guide to describe actual fresh-install
+  behavior.
+* After Slice 05: document full setup/deployment Durchstich and service-access
+  dashboard/index inclusion.
+* After Slice 06: update Portainer troubleshooting and arc42 quality wording.
 
 ## Stop Conditions
 
 Stop workflow execution when:
 
-- required branch verification fails;
-- unrelated local changes overlap with slice write scopes;
-- any slice would require live infrastructure commands;
-- current support versus archival Multipass evidence cannot be distinguished;
-- provider removal requires an ADR and no ADR decision exists;
-- a quality gate fails and the Typed Error Router cannot classify it locally;
-- architecture checks indicate boundary drift.
+* live infrastructure commands would be required without explicit approval;
+* destructive ownership cannot be verified from repository configuration;
+* reset would remove unrelated host/provider resources;
+* update/reconcile code would need removal without a blocker;
+* `install.sh` could finish without selected profile deployments;
+* service-access dashboard/index assets are not included in the deployment
+  contract;
+* architecture would require application services to run raw shell commands;
+* documentation would need to claim behavior before implementation evidence.
 
-## Uncertainty Escalation Rules
+## Uncertainty Escalation
 
-- Requirement ambiguity routes to Senior Requirement Engineer and the Three
-  Amigos gate.
-- Architecture ambiguity routes to Senior System Architect and arc42 governance.
-- Test or quality ambiguity routes to Senior Tester and quality-gate skills.
-- Command or live infrastructure ambiguity routes to Senior DevOps Engineer.
-- File lock conflicts route to Senior Execution Orchestrator.
+Escalate to the Root Architect when reset scope, retention semantics, ADR need,
+or ownership of provider resources cannot be determined from repository
+evidence.
 
 ## Commit And Push Plan
 
-No commit or push is authorized by this workflow creation request. During
-workflow execution, commit and push are allowed only when the user explicitly
-requests them and required quality gates pass.
+* Commit workflow artifacts separately from implementation if requested.
+* The current user request explicitly includes `push && workflow execute`.
+* During execution, commit slices in dependency order after targeted tests pass.
+* Push each successful slice checkpoint to
+  `origin/feature/workflow-install-reset-reinstall-20260602`.
+* Do not create or merge a pull request unless explicitly requested.
 
 ## Definition Of Done
 
-- Multipass legacy/fallback provider support is removed from source, config,
-  tests, and current documentation.
-- Remaining provider behavior is LXC-native through LXD or Incus.
-- Unsupported Multipass selection fails clearly and is not silently remapped.
-- No live infrastructure command was run.
-- `python3 tools/quality_gate.py quality` and `git diff --check` pass, or a
-  typed blocker report explains the failure.
-- arc42 and README/user-facing docs align with the new product scope.
+* `install.sh` performs a consent-gated destructive reset before setup.
+* Reset is scoped to Tiny Swarm World managed local resources.
+* Existing update/reconcile paths remain available unless proven blockers.
+* `install.sh` completes the full selected setup profile after reset.
+* Default install includes Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+  Swagger, and service-access deployment contracts.
+* Service-access dashboard `index.html` is image-packaged and included in the
+  install acceptance path.
+* Install success is impossible while any selected artifact, deployment, or
+  readiness check is blocked or failed.
+* Portainer 409 is either eliminated by reset or handled with explicit safe
+  semantics.
+* Tests cover success, refused consent, reset failure, already-missing
+  resources and setup-not-run-after-reset-failure.
+* Required quality gates are executed or skips are documented.
+* arc42 and user documentation match implemented behavior.
 
-## Handoff To Workflow Execute
+## Handoff To workflow execute
 
-Use:
+Before execution:
 
-```text
-workflow execute
-```
-
-Execution must first verify:
-
-- active branch is `feature/workflow-remove-multipass-legacy-20260602`;
-- context pack hashes are current;
-- slice metadata is complete;
-- file locks do not overlap with user changes;
-- no live infrastructure commands are requested.
+* verify active branch is `feature/workflow-install-reset-reinstall-20260602`;
+* verify this workflow and context pack are current;
+* run Slice 01 before write-capable implementation;
+* keep live infrastructure commands out of tests.
 
 ## arc42 Check Status
 
-arc42 impact is required. Execution must update or explicitly check:
-
-- `documentation/arc42/02_constraints.adoc`
-- `documentation/arc42/03_solution_strategy.adoc`
-- `documentation/arc42/04_context_and_scope.adoc`
-- `documentation/arc42/05_building_blocks.adoc`
-- `documentation/arc42/07_deployment_view.adoc`
-- `documentation/arc42/09_architecture_decisions.adoc`
-- `documentation/arc42/10_quality_requirements.adoc`
-- `documentation/arc42/11_risks_and_debt.adoc`
-- `documentation/arc42/12_glossary.adoc`
-
-ADR status: check required during Slice 01. If removal changes an existing
-architecture decision rather than only completing it, create or update the
-appropriate ADR before implementation continues.
+arc42 was checked during workflow creation and again during Slice 07 closure.
+Runtime, constraint, building-block, quality, risk, glossary and decision
+wording now reflect the implemented fresh-install reset path and guarded
+Portainer 409 behavior without claiming live end-to-end success.

@@ -40,6 +40,11 @@ class EnsurePortainerAdminAccess:
             try:
                 self.portainer_admin_client.initialize_admin_user(self.username, self.password)
             except PortainerAdminInitializationRejected as exc:
+                if self._can_authenticate():
+                    self.logger.info(
+                        "Portainer admin initialization was rejected after credentials became active."
+                    )
+                    return
                 safe_error = _safe_exception_summary(exc)
                 self.logger.error(
                     "Failed to initialize Portainer admin access. Error: %s",

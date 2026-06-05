@@ -93,11 +93,43 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
 
         result = await DeploymentApplyWorkflow((FailingStep(),)).run()
 
-        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_PREPARE, result.status)
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_APPLY, result.status)
         self.assertTrue(result.executed)
-        self.assertEqual("prepare failed with RuntimeError", result.reason)
+        self.assertEqual(
+            "apply failed for deployment:portainer-stack: RuntimeError. Diagnostic payload redacted.",
+            result.reason,
+        )
         self.assertNotIn("sensitive response", result.reason)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
+
+    async def test_apply_workflow_preserves_actionable_safe_apply_failure_summary(self):
+        class FailingStep:
+            verification_target_id = "deployment:jenkins-stack"
+
+            async def run(self) -> None:
+                await async_checkpoint()
+                raise RuntimeError("Failed to create Portainer stack 'jenkins'. HTTP 500.")
+
+            async def verify(self) -> VerificationResult:
+                await async_checkpoint()
+                raise AssertionError("verify must not run after failed apply")
+
+        with self.assertLogs("DeploymentApplyWorkflow", level="ERROR") as captured:
+            result = await DeploymentApplyWorkflow((FailingStep(),)).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertIn(
+            "RuntimeError. Failed to create Portainer stack 'jenkins'. HTTP 500.",
+            captured.output[0],
+        )
+        self.assertIn(
+            "RuntimeError. Failed to create Portainer stack 'jenkins'. HTTP 500.",
+            result.verification_results[0].message,
+        )
+        self.assertIn(
+            "RuntimeError. Failed to create Portainer stack 'jenkins'. HTTP 500.",
+            result.reason,
+        )
 
     async def test_apply_workflow_reports_portainer_admin_rejection_with_safe_diagnostics(self):
         class RejectedPortainerAdminStep:
@@ -120,7 +152,7 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
                 kind=DeploymentWorkflowKind.BOOTSTRAP,
             ).run()
 
-        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_PREPARE, result.status)
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_APPLY, result.status)
         self.assertIn("PortainerAdminInitializationRejected HTTP 409", result.reason)
         self.assertNotIn(sensitive_assignment(), result.reason)
         self.assertIn("PortainerAdminInitializationRejected HTTP 409", captured.output[0])
@@ -163,6 +195,45 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
             "pre-apply verification failed for deployment:service-access-external-input",
             result.reason,
         )
+
+    async def test_apply_workflow_prepares_external_inputs_before_pre_apply_checks(self):
+        pre_apply_step = _PreApplyStep("deployment:service-access-external-input")
+        pre_apply_check = _VerifiedDeploymentCheck("deployment:service-access-external-input")
+        step = _OrderedApplyStep("deployment:service-access-stack", VerificationStatus.VERIFIED)
+
+        result = await DeploymentApplyWorkflow(
+            (step,),
+            pre_apply_steps=(pre_apply_step,),
+            pre_apply_checks=(pre_apply_check,),
+        ).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.COMPLETED, result.status)
+        self.assertTrue(pre_apply_step.ran)
+        self.assertTrue(step.ran)
+        self.assertEqual(
+            ("deployment:service-access-external-input", "deployment:service-access-stack"),
+            tuple(verification.target_id for verification in result.verification_results),
+        )
+
+    async def test_apply_workflow_reports_pre_apply_prepare_failures_without_raw_payloads(self):
+        pre_apply_step = _PreApplyStep(
+            "deployment:service-access-external-input",
+            exception=RuntimeError(sensitive_assignment()),
+        )
+        pre_apply_check = _VerifiedDeploymentCheck("deployment:service-access-external-input")
+        step = _OrderedApplyStep("deployment:service-access-stack", VerificationStatus.VERIFIED)
+
+        result = await DeploymentApplyWorkflow(
+            (step,),
+            pre_apply_steps=(pre_apply_step,),
+            pre_apply_checks=(pre_apply_check,),
+        ).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_PREPARE, result.status)
+        self.assertTrue(result.executed)
+        self.assertFalse(step.ran)
+        self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
+        self.assertNotIn(sensitive_assignment(), str(result.to_dict()))
 
     async def test_apply_workflow_reports_verify_failures(self):
         class FailedVerifyStep:
@@ -322,6 +393,19 @@ class _BlockedDeploymentCheck:
     async def verify(self) -> VerificationResult:
         await async_checkpoint()
         return _verification_result(self.verification_target_id, VerificationStatus.BLOCKED)
+
+
+class _PreApplyStep:
+    def __init__(self, target_id: str, exception: Exception | None = None):
+        self.verification_target_id = target_id
+        self.exception = exception
+        self.ran = False
+
+    async def run(self) -> None:
+        await async_checkpoint()
+        self.ran = True
+        if self.exception is not None:
+            raise self.exception
 
 
 class _AlwaysActivePortainerAdminClient:

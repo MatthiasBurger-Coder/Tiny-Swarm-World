@@ -9,7 +9,8 @@ for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX.
 
 The current architecture goals are:
 
-* keep normal `platform init` and `platform reconcile` non-destructive;
+* keep normal `platform init`, `platform reconcile`, and `platform expose`
+  non-destructive;
 * require explicit live-infrastructure consent before mutating local
   infrastructure;
 * keep `platform reset` and `platform destroy` behind exact confirmation

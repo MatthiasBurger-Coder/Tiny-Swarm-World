@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -31,6 +32,8 @@ from tiny_swarm_world.application.services.deployment import (
     DeploymentWorkflowResult,
     DeploymentWorkflowStatus,
     DeploymentVerifyWorkflow,
+    EnsureExternalSwarmSecret,
+    EnsurePortainerEndpoint,
     EnsurePortainerAdminAccess,
     EnsureSwarmStack,
     VerifyExternalSwarmInput,
@@ -41,9 +44,11 @@ from tiny_swarm_world.application.services.deployment.service_stack_plan import 
     build_service_stack_steps,
 )
 from tiny_swarm_world.application.ports.node_provider import (
+    LxcProxyDeviceState,
     PortContainerDockerRuntime,
     PortContainerNetworkIdentity,
     PortContainerSwarmBootstrap,
+    PortLxcProxyDeviceRuntime,
 )
 from tiny_swarm_world.application.ports.progress import PortWorkflowProgress
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
@@ -58,12 +63,17 @@ from tiny_swarm_world.application.services.platform import (
     AsyncWorkflowStep,
     LxcDockerInstallService,
     LxcDockerInstallStep,
+    LxcServiceExposureService,
+    LxcServiceExposureStep,
     LxcSwarmBootstrapService,
     LxcSwarmBootstrapStep,
+    NodeProviderDestroyManagedNodesStep,
     NodeProviderEnsureNodeStep,
+    NodeProviderResetManagedNodesStep,
     NodeProviderSelectionRequest,
     NodeProviderSelectionService,
     PlatformDestroyWorkflow,
+    PlatformExposeWorkflow,
     PlatformInitWorkflow,
     PlatformReconcileWorkflow,
     PlatformResetWorkflow,
@@ -82,6 +92,7 @@ from tiny_swarm_world.domain.deployment import (
     service_stack_contracts_for_profile,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.domain.network import LxcProxyDevicePlan
 from tiny_swarm_world.domain.node_provider import (
     ContainerDockerInstallOutcome,
     ContainerDockerReadiness,
@@ -100,6 +111,7 @@ from tiny_swarm_world.domain.node_provider import (
 from tiny_swarm_world.domain.preflight import (
     LiveConsent,
     PreflightConfiguration,
+    default_setup_manifest,
     default_preflight_configuration,
 )
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
@@ -114,6 +126,9 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runti
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_swarm_bootstrap import (
     LxcContainerNetworkIdentity,
     LxcContainerSwarmBootstrap,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc_proxy_device_runtime import (
+    LxcProxyDeviceRuntime,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
     LxcContainerImagePublisher,
@@ -152,8 +167,17 @@ from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
+VAULTWARDEN_ADMIN_TOKEN_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN"
 VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"
 DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME = "tsw_vaultwarden_admin_token"
+SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
+DEFAULT_SWARM_REGISTRY_ENDPOINT = "swarm-manager:5000"
+LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
+DEFAULT_LXC_PROXY_LISTEN_ADDRESS = "0.0.0.0"
+JENKINS_IMAGE_ENVIRONMENT = "TSW_JENKINS_IMAGE"
+SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"
+SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_NGINX_IMAGE"
+REGISTRY_ENDPOINT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*(?::[0-9]{1,5})?$")
 DEFAULT_LXC_PLATFORM_NODES = (
     NodeSpec("swarm-manager", NodeRole.MANAGER, NodeProviderKind.LXC_NATIVE),
     NodeSpec("swarm-worker-1", NodeRole.WORKER, NodeProviderKind.LXC_NATIVE),
@@ -173,6 +197,7 @@ LXC_RECONCILE_VERIFIED_MESSAGE = (
 class PlatformWorkflows:
     init: PlatformInitWorkflow
     reconcile: PlatformReconcileWorkflow
+    expose: PlatformExposeWorkflow
     reset: PlatformResetWorkflow
     destroy: PlatformDestroyWorkflow
     verify: PlatformVerifyWorkflow
@@ -182,6 +207,7 @@ class PlatformWorkflows:
 class PlatformServices:
     command_workflow: CommandWorkflow
     lxc_docker_install: LxcDockerInstallService
+    lxc_service_exposure: LxcServiceExposureService
     lxc_swarm_bootstrap: LxcSwarmBootstrapService
     preflight: PreflightService
     lxc_node_provider: LxcNodeProvider
@@ -523,6 +549,66 @@ class _ProviderSelectedLxcSwarmRuntime(
         )
 
 
+class _ProviderSelectedLxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
+    def __init__(
+        self,
+        *,
+        provider_selection: NodeProviderSelectionService,
+        provider_request: NodeProviderSelectionRequest,
+        runner: LxcNodeCommandRunner,
+        allow_live_mutation: bool,
+    ) -> None:
+        self.provider_selection = provider_selection
+        self.provider_request = provider_request
+        self.runner = runner
+        self.allow_live_mutation = allow_live_mutation
+
+    async def inspect_proxy_device(
+        self,
+        node: NodeSpec,
+        plan: LxcProxyDevicePlan,
+    ) -> LxcProxyDeviceState:
+        if not self.allow_live_mutation:
+            return LxcProxyDeviceState.UNKNOWN
+        delegate = await self._delegate()
+        if delegate is None:
+            return LxcProxyDeviceState.UNKNOWN
+        return await delegate.inspect_proxy_device(node, plan)
+
+    async def create_proxy_device(
+        self,
+        node: NodeSpec,
+        plan: LxcProxyDevicePlan,
+    ) -> bool:
+        delegate = await self._delegate()
+        if delegate is None:
+            return False
+        return await delegate.create_proxy_device(node, plan)
+
+    async def update_proxy_device(
+        self,
+        node: NodeSpec,
+        plan: LxcProxyDevicePlan,
+    ) -> bool:
+        delegate = await self._delegate()
+        if delegate is None:
+            return False
+        return await delegate.update_proxy_device(node, plan)
+
+    async def _delegate(self) -> LxcProxyDeviceRuntime | None:
+        backend = await _selected_lxc_backend(
+            self.provider_selection,
+            self.provider_request,
+        )
+        if backend is None:
+            return None
+        return LxcProxyDeviceRuntime(
+            backend=backend,
+            runner=self.runner,
+            allow_live_mutation=self.allow_live_mutation,
+        )
+
+
 async def _selected_lxc_backend(
     provider_selection: NodeProviderSelectionService,
     provider_request: NodeProviderSelectionRequest,
@@ -652,6 +738,7 @@ def build_platform_services(
             wsl_lxc_capability_available=_wsl_lxc_lifecycle_capability_available,
         ),
         lxc_node_provider,
+        lxc_node_provider,
     )
     lxc_docker_runtime = _ProviderSelectedLxcDockerRuntime(
         provider_selection=node_provider_selection,
@@ -669,6 +756,18 @@ def build_platform_services(
     lxc_swarm_bootstrap = LxcSwarmBootstrapService(
         lxc_swarm_runtime,
         lxc_swarm_runtime,
+    )
+    lxc_proxy_runtime = _ProviderSelectedLxcProxyDeviceRuntime(
+        provider_selection=node_provider_selection,
+        provider_request=provider_request,
+        runner=lxc_runner,
+        allow_live_mutation=False if live_consent is None else live_consent.accepted,
+    )
+    lxc_service_exposure = LxcServiceExposureService(
+        lxc_proxy_runtime,
+        gateway_node=_lxc_manager_node(),
+        setup_manifest=default_setup_manifest(service_profile=service_profile),
+        listen_address=_lxc_proxy_listen_address(),
     )
     socat_manager = SocatManager()
     init_steps = _platform_init_steps(
@@ -709,13 +808,28 @@ def build_platform_services(
             method_trace=method_trace,
             trace_correlation_id=trace_correlation_id,
         ),
+        expose=PlatformExposeWorkflow(
+            _platform_expose_steps(lxc_service_exposure),
+            verification_evidence_repository=verification_evidence_repository,
+            progress=workflow_progress,
+            method_trace=method_trace,
+            trace_correlation_id=trace_correlation_id,
+        ),
         reset=PlatformResetWorkflow(
+            _platform_reset_steps(
+                provider_request,
+                node_provider_selection,
+            ),
             verification_evidence_repository=verification_evidence_repository,
             progress=workflow_progress,
             method_trace=method_trace,
             trace_correlation_id=trace_correlation_id,
         ),
         destroy=PlatformDestroyWorkflow(
+            _platform_destroy_steps(
+                provider_request,
+                node_provider_selection,
+            ),
             verification_evidence_repository=verification_evidence_repository,
             progress=workflow_progress,
             method_trace=method_trace,
@@ -732,6 +846,7 @@ def build_platform_services(
     return PlatformServices(
         command_workflow=command_workflow,
         lxc_docker_install=lxc_docker_install,
+        lxc_service_exposure=lxc_service_exposure,
         lxc_swarm_bootstrap=lxc_swarm_bootstrap,
         preflight=preflight,
         lxc_node_provider=lxc_node_provider,
@@ -889,8 +1004,12 @@ def build_lxc_deployment_services(
     selected_service_profile = ServiceStackProfile(service_profile)
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
     swarm_runtime = LxcSwarmRuntime(backend=backend)
-    service_access_environment = _service_access_stack_environment(selected_service_profile)
+    stack_environment = _deployment_stack_environment(selected_service_profile)
     external_input_checks = _service_access_external_input_checks(
+        selected_service_profile,
+        swarm_runtime=swarm_runtime,
+    )
+    external_input_steps = _service_access_external_input_steps(
         selected_service_profile,
         swarm_runtime=swarm_runtime,
     )
@@ -906,7 +1025,7 @@ def build_lxc_deployment_services(
             compose_repository=compose_repository,
             swarm_runtime=swarm_runtime,
             service_stack=contract,
-            stack_environment=service_access_environment.get(contract.stack_name),
+            stack_environment=stack_environment.get(contract.stack_name),
         )
         for contract in service_stack_contracts
     }
@@ -920,6 +1039,10 @@ def build_lxc_deployment_services(
             wait_seconds=5,
             ui=ui,
         ),
+        EnsurePortainerEndpoint(
+            portainer_client=portainer_client,
+            endpoint_name=DEFAULT_PORTAINER_ENDPOINT_NAME,
+        ),
         stack_steps["nexus"],
     )
     application_steps = build_service_stack_steps(
@@ -928,7 +1051,7 @@ def build_lxc_deployment_services(
         endpoint_name=DEFAULT_PORTAINER_ENDPOINT_NAME,
         service_profile=selected_service_profile,
         excluded_stack_names=("nexus",),
-        stack_environments=service_access_environment,
+        stack_environments=stack_environment,
     )
     readiness_checks = tuple(
         VerifySwarmServiceReadiness(
@@ -947,6 +1070,7 @@ def build_lxc_deployment_services(
             ),
             apply=DeploymentApplyWorkflow(
                 application_steps,
+                pre_apply_steps=external_input_steps,
                 pre_apply_checks=external_input_checks,
             ),
             verify=DeploymentVerifyWorkflow((*external_input_checks, *readiness_checks)),
@@ -998,6 +1122,10 @@ def build_setup_services(
                     traced_phase(
                         "platform reconcile",
                         lambda: platform.workflows.reconcile.run(),
+                    ),
+                    traced_phase(
+                        "platform expose",
+                        lambda: platform.workflows.expose.run(),
                     ),
                     traced_phase(
                         "deployment bootstrap",
@@ -1164,6 +1292,38 @@ def _platform_reconcile_steps(
     )
 
 
+def _platform_expose_steps(
+    lxc_service_exposure: LxcServiceExposureService,
+) -> tuple[AsyncWorkflowStep, ...]:
+    return (LxcServiceExposureStep(lxc_service_exposure),)
+
+
+def _platform_reset_steps(
+    provider_request: NodeProviderSelectionRequest,
+    node_provider_selection: NodeProviderSelectionService,
+) -> tuple[AsyncWorkflowStep, ...]:
+    return (
+        NodeProviderResetManagedNodesStep(
+            DEFAULT_LXC_PLATFORM_NODES,
+            node_provider_selection,
+            provider_request,
+        ),
+    )
+
+
+def _platform_destroy_steps(
+    provider_request: NodeProviderSelectionRequest,
+    node_provider_selection: NodeProviderSelectionService,
+) -> tuple[AsyncWorkflowStep, ...]:
+    return (
+        NodeProviderDestroyManagedNodesStep(
+            DEFAULT_LXC_PLATFORM_NODES,
+            node_provider_selection,
+            provider_request,
+        ),
+    )
+
+
 async def _platform_init_pre_apply_guard(
     preflight: PreflightService,
     node_provider_selection: NodeProviderSelectionService,
@@ -1207,25 +1367,96 @@ def _operator_config_value(name: str, default: str) -> str:
     return os.environ.get(name) or default
 
 
+def _lxc_proxy_listen_address() -> str:
+    address = _operator_config_value(
+        LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT,
+        DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
+    ).strip()
+    if address not in {"127.0.0.1", "0.0.0.0"}:
+        raise ValueError("LXC proxy listen address must be 127.0.0.1 or 0.0.0.0.")
+    return address
+
+
+def _lxc_manager_node() -> NodeSpec:
+    manager = next(
+        (node for node in DEFAULT_LXC_PLATFORM_NODES if node.role == NodeRole.MANAGER),
+        None,
+    )
+    if manager is None:
+        raise ValueError("LXC platform node list must include a manager.")
+    return manager
+
+
 def _operator_config_source_ref(name: str) -> str:
     if os.environ.get(name):
         return "operator_env"
     return "default"
 
 
-def _service_access_stack_environment(
+def _deployment_stack_environment(
     service_profile: ServiceStackProfile,
 ) -> dict[str, dict[str, str]]:
-    if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
-        return {}
-    return {
-        "service-access": {
-            VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT: _operator_config_value(
-                VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
-                DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
+    registry_endpoint = _swarm_registry_endpoint()
+    environment = {
+        "jenkins": {
+            JENKINS_IMAGE_ENVIRONMENT: _operator_config_value(
+                JENKINS_IMAGE_ENVIRONMENT,
+                f"{registry_endpoint}/jenkins:latest",
             )
         }
     }
+    if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
+        return environment
+
+    environment["service-access"] = {
+        SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT: _operator_config_value(
+            SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT,
+            f"{registry_endpoint}/service-access-dashboard:latest",
+        ),
+        SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT: _operator_config_value(
+            SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT,
+            f"{registry_endpoint}/service-access-nginx:latest",
+        ),
+        VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT: _operator_config_value(
+            VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
+            DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
+        ),
+    }
+    return environment
+
+
+def _swarm_registry_endpoint() -> str:
+    endpoint = _operator_config_value(
+        SWARM_REGISTRY_ENDPOINT_ENVIRONMENT,
+        DEFAULT_SWARM_REGISTRY_ENDPOINT,
+    ).strip()
+    if not REGISTRY_ENDPOINT_PATTERN.fullmatch(endpoint):
+        raise ValueError(
+            "Swarm registry endpoint must be host[:port] without scheme or credentials."
+        )
+    return endpoint
+
+
+def _service_access_external_input_steps(
+    service_profile: ServiceStackProfile,
+    *,
+    swarm_runtime: PortSwarmStackRuntime,
+) -> tuple[EnsureExternalSwarmSecret, ...]:
+    if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
+        return ()
+    resource_value = os.environ.get(VAULTWARDEN_ADMIN_TOKEN_ENVIRONMENT)
+    if not resource_value:
+        return ()
+    return (
+        EnsureExternalSwarmSecret(
+            swarm_runtime=swarm_runtime,
+            resource_name=_operator_config_value(
+                VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
+                DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
+            ),
+            resource_value=resource_value,
+        ),
+    )
 
 
 def _service_access_external_input_checks(

@@ -63,3 +63,6 @@ class _FakeSwarmRuntime:
         if self.exception is not None:
             raise self.exception
         return self.present
+
+    def ensure_external_secret(self, name: str, value: str) -> None:
+        raise AssertionError("verification must not create external secrets")

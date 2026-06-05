@@ -31,7 +31,9 @@ Remaining debt:
   and reconciliation are not yet wired into platform verification workflows;
 * legacy scripts under `infra/swarm` remain live-operation surfaces outside the
   workflow-level CLI consent guard;
-* reset/destroy retention and teardown semantics are not wired yet;
+* reset/destroy teardown is wired for configured managed LXC-native nodes, but
+  live operator validation, retention hardening, and unmanaged-resource
+  recovery guidance remain open;
 * artifact and deployment workflows are now explicit composition contracts;
   artifact workflows have tested Nexus repository and setup image-publication
   contracts, but default CLI composition still needs live registry checks and
@@ -76,9 +78,10 @@ provider rejection are implemented and test-backed.
 
 Remaining risks and debt:
 
-* default artifact and deployment workflows still block until provider-native
-  publication, registry, Portainer, stack, and observed-state contracts are
-  wired;
+* default artifact and deployment workflows have provider-native publication,
+  stack, and observed-state contracts, but live registry, Portainer, Swarm,
+  external-input, and readiness evidence still needs explicit operator
+  validation;
 * Docker Swarm inside LXD/Incus containers has not been live-validated by this
   repository workflow;
 * WSL2 success could be overclaimed if documentation, static tests, or native

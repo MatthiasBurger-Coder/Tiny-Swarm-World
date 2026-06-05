@@ -1,25 +1,28 @@
-# Requirement Agent Findings
+# Requirement Findings
 
-## Decision
+Decision: `READY_FOR_WORKFLOW`
 
-READY_FOR_WORKFLOW
+Confidence: 93 percent.
 
-## Findings
+Findings:
 
-- The requested outcome is explicit: remove Multipass as a legacy/fallback
-  provider and remove `--node-provider multipass_legacy`.
-- Acceptance criteria are testable through CLI behavior, provider model tests,
-  configuration validation, documentation scans, and the full quality gate.
-- Non-goals are clear: no live infrastructure, no unrelated platform rewrite,
-  no Java/Maven/Spring Boot, no React frontend.
-- The main requirement risk is reference classification: current support text
-  must be removed, while historical audit evidence may remain only if clearly
-  archival.
+* `install.sh` must mean fresh installation.
+* Reset is mandatory before setup starts.
+* After reset, `install.sh` must complete the selected setup profile rather
+  than only reaching platform bootstrap.
+* The default profile is `service-access`, so full install acceptance includes
+  Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Swagger, and the
+  service-access stack.
+* The service-access dashboard `index.html` is part of the install acceptance
+  path because it must be image-packaged into the dashboard service.
+* Existing update/reconcile mechanisms should be preserved unless they block
+  the fresh-install path.
+* The Portainer HTTP 409 failure is treated as stale persisted state or
+  credential mismatch evidence. The first response is therefore reset-before
+  setup, not Portainer-only idempotency.
+* Destructive behavior remains live-consent and confirmation gated.
 
-## Required Subagent Handoff
+Non-goals:
 
-- Documentation reviewer classifies all Multipass references as current,
-  archival, or removable.
-- Architecture reviewer confirms whether an ADR update is needed before source
-  removal.
-- Tester validates the removed-provider behavior with focused regression tests.
+* No live infrastructure execution during workflow creation.
+* No Multipass, Java/Spring, React, or Kubernetes-first scope.

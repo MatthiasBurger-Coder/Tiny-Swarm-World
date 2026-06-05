@@ -70,6 +70,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         build_services.assert_not_called()
         self.assertIn("platform init", output.getvalue())
         self.assertIn("platform reconcile", output.getvalue())
+        self.assertIn("platform expose", output.getvalue())
         self.assertIn("platform reset", output.getvalue())
         self.assertIn("deployment bootstrap", output.getvalue())
         self.assertIn("deployment apply", output.getvalue())
@@ -177,6 +178,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         workflows.init.run.assert_awaited_once_with()
         workflows.reconcile.run.assert_not_awaited()
+        workflows.expose.run.assert_not_awaited()
         self.assertIn('"workflow": "platform init"', output.getvalue())
 
     async def test_platform_init_uses_composed_guarded_workflow_result(self):
@@ -219,6 +221,19 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         workflows.verify.run.assert_awaited_once_with()
         workflows.init.run.assert_not_awaited()
         self.assertIn('"workflow": "platform verify"', output.getvalue())
+
+    async def test_platform_expose_requires_live_consent_and_dispatches(self):
+        services, workflows = _application_services_with_platform_workflows()
+        output = io.StringIO()
+
+        with patch("builtins.input", return_value="y"):
+            with patch.object(entrypoint, "build_application_services", return_value=services):
+                with redirect_stdout(output):
+                    await entrypoint.main(["platform", "expose", "--live"])
+
+        workflows.expose.run.assert_awaited_once_with()
+        workflows.init.run.assert_not_awaited()
+        self.assertIn('"workflow": "platform expose"', output.getvalue())
 
     async def test_reset_refuses_missing_confirmation_before_building_services(self):
         output = io.StringIO()
@@ -553,6 +568,9 @@ def _application_services_with_platform_workflows(
         ),
         reconcile=SimpleNamespace(
             run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.RECONCILE))
+        ),
+        expose=SimpleNamespace(
+            run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.EXPOSE))
         ),
         verify=SimpleNamespace(run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.VERIFY))),
         reset=SimpleNamespace(run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.RESET))),

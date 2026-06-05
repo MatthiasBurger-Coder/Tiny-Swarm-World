@@ -112,6 +112,35 @@ class PlatformReconcileWorkflow:
         )
 
 
+class PlatformExposeWorkflow:
+    semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.EXPOSE]
+
+    def __init__(
+        self,
+        steps: Sequence[AsyncWorkflowStep],
+        verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
+        progress: PortWorkflowProgress | None = None,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
+    ):
+        self.steps = tuple(steps)
+        self.verification_evidence_repository = verification_evidence_repository
+        self.progress = progress or NullWorkflowProgress()
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
+
+    async def run(self) -> PlatformWorkflowResult:
+        return await _trace_platform_run(self, self._run)
+
+    async def _run(self) -> PlatformWorkflowResult:
+        return await _run_mutating_steps(
+            self.steps,
+            self.semantics,
+            self.verification_evidence_repository,
+            self.progress,
+        )
+
+
 class PlatformResetWorkflow:
     semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.RESET]
 
@@ -709,6 +738,7 @@ def _workflow_result_from_direct_verification(
             semantics,
             f"{semantics.kind.value} step {target_id} is blocked.",
             tuple(verification_results),
+            executed=_direct_verification_reports_apply(verification),
         )
     if verification.status == VerificationStatus.FAILED_TO_APPLY:
         _report_workflow_progress(
@@ -766,6 +796,7 @@ def _missing_verification_evidence_result(
         semantics,
         f"{semantics.kind.value} verification evidence is missing for {target_id}.",
         tuple(verification_results),
+        executed=True,
     )
 
 
@@ -794,6 +825,7 @@ def _workflow_result_from_verification(
             semantics,
             f"{semantics.kind.value} verification is blocked for {target_id}.",
             tuple(verification_results),
+            executed=True,
         )
     _report_workflow_progress(
         progress,
@@ -1000,6 +1032,10 @@ def _direct_verification_result(result: object) -> VerificationResult | None:
     if isinstance(result, VerificationResult):
         return result
     return None
+
+
+def _direct_verification_reports_apply(verification: VerificationResult) -> bool:
+    return verification.evidence.get("applied") == "true"
 
 
 def _failed_apply_result(result: object) -> VerificationResult | None:

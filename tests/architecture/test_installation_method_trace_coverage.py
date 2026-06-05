@@ -31,6 +31,7 @@ TRACE_RUNTIME_OWNERS = (
     "tiny_swarm_world.application.services.setup.workflow.SetupWorkflow",
     "tiny_swarm_world.application.services.platform.workflows.PlatformInitWorkflow",
     "tiny_swarm_world.application.services.platform.workflows.PlatformReconcileWorkflow",
+    "tiny_swarm_world.application.services.platform.workflows.PlatformExposeWorkflow",
     "tiny_swarm_world.application.services.platform.workflows.PlatformResetWorkflow",
     "tiny_swarm_world.application.services.platform.workflows.PlatformDestroyWorkflow",
     "tiny_swarm_world.application.services.platform.workflows.PlatformVerifyWorkflow",
@@ -73,6 +74,12 @@ TRACE_COVERAGE_MANIFEST = (
         method="run",
         status=COVERED,
         reason="platform reconcile is part of installation runtime flow",
+    ),
+    MethodTraceManifestEntry(
+        owner="tiny_swarm_world.application.services.platform.workflows.PlatformExposeWorkflow",
+        method="run",
+        status=COVERED,
+        reason="platform expose is part of installation runtime flow",
     ),
     MethodTraceManifestEntry(
         owner="tiny_swarm_world.application.services.platform.workflows.PlatformResetWorkflow",

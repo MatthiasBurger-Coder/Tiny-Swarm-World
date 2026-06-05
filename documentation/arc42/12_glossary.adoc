@@ -12,13 +12,16 @@ Inspects or validates state without mutating local infrastructure.
 
 `reset`::
 Explicit destructive reinitialization workflow. It requires
-`RESET_TINY_SWARM_PLATFORM` and currently blocks until retention semantics are
-implemented.
+`RESET_TINY_SWARM_PLATFORM` and is scoped to the managed Tiny Swarm World
+local system only: configured LXC-native nodes and marker-verified
+project-owned state. Already absent managed nodes count as successful reset
+evidence. Missing or mismatched ownership evidence blocks before mutation. It
+must not remove unrelated host or provider resources.
 
 `destroy`::
 Explicit destructive teardown workflow. It requires
-`DESTROY_TINY_SWARM_PLATFORM` and currently blocks until teardown semantics are
-implemented.
+`DESTROY_TINY_SWARM_PLATFORM` and uses the same managed-resource ownership
+checks as reset before deleting configured LXC-native nodes.
 
 Live infrastructure consent::
 The combination of `--live` and answering `y` at the short interactive
