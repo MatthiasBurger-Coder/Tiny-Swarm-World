@@ -179,6 +179,36 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             dict(result.verification_results[0].evidence),
         )
 
+    async def test_verify_retries_transient_failed_preflight(self):
+        verify_step = _PreflightSequenceAction(
+            (
+                PreflightResult(
+                    (
+                        PreflightCheck(
+                            check_id="PORT-9001",
+                            category=PreflightCategory.PORT,
+                            status=PreflightStatus.FAILED,
+                            severity=PreflightSeverity.MANDATORY,
+                            message="Port 9001 for SonarQube is occupied.",
+                            remediation="Wait for expected service readiness.",
+                        ),
+                    )
+                ),
+                PreflightResult(()),
+            )
+        )
+
+        result = await PlatformVerifyWorkflow(
+            [verify_step],
+            verify_retry_attempts=2,
+            verify_retry_delay_seconds=0,
+        ).run()
+
+        self.assertEqual(["preflight", "preflight"], verify_step.calls)
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
+        self.assertEqual("2", result.verification_results[0].evidence["verify_attempt"])
+
     async def test_init_pre_apply_guard_blocks_before_steps(self):
         progress = _RecordingProgress()
         guard = _PreflightAction(
@@ -951,6 +981,18 @@ class _PreflightAction:
         await async_checkpoint()
         self.calls.append("preflight")
         return self.result
+
+
+class _PreflightSequenceAction:
+    def __init__(self, results: tuple[PreflightResult, ...]):
+        self.results = results
+        self.calls: list[str] = []
+
+    async def run(self) -> PreflightResult:
+        await async_checkpoint()
+        self.calls.append("preflight")
+        index = min(len(self.calls) - 1, len(self.results) - 1)
+        return self.results[index]
 
 
 class _ProviderGuardAction:

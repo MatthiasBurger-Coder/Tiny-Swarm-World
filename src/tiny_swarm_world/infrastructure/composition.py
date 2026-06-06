@@ -896,6 +896,8 @@ def build_platform_services(
             progress=workflow_progress,
             method_trace=method_trace,
             trace_correlation_id=trace_correlation_id,
+            verify_retry_attempts=6,
+            verify_retry_delay_seconds=10.0,
         ),
     )
 
