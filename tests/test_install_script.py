@@ -128,6 +128,13 @@ class TestInstallScript(unittest.TestCase):
             self.assertEqual([], fixture.recorded_commands())
             self.assertIn("TSW_VAULTWARDEN_ADMIN_TOKEN", result.stderr)
 
+    def test_install_answers_each_recorded_live_consent_once(self):
+        with _install_script_fixture() as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(["y", "y"], fixture.recorded_live_confirmations())
+
 
 class _InstallScriptFixture:
     def __init__(
@@ -188,6 +195,12 @@ class _InstallScriptFixture:
         if not self.commands_file.exists():
             return []
         return self.commands_file.read_text().splitlines()
+
+    def recorded_live_confirmations(self) -> list[str]:
+        confirmations_file = self.root / "live-confirmations.txt"
+        if not confirmations_file.exists():
+            return []
+        return confirmations_file.read_text().splitlines()
 
     def single_evidence_dir(self) -> Path:
         evidence_root = self.root / ".tiny-swarm-world" / "evidence" / "installation-tests" / "wsl2"
@@ -276,7 +289,10 @@ def _fake_script() -> str:
           esac
         done
 
+        confirmation=""
+        IFS= read -r confirmation || true
         printf '%s\\n' "$command_line" >>"$TSW_FAKE_SCRIPT_COMMANDS"
+        printf '%s\\n' "$confirmation" >>"$(dirname "$TSW_FAKE_SCRIPT_COMMANDS")/live-confirmations.txt"
         mkdir -p "$(dirname "$log_file")"
         printf 'fake script log for %s\\n' "$command_line" >"$log_file"
 
