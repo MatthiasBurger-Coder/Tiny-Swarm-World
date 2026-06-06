@@ -1,45 +1,34 @@
 # Senior Requirement Engineer Findings
 
-## Requirement Summary
+## Summary
 
-The requested fix targets `deployment:portainer-local-endpoint` after platform
-init, platform reconcile, platform expose, Portainer stack registration, and
-Portainer admin authentication already succeeded.
+The requirement is ready for workflow execution. It has a clear goal: repair
+LXC proxy desired-state drift without weakening the existing
+`unsafe_instance_devices` hard stop.
+
+## Acceptance Criteria
+
+* Direct instance-level `tsw-proxy-*` devices remain unsafe drift.
+* Normal install/reset/reinstall flows do not create or silently remove direct
+  instance-level `tsw-proxy-*` devices.
+* Expected proxy devices are represented as manager-specific profile state.
+* Workers do not receive manager proxy devices.
+* Explicit repair removes stale direct proxy devices only when equivalent
+  profile-level devices exist.
+* Tests and documentation cover the requested cases.
 
 ## EPIC Fit
 
-Mandatory question:
+The requirement fits `documentation/epics/autonomous-runnable-setup.md` because
+it preserves the LXC-native provider direction, live-consent model, fail-closed
+setup behavior, and mocked default quality gate.
 
-```text
-Does the implementation still match the EPIC?
-```
+## Non-Goals
 
-Answer:
-
-```text
-YES, IF THE FIX STAYS INSIDE DEPLOYMENT BOOTSTRAP AND DOES NOT CLAIM FULL LIVE SUCCESS WITHOUT EVIDENCE.
-```
-
-`documentation/epics/autonomous-runnable-setup.md` defines setup as a guarded
-workflow that deploys and verifies service stacks through Deployment contracts.
-Repairing endpoint bootstrap supports that EPIC because later Portainer-managed
-stacks depend on a registered endpoint.
-
-## Requirement Classification
-
-* Functional requirement: register or detect the Portainer local endpoint.
-* Resilience requirement: retry transient readiness failures.
-* Observability requirement: expose HTTP status and response body diagnostics.
-* Architecture constraint: preserve hexagonal boundaries.
-* Quality requirement: add deterministic tests with fakes/mocks.
-
-## Drift Findings
-
-Repository evidence shows endpoint idempotency is already partially implemented:
-`PortainerHttpClient.ensure_local_endpoint()` fetches existing endpoints before
-creating a socket endpoint. The workflow therefore narrows the remaining work to
-diagnostics, API-contract verification, retry evidence, and documentation.
+No new provisioning tool, CLI redesign, Kubernetes-first behavior, Java,
+Maven, Spring Boot, React, Multipass restoration, or broad infrastructure
+rewrite is required.
 
 ## Decision
 
-`READY_FOR_WORKFLOW`
+`READY_FOR_WORKFLOW`.

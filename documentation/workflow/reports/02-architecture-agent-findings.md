@@ -1,45 +1,35 @@
 # Senior System Architect Findings
 
-## Boundary Review
+## Summary
 
-The target belongs to the Deployment boundary:
+The change belongs in the LXC-native platform boundary. Expected proxy state
+must be profile-level desired state, while direct instance-level devices remain
+strict drift evidence.
 
-* Application service: `EnsurePortainerEndpoint`.
-* Application port: `PortPortainerClient`.
-* Infrastructure adapter: `PortainerHttpClient`.
-* Runtime wiring: `composition.py`.
+## Boundary Guidance
 
-Domain modules must not receive HTTP, Portainer, Docker, LXC, logging, or
-request dependencies.
-
-## Endpoint Model
-
-Creation-time evidence:
-
-* `infra/config/compose/portainer/docker-compose.yml` mounts
-  `/var/run/docker.sock` into the Portainer server.
-* The same compose file also deploys `portainer/agent:2.39.2`.
-* Documentation currently says deployment bootstrap registers the local Docker
-  endpoint named `local`.
-
-Architecture decision for this workflow:
-
-```text
-The current authoritative endpoint model is the socket-backed local Docker endpoint.
-```
-
-The agent remains deployed for compatibility and Swarm/agent behavior, but it is
-not the endpoint registration target unless Slice 02 verifies that Portainer
-2.39.x requires a different contract.
+* Domain may hold typed proxy/profile desired-state value objects.
+* Application services may orchestrate ports and produce verification results.
+* Infrastructure adapters own `incus` and `lxc` command syntax and output
+  parsing.
+* Composition owns concrete adapter construction.
+* Entry-point changes stay limited to workflow taxonomy and dispatch.
 
 ## Architecture Risks
 
-* A typed diagnostic exception is acceptable if it remains an application-port or
-  infrastructure-adapter contract and does not pull HTTP details into domain.
-* Documentation must not claim live setup success from endpoint registration
-  alone.
-* Arc42 updates should wait until implementation evidence exists.
+* Placing manager-only proxy devices in the shared `docker-swarm` profile would
+  leak manager ingress behavior to workers.
+* Allowing direct instance proxy devices in normal drift checks would weaken a
+  safety contract.
+* Repair must not become a hidden side effect of reset, reinstall, init,
+  reconcile, or expose.
+
+## arc42 Impact
+
+Update runtime and deployment views after implementation because current docs
+describe manager-gateway proxy configuration before the expected manager-profile
+model exists.
 
 ## Decision
 
-No architecture blocker for workflow execution.
+`READY_FOR_WORKFLOW`.

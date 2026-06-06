@@ -1,29 +1,38 @@
 # Senior Tester Findings
 
-## Testability
+## Summary
 
-The workflow is testable with deterministic unit tests and fake Portainer HTTP
-responses. No test should require live Portainer, Docker, LXC, Incus, or Swarm.
+The requested behavior is testable with fake runners and unit tests. No live
+LXC, Incus, LXD, Docker Swarm, compose, or service bootstrap commands are
+needed for the default quality gate.
 
-## Required Regression Coverage
+## Required Coverage
 
-* Existing endpoint named `local` returns success.
-* Missing endpoint plus successful creation returns success.
-* Creation failure returns `failed_to_apply` evidence with HTTP status and
-  redacted response body.
-* Transient readiness is retried with bounded attempts and no real sleeps in
-  tests.
-* Unsafe secret-bearing values do not appear in messages, logs, or evidence.
+* Clean manager-specific profile containing expected `tsw-proxy-*` devices is
+  accepted.
+* Direct instance-level `tsw-proxy-*` devices on `swarm-manager` are detected
+  as `unsafe_instance_devices`.
+* Workers do not receive manager proxy devices.
+* install/reset/reinstall does not reintroduce direct instance-level proxy
+  devices.
+* Repair removes stale direct `tsw-proxy-*` devices only when equivalent
+  profile-level devices exist.
+* Repair refuses removal when expected profile representation is missing.
+* Existing safety behavior for unrelated unexpected instance devices remains
+  unchanged.
 
 ## Targeted Commands
 
 ```bash
-PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client
-PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_endpoint tests.application.services.deployment.test_deployment_workflows
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_proxy_device_runtime
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_lxc_service_exposure tests.application.services.platform.test_platform_workflows
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.test_install_script
 git diff --check
 ```
 
-## Full Gate
+## Required Gate
 
 ```bash
 python3 tools/quality_gate.py quality
@@ -31,5 +40,4 @@ python3 tools/quality_gate.py quality
 
 ## Decision
 
-No quality blocker for workflow execution. Live `./install.sh` validation is a
-separate operator-approved step.
+`READY_FOR_WORKFLOW`.

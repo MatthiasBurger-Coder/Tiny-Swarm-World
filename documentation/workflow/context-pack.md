@@ -3,9 +3,9 @@
 ## Active Workflow
 
 ```text
-workflow_id=portainer-local-endpoint-bootstrap-diagnostics-v1.0.0
+workflow_id=lxc-proxy-drift-reconciliation-v1.0.0
 workflow_version=1.0.0
-branch=work/fix-workflow-portainer-local-endpoint-20260606
+branch=fix/lxc-proxy-drift-reconciliation-20260606
 execution_profile=FULL_PATH
 decision=READY_FOR_WORKFLOW
 ```
@@ -26,44 +26,62 @@ Role reports:
 
 Primary source files:
 
-* `src/tiny_swarm_world/application/services/deployment/ensure_portainer_endpoint.py`
-* `src/tiny_swarm_world/application/services/deployment/workflows.py`
-* `src/tiny_swarm_world/application/ports/clients/port_portainer_client.py`
-* `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
-* `infra/config/compose/portainer/docker-compose.yml`
+* `infra/config/node-providers/provider_config.yaml`
+* `src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py`
+* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py`
+* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py`
+* `src/tiny_swarm_world/application/services/platform/lxc_service_exposure.py`
+* `src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py`
+* `src/tiny_swarm_world/infrastructure/composition.py`
+* `src/tiny_swarm_world/__main__.py`
+* `install.sh`
 
 Primary tests:
 
-* `tests/infrastructure/adapters/clients/test_portainer_http_client.py`
-* `tests/application/services/deployment/test_ensure_portainer_endpoint.py`
-* `tests/application/services/deployment/test_deployment_workflows.py`
+* `tests/infrastructure/adapters/repositories/test_node_provider_config_yaml_repository.py`
+* `tests/infrastructure/adapters/clients/test_lxc_node_provider.py`
+* `tests/infrastructure/adapters/clients/test_lxc_proxy_device_runtime.py`
+* `tests/application/services/platform/test_lxc_service_exposure.py`
+* `tests/application/services/platform/test_platform_workflows.py`
+* `tests/test_package_entrypoint.py`
+* `tests/test_install_script.py`
+* `tests/infrastructure/test_composition.py`
 
 Documentation sync targets:
 
 * `documentation/deployment/system.adoc`
+* `documentation/system/live-operation-surfaces.adoc`
+* `documentation/system/network.adoc`
+* `documentation/user_guide/installation.adoc`
 * `documentation/arc42/06_runtime_view.adoc`
 * `documentation/arc42/07_deployment_view.adoc`
-* `documentation/system/live-operation-surfaces.adoc`
+* `documentation/arc42/10_quality_requirements.adoc`
+* `documentation/arc42/11_risks_and_debt.adoc`
 
 ## Process Strand
 
-Deployment bootstrap and setup live-installation workflow.
+LXC-native platform desired-state reconciliation and setup/install recovery.
 
 ## Affected Areas
 
-* Portainer endpoint bootstrap.
-* Portainer HTTP adapter diagnostics.
-* Deployment apply failure evidence.
-* Retry/backoff for transient endpoint readiness.
-* Deployment and arc42 documentation.
+* LXC-native provider config schema and committed provider configuration.
+* Manager-specific LXC profile desired state.
+* Platform expose proxy reconciliation.
+* Node lifecycle drift detection.
+* Explicit stale direct proxy repair.
+* CLI/platform workflow taxonomy.
+* Operator documentation and arc42 runtime/deployment views.
 
 ## Forbidden Areas
 
-* Domain imports of HTTP, Portainer, Docker, LXC, logging, or request details.
-* Java, Maven, Spring Boot, Gradle, JUnit, ArchUnit, or React/browser frontend
-  additions.
-* Kubernetes-first behavior.
-* Multipass provider restoration.
+* Domain imports of LXC, Incus, Docker, command runners, YAML parsers, logging,
+  HTTP clients, UI adapters, or dependency injection.
+* Direct instance-level `tsw-proxy-*` devices as accepted normal state.
+* Worker manager-proxy profile assignment.
+* Silent repair inside install, reset, reinstall, init, reconcile, or expose.
+* Ansible, Terraform, Kubernetes-first behavior, Multipass restoration, Java,
+  Maven, Spring Boot, Gradle, JUnit, ArchUnit, browser React, or external
+  static-analysis CI.
 * Live infrastructure commands without explicit user approval.
 
 ## Required Roles
@@ -73,16 +91,26 @@ Deployment bootstrap and setup live-installation workflow.
 * Senior Python Automation Developer.
 * Senior React Frontend Developer for no-impact review.
 * Senior Tester.
-* Senior Documentation Engineer for Slice 04.
-* Senior DevOps Engineer for optional live validation only.
+* Senior Documentation Engineer for Slice 06.
+* Senior DevOps Engineer for Slice 05 repair safety review.
+
+## Conditional Roles
+
+* ADR Steward if a later slice determines the provider profile model requires a
+  new architecture decision.
+* Quality Gate Orchestrator if `python3 tools/quality_gate.py quality` fails in
+  a way that needs classification.
 
 ## Quality Commands
 
 Targeted:
 
 ```bash
-PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client
-PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_endpoint tests.application.services.deployment.test_deployment_workflows
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_proxy_device_runtime
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_lxc_service_exposure tests.application.services.platform.test_platform_workflows
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.test_install_script
 git diff --check
 ```
 
@@ -90,12 +118,6 @@ Required before commit or push when practical:
 
 ```bash
 python3 tools/quality_gate.py quality
-```
-
-Optional live validation only after explicit user request:
-
-```bash
-./install.sh
 ```
 
 ## Governing File Hashes
@@ -106,15 +128,20 @@ QUALITY.md 458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6
 .agents/skills/workflow-authoring/SKILL.md 087658240296e3b1ec74205c60a96a9a4c67a17cf653f7867e6f316bd9afa94e
 .agents/skills/three-amigos-requirement-gatekeeper/SKILL.md 23de7d9aac9d2694eae26fac2765d65f369c101ac348dac24d5f3bbe9e2d3ba4
 .agents/skills/execution-profile-router/SKILL.md b554ffd4c3c8de9b313b55d8a9c99deda8c3bf3910f559105000e338680263e9
-.agents/orchestrator/routing-rules.md c11b3df9e77717bad7caacb464b74db4566b00c7794cea53e2dbe39a8065e71a
+.agents/skills/workflow-slice/SKILL.md bae552d4860614879871413918870df6940b95af185f6c1077a023caa88e3ddb
+.agents/skills/quality-gate-governance/SKILL.md bf9e9b402d481a670b742ac9f3b9a9a41482ce3b523bf8edf876aae71d31d95d
 documentation/epics/autonomous-runnable-setup.md fc7ec746446faa756306e459b54d700052eea0869c6dc2b1ef8a9e3b15be554a
 documentation/arc42/06_runtime_view.adoc 91e423c4cbadd835d915573d972377bf3381eb888627525c3c1d7fc07d8c12ba
+documentation/arc42/07_deployment_view.adoc de2ad20fd6fb0c6907fe09508fe9846bb6168f95248ff1fcf3238293092b02a6
 documentation/deployment/system.adoc 0a8b440e9bd080ba96a1d09e006df1548ddd8a788cede0b7f1d302ecdf12f1ff
-src/tiny_swarm_world/application/services/deployment/ensure_portainer_endpoint.py 783f31ce2b0fe1db75413992b7b0a7ccb1126156dee3804129676787eb5df05f
-src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py 6e00a50950275c41c61c85c9dd6832bfd93940d604bf002195eeee6baa4f96d0
-infra/config/compose/portainer/docker-compose.yml 1f4e8010e753e6d4ae2140aa7bff875ddcd468cf25975bb5c01d8e170fce847d
+infra/config/node-providers/provider_config.yaml c17ee2562b31e23a51ffcd1524f2806c08204bfc0930f27c9e143cf5e7d890fc
+src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py 593a7d0a7f8f0f9e54c96e39ed46e69f92f196b2b125b8c8d67ec18b325ea5f6
+src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py b9507fb94eb6f49f67d885f11bb3435aa8d24bc6b96de888bfb9f2e612cdc0bb
+src/tiny_swarm_world/application/services/platform/lxc_service_exposure.py 7946777d914b1d3ea66111ffdfa1cd3d074cf2e09695d4f1db26678c79896fe4
+src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py 58459f048a82da8fff5104a8ed379c120339767923ed7ba54805bbf6093ef872
 ```
 
 Context pack is stale when any hash above changes, when branch differs from
-`work/fix-workflow-portainer-local-endpoint-20260606`, or when a slice lock
-conflict is detected.
+`fix/lxc-proxy-drift-reconciliation-20260606`, when slice locks conflict, or
+when implementation changes the repair command name without updating this
+pack.

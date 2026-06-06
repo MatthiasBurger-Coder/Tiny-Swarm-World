@@ -1,177 +1,183 @@
-# Workflow: Portainer Local Endpoint Bootstrap Diagnostics
+# Workflow: LXC Proxy Drift Reconciliation
 
 ```yaml
-workflow_id: portainer-local-endpoint-bootstrap-diagnostics-v1.0.0
+workflow_id: lxc-proxy-drift-reconciliation-v1.0.0
 workflow_version: 1.0.0
-branch: work/fix-workflow-portainer-local-endpoint-20260606
+branch: fix/lxc-proxy-drift-reconciliation-20260606
 execution_profile: FULL_PATH
 released_for_workflow_execute: true
 created_utc: "2026-06-06T00:00:00Z"
-request: "Fix deployment:portainer-local-endpoint after platform init, platform reconcile, platform expose, Portainer stack registration, and Portainer admin authentication already completed."
+request: "Fix the current LXC proxy drift problem without bypassing unsafe_instance_devices."
 decision: READY_FOR_WORKFLOW
-confidence: 92
+confidence: 94
 ```
 
 ## Executive Summary
 
-Live installation evidence shows the setup path now reaches Portainer bootstrap and
-fails specifically at `deployment:portainer-local-endpoint`:
+The current install/reset/reinstall path can stop with
+`unsafe_instance_devices` when `swarm-manager` has direct instance-level
+`tsw-proxy-*` devices. That stop is correct and must remain strict.
 
-```text
-RuntimeError. Portainer local endpoint could not be registered.
-```
+Repository inspection found two important facts:
 
-This workflow creates a focused repair plan for the Portainer endpoint bootstrap
-step. It does not reopen platform init, platform expose, LXC proxy, Swarm
-bootstrap, Portainer port exposure, or Portainer admin credentials as the first
-investigation path because the provided log states those phases already completed.
+* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py`
+  creates and updates proxy devices with direct instance commands such as
+  `config device add <instance> <device> proxy`.
+* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py`
+  currently has a special `allow_project_proxy_devices=True` path that can
+  classify direct instance-level `tsw-proxy-*` devices as safe during node
+  lifecycle checks.
 
-Repository inspection found that the current `PortainerHttpClient` already:
+This workflow repairs the desired-state model instead of weakening drift
+detection. Manager proxy devices must be represented as expected profile-level
+state in a manager-specific LXC profile. Normal install, reset, reinstall,
+init, reconcile, and expose flows must not silently remove stale direct
+devices or create new direct `tsw-proxy-*` devices. Stale direct proxy devices
+may be removed only through an explicit repair workflow after equivalent
+manager-profile devices are verified.
 
-* queries `GET /api/endpoints`;
-* treats an existing endpoint named `local` as success;
-* accepts a single socket-backed endpoint as a local fallback;
-* creates a socket-backed Docker endpoint with `POST /api/endpoints` when missing.
-
-Therefore the remaining workflow target is not generic idempotency from scratch.
-The executable target is to harden and verify the bootstrap contract for
-Portainer 2.39.x, surface real HTTP status and response-body diagnostics through
-safe evidence, and document that Tiny Swarm World's current authoritative
-Portainer endpoint model is the socket-backed local Docker endpoint.
+The previous active workflow under `documentation/workflow` is superseded by
+this workflow for the active workflow directory.
 
 ## Requirement Clarification Gate
 
 Original request:
 
-* The live installation fails after successful platform init, platform
-  reconcile, platform expose, Portainer stack registration, and Portainer admin
-  authentication.
-* Failure target is `deployment:portainer-local-endpoint`.
-* Error is `RuntimeError: Portainer local endpoint could not be registered`.
-* Do not investigate LXC proxy, Swarm bootstrap, or Portainer port exposure
-  first.
-* Fix the Portainer local endpoint bootstrap step.
-* Make endpoint registration idempotent through `GET /api/endpoints`.
-* If endpoint `local` already exists, treat the step as success.
-* If missing, create it through the correct Portainer 2.39.x API contract.
-* Log and surface the real HTTP status code and response body when registration
-  fails.
-* Add regression coverage for existing endpoint, successful creation, failed
-  creation with HTTP diagnostics, and retry/backoff while Portainer or agent
-  readiness is still transient.
-* Decide and document whether the stack should register a socket endpoint or an
-  agent endpoint.
-* After implementation, `./install.sh` must pass
-  `deployment:portainer-local-endpoint` and continue to artifact preparation and
-  deployment apply.
+* Fix the current `unsafe_instance_devices` failure caused by direct
+  `tsw-proxy-*` LXC proxy devices on `swarm-manager`.
+* Do not introduce a new provisioning tool, Ansible, Java, Maven, Spring Boot,
+  or a CLI redesign.
+* Preserve the hard stop for unexpected direct instance-level devices.
+* Move proxy devices into expected desired state, preferably using existing
+  YAML/config/profile mechanisms.
+* Use a manager-specific profile so workers do not receive manager-only proxy
+  devices.
+* Add explicit stale-state repair for direct instance-level `tsw-proxy-*`
+  devices only when equivalent expected profile devices exist.
+* Keep `install.sh` thin and keep actual logic in Python.
+* Add tests and documentation for the profile-vs-instance distinction,
+  manager-only profile assignment, strict drift detection, and repair behavior.
 
 Interpreted intent:
 
-* Create an executable workflow to repair only the Portainer local endpoint
-  bootstrap failure.
-* Preserve existing platform, exposure, admin-access, and service-stack
-  boundaries.
-* Keep the implementation in Python hexagonal boundaries: application service
-  orchestration, application port contracts, infrastructure HTTP adapter, tests,
-  and documentation.
-* Use mocked tests by default and reserve `./install.sh` for explicit live
-  validation during workflow execution.
+* Create an executable workflow for a focused Python automation bug fix in the
+  LXC-native platform boundary.
+* Preserve hexagonal architecture: domain value objects describe desired state,
+  application services orchestrate ports, infrastructure adapters run LXC or
+  Incus commands, and composition wires concrete adapters.
+* Treat live LXC/Incus/LXD mutation as out of scope for workflow creation and
+  unit tests.
 
 Change type:
 
 * Python automation behavior change.
-* Infrastructure HTTP adapter diagnostics change.
-* Deployment bootstrap evidence change.
-* Documentation synchronization for Portainer endpoint model.
+* LXC-native desired-state/configuration model change.
+* Infrastructure adapter command behavior change.
+* Platform workflow and CLI surface change for explicit repair.
+* Documentation and arc42 synchronization.
 
 Affected process strand:
 
-* `setup run --live` deployment bootstrap phase.
-* `deployment bootstrap` step sequence.
-* `deployment:portainer-local-endpoint`.
-* Portainer-managed application stack precondition.
+* `install.sh` launcher flow.
+* `setup run --live` platform phase.
+* `platform init`, `platform reconcile`, `platform expose`, `platform reset`,
+  and the new explicit repair path.
+* LXC-native node lifecycle, profile reconciliation, and drift detection.
 
 Affected architecture area:
 
-* `src/tiny_swarm_world/application/services/deployment`.
-* `src/tiny_swarm_world/application/ports/clients/port_portainer_client.py` if a
-  diagnostic exception contract is needed.
-* `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`.
-* Deployment tests under `tests/application/services/deployment` and
-  `tests/infrastructure/adapters/clients`.
-* `documentation/deployment/system.adoc` and arc42 runtime or deployment view.
+* `infra/config/node-providers/provider_config.yaml`.
+* `src/tiny_swarm_world/domain/network`.
+* `src/tiny_swarm_world/application/ports/node_provider`.
+* `src/tiny_swarm_world/application/services/platform`.
+* `src/tiny_swarm_world/infrastructure/adapters/clients`.
+* `src/tiny_swarm_world/infrastructure/adapters/repositories`.
+* `src/tiny_swarm_world/infrastructure/composition.py`.
+* `src/tiny_swarm_world/__main__.py`.
+* Platform, infrastructure, CLI, and architecture documentation.
 
 Explicit requirements:
 
-* Endpoint lookup must remain first.
-* Existing endpoint named `local` must be success.
-* Missing endpoint must be created using the verified Portainer 2.39.x contract.
-* Failed endpoint creation must report HTTP status and response body in
-  redacted, operator-actionable evidence.
-* Retry/backoff must cover transient readiness before final failure.
-* The endpoint model must be documented without ambiguity.
-* Live infrastructure commands must not run during normal workflow creation or
-  unit-test verification.
+* Normal flows must not add direct instance-level `tsw-proxy-*` devices.
+* Direct instance-level `tsw-proxy-*` devices must remain
+  `unsafe_instance_devices`.
+* Expected proxy devices must be declared and reconciled as manager-specific
+  profile-level state.
+* The manager node must have both the common Docker Swarm/base profile and a
+  manager-only proxy profile.
+* Worker nodes must not have the manager-specific proxy profile or
+  `tsw-proxy-*` devices.
+* Repair must remove only stale direct `tsw-proxy-*` devices that have
+  equivalent expected manager-profile devices.
+* Repair must refuse when equivalent profile state is missing.
+* Documentation must explain profile-level devices, direct instance devices,
+  drift classification, manager-only ownership, worker exclusion, and repair.
 
 Implicit requirements:
 
-* Do not weaken existing safe-text and secret-redaction rules.
-* Do not expose Portainer password, JWT, Authorization header, or secret-bearing
-  payloads in logs or workflow evidence.
-* Do not add direct shell, Docker, LXC, or HTTP details to domain modules.
-* Do not move adapter construction out of
-  `src/tiny_swarm_world/infrastructure/composition.py`.
-* Preserve current stack ordering: Portainer stack, admin access, local
-  endpoint, then Nexus bootstrap.
-* Preserve the current Docker Swarm-first and Linux/WSL-only operating model.
+* No direct LXC, Incus, Docker, filesystem, curses, logging, YAML parser, or UI
+  adapter imports in domain modules.
+* No low-level command execution inside application services.
+* No live infrastructure commands during workflow creation or default tests.
+* No host-specific IPs, usernames, paths, raw command output, or secrets in
+  committed configuration or evidence.
+* Existing safety behavior for unrelated unexpected devices remains unchanged.
+* `install.sh` remains a Python launcher and does not gain business logic.
 
 Assumptions:
 
-* Current authoritative endpoint model is socket-backed local Docker endpoint:
-  `unix:///var/run/docker.sock`.
-* The Portainer agent remains deployed for Swarm/agent compatibility and
-  cluster behavior, but it is not the endpoint registered by
-  `deployment:portainer-local-endpoint` unless implementation evidence proves a
-  Portainer 2.39.x contract mismatch.
-* Portainer error bodies can be surfaced after applying the repository's
-  redaction policy.
-* The live failure is reproducible by the endpoint creation or verification
-  path, not by prior platform phases.
+* No existing explicit LXC proxy repair command was found, so workflow
+  execution may introduce a narrow `platform repair-lxc-proxy-drift` workflow
+  action or an equivalently explicit platform repair action.
+* The current setup manifest remains the source for published service ports.
+  The manager-specific profile desired state can be generated from that manifest
+  while the profile name and node profile assignment are declared in provider
+  configuration.
+* Profile mutation requires live consent and must be covered by mocked tests.
+* A small schema extension for ordered node profiles is acceptable because the
+  current single `profile` field cannot model common plus manager-specific
+  profile assignment.
 
 Non-goals:
 
-* No Kubernetes-first behavior.
-* No Multipass provider restoration.
-* No Java, Maven, Spring Boot, browser React, or external static-analysis CI.
-* No reset of platform lifecycle or LXC proxy investigation unless endpoint
-  evidence proves the failure depends on them.
-* No direct live `incus`, `lxc`, `docker swarm`, compose, Portainer, Nexus,
-  Jenkins, RabbitMQ, SonarQube, Swagger, or `./install.sh` run without explicit
-  live-infrastructure request.
+* No new provisioning system.
+* No Ansible, Terraform, Kubernetes-first behavior, Multipass restoration,
+  Java, Maven, Spring Boot, React, or browser frontend scope.
+* No broad CLI redesign.
+* No deletion of unrelated instances, profiles, networks, or devices.
+* No automatic repair inside normal install, reset, reinstall, init,
+  reconcile, or expose flows.
+* No weakening of `unsafe_instance_devices`.
+* No worker-node exposure of manager host proxy ports.
+* No live `incus`, `lxc`, `docker swarm`, compose, service bootstrap, or
+  network mutation during workflow creation.
 
 Risks:
 
-* Portainer 2.39.x may reject the current multipart endpoint payload even though
-  tests cover the intended request shape.
-* Response-body diagnostics could leak secrets if added as raw exception text.
-* Deployment workflow redaction currently treats terms such as `response body`
-  as unsafe and can erase useful diagnostics unless structured evidence is used.
-* Retrying all failures equally could delay deterministic 4xx contract failures.
-* Switching from socket endpoint to agent endpoint without evidence could break
-  later stack deployment, which expects a Swarm-capable endpoint ID.
+* Current tests include behavior that allows project proxy devices during reset;
+  those tests must be changed deliberately.
+* Adding multiple profile assignment changes the node-provider config contract
+  and launch command shape.
+* Profile-device command syntax differs by target type: instance commands use
+  `config device ...`, while profile commands use `profile device ...`.
+* The provider config safety validator currently rejects unknown profile
+  fields and any profile device output; it must allow only the explicitly
+  expected manager profile devices.
+* A repair command that removes devices without equivalence checks would create
+  a safety regression.
 
 Open questions:
 
-* None blocking for workflow authoring.
-* During execution, verify whether Portainer 2.39.x still accepts
-  `EndpointCreationType=1`, `ContainerEngine=docker`, and
-  `URL=unix:///var/run/docker.sock` for the local endpoint.
+* None blocking for workflow execution.
+* During Slice 01, choose the exact schema shape for ordered node profiles:
+  `profiles: [...]` or `profile` plus `additional_profiles`. Prefer the
+  smallest backward-compatible shape that keeps tests deterministic.
+* During Slice 05, choose the exact CLI action name if
+  `platform repair-lxc-proxy-drift` conflicts with current taxonomy naming.
 
 Blocking questions:
 
-* None for workflow execution. If the verified Portainer 2.39.x contract differs
-  from the current socket payload, Slice 02 must stop and document the evidence
-  before changing the endpoint model.
+* None.
 
 Decision:
 
@@ -181,275 +187,250 @@ Decision:
 
 ```text
 executionProfile=FULL_PATH
-reason=Deployment bootstrap behavior, Portainer API diagnostics, tests, and architecture documentation are affected.
+reason=LXC-native runtime behavior, profile desired state, drift detection, explicit repair, tests, CLI taxonomy, and architecture documentation are affected.
 requiredFullReviews=Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior React Frontend Developer, Senior Tester
-allowedImpactChecks=Senior React Frontend Developer may record no browser/React impact after verifying no frontend module is touched.
-requiredQualityChecks=targeted unittest commands first; python3 tools/quality_gate.py quality before commit or push when practical.
-stopConditions=unclear Portainer endpoint model, unredacted secret evidence, architecture boundary violation, live infrastructure command required without explicit approval.
+allowedImpactChecks=Senior React Frontend Developer may record no browser/React impact after verifying no browser frontend files are touched.
+requiredQualityChecks=targeted unittest commands first; git diff --check for workflow/docs; python3 tools/quality_gate.py quality before commit or push when practical.
+stopConditions=direct instance proxy creation remains in normal flow, unsafe_instance_devices is weakened, repair lacks profile equivalence, worker receives manager proxy profile, live infrastructure command required without explicit approval.
 ```
 
 ## Five-Role Three Amigos Findings
 
 Senior Requirement Engineer:
 
-* The implementation still matches `documentation/epics/autonomous-runnable-setup.md`
-  when it keeps endpoint bootstrap inside the deployment boundary and does not
-  claim full runnable setup until observed evidence exists.
-* The live symptom is specific enough for workflow execution.
-* Existing workflow `fresh-install-reset-full-deploy` is superseded for the
-  active workflow directory by this narrower endpoint-bootstrap fix.
+* The implementation still matches
+  `documentation/epics/autonomous-runnable-setup.md` because it preserves the
+  LXC-native provider direction, live-consent model, setup orchestration, and
+  fail-closed behavior.
+* The required acceptance criteria are testable and map directly to source,
+  tests, and documentation updates.
+* The current active workflow is replaced, not extended, because this request
+  targets a different failure class than the previous Portainer endpoint
+  workflow.
 
 Senior System Architect:
 
-* Application orchestration may change in
-  `EnsurePortainerEndpoint`.
-* Portainer 2.39.x HTTP details belong in
-  `PortainerHttpClient` and optional typed infrastructure/application-port
-  diagnostics.
-* Domain modules must not import Portainer, HTTP, request, Docker, or logging
-  details.
+* Expected proxy ownership belongs to the LXC-native platform boundary.
+* Domain code may describe proxy plans and desired profile state, but concrete
+  LXC/Incus command execution belongs in infrastructure adapters.
+* Application services may orchestrate profile reconciliation and repair ports
+  but must not embed command strings or YAML parsing details.
+* Manager-specific profile state must not be placed in the shared
+  `docker-swarm` profile if workers also receive that profile.
 
 Senior Python Automation Developer:
 
-* Existing `ensure_local_endpoint` already performs lookup-before-create.
-* Required implementation work is likely in diagnostic exception/evidence shape,
-  retry classification, and Portainer endpoint payload verification.
-* If a typed exception is introduced, it should carry sanitized diagnostic
-  fields such as `status_code`, `response_body`, `endpoint_name`,
-  `endpoint_model`, and `attempt_count`.
+* Current direct proxy injection is in `LxcProxyDeviceRuntime`.
+* Current platform expose orchestration is in `LxcServiceExposureService`.
+* Current node lifecycle strictness is in `_ObservedNode.mismatch_reasons` and
+  `_has_unsafe_instance_devices`.
+* The provider config repository must be extended carefully because it rejects
+  unknown fields and unsafe committed values by design.
 
 Senior React Frontend Developer:
 
-* No browser React module is in scope.
-* Console/status evidence surfaces may display improved messages indirectly, but
-  no React component, frontend state, or browser build change is allowed in this
-  workflow.
+* No browser or React frontend impact was found. Tiny Swarm World console/status
+  UI guidance remains terminal-only.
+* CLI output and documentation must avoid decorative icons and keep operator
+  repair guidance concise.
 
 Senior Tester:
 
-* Start with failing regression tests.
-* Tests must use fakes/mocks for Portainer HTTP responses and transient
-  readiness.
-* Required targeted tests are:
-  `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client`
-  and
-  `PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_endpoint tests.application.services.deployment.test_deployment_workflows`.
+* Tests must cover clean profile-level state, direct instance drift, worker
+  exclusion, no direct injection, guarded repair success, guarded repair
+  refusal, and unrelated-device safety.
+* Live infrastructure tests are not required by the default gate. LXC/Incus
+  command execution must be mocked.
+
+Dependency / Deadlock Validator:
+
+* Slice dependencies are acyclic.
+* Config/profile model changes must happen before direct injection is removed.
+* Repair depends on profile equivalence checks and strict instance drift
+  classification.
+* Documentation should wait until the implementation behavior is known.
+
+## Verified Baseline
+
+Repository and branch:
+
+* Repository root verified at `/mnt/d/Projects/Tiny-Swarm-World`.
+* Branch created and verified:
+  `fix/lxc-proxy-drift-reconciliation-20260606`.
+* Branch ref check succeeded with
+  `git show-ref --verify --quiet refs/heads/fix/lxc-proxy-drift-reconciliation-20260606`.
+* Active branch check returned
+  `fix/lxc-proxy-drift-reconciliation-20260606`.
+
+Relevant current behavior:
+
+* `LxcProxyDeviceRuntime.create_proxy_device` calls
+  `<backend> config device add <node> <device> proxy ...`, which targets direct
+  instance-level devices.
+* `LxcProxyDeviceRuntime.update_proxy_device` calls
+  `<backend> config device set <node> <device> ...`, which also targets direct
+  instance-level devices.
+* `LxcServiceExposureService` applies proxy plans to `gateway_node`, currently
+  `swarm-manager`.
+* `_ObservedNode.mismatch_reasons` calls
+  `_has_unsafe_instance_devices(self.devices, allow_project_proxy_devices=True)`.
+* `tests/infrastructure/adapters/clients/test_lxc_node_provider.py` currently
+  includes a reset test that allows project proxy devices before deleting the
+  node.
+* `infra/config/node-providers/provider_config.yaml` currently assigns a
+  single `docker-swarm` profile to manager and worker nodes.
+* No dedicated LXC proxy drift repair command was found in the CLI taxonomy.
 
 ## Target Picture
 
-When `deployment:portainer-local-endpoint` runs:
+The target state is:
 
-1. It authenticates to Portainer without logging credentials or JWTs.
-2. It queries `GET /api/endpoints`.
-3. If endpoint `local` exists, it returns success and verification evidence
-   includes endpoint name, endpoint ID presence, endpoint model, and
-   `endpoint_state=registered`.
-4. If endpoint `local` is missing, it creates the current authoritative local
-   Docker socket endpoint through the verified Portainer 2.39.x API contract.
-5. If creation fails, the deployment result is `failed_to_apply` and evidence
-   contains redacted HTTP status and response-body diagnostics.
-6. If Portainer is reachable but the local Docker endpoint is temporarily not
-   ready, the step retries with bounded backoff before final failure.
-7. Setup proceeds to Nexus, artifacts prepare, and deployment apply only after
-   the endpoint is registered and verified.
-
-## Creation-Time Verified Baseline
-
-* Repository root: `/mnt/d/Projects/Tiny-Swarm-World`.
-* Active branch after workflow creation preflight:
-  `work/fix-workflow-portainer-local-endpoint-20260606`.
-* Working tree was clean before workflow regeneration.
-* `QUALITY.md` defines `python3 tools/quality_gate.py quality` as the preferred
-  full local gate.
-* `src/tiny_swarm_world/application/services/deployment/ensure_portainer_endpoint.py`
-  owns `deployment:portainer-local-endpoint`.
-* `EnsurePortainerEndpoint.run()` retries `portainer_client.ensure_local_endpoint`
-  and currently raises generic `RuntimeError("Portainer local endpoint could not
-  be registered.")`.
-* `PortainerHttpClient.ensure_local_endpoint()` already fetches endpoints before
-  creating a local Docker endpoint.
-* `PortainerHttpClient._create_local_docker_endpoint()` currently posts multipart
-  fields:
-  `Name`, `EndpointCreationType=1`, `ContainerEngine=docker`, and
-  `URL=unix:///var/run/docker.sock`.
-* `PortainerHttpClient._ensure_success()` currently raises
-  `RuntimeError("Failed to <action>. HTTP <status>.")` without response body.
-* `DeploymentApplyWorkflow._apply_failure_evidence()` currently captures
-  `phase`, `failure_class`, and sometimes `diagnostic=http_status_*`, but not a
-  response body.
-* `infra/config/compose/portainer/docker-compose.yml` uses
-  `portainer/portainer-ce:2.39.2`, mounts `/var/run/docker.sock` into the
-  Portainer server, and also deploys `portainer/agent:2.39.2`.
-* `documentation/deployment/system.adoc` states deployment bootstrap ensures the
-  local Docker endpoint named `local` exists.
-* `documentation/arc42/06_runtime_view.adoc` states deployment bootstrap
-  registers the local Docker endpoint in Portainer.
-
-## Scope
-
-In scope:
-
-* Add or adjust regression tests for endpoint idempotency, successful creation,
-  failed creation diagnostics, and transient readiness retries.
-* Add structured, redacted diagnostics for Portainer endpoint creation failures.
-* Preserve or refine retry behavior for transient readiness and avoid masking
-  deterministic contract failures.
-* Verify and document the Portainer endpoint model.
-* Update deployment and arc42 documentation after implementation evidence.
-
-Out of scope:
-
-* Reworking LXC proxy creation.
-* Reworking Docker Swarm bootstrap.
-* Reworking Portainer admin initialization except where diagnostic evidence is
-  shared through deployment workflow helpers.
-* Live `./install.sh` execution during unit-test quality gates.
+* `swarm-manager` has ordered profiles that include the common Docker Swarm
+  profile and a manager-specific proxy profile.
+* Worker nodes have only the common worker-safe profile set and never receive
+  manager proxy devices.
+* Expected `tsw-proxy-*` devices live in the manager-specific profile desired
+  state and are reconciled through profile commands, not direct instance
+  commands.
+* `lxc config device show <instance>` or `incus config device show <instance>`
+  output remains strict direct instance drift evidence.
+* Normal install/reset/reinstall/init/reconcile/expose stops on direct
+  `tsw-proxy-*` instance drift and prints a clear repair command.
+* The explicit repair command removes only matching stale direct proxy devices
+  after equivalent manager-profile devices are verified.
 
 ## Architecture Constraints
 
-* Domain code remains independent from application and infrastructure.
-* Application services depend on ports and typed diagnostic contracts, not
-  concrete HTTP adapters.
-* Infrastructure adapters contain Portainer HTTP and request details.
-* `composition.py` remains the standard runtime wiring location.
-* Entry-point code remains thin.
-* Live infrastructure commands require explicit user approval.
-* Secret-bearing diagnostics must be redacted before logs, evidence, or console
-  status output.
+* Preserve hexagonal architecture.
+* Domain modules may contain typed value objects and validation only.
+* Application services depend on ports and domain objects.
+* Infrastructure adapters run `incus` or `lxc` commands and parse command
+  output.
+* Standard runtime wiring remains in
+  `src/tiny_swarm_world/infrastructure/composition.py`.
+* Entry-point changes in `src/tiny_swarm_world/__main__.py` remain thin CLI
+  taxonomy and dispatch changes.
+* Provider YAML remains product behavior and must be parsed through structured
+  YAML APIs.
 
 ## Python Automation Assessment
 
-This is Python automation work. The likely implementation path is:
+Expected implementation areas:
 
-* introduce or reuse a typed Portainer diagnostic exception;
-* make `PortainerHttpClient` include redacted HTTP response-body diagnostics for
-  endpoint creation and lookup failures;
-* make `EnsurePortainerEndpoint` preserve the final actionable diagnostic in its
-  failure message or evidence path;
-* make deployment workflow evidence carry structured diagnostics when available.
+* Extend node-provider config to express ordered profiles or common plus
+  additional profile assignment.
+* Add profile-level desired proxy device state using existing setup manifest
+  port plans and manager profile configuration.
+* Replace direct instance proxy mutation with profile reconciliation.
+* Remove the normal-flow special allowance for direct project proxy devices.
+* Add explicit repair orchestration with equivalence checks.
+* Keep evidence summary-only and redacted.
 
 ## Frontend Assessment
 
-No React or browser frontend work is authorized. Terminal and setup status output
-may reflect improved deployment evidence, but any UI change must stay inside
-existing console/status contracts and be justified by the Python automation
-slice.
+No React, browser frontend, JavaScript build, TSX/JSX, or browser state is in
+scope. Console/status UI and CLI messages may be updated only as needed for
+clear repair guidance.
 
 ## Test Strategy
 
-Run targeted tests first:
+Default tests use mocks and fake runners. No live LXD, Incus, LXC, Docker
+Swarm, compose, or service bootstrap commands are required.
+
+Targeted commands:
 
 ```bash
-PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client
-PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_endpoint tests.application.services.deployment.test_deployment_workflows
-```
-
-Run the documentation/governance check after workflow or documentation edits:
-
-```bash
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_proxy_device_runtime
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_lxc_service_exposure tests.application.services.platform.test_platform_workflows
+PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.test_install_script
 git diff --check
 ```
 
-Before commit or push when practical, run:
+Required before commit or push when practical:
 
 ```bash
 python3 tools/quality_gate.py quality
 ```
 
-Do not run `./install.sh` unless the user explicitly requests live
-infrastructure validation. If live validation is approved, record the command,
-timestamp, exact result, and whether execution continued past
-`deployment:portainer-local-endpoint`.
-
 ## Resilience Requirements
 
-* Keep bounded retry/backoff for transient Portainer or endpoint readiness.
-* Do not retry indefinitely.
-* Do not treat deterministic 4xx/5xx contract failures as silent success.
-* Surface final failure diagnostics with status, redacted body, endpoint name,
-  endpoint model, and attempt count.
+* Repair must be idempotent: rerunning after stale direct devices are removed
+  should verify no stale devices remain.
+* Missing manager profile devices must block repair rather than remove stale
+  direct devices.
+* Unknown device shapes must remain blocked as unsafe.
+* Profile reconciliation failures must report summary counts and classifications
+  without raw command output.
+* Normal flows must fail closed and guide the operator to explicit repair.
 
 ## Ordered Slices
 
-### Slice 01 - Regression Characterization
+### Slice 01: Desired Manager Profile Contract
 
 Purpose:
 
-Add failing or strengthening tests that pin the desired endpoint bootstrap
-behavior before implementation changes.
-
-Prerequisites:
-
-* Active branch is `work/fix-workflow-portainer-local-endpoint-20260606`.
-* No live infrastructure commands.
+Define the desired-state model that lets `swarm-manager` receive a common
+Docker Swarm profile plus a manager-specific proxy profile while workers remain
+on the common profile only.
 
 ```yaml
 slice_id: "01"
 profile: FULL_PATH
-owner: Senior Tester
+owner: Senior Python Automation Developer
 secondary_reviewers:
-  - Senior Python Automation Developer
+  - Senior Requirement Engineer
   - Senior System Architect
+  - Senior Tester
 affected_files:
-  - tests/infrastructure/adapters/clients/test_portainer_http_client.py
-  - tests/application/services/deployment/test_ensure_portainer_endpoint.py
-  - tests/application/services/deployment/test_deployment_workflows.py
+  - infra/config/node-providers/provider_config.yaml
+  - src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py
+  - tests/infrastructure/adapters/repositories/test_node_provider_config_yaml_repository.py
 affected_modules:
-  - tests.infrastructure.adapters.clients
-  - tests.application.services.deployment
+  - tiny_swarm_world.infrastructure.adapters.repositories
 affected_contracts:
-  - PortPortainerClient.ensure_local_endpoint
-  - deployment:portainer-local-endpoint
+  - node-provider-config
 dependencies: []
-parallel_group: portainer-tests
+parallel_group: "A"
 file_locks:
-  - tests/infrastructure/adapters/clients/test_portainer_http_client.py
-  - tests/application/services/deployment/test_ensure_portainer_endpoint.py
-  - tests/application/services/deployment/test_deployment_workflows.py
+  - infra/config/node-providers/provider_config.yaml
+  - src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py
+  - tests/infrastructure/adapters/repositories/test_node_provider_config_yaml_repository.py
 contract_locks:
-  - Portainer endpoint bootstrap diagnostics
+  - node-provider-config-schema
 architecture_locks:
-  - Deployment application/infrastructure boundary
+  - hexagonal-infrastructure-config-boundary
 quality_gates:
   targeted:
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client
-    - PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_endpoint tests.application.services.deployment.test_deployment_workflows
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_node_provider_config_yaml_repository
   required:
-    - git diff --check
+    - python3 tools/quality_gate.py quality
 documentation:
-  arc42:
-    - documentation/arc42/06_runtime_view.adoc
-  adr: []
+  arc42: documentation/arc42/07_deployment_view.adoc
+  adr: ""
 stop_conditions:
-  - Tests require live Portainer, LXC, Docker, or Swarm access.
-  - Expected endpoint model cannot be expressed without changing architecture boundaries.
+  - Config schema would require host-specific values or secrets.
+  - Worker node would receive the manager proxy profile.
+  - Common docker-swarm profile would receive manager-only proxy devices.
 ```
 
 Done criteria:
 
-* Existing endpoint named `local` remains success.
-* Missing endpoint with successful create remains success.
-* Failed create asserts status and redacted response body are available in
-  operator-facing evidence.
-* Transient readiness retry is deterministic and does not sleep in tests.
+* Provider config can express manager-specific profile assignment.
+* `swarm-manager` expected profiles include common plus manager-specific
+  profile.
+* Workers do not include the manager-specific profile.
+* Config repository tests prove the committed YAML loads deterministically and
+  rejects unsafe or ambiguous profile state.
 
-Verification commands:
-
-```bash
-PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client
-PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_endpoint tests.application.services.deployment.test_deployment_workflows
-```
-
-### Slice 02 - Portainer HTTP Diagnostic Contract
+### Slice 02: Profile-Level Proxy Reconciliation
 
 Purpose:
 
-Implement structured Portainer HTTP diagnostics and verify the Portainer 2.39.x
-local socket endpoint creation contract.
-
-Prerequisites:
-
-* Slice 01 regression tests exist.
+Introduce or extend infrastructure profile reconciliation so expected
+`tsw-proxy-*` devices are inspected and applied on the manager-specific profile,
+not on the `swarm-manager` instance.
 
 ```yaml
 slice_id: "02"
@@ -459,144 +440,273 @@ secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - src/tiny_swarm_world/application/ports/clients/port_portainer_client.py
-  - src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py
-  - tests/infrastructure/adapters/clients/test_portainer_http_client.py
+  - src/tiny_swarm_world/application/ports/node_provider
+  - src/tiny_swarm_world/application/services/platform/lxc_service_exposure.py
+  - src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/infrastructure/adapters/clients/test_lxc_proxy_device_runtime.py
+  - tests/application/services/platform/test_lxc_service_exposure.py
+  - tests/infrastructure/test_composition.py
 affected_modules:
-  - tiny_swarm_world.application.ports.clients
+  - tiny_swarm_world.application.ports.node_provider
+  - tiny_swarm_world.application.services.platform
   - tiny_swarm_world.infrastructure.adapters.clients
+  - tiny_swarm_world.infrastructure
 affected_contracts:
-  - PortPortainerClient.ensure_local_endpoint
-  - Portainer 2.39.x /api/endpoints
+  - lxc-profile-proxy-device-runtime
+  - platform-expose
 dependencies:
   - "01"
-parallel_group: portainer-implementation
+parallel_group: "B"
 file_locks:
-  - src/tiny_swarm_world/application/ports/clients/port_portainer_client.py
-  - src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py
-  - tests/infrastructure/adapters/clients/test_portainer_http_client.py
+  - src/tiny_swarm_world/application/ports/node_provider
+  - src/tiny_swarm_world/application/services/platform/lxc_service_exposure.py
+  - src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py
+  - src/tiny_swarm_world/infrastructure/composition.py
 contract_locks:
-  - Portainer endpoint HTTP diagnostics
-  - Portainer endpoint creation payload
+  - platform-expose-contract
+  - lxc-profile-command-contract
 architecture_locks:
-  - Deployment infrastructure adapter boundary
+  - application-depends-on-ports
+  - infrastructure-owns-lxc-commands
 quality_gates:
   targeted:
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_proxy_device_runtime
+    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_lxc_service_exposure
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
   required:
-    - python3 tools/quality_gate.py lint
+    - python3 tools/quality_gate.py quality
 documentation:
-  arc42:
-    - documentation/arc42/06_runtime_view.adoc
-  adr: []
+  arc42: documentation/arc42/06_runtime_view.adoc
+  adr: ""
 stop_conditions:
-  - Portainer 2.39.x API evidence contradicts the socket endpoint model.
-  - Response-body diagnostics cannot be redacted safely.
-  - Domain code would need to import HTTP or Portainer details.
+  - Profile reconciliation still uses config device add or config device set on an instance.
+  - Application service embeds raw lxc or incus command strings.
+  - Profile command output is persisted raw.
 ```
 
 Done criteria:
 
-* Endpoint creation failures expose status code and redacted body through a typed
-  diagnostic path.
-* `ensure_local_endpoint("local")` remains idempotent.
-* The current socket endpoint payload is either verified for Portainer 2.39.x or
-  changed with documented evidence.
-* Tests prove no password, JWT, Authorization header, or secret assignment leaks.
+* Profile device get/add/set or equivalent profile reconciliation is covered by
+  fake-runner tests.
+* `platform expose` verifies/reconciles profile-level devices.
+* No normal expose path calls direct instance `config device add` or direct
+  instance `config device set`.
+* Existing summary evidence counts remain useful and redacted.
 
-Verification commands:
-
-```bash
-PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client
-python3 tools/quality_gate.py lint
-```
-
-### Slice 03 - Deployment Bootstrap Evidence And Retry
+### Slice 03: Strict Node Drift And Profile Assignment
 
 Purpose:
 
-Make `deployment:portainer-local-endpoint` preserve actionable diagnostics when
-retries are exhausted and ensure deployment apply evidence includes structured
-HTTP details.
-
-Prerequisites:
-
-* Slice 02 diagnostic contract exists.
+Make node lifecycle checks distinguish expected profile-level devices from
+direct instance-level devices and ensure launch/reconciliation uses the expected
+ordered profile set.
 
 ```yaml
 slice_id: "03"
 profile: FULL_PATH
 owner: Senior Python Automation Developer
 secondary_reviewers:
-  - Senior Tester
   - Senior System Architect
+  - Senior Tester
 affected_files:
-  - src/tiny_swarm_world/application/services/deployment/ensure_portainer_endpoint.py
-  - src/tiny_swarm_world/application/services/deployment/workflows.py
-  - tests/application/services/deployment/test_ensure_portainer_endpoint.py
-  - tests/application/services/deployment/test_deployment_workflows.py
+  - src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py
+  - tests/infrastructure/adapters/clients/test_lxc_node_provider.py
 affected_modules:
-  - tiny_swarm_world.application.services.deployment
+  - tiny_swarm_world.infrastructure.adapters.clients
 affected_contracts:
-  - deployment:portainer-local-endpoint
-  - DeploymentApplyWorkflow failure evidence
+  - lxc-node-lifecycle
+  - unsafe-instance-device-drift
 dependencies:
+  - "01"
   - "02"
-parallel_group: portainer-implementation
+parallel_group: "C"
 file_locks:
-  - src/tiny_swarm_world/application/services/deployment/ensure_portainer_endpoint.py
-  - src/tiny_swarm_world/application/services/deployment/workflows.py
-  - tests/application/services/deployment/test_ensure_portainer_endpoint.py
-  - tests/application/services/deployment/test_deployment_workflows.py
+  - src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py
+  - tests/infrastructure/adapters/clients/test_lxc_node_provider.py
 contract_locks:
-  - deployment bootstrap failure evidence
+  - node-lifecycle-drift-contract
 architecture_locks:
-  - Deployment application service boundary
+  - infrastructure-owns-provider-command-parsing
 quality_gates:
   targeted:
-    - PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_endpoint tests.application.services.deployment.test_deployment_workflows
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_node_provider
   required:
-    - python3 tools/quality_gate.py lint
+    - python3 tools/quality_gate.py quality
 documentation:
-  arc42:
-    - documentation/arc42/06_runtime_view.adoc
-  adr: []
+  arc42: documentation/arc42/07_deployment_view.adoc
+  adr: ""
 stop_conditions:
-  - Failure evidence loses HTTP status or response body.
-  - Retry/backoff sleeps slow down tests.
-  - Unsafe raw payloads appear in reason, message, logs, or evidence.
+  - Direct instance-level tsw-proxy devices are allowed by normal mismatch detection.
+  - Reset or reinstall deletes nodes after unsafe direct proxy drift without explicit repair.
+  - Worker launch or existing-node check expects manager proxy profile.
 ```
 
 Done criteria:
 
-* Exhausted retries include endpoint name, attempts, final failure class,
-  diagnostic status, and redacted response body when available.
-* Deployment workflow `failed_to_apply` evidence carries structured HTTP
-  diagnostics.
-* Transient readiness still retries before failing.
-* Deterministic creation failure does not hide behind the generic message.
+* Direct instance-level `tsw-proxy-*` devices on `swarm-manager` produce
+  `unsafe_instance_devices`.
+* Unrelated unexpected instance devices remain unsafe.
+* Manager launch/check requires the manager profile in addition to the common
+  profile.
+* Workers require only worker-safe expected profiles.
+* Normal reset/reinstall paths do not special-case project proxy devices as
+  safe.
 
-Verification commands:
-
-```bash
-PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_endpoint tests.application.services.deployment.test_deployment_workflows
-python3 tools/quality_gate.py lint
-```
-
-### Slice 04 - Endpoint Model Documentation
+### Slice 04: Normal Flow Guidance Without Silent Repair
 
 Purpose:
 
-Document the authoritative endpoint model and remove ambiguity between Docker
-socket endpoint and Portainer agent endpoint for the current stack.
-
-Prerequisites:
-
-* Slice 02 verifies endpoint creation contract.
-* Slice 03 verifies evidence behavior.
+Ensure install/reset/reinstall/setup/platform flows stop cleanly on stale direct
+proxy drift and provide a clear operator repair instruction without performing
+repair implicitly.
 
 ```yaml
 slice_id: "04"
+profile: FULL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Senior Tester
+  - Senior Documentation Engineer
+affected_files:
+  - src/tiny_swarm_world/application/services/platform
+  - src/tiny_swarm_world/__main__.py
+  - install.sh
+  - tests/application/services/platform/test_platform_workflows.py
+  - tests/test_package_entrypoint.py
+  - tests/test_install_script.py
+affected_modules:
+  - tiny_swarm_world.application.services.platform
+  - tiny_swarm_world
+affected_contracts:
+  - platform-workflow-result
+  - install-launcher-contract
+dependencies:
+  - "03"
+parallel_group: "D"
+file_locks:
+  - src/tiny_swarm_world/application/services/platform
+  - src/tiny_swarm_world/__main__.py
+  - install.sh
+  - tests/application/services/platform/test_platform_workflows.py
+  - tests/test_package_entrypoint.py
+  - tests/test_install_script.py
+contract_locks:
+  - cli-platform-workflow-taxonomy
+  - install-sh-thin-launcher
+architecture_locks:
+  - thin-entrypoint
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+    - PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.test_install_script
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: documentation/arc42/06_runtime_view.adoc
+  adr: ""
+stop_conditions:
+  - install.sh gains business logic.
+  - Normal flow removes direct proxy devices.
+  - Operator guidance mentions a repair command that is not implemented or tested.
+```
+
+Done criteria:
+
+* Normal flows block on stale direct proxy drift.
+* The block message points to the explicit repair path.
+* `install.sh` remains a launcher into Python.
+* Tests prove normal install/reset/reinstall behavior does not reintroduce
+  direct instance proxy devices.
+
+### Slice 05: Explicit Stale Proxy Repair
+
+Purpose:
+
+Add the explicit repair path for stale direct instance-level `tsw-proxy-*`
+devices, guarded by equivalence with manager-profile state.
+
+```yaml
+slice_id: "05"
+profile: FULL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Senior System Architect
+  - Senior Tester
+  - Senior DevOps Engineer
+affected_files:
+  - src/tiny_swarm_world/application/ports/node_provider
+  - src/tiny_swarm_world/application/services/platform
+  - src/tiny_swarm_world/infrastructure/adapters/clients
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py
+  - src/tiny_swarm_world/__main__.py
+  - tests/application/services/platform
+  - tests/infrastructure/adapters/clients
+  - tests/test_package_entrypoint.py
+affected_modules:
+  - tiny_swarm_world.application.ports.node_provider
+  - tiny_swarm_world.application.services.platform
+  - tiny_swarm_world.infrastructure.adapters.clients
+  - tiny_swarm_world.infrastructure
+  - tiny_swarm_world
+affected_contracts:
+  - platform-repair-lxc-proxy-drift
+  - lxc-direct-device-repair
+dependencies:
+  - "02"
+  - "03"
+  - "04"
+parallel_group: "E"
+file_locks:
+  - src/tiny_swarm_world/application/ports/node_provider
+  - src/tiny_swarm_world/application/services/platform
+  - src/tiny_swarm_world/infrastructure/adapters/clients
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py
+  - src/tiny_swarm_world/__main__.py
+contract_locks:
+  - explicit-repair-command-contract
+  - lxc-direct-device-removal-contract
+architecture_locks:
+  - application-port-repair-orchestration
+  - infrastructure-owns-lxc-device-removal
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_proxy_device_runtime tests.infrastructure.adapters.clients.test_lxc_node_provider
+    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows
+    - PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: documentation/arc42/06_runtime_view.adoc
+  adr: ""
+stop_conditions:
+  - Repair removes any non-tsw-proxy device.
+  - Repair removes a direct tsw-proxy device without an equivalent manager-profile device.
+  - Repair runs from install, reset, reinstall, init, reconcile, or expose without explicit command selection.
+  - Repair does not require live consent for mutation.
+```
+
+Done criteria:
+
+* Explicit repair removes only stale direct `tsw-proxy-*` instance devices with
+  equivalent manager-profile devices.
+* Repair refuses when equivalent profile-level desired state is missing.
+* Repair refuses arbitrary unknown devices.
+* CLI dispatch and workflow taxonomy tests cover the repair action.
+* Evidence reports removed, skipped, refused, and failed counts without raw
+  command output.
+
+### Slice 06: Documentation And Final Quality Gate
+
+Purpose:
+
+Synchronize documentation, arc42 views, operator repair guidance, and final
+quality evidence.
+
+```yaml
+slice_id: "06"
 profile: FULL_PATH
 owner: Senior Documentation Engineer
 secondary_reviewers:
@@ -605,252 +715,202 @@ secondary_reviewers:
   - Senior Tester
 affected_files:
   - documentation/deployment/system.adoc
+  - documentation/system/live-operation-surfaces.adoc
+  - documentation/system/network.adoc
+  - documentation/user_guide/installation.adoc
   - documentation/arc42/06_runtime_view.adoc
   - documentation/arc42/07_deployment_view.adoc
-  - documentation/system/live-operation-surfaces.adoc
-affected_modules:
-  - documentation
+  - documentation/arc42/10_quality_requirements.adoc
+  - documentation/arc42/11_risks_and_debt.adoc
+  - documentation/workflow/workflow.md
+  - documentation/workflow/context-pack.md
+  - documentation/workflow/context-pack.json
+affected_modules: []
 affected_contracts:
-  - deployment bootstrap documentation
-dependencies:
-  - "02"
-  - "03"
-parallel_group: documentation-sync
-file_locks:
-  - documentation/deployment/system.adoc
-  - documentation/arc42/06_runtime_view.adoc
-  - documentation/arc42/07_deployment_view.adoc
-  - documentation/system/live-operation-surfaces.adoc
-contract_locks:
-  - Portainer endpoint model
-architecture_locks:
-  - arc42 runtime and deployment view
-quality_gates:
-  targeted:
-    - git diff --check
-  required:
-    - git diff --check
-documentation:
-  arc42:
-    - documentation/arc42/06_runtime_view.adoc
-    - documentation/arc42/07_deployment_view.adoc
-  adr: []
-stop_conditions:
-  - Documentation would claim live install success without live evidence.
-  - Documentation contradicts implementation evidence.
-```
-
-Done criteria:
-
-* Documentation states socket-backed `local` endpoint is authoritative for
-  current bootstrap.
-* Documentation states the agent remains deployed but is not the endpoint
-  registration target unless a future workflow changes it.
-* Documentation distinguishes endpoint registration from service readiness.
-
-Verification commands:
-
-```bash
-git diff --check
-```
-
-### Slice 05 - Quality Gate And Optional Live Handoff
-
-Purpose:
-
-Run repository gates and define the live validation handoff for `./install.sh`.
-
-Prerequisites:
-
-* Slices 01 through 04 complete.
-
-```yaml
-slice_id: "05"
-profile: FULL_PATH
-owner: Senior Tester
-secondary_reviewers:
-  - Senior DevOps Engineer
-  - Senior Python Automation Developer
-affected_files: []
-affected_modules:
-  - quality
-affected_contracts:
-  - workflow quality gate
-  - optional live installation validation
+  - documentation-sync
+  - arc42-sync
 dependencies:
   - "01"
   - "02"
   - "03"
   - "04"
-parallel_group: final-validation
-file_locks: []
+  - "05"
+parallel_group: "F"
+file_locks:
+  - documentation/deployment/system.adoc
+  - documentation/system/live-operation-surfaces.adoc
+  - documentation/system/network.adoc
+  - documentation/user_guide/installation.adoc
+  - documentation/arc42/06_runtime_view.adoc
+  - documentation/arc42/07_deployment_view.adoc
+  - documentation/arc42/10_quality_requirements.adoc
+  - documentation/arc42/11_risks_and_debt.adoc
 contract_locks:
-  - QUALITY.md gate authority
-architecture_locks: []
+  - operator-repair-guidance
+  - arc42-runtime-deployment-docs
+architecture_locks:
+  - documentation-claims-match-implemented-behavior
 quality_gates:
   targeted:
-    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client
-    - PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_portainer_endpoint tests.application.services.deployment.test_deployment_workflows
     - git diff --check
   required:
     - python3 tools/quality_gate.py quality
 documentation:
-  arc42:
-    - documentation/arc42/06_runtime_view.adoc
-    - documentation/arc42/07_deployment_view.adoc
-  adr: []
+  arc42: documentation/arc42/06_runtime_view.adoc; documentation/arc42/07_deployment_view.adoc; documentation/arc42/10_quality_requirements.adoc; documentation/arc42/11_risks_and_debt.adoc
+  adr: ""
 stop_conditions:
-  - Required quality gate fails.
-  - Live validation is requested but operator consent or prerequisites are missing.
+  - Documentation claims live repair or install success without live evidence.
+  - Documentation describes direct instance proxy devices as expected normal state.
+  - Documentation tells workers to use the manager proxy profile.
 ```
 
 Done criteria:
 
-* Targeted tests pass.
-* Full quality gate is run or a documented, explicit reason is recorded.
-* If live validation is explicitly requested, `./install.sh` passes
-  `deployment:portainer-local-endpoint` or reports the exact remaining
-  diagnostic evidence.
-
-Verification commands:
-
-```bash
-python3 tools/quality_gate.py quality
-```
-
-Optional live validation command only after explicit live request:
-
-```bash
-./install.sh
-```
+* Documentation explains profile-level devices versus direct instance-level
+  devices.
+* Documentation explains why direct `tsw-proxy-*` devices are drift.
+* Documentation explains why manager proxy devices belong to a manager-specific
+  profile.
+* Documentation explains why workers must not receive manager proxy devices.
+* Documentation explains the explicit stale-state repair command.
+* Targeted tests and `python3 tools/quality_gate.py quality` are reported.
 
 ## Slice Dependency Graph
 
-```text
-01 Regression Characterization
-  -> 02 Portainer HTTP Diagnostic Contract
-      -> 03 Deployment Bootstrap Evidence And Retry
-          -> 04 Endpoint Model Documentation
-              -> 05 Quality Gate And Optional Live Handoff
+```mermaid
+flowchart TD
+  S01["Slice 01: Desired Manager Profile Contract"]
+  S02["Slice 02: Profile-Level Proxy Reconciliation"]
+  S03["Slice 03: Strict Node Drift And Profile Assignment"]
+  S04["Slice 04: Normal Flow Guidance Without Silent Repair"]
+  S05["Slice 05: Explicit Stale Proxy Repair"]
+  S06["Slice 06: Documentation And Final Quality Gate"]
+  S01 --> S02
+  S01 --> S03
+  S02 --> S03
+  S03 --> S04
+  S02 --> S05
+  S03 --> S05
+  S04 --> S05
+  S01 --> S06
+  S02 --> S06
+  S03 --> S06
+  S04 --> S06
+  S05 --> S06
 ```
 
-## Parallelization Opportunities
+Parallelization opportunities:
 
-No write-capable parallel execution is recommended for Slices 01 through 03
-because they share Portainer diagnostic and deployment evidence contracts. Slice
-04 may begin read-only documentation review while Slice 03 is in progress, but
-documentation writes must wait for implementation evidence.
+* Slice 01 must complete first.
+* Slice 02 and early Slice 03 test planning can be reviewed in parallel only
+  after the profile schema is stable.
+* Slice 06 documentation drafting may start from verified behavior notes, but
+  final documentation must wait until Slices 01 through 05 are implemented.
 
-## Role And Ownership Map
+## Role Ownership Map
 
-* Senior Workflow Architect: workflow structure, slice dependency order, handoff.
-* Senior Requirement Engineer: EPIC alignment and requirement drift.
-* Senior System Architect: hexagonal boundary and endpoint-model authority.
-* Senior Python Automation Developer: application service, port, adapter
-  implementation.
-* Senior React Frontend Developer: no-impact confirmation for browser frontend.
-* Senior Tester: regression tests and quality gates.
-* Senior Documentation Engineer: deployment and arc42 synchronization.
-* Senior DevOps Engineer: optional live validation readiness only after explicit
-  user approval.
+* Senior Requirement Engineer: requirements, acceptance criteria, EPIC drift.
+* Senior System Architect: hexagonal boundaries, profile ownership, arc42.
+* Senior Python Automation Developer: source implementation and tests.
+* Senior React Frontend Developer: no-impact frontend confirmation.
+* Senior Tester: regression coverage, gate selection, failure classification.
+* Senior Documentation Engineer: operator docs and arc42 synchronization.
+* Senior DevOps Engineer: live-infrastructure safety and repair command review.
 
-No subagents are assigned by this workflow because the user did not request
-delegated or parallel agent work.
+Subagents are not required unless the user explicitly asks for delegated or
+parallel agent work.
+
+## Quality Gate Expectations
+
+During workflow execution:
+
+1. Run the nearest targeted unittest command for each completed slice.
+2. Run `git diff --check` after documentation and workflow edits.
+3. Run `python3 tools/quality_gate.py quality` before commit or push when
+   practical.
+4. Report every executed command and classify failures as related or unrelated
+   to this change.
 
 ## Documentation Synchronization Points
 
-Update documentation only after source and tests prove the behavior:
-
-* `documentation/deployment/system.adoc`: endpoint bootstrap behavior,
-  diagnostics, and endpoint model.
-* `documentation/arc42/06_runtime_view.adoc`: runtime deployment bootstrap flow.
-* `documentation/arc42/07_deployment_view.adoc`: deployment endpoint model and
-  Portainer agent/socket distinction.
-* `documentation/system/live-operation-surfaces.adoc`: privileged Portainer
-  socket/agent surface remains explicit.
-
-Do not document planned behavior as implemented behavior before Slice 05
-evidence exists.
+* After Slice 01, document the node-provider config profile model if it changes.
+* After Slices 02 and 03, update arc42 runtime/deployment behavior for
+  manager-specific proxy profile state.
+* After Slice 05, update operator repair documentation and live-operation
+  surfaces.
+* After Slice 06, ensure workflow docs and context pack still match branch,
+  quality commands, and governing hashes.
 
 ## Stop Conditions
 
-Stop workflow execution and report if:
+Stop workflow execution and report when:
 
-* Active branch is not `work/fix-workflow-portainer-local-endpoint-20260606`.
-* Existing local changes overlap a slice lock.
-* Portainer 2.39.x API contract cannot be verified from tests or primary
-  implementation evidence.
-* Diagnostics would expose unredacted credentials, JWTs, Authorization headers,
-  secret values, or unsafe payloads.
-* Implementation requires domain imports of infrastructure, HTTP, Docker, or
-  logging details.
-* Any live infrastructure command is required without explicit user approval.
-* EPIC, arc42, or implementation evidence contradict the endpoint model.
+* The implementation would weaken `unsafe_instance_devices`.
+* Direct instance-level `tsw-proxy-*` devices are treated as expected normal
+  state.
+* Worker nodes would receive manager-only proxy devices.
+* Repair would remove devices without equivalent profile-level expected state.
+* A live infrastructure command is required without explicit user approval.
+* The quality command source of truth conflicts with `QUALITY.md`.
+* Architecture documentation would claim behavior before implementation or
+  evidence exists.
+* Branch changes are required outside the dedicated branch without user
+  direction.
 
 ## Uncertainty Escalation Rules
 
-* Portainer API contract uncertainty routes to Senior Python Automation
-  Developer and Senior System Architect.
-* Endpoint model contradiction routes to Root Architect escalation through Senior
-  System Architect.
-* Secret-redaction conflict routes to Senior Tester and security review before
-  diagnostics are widened.
-* Quality failure routes through the Typed Error Router before retry.
+* Escalate to Senior System Architect if the provider config schema must change
+  in a way that affects unrelated provider behavior.
+* Escalate to Senior Requirement Engineer if the repair command scope expands
+  beyond stale direct `tsw-proxy-*` devices.
+* Escalate to Senior Tester if equivalent-profile detection cannot be tested
+  without live infrastructure.
+* Escalate to Root Architect if preserving strict drift detection conflicts
+  with normal install/reset/reinstall expectations.
 
 ## Commit And Push Plan
 
-Commit and push are not part of `workflow create` unless the user requests them.
-If requested after execution:
+No commit or push is requested by this workflow creation request. If later
+requested:
 
-1. Review `git status --short`.
-2. Run required gates or document skips.
-3. Stage only workflow-approved files.
-4. Commit with a message prepared from the completed slice evidence.
-5. Push the active workflow branch only after successful commit and explicit
-   approval or user instruction.
+* Keep all changes on `fix/lxc-proxy-drift-reconciliation-20260606`.
+* Stage only files related to this workflow and its implementation.
+* Run targeted gates and the full quality gate when practical.
+* Use a focused commit message that names LXC proxy drift reconciliation.
+* Do not create or merge a pull request unless explicitly requested.
 
 ## Definition Of Done
 
-The workflow is done when:
-
-* `documentation/workflow/workflow.md` exists with slice metadata for every
-  slice.
-* `documentation/workflow/context-pack.md` and
-  `documentation/workflow/context-pack.json` exist.
-* Requirement, architecture, Python automation, frontend impact, and tester
-  reports exist under `documentation/workflow/reports`.
-* arc42 impact is checked and recorded.
-* `git diff --check` passes for workflow artifacts.
-
-The implementation is done later, during `workflow execute`, when:
-
-* all slices complete;
-* targeted tests pass;
-* `python3 tools/quality_gate.py quality` passes or an explicit documented skip
-  is accepted;
-* optional live `./install.sh` validation, if requested, passes
-  `deployment:portainer-local-endpoint` and continues to later setup phases.
+* Normal install/reset/reinstall/setup/platform flows no longer create direct
+  instance-level proxy drift.
+* Expected proxy devices are manager-specific profile-level state.
+* Direct instance-level `tsw-proxy-*` devices remain
+  `unsafe_instance_devices`.
+* Workers do not receive manager proxy devices.
+* Explicit repair removes stale direct proxy devices only when equivalent
+  manager-profile state exists.
+* Tests cover all requested cases.
+* Documentation explains the operational model and repair path.
+* `git diff --check` and required quality gates are reported.
 
 ## Handoff To Workflow Execute
 
-Execute with:
+`workflow execute` should verify:
 
-```text
-workflow execute
-```
-
-Workflow execute must run S3/S3D preflight, verify the active branch, verify
-locks, then start with Slice 01. It must not run `./install.sh` unless the user
-explicitly asks for live infrastructure validation during execution.
+* Active branch is `fix/lxc-proxy-drift-reconciliation-20260606`.
+* Context pack hashes are still current.
+* No unrelated local changes are present.
+* Slice 01 is started first.
+* Live infrastructure commands are not run unless the user explicitly requests
+  live validation.
 
 ## arc42 Check Status
 
 Checked during workflow creation:
 
-* `documentation/arc42/06_runtime_view.adoc`
-* `documentation/arc42/07_deployment_view.adoc`
+* `documentation/arc42/06_runtime_view.adoc`.
+* `documentation/arc42/07_deployment_view.adoc`.
 
-The current arc42 runtime view already identifies deployment bootstrap as the
-place where the local Docker endpoint is registered. Slice 04 must update arc42
-after implementation evidence so documentation names the socket-backed endpoint
-model and the agent distinction without claiming unverified live success.
+The current arc42 files describe LXC-native platform expose as direct
+manager-gateway proxy configuration. Slice 06 must update those docs after the
+implementation moves proxy devices to manager-specific profile state.

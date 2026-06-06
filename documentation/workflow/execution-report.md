@@ -1,26 +1,29 @@
 # Workflow Execution Report
 
-```text
-workflow_id=portainer-local-endpoint-bootstrap-diagnostics-v1.0.0
-status=not_started
-branch=work/fix-workflow-portainer-local-endpoint-20260606
+```yaml
+workflow_id: lxc-proxy-drift-reconciliation-v1.0.0
+branch: fix/lxc-proxy-drift-reconciliation-20260606
+status: not_started
 ```
 
-## Creation Evidence
+This workflow has been created and released for `workflow execute`. No
+implementation slices have been executed yet.
 
-* Repository root verified: `/mnt/d/Projects/Tiny-Swarm-World`.
-* Workflow branch created and verified:
-  `work/fix-workflow-portainer-local-endpoint-20260606`.
-* Active workflow regenerated for the Portainer endpoint bootstrap failure.
-* No implementation slices have been executed yet.
+## Command Evidence
 
-## Next Step
+No slice implementation commands have been run.
 
-Run:
+## Slice Status
 
-```text
-workflow execute
-```
+* Slice 01: pending.
+* Slice 02: pending.
+* Slice 03: pending.
+* Slice 04: pending.
+* Slice 05: pending.
+* Slice 06: pending.
 
-Execution must begin with Slice 01 and must not run `./install.sh` unless the
-user explicitly asks for live infrastructure validation.
+## Notes
+
+Do not record live infrastructure success here unless live validation is
+explicitly requested and evidence is collected separately from the default
+quality gate.

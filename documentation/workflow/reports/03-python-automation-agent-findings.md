@@ -1,45 +1,30 @@
 # Senior Python Automation Developer Findings
 
-## Source Review
+## Summary
 
-`EnsurePortainerEndpoint.run()` currently retries
-`portainer_client.ensure_local_endpoint()` and raises a generic final
-`RuntimeError` when all attempts fail.
+The current code already contains the failure shape requested by the workflow:
+proxy mutation is direct-instance based, while node lifecycle drift checks have
+a project-proxy allowance that conflicts with the new desired behavior.
 
-`PortainerHttpClient.ensure_local_endpoint()` currently:
+## Relevant Evidence
 
-* calls `GET /api/endpoints`;
-* returns an existing endpoint named `local`;
-* accepts local aliases and one socket-backed local fallback;
-* posts the socket-backed endpoint when missing;
-* verifies the endpoint list after creation.
-
-`PortainerHttpClient._ensure_success()` currently reports HTTP status but omits
-the response body.
-
-`DeploymentApplyWorkflow._apply_failure_evidence()` currently records failure
-class and limited status diagnostics, but does not carry response body
-diagnostics.
+* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py`
+  uses `config device get/add/set <instance>`.
+* `src/tiny_swarm_world/application/services/platform/lxc_service_exposure.py`
+  applies proxy plans to `swarm-manager`.
+* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py`
+  uses `allow_project_proxy_devices=True` in normal mismatch detection.
+* `infra/config/node-providers/provider_config.yaml` assigns one shared
+  `docker-swarm` profile to manager and workers.
 
 ## Implementation Guidance
 
-* Prefer structured diagnostic fields over raw exception text.
-* Preserve redaction for passwords, JWTs, Authorization headers, tokens, and
-  secret assignments.
-* Keep endpoint creation in the infrastructure adapter.
-* Keep retry orchestration in the application service.
-* Keep workflow result evidence in the deployment workflow layer.
-
-## Suggested Diagnostic Fields
-
-* `endpoint_name`
-* `endpoint_model`
-* `attempt_count`
-* `failure_class`
-* `http_status`
-* `http_response_body`
-* `operator_action`
+* Add a minimal config model for ordered profile assignment.
+* Add profile-level proxy device reconciliation through ports.
+* Remove normal-flow allowance for direct project proxy devices.
+* Add explicit repair with equivalence checks and summary-only evidence.
+* Keep `install.sh` thin.
 
 ## Decision
 
-No Python automation blocker for workflow execution.
+`READY_FOR_WORKFLOW`.
