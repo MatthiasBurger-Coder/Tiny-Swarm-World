@@ -112,7 +112,7 @@ run_recorded_command() {
   local command_line="$1"
   local log_file="$2"
 
-  { printf 'y\n'; sleep 86400; } | script -q -e -c "$command_line" "$log_file"
+  printf 'y\n' | script -q -e -c "$command_line" "$log_file"
 }
 
 confirm_reset() {

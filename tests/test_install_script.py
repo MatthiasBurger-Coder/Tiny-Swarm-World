@@ -189,6 +189,7 @@ class _InstallScriptFixture:
             text=True,
             capture_output=True,
             check=False,
+            timeout=10,
         )
 
     def recorded_commands(self) -> list[str]:
