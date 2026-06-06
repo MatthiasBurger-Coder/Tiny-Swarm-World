@@ -86,6 +86,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertIn("image: nginx:mainline-alpine", compose)
         self.assertIn("/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro", compose)
         self.assertIn("resolver 127.0.0.11", nginx_config)
+        self.assertIn("set $swagger_api_upstream http://tasks.swagger-api:8000;", nginx_config)
         self.assertIn("proxy_pass $swagger_api_upstream;", nginx_config)
 
     def test_compose_area_has_no_stack_definitions(self):
@@ -151,8 +152,11 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertIn("listen 80;", nginx_config)
         self.assertIn("listen 8086;", nginx_config)
         self.assertIn("resolver 127.0.0.11", nginx_config)
-        self.assertIn("set $dashboard_upstream http://service-access-dashboard:80;", nginx_config)
-        self.assertIn("set $vaultwarden_upstream http://vaultwarden:80;", nginx_config)
+        self.assertIn(
+            "set $dashboard_upstream http://tasks.service-access-dashboard:80;",
+            nginx_config,
+        )
+        self.assertIn("set $vaultwarden_upstream http://tasks.vaultwarden:80;", nginx_config)
         for route in ("jenkins", "nexus", "portainer", "rabbitmq", "sonarqube", "swagger", "vaultwarden"):
             with self.subTest(route=route):
                 self.assertIn(f"location = /{route}", nginx_config)
