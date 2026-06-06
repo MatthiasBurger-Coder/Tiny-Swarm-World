@@ -153,7 +153,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
 
         self.assertEqual(
-            "${TSW_JENKINS_IMAGE:-swarm-manager:5000/jenkins:latest}",
+            "${TSW_JENKINS_IMAGE:-127.0.0.1:5000/jenkins:latest}",
             compose_data["services"]["jenkins"]["image"],
         )
         self.assertEqual(
@@ -208,11 +208,11 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertEqual("service-access", ComposeFileRepositoryYaml().get_compose_of("service-access").name)
         self.assertEqual(set(SERVICE_ACCESS_STACK_CONTRACT.required_services), set(services))
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-swarm-manager:5000/service-access-dashboard:latest}",
+            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:5000/service-access-dashboard:latest}",
             services["service-access-dashboard"]["image"],
         )
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-swarm-manager:5000/service-access-nginx:latest}",
+            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:5000/service-access-nginx:latest}",
             services["service-access-nginx"]["image"],
         )
         self.assertEqual(

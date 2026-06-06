@@ -560,7 +560,7 @@ class TestComposition(unittest.TestCase):
             if step.service_stack.stack_name == "jenkins"
         )
         self.assertEqual(
-            {"TSW_JENKINS_IMAGE": "swarm-manager:5000/jenkins:latest"},
+            {"TSW_JENKINS_IMAGE": "127.0.0.1:5000/jenkins:latest"},
             jenkins_step.stack_environment,
         )
         self.assertEqual(
@@ -694,10 +694,10 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             {
                 "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE": (
-                    "swarm-manager:5000/service-access-dashboard:latest"
+                    "127.0.0.1:5000/service-access-dashboard:latest"
                 ),
                 "TSW_SERVICE_ACCESS_NGINX_IMAGE": (
-                    "swarm-manager:5000/service-access-nginx:latest"
+                    "127.0.0.1:5000/service-access-nginx:latest"
                 ),
                 "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined",
             },

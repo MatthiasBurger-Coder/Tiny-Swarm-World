@@ -1,6 +1,6 @@
 services:
   jenkins:
-    image: ${TSW_JENKINS_IMAGE:-swarm-manager:5000/jenkins:latest}
+    image: ${TSW_JENKINS_IMAGE:-127.0.0.1:5000/jenkins:latest}
     user: root
     volumes:
       - jenkins_home:/var/lib/jenkins
