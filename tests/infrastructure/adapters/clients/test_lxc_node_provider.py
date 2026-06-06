@@ -127,6 +127,151 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEvidenceIsSummaryOnly(result)
 
+    async def test_missing_manager_profile_is_created_before_launch(self):
+        runner = _FakeRunner(
+            _profile(),
+            LxcNodeCommandResult(returncode=1, stderr="Profile not found"),
+            _profile_list("default", "docker-swarm"),
+            _ok(),
+            _profile(name="docker-swarm-manager"),
+            _list(),
+            _ok(),
+            _list(
+                _node(
+                    "swarm-manager",
+                    "Running",
+                    profiles=("docker-swarm", "docker-swarm-manager"),
+                )
+            ),
+        )
+        provider = _provider(
+            runner,
+            config=_config(additional_profiles=("docker-swarm-manager",)),
+        )
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("created", result.evidence["lifecycle_outcome"])
+        self.assertEqual("swarm-manager", result.evidence["node_name"])
+        self.assertEqual(
+            [
+                (("lxc", "profile", "show", "docker-swarm"), 5.0),
+                (("lxc", "profile", "show", "docker-swarm-manager"), 5.0),
+                (("lxc", "profile", "list", "--format", "json"), 5.0),
+                (("lxc", "profile", "create", "docker-swarm-manager"), 5.0),
+                (("lxc", "profile", "show", "docker-swarm-manager"), 5.0),
+                (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
+                (
+                    (
+                        "lxc",
+                        "launch",
+                        "ubuntu:24.04",
+                        "swarm-manager",
+                        "--profile",
+                        "docker-swarm",
+                        "--profile",
+                        "docker-swarm-manager",
+                        "-c",
+                        "user.tiny_swarm_world.managed=true",
+                        "-c",
+                        "user.tiny_swarm_world.node=swarm-manager",
+                        "-c",
+                        "user.tiny_swarm_world.image_alias=ubuntu-24.04",
+                        "-c",
+                        "limits.cpu=2",
+                        "-c",
+                        "limits.memory=4GiB",
+                        "-d",
+                        "root,size=20GiB",
+                    ),
+                    300.0,
+                ),
+                (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
+            ],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_existing_swarm_profile_is_reconciled_without_using_node_name_as_profile(
+        self,
+    ):
+        runner = _FakeRunner(
+            _profile(config={}),
+            _ok(),
+            _ok(),
+            _ok(),
+            _profile(),
+            _list(),
+            _ok(),
+            _list(_node("swarm-manager", "Running")),
+        )
+        provider = _provider(runner)
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual(
+            [
+                (("incus", "profile", "show", "docker-swarm"), 5.0),
+                (("incus", "profile", "set", "docker-swarm", "security.nesting", "true"), 5.0),
+                (
+                    (
+                        "incus",
+                        "profile",
+                        "set",
+                        "docker-swarm",
+                        "security.syscalls.intercept.mknod",
+                        "true",
+                    ),
+                    5.0,
+                ),
+                (
+                    (
+                        "incus",
+                        "profile",
+                        "set",
+                        "docker-swarm",
+                        "security.syscalls.intercept.setxattr",
+                        "true",
+                    ),
+                    5.0,
+                ),
+                (("incus", "profile", "show", "docker-swarm"), 5.0),
+                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+                (
+                    (
+                        "incus",
+                        "launch",
+                        "ubuntu:24.04",
+                        "swarm-manager",
+                        "--profile",
+                        "docker-swarm",
+                        "-c",
+                        "user.tiny_swarm_world.managed=true",
+                        "-c",
+                        "user.tiny_swarm_world.node=swarm-manager",
+                        "-c",
+                        "user.tiny_swarm_world.image_alias=ubuntu-24.04",
+                        "-c",
+                        "limits.cpu=2",
+                        "-c",
+                        "limits.memory=4GiB",
+                        "-d",
+                        "root,size=20GiB",
+                    ),
+                    300.0,
+                ),
+                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+            ],
+            runner.calls,
+        )
+        self.assertNotIn(
+            ("incus", "profile", "show", "swarm-manager"),
+            [call for call, _timeout in runner.calls],
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
     async def test_manager_profile_accepts_expected_project_proxy_devices(self):
         runner = _FakeRunner(
             _profile(),
@@ -320,21 +465,29 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEvidenceIsSummaryOnly(result)
 
-    async def test_profile_missing_blocks_before_node_lookup_or_launch(self):
+    async def test_profile_missing_blocks_without_live_mutation_consent(self):
         runner = _FakeRunner(
             LxcNodeCommandResult(
                 returncode=1,
-                stderr="permission denied for alice at /home/alice",
-            )
+                stderr="Profile not found",
+            ),
+            _profile_list("default"),
         )
-        provider = _provider(runner)
+        provider = _provider(runner, allow_live_mutation=False)
 
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
         self.assertEqual("profile_missing", result.evidence["classification"])
+        self.assertEqual("swarm-manager", result.evidence["node_name"])
+        self.assertEqual("docker-swarm", result.evidence["expected_profile"])
+        self.assertEqual("docker-swarm", result.evidence["resolved_profile"])
+        self.assertEqual("default", result.evidence["available_profiles"])
         self.assertEqual(
-            [(("incus", "profile", "show", "docker-swarm"), 5.0)],
+            [
+                (("incus", "profile", "show", "docker-swarm"), 5.0),
+                (("incus", "profile", "list", "--format", "json"), 5.0),
+            ],
             runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
@@ -881,16 +1034,38 @@ def _profile(
 ) -> LxcNodeCommandResult:
     import json
 
+    profile_config = config
+    if profile_config is None and name == "docker-swarm":
+        profile_config = _docker_swarm_profile_config()
+    if profile_config is None:
+        profile_config = {}
     return LxcNodeCommandResult(
         returncode=0,
         stdout=json.dumps(
             {
                 "name": name,
-                "config": config or {},
+                "config": profile_config,
                 "devices": devices or {},
             }
         ),
     )
+
+
+def _profile_list(*names: str) -> LxcNodeCommandResult:
+    import json
+
+    return LxcNodeCommandResult(
+        returncode=0,
+        stdout=json.dumps([{"name": name} for name in names]),
+    )
+
+
+def _docker_swarm_profile_config() -> dict[str, str]:
+    return {
+        "security.nesting": "true",
+        "security.syscalls.intercept.mknod": "true",
+        "security.syscalls.intercept.setxattr": "true",
+    }
 
 
 def _project_proxy_devices() -> dict[str, dict[str, str]]:
@@ -944,6 +1119,27 @@ def _assert_safe_lifecycle_command(args) -> None:
         for token in argv
     ):
         raise AssertionError(f"unsafe provider command was called: {argv!r}")
+    if argv[:3] in {("incus", "profile", "list"), ("lxc", "profile", "list")}:
+        if len(argv) != 5 or argv[3:] != ("--format", "json"):
+            raise AssertionError(f"unexpected provider profile list was called: {argv!r}")
+        return
+    if argv[:3] in {("incus", "profile", "create"), ("lxc", "profile", "create")}:
+        if len(argv) != 4 or argv[3] not in {"docker-swarm", "docker-swarm-manager"}:
+            raise AssertionError(f"unexpected provider profile create was called: {argv!r}")
+        return
+    if argv[:3] in {("incus", "profile", "set"), ("lxc", "profile", "set")}:
+        allowed_settings = {
+            "security.nesting": "true",
+            "security.syscalls.intercept.mknod": "true",
+            "security.syscalls.intercept.setxattr": "true",
+        }
+        if (
+            len(argv) != 6
+            or argv[3] != "docker-swarm"
+            or allowed_settings.get(argv[4]) != argv[5]
+        ):
+            raise AssertionError(f"unexpected provider profile set was called: {argv!r}")
+        return
     allowed_shapes = {
         ("incus", "profile", "show"),
         ("lxc", "profile", "show"),

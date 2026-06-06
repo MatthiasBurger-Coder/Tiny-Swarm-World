@@ -383,23 +383,203 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 profile.name,
                 allow_project_proxy_devices=_profile_allows_project_proxy_devices(profile),
             ):
-                return None
+                missing_settings = _missing_profile_settings(result.stdout, profile)
+                if not missing_settings:
+                    return None
+                mutation_block = self._mutation_block(node, selection, backend)
+                if mutation_block is not None:
+                    return _blocked(
+                        node,
+                        selection,
+                        "profile_reconciliation_requires_live_consent",
+                        backend=backend,
+                        extra_evidence=_profile_evidence(profile.name, (profile.name,)),
+                    )
+                return await self._reconcile_profile_settings(
+                    node,
+                    selection,
+                    backend,
+                    config,
+                    profile,
+                    missing_settings,
+                )
             return _blocked(
                 node,
                 selection,
                 "unsafe_provider_profile",
                 backend=backend,
                 return_code=result.returncode,
+                extra_evidence=_profile_evidence(profile.name, (profile.name,)),
             )
-        reason = "profile_check_timed_out" if result.timed_out else "profile_missing"
-        return _blocked(
+        if result.timed_out:
+            return _blocked(
+                node,
+                selection,
+                "profile_check_timed_out",
+                backend=backend,
+                return_code=result.returncode,
+                timed_out=True,
+                extra_evidence=_profile_evidence(profile.name, ()),
+            )
+
+        available_profiles = await self._available_profile_names(backend, config)
+        if profile.name in available_profiles:
+            return _blocked(
+                node,
+                selection,
+                "profile_lookup_failed",
+                backend=backend,
+                return_code=result.returncode,
+                extra_evidence=_profile_evidence(profile.name, available_profiles),
+            )
+        mutation_block = self._mutation_block(node, selection, backend)
+        if mutation_block is not None:
+            return _blocked(
+                node,
+                selection,
+                "profile_missing",
+                backend=backend,
+                return_code=result.returncode,
+                extra_evidence=_profile_evidence(profile.name, available_profiles),
+            )
+        return await self._create_missing_profile(
             node,
             selection,
-            reason,
-            backend=backend,
-            return_code=result.returncode,
-            timed_out=result.timed_out,
+            backend,
+            config,
+            profile,
+            available_profiles,
         )
+
+    async def _available_profile_names(
+        self,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+    ) -> tuple[str, ...]:
+        result = await self.runner.run(
+            _profile_list_args(backend),
+            float(config.verification_metadata.readiness_timeout_seconds),
+        )
+        if _command_failed(result):
+            return ()
+        try:
+            payload = json.loads(result.stdout or "[]")
+        except json.JSONDecodeError:
+            return ()
+        if not isinstance(payload, list):
+            return ()
+        names = tuple(
+            str(item.get("name"))
+            for item in payload
+            if isinstance(item, Mapping) and isinstance(item.get("name"), str)
+        )
+        return tuple(sorted(names))
+
+    async def _create_missing_profile(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+        profile: NodeProviderProfileRequirement,
+        available_profiles: tuple[str, ...],
+    ) -> VerificationResult | None:
+        create_result = await self.runner.run(
+            _profile_create_args(backend, profile.name),
+            float(config.verification_metadata.readiness_timeout_seconds),
+        )
+        if _command_failed(create_result):
+            return _profile_apply_failed(
+                node,
+                selection,
+                "profile_create_failed",
+                backend=backend,
+                result=create_result,
+                profile_name=profile.name,
+                available_profiles=available_profiles,
+            )
+
+        missing_settings = _required_profile_settings(profile)
+        reconcile_result = await self._reconcile_profile_settings(
+            node,
+            selection,
+            backend,
+            config,
+            profile,
+            missing_settings,
+            available_profiles=available_profiles,
+        )
+        if reconcile_result is not None:
+            return reconcile_result
+        return None
+
+    async def _reconcile_profile_settings(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+        profile: NodeProviderProfileRequirement,
+        settings: Mapping[str, str],
+        available_profiles: tuple[str, ...] | None = None,
+    ) -> VerificationResult | None:
+        for key, value in settings.items():
+            set_result = await self.runner.run(
+                _profile_set_args(backend, profile.name, key, value),
+                float(config.verification_metadata.readiness_timeout_seconds),
+            )
+            if _command_failed(set_result):
+                return _profile_apply_failed(
+                    node,
+                    selection,
+                    "profile_configure_failed",
+                    backend=backend,
+                    result=set_result,
+                    profile_name=profile.name,
+                    available_profiles=available_profiles or (profile.name,),
+                )
+
+        verify_result = await self.runner.run(
+            _profile_show_args(backend, profile.name),
+            float(config.verification_metadata.readiness_timeout_seconds),
+        )
+        if _command_failed(verify_result):
+            return _profile_verify_failed(
+                node,
+                selection,
+                "profile_verify_failed",
+                backend=backend,
+                result=verify_result,
+                profile_name=profile.name,
+                available_profiles=available_profiles or (profile.name,),
+            )
+        if not _profile_output_safe(
+            verify_result.stdout,
+            profile.name,
+            allow_project_proxy_devices=_profile_allows_project_proxy_devices(profile),
+        ):
+            return _blocked(
+                node,
+                selection,
+                "unsafe_provider_profile",
+                backend=backend,
+                return_code=verify_result.returncode,
+                extra_evidence=_profile_evidence(
+                    profile.name,
+                    available_profiles or (profile.name,),
+                ),
+            )
+        if _missing_profile_settings(verify_result.stdout, profile):
+            return _profile_verify_failed(
+                node,
+                selection,
+                "profile_configuration_not_verified",
+                backend=backend,
+                result=verify_result,
+                profile_name=profile.name,
+                available_profiles=available_profiles or (profile.name,),
+            )
+        return None
 
     async def _lookup_node(
         self,
@@ -749,6 +929,26 @@ def _profile_show_args(
     return (_BACKEND_CLI[backend], "profile", "show", profile_name)
 
 
+def _profile_list_args(backend: ManagedLxcBackend) -> tuple[str, ...]:
+    return (_BACKEND_CLI[backend], "profile", "list", "--format", "json")
+
+
+def _profile_create_args(
+    backend: ManagedLxcBackend,
+    profile_name: str,
+) -> tuple[str, ...]:
+    return (_BACKEND_CLI[backend], "profile", "create", profile_name)
+
+
+def _profile_set_args(
+    backend: ManagedLxcBackend,
+    profile_name: str,
+    key: str,
+    value: str,
+) -> tuple[str, ...]:
+    return (_BACKEND_CLI[backend], "profile", "set", profile_name, key, value)
+
+
 def _list_args(
     backend: ManagedLxcBackend,
     node_name: str,
@@ -948,6 +1148,47 @@ def _profile_allows_project_proxy_devices(profile: NodeProviderProfileRequiremen
     return "manager_proxy_profile_requires_profile_reconciliation" in profile.risk_labels
 
 
+def _missing_profile_settings(
+    output: str,
+    profile: NodeProviderProfileRequirement,
+) -> Mapping[str, str]:
+    try:
+        data = _YAML.load(output) or {}
+    except YAMLError:
+        return _required_profile_settings(profile)
+    if not isinstance(data, Mapping):
+        return _required_profile_settings(profile)
+    config = _string_mapping(data.get("config", {}))
+    return {
+        key: value
+        for key, value in _required_profile_settings(profile).items()
+        if config.get(key) != value
+    }
+
+
+def _required_profile_settings(
+    profile: NodeProviderProfileRequirement,
+) -> Mapping[str, str]:
+    settings: dict[str, str] = {}
+    if profile.nesting_required:
+        settings["security.nesting"] = "true"
+    if profile.syscall_interception_required:
+        settings["security.syscalls.intercept.mknod"] = "true"
+        settings["security.syscalls.intercept.setxattr"] = "true"
+    return settings
+
+
+def _profile_evidence(
+    expected_profile: str,
+    available_profiles: Sequence[str],
+) -> dict[str, str]:
+    return {
+        "expected_profile": expected_profile,
+        "resolved_profile": expected_profile,
+        "available_profiles": ",".join(available_profiles),
+    }
+
+
 def _command_failed(result: LxcNodeCommandResult) -> bool:
     return result.timed_out or result.returncode != 0
 
@@ -1032,6 +1273,34 @@ def _apply_failed(
     )
 
 
+def _profile_apply_failed(
+    node: NodeSpec,
+    selection: ProviderSelection,
+    reason: str,
+    *,
+    backend: ManagedLxcBackend,
+    result: LxcNodeCommandResult,
+    profile_name: str,
+    available_profiles: Sequence[str],
+) -> VerificationResult:
+    evidence = _evidence(
+        "apply",
+        reason,
+        node,
+        backend,
+        return_code=result.returncode,
+        timed_out=result.timed_out,
+        selection_status=selection.status.value,
+    )
+    evidence.update(_profile_evidence(profile_name, available_profiles))
+    return VerificationResult(
+        target_id=_target_id(node),
+        status=VerificationStatus.FAILED_TO_APPLY,
+        message="LXC node lifecycle could not apply the provider profile state.",
+        evidence=evidence,
+    )
+
+
 def _verify_failed(
     node: NodeSpec,
     selection: ProviderSelection,
@@ -1057,6 +1326,34 @@ def _verify_failed(
     )
 
 
+def _profile_verify_failed(
+    node: NodeSpec,
+    selection: ProviderSelection,
+    reason: str,
+    *,
+    backend: ManagedLxcBackend,
+    result: LxcNodeCommandResult,
+    profile_name: str,
+    available_profiles: Sequence[str],
+) -> VerificationResult:
+    evidence = _evidence(
+        "verify",
+        reason,
+        node,
+        backend,
+        return_code=result.returncode,
+        timed_out=result.timed_out,
+        selection_status=selection.status.value,
+    )
+    evidence.update(_profile_evidence(profile_name, available_profiles))
+    return VerificationResult(
+        target_id=_target_id(node),
+        status=VerificationStatus.FAILED_TO_VERIFY,
+        message="LXC node lifecycle could not verify the provider profile state.",
+        evidence=evidence,
+    )
+
+
 def _evidence(
     phase: str,
     classification: str,
@@ -1074,6 +1371,7 @@ def _evidence(
         "classification": classification,
         "provider": NodeProviderKind.LXC_NATIVE.value,
         "node": node.name,
+        "node_name": node.name,
     }
     if backend is not None:
         evidence["backend"] = backend.value
