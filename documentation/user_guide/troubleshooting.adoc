@@ -143,6 +143,41 @@ Then verify that the operator-provided `TSW_PORTAINER_USERNAME` and
 installation. Do not paste password values into issue reports, logs, or
 committed documentation.
 
+== Installation Debugger For WSL2
+
+Use the installation debugger when `install.sh` aborts and the next question is
+whether the checkout, WSL2 host, systemd availability, service definitions, or
+evidence logs are the problem:
+
+[source,bash]
+----
+python3 tools/install_debugger.py
+----
+
+The default mode analyzes `install.sh`, repository permissions, ownership
+markers, WSL2/systemd indicators, systemd unit definitions, and the newest
+installation evidence directory. It also prints exact `grep`, `tail`,
+`systemctl`, and `journalctl` commands for finding the abort point after a
+`Service` log line.
+
+For live host diagnostics, including `systemctl is-system-running`, use:
+
+[source,bash]
+----
+python3 tools/install_debugger.py --live
+----
+
+To allow narrow repository permission repairs, add `--fix-permissions`:
+
+[source,bash]
+----
+python3 tools/install_debugger.py --live --fix-permissions
+----
+
+This repair mode is intentionally limited to the installer execute bit and the
+local secret-file mode. Ownership mismatches are reported with a review command
+instead of being changed automatically.
+
 == Setup Preflight Reports Occupied Ports
 
 `setup run --live` is intentionally re-runnable. During preflight, an occupied

@@ -1,27 +1,45 @@
-# Architecture Findings
+# Senior System Architect Findings
 
-These findings record the workflow creation baseline before Slices 01-06 were
-implemented. Later execution checkpoints supersede the stale implementation
-status statements while preserving the original architecture rationale.
+## Boundary Review
 
-The current architecture already contains the right conceptual split:
+The target belongs to the Deployment boundary:
 
-* `init` and `reconcile` are non-destructive.
-* `reset` and `destroy` are destructive and confirmation-gated.
-* `setup run` orchestrates platform, artifacts and deployment phases.
-* At workflow creation time, `install.sh` was a wrapper around
-  `setup run --live` without a reset prelude.
-* The default install profile is already `service-access`.
-* Composition already contains service-access artifact and deployment target
-  IDs, but the workflow must prove they are reached after reset before install
-  success is reported.
+* Application service: `EnsurePortainerEndpoint`.
+* Application port: `PortPortainerClient`.
+* Infrastructure adapter: `PortainerHttpClient`.
+* Runtime wiring: `composition.py`.
 
-Implementation needed to fill the blocked destructive workflow gap instead of
-placing raw teardown commands in application services. Slices 02-04 implemented
-that path with application ports and infrastructure-owned LXD/Incus/LXC
-details.
+Domain modules must not receive HTTP, Portainer, Docker, LXC, logging, or
+request dependencies.
 
-The update/reconcile surface should remain in place. Fresh install should use
-a destructive prelude only for `install.sh` or a dedicated reinstall path.
-The destructive adapter must delete only configured or marker-verified Tiny
-Swarm World managed resources, never every host LXC/Incus container.
+## Endpoint Model
+
+Creation-time evidence:
+
+* `infra/config/compose/portainer/docker-compose.yml` mounts
+  `/var/run/docker.sock` into the Portainer server.
+* The same compose file also deploys `portainer/agent:2.39.2`.
+* Documentation currently says deployment bootstrap registers the local Docker
+  endpoint named `local`.
+
+Architecture decision for this workflow:
+
+```text
+The current authoritative endpoint model is the socket-backed local Docker endpoint.
+```
+
+The agent remains deployed for compatibility and Swarm/agent behavior, but it is
+not the endpoint registration target unless Slice 02 verifies that Portainer
+2.39.x requires a different contract.
+
+## Architecture Risks
+
+* A typed diagnostic exception is acceptable if it remains an application-port or
+  infrastructure-adapter contract and does not pull HTTP details into domain.
+* Documentation must not claim live setup success from endpoint registration
+  alone.
+* Arc42 updates should wait until implementation evidence exists.
+
+## Decision
+
+No architecture blocker for workflow execution.
