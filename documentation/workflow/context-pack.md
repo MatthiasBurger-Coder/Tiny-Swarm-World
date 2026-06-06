@@ -27,11 +27,13 @@ Role reports:
 Primary source files:
 
 * `infra/config/node-providers/provider_config.yaml`
+* `src/tiny_swarm_world/application/ports/node_provider/port_lxc_proxy_device_runtime.py`
 * `src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py`
 * `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py`
 * `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py`
 * `src/tiny_swarm_world/application/services/platform/lxc_service_exposure.py`
 * `src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py`
+* `src/tiny_swarm_world/application/services/platform/workflows.py`
 * `src/tiny_swarm_world/infrastructure/composition.py`
 * `src/tiny_swarm_world/__main__.py`
 * `install.sh`
@@ -49,10 +51,13 @@ Primary tests:
 
 Documentation sync targets:
 
+* `README.md`
 * `documentation/deployment/system.adoc`
 * `documentation/system/live-operation-surfaces.adoc`
 * `documentation/system/network.adoc`
+* `documentation/system/lxc-native-setup.adoc`
 * `documentation/user_guide/installation.adoc`
+* `documentation/user_guide/troubleshooting.adoc`
 * `documentation/arc42/06_runtime_view.adoc`
 * `documentation/arc42/07_deployment_view.adoc`
 * `documentation/arc42/10_quality_requirements.adoc`
@@ -111,6 +116,7 @@ PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lx
 PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_proxy_device_runtime
 PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_lxc_service_exposure tests.application.services.platform.test_platform_workflows
 PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.test_install_script
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
 git diff --check
 ```
 
@@ -131,14 +137,24 @@ QUALITY.md 458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6
 .agents/skills/workflow-slice/SKILL.md bae552d4860614879871413918870df6940b95af185f6c1077a023caa88e3ddb
 .agents/skills/quality-gate-governance/SKILL.md bf9e9b402d481a670b742ac9f3b9a9a41482ce3b523bf8edf876aae71d31d95d
 documentation/epics/autonomous-runnable-setup.md fc7ec746446faa756306e459b54d700052eea0869c6dc2b1ef8a9e3b15be554a
-documentation/arc42/06_runtime_view.adoc 91e423c4cbadd835d915573d972377bf3381eb888627525c3c1d7fc07d8c12ba
-documentation/arc42/07_deployment_view.adoc de2ad20fd6fb0c6907fe09508fe9846bb6168f95248ff1fcf3238293092b02a6
-documentation/deployment/system.adoc 0a8b440e9bd080ba96a1d09e006df1548ddd8a788cede0b7f1d302ecdf12f1ff
-infra/config/node-providers/provider_config.yaml c17ee2562b31e23a51ffcd1524f2806c08204bfc0930f27c9e143cf5e7d890fc
-src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py 593a7d0a7f8f0f9e54c96e39ed46e69f92f196b2b125b8c8d67ec18b325ea5f6
-src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py b9507fb94eb6f49f67d885f11bb3435aa8d24bc6b96de888bfb9f2e612cdc0bb
-src/tiny_swarm_world/application/services/platform/lxc_service_exposure.py 7946777d914b1d3ea66111ffdfa1cd3d074cf2e09695d4f1db26678c79896fe4
-src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py 58459f048a82da8fff5104a8ed379c120339767923ed7ba54805bbf6093ef872
+documentation/arc42/06_runtime_view.adoc df8d4e3d1f9ecae07f614f4ab3b270b9ab4cf87294ac64f53fe04faedcca166f
+documentation/arc42/07_deployment_view.adoc 5655f150367358d8800cba8b18b966fac7a603af1c9a2d8501e776f83b58a296
+documentation/arc42/10_quality_requirements.adoc c7ee9f96bfb3b9942c80d8568172ba4751689b9b5b1b630b43e3241f3e11d19e
+documentation/arc42/11_risks_and_debt.adoc 7b869951eca328d5e9b4ecddb1682415b31000bd619aab6d2bc585c256b851ed
+documentation/deployment/system.adoc 9927e3b9fe35b0f68a3033e751faae2caea8ab61fbb228bcae4df8c799005313
+documentation/system/live-operation-surfaces.adoc 7b4765e58b459c00f4c24db0fed252f4c1c856fdd44417e43e89e8b20fe23720
+documentation/system/network.adoc ab270b8895c87e5f047440959be9e32f2160b3eeda07309f1847fcbf07a1044b
+documentation/user_guide/installation.adoc 8023f230224e0f2633f6cbc02e1b0048c1ac449c081aa42a14620cd1a7a1c590
+infra/config/node-providers/provider_config.yaml f7f19b0268f1a68c2e91e6ee09130334ceae9128ab22f5d7592e1df5614667f1
+src/tiny_swarm_world/application/ports/node_provider/port_lxc_proxy_device_runtime.py 37f7b0eeffad8c425a19b096327231ff32a9acaf38347ee0b2384b86fb587176
+src/tiny_swarm_world/application/services/platform/lxc_service_exposure.py d4938746a3601c4de6a8ba4cea168830c1c9a0c9493e7bca9737b150e41d7165
+src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py 11b145f7de2f4a2d3e58aa02f41171201fbc30e6fe9eb0b0a858eace953eab5d
+src/tiny_swarm_world/application/services/platform/workflows.py f63b4c1bfea6cecb076abe674a642493316bafc3dd8396477585054698374ef6
+src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py 30410eff84f7f4aad77cb78c436a1f085761144664712acf6904f761a40e3d2a
+src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py f3c5434884ef81bea59da64a454cdfbf0bc21b65ae48253fa652c0f601f81f99
+src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py 0d6bec789ba2fcb5610e533d04093fbc62ec5f108db837af61d574bd4ac949cc
+src/tiny_swarm_world/infrastructure/composition.py ad2fe4d9035cf24dd16622f678d90931c900191dbdaf7c9220b976fffd27cf56
+src/tiny_swarm_world/__main__.py 07a4e3126ea06e8bbb1faa295940d440580cb66175f71444d32b811b880cf15e
 ```
 
 Context pack is stale when any hash above changes, when branch differs from

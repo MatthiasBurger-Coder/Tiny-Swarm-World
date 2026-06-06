@@ -11,6 +11,8 @@ nodes:
     provider: lxc_native
     backend: null
     profile: docker-swarm
+    additional_profiles:
+      - docker-swarm-manager
     image_alias: ubuntu-24.04
     resources:
       cpu: "2"
@@ -59,6 +61,27 @@ profiles:
     nesting_required: true
     syscall_interception_required: true
     cgroup_policy: v2_required
+    apparmor_policy: provider_default
+    seccomp_policy: provider_default
+    capability_additions: []
+    host_network: false
+    host_mounts: []
+    live_mutation_consent_required: true
+    blocks_mutation_when_missing: true
+  docker-swarm-manager:
+    backend_support:
+      - incus
+      - lxd
+    risk_labels:
+      - manager_proxy_profile_requires_profile_reconciliation
+      - worker_profile_forbidden
+      - provider_profile_mutation_requires_live_consent
+      - privileged_profile_forbidden_default
+      - host_access_forbidden_default
+    privileged_default: false
+    nesting_required: false
+    syscall_interception_required: false
+    cgroup_policy: provider_default
     apparmor_policy: provider_default
     seccomp_policy: provider_default
     capability_additions: []

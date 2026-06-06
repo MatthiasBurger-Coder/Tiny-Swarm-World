@@ -27,16 +27,22 @@ Static preflight is available through `--preflight` for the default
 `lxc_native` provider.
 
 Implemented platform workflows are `platform init`, `platform reconcile`,
-`platform expose`, `platform verify`, `platform reset`, and `platform destroy`. Mutating platform
-workflows require live consent before service construction. Reset and destroy
-also require exact confirmation and currently block after confirmation until
-retention and teardown semantics are implemented. Default platform init uses
+`platform expose`, `platform repair-lxc-proxy-drift`, `platform verify`,
+`platform reset`, and `platform destroy`. Mutating platform workflows require
+live consent before service construction. Reset and destroy also require exact
+confirmation and currently block after confirmation until retention and
+teardown semantics are implemented. Default platform init uses
 the `lxc_native` provider selection path and blocks before mutation when
 LXD/Incus readiness or profile requirements are not satisfied. Default
-platform expose creates or updates LXC proxy devices on `swarm-manager` for
-published setup-manifest ports. Platform reconcile, artifact workflows, and
-deployment workflows block at provider-native boundaries until their
-LXC-native contracts are wired.
+platform expose creates or updates profile-level LXC proxy devices in the
+manager-specific `docker-swarm-manager` profile for published setup-manifest
+ports. The `swarm-manager` node receives that profile in addition to the common
+Docker Swarm profile; workers do not receive it. Direct instance-level
+`tsw-proxy-*` devices on `swarm-manager` are drift, not expected deployment
+state. The explicit `platform repair-lxc-proxy-drift` workflow can remove stale
+direct `tsw-proxy-*` devices only after the equivalent manager-profile device
+is verified. Platform reconcile, artifact workflows, and deployment workflows
+block at provider-native boundaries until their LXC-native contracts are wired.
 Unsupported node-provider values fail closed; they are not remapped to another
 provider.
 

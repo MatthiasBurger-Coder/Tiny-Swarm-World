@@ -204,7 +204,8 @@ The canonical classification for these live-operation surfaces is
 `documentation/system/live-operation-surfaces.adoc`.
 
 Mutating workflow-level commands such as `platform init`, `platform reconcile`,
-`platform expose`, `artifacts prepare`, `deployment apply`, and `setup run` require:
+`platform expose`, `platform repair-lxc-proxy-drift`, `artifacts prepare`,
+`deployment apply`, and `setup run` require:
 
 * `--live`;
 * answering `y` at the short live-infrastructure confirmation prompt.
@@ -212,6 +213,33 @@ Mutating workflow-level commands such as `platform init`, `platform reconcile`,
 `platform reset` and `platform destroy` additionally require their exact
 confirmation phrases. `install.sh` asks for
 `RESET_TINY_SWARM_PLATFORM` before it runs the reset prelude.
+
+== LXC Proxy Drift Repair
+
+`platform expose` configures published setup-manifest ports as profile-level
+proxy devices in the manager-specific `docker-swarm-manager` profile. The
+`swarm-manager` node receives that profile in addition to the common Docker
+Swarm profile. Worker nodes do not receive the manager proxy profile.
+
+Direct instance-level `tsw-proxy-*` devices on `swarm-manager` are not expected
+normal state. They are treated as `unsafe_instance_devices` drift so normal
+install, reset, reinstall, init, reconcile, expose and setup flows stop rather
+than silently deleting local provider state.
+
+When the manager-profile proxy devices are already present and verified, a
+stale direct project proxy can be repaired explicitly:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+----
+
+Answer `y` only when removing stale direct `tsw-proxy-*` devices from the
+manager is intentional. The repair refuses unrelated devices, unknown project
+proxy names, and direct project proxy devices whose equivalent
+manager-profile device is missing or drifted. It reports summary counts for
+removed, refused, lookup-failed and removal-failed devices without printing raw
+provider command output.
 
 Optional live smoke validation is separate from the default quality gate. Run
 it only on a disposable or recoverable local environment after reviewing the

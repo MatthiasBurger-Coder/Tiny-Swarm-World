@@ -172,8 +172,8 @@ Open questions:
 * During Slice 01, choose the exact schema shape for ordered node profiles:
   `profiles: [...]` or `profile` plus `additional_profiles`. Prefer the
   smallest backward-compatible shape that keeps tests deterministic.
-* During Slice 05, choose the exact CLI action name if
-  `platform repair-lxc-proxy-drift` conflicts with current taxonomy naming.
+* Slice 05 resolved the CLI action name as
+  `platform repair-lxc-proxy-drift`.
 
 Blocking questions:
 
@@ -911,6 +911,6 @@ Checked during workflow creation:
 * `documentation/arc42/06_runtime_view.adoc`.
 * `documentation/arc42/07_deployment_view.adoc`.
 
-The current arc42 files describe LXC-native platform expose as direct
-manager-gateway proxy configuration. Slice 06 must update those docs after the
-implementation moves proxy devices to manager-specific profile state.
+Slice 06 updates arc42 docs after the implementation moves proxy devices to
+manager-specific profile state and adds the explicit stale direct proxy repair
+workflow.

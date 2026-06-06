@@ -44,6 +44,7 @@ from tiny_swarm_world.application.services.deployment.service_stack_plan import 
     build_service_stack_steps,
 )
 from tiny_swarm_world.application.ports.node_provider import (
+    LxcProxyDriftRepairOutcome,
     LxcProxyDeviceState,
     PortContainerDockerRuntime,
     PortContainerNetworkIdentity,
@@ -63,6 +64,8 @@ from tiny_swarm_world.application.services.platform import (
     AsyncWorkflowStep,
     LxcDockerInstallService,
     LxcDockerInstallStep,
+    LxcProxyDriftRepairService,
+    LxcProxyDriftRepairStep,
     LxcServiceExposureService,
     LxcServiceExposureStep,
     LxcSwarmBootstrapService,
@@ -75,6 +78,7 @@ from tiny_swarm_world.application.services.platform import (
     PlatformDestroyWorkflow,
     PlatformExposeWorkflow,
     PlatformInitWorkflow,
+    PlatformRepairLxcProxyDriftWorkflow,
     PlatformReconcileWorkflow,
     PlatformResetWorkflow,
     PlatformVerifyWorkflow,
@@ -174,6 +178,7 @@ SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
 DEFAULT_SWARM_REGISTRY_ENDPOINT = "swarm-manager:5000"
 LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
 DEFAULT_LXC_PROXY_LISTEN_ADDRESS = "0.0.0.0"
+DEFAULT_LXC_MANAGER_PROXY_PROFILE = "docker-swarm-manager"
 JENKINS_IMAGE_ENVIRONMENT = "TSW_JENKINS_IMAGE"
 SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"
 SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_NGINX_IMAGE"
@@ -198,6 +203,7 @@ class PlatformWorkflows:
     init: PlatformInitWorkflow
     reconcile: PlatformReconcileWorkflow
     expose: PlatformExposeWorkflow
+    repair_lxc_proxy_drift: PlatformRepairLxcProxyDriftWorkflow
     reset: PlatformResetWorkflow
     destroy: PlatformDestroyWorkflow
     verify: PlatformVerifyWorkflow
@@ -207,6 +213,7 @@ class PlatformWorkflows:
 class PlatformServices:
     command_workflow: CommandWorkflow
     lxc_docker_install: LxcDockerInstallService
+    lxc_proxy_drift_repair: LxcProxyDriftRepairService
     lxc_service_exposure: LxcServiceExposureService
     lxc_swarm_bootstrap: LxcSwarmBootstrapService
     preflight: PreflightService
@@ -565,7 +572,7 @@ class _ProviderSelectedLxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
 
     async def inspect_proxy_device(
         self,
-        node: NodeSpec,
+        profile_name: str,
         plan: LxcProxyDevicePlan,
     ) -> LxcProxyDeviceState:
         if not self.allow_live_mutation:
@@ -573,27 +580,51 @@ class _ProviderSelectedLxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
         delegate = await self._delegate()
         if delegate is None:
             return LxcProxyDeviceState.UNKNOWN
-        return await delegate.inspect_proxy_device(node, plan)
+        return await delegate.inspect_proxy_device(profile_name, plan)
 
     async def create_proxy_device(
         self,
-        node: NodeSpec,
+        profile_name: str,
         plan: LxcProxyDevicePlan,
     ) -> bool:
         delegate = await self._delegate()
         if delegate is None:
             return False
-        return await delegate.create_proxy_device(node, plan)
+        return await delegate.create_proxy_device(profile_name, plan)
 
     async def update_proxy_device(
         self,
-        node: NodeSpec,
+        profile_name: str,
         plan: LxcProxyDevicePlan,
     ) -> bool:
         delegate = await self._delegate()
         if delegate is None:
             return False
-        return await delegate.update_proxy_device(node, plan)
+        return await delegate.update_proxy_device(profile_name, plan)
+
+    async def repair_stale_proxy_devices(
+        self,
+        profile_name: str,
+        gateway_node: NodeSpec,
+        plans: tuple[LxcProxyDevicePlan, ...],
+    ) -> LxcProxyDriftRepairOutcome:
+        if not self.allow_live_mutation:
+            return LxcProxyDriftRepairOutcome(
+                expected_profile_device_count=len(plans),
+                mutation_allowed=False,
+            )
+        delegate = await self._delegate()
+        if delegate is None:
+            return LxcProxyDriftRepairOutcome(
+                expected_profile_device_count=len(plans),
+                lookup_failure_count=len(plans),
+                failed_devices=tuple(plan.device_name for plan in plans),
+            )
+        return await delegate.repair_stale_proxy_devices(
+            profile_name,
+            gateway_node,
+            plans,
+        )
 
     async def _delegate(self) -> LxcProxyDeviceRuntime | None:
         backend = await _selected_lxc_backend(
@@ -766,6 +797,14 @@ def build_platform_services(
     lxc_service_exposure = LxcServiceExposureService(
         lxc_proxy_runtime,
         gateway_node=_lxc_manager_node(),
+        manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
+        setup_manifest=default_setup_manifest(service_profile=service_profile),
+        listen_address=_lxc_proxy_listen_address(),
+    )
+    lxc_proxy_drift_repair = LxcProxyDriftRepairService(
+        lxc_proxy_runtime,
+        gateway_node=_lxc_manager_node(),
+        manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
         setup_manifest=default_setup_manifest(service_profile=service_profile),
         listen_address=_lxc_proxy_listen_address(),
     )
@@ -815,6 +854,13 @@ def build_platform_services(
             method_trace=method_trace,
             trace_correlation_id=trace_correlation_id,
         ),
+        repair_lxc_proxy_drift=PlatformRepairLxcProxyDriftWorkflow(
+            _platform_repair_lxc_proxy_drift_steps(lxc_proxy_drift_repair),
+            verification_evidence_repository=verification_evidence_repository,
+            progress=workflow_progress,
+            method_trace=method_trace,
+            trace_correlation_id=trace_correlation_id,
+        ),
         reset=PlatformResetWorkflow(
             _platform_reset_steps(
                 provider_request,
@@ -846,6 +892,7 @@ def build_platform_services(
     return PlatformServices(
         command_workflow=command_workflow,
         lxc_docker_install=lxc_docker_install,
+        lxc_proxy_drift_repair=lxc_proxy_drift_repair,
         lxc_service_exposure=lxc_service_exposure,
         lxc_swarm_bootstrap=lxc_swarm_bootstrap,
         preflight=preflight,
@@ -1296,6 +1343,12 @@ def _platform_expose_steps(
     lxc_service_exposure: LxcServiceExposureService,
 ) -> tuple[AsyncWorkflowStep, ...]:
     return (LxcServiceExposureStep(lxc_service_exposure),)
+
+
+def _platform_repair_lxc_proxy_drift_steps(
+    lxc_proxy_drift_repair: LxcProxyDriftRepairService,
+) -> tuple[AsyncWorkflowStep, ...]:
+    return (LxcProxyDriftRepairStep(lxc_proxy_drift_repair),)
 
 
 def _platform_reset_steps(

@@ -39,6 +39,7 @@ _NODE_FIELDS = frozenset(
         "provider",
         "backend",
         "profile",
+        "additional_profiles",
         "image_alias",
         "resources",
         "networks",
@@ -108,6 +109,11 @@ class NodeProviderNodeConfig:
     image_alias: str
     resources: Mapping[str, str]
     networks: tuple[str, ...]
+    additional_profiles: tuple[str, ...] = ()
+
+    @property
+    def expected_profiles(self) -> tuple[str, ...]:
+        return (self.profile, *self.additional_profiles)
 
 
 @dataclass(frozen=True)
@@ -233,6 +239,15 @@ def _node_config(
     profile = _safe_identifier(_required(item, "profile", f"nodes[{index}]"), "node profile")
     if profile not in profile_names:
         raise NodeProviderConfigError(f"node {index} references unknown profile")
+    additional_profiles = tuple(
+        _safe_identifier(item, "additional node profile")
+        for item in _optional_sequence(item, "additional_profiles", f"nodes[{index}]")
+    )
+    if profile in additional_profiles or len(set(additional_profiles)) != len(additional_profiles):
+        raise NodeProviderConfigError(f"node {index} profiles must be unique")
+    unknown_profiles = set(additional_profiles) - profile_names
+    if unknown_profiles:
+        raise NodeProviderConfigError(f"node {index} references unknown additional profile")
 
     resources = _string_mapping(_required_mapping(item, "resources", f"nodes[{index}]"))
     networks = tuple(
@@ -249,6 +264,7 @@ def _node_config(
     return NodeProviderNodeConfig(
         spec=spec,
         profile=profile,
+        additional_profiles=additional_profiles,
         image_alias=_safe_identifier(
             _required(item, "image_alias", f"nodes[{index}]"),
             "image alias",
@@ -387,6 +403,12 @@ def _required_sequence(data: Mapping[str, Any], key: str, path: str) -> tuple[ob
     if isinstance(value, str) or not isinstance(value, Sequence):
         raise NodeProviderConfigError(f"{path}.{key} must be a list")
     return tuple(value)
+
+
+def _optional_sequence(data: Mapping[str, Any], key: str, path: str) -> tuple[object, ...]:
+    if key not in data:
+        return ()
+    return _required_sequence(data, key, path)
 
 
 def _string_mapping(data: Mapping[str, Any]) -> Mapping[str, str]:

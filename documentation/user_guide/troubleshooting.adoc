@@ -333,9 +333,20 @@ ownership markers. Inspect the reset evidence for `first_failure_node` and
 rerunning the installer: keep it if it is unrelated, rename/remove it only if
 you intentionally own that local resource, or recreate it through the guarded
 setup workflow so the managed markers are written by automation.
-Deterministic `tsw-proxy-<port>` devices created by `platform expose` are
-treated as project-owned reset state; if `unsafe_instance_devices` remains,
-the node still carries a non-project or unsafe runtime device.
+Direct instance-level `tsw-proxy-<port>` devices are drift. Current
+`platform expose` manages equivalent proxy devices in the manager-specific
+profile instead of creating direct manager instance devices. If reset reports
+`unsafe_instance_devices` for stale direct project proxy devices, first ensure
+the manager-profile devices are present, then run the explicit repair command:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+----
+
+The repair refuses devices whose equivalent manager-profile state is missing
+or drifted. Any remaining `unsafe_instance_devices` evidence points to direct
+runtime state that must be inspected and resolved intentionally.
 
 == Git Shows Line Ending Only Changes
 

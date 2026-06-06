@@ -82,6 +82,10 @@ Remaining risks and debt:
   stack, and observed-state contracts, but live registry, Portainer, Swarm,
   external-input, and readiness evidence still needs explicit operator
   validation;
+* stale direct instance-level `tsw-proxy-*` devices from older runs can still
+  block reset or setup until the operator runs the explicit
+  `platform repair-lxc-proxy-drift` workflow or manually resolves the named
+  provider state;
 * Docker Swarm inside LXD/Incus containers has not been live-validated by this
   repository workflow;
 * WSL2 success could be overclaimed if documentation, static tests, or native
@@ -135,6 +139,10 @@ Resolved or narrowed risks:
 
 * the published port collision with Swagger/NGINX port `80` is resolved by
   making service-access the owner of `80` and moving Swagger/NGINX to `8084`;
+* normal proxy exposure no longer creates direct instance-level `tsw-proxy-*`
+  devices; expected proxy state belongs to the manager-only LXC profile;
+* direct instance-level project proxy devices remain drift and are repairable
+  only through the explicit profile-equivalence-gated repair workflow;
 * dashboard and NGINX repository assets are image-packaged for the
   Portainer-managed stack path instead of bind-mounted from the repository;
 * static tests reject React/Vite project files, live orchestration helpers,

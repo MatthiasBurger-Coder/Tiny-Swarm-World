@@ -36,6 +36,28 @@ Netplan helper templates for legacy VM networking have been removed from the
 supported product path. Do not add host-specific netplan state to committed
 configuration.
 
+== LXC Proxy Profile Model
+
+Published service ports are exposed through profile-level proxy devices in the
+manager-specific `docker-swarm-manager` profile. The manager node receives
+that profile in addition to the common Docker Swarm profile. Worker nodes keep
+only worker-safe profiles and must not receive manager proxy devices.
+
+Direct instance-level `tsw-proxy-*` devices on `swarm-manager` are classified
+as drift. Normal `platform init`, `platform reconcile`, `platform expose`,
+`platform reset`, `install.sh`, and `setup run` do not silently remove them.
+After live consent, the explicit repair command may remove a stale direct
+project proxy device only when the equivalent manager-profile device is
+already verified:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+----
+
+Repair evidence records summary counts and device names. It does not record
+raw provider command output.
+
 == WSL Port Forwarding
 
 Install `socat` only when forwarding is required:

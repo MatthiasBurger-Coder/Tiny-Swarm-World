@@ -14,6 +14,7 @@ from tiny_swarm_world.application.ports.node_provider.port_managed_node_teardown
     PortManagedNodeTeardown,
 )
 from tiny_swarm_world.application.ports.node_provider.port_lxc_proxy_device_runtime import (
+    LxcProxyDriftRepairOutcome,
     LxcProxyDeviceState,
     PortLxcProxyDeviceRuntime,
 )
@@ -25,6 +26,7 @@ __all__ = [
     "PortContainerDockerRuntime",
     "PortContainerNetworkIdentity",
     "PortContainerSwarmBootstrap",
+    "LxcProxyDriftRepairOutcome",
     "LxcProxyDeviceState",
     "PortManagedNodeTeardown",
     "PortNodeLifecycle",

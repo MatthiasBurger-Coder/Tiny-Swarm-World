@@ -172,9 +172,13 @@ requirements are not satisfied. After accepted live consent, default
 Docker Swarm bootstrap inside `swarm-manager`, `swarm-worker-1`, and
 `swarm-worker-2`. Default `platform reconcile` is currently a verified no-op
 boundary for `lxc_native`. Default `platform expose` configures idempotent
-LXC proxy devices on `swarm-manager` for the published setup-manifest service
-ports so host traffic reaches the Swarm ingress mesh through the manager
-gateway. Default artifact and deployment workflows use guarded
+profile-level LXC proxy devices in the manager-specific
+`docker-swarm-manager` profile for the published setup-manifest service ports,
+so host traffic reaches the Swarm ingress mesh through the manager gateway.
+Direct instance-level `tsw-proxy-*` devices on `swarm-manager` are drift and
+can be removed only through the explicit live-consent-gated
+`platform repair-lxc-proxy-drift` workflow after equivalent manager-profile
+devices are verified. Default artifact and deployment workflows use guarded
 provider-native publication, deployment, external-input, and
 observed-state contracts and report blocked or failed phase evidence when live
 prerequisites are unavailable.

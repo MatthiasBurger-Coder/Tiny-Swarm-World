@@ -144,11 +144,16 @@ and service readiness remain separate provider-native work and still block
 until their contracts are implemented and verified.
 
 Default `platform expose` configures host reachability for published Swarm
-service ports by ensuring LXC proxy devices on `swarm-manager`. The proxy
-devices listen on the configured host-side address and connect to
+service ports by ensuring profile-level LXC proxy devices in the
+manager-specific `docker-swarm-manager` profile. The manager container receives
+that profile in addition to the common Docker Swarm profile. The proxy devices
+listen on the configured host-side address and connect to
 `127.0.0.1:<published-port>` inside the manager container. The Swarm ingress
 mesh remains responsible for routing from the manager to the service tasks; the
-workflow does not proxy individual service containers or worker nodes.
+workflow does not proxy individual service containers or worker nodes. Direct
+instance-level `tsw-proxy-*` devices are drift and are repaired only through
+the explicit `platform repair-lxc-proxy-drift` workflow after equivalent
+manager-profile state is verified.
 
 == Docker-In-Container Profile Notes
 

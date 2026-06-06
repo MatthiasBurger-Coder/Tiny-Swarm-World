@@ -197,15 +197,16 @@ def _local_endpoint_fallback_id(
         return None
     for endpoint in endpoints:
         name = str(endpoint.get("Name", "")).casefold()
-        if name in {"primary", "docker", "swarm"}:
-            return int(endpoint["Id"])
+        endpoint_id = _endpoint_id(endpoint)
+        if name in {"primary", "docker", "swarm"} and endpoint_id is not None:
+            return endpoint_id
     local_socket_endpoints = tuple(
         endpoint
         for endpoint in endpoints
         if "docker.sock" in str(endpoint.get("URL", "")).casefold()
     )
     if len(local_socket_endpoints) == 1:
-        return int(local_socket_endpoints[0]["Id"])
+        return _endpoint_id(local_socket_endpoints[0])
     return None
 
 
@@ -214,9 +215,19 @@ def _endpoint_id_by_name_or_local_fallback(
     endpoints: tuple[Mapping[str, object], ...],
 ) -> int | None:
     for endpoint in endpoints:
-        if endpoint.get("Name") == endpoint_name:
-            return int(endpoint["Id"])
+        endpoint_id = _endpoint_id(endpoint)
+        if endpoint.get("Name") == endpoint_name and endpoint_id is not None:
+            return endpoint_id
     return _local_endpoint_fallback_id(endpoint_name, endpoints)
+
+
+def _endpoint_id(endpoint: Mapping[str, object]) -> int | None:
+    value = endpoint.get("Id")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdecimal():
+        return int(value)
+    return None
 
 
 def _available_endpoint_names(endpoints: tuple[Mapping[str, object], ...]) -> str:
