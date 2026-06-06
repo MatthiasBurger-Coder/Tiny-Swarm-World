@@ -4,14 +4,14 @@ services:
     depends_on:
       - sonar_db
     environment:
-      SONAR_JDBC_URL: jdbc:postgresql://sonar_db:5432/sonar
+      SONAR_JDBC_URL: jdbc:postgresql://tasks.sonar_db:5432/sonar
       SONAR_JDBC_USERNAME: sonar
       SONAR_JDBC_PASSWORD: sonar
     command:
       - bash
       - -lc
       - |
-        until timeout 2 bash -c '</dev/tcp/sonar_db/5432' >/dev/null 2>&1; do
+        until timeout 2 bash -c '</dev/tcp/tasks.sonar_db/5432' >/dev/null 2>&1; do
           sleep 2
         done
         exec /opt/sonarqube/docker/entrypoint.sh

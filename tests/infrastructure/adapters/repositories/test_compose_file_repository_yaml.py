@@ -207,7 +207,11 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         command = compose_data["services"]["sonarqube"]["command"]
 
         self.assertEqual(("bash", "-lc"), tuple(command[:2]))
-        self.assertIn("/dev/tcp/sonar_db/5432", command[2])
+        self.assertEqual(
+            "jdbc:postgresql://tasks.sonar_db:5432/sonar",
+            compose_data["services"]["sonarqube"]["environment"]["SONAR_JDBC_URL"],
+        )
+        self.assertIn("/dev/tcp/tasks.sonar_db/5432", command[2])
         self.assertIn("/opt/sonarqube/docker/entrypoint.sh", command[2])
 
     def test_committed_service_access_compose_declares_required_services_and_secret_boundary(self):
