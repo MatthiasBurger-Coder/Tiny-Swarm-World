@@ -56,7 +56,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         *,
         backend: ManagedLxcBackend,
         manager_node: str = "swarm-manager",
-        remote_stack_root: str = "$PWD/.tiny-swarm-world/stacks",
+        remote_stack_root: str = "/var/lib/tiny-swarm-world/stacks",
         timeout_seconds: int = 900,
     ):
         if timeout_seconds <= 0:
@@ -66,6 +66,10 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         self.remote_stack_root = remote_stack_root.rstrip("/")
         self.timeout_seconds = timeout_seconds
         self.logger = LoggerFactory.get_logger(self.__class__)
+
+    def prepare_stack_assets(self, stack_name: str) -> None:
+        remote_dir = f"{self.remote_stack_root}/{stack_name}"
+        self._transfer_stack_assets(stack_name, remote_dir)
 
     def deploy_stack(
         self,
@@ -80,7 +84,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             f"cat > {_quote_remote_path(compose_path)}"
         )
         self._run_manager_shell(script, input_text=stack_definition.compose_content)
-        self._transfer_stack_assets(stack_definition.name, remote_dir)
+        self.prepare_stack_assets(stack_definition.name)
         environment = {
             "TSW_REMOTE_STACK_ROOT": self.remote_stack_root,
             **dict(stack_environment or {}),

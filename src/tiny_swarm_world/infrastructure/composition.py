@@ -556,6 +556,16 @@ class _ProviderSelectedLxcSwarmRuntime(
         )
 
 
+class _PrepareLxcStackAssets:
+    def __init__(self, swarm_runtime: LxcSwarmRuntime, stack_name: str) -> None:
+        self.swarm_runtime = swarm_runtime
+        self.stack_name = stack_name
+        self.deployment_target_id = f"deployment:{stack_name}-stack-assets"
+
+    def run(self) -> None:
+        self.swarm_runtime.prepare_stack_assets(self.stack_name)
+
+
 class _ProviderSelectedLxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
     def __init__(
         self,
@@ -1117,7 +1127,10 @@ def build_lxc_deployment_services(
             ),
             apply=DeploymentApplyWorkflow(
                 application_steps,
-                pre_apply_steps=external_input_steps,
+                pre_apply_steps=(
+                    *external_input_steps,
+                    _PrepareLxcStackAssets(swarm_runtime, "swagger"),
+                ),
                 pre_apply_checks=external_input_checks,
             ),
             verify=DeploymentVerifyWorkflow((*external_input_checks, *readiness_checks)),

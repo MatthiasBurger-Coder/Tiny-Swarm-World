@@ -36,6 +36,26 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertIn("TSW_REMOTE_STACK_ROOT=/custom/stacks docker stack deploy", deploy_script)
         self.assertIn("-c /custom/stacks/swagger/docker-compose.yml swagger", deploy_script)
 
+    def test_default_remote_stack_root_matches_committed_compose_fallback(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+
+        self.assertEqual("/var/lib/tiny-swarm-world/stacks", runtime.remote_stack_root)
+
+    def test_prepare_stack_assets_transfers_swagger_assets_to_remote_root(self):
+        runtime = LxcSwarmRuntime(
+            backend=ManagedLxcBackend.LXD,
+            remote_stack_root="/custom/stacks",
+        )
+
+        with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+            runtime.prepare_stack_assets("swagger")
+
+        scripts = [call.args[0] for call in run_manager_shell.call_args_list]
+        self.assertIn("mkdir -p /custom/stacks/swagger/swagger", scripts[0])
+        self.assertIn("cat > /custom/stacks/swagger/swagger/openapi.json", scripts[0])
+        self.assertIn("mkdir -p /custom/stacks/swagger/nginx", scripts[1])
+        self.assertIn("cat > /custom/stacks/swagger/nginx/default.conf", scripts[1])
+
     def test_deploy_stack_reconciles_existing_host_published_ports(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
         compose = """

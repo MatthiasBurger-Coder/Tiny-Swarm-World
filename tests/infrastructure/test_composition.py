@@ -580,6 +580,10 @@ class TestComposition(unittest.TestCase):
             ("deployment:service-access-external-input",),
             tuple(check.verification_target_id for check in services.workflows.apply.pre_apply_checks),
         )
+        self.assertEqual(
+            ("deployment:swagger-stack-assets",),
+            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
+        )
 
     def test_build_deployment_services_does_not_call_runtime_during_construction(self):
         with patch.object(composition, "ComposeFileRepositoryYaml") as compose_repository:
@@ -703,7 +707,10 @@ class TestComposition(unittest.TestCase):
             },
             service_access_step.stack_environment,
         )
-        self.assertEqual((), services.workflows.apply.pre_apply_steps)
+        self.assertEqual(
+            ("deployment:swagger-stack-assets",),
+            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
+        )
 
     def test_build_deployment_services_uses_operator_swarm_registry_endpoint_for_local_images(self):
         with patch.dict(
