@@ -156,7 +156,14 @@ class PortainerHttpClient(PortPortainerClient):
             raise RuntimeError("Portainer authentication succeeded without returning a JWT.")
 
         self._jwt_token = token
+        self._clear_session_cookies()
         return token
+
+    def _clear_session_cookies(self) -> None:
+        cookies = getattr(self.session, "cookies", None)
+        clear = getattr(cookies, "clear", None)
+        if callable(clear):
+            clear()
 
     def _get_swarm_id_by_endpoint_id(self, endpoint_id: int) -> str:
         response = self._send("GET", f"/api/endpoints/{endpoint_id}/docker/info")
