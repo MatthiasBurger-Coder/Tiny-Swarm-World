@@ -459,7 +459,7 @@ def latest_evidence_dir(repo_root: Path) -> Path | None:
     candidates = tuple(path for path in root.iterdir() if path.is_dir())
     if not candidates:
         return None
-    return max(candidates, key=lambda path: path.stat().st_mtime)
+    return max(candidates, key=lambda path: path.name)
 
 
 def _unit_compatibility_issues(text: str, systemd_state: SystemdState) -> tuple[str, ...]:
