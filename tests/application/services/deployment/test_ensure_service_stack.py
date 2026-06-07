@@ -81,6 +81,27 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("true", verification.evidence["stack_registered"])
         self.assertIn("service readiness remains", verification.message)
 
+    async def test_verify_retries_transient_portainer_stack_lookup_failure(self):
+        stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
+        compose_repository = _FakeComposeRepository(stack_definition)
+        portainer_client = _FakePortainerClient(
+            stack_ids=[31],
+            stack_exceptions=[RuntimeError("temporary Portainer lookup failure")],
+        )
+        service = EnsureServiceStack(
+            compose_repository,
+            portainer_client,
+            ServiceStackContract("swagger", ("swagger-ui",)),
+            "local",
+            verify_wait_seconds=0,
+        )
+
+        verification = await service.verify()
+
+        self.assertEqual(VerificationStatus.VERIFIED, verification.status)
+        self.assertEqual("true", verification.evidence["stack_registered"])
+        self.assertEqual("2", verification.evidence["verify_attempt"])
+
     async def test_verify_reports_missing_stack_without_running_compose(self):
         stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
         compose_repository = _FakeComposeRepository(stack_definition)
@@ -97,6 +118,7 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertEqual([], compose_repository.requested_stacks)
         self.assertEqual("false", verification.evidence["stack_registered"])
+        self.assertEqual("deployment_apply_failed", verification.evidence["classification"])
 
     async def test_run_rejects_compose_stack_name_mismatch(self):
         stack_definition = StackDefinition(name="wrong-stack", compose_content="services: {}")
@@ -130,6 +152,8 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertIn("RuntimeError", verification.message)
+        self.assertEqual("deployment_apply_failed", verification.evidence["classification"])
+        self.assertEqual("RuntimeError", verification.evidence["exception_type"])
         self.assertNotIn("secret", verification.message)
         self.assertNotIn("secret", str(verification.to_dict()))
 
@@ -149,9 +173,11 @@ class _FakePortainerClient:
         self,
         stack_ids: list[int | None] | None = None,
         stack_exception: Exception | None = None,
+        stack_exceptions: list[Exception] | None = None,
     ):
         self.stack_ids = list(stack_ids or [])
         self.stack_exception = stack_exception
+        self.stack_exceptions = list(stack_exceptions or [])
         self.requested_endpoints: list[str] = []
         self.created_stacks: list[tuple[str, int, dict[str, str]]] = []
         self.updated_stacks: list[tuple[int, str, int, dict[str, str]]] = []
@@ -161,6 +187,8 @@ class _FakePortainerClient:
         return 7
 
     def find_stack_id_by_name(self, stack_name: str) -> int | None:
+        if self.stack_exceptions:
+            raise self.stack_exceptions.pop(0)
         if self.stack_exception:
             raise self.stack_exception
         if self.stack_ids:
