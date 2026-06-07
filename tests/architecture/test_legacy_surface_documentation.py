@@ -88,6 +88,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertIn("/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro", compose)
         self.assertIn("resolver 127.0.0.11", nginx_config)
         self.assertIn("set $swagger_api_upstream http://tasks.swagger-api:8000;", nginx_config)
+        self.assertIn("return 302 /status;", nginx_config)
         self.assertIn("proxy_pass $swagger_api_upstream;", nginx_config)
 
     def test_compose_area_has_no_stack_definitions(self):

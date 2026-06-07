@@ -1,6 +1,6 @@
 services:
   swagger-editor:
-    image: docker.swagger.io/swaggerapi/swagger-editor
+    image: docker.swagger.io/swaggerapi/swagger-editor:v5.6.2-unprivileged
     ports:
       - target: 80
         published: 8082
@@ -13,7 +13,7 @@ services:
           - node.role == manager
 
   swagger-ui:
-    image: docker.swagger.io/swaggerapi/swagger-ui
+    image: docker.swagger.io/swaggerapi/swagger-ui:v5.32.6
     ports:
       - target: 8080
         published: 8083

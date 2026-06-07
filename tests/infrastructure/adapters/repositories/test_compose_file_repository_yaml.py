@@ -173,8 +173,8 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         yaml = YAML(typ="safe")
         compose_data = yaml.load(compose_content)
 
-        self.assertIn("image: docker.swagger.io/swaggerapi/swagger-editor", compose_content)
-        self.assertIn("image: docker.swagger.io/swaggerapi/swagger-ui", compose_content)
+        self.assertIn("image: docker.swagger.io/swaggerapi/swagger-editor:v5.6.2-unprivileged", compose_content)
+        self.assertIn("image: docker.swagger.io/swaggerapi/swagger-ui:v5.32.6", compose_content)
         self.assertIn("image: nginx:mainline-alpine", compose_content)
         self.assertEqual(
             [{"target": 80, "published": 8082, "protocol": "tcp", "mode": "host"}],
