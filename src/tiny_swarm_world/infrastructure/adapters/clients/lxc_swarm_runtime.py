@@ -56,7 +56,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         *,
         backend: ManagedLxcBackend,
         manager_node: str = "swarm-manager",
-        remote_stack_root: str = "$PWD/.tiny-swarm-world/stacks",
+        remote_stack_root: str = "/var/lib/tiny-swarm-world/stacks",
         timeout_seconds: int = 900,
     ):
         if timeout_seconds <= 0:
@@ -66,6 +66,10 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         self.remote_stack_root = remote_stack_root.rstrip("/")
         self.timeout_seconds = timeout_seconds
         self.logger = LoggerFactory.get_logger(self.__class__)
+
+    def prepare_stack_assets(self, stack_name: str) -> None:
+        remote_dir = f"{self.remote_stack_root}/{stack_name}"
+        self._transfer_stack_assets(stack_name, remote_dir)
 
     def deploy_stack(
         self,
@@ -80,7 +84,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             f"cat > {_quote_remote_path(compose_path)}"
         )
         self._run_manager_shell(script, input_text=stack_definition.compose_content)
-        self._transfer_stack_assets(stack_definition.name, remote_dir)
+        self.prepare_stack_assets(stack_definition.name)
         environment = {
             "TSW_REMOTE_STACK_ROOT": self.remote_stack_root,
             **dict(stack_environment or {}),
@@ -143,15 +147,21 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
                 published = str(port["published"])
                 target = str(port["target"])
                 protocol = str(port.get("protocol", "tcp"))
+                current_mode = str(port.get("mode", "ingress"))
+                desired_mode = str(port.get("resolved_mode", current_mode))
                 self._run_manager_shell(
-                    f"docker service update --publish-rm {shlex.quote(published)} "
+                    "docker service update "
+                    f"--publish-rm published={shlex.quote(published)},"
+                    f"target={shlex.quote(target)},"
+                    f"protocol={shlex.quote(protocol)},"
+                    f"mode={shlex.quote(current_mode)} "
                     f"{shlex.quote(swarm_service_name)} >/dev/null 2>&1 || true"
                 )
                 self._run_manager_shell(
                     "docker service update "
                     f"--publish-add published={shlex.quote(published)},"
                     f"target={shlex.quote(target)},"
-                    f"protocol={shlex.quote(protocol)},mode=host "
+                    f"protocol={shlex.quote(protocol)},mode={shlex.quote(desired_mode)} "
                     f"{shlex.quote(swarm_service_name)}"
                 )
 
@@ -654,8 +664,12 @@ def _host_published_ports_by_service(
         ports = service_payload.get("ports", ())
         if not isinstance(ports, list):
             continue
+        manager_only = _service_is_manager_constrained(service_payload)
         host_ports = tuple(
-            port
+            {
+                **dict(port),
+                "resolved_mode": "host" if manager_only else "ingress",
+            }
             for port in ports
             if (
                 isinstance(port, Mapping)
@@ -667,6 +681,20 @@ def _host_published_ports_by_service(
         if host_ports:
             selected[service_name] = host_ports
     return selected
+
+
+def _service_is_manager_constrained(service_payload: Mapping[str, object]) -> bool:
+    deploy = service_payload.get("deploy", {})
+    if not isinstance(deploy, Mapping):
+        return False
+    placement = deploy.get("placement", {})
+    if not isinstance(placement, Mapping):
+        return False
+    constraints = placement.get("constraints", ())
+    if isinstance(constraints, str) or not isinstance(constraints, list):
+        return False
+    normalized = {str(constraint).replace(" ", "").casefold() for constraint in constraints}
+    return "node.role==manager" in normalized
 
 
 def _stack_environment_prefix(environment: Mapping[str, str]) -> str:

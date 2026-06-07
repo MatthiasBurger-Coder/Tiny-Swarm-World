@@ -17,7 +17,6 @@ This project is developed and operated from WSL or Linux shells. Windows-specifi
 The repository separates deployment work into three areas:
 
 * `src/tiny_swarm_world/__main__.py` contains the Python entry point for infrastructure orchestration.
-* `infra/prepare` contains retired notes for former direct service preparation helpers.
 * `infra/compose` contains image build-context assets for workflow-managed deployment.
 
 The active Python entry point exposes workflow-level commands. Running without
@@ -27,16 +26,22 @@ Static preflight is available through `--preflight` for the default
 `lxc_native` provider.
 
 Implemented platform workflows are `platform init`, `platform reconcile`,
-`platform expose`, `platform verify`, `platform reset`, and `platform destroy`. Mutating platform
-workflows require live consent before service construction. Reset and destroy
-also require exact confirmation and currently block after confirmation until
-retention and teardown semantics are implemented. Default platform init uses
+`platform expose`, `platform repair-lxc-proxy-drift`, `platform verify`,
+`platform reset`, and `platform destroy`. Mutating platform workflows require
+live consent before service construction. Reset and destroy also require exact
+confirmation and currently block after confirmation until retention and
+teardown semantics are implemented. Default platform init uses
 the `lxc_native` provider selection path and blocks before mutation when
 LXD/Incus readiness or profile requirements are not satisfied. Default
-platform expose creates or updates LXC proxy devices on `swarm-manager` for
-published setup-manifest ports. Platform reconcile, artifact workflows, and
-deployment workflows block at provider-native boundaries until their
-LXC-native contracts are wired.
+platform expose creates or updates profile-level LXC proxy devices in the
+manager-specific `docker-swarm-manager` profile for published setup-manifest
+ports. The `swarm-manager` node receives that profile in addition to the common
+Docker Swarm profile; workers do not receive it. Direct instance-level
+`tsw-proxy-*` devices on `swarm-manager` are drift, not expected deployment
+state. The explicit `platform repair-lxc-proxy-drift` workflow can remove stale
+direct `tsw-proxy-*` devices only after the equivalent manager-profile device
+is verified. Platform reconcile, artifact workflows, and deployment workflows
+block at provider-native boundaries until their LXC-native contracts are wired.
 Unsupported node-provider values fail closed; they are not remapped to another
 provider.
 
@@ -101,10 +106,9 @@ contracts are wired:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-Former direct scripts under `infra/prepare` and host-side orchestration scripts
-under `infra/compose` have been retired so setup behavior stays behind the
-workflow-level CLI consent guard. Direct scripts under `infra/swarm` remain
-legacy live-operation surfaces and are not development quality-gate commands.
+Former direct preparation scripts and host-side orchestration scripts have
+been removed so setup behavior stays behind the workflow-level CLI consent
+guard. They are not development quality-gate commands.
 The Portainer compose asset under `infra/config/compose/portainer` mounts the
 host Docker socket for the Portainer server and agent, and the agent also
 mounts Docker volumes. Treat that asset as privileged Docker-control
@@ -136,6 +140,7 @@ Important environment variables:
 | `TSW_NEXUS_INITIAL_PASSWORD_PATH` | `/nexus-data/admin.password` | Initial password path inside the Nexus container
 | `TSW_NEXUS_MAX_ATTEMPTS` | `10` | Startup polling attempts
 | `TSW_NEXUS_WAIT_SECONDS` | `5` | Delay between polling attempts
+| `TSW_LXC_DOCKER_REGISTRY_MIRROR` | no default | Optional Docker registry mirror URL written into managed LXC nodes during Docker installation. Use an address reachable from inside the nodes, for example `http://<lxc-reachable-host-ip>:5001`; localhost values are rejected.
 |===
 
 The localhost defaults above are operator targets for the Linux/WSL execution
@@ -171,7 +176,7 @@ Implemented repository behavior:
   selected setup profile includes the service-access landing page contract.
   Operators can use `--service-profile default` to run only the older base
   service set.
-* The setup manifest for the service-access profile records ports `80` and `8086`
+* The setup manifest for the service-access profile records ports `80`, `8086`, and `443`
   plus the `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
   It does not record a token value.
 
@@ -184,8 +189,8 @@ The accepted routing decision is
   `/nexus`, `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and
   `/vaultwarden`.
 * Swagger/NGINX uses published port `8084`.
-* The Vaultwarden route uses published Swarm port `8086`.
-* Shared ingress, Traefik, TLS automation and wider-than-local exposure require
+* The Vaultwarden HTTPS route uses published Swarm port `443`; `8086` remains a local HTTP compatibility route.
+* Wider-than-local exposure, Traefik, and public certificate automation require
   later ADR coverage and tests.
 
 Portainer may manage the service-access stack only after Portainer is
@@ -244,7 +249,7 @@ configuration, Swarm state, network settings, and service credentials. Review
 the live-operation surface catalog and environment values before running it
 against an existing local environment.
 
-Legacy helper areas such as `infra/swarm/**` remain documented as unsupported
+Removed legacy helper areas remain documented as unsupported historical surfaces
 until a dedicated cleanup slice verifies replacement parity. Do not add,
 restore, or promote any direct live-operation script without updating
 `documentation/system/live-operation-surfaces.adoc`, tests, and rollback notes.

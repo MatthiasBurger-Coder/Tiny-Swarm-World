@@ -20,12 +20,20 @@ class EnsureServiceStack:
         service_stack: ServiceStackContract,
         endpoint_name: str,
         stack_environment: Mapping[str, str] | None = None,
+        verify_attempts: int = 3,
+        verify_wait_seconds: float = 5.0,
     ):
+        if verify_attempts <= 0:
+            raise ValueError("Portainer stack verify attempts must be positive.")
+        if verify_wait_seconds < 0:
+            raise ValueError("Portainer stack verify wait seconds must not be negative.")
         self.compose_repository = compose_repository
         self.portainer_client = portainer_client
         self.service_stack = service_stack
         self.endpoint_name = endpoint_name
         self.stack_environment = dict(stack_environment or {})
+        self.verify_attempts = verify_attempts
+        self.verify_wait_seconds = verify_wait_seconds
         self.deployment_target_id = service_stack.stack_target_id
         self.verification_target_id = service_stack.stack_target_id
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -56,33 +64,56 @@ class EnsureServiceStack:
         )
 
     async def verify(self) -> VerificationResult:
-        await asyncio.sleep(0)
-        try:
-            stack_id = self.portainer_client.find_stack_id_by_name(self.service_stack.stack_name)
-        except Exception as exc:
-            return VerificationResult(
-                target_id=self.verification_target_id,
-                status=VerificationStatus.FAILED_TO_VERIFY,
-                message=f"Portainer stack registration verification failed: {exc.__class__.__name__}",
-                evidence=_stack_registration_evidence(self.service_stack, stack_registered="unknown"),
-            )
+        last_exception: Exception | None = None
+        for attempt in range(1, self.verify_attempts + 1):
+            await asyncio.sleep(0 if attempt == 1 else self.verify_wait_seconds)
+            try:
+                stack_id = self.portainer_client.find_stack_id_by_name(self.service_stack.stack_name)
+            except Exception as exc:
+                last_exception = exc
+                continue
+            if stack_id is not None:
+                return VerificationResult(
+                    target_id=self.verification_target_id,
+                    status=VerificationStatus.VERIFIED,
+                    message=(
+                        "Portainer stack is registered; service readiness remains a "
+                        "separate observed-state verification."
+                    ),
+                    evidence=_stack_registration_evidence(
+                        self.service_stack,
+                        stack_registered="true",
+                        verify_attempt=attempt,
+                    ),
+                )
 
-        if stack_id is None:
+        if last_exception is not None:
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,
-                message="Portainer stack is missing after apply.",
-                evidence=_stack_registration_evidence(self.service_stack, stack_registered="false"),
+                message=(
+                    "Portainer stack registration verification failed: "
+                    f"{last_exception.__class__.__name__}"
+                ),
+                evidence=_stack_registration_evidence(
+                    self.service_stack,
+                    stack_registered="unknown",
+                    classification="deployment_apply_failed",
+                    exception_type=last_exception.__class__.__name__,
+                    verify_attempt=self.verify_attempts,
+                ),
             )
 
         return VerificationResult(
             target_id=self.verification_target_id,
-            status=VerificationStatus.VERIFIED,
-            message=(
-                "Portainer stack is registered; service readiness remains a "
-                "separate observed-state verification."
+            status=VerificationStatus.FAILED_TO_VERIFY,
+            message="Portainer stack is missing after apply.",
+            evidence=_stack_registration_evidence(
+                self.service_stack,
+                stack_registered="false",
+                classification="deployment_apply_failed",
+                verify_attempt=self.verify_attempts,
             ),
-            evidence=_stack_registration_evidence(self.service_stack, stack_registered="true"),
         )
 
 
@@ -90,8 +121,11 @@ def _stack_registration_evidence(
     service_stack: ServiceStackContract,
     *,
     stack_registered: str,
+    classification: str | None = None,
+    exception_type: str | None = None,
+    verify_attempt: int | None = None,
 ) -> dict[str, str]:
-    return {
+    evidence = {
         "phase": "verify",
         "readiness_observed": "false",
         "registration_scope": "portainer_stack",
@@ -100,3 +134,10 @@ def _stack_registration_evidence(
         "stack_registered": stack_registered,
         "stack_name": service_stack.stack_name,
     }
+    if classification is not None:
+        evidence["classification"] = classification
+    if exception_type is not None:
+        evidence["exception_type"] = exception_type
+    if verify_attempt is not None:
+        evidence["verify_attempt"] = str(verify_attempt)
+    return evidence

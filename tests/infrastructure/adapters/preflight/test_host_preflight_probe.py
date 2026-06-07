@@ -444,6 +444,26 @@ class TestHostPreflightProbe(unittest.TestCase):
         ):
             self.assertFalse(probe.port_matches_expected_service(9000, "Portainer"))
 
+    def test_port_matches_expected_service_recognizes_vaultwarden_https(self):
+        probe = HostPreflightProbe(Path.cwd())
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.status = 200
+        response.headers = {
+            "Server": "nginx/1.31.1",
+            "Content-Security-Policy": "default-src 'none'",
+        }
+        response.read.return_value = b""
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",
+            return_value=response,
+        ) as urlopen:
+            self.assertTrue(probe.port_matches_expected_service(443, "Vaultwarden HTTPS"))
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual("https://127.0.0.1:443/", request.full_url)
+
     def test_port_matches_expected_service_rejects_empty_nginx_404_for_service_access(self):
         probe = HostPreflightProbe(Path.cwd())
         error = urllib.error.HTTPError(

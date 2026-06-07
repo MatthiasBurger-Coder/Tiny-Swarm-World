@@ -16,6 +16,7 @@ from tiny_swarm_world.application.services.platform import (
     PlatformDestroyWorkflow,
     PlatformExposeWorkflow,
     PlatformInitWorkflow,
+    PlatformRepairLxcProxyDriftWorkflow,
     PlatformReconcileWorkflow,
     PlatformResetWorkflow,
     PlatformVerifyWorkflow,
@@ -38,6 +39,7 @@ class TestPlatformWorkflowTaxonomy(unittest.TestCase):
             PlatformWorkflowKind.INIT: (True, False, False),
             PlatformWorkflowKind.RECONCILE: (True, False, False),
             PlatformWorkflowKind.EXPOSE: (True, False, False),
+            PlatformWorkflowKind.REPAIR_LXC_PROXY_DRIFT: (True, False, False),
             PlatformWorkflowKind.RESET: (True, True, True),
             PlatformWorkflowKind.DESTROY: (True, True, True),
             PlatformWorkflowKind.VERIFY: (False, False, False),
@@ -52,27 +54,33 @@ class TestPlatformWorkflowTaxonomy(unittest.TestCase):
 
 
 class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
-    async def test_init_reconcile_and_expose_run_only_configured_safe_steps(self):
+    async def test_init_reconcile_expose_and_repair_run_configured_safe_steps(self):
         init_step = _RecordingAction("init")
         reconcile_step = _RecordingAction("reconcile")
         expose_step = _RecordingAction("expose")
+        repair_step = _RecordingAction("repair")
 
         init_result = await PlatformInitWorkflow([init_step]).run()
         reconcile_result = await PlatformReconcileWorkflow([reconcile_step]).run()
         expose_result = await PlatformExposeWorkflow([expose_step]).run()
+        repair_result = await PlatformRepairLxcProxyDriftWorkflow([repair_step]).run()
 
         self.assertEqual(["init"], init_step.calls)
         self.assertEqual(["reconcile"], reconcile_step.calls)
         self.assertEqual(["expose"], expose_step.calls)
+        self.assertEqual(["repair"], repair_step.calls)
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, init_result.status)
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, reconcile_result.status)
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, expose_result.status)
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, repair_result.status)
         self.assertFalse(PlatformInitWorkflow.semantics.destructive)
         self.assertFalse(PlatformReconcileWorkflow.semantics.destructive)
         self.assertFalse(PlatformExposeWorkflow.semantics.destructive)
+        self.assertFalse(PlatformRepairLxcProxyDriftWorkflow.semantics.destructive)
         self.assertEqual(1, len(init_step.verifications))
         self.assertEqual(1, len(reconcile_step.verifications))
         self.assertEqual(1, len(expose_step.verifications))
+        self.assertEqual(1, len(repair_step.verifications))
         self.assertEqual(
             ("init",),
             tuple(item.target_id for item in init_result.verification_results),
@@ -84,6 +92,10 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             ("expose",),
             tuple(item.target_id for item in expose_result.verification_results),
+        )
+        self.assertEqual(
+            ("repair",),
+            tuple(item.target_id for item in repair_result.verification_results),
         )
 
     async def test_init_reports_method_trace_for_completion(self):
@@ -166,6 +178,36 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             {"phase": "verify", "failed_check_count": "1"},
             dict(result.verification_results[0].evidence),
         )
+
+    async def test_verify_retries_transient_failed_preflight(self):
+        verify_step = _PreflightSequenceAction(
+            (
+                PreflightResult(
+                    (
+                        PreflightCheck(
+                            check_id="PORT-9001",
+                            category=PreflightCategory.PORT,
+                            status=PreflightStatus.FAILED,
+                            severity=PreflightSeverity.MANDATORY,
+                            message="Port 9001 for SonarQube is occupied.",
+                            remediation="Wait for expected service readiness.",
+                        ),
+                    )
+                ),
+                PreflightResult(()),
+            )
+        )
+
+        result = await PlatformVerifyWorkflow(
+            [verify_step],
+            verify_retry_attempts=2,
+            verify_retry_delay_seconds=0,
+        ).run()
+
+        self.assertEqual(["preflight", "preflight"], verify_step.calls)
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
+        self.assertEqual("2", result.verification_results[0].evidence["verify_attempt"])
 
     async def test_init_pre_apply_guard_blocks_before_steps(self):
         progress = _RecordingProgress()
@@ -939,6 +981,18 @@ class _PreflightAction:
         await async_checkpoint()
         self.calls.append("preflight")
         return self.result
+
+
+class _PreflightSequenceAction:
+    def __init__(self, results: tuple[PreflightResult, ...]):
+        self.results = results
+        self.calls: list[str] = []
+
+    async def run(self) -> PreflightResult:
+        await async_checkpoint()
+        self.calls.append("preflight")
+        index = min(len(self.calls) - 1, len(self.results) - 1)
+        return self.results[index]
 
 
 class _ProviderGuardAction:

@@ -178,11 +178,19 @@ class TestPreflightResult(unittest.TestCase):
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
         self.assertIn(
+            (443, "Vaultwarden HTTPS"),
+            tuple((port.port, port.service) for port in manifest.required_ports),
+        )
+        self.assertIn(
             80,
             tuple(port.port for port in configuration.required_ports),
         )
         self.assertIn(
             8086,
+            tuple(port.port for port in configuration.required_ports),
+        )
+        self.assertIn(
+            443,
             tuple(port.port for port in configuration.required_ports),
         )
         self.assertTrue(

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from tiny_swarm_world.application.ports.node_provider import (
+    LxcProxyDriftRepairOutcome,
     LxcProxyDeviceState,
     PortLxcProxyDeviceRuntime,
 )
@@ -37,11 +38,13 @@ class LxcServiceExposureService:
         runtime: PortLxcProxyDeviceRuntime,
         *,
         gateway_node: NodeSpec,
+        manager_profile_name: str,
         setup_manifest: SetupManifest,
         listen_address: str,
     ) -> None:
         self.runtime = runtime
         self.gateway_node = gateway_node
+        self.manager_profile_name = manager_profile_name
         self.setup_manifest = setup_manifest
         self.listen_address = listen_address
 
@@ -52,7 +55,12 @@ class LxcServiceExposureService:
             listen_address=self.listen_address,
         )
         summary = await self._apply_plans(plans)
-        return _summary_result(summary, self.gateway_node.name, self.listen_address)
+        return _summary_result(
+            summary,
+            self.gateway_node.name,
+            self.manager_profile_name,
+            self.listen_address,
+        )
 
     async def _apply_plans(
         self,
@@ -66,7 +74,7 @@ class LxcServiceExposureService:
         update_failure_count = 0
 
         for plan in plans:
-            state = await self.runtime.inspect_proxy_device(self.gateway_node, plan)
+            state = await self.runtime.inspect_proxy_device(self.manager_profile_name, plan)
             if state == LxcProxyDeviceState.PRESENT:
                 existing_count += 1
                 continue
@@ -74,12 +82,12 @@ class LxcServiceExposureService:
                 lookup_failure_count += 1
                 continue
             if state == LxcProxyDeviceState.DRIFTED:
-                if await self.runtime.update_proxy_device(self.gateway_node, plan):
+                if await self.runtime.update_proxy_device(self.manager_profile_name, plan):
                     updated_count += 1
                 else:
                     update_failure_count += 1
                 continue
-            if await self.runtime.create_proxy_device(self.gateway_node, plan):
+            if await self.runtime.create_proxy_device(self.manager_profile_name, plan):
                 created_count += 1
             else:
                 create_failure_count += 1
@@ -106,6 +114,52 @@ class LxcServiceExposureStep:
         return await self.service.ensure_service_exposure()
 
 
+class LxcProxyDriftRepairService:
+    def __init__(
+        self,
+        runtime: PortLxcProxyDeviceRuntime,
+        *,
+        gateway_node: NodeSpec,
+        manager_profile_name: str,
+        setup_manifest: SetupManifest,
+        listen_address: str,
+    ) -> None:
+        self.runtime = runtime
+        self.gateway_node = gateway_node
+        self.manager_profile_name = manager_profile_name
+        self.setup_manifest = setup_manifest
+        self.listen_address = listen_address
+
+    async def repair_stale_proxy_devices(self) -> VerificationResult:
+        plans = _plans_from_manifest(
+            self.setup_manifest,
+            gateway_node=self.gateway_node.name,
+            listen_address=self.listen_address,
+        )
+        outcome = await self.runtime.repair_stale_proxy_devices(
+            self.manager_profile_name,
+            self.gateway_node,
+            plans,
+        )
+        return _repair_result(
+            outcome,
+            self.gateway_node.name,
+            self.manager_profile_name,
+            self.listen_address,
+        )
+
+
+class LxcProxyDriftRepairStep:
+    returns_verification_result = True
+    verification_target_id = "platform:repair-lxc-proxy-drift"
+
+    def __init__(self, service: LxcProxyDriftRepairService) -> None:
+        self.service = service
+
+    async def run(self) -> VerificationResult:
+        return await self.service.repair_stale_proxy_devices()
+
+
 def _plans_from_manifest(
     setup_manifest: SetupManifest,
     *,
@@ -124,9 +178,92 @@ def _plans_from_manifest(
     )
 
 
+def _repair_result(
+    outcome: LxcProxyDriftRepairOutcome,
+    gateway_node: str,
+    manager_profile_name: str,
+    listen_address: str,
+) -> VerificationResult:
+    if outcome.expected_profile_device_count == 0:
+        return VerificationResult(
+            target_id=LxcProxyDriftRepairStep.verification_target_id,
+            status=VerificationStatus.BLOCKED,
+            message="LXC proxy drift repair has no published service ports to validate.",
+            evidence={"phase": "pre_apply", "classification": "published_ports_missing"},
+        )
+
+    status = _repair_status(outcome)
+    classification = _repair_classification(outcome, status)
+    message = _repair_message(outcome, status)
+    return VerificationResult(
+        target_id=LxcProxyDriftRepairStep.verification_target_id,
+        status=status,
+        message=message,
+        evidence={
+            "phase": "apply",
+            "classification": classification,
+            "gateway_node": gateway_node,
+            "manager_profile": manager_profile_name,
+            "listen_address": listen_address,
+            "expected_profile_device_count": str(outcome.expected_profile_device_count),
+            "stale_direct_device_count": str(outcome.stale_direct_device_count),
+            "removed_count": str(outcome.removed_count),
+            "refused_count": str(outcome.refused_count),
+            "lookup_failure_count": str(outcome.lookup_failure_count),
+            "remove_failure_count": str(outcome.remove_failure_count),
+            "mutation_allowed": str(outcome.mutation_allowed).lower(),
+            "removed_devices": ",".join(outcome.removed_devices),
+            "refused_devices": ",".join(outcome.refused_devices),
+            "failed_devices": ",".join(outcome.failed_devices),
+        },
+    )
+
+
+def _repair_status(outcome: LxcProxyDriftRepairOutcome) -> VerificationStatus:
+    if not outcome.mutation_allowed or outcome.blocked_count > 0:
+        return VerificationStatus.BLOCKED
+    if outcome.remove_failure_count > 0:
+        return VerificationStatus.FAILED_TO_APPLY
+    return VerificationStatus.VERIFIED
+
+
+def _repair_classification(
+    outcome: LxcProxyDriftRepairOutcome,
+    status: VerificationStatus,
+) -> str:
+    if status == VerificationStatus.BLOCKED:
+        if not outcome.mutation_allowed:
+            return "live_mutation_required"
+        return "lxc_proxy_drift_repair_refused"
+    if status == VerificationStatus.FAILED_TO_APPLY:
+        return "lxc_proxy_drift_repair_failed"
+    if outcome.removed_count > 0:
+        return "lxc_proxy_drift_repaired"
+    return "lxc_proxy_drift_absent"
+
+
+def _repair_message(
+    outcome: LxcProxyDriftRepairOutcome,
+    status: VerificationStatus,
+) -> str:
+    if status == VerificationStatus.BLOCKED:
+        if not outcome.mutation_allowed:
+            return "LXC proxy drift repair requires accepted live infrastructure consent."
+        return (
+            "LXC proxy drift repair was refused for one or more devices because the "
+            "manager profile equivalent was not verified."
+        )
+    if status == VerificationStatus.FAILED_TO_APPLY:
+        return "LXC proxy drift repair failed while removing one or more stale devices."
+    if outcome.removed_count > 0:
+        return "LXC proxy drift repair removed stale direct proxy devices."
+    return "LXC proxy drift repair found no stale direct proxy devices."
+
+
 def _summary_result(
     summary: LxcServiceExposureSummary,
     gateway_node: str,
+    manager_profile_name: str,
     listen_address: str,
 ) -> VerificationResult:
     if not summary.plans:
@@ -161,6 +298,7 @@ def _summary_result(
             "phase": "apply",
             "classification": classification,
             "gateway_node": gateway_node,
+            "manager_profile": manager_profile_name,
             "listen_address": listen_address,
             "target_address": "127.0.0.1",
             "published_port_count": str(len(summary.plans)),

@@ -13,6 +13,8 @@ from tiny_swarm_world.application.services.platform.lxc_docker_install import (
     LxcDockerInstallStep,
 )
 from tiny_swarm_world.application.services.platform.lxc_service_exposure import (
+    LxcProxyDriftRepairService,
+    LxcProxyDriftRepairStep,
     LxcServiceExposureService,
     LxcServiceExposureStep,
 )
@@ -42,6 +44,7 @@ from tiny_swarm_world.application.services.platform.workflows import (
     PlatformDestroyWorkflow,
     PlatformExposeWorkflow,
     PlatformInitWorkflow,
+    PlatformRepairLxcProxyDriftWorkflow,
     PlatformReconcileWorkflow,
     PlatformResetWorkflow,
     PlatformVerifyWorkflow,
@@ -52,6 +55,8 @@ __all__ = [
     "DockerSwarmInLxcContractService",
     "LxcDockerInstallService",
     "LxcDockerInstallStep",
+    "LxcProxyDriftRepairService",
+    "LxcProxyDriftRepairStep",
     "LxcServiceExposureService",
     "LxcServiceExposureStep",
     "LxcSwarmBootstrapService",
@@ -69,6 +74,7 @@ __all__ = [
     "PlatformDestroyWorkflow",
     "PlatformExposeWorkflow",
     "PlatformInitWorkflow",
+    "PlatformRepairLxcProxyDriftWorkflow",
     "PlatformReconcileWorkflow",
     "PlatformResetWorkflow",
     "PlatformVerifyWorkflow",

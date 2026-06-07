@@ -123,7 +123,6 @@ Allowed files after architecture approval:
 - `infra/config/docker` for daemon install and Swarm commands only
 - `infra/config/network`
 - `infra/config/vm`
-- `infra/swarm` after legacy status is agreed
 - related tests and docs
 
 Forbidden files:
@@ -200,7 +199,6 @@ Allowed files after architecture approval:
 - artifact-related ports
 - `src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
 - artifact-related adapters
-- retired `infra/prepare/nexus` notes
 - artifact-related docs and tests
 
 Forbidden files:
@@ -282,7 +280,6 @@ Allowed files after architecture approval:
 - `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
 - `infra/compose`
 - `infra/config/compose`
-- retired `infra/prepare/portainer` notes
 - deployment-related tests and docs
 
 Forbidden files:

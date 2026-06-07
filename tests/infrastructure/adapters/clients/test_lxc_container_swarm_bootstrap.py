@@ -100,7 +100,10 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("sensitive-token", repr(credential))
 
     async def test_worker_join_uses_token_without_persisting_it_in_outcome(self):
-        runner = _FakeRunner(LxcNodeCommandResult(returncode=0, stdout="joined"))
+        runner = _FakeRunner(
+            LxcNodeCommandResult(returncode=0, stdout="joined"),
+            LxcNodeCommandResult(returncode=0, stdout="active false"),
+        )
         swarm = _swarm(runner, allow_live_mutation=True)
 
         outcome = await swarm.join_worker(
@@ -113,6 +116,24 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(outcome.verified)
         self.assertIn("sensitive-token", runner.calls[0][0])
         self.assertNotIn("sensitive-token", repr(outcome))
+        self.assertEqual("docker", runner.calls[1][0][4])
+        self.assertEqual("info", runner.calls[1][0][5])
+
+    async def test_worker_join_fails_when_post_join_state_is_inactive(self):
+        runner = _FakeRunner(
+            LxcNodeCommandResult(returncode=0, stdout="joined"),
+            LxcNodeCommandResult(returncode=0, stdout="inactive false"),
+        )
+        swarm = _swarm(runner, allow_live_mutation=True)
+
+        outcome = await swarm.join_worker(
+            _worker(),
+            ipv4_address(10, 10, 0, 5),
+            SwarmWorkerJoinCredential("sensitive-token"),
+        )
+
+        self.assertEqual(WorkerJoinState.FAILED, outcome.state)
+        self.assertFalse(outcome.verified)
 
 
 class _FakeRunner:

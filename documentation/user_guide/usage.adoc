@@ -151,15 +151,15 @@ blocked or failed phase evidence when live prerequisites are unavailable:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-Former direct service preparation helpers under `infra/prepare` have been
+Former direct service preparation helpers have been
 retired and are not development quality-gate checks.
 
-== Legacy And Direct Scripts
+== Removed Direct Scripts
 
 The workflow-level CLI is the supported operator entry point. Former direct
-scripts under `infra/prepare` and host-side orchestration scripts under
-`infra/compose` have been retired. Direct scripts under `infra/swarm` are
-legacy live operations and are not protected by the CLI consent gate.
+service-preparation scripts and host-side orchestration scripts have been
+removed. Reintroduced direct scripts would be live operations outside the CLI
+consent gate.
 The canonical classification is maintained in
 `documentation/system/live-operation-surfaces.adoc`.
 
@@ -167,10 +167,8 @@ The canonical classification is maintained in
 |===
 | Path | Status
 | `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts.
-| `infra/prepare/**` | Retired former direct service preparation surface; no executable setup helpers are kept there.
 | `infra/config/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands.
 | `infra/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow.
-| `infra/swarm/**` | Legacy live-infrastructure surface; not a supported workflow entry point.
 |===
 
 Do not re-enable legacy or retired scripts without a dedicated cleanup slice,
@@ -200,6 +198,36 @@ system. For real local work, provide explicit values through environment
 variables where supported.
 Do not copy local compatibility defaults into new configuration or logs.
 
+For an implementation-independent local Docker Hub proxy cache, the repository
+also contains a transitional WSL/Linux operator helper:
+
+[source,bash]
+----
+NEXUS_ADMIN_PASSWORD='<local-password>' tools/live/nexus-docker-cache.sh
+----
+
+This helper is not wired into the Python setup workflow. It starts a standalone
+Nexus container, creates a Docker proxy repository, writes the local Docker
+daemon mirror configuration, restarts Docker, and optionally pre-pulls images
+from `images-to-cache.txt`. Use it only when those host mutations are
+intentional.
+
+When managed LXC nodes should also use this cache during installation, do not
+use `127.0.0.1` for the node-side mirror. Provide a Nexus address that is
+reachable from inside the LXC nodes:
+
+[source,bash]
+----
+export TSW_LXC_DOCKER_REGISTRY_MIRROR='http://<lxc-reachable-host-ip>:5001'
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+The LXC Docker installation step writes this value into each node's
+`/etc/docker/daemon.json` as both `registry-mirrors` and
+`insecure-registries`. Localhost values such as `http://127.0.0.1:5001` are
+rejected for LXC nodes because they would point at the node itself, not at the
+WSL-hosted Nexus cache.
+
 == Stack Deployment
 
 Stack deployment is owned by the workflow-level setup boundary. On the default
@@ -227,7 +255,7 @@ Implemented repository assets:
   route configuration.
 
 When the default full profile is deployed by an operator workflow, the
-dashboard route is `http://localhost` and the Vaultwarden route is `8086`.
+dashboard route is `http://localhost`; Vaultwarden is available for clients at `https://localhost`, with `8086` retained as a local HTTP compatibility route.
 The dashboard is a static management table with `Server`, `URL`, `user` and
 `pwd` columns. It provides central paths such as `/jenkins`, `/nexus`,
 `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and `/vaultwarden`.

@@ -158,8 +158,8 @@ Consequences:
   `ServiceStackProfile.SERVICE_ACCESS`; the older base service set remains
   available through `--service-profile default`;
 * NGINX is the baseline routing direction, with Service Access owning
-  `http://localhost` and Vaultwarden remaining on `8086`;
-* Traefik, TLS automation and wider-than-local exposure require later ADR
+  `http://localhost` and Vaultwarden HTTPS on `443`, with `8086` retained as a local HTTP compatibility route;
+* Traefik, public certificate automation and wider-than-local exposure require later ADR
   coverage;
 * Portainer may manage post-bootstrap stack create/update only after
   Portainer is reachable and must not become its own bootstrap dependency;

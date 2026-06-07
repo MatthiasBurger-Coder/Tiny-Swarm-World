@@ -30,26 +30,26 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
             allow_live_mutation=True,
         )
 
-        state = await runtime.inspect_proxy_device(_manager(), _plan())
+        state = await runtime.inspect_proxy_device(_manager_profile(), _plan())
 
         self.assertEqual(LxcProxyDeviceState.PRESENT, state)
         self.assertEqual(
             [
                 (
                     "lxc",
-                    "config",
+                    "profile",
                     "device",
                     "get",
-                    "swarm-manager",
+                    "docker-swarm-manager",
                     "tsw-proxy-8080",
                     "listen",
                 ),
                 (
                     "lxc",
-                    "config",
+                    "profile",
                     "device",
                     "get",
-                    "swarm-manager",
+                    "docker-swarm-manager",
                     "tsw-proxy-8080",
                     "connect",
                 ),
@@ -80,15 +80,15 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             LxcProxyDeviceState.MISSING,
-            await missing.inspect_proxy_device(_manager(), _plan()),
+            await missing.inspect_proxy_device(_manager_profile(), _plan()),
         )
         self.assertEqual(
             LxcProxyDeviceState.DRIFTED,
-            await drifted.inspect_proxy_device(_manager(), _plan()),
+            await drifted.inspect_proxy_device(_manager_profile(), _plan()),
         )
         self.assertEqual(
             LxcProxyDeviceState.UNKNOWN,
-            await unknown.inspect_proxy_device(_manager(), _plan()),
+            await unknown.inspect_proxy_device(_manager_profile(), _plan()),
         )
 
     async def test_inspect_treats_existing_device_with_missing_connect_key_as_drifted(self):
@@ -104,10 +104,10 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             LxcProxyDeviceState.DRIFTED,
-            await runtime.inspect_proxy_device(_manager(), _plan()),
+            await runtime.inspect_proxy_device(_manager_profile(), _plan()),
         )
 
-    async def test_create_uses_proxy_device_arguments(self):
+    async def test_create_uses_profile_proxy_device_arguments(self):
         runner = _RecordingRunner(results=(LxcNodeCommandResult(0),))
         runtime = LxcProxyDeviceRuntime(
             backend=ManagedLxcBackend.INCUS,
@@ -115,16 +115,16 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
             allow_live_mutation=True,
         )
 
-        created = await runtime.create_proxy_device(_manager(), _plan())
+        created = await runtime.create_proxy_device(_manager_profile(), _plan())
 
         self.assertTrue(created)
         self.assertEqual(
             (
                 "incus",
-                "config",
+                "profile",
                 "device",
                 "add",
-                "swarm-manager",
+                "docker-swarm-manager",
                 "tsw-proxy-8080",
                 "proxy",
                 "listen=tcp:0.0.0.0:8080",
@@ -143,16 +143,16 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
             allow_live_mutation=True,
         )
 
-        updated = await runtime.update_proxy_device(_manager(), _plan())
+        updated = await runtime.update_proxy_device(_manager_profile(), _plan())
 
         self.assertTrue(updated)
         self.assertEqual(
             (
                 "lxc",
-                "config",
+                "profile",
                 "device",
                 "set",
-                "swarm-manager",
+                "docker-swarm-manager",
                 "tsw-proxy-8080",
                 "listen",
                 "tcp:0.0.0.0:8080",
@@ -169,8 +169,145 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
             allow_live_mutation=False,
         )
 
-        self.assertFalse(await runtime.create_proxy_device(_manager(), _plan()))
-        self.assertFalse(await runtime.update_proxy_device(_manager(), _plan()))
+        self.assertFalse(await runtime.create_proxy_device(_manager_profile(), _plan()))
+        self.assertFalse(await runtime.update_proxy_device(_manager_profile(), _plan()))
+        self.assertEqual([], runner.calls)
+
+    async def test_repair_removes_direct_project_proxy_after_profile_equivalent_is_present(
+        self,
+    ):
+        runner = _RecordingRunner(
+            results=(
+                LxcNodeCommandResult(
+                    0,
+                    stdout=(
+                        "tsw-proxy-8080:\n"
+                        "  type: proxy\n"
+                        "  listen: tcp:0.0.0.0:8080\n"
+                        "  connect: tcp:127.0.0.1:8080\n"
+                        "operator-proxy:\n"
+                        "  type: proxy\n"
+                    ),
+                ),
+                LxcNodeCommandResult(0, stdout="tcp:0.0.0.0:8080\n"),
+                LxcNodeCommandResult(0, stdout="tcp:127.0.0.1:8080\n"),
+                LxcNodeCommandResult(0),
+            )
+        )
+        runtime = LxcProxyDeviceRuntime(
+            backend=ManagedLxcBackend.INCUS,
+            runner=runner,
+            allow_live_mutation=True,
+        )
+
+        outcome = await runtime.repair_stale_proxy_devices(
+            _manager_profile(),
+            _manager(),
+            (_plan(),),
+        )
+
+        self.assertEqual(1, outcome.stale_direct_device_count)
+        self.assertEqual(1, outcome.removed_count)
+        self.assertEqual(("tsw-proxy-8080",), outcome.removed_devices)
+        self.assertEqual(0, outcome.refused_count)
+        self.assertEqual(
+            [
+                ("incus", "config", "device", "show", "swarm-manager"),
+                (
+                    "incus",
+                    "profile",
+                    "device",
+                    "get",
+                    "docker-swarm-manager",
+                    "tsw-proxy-8080",
+                    "listen",
+                ),
+                (
+                    "incus",
+                    "profile",
+                    "device",
+                    "get",
+                    "docker-swarm-manager",
+                    "tsw-proxy-8080",
+                    "connect",
+                ),
+                (
+                    "incus",
+                    "config",
+                    "device",
+                    "remove",
+                    "swarm-manager",
+                    "tsw-proxy-8080",
+                ),
+            ],
+            runner.calls,
+        )
+
+    async def test_repair_refuses_when_profile_equivalent_is_not_present(self):
+        runner = _RecordingRunner(
+            results=(
+                LxcNodeCommandResult(0, stdout="tsw-proxy-8080:\n  type: proxy\n"),
+                LxcNodeCommandResult(1, stderr="Device not found"),
+            )
+        )
+        runtime = LxcProxyDeviceRuntime(
+            backend=ManagedLxcBackend.LXD,
+            runner=runner,
+            allow_live_mutation=True,
+        )
+
+        outcome = await runtime.repair_stale_proxy_devices(
+            _manager_profile(),
+            _manager(),
+            (_plan(),),
+        )
+
+        self.assertEqual(1, outcome.stale_direct_device_count)
+        self.assertEqual(0, outcome.removed_count)
+        self.assertEqual(1, outcome.refused_count)
+        self.assertEqual(("tsw-proxy-8080",), outcome.refused_devices)
+        self.assertNotIn("remove", tuple(item for call in runner.calls for item in call))
+
+    async def test_repair_refuses_unknown_project_proxy_without_expected_plan(self):
+        runner = _RecordingRunner(
+            results=(
+                LxcNodeCommandResult(0, stdout="tsw-proxy-9999:\n  type: proxy\n"),
+            )
+        )
+        runtime = LxcProxyDeviceRuntime(
+            backend=ManagedLxcBackend.INCUS,
+            runner=runner,
+            allow_live_mutation=True,
+        )
+
+        outcome = await runtime.repair_stale_proxy_devices(
+            _manager_profile(),
+            _manager(),
+            (_plan(),),
+        )
+
+        self.assertEqual(1, outcome.stale_direct_device_count)
+        self.assertEqual(0, outcome.removed_count)
+        self.assertEqual(1, outcome.refused_count)
+        self.assertEqual(("tsw-proxy-9999",), outcome.refused_devices)
+        self.assertEqual([("incus", "config", "device", "show", "swarm-manager")], runner.calls)
+
+    async def test_repair_refuses_without_live_mutation_before_reading_devices(self):
+        runner = _RecordingRunner(results=(LxcNodeCommandResult(0),))
+        runtime = LxcProxyDeviceRuntime(
+            backend=ManagedLxcBackend.INCUS,
+            runner=runner,
+            allow_live_mutation=False,
+        )
+
+        outcome = await runtime.repair_stale_proxy_devices(
+            _manager_profile(),
+            _manager(),
+            (_plan(),),
+        )
+
+        self.assertFalse(outcome.mutation_allowed)
+        self.assertEqual(1, outcome.expected_profile_device_count)
         self.assertEqual([], runner.calls)
 
 
@@ -188,6 +325,10 @@ class _RecordingRunner:
         if not self.results:
             raise AssertionError("No fake command result configured.")
         return self.results.pop(0)
+
+
+def _manager_profile() -> str:
+    return "docker-swarm-manager"
 
 
 def _manager() -> NodeSpec:

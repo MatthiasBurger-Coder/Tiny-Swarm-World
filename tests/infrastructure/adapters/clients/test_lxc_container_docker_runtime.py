@@ -10,6 +10,7 @@ from tiny_swarm_world.domain.node_provider import (
     NodeSpec,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime import (
+    DockerRegistryMirrorConfiguration,
     LxcContainerDockerRuntime,
     redact_argv_for_test,
 )
@@ -55,6 +56,30 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("incus", runner.calls[0][0][0])
         self.assertEqual(("incus", "exec", "swarm-manager", "--", "bash", "-lc", "<script>"), runner.redacted_calls[0][0])
         self.assertNotIn("token=secret", repr(outcome))
+
+    async def test_install_writes_lxc_reachable_registry_mirror_when_configured(self):
+        runner = _FakeRunner(
+            LxcNodeCommandResult(returncode=0),
+            LxcNodeCommandResult(returncode=0, stdout="24.0.0"),
+        )
+        runtime = _runtime(
+            runner,
+            registry_mirror=DockerRegistryMirrorConfiguration("http://10.0.3.1:5001"),
+        )
+
+        await runtime.install_docker(_node())
+
+        script = runner.calls[0][0][-1]
+        self.assertIn('"registry-mirrors": [', script)
+        self.assertIn('"http://10.0.3.1:5001"', script)
+        self.assertIn('"insecure-registries": [', script)
+        self.assertIn('"10.0.3.1:5001"', script)
+        self.assertIn("cat > /etc/docker/daemon.json", script)
+        self.assertIn("systemctl restart docker || service docker restart || true", script)
+
+    def test_rejects_localhost_registry_mirror_for_lxc_nodes(self):
+        with self.assertRaises(ValueError):
+            DockerRegistryMirrorConfiguration("http://127.0.0.1:5001")
 
     async def test_install_blocks_without_live_mutation_consent(self):
         runner = _FakeRunner()
@@ -107,11 +132,13 @@ def _runtime(
     *,
     backend: ManagedLxcBackend = ManagedLxcBackend.INCUS,
     allow_live_mutation: bool = True,
+    registry_mirror: DockerRegistryMirrorConfiguration | None = None,
 ) -> LxcContainerDockerRuntime:
     return LxcContainerDockerRuntime(
         backend=backend,
         runner=runner,
         allow_live_mutation=allow_live_mutation,
+        registry_mirror=registry_mirror,
     )
 
 

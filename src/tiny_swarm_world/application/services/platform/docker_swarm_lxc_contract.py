@@ -204,7 +204,7 @@ class DockerSwarmInLxcContractService:
             message="Swarm worker join is not verified.",
             evidence={
                 "phase": "verify",
-                "classification": errors[0],
+                "classification": _swarm_worker_join_failure_classification(errors),
                 "node": outcome.node.name,
                 "role": outcome.node.role.value,
                 "join_state": outcome.state.value,
@@ -240,3 +240,9 @@ class DockerSwarmInLxcContractService:
                 "purpose": plan.purpose.value,
             },
         )
+
+
+def _swarm_worker_join_failure_classification(errors: tuple[str, ...]) -> str:
+    if any(error.startswith("worker_join_") for error in errors):
+        return "swarm_join_failed"
+    return errors[0]

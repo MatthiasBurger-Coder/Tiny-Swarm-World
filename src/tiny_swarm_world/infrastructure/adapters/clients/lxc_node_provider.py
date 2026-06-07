@@ -33,6 +33,8 @@ DEFAULT_LXC_LAUNCH_TIMEOUT_SECONDS = 300.0
 DEFAULT_LXC_START_TIMEOUT_SECONDS = 60.0
 DEFAULT_LXC_TEARDOWN_TIMEOUT_SECONDS = 300.0
 DEFAULT_LXC_IMAGE_REFERENCES = {"ubuntu-24.04": "ubuntu:24.04"}
+DEFAULT_LXC_NETWORK_RESOLUTION = {"control": "lxdbr0"}
+DEFAULT_LXC_STORAGE_POOL = "default"
 MANAGED_MARKER = "user.tiny_swarm_world.managed"
 NODE_MARKER = "user.tiny_swarm_world.node"
 IMAGE_ALIAS_MARKER = "user.tiny_swarm_world.image_alias"
@@ -143,17 +145,27 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         config_result = _load_config(self.config_repository, node, selection, backend)
         if isinstance(config_result, VerificationResult):
             return config_result
-        config, node_config, profile = config_result
+        config, node_config, profiles = config_result
 
-        profile_result = await self._ensure_profile_available(
+        profile_result = await self._ensure_profiles_available(
             node,
             selection,
             backend,
             config,
-            profile,
+            profiles,
         )
         if profile_result is not None:
             return profile_result
+
+        resource_result = await self._verify_provider_resources(
+            node,
+            selection,
+            backend,
+            config,
+            node_config,
+        )
+        if resource_result is not None:
+            return resource_result
 
         lookup = await self._lookup_node(node, backend, config)
         if lookup.failed:
@@ -172,16 +184,20 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 backend,
                 config,
                 node_config,
-                profile,
                 lookup.node,
             )
 
-        mutation_block = self._mutation_block(node, selection, backend, profile)
+        mutation_block = self._mutation_block(node, selection, backend)
         if mutation_block is not None:
             return mutation_block
 
         launch_result = await self.runner.run(
-            _launch_args(backend, node_config, self.image_references),
+            _launch_args(
+                backend,
+                node_config,
+                self.image_references,
+                use_resolved_provider_resources=_uses_provider_resource_resolution(config),
+            ),
             self.launch_timeout_seconds,
         )
         if _command_failed(launch_result):
@@ -260,7 +276,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         config_result = _load_config(self.config_repository, node, selection, backend)
         if isinstance(config_result, VerificationResult):
             return config_result
-        config, node_config, profile = config_result
+        config, node_config, profiles = config_result
 
         lookup = await self._lookup_node(node, backend, config)
         if lookup.failed:
@@ -283,7 +299,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 extra_evidence=_managed_node_mismatch_evidence(lookup.node, node_config),
             )
 
-        mutation_block = self._mutation_block(node, selection, backend, profile)
+        mutation_block = self._mutation_block(node, selection, backend)
         if mutation_block is not None:
             return mutation_block
 
@@ -336,7 +352,6 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         node: NodeSpec,
         selection: ProviderSelection,
         backend: ManagedLxcBackend,
-        profile: NodeProviderProfileRequirement,
     ) -> VerificationResult | None:
         if self.allow_live_mutation:
             return None
@@ -346,6 +361,88 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             "live_mutation_consent_missing",
             backend=backend,
         )
+
+    async def _ensure_profiles_available(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+        profiles: tuple[NodeProviderProfileRequirement, ...],
+    ) -> VerificationResult | None:
+        for profile in profiles:
+            result = await self._ensure_profile_available(
+                node,
+                selection,
+                backend,
+                config,
+                profile,
+            )
+            if result is not None:
+                return result
+        return None
+
+    async def _verify_provider_resources(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+        node_config: NodeProviderNodeConfig,
+    ) -> VerificationResult | None:
+        if "provider_resource_resolution" not in config.verification_metadata.checks:
+            return None
+        logical_networks = node_config.networks
+        if not logical_networks:
+            return _blocked(
+                node,
+                selection,
+                "inventory_mapping_missing",
+                backend=backend,
+                extra_evidence=_resource_resolution_evidence(node_config),
+            )
+        unresolved_networks = tuple(
+            network
+            for network in logical_networks
+            if network not in DEFAULT_LXC_NETWORK_RESOLUTION
+        )
+        if unresolved_networks:
+            return _blocked(
+                node,
+                selection,
+                "inventory_mapping_missing",
+                backend=backend,
+                extra_evidence=_resource_resolution_evidence(node_config),
+            )
+
+        resolved_network = _resolved_network(node_config)
+        available_networks = await self._available_network_names(backend, config)
+        if resolved_network not in available_networks:
+            return _blocked(
+                node,
+                selection,
+                "network_missing",
+                backend=backend,
+                extra_evidence=_resource_resolution_evidence(
+                    node_config,
+                    available_networks=available_networks,
+                ),
+            )
+
+        available_storage_pools = await self._available_storage_pool_names(backend, config)
+        if DEFAULT_LXC_STORAGE_POOL not in available_storage_pools:
+            return _blocked(
+                node,
+                selection,
+                "storage_pool_missing",
+                backend=backend,
+                extra_evidence=_resource_resolution_evidence(
+                    node_config,
+                    available_networks=available_networks,
+                    available_storage_pools=available_storage_pools,
+                ),
+            )
+        return None
 
     async def _ensure_profile_available(
         self,
@@ -360,24 +457,230 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             float(config.verification_metadata.readiness_timeout_seconds),
         )
         if not _command_failed(result):
-            if _profile_output_safe(result.stdout, profile.name):
-                return None
+            if _profile_output_safe(
+                result.stdout,
+                profile.name,
+                allow_project_proxy_devices=_profile_allows_project_proxy_devices(profile),
+            ):
+                missing_settings = _missing_profile_settings(result.stdout, profile)
+                if not missing_settings:
+                    return None
+                mutation_block = self._mutation_block(node, selection, backend)
+                if mutation_block is not None:
+                    return _blocked(
+                        node,
+                        selection,
+                        "profile_reconciliation_requires_live_consent",
+                        backend=backend,
+                        extra_evidence=_profile_evidence(profile.name, (profile.name,)),
+                    )
+                return await self._reconcile_profile_settings(
+                    node,
+                    selection,
+                    backend,
+                    config,
+                    profile,
+                    missing_settings,
+                )
             return _blocked(
                 node,
                 selection,
                 "unsafe_provider_profile",
                 backend=backend,
                 return_code=result.returncode,
+                extra_evidence=_profile_evidence(profile.name, (profile.name,)),
             )
-        reason = "profile_check_timed_out" if result.timed_out else "profile_missing"
-        return _blocked(
+        if result.timed_out:
+            return _blocked(
+                node,
+                selection,
+                "profile_check_timed_out",
+                backend=backend,
+                return_code=result.returncode,
+                timed_out=True,
+                extra_evidence=_profile_evidence(profile.name, ()),
+            )
+
+        available_profiles = await self._available_profile_names(backend, config)
+        if profile.name in available_profiles:
+            return _blocked(
+                node,
+                selection,
+                "profile_lookup_failed",
+                backend=backend,
+                return_code=result.returncode,
+                extra_evidence=_profile_evidence(profile.name, available_profiles),
+            )
+        mutation_block = self._mutation_block(node, selection, backend)
+        if mutation_block is not None:
+            return _blocked(
+                node,
+                selection,
+                "profile_missing",
+                backend=backend,
+                return_code=result.returncode,
+                extra_evidence=_profile_evidence(profile.name, available_profiles),
+            )
+        return await self._create_missing_profile(
             node,
             selection,
-            reason,
-            backend=backend,
-            return_code=result.returncode,
-            timed_out=result.timed_out,
+            backend,
+            config,
+            profile,
+            available_profiles,
         )
+
+    async def _available_profile_names(
+        self,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+    ) -> tuple[str, ...]:
+        result = await self.runner.run(
+            _profile_list_args(backend),
+            float(config.verification_metadata.readiness_timeout_seconds),
+        )
+        if _command_failed(result):
+            return ()
+        try:
+            payload = json.loads(result.stdout or "[]")
+        except json.JSONDecodeError:
+            return ()
+        if not isinstance(payload, list):
+            return ()
+        names = tuple(
+            str(item.get("name"))
+            for item in payload
+            if isinstance(item, Mapping) and isinstance(item.get("name"), str)
+        )
+        return tuple(sorted(names))
+
+    async def _available_network_names(
+        self,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+    ) -> tuple[str, ...]:
+        result = await self.runner.run(
+            _network_list_args(backend),
+            float(config.verification_metadata.readiness_timeout_seconds),
+        )
+        return _name_list_from_json(result)
+
+    async def _available_storage_pool_names(
+        self,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+    ) -> tuple[str, ...]:
+        result = await self.runner.run(
+            _storage_pool_list_args(backend),
+            float(config.verification_metadata.readiness_timeout_seconds),
+        )
+        return _name_list_from_json(result)
+
+    async def _create_missing_profile(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+        profile: NodeProviderProfileRequirement,
+        available_profiles: tuple[str, ...],
+    ) -> VerificationResult | None:
+        create_result = await self.runner.run(
+            _profile_create_args(backend, profile.name),
+            float(config.verification_metadata.readiness_timeout_seconds),
+        )
+        if _command_failed(create_result):
+            return _profile_apply_failed(
+                node,
+                selection,
+                "profile_create_failed",
+                backend=backend,
+                result=create_result,
+                profile_name=profile.name,
+                available_profiles=available_profiles,
+            )
+
+        missing_settings = _required_profile_settings(profile)
+        reconcile_result = await self._reconcile_profile_settings(
+            node,
+            selection,
+            backend,
+            config,
+            profile,
+            missing_settings,
+            available_profiles=available_profiles,
+        )
+        if reconcile_result is not None:
+            return reconcile_result
+        return None
+
+    async def _reconcile_profile_settings(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+        profile: NodeProviderProfileRequirement,
+        settings: Mapping[str, str],
+        available_profiles: tuple[str, ...] | None = None,
+    ) -> VerificationResult | None:
+        for key, value in settings.items():
+            set_result = await self.runner.run(
+                _profile_set_args(backend, profile.name, key, value),
+                float(config.verification_metadata.readiness_timeout_seconds),
+            )
+            if _command_failed(set_result):
+                return _profile_apply_failed(
+                    node,
+                    selection,
+                    "profile_configure_failed",
+                    backend=backend,
+                    result=set_result,
+                    profile_name=profile.name,
+                    available_profiles=available_profiles or (profile.name,),
+                )
+
+        verify_result = await self.runner.run(
+            _profile_show_args(backend, profile.name),
+            float(config.verification_metadata.readiness_timeout_seconds),
+        )
+        if _command_failed(verify_result):
+            return _profile_verify_failed(
+                node,
+                selection,
+                "profile_verify_failed",
+                backend=backend,
+                result=verify_result,
+                profile_name=profile.name,
+                available_profiles=available_profiles or (profile.name,),
+            )
+        if not _profile_output_safe(
+            verify_result.stdout,
+            profile.name,
+            allow_project_proxy_devices=_profile_allows_project_proxy_devices(profile),
+        ):
+            return _blocked(
+                node,
+                selection,
+                "unsafe_provider_profile",
+                backend=backend,
+                return_code=verify_result.returncode,
+                extra_evidence=_profile_evidence(
+                    profile.name,
+                    available_profiles or (profile.name,),
+                ),
+            )
+        if _missing_profile_settings(verify_result.stdout, profile):
+            return _profile_verify_failed(
+                node,
+                selection,
+                "profile_configuration_not_verified",
+                backend=backend,
+                result=verify_result,
+                profile_name=profile.name,
+                available_profiles=available_profiles or (profile.name,),
+            )
+        return None
 
     async def _lookup_node(
         self,
@@ -423,9 +726,8 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         backend: ManagedLxcBackend,
         config: NodeProviderConfig,
         node_config: NodeProviderNodeConfig,
-        profile: NodeProviderProfileRequirement,
     ) -> VerificationResult:
-        mutation_block = self._mutation_block(node, selection, backend, profile)
+        mutation_block = self._mutation_block(node, selection, backend)
         if mutation_block is not None:
             return mutation_block
 
@@ -466,7 +768,6 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         backend: ManagedLxcBackend,
         config: NodeProviderConfig,
         node_config: NodeProviderNodeConfig,
-        profile: NodeProviderProfileRequirement,
         observed_node: _ObservedNode,
     ) -> VerificationResult:
         if not observed_node.matches_expected(node_config):
@@ -485,7 +786,6 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             backend,
             config,
             node_config,
-            profile,
         )
 
     async def _handle_launch_failure(
@@ -559,7 +859,7 @@ class _ObservedNode:
         reasons: list[str] = []
         if self.instance_type.casefold() != "container":
             reasons.append("instance_type_not_container")
-        if node_config.profile not in self.profiles:
+        if any(profile not in self.profiles for profile in node_config.expected_profiles):
             reasons.append("expected_profile_missing")
         if self.config.get(MANAGED_MARKER) != "true":
             if MANAGED_MARKER in self.config:
@@ -572,7 +872,7 @@ class _ObservedNode:
             reasons.append("image_alias_marker_mismatch")
         if _has_unsafe_instance_config(self.config):
             reasons.append("unsafe_instance_config")
-        if _has_unsafe_instance_devices(self.devices, allow_project_proxy_devices=True):
+        if _has_unsafe_instance_devices(self.devices):
             reasons.append("unsafe_instance_devices")
         return tuple(reasons)
 
@@ -640,7 +940,11 @@ def _load_config(
     node: NodeSpec,
     selection: ProviderSelection,
     backend: ManagedLxcBackend,
-) -> tuple[NodeProviderConfig, NodeProviderNodeConfig, NodeProviderProfileRequirement] | VerificationResult:
+) -> tuple[
+    NodeProviderConfig,
+    NodeProviderNodeConfig,
+    tuple[NodeProviderProfileRequirement, ...],
+] | VerificationResult:
     try:
         config = repository.load()
     except ValueError:
@@ -654,17 +958,18 @@ def _load_config(
     if node_config.spec.backend is not None and node_config.spec.backend != backend:
         return _blocked(node, selection, "config_backend_mismatch", backend=backend)
 
-    profile = _profile(config, node_config.profile)
-    if profile is None:
+    profiles = _profiles(config, node_config.expected_profiles)
+    if len(profiles) != len(node_config.expected_profiles):
         return _blocked(node, selection, "profile_config_missing", backend=backend)
-    if backend not in profile.backend_support:
-        return _blocked(node, selection, "profile_backend_unsupported", backend=backend)
-    if profile.privileged_default or profile.host_network or profile.host_mounts:
-        return _blocked(node, selection, "unsafe_profile_default", backend=backend)
+    for profile in profiles:
+        if backend not in profile.backend_support:
+            return _blocked(node, selection, "profile_backend_unsupported", backend=backend)
+        if profile.privileged_default or profile.host_network or profile.host_mounts:
+            return _blocked(node, selection, "unsafe_profile_default", backend=backend)
     if not _resources_supported(node_config.resources):
         return _blocked(node, selection, "unsupported_resource_config", backend=backend)
 
-    return config, node_config, profile
+    return config, node_config, profiles
 
 
 def _node_config(
@@ -679,6 +984,18 @@ def _profile(
     profile_name: str,
 ) -> NodeProviderProfileRequirement | None:
     return next((item for item in config.profiles if item.name == profile_name), None)
+
+
+def _profiles(
+    config: NodeProviderConfig,
+    profile_names: Sequence[str],
+) -> tuple[NodeProviderProfileRequirement, ...]:
+    profiles_by_name = {profile.name: profile for profile in config.profiles}
+    return tuple(
+        profile
+        for profile_name in profile_names
+        if (profile := profiles_by_name.get(profile_name)) is not None
+    )
 
 
 def _node_spec_mismatches(node_config: NodeProviderNodeConfig, node: NodeSpec) -> bool:
@@ -713,6 +1030,34 @@ def _profile_show_args(
     return (_BACKEND_CLI[backend], "profile", "show", profile_name)
 
 
+def _profile_list_args(backend: ManagedLxcBackend) -> tuple[str, ...]:
+    return (_BACKEND_CLI[backend], "profile", "list", "--format", "json")
+
+
+def _network_list_args(backend: ManagedLxcBackend) -> tuple[str, ...]:
+    return (_BACKEND_CLI[backend], "network", "list", "--format", "json")
+
+
+def _storage_pool_list_args(backend: ManagedLxcBackend) -> tuple[str, ...]:
+    return (_BACKEND_CLI[backend], "storage", "list", "--format", "json")
+
+
+def _profile_create_args(
+    backend: ManagedLxcBackend,
+    profile_name: str,
+) -> tuple[str, ...]:
+    return (_BACKEND_CLI[backend], "profile", "create", profile_name)
+
+
+def _profile_set_args(
+    backend: ManagedLxcBackend,
+    profile_name: str,
+    key: str,
+    value: str,
+) -> tuple[str, ...]:
+    return (_BACKEND_CLI[backend], "profile", "set", profile_name, key, value)
+
+
 def _list_args(
     backend: ManagedLxcBackend,
     node_name: str,
@@ -738,21 +1083,30 @@ def _launch_args(
     backend: ManagedLxcBackend,
     node_config: NodeProviderNodeConfig,
     image_references: Mapping[str, str],
+    *,
+    use_resolved_provider_resources: bool = False,
 ) -> tuple[str, ...]:
     args: list[str] = [
         _BACKEND_CLI[backend],
         "launch",
         _image_ref(node_config.image_alias, image_references),
         node_config.spec.name,
-        "--profile",
-        node_config.profile,
-        "-c",
-        f"{MANAGED_MARKER}=true",
-        "-c",
-        f"{NODE_MARKER}={node_config.spec.name}",
-        "-c",
-        f"{IMAGE_ALIAS_MARKER}={node_config.image_alias}",
     ]
+    if use_resolved_provider_resources:
+        args.extend(("--network", _resolved_network(node_config)))
+        args.extend(("--storage", DEFAULT_LXC_STORAGE_POOL))
+    for profile_name in node_config.expected_profiles:
+        args.extend(("--profile", profile_name))
+    args.extend(
+        (
+            "-c",
+            f"{MANAGED_MARKER}=true",
+            "-c",
+            f"{NODE_MARKER}={node_config.spec.name}",
+            "-c",
+            f"{IMAGE_ALIAS_MARKER}={node_config.image_alias}",
+        )
+    )
     cpu = node_config.resources.get("cpu")
     if cpu is not None:
         args.extend(("-c", f"limits.cpu={cpu}"))
@@ -767,6 +1121,31 @@ def _launch_args(
 
 def _image_ref(image_alias: str, image_references: Mapping[str, str]) -> str:
     return image_references.get(image_alias, image_alias)
+
+
+def _uses_provider_resource_resolution(config: NodeProviderConfig) -> bool:
+    return "provider_resource_resolution" in config.verification_metadata.checks
+
+
+def _resolved_network(node_config: NodeProviderNodeConfig) -> str:
+    return DEFAULT_LXC_NETWORK_RESOLUTION[node_config.networks[0]]
+
+
+def _name_list_from_json(result: LxcNodeCommandResult) -> tuple[str, ...]:
+    if _command_failed(result):
+        return ()
+    try:
+        payload = json.loads(result.stdout or "[]")
+    except json.JSONDecodeError:
+        return ()
+    if not isinstance(payload, list):
+        return ()
+    names = tuple(
+        str(item.get("name"))
+        for item in payload
+        if isinstance(item, Mapping) and isinstance(item.get("name"), str)
+    )
+    return tuple(sorted(names))
 
 
 def _string_tuple(value: object) -> tuple[str, ...]:
@@ -881,7 +1260,12 @@ def _unsafe_network_device(device: Mapping[str, str]) -> bool:
     )
 
 
-def _profile_output_safe(output: str, profile_name: str) -> bool:
+def _profile_output_safe(
+    output: str,
+    profile_name: str,
+    *,
+    allow_project_proxy_devices: bool = False,
+) -> bool:
     try:
         data = _YAML.load(output) or {}
     except YAMLError:
@@ -893,7 +1277,102 @@ def _profile_output_safe(output: str, profile_name: str) -> bool:
         return False
     config = _string_mapping(data.get("config", {}))
     devices = _device_mapping(data.get("devices", {}))
-    return not _has_unsafe_instance_config(config) and not _has_unsafe_instance_devices(devices)
+    return not _has_unsafe_instance_config(config) and not _has_unsafe_instance_devices(
+        devices,
+        allow_project_proxy_devices=allow_project_proxy_devices,
+    )
+
+
+def _profile_allows_project_proxy_devices(profile: NodeProviderProfileRequirement) -> bool:
+    return "manager_proxy_profile_requires_profile_reconciliation" in profile.risk_labels
+
+
+def _missing_profile_settings(
+    output: str,
+    profile: NodeProviderProfileRequirement,
+) -> Mapping[str, str]:
+    try:
+        data = _YAML.load(output) or {}
+    except YAMLError:
+        return _required_profile_settings(profile)
+    if not isinstance(data, Mapping):
+        return _required_profile_settings(profile)
+    config = _string_mapping(data.get("config", {}))
+    return {
+        key: value
+        for key, value in _required_profile_settings(profile).items()
+        if config.get(key) != value
+    }
+
+
+def _required_profile_settings(
+    profile: NodeProviderProfileRequirement,
+) -> Mapping[str, str]:
+    settings: dict[str, str] = {}
+    if profile.nesting_required:
+        settings["security.nesting"] = "true"
+    if profile.syscall_interception_required:
+        settings["security.syscalls.intercept.mknod"] = "true"
+        settings["security.syscalls.intercept.setxattr"] = "true"
+    return settings
+
+
+def _profile_evidence(
+    expected_profile: str,
+    available_profiles: Sequence[str],
+) -> dict[str, str]:
+    return {
+        "expected_profile": expected_profile,
+        "resolved_profile": expected_profile,
+        "available_profiles": ",".join(available_profiles),
+    }
+
+
+def _resource_resolution_evidence(
+    node_config: NodeProviderNodeConfig,
+    *,
+    available_networks: Sequence[str] = (),
+    available_storage_pools: Sequence[str] = (),
+) -> dict[str, str]:
+    logical_network = ",".join(node_config.networks)
+    resolved_network = (
+        _resolved_network(node_config)
+        if node_config.networks
+        and node_config.networks[0] in DEFAULT_LXC_NETWORK_RESOLUTION
+        else ""
+    )
+    return {
+        "expected_profile": node_config.profile,
+        "available_profiles": "",
+        "logical_network": logical_network,
+        "resolved_network": resolved_network,
+        "available_networks": ",".join(available_networks),
+        "expected_storage_pool": DEFAULT_LXC_STORAGE_POOL,
+        "available_storage_pools": ",".join(available_storage_pools),
+        "remediation_hint": _resource_resolution_remediation_hint(
+            node_config,
+            available_networks=available_networks,
+            available_storage_pools=available_storage_pools,
+        ),
+    }
+
+
+def _resource_resolution_remediation_hint(
+    node_config: NodeProviderNodeConfig,
+    *,
+    available_networks: Sequence[str],
+    available_storage_pools: Sequence[str],
+) -> str:
+    if not node_config.networks:
+        return "Configure at least one logical network for the LXC-native node."
+    if node_config.networks[0] not in DEFAULT_LXC_NETWORK_RESOLUTION:
+        return "Add an explicit logical-to-LXD network mapping for the inventory network."
+    resolved_network = DEFAULT_LXC_NETWORK_RESOLUTION[node_config.networks[0]]
+    if resolved_network not in available_networks:
+        return "Create or configure the resolved LXD network before platform mutation."
+    if DEFAULT_LXC_STORAGE_POOL not in available_storage_pools:
+        return "Create or configure the expected LXD storage pool before platform mutation."
+    return "Provider resource resolution is satisfied."
 
 
 def _command_failed(result: LxcNodeCommandResult) -> bool:
@@ -980,6 +1459,34 @@ def _apply_failed(
     )
 
 
+def _profile_apply_failed(
+    node: NodeSpec,
+    selection: ProviderSelection,
+    reason: str,
+    *,
+    backend: ManagedLxcBackend,
+    result: LxcNodeCommandResult,
+    profile_name: str,
+    available_profiles: Sequence[str],
+) -> VerificationResult:
+    evidence = _evidence(
+        "apply",
+        reason,
+        node,
+        backend,
+        return_code=result.returncode,
+        timed_out=result.timed_out,
+        selection_status=selection.status.value,
+    )
+    evidence.update(_profile_evidence(profile_name, available_profiles))
+    return VerificationResult(
+        target_id=_target_id(node),
+        status=VerificationStatus.FAILED_TO_APPLY,
+        message="LXC node lifecycle could not apply the provider profile state.",
+        evidence=evidence,
+    )
+
+
 def _verify_failed(
     node: NodeSpec,
     selection: ProviderSelection,
@@ -1005,6 +1512,34 @@ def _verify_failed(
     )
 
 
+def _profile_verify_failed(
+    node: NodeSpec,
+    selection: ProviderSelection,
+    reason: str,
+    *,
+    backend: ManagedLxcBackend,
+    result: LxcNodeCommandResult,
+    profile_name: str,
+    available_profiles: Sequence[str],
+) -> VerificationResult:
+    evidence = _evidence(
+        "verify",
+        reason,
+        node,
+        backend,
+        return_code=result.returncode,
+        timed_out=result.timed_out,
+        selection_status=selection.status.value,
+    )
+    evidence.update(_profile_evidence(profile_name, available_profiles))
+    return VerificationResult(
+        target_id=_target_id(node),
+        status=VerificationStatus.FAILED_TO_VERIFY,
+        message="LXC node lifecycle could not verify the provider profile state.",
+        evidence=evidence,
+    )
+
+
 def _evidence(
     phase: str,
     classification: str,
@@ -1022,6 +1557,7 @@ def _evidence(
         "classification": classification,
         "provider": NodeProviderKind.LXC_NATIVE.value,
         "node": node.name,
+        "node_name": node.name,
     }
     if backend is not None:
         evidence["backend"] = backend.value
@@ -1123,11 +1659,14 @@ _FIRST_FAILURE_SAFE_EVIDENCE_KEYS = (
     "backend",
     "expected_image_alias",
     "expected_profile",
+    "expected_profiles",
     "mismatch_reasons",
     "node",
     "observed_image_alias_marker",
     "observed_managed_marker",
     "observed_node_marker",
+    "repair_action",
+    "stale_project_proxy_devices",
 )
 
 
@@ -1135,9 +1674,10 @@ def _managed_node_mismatch_evidence(
     observed_node: _ObservedNode,
     node_config: NodeProviderNodeConfig,
 ) -> dict[str, str]:
-    return {
+    evidence = {
         "expected_image_alias": node_config.image_alias,
         "expected_profile": node_config.profile,
+        "expected_profiles": ",".join(node_config.expected_profiles),
         "mismatch_reasons": ",".join(observed_node.mismatch_reasons(node_config)),
         "observed_image_alias_marker": _marker_state(
             observed_node.config.get(IMAGE_ALIAS_MARKER),
@@ -1152,6 +1692,21 @@ def _managed_node_mismatch_evidence(
             expected=node_config.spec.name,
         ),
     }
+    stale_project_proxy_devices = _safe_project_proxy_device_names(observed_node.devices)
+    if stale_project_proxy_devices:
+        evidence["repair_action"] = "explicit_lxc_proxy_drift_repair_required"
+        evidence["stale_project_proxy_devices"] = ",".join(stale_project_proxy_devices)
+    return evidence
+
+
+def _safe_project_proxy_device_names(
+    devices: Mapping[str, Mapping[str, str]],
+) -> tuple[str, ...]:
+    return tuple(
+        name
+        for name, device in sorted(devices.items())
+        if _safe_project_proxy_device(name, device)
+    )
 
 
 def _marker_state(value: str | None, *, expected: str) -> str:

@@ -29,7 +29,7 @@ Remaining debt:
 * the host-neutral desired inventory baseline is committed and aligned with
   the default service-access setup profile, but observed inventory collection
   and reconciliation are not yet wired into platform verification workflows;
-* legacy scripts under `infra/swarm` remain live-operation surfaces outside the
+* removed legacy scripts remain historical live-operation surfaces outside the
   workflow-level CLI consent guard;
 * reset/destroy teardown is wired for configured managed LXC-native nodes, but
   live operator validation, retention hardening, and unmanaged-resource
@@ -61,8 +61,8 @@ Remaining debt:
 * Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX service
   readiness must not be claimed until verified through tests or explicit live
   smoke evidence;
-* direct scripts under `infra/prepare` and host-side orchestration scripts
-  under `infra/compose` have been retired, while `infra/swarm` still needs
+* direct preparation scripts and host-side orchestration scripts have been
+  removed, and legacy helper reintroduction still needs
   migration or clear legacy retirement;
 * automatic host package installation, non-interactive live consent, and direct
   script promotion need future ADRs before they can change the accepted safety
@@ -82,6 +82,10 @@ Remaining risks and debt:
   stack, and observed-state contracts, but live registry, Portainer, Swarm,
   external-input, and readiness evidence still needs explicit operator
   validation;
+* stale direct instance-level `tsw-proxy-*` devices from older runs can still
+  block reset or setup until the operator runs the explicit
+  `platform repair-lxc-proxy-drift` workflow or manually resolves the named
+  provider state;
 * Docker Swarm inside LXD/Incus containers has not been live-validated by this
   repository workflow;
 * WSL2 success could be overclaimed if documentation, static tests, or native
@@ -121,13 +125,13 @@ Remaining risks and debt:
 * service reachability could be falsely presented as healthy without fresh
   observed-state or HTTP evidence; current dashboard assets render catalog
   reachability as unknown unless evidence is collected separately;
-* the central `http://localhost` service-access route is implemented in
+* the central `http://localhost` service-access route and local `https://localhost` Vaultwarden route are implemented in
   repository assets but still needs a fresh live redeployment and browser smoke
   test before it can be claimed as verified;
 * local registry availability and image publication still need live
   observed-state hardening beyond the static artifact contracts;
 * plain HTTP access is acceptable only as a local development baseline until a
-  later ADR accepts TLS, certificate automation or wider exposure controls;
+  later ADR accepts public certificate automation or wider exposure controls;
 * scope could drift into a React/browser frontend project or Traefik routing
   without the required ADR and quality-gate coverage.
 
@@ -135,6 +139,10 @@ Resolved or narrowed risks:
 
 * the published port collision with Swagger/NGINX port `80` is resolved by
   making service-access the owner of `80` and moving Swagger/NGINX to `8084`;
+* normal proxy exposure no longer creates direct instance-level `tsw-proxy-*`
+  devices; expected proxy state belongs to the manager-only LXC profile;
+* direct instance-level project proxy devices remain drift and are repairable
+  only through the explicit profile-equivalence-gated repair workflow;
 * dashboard and NGINX repository assets are image-packaged for the
   Portainer-managed stack path instead of bind-mounted from the repository;
 * static tests reject React/Vite project files, live orchestration helpers,

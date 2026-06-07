@@ -41,7 +41,7 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 
 When prompted, answer `y` only if changing the local LXD/Incus/LXC, Docker Swarm,
 networking, service bootstrap, image, and stack state is intentional. Former
-direct Portainer and Nexus preparation scripts under `infra/prepare` have been
+direct Portainer and Nexus preparation scripts have been
 retired.
 
 == Stack Deployment
@@ -61,7 +61,6 @@ Common local ports after stack deployment:
 * SonarQube: `http://localhost:9001`
 * RabbitMQ: `http://localhost:15672`
 * Service Access landing page and route overview: `http://localhost`
-* Vaultwarden: `http://localhost:8086` when local forwarding is clear;
-  otherwise use the current Swarm node IP with port `8086`
+* Vaultwarden: `https://localhost` for clients after trusting the local self-signed certificate; `http://localhost:8086` remains a local browser compatibility route
 
 Published ports depend on the active compose files and local forwarding setup.

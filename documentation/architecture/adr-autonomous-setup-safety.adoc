@@ -36,10 +36,10 @@ The repository already has these constraints:
 * `src/tiny_swarm_world/infrastructure/composition.py` remains the composition
   root.
 * Default quality gates must not run live infrastructure commands.
-* Former direct setup scripts under `infra/prepare` and host-side
-  orchestration scripts under `infra/compose` are retired. Legacy scripts under
-  `infra/swarm` remain live-operation surfaces outside the canonical workflow
-  until migrated behind ports, adapters, tests, and consent controls.
+* Former direct setup scripts and host-side orchestration scripts are removed
+  from the repository. Reintroducing any direct helper surface remains outside
+  the canonical workflow until it is migrated behind ports, adapters, tests,
+  and consent controls.
 
 == Decision
 

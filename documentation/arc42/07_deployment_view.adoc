@@ -61,7 +61,7 @@ The accepted routing baseline is `SERVICE_ACCESS_CENTRAL_NGINX`:
   `/rabbitmq`, `/sonarqube`, `/swagger` and `/vaultwarden` are managed by
   service-access NGINX;
 * the Swagger/NGINX stack uses published port `8084`;
-* the Vaultwarden route uses published port `8086`;
+* the Vaultwarden HTTPS route uses published port `443`, while `8086` remains a local HTTP compatibility route;
 * Traefik remains deferred until a later ADR and tests add a provider, labels,
   dashboard exposure policy, network model and rollback.
 
@@ -100,8 +100,11 @@ The provider deployment target is now `lxc_native` through LXD or Incus by
 default. The committed provider configuration in
 `infra/config/node-providers/provider_config.yaml` declares Incus/LXD backend
 candidates, Docker Swarm node names, Docker-in-container profile risk labels,
-and verification metadata. Deployment evidence must keep native Linux
-LXD/Incus and WSL2 LXD/Incus results separate.
+the common `docker-swarm` profile, the manager-only
+`docker-swarm-manager` proxy profile, and verification metadata. The manager
+node expects both profiles. Worker nodes expect only worker-safe profiles and
+must not receive the manager proxy profile. Deployment evidence must keep
+native Linux LXD/Incus and WSL2 LXD/Incus results separate.
 
 For the LXC-native target, deployment must block before mutation when LXD or
 Incus readiness is absent, backend selection is ambiguous, WSL2 capability is
@@ -109,6 +112,13 @@ missing, or Docker-in-container profile requirements are not satisfied. Host
 package installation, provider daemon repair, bridge or firewall mutation,
 group membership repair, and privileged container profile changes are live
 host mutations and are not deployment defaults in this slice.
+
+Published service port exposure is deployed through manager-profile LXC proxy
+devices. Direct instance-level `tsw-proxy-*` devices on `swarm-manager` are
+deployment drift and remain unsafe during normal lifecycle checks. The
+operator repair surface is the explicit `platform repair-lxc-proxy-drift`
+workflow, which removes only stale direct project proxy devices whose
+equivalent manager-profile device is verified.
 
 Service-stack contracts carry localhost endpoint defaults so operator-facing
 routes are explicit and test-backed. These endpoints are configuration hints

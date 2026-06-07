@@ -16,7 +16,6 @@ infrastructure:
 * Portainer and its API;
 * Nexus and its API;
 * Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, and other deployed stacks;
-* legacy notes under `infra/swarm`.
 
 The default development quality gate does not call these systems. Tests use
 mocks, static inspection, architecture checks, and typed configuration
@@ -32,7 +31,6 @@ The supported operator entry point is:
 PYTHONPATH=src python3 -m tiny_swarm_world
 ----
 
-Legacy scripts under `infra/swarm` and retired former setup paths under
-`infra/prepare` and `infra/compose` are classified in
-`documentation/system/live-operation-surfaces.adoc`. They are not default
+Removed direct setup helpers and host-side orchestration scripts are classified
+in `documentation/system/live-operation-surfaces.adoc`. They are not default
 workflow entry points.

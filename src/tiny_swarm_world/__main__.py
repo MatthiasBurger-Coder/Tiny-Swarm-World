@@ -69,6 +69,7 @@ PLATFORM_WORKFLOW_ORDER = (
     PlatformWorkflowKind.INIT,
     PlatformWorkflowKind.RECONCILE,
     PlatformWorkflowKind.EXPOSE,
+    PlatformWorkflowKind.REPAIR_LXC_PROXY_DRIFT,
     PlatformWorkflowKind.VERIFY,
     PlatformWorkflowKind.RESET,
     PlatformWorkflowKind.DESTROY,
@@ -318,6 +319,8 @@ async def run_platform_workflow(
             return await workflows.reconcile.run()
         case PlatformWorkflowKind.EXPOSE:
             return await workflows.expose.run()
+        case PlatformWorkflowKind.REPAIR_LXC_PROXY_DRIFT:
+            return await workflows.repair_lxc_proxy_drift.run()
         case PlatformWorkflowKind.VERIFY:
             return await workflows.verify.run()
         case PlatformWorkflowKind.RESET:

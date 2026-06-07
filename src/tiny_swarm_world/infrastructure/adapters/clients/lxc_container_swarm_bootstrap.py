@@ -131,10 +131,21 @@ class LxcContainerSwarmBootstrap(PortContainerSwarmBootstrap):
                 state=WorkerJoinState.FAILED,
                 verified=False,
             )
+        verify_result = await self.runner.run(
+            _swarm_state_args(self.backend, node),
+            self.timeout_seconds,
+        )
+        verified_outcome = _worker_outcome(node, verify_result)
+        if verified_outcome.verified:
+            return SwarmWorkerJoinOutcome(
+                node=node,
+                state=WorkerJoinState.JOINED,
+                verified=True,
+            )
         return SwarmWorkerJoinOutcome(
             node=node,
-            state=WorkerJoinState.JOINED,
-            verified=True,
+            state=WorkerJoinState.FAILED,
+            verified=False,
         )
 
 
@@ -230,14 +241,14 @@ def _manager_outcome(
 ) -> SwarmManagerBootstrapOutcome:
     if result.returncode != 0 or result.timed_out:
         return SwarmManagerBootstrapOutcome(node=node, state=SwarmManagerState.UNKNOWN)
-    output = result.stdout.casefold()
-    if "active" in output and "true" in output:
+    state, control_available = _swarm_info_tokens(result.stdout)
+    if state == "active" and control_available == "true":
         return SwarmManagerBootstrapOutcome(
             node=node,
             state=SwarmManagerState.ACTIVE,
             manager_count=1,
         )
-    if "active" in output:
+    if state == "active":
         return SwarmManagerBootstrapOutcome(node=node, state=SwarmManagerState.ERROR)
     return SwarmManagerBootstrapOutcome(node=node, state=SwarmManagerState.PENDING)
 
@@ -252,7 +263,8 @@ def _worker_outcome(
             state=WorkerJoinState.UNKNOWN,
             verified=False,
         )
-    if "active" in result.stdout.casefold():
+    state, control_available = _swarm_info_tokens(result.stdout)
+    if state == "active" and control_available == "false":
         return SwarmWorkerJoinOutcome(
             node=node,
             state=WorkerJoinState.ALREADY_JOINED,
@@ -263,3 +275,10 @@ def _worker_outcome(
         state=WorkerJoinState.UNKNOWN,
         verified=False,
     )
+
+
+def _swarm_info_tokens(output: str) -> tuple[str, str]:
+    parts = output.casefold().strip().split()
+    state = parts[0] if parts else ""
+    control_available = parts[1] if len(parts) > 1 else ""
+    return state, control_available

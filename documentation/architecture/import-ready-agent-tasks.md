@@ -5,8 +5,7 @@ Status: archival planning baseline. Multipass path references are superseded by
 not be imported as current implementation tasks.
 
 This file follows the repository's existing Markdown issue-import style and
-does not modify `IMPORT_READY_GITHUB_ISSUES.md`, `github_issues_import.json`, or
-`github_project_import.csv`.
+does not depend on removed GitHub import staging artifacts.
 
 ## [Architecture][A-001] Document responsibility boundaries and open questions
 
@@ -57,7 +56,6 @@ behavior.
 - former `infra/config/multipass` (superseded)
 - `infra/config/docker`
 - `infra/config/network`
-- `infra/swarm`
 
 ### Recommended remediation
 Create small no-behavior-change slices that make platform ownership explicit and

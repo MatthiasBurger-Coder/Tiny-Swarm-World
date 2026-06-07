@@ -153,7 +153,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
 
         self.assertEqual(
-            "${TSW_JENKINS_IMAGE:-swarm-manager:5000/jenkins:latest}",
+            "${TSW_JENKINS_IMAGE:-127.0.0.1:5000/jenkins:latest}",
             compose_data["services"]["jenkins"]["image"],
         )
         self.assertEqual(
@@ -198,6 +198,22 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertNotIn("depends_on", compose_content)
         self.assertNotIn("./swagger/openapi.json:/openapi.json", compose_content)
 
+    def test_committed_sonarqube_compose_waits_for_database_tcp_readiness(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_path = (
+            repository_root / "infra" / "config" / "compose" / "sonarqube" / "docker-compose.yml"
+        )
+        compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
+        command = compose_data["services"]["sonarqube"]["command"]
+
+        self.assertEqual(("bash", "-lc"), tuple(command[:2]))
+        self.assertEqual(
+            "jdbc:postgresql://tasks.sonar_db:5432/sonar",
+            compose_data["services"]["sonarqube"]["environment"]["SONAR_JDBC_URL"],
+        )
+        self.assertIn("/dev/tcp/tasks.sonar_db/5432", command[2])
+        self.assertIn("/opt/sonarqube/docker/entrypoint.sh", command[2])
+
     def test_committed_service_access_compose_declares_required_services_and_secret_boundary(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = repository_root / "infra" / "config" / "compose" / "service-access" / "docker-compose.yml"
@@ -208,19 +224,28 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertEqual("service-access", ComposeFileRepositoryYaml().get_compose_of("service-access").name)
         self.assertEqual(set(SERVICE_ACCESS_STACK_CONTRACT.required_services), set(services))
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-swarm-manager:5000/service-access-dashboard:latest}",
+            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:5000/service-access-dashboard:latest}",
             services["service-access-dashboard"]["image"],
         )
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-swarm-manager:5000/service-access-nginx:latest}",
+            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:5000/service-access-nginx:latest}",
             services["service-access-nginx"]["image"],
         )
         self.assertEqual(
             [
                 {"target": 80, "published": 80, "protocol": "tcp", "mode": "host"},
                 {"target": 8086, "published": 8086, "protocol": "tcp", "mode": "host"},
+                {"target": 443, "published": 443, "protocol": "tcp", "mode": "host"},
             ],
             services["service-access-nginx"]["ports"],
+        )
+        self.assertEqual(
+            "${TSW_VAULTWARDEN_DOMAIN:-https://localhost}",
+            services["vaultwarden"]["environment"]["DOMAIN"],
+        )
+        self.assertEqual(
+            '${TSW_VAULTWARDEN_SIGNUPS_ALLOWED:-"true"}',
+            services["vaultwarden"]["environment"]["SIGNUPS_ALLOWED"],
         )
         self.assertNotIn("ports", services["vaultwarden"])
         self.assertEqual(
@@ -265,12 +290,19 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
                 dockerfile = dockerfile_path.read_text(encoding="utf-8")
                 self.assertIn("FROM nginx:mainline-alpine", dockerfile)
                 self.assertIn(copy_line, dockerfile)
+                if service_name == "service-access-nginx":
+                    self.assertIn("apk add --no-cache openssl", dockerfile)
+                    self.assertIn("generate-self-signed-cert.sh", dockerfile)
 
     def test_service_access_image_publisher_packages_dashboard_and_nginx_assets(self):
         publisher = _CapturingImagePublisher()
         expected_archives = {
             "service-access-dashboard": {"Dockerfile", "index.html"},
-            "service-access-nginx": {"Dockerfile", "default.conf"},
+            "service-access-nginx": {
+                "Dockerfile",
+                "default.conf",
+                "generate-self-signed-cert.sh",
+            },
         }
 
         for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS:

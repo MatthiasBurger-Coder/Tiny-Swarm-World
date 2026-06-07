@@ -31,15 +31,20 @@ Provider migration status: LXC-native through LXD or Incus is the implemented
 default selection and setup/platform init direction. The runtime now has
 provider-neutral contracts, LXD/Incus readiness checks, node lifecycle
 adapters, Docker Engine setup and Swarm bootstrap adapters, setup integration,
-LXC proxy exposure, and fail-closed unsupported-provider behavior. Default
-platform reconcile is currently a verified no-op boundary for `lxc_native`
-after Platform init. Default platform expose uses `swarm-manager` as the
-host-reachable LXC gateway for published service ports. Artifact and
-deployment workflows use configured LXC-native contracts for Nexus, registry,
-image publication, stack deployment, external inputs, and service readiness.
-They return blocked or failed evidence when a live prerequisite is not
-observable. No documentation may claim Docker Swarm-in-container or WSL2 live
-success without target-specific evidence.
+LXC proxy exposure, explicit stale proxy drift repair, and fail-closed
+unsupported-provider behavior. Default platform reconcile is currently a
+verified no-op boundary for `lxc_native` after Platform init. Default platform
+expose uses `swarm-manager` as the host-reachable LXC gateway for published
+service ports by ensuring profile-level proxy devices in the manager-specific
+`docker-swarm-manager` profile. The explicit
+`platform repair-lxc-proxy-drift` workflow is separate from normal setup and
+removes stale direct manager instance proxy devices only after the equivalent
+manager-profile device is verified. Artifact and deployment workflows use
+configured LXC-native contracts for Nexus, registry, image publication, stack
+deployment, external inputs, and service readiness. They return blocked or
+failed evidence when a live prerequisite is not observable. No documentation
+may claim Docker Swarm-in-container or WSL2 live success without
+target-specific evidence.
 
 At this stage, Artifacts and Deployment are composition boundaries inside the
 same Python automation process, not independently deployable microservices.
@@ -196,8 +201,10 @@ contracts allow mutation. It blocks before mutation when readiness, backend
 selection, WSL2 capability, or provider profile requirements are not
 satisfied. Default `platform reconcile` returns a verified `lxc_native` no-op
 boundary after Platform init. Default `platform expose` returns verified
-evidence only after the configured manager-gateway proxy devices are present
-or updated.
+evidence only after the configured manager-profile proxy devices are present
+or updated. Default normal flows do not remove direct instance-level
+`tsw-proxy-*` devices; those are surfaced as drift and handled only by the
+explicit repair workflow.
 
 Continuation requires both parts:
 
@@ -213,6 +220,29 @@ of these outcomes.
 
 When a verification evidence repository is configured, the workflow appends
 the typed verification result before making the continuation decision.
+
+=== LXC Proxy Drift Repair Runtime Flow
+
+LXC proxy device ownership is split deliberately:
+
+* desired proxy devices are profile-level devices in
+  `docker-swarm-manager`;
+* `swarm-manager` receives that manager-only profile in addition to the common
+  Docker Swarm profile;
+* worker nodes keep only worker-safe profiles;
+* direct instance-level `tsw-proxy-*` devices are drift, not expected runtime
+  state.
+
+`platform repair-lxc-proxy-drift` is a live-consent-gated mutating workflow.
+It does not run during `setup run`, `install.sh`, `platform init`,
+`platform reconcile`, `platform expose`, `platform reset`, or
+`platform destroy`. The infrastructure adapter reads direct manager instance
+devices, filters to project-named `tsw-proxy-*` proxy devices, verifies the
+equivalent profile device through the profile-device port, and removes only
+that verified direct device. Unknown project proxy names, unrelated devices,
+non-proxy devices, missing profile devices, drifted profile devices, and
+lookup failures are refused or blocked with summary evidence. Verification
+evidence records counts and safe device names, not raw command output.
 
 The non-mutating `platform verify` workflow also interprets preflight results.
 Failed preflight checks now return `failed_to_verify` with summary-only

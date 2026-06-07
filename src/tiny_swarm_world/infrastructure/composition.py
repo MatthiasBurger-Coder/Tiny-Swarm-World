@@ -4,7 +4,7 @@ import asyncio
 import os
 import re
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import cast
 from uuid import uuid4
@@ -44,6 +44,7 @@ from tiny_swarm_world.application.services.deployment.service_stack_plan import 
     build_service_stack_steps,
 )
 from tiny_swarm_world.application.ports.node_provider import (
+    LxcProxyDriftRepairOutcome,
     LxcProxyDeviceState,
     PortContainerDockerRuntime,
     PortContainerNetworkIdentity,
@@ -63,6 +64,8 @@ from tiny_swarm_world.application.services.platform import (
     AsyncWorkflowStep,
     LxcDockerInstallService,
     LxcDockerInstallStep,
+    LxcProxyDriftRepairService,
+    LxcProxyDriftRepairStep,
     LxcServiceExposureService,
     LxcServiceExposureStep,
     LxcSwarmBootstrapService,
@@ -75,6 +78,7 @@ from tiny_swarm_world.application.services.platform import (
     PlatformDestroyWorkflow,
     PlatformExposeWorkflow,
     PlatformInitWorkflow,
+    PlatformRepairLxcProxyDriftWorkflow,
     PlatformReconcileWorkflow,
     PlatformResetWorkflow,
     PlatformVerifyWorkflow,
@@ -93,6 +97,10 @@ from tiny_swarm_world.domain.deployment import (
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.network import LxcProxyDevicePlan
+from tiny_swarm_world.domain.network.port_forwarding_plan import (
+    ForwardingStrategy,
+    PortForwardingPlan,
+)
 from tiny_swarm_world.domain.node_provider import (
     ContainerDockerInstallOutcome,
     ContainerDockerReadiness,
@@ -121,6 +129,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeProvider,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime import (
+    DockerRegistryMirrorConfiguration,
     LxcContainerDockerRuntime,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_swarm_bootstrap import (
@@ -152,6 +161,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_reposito
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderConfigYamlRepository,
 )
+from tiny_swarm_world.infrastructure.os_types import OsTypes
 from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
     VerificationEvidenceLocalRepository,
 )
@@ -171,9 +181,10 @@ VAULTWARDEN_ADMIN_TOKEN_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN"
 VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"
 DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME = "tsw_vaultwarden_admin_token"
 SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
-DEFAULT_SWARM_REGISTRY_ENDPOINT = "swarm-manager:5000"
+DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:5000"
 LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
 DEFAULT_LXC_PROXY_LISTEN_ADDRESS = "0.0.0.0"
+DEFAULT_LXC_MANAGER_PROXY_PROFILE = "docker-swarm-manager"
 JENKINS_IMAGE_ENVIRONMENT = "TSW_JENKINS_IMAGE"
 SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"
 SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_NGINX_IMAGE"
@@ -198,6 +209,7 @@ class PlatformWorkflows:
     init: PlatformInitWorkflow
     reconcile: PlatformReconcileWorkflow
     expose: PlatformExposeWorkflow
+    repair_lxc_proxy_drift: PlatformRepairLxcProxyDriftWorkflow
     reset: PlatformResetWorkflow
     destroy: PlatformDestroyWorkflow
     verify: PlatformVerifyWorkflow
@@ -207,6 +219,7 @@ class PlatformWorkflows:
 class PlatformServices:
     command_workflow: CommandWorkflow
     lxc_docker_install: LxcDockerInstallService
+    lxc_proxy_drift_repair: LxcProxyDriftRepairService
     lxc_service_exposure: LxcServiceExposureService
     lxc_swarm_bootstrap: LxcSwarmBootstrapService
     preflight: PreflightService
@@ -363,6 +376,100 @@ class _VerifiedPlatformProviderStep:
         )
 
 
+class _WslSocatExposeStep:
+    returns_verification_result = True
+    verification_target_id = "platform:expose:wsl-socat"
+
+    def __init__(
+        self,
+        socat_manager: SocatManager,
+        *,
+        service_profile: ServiceStackProfile,
+        live_consent: LiveConsent | None,
+        os_type: OsTypes | None = None,
+    ) -> None:
+        self.socat_manager = socat_manager
+        self.service_profile = service_profile
+        self.live_consent = live_consent
+        self.os_type = os_type
+
+    async def run(self) -> VerificationResult:
+        os_type = self.os_type or OsTypes.detect_current()
+        plans = _wsl_socat_forwarding_plans(self.service_profile)
+        commands = self.socat_manager.set_service_socat_ports(os_type, plans)
+        if not commands:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.VERIFIED,
+                message="WSL port exposure is not required for this host type.",
+                evidence={
+                    "phase": "verify",
+                    "classification": "not_required",
+                    "os_type": str(getattr(os_type, "value", os_type)),
+                },
+            )
+        if self.live_consent is None or not self.live_consent.accepted:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.BLOCKED,
+                message="WSL port exposure requires accepted live infrastructure consent.",
+                evidence={
+                    "phase": "pre_apply",
+                    "classification": "live_mutation_required",
+                    "os_type": str(getattr(os_type, "value", os_type)),
+                    "planned_forward_count": str(len(commands)),
+                },
+            )
+        if shutil.which("socat") is None:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.BLOCKED,
+                message="WSL port exposure requires the configured forwarding executable.",
+                evidence={
+                    "phase": "pre_apply",
+                    "classification": "socat_missing",
+                    "os_type": str(getattr(os_type, "value", os_type)),
+                    "remediation_hint": "Install the WSL forwarding tool and rerun platform expose.",
+                },
+            )
+
+        started_count = 0
+        existing_count = 0
+        failed_count = 0
+        for command in commands:
+            pattern = command.shell_command
+            if await _wsl_socat_process_exists(pattern):
+                existing_count += 1
+                continue
+            if await _start_wsl_socat_command(pattern):
+                started_count += 1
+            else:
+                failed_count += 1
+        status = (
+            VerificationStatus.VERIFIED
+            if failed_count == 0
+            else VerificationStatus.FAILED_TO_APPLY
+        )
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=status,
+            message=_wsl_socat_expose_message(status),
+            evidence={
+                "phase": "apply",
+                "classification": (
+                    "wsl_socat_exposed"
+                    if status == VerificationStatus.VERIFIED
+                    else "wsl_socat_expose_failed"
+                ),
+                "os_type": str(getattr(os_type, "value", os_type)),
+                "planned_forward_count": str(len(commands)),
+                "started_count": str(started_count),
+                "existing_count": str(existing_count),
+                "failed_count": str(failed_count),
+            },
+        )
+
+
 class _ProviderSelectedLxcDockerRuntime(PortContainerDockerRuntime):
     def __init__(
         self,
@@ -436,6 +543,7 @@ class _ProviderSelectedLxcDockerRuntime(PortContainerDockerRuntime):
             backend=backend,
             runner=self.runner,
             allow_live_mutation=self.allow_live_mutation,
+            registry_mirror=_lxc_docker_registry_mirror_configuration(),
         )
 
 
@@ -549,6 +657,16 @@ class _ProviderSelectedLxcSwarmRuntime(
         )
 
 
+class _PrepareLxcStackAssets:
+    def __init__(self, swarm_runtime: LxcSwarmRuntime, stack_name: str) -> None:
+        self.swarm_runtime = swarm_runtime
+        self.stack_name = stack_name
+        self.deployment_target_id = f"deployment:{stack_name}-stack-assets"
+
+    def run(self) -> None:
+        self.swarm_runtime.prepare_stack_assets(self.stack_name)
+
+
 class _ProviderSelectedLxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
     def __init__(
         self,
@@ -565,7 +683,7 @@ class _ProviderSelectedLxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
 
     async def inspect_proxy_device(
         self,
-        node: NodeSpec,
+        profile_name: str,
         plan: LxcProxyDevicePlan,
     ) -> LxcProxyDeviceState:
         if not self.allow_live_mutation:
@@ -573,27 +691,51 @@ class _ProviderSelectedLxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
         delegate = await self._delegate()
         if delegate is None:
             return LxcProxyDeviceState.UNKNOWN
-        return await delegate.inspect_proxy_device(node, plan)
+        return await delegate.inspect_proxy_device(profile_name, plan)
 
     async def create_proxy_device(
         self,
-        node: NodeSpec,
+        profile_name: str,
         plan: LxcProxyDevicePlan,
     ) -> bool:
         delegate = await self._delegate()
         if delegate is None:
             return False
-        return await delegate.create_proxy_device(node, plan)
+        return await delegate.create_proxy_device(profile_name, plan)
 
     async def update_proxy_device(
         self,
-        node: NodeSpec,
+        profile_name: str,
         plan: LxcProxyDevicePlan,
     ) -> bool:
         delegate = await self._delegate()
         if delegate is None:
             return False
-        return await delegate.update_proxy_device(node, plan)
+        return await delegate.update_proxy_device(profile_name, plan)
+
+    async def repair_stale_proxy_devices(
+        self,
+        profile_name: str,
+        gateway_node: NodeSpec,
+        plans: tuple[LxcProxyDevicePlan, ...],
+    ) -> LxcProxyDriftRepairOutcome:
+        if not self.allow_live_mutation:
+            return LxcProxyDriftRepairOutcome(
+                expected_profile_device_count=len(plans),
+                mutation_allowed=False,
+            )
+        delegate = await self._delegate()
+        if delegate is None:
+            return LxcProxyDriftRepairOutcome(
+                expected_profile_device_count=len(plans),
+                lookup_failure_count=len(plans),
+                failed_devices=tuple(plan.device_name for plan in plans),
+            )
+        return await delegate.repair_stale_proxy_devices(
+            profile_name,
+            gateway_node,
+            plans,
+        )
 
     async def _delegate(self) -> LxcProxyDeviceRuntime | None:
         backend = await _selected_lxc_backend(
@@ -635,6 +777,17 @@ def build_preflight_service(
     return PreflightService(
         HostPreflightProbe(),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
+    )
+
+
+def build_post_install_preflight_service(
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
+) -> PreflightService:
+    configuration = _preflight_configuration_for_provider(service_profile, node_provider_request)
+    return PreflightService(
+        HostPreflightProbe(),
+        replace(configuration, required_ports=()),
     )
 
 
@@ -727,6 +880,10 @@ def build_platform_services(
     command_workflow = CommandWorkflow()
     verification_evidence_repository = VerificationEvidenceLocalRepository()
     preflight = _build_preflight_service_for_request(service_profile, node_provider_request)
+    post_install_preflight = _build_post_install_preflight_service_for_request(
+        service_profile,
+        node_provider_request,
+    )
     lxc_runner = AsyncLxcNodeCommandRunner()
     lxc_node_provider = LxcNodeProvider(
         config_repository=NodeProviderConfigYamlRepository(),
@@ -766,6 +923,14 @@ def build_platform_services(
     lxc_service_exposure = LxcServiceExposureService(
         lxc_proxy_runtime,
         gateway_node=_lxc_manager_node(),
+        manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
+        setup_manifest=default_setup_manifest(service_profile=service_profile),
+        listen_address=_lxc_proxy_listen_address(),
+    )
+    lxc_proxy_drift_repair = LxcProxyDriftRepairService(
+        lxc_proxy_runtime,
+        gateway_node=_lxc_manager_node(),
+        manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
         setup_manifest=default_setup_manifest(service_profile=service_profile),
         listen_address=_lxc_proxy_listen_address(),
     )
@@ -809,7 +974,19 @@ def build_platform_services(
             trace_correlation_id=trace_correlation_id,
         ),
         expose=PlatformExposeWorkflow(
-            _platform_expose_steps(lxc_service_exposure),
+            _platform_expose_steps(
+                lxc_service_exposure,
+                socat_manager,
+                service_profile=ServiceStackProfile(service_profile),
+                live_consent=live_consent,
+            ),
+            verification_evidence_repository=verification_evidence_repository,
+            progress=workflow_progress,
+            method_trace=method_trace,
+            trace_correlation_id=trace_correlation_id,
+        ),
+        repair_lxc_proxy_drift=PlatformRepairLxcProxyDriftWorkflow(
+            _platform_repair_lxc_proxy_drift_steps(lxc_proxy_drift_repair),
             verification_evidence_repository=verification_evidence_repository,
             progress=workflow_progress,
             method_trace=method_trace,
@@ -836,16 +1013,19 @@ def build_platform_services(
             trace_correlation_id=trace_correlation_id,
         ),
         verify=PlatformVerifyWorkflow(
-            (preflight,),
+            (post_install_preflight,),
             progress=workflow_progress,
             method_trace=method_trace,
             trace_correlation_id=trace_correlation_id,
+            verify_retry_attempts=6,
+            verify_retry_delay_seconds=10.0,
         ),
     )
 
     return PlatformServices(
         command_workflow=command_workflow,
         lxc_docker_install=lxc_docker_install,
+        lxc_proxy_drift_repair=lxc_proxy_drift_repair,
         lxc_service_exposure=lxc_service_exposure,
         lxc_swarm_bootstrap=lxc_swarm_bootstrap,
         preflight=preflight,
@@ -1070,7 +1250,10 @@ def build_lxc_deployment_services(
             ),
             apply=DeploymentApplyWorkflow(
                 application_steps,
-                pre_apply_steps=external_input_steps,
+                pre_apply_steps=(
+                    *external_input_steps,
+                    _PrepareLxcStackAssets(swarm_runtime, "swagger"),
+                ),
                 pre_apply_checks=external_input_checks,
             ),
             verify=DeploymentVerifyWorkflow((*external_input_checks, *readiness_checks)),
@@ -1245,6 +1428,18 @@ def _build_preflight_service_for_request(
     )
 
 
+def _build_post_install_preflight_service_for_request(
+    service_profile: ServiceStackProfile | str,
+    node_provider_request: NodeProviderSelectionRequest | None,
+) -> PreflightService:
+    if node_provider_request is None:
+        return build_post_install_preflight_service(service_profile=service_profile)
+    return build_post_install_preflight_service(
+        service_profile=service_profile,
+        node_provider_request=node_provider_request,
+    )
+
+
 def _lxc_backend_for_provider_request(
     provider_request: NodeProviderSelectionRequest,
 ) -> ManagedLxcBackend | None:
@@ -1294,8 +1489,70 @@ def _platform_reconcile_steps(
 
 def _platform_expose_steps(
     lxc_service_exposure: LxcServiceExposureService,
+    socat_manager: SocatManager,
+    *,
+    service_profile: ServiceStackProfile,
+    live_consent: LiveConsent | None,
 ) -> tuple[AsyncWorkflowStep, ...]:
-    return (LxcServiceExposureStep(lxc_service_exposure),)
+    return (
+        LxcServiceExposureStep(lxc_service_exposure),
+        _WslSocatExposeStep(
+            socat_manager,
+            service_profile=ServiceStackProfile(service_profile),
+            live_consent=live_consent,
+        ),
+    )
+
+
+def _platform_repair_lxc_proxy_drift_steps(
+    lxc_proxy_drift_repair: LxcProxyDriftRepairService,
+) -> tuple[AsyncWorkflowStep, ...]:
+    return (LxcProxyDriftRepairStep(lxc_proxy_drift_repair),)
+
+
+def _wsl_socat_forwarding_plans(
+    service_profile: ServiceStackProfile,
+) -> tuple[PortForwardingPlan, ...]:
+    return tuple(
+        PortForwardingPlan(
+            strategy=ForwardingStrategy.WSL2_SOCAT,
+            service=requirement.service,
+            listen_port=requirement.port,
+            target_port=requirement.port,
+            remediation=("Start WSL socat forwarding after live consent.",),
+        )
+        for requirement in default_setup_manifest(
+            service_profile=service_profile
+        ).required_ports
+    )
+
+
+async def _wsl_socat_process_exists(pattern: str) -> bool:
+    process = await asyncio.create_subprocess_exec(
+        "pgrep",
+        "-f",
+        pattern,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    return await process.wait() == 0
+
+
+async def _start_wsl_socat_command(command: str) -> bool:
+    process = await asyncio.create_subprocess_exec(
+        "sh",
+        "-lc",
+        f"nohup {command} >/dev/null 2>&1 &",
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    return await process.wait() == 0
+
+
+def _wsl_socat_expose_message(status: VerificationStatus) -> str:
+    if status == VerificationStatus.VERIFIED:
+        return "WSL port exposure is configured for published service ports."
+    return "WSL port exposure failed for one or more published service ports."
 
 
 def _platform_reset_steps(
@@ -1375,6 +1632,13 @@ def _lxc_proxy_listen_address() -> str:
     if address not in {"127.0.0.1", "0.0.0.0"}:
         raise ValueError("LXC proxy listen address must be 127.0.0.1 or 0.0.0.0.")
     return address
+
+
+def _lxc_docker_registry_mirror_configuration() -> DockerRegistryMirrorConfiguration | None:
+    mirror_url = os.getenv("TSW_LXC_DOCKER_REGISTRY_MIRROR", "").strip()
+    if not mirror_url:
+        return None
+    return DockerRegistryMirrorConfiguration(mirror_url)
 
 
 def _lxc_manager_node() -> NodeSpec:

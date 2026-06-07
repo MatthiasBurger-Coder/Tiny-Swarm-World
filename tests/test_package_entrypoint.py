@@ -71,6 +71,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("platform init", output.getvalue())
         self.assertIn("platform reconcile", output.getvalue())
         self.assertIn("platform expose", output.getvalue())
+        self.assertIn("platform repair-lxc-proxy-drift", output.getvalue())
         self.assertIn("platform reset", output.getvalue())
         self.assertIn("deployment bootstrap", output.getvalue())
         self.assertIn("deployment apply", output.getvalue())
@@ -113,7 +114,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Provider readiness: checked before platform mutation", plan)
         self.assertIn("Service profile: service-access", plan)
         self.assertIn("Service Access: stack service-access", plan)
-        self.assertIn("published port(s) 80, 8086", plan)
+        self.assertIn("published port(s) 80, 8086, 443", plan)
         self.assertNotIn("Target: local Linux/WSL Multipass Docker Swarm", plan)
 
     async def test_mutating_workflow_requires_live_consent_before_building_services(self):
@@ -234,6 +235,19 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         workflows.expose.run.assert_awaited_once_with()
         workflows.init.run.assert_not_awaited()
         self.assertIn('"workflow": "platform expose"', output.getvalue())
+
+    async def test_platform_repair_lxc_proxy_drift_requires_live_consent_and_dispatches(self):
+        services, workflows = _application_services_with_platform_workflows()
+        output = io.StringIO()
+
+        with patch("builtins.input", return_value="y"):
+            with patch.object(entrypoint, "build_application_services", return_value=services):
+                with redirect_stdout(output):
+                    await entrypoint.main(["platform", "repair-lxc-proxy-drift", "--live"])
+
+        workflows.repair_lxc_proxy_drift.run.assert_awaited_once_with()
+        workflows.expose.run.assert_not_awaited()
+        self.assertIn('"workflow": "platform repair-lxc-proxy-drift"', output.getvalue())
 
     async def test_reset_refuses_missing_confirmation_before_building_services(self):
         output = io.StringIO()
@@ -571,6 +585,11 @@ def _application_services_with_platform_workflows(
         ),
         expose=SimpleNamespace(
             run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.EXPOSE))
+        ),
+        repair_lxc_proxy_drift=SimpleNamespace(
+            run=AsyncMock(
+                return_value=_workflow_result(PlatformWorkflowKind.REPAIR_LXC_PROXY_DRIFT)
+            )
         ),
         verify=SimpleNamespace(run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.VERIFY))),
         reset=SimpleNamespace(run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.RESET))),

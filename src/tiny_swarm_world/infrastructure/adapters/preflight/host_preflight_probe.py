@@ -6,6 +6,7 @@ import platform
 import re
 import shutil
 import socket
+import ssl
 import subprocess
 import sys
 import urllib.error
@@ -172,6 +173,13 @@ class HostPreflightProbe(PortHostPreflightProbe):
             return _http_service_available(port, ("/",), ("swagger", "openapi"))
         if "service access" in service_name:
             return _http_service_available(port, ("/",), ("service access", "vaultwarden"))
+        if "vaultwarden https" in service_name:
+            return _http_service_available(
+                port,
+                ("/", "/admin"),
+                ("vaultwarden", "content-security-policy"),
+                scheme="https",
+            )
         if "vaultwarden" in service_name:
             return _http_service_available(port, ("/", "/admin"), ("vaultwarden",))
         return False
@@ -391,10 +399,12 @@ def _http_service_available(
     port: int,
     paths: Sequence[str],
     expected_markers: Sequence[str],
+    *,
+    scheme: str = "http",
 ) -> bool:
     for path in paths:
         try:
-            status, text = _read_http_response(port, path)
+            status, text = _read_http_response(port, path, scheme=scheme)
         except OSError:
             continue
         if status >= 500:
@@ -416,13 +426,14 @@ def _privileged_port_without_listener(port: int) -> bool:
             return False
 
 
-def _read_http_response(port: int, path: str) -> tuple[int, str]:
+def _read_http_response(port: int, path: str, *, scheme: str = "http") -> tuple[int, str]:
     request = urllib.request.Request(
-        f"http://127.0.0.1:{port}{path}",
+        f"{scheme}://127.0.0.1:{port}{path}",
         headers={"User-Agent": "tiny-swarm-world-preflight/1.0"},
     )
+    context = ssl._create_unverified_context() if scheme == "https" else None
     try:
-        with urllib.request.urlopen(request, timeout=2.0) as response:
+        with urllib.request.urlopen(request, timeout=2.0, context=context) as response:
             return response.status, _response_text(response.read(4096), response.headers)
     except urllib.error.HTTPError as error:
         return error.code, _response_text(error.read(4096), error.headers)

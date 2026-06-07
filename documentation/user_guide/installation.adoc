@@ -155,6 +155,14 @@ For repeatable Linux or WSL operator runs with local evidence capture, use:
 ./install.sh
 ----
 
+For deliberate test-system automation, the wrapper confirmation prompt can be
+replaced by an explicit flag:
+
+[source,bash]
+----
+./install.sh --confirm-reset
+----
+
 The wrapper writes run context, reset logs, setup logs and exit codes below
 `.tiny-swarm-world/evidence/installation-tests/wsl2/<UTC timestamp>/`,
 including `reset-run.log`, `reset-run.exit`, `setup-run.log`, and
@@ -197,21 +205,52 @@ all host LXD/Incus containers or unrelated provider resources.
 The canonical setup workflow and some legacy helper areas can create or delete
 provider nodes or virtual machines, change networking, install Docker, or
 deploy stacks. Run live automation only when you intend to change local
-infrastructure state. Former direct preparation helpers under `infra/prepare`
+infrastructure state. Former direct preparation helpers
 and host-side compose
 orchestration scripts have been retired.
 The canonical classification for these live-operation surfaces is
 `documentation/system/live-operation-surfaces.adoc`.
 
 Mutating workflow-level commands such as `platform init`, `platform reconcile`,
-`platform expose`, `artifacts prepare`, `deployment apply`, and `setup run` require:
+`platform expose`, `platform repair-lxc-proxy-drift`, `artifacts prepare`,
+`deployment apply`, and `setup run` require:
 
 * `--live`;
 * answering `y` at the short live-infrastructure confirmation prompt.
 
 `platform reset` and `platform destroy` additionally require their exact
 confirmation phrases. `install.sh` asks for
-`RESET_TINY_SWARM_PLATFORM` before it runs the reset prelude.
+`RESET_TINY_SWARM_PLATFORM` before it runs the reset prelude unless the
+operator supplies `--confirm-reset`. The flag confirms only the wrapper prompt;
+the reset prelude still calls `platform reset --confirm
+RESET_TINY_SWARM_PLATFORM`.
+
+== LXC Proxy Drift Repair
+
+`platform expose` configures published setup-manifest ports as profile-level
+proxy devices in the manager-specific `docker-swarm-manager` profile. The
+`swarm-manager` node receives that profile in addition to the common Docker
+Swarm profile. Worker nodes do not receive the manager proxy profile.
+
+Direct instance-level `tsw-proxy-*` devices on `swarm-manager` are not expected
+normal state. They are treated as `unsafe_instance_devices` drift so normal
+install, reset, reinstall, init, reconcile, expose and setup flows stop rather
+than silently deleting local provider state.
+
+When the manager-profile proxy devices are already present and verified, a
+stale direct project proxy can be repaired explicitly:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+----
+
+Answer `y` only when removing stale direct `tsw-proxy-*` devices from the
+manager is intentional. The repair refuses unrelated devices, unknown project
+proxy names, and direct project proxy devices whose equivalent
+manager-profile device is missing or drifted. It reports summary counts for
+removed, refused, lookup-failed and removal-failed devices without printing raw
+provider command output.
 
 Optional live smoke validation is separate from the default quality gate. Run
 it only on a disposable or recoverable local environment after reviewing the
@@ -233,18 +272,32 @@ static landing page, Vaultwarden and service-access NGINX assets. The setup
 CLI selects this profile by default. Operators who intentionally want only the
 older base service set can pass `--service-profile default`.
 
-The Swarm target publishes port `80` for the service-access landing page and
-port `8086` for the Vaultwarden route. WSL `localhost` forwarding is a
+The Swarm target publishes port `80` for the service-access landing page,
+port `443` for the Vaultwarden HTTPS route, and port `8086` for the local HTTP
+compatibility route. WSL `localhost` forwarding is a
 separate host-network concern. Endpoint defaults are configuration hints, not
 service-health evidence. If localhost forwarding is stale, use the current
 Swarm node IP only for manual diagnosis until the forwarding issue is repaired.
 The Vaultwarden administrator token is provided through an external Swarm
-secret. The guided installer generates token material in
-`TSW_VAULTWARDEN_ADMIN_TOKEN`, and the setup workflow prepares the external
-secret when that value is present. By default the compose stack references
-`tsw_vaultwarden_admin_token`; operators may override only the secret name
-through `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Document only the secret name,
-never the token value.
+secret. The guided installer stores the secret value as an Argon2 PHC string in
+`TSW_VAULTWARDEN_ADMIN_TOKEN`; when it sees a local plaintext token, it hashes
+that value and records the original admin login token as
+`TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN` in the local `0600` environment file. It
+prefers the local `argon2` command and falls back to
+`docker run --rm -i vaultwarden/server:latest /vaultwarden hash --preset owasp`
+when `argon2` is not installed. The fallback image can be overridden with
+`TSW_VAULTWARDEN_HASH_IMAGE`. By default the compose stack references
+`tsw_vaultwarden_admin_token`; operators may override only the secret name through
+`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Document only the secret name, never the
+token value.
+
+The local `service-access` default allows initial Vaultwarden account signup.
+Operators can disable that behavior with:
+
+[source,bash]
+----
+export TSW_VAULTWARDEN_SIGNUPS_ALLOWED=false
+----
 
 During `deployment apply`, the setup checks that the configured external
 Swarm input is observable before uploading the service-access stack. A missing

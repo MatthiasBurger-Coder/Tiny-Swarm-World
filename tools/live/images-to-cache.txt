@@ -1,0 +1,6 @@
+# Images required by the live service-access greenpath when Docker Hub pulls
+# must go through the local Nexus Docker proxy cache.
+danielgtaylor/apisprout:latest
+docker.swagger.io/swaggerapi/swagger-editor:latest
+docker.swagger.io/swaggerapi/swagger-ui:latest
+nginx:mainline-alpine

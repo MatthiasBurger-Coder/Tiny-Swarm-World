@@ -14,6 +14,7 @@ class PlatformWorkflowKind(str, Enum):
     INIT = "init"
     RECONCILE = "reconcile"
     EXPOSE = "expose"
+    REPAIR_LXC_PROXY_DRIFT = "repair-lxc-proxy-drift"
     RESET = "reset"
     DESTROY = "destroy"
     VERIFY = "verify"
@@ -158,6 +159,13 @@ PLATFORM_WORKFLOW_TAXONOMY = {
         destructive=False,
         requires_confirmation=False,
         meaning="expose published Swarm service ports through the LXC gateway",
+    ),
+    PlatformWorkflowKind.REPAIR_LXC_PROXY_DRIFT: PlatformWorkflowSemantics(
+        kind=PlatformWorkflowKind.REPAIR_LXC_PROXY_DRIFT,
+        mutating=True,
+        destructive=False,
+        requires_confirmation=False,
+        meaning="remove stale direct LXC proxy devices after profile reconciliation",
     ),
     PlatformWorkflowKind.RESET: PlatformWorkflowSemantics(
         kind=PlatformWorkflowKind.RESET,

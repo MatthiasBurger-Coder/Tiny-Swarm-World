@@ -141,11 +141,15 @@ wrapper:
 ./install.sh
 ```
 
-The wrapper records run context, setup logs, and the setup exit code under
+For deliberate test-system automation, use `./install.sh --confirm-reset` to
+confirm the wrapper's reset prompt with an explicit flag. The underlying reset
+workflow still uses `--confirm RESET_TINY_SWARM_PLATFORM`.
+
+The wrapper records run context, reset logs, setup logs, and exit codes under
 `.tiny-swarm-world/evidence/installation-tests/`. It loads or generates local
 `TSW_*` secrets in `.tiny-swarm-world/local/live-installation.env` without
-printing secret values, then asks for an explicit live-installation confirmation
-before calling the canonical setup workflow.
+printing secret values, runs the governed reset prelude, then calls the
+canonical setup workflow.
 
 With live consent, it sequences setup preflight, platform, artifact,
 deployment, and final verification phases. Current live behavior remains
@@ -172,9 +176,13 @@ requirements are not satisfied. After accepted live consent, default
 Docker Swarm bootstrap inside `swarm-manager`, `swarm-worker-1`, and
 `swarm-worker-2`. Default `platform reconcile` is currently a verified no-op
 boundary for `lxc_native`. Default `platform expose` configures idempotent
-LXC proxy devices on `swarm-manager` for the published setup-manifest service
-ports so host traffic reaches the Swarm ingress mesh through the manager
-gateway. Default artifact and deployment workflows use guarded
+profile-level LXC proxy devices in the manager-specific
+`docker-swarm-manager` profile for the published setup-manifest service ports,
+so host traffic reaches the Swarm ingress mesh through the manager gateway.
+Direct instance-level `tsw-proxy-*` devices on `swarm-manager` are drift and
+can be removed only through the explicit live-consent-gated
+`platform repair-lxc-proxy-drift` workflow after equivalent manager-profile
+devices are verified. Default artifact and deployment workflows use guarded
 provider-native publication, deployment, external-input, and
 observed-state contracts and report blocked or failed phase evidence when live
 prerequisites are unavailable.
@@ -229,7 +237,6 @@ Where to find the scripts/services:
 - `infra/config/node-providers`
 - `src/tiny_swarm_world/application/services/network`
 - `src/tiny_swarm_world/application/services/commands`
-- `infra/swarm`
 - `infra/compose`
 
 List the supported workflow-level commands first:
@@ -272,10 +279,9 @@ a supported cleanup target. Direct no-argument construction from the old
 `docker` layout is no longer supported. Use `build_application_services()` for
 the standard local wiring, or pass compatible port implementations in tests.
 
-The canonical setup path is the workflow-level Python command. Former direct
-preparation scripts under `infra/prepare` and host-side compose orchestration
-scripts under `infra/compose` have been retired so service bootstrap, image
-publication, and stack deployment cannot bypass the CLI consent gate. The
+The canonical setup path is the workflow-level Python command. Former direct preparation scripts and host-side compose orchestration
+scripts have been removed so service bootstrap, image publication, and stack
+deployment cannot bypass the CLI consent gate. The
 canonical static classification is maintained in
 `documentation/system/live-operation-surfaces.adoc`.
 
@@ -300,23 +306,29 @@ who intentionally want the older base service set can pass
 `--service-profile default`.
 
 The service-access stack needs an external Swarm secret for the Vaultwarden
-administrator token. The guided installer generates token material in
-`TSW_VAULTWARDEN_ADMIN_TOKEN` and the setup workflow prepares the external
-secret when that value is present. The default secret name is
+administrator token. The guided installer stores the Swarm secret value as an
+Argon2 PHC string in `TSW_VAULTWARDEN_ADMIN_TOKEN`; when it sees a local
+plaintext token, it hashes that value and records the original admin login
+token as `TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN` in the local `0600` environment
+file. It prefers the local `argon2` command and falls back to
+`docker run --rm -i vaultwarden/server:latest /vaultwarden hash --preset owasp`
+when `argon2` is not installed. The fallback image can be overridden with
+`TSW_VAULTWARDEN_HASH_IMAGE`. The default secret name is
 `tsw_vaultwarden_admin_token`, and operators may override only the name with
-`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Provider-native deployment must check
-that the configured external Swarm input is observable before uploading the
-stack and record only redacted presence/source evidence.
+`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`.
+Vaultwarden signups are enabled by the local `service-access` default and can
+be disabled with `TSW_VAULTWARDEN_SIGNUPS_ALLOWED=false`.
+Provider-native deployment must check that the configured external Swarm input
+is observable before uploading the stack and record only redacted
+presence/source evidence.
 
 Live-operation surface summary:
 
 | Path | Status |
 | --- | --- |
 | `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts. |
-| `infra/prepare/**` | Retired former direct service preparation surface; no executable setup helpers are kept there. |
 | `infra/config/compose/**/docker-compose.yml` | Supported stack assets used by the Python setup workflow. |
 | `infra/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow. |
-| `infra/swarm/**` | Legacy live-infrastructure surface; not a supported workflow entry point. |
 
 See `documentation/system/live-operation-surfaces.adoc` for the full
 classification and credential/host-specific data rules.
@@ -332,7 +344,6 @@ classification and credential/host-specific data rules.
 - Observed inventory and verification evidence are local runtime artifacts
   under `.tiny-swarm-world/`; this path is ignored and must not be committed.
 - Networking helpers and legacy netplan templates: `infra/config/network`.
-- Legacy VM definitions and templates: `infra/config/vm`.
 - Logs: `.tiny-swarm-world/logs`.
 - Python settings can be provided via environment variables or `.env` when supported by specific modules.
 
@@ -341,9 +352,7 @@ classification and credential/host-specific data rules.
 ## Project Structure (high-level)
 
 - `src/tiny_swarm_world/domain`, `src/tiny_swarm_world/application`, `src/tiny_swarm_world/infrastructure` - hexagonal architecture layers
-- `infra/prepare` - retired notes for former direct service preparation helpers
 - `infra/compose` - image build contexts and related service image assets
-- `infra/swarm` - swarm-related scripts/config
 - `documentation` - arc42, user guides, deployment notes
 - `tests` - unit and integration tests for adapters, services, and domain logic
 

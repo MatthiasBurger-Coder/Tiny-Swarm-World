@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Sequence
 from typing import Protocol
 
@@ -141,6 +142,35 @@ class PlatformExposeWorkflow:
         )
 
 
+class PlatformRepairLxcProxyDriftWorkflow:
+    semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.REPAIR_LXC_PROXY_DRIFT]
+
+    def __init__(
+        self,
+        steps: Sequence[AsyncWorkflowStep],
+        verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
+        progress: PortWorkflowProgress | None = None,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
+    ):
+        self.steps = tuple(steps)
+        self.verification_evidence_repository = verification_evidence_repository
+        self.progress = progress or NullWorkflowProgress()
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
+
+    async def run(self) -> PlatformWorkflowResult:
+        return await _trace_platform_run(self, self._run)
+
+    async def _run(self) -> PlatformWorkflowResult:
+        return await _run_mutating_steps(
+            self.steps,
+            self.semantics,
+            self.verification_evidence_repository,
+            self.progress,
+        )
+
+
 class PlatformResetWorkflow:
     semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.RESET]
 
@@ -248,11 +278,15 @@ class PlatformVerifyWorkflow:
         progress: PortWorkflowProgress | None = None,
         method_trace: PortMethodTrace | None = None,
         trace_correlation_id: str | None = None,
+        verify_retry_attempts: int = 1,
+        verify_retry_delay_seconds: float = 0.0,
     ):
         self.steps = tuple(steps)
         self.progress = progress or NullWorkflowProgress()
         self.method_trace = method_trace or NullMethodTrace()
         self.trace_correlation_id = trace_correlation_id
+        self.verify_retry_attempts = max(1, verify_retry_attempts)
+        self.verify_retry_delay_seconds = max(0.0, verify_retry_delay_seconds)
 
     async def run(self) -> PlatformWorkflowResult:
         return await _trace_platform_run(self, self._run)
@@ -270,8 +304,7 @@ class PlatformVerifyWorkflow:
                 result="pending",
                 safe_message="Platform verify step started.",
             )
-            step_result = await step.run()
-            verification_result = _verification_result_from_verify_output(step_result)
+            verification_result = await self._run_verify_step_with_retry(step)
             if verification_result is None:
                 continue
             verification_results.append(verification_result)
@@ -322,6 +355,25 @@ class PlatformVerifyWorkflow:
             executed=bool(self.steps),
             verification_results=tuple(verification_results),
         )
+
+    async def _run_verify_step_with_retry(
+        self,
+        step: AsyncWorkflowStep,
+    ) -> VerificationResult | None:
+        last_result: VerificationResult | None = None
+        for attempt in range(1, self.verify_retry_attempts + 1):
+            step_result = await step.run()
+            verification_result = _verification_result_from_verify_output(step_result)
+            if verification_result is None:
+                return None
+            last_result = _verification_with_retry_attempt(verification_result, attempt)
+            if not _retryable_platform_verify_result(verification_result):
+                return last_result
+            if attempt >= self.verify_retry_attempts:
+                return last_result
+            if self.verify_retry_delay_seconds:
+                await asyncio.sleep(self.verify_retry_delay_seconds)
+        return last_result
 
 
 async def _trace_platform_run(workflow: object, run_method, *args: object) -> PlatformWorkflowResult:
@@ -1025,6 +1077,27 @@ def _verification_result_from_preflight(result: PreflightResult) -> Verification
         status=VerificationStatus.FAILED_TO_VERIFY,
         message="Preflight checks failed.",
         evidence={"phase": "verify", "failed_check_count": str(len(result.failed_checks))},
+    )
+
+
+def _retryable_platform_verify_result(result: VerificationResult) -> bool:
+    return (
+        result.target_id == "platform:preflight"
+        and result.status == VerificationStatus.FAILED_TO_VERIFY
+    )
+
+
+def _verification_with_retry_attempt(
+    result: VerificationResult,
+    attempt: int,
+) -> VerificationResult:
+    if attempt <= 1:
+        return result
+    return VerificationResult(
+        target_id=result.target_id,
+        status=result.status,
+        message=result.message,
+        evidence={**result.evidence, "verify_attempt": str(attempt)},
     )
 
 

@@ -92,6 +92,29 @@ class TestPortainerHttpClient(unittest.TestCase):
         self.assertEqual("GET", session.request_calls[0]["method"])
         self.assertEqual("http://portainer.local/api/endpoints", session.request_calls[0]["url"])
         self.assertEqual("Bearer jwt-token", session.request_calls[1]["headers"]["Authorization"])
+        self.assertEqual(1, session.cookies.clear_count)
+
+    def test_authentication_clears_cookie_auth_before_endpoint_creation(self):
+        session = _FakeSession(
+            post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
+            request_responses=[
+                _FakeResponse(200, []),
+                _FakeResponse(200, {}),
+                _FakeResponse(200, [{"Name": "local", "Id": 7}]),
+            ],
+        )
+        client = PortainerHttpClient(
+            "http://portainer.local",
+            "admin",
+            OPERATOR_CREDENTIAL,
+            session=session,
+        )
+
+        self.assertEqual(7, client.ensure_local_endpoint("local"))
+
+        self.assertEqual(1, session.cookies.clear_count)
+        self.assertEqual("POST", session.request_calls[1]["method"])
+        self.assertEqual("Bearer jwt-token", session.request_calls[1]["headers"]["Authorization"])
 
     def test_local_endpoint_request_accepts_primary_portainer_endpoint_alias(self):
         session = _FakeSession(
@@ -383,6 +406,7 @@ class _FakeSession:
         self.request_responses = list(request_responses)
         self.post_calls: list[dict[str, object]] = []
         self.request_calls: list[dict[str, object]] = []
+        self.cookies = _FakeCookies()
 
     def post(self, url: str, **kwargs: object) -> _FakeResponse:
         self.post_calls.append({"url": url, **kwargs})
@@ -391,6 +415,14 @@ class _FakeSession:
     def request(self, method: str, url: str, **kwargs: object) -> _FakeResponse:
         self.request_calls.append({"method": method, "url": url, **kwargs})
         return self.request_responses.pop(0)
+
+
+class _FakeCookies:
+    def __init__(self) -> None:
+        self.clear_count = 0
+
+    def clear(self) -> None:
+        self.clear_count += 1
 
 
 if __name__ == "__main__":

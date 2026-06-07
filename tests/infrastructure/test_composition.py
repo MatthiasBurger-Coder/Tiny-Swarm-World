@@ -1,4 +1,5 @@
 import asyncio
+import os
 import unittest
 from dataclasses import fields
 from typing import cast
@@ -86,6 +87,7 @@ class TestComposition(unittest.TestCase):
         self.assertIn("lxc_node_provider", field_names)
         self.assertIn("node_provider_selection", field_names)
         self.assertIn("lxc_docker_install", field_names)
+        self.assertIn("lxc_proxy_drift_repair", field_names)
         self.assertIn("lxc_service_exposure", field_names)
         self.assertIn("lxc_swarm_bootstrap", field_names)
 
@@ -95,7 +97,15 @@ class TestComposition(unittest.TestCase):
 
         self.assertIn("workflows", platform_field_names)
         self.assertEqual(
-            {"init", "reconcile", "expose", "reset", "destroy", "verify"},
+            {
+                "init",
+                "reconcile",
+                "expose",
+                "repair_lxc_proxy_drift",
+                "reset",
+                "destroy",
+                "verify",
+            },
             workflow_field_names,
         )
 
@@ -201,6 +211,10 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
         self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
         self.assertIsInstance(services.workflows.expose, composition.PlatformExposeWorkflow)
+        self.assertIsInstance(
+            services.workflows.repair_lxc_proxy_drift,
+            composition.PlatformRepairLxcProxyDriftWorkflow,
+        )
         self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
         self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
@@ -216,6 +230,10 @@ class TestComposition(unittest.TestCase):
         self.assertIs(
             evidence_repository,
             services.workflows.expose.verification_evidence_repository,
+        )
+        self.assertIs(
+            evidence_repository,
+            services.workflows.repair_lxc_proxy_drift.verification_evidence_repository,
         )
         self.assertIsInstance(
             services.workflows.init.progress,
@@ -234,6 +252,10 @@ class TestComposition(unittest.TestCase):
             services.workflows.expose.progress,
         )
         self.assertIs(
+            services.workflows.init.progress,
+            services.workflows.repair_lxc_proxy_drift.progress,
+        )
+        self.assertIs(
             services.workflows.init.method_trace,
             services.workflows.reconcile.method_trace,
         )
@@ -241,15 +263,33 @@ class TestComposition(unittest.TestCase):
             services.workflows.init.method_trace,
             services.workflows.expose.method_trace,
         )
+        self.assertIs(
+            services.workflows.init.method_trace,
+            services.workflows.repair_lxc_proxy_drift.method_trace,
+        )
         self.assertEqual("trace-test", services.workflows.init.trace_correlation_id)
         self.assertEqual(
             "trace-test",
             services.workflows.reconcile.trace_correlation_id,
         )
         self.assertEqual("trace-test", services.workflows.expose.trace_correlation_id)
+        self.assertEqual(
+            "trace-test",
+            services.workflows.repair_lxc_proxy_drift.trace_correlation_id,
+        )
         self.assertEqual("trace-test", services.workflows.reset.trace_correlation_id)
         self.assertEqual("trace-test", services.workflows.destroy.trace_correlation_id)
         self.assertEqual("trace-test", services.workflows.verify.trace_correlation_id)
+
+    def test_build_platform_services_uses_post_install_preflight_for_verify(self):
+        services = composition.build_platform_services()
+
+        verify_preflight = services.workflows.verify.steps[0]
+
+        self.assertIsInstance(verify_preflight, PreflightService)
+        self.assertIsNot(services.preflight, verify_preflight)
+        self.assertGreater(len(services.preflight.configuration.required_ports), 0)
+        self.assertEqual((), verify_preflight.configuration.required_ports)
 
     def test_build_platform_services_wires_reset_destroy_managed_node_steps(self):
         services = composition.build_platform_services()
@@ -284,6 +324,10 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
         self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
         self.assertIsInstance(services.workflows.expose, composition.PlatformExposeWorkflow)
+        self.assertIsInstance(
+            services.workflows.repair_lxc_proxy_drift,
+            composition.PlatformRepairLxcProxyDriftWorkflow,
+        )
         self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
         self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
@@ -527,7 +571,7 @@ class TestComposition(unittest.TestCase):
             if step.service_stack.stack_name == "jenkins"
         )
         self.assertEqual(
-            {"TSW_JENKINS_IMAGE": "swarm-manager:5000/jenkins:latest"},
+            {"TSW_JENKINS_IMAGE": "127.0.0.1:5000/jenkins:latest"},
             jenkins_step.stack_environment,
         )
         self.assertEqual(
@@ -546,6 +590,10 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             ("deployment:service-access-external-input",),
             tuple(check.verification_target_id for check in services.workflows.apply.pre_apply_checks),
+        )
+        self.assertEqual(
+            ("deployment:swagger-stack-assets",),
+            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
         )
 
     def test_build_deployment_services_does_not_call_runtime_during_construction(self):
@@ -661,16 +709,19 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             {
                 "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE": (
-                    "swarm-manager:5000/service-access-dashboard:latest"
+                    "127.0.0.1:5000/service-access-dashboard:latest"
                 ),
                 "TSW_SERVICE_ACCESS_NGINX_IMAGE": (
-                    "swarm-manager:5000/service-access-nginx:latest"
+                    "127.0.0.1:5000/service-access-nginx:latest"
                 ),
                 "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined",
             },
             service_access_step.stack_environment,
         )
-        self.assertEqual((), services.workflows.apply.pre_apply_steps)
+        self.assertEqual(
+            ("deployment:swagger-stack-assets",),
+            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
+        )
 
     def test_build_deployment_services_uses_operator_swarm_registry_endpoint_for_local_images(self):
         with patch.dict(
@@ -904,7 +955,14 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsInstance(services.platform.preflight, PreflightService)
         self.assertIs(services.preflight, services.platform.preflight)
-        self.assertIs(services.platform.workflows.verify.steps[0], services.platform.preflight)
+        self.assertIsNot(
+            services.platform.workflows.verify.steps[0],
+            services.platform.preflight,
+        )
+        self.assertEqual(
+            (),
+            services.platform.workflows.verify.steps[0].configuration.required_ports,
+        )
 
     def test_build_platform_services_wires_init_guard_when_live_consent_is_available(self):
         live_consent = _accepted_live_consent()
@@ -913,8 +971,29 @@ class TestComposition(unittest.TestCase):
         self.assertIsNotNone(services.workflows.init.pre_apply_guard)
         self.assertTrue(services.lxc_node_provider.allow_live_mutation)
         self.assertTrue(services.lxc_docker_install.runtime.allow_live_mutation)
+        self.assertTrue(services.lxc_proxy_drift_repair.runtime.allow_live_mutation)
         self.assertTrue(services.lxc_service_exposure.runtime.allow_live_mutation)
         self.assertTrue(services.lxc_swarm_bootstrap.swarm.allow_live_mutation)
+
+    def test_lxc_docker_registry_mirror_configuration_uses_operator_environment(self):
+        with patch.dict(
+            os.environ,
+            {"TSW_LXC_DOCKER_REGISTRY_MIRROR": "http://10.0.3.1:5001"},
+        ):
+            mirror = composition._lxc_docker_registry_mirror_configuration()
+
+        self.assertIsNotNone(mirror)
+        assert mirror is not None
+        self.assertEqual("http://10.0.3.1:5001", mirror.mirror_url)
+        self.assertEqual("10.0.3.1:5001", mirror.registry_authority)
+
+    def test_lxc_docker_registry_mirror_rejects_localhost_operator_value(self):
+        with patch.dict(
+            os.environ,
+            {"TSW_LXC_DOCKER_REGISTRY_MIRROR": "http://127.0.0.1:5001"},
+        ):
+            with self.assertRaises(ValueError):
+                composition._lxc_docker_registry_mirror_configuration()
 
     def test_build_setup_services_wires_live_consent_into_platform_init_guard(self):
         live_consent = _accepted_live_consent()
@@ -1172,18 +1251,54 @@ class TestComposition(unittest.TestCase):
     def test_composed_default_lxc_expose_uses_manager_gateway_and_setup_ports(self):
         services = composition.build_platform_services()
 
-        self.assertEqual(1, len(services.workflows.expose.steps))
+        self.assertEqual(2, len(services.workflows.expose.steps))
         step = services.workflows.expose.steps[0]
+        socat_step = services.workflows.expose.steps[1]
 
         self.assertIsInstance(step, composition.LxcServiceExposureStep)
+        self.assertIsInstance(socat_step, composition._WslSocatExposeStep)
         self.assertIs(step.service, services.lxc_service_exposure)
+        self.assertIs(socat_step.socat_manager, services.socat_manager)
         self.assertEqual("swarm-manager", step.service.gateway_node.name)
+        self.assertEqual(
+            composition.DEFAULT_LXC_MANAGER_PROXY_PROFILE,
+            step.service.manager_profile_name,
+        )
         self.assertEqual(
             composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
             step.service.listen_address,
         )
-        self.assertEqual(10, len(step.service.setup_manifest.required_ports))
+        self.assertEqual(11, len(step.service.setup_manifest.required_ports))
         self.assertEqual("Service Access", step.service.setup_manifest.services[-1].name)
+
+    def test_composed_wsl_socat_expose_verifies_not_required_on_native_linux(self):
+        services = composition.build_platform_services()
+        socat_step = services.workflows.expose.steps[1]
+        socat_step.os_type = composition.OsTypes.LINUX
+
+        result = asyncio.run(socat_step.run())
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("not_required", result.evidence["classification"])
+
+    def test_composed_lxc_proxy_drift_repair_uses_manager_profile_scope(self):
+        services = composition.build_platform_services()
+
+        self.assertEqual(1, len(services.workflows.repair_lxc_proxy_drift.steps))
+        step = services.workflows.repair_lxc_proxy_drift.steps[0]
+
+        self.assertIsInstance(step, composition.LxcProxyDriftRepairStep)
+        self.assertIs(step.service, services.lxc_proxy_drift_repair)
+        self.assertEqual("swarm-manager", step.service.gateway_node.name)
+        self.assertEqual(
+            composition.DEFAULT_LXC_MANAGER_PROXY_PROFILE,
+            step.service.manager_profile_name,
+        )
+        self.assertEqual(
+            composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
+            step.service.listen_address,
+        )
+        self.assertEqual(11, len(step.service.setup_manifest.required_ports))
 
     def test_composed_default_lxc_expose_without_live_consent_fails_closed(self):
         with patch.object(
@@ -1200,7 +1315,7 @@ class TestComposition(unittest.TestCase):
             result.verification_results[0].target_id,
         )
         self.assertEqual(
-            "10",
+            "11",
             result.verification_results[0].evidence["lookup_failure_count"],
         )
 

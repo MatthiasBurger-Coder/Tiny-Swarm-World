@@ -141,7 +141,7 @@ Quality scenarios:
   Vaultwarden ports, while `--service-profile default` can omit the management
   stack intentionally;
 * committed service-access YAML loads through the compose repository and
-  publishes only the service-access NGINX ports `80` and `8086`;
+  publishes only the service-access NGINX ports `80`, `8086`, and `443`;
 * Vaultwarden receives its administrator token through an external Swarm
   secret name and no committed token value or static password default exists;
 * deployment apply blocks before Portainer stack create/update when the
@@ -164,6 +164,32 @@ Quality scenarios:
 Service-access readiness must remain unknown or failed-to-verify until
 observed Swarm service state or a later HTTP evidence source verifies the
 selected service stack.
+
+=== LXC Proxy Profile And Drift Safety
+
+LXC-native proxy exposure must preserve strict drift detection while allowing
+an explicit operator repair path.
+
+Quality scenarios:
+
+* the manager node expects the common Docker Swarm profile plus the
+  manager-only `docker-swarm-manager` profile;
+* worker nodes do not receive the manager proxy profile;
+* `platform expose` creates or updates profile-level proxy devices and does
+  not create direct instance-level `tsw-proxy-*` devices;
+* direct instance-level `tsw-proxy-*` devices remain
+  `unsafe_instance_devices` during normal node lifecycle checks;
+* normal `platform init`, `platform reconcile`, `platform expose`,
+  `platform reset`, `install.sh`, and `setup run` do not silently remove stale
+  direct proxy devices;
+* `platform repair-lxc-proxy-drift` requires live consent before mutation;
+* repair removes only direct `tsw-proxy-*` proxy devices that have an
+  equivalent verified manager-profile device;
+* repair refuses unrelated devices, unknown project proxy names, and direct
+  project proxy devices whose equivalent manager-profile state is missing,
+  drifted, or unobservable;
+* repair evidence records summary counts and safe device names without raw
+  command strings, stdout, or stderr.
 
 === Portainer Admin Initialization Rejection Gate
 

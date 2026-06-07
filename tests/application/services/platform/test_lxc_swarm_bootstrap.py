@@ -110,6 +110,7 @@ class TestLxcSwarmBootstrapService(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, results[-1].status)
+        self.assertEqual("swarm_join_failed", results[-1].evidence["classification"])
         self.assertNotIn("sensitive-value", repr([result.to_dict() for result in results]))
 
     async def test_swarm_step_aggregates_node_results_for_platform_workflow(self):

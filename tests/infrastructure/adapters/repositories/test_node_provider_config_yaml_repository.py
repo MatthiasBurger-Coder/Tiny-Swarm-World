@@ -33,10 +33,15 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
             tuple(node.spec.name for node in config.nodes),
         )
         self.assertEqual(NodeRole.MANAGER, config.nodes[0].spec.role)
+        self.assertEqual(
+            ("docker-swarm", "docker-swarm-manager"),
+            config.nodes[0].expected_profiles,
+        )
 
     def test_committed_config_declares_incus_and_lxd_profiles(self):
         config = NodeProviderConfigYamlRepository().load()
         profile = config.profiles[0]
+        manager_profile = config.profiles[1]
 
         self.assertEqual("docker-swarm", profile.name)
         self.assertEqual((ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD), profile.backend_support)
@@ -49,6 +54,25 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
         self.assertIn("privileged_profile_forbidden_default", profile.risk_labels)
         self.assertEqual((), profile.host_mounts)
         self.assertFalse(profile.host_network)
+        self.assertEqual("docker-swarm-manager", manager_profile.name)
+        self.assertIn("worker_profile_forbidden", manager_profile.risk_labels)
+        self.assertFalse(manager_profile.privileged_default)
+        self.assertEqual((), manager_profile.host_mounts)
+        self.assertFalse(manager_profile.host_network)
+
+    def test_committed_config_keeps_manager_proxy_profile_off_workers(self):
+        config = NodeProviderConfigYamlRepository().load()
+
+        worker_profiles = {
+            node.spec.name: node.expected_profiles
+            for node in config.nodes
+            if node.spec.role is NodeRole.WORKER
+        }
+
+        self.assertEqual(("docker-swarm",), worker_profiles["swarm-worker-1"])
+        self.assertEqual(("docker-swarm",), worker_profiles["swarm-worker-2"])
+        for profiles in worker_profiles.values():
+            self.assertNotIn("docker-swarm-manager", profiles)
 
     def test_provider_config_load_is_deterministic(self):
         repository = NodeProviderConfigYamlRepository()
@@ -100,6 +124,21 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
 
         with self.assertRaises(NodeProviderConfigError):
             _repository_for(data).load()
+
+    def test_rejects_unknown_or_duplicate_additional_profiles(self):
+        cases = (
+            ("unknown profile", ["missing-profile"]),
+            ("duplicate additional profile", ["docker-swarm-manager", "docker-swarm-manager"]),
+            ("duplicate primary profile", ["docker-swarm"]),
+        )
+
+        for _label, additional_profiles in cases:
+            data = _valid_config()
+            data["nodes"][0]["additional_profiles"] = additional_profiles
+
+            with self.subTest(additional_profiles=additional_profiles):
+                with self.assertRaises(NodeProviderConfigError):
+                    _repository_for(data).load()
 
     def test_rejects_legacy_fallbacks_field(self):
         data = _valid_config()
@@ -210,6 +249,7 @@ def _valid_config() -> dict[str, Any]:
                 "provider": "lxc_native",
                 "backend": None,
                 "profile": "docker-swarm",
+                "additional_profiles": ["docker-swarm-manager"],
                 "image_alias": "ubuntu-24.04",
                 "resources": {"cpu": "2", "memory": "4GiB", "disk": "20GiB"},
                 "networks": ["control"],
@@ -220,6 +260,7 @@ def _valid_config() -> dict[str, Any]:
                 "provider": "lxc_native",
                 "backend": None,
                 "profile": "docker-swarm",
+                "additional_profiles": [],
                 "image_alias": "ubuntu-24.04",
                 "resources": {"cpu": "2", "memory": "8GiB", "disk": "50GiB"},
                 "networks": ["control"],
@@ -237,6 +278,26 @@ def _valid_config() -> dict[str, Any]:
                 "nesting_required": True,
                 "syscall_interception_required": True,
                 "cgroup_policy": "v2_required",
+                "apparmor_policy": "provider_default",
+                "seccomp_policy": "provider_default",
+                "capability_additions": [],
+                "host_network": False,
+                "host_mounts": [],
+                "live_mutation_consent_required": True,
+                "blocks_mutation_when_missing": True,
+            },
+            "docker-swarm-manager": {
+                "backend_support": ["incus", "lxd"],
+                "risk_labels": [
+                    "manager_proxy_profile_requires_profile_reconciliation",
+                    "worker_profile_forbidden",
+                    "provider_profile_mutation_requires_live_consent",
+                    "privileged_profile_forbidden_default",
+                ],
+                "privileged_default": False,
+                "nesting_required": False,
+                "syscall_interception_required": False,
+                "cgroup_policy": "provider_default",
                 "apparmor_policy": "provider_default",
                 "seccomp_policy": "provider_default",
                 "capability_additions": [],

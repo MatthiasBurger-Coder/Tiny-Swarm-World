@@ -34,8 +34,6 @@ Additional relevant areas inspected:
 - `src/tiny_swarm_world/infrastructure`
 - `infra/config`
 - `infra/compose`
-- `infra/prepare` (retired navigation notes only)
-- `infra/swarm`
 - `tests`
 - existing import-ready issue files
 
@@ -95,9 +93,7 @@ cluster substrate.
 - `infra/config/docker/command_multipass_docker_swarm_manager_join_token.yaml`
 - `infra/config/network`
 - `infra/config/vm`
-- `infra/swarm`
 - `infra/platform/README.md` as target boundary marker
-- `infra/swarm/README.md` documents the current legacy helper status
 
 ### Tests and Documentation
 
@@ -159,7 +155,6 @@ Portainer stack APIs, and service lifecycle through Portainer or Docker Swarm.
 - stack directories under `infra/compose`, including:
   - `infra/config/compose/jenkins`
   - `infra/config/compose/swagger`
-- `infra/prepare/portainer/README.md` documents the retired direct preparation
   surface
 - Portainer stack compose files under `infra/config/compose/portainer`
 - service stack compose files under `infra/config/compose/nexus`,
@@ -217,14 +212,9 @@ These areas need explicit classification before any cleanup:
 - The former Java/Maven example application has been removed. Do not
   reintroduce Java, Maven, or Spring Boot as project build surfaces unless a
   later task explicitly changes scope.
-- `infra/swarm/prepere.py` imports modules that are not present in the tracked
-  `infra/swarm/multipass` directory. It looks transitional or broken.
-- `infra/swarm/multipass/multipass_setup.py` and
-  `infra/swarm/multipass/multipass_socat_setup.py` duplicate parts of the
-  Python application services and command YAML workflow.
-- `infra/swarm/network/network_manager.py` mixes WSL, Windows `netsh`,
-  Multipass discovery, and iptables behavior.
-- Former direct preparation helpers under `infra/prepare` have been retired.
+- Former direct preparation and legacy Swarm helper files have been removed.
+  Reintroducing any direct live-operation helper requires a dedicated workflow
+  slice with tests, consent controls, and rollback notes.
 - Spelling issues such as `netplant`, `prepere.py`, `portain_setup.py`, and
   `excecuteable_commands.py` are structural cleanup candidates, but renames
   should be separate behavior-preserving slices.
@@ -248,7 +238,6 @@ These areas need explicit classification before any cleanup:
 | C-009 | `infra/config/docker` | Docker install and Swarm commands | Artifact Docker image build meaning | Directory name `docker` can mean platform daemon setup or artifact image workflows. | Platform for current files; future artifact config elsewhere | Low | Platform Provisioning Agent |
 | C-010 | `src/tiny_swarm_world/infrastructure/composition.py` | Wiring root | Boundary service bundles | Composition now exposes platform, artifact, and deployment builders and keeps the existing application builder as a compatibility wrapper; live artifact and deployment behavior remains blocked behind explicit workflow contracts. | Shared composition root with boundary-specific builders | Medium | Composition / CLI Workflow Agent |
 | C-011 | `src/tiny_swarm_world/__main__.py` | Thin entry point | Runtime inspection plus commented provisioning workflow | It is thin, but the active command and commented workflow obscure supported user workflows. | CLI workflow | Low | Composition / CLI Workflow Agent |
-| C-012 | `infra/swarm` | Legacy platform helpers | Duplicate or broken live provisioning scripts | Scripts overlap with Python services and one imports missing modules. | Legacy quarantine, then Platform if still needed | Medium | Platform Provisioning Agent |
 | C-013 | `tests` | Layer-based grouping | Missing responsibility boundary checks | Tests protect hexagonal imports but not platform/artifact/deployment ownership. | Test and Quality Gate | Low | Test and Quality Gate Agent |
 
 ## High Confidence Target Owners
@@ -271,8 +260,6 @@ These areas need explicit classification before any cleanup:
   Portainer availability as a prerequisite is exposed as a Deployment port.
 - Should Nexus stack deployment be owned by Deployment while Nexus repository
   configuration is owned by Artifacts? The recommended answer is yes.
-- Should `infra/swarm` be removed or kept as legacy documentation? It should be
-  quarantined first, then removed only after feature parity is proven.
 - Should generated Dockerfiles remain tracked? Current repository tracks some
   Dockerfiles and templates. Future artifact work should decide whether
   generated Dockerfiles are source artifacts or build outputs on a per-service
