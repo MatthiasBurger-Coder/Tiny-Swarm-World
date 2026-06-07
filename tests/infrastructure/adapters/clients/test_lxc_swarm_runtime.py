@@ -56,7 +56,7 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertIn("mkdir -p /custom/stacks/swagger/nginx", scripts[1])
         self.assertIn("cat > /custom/stacks/swagger/nginx/default.conf", scripts[1])
 
-    def test_deploy_stack_reconciles_existing_host_published_ports(self):
+    def test_deploy_stack_reconciles_existing_published_ports_to_ingress_mode(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
         compose = """
 services:
@@ -79,7 +79,7 @@ services:
             scripts,
         )
         self.assertIn(
-            "docker service update --publish-add published=8081,target=8081,protocol=tcp,mode=host nexus_nexus",
+            "docker service update --publish-add published=8081,target=8081,protocol=tcp,mode=ingress nexus_nexus",
             scripts,
         )
 

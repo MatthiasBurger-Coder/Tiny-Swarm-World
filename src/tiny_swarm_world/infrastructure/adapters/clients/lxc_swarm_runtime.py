@@ -155,7 +155,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
                     "docker service update "
                     f"--publish-add published={shlex.quote(published)},"
                     f"target={shlex.quote(target)},"
-                    f"protocol={shlex.quote(protocol)},mode=host "
+                    f"protocol={shlex.quote(protocol)},mode=ingress "
                     f"{shlex.quote(swarm_service_name)}"
                 )
 
