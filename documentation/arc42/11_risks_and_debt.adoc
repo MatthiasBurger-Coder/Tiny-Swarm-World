@@ -29,7 +29,7 @@ Remaining debt:
 * the host-neutral desired inventory baseline is committed and aligned with
   the default service-access setup profile, but observed inventory collection
   and reconciliation are not yet wired into platform verification workflows;
-* legacy scripts under `infra/swarm` remain live-operation surfaces outside the
+* removed legacy scripts remain historical live-operation surfaces outside the
   workflow-level CLI consent guard;
 * reset/destroy teardown is wired for configured managed LXC-native nodes, but
   live operator validation, retention hardening, and unmanaged-resource
@@ -61,8 +61,8 @@ Remaining debt:
 * Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX service
   readiness must not be claimed until verified through tests or explicit live
   smoke evidence;
-* direct scripts under `infra/prepare` and host-side orchestration scripts
-  under `infra/compose` have been retired, while `infra/swarm` still needs
+* direct preparation scripts and host-side orchestration scripts have been
+  removed, and legacy helper reintroduction still needs
   migration or clear legacy retirement;
 * automatic host package installation, non-interactive live consent, and direct
   script promotion need future ADRs before they can change the accepted safety

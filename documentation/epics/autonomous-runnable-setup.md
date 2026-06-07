@@ -271,8 +271,7 @@ smoke validation is a separate operator action and requires:
 - Browser React frontend work.
 - Java-driven setup architecture.
 - Microservice extraction.
-- Direct promotion of scripts under `infra/prepare`, `infra/compose`, or
-  `infra/swarm` as canonical setup behavior.
+- Reintroducing direct helper scripts as canonical setup behavior.
 - Weakening `.importlinter`, architecture tests, or `QUALITY.md`.
 
 ## Stop Conditions

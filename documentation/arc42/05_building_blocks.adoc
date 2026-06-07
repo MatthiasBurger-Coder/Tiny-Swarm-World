@@ -171,15 +171,12 @@ passwords, or secrets.
 `infra` contains infrastructure and deployment assets that are not Python
 application code.
 
-* `infra/config` contains command, node-provider, VM legacy, network, and
-  compose configuration.
+* `infra/config` contains command, node-provider, network, and compose
+  configuration.
 * `infra/compose` contains image build-context assets.
-* `infra/prepare` contains retired notes for former direct service preparation
-  helpers and must not contain executable setup entry points.
-* `infra/swarm` contains legacy Swarm helper material. This area is
-  quarantined as legacy live-infrastructure surface, not a supported
-  workflow entry point. It must not run in default quality gates, and files
-  should be removed or migrated only in an explicit cleanup slice with tests
+* Removed direct setup and legacy Swarm helper material remains historical
+  live-operation surface context, not a supported workflow entry point. It must
+  not be reintroduced without an explicit cleanup or migration slice with tests
   and rollback notes.
 
 Live infrastructure scripts can modify VMs, networking, Docker Swarm state,

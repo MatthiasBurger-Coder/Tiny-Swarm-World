@@ -143,7 +143,6 @@ Affected files/directories:
 Files explicitly forbidden:
 
 - `infra/compose`
-- retired `infra/prepare/nexus` notes
 - Nexus repository bootstrap logic
 - Portainer stack upload logic
 
@@ -190,7 +189,6 @@ Affected files/directories:
 - `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
 - `infra/compose`
 - `infra/config/compose`
-- retired `infra/prepare/portainer` notes
 - deployment-related tests and docs
 
 Files explicitly forbidden:
@@ -240,7 +238,6 @@ Affected files/directories:
 - `src/tiny_swarm_world/application/services/nexus`
 - `src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
 - `src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
-- retired `infra/prepare/nexus` notes
 - artifact-related tests and docs
 
 Files explicitly forbidden:
@@ -335,8 +332,6 @@ Affected files/directories:
 
 - `infra/config`
 - `infra/compose`
-- retired `infra/prepare` notes
-- `infra/swarm`
 - `infra/utils.sh`
 - documentation and tests that reference these paths
 
@@ -381,9 +376,6 @@ Goal:
 
 Affected files/directories:
 
-- `infra/swarm/prepere.py`
-- `infra/swarm/multipass`
-- `infra/swarm/network`
 - duplicate Portainer setup scripts
 - duplicate or stale issue import files if explicitly approved
 

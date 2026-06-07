@@ -197,7 +197,7 @@ all host LXD/Incus containers or unrelated provider resources.
 The canonical setup workflow and some legacy helper areas can create or delete
 provider nodes or virtual machines, change networking, install Docker, or
 deploy stacks. Run live automation only when you intend to change local
-infrastructure state. Former direct preparation helpers under `infra/prepare`
+infrastructure state. Former direct preparation helpers
 and host-side compose
 orchestration scripts have been retired.
 The canonical classification for these live-operation surfaces is

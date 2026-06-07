@@ -41,7 +41,6 @@ KNOWN_MIXED_BOUNDARY_FILES = (
     "src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py",
     "src/tiny_swarm_world/infrastructure/composition.py",
     "src/tiny_swarm_world/__main__.py",
-    "infra/swarm",
 )
 
 

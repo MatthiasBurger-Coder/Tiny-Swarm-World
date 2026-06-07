@@ -34,9 +34,6 @@ explicit task changes the product scope.
 - `infra/config`: YAML command, node-provider, network, and compose stack
   configuration data.
 - `infra/compose`: image build contexts and related Dockerfiles for stack services.
-- `infra/prepare`: retired notes for former direct local-service preparation
-  helpers; it must not contain executable setup entry points.
-- `infra/swarm`: swarm setup and helper scripts.
 - `tests`: unit tests organized by architecture layer.
 - `documentation`: arc42, deployment, system, and user guide documentation.
 

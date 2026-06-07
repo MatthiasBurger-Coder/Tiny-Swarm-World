@@ -41,7 +41,7 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 
 When prompted, answer `y` only if changing the local LXD/Incus/LXC, Docker Swarm,
 networking, service bootstrap, image, and stack state is intentional. Former
-direct Portainer and Nexus preparation scripts under `infra/prepare` have been
+direct Portainer and Nexus preparation scripts have been
 retired.
 
 == Stack Deployment

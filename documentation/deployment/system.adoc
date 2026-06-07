@@ -17,7 +17,6 @@ This project is developed and operated from WSL or Linux shells. Windows-specifi
 The repository separates deployment work into three areas:
 
 * `src/tiny_swarm_world/__main__.py` contains the Python entry point for infrastructure orchestration.
-* `infra/prepare` contains retired notes for former direct service preparation helpers.
 * `infra/compose` contains image build-context assets for workflow-managed deployment.
 
 The active Python entry point exposes workflow-level commands. Running without
@@ -107,10 +106,9 @@ contracts are wired:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-Former direct scripts under `infra/prepare` and host-side orchestration scripts
-under `infra/compose` have been retired so setup behavior stays behind the
-workflow-level CLI consent guard. Direct scripts under `infra/swarm` remain
-legacy live-operation surfaces and are not development quality-gate commands.
+Former direct preparation scripts and host-side orchestration scripts have
+been removed so setup behavior stays behind the workflow-level CLI consent
+guard. They are not development quality-gate commands.
 The Portainer compose asset under `infra/config/compose/portainer` mounts the
 host Docker socket for the Portainer server and agent, and the agent also
 mounts Docker volumes. Treat that asset as privileged Docker-control
@@ -251,7 +249,7 @@ configuration, Swarm state, network settings, and service credentials. Review
 the live-operation surface catalog and environment values before running it
 against an existing local environment.
 
-Legacy helper areas such as `infra/swarm/**` remain documented as unsupported
+Removed legacy helper areas remain documented as unsupported historical surfaces
 until a dedicated cleanup slice verifies replacement parity. Do not add,
 restore, or promote any direct live-operation script without updating
 `documentation/system/live-operation-surfaces.adoc`, tests, and rollback notes.

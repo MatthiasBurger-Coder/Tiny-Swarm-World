@@ -1,7 +1,7 @@
 = Live Operation Surfaces
 
 Tiny Swarm World contains guarded Python workflows, transitional direct
-operator scripts, deprecated helpers, and legacy compatibility material. This
+operator scripts, retired historical surfaces, and supported assets. This
 catalog is static repository documentation. It must be maintained without
 executing live infrastructure commands.
 
@@ -12,9 +12,7 @@ executing live infrastructure commands.
 | Status | Meaning | Default quality-gate handling
 | Supported | Current documented path for intentional operator use. Mutating paths still require the documented live-consent or operator review controls. | May be tested only with mocked or static checks unless the user explicitly requests live infrastructure execution.
 | Transitional | Kept for compatibility while behavior moves behind workflow-level contracts. | Static review only by default; do not run during normal development.
-| Deprecated | Retained to avoid breaking old notes or local experiments, but not recommended for new operation. | Static review only; replacement should be planned before use.
 | Retired | Removed as an executable entry point; retained only as historical documentation or navigation notes. | Assert absence of executable helpers and route operators to the Python setup workflow.
-| Legacy | Pre-boundary material that is not a supported entry point. | Static review only; do not treat as product workflow behavior.
 | Supported Asset | Configuration or image material consumed by supported or transitional workflows, not a standalone operator entry point. | Static validation only unless an explicit live deployment is requested.
 |===
 
@@ -66,13 +64,11 @@ executing live infrastructure commands.
 | `infra/config/node-providers/provider_config.yaml` | Supported Asset | Declares `lxc_native` as the default node provider, Incus/LXD backend candidates, the common Docker Swarm profile, and the manager-only `docker-swarm-manager` profile used for LXC proxy devices. | Static review by default. Provider daemon, profile, storage, network, profile-device, and container lifecycle mutation still requires explicit live consent.
 | `infra/compose/service-access/dashboard/**` | Supported Asset | Provides the image-packaged static dashboard assets for service routes, reachability labels and Vaultwarden credential item references. The dashboard does not contain password values and does not run host-side build, push or deployment commands. | Static review by default; build only through the artifact workflow during explicit live runs.
 | `infra/compose/service-access/nginx/**` | Supported Asset | Provides the image-packaged NGINX routing configuration for the service-access dashboard route and Vaultwarden route. The configuration disables NGINX access logging for these routes and resolves internal services through Docker embedded DNS. | Static review by default; build only through the artifact workflow during explicit live runs.
-| `infra/swarm/**` | Legacy | Pre-boundary material is not a supported workflow entry point. | Static review only.
-| `infra/swarm/file_copy.py` | Legacy | Copies files and changes ownership/permissions under a user directory. | Do not run during quality gates.
 |===
 
 == Credential And Host-Specific Data Rules
 
-Some legacy and transitional files retain local compatibility defaults for
+Some transitional files retain local compatibility defaults for
 administrator users, passwords, registry URLs, and host addresses. They are not
 production secrets and must not be copied into new product configuration.
 

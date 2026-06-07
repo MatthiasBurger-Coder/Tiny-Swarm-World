@@ -233,7 +233,6 @@ Where to find the scripts/services:
 - `infra/config/node-providers`
 - `src/tiny_swarm_world/application/services/network`
 - `src/tiny_swarm_world/application/services/commands`
-- `infra/swarm`
 - `infra/compose`
 
 List the supported workflow-level commands first:
@@ -276,10 +275,9 @@ a supported cleanup target. Direct no-argument construction from the old
 `docker` layout is no longer supported. Use `build_application_services()` for
 the standard local wiring, or pass compatible port implementations in tests.
 
-The canonical setup path is the workflow-level Python command. Former direct
-preparation scripts under `infra/prepare` and host-side compose orchestration
-scripts under `infra/compose` have been retired so service bootstrap, image
-publication, and stack deployment cannot bypass the CLI consent gate. The
+The canonical setup path is the workflow-level Python command. Former direct preparation scripts and host-side compose orchestration
+scripts have been removed so service bootstrap, image publication, and stack
+deployment cannot bypass the CLI consent gate. The
 canonical static classification is maintained in
 `documentation/system/live-operation-surfaces.adoc`.
 
@@ -317,10 +315,8 @@ Live-operation surface summary:
 | Path | Status |
 | --- | --- |
 | `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts. |
-| `infra/prepare/**` | Retired former direct service preparation surface; no executable setup helpers are kept there. |
 | `infra/config/compose/**/docker-compose.yml` | Supported stack assets used by the Python setup workflow. |
 | `infra/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow. |
-| `infra/swarm/**` | Legacy live-infrastructure surface; not a supported workflow entry point. |
 
 See `documentation/system/live-operation-surfaces.adoc` for the full
 classification and credential/host-specific data rules.
@@ -336,7 +332,6 @@ classification and credential/host-specific data rules.
 - Observed inventory and verification evidence are local runtime artifacts
   under `.tiny-swarm-world/`; this path is ignored and must not be committed.
 - Networking helpers and legacy netplan templates: `infra/config/network`.
-- Legacy VM definitions and templates: `infra/config/vm`.
 - Logs: `.tiny-swarm-world/logs`.
 - Python settings can be provided via environment variables or `.env` when supported by specific modules.
 
@@ -345,9 +340,7 @@ classification and credential/host-specific data rules.
 ## Project Structure (high-level)
 
 - `src/tiny_swarm_world/domain`, `src/tiny_swarm_world/application`, `src/tiny_swarm_world/infrastructure` - hexagonal architecture layers
-- `infra/prepare` - retired notes for former direct service preparation helpers
 - `infra/compose` - image build contexts and related service image assets
-- `infra/swarm` - swarm-related scripts/config
 - `documentation` - arc42, user guides, deployment notes
 - `tests` - unit and integration tests for adapters, services, and domain logic
 

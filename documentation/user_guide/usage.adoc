@@ -151,15 +151,15 @@ blocked or failed phase evidence when live prerequisites are unavailable:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-Former direct service preparation helpers under `infra/prepare` have been
+Former direct service preparation helpers have been
 retired and are not development quality-gate checks.
 
-== Legacy And Direct Scripts
+== Removed Direct Scripts
 
 The workflow-level CLI is the supported operator entry point. Former direct
-scripts under `infra/prepare` and host-side orchestration scripts under
-`infra/compose` have been retired. Direct scripts under `infra/swarm` are
-legacy live operations and are not protected by the CLI consent gate.
+service-preparation scripts and host-side orchestration scripts have been
+removed. Reintroduced direct scripts would be live operations outside the CLI
+consent gate.
 The canonical classification is maintained in
 `documentation/system/live-operation-surfaces.adoc`.
 
@@ -167,10 +167,8 @@ The canonical classification is maintained in
 |===
 | Path | Status
 | `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts.
-| `infra/prepare/**` | Retired former direct service preparation surface; no executable setup helpers are kept there.
 | `infra/config/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands.
 | `infra/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow.
-| `infra/swarm/**` | Legacy live-infrastructure surface; not a supported workflow entry point.
 |===
 
 Do not re-enable legacy or retired scripts without a dedicated cleanup slice,

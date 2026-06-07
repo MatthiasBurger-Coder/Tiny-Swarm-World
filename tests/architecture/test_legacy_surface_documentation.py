@@ -14,7 +14,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
     def test_live_operation_surface_catalog_defines_supported_statuses(self):
         catalog = _read_document(LIVE_SURFACE_CATALOG)
 
-        for status in ("Supported", "Transitional", "Deprecated", "Retired", "Legacy", "Supported Asset"):
+        for status in ("Supported", "Transitional", "Retired", "Supported Asset"):
             with self.subTest(status=status):
                 self.assertIn(f"| {status} |", catalog)
 
@@ -39,8 +39,6 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             "`infra/config/compose/service-access/docker-compose.yml`": "Supported Asset",
             "`infra/compose/service-access/dashboard/**`": "Supported Asset",
             "`infra/compose/service-access/nginx/**`": "Supported Asset",
-            "`infra/swarm/**`": "Legacy",
-            "`infra/swarm/file_copy.py`": "Legacy",
         }
 
         for path, status in expected_rows.items():
@@ -165,14 +163,19 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertNotIn("secret=", nginx_config)
         self.assertNotIn("api_key=", nginx_config)
 
-    def test_prepare_area_has_no_executable_installation_helpers(self):
-        executable_helpers = sorted(
-            path.relative_to(REPOSITORY_ROOT).as_posix()
-            for suffix in ("*.sh", "*.py")
-            for path in (REPOSITORY_ROOT / "infra" / "prepare").rglob(suffix)
+    def test_legacy_helper_areas_are_removed(self):
+        removed_paths = (
+            REPOSITORY_ROOT / "infra" / "prepare",
+            REPOSITORY_ROOT / "infra" / "swarm",
+            REPOSITORY_ROOT / "window-wsl-setup.ps1",
         )
+        present_paths = [
+            path.relative_to(REPOSITORY_ROOT).as_posix()
+            for path in removed_paths
+            if path.exists()
+        ]
 
-        self.assertEqual([], executable_helpers)
+        self.assertEqual([], present_paths)
 
     def test_java_maven_project_surface_is_not_reintroduced(self):
         forbidden_paths = (
@@ -210,31 +213,6 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertIn("PYTHONPATH=src python3 -m tiny_swarm_world setup run --live", deployment_doc)
         self.assertIn("Nexus setup is owned by the Python setup workflow", deployment_doc)
         self.assertNotIn("python3 infra/prepare/nexus/setup.py", deployment_doc)
-
-    def test_swarm_legacy_area_documents_unsupported_entrypoint(self):
-        readme = _read_infra_document("swarm/README.md")
-
-        self.assertIn("file_copy.py", readme)
-        self.assertIn("legacy", readme.lower())
-        self.assertIn("src/tiny_swarm_world/__main__.py", readme)
-        self.assertIn("normal development quality checks", readme)
-
-    def test_prepare_area_documents_retired_helpers(self):
-        root_readme = _read_infra_document("prepare/README.md")
-        readme = _read_infra_document("prepare/portainer/README.md")
-        nexus_readme = _read_infra_document("prepare/nexus/README.md")
-
-        self.assertIn("setup run --live", root_readme)
-        self.assertIn("prepare.sh", readme)
-        self.assertIn("portain_setup.py", readme)
-        self.assertIn("retired", readme.lower())
-        self.assertIn("setup.py", nexus_readme)
-        self.assertIn("retired", nexus_readme.lower())
-
-
-def _read_infra_document(relative_path: str) -> str:
-    return (INFRA_ROOT / relative_path).read_text(encoding="utf-8")
-
 
 def _read_document(path: Path) -> str:
     return path.read_text(encoding="utf-8")
