@@ -87,6 +87,33 @@ services:
             scripts,
         )
 
+    def test_deploy_stack_keeps_manager_constrained_published_ports_in_host_mode(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+        compose = """
+services:
+  portainer:
+    image: portainer/portainer-ce:2.39.2
+    ports:
+      - target: 9000
+        published: 9000
+        protocol: tcp
+        mode: host
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+"""
+
+        with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+            with patch.object(runtime, "_transfer_stack_assets"):
+                runtime.deploy_stack(StackDefinition(name="portainer", compose_content=compose))
+
+        scripts = [call.args[0] for call in run_manager_shell.call_args_list]
+        self.assertIn(
+            "docker service update --publish-add published=9000,target=9000,protocol=tcp,mode=host portainer_portainer",
+            scripts,
+        )
+
     def test_stack_exists_reads_docker_stack_names_through_lxc(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
 
