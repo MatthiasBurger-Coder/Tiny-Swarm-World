@@ -147,8 +147,13 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
                 published = str(port["published"])
                 target = str(port["target"])
                 protocol = str(port.get("protocol", "tcp"))
+                current_mode = str(port.get("mode", "ingress"))
                 self._run_manager_shell(
-                    f"docker service update --publish-rm {shlex.quote(published)} "
+                    "docker service update "
+                    f"--publish-rm published={shlex.quote(published)},"
+                    f"target={shlex.quote(target)},"
+                    f"protocol={shlex.quote(protocol)},"
+                    f"mode={shlex.quote(current_mode)} "
                     f"{shlex.quote(swarm_service_name)} >/dev/null 2>&1 || true"
                 )
                 self._run_manager_shell(

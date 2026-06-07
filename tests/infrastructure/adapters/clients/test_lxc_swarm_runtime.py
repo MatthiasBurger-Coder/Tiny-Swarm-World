@@ -75,7 +75,11 @@ services:
 
         scripts = [call.args[0] for call in run_manager_shell.call_args_list]
         self.assertIn(
-            "docker service update --publish-rm 8081 nexus_nexus >/dev/null 2>&1 || true",
+            (
+                "docker service update --publish-rm "
+                "published=8081,target=8081,protocol=tcp,mode=host "
+                "nexus_nexus >/dev/null 2>&1 || true"
+            ),
             scripts,
         )
         self.assertIn(
