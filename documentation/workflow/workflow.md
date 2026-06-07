@@ -78,9 +78,10 @@ Change type:
 
 Affected process strand:
 
-- `./install.sh` fresh reset, preflight, platform init, swarm bootstrap/join,
-  stack deployment, port exposure, browser route verification, Vaultwarden
-  credential inventory verification, and final verification.
+- `./install.sh` governed fresh-install wrapper, preflight, platform init,
+  swarm bootstrap/join, stack deployment, port exposure, browser route
+  verification, Vaultwarden credential inventory verification, and final
+  verification.
 
 Affected architecture area:
 
@@ -709,8 +710,8 @@ Stop workflow execution when:
 
 ## Definition Of Done
 
-- `./install.sh fresh reset` followed by `./install.sh` completes with final
-  status `completed` or `passed`.
+- `./install.sh --confirm-reset` completes the governed reset plus setup run
+  with final status `completed` or `passed`.
 - Three expected LXD instances exist and are running.
 - Docker Swarm has one manager and two workers.
 - Expected stacks are deployed:
@@ -744,8 +745,8 @@ git show-ref --verify --quiet refs/heads/feature/live-greenpath-repair-loop-2026
 Required execution sequence:
 
 ```bash
-./install.sh fresh reset
-./install.sh
+python3 tools/install_debugger.py
+./install.sh --confirm-reset
 python3 tools/quality_gate.py test
 TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live
 git diff --check
