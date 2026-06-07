@@ -235,8 +235,13 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             [
                 {"target": 80, "published": 80, "protocol": "tcp", "mode": "host"},
                 {"target": 8086, "published": 8086, "protocol": "tcp", "mode": "host"},
+                {"target": 443, "published": 443, "protocol": "tcp", "mode": "host"},
             ],
             services["service-access-nginx"]["ports"],
+        )
+        self.assertEqual(
+            "${TSW_VAULTWARDEN_DOMAIN:-https://localhost}",
+            services["vaultwarden"]["environment"]["DOMAIN"],
         )
         self.assertNotIn("ports", services["vaultwarden"])
         self.assertEqual(
@@ -281,12 +286,19 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
                 dockerfile = dockerfile_path.read_text(encoding="utf-8")
                 self.assertIn("FROM nginx:mainline-alpine", dockerfile)
                 self.assertIn(copy_line, dockerfile)
+                if service_name == "service-access-nginx":
+                    self.assertIn("apk add --no-cache openssl", dockerfile)
+                    self.assertIn("generate-self-signed-cert.sh", dockerfile)
 
     def test_service_access_image_publisher_packages_dashboard_and_nginx_assets(self):
         publisher = _CapturingImagePublisher()
         expected_archives = {
             "service-access-dashboard": {"Dockerfile", "index.html"},
-            "service-access-nginx": {"Dockerfile", "default.conf"},
+            "service-access-nginx": {
+                "Dockerfile",
+                "default.conf",
+                "generate-self-signed-cert.sh",
+            },
         }
 
         for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS:

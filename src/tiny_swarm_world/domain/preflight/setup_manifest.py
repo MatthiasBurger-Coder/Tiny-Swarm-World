@@ -150,6 +150,7 @@ def default_setup_manifest(
                 ports=(
                     SetupPortRequirement(80, "Service Access dashboard"),
                     SetupPortRequirement(8086, "Vaultwarden"),
+                    SetupPortRequirement(443, "Vaultwarden HTTPS"),
                 ),
                 secrets=(
                     SetupSecretRequirement(

@@ -13,7 +13,7 @@ services:
     image: ${TSW_VAULTWARDEN_IMAGE:-vaultwarden/server:latest}
     environment:
       ADMIN_TOKEN_FILE: /run/secrets/vaultwarden_admin_token
-      DOMAIN: ${TSW_VAULTWARDEN_DOMAIN:-http://localhost:8086}
+      DOMAIN: ${TSW_VAULTWARDEN_DOMAIN:-https://localhost}
       SIGNUPS_ALLOWED: "false"
       INVITATIONS_ALLOWED: "true"
     secrets:
@@ -37,6 +37,10 @@ services:
         mode: host
       - target: 8086
         published: 8086
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
         protocol: tcp
         mode: host
     networks:

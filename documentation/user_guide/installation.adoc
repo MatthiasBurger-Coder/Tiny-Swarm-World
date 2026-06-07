@@ -155,6 +155,14 @@ For repeatable Linux or WSL operator runs with local evidence capture, use:
 ./install.sh
 ----
 
+For deliberate test-system automation, the wrapper confirmation prompt can be
+replaced by an explicit flag:
+
+[source,bash]
+----
+./install.sh --confirm-reset
+----
+
 The wrapper writes run context, reset logs, setup logs and exit codes below
 `.tiny-swarm-world/evidence/installation-tests/wsl2/<UTC timestamp>/`,
 including `reset-run.log`, `reset-run.exit`, `setup-run.log`, and
@@ -212,7 +220,10 @@ Mutating workflow-level commands such as `platform init`, `platform reconcile`,
 
 `platform reset` and `platform destroy` additionally require their exact
 confirmation phrases. `install.sh` asks for
-`RESET_TINY_SWARM_PLATFORM` before it runs the reset prelude.
+`RESET_TINY_SWARM_PLATFORM` before it runs the reset prelude unless the
+operator supplies `--confirm-reset`. The flag confirms only the wrapper prompt;
+the reset prelude still calls `platform reset --confirm
+RESET_TINY_SWARM_PLATFORM`.
 
 == LXC Proxy Drift Repair
 
@@ -261,8 +272,9 @@ static landing page, Vaultwarden and service-access NGINX assets. The setup
 CLI selects this profile by default. Operators who intentionally want only the
 older base service set can pass `--service-profile default`.
 
-The Swarm target publishes port `80` for the service-access landing page and
-port `8086` for the Vaultwarden route. WSL `localhost` forwarding is a
+The Swarm target publishes port `80` for the service-access landing page,
+port `443` for the Vaultwarden HTTPS route, and port `8086` for the local HTTP
+compatibility route. WSL `localhost` forwarding is a
 separate host-network concern. Endpoint defaults are configuration hints, not
 service-health evidence. If localhost forwarding is stale, use the current
 Swarm node IP only for manual diagnosis until the forwarding issue is repaired.

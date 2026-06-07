@@ -42,7 +42,7 @@ class TestServiceStackContract(unittest.TestCase):
             selected_by_name["service-access"].service_readiness_target_id,
         )
         self.assertEqual(
-            ("http://localhost", "http://localhost:8086"),
+            ("http://localhost", "https://localhost"),
             tuple(endpoint.url for endpoint in selected_by_name["service-access"].endpoints),
         )
 
@@ -68,7 +68,7 @@ class TestServiceStackContract(unittest.TestCase):
         )
         self.assertEqual(("http://localhost:8084",), _endpoint_urls(endpoints_by_stack["swagger"]))
         self.assertEqual(
-            ("http://localhost", "http://localhost:8086"),
+            ("http://localhost", "https://localhost"),
             _endpoint_urls(endpoints_by_stack["service-access"]),
         )
         all_endpoints = tuple(
@@ -147,6 +147,11 @@ class TestServiceStackContract(unittest.TestCase):
     def test_rejects_host_specific_endpoint_url(self):
         with self.assertRaises(ValueError):
             ServiceEndpoint("service", f"http://{ipv4_address(10, 157, 2, 182)}:8080")
+
+    def test_accepts_localhost_https_endpoint_url(self):
+        endpoint = ServiceEndpoint("vaultwarden", "https://localhost")
+
+        self.assertEqual("https://localhost", endpoint.url)
 
     def test_rejects_endpoint_with_credentials_or_query(self):
         with self.assertRaises(ValueError):

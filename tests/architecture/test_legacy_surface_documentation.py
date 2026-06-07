@@ -46,12 +46,15 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
                 self.assertIn(f"| {path} | {status} |", catalog)
 
     def test_compose_area_has_no_host_side_shell_orchestration(self):
+        allowed_container_entrypoint_scripts = {
+            "infra/compose/service-access/nginx/generate-self-signed-cert.sh",
+        }
         shell_scripts = {
             path.relative_to(REPOSITORY_ROOT).as_posix()
             for path in (REPOSITORY_ROOT / "infra" / "compose").rglob("*.sh")
         }
 
-        self.assertEqual(set(), shell_scripts)
+        self.assertEqual(allowed_container_entrypoint_scripts, shell_scripts)
 
         forbidden_fragments = (
             "docker build",
@@ -146,9 +149,13 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             INFRA_ROOT / "compose" / "service-access" / "nginx" / "default.conf"
         ).read_text(encoding="utf-8")
 
-        self.assertEqual(2, nginx_config.count("access_log off;"))
+        self.assertEqual(3, nginx_config.count("access_log off;"))
         self.assertIn("listen 80;", nginx_config)
         self.assertIn("listen 8086;", nginx_config)
+        self.assertIn("listen 443 ssl;", nginx_config)
+        self.assertIn("ssl_certificate /etc/nginx/tls/vaultwarden.crt;", nginx_config)
+        self.assertIn("ssl_certificate_key /etc/nginx/tls/vaultwarden.key;", nginx_config)
+        self.assertIn("proxy_set_header X-Forwarded-Proto https;", nginx_config)
         self.assertIn("resolver 127.0.0.11", nginx_config)
         self.assertIn(
             "set $dashboard_upstream http://tasks.service-access-dashboard:80;",

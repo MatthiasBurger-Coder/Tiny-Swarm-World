@@ -125,13 +125,13 @@ Remaining risks and debt:
 * service reachability could be falsely presented as healthy without fresh
   observed-state or HTTP evidence; current dashboard assets render catalog
   reachability as unknown unless evidence is collected separately;
-* the central `http://localhost` service-access route is implemented in
+* the central `http://localhost` service-access route and local `https://localhost` Vaultwarden route are implemented in
   repository assets but still needs a fresh live redeployment and browser smoke
   test before it can be claimed as verified;
 * local registry availability and image publication still need live
   observed-state hardening beyond the static artifact contracts;
 * plain HTTP access is acceptable only as a local development baseline until a
-  later ADR accepts TLS, certificate automation or wider exposure controls;
+  later ADR accepts public certificate automation or wider exposure controls;
 * scope could drift into a React/browser frontend project or Traefik routing
   without the required ADR and quality-gate coverage.
 

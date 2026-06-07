@@ -141,7 +141,7 @@ Quality scenarios:
   Vaultwarden ports, while `--service-profile default` can omit the management
   stack intentionally;
 * committed service-access YAML loads through the compose repository and
-  publishes only the service-access NGINX ports `80` and `8086`;
+  publishes only the service-access NGINX ports `80`, `8086`, and `443`;
 * Vaultwarden receives its administrator token through an external Swarm
   secret name and no committed token value or static password default exists;
 * deployment apply blocks before Portainer stack create/update when the

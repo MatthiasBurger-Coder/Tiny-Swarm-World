@@ -1251,7 +1251,7 @@ class TestComposition(unittest.TestCase):
             composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
             step.service.listen_address,
         )
-        self.assertEqual(10, len(step.service.setup_manifest.required_ports))
+        self.assertEqual(11, len(step.service.setup_manifest.required_ports))
         self.assertEqual("Service Access", step.service.setup_manifest.services[-1].name)
 
     def test_composed_wsl_socat_expose_verifies_not_required_on_native_linux(self):
@@ -1281,7 +1281,7 @@ class TestComposition(unittest.TestCase):
             composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
             step.service.listen_address,
         )
-        self.assertEqual(10, len(step.service.setup_manifest.required_ports))
+        self.assertEqual(11, len(step.service.setup_manifest.required_ports))
 
     def test_composed_default_lxc_expose_without_live_consent_fails_closed(self):
         with patch.object(
@@ -1298,7 +1298,7 @@ class TestComposition(unittest.TestCase):
             result.verification_results[0].target_id,
         )
         self.assertEqual(
-            "10",
+            "11",
             result.verification_results[0].evidence["lookup_failure_count"],
         )
 

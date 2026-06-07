@@ -61,7 +61,7 @@ The accepted routing baseline is `SERVICE_ACCESS_CENTRAL_NGINX`:
   `/rabbitmq`, `/sonarqube`, `/swagger` and `/vaultwarden` are managed by
   service-access NGINX;
 * the Swagger/NGINX stack uses published port `8084`;
-* the Vaultwarden route uses published port `8086`;
+* the Vaultwarden HTTPS route uses published port `443`, while `8086` remains a local HTTP compatibility route;
 * Traefik remains deferred until a later ADR and tests add a provider, labels,
   dashboard exposure policy, network model and rollback.
 

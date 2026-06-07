@@ -5,6 +5,7 @@ SERVICE_PROFILE="${SERVICE_PROFILE:-service-access}"
 GENERATE_SECRETS=1
 SECRET_ENV_FILE="${TSW_INSTALL_ENV_FILE:-.tiny-swarm-world/local/live-installation.env}"
 RESET_CONFIRMATION="RESET_TINY_SWARM_PLATFORM"
+RESET_CONFIRMED_BY_FLAG=0
 
 REQUIRED_SECRETS=(
   TSW_PORTAINER_PASSWORD
@@ -21,11 +22,12 @@ usage() {
 Tiny Swarm World live installation wrapper.
 
 Usage:
-  ./install.sh [--service-profile NAME] [--no-generate-secrets]
+  ./install.sh [--service-profile NAME] [--no-generate-secrets] [--confirm-reset]
 
 Options:
   --service-profile NAME   Service profile passed to setup run (default: service-access).
   --no-generate-secrets    Fail if required TSW_* secrets are missing.
+  --confirm-reset          Confirm the governed fresh-install reset without prompting.
   -h, --help               Show this help.
 
 Optional environment:
@@ -124,6 +126,11 @@ run_recorded_command() {
 confirm_reset() {
   local answer=""
 
+  if (( RESET_CONFIRMED_BY_FLAG == 1 )); then
+    printf 'Fresh-install reset confirmed by explicit --confirm-reset flag.\n'
+    return
+  fi
+
   printf 'Fresh install will reset configured Tiny Swarm World managed state.\n'
   printf 'Type %s to continue: ' "$RESET_CONFIRMATION"
   if ! IFS= read -r answer; then
@@ -141,6 +148,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-generate-secrets)
       GENERATE_SECRETS=0
+      shift
+      ;;
+    --confirm-reset)
+      RESET_CONFIRMED_BY_FLAG=1
       shift
       ;;
     -h|--help)
@@ -234,6 +245,11 @@ EOF
 
 confirm_reset
 printf 'reset_confirmation_present=yes\n' >>"$EVIDENCE_DIR/context.txt"
+if (( RESET_CONFIRMED_BY_FLAG == 1 )); then
+  printf 'reset_confirmation_source=explicit_flag\n' >>"$EVIDENCE_DIR/context.txt"
+else
+  printf 'reset_confirmation_source=interactive_prompt\n' >>"$EVIDENCE_DIR/context.txt"
+fi
 
 reset_command="PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm $RESET_CONFIRMATION --service-profile $(shell_quote "$SERVICE_PROFILE")"
 setup_command="PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --service-profile $(shell_quote "$SERVICE_PROFILE")"

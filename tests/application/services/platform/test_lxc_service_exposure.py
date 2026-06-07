@@ -37,8 +37,8 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.ensure_service_exposure()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("10", result.evidence["published_port_count"])
-        self.assertEqual("10", result.evidence["existing_count"])
+        self.assertEqual("11", result.evidence["published_port_count"])
+        self.assertEqual("11", result.evidence["existing_count"])
         self.assertEqual("0", result.evidence["created_count"])
         self.assertEqual([], runtime.created)
         self.assertEqual("swarm-manager", result.evidence["gateway_node"])

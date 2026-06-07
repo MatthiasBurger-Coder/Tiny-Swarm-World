@@ -39,6 +39,7 @@ class TestInstallScript(unittest.TestCase):
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("fresh_install_reset=required", context)
             self.assertIn("reset_confirmation_present=yes", context)
+            self.assertIn("reset_confirmation_source=interactive_prompt", context)
             self.assertIn("reset_exit=0", context)
             self.assertIn("setup_exit=0", context)
 
@@ -108,6 +109,24 @@ class TestInstallScript(unittest.TestCase):
             self.assertEqual(1, result.returncode)
             self.assertEqual([], fixture.recorded_commands())
             self.assertIn("confirmation did not match", result.stderr)
+
+    def test_install_confirm_reset_flag_skips_interactive_reset_phrase(self):
+        with _install_script_fixture(
+            extra_args=("--confirm-reset",),
+            reset_confirmation="",
+        ) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(2, len(fixture.recorded_commands()))
+            self.assertIn(
+                "Fresh-install reset confirmed by explicit --confirm-reset flag.",
+                result.stdout,
+            )
+            evidence_dir = fixture.single_evidence_dir()
+            context = (evidence_dir / "context.txt").read_text()
+            self.assertIn("reset_confirmation_present=yes", context)
+            self.assertIn("reset_confirmation_source=explicit_flag", context)
 
     def test_install_uses_default_vaultwarden_secret_name_when_not_provided(self):
         secret_environment = _required_secret_environment()

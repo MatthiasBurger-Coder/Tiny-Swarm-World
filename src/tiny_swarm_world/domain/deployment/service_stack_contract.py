@@ -28,8 +28,8 @@ class ServiceEndpoint:
         if not ENDPOINT_NAME_PATTERN.fullmatch(self.name):
             raise ValueError("service endpoint name contains invalid characters")
         parsed = urlparse(self.url)
-        if parsed.scheme != "http" or parsed.hostname != "localhost":
-            raise ValueError("service endpoint URL must use http://localhost")
+        if parsed.scheme not in {"http", "https"} or parsed.hostname != "localhost":
+            raise ValueError("service endpoint URL must use localhost over http or https")
         if parsed.username or parsed.password or parsed.query or parsed.fragment:
             raise ValueError("service endpoint URL must not carry credentials or query data")
         try:
@@ -132,7 +132,7 @@ SERVICE_ACCESS_STACK_CONTRACT = ServiceStackContract(
     ("service-access-dashboard", "vaultwarden", "service-access-nginx"),
     endpoints=(
         ServiceEndpoint("service-access", "http://localhost"),
-        ServiceEndpoint("vaultwarden", "http://localhost:8086"),
+        ServiceEndpoint("vaultwarden", "https://localhost"),
     ),
 )
 
