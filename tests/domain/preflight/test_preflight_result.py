@@ -174,11 +174,11 @@ class TestPreflightResult(unittest.TestCase):
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
         self.assertIn(
-            (8086, "Vaultwarden"),
+            (8086, "Infisical"),
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
         self.assertIn(
-            (443, "Vaultwarden HTTPS"),
+            (443, "Infisical HTTPS"),
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
         self.assertIn(
@@ -200,51 +200,29 @@ class TestPreflightResult(unittest.TestCase):
                 if port.service == "Service Access dashboard"
             ).host_preflight_required
         )
-        self.assertIn(
-            "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
-            tuple(secret.name for secret in manifest.required_secrets),
-        )
         self.assertEqual(
-            "secret_name",
-            next(
-                secret
-                for secret in manifest.required_secrets
-                if secret.name == "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"
-            ).value_kind,
+            (
+                "TSW_INFISICAL_ENCRYPTION_KEY",
+                "TSW_INFISICAL_AUTH_SECRET",
+                "TSW_INFISICAL_POSTGRES_PASSWORD",
+            ),
+            tuple(secret.name for secret in manifest.required_secrets[-3:]),
         )
         service_access_payload = next(
             service
             for service in manifest.to_dict()["services"]
             if service["name"] == "Service Access"
         )
-        vaultwarden_secret_payload = next(
-            secret
-            for secret in service_access_payload["secrets"]
-            if secret["name"] == "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"
-        )
-        self.assertEqual("secret_name", vaultwarden_secret_payload["value_kind"])
-        self.assertIn(
-            "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
-            tuple(secret.name for secret in configuration.required_secrets),
-        )
-        vaultwarden_secret = next(
-            secret
-            for secret in configuration.required_secrets
-            if secret.name == "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"
-        )
-        vaultwarden_default = next(
-            default
-            for default in configuration.static_secret_defaults
-            if default.name == "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"
-        )
-        self.assertEqual("secret_name", vaultwarden_secret.value_kind)
-        self.assertEqual("secret_name", vaultwarden_default.value_kind)
-        self.assertNotEqual(
-            "secret_value",
-            vaultwarden_default.value_kind,
+        self.assertEqual(
+            [
+                "TSW_INFISICAL_ENCRYPTION_KEY",
+                "TSW_INFISICAL_AUTH_SECRET",
+                "TSW_INFISICAL_POSTGRES_PASSWORD",
+            ],
+            [secret["name"] for secret in service_access_payload["secrets"]],
         )
         self.assertEqual(
-            ("TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",),
+            (),
             tuple(default.name for default in configuration.static_secret_defaults),
         )
         self.assertNotIn(token_marker(), repr(manifest.to_dict()).lower())

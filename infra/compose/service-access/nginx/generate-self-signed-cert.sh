@@ -2,8 +2,8 @@
 set -eu
 
 certificate_dir="${TSW_SERVICE_ACCESS_TLS_DIR:-/etc/nginx/tls}"
-certificate_file="${certificate_dir}/vaultwarden.crt"
-key_file="${certificate_dir}/vaultwarden.key"
+certificate_file="${certificate_dir}/infisical.crt"
+key_file="${certificate_dir}/infisical.key"
 certificate_subject="${TSW_SERVICE_ACCESS_TLS_SUBJECT:-/CN=localhost}"
 subject_alt_names="${TSW_SERVICE_ACCESS_TLS_SAN:-DNS:localhost,IP:127.0.0.1}"
 

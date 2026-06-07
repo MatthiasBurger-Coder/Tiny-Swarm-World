@@ -129,10 +129,10 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
 
 SERVICE_ACCESS_STACK_CONTRACT = ServiceStackContract(
     "service-access",
-    ("service-access-dashboard", "vaultwarden", "service-access-nginx"),
+    ("service-access-dashboard", "infisical", "infisical-db", "infisical-redis", "service-access-nginx"),
     endpoints=(
         ServiceEndpoint("service-access", "http://localhost"),
-        ServiceEndpoint("vaultwarden", "https://localhost"),
+        ServiceEndpoint("infisical", "https://localhost"),
     ),
 )
 

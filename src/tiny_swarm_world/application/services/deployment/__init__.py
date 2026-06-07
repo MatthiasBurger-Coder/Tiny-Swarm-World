@@ -18,6 +18,10 @@ from tiny_swarm_world.application.services.deployment.ensure_portainer_endpoint 
 from tiny_swarm_world.application.services.deployment.ensure_portainer_stack import EnsurePortainerStack
 from tiny_swarm_world.application.services.deployment.ensure_service_stack import EnsureServiceStack
 from tiny_swarm_world.application.services.deployment.ensure_swarm_stack import EnsureSwarmStack
+from tiny_swarm_world.application.services.deployment.ensure_infisical_secret_items import (
+    EnsureInfisicalSecretItems,
+    InfisicalSecretItem,
+)
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
     build_default_service_stack_steps,
 )
@@ -50,7 +54,9 @@ __all__ = [
     "EnsurePortainerStack",
     "EnsureServiceStack",
     "EnsureSwarmStack",
+    "EnsureInfisicalSecretItems",
     "VerifyExternalSwarmInput",
     "VerifySwarmServiceReadiness",
+    "InfisicalSecretItem",
     "build_default_service_stack_steps",
 ]

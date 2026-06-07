@@ -237,23 +237,22 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Provide the secret", secret_check.remediation)
         self.assertNotIn("password_value", repr(secret_check.to_dict()).lower())
 
-    async def test_static_local_secret_name_default_satisfies_missing_secret_name_source(self):
+    async def test_missing_infisical_platform_secret_blocks_service_access_preflight(self):
         configuration = default_preflight_configuration(
             service_profile=ServiceStackProfile.SERVICE_ACCESS
         )
         result = await PreflightService(
             _fake_probe(
-                secret_availability={"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": False},
+                secret_availability={"TSW_INFISICAL_ENCRYPTION_KEY": False},
             ),
             configuration,
         ).run()
 
         checks_by_id = {check.check_id: check for check in result.checks}
-        secret_check = checks_by_id["SECRET-TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"]
+        secret_check = checks_by_id["SECRET-TSW_INFISICAL_ENCRYPTION_KEY"]
 
-        self.assertTrue(result.passed)
-        self.assertEqual("secret_name", secret_check.evidence["value_kind"])
-        self.assertEqual("static_local_secret_name_default", secret_check.evidence["source"])
+        self.assertFalse(result.passed)
+        self.assertEqual("secret_value", secret_check.evidence["value_kind"])
         self.assertNotIn(token_marker(), repr(secret_check.to_dict()).casefold())
 
     async def test_host_port_and_ignore_policy_failures_are_reported(self):

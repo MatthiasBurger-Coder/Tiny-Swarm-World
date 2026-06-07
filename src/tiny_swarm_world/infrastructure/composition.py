@@ -32,12 +32,12 @@ from tiny_swarm_world.application.services.deployment import (
     DeploymentWorkflowResult,
     DeploymentWorkflowStatus,
     DeploymentVerifyWorkflow,
-    EnsureExternalSwarmSecret,
     EnsurePortainerEndpoint,
     EnsurePortainerAdminAccess,
     EnsureSwarmStack,
-    VerifyExternalSwarmInput,
+    EnsureInfisicalSecretItems,
     VerifySwarmServiceReadiness,
+    InfisicalSecretItem,
 )
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
     DEFAULT_PORTAINER_ENDPOINT_NAME,
@@ -147,6 +147,9 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
     LxcPortainerHttpClient,
     LxcSwarmRuntime,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.infisical_playwright_client import (
+    PlaywrightInfisicalClient,
+)
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
@@ -177,9 +180,10 @@ from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
-VAULTWARDEN_ADMIN_TOKEN_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN"
-VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT = "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET"
-DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME = "tsw_vaultwarden_admin_token"
+SEED_INFISICAL_ITEMS_ENVIRONMENT = "TSW_SEED_INFISICAL_ITEMS"
+INFISICAL_LOGIN_EMAIL_ENVIRONMENT = "TSW_INFISICAL_LOGIN_EMAIL"
+INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_PASSWORD"
+INFISICAL_URL_ENVIRONMENT = "TSW_INFISICAL_URL"
 SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
 DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:5000"
 LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
@@ -188,6 +192,9 @@ DEFAULT_LXC_MANAGER_PROXY_PROFILE = "docker-swarm-manager"
 JENKINS_IMAGE_ENVIRONMENT = "TSW_JENKINS_IMAGE"
 SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"
 SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_NGINX_IMAGE"
+INFISICAL_ENCRYPTION_KEY_ENVIRONMENT = "TSW_INFISICAL_ENCRYPTION_KEY"
+INFISICAL_AUTH_SECRET_ENVIRONMENT = "TSW_INFISICAL_AUTH_SECRET"
+INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_POSTGRES_PASSWORD"
 REGISTRY_ENDPOINT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*(?::[0-9]{1,5})?$")
 DEFAULT_LXC_PLATFORM_NODES = (
     NodeSpec("swarm-manager", NodeRole.MANAGER, NodeProviderKind.LXC_NATIVE),
@@ -1185,14 +1192,6 @@ def build_lxc_deployment_services(
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
     swarm_runtime = LxcSwarmRuntime(backend=backend)
     stack_environment = _deployment_stack_environment(selected_service_profile)
-    external_input_checks = _service_access_external_input_checks(
-        selected_service_profile,
-        swarm_runtime=swarm_runtime,
-    )
-    external_input_steps = _service_access_external_input_steps(
-        selected_service_profile,
-        swarm_runtime=swarm_runtime,
-    )
     compose_repository = ComposeFileRepositoryYaml()
     portainer_admin_client = LxcPortainerAdminClient(backend=backend)
     portainer_client = LxcPortainerHttpClient(
@@ -1233,6 +1232,7 @@ def build_lxc_deployment_services(
         excluded_stack_names=("nexus",),
         stack_environments=stack_environment,
     )
+    infisical_seed_steps = _infisical_secret_seed_steps(selected_service_profile)
     readiness_checks = tuple(
         VerifySwarmServiceReadiness(
             swarm_runtime=swarm_runtime,
@@ -1249,14 +1249,12 @@ def build_lxc_deployment_services(
                 kind=DeploymentWorkflowKind.BOOTSTRAP,
             ),
             apply=DeploymentApplyWorkflow(
-                application_steps,
+                (*application_steps, *infisical_seed_steps),
                 pre_apply_steps=(
-                    *external_input_steps,
                     _PrepareLxcStackAssets(swarm_runtime, "swagger"),
                 ),
-                pre_apply_checks=external_input_checks,
             ),
-            verify=DeploymentVerifyWorkflow((*external_input_checks, *readiness_checks)),
+            verify=DeploymentVerifyWorkflow(readiness_checks),
         )
     )
 
@@ -1681,9 +1679,14 @@ def _deployment_stack_environment(
             SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT,
             f"{registry_endpoint}/service-access-nginx:latest",
         ),
-        VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT: _operator_config_value(
-            VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
-            DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
+        INFISICAL_ENCRYPTION_KEY_ENVIRONMENT: _operator_secret_value(
+            INFISICAL_ENCRYPTION_KEY_ENVIRONMENT,
+        ),
+        INFISICAL_AUTH_SECRET_ENVIRONMENT: _operator_secret_value(
+            INFISICAL_AUTH_SECRET_ENVIRONMENT,
+        ),
+        INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT: _operator_secret_value(
+            INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT,
         ),
     }
     return environment
@@ -1701,44 +1704,60 @@ def _swarm_registry_endpoint() -> str:
     return endpoint
 
 
-def _service_access_external_input_steps(
+def _infisical_secret_seed_steps(
     service_profile: ServiceStackProfile,
-    *,
-    swarm_runtime: PortSwarmStackRuntime,
-) -> tuple[EnsureExternalSwarmSecret, ...]:
+) -> tuple[EnsureInfisicalSecretItems, ...]:
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
         return ()
-    resource_value = os.environ.get(VAULTWARDEN_ADMIN_TOKEN_ENVIRONMENT)
-    if not resource_value:
+    if os.environ.get(SEED_INFISICAL_ITEMS_ENVIRONMENT) != "1":
         return ()
     return (
-        EnsureExternalSwarmSecret(
-            swarm_runtime=swarm_runtime,
-            resource_name=_operator_config_value(
-                VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
-                DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
+        EnsureInfisicalSecretItems(
+            infisical_client=PlaywrightInfisicalClient(
+                base_url=_operator_config_value(
+                    INFISICAL_URL_ENVIRONMENT,
+                    "https://localhost",
+                ),
             ),
-            resource_value=resource_value,
+            login_email=_required_operator_secret_value(INFISICAL_LOGIN_EMAIL_ENVIRONMENT),
+            password=_required_operator_secret_value(INFISICAL_PASSWORD_ENVIRONMENT),
+            items=_infisical_seed_items(),
         ),
     )
 
 
-def _service_access_external_input_checks(
-    service_profile: ServiceStackProfile,
-    *,
-    swarm_runtime: PortSwarmStackRuntime,
-) -> tuple[VerifyExternalSwarmInput, ...]:
-    checks: list[VerifyExternalSwarmInput] = []
-    if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
-        return tuple(checks)
-    checks.append(
-        VerifyExternalSwarmInput(
-            swarm_runtime=swarm_runtime,
-            resource_name=_operator_config_value(
-                VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT,
-                DEFAULT_VAULTWARDEN_ADMIN_INPUT_NAME,
-            ),
-            source_ref=_operator_config_source_ref(VAULTWARDEN_ADMIN_INPUT_ENVIRONMENT),
+def _infisical_seed_items() -> tuple[InfisicalSecretItem, ...]:
+    return (
+        InfisicalSecretItem(
+            "platform/jenkins",
+            _operator_config_value("TSW_JENKINS_ADMIN_USERNAME", "admin"),
+            _required_operator_secret_value("TSW_JENKINS_ADMIN_PASSWORD"),
+        ),
+        InfisicalSecretItem(
+            "platform/nexus",
+            _operator_config_value("TSW_NEXUS_ADMIN_USERNAME", "admin"),
+            _required_operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD"),
+        ),
+        InfisicalSecretItem(
+            "platform/portainer",
+            _operator_config_value("TSW_PORTAINER_USERNAME", "admin"),
+            _required_operator_secret_value("TSW_PORTAINER_PASSWORD"),
+        ),
+        InfisicalSecretItem(
+            "platform/rabbitmq",
+            _operator_config_value("TSW_RABBITMQ_USERNAME", "admin"),
+            _required_operator_secret_value("TSW_RABBITMQ_PASSWORD"),
+        ),
+        InfisicalSecretItem(
+            "platform/sonarqube",
+            _operator_config_value("TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
+            _required_operator_secret_value("TSW_SONARQUBE_ADMIN_PASSWORD"),
         ),
     )
-    return tuple(checks)
+
+
+def _required_operator_secret_value(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise ValueError(f"Required operator secret is missing: {name}")
+    return value

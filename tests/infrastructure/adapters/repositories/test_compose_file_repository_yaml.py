@@ -260,24 +260,25 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             services["service-access-nginx"]["ports"],
         )
         self.assertEqual(
-            "${TSW_VAULTWARDEN_DOMAIN:-https://localhost}",
-            services["vaultwarden"]["environment"]["DOMAIN"],
+            "${TSW_INFISICAL_IMAGE:-infisical/infisical:latest}",
+            services["infisical"]["image"],
         )
         self.assertEqual(
-            '${TSW_VAULTWARDEN_SIGNUPS_ALLOWED:-"true"}',
-            services["vaultwarden"]["environment"]["SIGNUPS_ALLOWED"],
+            "${TSW_INFISICAL_SITE_URL:-https://localhost}",
+            services["infisical"]["environment"]["SITE_URL"],
         )
-        self.assertNotIn("ports", services["vaultwarden"])
         self.assertEqual(
-            "/run/secrets/vaultwarden_admin_token",
-            services["vaultwarden"]["environment"]["ADMIN_TOKEN_FILE"],
+            "${TSW_INFISICAL_ENCRYPTION_KEY}",
+            services["infisical"]["environment"]["ENCRYPTION_KEY"],
         )
-        self.assertNotIn("ADMIN_TOKEN", services["vaultwarden"]["environment"])
         self.assertEqual(
-            {"external": True, "name": "${TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET:-tsw_vaultwarden_admin_token}"},
-            compose_data["secrets"]["vaultwarden_admin_token"],
+            "${TSW_INFISICAL_AUTH_SECRET}",
+            services["infisical"]["environment"]["AUTH_SECRET"],
         )
-        self.assertEqual(["vaultwarden_data:/data"], services["vaultwarden"]["volumes"])
+        self.assertNotIn("ports", services["infisical"])
+        self.assertNotIn("secrets", compose_data)
+        self.assertEqual(["infisical_pg_data:/var/lib/postgresql/data"], services["infisical-db"]["volumes"])
+        self.assertEqual(["infisical_redis_data:/data"], services["infisical-redis"]["volumes"])
         self.assertNotIn("${TSW_REMOTE_STACK_ROOT", compose_content)
 
     def test_service_access_dashboard_and_nginx_are_image_packaged(self):
@@ -359,7 +360,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
                 "/rabbitmq",
                 "/sonarqube",
                 "/swagger",
-                "/vaultwarden",
+                "/infisical",
             },
             set(links),
         )

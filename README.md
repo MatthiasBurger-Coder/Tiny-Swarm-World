@@ -34,8 +34,8 @@ The system follows a hexagonal architecture and provides async Python automation
   - Swagger + NGINX (API documentation)
 - Service-access management assets:
   - static landing page content for server links and credential references
-  - Vaultwarden and service-access NGINX stack configuration
-  - password-value visibility restricted to Vaultwarden's authenticated UI
+  - Infisical and service-access NGINX stack configuration
+  - password-value visibility restricted to Infisical's authenticated UI
 - Modular infrastructure assets in `infra/config` and `infra/compose`, driven by the Python setup workflow.
 - WSL2 capability checks for managed LXC providers, with optional `socat` forwarding where needed.
 - Rich test suite and enforced separation between domain, application, and infrastructure layers.
@@ -198,7 +198,7 @@ Swarm World ownership evidence is verified before mutation.
 These behaviors are verified by unit tests, architecture checks, and static
 quality gates. This repository workflow did not run live LXD, Incus, LXC
 container, Docker Swarm, compose, netplan, socat, Portainer, Nexus,
-Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image build, image
+Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, Infisical, image build, image
 push, or stack deployment commands.
 
 Optional live smoke validation is a separate operator action, not part of the
@@ -300,27 +300,16 @@ After a verified provider-specific live deployment, the dashboard is intended
 to be the management landing page at `http://localhost`. A central
 service-access NGINX is the accepted routing design for stable paths such as
 `/jenkins`, `/nexus`, `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and
-`/vaultwarden`. The table shows users and Vaultwarden item references;
-password values are visible only in Vaultwarden's authenticated UI. Operators
+`/infisical`. The table shows users and Infisical item references;
+password values are visible only in Infisical's authenticated UI. Operators
 who intentionally want the older base service set can pass
 `--service-profile default`.
 
-The service-access stack needs an external Swarm secret for the Vaultwarden
-administrator token. The guided installer stores the Swarm secret value as an
-Argon2 PHC string in `TSW_VAULTWARDEN_ADMIN_TOKEN`; when it sees a local
-plaintext token, it hashes that value and records the original admin login
-token as `TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN` in the local `0600` environment
-file. It prefers the local `argon2` command and falls back to
-`docker run --rm -i vaultwarden/server:latest /vaultwarden hash --preset owasp`
-when `argon2` is not installed. The fallback image can be overridden with
-`TSW_VAULTWARDEN_HASH_IMAGE`. The default secret name is
-`tsw_vaultwarden_admin_token`, and operators may override only the name with
-`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`.
-Vaultwarden signups are enabled by the local `service-access` default and can
-be disabled with `TSW_VAULTWARDEN_SIGNUPS_ALLOWED=false`.
-Provider-native deployment must check that the configured external Swarm input
-is observable before uploading the stack and record only redacted
-presence/source evidence.
+The service-access stack runs Infisical with PostgreSQL and Redis. The guided
+installer writes `TSW_INFISICAL_ENCRYPTION_KEY`, `TSW_INFISICAL_AUTH_SECRET`,
+and `TSW_INFISICAL_POSTGRES_PASSWORD` into the ignored local `0600`
+environment file when they are missing. These values are exported into the
+stack environment during deployment and must not be committed.
 
 Live-operation surface summary:
 

@@ -501,7 +501,7 @@ def _host_environment_remediation(host_environment: HostEnvironmentReport) -> st
 
 
 def _port_remediation(service: str) -> str:
-    if service in {"Service Access dashboard", "Vaultwarden"}:
+    if service in {"Service Access dashboard", "Infisical"}:
         return (
             "Clear the stale localhost listener or forwarding for this service-access port, "
             "then rerun preflight. Until localhost forwarding is repaired, use the current "

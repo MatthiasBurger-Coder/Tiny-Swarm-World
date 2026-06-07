@@ -576,7 +576,6 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(
             (
-                "deployment:service-access-external-input",
                 "deployment:portainer-service-readiness",
                 "deployment:nexus-service-readiness",
                 "deployment:jenkins-service-readiness",
@@ -587,10 +586,7 @@ class TestComposition(unittest.TestCase):
             ),
             tuple(check.verification_target_id for check in services.workflows.verify.checks),
         )
-        self.assertEqual(
-            ("deployment:service-access-external-input",),
-            tuple(check.verification_target_id for check in services.workflows.apply.pre_apply_checks),
-        )
+        self.assertEqual((), services.workflows.apply.pre_apply_checks)
         self.assertEqual(
             ("deployment:swagger-stack-assets",),
             tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
@@ -605,7 +601,7 @@ class TestComposition(unittest.TestCase):
         compose_repository.assert_called_once_with()
         self.assertEqual(4, len(services.workflows.bootstrap.steps))
         self.assertEqual(5, len(services.workflows.apply.steps))
-        self.assertEqual(8, len(services.workflows.verify.checks))
+        self.assertEqual(7, len(services.workflows.verify.checks))
 
     def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
@@ -674,7 +670,6 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(
             (
-                "deployment:service-access-external-input",
                 "deployment:portainer-service-readiness",
                 "deployment:nexus-service-readiness",
                 "deployment:jenkins-service-readiness",
@@ -686,10 +681,15 @@ class TestComposition(unittest.TestCase):
             tuple(check.verification_target_id for check in services.workflows.verify.checks),
         )
 
-    def test_build_deployment_services_wires_service_access_external_input_check(self):
+    def test_build_deployment_services_wires_service_access_infisical_environment(self):
+        env = {
+            "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
+            "TSW_INFISICAL_AUTH_SECRET": sample_text("auth", "-secret"),
+            "TSW_INFISICAL_POSTGRES_PASSWORD": sample_text("pg", "-secret"),
+        }
         with patch.dict(
             "os.environ",
-            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
+            env,
             clear=True,
         ):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
@@ -697,15 +697,12 @@ class TestComposition(unittest.TestCase):
                     backend=composition.ManagedLxcBackend.INCUS,
                 )
 
-        pre_apply_check = services.workflows.apply.pre_apply_checks[0]
         service_access_step = next(
             step
             for step in services.workflows.apply.steps
             if step.service_stack.stack_name == "service-access"
         )
 
-        self.assertEqual("operator_defined", pre_apply_check.resource_name)
-        self.assertEqual("operator_env", pre_apply_check.source_ref)
         self.assertEqual(
             {
                 "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE": (
@@ -714,10 +711,11 @@ class TestComposition(unittest.TestCase):
                 "TSW_SERVICE_ACCESS_NGINX_IMAGE": (
                     "127.0.0.1:5000/service-access-nginx:latest"
                 ),
-                "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined",
+                **env,
             },
             service_access_step.stack_environment,
         )
+        self.assertEqual((), services.workflows.apply.pre_apply_checks)
         self.assertEqual(
             ("deployment:swagger-stack-assets",),
             tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
@@ -752,26 +750,6 @@ class TestComposition(unittest.TestCase):
             environments["service-access"]["TSW_SERVICE_ACCESS_NGINX_IMAGE"],
         )
 
-    def test_build_deployment_services_prepares_service_access_external_input_from_operator_token(self):
-        operator_token = sample_text("operator", "-token")
-        with patch.dict(
-            "os.environ",
-            {"TSW_VAULTWARDEN_ADMIN_TOKEN": operator_token},
-            clear=True,
-        ):
-            with patch.object(composition, "ComposeFileRepositoryYaml"):
-                services = composition.build_lxc_deployment_services(
-                    backend=composition.ManagedLxcBackend.INCUS,
-                )
-
-        pre_apply_step = services.workflows.apply.pre_apply_steps[0]
-        pre_apply_check = services.workflows.apply.pre_apply_checks[0]
-
-        self.assertEqual("tsw_vaultwarden_admin_token", pre_apply_step.resource_name)
-        self.assertEqual(operator_token, pre_apply_step.resource_value)
-        self.assertEqual("tsw_vaultwarden_admin_token", pre_apply_check.resource_name)
-        self.assertEqual("default", pre_apply_check.source_ref)
-
     def test_build_artifact_services_uses_operator_environment_credentials(self):
         operator_value = sample_text("operator", "-supplied")
         with patch.dict("os.environ", {"TSW_NEXUS_ADMIN_PASSWORD": operator_value}, clear=True):
@@ -794,6 +772,59 @@ class TestComposition(unittest.TestCase):
                 )
 
         self.assertEqual(operator_value, services.workflows.bootstrap.steps[1].password)
+
+    def test_build_deployment_services_can_seed_infisical_items_when_enabled(self):
+        env = {
+            "TSW_SEED_INFISICAL_ITEMS": "1",
+            "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.com",
+            "TSW_INFISICAL_PASSWORD": sample_text("master", "-value"),
+            "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
+            "TSW_NEXUS_ADMIN_PASSWORD": sample_text("nexus", "-value"),
+            "TSW_PORTAINER_PASSWORD": sample_text("portainer", "-value"),
+            "TSW_RABBITMQ_PASSWORD": sample_text("rabbitmq", "-value"),
+            "TSW_SONARQUBE_ADMIN_PASSWORD": sample_text("sonarqube", "-value"),
+        }
+        with patch.dict("os.environ", env, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                    service_profile=ServiceStackProfile.SERVICE_ACCESS,
+                )
+
+        self.assertEqual(
+            "deployment:infisical-items",
+            services.workflows.apply.steps[-1].verification_target_id,
+        )
+        self.assertEqual(
+            (
+                "platform/jenkins",
+                "platform/nexus",
+                "platform/portainer",
+                "platform/rabbitmq",
+                "platform/sonarqube",
+            ),
+            tuple(item.item_name for item in services.workflows.apply.steps[-1].items),
+        )
+
+    def test_build_deployment_services_rejects_enabled_infisical_seed_without_passwords(self):
+        with patch.dict(
+            "os.environ",
+            {
+                "TSW_SEED_INFISICAL_ITEMS": "1",
+                "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.com",
+                "TSW_INFISICAL_PASSWORD": sample_text("master", "-value"),
+            },
+            clear=True,
+        ):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "Required operator secret is missing: TSW_JENKINS_ADMIN_PASSWORD",
+                ):
+                    composition.build_lxc_deployment_services(
+                        backend=composition.ManagedLxcBackend.INCUS,
+                        service_profile=ServiceStackProfile.SERVICE_ACCESS,
+                    )
 
     def test_build_setup_services_wires_phase_orchestrator_without_running_phases(self):
         with patch.object(composition, "build_preflight_service") as build_preflight:

@@ -172,16 +172,16 @@ class HostPreflightProbe(PortHostPreflightProbe):
         if "swagger" in service_name:
             return _http_service_available(port, ("/",), ("swagger", "openapi"))
         if "service access" in service_name:
-            return _http_service_available(port, ("/",), ("service access", "vaultwarden"))
-        if "vaultwarden https" in service_name:
+            return _http_service_available(port, ("/",), ("service access", "infisical"))
+        if "infisical https" in service_name:
             return _http_service_available(
                 port,
-                ("/", "/admin"),
-                ("vaultwarden", "content-security-policy"),
+                ("/", "/api/status"),
+                ("infisical", "content-security-policy"),
                 scheme="https",
             )
-        if "vaultwarden" in service_name:
-            return _http_service_available(port, ("/", "/admin"), ("vaultwarden",))
+        if "infisical" in service_name:
+            return _http_service_available(port, ("/", "/api/status"), ("infisical",))
         return False
 
     def secret_available(self, name: str) -> bool:

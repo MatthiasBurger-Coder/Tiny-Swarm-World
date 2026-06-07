@@ -7,7 +7,7 @@ branch: feature/live-greenpath-repair-loop-20260606
 execution_profile: FULL_PATH
 released_for_workflow_execute: true
 created_utc: "2026-06-07T15:06:57Z"
-request: "Achieve one complete verified greenpath for ./install.sh on local WSL2 LXD/LXC-native Docker Swarm setup, including a new tests/live suite that verifies browser routes and Vaultwarden credential coverage for all credential-requiring services."
+request: "Achieve one complete verified greenpath for ./install.sh on local WSL2 LXD/LXC-native Docker Swarm setup, including a new tests/live suite that verifies browser routes and Infisical credential coverage for all credential-requiring services."
 decision: READY_FOR_WORKFLOW
 confidence: 92
 ```
@@ -22,7 +22,7 @@ automated tests, runs targeted verification, commits the blocker fix, and
 repeats until the final setup status is `completed` or `passed`.
 
 The workflow also creates a new opt-in `tests/live` suite. That suite must
-verify post-install browser-facing routes and verify that Vaultwarden contains
+verify post-install browser-facing routes and verify that Infisical contains
 credential entries for every service in the selected profile that requires
 operator credentials. The test must never log, persist, screenshot, or expose
 password values; it verifies item presence and service mapping only.
@@ -46,13 +46,13 @@ Original request:
 - Implement provider resource resolution for `lxc_native` and precise blocker
   evidence/classifications.
 - Add a live post-install browser/path test.
-- Additionally verify that Vaultwarden contains all credentials for the
+- Additionally verify that Infisical contains all credentials for the
   service set.
 - Commit each blocker fix as one separate commit.
 
 User clarification:
 
-- The browser/path and Vaultwarden credential check belongs in a new
+- The browser/path and Infisical credential check belongs in a new
   `tests/live` suite.
 
 Interpreted intent:
@@ -64,8 +64,8 @@ Interpreted intent:
   profile, physical network, and storage pool independently.
 - Add opt-in live checks under `tests/live`, not under the existing
   `tests/integration` package.
-- Verify Vaultwarden credential inventory coverage for service credentials,
-  while keeping password values only in Vaultwarden's authenticated UI.
+- Verify Infisical credential inventory coverage for service credentials,
+  while keeping password values only in Infisical's authenticated UI.
 
 Change type:
 
@@ -80,7 +80,7 @@ Affected process strand:
 
 - `./install.sh` governed fresh-install wrapper, preflight, platform init,
   swarm bootstrap/join, stack deployment, port exposure, browser route
-  verification, Vaultwarden credential inventory verification, and final
+  verification, Infisical credential inventory verification, and final
   verification.
 
 Affected architecture area:
@@ -90,7 +90,7 @@ Affected architecture area:
 - `src/tiny_swarm_world/application` for orchestration, ports, and
   verification services if needed.
 - `src/tiny_swarm_world/infrastructure` for LXC/LXD command adapters, evidence
-  parsing, provider resource resolution, Vaultwarden/browser adapters, and
+  parsing, provider resource resolution, Infisical/browser adapters, and
   composition wiring.
 - `infra/config` for explicit provider defaults or service credential mapping
   configuration if needed.
@@ -117,7 +117,7 @@ Explicit requirements:
   a later explicit tooling change adds `pytest`.
 - Write browser/path evidence to
   `.tiny-swarm-world/evidence/post_install_browser_live/`.
-- Verify that Vaultwarden contains credential entries for all
+- Verify that Infisical contains credential entries for all
   credential-requiring services in the selected service profile.
 - Do not require interactive manual credentials during the live test. The test
   may read the ignored live installation environment or explicit environment
@@ -147,7 +147,7 @@ Assumptions:
 - Generated evidence under `.tiny-swarm-world/evidence` is local runtime
   evidence and should not be committed unless a redacted final report
   explicitly requires it.
-- Vaultwarden credential item names currently expected by the service-access
+- Infisical credential item names currently expected by the service-access
   dashboard are `platform/jenkins`, `platform/nexus`, `platform/portainer`,
   `platform/rabbitmq`, and `platform/sonarqube`; `service-access` and
   `swagger` are expected to be marked as no-login services.
@@ -160,7 +160,7 @@ Non-goals:
 - No destructive host cleanup beyond explicit fresh reset/install behavior
   already guarded by the project.
 - No migration of the whole repository test strategy to `pytest`.
-- No dashboard display of password values and no Vaultwarden secret export.
+- No dashboard display of password values and no Infisical secret export.
 
 Risks:
 
@@ -170,10 +170,10 @@ Risks:
   rather than guessing.
 - Stack readiness may expose additional blockers after provider mapping is
   fixed.
-- Vaultwarden browser automation can accidentally expose secrets through
+- Infisical browser automation can accidentally expose secrets through
   screenshots, traces, logs, or assertion messages if not explicitly redacted.
 - A bootstrap cycle is possible if required setup credentials are expected to
-  come from Vaultwarden before Vaultwarden itself is reachable.
+  come from Infisical before Infisical itself is reachable.
 
 Open questions:
 
@@ -192,7 +192,7 @@ Decision:
 Senior Requirement Engineer:
 
 - Requirement is ready. The target outcome is a complete live greenpath plus
-  explicit service-access/browser and Vaultwarden credential coverage.
+  explicit service-access/browser and Infisical credential coverage.
 - Acceptance criteria are testable when credential item names and no-login
   services are derived from configuration or documented local defaults.
 
@@ -201,16 +201,16 @@ Senior System Architect:
 - `FULL_PATH` is required because the workflow affects live deployment,
   provider resolution, credential verification, evidence semantics, and test
   structure.
-- The service-access and Vaultwarden baseline is already accepted in
-  `documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc`.
-  The workflow must preserve the rule that Vaultwarden is the only approved
+- The service-access and Infisical baseline is already accepted in
+  `documentation/architecture/adr-service-access-dashboard-infisical.adoc`.
+  The workflow must preserve the rule that Infisical is the only approved
   password reveal/copy surface.
 
 Senior Python Automation Developer:
 
 - Provider resolution and evidence parsing should stay in domain/application
   contracts with infrastructure adapters for LXD/LXC, Docker, HTTP, and
-  Vaultwarden/browser details.
+  Infisical/browser details.
 - Application services must not embed low-level shell, HTTP, or browser
   automation details directly.
 
@@ -232,7 +232,7 @@ Senior Tester:
 Dependency / Deadlock Validator:
 
 - Slices remain sequential because provider setup, deployment readiness,
-  browser routes, Vaultwarden access, and final reporting share live state and
+  browser routes, Infisical access, and final reporting share live state and
   evidence.
 - No parallel write scopes are safe for the live repair loop.
 
@@ -240,7 +240,7 @@ Mandatory EPIC question:
 
 - Does the implementation still match the EPIC? Yes, with live evidence still
   required. This workflow is the controlled live-evidence path for the
-  autonomous runnable setup and service-access/Vaultwarden EPIC extensions.
+  autonomous runnable setup and service-access/Infisical EPIC extensions.
 
 ## Target Picture
 
@@ -252,7 +252,7 @@ two workers. Expected stacks `portainer`, `nexus`, `jenkins`, `rabbitmq`,
 
 Applicable published service ports and central service-access routes are
 reachable from the host. The new `tests/live/test_post_install_browser_live.py`
-suite passes with live tests explicitly enabled. Vaultwarden contains
+suite passes with live tests explicitly enabled. Infisical contains
 credential entries for all credential-requiring services and the live evidence
 records only redacted item-presence status. Final evidence and a final report
 document the greenpath.
@@ -270,10 +270,10 @@ document the greenpath.
 - Existing post-install browser checks are under
   `tests/integration/test_post_install_browser_live.py`; the requested target
   is a new `tests/live` suite.
-- Existing service-access dashboard references Vaultwarden entries for
+- Existing service-access dashboard references Infisical entries for
   Jenkins, Nexus, Portainer, RabbitMQ, and SonarQube.
 - Existing arc42 and ADR sources require password values to remain visible
-  only through Vaultwarden's authenticated UI.
+  only through Infisical's authenticated UI.
 
 ## Scope
 
@@ -284,7 +284,7 @@ In scope:
 - Blocker classification and redacted evidence.
 - New opt-in `tests/live` suite.
 - Browser-facing path verification for expected services.
-- Vaultwarden credential inventory verification for all credential-requiring
+- Infisical credential inventory verification for all credential-requiring
   selected-profile services.
 - Final report with blockers, fixes, commit SHAs, and verification evidence.
 
@@ -295,7 +295,7 @@ Out of scope:
 - Java, Maven, Spring Boot, React, TypeScript, Vite, TSX/JSX.
 - Public TLS/certificate automation.
 - Displaying, exporting, logging, or snapshotting password values outside
-  Vaultwarden.
+  Infisical.
 - Committing live evidence or ignored local secret files.
 
 ## Architecture Constraints
@@ -303,10 +303,10 @@ Out of scope:
 - Preserve hexagonal architecture.
 - Domain may model provider resources, service credential references, and
   redacted verification results.
-- Application may orchestrate provider, deployment, browser, and Vaultwarden
+- Application may orchestrate provider, deployment, browser, and Infisical
   ports.
 - Infrastructure owns LXC/LXD commands, Docker/Swarm commands, YAML parsing,
-  HTTP clients, browser automation, Vaultwarden API or UI details, and file
+  HTTP clients, browser automation, Infisical API or UI details, and file
   evidence writing.
 - `src/tiny_swarm_world/infrastructure/composition.py` remains the standard
   wiring root.
@@ -322,8 +322,8 @@ validated instance, profile, network, and storage decisions. It should produce
 dry-run evidence before mutation and fail closed when a resource is missing or
 ambiguous.
 
-Vaultwarden credential coverage should be implemented with a redacted
-verification model. The verifier may authenticate to Vaultwarden with
+Infisical credential coverage should be implemented with a redacted
+verification model. The verifier may authenticate to Infisical with
 operator-supplied ignored local environment values, but evidence must record
 only service name, expected item reference, observed presence, result, and a
 redacted failure reason.
@@ -340,7 +340,7 @@ infrastructure content packaged into service images.
 Default and targeted unit tests:
 
 - Use `unittest` and repository quality gates.
-- Mock LXD/LXC, Docker, Swarm, Portainer, Vaultwarden, browser, and network
+- Mock LXD/LXC, Docker, Swarm, Portainer, Infisical, browser, and network
   calls unless a test is explicitly marked as live.
 - Cover provider resolution, blocker classification, evidence redaction, and
   credential inventory mapping without live infrastructure.
@@ -358,7 +358,7 @@ New live suite:
   `.tiny-swarm-world/evidence/post_install_browser_live/`.
 - Fail when a required browser-facing service is unreachable, a published port
   is missing, an endpoint mapping contradicts setup evidence, a service returns
-  only an infrastructure error page, or Vaultwarden credential entries are
+  only an infrastructure error page, or Infisical credential entries are
   missing.
 
 Live test command:
@@ -384,8 +384,8 @@ python3 tools/quality_gate.py quality
 - Stop if a repair would weaken safety, consent, secret, or environment
   guards.
 - Stop if LXD/Docker host state is ambiguous and cannot be reconciled safely.
-- Stop if Vaultwarden credential coverage would require exposing password
-  values outside Vaultwarden's authenticated UI.
+- Stop if Infisical credential coverage would require exposing password
+  values outside Infisical's authenticated UI.
 
 ## Ordered Slices
 
@@ -409,14 +409,14 @@ quality_gates:
   required: [git diff --check]
 documentation:
   arc42: checked-no-product-architecture-change
-  adr: checked-service-access-vaultwarden-baseline
+  adr: checked-service-access-infisical-baseline
 stop_conditions: [branch_mismatch, dirty_unrelated_worktree]
 ```
 
 Done criteria:
 
 - Active workflow targets the requested branch and live repair loop.
-- New `tests/live` suite requirement and Vaultwarden credential coverage are
+- New `tests/live` suite requirement and Infisical credential coverage are
   documented.
 - Stop conditions and loop limits are documented.
 
@@ -480,7 +480,7 @@ Done criteria:
   blocker report.
 - Each blocker fix is committed separately.
 
-### Slice 04: Live Browser And Vaultwarden Credential Suite
+### Slice 04: Live Browser And Infisical Credential Suite
 
 ```yaml
 slice_id: S04
@@ -489,19 +489,19 @@ owner: Senior Tester
 secondary_reviewers: [Senior Python Automation Developer, Senior System Architect, Senior DevOps Engineer]
 affected_files: [tests/live/**, src/tiny_swarm_world/**, documentation/workflow/**]
 affected_modules: [tests, domain, application, infrastructure]
-affected_contracts: [post_install_browser_live, vaultwarden_credential_inventory]
+affected_contracts: [post_install_browser_live, infisical_credential_inventory]
 dependencies: [S03]
 parallel_group: sequential
 file_locks: [tests/live, src/tiny_swarm_world, documentation/workflow]
-contract_locks: [service_access_routes, vaultwarden_credential_inventory]
+contract_locks: [service_access_routes, infisical_credential_inventory]
 architecture_locks: [hexagonal, secret_redaction]
 quality_gates:
   targeted: [TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live]
   required: [python3 tools/quality_gate.py test, git diff --check]
 documentation:
   arc42: checked-service-access-and-credential-display-safety
-  adr: checked-service-access-vaultwarden-baseline
-stop_conditions: [manual_secret_prompt_required, password_value_logged, credential_value_persisted, vaultwarden_bootstrap_cycle, browser_trace_contains_secret, service_mapping_contradicts_evidence]
+  adr: checked-service-access-infisical-baseline
+stop_conditions: [manual_secret_prompt_required, password_value_logged, credential_value_persisted, infisical_bootstrap_cycle, browser_trace_contains_secret, service_mapping_contradicts_evidence]
 ```
 
 Done criteria:
@@ -510,20 +510,20 @@ Done criteria:
 - The suite verifies all expected published service entrypoints from
   configuration/evidence with documented local defaults only as fallback.
 - The suite verifies browser-relevant HTTP responses, not merely open sockets.
-- The suite verifies Vaultwarden contains credential entries for all
+- The suite verifies Infisical contains credential entries for all
   credential-requiring services in the selected profile.
 - Expected credential entries are derived from setup/service-access
   configuration where practical and include at least:
   `platform/jenkins`, `platform/nexus`, `platform/portainer`,
   `platform/rabbitmq`, and `platform/sonarqube`.
 - The suite records redacted evidence for each service and each expected
-  Vaultwarden item. Evidence may include service name, URL, status code,
+  Infisical item. Evidence may include service name, URL, status code,
   reachable flag, content type, expected item reference, item present flag,
   result, and redacted failure reason.
 - The suite does not record password values, token values, Basic/Bearer
   headers, raw environment files, Playwright traces, screenshots with secrets,
   or credential-bearing URLs.
-- Missing Vaultwarden login material from the ignored live environment is a
+- Missing Infisical login material from the ignored live environment is a
   setup blocker, not an interactive prompt.
 
 ### Slice 05: Final Report
@@ -554,7 +554,7 @@ Done criteria:
 
 - Final report documents every blocker encountered, fix applied, verification
   command, commit SHA, final greenpath evidence location, browser/path result,
-  and Vaultwarden credential coverage result.
+  and Infisical credential coverage result.
 - Report distinguishes verified live facts from planned or skipped checks.
 
 ## Slice Dependency Graph
@@ -565,7 +565,7 @@ S01 -> S02 -> S03 -> S04 -> S05
 
 Parallelization opportunities:
 
-- None. Live platform state, service deployment, browser checks, Vaultwarden
+- None. Live platform state, service deployment, browser checks, Infisical
   checks, and evidence reporting are sequential and share state.
 
 ## Role Ownership Map
@@ -593,7 +593,7 @@ Parallelization opportunities:
 - Stop if a repair would weaken safety, consent, secret, or environment
   guards.
 - Stop if LXD/Docker host state is ambiguous and cannot be reconciled safely.
-- Stop if Vaultwarden credential verification would expose password values.
+- Stop if Infisical credential verification would expose password values.
 - Do not bypass validations or convert failures into success.
 - Do not use Ansible.
 
@@ -613,7 +613,7 @@ The implementation must support precise classification for:
 - `deployment_apply_failed`
 - `deployment_verify_failed`
 - `post_install_browser_route_failed`
-- `vaultwarden_credential_inventory_missing`
+- `infisical_credential_inventory_missing`
 
 Evidence for provider blockers must include where applicable:
 
@@ -628,7 +628,7 @@ Evidence for provider blockers must include where applicable:
 - `available_storage_pools`
 - `remediation_hint`
 
-Evidence for browser and Vaultwarden blockers must include where applicable:
+Evidence for browser and Infisical blockers must include where applicable:
 
 - `phase`
 - `service`
@@ -637,14 +637,14 @@ Evidence for browser and Vaultwarden blockers must include where applicable:
 - `status_code`
 - `reachable`
 - `content_type`
-- `expected_vaultwarden_item`
+- `expected_infisical_item`
 - `item_present`
 - `missing_items`
 - `result`
 - `failure_reason`
 - `remediation_hint`
 
-Browser and Vaultwarden evidence must not include password values, token
+Browser and Infisical evidence must not include password values, token
 values, raw environment payloads, request headers, credential-bearing URLs,
 local IP addresses, or screenshots/traces containing secrets.
 
@@ -655,15 +655,15 @@ local IP addresses, or screenshots/traces containing secrets.
   practical.
 - `python3 tools/quality_gate.py quality` before final push when practical.
 - `git diff --check` before commits.
-- Live browser/Vaultwarden tests are separate opt-in operator checks and are
+- Live browser/Infisical tests are separate opt-in operator checks and are
   not part of the default quality gate.
 
 ## Documentation Synchronization Points
 
 - arc42 checked: service-access and credential display safety already covers
-  Vaultwarden-only password visibility.
+  Infisical-only password visibility.
 - ADR checked:
-  `documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc`.
+  `documentation/architecture/adr-service-access-dashboard-infisical.adoc`.
 - Update arc42 only if provider contracts, runtime behavior, service-access
   routing, credential display policy, or safety policy materially changes.
 - Update final report under `documentation/workflow/reports/`.
@@ -683,7 +683,7 @@ Stop workflow execution when:
 - the loop reaches 10 iterations;
 - a required credential source is missing and cannot be resolved from ignored
   live configuration without interactive prompting;
-- Vaultwarden item verification requires exposing or exporting password
+- Infisical item verification requires exposing or exporting password
   values;
 - test or evidence output would contain secrets;
 - documentation would claim unverified live success.
@@ -720,13 +720,13 @@ Stop workflow execution when:
 - Applicable published ports and central browser paths are reachable.
 - New `tests/live/test_post_install_browser_live.py` passes with live tests
   explicitly enabled.
-- Vaultwarden contains credential entries for every credential-requiring
+- Infisical contains credential entries for every credential-requiring
   selected-profile service, and missing no-login services are explicitly
   recorded as not required.
 - Final evidence exists under `.tiny-swarm-world/evidence`.
 - Final report documents blockers, classifications, fixes, commands, commit
   SHAs, final greenpath verification, post-install browser/path verification,
-  and Vaultwarden credential coverage.
+  and Infisical credential coverage.
 - Each blocker fix has its own commit.
 
 ## Handoff To Workflow Execute
@@ -746,20 +746,40 @@ Required execution sequence:
 
 ```bash
 python3 tools/install_debugger.py
+export TSW_INFISICAL_LOGIN_EMAIL="admin@example.com"
+export TSW_INFISICAL_PASSWORD="<infisical-master-password>"
+export TSW_SEED_INFISICAL_ITEMS=1
 ./install.sh --confirm-reset
 python3 tools/quality_gate.py test
 TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live
 git diff --check
 ```
 
+Operator note:
+
+- `./install.sh --confirm-reset` performs the governed reset and reinstalls
+  the service-access environment.
+- The live browser/Infisical test reads Infisical login material from the
+  ignored `.tiny-swarm-world/local/live-installation.env` file or from the
+  explicit `TSW_INFISICAL_LOGIN_EMAIL` and
+  `TSW_INFISICAL_PASSWORD` environment variables.
+- Infisical secret-item seeding is optional and intentionally gated by
+  `TSW_SEED_INFISICAL_ITEMS=1`. When enabled, the deployment flow creates
+  missing secret items for `platform/jenkins`, `platform/nexus`,
+  `platform/portainer`, `platform/rabbitmq`, and `platform/sonarqube` from the
+  operator-supplied local `TSW_*` credential values.
+- If the reset removes Infisical data and `TSW_SEED_INFISICAL_ITEMS` is not
+  enabled, restore the account and items manually or rerun with the explicit
+  seed flag before running the live credential-coverage test.
+
 ## arc42 Check Status
 
 Checked. Existing arc42 and ADR documentation already require:
 
-- service-access and Vaultwarden stay in the Deployment responsibility
+- service-access and Infisical stay in the Deployment responsibility
   boundary;
-- password values are visible only through Vaultwarden's authenticated UI;
-- dashboard assets show Vaultwarden item references only;
+- password values are visible only through Infisical's authenticated UI;
+- dashboard assets show Infisical item references only;
 - evidence must not contain secrets, tokens, raw environment payloads, local
   IP addresses, host-specific paths, or credential-bearing URLs.
 

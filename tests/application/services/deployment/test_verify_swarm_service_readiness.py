@@ -49,7 +49,9 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         runtime = _FakeSwarmRuntime(
             (
                 SwarmServiceStatus("service-access_service-access-dashboard", 1, 1),
-                SwarmServiceStatus("service-access_vaultwarden", 1, 1),
+                SwarmServiceStatus("service-access_infisical", 1, 1),
+                SwarmServiceStatus("service-access_infisical-db", 1, 1),
+                SwarmServiceStatus("service-access_infisical-redis", 1, 1),
                 SwarmServiceStatus("service-access_service-access-nginx", 1, 1),
             )
         )
@@ -57,7 +59,7 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
             runtime,
             ServiceStackContract(
                 "service-access",
-                ("service-access-dashboard", "vaultwarden", "service-access-nginx"),
+                ("service-access-dashboard", "infisical", "infisical-db", "infisical-redis", "service-access-nginx"),
             ),
             max_attempts=1,
             wait_seconds=0,
@@ -79,7 +81,7 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
             runtime,
             ServiceStackContract(
                 "service-access",
-                ("service-access-dashboard", "vaultwarden", "service-access-nginx"),
+                ("service-access-dashboard", "infisical", "infisical-db", "infisical-redis", "service-access-nginx"),
             ),
             max_attempts=1,
             wait_seconds=0,
@@ -88,7 +90,10 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
-        self.assertEqual("vaultwarden", verification.evidence["missing_services"])
+        self.assertEqual(
+            "infisical,infisical-db,infisical-redis",
+            verification.evidence["missing_services"],
+        )
 
 
 class _FakeSwarmRuntime:

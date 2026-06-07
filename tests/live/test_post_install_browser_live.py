@@ -34,7 +34,7 @@ RUN_LIVE_ENV = "TSW_RUN_POST_INSTALL_BROWSER_LIVE"
 DEFAULT_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
 DEFAULT_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/post_install_browser_live")
 SERVICE_ACCESS_DASHBOARD = Path("infra/compose/service-access/dashboard/index.html")
-EXPECTED_VAULTWARDEN_ITEMS = (
+EXPECTED_INFISICAL_ITEMS = (
     "platform/jenkins",
     "platform/nexus",
     "platform/portainer",
@@ -91,9 +91,9 @@ class HttpProbeResult:
 @dataclass(frozen=True)
 class LivePostInstallConfig:
     dashboard_url: str
-    vaultwarden_url: str
-    vaultwarden_email: str | None
-    vaultwarden_master_password: str | None
+    infisical_url: str
+    infisical_email: str | None
+    infisical_password: str | None
     timeout_seconds: float
 
     @classmethod
@@ -102,24 +102,24 @@ class LivePostInstallConfig:
             Path(os.environ.get("TSW_LIVE_INSTALLATION_ENV", DEFAULT_ENV_FILE))
         )
         dashboard_url = _env_value(local_env, "TSW_DASHBOARD_URL", "http://localhost")
-        vaultwarden_url = _env_value(local_env, "TSW_VAULTWARDEN_URL", "https://localhost")
+        infisical_url = _env_value(local_env, "TSW_INFISICAL_URL", "https://localhost")
         return cls(
             dashboard_url=_validated_local_url(dashboard_url, "dashboard"),
-            vaultwarden_url=_validated_local_url(vaultwarden_url, "vaultwarden"),
-            vaultwarden_email=_env_optional(local_env, "TSW_VAULTWARDEN_LOGIN_EMAIL"),
-            vaultwarden_master_password=_env_optional(
+            infisical_url=_validated_local_url(infisical_url, "infisical"),
+            infisical_email=_env_optional(local_env, "TSW_INFISICAL_LOGIN_EMAIL"),
+            infisical_password=_env_optional(
                 local_env,
-                "TSW_VAULTWARDEN_MASTER_PASSWORD",
+                "TSW_INFISICAL_PASSWORD",
             ),
             timeout_seconds=float(os.environ.get("TSW_POST_INSTALL_BROWSER_TIMEOUT", "45")),
         )
 
 
 class StaticPostInstallLiveSuiteTest(unittest.TestCase):
-    def test_dashboard_declares_expected_vaultwarden_item_references(self) -> None:
+    def test_dashboard_declares_expected_infisical_item_references(self) -> None:
         references = _dashboard_references(SERVICE_ACCESS_DASHBOARD)
 
-        self.assertEqual(EXPECTED_VAULTWARDEN_ITEMS, references.credential_items)
+        self.assertEqual(EXPECTED_INFISICAL_ITEMS, references.credential_items)
         for service in NO_LOGIN_SERVICES:
             with self.subTest(service=service):
                 self.assertIn(service, references.no_login_services)
@@ -163,18 +163,18 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             ):
                 LivePostInstallConfig.from_environment()
 
-    def test_live_config_rejects_secret_bearing_vaultwarden_urls(self) -> None:
+    def test_live_config_rejects_secret_bearing_infisical_urls(self) -> None:
         with patch.dict(
             os.environ,
             {
                 "TSW_LIVE_INSTALLATION_ENV": "/tmp/tiny-swarm-world-missing.env",
                 "TSW_DASHBOARD_URL": "http://localhost",
-                "TSW_VAULTWARDEN_URL": "https://user:credential@localhost",
+                "TSW_INFISICAL_URL": "https://user:credential@localhost",
             },
         ):
             with self.assertRaisesRegex(
                 AssertionError,
-                "vaultwarden_setup_blocker: invalid_local_vaultwarden_url",
+                "infisical_setup_blocker: invalid_local_infisical_url",
             ):
                 LivePostInstallConfig.from_environment()
 
@@ -187,8 +187,8 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
 
         self.assertFalse(_evidence_safe(unsafe))
 
-    def test_vaultwarden_inventory_evidence_contains_item_names_only(self) -> None:
-        evidence = _vaultwarden_item_evidence(
+    def test_infisical_inventory_evidence_contains_item_names_only(self) -> None:
+        evidence = _infisical_item_evidence(
             expected_item="platform/jenkins",
             item_present=False,
             result="blocked",
@@ -196,7 +196,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         )
 
         self.assertTrue(_evidence_safe(evidence))
-        self.assertEqual("platform/jenkins", evidence["expected_vaultwarden_item"])
+        self.assertEqual("platform/jenkins", evidence["expected_infisical_item"])
         self.assertNotIn("value", evidence)
 
 
@@ -234,13 +234,13 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
                 f"{failed_services}; evidence={self.evidence.path.as_posix()}"
             )
 
-    def test_02_vaultwarden_contains_required_credential_items(self) -> None:
-        missing_material = _missing_vaultwarden_login_material(self.config)
+    def test_02_infisical_contains_required_credential_items(self) -> None:
+        missing_material = _missing_infisical_login_material(self.config)
         if missing_material:
-            for item in EXPECTED_VAULTWARDEN_ITEMS:
+            for item in EXPECTED_INFISICAL_ITEMS:
                 self.evidence.record(
-                    "vaultwarden_item",
-                    _vaultwarden_item_evidence(
+                    "infisical_item",
+                    _infisical_item_evidence(
                         expected_item=item,
                         item_present=False,
                         result="blocked",
@@ -248,15 +248,15 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
                     ),
                 )
             raise AssertionError(
-                "vaultwarden_setup_blocker: missing "
+                "infisical_setup_blocker: missing "
                 f"{','.join(missing_material)}; evidence={self.evidence.path.as_posix()}"
             )
 
-        missing_items = _missing_vaultwarden_items(self.config)
-        for item in EXPECTED_VAULTWARDEN_ITEMS:
+        missing_items = _missing_infisical_items(self.config)
+        for item in EXPECTED_INFISICAL_ITEMS:
             self.evidence.record(
-                "vaultwarden_item",
-                _vaultwarden_item_evidence(
+                "infisical_item",
+                _infisical_item_evidence(
                     expected_item=item,
                     item_present=item not in missing_items,
                     result="passed" if item not in missing_items else "failed",
@@ -268,7 +268,7 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
 
         if missing_items:
             raise AssertionError(
-                "vaultwarden_credential_inventory_missing: "
+                "infisical_credential_inventory_missing: "
                 f"{','.join(missing_items)}; evidence={self.evidence.path.as_posix()}"
             )
 
@@ -367,41 +367,37 @@ def _http_head_or_get(
         return int(response.status), response.headers.get("content-type", "")
 
 
-def _missing_vaultwarden_login_material(
+def _missing_infisical_login_material(
     config: LivePostInstallConfig,
 ) -> tuple[str, ...]:
     missing: list[str] = []
-    if not config.vaultwarden_email:
-        missing.append("TSW_VAULTWARDEN_LOGIN_EMAIL")
-    if not config.vaultwarden_master_password:
-        missing.append("TSW_VAULTWARDEN_MASTER_PASSWORD")
+    if not config.infisical_email:
+        missing.append("TSW_INFISICAL_LOGIN_EMAIL")
+    if not config.infisical_password:
+        missing.append("TSW_INFISICAL_PASSWORD")
     return tuple(missing)
 
 
-def _missing_vaultwarden_items(config: LivePostInstallConfig) -> tuple[str, ...]:
+def _missing_infisical_items(config: LivePostInstallConfig) -> tuple[str, ...]:
     try:
         from playwright.sync_api import sync_playwright  # type: ignore[import-not-found]
     except ImportError as exc:
-        raise AssertionError("vaultwarden_setup_blocker: playwright_unavailable") from exc
+        raise AssertionError("infisical_setup_blocker: playwright_unavailable") from exc
 
-    if config.vaultwarden_email is None or config.vaultwarden_master_password is None:
-        raise AssertionError("vaultwarden_setup_blocker: missing_login_material")
+    if config.infisical_email is None or config.infisical_password is None:
+        raise AssertionError("infisical_setup_blocker: missing_login_material")
 
     missing: list[str] = []
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
-        page = browser.new_page(ignore_https_errors=True, base_url=config.vaultwarden_url)
+        page = browser.new_page(ignore_https_errors=True, base_url=config.infisical_url)
         try:
-            page.goto(
-                "/#/login",
-                wait_until="domcontentloaded",
-                timeout=int(config.timeout_seconds * 1000),
-            )
-            _fill_first(page, ("Email", "Email address"), config.vaultwarden_email)
-            _fill_first(page, ("Master password", "Password"), config.vaultwarden_master_password)
-            _click_first(page, ("Log in with master password", "Log in", "Login"))
-            page.get_by_text("Vault", exact=False).first.wait_for(timeout=20_000)
-            for item in EXPECTED_VAULTWARDEN_ITEMS:
+            page.goto("/", wait_until="domcontentloaded", timeout=int(config.timeout_seconds * 1000))
+            _fill_first(page, ("Email", "Email address"), config.infisical_email)
+            _fill_first(page, ("Password",), config.infisical_password)
+            _click_first(page, ("Log in", "Login", "Sign in"))
+            page.get_by_text("Secrets", exact=False).first.wait_for(timeout=20_000)
+            for item in EXPECTED_INFISICAL_ITEMS:
                 try:
                     page.get_by_text(item, exact=True).first.wait_for(timeout=5_000)
                 except Exception:
@@ -442,7 +438,7 @@ def _click_first(page: Any, names: tuple[str, ...]) -> None:
     raise RuntimeError(f"could not click control: {names}; last={type(last_error).__name__}")
 
 
-def _vaultwarden_item_evidence(
+def _infisical_item_evidence(
     *,
     expected_item: str,
     item_present: bool,
@@ -450,7 +446,7 @@ def _vaultwarden_item_evidence(
     redacted_failure_reason: str,
 ) -> dict[str, object]:
     return {
-        "expected_vaultwarden_item": expected_item,
+        "expected_infisical_item": expected_item,
         "item_present": item_present,
         "redacted_failure_reason": redacted_failure_reason,
         "result": result,
@@ -487,8 +483,8 @@ def _validated_local_url(raw_url: str, purpose: str) -> str:
 
 
 def _invalid_local_url_reason(purpose: str) -> str:
-    if purpose == "vaultwarden":
-        return "vaultwarden_setup_blocker: invalid_local_vaultwarden_url"
+    if purpose == "infisical":
+        return "infisical_setup_blocker: invalid_local_infisical_url"
     return f"post_install_browser_setup_blocker: invalid_local_{purpose}_url"
 
 

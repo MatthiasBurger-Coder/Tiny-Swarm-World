@@ -34,7 +34,7 @@ class TestServiceStackContract(unittest.TestCase):
         )
         self.assertEqual(SERVICE_ACCESS_STACK_CONTRACT, selected_by_name["service-access"])
         self.assertEqual(
-            ("service-access-dashboard", "vaultwarden", "service-access-nginx"),
+            ("service-access-dashboard", "infisical", "infisical-db", "infisical-redis", "service-access-nginx"),
             selected_by_name["service-access"].required_services,
         )
         self.assertEqual(
@@ -149,7 +149,7 @@ class TestServiceStackContract(unittest.TestCase):
             ServiceEndpoint("service", f"http://{ipv4_address(10, 157, 2, 182)}:8080")
 
     def test_accepts_localhost_https_endpoint_url(self):
-        endpoint = ServiceEndpoint("vaultwarden", "https://localhost")
+        endpoint = ServiceEndpoint("infisical", "https://localhost")
 
         self.assertEqual("https://localhost", endpoint.url)
 

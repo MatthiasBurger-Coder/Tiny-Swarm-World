@@ -6,7 +6,6 @@ GENERATE_SECRETS=1
 SECRET_ENV_FILE="${TSW_INSTALL_ENV_FILE:-.tiny-swarm-world/local/live-installation.env}"
 RESET_CONFIRMATION="RESET_TINY_SWARM_PLATFORM"
 RESET_CONFIRMED_BY_FLAG=0
-VAULTWARDEN_HASH_IMAGE="${TSW_VAULTWARDEN_HASH_IMAGE:-vaultwarden/server:latest}"
 
 REQUIRED_SECRETS=(
   TSW_PORTAINER_PASSWORD
@@ -15,7 +14,9 @@ REQUIRED_SECRETS=(
   TSW_RABBITMQ_PASSWORD
   TSW_SONARQUBE_ADMIN_PASSWORD
   TSW_POSTGRES_PASSWORD
-  TSW_VAULTWARDEN_ADMIN_TOKEN
+  TSW_INFISICAL_ENCRYPTION_KEY
+  TSW_INFISICAL_AUTH_SECRET
+  TSW_INFISICAL_POSTGRES_PASSWORD
 )
 
 usage() {
@@ -36,10 +37,6 @@ Optional environment:
       Docker registry mirror URL written into managed LXC nodes during Docker
       installation. Use an address reachable from inside the nodes, not
       127.0.0.1.
-  TSW_VAULTWARDEN_HASH_IMAGE
-      Image used only for the local Vaultwarden admin-token hash fallback when
-      the argon2 command is unavailable (default: vaultwarden/server:latest).
-
 The script is Linux/WSL-only. It writes evidence under:
   .tiny-swarm-world/evidence/installation-tests/wsl2/<UTC timestamp>/
 
@@ -47,12 +44,10 @@ It runs the governed reset command before the canonical live setup command:
   PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM
   PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 
-Generated local secret values include TSW_VAULTWARDEN_ADMIN_TOKEN. For
-Vaultwarden, install.sh stores the Swarm secret as an Argon2 PHC string and
-keeps the local admin login token in TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN when it
-has to convert plaintext input. The TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET variable
-is only an optional Swarm secret name override; when omitted, setup uses
-tsw_vaultwarden_admin_token.
+Generated local secret values include the Infisical platform keys
+`TSW_INFISICAL_ENCRYPTION_KEY`, `TSW_INFISICAL_AUTH_SECRET`, and
+`TSW_INFISICAL_POSTGRES_PASSWORD`. These values are written only to the ignored
+local env file and exported for the setup process.
 EOF
 }
 
@@ -87,45 +82,12 @@ import secrets
 import sys
 
 for name in sys.argv[1:]:
-    print(f"export {name}='{secrets.token_urlsafe(32)}'")
+    if name == "TSW_INFISICAL_ENCRYPTION_KEY":
+        value = secrets.token_hex(16)
+    else:
+        value = secrets.token_urlsafe(32)
+    print(f"export {name}='{value}'")
 PY
-}
-
-is_argon2_phc() {
-  local value="$1"
-  [[ "$value" == \$argon2id\$* || "$value" == \$argon2i\$* ]]
-}
-
-hash_vaultwarden_admin_token() {
-  local token="$1"
-  local salt=""
-  local hash_output=""
-
-  if command -v argon2 >/dev/null 2>&1; then
-    require_command openssl
-    salt="$(openssl rand -base64 32)"
-    printf '%s' "$token" | argon2 "$salt" -e -id -k 19456 -t 2 -p 1
-    return
-  fi
-
-  if command -v docker >/dev/null 2>&1; then
-    require_command script
-    hash_output="$(
-      printf '%s\n%s\n' "$token" "$token" \
-        | script -q -e -c "docker run --rm -i -t '$VAULTWARDEN_HASH_IMAGE' /vaultwarden hash --preset owasp" /dev/null
-    )"
-    printf '%s\n' "$hash_output" | awk '
-      {
-        if (match($0, /\$argon2(id|i)\$[^'"'"'[:space:]]+/)) {
-          value = substr($0, RSTART, RLENGTH)
-        }
-      }
-      END { if (value) print value; else exit 1 }
-    '
-    return
-  fi
-
-  fail "Required command 'argon2' is not available and Docker fallback is unavailable. Install argon2 or provide TSW_VAULTWARDEN_ADMIN_TOKEN as an Argon2 PHC string."
 }
 
 load_secret_env_file() {
@@ -260,24 +222,9 @@ if (( ${#missing_secrets[@]} > 0 )); then
   load_secret_env_file
 fi
 
-if [[ -n "${TSW_VAULTWARDEN_ADMIN_TOKEN:-}" ]] && ! is_argon2_phc "$TSW_VAULTWARDEN_ADMIN_TOKEN"; then
-  vaultwarden_admin_login_token="${TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN:-$TSW_VAULTWARDEN_ADMIN_TOKEN}"
-  vaultwarden_admin_token_hash="$(hash_vaultwarden_admin_token "$vaultwarden_admin_login_token")"
-  {
-    printf '\n# Vaultwarden admin token secured by install.sh at %s UTC\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    write_export TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN "$vaultwarden_admin_login_token"
-    write_export TSW_VAULTWARDEN_ADMIN_TOKEN "$vaultwarden_admin_token_hash"
-  } >>"$SECRET_ENV_FILE"
-  chmod 600 "$SECRET_ENV_FILE"
-  load_secret_env_file
-fi
-
 for secret_name in "${REQUIRED_SECRETS[@]}"; do
   export "$secret_name=${!secret_name}"
 done
-if [[ -n "${TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET:-}" ]]; then
-  export TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET
-fi
 if [[ -n "${TSW_LXC_DOCKER_REGISTRY_MIRROR:-}" ]]; then
   export TSW_LXC_DOCKER_REGISTRY_MIRROR
 fi

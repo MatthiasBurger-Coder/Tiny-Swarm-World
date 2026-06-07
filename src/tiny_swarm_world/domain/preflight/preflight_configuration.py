@@ -97,12 +97,6 @@ def default_preflight_configuration(
             for secret in setup_manifest.required_secrets
         ),
         static_secret_defaults=(
-            StaticSecretDefault(
-                "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
-                "Vaultwarden admin-token secret name",
-                "tsw_vaultwarden_admin_token",
-                value_kind="secret_name",
-            ),
         ),
         forbidden_secret_fingerprints=(
             ForbiddenSecretFingerprint(

@@ -154,16 +154,16 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertIn("listen 80;", nginx_config)
         self.assertIn("listen 8086;", nginx_config)
         self.assertIn("listen 443 ssl;", nginx_config)
-        self.assertIn("ssl_certificate /etc/nginx/tls/vaultwarden.crt;", nginx_config)
-        self.assertIn("ssl_certificate_key /etc/nginx/tls/vaultwarden.key;", nginx_config)
+        self.assertIn("ssl_certificate /etc/nginx/tls/infisical.crt;", nginx_config)
+        self.assertIn("ssl_certificate_key /etc/nginx/tls/infisical.key;", nginx_config)
         self.assertIn("proxy_set_header X-Forwarded-Proto https;", nginx_config)
         self.assertIn("resolver 127.0.0.11", nginx_config)
         self.assertIn(
             "set $dashboard_upstream http://tasks.service-access-dashboard:80;",
             nginx_config,
         )
-        self.assertIn("set $vaultwarden_upstream http://tasks.vaultwarden:80;", nginx_config)
-        for route in ("jenkins", "nexus", "portainer", "rabbitmq", "sonarqube", "swagger", "vaultwarden"):
+        self.assertIn("set $infisical_upstream http://tasks.infisical:8080;", nginx_config)
+        for route in ("jenkins", "nexus", "portainer", "rabbitmq", "sonarqube", "swagger", "infisical"):
             with self.subTest(route=route):
                 self.assertIn(f"location = /{route}", nginx_config)
         self.assertNotIn("password=", nginx_config)

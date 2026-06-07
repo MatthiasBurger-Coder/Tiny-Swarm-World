@@ -149,15 +149,13 @@ def default_setup_manifest(
                 name="Service Access",
                 ports=(
                     SetupPortRequirement(80, "Service Access dashboard"),
-                    SetupPortRequirement(8086, "Vaultwarden"),
-                    SetupPortRequirement(443, "Vaultwarden HTTPS"),
+                    SetupPortRequirement(8086, "Infisical"),
+                    SetupPortRequirement(443, "Infisical HTTPS"),
                 ),
                 secrets=(
-                    SetupSecretRequirement(
-                        "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET",
-                        "Vaultwarden admin-token secret name",
-                        value_kind="secret_name",
-                    ),
+                    SetupSecretRequirement("TSW_INFISICAL_ENCRYPTION_KEY", "Infisical"),
+                    SetupSecretRequirement("TSW_INFISICAL_AUTH_SECRET", "Infisical"),
+                    SetupSecretRequirement("TSW_INFISICAL_POSTGRES_PASSWORD", "Infisical PostgreSQL"),
                 ),
             )
         )
