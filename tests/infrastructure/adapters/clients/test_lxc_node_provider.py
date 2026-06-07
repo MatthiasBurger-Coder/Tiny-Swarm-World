@@ -492,6 +492,72 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEvidenceIsSummaryOnly(result)
 
+    async def test_provider_resource_resolution_blocks_when_lxd_network_missing(self):
+        runner = _FakeRunner(
+            _profile(),
+            _name_list("default"),
+            _name_list("default"),
+        )
+        provider = _provider(runner, config=_config(resolve_provider_resources=True))
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("network_missing", result.evidence["classification"])
+        self.assertEqual("control", result.evidence["logical_network"])
+        self.assertEqual("lxdbr0", result.evidence["resolved_network"])
+        self.assertEqual("default", result.evidence["available_networks"])
+        self.assertEqual("default", result.evidence["expected_storage_pool"])
+        self.assertIn("resolved LXD network", result.evidence["remediation_hint"])
+        self.assertEqual(
+            [
+                (("incus", "profile", "show", "docker-swarm"), 5.0),
+                (("incus", "network", "list", "--format", "json"), 5.0),
+            ],
+            runner.calls[:2],
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_provider_resource_resolution_blocks_when_storage_pool_missing(self):
+        runner = _FakeRunner(
+            _profile(),
+            _name_list("lxdbr0"),
+            _name_list("other"),
+        )
+        provider = _provider(runner, config=_config(resolve_provider_resources=True))
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("storage_pool_missing", result.evidence["classification"])
+        self.assertEqual("lxdbr0", result.evidence["available_networks"])
+        self.assertEqual("default", result.evidence["expected_storage_pool"])
+        self.assertEqual("other", result.evidence["available_storage_pools"])
+        self.assertIn("expected LXD storage pool", result.evidence["remediation_hint"])
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_provider_resource_resolution_launches_with_resolved_network_and_storage(self):
+        runner = _FakeRunner(
+            _profile(),
+            _name_list("lxdbr0"),
+            _name_list("default"),
+            _list(),
+            _ok(),
+            _list(_node("swarm-manager", "Running")),
+        )
+        provider = _provider(runner, config=_config(resolve_provider_resources=True))
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        launch_call = runner.calls[4][0]
+        self.assertEqual("launch", launch_call[1])
+        self.assertIn("--network", launch_call)
+        self.assertIn("lxdbr0", launch_call)
+        self.assertIn("--storage", launch_call)
+        self.assertIn("default", launch_call)
+        self.assertEvidenceIsSummaryOnly(result)
+
     async def test_launch_failure_maps_to_failed_to_apply_without_raw_output(self):
         runner = _FakeRunner(
             _profile(),
@@ -956,6 +1022,7 @@ def _config(
     resources: dict[str, str] | None = None,
     nodes: tuple[NodeSpec, ...] | None = None,
     additional_profiles: tuple[str, ...] = (),
+    resolve_provider_resources: bool = False,
 ) -> NodeProviderConfig:
     profiles = [
         NodeProviderProfileRequirement(
@@ -1017,7 +1084,15 @@ def _config(
             readiness_timeout_seconds=5,
             evidence_summary_only=True,
             store_raw_output=False,
-            checks=("backend_readiness", "profile_requirements"),
+            checks=(
+                "backend_readiness",
+                "profile_requirements",
+                *(
+                    ("provider_resource_resolution",)
+                    if resolve_provider_resources
+                    else ()
+                ),
+            ),
         ),
     )
 
@@ -1052,6 +1127,10 @@ def _profile(
 
 
 def _profile_list(*names: str) -> LxcNodeCommandResult:
+    return _name_list(*names)
+
+
+def _name_list(*names: str) -> LxcNodeCommandResult:
     import json
 
     return LxcNodeCommandResult(
@@ -1115,13 +1194,21 @@ def _assert_safe_lifecycle_command(args) -> None:
     if any(not isinstance(item, str) for item in argv):
         raise AssertionError(f"provider argv must contain strings only: {argv!r}")
     if any(
-        token in {"delete", "remove", "restart", "stop", "exec", "config", "network"}
+        token in {"delete", "remove", "restart", "stop", "exec", "config"}
         for token in argv
     ):
         raise AssertionError(f"unsafe provider command was called: {argv!r}")
     if argv[:3] in {("incus", "profile", "list"), ("lxc", "profile", "list")}:
         if len(argv) != 5 or argv[3:] != ("--format", "json"):
             raise AssertionError(f"unexpected provider profile list was called: {argv!r}")
+        return
+    if argv[:3] in {("incus", "network", "list"), ("lxc", "network", "list")}:
+        if len(argv) != 5 or argv[3:] != ("--format", "json"):
+            raise AssertionError(f"unexpected provider network list was called: {argv!r}")
+        return
+    if argv[:3] in {("incus", "storage", "list"), ("lxc", "storage", "list")}:
+        if len(argv) != 5 or argv[3:] != ("--format", "json"):
+            raise AssertionError(f"unexpected provider storage list was called: {argv!r}")
         return
     if argv[:3] in {("incus", "profile", "create"), ("lxc", "profile", "create")}:
         if len(argv) != 4 or argv[3] not in {"docker-swarm", "docker-swarm-manager"}:
