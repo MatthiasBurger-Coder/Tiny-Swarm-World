@@ -2,29 +2,30 @@
 
 Status: stopped
 
-Date: 2026-06-06
+Date: 2026-06-07
 Branch: `feature/live-greenpath-repair-loop-20260606`
-Final evidence directory: `.tiny-swarm-world/evidence/installation-tests/wsl2/20260606T220100Z`
-Final state snapshot: `.tiny-swarm-world/evidence/final-state-20260606T222241Z.txt`
+Latest evidence directory: `.tiny-swarm-world/evidence/installation-tests/wsl2/20260607T005001Z`
+Latest reset exit: `0`
+Latest setup exit: `1`
 
 ## Stop Reason
 
-The controlled repair loop stopped before a complete greenpath because the final live run failed at `deployment verify` for `deployment:swagger-service-readiness`.
+The controlled repair loop stopped before a complete greenpath because the latest live run failed at `deployment verify` for `deployment:swagger-service-readiness`.
 
 Classification: `deployment_verify_failed`
 
-Observed evidence:
+Precise blocker:
 
-- `swagger_swagger-api`: `0/1`, rejected with `No such image: danielgtaylor/apisprout:latest`
-- `swagger_swagger-editor`: `0/1`, rejected with `No such image: docker.swagger.io/swaggerapi/swagger-editor:latest@sha256:...`
-- `swagger_swagger-ui`: `0/1`, rejected with `No such image: docker.swagger.io/swaggerapi/swagger-ui:latest@sha256:...`
-- `swagger_swagger-nginx`: `0/1`, rejected with `No such image: nginx:mainline-alpine`
-- Manual pull diagnostic on `swarm-manager` returned Docker registry rate limiting: `You have reached your unauthenticated pull rate limit.`
-- No cached Swagger images were present on the WSL host, on `swarm-manager`, or in the local Nexus registry.
+- Phase: `deployment verify`
+- Target: `deployment:swagger-service-readiness`
+- Stack: `swagger`
+- Failed services: `swagger-editor`, `swagger-ui`
+- Observed replicas after 60 attempts: `swagger-api=1/1,swagger-editor=0/1,swagger-nginx=1/1,swagger-ui=0/1`
+- Runtime error from Swarm task history: `No such image: docker.swagger.io/swaggerapi/swagger-editor:latest` and `No such image: docker.swagger.io/swaggerapi/swagger-ui:latest`
 
-This requires external registry quota recovery or authenticated image access. The workflow stopped under the guard: stop if a blocker would require manual secrets or unknown external host changes. No safety guard was bypassed.
+This is not safely repairable by bypassing readiness verification or replacing the stack with a placeholder. It requires an approved external image source, authenticated registry access, or documented provider configuration for a reachable mirror/cache. The workflow stopped under the guard: stop if a blocker would require manual secrets or unknown destructive host changes.
 
-## Final Live Run
+## Latest Live Run
 
 Command:
 
@@ -34,9 +35,9 @@ printf '%s\n' RESET_TINY_SWARM_PLATFORM | ./install.sh
 
 Evidence:
 
-- Reset log: `.tiny-swarm-world/evidence/installation-tests/wsl2/20260606T220100Z/reset-run.log`
-- Setup log: `.tiny-swarm-world/evidence/installation-tests/wsl2/20260606T220100Z/setup-run.log`
-- Wrapper log: `.tiny-swarm-world/evidence/install-run-20260606T220100Z.log`
+- Reset log: `.tiny-swarm-world/evidence/installation-tests/wsl2/20260607T005001Z/reset-run.log`
+- Setup log: `.tiny-swarm-world/evidence/installation-tests/wsl2/20260607T005001Z/setup-run.log`
+- Context: `.tiny-swarm-world/evidence/installation-tests/wsl2/20260607T005001Z/context.txt`
 
 Result:
 
@@ -51,93 +52,74 @@ Result:
 - `deployment verify`: failed_to_verify
 - `platform verify`: not_run
 
+Final setup status: `failed_to_verify`
+
 ## Runtime State At Stop
 
-Observed from `.tiny-swarm-world/evidence/final-state-20260606T222241Z.txt`:
+Live diagnostic commands showed:
 
-- Docker Swarm exists with `swarm-manager` as leader.
-- Stacks registered: `portainer`, `nexus`, `jenkins`, `rabbitmq`, `sonarqube`, `swagger`, `service-access`.
-- Running service groups: Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Service Access.
-- Blocked service group: Swagger, all four services rejected due missing external images after Docker Hub rate limit.
+- LXD instances exist and are running: `swarm-manager`, `swarm-worker-1`, `swarm-worker-2`.
+- Docker Swarm manager exists: `swarm-manager` is `Leader`.
+- Docker Swarm worker membership is not complete: `docker node ls` reported only the manager.
+- Worker Docker Swarm states are `inactive` on `swarm-worker-1` and `swarm-worker-2`.
+- Expected stacks are registered: `portainer`, `nexus`, `jenkins`, `rabbitmq`, `sonarqube`, `swagger`, `service-access`.
+- Non-Swagger services reached desired replicas in the latest setup evidence.
+- `swagger_swagger-editor` and `swagger_swagger-ui` continuously rejected because their public images were unavailable to the Swarm node.
 
-## Repairs Applied
+The worker membership gap is an additional acceptance blocker classified as `swarm_join_failed`, but it was not the first blocker in the latest setup evidence because the setup stopped earlier at `deployment verify`.
+
+## Repairs Applied On This Branch
+
+Existing repair commits already present on the workflow branch:
 
 1. `e8dff6b fix: prevent install consent pipe hang`
-   - Blocker: install wrapper hung after piping consent because `sleep 86400` kept stdin open.
-   - Fix: make the recorded command pipe finite.
-   - Tests: `PYTHONPATH=src python3 -m unittest tests.test_install_script`; full test gate.
-
 2. `92b9177 test: select latest install evidence deterministically`
-   - Blocker: debugger test selected latest evidence by mtime, unstable with live evidence.
-   - Fix: select latest evidence directory by timestamped name.
-   - Tests: full test gate.
-
 3. `e735a09 fix: use bearer-only Portainer API requests`
-   - Blocker: `deployment:portainer-local-endpoint` failed with Portainer CSRF rejection.
-   - Fix: clear session cookies after JWT auth so API calls use bearer auth only.
-   - Tests: Portainer client tests; full test gate.
-
 4. `ebdd5f2 fix: align local registry image endpoint`
-   - Blocker: Jenkins service rejected `swarm-manager:5000/jenkins:latest` as unavailable.
-   - Fix: use provider-safe local registry endpoint `127.0.0.1:5000` consistently.
-   - Tests: composition/config tests; full test gate.
-
 5. `cd5d398 fix: prepare swagger stack bind assets`
-   - Blocker: Swagger services rejected missing bind sources under `/var/lib/tiny-swarm-world/stacks`.
-   - Fix: prepare stack assets before Portainer deployment through the LXC Swarm runtime.
-   - Tests: LXC runtime and composition tests; full test gate.
-
 6. `e83d752 fix: route local nginx upstreams via swarm tasks`
-   - Blocker: Swagger and service-access NGINX upstreams used VIPs that refused connections in the LXC Swarm path.
-   - Fix: route NGINX upstreams through `tasks.*` DNS names.
-   - Tests: architecture/config assertions; full test gate.
-
 7. `3f9d4f5 fix: wait for sonarqube database readiness`
-   - Blocker: SonarQube started before PostgreSQL was accepting TCP connections and exited repeatedly.
-   - Fix: add an idempotent TCP readiness wait before SonarQube entrypoint.
-   - Tests: compose config regression; full test gate.
-
 8. `908b82a fix: route sonarqube database via swarm tasks`
-   - Blocker: SonarQube DB wait and JDBC URL used the service VIP, which refused connections in this LXC Swarm path.
-   - Fix: use `tasks.sonar_db` for wait and JDBC URL.
-   - Tests: compose config regression; full test gate.
-
 9. `319d7d0 fix: retry transient platform verify preflight`
-   - Blocker: final platform verify could run before expected-service detection settled, then pass moments later.
-   - Fix: add a bounded retry window only for non-mutating `platform:preflight` verification failures.
-   - Tests: platform workflow retry regression, composition tests, full test gate.
+10. `a4a755a feat: implement WSL port forwarding and Docker registry mirroring capabilities`
+
+No new blocker fix was committed for the latest run because the first current blocker requires approved external image access or provider mirror configuration, not a code change that can be made safely inside the repository.
 
 ## Quality Evidence
 
-For each repair commit, targeted tests were run before the full test gate. The latest full test gate before the final live run was:
+Command:
 
 ```bash
-python3 tools/quality_gate.py test && git diff --check
+python3 tools/quality_gate.py test
 ```
 
-Result: 681 tests passed. `git diff --check` reported only existing CRLF conversion warnings and no whitespace errors.
+Result: `694` tests passed.
+
+Git state before report update was clean. Raw local evidence remains under `.tiny-swarm-world/evidence` and is not committed.
 
 ## Acceptance Criteria Status
 
 Not met:
 
 - A fresh reset followed by `./install.sh` did not complete successfully.
-- Swagger services did not reach `1/1` because required public images could not be pulled after Docker Hub unauthenticated rate limiting.
-- Final platform verify did not run in the last install because deployment verify stopped first.
+- Docker Swarm does not currently contain one manager and two workers.
+- Swagger deployment verification did not pass because two public Swagger images were unavailable to the Swarm node.
+- Final `platform verify` did not run because setup stopped at `deployment verify`.
 
-Partially met:
+Met or partially met:
 
-- Managed LXC/LXD platform initialized and reconciled.
-- Docker Swarm initialized with `swarm-manager` as leader during the final run.
-- Stacks were registered for all expected stack names.
-- Non-Swagger services reached desired replicas during the final run.
+- Fresh reset succeeded.
+- All three LXD instances exist and are running.
+- Expected stacks are registered.
+- Non-Swagger services reached desired replicas in the latest run.
+- Final evidence exists under `.tiny-swarm-world/evidence/installation-tests/wsl2/20260607T005001Z`.
 
 ## Required Follow-Up
 
-Provide a safe external image source before retrying the live greenpath:
+Choose one approved image-source path before rerunning the live greenpath:
 
-1. Authenticate Docker pulls on the LXC manager and workers using approved local credentials, then rerun `./install.sh`.
-2. Preload and publish the Swagger images into the local Nexus registry using an approved, documented image-source workflow.
-3. Replace Swagger image references with provider configuration pointing to an approved internal registry mirror.
+1. Configure authenticated Docker/Swagger registry access for the LXC nodes without committing credentials.
+2. Configure `TSW_LXC_DOCKER_REGISTRY_MIRROR` to a reachable, approved local mirror/cache and ensure Swagger images are available there.
+3. Replace Swagger image references only with documented provider configuration pointing to an approved internal registry source.
 
-Do not commit registry credentials or bypass preflight/deployment validations.
+After the image-source blocker is resolved, rerun `./install.sh`. If deployment verify passes, the next blocker to repair is expected to be worker join verification (`swarm_join_failed`) unless the rerun joins both workers successfully.
