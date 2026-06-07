@@ -97,6 +97,10 @@ from tiny_swarm_world.domain.deployment import (
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.network import LxcProxyDevicePlan
+from tiny_swarm_world.domain.network.port_forwarding_plan import (
+    ForwardingStrategy,
+    PortForwardingPlan,
+)
 from tiny_swarm_world.domain.node_provider import (
     ContainerDockerInstallOutcome,
     ContainerDockerReadiness,
@@ -125,6 +129,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeProvider,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime import (
+    DockerRegistryMirrorConfiguration,
     LxcContainerDockerRuntime,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_swarm_bootstrap import (
@@ -156,6 +161,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_reposito
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderConfigYamlRepository,
 )
+from tiny_swarm_world.infrastructure.os_types import OsTypes
 from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
     VerificationEvidenceLocalRepository,
 )
@@ -370,6 +376,100 @@ class _VerifiedPlatformProviderStep:
         )
 
 
+class _WslSocatExposeStep:
+    returns_verification_result = True
+    verification_target_id = "platform:expose:wsl-socat"
+
+    def __init__(
+        self,
+        socat_manager: SocatManager,
+        *,
+        service_profile: ServiceStackProfile,
+        live_consent: LiveConsent | None,
+        os_type: OsTypes | None = None,
+    ) -> None:
+        self.socat_manager = socat_manager
+        self.service_profile = service_profile
+        self.live_consent = live_consent
+        self.os_type = os_type
+
+    async def run(self) -> VerificationResult:
+        os_type = self.os_type or OsTypes.detect_current()
+        plans = _wsl_socat_forwarding_plans(self.service_profile)
+        commands = self.socat_manager.set_service_socat_ports(os_type, plans)
+        if not commands:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.VERIFIED,
+                message="WSL port exposure is not required for this host type.",
+                evidence={
+                    "phase": "verify",
+                    "classification": "not_required",
+                    "os_type": str(getattr(os_type, "value", os_type)),
+                },
+            )
+        if self.live_consent is None or not self.live_consent.accepted:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.BLOCKED,
+                message="WSL port exposure requires accepted live infrastructure consent.",
+                evidence={
+                    "phase": "pre_apply",
+                    "classification": "live_mutation_required",
+                    "os_type": str(getattr(os_type, "value", os_type)),
+                    "planned_forward_count": str(len(commands)),
+                },
+            )
+        if shutil.which("socat") is None:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.BLOCKED,
+                message="WSL port exposure requires the configured forwarding executable.",
+                evidence={
+                    "phase": "pre_apply",
+                    "classification": "socat_missing",
+                    "os_type": str(getattr(os_type, "value", os_type)),
+                    "remediation_hint": "Install the WSL forwarding tool and rerun platform expose.",
+                },
+            )
+
+        started_count = 0
+        existing_count = 0
+        failed_count = 0
+        for command in commands:
+            pattern = command.shell_command
+            if await _wsl_socat_process_exists(pattern):
+                existing_count += 1
+                continue
+            if await _start_wsl_socat_command(pattern):
+                started_count += 1
+            else:
+                failed_count += 1
+        status = (
+            VerificationStatus.VERIFIED
+            if failed_count == 0
+            else VerificationStatus.FAILED_TO_APPLY
+        )
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=status,
+            message=_wsl_socat_expose_message(status),
+            evidence={
+                "phase": "apply",
+                "classification": (
+                    "wsl_socat_exposed"
+                    if status == VerificationStatus.VERIFIED
+                    else "wsl_socat_expose_failed"
+                ),
+                "os_type": str(getattr(os_type, "value", os_type)),
+                "planned_forward_count": str(len(commands)),
+                "started_count": str(started_count),
+                "existing_count": str(existing_count),
+                "failed_count": str(failed_count),
+            },
+        )
+
+
 class _ProviderSelectedLxcDockerRuntime(PortContainerDockerRuntime):
     def __init__(
         self,
@@ -443,6 +543,7 @@ class _ProviderSelectedLxcDockerRuntime(PortContainerDockerRuntime):
             backend=backend,
             runner=self.runner,
             allow_live_mutation=self.allow_live_mutation,
+            registry_mirror=_lxc_docker_registry_mirror_configuration(),
         )
 
 
@@ -858,7 +959,12 @@ def build_platform_services(
             trace_correlation_id=trace_correlation_id,
         ),
         expose=PlatformExposeWorkflow(
-            _platform_expose_steps(lxc_service_exposure),
+            _platform_expose_steps(
+                lxc_service_exposure,
+                socat_manager,
+                service_profile=ServiceStackProfile(service_profile),
+                live_consent=live_consent,
+            ),
             verification_evidence_repository=verification_evidence_repository,
             progress=workflow_progress,
             method_trace=method_trace,
@@ -1356,14 +1462,70 @@ def _platform_reconcile_steps(
 
 def _platform_expose_steps(
     lxc_service_exposure: LxcServiceExposureService,
+    socat_manager: SocatManager,
+    *,
+    service_profile: ServiceStackProfile,
+    live_consent: LiveConsent | None,
 ) -> tuple[AsyncWorkflowStep, ...]:
-    return (LxcServiceExposureStep(lxc_service_exposure),)
+    return (
+        LxcServiceExposureStep(lxc_service_exposure),
+        _WslSocatExposeStep(
+            socat_manager,
+            service_profile=ServiceStackProfile(service_profile),
+            live_consent=live_consent,
+        ),
+    )
 
 
 def _platform_repair_lxc_proxy_drift_steps(
     lxc_proxy_drift_repair: LxcProxyDriftRepairService,
 ) -> tuple[AsyncWorkflowStep, ...]:
     return (LxcProxyDriftRepairStep(lxc_proxy_drift_repair),)
+
+
+def _wsl_socat_forwarding_plans(
+    service_profile: ServiceStackProfile,
+) -> tuple[PortForwardingPlan, ...]:
+    return tuple(
+        PortForwardingPlan(
+            strategy=ForwardingStrategy.WSL2_SOCAT,
+            service=requirement.service,
+            listen_port=requirement.port,
+            target_port=requirement.port,
+            remediation=("Start WSL socat forwarding after live consent.",),
+        )
+        for requirement in default_setup_manifest(
+            service_profile=service_profile
+        ).required_ports
+    )
+
+
+async def _wsl_socat_process_exists(pattern: str) -> bool:
+    process = await asyncio.create_subprocess_exec(
+        "pgrep",
+        "-f",
+        pattern,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    return await process.wait() == 0
+
+
+async def _start_wsl_socat_command(command: str) -> bool:
+    process = await asyncio.create_subprocess_exec(
+        "sh",
+        "-lc",
+        f"nohup {command} >/dev/null 2>&1 &",
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    return await process.wait() == 0
+
+
+def _wsl_socat_expose_message(status: VerificationStatus) -> str:
+    if status == VerificationStatus.VERIFIED:
+        return "WSL port exposure is configured for published service ports."
+    return "WSL port exposure failed for one or more published service ports."
 
 
 def _platform_reset_steps(
@@ -1443,6 +1605,13 @@ def _lxc_proxy_listen_address() -> str:
     if address not in {"127.0.0.1", "0.0.0.0"}:
         raise ValueError("LXC proxy listen address must be 127.0.0.1 or 0.0.0.0.")
     return address
+
+
+def _lxc_docker_registry_mirror_configuration() -> DockerRegistryMirrorConfiguration | None:
+    mirror_url = os.getenv("TSW_LXC_DOCKER_REGISTRY_MIRROR", "").strip()
+    if not mirror_url:
+        return None
+    return DockerRegistryMirrorConfiguration(mirror_url)
 
 
 def _lxc_manager_node() -> NodeSpec:

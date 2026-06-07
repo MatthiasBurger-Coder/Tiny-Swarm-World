@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from dataclasses import dataclass
+from urllib.parse import urlparse
 from collections.abc import Sequence
 
 from tiny_swarm_world.application.ports.node_provider import PortContainerDockerRuntime
@@ -44,6 +47,31 @@ docker info >/dev/null
 """.strip()
 
 
+@dataclass(frozen=True)
+class DockerRegistryMirrorConfiguration:
+    mirror_url: str
+
+    def __post_init__(self) -> None:
+        parsed_url = urlparse(self.mirror_url)
+        if parsed_url.scheme not in {"http", "https"}:
+            raise ValueError("Docker registry mirror URL must use http or https.")
+        if not parsed_url.hostname:
+            raise ValueError("Docker registry mirror URL must include a host.")
+        if parsed_url.hostname in {"127.0.0.1", "localhost", "::1"}:
+            raise ValueError("LXC Docker registry mirror must be reachable from inside LXC nodes.")
+        if parsed_url.username or parsed_url.password:
+            raise ValueError("Docker registry mirror URL must not contain credentials.")
+        if parsed_url.query or parsed_url.fragment:
+            raise ValueError("Docker registry mirror URL must not contain query or fragment parts.")
+
+    @property
+    def registry_authority(self) -> str:
+        parsed_url = urlparse(self.mirror_url)
+        if parsed_url.port is None:
+            return parsed_url.hostname or ""
+        return f"{parsed_url.hostname}:{parsed_url.port}"
+
+
 class LxcContainerDockerRuntime(PortContainerDockerRuntime):
     def __init__(
         self,
@@ -53,6 +81,7 @@ class LxcContainerDockerRuntime(PortContainerDockerRuntime):
         inspect_timeout_seconds: float = DEFAULT_DOCKER_INSPECT_TIMEOUT_SECONDS,
         install_timeout_seconds: float = DEFAULT_DOCKER_INSTALL_TIMEOUT_SECONDS,
         allow_live_mutation: bool = False,
+        registry_mirror: DockerRegistryMirrorConfiguration | None = None,
     ) -> None:
         if inspect_timeout_seconds <= 0:
             raise ValueError("Docker inspect timeout must be positive.")
@@ -63,6 +92,7 @@ class LxcContainerDockerRuntime(PortContainerDockerRuntime):
         self.inspect_timeout_seconds = inspect_timeout_seconds
         self.install_timeout_seconds = install_timeout_seconds
         self.allow_live_mutation = allow_live_mutation
+        self.registry_mirror = registry_mirror
 
     async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
         result = await self.runner.run(
@@ -80,7 +110,7 @@ class LxcContainerDockerRuntime(PortContainerDockerRuntime):
             )
 
         result = await self.runner.run(
-            _docker_install_args(self.backend, node),
+            _docker_install_args(self.backend, node, self.registry_mirror),
             self.install_timeout_seconds,
         )
         if _command_failed(result):
@@ -120,6 +150,7 @@ def _docker_info_args(
 def _docker_install_args(
     backend: ManagedLxcBackend,
     node: NodeSpec,
+    registry_mirror: DockerRegistryMirrorConfiguration | None = None,
 ) -> tuple[str, ...]:
     return (
         _BACKEND_CLI[backend],
@@ -128,7 +159,33 @@ def _docker_install_args(
         "--",
         "bash",
         "-lc",
-        _DOCKER_INSTALL_SCRIPT,
+        _docker_install_script(registry_mirror),
+    )
+
+
+def _docker_install_script(
+    registry_mirror: DockerRegistryMirrorConfiguration | None,
+) -> str:
+    if registry_mirror is None:
+        return _DOCKER_INSTALL_SCRIPT
+
+    daemon_config = json.dumps(
+        {
+            "registry-mirrors": [registry_mirror.mirror_url],
+            "insecure-registries": [registry_mirror.registry_authority],
+        },
+        indent=2,
+    )
+    return "\n".join(
+        (
+            _DOCKER_INSTALL_SCRIPT,
+            "install -m 0755 -d /etc/docker",
+            "cat > /etc/docker/daemon.json <<'TSW_DOCKER_DAEMON_JSON'",
+            daemon_config,
+            "TSW_DOCKER_DAEMON_JSON",
+            "systemctl restart docker || service docker restart || true",
+            "docker info >/dev/null",
+        )
     )
 
 

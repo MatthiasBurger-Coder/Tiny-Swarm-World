@@ -28,6 +28,12 @@ Options:
   --no-generate-secrets    Fail if required TSW_* secrets are missing.
   -h, --help               Show this help.
 
+Optional environment:
+  TSW_LXC_DOCKER_REGISTRY_MIRROR
+      Docker registry mirror URL written into managed LXC nodes during Docker
+      installation. Use an address reachable from inside the nodes, not
+      127.0.0.1.
+
 The script is Linux/WSL-only. It writes evidence under:
   .tiny-swarm-world/evidence/installation-tests/wsl2/<UTC timestamp>/
 
@@ -198,6 +204,9 @@ for secret_name in "${REQUIRED_SECRETS[@]}"; do
 done
 if [[ -n "${TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET:-}" ]]; then
   export TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET
+fi
+if [[ -n "${TSW_LXC_DOCKER_REGISTRY_MIRROR:-}" ]]; then
+  export TSW_LXC_DOCKER_REGISTRY_MIRROR
 fi
 
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && \

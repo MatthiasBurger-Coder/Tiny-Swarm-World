@@ -200,6 +200,36 @@ system. For real local work, provide explicit values through environment
 variables where supported.
 Do not copy local compatibility defaults into new configuration or logs.
 
+For an implementation-independent local Docker Hub proxy cache, the repository
+also contains a transitional WSL/Linux operator helper:
+
+[source,bash]
+----
+NEXUS_ADMIN_PASSWORD='<local-password>' tools/live/nexus-docker-cache.sh
+----
+
+This helper is not wired into the Python setup workflow. It starts a standalone
+Nexus container, creates a Docker proxy repository, writes the local Docker
+daemon mirror configuration, restarts Docker, and optionally pre-pulls images
+from `images-to-cache.txt`. Use it only when those host mutations are
+intentional.
+
+When managed LXC nodes should also use this cache during installation, do not
+use `127.0.0.1` for the node-side mirror. Provide a Nexus address that is
+reachable from inside the LXC nodes:
+
+[source,bash]
+----
+export TSW_LXC_DOCKER_REGISTRY_MIRROR='http://<lxc-reachable-host-ip>:5001'
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+The LXC Docker installation step writes this value into each node's
+`/etc/docker/daemon.json` as both `registry-mirrors` and
+`insecure-registries`. Localhost values such as `http://127.0.0.1:5001` are
+rejected for LXC nodes because they would point at the node itself, not at the
+WSL-hosted Nexus cache.
+
 == Stack Deployment
 
 Stack deployment is owned by the workflow-level setup boundary. On the default

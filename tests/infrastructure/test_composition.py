@@ -1,4 +1,5 @@
 import asyncio
+import os
 import unittest
 from dataclasses import fields
 from typing import cast
@@ -957,6 +958,26 @@ class TestComposition(unittest.TestCase):
         self.assertTrue(services.lxc_service_exposure.runtime.allow_live_mutation)
         self.assertTrue(services.lxc_swarm_bootstrap.swarm.allow_live_mutation)
 
+    def test_lxc_docker_registry_mirror_configuration_uses_operator_environment(self):
+        with patch.dict(
+            os.environ,
+            {"TSW_LXC_DOCKER_REGISTRY_MIRROR": "http://10.0.3.1:5001"},
+        ):
+            mirror = composition._lxc_docker_registry_mirror_configuration()
+
+        self.assertIsNotNone(mirror)
+        assert mirror is not None
+        self.assertEqual("http://10.0.3.1:5001", mirror.mirror_url)
+        self.assertEqual("10.0.3.1:5001", mirror.registry_authority)
+
+    def test_lxc_docker_registry_mirror_rejects_localhost_operator_value(self):
+        with patch.dict(
+            os.environ,
+            {"TSW_LXC_DOCKER_REGISTRY_MIRROR": "http://127.0.0.1:5001"},
+        ):
+            with self.assertRaises(ValueError):
+                composition._lxc_docker_registry_mirror_configuration()
+
     def test_build_setup_services_wires_live_consent_into_platform_init_guard(self):
         live_consent = _accepted_live_consent()
         captured: dict[str, object] = {}
@@ -1213,11 +1234,14 @@ class TestComposition(unittest.TestCase):
     def test_composed_default_lxc_expose_uses_manager_gateway_and_setup_ports(self):
         services = composition.build_platform_services()
 
-        self.assertEqual(1, len(services.workflows.expose.steps))
+        self.assertEqual(2, len(services.workflows.expose.steps))
         step = services.workflows.expose.steps[0]
+        socat_step = services.workflows.expose.steps[1]
 
         self.assertIsInstance(step, composition.LxcServiceExposureStep)
+        self.assertIsInstance(socat_step, composition._WslSocatExposeStep)
         self.assertIs(step.service, services.lxc_service_exposure)
+        self.assertIs(socat_step.socat_manager, services.socat_manager)
         self.assertEqual("swarm-manager", step.service.gateway_node.name)
         self.assertEqual(
             composition.DEFAULT_LXC_MANAGER_PROXY_PROFILE,
@@ -1229,6 +1253,16 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(10, len(step.service.setup_manifest.required_ports))
         self.assertEqual("Service Access", step.service.setup_manifest.services[-1].name)
+
+    def test_composed_wsl_socat_expose_verifies_not_required_on_native_linux(self):
+        services = composition.build_platform_services()
+        socat_step = services.workflows.expose.steps[1]
+        socat_step.os_type = composition.OsTypes.LINUX
+
+        result = asyncio.run(socat_step.run())
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("not_required", result.evidence["classification"])
 
     def test_composed_lxc_proxy_drift_repair_uses_manager_profile_scope(self):
         services = composition.build_platform_services()
