@@ -4,7 +4,7 @@ import asyncio
 import os
 import re
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import cast
 from uuid import uuid4
@@ -780,6 +780,17 @@ def build_preflight_service(
     )
 
 
+def build_post_install_preflight_service(
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
+) -> PreflightService:
+    configuration = _preflight_configuration_for_provider(service_profile, node_provider_request)
+    return PreflightService(
+        HostPreflightProbe(),
+        replace(configuration, required_ports=()),
+    )
+
+
 def _build_workflow_progress_sink(ui: PortUI | None = None) -> PortWorkflowProgress:
     sinks: list[PortWorkflowProgress] = [
         LoggingWorkflowProgress(LoggerFactory.get_logger("WorkflowProgress"))
@@ -869,6 +880,10 @@ def build_platform_services(
     command_workflow = CommandWorkflow()
     verification_evidence_repository = VerificationEvidenceLocalRepository()
     preflight = _build_preflight_service_for_request(service_profile, node_provider_request)
+    post_install_preflight = _build_post_install_preflight_service_for_request(
+        service_profile,
+        node_provider_request,
+    )
     lxc_runner = AsyncLxcNodeCommandRunner()
     lxc_node_provider = LxcNodeProvider(
         config_repository=NodeProviderConfigYamlRepository(),
@@ -998,7 +1013,7 @@ def build_platform_services(
             trace_correlation_id=trace_correlation_id,
         ),
         verify=PlatformVerifyWorkflow(
-            (preflight,),
+            (post_install_preflight,),
             progress=workflow_progress,
             method_trace=method_trace,
             trace_correlation_id=trace_correlation_id,
@@ -1408,6 +1423,18 @@ def _build_preflight_service_for_request(
     if node_provider_request is None:
         return build_preflight_service(service_profile=service_profile)
     return build_preflight_service(
+        service_profile=service_profile,
+        node_provider_request=node_provider_request,
+    )
+
+
+def _build_post_install_preflight_service_for_request(
+    service_profile: ServiceStackProfile | str,
+    node_provider_request: NodeProviderSelectionRequest | None,
+) -> PreflightService:
+    if node_provider_request is None:
+        return build_post_install_preflight_service(service_profile=service_profile)
+    return build_post_install_preflight_service(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
     )

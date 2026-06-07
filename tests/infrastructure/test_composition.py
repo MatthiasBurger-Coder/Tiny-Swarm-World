@@ -281,6 +281,16 @@ class TestComposition(unittest.TestCase):
         self.assertEqual("trace-test", services.workflows.destroy.trace_correlation_id)
         self.assertEqual("trace-test", services.workflows.verify.trace_correlation_id)
 
+    def test_build_platform_services_uses_post_install_preflight_for_verify(self):
+        services = composition.build_platform_services()
+
+        verify_preflight = services.workflows.verify.steps[0]
+
+        self.assertIsInstance(verify_preflight, PreflightService)
+        self.assertIsNot(services.preflight, verify_preflight)
+        self.assertGreater(len(services.preflight.configuration.required_ports), 0)
+        self.assertEqual((), verify_preflight.configuration.required_ports)
+
     def test_build_platform_services_wires_reset_destroy_managed_node_steps(self):
         services = composition.build_platform_services()
 
@@ -945,7 +955,14 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsInstance(services.platform.preflight, PreflightService)
         self.assertIs(services.preflight, services.platform.preflight)
-        self.assertIs(services.platform.workflows.verify.steps[0], services.platform.preflight)
+        self.assertIsNot(
+            services.platform.workflows.verify.steps[0],
+            services.platform.preflight,
+        )
+        self.assertEqual(
+            (),
+            services.platform.workflows.verify.steps[0].configuration.required_ports,
+        )
 
     def test_build_platform_services_wires_init_guard_when_live_consent_is_available(self):
         live_consent = _accepted_live_consent()
