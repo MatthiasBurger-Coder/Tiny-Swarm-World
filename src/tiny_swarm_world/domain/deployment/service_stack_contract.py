@@ -129,11 +129,16 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
 
 SERVICE_ACCESS_STACK_CONTRACT = ServiceStackContract(
     "service-access",
-    ("service-access-dashboard", "infisical", "infisical-db", "infisical-redis", "service-access-nginx"),
+    ("service-access-dashboard", "service-access-nginx"),
     endpoints=(
         ServiceEndpoint("service-access", "http://localhost"),
-        ServiceEndpoint("infisical", "https://localhost"),
     ),
+)
+
+INFISICAL_STACK_CONTRACT = ServiceStackContract(
+    "infisical",
+    ("infisical", "infisical-db", "infisical-redis"),
+    endpoints=(ServiceEndpoint("infisical", "https://localhost"),),
 )
 
 
@@ -142,7 +147,7 @@ def service_stack_contracts_for_profile(
 ) -> tuple[ServiceStackContract, ...]:
     profile = ServiceStackProfile(service_profile)
     if profile is ServiceStackProfile.SERVICE_ACCESS:
-        return (*DEFAULT_SERVICE_STACK_CONTRACTS, SERVICE_ACCESS_STACK_CONTRACT)
+        return (*DEFAULT_SERVICE_STACK_CONTRACTS, INFISICAL_STACK_CONTRACT, SERVICE_ACCESS_STACK_CONTRACT)
     return DEFAULT_SERVICE_STACK_CONTRACTS
 
 

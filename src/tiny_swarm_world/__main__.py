@@ -476,6 +476,7 @@ def _print_setup_installation_plan(
     print("Services:")
     stack_sources = {
         "Jenkins": "infra/config/compose/jenkins/docker-compose.yml",
+        "Infisical": "infra/config/compose/infisical/docker-compose.yml",
         "Nexus": "infra/config/compose/nexus/docker-compose.yml",
         "Portainer": "infra/config/compose/portainer/docker-compose.yml",
         "RabbitMQ": "infra/config/compose/rabbitmq/docker-compose.yml",
@@ -485,6 +486,7 @@ def _print_setup_installation_plan(
     }
     stack_names = {
         "Jenkins": "jenkins",
+        "Infisical": "infisical",
         "Nexus": "nexus",
         "Portainer": "portainer",
         "RabbitMQ": "rabbitmq",

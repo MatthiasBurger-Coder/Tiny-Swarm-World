@@ -121,10 +121,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             for contract in DEFAULT_SERVICE_STACK_CONTRACTS
         ]
 
-        self.assertEqual(
-            ["portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"],
-            loaded_stack_names,
-        )
+        self.assertEqual(["portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"], loaded_stack_names)
 
     def test_committed_default_service_stack_compose_files_declare_required_services(self):
         repository = ComposeFileRepositoryYaml()
@@ -234,7 +231,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertIn("/dev/tcp/tasks.sonar_db/5432", command[2])
         self.assertIn("/opt/sonarqube/docker/entrypoint.sh", command[2])
 
-    def test_committed_service_access_compose_declares_required_services_and_secret_boundary(self):
+    def test_committed_service_access_compose_declares_required_services(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = repository_root / "infra" / "config" / "compose" / "service-access" / "docker-compose.yml"
         compose_content = compose_path.read_text(encoding="utf-8")
@@ -259,6 +256,19 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             ],
             services["service-access-nginx"]["ports"],
         )
+        self.assertNotIn("secrets", compose_data)
+        self.assertNotIn("volumes", compose_data)
+        self.assertNotIn("${TSW_REMOTE_STACK_ROOT", compose_content)
+
+    def test_committed_infisical_compose_declares_required_services_and_secret_boundary(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_path = repository_root / "infra" / "config" / "compose" / "infisical" / "docker-compose.yml"
+        compose_content = compose_path.read_text(encoding="utf-8")
+        compose_data = YAML(typ="safe").load(compose_content)
+        services = compose_data["services"]
+
+        self.assertEqual("infisical", ComposeFileRepositoryYaml().get_compose_of("infisical").name)
+        self.assertEqual({"infisical", "infisical-db", "infisical-redis"}, set(services))
         self.assertEqual(
             "${TSW_INFISICAL_IMAGE:-infisical/infisical:latest}",
             services["infisical"]["image"],
@@ -279,7 +289,6 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertNotIn("secrets", compose_data)
         self.assertEqual(["infisical_pg_data:/var/lib/postgresql/data"], services["infisical-db"]["volumes"])
         self.assertEqual(["infisical_redis_data:/data"], services["infisical-redis"]["volumes"])
-        self.assertNotIn("${TSW_REMOTE_STACK_ROOT", compose_content)
 
     def test_service_access_dashboard_and_nginx_are_image_packaged(self):
         repository_root = Path(__file__).resolve().parents[4]

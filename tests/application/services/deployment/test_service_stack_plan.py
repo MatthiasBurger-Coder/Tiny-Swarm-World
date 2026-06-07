@@ -79,7 +79,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            ("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "service-access"),
+            ("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
             tuple(step.service_stack.stack_name for step in steps),
         )
         self.assertNotIn("portainer", tuple(step.service_stack.stack_name for step in steps))
@@ -97,7 +97,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            ("jenkins", "rabbitmq", "sonarqube", "swagger", "service-access"),
+            ("jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
             tuple(step.service_stack.stack_name for step in steps),
         )
 
@@ -108,21 +108,21 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
             "local",
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             stack_environments={
-                "service-access": {
-                    "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined",
+                "infisical": {
+                    "TSW_INFISICAL_AUTH_SECRET": "operator_defined",
                 }
             },
         )
 
-        service_access_step = next(
+        infisical_step = next(
             step
             for step in steps
-            if step.service_stack.stack_name == "service-access"
+            if step.service_stack.stack_name == "infisical"
         )
 
         self.assertEqual(
-            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
-            service_access_step.stack_environment,
+            {"TSW_INFISICAL_AUTH_SECRET": "operator_defined"},
+            infisical_step.stack_environment,
         )
 
     async def test_default_service_stack_steps_verify_stack_registration_without_readiness_claim(self):

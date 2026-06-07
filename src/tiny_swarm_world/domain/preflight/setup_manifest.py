@@ -149,6 +149,13 @@ def default_setup_manifest(
                 name="Service Access",
                 ports=(
                     SetupPortRequirement(80, "Service Access dashboard"),
+                ),
+            )
+        )
+        services.append(
+            SetupServiceRequirement(
+                name="Infisical",
+                ports=(
                     SetupPortRequirement(8086, "Infisical"),
                     SetupPortRequirement(443, "Infisical HTTPS"),
                 ),

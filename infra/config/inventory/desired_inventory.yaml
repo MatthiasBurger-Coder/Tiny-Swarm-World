@@ -13,6 +13,7 @@ vms:
       - rabbitmq
       - sonarqube
       - swagger
+      - infisical
       - service-access
 
   - name: swarm-worker-1
@@ -28,6 +29,7 @@ vms:
       - rabbitmq
       - sonarqube
       - swagger
+      - infisical
       - service-access
 
   - name: swarm-worker-2
@@ -43,6 +45,7 @@ vms:
       - rabbitmq
       - sonarqube
       - swagger
+      - infisical
       - service-access
 
 expected_stacks:
@@ -52,6 +55,7 @@ expected_stacks:
   - rabbitmq
   - sonarqube
   - swagger
+  - infisical
   - service-access
 expected_artifact_registries:
   - nexus

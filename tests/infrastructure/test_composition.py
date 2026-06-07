@@ -555,6 +555,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:rabbitmq-stack",
                 "deployment:sonarqube-stack",
                 "deployment:swagger-stack",
+                "deployment:infisical-stack",
                 "deployment:service-access-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
@@ -582,6 +583,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:rabbitmq-service-readiness",
                 "deployment:sonarqube-service-readiness",
                 "deployment:swagger-service-readiness",
+                "deployment:infisical-service-readiness",
                 "deployment:service-access-service-readiness",
             ),
             tuple(check.verification_target_id for check in services.workflows.verify.checks),
@@ -600,8 +602,8 @@ class TestComposition(unittest.TestCase):
 
         compose_repository.assert_called_once_with()
         self.assertEqual(4, len(services.workflows.bootstrap.steps))
-        self.assertEqual(5, len(services.workflows.apply.steps))
-        self.assertEqual(7, len(services.workflows.verify.checks))
+        self.assertEqual(6, len(services.workflows.apply.steps))
+        self.assertEqual(8, len(services.workflows.verify.checks))
 
     def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
@@ -661,6 +663,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:rabbitmq-stack",
                 "deployment:sonarqube-stack",
                 "deployment:swagger-stack",
+                "deployment:infisical-stack",
                 "deployment:service-access-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
@@ -676,6 +679,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:rabbitmq-service-readiness",
                 "deployment:sonarqube-service-readiness",
                 "deployment:swagger-service-readiness",
+                "deployment:infisical-service-readiness",
                 "deployment:service-access-service-readiness",
             ),
             tuple(check.verification_target_id for check in services.workflows.verify.checks),
@@ -702,6 +706,11 @@ class TestComposition(unittest.TestCase):
             for step in services.workflows.apply.steps
             if step.service_stack.stack_name == "service-access"
         )
+        infisical_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.service_stack.stack_name == "infisical"
+        )
 
         self.assertEqual(
             {
@@ -711,10 +720,10 @@ class TestComposition(unittest.TestCase):
                 "TSW_SERVICE_ACCESS_NGINX_IMAGE": (
                     "127.0.0.1:5000/service-access-nginx:latest"
                 ),
-                **env,
             },
             service_access_step.stack_environment,
         )
+        self.assertEqual(env, infisical_step.stack_environment)
         self.assertEqual((), services.workflows.apply.pre_apply_checks)
         self.assertEqual(
             ("deployment:swagger-stack-assets",),
@@ -1300,7 +1309,7 @@ class TestComposition(unittest.TestCase):
             step.service.listen_address,
         )
         self.assertEqual(11, len(step.service.setup_manifest.required_ports))
-        self.assertEqual("Service Access", step.service.setup_manifest.services[-1].name)
+        self.assertEqual("Infisical", step.service.setup_manifest.services[-1].name)
 
     def test_composed_wsl_socat_expose_verifies_not_required_on_native_linux(self):
         services = composition.build_platform_services()

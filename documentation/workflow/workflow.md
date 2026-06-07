@@ -248,7 +248,7 @@ A fresh reset followed by `./install.sh` completes with final setup status
 `completed` or `passed`. LXD instances `swarm-manager`, `swarm-worker-1`, and
 `swarm-worker-2` exist and are running. Docker Swarm reports one manager and
 two workers. Expected stacks `portainer`, `nexus`, `jenkins`, `rabbitmq`,
-`sonarqube`, `swagger`, and `service-access` are deployed.
+`sonarqube`, `swagger`, `infisical`, and `service-access` are deployed.
 
 Applicable published service ports and central service-access routes are
 reachable from the host. The new `tests/live/test_post_install_browser_live.py`
@@ -758,7 +758,8 @@ git diff --check
 Operator note:
 
 - `./install.sh --confirm-reset` performs the governed reset and reinstalls
-  the service-access environment.
+  the service-access profile, including the separate Infisical and
+  service-access stacks.
 - The live browser/Infisical test reads Infisical login material from the
   ignored `.tiny-swarm-world/local/live-installation.env` file or from the
   explicit `TSW_INFISICAL_LOGIN_EMAIL` and

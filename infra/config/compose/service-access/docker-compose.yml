@@ -9,54 +9,6 @@ services:
         constraints:
           - node.role == manager
 
-  infisical:
-    image: ${TSW_INFISICAL_IMAGE:-infisical/infisical:latest}
-    environment:
-      NODE_ENV: production
-      SITE_URL: ${TSW_INFISICAL_SITE_URL:-https://localhost}
-      ENCRYPTION_KEY: ${TSW_INFISICAL_ENCRYPTION_KEY}
-      AUTH_SECRET: ${TSW_INFISICAL_AUTH_SECRET}
-      DB_CONNECTION_URI: postgres://${TSW_INFISICAL_POSTGRES_USER:-infisical}:${TSW_INFISICAL_POSTGRES_PASSWORD}@tasks.infisical-db:5432/${TSW_INFISICAL_POSTGRES_DB:-infisical}
-      REDIS_URL: redis://tasks.infisical-redis:6379
-    volumes:
-      - infisical_uploads:/app/infisical/uploads
-    networks:
-      - service_access_link
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-
-  infisical-db:
-    image: ${TSW_INFISICAL_POSTGRES_IMAGE:-postgres:14-alpine}
-    environment:
-      POSTGRES_USER: ${TSW_INFISICAL_POSTGRES_USER:-infisical}
-      POSTGRES_PASSWORD: ${TSW_INFISICAL_POSTGRES_PASSWORD}
-      POSTGRES_DB: ${TSW_INFISICAL_POSTGRES_DB:-infisical}
-    volumes:
-      - infisical_pg_data:/var/lib/postgresql/data
-    networks:
-      - service_access_link
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-
-  infisical-redis:
-    image: ${TSW_INFISICAL_REDIS_IMAGE:-redis:7-alpine}
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - infisical_redis_data:/data
-    networks:
-      - service_access_link
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-
   service-access-nginx:
     image: ${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:5000/service-access-nginx:latest}
     ports:
@@ -79,11 +31,6 @@ services:
       placement:
         constraints:
           - node.role == manager
-
-volumes:
-  infisical_pg_data:
-  infisical_redis_data:
-  infisical_uploads:
 
 networks:
   service_access_link:

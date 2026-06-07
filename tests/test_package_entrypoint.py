@@ -114,7 +114,9 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Provider readiness: checked before platform mutation", plan)
         self.assertIn("Service profile: service-access", plan)
         self.assertIn("Service Access: stack service-access", plan)
-        self.assertIn("published port(s) 80, 8086, 443", plan)
+        self.assertIn("Infisical: stack infisical", plan)
+        self.assertIn("published port(s) 80", plan)
+        self.assertIn("published port(s) 8086, 443", plan)
         self.assertNotIn("Target: local Linux/WSL Multipass Docker Swarm", plan)
 
     async def test_mutating_workflow_requires_live_consent_before_building_services(self):

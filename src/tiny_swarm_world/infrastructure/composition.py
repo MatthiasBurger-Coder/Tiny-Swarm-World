@@ -1679,6 +1679,8 @@ def _deployment_stack_environment(
             SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT,
             f"{registry_endpoint}/service-access-nginx:latest",
         ),
+    }
+    environment["infisical"] = {
         INFISICAL_ENCRYPTION_KEY_ENVIRONMENT: _operator_secret_value(
             INFISICAL_ENCRYPTION_KEY_ENVIRONMENT,
         ),

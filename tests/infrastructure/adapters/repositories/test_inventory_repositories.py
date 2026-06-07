@@ -80,6 +80,7 @@ expected_artifact_registries:
                 "rabbitmq",
                 "sonarqube",
                 "swagger",
+                "infisical",
                 "service-access",
             ),
             inventory.expected_stacks,

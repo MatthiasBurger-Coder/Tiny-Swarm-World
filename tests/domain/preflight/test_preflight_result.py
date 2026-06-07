@@ -169,6 +169,7 @@ class TestPreflightResult(unittest.TestCase):
         )
 
         self.assertIn("Service Access", manifest.service_names)
+        self.assertIn("Infisical", manifest.service_names)
         self.assertIn(
             (80, "Service Access dashboard"),
             tuple((port.port, port.service) for port in manifest.required_ports),
@@ -213,13 +214,19 @@ class TestPreflightResult(unittest.TestCase):
             for service in manifest.to_dict()["services"]
             if service["name"] == "Service Access"
         )
+        infisical_payload = next(
+            service
+            for service in manifest.to_dict()["services"]
+            if service["name"] == "Infisical"
+        )
+        self.assertEqual([], service_access_payload["secrets"])
         self.assertEqual(
             [
                 "TSW_INFISICAL_ENCRYPTION_KEY",
                 "TSW_INFISICAL_AUTH_SECRET",
                 "TSW_INFISICAL_POSTGRES_PASSWORD",
             ],
-            [secret["name"] for secret in service_access_payload["secrets"]],
+            [secret["name"] for secret in infisical_payload["secrets"]],
         )
         self.assertEqual(
             (),

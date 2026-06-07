@@ -29,21 +29,29 @@ class TestServiceStackContract(unittest.TestCase):
         selected_by_name = {contract.stack_name: contract for contract in selected}
 
         self.assertEqual(
-            ("portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "service-access"),
+            ("portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
             tuple(contract.stack_name for contract in selected),
         )
         self.assertEqual(SERVICE_ACCESS_STACK_CONTRACT, selected_by_name["service-access"])
         self.assertEqual(
-            ("service-access-dashboard", "infisical", "infisical-db", "infisical-redis", "service-access-nginx"),
+            ("service-access-dashboard", "service-access-nginx"),
             selected_by_name["service-access"].required_services,
+        )
+        self.assertEqual(
+            ("infisical", "infisical-db", "infisical-redis"),
+            selected_by_name["infisical"].required_services,
         )
         self.assertEqual(
             "deployment:service-access-service-readiness",
             selected_by_name["service-access"].service_readiness_target_id,
         )
         self.assertEqual(
-            ("http://localhost", "https://localhost"),
+            ("http://localhost",),
             tuple(endpoint.url for endpoint in selected_by_name["service-access"].endpoints),
+        )
+        self.assertEqual(
+            ("https://localhost",),
+            tuple(endpoint.url for endpoint in selected_by_name["infisical"].endpoints),
         )
 
     def test_service_stack_contracts_publish_localhost_endpoint_defaults(self):
@@ -68,9 +76,10 @@ class TestServiceStackContract(unittest.TestCase):
         )
         self.assertEqual(("http://localhost:8084",), _endpoint_urls(endpoints_by_stack["swagger"]))
         self.assertEqual(
-            ("http://localhost", "https://localhost"),
+            ("http://localhost",),
             _endpoint_urls(endpoints_by_stack["service-access"]),
         )
+        self.assertEqual(("https://localhost",), _endpoint_urls(endpoints_by_stack["infisical"]))
         all_endpoints = tuple(
             endpoint
             for endpoints in endpoints_by_stack.values()
@@ -127,7 +136,7 @@ class TestServiceStackContract(unittest.TestCase):
         )
 
         self.assertEqual(
-            ("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "service-access"),
+            ("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
             stack_names,
         )
         self.assertNotIn("portainer", stack_names)

@@ -49,9 +49,6 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         runtime = _FakeSwarmRuntime(
             (
                 SwarmServiceStatus("service-access_service-access-dashboard", 1, 1),
-                SwarmServiceStatus("service-access_infisical", 1, 1),
-                SwarmServiceStatus("service-access_infisical-db", 1, 1),
-                SwarmServiceStatus("service-access_infisical-redis", 1, 1),
                 SwarmServiceStatus("service-access_service-access-nginx", 1, 1),
             )
         )
@@ -59,7 +56,7 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
             runtime,
             ServiceStackContract(
                 "service-access",
-                ("service-access-dashboard", "infisical", "infisical-db", "infisical-redis", "service-access-nginx"),
+                ("service-access-dashboard", "service-access-nginx"),
             ),
             max_attempts=1,
             wait_seconds=0,
@@ -70,18 +67,40 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
         self.assertEqual("deployment:service-access-service-readiness", verification.target_id)
 
-    async def test_fails_service_access_when_required_service_is_missing(self):
+    async def test_verifies_infisical_when_all_required_services_are_ready(self):
         runtime = _FakeSwarmRuntime(
             (
-                SwarmServiceStatus("service-access_service-access-dashboard", 1, 1),
-                SwarmServiceStatus("service-access_service-access-nginx", 1, 1),
+                SwarmServiceStatus("infisical_infisical", 1, 1),
+                SwarmServiceStatus("infisical_infisical-db", 1, 1),
+                SwarmServiceStatus("infisical_infisical-redis", 1, 1),
             )
         )
         service = VerifySwarmServiceReadiness(
             runtime,
             ServiceStackContract(
-                "service-access",
-                ("service-access-dashboard", "infisical", "infisical-db", "infisical-redis", "service-access-nginx"),
+                "infisical",
+                ("infisical", "infisical-db", "infisical-redis"),
+            ),
+            max_attempts=1,
+            wait_seconds=0,
+        )
+
+        verification = await service.verify()
+
+        self.assertEqual(VerificationStatus.VERIFIED, verification.status)
+        self.assertEqual("deployment:infisical-service-readiness", verification.target_id)
+
+    async def test_fails_infisical_when_required_service_is_missing(self):
+        runtime = _FakeSwarmRuntime(
+            (
+                SwarmServiceStatus("infisical_infisical", 1, 1),
+            )
+        )
+        service = VerifySwarmServiceReadiness(
+            runtime,
+            ServiceStackContract(
+                "infisical",
+                ("infisical", "infisical-db", "infisical-redis"),
             ),
             max_attempts=1,
             wait_seconds=0,
@@ -91,7 +110,7 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertEqual(
-            "infisical,infisical-db,infisical-redis",
+            "infisical-db,infisical-redis",
             verification.evidence["missing_services"],
         )
 

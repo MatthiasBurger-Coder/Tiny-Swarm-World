@@ -293,9 +293,11 @@ definitions live under `infra/config/compose`; image build contexts live under
 `infra/compose`.
 
 The full guided setup selects the `service-access` management stack profile by
-default. Its compose definition lives under
+default. The static dashboard and NGINX compose definition lives under
 `infra/config/compose/service-access/docker-compose.yml`, and its dashboard
 and NGINX assets are image-packaged under `infra/compose/service-access/**`.
+Infisical is deployed as a separate stack from
+`infra/config/compose/infisical/docker-compose.yml`.
 After a verified provider-specific live deployment, the dashboard is intended
 to be the management landing page at `http://localhost`. A central
 service-access NGINX is the accepted routing design for stable paths such as
@@ -305,11 +307,11 @@ password values are visible only in Infisical's authenticated UI. Operators
 who intentionally want the older base service set can pass
 `--service-profile default`.
 
-The service-access stack runs Infisical with PostgreSQL and Redis. The guided
+The Infisical stack runs Infisical with PostgreSQL and Redis. The guided
 installer writes `TSW_INFISICAL_ENCRYPTION_KEY`, `TSW_INFISICAL_AUTH_SECRET`,
 and `TSW_INFISICAL_POSTGRES_PASSWORD` into the ignored local `0600`
-environment file when they are missing. These values are exported into the
-stack environment during deployment and must not be committed.
+environment file when they are missing. These values are exported only into
+the Infisical stack environment during deployment and must not be committed.
 
 Live-operation surface summary:
 
