@@ -18,6 +18,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
     NodeProviderConfig,
     NodeProviderNodeConfig,
     NodeProviderProfileRequirement,
+    ProviderResourceResolution,
     ProviderVerificationMetadata,
 )
 
@@ -426,7 +427,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("unsafe_provider_profile", result.evidence["classification"])
+        self.assertEqual("profile_invalid", result.evidence["classification"])
         self.assertEqual(
             [(("incus", "profile", "show", "docker-swarm"), 5.0)],
             runner.calls,
@@ -442,7 +443,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("unsafe_provider_profile", result.evidence["classification"])
+        self.assertEqual("profile_invalid", result.evidence["classification"])
         self.assertEqual(
             [(("incus", "profile", "show", "docker-swarm"), 5.0)],
             runner.calls,
@@ -458,7 +459,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("unsafe_provider_profile", result.evidence["classification"])
+        self.assertEqual("profile_invalid", result.evidence["classification"])
         self.assertEqual(
             [(("incus", "profile", "show", "docker-swarm"), 5.0)],
             runner.calls,
@@ -494,8 +495,6 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
     async def test_provider_resource_resolution_blocks_when_lxd_network_missing(self):
         runner = _FakeRunner(
-            _profile(),
-            _name_list("default"),
             _name_list("default"),
         )
         provider = _provider(runner, config=_config(resolve_provider_resources=True))
@@ -511,16 +510,14 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertIn("resolved LXD network", result.evidence["remediation_hint"])
         self.assertEqual(
             [
-                (("incus", "profile", "show", "docker-swarm"), 5.0),
                 (("incus", "network", "list", "--format", "json"), 5.0),
             ],
-            runner.calls[:2],
+            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
     async def test_provider_resource_resolution_blocks_when_storage_pool_missing(self):
         runner = _FakeRunner(
-            _profile(),
             _name_list("lxdbr0"),
             _name_list("other"),
         )
@@ -534,18 +531,32 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("default", result.evidence["expected_storage_pool"])
         self.assertEqual("other", result.evidence["available_storage_pools"])
         self.assertIn("expected LXD storage pool", result.evidence["remediation_hint"])
+        self.assertEqual(
+            [
+                (("incus", "network", "list", "--format", "json"), 5.0),
+                (("incus", "storage", "list", "--format", "json"), 5.0),
+            ],
+            runner.calls,
+        )
         self.assertEvidenceIsSummaryOnly(result)
 
-    async def test_provider_resource_resolution_launches_with_resolved_network_and_storage(self):
+    async def test_provider_resource_resolution_launches_with_configured_network_and_storage(self):
         runner = _FakeRunner(
+            _name_list("tswbr0"),
+            _name_list("fastpool"),
             _profile(),
-            _name_list("lxdbr0"),
-            _name_list("default"),
             _list(),
             _ok(),
             _list(_node("swarm-manager", "Running")),
         )
-        provider = _provider(runner, config=_config(resolve_provider_resources=True))
+        provider = _provider(
+            runner,
+            config=_config(
+                resolve_provider_resources=True,
+                provider_network_mappings={"control": "tswbr0"},
+                provider_storage_pool="fastpool",
+            ),
+        )
 
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
@@ -553,10 +564,42 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         launch_call = runner.calls[4][0]
         self.assertEqual("launch", launch_call[1])
         self.assertIn("--network", launch_call)
-        self.assertIn("lxdbr0", launch_call)
+        self.assertIn("tswbr0", launch_call)
         self.assertIn("--storage", launch_call)
-        self.assertIn("default", launch_call)
+        self.assertIn("fastpool", launch_call)
         self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_provider_resource_resolution_blocks_unmapped_logical_network(self):
+        runner = _FakeRunner()
+        provider = _provider(
+            runner,
+            config=_config(
+                resolve_provider_resources=True,
+                node_networks=("private",),
+            ),
+        )
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("inventory_mapping_missing", result.evidence["classification"])
+        self.assertEqual("private", result.evidence["logical_network"])
+        self.assertEqual("", result.evidence["resolved_network"])
+        self.assertIn("logical-to-LXD network mapping", result.evidence["remediation_hint"])
+        self.assertEqual([], runner.calls)
+
+    async def test_missing_provider_node_config_is_inventory_mapping_missing(self):
+        runner = _FakeRunner()
+        provider = _provider(runner)
+
+        result = await provider.ensure_node(
+            _node_spec(name="swarm-worker-3", role=NodeRole.WORKER),
+            _selection(ManagedLxcBackend.INCUS),
+        )
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("inventory_mapping_missing", result.evidence["classification"])
+        self.assertEqual([], runner.calls)
 
     async def test_launch_failure_maps_to_failed_to_apply_without_raw_output(self):
         runner = _FakeRunner(
@@ -1023,6 +1066,9 @@ def _config(
     nodes: tuple[NodeSpec, ...] | None = None,
     additional_profiles: tuple[str, ...] = (),
     resolve_provider_resources: bool = False,
+    node_networks: tuple[str, ...] = ("control",),
+    provider_network_mappings: dict[str, str] | None = None,
+    provider_storage_pool: str = "default",
 ) -> NodeProviderConfig:
     profiles = [
         NodeProviderProfileRequirement(
@@ -1072,7 +1118,7 @@ def _config(
                 profile="docker-swarm",
                 image_alias="ubuntu-24.04",
                 resources=resources or {"cpu": "2", "memory": "4GiB", "disk": "20GiB"},
-                networks=("control",),
+                networks=node_networks,
                 additional_profiles=(
                     additional_profiles if node.role is NodeRole.MANAGER else ()
                 ),
@@ -1080,6 +1126,14 @@ def _config(
             for node in (nodes or (_node_spec(),))
         ),
         profiles=tuple(profiles),
+        provider_resource_resolution=(
+            ProviderResourceResolution(
+                network_mappings=provider_network_mappings or {"control": "lxdbr0"},
+                storage_pool=provider_storage_pool,
+            )
+            if resolve_provider_resources
+            else None
+        ),
         verification_metadata=ProviderVerificationMetadata(
             readiness_timeout_seconds=5,
             evidence_summary_only=True,

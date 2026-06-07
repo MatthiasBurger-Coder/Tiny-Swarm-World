@@ -11,6 +11,9 @@ from tiny_swarm_world.domain.node_provider import (
     NodeProviderKind,
     NodeRole,
 )
+from tiny_swarm_world.infrastructure.adapters.repositories.desired_inventory_yaml_repository import (
+    DesiredInventoryYamlRepository,
+)
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderConfigError,
     NodeProviderConfigYamlRepository,
@@ -36,6 +39,27 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
         self.assertEqual(
             ("docker-swarm", "docker-swarm-manager"),
             config.nodes[0].expected_profiles,
+        )
+
+    def test_committed_provider_config_declares_resource_resolution(self):
+        config = NodeProviderConfigYamlRepository().load()
+
+        self.assertIsNotNone(config.provider_resource_resolution)
+        if config.provider_resource_resolution is None:
+            raise AssertionError("provider resource resolution must be configured")
+        self.assertEqual(
+            {"control": "lxdbr0"},
+            dict(config.provider_resource_resolution.network_mappings),
+        )
+        self.assertEqual("default", config.provider_resource_resolution.storage_pool)
+
+    def test_committed_provider_config_matches_desired_inventory_nodes(self):
+        config = NodeProviderConfigYamlRepository().load()
+        desired_inventory = DesiredInventoryYamlRepository().load()
+
+        self.assertEqual(
+            tuple(vm.name for vm in desired_inventory.vms),
+            tuple(node.spec.name for node in config.nodes),
         )
 
     def test_committed_config_declares_incus_and_lxd_profiles(self):
@@ -173,6 +197,27 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
     def test_rejects_raw_evidence_policy(self):
         data = _valid_config()
         data["verification_metadata"]["evidence_policy"]["store_raw_output"] = True
+
+        with self.assertRaises(NodeProviderConfigError):
+            _repository_for(data).load()
+
+    def test_rejects_missing_resource_resolution_when_check_is_enabled(self):
+        data = _valid_config()
+        data["verification_metadata"]["checks"].append("provider_resource_resolution")
+
+        with self.assertRaises(NodeProviderConfigError):
+            _repository_for(data).load()
+
+    def test_rejects_unknown_provider_resource_resolution_field(self):
+        data = _valid_config_with_resource_resolution()
+        data["provider_resource_resolution"]["surprise"] = "unsupported"
+
+        with self.assertRaises(NodeProviderConfigError):
+            _repository_for(data).load()
+
+    def test_rejects_unmapped_node_network_when_resource_resolution_is_enabled(self):
+        data = _valid_config_with_resource_resolution()
+        data["nodes"][0]["networks"] = ["private"]
 
         with self.assertRaises(NodeProviderConfigError):
             _repository_for(data).load()
@@ -327,6 +372,18 @@ def _with_default_provider(provider: str) -> dict[str, Any]:
 def _with_backend_candidate(backend: str) -> dict[str, Any]:
     data = _valid_config()
     data["backend_selection"]["candidates"] = [backend, "lxd"]
+    return data
+
+
+def _valid_config_with_resource_resolution() -> dict[str, Any]:
+    data = _valid_config()
+    data["provider_resource_resolution"] = {
+        "network_mappings": {
+            "control": "lxdbr0",
+        },
+        "storage_pool": "default",
+    }
+    data["verification_metadata"]["checks"].append("provider_resource_resolution")
     return data
 
 

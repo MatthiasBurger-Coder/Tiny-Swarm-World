@@ -28,6 +28,7 @@ _ROOT_FIELDS = frozenset(
         "backend_selection",
         "nodes",
         "profiles",
+        "provider_resource_resolution",
         "verification_metadata",
     )
 )
@@ -64,6 +65,7 @@ _PROFILE_FIELDS = frozenset(
 )
 _VERIFICATION_FIELDS = frozenset(("readiness_timeout_seconds", "evidence_policy", "checks"))
 _EVIDENCE_POLICY_FIELDS = frozenset(("summary_only", "store_raw_output"))
+_PROVIDER_RESOURCE_RESOLUTION_FIELDS = frozenset(("network_mappings", "storage_pool"))
 
 _FORBIDDEN_KEY_PARTS = (
     "api_key",
@@ -143,6 +145,12 @@ class ProviderVerificationMetadata:
 
 
 @dataclass(frozen=True)
+class ProviderResourceResolution:
+    network_mappings: Mapping[str, str]
+    storage_pool: str
+
+
+@dataclass(frozen=True)
 class NodeProviderConfig:
     schema_version: str
     default_provider: NodeProviderKind
@@ -150,6 +158,7 @@ class NodeProviderConfig:
     backend_candidates: tuple[ManagedLxcBackend, ...]
     nodes: tuple[NodeProviderNodeConfig, ...]
     profiles: tuple[NodeProviderProfileRequirement, ...]
+    provider_resource_resolution: ProviderResourceResolution | None
     verification_metadata: ProviderVerificationMetadata
 
     @property
@@ -216,6 +225,12 @@ def _config_from_mapping(data: Mapping[str, Any]) -> NodeProviderConfig:
     verification_metadata = _verification_metadata(
         _required_mapping(data, "verification_metadata", "root")
     )
+    provider_resource_resolution = _provider_resource_resolution(data, verification_metadata)
+    _validate_provider_resource_resolution(
+        nodes,
+        provider_resource_resolution,
+        verification_metadata,
+    )
 
     return NodeProviderConfig(
         schema_version=schema_version,
@@ -224,6 +239,7 @@ def _config_from_mapping(data: Mapping[str, Any]) -> NodeProviderConfig:
         backend_candidates=backend_candidates,
         nodes=nodes,
         profiles=profiles,
+        provider_resource_resolution=provider_resource_resolution,
         verification_metadata=verification_metadata,
     )
 
@@ -355,6 +371,69 @@ def _verification_metadata(data: Mapping[str, Any]) -> ProviderVerificationMetad
         raise NodeProviderConfigError("provider verification checks are incomplete")
 
     return ProviderVerificationMetadata(timeout_seconds, summary_only, store_raw_output, checks)
+
+
+def _provider_resource_resolution(
+    data: Mapping[str, Any],
+    verification_metadata: ProviderVerificationMetadata,
+) -> ProviderResourceResolution | None:
+    if "provider_resource_resolution" not in data:
+        if "provider_resource_resolution" in verification_metadata.checks:
+            raise NodeProviderConfigError("provider resource resolution is required")
+        return None
+
+    resolution = _required_mapping(data, "provider_resource_resolution", "root")
+    _reject_unknown_fields(
+        resolution,
+        _PROVIDER_RESOURCE_RESOLUTION_FIELDS,
+        "provider_resource_resolution",
+    )
+    network_mappings = {
+        _safe_identifier(logical_network, "logical provider network"): _safe_identifier(
+            provider_network,
+            "resolved provider network",
+        )
+        for logical_network, provider_network in _required_mapping(
+            resolution,
+            "network_mappings",
+            "provider_resource_resolution",
+        ).items()
+    }
+    if not network_mappings:
+        raise NodeProviderConfigError("provider network mappings must not be empty")
+
+    return ProviderResourceResolution(
+        network_mappings=network_mappings,
+        storage_pool=_safe_identifier(
+            _required(resolution, "storage_pool", "provider_resource_resolution"),
+            "provider storage pool",
+        ),
+    )
+
+
+def _validate_provider_resource_resolution(
+    nodes: tuple[NodeProviderNodeConfig, ...],
+    provider_resource_resolution: ProviderResourceResolution | None,
+    verification_metadata: ProviderVerificationMetadata,
+) -> None:
+    if "provider_resource_resolution" not in verification_metadata.checks:
+        return
+    if provider_resource_resolution is None:
+        raise NodeProviderConfigError("provider resource resolution is required")
+
+    mapped_networks = set(provider_resource_resolution.network_mappings)
+    missing_networks = sorted(
+        {
+            network
+            for node in nodes
+            for network in node.networks
+            if network not in mapped_networks
+        }
+    )
+    if missing_networks:
+        raise NodeProviderConfigError(
+            f"node networks require provider resource mappings: {missing_networks}"
+        )
 
 
 def _provider(value: object) -> NodeProviderKind:
