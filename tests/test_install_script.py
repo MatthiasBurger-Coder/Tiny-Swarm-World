@@ -147,6 +147,32 @@ class TestInstallScript(unittest.TestCase):
             self.assertEqual([], fixture.recorded_commands())
             self.assertIn("TSW_VAULTWARDEN_ADMIN_TOKEN", result.stderr)
 
+    def test_install_hashes_plaintext_vaultwarden_admin_token_before_setup(self):
+        with _install_script_fixture() as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            secret_file = fixture.root / ".tiny-swarm-world" / "local" / "live-installation.env"
+            secret_content = secret_file.read_text()
+            self.assertIn("TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN='vaultwarden-token'", secret_content)
+            self.assertIn(
+                "TSW_VAULTWARDEN_ADMIN_TOKEN='$argon2id$v=19$m=19456,t=2,p=1$fake-salt$fake-hash'",
+                secret_content,
+            )
+
+    def test_install_hashes_vaultwarden_admin_token_with_docker_when_argon2_is_missing(self):
+        with _install_script_fixture(fake_argon2=False) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            secret_file = fixture.root / ".tiny-swarm-world" / "local" / "live-installation.env"
+            secret_content = secret_file.read_text()
+            self.assertIn("TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN='vaultwarden-token'", secret_content)
+            self.assertIn(
+                "TSW_VAULTWARDEN_ADMIN_TOKEN='$argon2id$v=19$m=19456,t=2,p=1$docker-salt$docker-hash'",
+                secret_content,
+            )
+
     def test_install_answers_each_recorded_live_consent_once(self):
         with _install_script_fixture() as fixture:
             result = fixture.run()
@@ -163,12 +189,14 @@ class _InstallScriptFixture:
         extra_args: tuple[str, ...] = (),
         reset_confirmation: str = "RESET_TINY_SWARM_PLATFORM",
         secret_environment: dict[str, str] | None = None,
+        fake_argon2: bool = True,
     ):
         self.reset_exit = reset_exit
         self.setup_exit = setup_exit
         self.extra_args = extra_args
         self.reset_confirmation = reset_confirmation
         self.secret_environment = secret_environment
+        self.fake_argon2 = fake_argon2
         self._tempdir = tempfile.TemporaryDirectory()
         self.root = Path(self._tempdir.name)
         self.fake_bin = self.root / "fake-bin"
@@ -235,6 +263,10 @@ class _InstallScriptFixture:
         self.fake_bin.mkdir()
         _write_executable(self.fake_bin / "python3", _fake_python3())
         _write_executable(self.fake_bin / "script", _fake_script())
+        _write_executable(self.fake_bin / "openssl", _fake_openssl())
+        _write_executable(self.fake_bin / "docker", _fake_docker())
+        if self.fake_argon2:
+            _write_executable(self.fake_bin / "argon2", _fake_argon2())
 
 
 def _install_script_fixture(
@@ -243,6 +275,7 @@ def _install_script_fixture(
     extra_args: tuple[str, ...] = (),
     reset_confirmation: str = "RESET_TINY_SWARM_PLATFORM",
     secret_environment: dict[str, str] | None = None,
+    fake_argon2: bool = True,
 ) -> _InstallScriptFixture:
     return _InstallScriptFixture(
         reset_exit=reset_exit,
@@ -250,6 +283,7 @@ def _install_script_fixture(
         extra_args=extra_args,
         reset_confirmation=reset_confirmation,
         secret_environment=secret_environment,
+        fake_argon2=fake_argon2,
     )
 
 
@@ -317,6 +351,10 @@ def _fake_script() -> str:
         printf 'fake script log for %s\\n' "$command_line" >"$log_file"
 
         case "$command_line" in
+          *" /vaultwarden hash --preset owasp")
+            printf 'ADMIN_TOKEN='\\''$argon2id$v=19$m=19456,t=2,p=1$docker-salt$docker-hash'\\''\\n'
+            exit 0
+            ;;
           *" platform reset "*)
             exit "$TSW_FAKE_RESET_EXIT"
             ;;
@@ -327,6 +365,49 @@ def _fake_script() -> str:
             exit 99
             ;;
         esac
+        """
+    )
+
+
+def _fake_openssl() -> str:
+    return textwrap.dedent(
+        """\
+        #!/usr/bin/env bash
+        set -euo pipefail
+        if [[ "$*" == "rand -base64 32" ]]; then
+          printf 'fake-salt\\n'
+          exit 0
+        fi
+        exit 44
+        """
+    )
+
+
+def _fake_argon2() -> str:
+    return textwrap.dedent(
+        """\
+        #!/usr/bin/env bash
+        set -euo pipefail
+        input=""
+        IFS= read -r input || true
+        if [[ "$input" != "vaultwarden-token" ]]; then
+          exit 45
+        fi
+        printf '$argon2id$v=19$m=19456,t=2,p=1$fake-salt$fake-hash\\n'
+        """
+    )
+
+
+def _fake_docker() -> str:
+    return textwrap.dedent(
+        """\
+        #!/usr/bin/env bash
+        set -euo pipefail
+        if [[ "$*" != "run --rm -i -t vaultwarden/server:latest /vaultwarden hash --preset owasp" ]]; then
+          exit 46
+        fi
+        printf 'fake docker should be invoked through fake script\\n' >&2
+        exit 0
         """
     )
 
