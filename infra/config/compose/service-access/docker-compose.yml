@@ -14,7 +14,7 @@ services:
     environment:
       ADMIN_TOKEN_FILE: /run/secrets/vaultwarden_admin_token
       DOMAIN: ${TSW_VAULTWARDEN_DOMAIN:-https://localhost}
-      SIGNUPS_ALLOWED: "false"
+      SIGNUPS_ALLOWED: ${TSW_VAULTWARDEN_SIGNUPS_ALLOWED:-"true"}
       INVITATIONS_ALLOWED: "true"
     secrets:
       - vaultwarden_admin_token

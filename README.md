@@ -306,13 +306,21 @@ who intentionally want the older base service set can pass
 `--service-profile default`.
 
 The service-access stack needs an external Swarm secret for the Vaultwarden
-administrator token. The guided installer generates token material in
-`TSW_VAULTWARDEN_ADMIN_TOKEN` and the setup workflow prepares the external
-secret when that value is present. The default secret name is
+administrator token. The guided installer stores the Swarm secret value as an
+Argon2 PHC string in `TSW_VAULTWARDEN_ADMIN_TOKEN`; when it sees a local
+plaintext token, it hashes that value and records the original admin login
+token as `TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN` in the local `0600` environment
+file. It prefers the local `argon2` command and falls back to
+`docker run --rm -i vaultwarden/server:latest /vaultwarden hash --preset owasp`
+when `argon2` is not installed. The fallback image can be overridden with
+`TSW_VAULTWARDEN_HASH_IMAGE`. The default secret name is
 `tsw_vaultwarden_admin_token`, and operators may override only the name with
-`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Provider-native deployment must check
-that the configured external Swarm input is observable before uploading the
-stack and record only redacted presence/source evidence.
+`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`.
+Vaultwarden signups are enabled by the local `service-access` default and can
+be disabled with `TSW_VAULTWARDEN_SIGNUPS_ALLOWED=false`.
+Provider-native deployment must check that the configured external Swarm input
+is observable before uploading the stack and record only redacted
+presence/source evidence.
 
 Live-operation surface summary:
 

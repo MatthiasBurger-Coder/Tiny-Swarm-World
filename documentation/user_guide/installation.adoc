@@ -279,12 +279,25 @@ separate host-network concern. Endpoint defaults are configuration hints, not
 service-health evidence. If localhost forwarding is stale, use the current
 Swarm node IP only for manual diagnosis until the forwarding issue is repaired.
 The Vaultwarden administrator token is provided through an external Swarm
-secret. The guided installer generates token material in
-`TSW_VAULTWARDEN_ADMIN_TOKEN`, and the setup workflow prepares the external
-secret when that value is present. By default the compose stack references
-`tsw_vaultwarden_admin_token`; operators may override only the secret name
-through `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Document only the secret name,
-never the token value.
+secret. The guided installer stores the secret value as an Argon2 PHC string in
+`TSW_VAULTWARDEN_ADMIN_TOKEN`; when it sees a local plaintext token, it hashes
+that value and records the original admin login token as
+`TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN` in the local `0600` environment file. It
+prefers the local `argon2` command and falls back to
+`docker run --rm -i vaultwarden/server:latest /vaultwarden hash --preset owasp`
+when `argon2` is not installed. The fallback image can be overridden with
+`TSW_VAULTWARDEN_HASH_IMAGE`. By default the compose stack references
+`tsw_vaultwarden_admin_token`; operators may override only the secret name through
+`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Document only the secret name, never the
+token value.
+
+The local `service-access` default allows initial Vaultwarden account signup.
+Operators can disable that behavior with:
+
+[source,bash]
+----
+export TSW_VAULTWARDEN_SIGNUPS_ALLOWED=false
+----
 
 During `deployment apply`, the setup checks that the configured external
 Swarm input is observable before uploading the service-access stack. A missing

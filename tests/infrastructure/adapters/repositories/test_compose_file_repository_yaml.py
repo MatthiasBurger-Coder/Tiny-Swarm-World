@@ -243,6 +243,10 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             "${TSW_VAULTWARDEN_DOMAIN:-https://localhost}",
             services["vaultwarden"]["environment"]["DOMAIN"],
         )
+        self.assertEqual(
+            '${TSW_VAULTWARDEN_SIGNUPS_ALLOWED:-"true"}',
+            services["vaultwarden"]["environment"]["SIGNUPS_ALLOWED"],
+        )
         self.assertNotIn("ports", services["vaultwarden"])
         self.assertEqual(
             "/run/secrets/vaultwarden_admin_token",
