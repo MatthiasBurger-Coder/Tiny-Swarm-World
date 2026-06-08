@@ -556,6 +556,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:sonarqube-stack",
                 "deployment:swagger-stack",
                 "deployment:infisical-stack",
+                "deployment:infisical-bootstrap",
                 "deployment:service-access-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
@@ -564,6 +565,7 @@ class TestComposition(unittest.TestCase):
             all(
                 step.endpoint_name == composition.DEFAULT_PORTAINER_ENDPOINT_NAME
                 for step in services.workflows.apply.steps
+                if step.verification_target_id.endswith("-stack")
             )
         )
         jenkins_step = next(
@@ -602,7 +604,7 @@ class TestComposition(unittest.TestCase):
 
         compose_repository.assert_called_once_with()
         self.assertEqual(4, len(services.workflows.bootstrap.steps))
-        self.assertEqual(6, len(services.workflows.apply.steps))
+        self.assertEqual(7, len(services.workflows.apply.steps))
         self.assertEqual(8, len(services.workflows.verify.checks))
 
     def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
@@ -664,12 +666,17 @@ class TestComposition(unittest.TestCase):
                 "deployment:sonarqube-stack",
                 "deployment:swagger-stack",
                 "deployment:infisical-stack",
+                "deployment:infisical-bootstrap",
                 "deployment:service-access-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
         self.assertTrue(
-            all(isinstance(step, EnsureServiceStack) for step in services.workflows.apply.steps)
+            all(
+                isinstance(step, EnsureServiceStack)
+                for step in services.workflows.apply.steps
+                if step.verification_target_id.endswith("-stack")
+            )
         )
         self.assertEqual(
             (
@@ -744,6 +751,7 @@ class TestComposition(unittest.TestCase):
         environments = {
             step.service_stack.stack_name: step.stack_environment
             for step in services.workflows.apply.steps
+            if hasattr(step, "service_stack")
         }
 
         self.assertEqual(
@@ -800,10 +808,17 @@ class TestComposition(unittest.TestCase):
                     service_profile=ServiceStackProfile.SERVICE_ACCESS,
                 )
 
-        self.assertEqual(
-            "deployment:infisical-items",
-            services.workflows.apply.steps[-1].verification_target_id,
+        bootstrap_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.verification_target_id == "deployment:infisical-bootstrap"
         )
+        seed_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.verification_target_id == "deployment:infisical-items"
+        )
+        self.assertEqual("deployment:infisical-bootstrap", bootstrap_step.verification_target_id)
         self.assertEqual(
             (
                 "platform/jenkins",
@@ -812,7 +827,7 @@ class TestComposition(unittest.TestCase):
                 "platform/rabbitmq",
                 "platform/sonarqube",
             ),
-            tuple(item.item_name for item in services.workflows.apply.steps[-1].items),
+            tuple(item.item_name for item in seed_step.items),
         )
 
     def test_build_deployment_services_rejects_enabled_infisical_seed_without_passwords(self):

@@ -14,6 +14,8 @@ REQUIRED_SECRETS=(
   TSW_RABBITMQ_PASSWORD
   TSW_SONARQUBE_ADMIN_PASSWORD
   TSW_POSTGRES_PASSWORD
+  TSW_INFISICAL_LOGIN_EMAIL
+  TSW_INFISICAL_PASSWORD
   TSW_INFISICAL_ENCRYPTION_KEY
   TSW_INFISICAL_AUTH_SECRET
   TSW_INFISICAL_POSTGRES_PASSWORD
@@ -44,7 +46,8 @@ It runs the governed reset command before the canonical live setup command:
   PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM
   PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 
-Generated local secret values include the Infisical platform keys
+Generated local secret values include the Infisical admin login and platform
+keys `TSW_INFISICAL_LOGIN_EMAIL`, `TSW_INFISICAL_PASSWORD`,
 `TSW_INFISICAL_ENCRYPTION_KEY`, `TSW_INFISICAL_AUTH_SECRET`, and
 `TSW_INFISICAL_POSTGRES_PASSWORD`. These values are written only to the ignored
 local env file and exported for the setup process.
@@ -84,6 +87,8 @@ import sys
 for name in sys.argv[1:]:
     if name == "TSW_INFISICAL_ENCRYPTION_KEY":
         value = secrets.token_hex(16)
+    elif name == "TSW_INFISICAL_LOGIN_EMAIL":
+        value = "admin@tiny-swarm-world.local"
     else:
         value = secrets.token_urlsafe(32)
     print(f"export {name}='{value}'")

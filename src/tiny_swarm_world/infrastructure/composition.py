@@ -32,10 +32,11 @@ from tiny_swarm_world.application.services.deployment import (
     DeploymentWorkflowResult,
     DeploymentWorkflowStatus,
     DeploymentVerifyWorkflow,
+    EnsureInfisicalBootstrap,
+    EnsureInfisicalSecretItems,
     EnsurePortainerEndpoint,
     EnsurePortainerAdminAccess,
     EnsureSwarmStack,
-    EnsureInfisicalSecretItems,
     VerifySwarmServiceReadiness,
     InfisicalSecretItem,
 )
@@ -150,6 +151,9 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
 from tiny_swarm_world.infrastructure.adapters.clients.infisical_playwright_client import (
     PlaywrightInfisicalClient,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.infisical_bootstrap_http_client import (
+    InfisicalBootstrapHttpClient,
+)
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
@@ -184,6 +188,8 @@ SEED_INFISICAL_ITEMS_ENVIRONMENT = "TSW_SEED_INFISICAL_ITEMS"
 INFISICAL_LOGIN_EMAIL_ENVIRONMENT = "TSW_INFISICAL_LOGIN_EMAIL"
 INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_PASSWORD"
 INFISICAL_URL_ENVIRONMENT = "TSW_INFISICAL_URL"
+INFISICAL_ORGANIZATION_ENVIRONMENT = "TSW_INFISICAL_ORGANIZATION"
+DEFAULT_INFISICAL_ORGANIZATION = "Tiny Swarm World"
 SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
 DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:5000"
 LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
@@ -1232,6 +1238,7 @@ def build_lxc_deployment_services(
         excluded_stack_names=("nexus",),
         stack_environments=stack_environment,
     )
+    infisical_bootstrap_steps = _infisical_bootstrap_steps(selected_service_profile)
     infisical_seed_steps = _infisical_secret_seed_steps(selected_service_profile)
     readiness_checks = tuple(
         VerifySwarmServiceReadiness(
@@ -1249,7 +1256,10 @@ def build_lxc_deployment_services(
                 kind=DeploymentWorkflowKind.BOOTSTRAP,
             ),
             apply=DeploymentApplyWorkflow(
-                (*application_steps, *infisical_seed_steps),
+                _with_infisical_post_apply_steps(
+                    application_steps,
+                    (*infisical_bootstrap_steps, *infisical_seed_steps),
+                ),
                 pre_apply_steps=(
                     _PrepareLxcStackAssets(swarm_runtime, "swagger"),
                 ),
@@ -1721,11 +1731,53 @@ def _infisical_secret_seed_steps(
                     "https://localhost",
                 ),
             ),
-            login_email=_required_operator_secret_value(INFISICAL_LOGIN_EMAIL_ENVIRONMENT),
-            password=_required_operator_secret_value(INFISICAL_PASSWORD_ENVIRONMENT),
+            login_email=_operator_secret_value(INFISICAL_LOGIN_EMAIL_ENVIRONMENT),
+            password=_operator_secret_value(INFISICAL_PASSWORD_ENVIRONMENT),
             items=_infisical_seed_items(),
         ),
     )
+
+
+def _infisical_bootstrap_steps(
+    service_profile: ServiceStackProfile,
+) -> tuple[EnsureInfisicalBootstrap, ...]:
+    if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
+        return ()
+    return (
+        EnsureInfisicalBootstrap(
+            infisical_client=InfisicalBootstrapHttpClient(
+                base_url=_operator_config_value(
+                    INFISICAL_URL_ENVIRONMENT,
+                    "https://localhost",
+                ),
+            ),
+            login_email=_required_operator_secret_value(INFISICAL_LOGIN_EMAIL_ENVIRONMENT),
+            password=_required_operator_secret_value(INFISICAL_PASSWORD_ENVIRONMENT),
+            organization=_operator_config_value(
+                INFISICAL_ORGANIZATION_ENVIRONMENT,
+                DEFAULT_INFISICAL_ORGANIZATION,
+            ),
+        ),
+    )
+
+
+def _with_infisical_post_apply_steps(
+    application_steps: tuple[object, ...],
+    post_steps: tuple[object, ...],
+) -> tuple[object, ...]:
+    if not post_steps:
+        return application_steps
+    ordered_steps: list[object] = []
+    inserted = False
+    for step in application_steps:
+        ordered_steps.append(step)
+        service_stack = getattr(step, "service_stack", None)
+        if getattr(service_stack, "stack_name", "") == "infisical":
+            ordered_steps.extend(post_steps)
+            inserted = True
+    if not inserted:
+        ordered_steps.extend(post_steps)
+    return tuple(ordered_steps)
 
 
 def _infisical_seed_items() -> tuple[InfisicalSecretItem, ...]:

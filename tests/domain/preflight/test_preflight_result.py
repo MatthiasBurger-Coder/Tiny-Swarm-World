@@ -203,11 +203,13 @@ class TestPreflightResult(unittest.TestCase):
         )
         self.assertEqual(
             (
+                "TSW_INFISICAL_LOGIN_EMAIL",
+                "TSW_INFISICAL_PASSWORD",
                 "TSW_INFISICAL_ENCRYPTION_KEY",
                 "TSW_INFISICAL_AUTH_SECRET",
                 "TSW_INFISICAL_POSTGRES_PASSWORD",
             ),
-            tuple(secret.name for secret in manifest.required_secrets[-3:]),
+            tuple(secret.name for secret in manifest.required_secrets[-5:]),
         )
         service_access_payload = next(
             service
@@ -222,6 +224,8 @@ class TestPreflightResult(unittest.TestCase):
         self.assertEqual([], service_access_payload["secrets"])
         self.assertEqual(
             [
+                "TSW_INFISICAL_LOGIN_EMAIL",
+                "TSW_INFISICAL_PASSWORD",
                 "TSW_INFISICAL_ENCRYPTION_KEY",
                 "TSW_INFISICAL_AUTH_SECRET",
                 "TSW_INFISICAL_POSTGRES_PASSWORD",

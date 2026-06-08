@@ -62,6 +62,9 @@ class PlaywrightInfisicalClient(PortInfisicalClient):
             page = browser.new_page(ignore_https_errors=True, base_url=self.base_url)
             try:
                 page.goto("/", wait_until="domcontentloaded", timeout=int(self.timeout_seconds * 1000))
+                _create_first_admin_if_required(page, email, password)
+                if _text_visible(page, "Secrets", timeout=5_000):
+                    return callback(page)
                 _fill_first(page, ("Email", "Email address"), email)
                 _fill_first(page, ("Password",), password)
                 _click_first(page, ("Log in", "Login", "Sign in"))
@@ -95,3 +98,24 @@ def _click_first(page: Any, names: tuple[str, ...]) -> None:
         except Exception as exc:
             last_error = exc
     raise RuntimeError(f"could not click button: {names}; last={type(last_error).__name__}")
+
+
+def _create_first_admin_if_required(page: Any, email: str, password: str) -> None:
+    if not _text_visible(page, "Create your first Super Admin Account", timeout=5_000):
+        return
+
+    _fill_first(page, ("First name",), "Tiny")
+    _fill_first(page, ("Last name",), "Swarm")
+    _fill_first(page, ("Email", "Email address"), email)
+    _fill_first(page, ("Password",), password)
+    _fill_first(page, ("Confirm password",), password)
+    _click_first(page, ("Continue",))
+    page.get_by_text("Secrets", exact=False).first.wait_for(timeout=20_000)
+
+
+def _text_visible(page: Any, text: str, *, timeout: int) -> bool:
+    try:
+        page.get_by_text(text, exact=False).first.wait_for(timeout=timeout)
+    except Exception:
+        return False
+    return True

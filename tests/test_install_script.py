@@ -140,6 +140,8 @@ class TestInstallScript(unittest.TestCase):
 
     def test_install_generates_infisical_platform_secrets(self):
         secret_environment = _required_secret_environment()
+        secret_environment.pop("TSW_INFISICAL_LOGIN_EMAIL")
+        secret_environment.pop("TSW_INFISICAL_PASSWORD")
         secret_environment.pop("TSW_INFISICAL_ENCRYPTION_KEY")
         secret_environment.pop("TSW_INFISICAL_AUTH_SECRET")
         secret_environment.pop("TSW_INFISICAL_POSTGRES_PASSWORD")
@@ -152,6 +154,8 @@ class TestInstallScript(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
             secret_file = fixture.root / ".tiny-swarm-world" / "local" / "live-installation.env"
             secret_content = secret_file.read_text()
+            self.assertIn("TSW_INFISICAL_LOGIN_EMAIL=", secret_content)
+            self.assertIn("TSW_INFISICAL_PASSWORD=", secret_content)
             self.assertIn("TSW_INFISICAL_ENCRYPTION_KEY=", secret_content)
             self.assertIn("TSW_INFISICAL_AUTH_SECRET=", secret_content)
             self.assertIn("TSW_INFISICAL_POSTGRES_PASSWORD=", secret_content)
@@ -274,6 +278,8 @@ def _required_secret_environment() -> dict[str, str]:
         "TSW_RABBITMQ_PASSWORD": "rabbitmq-password",
         "TSW_SONARQUBE_ADMIN_PASSWORD": "sonarqube-password",
         "TSW_POSTGRES_PASSWORD": "postgres-password",
+        "TSW_INFISICAL_LOGIN_EMAIL": "admin@tiny-swarm-world.local",
+        "TSW_INFISICAL_PASSWORD": "infisical-password",
         "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
         "TSW_INFISICAL_AUTH_SECRET": "infisical-auth-secret",
         "TSW_INFISICAL_POSTGRES_PASSWORD": "infisical-postgres-password",
@@ -299,6 +305,8 @@ def _fake_python3() -> str:
           for name in "$@"; do
             if [[ "$name" == "TSW_INFISICAL_ENCRYPTION_KEY" ]]; then
               printf "export %s='0123456789abcdef0123456789abcdef'\\n" "$name"
+            elif [[ "$name" == "TSW_INFISICAL_LOGIN_EMAIL" ]]; then
+              printf "export %s='admin@tiny-swarm-world.local'\\n" "$name"
             else
               printf "export %s='generated-%s'\\n" "$name" "$name"
             fi

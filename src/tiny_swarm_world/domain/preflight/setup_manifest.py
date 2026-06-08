@@ -160,6 +160,8 @@ def default_setup_manifest(
                     SetupPortRequirement(443, "Infisical HTTPS"),
                 ),
                 secrets=(
+                    SetupSecretRequirement("TSW_INFISICAL_LOGIN_EMAIL", "Infisical admin login"),
+                    SetupSecretRequirement("TSW_INFISICAL_PASSWORD", "Infisical admin login"),
                     SetupSecretRequirement("TSW_INFISICAL_ENCRYPTION_KEY", "Infisical"),
                     SetupSecretRequirement("TSW_INFISICAL_AUTH_SECRET", "Infisical"),
                     SetupSecretRequirement("TSW_INFISICAL_POSTGRES_PASSWORD", "Infisical PostgreSQL"),
