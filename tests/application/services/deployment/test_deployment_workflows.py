@@ -101,6 +101,11 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         )
         self.assertNotIn("sensitive response", result.reason)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
+        self.assertEqual(
+            "deployment_apply_failed",
+            result.verification_results[0].evidence["classification"],
+        )
+        self.assertIn("remediation_hint", result.verification_results[0].evidence)
 
     async def test_apply_workflow_preserves_actionable_safe_apply_failure_summary(self):
         class FailingStep:
@@ -160,6 +165,7 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         verification = result.verification_results[0]
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, verification.status)
         self.assertEqual("http_status_409", verification.evidence["diagnostic"])
+        self.assertEqual("deployment_apply_failed", verification.evidence["classification"])
         self.assertIn("Portainer state", verification.evidence["operator_action"])
 
     async def test_apply_workflow_blocks_before_running_steps_when_pre_apply_check_blocks(self):

@@ -23,6 +23,7 @@ def _load_client_module():
     requests_module = types.ModuleType("requests")
     requests_module.Session = object
     requests_module.Response = object
+    requests_module.RequestException = Exception
     sys.modules["requests"] = requests_module
     spec = importlib.util.spec_from_file_location("infisical_bootstrap_http_client", MODULE_PATH)
     if spec is None or spec.loader is None:
@@ -32,7 +33,9 @@ def _load_client_module():
     return module
 
 
-InfisicalBootstrapHttpClient = _load_client_module().InfisicalBootstrapHttpClient
+CLIENT_MODULE = _load_client_module()
+InfisicalBootstrapHttpClient = CLIENT_MODULE.InfisicalBootstrapHttpClient
+InfisicalBootstrapUnavailable = CLIENT_MODULE.InfisicalBootstrapUnavailable
 
 
 class TestInfisicalBootstrapHttpClient(unittest.TestCase):
@@ -50,6 +53,7 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
         client = InfisicalBootstrapHttpClient(
             base_url="https://localhost",
             session=session,
+            readiness_interval_seconds=0,
         )
 
         result = client.bootstrap_instance(
@@ -73,11 +77,66 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
             session.post_calls[0]["json"],
         )
         self.assertFalse(session.post_calls[0]["verify"])
+        self.assertEqual("https://localhost/api/status", session.get_calls[0]["url"])
+
+    def test_waits_for_infisical_api_before_bootstrap(self):
+        session = _FakeSession(
+            _FakeResponse(
+                200,
+                {
+                    "identity": {"credentials": {"token": "root-token"}},
+                    "organization": {"name": "Tiny Swarm World"},
+                    "user": {"email": "admin@tiny-swarm-world.local"},
+                },
+            ),
+            readiness_responses=(
+                _FakeResponse(502, {}),
+                _FakeResponse(200, {"status": "ok"}),
+            ),
+        )
+        client = InfisicalBootstrapHttpClient(
+            base_url="https://localhost",
+            session=session,
+            readiness_interval_seconds=0,
+        )
+
+        result = client.bootstrap_instance(
+            email="admin@tiny-swarm-world.local",
+            password="infisical-password",
+            organization="Tiny Swarm World",
+        )
+
+        self.assertEqual(InfisicalBootstrapState.CREATED, result.state)
+        self.assertEqual(2, len(session.get_calls))
+
+    def test_raises_redacted_unavailable_when_infisical_api_never_ready(self):
+        client = InfisicalBootstrapHttpClient(
+            base_url="https://localhost",
+            session=_FakeSession(
+                _FakeResponse(200, {}),
+                readiness_responses=(
+                    _FakeResponse(502, {}),
+                    _FakeResponse(502, {}),
+                ),
+            ),
+            readiness_attempts=2,
+            readiness_interval_seconds=0,
+        )
+
+        with self.assertRaises(InfisicalBootstrapUnavailable) as raised:
+            client.bootstrap_instance(
+                email="admin@tiny-swarm-world.local",
+                password="infisical-password",
+                organization="Tiny Swarm World",
+            )
+
+        self.assertEqual(502, raised.exception.status_code)
 
     def test_treats_conflict_as_already_initialized_for_idempotent_reruns(self):
         client = InfisicalBootstrapHttpClient(
             base_url="https://localhost",
             session=_FakeSession(_FakeResponse(409, {})),
+            readiness_interval_seconds=0,
         )
 
         result = client.bootstrap_instance(
@@ -95,9 +154,21 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
 
 
 class _FakeSession:
-    def __init__(self, response: "_FakeResponse"):
+    def __init__(
+        self,
+        response: "_FakeResponse",
+        readiness_responses: tuple["_FakeResponse", ...] | None = None,
+    ):
         self.response = response
+        self.readiness_responses = list(readiness_responses or (_FakeResponse(200, {}),))
+        self.get_calls: list[dict[str, object]] = []
         self.post_calls: list[dict[str, object]] = []
+
+    def get(self, url: str, **kwargs):
+        self.get_calls.append({"url": url, **kwargs})
+        if self.readiness_responses:
+            return self.readiness_responses.pop(0)
+        return _FakeResponse(200, {})
 
     def post(self, url: str, **kwargs):
         self.post_calls.append({"url": url, **kwargs})

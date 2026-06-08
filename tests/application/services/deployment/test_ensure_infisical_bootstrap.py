@@ -75,6 +75,20 @@ class TestEnsureInfisicalBootstrap(unittest.TestCase):
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
         self.assertEqual("not_run", result.evidence["bootstrap_state"])
 
+    def test_run_propagates_redacted_bootstrap_unavailable(self):
+        service = EnsureInfisicalBootstrap(
+            _FailingBootstrapClient(),
+            "admin@tiny-swarm-world.local",
+            "infisical-password",
+            "Tiny Swarm World",
+        )
+
+        with self.assertRaises(_BootstrapUnavailable) as raised:
+            service.run()
+
+        self.assertEqual(502, raised.exception.status_code)
+        self.assertNotIn("infisical-password", str(raised.exception))
+
 
 class _FakeBootstrapClient:
     def __init__(self, result: InfisicalBootstrapResult):
@@ -96,6 +110,25 @@ class _FakeBootstrapClient:
             }
         )
         return self.result
+
+
+class _BootstrapUnavailable(RuntimeError):
+    status_code = 502
+    reason = "not_ready"
+
+    def __str__(self):
+        return "Infisical bootstrap API is not ready."
+
+
+class _FailingBootstrapClient:
+    def bootstrap_instance(
+        self,
+        *,
+        email: str,
+        password: str,
+        organization: str,
+    ) -> InfisicalBootstrapResult:
+        raise _BootstrapUnavailable()
 
 
 if __name__ == "__main__":

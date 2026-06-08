@@ -312,11 +312,16 @@ def _apply_failure_reason(target_id: str, exc: Exception, safe_error: str) -> st
 def _apply_failure_evidence(exc: Exception) -> dict[str, str]:
     evidence = {
         "phase": "apply",
+        "classification": "deployment_apply_failed",
         "failure_class": exc.__class__.__name__,
+        "remediation_hint": "Inspect the deployment target readiness and rerun the idempotent setup after correcting the target-specific blocker.",
     }
     status_code = getattr(exc, "status_code", None)
     if status_code is not None:
         evidence["diagnostic"] = f"http_status_{status_code}"
+    reason = getattr(exc, "reason", None)
+    if isinstance(reason, str) and reason:
+        evidence["failure_reason"] = reason
     if isinstance(exc, PortainerAdminInitializationRejected):
         evidence["operator_action"] = (
             "Check configured Portainer admin access value or reset existing "
