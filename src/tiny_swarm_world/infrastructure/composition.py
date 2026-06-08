@@ -1772,7 +1772,7 @@ def _with_infisical_post_apply_steps(
     for step in application_steps:
         ordered_steps.append(step)
         service_stack = getattr(step, "service_stack", None)
-        if getattr(service_stack, "stack_name", "") == "infisical":
+        if getattr(service_stack, "stack_name", "") == "service-access":
             ordered_steps.extend(post_steps)
             inserted = True
     if not inserted:

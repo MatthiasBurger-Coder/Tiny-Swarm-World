@@ -556,8 +556,8 @@ class TestComposition(unittest.TestCase):
                 "deployment:sonarqube-stack",
                 "deployment:swagger-stack",
                 "deployment:infisical-stack",
-                "deployment:infisical-bootstrap",
                 "deployment:service-access-stack",
+                "deployment:infisical-bootstrap",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
@@ -666,8 +666,8 @@ class TestComposition(unittest.TestCase):
                 "deployment:sonarqube-stack",
                 "deployment:swagger-stack",
                 "deployment:infisical-stack",
-                "deployment:infisical-bootstrap",
                 "deployment:service-access-stack",
+                "deployment:infisical-bootstrap",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
