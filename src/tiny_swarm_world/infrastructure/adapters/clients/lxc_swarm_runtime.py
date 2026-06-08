@@ -462,6 +462,7 @@ class LxcPortainerHttpClient(PortPortainerClient):
         endpoint_id: int,
         stack_environment: Mapping[str, str] | None = None,
     ) -> None:
+        self._ensure_external_overlay_networks(stack_definition)
         self._client().create_stack(stack_definition, endpoint_id, stack_environment)
 
     def update_stack(
@@ -471,12 +472,49 @@ class LxcPortainerHttpClient(PortPortainerClient):
         endpoint_id: int,
         stack_environment: Mapping[str, str] | None = None,
     ) -> None:
+        self._ensure_external_overlay_networks(stack_definition)
         self._client().update_stack(
             stack_id,
             stack_definition,
             endpoint_id,
             stack_environment,
         )
+
+    def _ensure_external_overlay_networks(self, stack_definition: StackDefinition) -> None:
+        for network_name in _external_overlay_network_names(stack_definition):
+            result = self._run_manager_shell(
+                f"docker network inspect -- {shlex.quote(network_name)} >/dev/null 2>&1",
+                check=False,
+            )
+            if result.returncode == 0:
+                continue
+            self._run_manager_shell(
+                "docker network create --driver overlay --attachable -- "
+                f"{shlex.quote(network_name)} >/dev/null"
+            )
+
+    def _run_manager_shell(
+        self,
+        script: str,
+        *,
+        check: bool = True,
+    ) -> subprocess.CompletedProcess[str]:
+        try:
+            result = subprocess.run(
+                [_BACKEND_CLI[self.backend], "exec", self.manager_node, "--", "sh", "-lc", script],
+                capture_output=True,
+                text=True,
+                check=False,
+                shell=False,
+                timeout=self.timeout_seconds,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("LXC manager Portainer prerequisite operation timed out.") from exc
+        if check and result.returncode != 0:
+            raise RuntimeError(
+                f"LXC manager Portainer prerequisite operation failed with exit code {result.returncode}."
+            )
+        return result
 
     def _client(self) -> PortainerHttpClient:
         return PortainerHttpClient(

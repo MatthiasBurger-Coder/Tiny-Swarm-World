@@ -385,6 +385,84 @@ networks:
         self.assertEqual(1, len(session.post_calls))
         self.assertTrue(str(session.post_calls[0]["url"]).endswith("/api/users/admin/init"))
 
+    def test_lxc_portainer_client_creates_external_network_before_stack_create(self):
+        from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
+            LxcPortainerHttpClient,
+        )
+
+        client = LxcPortainerHttpClient(
+            backend=ManagedLxcBackend.LXD,
+            username="admin",
+            password=operator_credential(),
+        )
+        stack = StackDefinition(
+            name="infisical",
+            compose_content="""
+services:
+  infisical:
+    image: infisical/infisical:latest
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true
+""",
+        )
+        delegate = _FakePortainerDelegate()
+
+        with patch.object(
+            client,
+            "_run_manager_shell",
+            side_effect=(
+                subprocess.CompletedProcess([], 1),
+                subprocess.CompletedProcess([], 0),
+            ),
+        ) as run_manager_shell:
+            with patch.object(client, "_client", return_value=delegate):
+                client.create_stack(stack, 1, {"TSW_EXAMPLE": "value"})
+
+        scripts = [call.args[0] for call in run_manager_shell.call_args_list]
+        self.assertEqual(
+            [
+                "docker network inspect -- service_access_link >/dev/null 2>&1",
+                "docker network create --driver overlay --attachable -- service_access_link >/dev/null",
+            ],
+            scripts,
+        )
+        self.assertEqual([(stack, 1, {"TSW_EXAMPLE": "value"})], delegate.created_stacks)
+
+    def test_lxc_portainer_client_reuses_existing_external_network(self):
+        from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
+            LxcPortainerHttpClient,
+        )
+
+        client = LxcPortainerHttpClient(
+            backend=ManagedLxcBackend.LXD,
+            username="admin",
+            password=operator_credential(),
+        )
+        stack = StackDefinition(
+            name="service-access",
+            compose_content="""
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true
+""",
+        )
+
+        with patch.object(
+            client,
+            "_run_manager_shell",
+            return_value=subprocess.CompletedProcess([], 0),
+        ) as run_manager_shell:
+            with patch.object(client, "_client", return_value=_FakePortainerDelegate()):
+                client.update_stack(7, stack, 1)
+
+        run_manager_shell.assert_called_once_with(
+            "docker network inspect -- service_access_link >/dev/null 2>&1",
+            check=False,
+        )
+
 
 class _FakeResponse:
     def __init__(self, status_code: int, payload: object):
@@ -409,6 +487,33 @@ class _FakeSession:
         if isinstance(response, requests.RequestException):
             raise response
         return response
+
+
+class _FakePortainerDelegate:
+    def __init__(self) -> None:
+        self.created_stacks: list[tuple[StackDefinition, int, dict[str, str]]] = []
+        self.updated_stacks: list[tuple[int, StackDefinition, int, dict[str, str]]] = []
+
+    def create_stack(
+        self,
+        stack_definition: StackDefinition,
+        endpoint_id: int,
+        stack_environment: dict[str, str] | None = None,
+    ) -> None:
+        self.created_stacks.append(
+            (stack_definition, endpoint_id, dict(stack_environment or {}))
+        )
+
+    def update_stack(
+        self,
+        stack_id: int,
+        stack_definition: StackDefinition,
+        endpoint_id: int,
+        stack_environment: dict[str, str] | None = None,
+    ) -> None:
+        self.updated_stacks.append(
+            (stack_id, stack_definition, endpoint_id, dict(stack_environment or {}))
+        )
 
 
 class _FakeCookies(dict[str, str]):
