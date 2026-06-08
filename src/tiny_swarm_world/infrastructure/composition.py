@@ -190,6 +190,12 @@ INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_PASSWORD"
 INFISICAL_URL_ENVIRONMENT = "TSW_INFISICAL_URL"
 INFISICAL_ORGANIZATION_ENVIRONMENT = "TSW_INFISICAL_ORGANIZATION"
 DEFAULT_INFISICAL_ORGANIZATION = "Tiny Swarm World"
+INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT = "TSW_INFISICAL_READINESS_ATTEMPTS"
+INFISICAL_READINESS_INTERVAL_SECONDS_ENVIRONMENT = (
+    "TSW_INFISICAL_READINESS_INTERVAL_SECONDS"
+)
+DEFAULT_INFISICAL_READINESS_ATTEMPTS = 180
+DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS = 5.0
 SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
 DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:5000"
 LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
@@ -1632,6 +1638,32 @@ def _operator_config_value(name: str, default: str) -> str:
     return os.environ.get(name) or default
 
 
+def _operator_config_int(name: str, default: int, *, minimum: int) -> int:
+    raw_value = os.environ.get(name, "").strip()
+    if not raw_value:
+        return default
+    try:
+        value = int(raw_value, 10)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer.") from exc
+    if value < minimum:
+        raise ValueError(f"{name} must be at least {minimum}.")
+    return value
+
+
+def _operator_config_float(name: str, default: float, *, minimum: float) -> float:
+    raw_value = os.environ.get(name, "").strip()
+    if not raw_value:
+        return default
+    try:
+        value = float(raw_value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a number.") from exc
+    if value < minimum:
+        raise ValueError(f"{name} must be at least {minimum:g}.")
+    return value
+
+
 def _lxc_proxy_listen_address() -> str:
     address = _operator_config_value(
         LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT,
@@ -1749,6 +1781,16 @@ def _infisical_bootstrap_steps(
                 base_url=_operator_config_value(
                     INFISICAL_URL_ENVIRONMENT,
                     "https://localhost",
+                ),
+                readiness_attempts=_operator_config_int(
+                    INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT,
+                    DEFAULT_INFISICAL_READINESS_ATTEMPTS,
+                    minimum=1,
+                ),
+                readiness_interval_seconds=_operator_config_float(
+                    INFISICAL_READINESS_INTERVAL_SECONDS_ENVIRONMENT,
+                    DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS,
+                    minimum=0.0,
                 ),
             ),
             login_email=_required_operator_secret_value(INFISICAL_LOGIN_EMAIL_ENVIRONMENT),

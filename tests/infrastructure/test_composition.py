@@ -32,7 +32,22 @@ from tiny_swarm_world.infrastructure import composition
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
 
 
+def _required_infisical_bootstrap_env() -> dict[str, str]:
+    return {
+        "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.com",
+        "TSW_INFISICAL_PASSWORD": sample_text("master", "-value"),
+    }
+
+
 class TestComposition(unittest.TestCase):
+    def setUp(self):
+        self._infisical_env_patcher = patch.dict(
+            os.environ,
+            _required_infisical_bootstrap_env(),
+        )
+        self._infisical_env_patcher.start()
+        self.addCleanup(self._infisical_env_patcher.stop)
+
     def test_application_services_separates_service_bundles(self):
         self.assertIsNot(composition.ApplicationServices, composition.PlatformServices)
 
@@ -531,7 +546,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(7, len(services.workflows.verify.checks))
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
-        with patch.dict("os.environ", {}, clear=True):
+        with patch.dict("os.environ", _required_infisical_bootstrap_env(), clear=True):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
                 services = composition.build_lxc_deployment_services(
                     backend=composition.ManagedLxcBackend.INCUS,
@@ -693,14 +708,15 @@ class TestComposition(unittest.TestCase):
         )
 
     def test_build_deployment_services_wires_service_access_infisical_environment(self):
-        env = {
+        stack_env = {
+            **_required_infisical_bootstrap_env(),
             "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
             "TSW_INFISICAL_AUTH_SECRET": sample_text("auth", "-secret"),
             "TSW_INFISICAL_POSTGRES_PASSWORD": sample_text("pg", "-secret"),
         }
         with patch.dict(
             "os.environ",
-            env,
+            stack_env,
             clear=True,
         ):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
@@ -730,7 +746,14 @@ class TestComposition(unittest.TestCase):
             },
             service_access_step.stack_environment,
         )
-        self.assertEqual(env, infisical_step.stack_environment)
+        self.assertEqual(
+            {
+                "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
+                "TSW_INFISICAL_AUTH_SECRET": "auth-secret",
+                "TSW_INFISICAL_POSTGRES_PASSWORD": "pg-secret",
+            },
+            infisical_step.stack_environment,
+        )
         self.assertEqual((), services.workflows.apply.pre_apply_checks)
         self.assertEqual(
             ("deployment:swagger-stack-assets",),
@@ -740,7 +763,10 @@ class TestComposition(unittest.TestCase):
     def test_build_deployment_services_uses_operator_swarm_registry_endpoint_for_local_images(self):
         with patch.dict(
             "os.environ",
-            {"TSW_SWARM_REGISTRY_ENDPOINT": "registry.local:5000"},
+            {
+                **_required_infisical_bootstrap_env(),
+                "TSW_SWARM_REGISTRY_ENDPOINT": "registry.local:5000",
+            },
             clear=True,
         ):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
@@ -769,7 +795,14 @@ class TestComposition(unittest.TestCase):
 
     def test_build_artifact_services_uses_operator_environment_credentials(self):
         operator_value = sample_text("operator", "-supplied")
-        with patch.dict("os.environ", {"TSW_NEXUS_ADMIN_PASSWORD": operator_value}, clear=True):
+        with patch.dict(
+            "os.environ",
+            {
+                **_required_infisical_bootstrap_env(),
+                "TSW_NEXUS_ADMIN_PASSWORD": operator_value,
+            },
+            clear=True,
+        ):
             services = composition.build_lxc_artifact_services(
                 backend=composition.ManagedLxcBackend.INCUS,
             )
@@ -782,7 +815,14 @@ class TestComposition(unittest.TestCase):
 
     def test_build_deployment_services_uses_operator_portainer_credential(self):
         operator_value = sample_text("operator", "-portainer")
-        with patch.dict("os.environ", {"TSW_PORTAINER_PASSWORD": operator_value}, clear=True):
+        with patch.dict(
+            "os.environ",
+            {
+                **_required_infisical_bootstrap_env(),
+                "TSW_PORTAINER_PASSWORD": operator_value,
+            },
+            clear=True,
+        ):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
                 services = composition.build_lxc_deployment_services(
                     backend=composition.ManagedLxcBackend.INCUS,
@@ -792,9 +832,8 @@ class TestComposition(unittest.TestCase):
 
     def test_build_deployment_services_can_seed_infisical_items_when_enabled(self):
         env = {
+            **_required_infisical_bootstrap_env(),
             "TSW_SEED_INFISICAL_ITEMS": "1",
-            "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.com",
-            "TSW_INFISICAL_PASSWORD": sample_text("master", "-value"),
             "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
             "TSW_NEXUS_ADMIN_PASSWORD": sample_text("nexus", "-value"),
             "TSW_PORTAINER_PASSWORD": sample_text("portainer", "-value"),
@@ -829,6 +868,60 @@ class TestComposition(unittest.TestCase):
             ),
             tuple(item.item_name for item in seed_step.items),
         )
+
+    def test_build_deployment_services_uses_configurable_infisical_readiness_window(self):
+        env = {
+            **_required_infisical_bootstrap_env(),
+            "TSW_INFISICAL_READINESS_ATTEMPTS": "240",
+            "TSW_INFISICAL_READINESS_INTERVAL_SECONDS": "2.5",
+        }
+        with patch.dict("os.environ", env, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                    service_profile=ServiceStackProfile.SERVICE_ACCESS,
+                )
+
+        bootstrap_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.verification_target_id == "deployment:infisical-bootstrap"
+        )
+        self.assertEqual(240, bootstrap_step.infisical_client.readiness_attempts)
+        self.assertEqual(2.5, bootstrap_step.infisical_client.readiness_interval_seconds)
+
+    def test_build_deployment_services_uses_extended_infisical_readiness_default(self):
+        env = _required_infisical_bootstrap_env()
+        with patch.dict("os.environ", env, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                    service_profile=ServiceStackProfile.SERVICE_ACCESS,
+                )
+
+        bootstrap_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.verification_target_id == "deployment:infisical-bootstrap"
+        )
+        self.assertEqual(180, bootstrap_step.infisical_client.readiness_attempts)
+        self.assertEqual(5.0, bootstrap_step.infisical_client.readiness_interval_seconds)
+
+    def test_build_deployment_services_rejects_invalid_infisical_readiness_window(self):
+        env = {
+            **_required_infisical_bootstrap_env(),
+            "TSW_INFISICAL_READINESS_ATTEMPTS": "0",
+        }
+        with patch.dict("os.environ", env, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "TSW_INFISICAL_READINESS_ATTEMPTS must be at least 1",
+                ):
+                    composition.build_lxc_deployment_services(
+                        backend=composition.ManagedLxcBackend.INCUS,
+                        service_profile=ServiceStackProfile.SERVICE_ACCESS,
+                    )
 
     def test_build_deployment_services_rejects_enabled_infisical_seed_without_passwords(self):
         with patch.dict(
