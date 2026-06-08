@@ -259,6 +259,10 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertNotIn("secrets", compose_data)
         self.assertNotIn("volumes", compose_data)
         self.assertNotIn("${TSW_REMOTE_STACK_ROOT", compose_content)
+        self.assertEqual(
+            {"name": "service_access_link", "external": True},
+            compose_data["networks"]["service_access_link"],
+        )
 
     def test_committed_infisical_compose_declares_required_services_and_secret_boundary(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -289,6 +293,10 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertNotIn("secrets", compose_data)
         self.assertEqual(["infisical_pg_data:/var/lib/postgresql/data"], services["infisical-db"]["volumes"])
         self.assertEqual(["infisical_redis_data:/data"], services["infisical-redis"]["volumes"])
+        self.assertEqual(
+            {"name": "service_access_link", "external": True},
+            compose_data["networks"]["service_access_link"],
+        )
 
     def test_service_access_dashboard_and_nginx_are_image_packaged(self):
         repository_root = Path(__file__).resolve().parents[4]

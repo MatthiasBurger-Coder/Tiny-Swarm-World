@@ -76,7 +76,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         stack_definition: StackDefinition,
         stack_environment: Mapping[str, str] | None = None,
     ) -> None:
-        self._ensure_stack_prerequisites(stack_definition.name)
+        self._ensure_stack_prerequisites(stack_definition.name, stack_definition)
         remote_dir = f"{self.remote_stack_root}/{stack_definition.name}"
         compose_path = f"{remote_dir}/docker-compose.yml"
         script = (
@@ -133,11 +133,25 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             input_text=value,
         )
 
-    def _ensure_stack_prerequisites(self, stack_name: str) -> None:
+    def _ensure_stack_prerequisites(self, stack_name: str, stack_definition: StackDefinition) -> None:
+        for network_name in _external_overlay_network_names(stack_definition):
+            self._ensure_external_overlay_network(network_name)
         if stack_name != "sonarqube":
             return
         self._run_manager_shell(
             "sysctl -w vm.max_map_count=524288 fs.file-max=131072 >/dev/null",
+        )
+
+    def _ensure_external_overlay_network(self, name: str) -> None:
+        result = self._run_manager_shell(
+            f"docker network inspect -- {shlex.quote(name)} >/dev/null 2>&1",
+            check=False,
+        )
+        if result.returncode == 0:
+            return
+        self._run_manager_shell(
+            "docker network create --driver overlay --attachable -- "
+            f"{shlex.quote(name)} >/dev/null"
         )
 
     def _reconcile_host_published_ports(self, stack_definition: StackDefinition) -> None:
@@ -681,6 +695,26 @@ def _host_published_ports_by_service(
         if host_ports:
             selected[service_name] = host_ports
     return selected
+
+
+def _external_overlay_network_names(stack_definition: StackDefinition) -> tuple[str, ...]:
+    payload = _YAML.load(stack_definition.compose_content) or {}
+    if not isinstance(payload, Mapping):
+        return ()
+    networks = payload.get("networks", {})
+    if not isinstance(networks, Mapping):
+        return ()
+
+    names: list[str] = []
+    for fallback_name, network_payload in networks.items():
+        if not isinstance(fallback_name, str) or not isinstance(network_payload, Mapping):
+            continue
+        if network_payload.get("external") is not True:
+            continue
+        configured_name = network_payload.get("name", fallback_name)
+        if isinstance(configured_name, str) and configured_name.strip():
+            names.append(configured_name.strip())
+    return tuple(dict.fromkeys(names))
 
 
 def _service_is_manager_constrained(service_payload: Mapping[str, object]) -> bool:

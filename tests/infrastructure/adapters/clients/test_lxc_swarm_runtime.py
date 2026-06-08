@@ -14,6 +14,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
     LxcContainerRuntime,
     LxcPortainerAdminClient,
     LxcSwarmRuntime,
+    _external_overlay_network_names,
     _lxc_manager_ip,
 )
 
@@ -112,6 +113,58 @@ services:
         self.assertIn(
             "docker service update --publish-add published=9000,target=9000,protocol=tcp,mode=host portainer_portainer",
             scripts,
+        )
+
+    def test_deploy_stack_creates_missing_external_overlay_networks_idempotently(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+        compose = """
+services:
+  nginx:
+    image: nginx:mainline-alpine
+    networks:
+      - service_access_link
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true
+"""
+        inspect_missing = subprocess.CompletedProcess([], 1)
+        success = subprocess.CompletedProcess([], 0)
+
+        with patch.object(
+            runtime,
+            "_run_manager_shell",
+            side_effect=(inspect_missing, success, success, success),
+        ) as run_manager_shell:
+            with patch.object(runtime, "_transfer_stack_assets"):
+                runtime.deploy_stack(StackDefinition(name="service-access", compose_content=compose))
+
+        scripts = [call.args[0] for call in run_manager_shell.call_args_list]
+        self.assertIn(
+            "docker network inspect -- service_access_link >/dev/null 2>&1",
+            scripts,
+        )
+        self.assertIn(
+            "docker network create --driver overlay --attachable -- service_access_link >/dev/null",
+            scripts,
+        )
+
+    def test_external_overlay_network_names_uses_explicit_shared_name(self):
+        compose = """
+networks:
+  local_only: {}
+  service_access_link:
+    name: service_access_link
+    external: true
+  alternate:
+    external: true
+"""
+
+        self.assertEqual(
+            ("service_access_link", "alternate"),
+            _external_overlay_network_names(
+                StackDefinition(name="service-access", compose_content=compose)
+            ),
         )
 
     def test_stack_exists_reads_docker_stack_names_through_lxc(self):

@@ -34,3 +34,5 @@ services:
 
 networks:
   service_access_link:
+    name: service_access_link
+    external: true
