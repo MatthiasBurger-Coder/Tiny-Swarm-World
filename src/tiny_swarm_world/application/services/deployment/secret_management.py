@@ -214,8 +214,6 @@ class InfisicalSecretSyncStep:
         self.results: list[dict[str, str]] = []
 
     def run(self) -> None:
-        if not self.cli.is_available():
-            raise SecretManagementBlocker("infisical_cli_missing", "Infisical CLI is required for secret sync.")
         self.cli.ensure_project_environment(self.project, self.environment)
         generated_values = _read_env_file(self.generated_local_env)
         for entry in self.manifest_entries:

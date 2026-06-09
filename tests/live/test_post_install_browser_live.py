@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import requests
 import ssl
 import unittest
 from dataclasses import dataclass
@@ -33,6 +34,7 @@ RUN_LIVE_ENV = "TSW_RUN_POST_INSTALL_BROWSER_LIVE"
 DEFAULT_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
 DEFAULT_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/post_install_browser_live")
 SERVICE_ACCESS_DASHBOARD = Path("infra/compose/service-access/dashboard/index.html")
+INFISICAL_SECRET_MANIFEST = Path("config/secrets/infisical-secrets.yaml")
 EXPECTED_INFISICAL_ITEMS = (
     "platform/jenkins",
     "platform/nexus",
@@ -40,6 +42,13 @@ EXPECTED_INFISICAL_ITEMS = (
     "platform/rabbitmq",
     "platform/sonarqube",
 )
+EXPECTED_INFISICAL_ITEM_KEYS = {
+    "platform/jenkins": "TSW_JENKINS_ADMIN_PASSWORD",
+    "platform/nexus": "TSW_NEXUS_ADMIN_PASSWORD",
+    "platform/portainer": "TSW_PORTAINER_ADMIN_PASSWORD",
+    "platform/rabbitmq": "TSW_RABBITMQ_PASSWORD",
+    "platform/sonarqube": "TSW_SONARQUBE_ADMIN_PASSWORD",
+}
 NO_LOGIN_SERVICES = ("service-access", "swagger")
 SERVICE_ALLOWED_STATUSES = {
     "jenkins": (200, 403),
@@ -198,6 +207,16 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         self.assertEqual("platform/jenkins", evidence["expected_infisical_item"])
         self.assertNotIn("value", evidence)
 
+    def test_infisical_managed_password_manifest_keys_are_discoverable(self) -> None:
+        expected_keys = _expected_infisical_password_keys()
+
+        self.assertIn("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD", expected_keys)
+        self.assertIn("TSW_JENKINS_ADMIN_PASSWORD", expected_keys)
+        self.assertIn("TSW_NEXUS_ADMIN_PASSWORD", expected_keys)
+        self.assertIn("TSW_PORTAINER_ADMIN_PASSWORD", expected_keys)
+        self.assertIn("TSW_RABBITMQ_PASSWORD", expected_keys)
+        self.assertTrue(all("PASSWORD" in key or key.endswith("HTPASSWD") for key in expected_keys))
+
 
 @unittest.skipUnless(
     os.environ.get(RUN_LIVE_ENV) == "1",
@@ -269,6 +288,50 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
             raise AssertionError(
                 "infisical_credential_inventory_missing: "
                 f"{','.join(missing_items)}; evidence={self.evidence.path.as_posix()}"
+            )
+
+    def test_03_infisical_secret_management_is_bootstrapped(self) -> None:
+        missing_material = _missing_infisical_login_material(self.config)
+        if missing_material:
+            self.evidence.record(
+                "infisical_management",
+                _infisical_management_evidence(
+                    result="blocked",
+                    installed=False,
+                    super_admin_present=False,
+                    project_present=False,
+                    expected_credential_count=0,
+                    present_credential_count=0,
+                    redacted_failure_reason="missing_login_material",
+                ),
+            )
+            raise AssertionError(
+                "infisical_setup_blocker: missing "
+                f"{','.join(missing_material)}; evidence={self.evidence.path.as_posix()}"
+            )
+
+        expected_password_keys = _expected_infisical_password_keys()
+        status = _infisical_management_status(
+            self.config,
+            expected_password_keys,
+        )
+        self.evidence.record(
+            "infisical_management",
+            _infisical_management_evidence(
+                result="passed" if status.passed else "failed",
+                installed=status.installed,
+                super_admin_present=status.super_admin_present,
+                project_present=status.project_present,
+                expected_credential_count=len(expected_password_keys),
+                present_credential_count=status.present_password_count,
+                redacted_failure_reason=status.redacted_failure_reason,
+            ),
+        )
+
+        if not status.passed:
+            raise AssertionError(
+                "infisical_secret_management_incomplete: "
+                f"{status.redacted_failure_reason}; evidence={self.evidence.path.as_posix()}"
             )
 
 
@@ -378,33 +441,182 @@ def _missing_infisical_login_material(
 
 
 def _missing_infisical_items(config: LivePostInstallConfig) -> tuple[str, ...]:
-    try:
-        from playwright.sync_api import sync_playwright  # type: ignore[import-not-found]
-    except ImportError as exc:
-        raise AssertionError("infisical_setup_blocker: playwright_unavailable") from exc
-
     if config.infisical_email is None or config.infisical_password is None:
         raise AssertionError("infisical_setup_blocker: missing_login_material")
 
-    missing: list[str] = []
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
-        page = browser.new_page(ignore_https_errors=True, base_url=config.infisical_url)
-        try:
-            page.goto("/", wait_until="networkidle", timeout=int(config.timeout_seconds * 1000))
-            _click_first_optional(page, ("Continue with Email",))
-            _fill_first(page, ("Email", "Email address"), config.infisical_email)
-            _fill_first(page, ("Password",), config.infisical_password)
-            _click_first(page, ("Log in", "Login", "Sign in"))
-            page.get_by_text("Secrets", exact=False).first.wait_for(timeout=20_000)
-            for item in EXPECTED_INFISICAL_ITEMS:
-                try:
-                    page.get_by_text(item, exact=True).first.wait_for(timeout=5_000)
-                except Exception:
-                    missing.append(item)
-        finally:
-            browser.close()
-    return tuple(missing)
+    session = requests.Session()
+    organization_token = _infisical_organization_token(session, config)
+    project_id = _infisical_project_id(session, config, organization_token)
+    present_keys = _infisical_secret_keys(session, config, organization_token, project_id)
+    return tuple(
+        item
+        for item in EXPECTED_INFISICAL_ITEMS
+        if EXPECTED_INFISICAL_ITEM_KEYS[item] not in present_keys
+    )
+
+
+@dataclass(frozen=True)
+class _InfisicalManagementStatus:
+    installed: bool
+    super_admin_present: bool
+    project_present: bool
+    present_password_count: int
+    missing_password_count: int
+    redacted_failure_reason: str = ""
+
+    @property
+    def passed(self) -> bool:
+        return (
+            self.installed
+            and self.super_admin_present
+            and self.project_present
+            and self.missing_password_count == 0
+        )
+
+
+def _infisical_management_status(
+    config: LivePostInstallConfig,
+    expected_password_keys: tuple[str, ...],
+) -> _InfisicalManagementStatus:
+    try:
+        session = requests.Session()
+        health = session.get(
+            urljoin(config.infisical_url.rstrip("/") + "/", "api/status"),
+            timeout=config.timeout_seconds,
+            verify=False,
+        )
+    except requests.RequestException as exc:
+        return _InfisicalManagementStatus(False, False, False, 0, len(expected_password_keys), type(exc).__name__)
+    if health.status_code != 200:
+        return _InfisicalManagementStatus(False, False, False, 0, len(expected_password_keys), "infisical_status_unavailable")
+
+    try:
+        organization_token = _infisical_organization_token(session, config)
+        project_id = _infisical_project_id(session, config, organization_token)
+        present_keys = _infisical_secret_keys(session, config, organization_token, project_id)
+    except requests.RequestException as exc:
+        return _InfisicalManagementStatus(True, False, False, 0, len(expected_password_keys), type(exc).__name__)
+    except AssertionError as exc:
+        reason = str(exc) or "infisical_api_contract_failed"
+        super_admin_present = reason not in {"admin_login_failed", "organization_missing"}
+        project_present = reason != "project_missing" and super_admin_present
+        return _InfisicalManagementStatus(True, super_admin_present, project_present, 0, len(expected_password_keys), reason)
+
+    missing = tuple(key for key in expected_password_keys if key not in present_keys)
+    return _InfisicalManagementStatus(
+        installed=True,
+        super_admin_present=True,
+        project_present=True,
+        present_password_count=len(expected_password_keys) - len(missing),
+        missing_password_count=len(missing),
+        redacted_failure_reason="" if not missing else "credential_entries_missing",
+    )
+
+
+def _infisical_organization_token(
+    session: requests.Session,
+    config: LivePostInstallConfig,
+) -> str:
+    response = session.post(
+        urljoin(config.infisical_url.rstrip("/") + "/", "api/v3/auth/login"),
+        json={
+            "email": config.infisical_email,
+            "password": config.infisical_password,
+        },
+        timeout=config.timeout_seconds,
+        verify=False,
+    )
+    if response.status_code != 200:
+        raise AssertionError("admin_login_failed")
+    login_token = response.json().get("accessToken")
+    if not isinstance(login_token, str) or not login_token:
+        raise AssertionError("admin_login_failed")
+    headers = {"Authorization": f"Bearer {login_token}"}
+    organizations = session.get(
+        urljoin(config.infisical_url.rstrip("/") + "/", "api/v1/organization"),
+        headers=headers,
+        timeout=config.timeout_seconds,
+        verify=False,
+    )
+    if organizations.status_code != 200:
+        raise AssertionError("organization_missing")
+    organization_items = organizations.json().get("organizations")
+    if not isinstance(organization_items, list) or not organization_items:
+        raise AssertionError("organization_missing")
+    organization_id = organization_items[0].get("id")
+    if not isinstance(organization_id, str) or not organization_id:
+        raise AssertionError("organization_missing")
+    selected = session.post(
+        urljoin(config.infisical_url.rstrip("/") + "/", "api/v3/auth/select-organization"),
+        headers=headers,
+        json={"organizationId": organization_id},
+        timeout=config.timeout_seconds,
+        verify=False,
+    )
+    if selected.status_code != 200:
+        raise AssertionError("organization_missing")
+    token = selected.json().get("token")
+    if not isinstance(token, str) or not token:
+        raise AssertionError("organization_missing")
+    return token
+
+
+def _infisical_project_id(
+    session: requests.Session,
+    config: LivePostInstallConfig,
+    organization_token: str,
+) -> str:
+    response = session.get(
+        urljoin(config.infisical_url.rstrip("/") + "/", "api/v1/projects"),
+        headers={"Authorization": f"Bearer {organization_token}"},
+        timeout=config.timeout_seconds,
+        verify=False,
+    )
+    if response.status_code != 200:
+        raise AssertionError("project_missing")
+    projects = response.json().get("projects")
+    if not isinstance(projects, list):
+        raise AssertionError("project_missing")
+    for project in projects:
+        if not isinstance(project, dict):
+            continue
+        names = {str(project.get("name", "")), str(project.get("projectName", "")), str(project.get("slug", ""))}
+        if "tiny-swarm-world" in names:
+            project_id = project.get("id")
+            if isinstance(project_id, str) and project_id:
+                return project_id
+    raise AssertionError("project_missing")
+
+
+def _infisical_secret_keys(
+    session: requests.Session,
+    config: LivePostInstallConfig,
+    organization_token: str,
+    project_id: str,
+) -> set[str]:
+    response = session.get(
+        urljoin(
+            config.infisical_url.rstrip("/") + "/",
+            f"api/v3/secrets/raw?workspaceId={project_id}&environment=local&secretPath=%2F",
+        ),
+        headers={"Authorization": f"Bearer {organization_token}"},
+        timeout=config.timeout_seconds,
+        verify=False,
+    )
+    if response.status_code != 200:
+        raise AssertionError("credential_entries_missing")
+    payload = response.json()
+    secrets = payload.get("secrets")
+    if not isinstance(secrets, list):
+        raise AssertionError("credential_entries_missing")
+    keys: set[str] = set()
+    for item in secrets:
+        if not isinstance(item, dict):
+            continue
+        key = item.get("secretKey") or item.get("key")
+        if isinstance(key, str):
+            keys.add(key)
+    return keys
 
 
 def _fill_first(page: Any, labels: tuple[str, ...], value: str) -> None:
@@ -459,6 +671,43 @@ def _infisical_item_evidence(
         "result": result,
         "service": expected_item.removeprefix("platform/"),
     }
+
+
+def _infisical_management_evidence(
+    *,
+    result: str,
+    installed: bool,
+    super_admin_present: bool,
+    project_present: bool,
+    expected_credential_count: int,
+    present_credential_count: int,
+    redacted_failure_reason: str,
+) -> dict[str, object]:
+    return {
+        "expected_credential_count": expected_credential_count,
+        "installed": installed,
+        "present_credential_count": present_credential_count,
+        "project_present": project_present,
+        "redacted_failure_reason": redacted_failure_reason,
+        "result": result,
+        "service": "infisical",
+        "super_admin_present": super_admin_present,
+    }
+
+
+def _expected_infisical_password_keys() -> tuple[str, ...]:
+    keys: list[str] = []
+    current_key = ""
+    for raw_line in INFISICAL_SECRET_MANIFEST.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if line.startswith("- key: "):
+            current_key = line.removeprefix("- key: ").strip()
+            continue
+        if line.startswith("required:"):
+            if current_key and ("PASSWORD" in current_key or current_key.endswith("HTPASSWD")):
+                keys.append(current_key)
+            current_key = ""
+    return tuple(dict.fromkeys(keys))
 
 
 def _env_value(local_env: dict[str, str], key: str, default: str) -> str:

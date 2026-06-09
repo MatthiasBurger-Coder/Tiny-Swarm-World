@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from tiny_swarm_world.application.ports.clients.port_infisical_cli import InfisicalCliResult
+from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client import (
+    InfisicalBootstrapResult,
+    InfisicalBootstrapState,
+)
 from tiny_swarm_world.domain.inventory import VerificationStatus
 
 
@@ -53,12 +57,14 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             {
                 "ENCRYPTION_KEY": "enc",
                 "AUTH_SECRET": "auth",
+                "DB_CONNECTION_URI": "postgres://infisical:secret@tasks.infisical-db:5432/infisical",
                 "SITE_URL": "http://localhost:8086",
             }
         )
 
         self.assertEqual("<redacted>", redacted["ENCRYPTION_KEY"])
         self.assertEqual("<redacted>", redacted["AUTH_SECRET"])
+        self.assertEqual("<redacted>", redacted["DB_CONNECTION_URI"])
         self.assertEqual("http://localhost:8086", redacted["SITE_URL"])
 
     def test_builds_idempotent_bootstrap_command_and_sanitized_command(self):
@@ -88,6 +94,32 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             self.assertNotIn("--password=password", evidence)
             self.assertNotIn('"INITIAL_BOOTSTRAP_ADMIN_PASSWORD": "password"', evidence)
             self.assertIn("--password=<redacted>", evidence)
+
+    def test_missing_cli_uses_admin_api_fallback_when_configured(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bootstrap_client = _FakeBootstrapClient()
+            service = _service(
+                cli=_FakeCli(available=False),
+                bootstrap_client=bootstrap_client,
+                evidence_dir=Path(directory) / "evidence",
+                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
+            )
+
+            service.run()
+            verification = service.verify()
+
+            self.assertEqual(VerificationStatus.VERIFIED, verification.status)
+            self.assertEqual("bootstrapped", verification.evidence["bootstrap_state"])
+            self.assertEqual("admin_api_fallback", verification.evidence["bootstrap_method"])
+            self.assertEqual(
+                [("admin@tiny-swarm.local", "Tiny Swarm World")],
+                bootstrap_client.calls,
+            )
+            result = json.loads(
+                (Path(directory) / "evidence" / "bootstrap-result.json").read_text()
+            )
+            self.assertEqual("admin_api_fallback", result["bootstrap_method"])
+            self.assertEqual("<redacted>", result["redacted_config"]["DB_CONNECTION_URI"])
 
     def test_readiness_timeout_is_classified(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -128,6 +160,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
 def _service(
     *,
     cli: "_FakeCli | None" = None,
+    bootstrap_client: "_FakeBootstrapClient | None" = None,
     evidence_dir: Path = Path(".tiny-swarm/evidence/infisical"),
     secret_file: Path = Path(".tiny-swarm/secrets/bootstrap.local.env"),
     service_running: bool = True,
@@ -135,6 +168,7 @@ def _service(
 ) -> Any:
     return EnsureInfisicalSilentInstall(
         cli=cli or _FakeCli(),
+        bootstrap_client=bootstrap_client,
         config=InfisicalSilentInstallConfig(
             external_url="http://localhost:8086",
             internal_url="http://infisical:8080",
@@ -171,6 +205,30 @@ class _FakeCli:
 
     def run_bootstrap(self, args: tuple[str, ...]) -> InfisicalCliResult:
         self.calls.append(args)
+        return self.result
+
+
+class _FakeBootstrapClient:
+    def __init__(
+        self,
+        result: InfisicalBootstrapResult = InfisicalBootstrapResult(
+            state=InfisicalBootstrapState.CREATED,
+            token_returned=True,
+            organization="Tiny Swarm World",
+            admin_email="admin@tiny-swarm.local",
+        ),
+    ):
+        self.result = result
+        self.calls: list[tuple[str, str]] = []
+
+    def bootstrap_instance(
+        self,
+        *,
+        email: str,
+        password: str,
+        organization: str,
+    ) -> InfisicalBootstrapResult:
+        self.calls.append((email, organization))
         return self.result
 
 

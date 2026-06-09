@@ -5,6 +5,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client import (
+    InfisicalBootstrapState,
+    PortInfisicalBootstrapClient,
+)
 from tiny_swarm_world.application.ports.clients.port_infisical_cli import PortInfisicalCli
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
@@ -16,6 +20,7 @@ SECRET_NAMES = (
     "POSTGRES_PASSWORD",
     "REDIS_PASSWORD",
     "INITIAL_BOOTSTRAP_ADMIN_PASSWORD",
+    "DB_CONNECTION_URI",
 )
 
 
@@ -69,17 +74,20 @@ class EnsureInfisicalSilentInstall:
         *,
         cli: PortInfisicalCli,
         config: InfisicalSilentInstallConfig,
+        bootstrap_client: PortInfisicalBootstrapClient | None = None,
         service_running: bool = True,
         http_ready: bool = True,
         setup_screen_required: bool = False,
     ) -> None:
         self.cli = cli
         self.config = config
+        self.bootstrap_client = bootstrap_client
         self.service_running = service_running
         self.http_ready = http_ready
         self.setup_screen_required = setup_screen_required
         self._status = "not_run"
         self._classification = ""
+        self._bootstrap_method = "not_run"
 
     def render_environment(self) -> dict[str, str]:
         return {
@@ -118,14 +126,6 @@ class EnsureInfisicalSilentInstall:
         self.config.validate()
         self.config.evidence_dir.mkdir(parents=True, exist_ok=True)
         self.config.secret_file.parent.mkdir(parents=True, exist_ok=True)
-        if not self.cli.is_available():
-            self._status = "blocked"
-            self._classification = "infisical_cli_missing"
-            self._write_evidence("blocked")
-            raise InfisicalInstallBlocker(
-                self._classification,
-                "Infisical CLI is missing; install the CLI before silent bootstrap.",
-            )
         if not self.service_running or not self.http_ready:
             self._status = "blocked"
             self._classification = "infisical_readiness_timeout"
@@ -135,21 +135,43 @@ class EnsureInfisicalSilentInstall:
                 "Infisical service did not become ready before bootstrap.",
             )
 
-        result = self.cli.run_bootstrap(self.bootstrap_command())
-        output = f"{result.stdout}\n{result.stderr}".lower()
-        if result.return_code == 0:
+        if self.cli.is_available():
+            self._bootstrap_method = "cli"
+            result = self.cli.run_bootstrap(self.bootstrap_command())
+            output = f"{result.stdout}\n{result.stderr}".lower()
+            if result.return_code == 0:
+                self._status = (
+                    "already_bootstrapped"
+                    if "already" in output and "bootstrap" in output
+                    else "bootstrapped"
+                )
+            else:
+                self._status = "failed"
+                self._classification = "infisical_bootstrap_failed"
+                self._write_evidence("failed")
+                raise InfisicalInstallBlocker(
+                    self._classification,
+                    "Infisical CLI bootstrap failed with redacted output.",
+                )
+        elif self.bootstrap_client is not None:
+            self._bootstrap_method = "admin_api_fallback"
+            bootstrap_result = self.bootstrap_client.bootstrap_instance(
+                email=self.config.admin_email,
+                password=self.config.admin_password,
+                organization=self.config.organization,
+            )
             self._status = (
                 "already_bootstrapped"
-                if "already" in output and "bootstrap" in output
+                if bootstrap_result.state is InfisicalBootstrapState.ALREADY_INITIALIZED
                 else "bootstrapped"
             )
         else:
-            self._status = "failed"
-            self._classification = "infisical_bootstrap_failed"
-            self._write_evidence("failed")
+            self._status = "blocked"
+            self._classification = "infisical_cli_missing"
+            self._write_evidence("blocked")
             raise InfisicalInstallBlocker(
                 self._classification,
-                "Infisical CLI bootstrap failed with redacted output.",
+                "Infisical CLI is missing and no admin API bootstrap fallback is configured.",
             )
         self._write_evidence(self._status)
 
@@ -164,6 +186,7 @@ class EnsureInfisicalSilentInstall:
             evidence={
                 "bootstrap_state": self._status,
                 "classification": self._classification,
+                "bootstrap_method": self._bootstrap_method,
                 "http_endpoint_responds": str(self.http_ready).lower(),
                 "service_running": str(self.service_running).lower(),
                 "setup_screen_required": str(self.setup_screen_required).lower(),
@@ -175,6 +198,7 @@ class EnsureInfisicalSilentInstall:
         redacted_config = redact_mapping(self.render_environment())
         payload = {
             "bootstrap_command": list(self.sanitized_bootstrap_command()),
+            "bootstrap_method": self._bootstrap_method,
             "classification": self._classification,
             "finished_at": now,
             "redacted_config": redacted_config,
@@ -203,6 +227,7 @@ class EnsureInfisicalSilentInstall:
                     "",
                     f"- Status: {status}",
                     f"- Classification: {self._classification or 'none'}",
+                    f"- Bootstrap method: {self._bootstrap_method}",
                     f"- Command: {' '.join(self.sanitized_bootstrap_command())}",
                     "- Secrets: redacted",
                 )

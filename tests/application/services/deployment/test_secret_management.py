@@ -84,6 +84,21 @@ class TestSecretManagement(unittest.TestCase):
             self.assertEqual("kept_existing", statuses["TSW_EXISTING_PASSWORD"])
             self.assertIn("TSW_NEW_PASSWORD", cli.values)
 
+    def test_infisical_sync_uses_api_client_even_when_local_cli_is_missing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env_file = Path(directory) / "generated.local.env"
+            cli = _FakeInfisicalCli(available=False)
+            sync = InfisicalSecretSyncStep(
+                cli=cli,
+                manifest_entries=(_entry("TSW_API_SYNC_PASSWORD"),),
+                generated_local_env=env_file,
+            )
+
+            sync.run()
+
+            self.assertEqual([("tiny-swarm-world", "local")], cli.ensured)
+            self.assertIn("TSW_API_SYNC_PASSWORD", cli.values)
+
     def test_missing_required_external_secret_blocks(self):
         sync = InfisicalSecretSyncStep(
             cli=_FakeInfisicalCli(),
@@ -152,13 +167,14 @@ def _entry(key: str) -> SecretManifestEntry:
 
 
 class _FakeInfisicalCli:
-    def __init__(self, existing: set[str] | None = None):
+    def __init__(self, existing: set[str] | None = None, available: bool = True):
         self.existing = existing or set()
+        self.available = available
         self.values: dict[str, str] = {}
         self.ensured: list[tuple[str, str]] = []
 
     def is_available(self) -> bool:
-        return True
+        return self.available
 
     def run_bootstrap(self, args: tuple[str, ...]):
         raise AssertionError("not used")

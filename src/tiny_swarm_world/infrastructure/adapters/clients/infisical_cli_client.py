@@ -14,10 +14,12 @@ from tiny_swarm_world.application.ports.clients.port_infisical_cli import (
 
 
 class InfisicalCliClient(PortInfisicalCli):
-    def __init__(self, *, base_url: str | None = None) -> None:
+    def __init__(self, *, base_url: str | None = None, session: requests.Session | None = None) -> None:
         self.base_url = (base_url or os.environ.get("TSW_INFISICAL_URL") or "http://localhost:8086").rstrip("/")
+        self.session = session or requests.Session()
         self._bootstrap_payload: dict[str, object] = {}
         self._project_ids: dict[str, str] = {}
+        self._session_token = ""
 
     def is_available(self) -> bool:
         return shutil.which("infisical") is not None
@@ -120,7 +122,7 @@ class InfisicalCliClient(PortInfisicalCli):
         raise RuntimeError("Infisical environment ensure failed with redacted output.")
 
     def _request(self, method: str, path: str, **kwargs) -> requests.Response:
-        return requests.request(
+        return self.session.request(
             method,
             f"{self.base_url}{path}",
             headers={
@@ -139,16 +141,66 @@ class InfisicalCliClient(PortInfisicalCli):
         )
         if token:
             return token
+        if self._session_token:
+            return self._session_token
         identity = self._bootstrap_payload.get("identity")
         if not isinstance(identity, dict):
-            raise RuntimeError("Infisical sync session is unavailable.")
+            return self._login_token()
         credentials = identity.get("credentials")
         if not isinstance(credentials, dict):
-            raise RuntimeError("Infisical sync session is unavailable.")
+            return self._login_token()
         token_value = credentials.get("token")
         if not isinstance(token_value, str) or not token_value.strip():
-            raise RuntimeError("Infisical sync session is unavailable.")
+            return self._login_token()
         return token_value
+
+    def _login_token(self) -> str:
+        email = os.environ.get("TSW_INFISICAL_LOGIN_EMAIL", "")
+        password = os.environ.get("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD", "")
+        if not email or not password:
+            raise RuntimeError("Infisical sync session is unavailable.")
+        response = self.session.post(
+            f"{self.base_url}/api/v3/auth/login",
+            headers={"Content-Type": "application/json"},
+            json={"email": email, "password": password},
+            timeout=30,
+        )
+        if response.status_code >= 400:
+            raise RuntimeError("Infisical sync session is unavailable.")
+        token = _access_token(response.json())
+        if not token:
+            raise RuntimeError("Infisical sync session is unavailable.")
+        self._session_token = self._organization_token(token)
+        return self._session_token
+
+    def _organization_token(self, login_token: str) -> str:
+        headers = {
+            "Authorization": f"Bearer {login_token}",
+            "Content-Type": "application/json",
+        }
+        response = self.session.get(
+            f"{self.base_url}/api/v1/organization",
+            headers=headers,
+            timeout=30,
+        )
+        if response.status_code >= 400:
+            raise RuntimeError("Infisical sync session is unavailable.")
+        organization_id = _first_organization_id(response.json())
+        if not organization_id:
+            raise RuntimeError("Infisical sync session is unavailable.")
+        response = self.session.post(
+            f"{self.base_url}/api/v3/auth/select-organization",
+            headers=headers,
+            json={"organizationId": organization_id},
+            timeout=30,
+        )
+        if response.status_code >= 400:
+            raise RuntimeError("Infisical sync session is unavailable.")
+        token = _selected_organization_token(response.json())
+        if not token:
+            raise RuntimeError("Infisical sync session is unavailable.")
+        self._session_token = token
+        return token
 
 
 def _project_id(payload: object) -> str:
@@ -209,6 +261,33 @@ def _secret_keys(payload: object) -> set[str]:
         if isinstance(key, str):
             keys.add(key)
     return keys
+
+
+def _access_token(payload: object) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    token = payload.get("accessToken")
+    return token if isinstance(token, str) else ""
+
+
+def _selected_organization_token(payload: object) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    token = payload.get("token")
+    return token if isinstance(token, str) else ""
+
+
+def _first_organization_id(payload: object) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    organizations = payload.get("organizations")
+    if not isinstance(organizations, list) or not organizations:
+        return ""
+    first = organizations[0]
+    if not isinstance(first, dict):
+        return ""
+    value = first.get("id")
+    return value if isinstance(value, str) else ""
 
 
 def _run(args: tuple[str, ...]) -> InfisicalCliResult:

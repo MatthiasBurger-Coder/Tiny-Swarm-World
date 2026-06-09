@@ -159,6 +159,9 @@ from tiny_swarm_world.infrastructure.adapters.clients.infisical_playwright_clien
 from tiny_swarm_world.infrastructure.adapters.clients.infisical_cli_client import (
     InfisicalCliClient,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.infisical_bootstrap_http_client import (
+    InfisicalBootstrapHttpClient,
+)
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
@@ -1913,6 +1916,13 @@ def _infisical_bootstrap_steps(
     return (
         EnsureInfisicalSilentInstall(
             cli=cli or InfisicalCliClient(),
+            bootstrap_client=InfisicalBootstrapHttpClient(
+                base_url=_operator_config_value(
+                    INFISICAL_URL_ENVIRONMENT,
+                    "http://localhost:8086",
+                ),
+                verify_tls=False,
+            ),
             config=InfisicalSilentInstallConfig(
                 external_url=_operator_config_value(
                     INFISICAL_URL_ENVIRONMENT,
