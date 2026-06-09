@@ -65,6 +65,31 @@ This separation lets apply workflows report apply failure and verify failure
 separately without treating generated logs or command output as validated
 runtime evidence.
 
+=== Ingress Desired State And Certificate Summaries
+
+The Traefik HTTPS ingress workflow now has provider-neutral domain contracts
+for desired HTTPS route state and existing-CA certificate summaries.
+
+`DesiredHttpsIngress` records the intended HTTPS route catalog, public ingress
+ports, HTTP-to-HTTPS redirect requirement, `exposedByDefault=false`, and the
+forbidden insecure Traefik API flag. The default service-access route catalog
+contains Jenkins, Nexus, Portainer, SonarQube, and Infisical hostnames under
+`tsw.local`; Grafana remains conditional until repository configuration
+selects it explicitly.
+
+`CertificateSummary` records only redacted certificate metadata: common name,
+SAN DNS names, issuer summary, UTC validity window, KeyUsage,
+ExtendedKeyUsage, and chain verification result. Certificate validation checks
+the desired ingress hostnames against SAN DNS names and reports only summary
+problem identifiers such as missing SANs, expired validity, incomplete usages,
+or an unverified chain.
+
+These contracts do not run OpenSSL, read certificate files, deploy Traefik,
+mutate LXC, change hostname resolution, or claim live TLS success. Adapters
+that later collect runtime certificate facts must convert external output into
+these summary models without persisting PEM payloads, private key material,
+local IP addresses, host-specific absolute paths, or raw command output.
+
 === Verify After Apply
 
 Mutating workflow continuation is fail-closed. A step that can change platform

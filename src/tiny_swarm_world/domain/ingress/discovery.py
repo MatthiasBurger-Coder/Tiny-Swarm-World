@@ -122,7 +122,11 @@ def _verification_from_mapping(value: object) -> VerificationResult:
 
 
 def _validate_discovery_field(field_name: str, value: object) -> None:
-    text = validate_observed_inventory_text(field_name, str(value))
+    validate_ingress_summary_text(field_name, str(value))
+
+
+def validate_ingress_summary_text(field_name: str, value: str) -> None:
+    text = validate_observed_inventory_text(field_name, value)
     if any(pattern.search(text) for pattern in _LOCAL_TOPOLOGY_PATTERNS):
         raise ValueError(
             f"local topology details are not allowed in ingress discovery: {field_name}"
