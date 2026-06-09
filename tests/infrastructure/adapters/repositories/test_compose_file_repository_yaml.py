@@ -289,6 +289,22 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             "${TSW_INFISICAL_AUTH_SECRET}",
             services["infisical"]["environment"]["AUTH_SECRET"],
         )
+        self.assertEqual(
+            "${TSW_INFISICAL_LOGIN_EMAIL}",
+            services["infisical"]["environment"]["INITIAL_SUPER_ADMIN_EMAIL"],
+        )
+        self.assertEqual(
+            "${TSW_INFISICAL_PASSWORD}",
+            services["infisical"]["environment"]["INITIAL_SUPER_ADMIN_PASSWORD"],
+        )
+        self.assertEqual(
+            "${TSW_INFISICAL_ADMIN_FIRST_NAME:-Admin}",
+            services["infisical"]["environment"]["INITIAL_SUPER_ADMIN_FIRST_NAME"],
+        )
+        self.assertEqual(
+            "${TSW_INFISICAL_ADMIN_LAST_NAME:-User}",
+            services["infisical"]["environment"]["INITIAL_SUPER_ADMIN_LAST_NAME"],
+        )
         self.assertNotIn("ports", services["infisical"])
         self.assertNotIn("secrets", compose_data)
         self.assertEqual(["infisical_pg_data:/var/lib/postgresql/data"], services["infisical-db"]["volumes"])

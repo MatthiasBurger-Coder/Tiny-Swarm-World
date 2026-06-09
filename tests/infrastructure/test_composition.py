@@ -753,6 +753,10 @@ class TestComposition(unittest.TestCase):
             {
                 "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
                 "TSW_INFISICAL_AUTH_SECRET": "auth-secret",
+                "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.com",
+                "TSW_INFISICAL_PASSWORD": "master-value",
+                "TSW_INFISICAL_ADMIN_FIRST_NAME": "Admin",
+                "TSW_INFISICAL_ADMIN_LAST_NAME": "User",
                 "TSW_INFISICAL_POSTGRES_PASSWORD": "pg-secret",
             },
             infisical_step.stack_environment,
