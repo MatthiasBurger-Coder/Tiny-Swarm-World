@@ -171,6 +171,15 @@ class HostPreflightProbe(PortHostPreflightProbe):
             return _http_service_available(port, ("/",), ("access-control-allow-origin: *",))
         if "swagger" in service_name:
             return _http_service_available(port, ("/",), ("swagger", "openapi"))
+        if "traefik http ingress" in service_name:
+            return _http_service_available(port, ("/",), ("traefik",))
+        if "traefik https ingress" in service_name:
+            return _http_service_available(
+                port,
+                ("/",),
+                ("traefik",),
+                scheme="https",
+            )
         if "service access" in service_name:
             return _http_service_available(port, ("/",), ("service access", "infisical"))
         if "infisical https" in service_name:

@@ -113,10 +113,11 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Managed backend: auto-detect Incus or LXD", plan)
         self.assertIn("Provider readiness: checked before platform mutation", plan)
         self.assertIn("Service profile: service-access", plan)
+        self.assertIn("Traefik Ingress: stack infra", plan)
         self.assertIn("Service Access: stack service-access", plan)
         self.assertIn("Infisical: stack infisical", plan)
-        self.assertIn("published port(s) 80", plan)
-        self.assertIn("published port(s) 8086, 443", plan)
+        self.assertIn("published port(s) 80, 443", plan)
+        self.assertNotIn("published port(s) 8086, 443", plan)
         self.assertNotIn("Target: local Linux/WSL Multipass Docker Swarm", plan)
 
     async def test_mutating_workflow_requires_live_consent_before_building_services(self):

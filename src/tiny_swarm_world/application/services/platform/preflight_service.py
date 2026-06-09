@@ -501,9 +501,9 @@ def _host_environment_remediation(host_environment: HostEnvironmentReport) -> st
 
 
 def _port_remediation(service: str) -> str:
-    if service in {"Service Access dashboard", "Infisical"}:
+    if service in {"Traefik HTTP ingress", "Traefik HTTPS ingress"}:
         return (
-            "Clear the stale localhost listener or forwarding for this service-access port, "
+            "Clear the stale localhost listener or forwarding for this Traefik ingress port, "
             "then rerun preflight. Until localhost forwarding is repaired, use the current "
             "Swarm node IP with the same port."
         )
@@ -511,8 +511,10 @@ def _port_remediation(service: str) -> str:
 
 
 def _planned_replaced_service(port: int, service: str) -> str | None:
-    if port == 80 and service == "Service Access dashboard":
+    if port == 80 and service == "Traefik HTTP ingress":
         return "Swagger/NGINX"
+    if port == 443 and service == "Traefik HTTPS ingress":
+        return "Infisical HTTPS"
     if port == 8084 and service == "Swagger/NGINX":
         return "Swagger API"
     return None

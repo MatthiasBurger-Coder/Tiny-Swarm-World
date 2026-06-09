@@ -125,6 +125,15 @@ evidence. Live route success, LXC public port convergence, hostname
 resolution, and browser-visible HTTPS behavior remain pending the later
 workflow slices.
 
+For the service-access setup profile, the setup manifest and LXC exposure
+workflow now treat Traefik ports `80` and `443` as the complete public manager
+profile proxy set. Direct service ports for Portainer, Nexus, Jenkins,
+RabbitMQ, SonarQube, Swagger/NGINX, service-access NGINX, and Infisical remain
+internal stack concerns or rollback/diagnostic evidence, not desired public LXC
+proxy devices. Stale direct `tsw-proxy-*` devices remain removable only through
+the explicit proxy-drift repair workflow after equivalent manager-profile
+devices are verified.
+
 == Autonomous Setup Deployment Contract
 
 The canonical `setup run` command is the workflow-level setup orchestrator for

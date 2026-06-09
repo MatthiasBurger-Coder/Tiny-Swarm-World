@@ -300,7 +300,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("PORT-9000", failed_by_id)
         self.assertIn("occupied", failed_by_id["PORT-9000"].message)
 
-    async def test_service_access_profile_blocks_unexpected_local_dashboard_listener(self):
+    async def test_service_access_profile_blocks_unexpected_local_http_ingress_listener(self):
         configuration = default_preflight_configuration(
             service_profile=ServiceStackProfile.SERVICE_ACCESS
         )
@@ -317,7 +317,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(result.passed)
         self.assertIn("PORT-80", failed_by_id)
-        self.assertIn("Service Access dashboard", failed_by_id["PORT-80"].message)
+        self.assertIn("Traefik HTTP ingress", failed_by_id["PORT-80"].message)
         self.assertIn("stale localhost listener", failed_by_id["PORT-80"].remediation)
 
     async def test_service_access_profile_allows_swagger_to_be_reassigned_from_localhost_root(self):
@@ -340,6 +340,27 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.passed)
         self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
         self.assertEqual("Swagger/NGINX", port_check.evidence["current_service"])
+
+    async def test_service_access_profile_allows_infisical_https_to_be_reassigned(self):
+        configuration = default_preflight_configuration(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS
+        )
+
+        result = await PreflightService(
+            _fake_probe(
+                port_availability={443: False},
+                expected_service_ports={443: False},
+                service_matches={(443, "Infisical HTTPS"): True},
+            ),
+            configuration,
+        ).run()
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        port_check = checks_by_id["PORT-443"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
+        self.assertEqual("Infisical HTTPS", port_check.evidence["current_service"])
 
     async def test_swagger_port_allows_old_swagger_api_listener_to_be_reassigned(self):
         result = await PreflightService(

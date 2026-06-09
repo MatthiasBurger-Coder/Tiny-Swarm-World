@@ -170,35 +170,22 @@ class TestPreflightResult(unittest.TestCase):
 
         self.assertIn("Service Access", manifest.service_names)
         self.assertIn("Infisical", manifest.service_names)
-        self.assertIn(
-            (80, "Service Access dashboard"),
+        self.assertEqual(
+            (
+                (80, "Traefik HTTP ingress"),
+                (443, "Traefik HTTPS ingress"),
+            ),
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
-        self.assertIn(
-            (8086, "Infisical"),
-            tuple((port.port, port.service) for port in manifest.required_ports),
-        )
-        self.assertIn(
-            (443, "Infisical HTTPS"),
-            tuple((port.port, port.service) for port in manifest.required_ports),
-        )
-        self.assertIn(
-            80,
-            tuple(port.port for port in configuration.required_ports),
-        )
-        self.assertIn(
-            8086,
-            tuple(port.port for port in configuration.required_ports),
-        )
-        self.assertIn(
-            443,
+        self.assertEqual(
+            (80, 443),
             tuple(port.port for port in configuration.required_ports),
         )
         self.assertTrue(
             next(
                 port
                 for port in manifest.required_ports
-                if port.service == "Service Access dashboard"
+                if port.service == "Traefik HTTP ingress"
             ).host_preflight_required
         )
         self.assertEqual(
@@ -211,6 +198,11 @@ class TestPreflightResult(unittest.TestCase):
             ),
             tuple(secret.name for secret in manifest.required_secrets[-5:]),
         )
+        traefik_payload = next(
+            service
+            for service in manifest.to_dict()["services"]
+            if service["name"] == "Traefik Ingress"
+        )
         service_access_payload = next(
             service
             for service in manifest.to_dict()["services"]
@@ -221,7 +213,16 @@ class TestPreflightResult(unittest.TestCase):
             for service in manifest.to_dict()["services"]
             if service["name"] == "Infisical"
         )
+        self.assertEqual(
+            [
+                {"host_preflight_required": True, "port": 80, "service": "Traefik HTTP ingress"},
+                {"host_preflight_required": True, "port": 443, "service": "Traefik HTTPS ingress"},
+            ],
+            traefik_payload["ports"],
+        )
+        self.assertEqual([], service_access_payload["ports"])
         self.assertEqual([], service_access_payload["secrets"])
+        self.assertEqual([], infisical_payload["ports"])
         self.assertEqual(
             [
                 "TSW_INFISICAL_LOGIN_EMAIL",

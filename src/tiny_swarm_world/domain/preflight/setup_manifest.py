@@ -103,15 +103,20 @@ def default_setup_manifest(
     service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
 ) -> SetupManifest:
     selected_service_profile = ServiceStackProfile(service_profile)
+    centralized_ingress = selected_service_profile is ServiceStackProfile.SERVICE_ACCESS
     services = [
         SetupServiceRequirement(
             name="Portainer",
-            ports=(SetupPortRequirement(9000, "Portainer"),),
+            ports=(
+                ()
+                if centralized_ingress
+                else (SetupPortRequirement(9000, "Portainer"),)
+            ),
             secrets=(SetupSecretRequirement("TSW_PORTAINER_ADMIN_PASSWORD", "Portainer"),),
         ),
         SetupServiceRequirement(
             name="Nexus",
-            ports=(
+            ports=() if centralized_ingress else (
                 SetupPortRequirement(8081, "Nexus"),
                 SetupPortRequirement(5000, "Nexus Docker registry"),
             ),
@@ -119,12 +124,16 @@ def default_setup_manifest(
         ),
         SetupServiceRequirement(
             name="Jenkins",
-            ports=(SetupPortRequirement(8080, "Jenkins"),),
+            ports=(
+                ()
+                if centralized_ingress
+                else (SetupPortRequirement(8080, "Jenkins"),)
+            ),
             secrets=(SetupSecretRequirement("TSW_JENKINS_ADMIN_PASSWORD", "Jenkins"),),
         ),
         SetupServiceRequirement(
             name="RabbitMQ",
-            ports=(
+            ports=() if centralized_ingress else (
                 SetupPortRequirement(5672, "RabbitMQ AMQP"),
                 SetupPortRequirement(15672, "RabbitMQ management"),
             ),
@@ -132,7 +141,11 @@ def default_setup_manifest(
         ),
         SetupServiceRequirement(
             name="SonarQube",
-            ports=(SetupPortRequirement(9001, "SonarQube"),),
+            ports=(
+                ()
+                if centralized_ingress
+                else (SetupPortRequirement(9001, "SonarQube"),)
+            ),
             secrets=(
                 SetupSecretRequirement("TSW_SONARQUBE_ADMIN_PASSWORD", "SonarQube"),
                 SetupSecretRequirement("TSW_POSTGRES_PASSWORD", "SonarQube PostgreSQL"),
@@ -140,25 +153,29 @@ def default_setup_manifest(
         ),
         SetupServiceRequirement(
             name="Swagger/NGINX",
-            ports=(SetupPortRequirement(8084, "Swagger/NGINX"),),
+            ports=(
+                ()
+                if centralized_ingress
+                else (SetupPortRequirement(8084, "Swagger/NGINX"),)
+            ),
         ),
     ]
     if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS:
         services.append(
             SetupServiceRequirement(
-                name="Service Access",
+                name="Traefik Ingress",
                 ports=(
-                    SetupPortRequirement(80, "Service Access dashboard"),
+                    SetupPortRequirement(80, "Traefik HTTP ingress"),
+                    SetupPortRequirement(443, "Traefik HTTPS ingress"),
                 ),
             )
         )
         services.append(
+            SetupServiceRequirement(name="Service Access")
+        )
+        services.append(
             SetupServiceRequirement(
                 name="Infisical",
-                ports=(
-                    SetupPortRequirement(8086, "Infisical"),
-                    SetupPortRequirement(443, "Infisical HTTPS"),
-                ),
                 secrets=(
                     SetupSecretRequirement("TSW_INFISICAL_LOGIN_EMAIL", "Infisical admin login"),
                     SetupSecretRequirement("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD", "Infisical admin login"),

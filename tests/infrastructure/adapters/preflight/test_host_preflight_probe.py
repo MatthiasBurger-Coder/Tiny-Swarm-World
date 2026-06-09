@@ -464,6 +464,41 @@ class TestHostPreflightProbe(unittest.TestCase):
         request = urlopen.call_args.args[0]
         self.assertEqual("https://127.0.0.1:443/", request.full_url)
 
+    def test_port_matches_expected_service_recognizes_traefik_http_ingress(self):
+        probe = HostPreflightProbe(Path.cwd())
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.status = 404
+        response.headers = {"Server": "Traefik"}
+        response.read.return_value = b"404 page not found"
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",
+            return_value=response,
+        ):
+            self.assertTrue(
+                probe.port_matches_expected_service(80, "Traefik HTTP ingress")
+            )
+
+    def test_port_matches_expected_service_recognizes_traefik_https_ingress(self):
+        probe = HostPreflightProbe(Path.cwd())
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.status = 404
+        response.headers = {"Server": "Traefik"}
+        response.read.return_value = b"404 page not found"
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",
+            return_value=response,
+        ) as urlopen:
+            self.assertTrue(
+                probe.port_matches_expected_service(443, "Traefik HTTPS ingress")
+            )
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual("https://127.0.0.1:443/", request.full_url)
+
     def test_port_matches_expected_service_rejects_empty_nginx_404_for_service_access(self):
         probe = HostPreflightProbe(Path.cwd())
         error = urllib.error.HTTPError(
