@@ -16,8 +16,16 @@ services:
       - infisical_uploads:/app/infisical/uploads
     networks:
       - service_access_link
+      - traefik_ingress
     deploy:
       replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=traefik_ingress
+        - traefik.http.routers.infisical.rule=Host(`infisical.tsw.local`)
+        - traefik.http.routers.infisical.entrypoints=websecure
+        - traefik.http.routers.infisical.tls=true
+        - traefik.http.services.infisical.loadbalancer.server.port=8080
       placement:
         constraints:
           - node.role == manager
@@ -59,4 +67,7 @@ volumes:
 networks:
   service_access_link:
     name: service_access_link
+    external: true
+  traefik_ingress:
+    name: traefik_ingress
     external: true

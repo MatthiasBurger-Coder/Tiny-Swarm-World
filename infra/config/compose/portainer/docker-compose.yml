@@ -5,6 +5,8 @@ services:
     volumes:
       - portainer_data:/data
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - traefik_ingress
     ports:
       - target: 9000
         published: 9000
@@ -13,6 +15,13 @@ services:
     deploy:
       mode: replicated # Nur den Portainer-Service als Replikat bereitstellen
       replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=traefik_ingress
+        - traefik.http.routers.portainer.rule=Host(`portainer.tsw.local`)
+        - traefik.http.routers.portainer.entrypoints=websecure
+        - traefik.http.routers.portainer.tls=true
+        - traefik.http.services.portainer.loadbalancer.server.port=9000
       placement:
         constraints:
           - node.role == manager
@@ -30,3 +39,8 @@ services:
           - node.platform.os == linux
 volumes:
   portainer_data:
+
+networks:
+  traefik_ingress:
+    name: traefik_ingress
+    external: true

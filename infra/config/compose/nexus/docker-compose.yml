@@ -3,6 +3,8 @@ services:
     image: sonatype/nexus3:3.75.1
     volumes:
       - nexus-data:/nexus-data
+    networks:
+      - traefik_ingress
     ports:
       - target: 8081
         published: 8081
@@ -14,8 +16,20 @@ services:
         mode: host
     deploy:
       replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=traefik_ingress
+        - traefik.http.routers.nexus.rule=Host(`nexus.tsw.local`)
+        - traefik.http.routers.nexus.entrypoints=websecure
+        - traefik.http.routers.nexus.tls=true
+        - traefik.http.services.nexus.loadbalancer.server.port=8081
       placement:
         constraints:
           - node.role == manager
 volumes:
   nexus-data:
+
+networks:
+  traefik_ingress:
+    name: traefik_ingress
+    external: true

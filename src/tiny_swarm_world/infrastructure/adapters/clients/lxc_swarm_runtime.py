@@ -180,6 +180,14 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
                 )
 
     def _transfer_stack_assets(self, stack_name: str, remote_dir: str) -> None:
+        if stack_name == "traefik":
+            tls_config = infra_root() / "compose" / "traefik" / "dynamic" / "tls.yml"
+            script = (
+                f"set -e; mkdir -p {_quote_remote_path(remote_dir + '/dynamic')}; "
+                f"cat > {_quote_remote_path(remote_dir + '/dynamic/tls.yml')}"
+            )
+            self._run_manager_shell(script, input_text=tls_config.read_text(encoding="utf-8"))
+            return
         if stack_name != "swagger":
             return
         openapi_file = infra_root() / "compose" / "swagger" / "swagger" / "openapi.json"

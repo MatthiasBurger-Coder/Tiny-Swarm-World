@@ -330,6 +330,102 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             compose_data["networks"]["service_access_link"],
         )
 
+    def test_committed_traefik_compose_defines_secure_swarm_ingress(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_path = repository_root / "infra" / "config" / "compose" / "traefik" / "docker-compose.yml"
+        compose_content = compose_path.read_text(encoding="utf-8")
+        compose_data = YAML(typ="safe").load(compose_content)
+        traefik = compose_data["services"]["traefik"]
+        command = traefik["command"]
+
+        self.assertEqual("traefik", ComposeFileRepositoryYaml().get_compose_of("traefik").name)
+        self.assertEqual("${TSW_TRAEFIK_IMAGE:-traefik:v3.7.4}", traefik["image"])
+        self.assertIn("--entrypoints.web.address=:80", command)
+        self.assertIn("--entrypoints.websecure.address=:443", command)
+        self.assertIn("--entrypoints.web.http.redirections.entrypoint.to=websecure", command)
+        self.assertIn("--providers.swarm=true", command)
+        self.assertIn("--providers.swarm.exposedByDefault=false", command)
+        self.assertIn("--providers.swarm.network=traefik_ingress", command)
+        self.assertIn("--providers.file.filename=/etc/traefik/dynamic/tls.yml", command)
+        self.assertNotIn("--api.insecure=true", compose_content)
+        self.assertEqual(
+            [
+                {"target": 80, "published": 80, "protocol": "tcp", "mode": "host"},
+                {"target": 443, "published": 443, "protocol": "tcp", "mode": "host"},
+            ],
+            traefik["ports"],
+        )
+        self.assertEqual(
+            {"name": "traefik_ingress", "external": True},
+            compose_data["networks"]["traefik_ingress"],
+        )
+        self.assertEqual(
+            "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/traefik/dynamic/tls.yml",
+            compose_data["configs"]["traefik_tls_dynamic_config"]["file"],
+        )
+        self.assertEqual({"external": True}, compose_data["secrets"]["tsw_traefik_tls_cert"])
+        self.assertEqual({"external": True}, compose_data["secrets"]["tsw_traefik_tls_key"])
+
+    def test_committed_traefik_dynamic_tls_config_references_secret_mounts_only(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        tls_path = repository_root / "infra" / "compose" / "traefik" / "dynamic" / "tls.yml"
+        tls_content = tls_path.read_text(encoding="utf-8")
+        tls_data = YAML(typ="safe").load(tls_content)
+
+        certificate = tls_data["tls"]["certificates"][0]
+        self.assertEqual("/run/secrets/tsw_traefik_tls_cert", certificate["certFile"])
+        self.assertEqual("/run/secrets/tsw_traefik_tls_key", certificate["keyFile"])
+        self.assertNotIn("BEGIN", tls_content)
+        self.assertNotIn("PRIVATE KEY", tls_content)
+
+    def test_committed_service_stacks_define_traefik_swarm_route_labels(self):
+        expected = {
+            "infisical": ("infisical", "infisical.tsw.local", "8080"),
+            "jenkins": ("jenkins", "jenkins.tsw.local", "8080"),
+            "nexus": ("nexus", "nexus.tsw.local", "8081"),
+            "portainer": ("portainer", "portainer.tsw.local", "9000"),
+            "sonarqube": ("sonarqube", "sonarqube.tsw.local", "9000"),
+        }
+        repository_root = Path(__file__).resolve().parents[4]
+
+        for stack_name, (service_name, hostname, upstream_port) in expected.items():
+            with self.subTest(stack_name=stack_name):
+                compose_path = (
+                    repository_root
+                    / "infra"
+                    / "config"
+                    / "compose"
+                    / stack_name
+                    / "docker-compose.yml"
+                )
+                compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
+                service = compose_data["services"][service_name]
+                labels = set(service["deploy"]["labels"])
+
+                self.assertIn("traefik_ingress", service["networks"])
+                self.assertEqual(
+                    {"name": "traefik_ingress", "external": True},
+                    compose_data["networks"]["traefik_ingress"],
+                )
+                self.assertIn("traefik.enable=true", labels)
+                self.assertIn("traefik.swarm.network=traefik_ingress", labels)
+                self.assertIn(
+                    f"traefik.http.routers.{service_name}.rule=Host(`{hostname}`)",
+                    labels,
+                )
+                self.assertIn(
+                    f"traefik.http.routers.{service_name}.entrypoints=websecure",
+                    labels,
+                )
+                self.assertIn(f"traefik.http.routers.{service_name}.tls=true", labels)
+                self.assertIn(
+                    (
+                        f"traefik.http.services.{service_name}"
+                        f".loadbalancer.server.port={upstream_port}"
+                    ),
+                    labels,
+                )
+
     def test_service_access_dashboard_and_nginx_are_image_packaged(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_data = YAML(typ="safe").load(

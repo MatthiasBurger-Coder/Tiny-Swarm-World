@@ -4,6 +4,8 @@ services:
     user: root
     volumes:
       - jenkins_home:/var/lib/jenkins
+    networks:
+      - traefik_ingress
     ports:
       - target: 8080
         published: 8080
@@ -15,8 +17,20 @@ services:
         mode: host
     deploy:
       replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=traefik_ingress
+        - traefik.http.routers.jenkins.rule=Host(`jenkins.tsw.local`)
+        - traefik.http.routers.jenkins.entrypoints=websecure
+        - traefik.http.routers.jenkins.tls=true
+        - traefik.http.services.jenkins.loadbalancer.server.port=8080
       placement:
         constraints:
           - node.role == manager
 volumes:
   jenkins_home:
+
+networks:
+  traefik_ingress:
+    name: traefik_ingress
+    external: true

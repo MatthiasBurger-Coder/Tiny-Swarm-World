@@ -60,6 +60,22 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertIn("mkdir -p /custom/stacks/swagger/nginx", scripts[1])
         self.assertIn("cat > /custom/stacks/swagger/nginx/default.conf", scripts[1])
 
+    def test_prepare_stack_assets_transfers_traefik_dynamic_tls_config(self):
+        runtime = LxcSwarmRuntime(
+            backend=ManagedLxcBackend.LXD,
+            remote_stack_root="/custom/stacks",
+        )
+
+        with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+            runtime.prepare_stack_assets("traefik")
+
+        script = run_manager_shell.call_args.args[0]
+        input_text = run_manager_shell.call_args.kwargs["input_text"]
+        self.assertIn("mkdir -p /custom/stacks/traefik/dynamic", script)
+        self.assertIn("cat > /custom/stacks/traefik/dynamic/tls.yml", script)
+        self.assertIn("/run/secrets/tsw_traefik_tls_cert", input_text)
+        self.assertIn("/run/secrets/tsw_traefik_tls_key", input_text)
+
     def test_deploy_stack_reconciles_existing_published_ports_to_ingress_mode(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
         compose = """

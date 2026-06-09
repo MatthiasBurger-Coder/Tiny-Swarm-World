@@ -111,6 +111,20 @@ rollback point until implementation slices verify Traefik routing, LXC public
 port reconciliation, certificate validation and browser-visible HTTPS
 behavior.
 
+The repository now includes static Traefik Swarm ingress configuration under
+`infra/config/compose/traefik/docker-compose.yml` plus the dynamic TLS summary
+configuration under `infra/compose/traefik/dynamic/tls.yml`. The Traefik stack
+uses Swarm discovery with `exposedByDefault=false`, `web` on `:80`,
+`websecure` on `:443`, HTTP-to-HTTPS redirect, external certificate secrets,
+and no insecure API flag.
+
+The Jenkins, Nexus, Portainer, SonarQube, and Infisical stack definitions now
+carry Traefik Swarm route labels and join the external `traefik_ingress`
+network. This is committed desired runtime configuration, not live deployment
+evidence. Live route success, LXC public port convergence, hostname
+resolution, and browser-visible HTTPS behavior remain pending the later
+workflow slices.
+
 == Autonomous Setup Deployment Contract
 
 The canonical `setup run` command is the workflow-level setup orchestrator for
