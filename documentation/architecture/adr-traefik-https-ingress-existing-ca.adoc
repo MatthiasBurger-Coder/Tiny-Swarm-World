@@ -1,0 +1,125 @@
+= ADR: Traefik HTTPS Ingress With Existing CA
+
+Status: Accepted as migration direction; implementation pending workflow execution
+
+Date: 2026-06-09
+
+== Implementation Status
+
+This ADR accepts Traefik HTTPS ingress with an operator-provided existing CA as
+the migration direction for the active workflow
+`traefik-https-ingress-existing-ca-20260609`.
+
+At the time this ADR is created, Traefik routing, certificate validation,
+Swarm label migration, LXC proxy reconciliation, hostname resolution, and live
+greenpath verification are not yet implemented by this ADR alone. The active
+workflow must implement and verify those changes in ordered slices before
+documentation may claim live success.
+
+== Context
+
+Tiny Swarm World is a Linux/WSL-only Python automation project for local
+Docker Swarm infrastructure on the LXC-native provider path. The current
+service-access baseline uses a service-access NGINX stack for central local
+HTTP routing and keeps TLS automation and Traefik deferred.
+
+The requested migration changes routing ownership and TLS behavior:
+
+* Traefik becomes the planned central ingress component.
+* HTTP should redirect to HTTPS.
+* HTTPS should use certificate material issued by an existing operator CA.
+* LXC public exposure should converge on ports `80` and `443`.
+* Docker Swarm service routing should be represented through explicit Traefik
+  configuration or labels.
+
+This touches deployment topology, credential and certificate handling,
+observability evidence, rollback, and live host mutation safety. It therefore
+requires an architecture decision before implementation work.
+
+== Decision
+
+Tiny Swarm World accepts Traefik as the target centralized local HTTPS ingress
+for the active migration workflow, subject to these rules:
+
+* The migration remains Docker Swarm-first and LXC-native.
+* Traefik is a Deployment responsibility, not a new product microservice and
+  not a browser frontend project.
+* The service-access NGINX routing baseline may be replaced, bypassed, or
+  reduced only by an implementation slice that has tests and rollback notes.
+* Public LXC exposure for the ingress path is limited to ports `80` and `443`.
+* Traefik must define `web` on `:80` and `websecure` on `:443`.
+* HTTP traffic must redirect to HTTPS.
+* `exposedByDefault=false` is required.
+* `--api.insecure=true` is forbidden.
+* Existing CA material must be operator-provided through ignored local
+  configuration, Docker/Swarm secrets, or approved secret-management inputs.
+* CA private keys, certificate private keys, raw PEM payloads, credential
+  values, local resolver files, local IP addresses, and host-specific absolute
+  paths must not be committed or persisted in evidence.
+* Certificate validation must record summary fields only: CN, SAN DNS names,
+  issuer, validity, KeyUsage, ExtendedKeyUsage, and chain verification result.
+* Hostname resolution may use DNS or hosts fallback, but any host mutation
+  requires explicit operator consent and rollback.
+* Live verification remains opt-in and must write only redacted evidence under
+  ignored `.tiny-swarm-world/evidence/**` paths.
+
+== Rejected Alternatives
+
+=== Keep Service Access NGINX As The Only Router
+
+Rejected for this workflow because the requested target is centralized HTTPS
+ingress through Traefik. The current NGINX baseline remains the rollback and
+comparison point until migration slices verify Traefik.
+
+=== Enable Traefik Insecure Dashboard
+
+Rejected. `--api.insecure=true` would create an unnecessary administrative
+exposure and is explicitly forbidden by the workflow.
+
+=== Generate Or Commit CA Material
+
+Rejected. CA and private key material are operator-owned secrets and must not
+be generated silently or committed to the repository.
+
+=== ACME Or Public Internet Exposure
+
+Rejected for this workflow. The accepted scope is local HTTPS ingress using an
+existing CA.
+
+== Consequences
+
+The active workflow may add Traefik configuration, routing labels, certificate
+validation, hostname verification, LXC exposure reconciliation, and live
+browser/TLS checks as separate guarded slices.
+
+Implementation must preserve hexagonal architecture:
+
+* domain may model ingress desired state, certificate summaries, route
+  expectations, and redacted verification results;
+* application services may orchestrate ports and domain objects;
+* infrastructure owns Docker Swarm, LXC, OpenSSL, DNS/hosts, HTTP/TLS, YAML,
+  and evidence file handling.
+
+Default quality gates must remain static or mocked. They must not deploy
+Traefik, mutate LXC, change resolver state, initialize Docker Swarm, or run
+live browser/TLS checks unless explicitly enabled by workflow execution.
+
+Documentation must distinguish accepted migration direction, implemented
+repository behavior, and verified live behavior.
+
+== Risks And Follow-Up
+
+Traefik migration can create partial route drift if labels/configuration and
+service readiness are not reconciled atomically. LXC proxy changes can break
+local access if rollback is missing. Hostname fallback can mutate host state.
+Certificate validation can leak path or PEM details if evidence is not
+redacted.
+
+The active workflow must provide:
+
+* route and certificate desired-state tests;
+* forbidden-config tests for insecure Traefik settings;
+* LXC port reconciliation tests;
+* opt-in live browser/TLS evidence;
+* a final report with verified facts, blockers, rollback references, and
+  residual risks.
