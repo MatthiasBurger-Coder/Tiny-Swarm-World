@@ -66,6 +66,26 @@ class TestIngressDiscoveryModels(unittest.TestCase):
                         summary=unsafe_value,
                     )
 
+    def test_finding_rejects_local_topology_values(self):
+        unsafe_values = (
+            "manager at 127.0.0.1",
+            "manager at 10.0.3.2",
+            "manager at 172.16.0.4",
+            "manager at 192.168.1.10",
+            "certificate at /home/operator/certs/ingress.crt",
+            "socket at /var/run/docker.sock",
+            "certificate at C:\\Users\\operator\\ingress.crt",
+        )
+
+        for unsafe_value in unsafe_values:
+            with self.subTest(unsafe_value=unsafe_value):
+                with self.assertRaises(ValueError):
+                    IngressDiscoveryFinding(
+                        category=IngressDiscoveryCategory.NETWORK,
+                        name="topology",
+                        summary=unsafe_value,
+                    )
+
     def test_snapshot_rejects_unknown_schema_version(self):
         with self.assertRaises(ValueError):
             IngressDiscoverySnapshot(schema_version="2")

@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 
 from tiny_swarm_world.domain.inventory.safe_text import validate_observed_inventory_text
 from tiny_swarm_world.domain.inventory.verification import VerificationResult
+
+_LOCAL_TOPOLOGY_PATTERNS = (
+    re.compile(r"\b(?:127|10)\.(?:\d{1,3}\.){2}\d{1,3}\b"),
+    re.compile(r"\b172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}\b"),
+    re.compile(r"\b192\.168\.\d{1,3}\.\d{1,3}\b"),
+    re.compile(r"(^|[\s=:])(?:/home/|/mnt/|/root/|/tmp/|/var/|[A-Za-z]:[\\/])"),
+)
 
 
 class IngressDiscoveryCategory(str, Enum):
@@ -114,7 +122,11 @@ def _verification_from_mapping(value: object) -> VerificationResult:
 
 
 def _validate_discovery_field(field_name: str, value: object) -> None:
-    validate_observed_inventory_text(field_name, str(value))
+    text = validate_observed_inventory_text(field_name, str(value))
+    if any(pattern.search(text) for pattern in _LOCAL_TOPOLOGY_PATTERNS):
+        raise ValueError(
+            f"local topology details are not allowed in ingress discovery: {field_name}"
+        )
 
 
 def _object_sequence(value: object) -> tuple[object, ...]:
