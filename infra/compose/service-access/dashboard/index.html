@@ -189,78 +189,78 @@
     <header>
       <div>
         <h1>Service Access</h1>
-        <p>Verwaltungstabelle fuer lokale Tiny Swarm World Services und Infisical-Secrets.</p>
+        <p>Management table for local Tiny Swarm World services and Infisical secret entries.</p>
       </div>
-      <a class="vault-link" href="/infisical" rel="noreferrer">Infisical oeffnen</a>
+      <a class="vault-link" href="/infisical" target="_blank" rel="noopener noreferrer">Open Infisical</a>
     </header>
 
     <div class="toolbar" aria-label="Access summary">
-      <span class="chip">7 Services</span>
-      <span class="chip">Passwoerter ueber Infisical sichtbar</span>
-      <span class="chip">Lokales Swarm Setup</span>
+      <span class="chip">7 services</span>
+      <span class="chip">Passwords are visible through Infisical</span>
+      <span class="chip">Local Swarm setup</span>
     </div>
 
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th scope="col">Server</th>
+            <th scope="col">Service</th>
             <th scope="col">URL</th>
-            <th scope="col">user</th>
-            <th scope="col">pwd</th>
+            <th scope="col">User</th>
+            <th scope="col">Password</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <th scope="row">jenkins</th>
-            <td><a href="/jenkins" rel="noreferrer">http://localhost/jenkins</a></td>
+            <td><a href="/jenkins" target="_blank" rel="noopener noreferrer">http://localhost/jenkins</a></td>
             <td><code>admin</code></td>
-            <td><span class="pwd"><a href="/infisical" rel="noreferrer"><code>platform/jenkins</code></a><small>Secret in Infisical anzeigen</small></span></td>
+            <td><span class="pwd"><a href="/infisical" target="_blank" rel="noopener noreferrer"><code>platform/jenkins</code></a><small>View secret in Infisical</small></span></td>
           </tr>
           <tr>
             <th scope="row">nexus</th>
-            <td><a href="/nexus" rel="noreferrer">http://localhost/nexus</a></td>
+            <td><a href="/nexus" target="_blank" rel="noopener noreferrer">http://localhost/nexus</a></td>
             <td><code>admin</code></td>
-            <td><span class="pwd"><a href="/infisical" rel="noreferrer"><code>platform/nexus</code></a><small>Secret in Infisical anzeigen</small></span></td>
+            <td><span class="pwd"><a href="/infisical" target="_blank" rel="noopener noreferrer"><code>platform/nexus</code></a><small>View secret in Infisical</small></span></td>
           </tr>
           <tr>
             <th scope="row">portainer</th>
-            <td><a href="/portainer" rel="noreferrer">http://localhost/portainer</a></td>
+            <td><a href="/portainer" target="_blank" rel="noopener noreferrer">http://localhost/portainer</a></td>
             <td><code>admin</code></td>
-            <td><span class="pwd"><a href="/infisical" rel="noreferrer"><code>platform/portainer</code></a><small>Secret in Infisical anzeigen</small></span></td>
+            <td><span class="pwd"><a href="/infisical" target="_blank" rel="noopener noreferrer"><code>platform/portainer</code></a><small>View secret in Infisical</small></span></td>
           </tr>
           <tr>
             <th scope="row">rabbitmq</th>
-            <td><a href="/rabbitmq" rel="noreferrer">http://localhost/rabbitmq</a></td>
+            <td><a href="/rabbitmq" target="_blank" rel="noopener noreferrer">http://localhost/rabbitmq</a></td>
             <td><code>guest</code></td>
-            <td><span class="pwd"><a href="/infisical" rel="noreferrer"><code>platform/rabbitmq</code></a><small>Secret in Infisical anzeigen</small></span></td>
+            <td><span class="pwd"><a href="/infisical" target="_blank" rel="noopener noreferrer"><code>platform/rabbitmq</code></a><small>View secret in Infisical</small></span></td>
           </tr>
           <tr>
             <th scope="row">service-access</th>
-            <td><a href="/" rel="noreferrer">http://localhost</a></td>
+            <td><a href="/" target="_blank" rel="noopener noreferrer">http://localhost</a></td>
             <td><code>none</code></td>
-            <td><span class="pwd"><code>not required</code><small>Dashboard selbst hat keinen Login</small></span></td>
+            <td><span class="pwd"><code>not required</code><small>Dashboard does not require a login</small></span></td>
           </tr>
           <tr>
             <th scope="row">sonarqube</th>
-            <td><a href="/sonarqube" rel="noreferrer">http://localhost/sonarqube</a></td>
+            <td><a href="/sonarqube" target="_blank" rel="noopener noreferrer">http://localhost/sonarqube</a></td>
             <td><code>admin</code></td>
-            <td><span class="pwd"><a href="/infisical" rel="noreferrer"><code>platform/sonarqube</code></a><small>Secret in Infisical anzeigen</small></span></td>
+            <td><span class="pwd"><a href="/infisical" target="_blank" rel="noopener noreferrer"><code>platform/sonarqube</code></a><small>View secret in Infisical</small></span></td>
           </tr>
           <tr>
             <th scope="row">swagger</th>
-            <td><a href="/swagger" rel="noreferrer">http://localhost/swagger</a></td>
+            <td><a href="/swagger" target="_blank" rel="noopener noreferrer">http://localhost/swagger</a></td>
             <td><code>none</code></td>
-            <td><span class="pwd"><code>not required</code><small>Swagger/NGINX hat keinen Login</small></span></td>
+            <td><span class="pwd"><code>not required</code><small>Swagger/NGINX does not require a login</small></span></td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <p class="note">
-      Diese Seite speichert keine Klartext-Passwoerter. Die Spalte <strong>pwd</strong>
-      zeigt den Infisical-Eintrag oder markiert Services ohne Login. Passwortwerte
-      werden in Infisical sichtbar gemacht und dort kopiert.
+      This page does not store plaintext passwords. The <strong>Password</strong>
+      column shows the Infisical entry or marks services that do not require a login.
+      Password values are only viewed and copied in Infisical.
     </p>
   </main>
 </body>

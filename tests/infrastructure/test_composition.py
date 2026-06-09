@@ -1160,21 +1160,56 @@ class TestComposition(unittest.TestCase):
         with patch.dict(
             os.environ,
             {"TSW_LXC_DOCKER_REGISTRY_MIRROR": "http://10.0.3.1:5001"},
+            clear=True,
         ):
-            mirror = composition._lxc_docker_registry_mirror_configuration()
+            with patch(
+                "tiny_swarm_world.infrastructure.composition._auto_detect_nexus_cache_registry_mirror",
+                return_value="http://10.0.3.99:5001",
+            ) as auto_detect:
+                mirror = composition._lxc_docker_registry_mirror_configuration()
 
         self.assertIsNotNone(mirror)
         assert mirror is not None
         self.assertEqual("http://10.0.3.1:5001", mirror.mirror_url)
         self.assertEqual("10.0.3.1:5001", mirror.registry_authority)
+        auto_detect.assert_not_called()
 
     def test_lxc_docker_registry_mirror_rejects_localhost_operator_value(self):
         with patch.dict(
             os.environ,
             {"TSW_LXC_DOCKER_REGISTRY_MIRROR": "http://127.0.0.1:5001"},
+            clear=True,
         ):
             with self.assertRaises(ValueError):
                 composition._lxc_docker_registry_mirror_configuration()
+
+    def test_lxc_docker_registry_mirror_auto_detects_local_nexus_cache(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with patch(
+                "tiny_swarm_world.infrastructure.composition._local_docker_container_running",
+                return_value=True,
+            ) as container_running:
+                with patch(
+                    "tiny_swarm_world.infrastructure.composition._lxc_reachable_host_ip",
+                    return_value="10.0.3.1",
+                ) as host_ip:
+                    mirror = composition._lxc_docker_registry_mirror_configuration()
+
+        self.assertIsNotNone(mirror)
+        assert mirror is not None
+        self.assertEqual("http://10.0.3.1:5001", mirror.mirror_url)
+        container_running.assert_called_once_with("tiny-swarm-nexus-cache")
+        host_ip.assert_called_once()
+
+    def test_lxc_docker_registry_mirror_returns_none_without_local_nexus_cache(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with patch(
+                "tiny_swarm_world.infrastructure.composition._local_docker_container_running",
+                return_value=False,
+            ):
+                mirror = composition._lxc_docker_registry_mirror_configuration()
+
+        self.assertIsNone(mirror)
 
     def test_build_setup_services_wires_live_consent_into_platform_init_guard(self):
         live_consent = _accepted_live_consent()

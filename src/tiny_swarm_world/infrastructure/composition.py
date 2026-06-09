@@ -4,6 +4,7 @@ import asyncio
 import os
 import re
 import shutil
+import subprocess
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import cast
@@ -201,6 +202,8 @@ SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
 DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:5000"
 LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
 DEFAULT_LXC_PROXY_LISTEN_ADDRESS = "0.0.0.0"
+DEFAULT_NEXUS_CACHE_CONTAINER = "tiny-swarm-nexus-cache"
+DEFAULT_NEXUS_CACHE_PROXY_PORT = "5001"
 DEFAULT_LXC_MANAGER_PROXY_PROFILE = "docker-swarm-manager"
 JENKINS_IMAGE_ENVIRONMENT = "TSW_JENKINS_IMAGE"
 SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"
@@ -1707,9 +1710,83 @@ def _lxc_proxy_listen_address() -> str:
 
 def _lxc_docker_registry_mirror_configuration() -> DockerRegistryMirrorConfiguration | None:
     mirror_url = os.getenv("TSW_LXC_DOCKER_REGISTRY_MIRROR", "").strip()
+    if mirror_url:
+        return DockerRegistryMirrorConfiguration(mirror_url)
+    mirror_url = _auto_detect_nexus_cache_registry_mirror()
     if not mirror_url:
         return None
     return DockerRegistryMirrorConfiguration(mirror_url)
+
+
+def _auto_detect_nexus_cache_registry_mirror() -> str:
+    container_name = os.getenv("TSW_NEXUS_CACHE_CONTAINER", DEFAULT_NEXUS_CACHE_CONTAINER).strip()
+    proxy_port = os.getenv("TSW_NEXUS_CACHE_DOCKER_PROXY_PORT", DEFAULT_NEXUS_CACHE_PROXY_PORT).strip()
+    if not container_name or not proxy_port:
+        return ""
+    if not _local_docker_container_running(container_name):
+        return ""
+    host_ip = _lxc_reachable_host_ip()
+    if not host_ip:
+        return ""
+    return f"http://{host_ip}:{proxy_port}"
+
+
+def _local_docker_container_running(container_name: str) -> bool:
+    try:
+        result = subprocess.run(
+            [
+                "docker",
+                "ps",
+                "--filter",
+                f"name=^/{container_name}$",
+                "--format",
+                "{{.Names}}",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            shell=False,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    if result.returncode != 0:
+        return False
+    return container_name in {line.strip() for line in result.stdout.splitlines()}
+
+
+def _lxc_reachable_host_ip() -> str:
+    for interface_name in ("lxdbr0", "incusbr0"):
+        address = _host_ipv4_for_interface(interface_name)
+        if address:
+            return address
+    return ""
+
+
+def _host_ipv4_for_interface(interface_name: str) -> str:
+    try:
+        result = subprocess.run(
+            [
+                "ip",
+                "-4",
+                "-o",
+                "addr",
+                "show",
+                "dev",
+                interface_name,
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            shell=False,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    if result.returncode != 0:
+        return ""
+    match = re.search(r"\binet\s+(?P<address>\d+\.\d+\.\d+\.\d+)/", result.stdout)
+    return match.group("address") if match else ""
 
 
 def _lxc_manager_node() -> NodeSpec:

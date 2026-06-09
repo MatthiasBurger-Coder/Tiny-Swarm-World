@@ -212,9 +212,11 @@ daemon mirror configuration, restarts Docker, and optionally pre-pulls images
 from `images-to-cache.txt`. Use it only when those host mutations are
 intentional.
 
-When managed LXC nodes should also use this cache during installation, do not
-use `127.0.0.1` for the node-side mirror. Provide a Nexus address that is
-reachable from inside the LXC nodes:
+When managed LXC nodes should also use this cache during installation, the
+setup detects a running `tiny-swarm-nexus-cache` container automatically and
+writes the LXC bridge address into the node-side Docker mirror configuration.
+Do not use `127.0.0.1` for the node-side mirror. To override auto-detection,
+provide a Nexus address that is reachable from inside the LXC nodes:
 
 [source,bash]
 ----

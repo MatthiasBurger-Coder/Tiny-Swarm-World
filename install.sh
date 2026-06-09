@@ -42,7 +42,8 @@ Optional environment:
   TSW_LXC_DOCKER_REGISTRY_MIRROR
       Docker registry mirror URL written into managed LXC nodes during Docker
       installation. Use an address reachable from inside the nodes, not
-      127.0.0.1.
+      127.0.0.1. If unset, a running local tiny-swarm-nexus-cache is detected
+      and wired automatically when an LXC bridge address is available.
   TSW_SEED_INFISICAL_ITEMS
       Controls legacy Service Access credential inventory seeding. Defaults to
       0 because the Infisical silent-bootstrap greenpath must not automate

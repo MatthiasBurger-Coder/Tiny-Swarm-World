@@ -375,9 +375,38 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
     def test_service_access_dashboard_exposes_management_table_columns(self):
         dashboard = _service_access_dashboard_html()
 
-        for label in ("Server", "URL", "user", "pwd"):
+        for label in ("Service", "URL", "User", "Password"):
             with self.subTest(label=label):
                 self.assertIn(f">{label}<", dashboard)
+
+    def test_service_access_dashboard_visible_text_is_english(self):
+        dashboard = _service_access_dashboard_html()
+
+        for expected in (
+            "Management table for local Tiny Swarm World services and Infisical secret entries.",
+            "Open Infisical",
+            "Passwords are visible through Infisical",
+            "Local Swarm setup",
+            "View secret in Infisical",
+            "Dashboard does not require a login",
+            "Swagger/NGINX does not require a login",
+            "This page does not store plaintext passwords.",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, dashboard)
+        for forbidden in (
+            "Verwaltungstabelle",
+            "oeffnen",
+            "Passwoerter",
+            "Lokales",
+            "anzeigen",
+            "selbst",
+            "keinen Login",
+            "Passwortwerte",
+            "Klartext",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, dashboard)
 
     def test_service_access_dashboard_links_to_central_routes_without_credentials(self):
         dashboard = _service_access_dashboard_html()
@@ -413,6 +442,19 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         ):
             self.assertNotIn(forbidden_link, dashboard)
 
+    def test_service_access_dashboard_links_open_new_tabs_safely(self):
+        dashboard = _service_access_dashboard_html()
+        collector = _LinkCollector()
+        collector.feed(dashboard)
+
+        self.assertTrue(collector.link_attributes)
+        for attributes in collector.link_attributes:
+            with self.subTest(href=attributes.get("href")):
+                self.assertEqual("_blank", attributes.get("target"))
+                rel_values = set((attributes.get("rel") or "").split())
+                self.assertIn("noopener", rel_values)
+                self.assertIn("noreferrer", rel_values)
+
     def test_service_access_dashboard_lists_credential_references_without_values(self):
         dashboard = _service_access_dashboard_html()
         expected_items = (
@@ -445,14 +487,16 @@ class _LinkCollector(HTMLParser):
     def __init__(self):
         super().__init__()
         self.links: list[str] = []
+        self.link_attributes: list[dict[str, str]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag != "a":
             return
-        attributes = dict(attrs)
+        attributes = {key: value or "" for key, value in attrs}
         href = attributes.get("href")
         if href:
             self.links.append(href)
+            self.link_attributes.append(attributes)
 
 
 def _extract_links(html: str) -> list[str]:
