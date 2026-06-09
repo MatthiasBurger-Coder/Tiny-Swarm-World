@@ -29,9 +29,9 @@ services:
       - source: traefik_tls_dynamic_config
         target: /etc/traefik/dynamic/tls.yml
     secrets:
-      - source: tsw_traefik_tls_cert
+      - source: "${TSW_TRAEFIK_TLS_CERT_SECRET_NAME:-tsw_traefik_tls_cert}"
         target: tsw_traefik_tls_cert
-      - source: tsw_traefik_tls_key
+      - source: "${TSW_TRAEFIK_TLS_KEY_SECRET_NAME:-tsw_traefik_tls_key}"
         target: tsw_traefik_tls_key
     networks:
       - traefik_ingress
@@ -46,9 +46,9 @@ configs:
     file: ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/traefik/dynamic/tls.yml
 
 secrets:
-  tsw_traefik_tls_cert:
+  "${TSW_TRAEFIK_TLS_CERT_SECRET_NAME:-tsw_traefik_tls_cert}":
     external: true
-  tsw_traefik_tls_key:
+  "${TSW_TRAEFIK_TLS_KEY_SECRET_NAME:-tsw_traefik_tls_key}":
     external: true
 
 networks:

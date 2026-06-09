@@ -36,6 +36,23 @@ class TestSecretManagement(unittest.TestCase):
             self.assertEqual("TSW_POSTGRES_PASSWORD", entries[0].key)
             self.assertEqual("keep_existing", entries[0].policy)
 
+    def test_committed_manifest_tracks_traefik_tls_secret_names_without_values(self):
+        entries = SecretManifestRenderer(Path("config/secrets/infisical-secrets.yaml")).run()
+        entries_by_key = {entry.key: entry for entry in entries}
+
+        for key in (
+            "TSW_TRAEFIK_TLS_CERT_SECRET_NAME",
+            "TSW_TRAEFIK_TLS_KEY_SECRET_NAME",
+        ):
+            with self.subTest(key=key):
+                entry = entries_by_key[key]
+                self.assertEqual("traefik", entry.service)
+                self.assertEqual("external_user_secret", entry.type)
+                self.assertEqual("external_user_secret", entry.source)
+                self.assertTrue(entry.required)
+                self.assertNotIn("BEGIN", entry.description)
+                self.assertNotIn("REDACTED", entry.description)
+
     def test_secret_discovery_classifies_managed_placeholder_and_blocker(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

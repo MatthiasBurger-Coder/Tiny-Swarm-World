@@ -224,6 +224,15 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         self.assertIn("TSW_RABBITMQ_PASSWORD", expected_keys)
         self.assertTrue(all("PASSWORD" in key or key.endswith("HTPASSWD") for key in expected_keys))
 
+    def test_traefik_tls_secret_name_manifest_entries_are_value_free(self) -> None:
+        manifest = INFISICAL_SECRET_MANIFEST.read_text(encoding="utf-8")
+
+        self.assertIn("- key: TSW_TRAEFIK_TLS_CERT_SECRET_NAME", manifest)
+        self.assertIn("- key: TSW_TRAEFIK_TLS_KEY_SECRET_NAME", manifest)
+        self.assertIn("source: external_user_secret", manifest)
+        self.assertNotIn("-----BEGIN", manifest)
+        self.assertNotIn("PRIVATE KEY", manifest)
+
 
 @unittest.skipUnless(
     os.environ.get(RUN_LIVE_ENV) == "1",

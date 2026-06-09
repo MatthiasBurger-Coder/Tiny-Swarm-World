@@ -363,8 +363,22 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/traefik/dynamic/tls.yml",
             compose_data["configs"]["traefik_tls_dynamic_config"]["file"],
         )
-        self.assertEqual({"external": True}, compose_data["secrets"]["tsw_traefik_tls_cert"])
-        self.assertEqual({"external": True}, compose_data["secrets"]["tsw_traefik_tls_key"])
+        self.assertEqual(
+            {"external": True},
+            compose_data["secrets"]["${TSW_TRAEFIK_TLS_CERT_SECRET_NAME:-tsw_traefik_tls_cert}"],
+        )
+        self.assertEqual(
+            {"external": True},
+            compose_data["secrets"]["${TSW_TRAEFIK_TLS_KEY_SECRET_NAME:-tsw_traefik_tls_key}"],
+        )
+        self.assertEqual(
+            "${TSW_TRAEFIK_TLS_CERT_SECRET_NAME:-tsw_traefik_tls_cert}",
+            traefik["secrets"][0]["source"],
+        )
+        self.assertEqual(
+            "${TSW_TRAEFIK_TLS_KEY_SECRET_NAME:-tsw_traefik_tls_key}",
+            traefik["secrets"][1]["source"],
+        )
 
     def test_committed_traefik_dynamic_tls_config_references_secret_mounts_only(self):
         repository_root = Path(__file__).resolve().parents[4]
