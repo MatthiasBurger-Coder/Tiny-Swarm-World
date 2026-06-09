@@ -39,6 +39,10 @@ Optional environment:
       Docker registry mirror URL written into managed LXC nodes during Docker
       installation. Use an address reachable from inside the nodes, not
       127.0.0.1.
+  TSW_SEED_INFISICAL_ITEMS
+      Controls Service Access credential inventory seeding. Defaults to 1 for
+      the service-access profile so fresh installs are browser-verifiable
+      without manual Infisical item entry.
 The script is Linux/WSL-only. It writes evidence under:
   .tiny-swarm-world/evidence/installation-tests/wsl2/<UTC timestamp>/
 
@@ -230,6 +234,10 @@ fi
 for secret_name in "${REQUIRED_SECRETS[@]}"; do
   export "$secret_name=${!secret_name}"
 done
+if [[ -z "${TSW_SEED_INFISICAL_ITEMS:-}" ]]; then
+  TSW_SEED_INFISICAL_ITEMS=1
+fi
+export TSW_SEED_INFISICAL_ITEMS
 if [[ -n "${TSW_LXC_DOCKER_REGISTRY_MIRROR:-}" ]]; then
   export TSW_LXC_DOCKER_REGISTRY_MIRROR
 fi

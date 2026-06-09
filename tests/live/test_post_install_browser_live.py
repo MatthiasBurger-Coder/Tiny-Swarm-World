@@ -392,7 +392,8 @@ def _missing_infisical_items(config: LivePostInstallConfig) -> tuple[str, ...]:
         browser = playwright.chromium.launch(headless=True)
         page = browser.new_page(ignore_https_errors=True, base_url=config.infisical_url)
         try:
-            page.goto("/", wait_until="domcontentloaded", timeout=int(config.timeout_seconds * 1000))
+            page.goto("/", wait_until="networkidle", timeout=int(config.timeout_seconds * 1000))
+            _click_first_optional(page, ("Continue with Email",))
             _fill_first(page, ("Email", "Email address"), config.infisical_email)
             _fill_first(page, ("Password",), config.infisical_password)
             _click_first(page, ("Log in", "Login", "Sign in"))
@@ -436,6 +437,13 @@ def _click_first(page: Any, names: tuple[str, ...]) -> None:
             except Exception as exc:
                 last_error = exc
     raise RuntimeError(f"could not click control: {names}; last={type(last_error).__name__}")
+
+
+def _click_first_optional(page: Any, names: tuple[str, ...]) -> None:
+    try:
+        _click_first(page, names)
+    except RuntimeError:
+        return
 
 
 def _infisical_item_evidence(

@@ -167,6 +167,13 @@ class TestInstallScript(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertEqual(["y", "y"], fixture.recorded_live_confirmations())
 
+    def test_install_enables_infisical_item_seed_by_default(self):
+        with _install_script_fixture() as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(["1", "1"], fixture.recorded_seed_flags())
+
 
 class _InstallScriptFixture:
     def __init__(
@@ -236,6 +243,12 @@ class _InstallScriptFixture:
         if not confirmations_file.exists():
             return []
         return confirmations_file.read_text().splitlines()
+
+    def recorded_seed_flags(self) -> list[str]:
+        seed_file = self.root / "seed-flags.txt"
+        if not seed_file.exists():
+            return []
+        return seed_file.read_text().splitlines()
 
     def single_evidence_dir(self) -> Path:
         evidence_root = self.root / ".tiny-swarm-world" / "evidence" / "installation-tests" / "wsl2"
@@ -347,6 +360,7 @@ def _fake_script() -> str:
         IFS= read -r confirmation || true
         printf '%s\\n' "$command_line" >>"$TSW_FAKE_SCRIPT_COMMANDS"
         printf '%s\\n' "$confirmation" >>"$(dirname "$TSW_FAKE_SCRIPT_COMMANDS")/live-confirmations.txt"
+        printf '%s\\n' "${TSW_SEED_INFISICAL_ITEMS:-}" >>"$(dirname "$TSW_FAKE_SCRIPT_COMMANDS")/seed-flags.txt"
         mkdir -p "$(dirname "$log_file")"
         printf 'fake script log for %s\\n' "$command_line" >"$log_file"
 
