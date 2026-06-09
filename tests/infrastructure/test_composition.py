@@ -581,6 +581,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:jenkins-stack",
                 "deployment:rabbitmq-stack",
                 "deployment:sonarqube-stack",
+                "deployment:sonarqube-admin-access",
                 "deployment:swagger-stack",
                 "deployment:infisical-stack",
                 "deployment:service-access-stack",
@@ -638,7 +639,7 @@ class TestComposition(unittest.TestCase):
 
         compose_repository.assert_called_once_with()
         self.assertEqual(4, len(services.workflows.bootstrap.steps))
-        self.assertEqual(11, len(services.workflows.apply.steps))
+        self.assertEqual(12, len(services.workflows.apply.steps))
         self.assertEqual(8, len(services.workflows.verify.checks))
 
     def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
@@ -698,6 +699,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:jenkins-stack",
                 "deployment:rabbitmq-stack",
                 "deployment:sonarqube-stack",
+                "deployment:sonarqube-admin-access",
                 "deployment:swagger-stack",
                 "deployment:infisical-stack",
                 "deployment:service-access-stack",

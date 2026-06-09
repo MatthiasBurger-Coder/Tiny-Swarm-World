@@ -24,6 +24,9 @@ from tiny_swarm_world.application.services.deployment.ensure_portainer_endpoint 
 )
 from tiny_swarm_world.application.services.deployment.ensure_portainer_stack import EnsurePortainerStack
 from tiny_swarm_world.application.services.deployment.ensure_service_stack import EnsureServiceStack
+from tiny_swarm_world.application.services.deployment.ensure_sonarqube_admin_access import (
+    EnsureSonarqubeAdminAccess,
+)
 from tiny_swarm_world.application.services.deployment.ensure_swarm_stack import EnsureSwarmStack
 from tiny_swarm_world.application.services.deployment.infisical_silent_install import (
     EnsureInfisicalSilentInstall,
@@ -75,6 +78,7 @@ __all__ = [
     "EnsurePortainerEndpoint",
     "EnsurePortainerStack",
     "EnsureServiceStack",
+    "EnsureSonarqubeAdminAccess",
     "EnsureSwarmStack",
     "InfisicalBootstrapStep",
     "InfisicalInstallBlocker",

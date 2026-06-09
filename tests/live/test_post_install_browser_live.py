@@ -102,6 +102,9 @@ class LivePostInstallConfig:
     infisical_url: str
     infisical_email: str | None
     infisical_password: str | None
+    sonarqube_url: str
+    sonarqube_username: str
+    sonarqube_password: str | None
     timeout_seconds: float
 
     @classmethod
@@ -111,6 +114,7 @@ class LivePostInstallConfig:
         )
         dashboard_url = _env_value(local_env, "TSW_DASHBOARD_URL", "http://localhost")
         infisical_url = _env_value(local_env, "TSW_INFISICAL_URL", "https://localhost")
+        sonarqube_url = _env_value(local_env, "TSW_SONARQUBE_URL", "http://localhost:9001")
         return cls(
             dashboard_url=_validated_local_url(dashboard_url, "dashboard"),
             infisical_url=_validated_local_url(infisical_url, "infisical"),
@@ -119,6 +123,9 @@ class LivePostInstallConfig:
                 local_env,
                 "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD",
             ),
+            sonarqube_url=_validated_local_url(sonarqube_url, "sonarqube"),
+            sonarqube_username=_env_value(local_env, "TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
+            sonarqube_password=_env_optional(local_env, "TSW_SONARQUBE_ADMIN_PASSWORD"),
             timeout_seconds=float(os.environ.get("TSW_POST_INSTALL_BROWSER_TIMEOUT", "45")),
         )
 
@@ -332,6 +339,51 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
             raise AssertionError(
                 "infisical_secret_management_incomplete: "
                 f"{status.redacted_failure_reason}; evidence={self.evidence.path.as_posix()}"
+            )
+
+    def test_04_sonarqube_admin_credential_is_configured(self) -> None:
+        if not self.config.sonarqube_password:
+            self.evidence.record(
+                "sonarqube_management",
+                _sonarqube_management_evidence(
+                    result="blocked",
+                    configured_login_valid=False,
+                    default_login_disabled=False,
+                    redacted_failure_reason="missing_login_material",
+                ),
+            )
+            raise AssertionError(
+                "sonarqube_setup_blocker: missing_login_material; "
+                f"evidence={self.evidence.path.as_posix()}"
+            )
+
+        configured_valid = _sonarqube_auth_valid(
+            self.config.sonarqube_url,
+            self.config.sonarqube_username,
+            self.config.sonarqube_password,
+            self.config.timeout_seconds,
+        )
+        default_valid = _sonarqube_auth_valid(
+            self.config.sonarqube_url,
+            "admin",
+            "admin",
+            self.config.timeout_seconds,
+        )
+        self.evidence.record(
+            "sonarqube_management",
+            _sonarqube_management_evidence(
+                result="passed" if configured_valid and not default_valid else "failed",
+                configured_login_valid=configured_valid,
+                default_login_disabled=not default_valid,
+                redacted_failure_reason=(
+                    "" if configured_valid and not default_valid else "managed_login_inactive"
+                ),
+            ),
+        )
+        if not configured_valid or default_valid:
+            raise AssertionError(
+                "sonarqube_managed_credential_incomplete: "
+                f"evidence={self.evidence.path.as_posix()}"
             )
 
 
@@ -619,6 +671,23 @@ def _infisical_secret_keys(
     return keys
 
 
+def _sonarqube_auth_valid(
+    base_url: str,
+    username: str,
+    password: str,
+    timeout_seconds: float,
+) -> bool:
+    response = requests.get(
+        urljoin(base_url.rstrip("/") + "/", "api/authentication/validate"),
+        auth=(username, password),
+        timeout=timeout_seconds,
+    )
+    if response.status_code != 200:
+        return False
+    payload = response.json()
+    return isinstance(payload, dict) and payload.get("valid") is True
+
+
 def _fill_first(page: Any, labels: tuple[str, ...], value: str) -> None:
     last_error: Exception | None = None
     for label in labels:
@@ -692,6 +761,22 @@ def _infisical_management_evidence(
         "result": result,
         "service": "infisical",
         "super_admin_present": super_admin_present,
+    }
+
+
+def _sonarqube_management_evidence(
+    *,
+    result: str,
+    configured_login_valid: bool,
+    default_login_disabled: bool,
+    redacted_failure_reason: str,
+) -> dict[str, object]:
+    return {
+        "configured_login_valid": configured_login_valid,
+        "default_login_disabled": default_login_disabled,
+        "redacted_failure_reason": redacted_failure_reason,
+        "result": result,
+        "service": "sonarqube",
     }
 
 

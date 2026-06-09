@@ -38,6 +38,7 @@ from tiny_swarm_world.application.services.deployment import (
     InfisicalSilentInstallConfig,
     EnsurePortainerEndpoint,
     EnsurePortainerAdminAccess,
+    EnsureSonarqubeAdminAccess,
     EnsureSwarmStack,
     VerifySwarmServiceReadiness,
     InfisicalSecretItem,
@@ -161,6 +162,9 @@ from tiny_swarm_world.infrastructure.adapters.clients.infisical_cli_client impor
 )
 from tiny_swarm_world.infrastructure.adapters.clients.infisical_bootstrap_http_client import (
     InfisicalBootstrapHttpClient,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.sonarqube_http_client import (
+    SonarqubeHttpClient,
 )
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
@@ -1245,13 +1249,24 @@ def build_lxc_deployment_services(
         ),
         stack_steps["nexus"],
     )
-    application_steps = build_service_stack_steps(
+    application_steps: tuple[object, ...] = build_service_stack_steps(
         compose_repository=compose_repository,
         portainer_client=portainer_client,
         endpoint_name=DEFAULT_PORTAINER_ENDPOINT_NAME,
         service_profile=selected_service_profile,
         excluded_stack_names=("nexus",),
         stack_environments=stack_environment,
+    )
+    application_steps = _with_post_stack_steps(
+        application_steps,
+        "sonarqube",
+        (
+            EnsureSonarqubeAdminAccess(
+                sonarqube_client=SonarqubeHttpClient("http://localhost:9001"),
+                username=_operator_config_value("TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
+                password=lambda: _required_operator_secret_value("TSW_SONARQUBE_ADMIN_PASSWORD"),
+            ),
+        ),
     )
     infisical_cli_client = InfisicalCliClient()
     infisical_bootstrap_steps = _infisical_bootstrap_steps(
@@ -1977,6 +1992,26 @@ def _with_infisical_post_apply_steps(
         ordered_steps.append(step)
         service_stack = getattr(step, "service_stack", None)
         if getattr(service_stack, "stack_name", "") == "service-access":
+            ordered_steps.extend(post_steps)
+            inserted = True
+    if not inserted:
+        ordered_steps.extend(post_steps)
+    return tuple(ordered_steps)
+
+
+def _with_post_stack_steps(
+    application_steps: tuple[object, ...],
+    stack_name: str,
+    post_steps: tuple[object, ...],
+) -> tuple[object, ...]:
+    if not post_steps:
+        return application_steps
+    ordered_steps: list[object] = []
+    inserted = False
+    for step in application_steps:
+        ordered_steps.append(step)
+        service_stack = getattr(step, "service_stack", None)
+        if getattr(service_stack, "stack_name", "") == stack_name:
             ordered_steps.extend(post_steps)
             inserted = True
     if not inserted:

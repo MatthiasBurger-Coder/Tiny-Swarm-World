@@ -231,6 +231,22 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         self.assertIn("/dev/tcp/tasks.sonar_db/5432", command[2])
         self.assertIn("/opt/sonarqube/docker/entrypoint.sh", command[2])
 
+    def test_committed_sonarqube_compose_uses_active_lta_image(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_path = (
+            repository_root / "infra" / "config" / "compose" / "sonarqube" / "docker-compose.yml"
+        )
+        compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            "sonarqube:2026-lta-community",
+            compose_data["services"]["sonarqube"]["image"],
+        )
+        self.assertNotEqual(
+            "sonarqube:lts-community",
+            compose_data["services"]["sonarqube"]["image"],
+        )
+
     def test_committed_service_access_compose_declares_required_services(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = repository_root / "infra" / "config" / "compose" / "service-access" / "docker-compose.yml"

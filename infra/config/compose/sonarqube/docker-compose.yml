@@ -1,6 +1,6 @@
 services:
   sonarqube:
-    image: sonarqube:lts-community
+    image: sonarqube:2026-lta-community
     depends_on:
       - sonar_db
     environment:
