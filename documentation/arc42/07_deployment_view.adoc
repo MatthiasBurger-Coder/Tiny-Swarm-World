@@ -79,6 +79,38 @@ allowlisted stack environment variable for both Portainer-managed and direct
 Swarm stack deployment paths. The literal Swarm secret name is a deployment
 input and must not be copied into `VerificationResult` evidence.
 
+== Planned Traefik HTTPS Ingress Migration
+
+The accepted migration direction in
+`documentation/architecture/adr-traefik-https-ingress-existing-ca.adoc` is to
+move toward centralized local HTTPS ingress through Traefik using an existing
+operator-provided CA. This is accepted as workflow direction, not yet verified
+live runtime behavior.
+
+The planned ingress deployment keeps Tiny Swarm World Docker Swarm-first and
+LXC-native. Traefik belongs to the Deployment responsibility boundary. It is
+not a new product microservice, not a Kubernetes ingress controller, and not a
+browser frontend project.
+
+The migration must preserve these deployment constraints:
+
+* public LXC exposure for ingress is limited to ports `80` and `443`;
+* Traefik uses `web` on `:80` and `websecure` on `:443`;
+* HTTP redirects to HTTPS;
+* `exposedByDefault=false` is required;
+* `--api.insecure=true` is forbidden;
+* existing CA and certificate private material are operator-owned secrets and
+  must not be committed or persisted in evidence;
+* hostname resolution through DNS or hosts fallback requires explicit
+  verification, and any host mutation requires consent and rollback;
+* live browser and TLS checks remain opt-in and write only redacted local
+  evidence under ignored `.tiny-swarm-world/evidence/**` paths.
+
+The current service-access NGINX routing baseline remains the comparison and
+rollback point until implementation slices verify Traefik routing, LXC public
+port reconciliation, certificate validation and browser-visible HTTPS
+behavior.
+
 == Autonomous Setup Deployment Contract
 
 The canonical `setup run` command is the workflow-level setup orchestrator for

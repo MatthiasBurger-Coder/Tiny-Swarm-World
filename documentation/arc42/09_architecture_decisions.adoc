@@ -159,13 +159,42 @@ Consequences:
   available through `--service-profile default`;
 * NGINX is the baseline routing direction, with Service Access owning
   `http://localhost` and Vaultwarden HTTPS on `443`, with `8086` retained as a local HTTP compatibility route;
-* Traefik, public certificate automation and wider-than-local exposure require later ADR
-  coverage;
+* Traefik now has separate migration-direction coverage in
+  `documentation/architecture/adr-traefik-https-ingress-existing-ca.adoc`;
+  implementation and live success still require the active workflow slices;
+* public certificate automation and wider-than-local exposure remain out of
+  scope;
 * Portainer may manage post-bootstrap stack create/update only after
   Portainer is reachable and must not become its own bootstrap dependency;
 * the central `http://localhost` route requires a fresh live deployment before
   it is claimed as verified; Vaultwarden operational hardening remains
   follow-up work.
+
+=== Traefik HTTPS Ingress With Existing CA
+
+ADR: `documentation/architecture/adr-traefik-https-ingress-existing-ca.adoc`
+
+Status: accepted as migration direction; implementation pending workflow
+execution.
+
+Consequences:
+
+* Traefik is the accepted target for centralized local HTTPS ingress in the
+  active migration workflow;
+* Traefik belongs to the Deployment responsibility boundary and does not create
+  a new product microservice or frontend project;
+* public LXC ingress exposure is limited to ports `80` and `443`;
+* `web :80`, `websecure :443`, HTTP-to-HTTPS redirect and
+  `exposedByDefault=false` are required;
+* `--api.insecure=true` is forbidden;
+* existing CA material remains operator-owned secret material and must not be
+  committed or written to evidence;
+* certificate validation records summary fields only and must not persist raw
+  PEM payloads, private keys, local host paths, or local IP addresses;
+* DNS or hosts fallback requires explicit verification, and host mutation
+  requires consent and rollback;
+* live Traefik, TLS and browser success must not be claimed until the active
+  workflow records opt-in live evidence.
 
 === Workflow Taxonomy And Destructive Operation Policy
 
