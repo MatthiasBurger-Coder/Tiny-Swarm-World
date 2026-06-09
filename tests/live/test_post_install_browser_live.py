@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import requests
+import socket
 import ssl
 import unittest
 from dataclasses import dataclass
@@ -28,6 +29,7 @@ from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
     service_stack_contracts_for_profile,
 )
+from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
 
 
 RUN_LIVE_ENV = "TSW_RUN_POST_INSTALL_BROWSER_LIVE"
@@ -97,8 +99,31 @@ class HttpProbeResult:
 
 
 @dataclass(frozen=True)
+class HttpsRouteProbeResult:
+    service: str
+    hostname: str
+    reachable: bool
+    status_code: int | None
+    tls_status: str
+    result: str
+    redacted_failure_reason: str = ""
+
+    def to_evidence(self) -> dict[str, object]:
+        return {
+            "hostname": self.hostname,
+            "reachable": self.reachable,
+            "redacted_failure_reason": self.redacted_failure_reason,
+            "result": self.result,
+            "service": self.service,
+            "status_code": self.status_code,
+            "tls_status": self.tls_status,
+        }
+
+
+@dataclass(frozen=True)
 class LivePostInstallConfig:
     dashboard_url: str
+    ingress_base_domain: str
     infisical_url: str
     infisical_email: str | None
     infisical_password: str | None
@@ -113,10 +138,16 @@ class LivePostInstallConfig:
             Path(os.environ.get("TSW_LIVE_INSTALLATION_ENV", DEFAULT_ENV_FILE))
         )
         dashboard_url = _env_value(local_env, "TSW_DASHBOARD_URL", "http://localhost")
+        ingress_base_domain = _env_value(
+            local_env,
+            "TSW_INGRESS_BASE_DOMAIN",
+            "tsw.local",
+        )
         infisical_url = _env_value(local_env, "TSW_INFISICAL_URL", "https://localhost")
         sonarqube_url = _env_value(local_env, "TSW_SONARQUBE_URL", "http://localhost:9001")
         return cls(
             dashboard_url=_validated_local_url(dashboard_url, "dashboard"),
+            ingress_base_domain=_validated_ingress_base_domain(ingress_base_domain),
             infisical_url=_validated_local_url(infisical_url, "infisical"),
             infisical_email=_env_optional(local_env, "TSW_INFISICAL_LOGIN_EMAIL"),
             infisical_password=_env_optional(
@@ -164,6 +195,48 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
                     all(100 <= status <= 499 for status in check.allowed_statuses)
                 )
 
+    def test_https_route_checks_use_tsw_local_https_hostnames(self) -> None:
+        checks = _https_route_checks("tsw.local")
+
+        self.assertEqual(
+            (
+                "portainer.tsw.local",
+                "nexus.tsw.local",
+                "jenkins.tsw.local",
+                "sonarqube.tsw.local",
+                "infisical.tsw.local",
+            ),
+            tuple(urlparse(check.url).hostname for check in checks),
+        )
+        for check in checks:
+            with self.subTest(service=check.name):
+                parsed = urlparse(check.url)
+                self.assertEqual("https", parsed.scheme)
+                self.assertTrue(parsed.hostname.endswith(".tsw.local"))
+                self.assertFalse(parsed.username)
+                self.assertFalse(parsed.password)
+                self.assertFalse(parsed.query)
+                self.assertFalse(parsed.fragment)
+
+    def test_https_route_matrix_evidence_is_redacted_and_actionable(self) -> None:
+        result = HttpsRouteProbeResult(
+            service="jenkins",
+            hostname="jenkins.tsw.local",
+            reachable=False,
+            status_code=None,
+            tls_status="blocked_hostname_resolution",
+            result="blocked",
+            redacted_failure_reason="hostname_unresolved",
+        )
+
+        evidence = result.to_evidence()
+
+        self.assertTrue(_evidence_safe(evidence))
+        self.assertEqual("jenkins", evidence["service"])
+        self.assertEqual("jenkins.tsw.local", evidence["hostname"])
+        self.assertEqual("blocked_hostname_resolution", evidence["tls_status"])
+        self.assertNotIn("url", evidence)
+
     def test_live_config_rejects_non_local_operator_urls(self) -> None:
         with patch.dict(
             os.environ,
@@ -175,6 +248,20 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             with self.assertRaisesRegex(
                 AssertionError,
                 "post_install_browser_setup_blocker: invalid_local_dashboard_url",
+            ):
+                LivePostInstallConfig.from_environment()
+
+    def test_live_config_rejects_invalid_ingress_base_domains(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "TSW_LIVE_INSTALLATION_ENV": "/tmp/tiny-swarm-world-missing.env",
+                "TSW_INGRESS_BASE_DOMAIN": "localhost",
+            },
+        ):
+            with self.assertRaisesRegex(
+                AssertionError,
+                "post_install_browser_setup_blocker: invalid_ingress_base_domain",
             ):
                 LivePostInstallConfig.from_environment()
 
@@ -268,7 +355,47 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
                 f"{failed_services}; evidence={self.evidence.path.as_posix()}"
             )
 
-    def test_02_infisical_contains_required_credential_items(self) -> None:
+    def test_02_https_ingress_hostnames_resolve(self) -> None:
+        unresolved: list[str] = []
+        for check in _https_route_checks(self.config.ingress_base_domain):
+            hostname = _hostname_for_check(check)
+            with self.subTest(service=check.name, hostname=hostname):
+                resolved = _hostname_resolves(hostname)
+                self.evidence.record(
+                    "hostname_resolution",
+                    _hostname_resolution_evidence(
+                        service=check.name,
+                        hostname=hostname,
+                        resolved=resolved,
+                    ),
+                )
+                if not resolved:
+                    unresolved.append(hostname)
+
+        if unresolved:
+            raise AssertionError(
+                "post_install_browser_hostname_resolution_blocked: "
+                f"{','.join(unresolved)}; evidence={self.evidence.path.as_posix()}"
+            )
+
+    def test_03_https_ingress_routes_return_browser_relevant_responses(self) -> None:
+        failures: list[HttpsRouteProbeResult] = []
+        for check in _https_route_checks(self.config.ingress_base_domain):
+            hostname = _hostname_for_check(check)
+            with self.subTest(service=check.name, hostname=hostname):
+                result = _probe_https_route(check, self.config.timeout_seconds)
+                self.evidence.record("https_route", result.to_evidence())
+                if not result.reachable:
+                    failures.append(result)
+
+        if failures:
+            failed_services = ",".join(result.service for result in failures)
+            raise AssertionError(
+                "post_install_browser_https_route_failed: "
+                f"{failed_services}; evidence={self.evidence.path.as_posix()}"
+            )
+
+    def test_04_infisical_contains_required_credential_items(self) -> None:
         missing_material = _missing_infisical_login_material(self.config)
         if missing_material:
             for item in EXPECTED_INFISICAL_ITEMS:
@@ -306,7 +433,7 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
                 f"{','.join(missing_items)}; evidence={self.evidence.path.as_posix()}"
             )
 
-    def test_03_infisical_secret_management_is_bootstrapped(self) -> None:
+    def test_05_infisical_secret_management_is_bootstrapped(self) -> None:
         missing_material = _missing_infisical_login_material(self.config)
         if missing_material:
             self.evidence.record(
@@ -350,7 +477,7 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
                 f"{status.redacted_failure_reason}; evidence={self.evidence.path.as_posix()}"
             )
 
-    def test_04_sonarqube_admin_credential_is_configured(self) -> None:
+    def test_06_sonarqube_admin_credential_is_configured(self) -> None:
         if not self.config.sonarqube_password:
             self.evidence.record(
                 "sonarqube_management",
@@ -427,6 +554,49 @@ def _service_checks(dashboard_url: str) -> tuple[ServiceCheck, ...]:
     return tuple(checks)
 
 
+def _https_route_checks(base_domain: str) -> tuple[ServiceCheck, ...]:
+    desired_ingress = desired_https_ingress_for_profile(
+        ServiceStackProfile.SERVICE_ACCESS,
+        base_domain=_validated_ingress_base_domain(base_domain),
+    )
+    return tuple(
+        ServiceCheck(
+            route.service_name,
+            f"https://{route.hostname}/",
+            allowed_statuses=SERVICE_ALLOWED_STATUSES.get(route.service_name, (200,)),
+        )
+        for route in desired_ingress.routes
+    )
+
+
+def _hostname_for_check(check: ServiceCheck) -> str:
+    hostname = urlparse(check.url).hostname
+    if hostname is None:
+        raise AssertionError("post_install_browser_setup_blocker: missing_route_hostname")
+    return hostname
+
+
+def _hostname_resolves(hostname: str) -> bool:
+    try:
+        return bool(socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM))
+    except OSError:
+        return False
+
+
+def _hostname_resolution_evidence(
+    *,
+    service: str,
+    hostname: str,
+    resolved: bool,
+) -> dict[str, object]:
+    return {
+        "hostname": hostname,
+        "redacted_failure_reason": "" if resolved else "hostname_unresolved",
+        "result": "passed" if resolved else "blocked",
+        "service": service,
+    }
+
+
 def _probe_http(check: ServiceCheck, timeout_seconds: float) -> HttpProbeResult:
     try:
         status_code, content_type = _http_head_or_get(
@@ -452,6 +622,47 @@ def _probe_http(check: ServiceCheck, timeout_seconds: float) -> HttpProbeResult:
         reachable=reachable,
         status_code=status_code,
         content_type=content_type,
+        result="passed" if reachable else "failed",
+        redacted_failure_reason="" if reachable else "http_status_out_of_range",
+    )
+
+
+def _probe_https_route(check: ServiceCheck, timeout_seconds: float) -> HttpsRouteProbeResult:
+    hostname = _hostname_for_check(check)
+    if not _hostname_resolves(hostname):
+        return HttpsRouteProbeResult(
+            service=check.name,
+            hostname=hostname,
+            reachable=False,
+            status_code=None,
+            tls_status="blocked_hostname_resolution",
+            result="blocked",
+            redacted_failure_reason="hostname_unresolved",
+        )
+    try:
+        status_code, _content_type = _http_head_or_get(
+            check.url,
+            timeout_seconds,
+            follow_redirects=check.follow_redirects,
+        )
+    except (OSError, TimeoutError, URLError) as exc:
+        return HttpsRouteProbeResult(
+            service=check.name,
+            hostname=hostname,
+            reachable=False,
+            status_code=None,
+            tls_status="tls_or_http_unreachable",
+            result="failed",
+            redacted_failure_reason=type(exc).__name__,
+        )
+
+    reachable = status_code in check.allowed_statuses
+    return HttpsRouteProbeResult(
+        service=check.name,
+        hostname=hostname,
+        reachable=reachable,
+        status_code=status_code,
+        tls_status="https_reachable_unverified",
         result="passed" if reachable else "failed",
         redacted_failure_reason="" if reachable else "http_status_out_of_range",
     )
@@ -830,6 +1041,22 @@ def _validated_local_url(raw_url: str, purpose: str) -> str:
     ):
         raise AssertionError(_invalid_local_url_reason(purpose))
     return raw_url
+
+
+def _validated_ingress_base_domain(raw_domain: str) -> str:
+    domain = raw_domain.strip().casefold().rstrip(".")
+    if not domain or domain == "localhost" or domain.replace(".", "").isdigit():
+        raise AssertionError("post_install_browser_setup_blocker: invalid_ingress_base_domain")
+    try:
+        desired_https_ingress_for_profile(
+            ServiceStackProfile.SERVICE_ACCESS,
+            base_domain=domain,
+        )
+    except ValueError as exc:
+        raise AssertionError(
+            "post_install_browser_setup_blocker: invalid_ingress_base_domain"
+        ) from exc
+    return domain
 
 
 def _invalid_local_url_reason(purpose: str) -> str:
