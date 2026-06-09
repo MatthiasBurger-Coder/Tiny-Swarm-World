@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import time
+import warnings
 from collections.abc import Mapping
+from collections.abc import Iterator
+from contextlib import contextmanager
 from urllib.parse import urlparse
 
 import requests
+from urllib3.exceptions import InsecureRequestWarning
 
 from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client import (
     InfisicalBootstrapResult,
@@ -46,17 +50,18 @@ class InfisicalBootstrapHttpClient(PortInfisicalBootstrapClient):
         organization: str,
     ) -> InfisicalBootstrapResult:
         self._wait_until_ready()
-        response = self.session.post(
-            f"{self.base_url}/api/v1/admin/bootstrap",
-            headers={"Content-Type": "application/json"},
-            json={
-                "email": email,
-                "password": password,
-                "organization": organization,
-            },
-            timeout=self.timeout_seconds,
-            verify=self.verify_tls,
-        )
+        with _local_tls_warning_context(self.verify_tls):
+            response = self.session.post(
+                f"{self.base_url}/api/v1/admin/bootstrap",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "email": email,
+                    "password": password,
+                    "organization": organization,
+                },
+                timeout=self.timeout_seconds,
+                verify=self.verify_tls,
+            )
         if response.status_code in {400, 409}:
             return InfisicalBootstrapResult(
                 state=InfisicalBootstrapState.ALREADY_INITIALIZED,
@@ -79,11 +84,12 @@ class InfisicalBootstrapHttpClient(PortInfisicalBootstrapClient):
         last_failure: Exception | None = None
         for attempt in range(1, self.readiness_attempts + 1):
             try:
-                response = self.session.get(
-                    f"{self.base_url}/api/status",
-                    timeout=self.timeout_seconds,
-                    verify=self.verify_tls,
-                )
+                with _local_tls_warning_context(self.verify_tls):
+                    response = self.session.get(
+                        f"{self.base_url}/api/status",
+                        timeout=self.timeout_seconds,
+                        verify=self.verify_tls,
+                    )
             except requests.RequestException as exc:
                 last_failure = exc
             else:
@@ -109,6 +115,16 @@ class InfisicalBootstrapUnavailable(RuntimeError):
     @classmethod
     def from_exception(cls, exc: Exception) -> "InfisicalBootstrapUnavailable":
         return cls(reason=exc.__class__.__name__)
+
+
+@contextmanager
+def _local_tls_warning_context(verify_tls: bool) -> Iterator[None]:
+    if verify_tls:
+        yield
+        return
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", InsecureRequestWarning)
+        yield
 
 
 def _json_mapping(response: requests.Response) -> Mapping[str, object]:

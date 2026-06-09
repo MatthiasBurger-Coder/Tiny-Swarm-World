@@ -2,6 +2,7 @@ import importlib.util
 import sys
 import types
 import unittest
+import warnings
 from pathlib import Path
 
 from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client import (
@@ -36,6 +37,8 @@ def _load_client_module():
 CLIENT_MODULE = _load_client_module()
 InfisicalBootstrapHttpClient = CLIENT_MODULE.InfisicalBootstrapHttpClient
 InfisicalBootstrapUnavailable = CLIENT_MODULE.InfisicalBootstrapUnavailable
+InsecureRequestWarning = CLIENT_MODULE.InsecureRequestWarning
+local_tls_warning_context = CLIENT_MODULE._local_tls_warning_context
 
 
 class TestInfisicalBootstrapHttpClient(unittest.TestCase):
@@ -151,6 +154,22 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
     def test_rejects_secret_bearing_base_url(self):
         with self.assertRaises(ValueError):
             InfisicalBootstrapHttpClient(base_url="https://admin:secret@localhost")
+
+    def test_suppresses_local_self_signed_tls_warning_when_tls_verify_is_disabled(self):
+        with warnings.catch_warnings(record=True) as recorded:
+            warnings.simplefilter("always")
+            with local_tls_warning_context(False):
+                warnings.warn("local self-signed certificate", InsecureRequestWarning)
+
+        self.assertEqual([], recorded)
+
+    def test_preserves_tls_warning_when_tls_verify_is_enabled(self):
+        with warnings.catch_warnings(record=True) as recorded:
+            warnings.simplefilter("always")
+            with local_tls_warning_context(True):
+                warnings.warn("certificate validation warning", InsecureRequestWarning)
+
+        self.assertEqual(1, len(recorded))
 
 
 class _FakeSession:
