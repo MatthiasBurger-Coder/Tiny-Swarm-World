@@ -6,6 +6,7 @@ from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client 
     InfisicalBootstrapResult,
     InfisicalBootstrapState,
 )
+from tiny_swarm_world.domain.inventory import VerificationStatus
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[4]
@@ -28,7 +29,6 @@ def _load_service_module():
 
 
 EnsureInfisicalBootstrap = _load_service_module().EnsureInfisicalBootstrap
-from tiny_swarm_world.domain.inventory import VerificationStatus
 
 
 class TestEnsureInfisicalBootstrap(unittest.TestCase):

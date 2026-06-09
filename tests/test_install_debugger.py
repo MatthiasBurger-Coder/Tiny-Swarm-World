@@ -45,7 +45,7 @@ class TestInstallDebugger(unittest.TestCase):
             install_script.chmod(0o644)
             secret_file = root / ".tiny-swarm-world" / "local" / "live-installation.env"
             secret_file.parent.mkdir(parents=True)
-            secret_file.write_text("export TSW_PORTAINER_PASSWORD='value'\n", encoding="utf-8")
+            secret_file.write_text("export TSW_PORTAINER_ADMIN_PASSWORD='value'\n", encoding="utf-8")
             secret_file.chmod(0o644)
 
             findings = install_debugger.diagnose(root, live=True, fix_permissions=True)

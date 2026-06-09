@@ -39,7 +39,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("LIVE-CONSENT", check_ids)
         self.assertIn("PYTHON", check_ids)
         self.assertIn("DEPENDENCY-python3", check_ids)
-        self.assertIn("SECRET-TSW_PORTAINER_PASSWORD", check_ids)
+        self.assertIn("SECRET-TSW_PORTAINER_ADMIN_PASSWORD", check_ids)
 
     async def test_static_preflight_can_run_without_live_consent_check(self):
         probe = _fake_probe()
@@ -162,7 +162,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("PORT-12345", check_ids)
         self.assertIn("SECRET-TSW_CUSTOM_SECRET", check_ids)
         self.assertNotIn("PORT-9000", check_ids)
-        self.assertNotIn("SECRET-TSW_PORTAINER_PASSWORD", check_ids)
+        self.assertNotIn("SECRET-TSW_PORTAINER_ADMIN_PASSWORD", check_ids)
 
     async def test_incomplete_live_consent_fails_preflight(self):
         result = await PreflightService(_fake_probe()).run(

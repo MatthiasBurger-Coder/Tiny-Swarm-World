@@ -33,7 +33,7 @@ class InfisicalSilentInstallConfig:
     postgres_password: str
     redis_password: str = ""
     evidence_dir: Path = Path(".tiny-swarm/evidence/infisical")
-    secret_file: Path = Path(".tiny-swarm/secrets/infisical.local.env")
+    secret_file: Path = Path(".tiny-swarm/secrets/bootstrap.local.env")
 
     def validate(self) -> None:
         required = {

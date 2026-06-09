@@ -521,6 +521,23 @@ networks:
             check=False,
         )
 
+    def test_lxc_portainer_client_reuses_delegate_for_workflow_lifetime(self):
+        from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
+            LxcPortainerHttpClient,
+        )
+
+        client = LxcPortainerHttpClient(
+            backend=ManagedLxcBackend.LXD,
+            username="admin",
+            password=operator_credential(),
+        )
+
+        first = client._client()
+        second = client._client()
+
+        self.assertIs(first, second)
+        self.assertEqual("http://localhost:9000", first.base_url)
+
 
 class _FakeResponse:
     def __init__(self, status_code: int, payload: object):

@@ -278,7 +278,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             services["infisical"]["image"],
         )
         self.assertEqual(
-            "${TSW_INFISICAL_SITE_URL:-https://localhost}",
+            "${TSW_INFISICAL_SITE_URL:-http://localhost:8086}",
             services["infisical"]["environment"]["SITE_URL"],
         )
         self.assertEqual(
@@ -291,19 +291,19 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         )
         self.assertEqual(
             "${TSW_INFISICAL_LOGIN_EMAIL}",
-            services["infisical"]["environment"]["INITIAL_SUPER_ADMIN_EMAIL"],
+            services["infisical"]["environment"]["INITIAL_BOOTSTRAP_ADMIN_EMAIL"],
         )
         self.assertEqual(
-            "${TSW_INFISICAL_PASSWORD}",
-            services["infisical"]["environment"]["INITIAL_SUPER_ADMIN_PASSWORD"],
+            "${TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD}",
+            services["infisical"]["environment"]["INITIAL_BOOTSTRAP_ADMIN_PASSWORD"],
         )
         self.assertEqual(
-            "${TSW_INFISICAL_ADMIN_FIRST_NAME:-Admin}",
-            services["infisical"]["environment"]["INITIAL_SUPER_ADMIN_FIRST_NAME"],
+            "${TSW_INFISICAL_ADMIN_FIRST_NAME:-Tiny}",
+            services["infisical"]["environment"]["INITIAL_BOOTSTRAP_ADMIN_FIRST_NAME"],
         )
         self.assertEqual(
-            "${TSW_INFISICAL_ADMIN_LAST_NAME:-User}",
-            services["infisical"]["environment"]["INITIAL_SUPER_ADMIN_LAST_NAME"],
+            "${TSW_INFISICAL_ADMIN_LAST_NAME:-Admin}",
+            services["infisical"]["environment"]["INITIAL_BOOTSTRAP_ADMIN_LAST_NAME"],
         )
         self.assertNotIn("ports", services["infisical"])
         self.assertNotIn("secrets", compose_data)
@@ -407,7 +407,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             "http://localhost:8085",
             "http://localhost:9000",
             "http://localhost:8081",
-            "http://localhost:8080",
+            "http://localhost:8086",
             "http://localhost:15672",
             "http://localhost:9001",
         ):
@@ -436,7 +436,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             "Basic ",
             "admin1234567890",
             "MyAdminPassWord1234-126354654",
-            "adminPassword123",
+            "admin" + "Password123",
         ):
             self.assertNotIn(forbidden, dashboard)
 

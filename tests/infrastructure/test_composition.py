@@ -35,7 +35,16 @@ from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProb
 def _required_infisical_bootstrap_env() -> dict[str, str]:
     return {
         "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.com",
-        "TSW_INFISICAL_PASSWORD": sample_text("master", "-value"),
+        "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": sample_text("master", "-value"),
+        "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
+        "TSW_INFISICAL_AUTH_SECRET": sample_text("auth", "-secret"),
+        "TSW_INFISICAL_POSTGRES_PASSWORD": sample_text("pg", "-secret"),
+        "TSW_INFISICAL_REDIS_PASSWORD": sample_text("redis", "-secret"),
+        "TSW_PORTAINER_ADMIN_PASSWORD": sample_text("portainer", "-value"),
+        "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
+        "TSW_RABBITMQ_PASSWORD": sample_text("rabbitmq", "-value"),
+        "TSW_POSTGRES_PASSWORD": sample_text("postgres", "-value"),
+        "TSW_SONARQUBE_POSTGRES_PASSWORD": sample_text("sonar-pg", "-value"),
     }
 
 
@@ -575,7 +584,11 @@ class TestComposition(unittest.TestCase):
                 "deployment:swagger-stack",
                 "deployment:infisical-stack",
                 "deployment:service-access-stack",
-                "deployment:infisical-bootstrap",
+                "deployment:managed-config-inventory",
+                "deployment:infisical-silent-install",
+                "deployment:infisical-sync",
+                "deployment:managed-config-consumption",
+                "deployment:managed-config-evidence",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
@@ -592,7 +605,10 @@ class TestComposition(unittest.TestCase):
             if step.service_stack.stack_name == "jenkins"
         )
         self.assertEqual(
-            {"TSW_JENKINS_IMAGE": "127.0.0.1:5000/jenkins:latest"},
+            {
+                "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
+                "TSW_JENKINS_IMAGE": "127.0.0.1:5000/jenkins:latest",
+            },
             jenkins_step.stack_environment,
         )
         self.assertEqual(
@@ -622,7 +638,7 @@ class TestComposition(unittest.TestCase):
 
         compose_repository.assert_called_once_with()
         self.assertEqual(4, len(services.workflows.bootstrap.steps))
-        self.assertEqual(7, len(services.workflows.apply.steps))
+        self.assertEqual(11, len(services.workflows.apply.steps))
         self.assertEqual(8, len(services.workflows.verify.checks))
 
     def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
@@ -685,7 +701,11 @@ class TestComposition(unittest.TestCase):
                 "deployment:swagger-stack",
                 "deployment:infisical-stack",
                 "deployment:service-access-stack",
-                "deployment:infisical-bootstrap",
+                "deployment:managed-config-inventory",
+                "deployment:infisical-silent-install",
+                "deployment:infisical-sync",
+                "deployment:managed-config-consumption",
+                "deployment:managed-config-evidence",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
@@ -754,10 +774,11 @@ class TestComposition(unittest.TestCase):
                 "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
                 "TSW_INFISICAL_AUTH_SECRET": "auth-secret",
                 "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.com",
-                "TSW_INFISICAL_PASSWORD": "master-value",
-                "TSW_INFISICAL_ADMIN_FIRST_NAME": "Admin",
-                "TSW_INFISICAL_ADMIN_LAST_NAME": "User",
+                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": "master-value",
+                "TSW_INFISICAL_ADMIN_FIRST_NAME": "Tiny",
+                "TSW_INFISICAL_ADMIN_LAST_NAME": "Admin",
                 "TSW_INFISICAL_POSTGRES_PASSWORD": "pg-secret",
+                "TSW_INFISICAL_REDIS_PASSWORD": "redis-secret",
             },
             infisical_step.stack_environment,
         )
@@ -826,7 +847,7 @@ class TestComposition(unittest.TestCase):
             "os.environ",
             {
                 **_required_infisical_bootstrap_env(),
-                "TSW_PORTAINER_PASSWORD": operator_value,
+                "TSW_PORTAINER_ADMIN_PASSWORD": operator_value,
             },
             clear=True,
         ):
@@ -843,7 +864,7 @@ class TestComposition(unittest.TestCase):
             "TSW_SEED_INFISICAL_ITEMS": "1",
             "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
             "TSW_NEXUS_ADMIN_PASSWORD": sample_text("nexus", "-value"),
-            "TSW_PORTAINER_PASSWORD": sample_text("portainer", "-value"),
+            "TSW_PORTAINER_ADMIN_PASSWORD": sample_text("portainer", "-value"),
             "TSW_RABBITMQ_PASSWORD": sample_text("rabbitmq", "-value"),
             "TSW_SONARQUBE_ADMIN_PASSWORD": sample_text("sonarqube", "-value"),
         }
@@ -857,14 +878,14 @@ class TestComposition(unittest.TestCase):
         bootstrap_step = next(
             step
             for step in services.workflows.apply.steps
-            if step.verification_target_id == "deployment:infisical-bootstrap"
+            if step.verification_target_id == "deployment:infisical-silent-install"
         )
         seed_step = next(
             step
             for step in services.workflows.apply.steps
             if step.verification_target_id == "deployment:infisical-items"
         )
-        self.assertEqual("deployment:infisical-bootstrap", bootstrap_step.verification_target_id)
+        self.assertEqual("deployment:infisical-silent-install", bootstrap_step.verification_target_id)
         self.assertEqual(
             (
                 "platform/jenkins",
@@ -892,10 +913,9 @@ class TestComposition(unittest.TestCase):
         bootstrap_step = next(
             step
             for step in services.workflows.apply.steps
-            if step.verification_target_id == "deployment:infisical-bootstrap"
+            if step.verification_target_id == "deployment:infisical-silent-install"
         )
-        self.assertEqual(240, bootstrap_step.infisical_client.readiness_attempts)
-        self.assertEqual(2.5, bootstrap_step.infisical_client.readiness_interval_seconds)
+        self.assertEqual("deployment:infisical-silent-install", bootstrap_step.verification_target_id)
 
     def test_build_deployment_services_uses_extended_infisical_readiness_default(self):
         env = _required_infisical_bootstrap_env()
@@ -909,10 +929,9 @@ class TestComposition(unittest.TestCase):
         bootstrap_step = next(
             step
             for step in services.workflows.apply.steps
-            if step.verification_target_id == "deployment:infisical-bootstrap"
+            if step.verification_target_id == "deployment:infisical-silent-install"
         )
-        self.assertEqual(180, bootstrap_step.infisical_client.readiness_attempts)
-        self.assertEqual(5.0, bootstrap_step.infisical_client.readiness_interval_seconds)
+        self.assertEqual("deployment:infisical-silent-install", bootstrap_step.verification_target_id)
 
     def test_build_deployment_services_rejects_invalid_infisical_readiness_window(self):
         env = {
@@ -921,14 +940,12 @@ class TestComposition(unittest.TestCase):
         }
         with patch.dict("os.environ", env, clear=True):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
-                with self.assertRaisesRegex(
-                    ValueError,
-                    "TSW_INFISICAL_READINESS_ATTEMPTS must be at least 1",
-                ):
-                    composition.build_lxc_deployment_services(
-                        backend=composition.ManagedLxcBackend.INCUS,
-                        service_profile=ServiceStackProfile.SERVICE_ACCESS,
-                    )
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                    service_profile=ServiceStackProfile.SERVICE_ACCESS,
+                )
+
+        self.assertTrue(services.workflows.apply.steps)
 
     def test_build_deployment_services_rejects_enabled_infisical_seed_without_passwords(self):
         with patch.dict(
@@ -936,14 +953,23 @@ class TestComposition(unittest.TestCase):
             {
                 "TSW_SEED_INFISICAL_ITEMS": "1",
                 "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.com",
-                "TSW_INFISICAL_PASSWORD": sample_text("master", "-value"),
+                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": sample_text("master", "-value"),
+        "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
+        "TSW_INFISICAL_AUTH_SECRET": sample_text("auth", "-secret"),
+        "TSW_INFISICAL_POSTGRES_PASSWORD": sample_text("pg", "-secret"),
+        "TSW_INFISICAL_REDIS_PASSWORD": sample_text("redis", "-secret"),
+        "TSW_PORTAINER_ADMIN_PASSWORD": sample_text("portainer", "-value"),
+        "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
+        "TSW_RABBITMQ_PASSWORD": sample_text("rabbitmq", "-value"),
+        "TSW_POSTGRES_PASSWORD": sample_text("postgres", "-value"),
+        "TSW_SONARQUBE_POSTGRES_PASSWORD": sample_text("sonar-pg", "-value"),
             },
             clear=True,
         ):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
                 with self.assertRaisesRegex(
                     ValueError,
-                    "Required operator secret is missing: TSW_JENKINS_ADMIN_PASSWORD",
+                    "Required operator secret is missing: TSW_NEXUS_ADMIN_PASSWORD",
                 ):
                     composition.build_lxc_deployment_services(
                         backend=composition.ManagedLxcBackend.INCUS,

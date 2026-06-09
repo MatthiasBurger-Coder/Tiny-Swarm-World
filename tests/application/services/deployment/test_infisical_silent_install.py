@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
 from tiny_swarm_world.application.ports.clients.port_infisical_cli import InfisicalCliResult
 from tiny_swarm_world.domain.inventory import VerificationStatus
@@ -43,7 +44,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
 
         rendered = service.render_environment()
 
-        self.assertEqual("http://localhost:8080", rendered["SITE_URL"])
+        self.assertEqual("http://localhost:8086", rendered["SITE_URL"])
         self.assertEqual("enc", rendered["ENCRYPTION_KEY"])
         self.assertIn("postgres://infisical:pg@", rendered["DB_CONNECTION_URI"])
 
@@ -52,13 +53,13 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             {
                 "ENCRYPTION_KEY": "enc",
                 "AUTH_SECRET": "auth",
-                "SITE_URL": "http://localhost:8080",
+                "SITE_URL": "http://localhost:8086",
             }
         )
 
         self.assertEqual("<redacted>", redacted["ENCRYPTION_KEY"])
         self.assertEqual("<redacted>", redacted["AUTH_SECRET"])
-        self.assertEqual("http://localhost:8080", redacted["SITE_URL"])
+        self.assertEqual("http://localhost:8086", redacted["SITE_URL"])
 
     def test_builds_idempotent_bootstrap_command_and_sanitized_command(self):
         service = _service()
@@ -76,7 +77,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             service = _service(
                 cli=_FakeCli(available=False),
                 evidence_dir=Path(directory) / "evidence",
-                secret_file=Path(directory) / "secrets" / "infisical.local.env",
+                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
             )
 
             with self.assertRaises(InfisicalInstallBlocker) as raised:
@@ -94,7 +95,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
                 service_running=True,
                 http_ready=False,
                 evidence_dir=Path(directory) / "evidence",
-                secret_file=Path(directory) / "secrets" / "infisical.local.env",
+                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
             )
 
             with self.assertRaises(InfisicalInstallBlocker) as raised:
@@ -110,7 +111,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             service = _service(
                 cli=_FakeCli(result=InfisicalCliResult(0, "Already bootstrapped", "")),
                 evidence_dir=Path(directory) / "evidence",
-                secret_file=Path(directory) / "secrets" / "infisical.local.env",
+                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
             )
 
             service.run()
@@ -128,14 +129,14 @@ def _service(
     *,
     cli: "_FakeCli | None" = None,
     evidence_dir: Path = Path(".tiny-swarm/evidence/infisical"),
-    secret_file: Path = Path(".tiny-swarm/secrets/infisical.local.env"),
+    secret_file: Path = Path(".tiny-swarm/secrets/bootstrap.local.env"),
     service_running: bool = True,
     http_ready: bool = True,
-) -> EnsureInfisicalSilentInstall:
+) -> Any:
     return EnsureInfisicalSilentInstall(
         cli=cli or _FakeCli(),
         config=InfisicalSilentInstallConfig(
-            external_url="http://localhost:8080",
+            external_url="http://localhost:8086",
             internal_url="http://infisical:8080",
             admin_email="admin@tiny-swarm.local",
             admin_first_name="Tiny",

@@ -12,7 +12,6 @@ from __future__ import annotations
 import json
 import os
 import ssl
-import time
 import unittest
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -109,7 +108,7 @@ class LivePostInstallConfig:
             infisical_email=_env_optional(local_env, "TSW_INFISICAL_LOGIN_EMAIL"),
             infisical_password=_env_optional(
                 local_env,
-                "TSW_INFISICAL_PASSWORD",
+                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD",
             ),
             timeout_seconds=float(os.environ.get("TSW_POST_INSTALL_BROWSER_TIMEOUT", "45")),
         )
@@ -342,7 +341,7 @@ def _http_head_or_get(
 ) -> tuple[int, str]:
     request = Request(url, method="HEAD")
     context = ssl._create_unverified_context() if url.startswith("https://") else None
-    handlers = []
+    handlers: list[Any] = []
     if not follow_redirects:
         handlers.append(_NoRedirectHandler)
     if context is not None:
@@ -374,7 +373,7 @@ def _missing_infisical_login_material(
     if not config.infisical_email:
         missing.append("TSW_INFISICAL_LOGIN_EMAIL")
     if not config.infisical_password:
-        missing.append("TSW_INFISICAL_PASSWORD")
+        missing.append("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD")
     return tuple(missing)
 
 

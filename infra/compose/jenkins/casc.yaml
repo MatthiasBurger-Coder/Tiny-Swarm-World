@@ -4,7 +4,7 @@ jenkins:
       allowsSignup: false
       users:
         - id: "admin"
-          password: "adminPassword123"
+          password: "${TSW_JENKINS_ADMIN_PASSWORD}"
   authorizationStrategy:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false

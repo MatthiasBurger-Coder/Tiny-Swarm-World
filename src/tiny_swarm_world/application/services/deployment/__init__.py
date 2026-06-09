@@ -8,6 +8,13 @@ import path remains as a compatibility facade.
 from tiny_swarm_world.application.services.deployment.ensure_external_swarm_secret import (
     EnsureExternalSwarmSecret,
 )
+from tiny_swarm_world.application.services.deployment.ensure_infisical_bootstrap import (
+    EnsureInfisicalBootstrap,
+)
+from tiny_swarm_world.application.services.deployment.ensure_infisical_secret_items import (
+    EnsureInfisicalSecretItems,
+    InfisicalSecretItem,
+)
 from tiny_swarm_world.application.services.deployment.ensure_nexus_stack import EnsureNexusStack
 from tiny_swarm_world.application.services.deployment.ensure_portainer_admin_access import (
     EnsurePortainerAdminAccess,
@@ -18,18 +25,21 @@ from tiny_swarm_world.application.services.deployment.ensure_portainer_endpoint 
 from tiny_swarm_world.application.services.deployment.ensure_portainer_stack import EnsurePortainerStack
 from tiny_swarm_world.application.services.deployment.ensure_service_stack import EnsureServiceStack
 from tiny_swarm_world.application.services.deployment.ensure_swarm_stack import EnsureSwarmStack
-from tiny_swarm_world.application.services.deployment.ensure_infisical_bootstrap import (
-    EnsureInfisicalBootstrap,
-)
 from tiny_swarm_world.application.services.deployment.infisical_silent_install import (
     EnsureInfisicalSilentInstall,
     InfisicalInstallBlocker,
     InfisicalSilentInstallConfig,
     redact_mapping,
 )
-from tiny_swarm_world.application.services.deployment.ensure_infisical_secret_items import (
-    EnsureInfisicalSecretItems,
-    InfisicalSecretItem,
+from tiny_swarm_world.application.services.deployment.secret_management import (
+    InfisicalBootstrapStep,
+    InfisicalSecretSyncStep,
+    SecretConsumptionVerifier,
+    SecretDiscoveryStep,
+    SecretEvidenceWriter,
+    SecretManagementBlocker,
+    SecretManifestRenderer,
+    SecretRedactor,
 )
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
     build_default_service_stack_steps,
@@ -57,20 +67,28 @@ __all__ = [
     "DeploymentWorkflowResult",
     "DeploymentWorkflowStatus",
     "EnsureExternalSwarmSecret",
+    "EnsureInfisicalBootstrap",
+    "EnsureInfisicalSecretItems",
+    "EnsureInfisicalSilentInstall",
     "EnsureNexusStack",
     "EnsurePortainerAdminAccess",
     "EnsurePortainerEndpoint",
     "EnsurePortainerStack",
     "EnsureServiceStack",
     "EnsureSwarmStack",
-    "EnsureInfisicalBootstrap",
-    "EnsureInfisicalSilentInstall",
+    "InfisicalBootstrapStep",
     "InfisicalInstallBlocker",
+    "InfisicalSecretItem",
+    "InfisicalSecretSyncStep",
     "InfisicalSilentInstallConfig",
-    "EnsureInfisicalSecretItems",
+    "SecretConsumptionVerifier",
+    "SecretDiscoveryStep",
+    "SecretEvidenceWriter",
+    "SecretManagementBlocker",
+    "SecretManifestRenderer",
+    "SecretRedactor",
     "VerifyExternalSwarmInput",
     "VerifySwarmServiceReadiness",
-    "InfisicalSecretItem",
-    "redact_mapping",
     "build_default_service_stack_steps",
+    "redact_mapping",
 ]

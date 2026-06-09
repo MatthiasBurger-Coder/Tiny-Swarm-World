@@ -747,7 +747,7 @@ Required execution sequence:
 ```bash
 python3 tools/install_debugger.py
 export TSW_INFISICAL_LOGIN_EMAIL="admin@example.com"
-export TSW_INFISICAL_PASSWORD="<infisical-master-password>"
+export TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD="<infisical-master-password>"
 export TSW_SEED_INFISICAL_ITEMS=1
 ./install.sh --confirm-reset
 python3 tools/quality_gate.py test
@@ -763,7 +763,7 @@ Operator note:
 - The live browser/Infisical test reads Infisical login material from the
   ignored `.tiny-swarm-world/local/live-installation.env` file or from the
   explicit `TSW_INFISICAL_LOGIN_EMAIL` and
-  `TSW_INFISICAL_PASSWORD` environment variables.
+  `TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD` environment variables.
 - Infisical secret-item seeding is optional and intentionally gated by
   `TSW_SEED_INFISICAL_ITEMS=1`. When enabled, the deployment flow creates
   missing secret items for `platform/jenkins`, `platform/nexus`,

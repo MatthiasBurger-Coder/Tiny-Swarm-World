@@ -50,7 +50,7 @@ class TestServiceStackContract(unittest.TestCase):
             tuple(endpoint.url for endpoint in selected_by_name["service-access"].endpoints),
         )
         self.assertEqual(
-            ("https://localhost",),
+            ("http://localhost:8086",),
             tuple(endpoint.url for endpoint in selected_by_name["infisical"].endpoints),
         )
 
@@ -79,7 +79,7 @@ class TestServiceStackContract(unittest.TestCase):
             ("http://localhost",),
             _endpoint_urls(endpoints_by_stack["service-access"]),
         )
-        self.assertEqual(("https://localhost",), _endpoint_urls(endpoints_by_stack["infisical"]))
+        self.assertEqual(("http://localhost:8086",), _endpoint_urls(endpoints_by_stack["infisical"]))
         all_endpoints = tuple(
             endpoint
             for endpoints in endpoints_by_stack.values()
@@ -158,9 +158,9 @@ class TestServiceStackContract(unittest.TestCase):
             ServiceEndpoint("service", f"http://{ipv4_address(10, 157, 2, 182)}:8080")
 
     def test_accepts_localhost_https_endpoint_url(self):
-        endpoint = ServiceEndpoint("infisical", "https://localhost")
+        endpoint = ServiceEndpoint("infisical", "http://localhost:8086")
 
-        self.assertEqual("https://localhost", endpoint.url)
+        self.assertEqual("http://localhost:8086", endpoint.url)
 
     def test_rejects_endpoint_with_credentials_or_query(self):
         with self.assertRaises(ValueError):

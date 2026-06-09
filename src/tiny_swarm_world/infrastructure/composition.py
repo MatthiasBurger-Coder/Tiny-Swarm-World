@@ -40,7 +40,13 @@ from tiny_swarm_world.application.services.deployment import (
     EnsureSwarmStack,
     VerifySwarmServiceReadiness,
     InfisicalSecretItem,
+    InfisicalSecretSyncStep,
+    SecretConsumptionVerifier,
+    SecretDiscoveryStep,
+    SecretEvidenceWriter,
+    SecretManifestRenderer,
 )
+from tiny_swarm_world.application.services.deployment.workflows import DeploymentApplyStep
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
     DEFAULT_PORTAINER_ENDPOINT_NAME,
     build_service_stack_steps,
@@ -54,9 +60,6 @@ from tiny_swarm_world.application.ports.node_provider import (
     PortLxcProxyDeviceRuntime,
 )
 from tiny_swarm_world.application.ports.progress import PortWorkflowProgress
-from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
-    PortSwarmStackRuntime,
-)
 from tiny_swarm_world.application.ports.ui.port_ui import (
     AGGREGATE_INSTANCE,
     STATUS_ERROR,
@@ -187,7 +190,7 @@ DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
 SEED_INFISICAL_ITEMS_ENVIRONMENT = "TSW_SEED_INFISICAL_ITEMS"
 INFISICAL_LOGIN_EMAIL_ENVIRONMENT = "TSW_INFISICAL_LOGIN_EMAIL"
-INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_PASSWORD"
+INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"
 INFISICAL_URL_ENVIRONMENT = "TSW_INFISICAL_URL"
 INFISICAL_INTERNAL_URL_ENVIRONMENT = "TSW_INFISICAL_INTERNAL_URL"
 INFISICAL_ORGANIZATION_ENVIRONMENT = "TSW_INFISICAL_ORGANIZATION"
@@ -1203,12 +1206,13 @@ def build_lxc_deployment_services(
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
     swarm_runtime = LxcSwarmRuntime(backend=backend)
     stack_environment = _deployment_stack_environment(selected_service_profile)
+    secret_manifest_entries = SecretManifestRenderer().run()
     compose_repository = ComposeFileRepositoryYaml()
     portainer_admin_client = LxcPortainerAdminClient(backend=backend)
     portainer_client = LxcPortainerHttpClient(
         backend=backend,
         username="admin",
-        password=_operator_secret_value("TSW_PORTAINER_PASSWORD"),
+        password=_operator_secret_value("TSW_PORTAINER_ADMIN_PASSWORD"),
     )
     stack_steps = {
         contract.stack_name: EnsureSwarmStack(
@@ -1224,7 +1228,7 @@ def build_lxc_deployment_services(
         EnsurePortainerAdminAccess(
             portainer_admin_client=portainer_admin_client,
             username="admin",
-            password=_operator_secret_value("TSW_PORTAINER_PASSWORD"),
+            password=_operator_secret_value("TSW_PORTAINER_ADMIN_PASSWORD"),
             max_attempts=60,
             wait_seconds=5,
             ui=ui,
@@ -1243,7 +1247,32 @@ def build_lxc_deployment_services(
         excluded_stack_names=("nexus",),
         stack_environments=stack_environment,
     )
-    infisical_bootstrap_steps = _infisical_bootstrap_steps(selected_service_profile)
+    infisical_cli_client = InfisicalCliClient()
+    infisical_bootstrap_steps = _infisical_bootstrap_steps(
+        selected_service_profile,
+        cli=infisical_cli_client,
+    )
+    secret_discovery_step = SecretDiscoveryStep(manifest_entries=secret_manifest_entries)
+    infisical_secret_sync_step = InfisicalSecretSyncStep(
+        cli=infisical_cli_client,
+        manifest_entries=secret_manifest_entries,
+    )
+    secret_consumption_step = SecretConsumptionVerifier(
+        manifest_entries=secret_manifest_entries,
+        stack_environment=stack_environment,
+    )
+    secret_evidence_step = SecretEvidenceWriter(
+        discovery=secret_discovery_step,
+        sync=infisical_secret_sync_step,
+        consumption=secret_consumption_step,
+    )
+    infisical_secret_management_steps = (
+        secret_discovery_step,
+        *infisical_bootstrap_steps,
+        infisical_secret_sync_step,
+        secret_consumption_step,
+        secret_evidence_step,
+    )
     infisical_seed_steps = _infisical_secret_seed_steps(selected_service_profile)
     readiness_checks = tuple(
         VerifySwarmServiceReadiness(
@@ -1261,9 +1290,12 @@ def build_lxc_deployment_services(
                 kind=DeploymentWorkflowKind.BOOTSTRAP,
             ),
             apply=DeploymentApplyWorkflow(
-                _with_infisical_post_apply_steps(
-                    application_steps,
-                    (*infisical_bootstrap_steps, *infisical_seed_steps),
+                cast(
+                    tuple[DeploymentApplyStep, ...],
+                    _with_infisical_post_apply_steps(
+                        application_steps,
+                        (*infisical_secret_management_steps, *infisical_seed_steps),
+                    ),
                 ),
                 pre_apply_steps=(
                     _PrepareLxcStackAssets(swarm_runtime, "swagger"),
@@ -1705,7 +1737,15 @@ def _deployment_stack_environment(
             JENKINS_IMAGE_ENVIRONMENT: _operator_config_value(
                 JENKINS_IMAGE_ENVIRONMENT,
                 f"{registry_endpoint}/jenkins:latest",
-            )
+            ),
+            "TSW_JENKINS_ADMIN_PASSWORD": _operator_secret_value("TSW_JENKINS_ADMIN_PASSWORD"),
+        },
+        "rabbitmq": {
+            "TSW_RABBITMQ_PASSWORD": _operator_secret_value("TSW_RABBITMQ_PASSWORD"),
+        },
+        "sonarqube": {
+            "TSW_SONARQUBE_POSTGRES_PASSWORD": _operator_secret_value("TSW_SONARQUBE_POSTGRES_PASSWORD"),
+            "TSW_POSTGRES_PASSWORD": _operator_secret_value("TSW_POSTGRES_PASSWORD"),
         }
     }
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
@@ -1727,6 +1767,20 @@ def _deployment_stack_environment(
         ),
         INFISICAL_AUTH_SECRET_ENVIRONMENT: _operator_secret_value(
             INFISICAL_AUTH_SECRET_ENVIRONMENT,
+        ),
+        INFISICAL_LOGIN_EMAIL_ENVIRONMENT: _operator_secret_value(
+            INFISICAL_LOGIN_EMAIL_ENVIRONMENT,
+        ),
+        INFISICAL_PASSWORD_ENVIRONMENT: _operator_secret_value(
+            INFISICAL_PASSWORD_ENVIRONMENT,
+        ),
+        INFISICAL_ADMIN_FIRST_NAME_ENVIRONMENT: _operator_config_value(
+            INFISICAL_ADMIN_FIRST_NAME_ENVIRONMENT,
+            "Tiny",
+        ),
+        INFISICAL_ADMIN_LAST_NAME_ENVIRONMENT: _operator_config_value(
+            INFISICAL_ADMIN_LAST_NAME_ENVIRONMENT,
+            "Admin",
         ),
         INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT: _operator_secret_value(
             INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT,
@@ -1774,16 +1828,18 @@ def _infisical_secret_seed_steps(
 
 def _infisical_bootstrap_steps(
     service_profile: ServiceStackProfile,
+    *,
+    cli: InfisicalCliClient | None = None,
 ) -> tuple[EnsureInfisicalSilentInstall, ...]:
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
         return ()
     return (
         EnsureInfisicalSilentInstall(
-            cli=InfisicalCliClient(),
+            cli=cli or InfisicalCliClient(),
             config=InfisicalSilentInstallConfig(
                 external_url=_operator_config_value(
                     INFISICAL_URL_ENVIRONMENT,
-                    "http://localhost:8080",
+                    "http://localhost:8086",
                 ),
                 internal_url=_operator_config_value(
                     INFISICAL_INTERNAL_URL_ENVIRONMENT,
@@ -1856,7 +1912,7 @@ def _infisical_seed_items() -> tuple[InfisicalSecretItem, ...]:
         InfisicalSecretItem(
             "platform/portainer",
             _operator_config_value("TSW_PORTAINER_USERNAME", "admin"),
-            _required_operator_secret_value("TSW_PORTAINER_PASSWORD"),
+            _required_operator_secret_value("TSW_PORTAINER_ADMIN_PASSWORD"),
         ),
         InfisicalSecretItem(
             "platform/rabbitmq",

@@ -138,7 +138,7 @@ SERVICE_ACCESS_STACK_CONTRACT = ServiceStackContract(
 INFISICAL_STACK_CONTRACT = ServiceStackContract(
     "infisical",
     ("infisical", "infisical-db", "infisical-redis"),
-    endpoints=(ServiceEndpoint("infisical", "http://localhost:8080"),),
+    endpoints=(ServiceEndpoint("infisical", "http://localhost:8086"),),
 )
 
 

@@ -436,6 +436,7 @@ class LxcPortainerHttpClient(PortPortainerClient):
         password: str,
         manager_node: str = "swarm-manager",
         port: int = 9000,
+        api_url: str | None = None,
         session: requests.Session | None = None,
         timeout_seconds: int = 30,
     ):
@@ -444,8 +445,10 @@ class LxcPortainerHttpClient(PortPortainerClient):
         self.password = password
         self.manager_node = manager_node
         self.port = port
+        self.api_url = (api_url or f"http://localhost:{port}").rstrip("/")
         self.session = session
         self.timeout_seconds = timeout_seconds
+        self._cached_client: PortainerHttpClient | None = None
 
     def get_endpoint_id_by_name(self, endpoint_name: str) -> int:
         return self._client().get_endpoint_id_by_name(endpoint_name)
@@ -517,12 +520,14 @@ class LxcPortainerHttpClient(PortPortainerClient):
         return result
 
     def _client(self) -> PortainerHttpClient:
-        return PortainerHttpClient(
-            f"http://{_lxc_manager_ip(self.backend, self.manager_node, self.timeout_seconds)}:{self.port}",
-            self.username,
-            self.password,
-            session=self.session,
-        )
+        if self._cached_client is None:
+            self._cached_client = PortainerHttpClient(
+                self.api_url,
+                self.username,
+                self.password,
+                session=self.session,
+            )
+        return self._cached_client
 
 
 class LxcContainerImagePublisher(PortContainerImagePublisher):

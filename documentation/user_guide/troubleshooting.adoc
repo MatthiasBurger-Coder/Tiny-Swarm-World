@@ -139,7 +139,7 @@ cat "$EVIDENCE_DIR/setup-run.exit"
 Use the concrete run ID printed by the wrapper.
 
 Then verify that the operator-provided `TSW_PORTAINER_USERNAME` and
-`TSW_PORTAINER_PASSWORD` values are the intended values for this local
+`TSW_PORTAINER_ADMIN_PASSWORD` values are the intended values for this local
 installation. Do not paste password values into issue reports, logs, or
 committed documentation.
 
@@ -210,7 +210,7 @@ environment variables where supported:
 [source,bash]
 ----
 TSW_PORTAINER_USERNAME=admin \
-TSW_PORTAINER_PASSWORD='<portainer-password>' \
+TSW_PORTAINER_ADMIN_PASSWORD='<portainer-password>' \
 TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-admin-password>' \
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----

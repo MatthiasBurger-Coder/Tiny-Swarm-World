@@ -128,7 +128,7 @@ class TestPreflightResult(unittest.TestCase):
 
         self.assertEqual(SetupProfile.FULL, manifest.profile)
         self.assertIn("Portainer", manifest.service_names)
-        self.assertIn("TSW_PORTAINER_PASSWORD", first_secret["name"])
+        self.assertIn("TSW_PORTAINER_ADMIN_PASSWORD", first_secret["name"])
         self.assertNotIn("password_value", repr(manifest.to_dict()).lower())
         self.assertTrue(manifest.evidence_root.startswith(".tiny-swarm-world/"))
 
@@ -152,7 +152,7 @@ class TestPreflightResult(unittest.TestCase):
         )
         self.assertEqual(
             (
-                "TSW_PORTAINER_PASSWORD",
+                "TSW_PORTAINER_ADMIN_PASSWORD",
                 "TSW_NEXUS_ADMIN_PASSWORD",
                 "TSW_JENKINS_ADMIN_PASSWORD",
                 "TSW_RABBITMQ_PASSWORD",
@@ -204,7 +204,7 @@ class TestPreflightResult(unittest.TestCase):
         self.assertEqual(
             (
                 "TSW_INFISICAL_LOGIN_EMAIL",
-                "TSW_INFISICAL_PASSWORD",
+                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD",
                 "TSW_INFISICAL_ENCRYPTION_KEY",
                 "TSW_INFISICAL_AUTH_SECRET",
                 "TSW_INFISICAL_POSTGRES_PASSWORD",
@@ -225,7 +225,7 @@ class TestPreflightResult(unittest.TestCase):
         self.assertEqual(
             [
                 "TSW_INFISICAL_LOGIN_EMAIL",
-                "TSW_INFISICAL_PASSWORD",
+                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD",
                 "TSW_INFISICAL_ENCRYPTION_KEY",
                 "TSW_INFISICAL_AUTH_SECRET",
                 "TSW_INFISICAL_POSTGRES_PASSWORD",
@@ -262,7 +262,7 @@ class TestPreflightResult(unittest.TestCase):
                     SetupServiceRequirement(
                         "Portainer",
                         ports=(SetupPortRequirement(9000, "Portainer"),),
-                        secrets=(SetupSecretRequirement("TSW_PORTAINER_PASSWORD", "Portainer"),),
+                        secrets=(SetupSecretRequirement("TSW_PORTAINER_ADMIN_PASSWORD", "Portainer"),),
                     ),
                 ),
                 evidence_root=".tiny-swarm-world/../leak",

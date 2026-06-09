@@ -11,4 +11,4 @@ services:
       password_source: "generated_local_secret"
     endpoint:
       internal_url: "http://infisical:8080"
-      external_url: "http://localhost:8080"
+      external_url: "http://localhost:8086"

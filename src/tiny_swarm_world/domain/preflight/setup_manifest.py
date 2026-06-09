@@ -107,7 +107,7 @@ def default_setup_manifest(
         SetupServiceRequirement(
             name="Portainer",
             ports=(SetupPortRequirement(9000, "Portainer"),),
-            secrets=(SetupSecretRequirement("TSW_PORTAINER_PASSWORD", "Portainer"),),
+            secrets=(SetupSecretRequirement("TSW_PORTAINER_ADMIN_PASSWORD", "Portainer"),),
         ),
         SetupServiceRequirement(
             name="Nexus",
@@ -161,7 +161,7 @@ def default_setup_manifest(
                 ),
                 secrets=(
                     SetupSecretRequirement("TSW_INFISICAL_LOGIN_EMAIL", "Infisical admin login"),
-                    SetupSecretRequirement("TSW_INFISICAL_PASSWORD", "Infisical admin login"),
+                    SetupSecretRequirement("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD", "Infisical admin login"),
                     SetupSecretRequirement("TSW_INFISICAL_ENCRYPTION_KEY", "Infisical"),
                     SetupSecretRequirement("TSW_INFISICAL_AUTH_SECRET", "Infisical"),
                     SetupSecretRequirement("TSW_INFISICAL_POSTGRES_PASSWORD", "Infisical PostgreSQL"),

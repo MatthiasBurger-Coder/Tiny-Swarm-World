@@ -76,7 +76,7 @@ class PostInstallConfig:
             nexus_password=_env_optional(local_env, "TSW_NEXUS_ADMIN_PASSWORD"),
             portainer_url=_env_value(local_env, "TSW_PORTAINER_URL", "http://localhost:9000"),
             portainer_username=_env_value(local_env, "TSW_PORTAINER_USERNAME", "admin"),
-            portainer_password=_env_optional(local_env, "TSW_PORTAINER_PASSWORD"),
+            portainer_password=_env_optional(local_env, "TSW_PORTAINER_ADMIN_PASSWORD"),
             rabbitmq_url=_env_value(local_env, "TSW_RABBITMQ_URL", "http://localhost:15672"),
             rabbitmq_username=_env_value(local_env, "TSW_RABBITMQ_USERNAME", "guest"),
             rabbitmq_password=_env_optional(local_env, "TSW_RABBITMQ_PASSWORD") or "guest",
@@ -211,7 +211,7 @@ class PostInstallBrowserIntegrationTest(unittest.TestCase):
         self.assertIn("docker-hosted", repositories)
 
     def test_portainer_admin_login(self) -> None:
-        self._require_secret(self.config.portainer_password, "TSW_PORTAINER_PASSWORD")
+        self._require_secret(self.config.portainer_password, "TSW_PORTAINER_ADMIN_PASSWORD")
         self._login_with_username_password(
             self.config.portainer_url,
             self.config.portainer_username,
