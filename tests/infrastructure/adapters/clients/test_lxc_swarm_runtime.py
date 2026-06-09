@@ -12,11 +12,14 @@ from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
     LxcContainerRuntime,
+    LxcContainerImagePublisher,
     LxcPortainerAdminClient,
     LxcSwarmRuntime,
+    PublicImagePullRejected,
     _external_overlay_network_names,
     _lxc_manager_ip,
 )
+from tiny_swarm_world.domain.artifacts import ContainerImageContract
 
 
 class TestLxcSwarmRuntime(unittest.TestCase):
@@ -292,6 +295,61 @@ networks:
             ],
             run.call_args.args[0],
         )
+
+    def test_image_publisher_pulls_public_image_without_local_registry_login(self):
+        publisher = LxcContainerImagePublisher(
+            backend=ManagedLxcBackend.LXD,
+            registry_username="admin",
+            registry_password=operator_credential(),
+        )
+        contract = ContainerImageContract(
+            "postgres",
+            "14-alpine",
+            "infisical-postgres",
+            source="pull",
+        )
+
+        with patch.object(
+            publisher,
+            "_run_manager_shell",
+            return_value=subprocess.CompletedProcess([], 0),
+        ) as run_manager_shell:
+            with patch.object(publisher, "_docker_login") as docker_login:
+                publisher.publish_image(contract)
+
+        docker_login.assert_not_called()
+        run_manager_shell.assert_called_once_with(
+            "docker pull postgres:14-alpine",
+            check=False,
+            timeout_seconds=1800,
+        )
+
+    def test_image_publisher_reports_public_image_rate_limit_without_payload(self):
+        publisher = LxcContainerImagePublisher(
+            backend=ManagedLxcBackend.LXD,
+            registry_username="admin",
+            registry_password=operator_credential(),
+        )
+        contract = ContainerImageContract(
+            "redis",
+            "7-alpine",
+            "infisical-redis",
+            source="pull",
+        )
+        rejected = subprocess.CompletedProcess(
+            [],
+            1,
+            stdout="",
+            stderr="toomanyrequests: You have reached your unauthenticated pull rate limit",
+        )
+
+        with patch.object(publisher, "_run_manager_shell", return_value=rejected):
+            with self.assertRaises(PublicImagePullRejected) as raised:
+                publisher.publish_image(contract)
+
+        self.assertEqual("registry_rate_limited", raised.exception.diagnostic)
+        self.assertIn("registry mirror", raised.exception.operator_action)
+        self.assertNotIn("toomanyrequests", str(raised.exception).lower())
 
     def test_portainer_admin_client_raises_typed_rejection_for_failed_init(self):
         session = _FakeSession(

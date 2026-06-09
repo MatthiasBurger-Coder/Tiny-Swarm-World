@@ -15,6 +15,9 @@ class TestContainerImageContract(unittest.TestCase):
                 "jenkins",
                 "service-access-dashboard",
                 "service-access-nginx",
+                "infisical",
+                "infisical-postgres",
+                "infisical-redis",
             ),
             tuple(contracts_by_context),
         )
@@ -25,4 +28,17 @@ class TestContainerImageContract(unittest.TestCase):
         self.assertEqual(
             "127.0.0.1:5000/service-access-nginx:latest",
             contracts_by_context["service-access-nginx"].image_ref,
+        )
+        self.assertEqual("pull", contracts_by_context["infisical"].source)
+        self.assertEqual(
+            "infisical/infisical:latest",
+            contracts_by_context["infisical"].image_ref,
+        )
+        self.assertEqual(
+            "postgres:14-alpine",
+            contracts_by_context["infisical-postgres"].image_ref,
+        )
+        self.assertEqual(
+            "redis:7-alpine",
+            contracts_by_context["infisical-redis"].image_ref,
         )

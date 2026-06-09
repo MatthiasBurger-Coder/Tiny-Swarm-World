@@ -547,6 +547,9 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def publish_image(self, contract: ContainerImageContract) -> None:
+        if contract.source == "pull":
+            self._pull_public_image(contract)
+            return
         context_path = self._context_path(contract)
         remote_context_path = f"{self.remote_image_root}/{contract.build_context}"
         self._transfer_context(context_path, remote_context_path)
@@ -561,13 +564,42 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         )
 
     def image_available(self, contract: ContainerImageContract) -> bool:
-        self._docker_login()
+        if contract.source == "build":
+            self._docker_login()
         result = self._run_manager_shell(
             f"docker pull {shlex.quote(contract.image_ref)}",
             check=False,
             timeout_seconds=self.timeout_seconds,
         )
+        if result.returncode != 0 and _docker_hub_rate_limited(result):
+            raise PublicImagePullRejected(
+                contract.image_ref,
+                diagnostic="registry_rate_limited",
+                operator_action=(
+                    "Configure Docker Hub authentication, an approved registry mirror, "
+                    "or a provider-managed image cache."
+                ),
+            )
         return result.returncode == 0
+
+    def _pull_public_image(self, contract: ContainerImageContract) -> None:
+        result = self._run_manager_shell(
+            f"docker pull {shlex.quote(contract.image_ref)}",
+            check=False,
+            timeout_seconds=self.timeout_seconds,
+        )
+        if result.returncode == 0:
+            return
+        if _docker_hub_rate_limited(result):
+            raise PublicImagePullRejected(
+                contract.image_ref,
+                diagnostic="registry_rate_limited",
+                operator_action=(
+                    "Configure Docker Hub authentication, an approved registry mirror, "
+                    "or a provider-managed image cache."
+                ),
+            )
+        raise RuntimeError("Public container image pull failed.")
 
     def _context_path(self, contract: ContainerImageContract) -> Path:
         contexts = {
@@ -651,6 +683,19 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
                 f"LXC manager image transfer failed with exit code {result.returncode}."
             )
         return result
+
+
+class PublicImagePullRejected(RuntimeError):
+    def __init__(self, image_ref: str, *, diagnostic: str, operator_action: str):
+        super().__init__(f"Public container image pull failed for {image_ref}.")
+        self.image_ref = image_ref
+        self.diagnostic = diagnostic
+        self.operator_action = operator_action
+
+
+def _docker_hub_rate_limited(result: subprocess.CompletedProcess[str]) -> bool:
+    output = f"{result.stdout}\n{result.stderr}".lower()
+    return "pull rate limit" in output or "too many requests" in output
 
 
 def _lxc_manager_ip(

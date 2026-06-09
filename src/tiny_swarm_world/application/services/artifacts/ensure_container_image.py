@@ -75,4 +75,5 @@ def _image_evidence(
         "build_context": contract.build_context,
         "image_ref": contract.image_ref,
         "phase": "verify",
+        "source": contract.source,
     }

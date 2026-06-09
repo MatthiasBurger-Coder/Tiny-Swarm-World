@@ -533,6 +533,9 @@ class TestComposition(unittest.TestCase):
                 "artifacts:jenkins-image",
                 "artifacts:service-access-dashboard-image",
                 "artifacts:service-access-nginx-image",
+                "artifacts:infisical-image",
+                "artifacts:infisical-postgres-image",
+                "artifacts:infisical-redis-image",
             ),
             tuple(step.verification_target_id for step in services.workflows.prepare.steps),
         )
@@ -542,8 +545,8 @@ class TestComposition(unittest.TestCase):
             backend=composition.ManagedLxcBackend.INCUS,
         )
 
-        self.assertEqual(7, len(services.workflows.prepare.steps))
-        self.assertEqual(7, len(services.workflows.verify.checks))
+        self.assertEqual(10, len(services.workflows.prepare.steps))
+        self.assertEqual(10, len(services.workflows.verify.checks))
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
         with patch.dict("os.environ", _required_infisical_bootstrap_env(), clear=True):
@@ -627,7 +630,7 @@ class TestComposition(unittest.TestCase):
             services = composition.build_artifact_services_for_provider()
 
         self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
-        self.assertEqual(7, len(services.workflows.prepare.steps))
+        self.assertEqual(10, len(services.workflows.prepare.steps))
 
     def test_default_provider_deployment_services_use_lxc_clients_when_backend_is_available(self):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
