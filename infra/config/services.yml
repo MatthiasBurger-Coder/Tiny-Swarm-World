@@ -1,0 +1,14 @@
+services:
+  infisical:
+    enabled: true
+    mode: self_hosted
+    bootstrap:
+      enabled: true
+      organization: "Tiny Swarm World"
+      admin_email: "admin@tiny-swarm.local"
+      admin_first_name: "Tiny"
+      admin_last_name: "Admin"
+      password_source: "generated_local_secret"
+    endpoint:
+      internal_url: "http://infisical:8080"
+      external_url: "http://localhost:8080"

@@ -1,0 +1,96 @@
+= Infisical Silent Setup
+
+Tiny Swarm World bootstraps the local self-hosted Infisical instance with the
+official `infisical bootstrap` CLI command. The greenpath must not require the
+first-start setup screen and must not automate browser clicks or write directly
+to the Infisical database.
+
+== Configuration
+
+The local service declaration is in `infra/config/services.yml`:
+
+[source,yaml]
+----
+services:
+  infisical:
+    enabled: true
+    mode: self_hosted
+    bootstrap:
+      enabled: true
+      organization: "Tiny Swarm World"
+      admin_email: "admin@tiny-swarm.local"
+      admin_first_name: "Tiny"
+      admin_last_name: "Admin"
+      password_source: "generated_local_secret"
+    endpoint:
+      internal_url: "http://infisical:8080"
+      external_url: "http://localhost:8080"
+----
+
+== Required Environment
+
+`./install.sh` generates missing values unless `--no-generate-secrets` is used.
+For strict non-generation runs, provide these values through the ignored local
+environment files:
+
+* `TSW_INFISICAL_LOGIN_EMAIL`
+* `TSW_INFISICAL_PASSWORD`
+* `TSW_INFISICAL_ENCRYPTION_KEY`
+* `TSW_INFISICAL_AUTH_SECRET`
+* `TSW_INFISICAL_POSTGRES_PASSWORD`
+* `TSW_INFISICAL_REDIS_PASSWORD`
+
+== Generated Local Files
+
+Infisical secrets are written only to ignored local files:
+
+* `.tiny-swarm-world/local/live-installation.env`
+* `.tiny-swarm/secrets/infisical.local.env`
+
+The Infisical-specific file may contain `ENCRYPTION_KEY`, `AUTH_SECRET`,
+`POSTGRES_PASSWORD`, `REDIS_PASSWORD`, and
+`INITIAL_BOOTSTRAP_ADMIN_PASSWORD`. Do not commit either file.
+
+== Bootstrap Behavior
+
+The installer runs the official CLI bootstrap behavior equivalent to:
+
+[source,bash]
+----
+infisical bootstrap \
+  --domain=http://localhost:8080 \
+  --email=admin@tiny-swarm.local \
+  --password=<redacted> \
+  --organization="Tiny Swarm World" \
+  --ignore-if-bootstrapped
+----
+
+The `--ignore-if-bootstrapped` flag keeps reruns idempotent. If the instance is
+already initialized, the run records `already_bootstrapped` instead of
+recreating users.
+
+== Evidence
+
+Sanitized evidence is written under `.tiny-swarm/evidence/infisical/`:
+
+* `bootstrap-result.json`
+* `healthcheck.log`
+* `install-summary.md`
+
+Evidence redacts passwords, auth secrets, encryption keys, Redis secrets, and
+database connection secrets.
+
+== Reset Behavior
+
+The governed fresh-install reset is still controlled by `./install.sh
+--confirm-reset` or the interactive `RESET_TINY_SWARM_PLATFORM` confirmation.
+Resetting managed platform state may remove containers and volumes, after which
+the next install generates or reuses local ignored secrets and bootstraps
+Infisical again.
+
+== Security Notes
+
+Do not print bootstrap passwords, machine identity tokens, auth secrets,
+encryption keys, or database connection strings. If the Infisical CLI is
+missing, the workflow stops with `infisical_cli_missing`. If Infisical does not
+become ready, it stops with `infisical_readiness_timeout`.

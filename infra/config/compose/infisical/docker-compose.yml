@@ -3,15 +3,13 @@ services:
     image: ${TSW_INFISICAL_IMAGE:-infisical/infisical:latest}
     environment:
       NODE_ENV: production
-      SITE_URL: ${TSW_INFISICAL_SITE_URL:-https://localhost}
+      SITE_URL: ${TSW_INFISICAL_SITE_URL:-http://localhost:8080}
       ENCRYPTION_KEY: ${TSW_INFISICAL_ENCRYPTION_KEY}
       AUTH_SECRET: ${TSW_INFISICAL_AUTH_SECRET}
-      INITIAL_SUPER_ADMIN_EMAIL: ${TSW_INFISICAL_LOGIN_EMAIL}
-      INITIAL_SUPER_ADMIN_PASSWORD: ${TSW_INFISICAL_PASSWORD}
-      INITIAL_SUPER_ADMIN_FIRST_NAME: ${TSW_INFISICAL_ADMIN_FIRST_NAME:-Admin}
-      INITIAL_SUPER_ADMIN_LAST_NAME: ${TSW_INFISICAL_ADMIN_LAST_NAME:-User}
       DB_CONNECTION_URI: postgres://${TSW_INFISICAL_POSTGRES_USER:-infisical}:${TSW_INFISICAL_POSTGRES_PASSWORD}@tasks.infisical-db:5432/${TSW_INFISICAL_POSTGRES_DB:-infisical}
       REDIS_URL: redis://tasks.infisical-redis:6379
+    ports:
+      - "8080:8080"
     volumes:
       - infisical_uploads:/app/infisical/uploads
     networks:

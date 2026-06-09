@@ -21,6 +21,12 @@ from tiny_swarm_world.application.services.deployment.ensure_swarm_stack import 
 from tiny_swarm_world.application.services.deployment.ensure_infisical_bootstrap import (
     EnsureInfisicalBootstrap,
 )
+from tiny_swarm_world.application.services.deployment.infisical_silent_install import (
+    EnsureInfisicalSilentInstall,
+    InfisicalInstallBlocker,
+    InfisicalSilentInstallConfig,
+    redact_mapping,
+)
 from tiny_swarm_world.application.services.deployment.ensure_infisical_secret_items import (
     EnsureInfisicalSecretItems,
     InfisicalSecretItem,
@@ -58,9 +64,13 @@ __all__ = [
     "EnsureServiceStack",
     "EnsureSwarmStack",
     "EnsureInfisicalBootstrap",
+    "EnsureInfisicalSilentInstall",
+    "InfisicalInstallBlocker",
+    "InfisicalSilentInstallConfig",
     "EnsureInfisicalSecretItems",
     "VerifyExternalSwarmInput",
     "VerifySwarmServiceReadiness",
     "InfisicalSecretItem",
+    "redact_mapping",
     "build_default_service_stack_steps",
 ]

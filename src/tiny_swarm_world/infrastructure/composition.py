@@ -32,8 +32,9 @@ from tiny_swarm_world.application.services.deployment import (
     DeploymentWorkflowResult,
     DeploymentWorkflowStatus,
     DeploymentVerifyWorkflow,
-    EnsureInfisicalBootstrap,
+    EnsureInfisicalSilentInstall,
     EnsureInfisicalSecretItems,
+    InfisicalSilentInstallConfig,
     EnsurePortainerEndpoint,
     EnsurePortainerAdminAccess,
     EnsureSwarmStack,
@@ -151,8 +152,8 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
 from tiny_swarm_world.infrastructure.adapters.clients.infisical_playwright_client import (
     PlaywrightInfisicalClient,
 )
-from tiny_swarm_world.infrastructure.adapters.clients.infisical_bootstrap_http_client import (
-    InfisicalBootstrapHttpClient,
+from tiny_swarm_world.infrastructure.adapters.clients.infisical_cli_client import (
+    InfisicalCliClient,
 )
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
@@ -188,16 +189,11 @@ SEED_INFISICAL_ITEMS_ENVIRONMENT = "TSW_SEED_INFISICAL_ITEMS"
 INFISICAL_LOGIN_EMAIL_ENVIRONMENT = "TSW_INFISICAL_LOGIN_EMAIL"
 INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_PASSWORD"
 INFISICAL_URL_ENVIRONMENT = "TSW_INFISICAL_URL"
+INFISICAL_INTERNAL_URL_ENVIRONMENT = "TSW_INFISICAL_INTERNAL_URL"
 INFISICAL_ORGANIZATION_ENVIRONMENT = "TSW_INFISICAL_ORGANIZATION"
 INFISICAL_ADMIN_FIRST_NAME_ENVIRONMENT = "TSW_INFISICAL_ADMIN_FIRST_NAME"
 INFISICAL_ADMIN_LAST_NAME_ENVIRONMENT = "TSW_INFISICAL_ADMIN_LAST_NAME"
 DEFAULT_INFISICAL_ORGANIZATION = "Tiny Swarm World"
-INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT = "TSW_INFISICAL_READINESS_ATTEMPTS"
-INFISICAL_READINESS_INTERVAL_SECONDS_ENVIRONMENT = (
-    "TSW_INFISICAL_READINESS_INTERVAL_SECONDS"
-)
-DEFAULT_INFISICAL_READINESS_ATTEMPTS = 180
-DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS = 5.0
 SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
 DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:5000"
 LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
@@ -209,6 +205,7 @@ SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_NGINX_IMAGE"
 INFISICAL_ENCRYPTION_KEY_ENVIRONMENT = "TSW_INFISICAL_ENCRYPTION_KEY"
 INFISICAL_AUTH_SECRET_ENVIRONMENT = "TSW_INFISICAL_AUTH_SECRET"
 INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_POSTGRES_PASSWORD"
+INFISICAL_REDIS_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_REDIS_PASSWORD"
 REGISTRY_ENDPOINT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*(?::[0-9]{1,5})?$")
 DEFAULT_LXC_PLATFORM_NODES = (
     NodeSpec("swarm-manager", NodeRole.MANAGER, NodeProviderKind.LXC_NATIVE),
@@ -1731,22 +1728,11 @@ def _deployment_stack_environment(
         INFISICAL_AUTH_SECRET_ENVIRONMENT: _operator_secret_value(
             INFISICAL_AUTH_SECRET_ENVIRONMENT,
         ),
-        INFISICAL_LOGIN_EMAIL_ENVIRONMENT: _required_operator_secret_value(
-            INFISICAL_LOGIN_EMAIL_ENVIRONMENT,
-        ),
-        INFISICAL_PASSWORD_ENVIRONMENT: _required_operator_secret_value(
-            INFISICAL_PASSWORD_ENVIRONMENT,
-        ),
-        INFISICAL_ADMIN_FIRST_NAME_ENVIRONMENT: _operator_config_value(
-            INFISICAL_ADMIN_FIRST_NAME_ENVIRONMENT,
-            "Admin",
-        ),
-        INFISICAL_ADMIN_LAST_NAME_ENVIRONMENT: _operator_config_value(
-            INFISICAL_ADMIN_LAST_NAME_ENVIRONMENT,
-            "User",
-        ),
         INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT: _operator_secret_value(
             INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT,
+        ),
+        INFISICAL_REDIS_PASSWORD_ENVIRONMENT: _operator_secret_value(
+            INFISICAL_REDIS_PASSWORD_ENVIRONMENT,
         ),
     }
     return environment
@@ -1788,32 +1774,49 @@ def _infisical_secret_seed_steps(
 
 def _infisical_bootstrap_steps(
     service_profile: ServiceStackProfile,
-) -> tuple[EnsureInfisicalBootstrap, ...]:
+) -> tuple[EnsureInfisicalSilentInstall, ...]:
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
         return ()
     return (
-        EnsureInfisicalBootstrap(
-            infisical_client=InfisicalBootstrapHttpClient(
-                base_url=_operator_config_value(
+        EnsureInfisicalSilentInstall(
+            cli=InfisicalCliClient(),
+            config=InfisicalSilentInstallConfig(
+                external_url=_operator_config_value(
                     INFISICAL_URL_ENVIRONMENT,
-                    "https://localhost",
+                    "http://localhost:8080",
                 ),
-                readiness_attempts=_operator_config_int(
-                    INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT,
-                    DEFAULT_INFISICAL_READINESS_ATTEMPTS,
-                    minimum=1,
+                internal_url=_operator_config_value(
+                    INFISICAL_INTERNAL_URL_ENVIRONMENT,
+                    "http://infisical:8080",
                 ),
-                readiness_interval_seconds=_operator_config_float(
-                    INFISICAL_READINESS_INTERVAL_SECONDS_ENVIRONMENT,
-                    DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS,
-                    minimum=0.0,
+                admin_email=_required_operator_secret_value(
+                    INFISICAL_LOGIN_EMAIL_ENVIRONMENT,
                 ),
-            ),
-            login_email=_required_operator_secret_value(INFISICAL_LOGIN_EMAIL_ENVIRONMENT),
-            password=_required_operator_secret_value(INFISICAL_PASSWORD_ENVIRONMENT),
-            organization=_operator_config_value(
-                INFISICAL_ORGANIZATION_ENVIRONMENT,
-                DEFAULT_INFISICAL_ORGANIZATION,
+                admin_first_name=_operator_config_value(
+                    INFISICAL_ADMIN_FIRST_NAME_ENVIRONMENT,
+                    "Tiny",
+                ),
+                admin_last_name=_operator_config_value(
+                    INFISICAL_ADMIN_LAST_NAME_ENVIRONMENT,
+                    "Admin",
+                ),
+                admin_password=_required_operator_secret_value(
+                    INFISICAL_PASSWORD_ENVIRONMENT,
+                ),
+                organization=_operator_config_value(
+                    INFISICAL_ORGANIZATION_ENVIRONMENT,
+                    DEFAULT_INFISICAL_ORGANIZATION,
+                ),
+                encryption_key=_required_operator_secret_value(
+                    INFISICAL_ENCRYPTION_KEY_ENVIRONMENT,
+                ),
+                auth_secret=_required_operator_secret_value(
+                    INFISICAL_AUTH_SECRET_ENVIRONMENT,
+                ),
+                postgres_password=_required_operator_secret_value(
+                    INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT,
+                ),
+                redis_password=_operator_secret_value(INFISICAL_REDIS_PASSWORD_ENVIRONMENT),
             ),
         ),
     )

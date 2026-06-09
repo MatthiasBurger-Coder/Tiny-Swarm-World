@@ -159,6 +159,11 @@ class TestInstallScript(unittest.TestCase):
             self.assertIn("TSW_INFISICAL_ENCRYPTION_KEY=", secret_content)
             self.assertIn("TSW_INFISICAL_AUTH_SECRET=", secret_content)
             self.assertIn("TSW_INFISICAL_POSTGRES_PASSWORD=", secret_content)
+            infisical_secret_content = (
+                fixture.root / ".tiny-swarm" / "secrets" / "infisical.local.env"
+            ).read_text()
+            self.assertIn("INITIAL_BOOTSTRAP_ADMIN_PASSWORD=", infisical_secret_content)
+            self.assertIn("ENCRYPTION_KEY=", infisical_secret_content)
 
     def test_install_answers_each_recorded_live_consent_once(self):
         with _install_script_fixture() as fixture:
@@ -167,12 +172,12 @@ class TestInstallScript(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertEqual(["y", "y"], fixture.recorded_live_confirmations())
 
-    def test_install_enables_infisical_item_seed_by_default(self):
+    def test_install_disables_infisical_item_seed_by_default(self):
         with _install_script_fixture() as fixture:
             result = fixture.run()
 
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertEqual(["1", "1"], fixture.recorded_seed_flags())
+            self.assertEqual(["0", "0"], fixture.recorded_seed_flags())
 
 
 class _InstallScriptFixture:
@@ -296,6 +301,7 @@ def _required_secret_environment() -> dict[str, str]:
         "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
         "TSW_INFISICAL_AUTH_SECRET": "infisical-auth-secret",
         "TSW_INFISICAL_POSTGRES_PASSWORD": "infisical-postgres-password",
+        "TSW_INFISICAL_REDIS_PASSWORD": "infisical-redis-password",
     }
 
 
