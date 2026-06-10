@@ -1,5 +1,7 @@
 import unittest
 
+import requests
+
 from tiny_swarm_world.infrastructure.adapters.clients.sonarqube_http_client import (
     SonarqubeHttpClient,
 )
@@ -35,15 +37,39 @@ class TestSonarqubeHttpClient(unittest.TestCase):
         with self.assertRaises(ValueError):
             SonarqubeHttpClient("http://admin:secret@localhost:9001")
 
+    def test_redacts_authentication_transport_failures(self):
+        session = _FakeSession(authentication_error=True)
+        client = SonarqubeHttpClient("http://localhost:9001", session=session)
+
+        with self.assertRaisesRegex(RuntimeError, "redacted output"):
+            client.can_authenticate("admin", "configured")
+
+    def test_unavailable_status_endpoint_is_not_ready(self):
+        session = _FakeSession(status_error=True)
+        client = SonarqubeHttpClient("http://localhost:9001", session=session)
+
+        self.assertFalse(client.is_available())
+
 
 class _FakeSession:
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        authentication_error: bool = False,
+        status_error: bool = False,
+    ):
+        self.authentication_error = authentication_error
+        self.status_error = status_error
         self.post_calls: list[dict[str, object]] = []
 
     def get(self, url: str, **kwargs):
         if url.endswith("/api/system/status"):
+            if self.status_error:
+                raise requests.ConnectionError("reset")
             return _FakeResponse(200, {"status": "UP"})
         if url.endswith("/api/authentication/validate"):
+            if self.authentication_error:
+                raise requests.ConnectionError("reset")
             return _FakeResponse(200, {"valid": kwargs["auth"] == ("admin", "configured")})
         raise AssertionError(url)
 

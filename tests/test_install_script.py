@@ -165,6 +165,16 @@ class TestInstallScript(unittest.TestCase):
             self.assertIn("INITIAL_BOOTSTRAP_ADMIN_PASSWORD=", infisical_secret_content)
             self.assertIn("ENCRYPTION_KEY=", infisical_secret_content)
 
+    def test_install_writes_default_traefik_tls_secret_names(self):
+        with _install_script_fixture() as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            secret_file = fixture.root / ".tiny-swarm-world" / "local" / "live-installation.env"
+            secret_content = secret_file.read_text()
+            self.assertIn("TSW_TRAEFIK_TLS_CERT_SECRET_NAME='tsw_traefik_tls_cert'", secret_content)
+            self.assertIn("TSW_TRAEFIK_TLS_KEY_SECRET_NAME='tsw_traefik_tls_key'", secret_content)
+
     def test_install_answers_each_recorded_live_consent_once(self):
         with _install_script_fixture() as fixture:
             result = fixture.run()
@@ -307,7 +317,11 @@ def _required_secret_environment() -> dict[str, str]:
 
 
 def _install_secret_environment_names() -> tuple[str, ...]:
-    return tuple(_required_secret_environment())
+    return (
+        *tuple(_required_secret_environment()),
+        "TSW_TRAEFIK_TLS_CERT_SECRET_NAME",
+        "TSW_TRAEFIK_TLS_KEY_SECRET_NAME",
+    )
 
 
 def _write_executable(path: Path, content: str) -> None:

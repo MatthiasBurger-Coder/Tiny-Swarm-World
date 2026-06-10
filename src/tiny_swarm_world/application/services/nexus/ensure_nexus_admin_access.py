@@ -60,13 +60,40 @@ class EnsureNexusAdminAccess:
             raise
 
     def _run(self) -> None:
-        if self.nexus_client.can_authenticate(self.admin_username, self.admin_password):
+        if self._can_authenticate_with_retry(self.admin_password):
             self.logger.info("Nexus admin credentials are already active.")
             return
 
         container_name = self._resolve_container_name()
         initial_password = self._read_initial_password(container_name)
 
+        last_exception: Exception | None = None
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                self._rotate_admin_password(initial_password)
+                if self._can_authenticate_with_retry(self.admin_password):
+                    return
+                last_exception = None
+            except RuntimeError as exc:
+                last_exception = exc
+
+            if attempt < self.max_attempts:
+                self.logger.info(
+                    "Nexus admin access rotation is not ready yet. "
+                    f"Waiting {self.wait_seconds} seconds before attempt {attempt + 1}."
+                )
+                time.sleep(self.wait_seconds)
+
+        raise NexusAdminAccessRecoveryBlocked(
+            "Nexus admin password rotation completed without producing valid credentials.",
+            diagnostic="rotated_credentials_inactive",
+            operator_action=(
+                "Check configured Nexus admin access value or reset existing "
+                "Nexus state before rerunning setup."
+            ),
+        ) from last_exception
+
+    def _rotate_admin_password(self, initial_password: str) -> None:
         admin_user = self.nexus_client.get_user(
             self.admin_username,
             initial_password,
@@ -88,15 +115,17 @@ class EnsureNexusAdminAccess:
             self.admin_password,
         )
 
-        if not self.nexus_client.can_authenticate(self.admin_username, self.admin_password):
-            raise NexusAdminAccessRecoveryBlocked(
-                "Nexus admin password rotation completed without producing valid credentials.",
-                diagnostic="rotated_credentials_inactive",
-                operator_action=(
-                    "Check configured Nexus admin access value or reset existing "
-                    "Nexus state before rerunning setup."
-                ),
-            )
+    def _can_authenticate_with_retry(self, password: str) -> bool:
+        for attempt in range(1, self.max_attempts + 1):
+            if self.nexus_client.can_authenticate(self.admin_username, password):
+                return True
+            if attempt < self.max_attempts:
+                self.logger.info(
+                    "Nexus admin credentials are not active yet. "
+                    f"Waiting {self.wait_seconds} seconds before attempt {attempt + 1}."
+                )
+                time.sleep(self.wait_seconds)
+        return False
 
     def _resolve_container_name(self) -> str:
         for attempt in range(1, self.max_attempts + 1):

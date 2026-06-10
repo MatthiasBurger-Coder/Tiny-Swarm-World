@@ -36,6 +36,18 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             step.run()
 
+    def test_retries_transient_authentication_transport_failures(self):
+        client = _FakeSonarqubeClient(
+            configured_valid=False,
+            initial_valid=True,
+            transient_auth_failures=1,
+        )
+        step = _step(client)
+
+        step.run()
+
+        self.assertEqual([("admin", "admin", "configured")], client.changed_passwords)
+
 
 def _step(client: "_FakeSonarqubeClient") -> EnsureSonarqubeAdminAccess:
     return EnsureSonarqubeAdminAccess(
@@ -47,15 +59,25 @@ def _step(client: "_FakeSonarqubeClient") -> EnsureSonarqubeAdminAccess:
 
 
 class _FakeSonarqubeClient(PortSonarqubeClient):
-    def __init__(self, *, configured_valid: bool, initial_valid: bool):
+    def __init__(
+        self,
+        *,
+        configured_valid: bool,
+        initial_valid: bool,
+        transient_auth_failures: int = 0,
+    ):
         self.configured_valid = configured_valid
         self.initial_valid = initial_valid
+        self.transient_auth_failures = transient_auth_failures
         self.changed_passwords: list[tuple[str, str, str]] = []
 
     def is_available(self) -> bool:
         return True
 
     def can_authenticate(self, username: str, password: str) -> bool:
+        if self.transient_auth_failures:
+            self.transient_auth_failures -= 1
+            raise RuntimeError("redacted transient auth failure")
         if password == "configured":
             return self.configured_valid
         if password == "admin":

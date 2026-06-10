@@ -221,17 +221,24 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             repository_root / "infra" / "config" / "compose" / "sonarqube" / "docker-compose.yml"
         )
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
+        entrypoint = compose_data["services"]["sonarqube"]["entrypoint"]
         command = compose_data["services"]["sonarqube"]["command"]
 
-        self.assertEqual(("bash", "-lc"), tuple(command[:2]))
+        self.assertEqual(("bash", "-lc"), tuple(entrypoint))
         self.assertEqual(
             "jdbc:postgresql://tasks.sonar_db:5432/sonar",
             compose_data["services"]["sonarqube"]["environment"]["SONAR_JDBC_URL"],
         )
-        self.assertIn("/dev/tcp/tasks.sonar_db/5432", command[2])
-        self.assertIn("/opt/sonarqube/docker/entrypoint.sh", command[2])
+        self.assertIn("/dev/tcp/tasks.sonar_db/5432", command[0])
+        self.assertIn("/opt/sonarqube/docker/entrypoint.sh", command[0])
+        self.assertIn("sonarqube_internal", compose_data["services"]["sonarqube"]["networks"])
+        self.assertIn("sonarqube_internal", compose_data["services"]["sonar_db"]["networks"])
+        self.assertEqual(
+            {"driver": "overlay"},
+            compose_data["networks"]["sonarqube_internal"],
+        )
 
-    def test_committed_sonarqube_compose_uses_active_lta_image(self):
+    def test_committed_sonarqube_compose_uses_available_community_image(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = (
             repository_root / "infra" / "config" / "compose" / "sonarqube" / "docker-compose.yml"
@@ -239,7 +246,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
 
         self.assertEqual(
-            "sonarqube:2026-lta-community",
+            "sonarqube:26.6.0.123539-community",
             compose_data["services"]["sonarqube"]["image"],
         )
         self.assertNotEqual(

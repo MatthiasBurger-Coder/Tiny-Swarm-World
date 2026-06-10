@@ -1,5 +1,7 @@
 import unittest
 
+import requests
+
 from tests.support.sonar_safe_literals import sample_text, sample_url
 
 from tiny_swarm_world.domain.nexus.nexus_user import NexusUser
@@ -36,6 +38,18 @@ class TestNexusHttpClient(unittest.TestCase):
         )
         self.assertEqual(("admin", OPERATOR_CREDENTIAL), session.get_calls[1]["auth"])
 
+    def test_status_and_authentication_handle_transport_failures(self):
+        session = _FakeSession(
+            get_responses=[
+                requests.ConnectionError("connection reset"),
+                requests.Timeout("timeout"),
+            ],
+        )
+        client = NexusHttpClient("http://nexus.local", session=session)
+
+        self.assertFalse(client.is_available())
+        self.assertFalse(client.can_authenticate("admin", OPERATOR_CREDENTIAL))
+
     def test_user_and_password_operations_are_sanitized_http_calls(self):
         session = _FakeSession(
             get_responses=[
@@ -67,6 +81,17 @@ class TestNexusHttpClient(unittest.TestCase):
         self.assertEqual("active", session.put_calls[0]["json"]["status"])
         self.assertEqual(OPERATOR_CREDENTIAL, session.put_calls[1]["data"])
         self.assertEqual({"enabled": False}, session.put_calls[2]["json"])
+
+    def test_user_operations_redact_transport_failure_details(self):
+        leaked_value = sample_text("token", "=hidden")
+        session = _FakeSession(get_responses=[requests.ConnectionError(leaked_value)])
+        client = NexusHttpClient("http://nexus.local", session=session)
+
+        with self.assertRaises(RuntimeError) as raised:
+            client.get_user("admin", INITIAL_CREDENTIAL, "admin")
+
+        self.assertNotIn(leaked_value, str(raised.exception))
+        self.assertNotIn(INITIAL_CREDENTIAL, str(raised.exception))
 
     def test_repository_exists_reads_repository_listing(self):
         session = _FakeSession(
@@ -169,9 +194,9 @@ class _FakeResponse:
 class _FakeSession:
     def __init__(
         self,
-        get_responses: list[_FakeResponse] | None = None,
-        put_responses: list[_FakeResponse] | None = None,
-        post_responses: list[_FakeResponse] | None = None,
+        get_responses: list[_FakeResponse | requests.RequestException] | None = None,
+        put_responses: list[_FakeResponse | requests.RequestException] | None = None,
+        post_responses: list[_FakeResponse | requests.RequestException] | None = None,
     ):
         self.get_responses = list(get_responses or [])
         self.put_responses = list(put_responses or [])
@@ -182,12 +207,18 @@ class _FakeSession:
 
     def get(self, url: str, **kwargs: object) -> _FakeResponse:
         self.get_calls.append({"url": url, **kwargs})
-        return self.get_responses.pop(0)
+        return _response_or_raise(self.get_responses.pop(0))
 
     def put(self, url: str, **kwargs: object) -> _FakeResponse:
         self.put_calls.append({"url": url, **kwargs})
-        return self.put_responses.pop(0)
+        return _response_or_raise(self.put_responses.pop(0))
 
     def post(self, url: str, **kwargs: object) -> _FakeResponse:
         self.post_calls.append({"url": url, **kwargs})
-        return self.post_responses.pop(0)
+        return _response_or_raise(self.post_responses.pop(0))
+
+
+def _response_or_raise(response: _FakeResponse | requests.RequestException) -> _FakeResponse:
+    if isinstance(response, requests.RequestException):
+        raise response
+    return response

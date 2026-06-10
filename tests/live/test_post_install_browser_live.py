@@ -27,7 +27,6 @@ from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_ope
 
 from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
-    service_stack_contracts_for_profile,
 )
 from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
 
@@ -173,7 +172,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
     def test_live_service_checks_are_safe_localhost_urls(self) -> None:
         checks = _service_checks("http://localhost")
 
-        self.assertGreaterEqual(len(checks), 14)
+        self.assertGreaterEqual(len(checks), 8)
         for check in checks:
             with self.subTest(service=check.name):
                 parsed = urlparse(check.url)
@@ -183,6 +182,14 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
                 self.assertFalse(parsed.password)
                 self.assertFalse(parsed.query)
                 self.assertFalse(parsed.fragment)
+
+    def test_live_service_checks_do_not_require_direct_service_ports(self) -> None:
+        checks = _service_checks("http://localhost")
+        checked_services = {check.name for check in checks}
+
+        self.assertNotIn("nexus", checked_services)
+        self.assertNotIn("nexus-docker-registry", checked_services)
+        self.assertTrue(all(urlparse(check.url).port in {None, 80} for check in checks))
 
     def test_live_service_checks_use_explicit_browser_status_allowlists(self) -> None:
         checks = _service_checks("http://localhost")
@@ -525,19 +532,9 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
 
 def _service_checks(dashboard_url: str) -> tuple[ServiceCheck, ...]:
     safe_dashboard_url = _validated_local_url(dashboard_url, "dashboard")
-    checks: list[ServiceCheck] = []
-    for contract in service_stack_contracts_for_profile(ServiceStackProfile.SERVICE_ACCESS):
-        for endpoint in contract.endpoints:
-            url = endpoint.url
-            if endpoint.name == "nexus-docker-registry":
-                url = url.rstrip("/") + "/v2/"
-            checks.append(
-                ServiceCheck(
-                    endpoint.name,
-                    _validated_local_url(url, "service"),
-                    allowed_statuses=SERVICE_ALLOWED_STATUSES.get(endpoint.name, (200,)),
-                )
-            )
+    checks: list[ServiceCheck] = [
+        ServiceCheck("service-access", safe_dashboard_url),
+    ]
 
     for route_name, route_path in _dashboard_references(SERVICE_ACCESS_DASHBOARD).routes:
         allowed_statuses = (

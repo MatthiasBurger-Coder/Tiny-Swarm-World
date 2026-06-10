@@ -47,10 +47,10 @@ class EnsureSonarqubeAdminAccess:
 
     def run(self) -> None:
         self._wait_until_available()
-        if self.sonarqube_client.can_authenticate(self.username, self.password):
+        if self._can_authenticate_with_retry(self.password):
             self._status = "already_configured"
             return
-        if not self.sonarqube_client.can_authenticate(self.username, self.initial_password):
+        if not self._can_authenticate_with_retry(self.initial_password):
             self._status = "blocked"
             raise RuntimeError("SonarQube admin access is unavailable.")
         self.sonarqube_client.change_password(
@@ -61,7 +61,7 @@ class EnsureSonarqubeAdminAccess:
         self._status = "rotated"
 
     def verify(self) -> VerificationResult:
-        configured = self.sonarqube_client.can_authenticate(self.username, self.password)
+        configured = self._can_authenticate_with_retry(self.password)
         return VerificationResult(
             target_id=self.verification_target_id,
             status=VerificationStatus.VERIFIED if configured else VerificationStatus.BLOCKED,
@@ -81,6 +81,20 @@ class EnsureSonarqubeAdminAccess:
                 time.sleep(self.wait_seconds)
         self._status = "blocked"
         raise RuntimeError("SonarQube did not become available.")
+
+    def _can_authenticate_with_retry(self, password: str) -> bool:
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                return self.sonarqube_client.can_authenticate(self.username, password)
+            except RuntimeError:
+                if attempt < self.max_attempts:
+                    time.sleep(self.wait_seconds)
+                    continue
+                self._status = "blocked"
+                raise RuntimeError(
+                    "SonarQube admin access check failed with redacted output."
+                )
+        return False
 
 
 @dataclass(frozen=True)

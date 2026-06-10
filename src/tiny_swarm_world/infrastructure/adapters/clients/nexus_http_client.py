@@ -16,23 +16,32 @@ class NexusHttpClient(PortNexusClient):
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def is_available(self) -> bool:
-        response = self.session.get(f"{self.base_url}/service/rest/v1/status", timeout=30)
+        try:
+            response = self.session.get(f"{self.base_url}/service/rest/v1/status", timeout=30)
+        except requests.RequestException:
+            return False
         return response.status_code == 200
 
     def can_authenticate(self, username: str, password: str) -> bool:
-        response = self.session.get(
-            f"{self.base_url}/service/rest/v1/security/users",
-            auth=(username, password),
-            timeout=30,
-        )
+        try:
+            response = self.session.get(
+                f"{self.base_url}/service/rest/v1/security/users",
+                auth=(username, password),
+                timeout=30,
+            )
+        except requests.RequestException:
+            return False
         return response.status_code == 200
 
     def get_user(self, username: str, password: str, target_user_id: str) -> NexusUser:
-        response = self.session.get(
-            f"{self.base_url}/service/rest/v1/security/users",
-            auth=(username, password),
-            timeout=30,
-        )
+        try:
+            response = self.session.get(
+                f"{self.base_url}/service/rest/v1/security/users",
+                auth=(username, password),
+                timeout=30,
+            )
+        except requests.RequestException as exc:
+            raise RuntimeError("Failed to get Nexus users with redacted output.") from exc
         self._ensure_success(response, "get Nexus users")
 
         for user in response.json():
@@ -42,22 +51,30 @@ class NexusHttpClient(PortNexusClient):
         raise RuntimeError(f"Nexus user '{target_user_id}' was not found.")
 
     def update_user(self, username: str, password: str, user: NexusUser) -> None:
-        response = self.session.put(
-            f"{self.base_url}/service/rest/v1/security/users/{user.userId}",
-            auth=(username, password),
-            json=user.model_dump(exclude_none=True),
-            timeout=30,
-        )
+        try:
+            response = self.session.put(
+                f"{self.base_url}/service/rest/v1/security/users/{user.userId}",
+                auth=(username, password),
+                json=user.model_dump(exclude_none=True),
+                timeout=30,
+            )
+        except requests.RequestException as exc:
+            raise RuntimeError(f"Failed to update Nexus user '{user.userId}' with redacted output.") from exc
         self._ensure_success(response, f"update Nexus user '{user.userId}'")
 
     def change_password(self, username: str, password: str, target_user_id: str, new_password: str) -> None:
-        response = self.session.put(
-            f"{self.base_url}/service/rest/v1/security/users/{target_user_id}/change-password",
-            auth=(username, password),
-            data=new_password,
-            headers={"Content-Type": "text/plain"},
-            timeout=30,
-        )
+        try:
+            response = self.session.put(
+                f"{self.base_url}/service/rest/v1/security/users/{target_user_id}/change-password",
+                auth=(username, password),
+                data=new_password,
+                headers={"Content-Type": "text/plain"},
+                timeout=30,
+            )
+        except requests.RequestException as exc:
+            raise RuntimeError(
+                f"Failed to change password for Nexus user '{target_user_id}' with redacted output."
+            ) from exc
         self._ensure_success(response, f"change password for Nexus user '{target_user_id}'")
 
     def set_anonymous_access(self, username: str, password: str, enabled: bool) -> None:

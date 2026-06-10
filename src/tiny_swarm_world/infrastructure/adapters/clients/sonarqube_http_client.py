@@ -18,18 +18,26 @@ class SonarqubeHttpClient(PortSonarqubeClient):
         self.session = session or requests.Session()
 
     def is_available(self) -> bool:
-        response = self.session.get(f"{self.base_url}/api/system/status", timeout=30)
+        try:
+            response = self.session.get(f"{self.base_url}/api/system/status", timeout=30)
+        except requests.RequestException:
+            return False
         if response.status_code != 200:
             return False
         payload = response.json()
         return isinstance(payload, dict) and payload.get("status") == "UP"
 
     def can_authenticate(self, username: str, password: str) -> bool:
-        response = self.session.get(
-            f"{self.base_url}/api/authentication/validate",
-            auth=(username, password),
-            timeout=30,
-        )
+        try:
+            response = self.session.get(
+                f"{self.base_url}/api/authentication/validate",
+                auth=(username, password),
+                timeout=30,
+            )
+        except requests.RequestException as exc:
+            raise RuntimeError(
+                "SonarQube authentication check failed with redacted output."
+            ) from exc
         if response.status_code != 200:
             return False
         payload = response.json()
@@ -41,15 +49,20 @@ class SonarqubeHttpClient(PortSonarqubeClient):
         current_password: str,
         new_password: str,
     ) -> None:
-        response = self.session.post(
-            f"{self.base_url}/api/users/change_password",
-            auth=(username, current_password),
-            data={
-                "login": username,
-                "previousPassword": current_password,
-                "password": new_password,
-            },
-            timeout=30,
-        )
+        try:
+            response = self.session.post(
+                f"{self.base_url}/api/users/change_password",
+                auth=(username, current_password),
+                data={
+                    "login": username,
+                    "previousPassword": current_password,
+                    "password": new_password,
+                },
+                timeout=30,
+            )
+        except requests.RequestException as exc:
+            raise RuntimeError(
+                "SonarQube admin password rotation failed with redacted output."
+            ) from exc
         if response.status_code >= 400:
             raise RuntimeError("SonarQube admin password rotation failed with redacted output.")

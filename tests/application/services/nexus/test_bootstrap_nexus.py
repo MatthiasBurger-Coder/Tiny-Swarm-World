@@ -88,7 +88,7 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
     @patch("tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access.time.sleep")
     def test_activates_admin_and_rotates_password(self, _mock_sleep):
         nexus_client = MagicMock()
-        nexus_client.can_authenticate.side_effect = [False, True]
+        nexus_client.can_authenticate.side_effect = [False, False, True]
         nexus_client.get_user.return_value = NexusUser(userId="admin", status="disabled", roles=["nx-admin"])
         container_runtime = MagicMock()
         container_runtime.find_container_names.return_value = ["nexus-app-1"]
@@ -113,6 +113,36 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
         nexus_client.change_password.assert_called_once_with("admin", initial_value, "admin", active_value)
         updated_user = nexus_client.update_user.call_args.args[2]
         self.assertEqual(updated_user.status, "active")
+
+    @patch("tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access.time.sleep")
+    def test_retries_transient_admin_rotation_failures(self, _mock_sleep):
+        nexus_client = MagicMock()
+        nexus_client.can_authenticate.side_effect = [False, False, True]
+        nexus_client.get_user.side_effect = [
+            RuntimeError("temporary Nexus API failure"),
+            NexusUser(userId="admin", status="active", roles=["nx-admin"]),
+        ]
+        container_runtime = MagicMock()
+        container_runtime.find_container_names.return_value = ["nexus-app-1"]
+        container_runtime.file_exists.return_value = True
+        initial_value = sample_text("initial", "-", "pass", "word")
+        active_value = sample_text("se", "cret")
+        container_runtime.read_file.return_value = initial_value
+
+        service = EnsureNexusAdminAccess(
+            nexus_client=nexus_client,
+            container_runtime=container_runtime,
+            admin_username="admin",
+            admin_password=active_value,
+            container_name_filter="nexus",
+            initial_password_path="/nexus-data/admin.password",
+            max_attempts=2,
+            wait_seconds=1,
+        )
+        service.run()
+
+        self.assertEqual(2, nexus_client.get_user.call_count)
+        nexus_client.change_password.assert_called_once_with("admin", initial_value, "admin", active_value)
 
     def test_verify_reports_active_credentials_with_safe_evidence(self):
         nexus_client = MagicMock()

@@ -135,6 +135,28 @@ write_infisical_secret_file() {
   chmod 600 "$INFISICAL_SECRET_ENV_FILE"
 }
 
+ensure_default_config_exports() {
+  local updated=0
+
+  if [[ -z "${TSW_TRAEFIK_TLS_CERT_SECRET_NAME:-}" ]]; then
+    TSW_TRAEFIK_TLS_CERT_SECRET_NAME="tsw_traefik_tls_cert"
+    updated=1
+  fi
+  if [[ -z "${TSW_TRAEFIK_TLS_KEY_SECRET_NAME:-}" ]]; then
+    TSW_TRAEFIK_TLS_KEY_SECRET_NAME="tsw_traefik_tls_key"
+    updated=1
+  fi
+
+  if (( updated == 1 )); then
+    {
+      printf '\n# Default non-secret config values written by install.sh at %s UTC\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      write_export TSW_TRAEFIK_TLS_CERT_SECRET_NAME "$TSW_TRAEFIK_TLS_CERT_SECRET_NAME"
+      write_export TSW_TRAEFIK_TLS_KEY_SECRET_NAME "$TSW_TRAEFIK_TLS_KEY_SECRET_NAME"
+    } >>"$SECRET_ENV_FILE"
+    chmod 600 "$SECRET_ENV_FILE"
+  fi
+}
+
 write_context() {
   local evidence_dir="$1"
   local run_id="$2"
@@ -266,9 +288,13 @@ if (( ${#missing_secrets[@]} > 0 )); then
   load_secret_env_file
 fi
 
+ensure_default_config_exports
+
 for secret_name in "${REQUIRED_SECRETS[@]}"; do
   export "$secret_name=${!secret_name}"
 done
+export TSW_TRAEFIK_TLS_CERT_SECRET_NAME
+export TSW_TRAEFIK_TLS_KEY_SECRET_NAME
 write_infisical_secret_file
 if [[ -z "${TSW_SEED_INFISICAL_ITEMS:-}" ]]; then
   TSW_SEED_INFISICAL_ITEMS=0
