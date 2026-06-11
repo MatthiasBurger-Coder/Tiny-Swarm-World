@@ -161,6 +161,10 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             ["jenkins_home:/var/lib/jenkins"],
             compose_data["services"]["jenkins"]["volumes"],
         )
+        self.assertEqual(
+            {"TSW_JENKINS_ADMIN_PASSWORD": "${TSW_JENKINS_ADMIN_PASSWORD}"},
+            compose_data["services"]["jenkins"]["environment"],
+        )
         self.assertNotIn("secrets", compose_data)
 
     def test_committed_rabbitmq_compose_keeps_host_ports_on_manager_gateway(self):
@@ -190,8 +194,8 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
         yaml = YAML(typ="safe")
         compose_data = yaml.load(compose_content)
 
-        self.assertIn("image: docker.swagger.io/swaggerapi/swagger-editor:v5.6.2-unprivileged", compose_content)
-        self.assertIn("image: docker.swagger.io/swaggerapi/swagger-ui:v5.32.6", compose_content)
+        self.assertIn("image: swaggerapi/swagger-editor:v5.6.2-unprivileged", compose_content)
+        self.assertIn("image: swaggerapi/swagger-ui:v5.32.6", compose_content)
         self.assertIn("image: nginx:mainline-alpine", compose_content)
         self.assertEqual(
             [{"target": 80, "published": 8082, "protocol": "tcp", "mode": "host"}],
@@ -458,14 +462,16 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             "service-access-dashboard": (
                 repository_root / "infra" / "compose" / "service-access" / "dashboard" / "Dockerfile",
                 "COPY index.html /usr/share/nginx/html/index.html",
+                "FROM nginx:mainline-alpine",
             ),
             "service-access-nginx": (
                 repository_root / "infra" / "compose" / "service-access" / "nginx" / "Dockerfile",
                 "COPY default.conf /etc/nginx/conf.d/default.conf",
+                "FROM nginx:mainline",
             ),
         }
 
-        for service_name, (dockerfile_path, copy_line) in packaged_services.items():
+        for service_name, (dockerfile_path, copy_line, base_image_line) in packaged_services.items():
             with self.subTest(service_name=service_name):
                 service = compose_data["services"][service_name]
                 self.assertIn("image", service)
@@ -475,10 +481,10 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
                 self.assertNotIn("secrets", service)
                 self.assertTrue(dockerfile_path.is_file())
                 dockerfile = dockerfile_path.read_text(encoding="utf-8")
-                self.assertIn("FROM nginx:mainline-alpine", dockerfile)
+                self.assertIn(base_image_line, dockerfile)
                 self.assertIn(copy_line, dockerfile)
                 if service_name == "service-access-nginx":
-                    self.assertIn("apk add --no-cache openssl", dockerfile)
+                    self.assertNotIn("apk add --no-cache openssl", dockerfile)
                     self.assertIn("generate-self-signed-cert.sh", dockerfile)
 
     def test_service_access_image_publisher_packages_dashboard_and_nginx_assets(self):

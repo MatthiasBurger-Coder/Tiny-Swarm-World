@@ -554,6 +554,24 @@ networks:
         self.assertIs(first, second)
         self.assertEqual("http://localhost:9000", first.base_url)
 
+    def test_lxc_portainer_client_passes_stack_request_timeout_to_delegate(self):
+        from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
+            LxcPortainerHttpClient,
+        )
+
+        client = LxcPortainerHttpClient(
+            backend=ManagedLxcBackend.LXD,
+            username="admin",
+            password=operator_credential(),
+            timeout_seconds=17,
+            stack_request_timeout_seconds=181,
+        )
+
+        delegate = client._client()
+
+        self.assertEqual(17, delegate.request_timeout_seconds)
+        self.assertEqual(181, delegate.stack_request_timeout_seconds)
+
 
 class _FakeResponse:
     def __init__(self, status_code: int, payload: object):

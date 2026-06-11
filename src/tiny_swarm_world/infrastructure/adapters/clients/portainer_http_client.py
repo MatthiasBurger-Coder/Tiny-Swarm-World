@@ -15,15 +15,23 @@ class PortainerHttpClient(PortPortainerClient):
         username: str,
         password: str,
         session: requests.Session | None = None,
+        request_timeout_seconds: int = 30,
+        stack_request_timeout_seconds: int = 180,
     ):
         parsed_base_url = urlparse(base_url)
         if parsed_base_url.username or parsed_base_url.password:
             raise ValueError("Portainer base URL must not contain credentials")
+        if request_timeout_seconds <= 0:
+            raise ValueError("Portainer request timeout must be positive")
+        if stack_request_timeout_seconds <= 0:
+            raise ValueError("Portainer stack request timeout must be positive")
 
         self.base_url = base_url.rstrip("/")
         self.username = username
         self.password = password
         self.session = session or requests.Session()
+        self.request_timeout_seconds = request_timeout_seconds
+        self.stack_request_timeout_seconds = stack_request_timeout_seconds
         self.logger = LoggerFactory.get_logger(self.__class__)
         self._jwt_token: str | None = None
 
@@ -81,12 +89,14 @@ class PortainerHttpClient(PortPortainerClient):
         response = self._send(
             "POST",
             f"/api/stacks/create/swarm/string?endpointId={endpoint_id}",
+            timeout=self.stack_request_timeout_seconds,
             json=payload,
         )
         if response.status_code in {404, 405}:
             response = self._send(
                 "POST",
                 "/api/stacks",
+                timeout=self.stack_request_timeout_seconds,
                 json={**payload, "endpointId": endpoint_id},
             )
 
@@ -102,6 +112,7 @@ class PortainerHttpClient(PortPortainerClient):
         response = self._send(
             "PUT",
             f"/api/stacks/{stack_id}?endpointId={endpoint_id}",
+            timeout=self.stack_request_timeout_seconds,
             json={
                 "env": _portainer_environment(stack_environment),
                 "prune": True,
@@ -131,12 +142,25 @@ class PortainerHttpClient(PortPortainerClient):
 
     def _send(self, method: str, path: str, **kwargs) -> requests.Response:
         headers = kwargs.pop("headers", {})
+        timeout_seconds = kwargs.pop("timeout", self.request_timeout_seconds)
+        headers["Authorization"] = f"Bearer {self._get_jwt_token()}"
+        response = self.session.request(
+            method,
+            f"{self.base_url}{path}",
+            headers=dict(headers),
+            timeout=timeout_seconds,
+            **kwargs,
+        )
+        if response.status_code != 401:
+            return response
+
+        self._jwt_token = None
         headers["Authorization"] = f"Bearer {self._get_jwt_token()}"
         return self.session.request(
             method,
             f"{self.base_url}{path}",
-            headers=headers,
-            timeout=30,
+            headers=dict(headers),
+            timeout=timeout_seconds,
             **kwargs,
         )
 
@@ -147,7 +171,7 @@ class PortainerHttpClient(PortPortainerClient):
         response = self.session.post(
             f"{self.base_url}/api/auth",
             json={"Username": self.username, "Password": self.password},
-            timeout=30,
+            timeout=self.request_timeout_seconds,
         )
         self._ensure_success(response, "authenticate against Portainer")
 

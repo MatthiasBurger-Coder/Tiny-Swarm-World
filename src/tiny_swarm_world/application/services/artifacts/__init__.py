@@ -12,8 +12,10 @@ from tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access impor
 )
 from tiny_swarm_world.application.services.nexus.ensure_nexus_repository import (
     EnsureNexusDockerHostedRepository,
+    EnsureNexusDockerProxyRepository,
     EnsureNexusMavenProxyRepository,
     NexusDockerHostedRepositoryConfiguration,
+    NexusDockerProxyRepositoryConfiguration,
     NexusMavenProxyRepositoryConfiguration,
 )
 from tiny_swarm_world.application.services.nexus.nexus_bootstrap_configuration import (
@@ -45,8 +47,10 @@ __all__ = [
     "EnsureContainerImage",
     "EnsureNexusAdminAccess",
     "EnsureNexusDockerHostedRepository",
+    "EnsureNexusDockerProxyRepository",
     "EnsureNexusMavenProxyRepository",
     "NexusDockerHostedRepositoryConfiguration",
+    "NexusDockerProxyRepositoryConfiguration",
     "NexusBootstrapConfiguration",
     "NexusMavenProxyRepositoryConfiguration",
     "WaitForNexusReady",

@@ -145,6 +145,32 @@ class TestNexusHttpClient(unittest.TestCase):
         self.assertEqual(5000, request["json"]["docker"]["httpPort"])
         self.assertEqual("ALLOW", request["json"]["storage"]["writePolicy"])
 
+    def test_create_docker_proxy_repository_uses_repository_contract_payload(self):
+        session = _FakeSession(post_responses=[_FakeResponse(201, {})])
+        client = NexusHttpClient("http://nexus.local", session=session)
+
+        client.create_docker_proxy_repository(
+            "admin",
+            OPERATOR_CREDENTIAL,
+            "docker-hub-proxy",
+            5001,
+            "https://registry-1.docker.io",
+        )
+
+        request = session.post_calls[0]
+        self.assertEqual(
+            "http://nexus.local/service/rest/v1/repositories/docker/proxy",
+            request["url"],
+        )
+        self.assertEqual("docker-hub-proxy", request["json"]["name"])
+        self.assertEqual(5001, request["json"]["docker"]["httpPort"])
+        self.assertFalse(request["json"]["docker"]["forceBasicAuth"])
+        self.assertEqual(
+            "https://registry-1.docker.io",
+            request["json"]["proxy"]["remoteUrl"],
+        )
+        self.assertEqual("HUB", request["json"]["dockerProxy"]["indexType"])
+
     def test_create_maven_proxy_repository_uses_repository_contract_payload(self):
         session = _FakeSession(post_responses=[_FakeResponse(201, {})])
         client = NexusHttpClient("http://nexus.local", session=session)

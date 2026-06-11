@@ -419,6 +419,22 @@ class LxcNexusHttpClient(PortNexusClient):
             http_port,
         )
 
+    def create_docker_proxy_repository(
+        self,
+        username: str,
+        password: str,
+        repository_name: str,
+        http_port: int,
+        remote_url: str,
+    ) -> None:
+        self._client().create_docker_proxy_repository(
+            username,
+            password,
+            repository_name,
+            http_port,
+            remote_url,
+        )
+
     def create_maven_proxy_repository(
         self,
         username: str,
@@ -447,7 +463,10 @@ class LxcPortainerHttpClient(PortPortainerClient):
         api_url: str | None = None,
         session: requests.Session | None = None,
         timeout_seconds: int = 30,
+        stack_request_timeout_seconds: int = 180,
     ):
+        if stack_request_timeout_seconds <= 0:
+            raise ValueError("Portainer stack request timeout must be positive.")
         self.backend = backend
         self.username = username
         self.password = password
@@ -456,6 +475,7 @@ class LxcPortainerHttpClient(PortPortainerClient):
         self.api_url = (api_url or f"http://localhost:{port}").rstrip("/")
         self.session = session
         self.timeout_seconds = timeout_seconds
+        self.stack_request_timeout_seconds = stack_request_timeout_seconds
         self._cached_client: PortainerHttpClient | None = None
 
     def get_endpoint_id_by_name(self, endpoint_name: str) -> int:
@@ -534,6 +554,8 @@ class LxcPortainerHttpClient(PortPortainerClient):
                 self.username,
                 self.password,
                 session=self.session,
+                request_timeout_seconds=self.timeout_seconds,
+                stack_request_timeout_seconds=self.stack_request_timeout_seconds,
             )
         return self._cached_client
 

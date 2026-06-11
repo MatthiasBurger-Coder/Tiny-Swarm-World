@@ -47,7 +47,7 @@ class EnsureSonarqubeAdminAccess:
 
     def run(self) -> None:
         self._wait_until_available()
-        if self._can_authenticate_with_retry(self.password):
+        if self._can_authenticate_once(self.password):
             self._status = "already_configured"
             return
         if not self._can_authenticate_with_retry(self.initial_password):
@@ -82,10 +82,16 @@ class EnsureSonarqubeAdminAccess:
         self._status = "blocked"
         raise RuntimeError("SonarQube did not become available.")
 
+    def _can_authenticate_once(self, password: str) -> bool:
+        try:
+            return self.sonarqube_client.can_authenticate(self.username, password)
+        except RuntimeError:
+            return False
+
     def _can_authenticate_with_retry(self, password: str) -> bool:
         for attempt in range(1, self.max_attempts + 1):
             try:
-                return self.sonarqube_client.can_authenticate(self.username, password)
+                authenticated = self.sonarqube_client.can_authenticate(self.username, password)
             except RuntimeError:
                 if attempt < self.max_attempts:
                     time.sleep(self.wait_seconds)
@@ -94,6 +100,10 @@ class EnsureSonarqubeAdminAccess:
                 raise RuntimeError(
                     "SonarQube admin access check failed with redacted output."
                 )
+            if authenticated:
+                return True
+            if attempt < self.max_attempts:
+                time.sleep(self.wait_seconds)
         return False
 
 

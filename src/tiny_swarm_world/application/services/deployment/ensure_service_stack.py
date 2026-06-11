@@ -48,20 +48,28 @@ class EnsureServiceStack:
 
         if stack_id is None:
             self.logger.info("Creating Portainer-managed stack '%s'.", stack_definition.name)
-            self.portainer_client.create_stack(
+            try:
+                self.portainer_client.create_stack(
+                    stack_definition,
+                    endpoint_id,
+                    self.stack_environment,
+                )
+            except Exception:
+                if not await self._stack_is_registered_after_apply_error():
+                    raise
+            return
+
+        self.logger.info("Updating Portainer-managed stack '%s'.", stack_definition.name)
+        try:
+            self.portainer_client.update_stack(
+                stack_id,
                 stack_definition,
                 endpoint_id,
                 self.stack_environment,
             )
-            return
-
-        self.logger.info("Updating Portainer-managed stack '%s'.", stack_definition.name)
-        self.portainer_client.update_stack(
-            stack_id,
-            stack_definition,
-            endpoint_id,
-            self.stack_environment,
-        )
+        except Exception:
+            if not await self._stack_is_registered_after_apply_error():
+                raise
 
     async def verify(self) -> VerificationResult:
         last_exception: Exception | None = None
@@ -115,6 +123,10 @@ class EnsureServiceStack:
                 verify_attempt=self.verify_attempts,
             ),
         )
+
+    async def _stack_is_registered_after_apply_error(self) -> bool:
+        verification = await self.verify()
+        return verification.status == VerificationStatus.VERIFIED
 
 
 def _stack_registration_evidence(

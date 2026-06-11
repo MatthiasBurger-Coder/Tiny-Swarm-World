@@ -22,8 +22,10 @@ from tiny_swarm_world.application.services.artifacts import (
     EnsureContainerImage,
     EnsureNexusAdminAccess,
     EnsureNexusDockerHostedRepository,
+    EnsureNexusDockerProxyRepository,
     EnsureNexusMavenProxyRepository,
     NexusDockerHostedRepositoryConfiguration,
+    NexusDockerProxyRepositoryConfiguration,
     NexusMavenProxyRepositoryConfiguration,
     WaitForNexusReady,
 )
@@ -97,7 +99,7 @@ from tiny_swarm_world.application.services.setup import (
     SetupWorkflowPhase,
     SetupWorkflowResult,
 )
-from tiny_swarm_world.domain.artifacts import DEFAULT_CONTAINER_IMAGE_CONTRACTS
+from tiny_swarm_world.domain.artifacts import DEFAULT_CONTAINER_IMAGE_CONTRACTS, ContainerImageContract
 from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
     service_stack_contracts_for_profile,
@@ -196,6 +198,8 @@ from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
+PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT = "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS"
+DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS = 180
 SEED_INFISICAL_ITEMS_ENVIRONMENT = "TSW_SEED_INFISICAL_ITEMS"
 INFISICAL_LOGIN_EMAIL_ENVIRONMENT = "TSW_INFISICAL_LOGIN_EMAIL"
 INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"
@@ -211,10 +215,20 @@ LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
 DEFAULT_LXC_PROXY_LISTEN_ADDRESS = "0.0.0.0"
 DEFAULT_NEXUS_CACHE_CONTAINER = "tiny-swarm-nexus-cache"
 DEFAULT_NEXUS_CACHE_PROXY_PORT = "5001"
+NEXUS_DOCKER_HUB_PROXY_REPOSITORY_ENVIRONMENT = "TSW_NEXUS_DOCKER_HUB_PROXY_REPOSITORY"
+NEXUS_DOCKER_HUB_PROXY_PORT_ENVIRONMENT = "TSW_NEXUS_DOCKER_HUB_PROXY_PORT"
+NEXUS_DOCKER_HUB_PROXY_REMOTE_URL_ENVIRONMENT = "TSW_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL"
+DEFAULT_NEXUS_DOCKER_HUB_PROXY_REPOSITORY = "docker-hub-proxy"
+DEFAULT_NEXUS_DOCKER_HUB_PROXY_PORT = 5001
+DEFAULT_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL = "https://registry-1.docker.io"
 DEFAULT_LXC_MANAGER_PROXY_PROFILE = "docker-swarm-manager"
+NEXUS_IMAGE_ENVIRONMENT = "TSW_NEXUS_IMAGE"
 JENKINS_IMAGE_ENVIRONMENT = "TSW_JENKINS_IMAGE"
 SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"
 SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_NGINX_IMAGE"
+INFISICAL_IMAGE_ENVIRONMENT = "TSW_INFISICAL_IMAGE"
+INFISICAL_POSTGRES_IMAGE_ENVIRONMENT = "TSW_INFISICAL_POSTGRES_IMAGE"
+INFISICAL_REDIS_IMAGE_ENVIRONMENT = "TSW_INFISICAL_REDIS_IMAGE"
 INFISICAL_ENCRYPTION_KEY_ENVIRONMENT = "TSW_INFISICAL_ENCRYPTION_KEY"
 INFISICAL_AUTH_SECRET_ENVIRONMENT = "TSW_INFISICAL_AUTH_SECRET"
 INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_POSTGRES_PASSWORD"
@@ -1134,6 +1148,16 @@ def build_lxc_artifact_services(
                 admin_password=nexus_admin_password,
             ),
         ),
+        EnsureNexusDockerProxyRepository(
+            nexus_client=nexus_client,
+            configuration=NexusDockerProxyRepositoryConfiguration(
+                repository_name=_nexus_docker_hub_proxy_repository_name(),
+                http_port=_nexus_docker_hub_proxy_port(),
+                remote_url=_nexus_docker_hub_proxy_remote_url(),
+                admin_username="admin",
+                admin_password=nexus_admin_password,
+            ),
+        ),
         EnsureNexusMavenProxyRepository(
             nexus_client=nexus_client,
             configuration=NexusMavenProxyRepositoryConfiguration(
@@ -1146,7 +1170,7 @@ def build_lxc_artifact_services(
     )
     image_steps = tuple(
         EnsureContainerImage(image_publisher, contract)
-        for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS
+        for contract in _container_image_contracts_from_environment()
     )
     checks = cast(
         tuple[ArtifactPrepareStep, ...],
@@ -1223,6 +1247,11 @@ def build_lxc_deployment_services(
         backend=backend,
         username="admin",
         password=_operator_secret_value("TSW_PORTAINER_ADMIN_PASSWORD"),
+        stack_request_timeout_seconds=_operator_config_int(
+            PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT,
+            DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS,
+            minimum=1,
+        ),
     )
     stack_steps = {
         contract.stack_name: EnsureSwarmStack(
@@ -1265,6 +1294,8 @@ def build_lxc_deployment_services(
                 sonarqube_client=SonarqubeHttpClient("http://localhost:9001"),
                 username=_operator_config_value("TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
                 password=lambda: _required_operator_secret_value("TSW_SONARQUBE_ADMIN_PASSWORD"),
+                max_attempts=120,
+                wait_seconds=5,
             ),
         ),
     )
@@ -1823,11 +1854,23 @@ def _operator_config_source_ref(name: str) -> str:
     return "default"
 
 
+def _add_optional_config(environment: dict[str, str], name: str) -> None:
+    value = os.environ.get(name, "").strip()
+    if value:
+        environment[name] = value
+
+
 def _deployment_stack_environment(
     service_profile: ServiceStackProfile,
 ) -> dict[str, dict[str, str]]:
     registry_endpoint = _swarm_registry_endpoint()
     environment = {
+        "nexus": {
+            NEXUS_IMAGE_ENVIRONMENT: _operator_config_value(
+                NEXUS_IMAGE_ENVIRONMENT,
+                "sonatype/nexus3:3.75.1",
+            ),
+        },
         "jenkins": {
             JENKINS_IMAGE_ENVIRONMENT: _operator_config_value(
                 JENKINS_IMAGE_ENVIRONMENT,
@@ -1884,7 +1927,80 @@ def _deployment_stack_environment(
             INFISICAL_REDIS_PASSWORD_ENVIRONMENT,
         ),
     }
+    _add_optional_config(
+        environment["infisical"],
+        INFISICAL_IMAGE_ENVIRONMENT,
+    )
+    _add_optional_config(
+        environment["infisical"],
+        INFISICAL_POSTGRES_IMAGE_ENVIRONMENT,
+    )
+    _add_optional_config(
+        environment["infisical"],
+        INFISICAL_REDIS_IMAGE_ENVIRONMENT,
+    )
     return environment
+
+
+def _container_image_contracts_from_environment() -> tuple[ContainerImageContract, ...]:
+    overrides = {
+        "infisical": INFISICAL_IMAGE_ENVIRONMENT,
+        "infisical-postgres": INFISICAL_POSTGRES_IMAGE_ENVIRONMENT,
+        "infisical-redis": INFISICAL_REDIS_IMAGE_ENVIRONMENT,
+    }
+    contracts = []
+    for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS:
+        env_name = overrides.get(contract.build_context)
+        image_ref = ""
+        if env_name:
+            image_ref = _operator_config_value(env_name, "").strip()
+        if image_ref:
+            image_name, tag = _split_image_ref(image_ref)
+            contracts.append(replace(contract, image_name=image_name, tag=tag))
+            continue
+        contracts.append(contract)
+    return tuple(contracts)
+
+
+def _split_image_ref(image_ref: str) -> tuple[str, str]:
+    if ":" not in image_ref.rsplit("/", 1)[-1]:
+        return image_ref, "latest"
+    image_name, tag = image_ref.rsplit(":", 1)
+    return image_name, tag
+
+
+def _nexus_docker_hub_proxy_repository_name() -> str:
+    repository_name = _operator_config_value(
+        NEXUS_DOCKER_HUB_PROXY_REPOSITORY_ENVIRONMENT,
+        DEFAULT_NEXUS_DOCKER_HUB_PROXY_REPOSITORY,
+    ).strip()
+    if not repository_name:
+        raise ValueError("Nexus Docker Hub proxy repository name must not be empty.")
+    return repository_name
+
+
+def _nexus_docker_hub_proxy_port() -> int:
+    raw_port = _operator_config_value(
+        NEXUS_DOCKER_HUB_PROXY_PORT_ENVIRONMENT,
+        str(DEFAULT_NEXUS_DOCKER_HUB_PROXY_PORT),
+    ).strip()
+    try:
+        port = int(raw_port)
+    except ValueError as exc:
+        raise ValueError("Nexus Docker Hub proxy port must be an integer.") from exc
+    if port <= 0 or port > 65535:
+        raise ValueError("Nexus Docker Hub proxy port must be a valid TCP port.")
+    return port
+
+
+def _nexus_docker_hub_proxy_remote_url() -> str:
+    remote_url = _operator_config_value(
+        NEXUS_DOCKER_HUB_PROXY_REMOTE_URL_ENVIRONMENT,
+        DEFAULT_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL,
+    ).strip()
+    if not remote_url.startswith(("http://", "https://")):
+        raise ValueError("Nexus Docker Hub proxy remote URL must be HTTP or HTTPS.")
+    return remote_url
 
 
 def _swarm_registry_endpoint() -> str:

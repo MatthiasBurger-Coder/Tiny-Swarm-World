@@ -4,6 +4,8 @@ import json
 import os
 import shutil
 import subprocess
+import time
+from collections.abc import Callable
 
 import requests
 
@@ -14,9 +16,22 @@ from tiny_swarm_world.application.ports.clients.port_infisical_cli import (
 
 
 class InfisicalCliClient(PortInfisicalCli):
-    def __init__(self, *, base_url: str | None = None, session: requests.Session | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        base_url: str | None = None,
+        session: requests.Session | None = None,
+        retry_attempts: int = 3,
+        retry_wait_seconds: float = 5.0,
+    ) -> None:
+        if retry_attempts <= 0:
+            raise ValueError("Infisical retry attempts must be positive.")
+        if retry_wait_seconds < 0:
+            raise ValueError("Infisical retry wait seconds must not be negative.")
         self.base_url = (base_url or os.environ.get("TSW_INFISICAL_URL") or "http://localhost:8086").rstrip("/")
         self.session = session or requests.Session()
+        self.retry_attempts = retry_attempts
+        self.retry_wait_seconds = retry_wait_seconds
         self._bootstrap_payload: dict[str, object] = {}
         self._project_ids: dict[str, str] = {}
         self._session_token = ""
@@ -122,15 +137,17 @@ class InfisicalCliClient(PortInfisicalCli):
         raise RuntimeError("Infisical environment ensure failed with redacted output.")
 
     def _request(self, method: str, path: str, **kwargs) -> requests.Response:
-        return self.session.request(
-            method,
-            f"{self.base_url}{path}",
-            headers={
-                "Authorization": f"Bearer {self._access_token()}",
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-            **kwargs,
+        return self._request_with_retry(
+            lambda: self.session.request(
+                method,
+                f"{self.base_url}{path}",
+                headers={
+                    "Authorization": f"Bearer {self._access_token()}",
+                    "Content-Type": "application/json",
+                },
+                timeout=30,
+                **kwargs,
+            )
         )
 
     def _access_token(self) -> str:
@@ -159,11 +176,13 @@ class InfisicalCliClient(PortInfisicalCli):
         password = os.environ.get("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD", "")
         if not email or not password:
             raise RuntimeError("Infisical sync session is unavailable.")
-        response = self.session.post(
-            f"{self.base_url}/api/v3/auth/login",
-            headers={"Content-Type": "application/json"},
-            json={"email": email, "password": password},
-            timeout=30,
+        response = self._request_with_retry(
+            lambda: self.session.post(
+                f"{self.base_url}/api/v3/auth/login",
+                headers={"Content-Type": "application/json"},
+                json={"email": email, "password": password},
+                timeout=30,
+            )
         )
         if response.status_code >= 400:
             raise RuntimeError("Infisical sync session is unavailable.")
@@ -178,21 +197,25 @@ class InfisicalCliClient(PortInfisicalCli):
             "Authorization": f"Bearer {login_token}",
             "Content-Type": "application/json",
         }
-        response = self.session.get(
-            f"{self.base_url}/api/v1/organization",
-            headers=headers,
-            timeout=30,
+        response = self._request_with_retry(
+            lambda: self.session.get(
+                f"{self.base_url}/api/v1/organization",
+                headers=headers,
+                timeout=30,
+            )
         )
         if response.status_code >= 400:
             raise RuntimeError("Infisical sync session is unavailable.")
         organization_id = _first_organization_id(response.json())
         if not organization_id:
             raise RuntimeError("Infisical sync session is unavailable.")
-        response = self.session.post(
-            f"{self.base_url}/api/v3/auth/select-organization",
-            headers=headers,
-            json={"organizationId": organization_id},
-            timeout=30,
+        response = self._request_with_retry(
+            lambda: self.session.post(
+                f"{self.base_url}/api/v3/auth/select-organization",
+                headers=headers,
+                json={"organizationId": organization_id},
+                timeout=30,
+            )
         )
         if response.status_code >= 400:
             raise RuntimeError("Infisical sync session is unavailable.")
@@ -201,6 +224,16 @@ class InfisicalCliClient(PortInfisicalCli):
             raise RuntimeError("Infisical sync session is unavailable.")
         self._session_token = token
         return token
+
+    def _request_with_retry(self, request: Callable[[], requests.Response]) -> requests.Response:
+        for attempt in range(1, self.retry_attempts + 1):
+            try:
+                return request()
+            except requests.RequestException as exc:
+                if attempt >= self.retry_attempts:
+                    raise RuntimeError("Infisical HTTP request failed with redacted output.") from exc
+                time.sleep(self.retry_wait_seconds)
+        raise RuntimeError("Infisical HTTP request failed with redacted output.")
 
 
 def _project_id(payload: object) -> str:

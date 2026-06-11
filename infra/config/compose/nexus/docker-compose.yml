@@ -1,6 +1,6 @@
 services:
   nexus:
-    image: sonatype/nexus3:3.75.1
+    image: ${TSW_NEXUS_IMAGE:-sonatype/nexus3:3.75.1}
     volumes:
       - nexus-data:/nexus-data
     networks:
@@ -12,6 +12,10 @@ services:
         mode: host
       - target: 5000
         published: 5000
+        protocol: tcp
+        mode: host
+      - target: 5001
+        published: 5001
         protocol: tcp
         mode: host
     deploy:

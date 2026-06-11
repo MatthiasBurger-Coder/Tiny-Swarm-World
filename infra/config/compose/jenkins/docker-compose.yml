@@ -2,6 +2,8 @@ services:
   jenkins:
     image: ${TSW_JENKINS_IMAGE:-127.0.0.1:5000/jenkins:latest}
     user: root
+    environment:
+      TSW_JENKINS_ADMIN_PASSWORD: ${TSW_JENKINS_ADMIN_PASSWORD}
     volumes:
       - jenkins_home:/var/lib/jenkins
     networks:
