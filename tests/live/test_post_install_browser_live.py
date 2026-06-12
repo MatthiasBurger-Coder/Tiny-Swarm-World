@@ -219,7 +219,8 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             with self.subTest(service=check.name):
                 parsed = urlparse(check.url)
                 self.assertEqual("https", parsed.scheme)
-                self.assertTrue(parsed.hostname.endswith(".tsw.local"))
+                self.assertIsNotNone(parsed.hostname)
+                self.assertTrue(parsed.hostname and parsed.hostname.endswith(".tsw.local"))
                 self.assertFalse(parsed.username)
                 self.assertFalse(parsed.password)
                 self.assertFalse(parsed.query)

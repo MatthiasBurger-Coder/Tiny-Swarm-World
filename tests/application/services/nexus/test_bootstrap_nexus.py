@@ -111,6 +111,7 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
 
         nexus_client.get_user.assert_called_once_with("admin", initial_value, "admin")
         nexus_client.change_password.assert_called_once_with("admin", initial_value, "admin", active_value)
+        self.assertEqual(3, nexus_client.can_authenticate.call_count)
         updated_user = nexus_client.update_user.call_args.args[2]
         self.assertEqual(updated_user.status, "active")
 

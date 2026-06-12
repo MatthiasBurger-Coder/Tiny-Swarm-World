@@ -48,6 +48,19 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
 
         self.assertEqual([("admin", "admin", "configured")], client.changed_passwords)
 
+    def test_retries_default_admin_false_until_sonarqube_auth_is_ready(self):
+        client = _FakeSonarqubeClient(
+            configured_valid=False,
+            initial_valid=True,
+            initial_false_responses=2,
+        )
+        step = _step(client)
+
+        step.run()
+
+        self.assertEqual([("admin", "admin", "configured")], client.changed_passwords)
+        self.assertEqual(3, client.password_auth_attempts["admin"])
+
 
 def _step(client: "_FakeSonarqubeClient") -> EnsureSonarqubeAdminAccess:
     return EnsureSonarqubeAdminAccess(
@@ -65,22 +78,29 @@ class _FakeSonarqubeClient(PortSonarqubeClient):
         configured_valid: bool,
         initial_valid: bool,
         transient_auth_failures: int = 0,
+        initial_false_responses: int = 0,
     ):
         self.configured_valid = configured_valid
         self.initial_valid = initial_valid
         self.transient_auth_failures = transient_auth_failures
+        self.initial_false_responses = initial_false_responses
         self.changed_passwords: list[tuple[str, str, str]] = []
+        self.password_auth_attempts: dict[str, int] = {}
 
     def is_available(self) -> bool:
         return True
 
     def can_authenticate(self, username: str, password: str) -> bool:
+        self.password_auth_attempts[password] = self.password_auth_attempts.get(password, 0) + 1
         if self.transient_auth_failures:
             self.transient_auth_failures -= 1
             raise RuntimeError("redacted transient auth failure")
         if password == "configured":
             return self.configured_valid
         if password == "admin":
+            if self.initial_false_responses:
+                self.initial_false_responses -= 1
+                return False
             return self.initial_valid
         return False
 

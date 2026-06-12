@@ -61,6 +61,62 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
             portainer_client.created_stacks,
         )
 
+    async def test_treats_create_timeout_as_success_when_stack_registration_is_visible(self):
+        stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
+        compose_repository = _FakeComposeRepository(stack_definition)
+        portainer_client = _FakePortainerClient(
+            stack_ids=[None, 52],
+            create_exception=TimeoutError("Portainer create timed out"),
+        )
+        service = EnsureServiceStack(
+            compose_repository,
+            portainer_client,
+            ServiceStackContract("swagger", ("swagger-ui",)),
+            "local",
+            verify_wait_seconds=0,
+        )
+
+        await service.run()
+
+        self.assertEqual([("swagger", 7, {})], portainer_client.created_stacks)
+
+    async def test_treats_update_timeout_as_success_when_stack_registration_is_visible(self):
+        stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
+        compose_repository = _FakeComposeRepository(stack_definition)
+        portainer_client = _FakePortainerClient(
+            stack_ids=[52, 52],
+            update_exception=TimeoutError("Portainer update timed out"),
+        )
+        service = EnsureServiceStack(
+            compose_repository,
+            portainer_client,
+            ServiceStackContract("swagger", ("swagger-ui",)),
+            "local",
+            verify_wait_seconds=0,
+        )
+
+        await service.run()
+
+        self.assertEqual([(52, "swagger", 7, {})], portainer_client.updated_stacks)
+
+    async def test_keeps_create_timeout_when_stack_registration_is_missing(self):
+        stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
+        compose_repository = _FakeComposeRepository(stack_definition)
+        portainer_client = _FakePortainerClient(
+            stack_ids=[None, None],
+            create_exception=TimeoutError("Portainer create timed out"),
+        )
+        service = EnsureServiceStack(
+            compose_repository,
+            portainer_client,
+            ServiceStackContract("swagger", ("swagger-ui",)),
+            "local",
+            verify_wait_seconds=0,
+        )
+
+        with self.assertRaises(TimeoutError):
+            await service.run()
+
     async def test_verify_reports_registered_stack_without_claiming_readiness(self):
         stack_definition = StackDefinition(name="sonarqube", compose_content="services: {}")
         compose_repository = _FakeComposeRepository(stack_definition)
@@ -174,10 +230,14 @@ class _FakePortainerClient:
         stack_ids: list[int | None] | None = None,
         stack_exception: Exception | None = None,
         stack_exceptions: list[Exception] | None = None,
+        create_exception: Exception | None = None,
+        update_exception: Exception | None = None,
     ):
         self.stack_ids = list(stack_ids or [])
         self.stack_exception = stack_exception
         self.stack_exceptions = list(stack_exceptions or [])
+        self.create_exception = create_exception
+        self.update_exception = update_exception
         self.requested_endpoints: list[str] = []
         self.created_stacks: list[tuple[str, int, dict[str, str]]] = []
         self.updated_stacks: list[tuple[int, str, int, dict[str, str]]] = []
@@ -202,6 +262,8 @@ class _FakePortainerClient:
         stack_environment: dict[str, str] | None = None,
     ) -> None:
         self.created_stacks.append((stack_definition.name, endpoint_id, dict(stack_environment or {})))
+        if self.create_exception is not None:
+            raise self.create_exception
 
     def update_stack(
         self,
@@ -211,3 +273,5 @@ class _FakePortainerClient:
         stack_environment: dict[str, str] | None = None,
     ) -> None:
         self.updated_stacks.append((stack_id, stack_definition.name, endpoint_id, dict(stack_environment or {})))
+        if self.update_exception is not None:
+            raise self.update_exception

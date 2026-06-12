@@ -20,6 +20,49 @@ Optional tools for service preparation:
 * `curl`
 * `jq`
 
+The default `service-access` profile pulls public base images, including the
+Infisical stack image, through the Docker daemon. On native Linux, repeated
+fresh-install runs can hit Docker Hub rate limits. Use Docker Hub
+authentication or start the local host-side Nexus Docker cache before running
+`install.sh`:
+
+[source,bash]
+----
+docker login
+NEXUS_ADMIN_PASSWORD='<local-cache-password>' \
+NEXUS_WEB_PORT=18081 \
+NEXUS_DOCKER_PROXY_PORT=5001 \
+bash tools/live/nexus-docker-cache.sh
+----
+
+When the local cache container `tiny-swarm-nexus-cache` is running, the
+installer detects it and writes the LXC-reachable cache URL into each managed
+node's Docker daemon mirror configuration. The image references stay as normal
+Docker Hub names, for example `infisical/infisical:latest`; Docker redirects
+those pulls through the configured mirror.
+
+The managed Swarm Nexus stack still prepares its own Docker proxy repository
+for repository service behavior. Its defaults are:
+
+[source,bash]
+----
+TSW_NEXUS_DOCKER_HUB_PROXY_REPOSITORY=docker-hub-proxy
+TSW_NEXUS_DOCKER_HUB_PROXY_PORT=5001
+TSW_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL=https://registry-1.docker.io
+----
+
+If Docker Hub already blocks a required image and no local cache is available,
+point the image variables at an approved reachable cache before running
+`install.sh`:
+
+[source,bash]
+----
+export TSW_NEXUS_IMAGE=registry.local:5000/sonatype/nexus3:3.75.1
+export TSW_INFISICAL_IMAGE=registry.local:5000/infisical:latest
+export TSW_INFISICAL_POSTGRES_IMAGE=registry.local:5000/postgres:14-alpine
+export TSW_INFISICAL_REDIS_IMAGE=registry.local:5000/redis:7-alpine
+----
+
 == Python Environment
 
 From the repository root:
@@ -170,6 +213,66 @@ including `reset-run.log`, `reset-run.exit`, `setup-run.log`, and
 It loads or generates local `TSW_*` secrets in
 `.tiny-swarm-world/local/live-installation.env` without printing secret
 values.
+On native Linux, if the runtime Python dependencies from `requirements.txt`
+are not importable, `install.sh` creates an ignored local environment at
+`.tiny-swarm-world/install-venv` and uses its Python interpreter for the reset
+and setup commands. WSL keeps the existing `python3` execution path.
+If native Linux already lists the current user in the `lxd` group but the
+current shell session has not activated that group yet, `install.sh` runs the
+live reset and setup commands through `sg lxd` so LXD socket access works
+without changing the WSL path.
+
+On native Linux, Docker Swarm also requires that the managed LXD containers can
+reach each other on the LXD bridge. If workers can reach the `lxdbr0` gateway
+but cannot ping the manager container or connect to Swarm port `2377`, allow
+bridge-internal forwarding on the host:
+
+[source,bash]
+----
+sudo iptables -I FORWARD 1 -i lxdbr0 -o lxdbr0 -j ACCEPT
+----
+
+Verify the host firewall path before rerunning installation. Replace the
+manager address with the current manager container address from
+`lxc list` or `lxc exec swarm-manager -- hostname -I`:
+
+[source,bash]
+----
+sg lxd -c 'lxc exec swarm-worker-1 -- ping -c 2 <manager-ip>'
+sg lxd -c 'lxc exec swarm-worker-1 -- nc -vz <manager-ip> 2377'
+----
+
+If `ufw` manages the host firewall, persist the bridge route rule with:
+
+[source,bash]
+----
+sudo ufw route allow in on lxdbr0 out on lxdbr0
+sudo ufw reload
+----
+
+On hosts that use persistent iptables rules directly, save the accepted
+FORWARD rule after validating it:
+
+[source,bash]
+----
+sudo apt install iptables-persistent
+sudo netfilter-persistent save
+----
+
+Swarm bootstrap needs container-to-container access for `2377/tcp`, and later
+Swarm traffic uses `7946/tcp`, `7946/udp`, and `4789/udp`. The bridge-internal
+FORWARD rule above allows that managed LXD-node traffic on `lxdbr0`.
+
+Portainer stack create and update calls can take longer than ordinary API
+lookups while Docker Swarm pulls images or reconciles services. The installer
+uses a longer Portainer stack operation timeout by default. On especially slow
+hosts, raise it before rerunning the idempotent installation:
+
+[source,bash]
+----
+export TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS=300
+./install.sh --confirm-reset
+----
 
 `install.sh` is a fresh-install entry point. It first calls the governed
 destructive reset workflow:

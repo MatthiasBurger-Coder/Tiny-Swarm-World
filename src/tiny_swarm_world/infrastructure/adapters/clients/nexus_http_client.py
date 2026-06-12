@@ -129,6 +129,22 @@ class NexusHttpClient(PortNexusClient):
         )
         self._ensure_success(response, f"update Nexus Docker hosted repository '{repository_name}'")
 
+    def create_docker_proxy_repository(
+        self,
+        username: str,
+        password: str,
+        repository_name: str,
+        http_port: int,
+        remote_url: str,
+    ) -> None:
+        response = self.session.post(
+            f"{self.base_url}/service/rest/v1/repositories/docker/proxy",
+            auth=(username, password),
+            json=_docker_proxy_repository_payload(repository_name, http_port, remote_url),
+            timeout=30,
+        )
+        self._ensure_success(response, f"create Nexus Docker proxy repository '{repository_name}'")
+
     def create_maven_proxy_repository(
         self,
         username: str,
@@ -187,5 +203,41 @@ def _docker_hosted_repository_payload(repository_name: str, http_port: int) -> d
             "v1Enabled": False,
             "forceBasicAuth": True,
             "httpPort": http_port,
+        },
+    }
+
+
+def _docker_proxy_repository_payload(
+    repository_name: str,
+    http_port: int,
+    remote_url: str,
+) -> dict[str, object]:
+    return {
+        "name": repository_name,
+        "online": True,
+        "storage": {
+            "blobStoreName": "default",
+            "strictContentTypeValidation": True,
+        },
+        "proxy": {
+            "remoteUrl": remote_url,
+            "contentMaxAge": 1440,
+            "metadataMaxAge": 1440,
+        },
+        "negativeCache": {
+            "enabled": True,
+            "timeToLive": 1440,
+        },
+        "httpClient": {
+            "blocked": False,
+            "autoBlock": True,
+        },
+        "docker": {
+            "v1Enabled": False,
+            "forceBasicAuth": False,
+            "httpPort": http_port,
+        },
+        "dockerProxy": {
+            "indexType": "HUB",
         },
     }

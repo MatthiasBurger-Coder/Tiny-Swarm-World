@@ -538,6 +538,7 @@ class TestComposition(unittest.TestCase):
                 "artifacts:nexus-ready",
                 "artifacts:nexus-admin-access",
                 "artifacts:nexus-docker-hosted-repository",
+                "artifacts:nexus-docker-hub-proxy-repository",
                 "artifacts:nexus-maven-proxy-repository",
                 "artifacts:jenkins-image",
                 "artifacts:service-access-dashboard-image",
@@ -549,13 +550,65 @@ class TestComposition(unittest.TestCase):
             tuple(step.verification_target_id for step in services.workflows.prepare.steps),
         )
 
+    def test_build_artifact_services_uses_infisical_image_overrides(self):
+        with patch.dict(
+            "os.environ",
+            {
+                **_required_infisical_bootstrap_env(),
+                "TSW_NEXUS_ADMIN_PASSWORD": sample_text("nexus", "-value"),
+                "TSW_INFISICAL_IMAGE": "registry.local:5000/infisical:cached",
+                "TSW_INFISICAL_POSTGRES_IMAGE": "registry.local:5000/postgres:14-alpine",
+                "TSW_INFISICAL_REDIS_IMAGE": "registry.local:5000/redis:7-alpine",
+            },
+            clear=True,
+        ):
+            services = composition.build_lxc_artifact_services(
+                backend=composition.ManagedLxcBackend.INCUS,
+            )
+
+        image_refs = {
+            step.contract.build_context: step.contract.image_ref
+            for step in services.workflows.prepare.steps
+            if hasattr(step, "contract")
+        }
+
+        self.assertEqual("registry.local:5000/infisical:cached", image_refs["infisical"])
+        self.assertEqual(
+            "registry.local:5000/postgres:14-alpine",
+            image_refs["infisical-postgres"],
+        )
+        self.assertEqual("registry.local:5000/redis:7-alpine", image_refs["infisical-redis"])
+
+    def test_build_artifact_services_keeps_docker_hub_image_refs_for_mirror_defaults(self):
+        with patch.dict(
+            "os.environ",
+            {
+                **_required_infisical_bootstrap_env(),
+                "TSW_NEXUS_ADMIN_PASSWORD": sample_text("nexus", "-value"),
+            },
+            clear=True,
+        ):
+            services = composition.build_lxc_artifact_services(
+                backend=composition.ManagedLxcBackend.INCUS,
+            )
+
+        image_refs = {
+            step.contract.build_context: step.contract.image_ref
+            for step in services.workflows.prepare.steps
+            if hasattr(step, "contract")
+        }
+
+        self.assertEqual("infisical/infisical:latest", image_refs["infisical"])
+        self.assertEqual("postgres:14-alpine", image_refs["infisical-postgres"])
+        self.assertEqual("redis:7-alpine", image_refs["infisical-redis"])
+
     def test_build_artifact_services_does_not_call_live_clients_during_construction(self):
         services = composition.build_lxc_artifact_services(
             backend=composition.ManagedLxcBackend.INCUS,
         )
 
-        self.assertEqual(10, len(services.workflows.prepare.steps))
-        self.assertEqual(10, len(services.workflows.verify.checks))
+        self.assertEqual(11, len(services.workflows.prepare.steps))
+        self.assertEqual(11, len(services.workflows.verify.checks))
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
         with patch.dict("os.environ", _required_infisical_bootstrap_env(), clear=True):
@@ -605,6 +658,15 @@ class TestComposition(unittest.TestCase):
             for step in services.workflows.apply.steps
             if step.service_stack.stack_name == "jenkins"
         )
+        nexus_step = next(
+            step
+            for step in services.workflows.bootstrap.steps
+            if hasattr(step, "service_stack") and step.service_stack.stack_name == "nexus"
+        )
+        self.assertEqual(
+            {"TSW_NEXUS_IMAGE": "sonatype/nexus3:3.75.1"},
+            nexus_step.stack_environment,
+        )
         self.assertEqual(
             {
                 "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
@@ -647,7 +709,7 @@ class TestComposition(unittest.TestCase):
             services = composition.build_artifact_services_for_provider()
 
         self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
-        self.assertEqual(10, len(services.workflows.prepare.steps))
+        self.assertEqual(11, len(services.workflows.prepare.steps))
 
     def test_default_provider_deployment_services_use_lxc_clients_when_backend_is_available(self):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
@@ -823,6 +885,31 @@ class TestComposition(unittest.TestCase):
             environments["service-access"]["TSW_SERVICE_ACCESS_NGINX_IMAGE"],
         )
 
+    def test_build_deployment_services_uses_operator_nexus_image_override(self):
+        with patch.dict(
+            "os.environ",
+            {
+                **_required_infisical_bootstrap_env(),
+                "TSW_NEXUS_IMAGE": "registry.local:5000/sonatype/nexus3:3.75.1",
+            },
+            clear=True,
+        ):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
+
+        nexus_step = next(
+            step
+            for step in services.workflows.bootstrap.steps
+            if hasattr(step, "service_stack") and step.service_stack.stack_name == "nexus"
+        )
+
+        self.assertEqual(
+            "registry.local:5000/sonatype/nexus3:3.75.1",
+            nexus_step.stack_environment["TSW_NEXUS_IMAGE"],
+        )
+
     def test_build_artifact_services_uses_operator_environment_credentials(self):
         operator_value = sample_text("operator", "-supplied")
         with patch.dict(
@@ -859,6 +946,24 @@ class TestComposition(unittest.TestCase):
                 )
 
         self.assertEqual(operator_value, services.workflows.bootstrap.steps[1].password)
+
+    def test_build_deployment_services_uses_operator_portainer_stack_timeout(self):
+        with patch.dict(
+            "os.environ",
+            {
+                **_required_infisical_bootstrap_env(),
+                "TSW_PORTAINER_ADMIN_PASSWORD": sample_text("portainer", "-value"),
+                "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS": "181",
+            },
+            clear=True,
+        ):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
+
+        endpoint_step = services.workflows.bootstrap.steps[2]
+        self.assertEqual(181, endpoint_step.portainer_client.stack_request_timeout_seconds)
 
     def test_build_deployment_services_can_seed_infisical_items_when_enabled(self):
         env = {

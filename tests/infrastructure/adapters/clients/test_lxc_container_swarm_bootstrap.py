@@ -101,6 +101,7 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
 
     async def test_worker_join_uses_token_without_persisting_it_in_outcome(self):
         runner = _FakeRunner(
+            LxcNodeCommandResult(returncode=0, stdout="left"),
             LxcNodeCommandResult(returncode=0, stdout="joined"),
             LxcNodeCommandResult(returncode=0, stdout="active false"),
         )
@@ -114,13 +115,16 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(WorkerJoinState.JOINED, outcome.state)
         self.assertTrue(outcome.verified)
-        self.assertIn("sensitive-token", runner.calls[0][0])
+        self.assertEqual("leave", runner.calls[0][0][6])
+        self.assertEqual("--force", runner.calls[0][0][7])
+        self.assertIn("sensitive-token", runner.calls[1][0])
         self.assertNotIn("sensitive-token", repr(outcome))
-        self.assertEqual("docker", runner.calls[1][0][4])
-        self.assertEqual("info", runner.calls[1][0][5])
+        self.assertEqual("docker", runner.calls[2][0][4])
+        self.assertEqual("info", runner.calls[2][0][5])
 
     async def test_worker_join_fails_when_post_join_state_is_inactive(self):
         runner = _FakeRunner(
+            LxcNodeCommandResult(returncode=1, stdout="not part of a swarm"),
             LxcNodeCommandResult(returncode=0, stdout="joined"),
             LxcNodeCommandResult(returncode=0, stdout="inactive false"),
         )
@@ -134,6 +138,30 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(WorkerJoinState.FAILED, outcome.state)
         self.assertFalse(outcome.verified)
+
+    async def test_worker_join_timeout_can_verify_after_background_join_completes(self):
+        runner = _FakeRunner(
+            LxcNodeCommandResult(returncode=0, stdout="left"),
+            LxcNodeCommandResult(returncode=1, stderr="join continues in the background"),
+            LxcNodeCommandResult(returncode=0, stdout="pending false"),
+            LxcNodeCommandResult(returncode=0, stdout="active false"),
+        )
+        swarm = _swarm(
+            runner,
+            allow_live_mutation=True,
+            verify_attempts=2,
+            verify_delay_seconds=0,
+        )
+
+        outcome = await swarm.join_worker(
+            _worker(),
+            ipv4_address(10, 10, 0, 5),
+            SwarmWorkerJoinCredential("sensitive-token"),
+        )
+
+        self.assertEqual(WorkerJoinState.JOINED, outcome.state)
+        self.assertTrue(outcome.verified)
+        self.assertEqual(4, len(runner.calls))
 
 
 class _FakeRunner:
@@ -157,11 +185,15 @@ def _swarm(
     runner: _FakeRunner,
     *,
     allow_live_mutation: bool = True,
+    verify_attempts: int = 1,
+    verify_delay_seconds: float = 0,
 ) -> LxcContainerSwarmBootstrap:
     return LxcContainerSwarmBootstrap(
         backend=ManagedLxcBackend.INCUS,
         runner=runner,
         allow_live_mutation=allow_live_mutation,
+        verify_attempts=verify_attempts,
+        verify_delay_seconds=verify_delay_seconds,
     )
 
 

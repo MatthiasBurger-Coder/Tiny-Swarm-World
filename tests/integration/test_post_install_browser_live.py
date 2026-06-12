@@ -195,12 +195,30 @@ class PostInstallBrowserIntegrationTest(unittest.TestCase):
 
     def test_nexus_admin_login_and_docker_cache_repository(self) -> None:
         self._require_secret(self.config.nexus_password, "TSW_NEXUS_ADMIN_PASSWORD")
-        self._login_with_username_password(
-            self.config.nexus_url,
-            self.config.nexus_username,
-            self.config.nexus_password,
-            success_texts=("Browse", "Repositories", "Welcome"),
-        )
+        from playwright.sync_api import expect, sync_playwright  # type: ignore[import-not-found]
+
+        with sync_playwright() as playwright:
+            browser = _launch_browser(playwright, self.config)
+            page = browser.new_page(ignore_https_errors=True)
+            try:
+                _goto_ready(page, self.config.nexus_url, self.config.timeout_seconds)
+                page.get_by_text("Sign in", exact=False).first.click(timeout=10_000)
+                page.locator("div.x-window input[name='username']").first.fill(
+                    self.config.nexus_username,
+                    timeout=10_000,
+                )
+                page.locator("div.x-window input[name='password']").first.fill(
+                    self.config.nexus_password or "",
+                    timeout=10_000,
+                )
+                page.locator("div.x-window a.x-btn").filter(has_text="Sign in").first.click(
+                    timeout=10_000
+                )
+                expect(page.get_by_text("Sign out", exact=False).first).to_be_visible(
+                    timeout=20_000
+                )
+            finally:
+                browser.close()
         repositories_url = urljoin(self.config.nexus_url, "/service/rest/v1/repositories")
         repositories = _http_text(
             repositories_url,
@@ -229,12 +247,29 @@ class PostInstallBrowserIntegrationTest(unittest.TestCase):
 
     def test_sonarqube_admin_login(self) -> None:
         self._require_secret(self.config.sonarqube_password, "TSW_SONARQUBE_ADMIN_PASSWORD")
-        self._login_with_username_password(
-            self.config.sonarqube_url,
-            self.config.sonarqube_username,
-            self.config.sonarqube_password,
-            success_texts=("Projects", "Administration", "SonarQube"),
-        )
+        from playwright.sync_api import sync_playwright  # type: ignore[import-not-found]
+
+        with sync_playwright() as playwright:
+            browser = _launch_browser(playwright, self.config)
+            page = browser.new_page(ignore_https_errors=True)
+            try:
+                _goto_ready(
+                    page,
+                    urljoin(self.config.sonarqube_url, "/sessions/new"),
+                    self.config.timeout_seconds,
+                )
+                page.locator("input[name='login'], #login-input").first.fill(
+                    self.config.sonarqube_username,
+                    timeout=10_000,
+                )
+                page.locator("input[name='password'], #password-input").first.fill(
+                    self.config.sonarqube_password or "",
+                    timeout=10_000,
+                )
+                page.locator("button[type='submit']").first.click(timeout=10_000)
+                _expect_any_text(page, ("Projects", "Administration", "Create your project"))
+            finally:
+                browser.close()
 
     def test_swagger_is_browser_reachable(self) -> None:
         from playwright.sync_api import sync_playwright  # type: ignore[import-not-found]

@@ -60,7 +60,7 @@ class EnsureNexusAdminAccess:
             raise
 
     def _run(self) -> None:
-        if self._can_authenticate_with_retry(self.admin_password):
+        if self.nexus_client.can_authenticate(self.admin_username, self.admin_password):
             self.logger.info("Nexus admin credentials are already active.")
             return
 

@@ -198,19 +198,25 @@ system. For real local work, provide explicit values through environment
 variables where supported.
 Do not copy local compatibility defaults into new configuration or logs.
 
-For an implementation-independent local Docker Hub proxy cache, the repository
-also contains a transitional WSL/Linux operator helper:
+The managed installer prepares a Docker Hub proxy repository in the Nexus stack
+and uses it for the Infisical pull images by default. The default proxy endpoint
+inside the Swarm manager is `127.0.0.1:5001`, while the hosted local registry
+for project-built images remains `127.0.0.1:5000`.
+
+For an implementation-independent local Docker Hub proxy cache outside the
+managed stack, the repository also contains a transitional WSL/Linux operator
+helper:
 
 [source,bash]
 ----
 NEXUS_ADMIN_PASSWORD='<local-password>' tools/live/nexus-docker-cache.sh
 ----
 
-This helper is not wired into the Python setup workflow. It starts a standalone
+This helper is separate from the Python setup workflow. It starts a standalone
 Nexus container, creates a Docker proxy repository, writes the local Docker
 daemon mirror configuration, restarts Docker, and optionally pre-pulls images
 from `images-to-cache.txt`. Use it only when those host mutations are
-intentional.
+intentional and the managed Nexus stack is not the intended cache.
 
 When managed LXC nodes should also use this cache during installation, the
 setup detects a running `tiny-swarm-nexus-cache` container automatically and

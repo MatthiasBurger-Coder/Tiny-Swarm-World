@@ -70,6 +70,26 @@ class TestPortainerHttpClient(unittest.TestCase):
             session.request_calls[1]["json"]["env"],
         )
 
+    def test_create_stack_uses_extended_stack_request_timeout(self):
+        session = _FakeSession(
+            post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
+            request_responses=[_swarm_info_response(), _FakeResponse(200, {})],
+        )
+        client = PortainerHttpClient(
+            "http://portainer.local",
+            "admin",
+            OPERATOR_CREDENTIAL,
+            session=session,
+            request_timeout_seconds=11,
+            stack_request_timeout_seconds=181,
+        )
+
+        client.create_stack(StackDefinition(name="swagger", compose_content="services: {}"), 1)
+
+        self.assertEqual(11, session.post_calls[0]["timeout"])
+        self.assertEqual(11, session.request_calls[0]["timeout"])
+        self.assertEqual(181, session.request_calls[1]["timeout"])
+
     def test_get_endpoint_id_by_name_uses_cached_jwt(self):
         session = _FakeSession(
             post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
@@ -93,6 +113,36 @@ class TestPortainerHttpClient(unittest.TestCase):
         self.assertEqual("http://portainer.local/api/endpoints", session.request_calls[0]["url"])
         self.assertEqual("Bearer jwt-token", session.request_calls[1]["headers"]["Authorization"])
         self.assertEqual(1, session.cookies.clear_count)
+
+    def test_api_request_reauthenticates_once_after_unauthorized_response(self):
+        session = _FakeSession(
+            post_responses=[
+                _FakeResponse(200, {"jwt": "expired-token"}),
+                _FakeResponse(200, {"jwt": "fresh-token"}),
+            ],
+            request_responses=[
+                _FakeResponse(401, {}),
+                _FakeResponse(200, [{"Name": "local", "Id": 7}]),
+            ],
+        )
+        client = PortainerHttpClient(
+            "http://portainer.local",
+            "admin",
+            OPERATOR_CREDENTIAL,
+            session=session,
+        )
+
+        self.assertEqual(7, client.get_endpoint_id_by_name("local"))
+
+        self.assertEqual(2, len(session.post_calls))
+        self.assertEqual(
+            "Bearer expired-token",
+            session.request_calls[0]["headers"]["Authorization"],
+        )
+        self.assertEqual(
+            "Bearer fresh-token",
+            session.request_calls[1]["headers"]["Authorization"],
+        )
 
     def test_authentication_clears_cookie_auth_before_endpoint_creation(self):
         session = _FakeSession(
@@ -344,6 +394,23 @@ class TestPortainerHttpClient(unittest.TestCase):
             [{"name": "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET", "value": "operator_defined"}],
             session.request_calls[0]["json"]["env"],
         )
+
+    def test_update_stack_uses_extended_stack_request_timeout(self):
+        session = _FakeSession(
+            post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
+            request_responses=[_FakeResponse(200, {})],
+        )
+        client = PortainerHttpClient(
+            "http://portainer.local",
+            "admin",
+            OPERATOR_CREDENTIAL,
+            session=session,
+            stack_request_timeout_seconds=181,
+        )
+
+        client.update_stack(42, StackDefinition(name="swagger", compose_content="services: {}"), 7)
+
+        self.assertEqual(181, session.request_calls[0]["timeout"])
 
     def test_missing_jwt_blocks_api_request(self):
         session = _FakeSession(

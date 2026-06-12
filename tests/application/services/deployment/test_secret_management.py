@@ -53,6 +53,15 @@ class TestSecretManagement(unittest.TestCase):
                 self.assertNotIn("BEGIN", entry.description)
                 self.assertNotIn("REDACTED", entry.description)
 
+    def test_committed_manifest_keeps_infisical_bootstrap_token_optional(self):
+        entries = SecretManifestRenderer(Path("config/secrets/infisical-secrets.yaml")).run()
+        entries_by_key = {entry.key: entry for entry in entries}
+
+        entry = entries_by_key["TSW_INFISICAL_BOOTSTRAP_TOKEN"]
+
+        self.assertEqual("infisical_bootstrap_identity", entry.source)
+        self.assertFalse(entry.required)
+
     def test_secret_discovery_classifies_managed_placeholder_and_blocker(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
