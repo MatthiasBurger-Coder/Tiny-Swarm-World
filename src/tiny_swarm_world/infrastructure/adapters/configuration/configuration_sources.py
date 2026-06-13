@@ -5,11 +5,15 @@ import os
 from pathlib import Path
 import shlex
 
-from tiny_swarm_world.application.ports.configuration import PortConfigurationSource
+from tiny_swarm_world.application.ports.configuration import (
+    ConfigurationSourceLoadError,
+    PortConfigurationSource,
+)
 
 
-class ConfigurationSourceError(ValueError):
-    pass
+class ConfigurationSourceError(ConfigurationSourceLoadError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message, safe_detail=message)
 
 
 class EnvironmentConfigurationSource(PortConfigurationSource):
