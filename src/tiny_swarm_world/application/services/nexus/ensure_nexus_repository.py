@@ -7,6 +7,10 @@ from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNex
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
+NEXUS_ADMIN_USERNAME_REQUIRED = "Nexus admin username must not be empty."
+NEXUS_ADMIN_PASSWORD_REQUIRED = "Nexus admin password must be supplied by the operator."
+
+
 @dataclass(frozen=True)
 class NexusDockerHostedRepositoryConfiguration:
     repository_name: str
@@ -19,9 +23,9 @@ class NexusDockerHostedRepositoryConfiguration:
         if self.http_port <= 0 or self.http_port > 65535:
             raise ValueError("Nexus Docker hosted repository port must be a valid TCP port.")
         if not self.admin_username:
-            raise ValueError("Nexus admin username must not be empty.")
+            raise ValueError(NEXUS_ADMIN_USERNAME_REQUIRED)
         if not self.admin_password:
-            raise ValueError("Nexus admin password must be supplied by the operator.")
+            raise ValueError(NEXUS_ADMIN_PASSWORD_REQUIRED)
 
 
 @dataclass(frozen=True)
@@ -36,9 +40,9 @@ class NexusMavenProxyRepositoryConfiguration:
         if not self.remote_url.startswith(("http://", "https://")):
             raise ValueError("Nexus Maven proxy remote URL must be HTTP or HTTPS.")
         if not self.admin_username:
-            raise ValueError("Nexus admin username must not be empty.")
+            raise ValueError(NEXUS_ADMIN_USERNAME_REQUIRED)
         if not self.admin_password:
-            raise ValueError("Nexus admin password must be supplied by the operator.")
+            raise ValueError(NEXUS_ADMIN_PASSWORD_REQUIRED)
 
 
 @dataclass(frozen=True)
@@ -56,9 +60,9 @@ class NexusDockerProxyRepositoryConfiguration:
         if not self.remote_url.startswith(("http://", "https://")):
             raise ValueError("Nexus Docker proxy remote URL must be HTTP or HTTPS.")
         if not self.admin_username:
-            raise ValueError("Nexus admin username must not be empty.")
+            raise ValueError(NEXUS_ADMIN_USERNAME_REQUIRED)
         if not self.admin_password:
-            raise ValueError("Nexus admin password must be supplied by the operator.")
+            raise ValueError(NEXUS_ADMIN_PASSWORD_REQUIRED)
 
 
 class EnsureNexusDockerHostedRepository:

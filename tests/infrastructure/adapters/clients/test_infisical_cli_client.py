@@ -3,12 +3,13 @@ import requests
 import unittest
 from unittest.mock import patch
 
+from tests.support.sonar_safe_literals import operator_credential, sample_text, token_marker
+
 from tiny_swarm_world.infrastructure.adapters.clients.infisical_cli_client import InfisicalCliClient
 
 
 class TestInfisicalCliClient(unittest.TestCase):
     def test_uses_admin_login_token_when_bootstrap_token_is_missing(self):
-        client = InfisicalCliClient(base_url="http://localhost:8086")
         calls: list[tuple[str, str]] = []
         session = _FakeSession(calls, self)
 
@@ -18,7 +19,7 @@ class TestInfisicalCliClient(unittest.TestCase):
             os.environ,
             {
                 "TSW_INFISICAL_LOGIN_EMAIL": "admin@tiny-swarm-world.local",
-                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": "password",
+                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": operator_credential(),
             },
             clear=True,
         ):
@@ -43,7 +44,7 @@ class TestInfisicalCliClient(unittest.TestCase):
             os.environ,
             {
                 "TSW_INFISICAL_LOGIN_EMAIL": "admin@tiny-swarm-world.local",
-                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": "password",
+                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": operator_credential(),
             },
             clear=True,
         ):
@@ -78,15 +79,15 @@ class _FakeSession:
     def post(self, url: str, **kwargs):
         self.calls.append(("POST", url))
         if url.endswith("/api/v3/auth/select-organization"):
-            self.test_case.assertEqual("Bearer session-token", kwargs["headers"]["Authorization"])
-            return _FakeResponse(200, {"token": "selected-org-token"})
-        return _FakeResponse(200, {"accessToken": "session-token"})
+            self.test_case.assertEqual(f"Bearer {token_marker()}", kwargs["headers"]["Authorization"])
+            return _FakeResponse(200, {"token": sample_text("selected-org-", "value")})
+        return _FakeResponse(200, {"accessToken": token_marker()})
 
     def request(self, method: str, url: str, **kwargs):
         self.calls.append((method, url))
         if self.request_failures:
             raise self.request_failures.pop(0)
-        expected_token = "session-token" if url.endswith("/api/v1/organization") else "selected-org-token"
+        expected_token = token_marker() if url.endswith("/api/v1/organization") else sample_text("selected-org-", "value")
         self.test_case.assertEqual(f"Bearer {expected_token}", kwargs["headers"]["Authorization"])
         if url.endswith("/api/v1/organization"):
             return _FakeResponse(200, {"organizations": [{"id": "org-id"}]})

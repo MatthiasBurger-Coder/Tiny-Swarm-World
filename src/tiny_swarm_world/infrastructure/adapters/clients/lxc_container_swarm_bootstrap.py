@@ -159,6 +159,11 @@ class LxcContainerSwarmBootstrap(PortContainerSwarmBootstrap):
         )
 
     async def _verify_worker_join(self, node: NodeSpec) -> SwarmWorkerJoinOutcome:
+        verified_outcome = SwarmWorkerJoinOutcome(
+            node=node,
+            state=WorkerJoinState.FAILED,
+            verified=False,
+        )
         for attempt in range(self.verify_attempts):
             verify_result = await self.runner.run(
                 _swarm_state_args(self.backend, node),

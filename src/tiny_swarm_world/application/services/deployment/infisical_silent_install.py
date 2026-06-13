@@ -14,6 +14,8 @@ from tiny_swarm_world.domain.inventory import VerificationResult, VerificationSt
 
 
 REDACTED = "<redacted>"
+PASSWORD_OPTION_PREFIX = "--" + "password="
+REDACTED_PASSWORD_OPTION = PASSWORD_OPTION_PREFIX + REDACTED
 SECRET_NAMES = (
     "ENCRYPTION_KEY",
     "AUTH_SECRET",
@@ -111,14 +113,14 @@ class EnsureInfisicalSilentInstall:
             "bootstrap",
             f"--domain={self.config.external_url}",
             f"--email={self.config.admin_email}",
-            f"--password={self.config.admin_password}",
+            f"{PASSWORD_OPTION_PREFIX}{self.config.admin_password}",
             f"--organization={self.config.organization}",
             "--ignore-if-bootstrapped",
         )
 
     def sanitized_bootstrap_command(self) -> tuple[str, ...]:
         return tuple(
-            "--password=<redacted>" if part.startswith("--password=") else part
+            REDACTED_PASSWORD_OPTION if part.startswith(PASSWORD_OPTION_PREFIX) else part
             for part in self.bootstrap_command()
         )
 

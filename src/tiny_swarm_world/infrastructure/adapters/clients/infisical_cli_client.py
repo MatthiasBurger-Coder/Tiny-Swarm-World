@@ -15,6 +15,10 @@ from tiny_swarm_world.application.ports.clients.port_infisical_cli import (
 )
 
 
+JSON_CONTENT_TYPE = "application/json"
+INFISICAL_SYNC_SESSION_UNAVAILABLE = "Infisical sync session is unavailable."
+
+
 class InfisicalCliClient(PortInfisicalCli):
     def __init__(
         self,
@@ -143,7 +147,7 @@ class InfisicalCliClient(PortInfisicalCli):
                 f"{self.base_url}{path}",
                 headers={
                     "Authorization": f"Bearer {self._access_token()}",
-                    "Content-Type": "application/json",
+                    "Content-Type": JSON_CONTENT_TYPE,
                 },
                 timeout=30,
                 **kwargs,
@@ -175,27 +179,27 @@ class InfisicalCliClient(PortInfisicalCli):
         email = os.environ.get("TSW_INFISICAL_LOGIN_EMAIL", "")
         password = os.environ.get("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD", "")
         if not email or not password:
-            raise RuntimeError("Infisical sync session is unavailable.")
+            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
         response = self._request_with_retry(
             lambda: self.session.post(
                 f"{self.base_url}/api/v3/auth/login",
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": JSON_CONTENT_TYPE},
                 json={"email": email, "password": password},
                 timeout=30,
             )
         )
         if response.status_code >= 400:
-            raise RuntimeError("Infisical sync session is unavailable.")
+            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
         token = _access_token(response.json())
         if not token:
-            raise RuntimeError("Infisical sync session is unavailable.")
+            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
         self._session_token = self._organization_token(token)
         return self._session_token
 
     def _organization_token(self, login_token: str) -> str:
         headers = {
             "Authorization": f"Bearer {login_token}",
-            "Content-Type": "application/json",
+            "Content-Type": JSON_CONTENT_TYPE,
         }
         response = self._request_with_retry(
             lambda: self.session.get(
@@ -205,10 +209,10 @@ class InfisicalCliClient(PortInfisicalCli):
             )
         )
         if response.status_code >= 400:
-            raise RuntimeError("Infisical sync session is unavailable.")
+            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
         organization_id = _first_organization_id(response.json())
         if not organization_id:
-            raise RuntimeError("Infisical sync session is unavailable.")
+            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
         response = self._request_with_retry(
             lambda: self.session.post(
                 f"{self.base_url}/api/v3/auth/select-organization",
@@ -218,10 +222,10 @@ class InfisicalCliClient(PortInfisicalCli):
             )
         )
         if response.status_code >= 400:
-            raise RuntimeError("Infisical sync session is unavailable.")
+            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
         token = _selected_organization_token(response.json())
         if not token:
-            raise RuntimeError("Infisical sync session is unavailable.")
+            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
         self._session_token = token
         return token
 

@@ -6,7 +6,6 @@ import platform
 import re
 import shutil
 import socket
-import ssl
 import subprocess
 import sys
 import urllib.error
@@ -50,6 +49,7 @@ CONTAINER_CGROUP_MARKERS = (
 WSL_MARKERS = ("microsoft", "wsl")
 WSL_ENVIRONMENT_KEYS = ("WSL_DISTRO_NAME", "WSL_INTEROP")
 WSL_INTEROP_MARKER_FILES = (("proc", "sys", "fs", "binfmt_misc", "WSLInterop"),)
+API_STATUS_PATH = "/api/status"
 
 
 class HostPreflightProbe(PortHostPreflightProbe):
@@ -150,7 +150,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
     def port_matches_expected_service(self, port: int, service: str) -> bool:
         service_name = service.casefold()
         if "portainer" in service_name:
-            return _http_service_available(port, ("/api/status", "/api/system/status"), ("version",))
+            return _http_service_available(port, (API_STATUS_PATH, "/api/system/status"), ("version",))
         if "docker registry" in service_name:
             return _http_service_available(port, ("/v2/",), ())
         if "nexus" in service_name:
@@ -185,12 +185,12 @@ class HostPreflightProbe(PortHostPreflightProbe):
         if "infisical https" in service_name:
             return _http_service_available(
                 port,
-                ("/", "/api/status"),
+                ("/", API_STATUS_PATH),
                 ("infisical", "content-security-policy"),
                 scheme="https",
             )
         if "infisical" in service_name:
-            return _http_service_available(port, ("/", "/api/status"), ("infisical",))
+            return _http_service_available(port, ("/", API_STATUS_PATH), ("infisical",))
         return False
 
     def secret_available(self, name: str) -> bool:
@@ -440,9 +440,8 @@ def _read_http_response(port: int, path: str, *, scheme: str = "http") -> tuple[
         f"{scheme}://127.0.0.1:{port}{path}",
         headers={"User-Agent": "tiny-swarm-world-preflight/1.0"},
     )
-    context = ssl._create_unverified_context() if scheme == "https" else None
     try:
-        with urllib.request.urlopen(request, timeout=2.0, context=context) as response:
+        with urllib.request.urlopen(request, timeout=2.0) as response:
             return response.status, _response_text(response.read(4096), response.headers)
     except urllib.error.HTTPError as error:
         return error.code, _response_text(error.read(4096), error.headers)

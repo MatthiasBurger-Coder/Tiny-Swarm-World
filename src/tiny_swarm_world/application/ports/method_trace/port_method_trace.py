@@ -82,7 +82,7 @@ class PortMethodTrace(ABC):
 
 class NullMethodTrace(PortMethodTrace):
     def report(self, event: MethodTraceEvent) -> None:
-        pass
+        return None
 
 
 def _reject_unsafe_method_trace_text(field_name: str, value: str) -> None:

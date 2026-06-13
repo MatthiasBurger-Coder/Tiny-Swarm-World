@@ -247,8 +247,7 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
 
             async def run(self) -> None:
                 await async_checkpoint()
-                # Test double; this step only exercises failed verification.
-                pass
+                return None
 
             async def verify(self) -> VerificationResult:
                 await async_checkpoint()

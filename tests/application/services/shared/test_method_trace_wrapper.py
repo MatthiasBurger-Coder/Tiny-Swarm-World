@@ -1,6 +1,8 @@
 import asyncio
 import unittest
 
+from tests.support.async_helpers import async_checkpoint
+
 from tiny_swarm_world.application.ports.method_trace import MethodTraceEvent
 from tiny_swarm_world.application.services.shared import MethodTraceWrapper
 
@@ -63,6 +65,7 @@ class TestMethodTraceWrapper(unittest.TestCase):
 
             class Target:
                 async def run(self, value):
+                    await async_checkpoint()
                     return {"raw": value}
 
             result = await wrapper.wrap_async(Target().run)(42)

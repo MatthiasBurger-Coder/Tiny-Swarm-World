@@ -118,6 +118,7 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
         created = await runtime.create_proxy_device(_manager_profile(), _plan())
 
         self.assertTrue(created)
+        self.assertEqual(1, len(runner.calls))
         self.assertEqual(
             (
                 "incus",
@@ -146,6 +147,7 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
         updated = await runtime.update_proxy_device(_manager_profile(), _plan())
 
         self.assertTrue(updated)
+        self.assertEqual(2, len(runner.calls))
         self.assertEqual(
             (
                 "lxc",
@@ -159,7 +161,8 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
             ),
             runner.calls[0],
         )
-        self.assertEqual("connect", runner.calls[1][6])
+        _, _, _, _, _, _, device_field, *_ = runner.calls[1]
+        self.assertEqual("connect", device_field)
 
     async def test_mutating_methods_refuse_when_live_mutation_is_disabled(self):
         runner = _RecordingRunner(results=(LxcNodeCommandResult(0),))

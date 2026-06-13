@@ -35,7 +35,7 @@ class _FakeSwarmRuntime:
         self.ensured_secrets: list[tuple[str, str]] = []
 
     def deploy_stack(self, stack_definition, stack_environment=None):
-        pass
+        return None
 
     def stack_exists(self, stack_name: str) -> bool:
         return False

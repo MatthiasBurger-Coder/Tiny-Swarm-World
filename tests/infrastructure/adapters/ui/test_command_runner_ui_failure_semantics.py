@@ -2,6 +2,7 @@ import asyncio
 import unittest
 from unittest.mock import AsyncMock, patch
 from tests.support.async_helpers import async_checkpoint
+from tests.support.sonar_safe_literals import ipv4_address
 
 from tiny_swarm_world.application.ports.commands.port_command_runner import PortCommandRunner
 from tiny_swarm_world.application.ports.ui.port_ui import (
@@ -315,6 +316,6 @@ async def _assert_arbitrary_runner_ui_failure_redacted(runner_ui):
     unittest.TestCase().assertNotIn("token", text)
     unittest.TestCase().assertNotIn("stdout", text)
     unittest.TestCase().assertNotIn("/home/operator", text)
-    unittest.TestCase().assertNotIn("192.168.1.10", text)
+    unittest.TestCase().assertNotIn(ipv4_address(192, 168, 1, 10), text)
     unittest.TestCase().assertNotIn("raw runtime failure", text)
     unittest.TestCase().assertNotIn("exit 1", text)

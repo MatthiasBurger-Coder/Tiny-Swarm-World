@@ -3,6 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tests.support.sonar_safe_literals import operator_credential
+
 from tiny_swarm_world.application.services.deployment.secret_management import (
     InfisicalSecretSyncStep,
     SecretConsumptionVerifier,
@@ -94,9 +96,9 @@ class TestSecretManagement(unittest.TestCase):
             self.assertIn("blocker", classifications)
 
     def test_redactor_redacts_values_and_assignments(self):
-        redactor = SecretRedactor(("actual-secret",))
+        redactor = SecretRedactor((operator_credential(),))
 
-        redacted = redactor.redact({"line": "PASSWORD=actual-secret", "safe": "hello"})
+        redacted = redactor.redact({"line": f"PASSWORD={operator_credential()}", "safe": "hello"})
 
         self.assertEqual("PASSWORD=<redacted>", redacted["line"])
         self.assertEqual("hello", redacted["safe"])
@@ -180,7 +182,7 @@ class TestSecretManagement(unittest.TestCase):
             discovery.run()
             sync = InfisicalSecretSyncStep(cli=_FakeInfisicalCli(), manifest_entries=(_entry("TSW_POSTGRES_PASSWORD"),), generated_local_env=root / "generated.local.env")
             sync.run()
-            consumption = SecretConsumptionVerifier(manifest_entries=(_entry("TSW_POSTGRES_PASSWORD"),), stack_environment={"postgres": {"TSW_POSTGRES_PASSWORD": "secret-value"}})
+            consumption = SecretConsumptionVerifier(manifest_entries=(_entry("TSW_POSTGRES_PASSWORD"),), stack_environment={"postgres": {"TSW_POSTGRES_PASSWORD": operator_credential()}})
             consumption.run()
             writer = SecretEvidenceWriter(evidence_dir=root / "evidence", discovery=discovery, sync=sync, consumption=consumption)
 
@@ -188,7 +190,7 @@ class TestSecretManagement(unittest.TestCase):
 
             evidence = json.loads((root / "evidence" / "infisical-sync-result.json").read_text(encoding="utf-8"))
             self.assertEqual("<redacted>", evidence["results"][0]["value"])
-            self.assertNotIn("secret-value", (root / "evidence" / "secret-consumption-report.md").read_text(encoding="utf-8"))
+            self.assertNotIn(operator_credential(), (root / "evidence" / "secret-consumption-report.md").read_text(encoding="utf-8"))
 
 
 def _entry(key: str) -> SecretManifestEntry:

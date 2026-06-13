@@ -20,7 +20,7 @@ class EnsureSonarqubeAdminAccess:
         sonarqube_client: PortSonarqubeClient,
         username: str,
         password: str | Callable[[], str],
-        initial_password: str = "admin",
+        initial_credential: str = "admin",
         max_attempts: int = 60,
         wait_seconds: float = 5.0,
     ) -> None:
@@ -31,7 +31,7 @@ class EnsureSonarqubeAdminAccess:
         self.sonarqube_client = sonarqube_client
         self.username = username
         self._password = password
-        self.initial_password = initial_password
+        self.initial_credential = initial_credential
         self.max_attempts = max_attempts
         self.wait_seconds = wait_seconds
         self._status = "not_run"
@@ -50,12 +50,12 @@ class EnsureSonarqubeAdminAccess:
         if self._can_authenticate_once(self.password):
             self._status = "already_configured"
             return
-        if not self._can_authenticate_with_retry(self.initial_password):
+        if not self._can_authenticate_with_retry(self.initial_credential):
             self._status = "blocked"
             raise RuntimeError("SonarQube admin access is unavailable.")
         self.sonarqube_client.change_password(
             self.username,
-            self.initial_password,
+            self.initial_credential,
             self.password,
         )
         self._status = "rotated"

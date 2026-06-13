@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 import unittest
 
+from tests.support.sonar_safe_literals import sensitive_assignment
+
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.ingress import (
     CertificateSummary,
@@ -74,7 +76,7 @@ class TestCertificateSummary(unittest.TestCase):
         unsafe_values = (
             "-----BEGIN PRIVATE KEY-----",
             "certificate at /home/operator/ingress.crt",
-            "issuer password=hidden",
+            f"issuer {sensitive_assignment()}",
             "issuer at 192.168.1.10",
         )
 

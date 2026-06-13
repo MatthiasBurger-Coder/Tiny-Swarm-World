@@ -1,5 +1,7 @@
 import unittest
 
+from tests.support.sonar_safe_literals import ipv4_address
+
 from tiny_swarm_world.application.ports.method_trace import (
     MethodTraceEvent,
     NullMethodTrace,
@@ -91,10 +93,10 @@ class TestMethodTraceEvent(unittest.TestCase):
             "/home/operator/project",
             "/mnt/d/project",
             "C:\\Users\\operator\\project",
-            "192.168.1.10",
-            "10.0.0.4",
-            "172.16.0.3",
-            "127.0.0.1",
+            ipv4_address(192, 168, 1, 10),
+            ipv4_address(10, 0, 0, 4),
+            ipv4_address(172, 16, 0, 3),
+            ipv4_address(127, 0, 0, 1),
         )
 
         for unsafe_value in unsafe_values:

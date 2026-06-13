@@ -28,6 +28,11 @@ from tiny_swarm_world.domain.inventory import VerificationResult, VerificationSt
 from tiny_swarm_world.domain.preflight import PreflightResult
 
 
+PLATFORM_PREFLIGHT_TARGET_ID = "platform:preflight"
+PRE_APPLY_GUARD_STEP = "pre-apply guard"
+WORKFLOW_STOPPED_STEP = "workflow stopped"
+
+
 class AsyncWorkflowStep(Protocol):
     async def run(self) -> object:
         # Protocol declaration; concrete workflow steps perform platform work.
@@ -318,7 +323,7 @@ class PlatformVerifyWorkflow:
                 _report_workflow_progress(
                     self.progress,
                     self.semantics,
-                    step="workflow stopped",
+                step=WORKFLOW_STOPPED_STEP,
                     status=PlatformWorkflowStatus.BLOCKED.value,
                     result=PlatformWorkflowStatus.BLOCKED.value,
                     safe_message="Platform workflow stopped after a blocked verification.",
@@ -332,7 +337,7 @@ class PlatformVerifyWorkflow:
                 _report_workflow_progress(
                     self.progress,
                     self.semantics,
-                    step="workflow stopped",
+                step=WORKFLOW_STOPPED_STEP,
                     status=PlatformWorkflowStatus.FAILED_TO_VERIFY.value,
                     result=PlatformWorkflowStatus.FAILED_TO_VERIFY.value,
                     safe_message="Platform workflow stopped after a failed verification.",
@@ -415,7 +420,7 @@ async def _run_pre_apply_guard(
         progress,
         semantics,
         target_id=target_id,
-        step="pre-apply guard",
+        step=PRE_APPLY_GUARD_STEP,
         status="started",
         result="pending",
         safe_message="Platform pre-apply guard started.",
@@ -425,7 +430,7 @@ async def _run_pre_apply_guard(
     verification_result = _pre_apply_guard_verification(guard_output)
     if verification_result is None:
         result = VerificationResult(
-            target_id=f"platform:{semantics.kind.value}:preflight",
+            target_id=_preflight_target_id(semantics),
             status=VerificationStatus.BLOCKED,
             message="Pre-apply guard returned unsupported output.",
             evidence={"phase": "pre_apply", "reason": "unsupported_guard_output"},
@@ -435,12 +440,12 @@ async def _run_pre_apply_guard(
             progress,
             semantics,
             result,
-            step="pre-apply guard",
+            step=PRE_APPLY_GUARD_STEP,
         )
         _report_workflow_progress(
             progress,
             semantics,
-            step="workflow stopped",
+            step=WORKFLOW_STOPPED_STEP,
             status=PlatformWorkflowStatus.BLOCKED.value,
             result=PlatformWorkflowStatus.BLOCKED.value,
             safe_message="Platform workflow stopped after a blocked guard.",
@@ -459,7 +464,7 @@ async def _run_pre_apply_guard(
         progress,
         semantics,
         verification_result,
-        step="pre-apply guard",
+        step=PRE_APPLY_GUARD_STEP,
     )
     if verification_result.status == VerificationStatus.VERIFIED:
         return verification_result, None
@@ -467,7 +472,7 @@ async def _run_pre_apply_guard(
     _report_workflow_progress(
         progress,
         semantics,
-        step="workflow stopped",
+        step=WORKFLOW_STOPPED_STEP,
         status=PlatformWorkflowStatus.BLOCKED.value,
         result=PlatformWorkflowStatus.BLOCKED.value,
         safe_message="Platform workflow stopped after a blocked guard.",
@@ -513,6 +518,10 @@ def _pre_apply_guard_verification(result: object) -> VerificationResult | None:
             ),
         },
     )
+
+
+def _preflight_target_id(semantics: PlatformWorkflowSemantics) -> str:
+    return f"platform:{semantics.kind.value}:preflight"
 
 
 async def _run_mutating_steps(
@@ -670,7 +679,7 @@ def _pre_apply_blocking_result(
     _report_workflow_progress(
         progress,
         semantics,
-        step="workflow stopped",
+        step=WORKFLOW_STOPPED_STEP,
         status=PlatformWorkflowStatus.BLOCKED.value,
         result=PlatformWorkflowStatus.BLOCKED.value,
         safe_message="Platform workflow stopped after a blocked pre-apply check.",
@@ -703,7 +712,7 @@ def _missing_verification_contract_result(
     _report_workflow_progress(
         progress,
         semantics,
-        step="workflow stopped",
+        step=WORKFLOW_STOPPED_STEP,
         status=PlatformWorkflowStatus.BLOCKED.value,
         result=PlatformWorkflowStatus.BLOCKED.value,
         safe_message="Platform workflow stopped before apply.",
@@ -753,7 +762,7 @@ def _failed_apply_workflow_result(
     _report_workflow_progress(
         progress,
         semantics,
-        step="workflow stopped",
+        step=WORKFLOW_STOPPED_STEP,
         status=PlatformWorkflowStatus.FAILED_TO_APPLY.value,
         result=PlatformWorkflowStatus.FAILED_TO_APPLY.value,
         safe_message="Platform workflow stopped after apply failure.",
@@ -781,7 +790,7 @@ def _workflow_result_from_direct_verification(
         _report_workflow_progress(
             progress,
             semantics,
-            step="workflow stopped",
+            step=WORKFLOW_STOPPED_STEP,
             status=PlatformWorkflowStatus.BLOCKED.value,
             result=PlatformWorkflowStatus.BLOCKED.value,
             safe_message="Platform workflow stopped after blocked direct verification.",
@@ -796,7 +805,7 @@ def _workflow_result_from_direct_verification(
         _report_workflow_progress(
             progress,
             semantics,
-            step="workflow stopped",
+            step=WORKFLOW_STOPPED_STEP,
             status=PlatformWorkflowStatus.FAILED_TO_APPLY.value,
             result=PlatformWorkflowStatus.FAILED_TO_APPLY.value,
             safe_message="Platform workflow stopped after apply failure.",
@@ -809,7 +818,7 @@ def _workflow_result_from_direct_verification(
     _report_workflow_progress(
         progress,
         semantics,
-        step="workflow stopped",
+        step=WORKFLOW_STOPPED_STEP,
         status=PlatformWorkflowStatus.FAILED_TO_VERIFY.value,
         result=PlatformWorkflowStatus.FAILED_TO_VERIFY.value,
         safe_message="Platform workflow stopped after failed direct verification.",
@@ -839,7 +848,7 @@ def _missing_verification_evidence_result(
     _report_workflow_progress(
         progress,
         semantics,
-        step="workflow stopped",
+        step=WORKFLOW_STOPPED_STEP,
         status=PlatformWorkflowStatus.BLOCKED.value,
         result=PlatformWorkflowStatus.BLOCKED.value,
         safe_message="Platform workflow stopped after missing verification evidence.",
@@ -868,7 +877,7 @@ def _workflow_result_from_verification(
         _report_workflow_progress(
             progress,
             semantics,
-            step="workflow stopped",
+            step=WORKFLOW_STOPPED_STEP,
             status=PlatformWorkflowStatus.BLOCKED.value,
             result=PlatformWorkflowStatus.BLOCKED.value,
             safe_message="Platform workflow stopped after blocked verification.",
@@ -882,7 +891,7 @@ def _workflow_result_from_verification(
     _report_workflow_progress(
         progress,
         semantics,
-        step="workflow stopped",
+        step=WORKFLOW_STOPPED_STEP,
         status=PlatformWorkflowStatus.FAILED_TO_VERIFY.value,
         result=PlatformWorkflowStatus.FAILED_TO_VERIFY.value,
         safe_message="Platform workflow stopped after failed verification.",
@@ -1067,13 +1076,13 @@ def _verification_result_from_verify_output(result: object) -> VerificationResul
 def _verification_result_from_preflight(result: PreflightResult) -> VerificationResult:
     if result.passed:
         return VerificationResult(
-            target_id="platform:preflight",
+            target_id=PLATFORM_PREFLIGHT_TARGET_ID,
             status=VerificationStatus.VERIFIED,
             message="Preflight checks passed.",
             evidence={"phase": "verify", "check_count": str(len(result.checks))},
         )
     return VerificationResult(
-        target_id="platform:preflight",
+        target_id=PLATFORM_PREFLIGHT_TARGET_ID,
         status=VerificationStatus.FAILED_TO_VERIFY,
         message="Preflight checks failed.",
         evidence={"phase": "verify", "failed_check_count": str(len(result.failed_checks))},
@@ -1082,7 +1091,7 @@ def _verification_result_from_preflight(result: PreflightResult) -> Verification
 
 def _retryable_platform_verify_result(result: VerificationResult) -> bool:
     return (
-        result.target_id == "platform:preflight"
+        result.target_id == PLATFORM_PREFLIGHT_TARGET_ID
         and result.status == VerificationStatus.FAILED_TO_VERIFY
     )
 

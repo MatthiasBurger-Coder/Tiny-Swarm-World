@@ -150,4 +150,4 @@ class _FakeSwarmRuntime:
         return True
 
     def ensure_external_secret(self, name: str, value: str) -> None:
-        pass
+        return None

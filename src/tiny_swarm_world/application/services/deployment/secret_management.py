@@ -31,7 +31,7 @@ DEFAULT_GENERATED_LOCAL_ENV = Path(".tiny-swarm/secrets/generated.local.env")
 DEFAULT_EVIDENCE_DIR = Path(".tiny-swarm/evidence/secrets")
 SECRET_KEY_PATTERN = re.compile(r"\b[A-Z][A-Z0-9_]*(?:PASSWORD|TOKEN|SECRET|API_KEY|CREDENTIAL|HTPASSWD|KEY)[A-Z0-9_]*\b")
 SECRET_ASSIGNMENT_PATTERN = re.compile(
-    r"(?P<key>[A-Za-z_][A-Za-z0-9_-]*)\s*[:=]\s*(?P<value>[^\n#]+)",
+    r"(?P<key>[a-z_][a-z0-9_-]*)\s*[:=]\s*(?P<value>[^\n#]+)",
     re.IGNORECASE,
 )
 PLACEHOLDER_MARKERS = ("${", "{{", "<", "redacted", "placeholder", "changeme", "fake", "sample", "-password", "-secret", "-value")
@@ -217,27 +217,39 @@ class InfisicalSecretSyncStep:
         self.cli.ensure_project_environment(self.project, self.environment)
         generated_values = _read_env_file(self.generated_local_env)
         for entry in self.manifest_entries:
-            value = os.environ.get(entry.key) or generated_values.get(entry.key)
-            if not value and entry.source == "generated_local_secret":
-                value = _generate_secret(entry.key)
-                generated_values[entry.key] = value
-            if value and entry.source in {"generated_local_secret", "infisical_bootstrap_identity"}:
-                generated_values.setdefault(entry.key, value)
+            value = self._entry_value(entry, generated_values)
             if entry.required and not value:
                 raise SecretManagementBlocker("blocker", f"Required secret value is missing: {entry.key}")
-            if not value:
-                self.results.append(_sync_result(entry, "skipped_missing_optional"))
-                continue
-            exists = self.cli.secret_exists(entry.key, project=self.project, environment=self.environment)
-            if exists and entry.policy == "keep_existing":
-                self.results.append(_sync_result(entry, "kept_existing"))
-                continue
-            if exists and entry.policy == "rotate":
-                value = _generate_secret(entry.key)
-                generated_values[entry.key] = value
-            self.cli.set_secret(entry.key, value, project=self.project, environment=self.environment)
-            self.results.append(_sync_result(entry, "updated" if exists else "created"))
+            self._sync_entry(entry, value, generated_values)
         _write_env_file(self.generated_local_env, generated_values)
+
+    def _entry_value(self, entry: SecretManifestEntry, generated_values: dict[str, str]) -> str:
+        value = os.environ.get(entry.key) or generated_values.get(entry.key, "")
+        if not value and entry.source == "generated_local_secret":
+            value = _generate_secret(entry.key)
+            generated_values[entry.key] = value
+        if value and entry.source in {"generated_local_secret", "infisical_bootstrap_identity"}:
+            generated_values.setdefault(entry.key, value)
+        return value
+
+    def _sync_entry(
+        self,
+        entry: SecretManifestEntry,
+        value: str,
+        generated_values: dict[str, str],
+    ) -> None:
+        if not value:
+            self.results.append(_sync_result(entry, "skipped_missing_optional"))
+            return
+        exists = self.cli.secret_exists(entry.key, project=self.project, environment=self.environment)
+        if exists and entry.policy == "keep_existing":
+            self.results.append(_sync_result(entry, "kept_existing"))
+            return
+        if exists and entry.policy == "rotate":
+            value = _generate_secret(entry.key)
+            generated_values[entry.key] = value
+        self.cli.set_secret(entry.key, value, project=self.project, environment=self.environment)
+        self.results.append(_sync_result(entry, "updated" if exists else "created"))
 
     def verify(self) -> VerificationResult:
         synced = [result for result in self.results if result["sync_status"] in {"created", "updated", "kept_existing"}]
@@ -371,44 +383,60 @@ def _classify_line(path: Path, repo_root: Path, line_number: int, line: str, man
     findings: list[SecretFinding] = []
     relative = path.relative_to(repo_root).as_posix()
     for key in SECRET_KEY_PATTERN.findall(line):
-        if any(false_key in key for false_key in FALSE_POSITIVE_KEYS):
-            findings.append(SecretFinding(key, "false_positive", relative, line_number, reason="safe_symbol_name"))
-        elif key in managed_keys:
-            findings.append(SecretFinding(key, managed_keys[key].type, relative, line_number, service=managed_keys[key].service))
-        elif key.startswith("TSW_"):
-            findings.append(SecretFinding(key, "external_user_secret", relative, line_number, reason="unmanaged_tsw_secret_reference"))
+        finding = _classify_secret_key(key, relative, line_number, managed_keys)
+        if finding is not None:
+            findings.append(finding)
     assignment = SECRET_ASSIGNMENT_PATTERN.search(line)
     if assignment:
         key = assignment.group("key")
         if not _is_secretish_name(key):
             return findings
         value = assignment.group("value").strip().strip('"\'')
-        if key in managed_keys or value in managed_keys:
-            classification: SecretClassification = "managed_secret"
-        elif value.startswith("${"):
-            classification = "placeholder_only"
-        elif key.upper() in FALSE_POSITIVE_ASSIGNMENTS:
-            classification = "false_positive"
-        elif "_operator_secret_value" in value:
-            classification = "managed_secret"
-        elif any(marker in value.lower() for marker in SOURCE_MARKERS):
-            classification = "placeholder_only"
-        elif "System.getenv" in value:
-            classification = "placeholder_only"
-        elif relative.startswith("tests/") and ("assert" in line or "operator_credential" in line):
-            classification = "placeholder_only"
-        elif any(marker in value.lower() for marker in PLACEHOLDER_MARKERS):
-            classification = "placeholder_only"
-        elif path.suffix == ".py" and not value.startswith(("\"", "'")):
-            classification = "false_positive"
-        elif value.startswith("/"):
-            classification = "false_positive"
-        elif value and len(value) >= 6:
-            classification = "blocker"
-        else:
-            classification = "false_positive"
+        classification = _classify_secret_assignment(path, relative, line, key, value, managed_keys)
         findings.append(SecretFinding(key, classification, relative, line_number, redacted_value=REDACTED))
     return findings
+
+
+def _classify_secret_key(
+    key: str,
+    relative: str,
+    line_number: int,
+    managed_keys: dict[str, SecretManifestEntry],
+) -> SecretFinding | None:
+    if any(false_key in key for false_key in FALSE_POSITIVE_KEYS):
+        return SecretFinding(key, "false_positive", relative, line_number, reason="safe_symbol_name")
+    if key in managed_keys:
+        return SecretFinding(key, managed_keys[key].type, relative, line_number, service=managed_keys[key].service)
+    if key.startswith("TSW_"):
+        return SecretFinding(key, "external_user_secret", relative, line_number, reason="unmanaged_tsw_secret_reference")
+    return None
+
+
+def _classify_secret_assignment(
+    path: Path,
+    relative: str,
+    line: str,
+    key: str,
+    value: str,
+    managed_keys: dict[str, SecretManifestEntry],
+) -> SecretClassification:
+    if key in managed_keys or value in managed_keys or "_operator_secret_value" in value:
+        return "managed_secret"
+    if value.startswith("${") or "System.getenv" in value:
+        return "placeholder_only"
+    if key.upper() in FALSE_POSITIVE_ASSIGNMENTS:
+        return "false_positive"
+    if any(marker in value.lower() for marker in SOURCE_MARKERS + PLACEHOLDER_MARKERS):
+        return "placeholder_only"
+    if relative.startswith("tests/") and ("assert" in line or "operator_credential" in line):
+        return "placeholder_only"
+    if path.suffix == ".py" and not value.startswith(("\"", "'")):
+        return "false_positive"
+    if value.startswith("/"):
+        return "false_positive"
+    if value and len(value) >= 6:
+        return "blocker"
+    return "false_positive"
 
 
 def _is_secretish_name(key: str) -> bool:

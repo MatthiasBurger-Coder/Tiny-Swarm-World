@@ -229,12 +229,17 @@ def _finding_for_requirement(
 ) -> ConfigurationFinding:
     supplied_value = values.get(requirement.key, "")
     value = supplied_value or requirement.default
+    source = "missing"
+    if supplied_value:
+        source = "environment"
+    elif requirement.default:
+        source = "default"
     evidence = {
         "key": requirement.key,
         "scope": requirement.scope,
         "value_kind": requirement.value_kind.value,
         "required": str(requirement.required).lower(),
-        "source": "environment" if supplied_value else ("default" if requirement.default else "missing"),
+        "source": source,
     }
     if not value:
         if requirement.required:
