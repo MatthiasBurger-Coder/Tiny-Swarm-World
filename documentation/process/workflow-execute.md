@@ -33,6 +33,11 @@ Use this process when the user requests `workflow execute`.
 8. Inspect `git diff` and `git diff --check`.
 9. When the active workflow requires checkpoint pushes, stage only current-slice files, commit, push the workflow branch, and record the result.
 
+Slice checkpoint push is not `push auto`. A later explicit `push auto` may
+publish any task-scoped repository change produced by workflow execution only
+through the guarded commit, pull request, green required-checks, SonarQube when
+configured, merge and cleanup lifecycle.
+
 ## Stop Conditions
 
 Stop when the branch, slice metadata, dependency graph, locks, ownership,

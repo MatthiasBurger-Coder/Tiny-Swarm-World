@@ -6,7 +6,9 @@ This command activates the `skills-agents` strand.
 
 It may create, update, audit or reconnect skills, agents, roles, prompts, Codex agent definitions, routing rules, organigramm, skill registry and process documentation.
 
-It must not implement backend, frontend, Docker/runtime, contracts, persistence, analysis-engine, Joern, JavaParser, BTM generator or analytics behavior.
+It must not implement Python product code, Python product-behavior tests,
+backend, frontend, Docker/runtime, contracts, persistence, analysis-engine,
+Joern, JavaParser, BTM generator or analytics behavior.
 
 The skills-agents flow stops on review failures by default. If a workflow explicitly authorizes automatic correction attempts, cap them at `maxRetries = 3` and then escalate to the Root Architect.
 
@@ -22,9 +24,13 @@ Required flow:
 8. Load documentation/skill-audit/owner-map.md.
 9. Inspect current skills, roles, prompts and Codex agents.
 10. Run integrity, linkage, conflict, organigramm, registry and documentation checks.
-11. Apply only skills-agents changes.
-12. Stop if product implementation files would be changed.
-13. Prepare for optional push auto only when the user explicitly requests push auto.
+11. Apply only skills, agents, process-governance, or governance-only workflow
+    documentation changes.
+12. Stop if Python product code, Python product-behavior tests, or other
+    product implementation files would be changed.
+13. Prepare for optional push auto only when the user explicitly requests push
+    auto and the full commit, pull request, green required-checks, SonarQube
+    when configured, merge and cleanup lifecycle can be verified.
 
 `skills update` is not `workflow create`.
 `skills update` is not `workflow execute`.

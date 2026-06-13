@@ -35,7 +35,11 @@ Coordinate small implementation slices across roles while preserving architectur
 - Exact `workflow create` activates the `workflow create` strand and routes through requirement clarification, five-role Three Amigos review, branch governance, workflow authoring and arc42 validation.
 - Exact `workflow execute` activates the `workflow execute` strand and routes through the workflow executor, slice role reviews, quality gates and slice checkpoint push.
 
-The strands must not be mixed. Slice checkpoint push is not `push auto`, and `push auto` belongs only to `skills-agents`.
+The strands must not be mixed. Slice checkpoint push is not `push auto`.
+`push auto` may publish and merge any task-scoped repository change, including
+Python product code and Python product-behavior tests, only through the guarded
+commit, pull request, green required-checks, SonarQube when configured, merge
+and cleanup lifecycle.
 
 ## Execution Profile Routing
 

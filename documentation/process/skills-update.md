@@ -19,7 +19,12 @@ or workflow governance.
 8. Route service-boundary concerns by exact need: decomposition, runtime
    readiness, migration safety, contract governance, or Senior System Architect
    escalation.
-9. Run `git diff --check` and the quality gate required by `QUALITY.md` when practical.
+9. Stop if Python product code, Python product-behavior tests, or other
+    product implementation files would be changed.
+10. Prepare optional `push auto` only when explicitly requested and only
+    through the full commit, pull request, green required-checks, SonarQube
+    when configured, merge and cleanup lifecycle.
+11. Run `git diff --check` and the quality gate required by `QUALITY.md` when practical.
 
 ## Stop Conditions
 

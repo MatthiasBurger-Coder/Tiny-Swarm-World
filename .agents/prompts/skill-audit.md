@@ -26,10 +26,21 @@ Use for `skills update` before changing skills, agents, roles, prompts, Codex ag
 - required specialist reviews
 - blockers
 - process strand classification
-- `push auto` eligibility for skills-agents changes
+- `push auto` lifecycle eligibility for task-scoped changes, including Python
+  product code and Python product-behavior tests
 
 ## Decision
 
 Return `CONTINUE` only when no blocking skill or governance conflict remains.
 
-For `skills update`, return `CONTINUE` only when the change belongs to `skills-agents` and no product implementation, services, contracts, Docker/runtime, build logic, frontend or analytics files are in scope.
+For `skills update`, return `CONTINUE` only when the change belongs to skills,
+agents, process-governance, or governance-only workflow documentation and no
+Python product code, Python product-behavior tests, product implementation,
+services, contracts, Docker/runtime, build logic, frontend or analytics files
+are in scope.
+
+For `push auto`, return `CONTINUE` only when the diff is task-scoped, no
+unrelated or sensitive files are in scope, and the publication path can create
+or reuse a pull request, wait or retry until required checks are green
+including SonarQube when configured, merge, delete the merged remote head
+branch and run local cleanup.
