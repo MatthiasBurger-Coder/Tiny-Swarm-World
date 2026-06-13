@@ -6,6 +6,11 @@ from tests.support.sonar_safe_literals import token_marker
 
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
+from tiny_swarm_world.domain.configuration import (
+    ConfigurationFinding,
+    ConfigurationStatus,
+    ConfigurationValidationResult,
+)
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentKind,
@@ -50,6 +55,92 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("LIVE-CONSENT", check_ids)
         self.assertNotIn("RUNTIME-MULTIPASS", check_ids)
         self.assertFalse(any(check_id.startswith("RUNTIME-") for check_id in check_ids))
+
+    async def test_configuration_contract_checks_are_reported_as_preflight_checks(self):
+        result = await PreflightService(
+            _fake_probe(),
+            configuration_validation=_FakeConfigurationValidation(
+                (
+                    ConfigurationFinding(
+                        key="TSW_EXAMPLE_PASSWORD",
+                        status=ConfigurationStatus.PASSED,
+                        message="Configuration value satisfies the typed contract.",
+                        remediation="None.",
+                        evidence={
+                            "scope": "example",
+                            "value_kind": "secret_value",
+                            "required": "true",
+                            "source": "environment",
+                        },
+                    ),
+                )
+            ),
+        ).run()
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        config_check = checks_by_id["CONFIG-TSW_EXAMPLE_PASSWORD"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual(PreflightStatus.PASSED, config_check.status)
+        self.assertEqual("CONFIGURATION", config_check.category.value)
+        self.assertEqual("example", config_check.evidence["scope"])
+        self.assertEqual("secret_value", config_check.evidence["value_kind"])
+
+    async def test_missing_configuration_contract_value_blocks_preflight(self):
+        result = await PreflightService(
+            _fake_probe(),
+            configuration_validation=_FakeConfigurationValidation(
+                (
+                    ConfigurationFinding(
+                        key="TSW_REQUIRED_PASSWORD",
+                        status=ConfigurationStatus.FAILED,
+                        message="Required configuration value is missing.",
+                        remediation="Provide TSW_REQUIRED_PASSWORD through an operator-owned environment source.",
+                        evidence={
+                            "scope": "example",
+                            "value_kind": "secret_value",
+                            "required": "true",
+                            "source": "missing",
+                        },
+                    ),
+                )
+            ),
+        ).run()
+
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+
+        self.assertFalse(result.passed)
+        self.assertIn("CONFIG-TSW_REQUIRED_PASSWORD", failed_by_id)
+        self.assertEqual("missing", failed_by_id["CONFIG-TSW_REQUIRED_PASSWORD"].evidence["source"])
+
+    async def test_configuration_source_errors_fail_closed_without_value_leak(self):
+        result = await PreflightService(
+            _fake_probe(),
+            configuration_validation=_RaisingConfigurationValidation(
+                ValueError("secret-value must not leak")
+            ),
+        ).run()
+
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+
+        self.assertFalse(result.passed)
+        self.assertIn("CONFIGURATION-CONTRACT", failed_by_id)
+        self.assertEqual(
+            "configuration_source_error",
+            failed_by_id["CONFIGURATION-CONTRACT"].evidence["classification"],
+        )
+        self.assertNotIn("secret-value", repr(result.to_dict()))
+
+    async def test_configuration_contract_validation_replaces_legacy_secret_probe(self):
+        result = await PreflightService(
+            _fake_probe(secret_availability={"TSW_NEXUS_ADMIN_PASSWORD": False}),
+            configuration_validation=_FakeConfigurationValidation(()),
+        ).run()
+
+        check_ids = {check.check_id for check in result.checks}
+
+        self.assertTrue(result.passed)
+        self.assertNotIn("SECRET-TSW_NEXUS_ADMIN_PASSWORD", check_ids)
 
     async def test_static_preflight_reports_typed_host_evidence_without_runtime_readiness(self):
         probe = _fake_probe(
@@ -554,3 +645,19 @@ class _LegacyBooleanProbe(PortHostPreflightProbe):
         fingerprints: Mapping[str, str],
     ) -> Sequence[str]:
         return ()
+
+
+class _FakeConfigurationValidation:
+    def __init__(self, findings: tuple[ConfigurationFinding, ...]) -> None:
+        self.findings = findings
+
+    def validate(self) -> ConfigurationValidationResult:
+        return ConfigurationValidationResult(self.findings)
+
+
+class _RaisingConfigurationValidation:
+    def __init__(self, error: ValueError) -> None:
+        self.error = error
+
+    def validate(self) -> ConfigurationValidationResult:
+        raise self.error

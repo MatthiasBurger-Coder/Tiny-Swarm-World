@@ -445,12 +445,14 @@ class TestComposition(unittest.TestCase):
             service_profile,
             node_provider_request,
             ui,
+            configuration_validation,
         ):
             calls.append("services built")
             self.assertIs(live_consent, consent)
             self.assertEqual(ServiceStackProfile.SERVICE_ACCESS, service_profile)
             self.assertEqual(composition.NodeProviderSelectionRequest(), node_provider_request)
             self.assertIs(recording_ui, ui)
+            self.assertIsNotNone(configuration_validation)
             return _setup_lifecycle_bundle(calls, result)
 
         with patch.object(composition, "build_setup_ui", side_effect=build_setup_ui):
@@ -1176,7 +1178,10 @@ class TestComposition(unittest.TestCase):
             ),
             tuple(phase.name for phase in services.workflows.run.phases),
         )
-        build_preflight.assert_called_once_with(service_profile=ServiceStackProfile.SERVICE_ACCESS)
+        build_preflight.assert_called_once_with(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS,
+            configuration_validation=None,
+        )
         build_platform.assert_called_once_with(
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             live_consent=services.workflows.run.live_consent,

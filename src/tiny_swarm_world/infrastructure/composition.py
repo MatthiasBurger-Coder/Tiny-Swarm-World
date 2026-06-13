@@ -825,10 +825,12 @@ def build_application_logger():
 def build_preflight_service(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
     return PreflightService(
         HostPreflightProbe(),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
+        configuration_validation=configuration_validation,
     )
 
 
@@ -848,11 +850,13 @@ def build_configuration_validation_service(
 def build_post_install_preflight_service(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
     configuration = _preflight_configuration_for_provider(service_profile, node_provider_request)
     return PreflightService(
         HostPreflightProbe(),
         replace(configuration, required_ports=()),
+        configuration_validation=configuration_validation,
     )
 
 
@@ -899,6 +903,7 @@ async def run_setup_with_terminal_status(
             service_profile=service_profile,
             node_provider_request=node_provider_request,
             ui=ui,
+            configuration_validation=build_configuration_validation_service(),
         )
         match action:
             case "run":
@@ -1383,8 +1388,13 @@ def build_setup_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
+    configuration_validation: ConfigurationValidationService | None = None,
 ) -> SetupServices:
-    preflight = _build_preflight_service_for_request(service_profile, node_provider_request)
+    preflight = _build_preflight_service_for_request(
+        service_profile,
+        node_provider_request,
+        configuration_validation=configuration_validation,
+    )
     trace_correlation_id = _new_installation_trace_correlation_id()
     platform = _build_platform_services_for_request(
         service_profile,
@@ -1536,24 +1546,34 @@ def _build_deployment_services_for_request(
 def _build_preflight_service_for_request(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
+    configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
     if node_provider_request is None:
-        return build_preflight_service(service_profile=service_profile)
+        return build_preflight_service(
+            service_profile=service_profile,
+            configuration_validation=configuration_validation,
+        )
     return build_preflight_service(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
+        configuration_validation=configuration_validation,
     )
 
 
 def _build_post_install_preflight_service_for_request(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
+    configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
     if node_provider_request is None:
-        return build_post_install_preflight_service(service_profile=service_profile)
+        return build_post_install_preflight_service(
+            service_profile=service_profile,
+            configuration_validation=configuration_validation,
+        )
     return build_post_install_preflight_service(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
+        configuration_validation=configuration_validation,
     )
 
 
