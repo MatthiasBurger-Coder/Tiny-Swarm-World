@@ -51,7 +51,7 @@ class SyncCommandRunnerUI(CommandRunnerUi):
         results = []
 
         try:
-            # Starte die parallele Ausführung der Befehle für jede VM
+            # Execute the commands for each VM.
             for vm in self.instances:
                 try:
                     result = await self.command_execute.execute(self.command_list[vm])
@@ -66,7 +66,7 @@ class SyncCommandRunnerUI(CommandRunnerUi):
                     self.ui.update_status(task="completed", step="execution", result=STATUS_SUCCESS, instance=vm)
 
         finally:
-            # Aktualisiere die UI mit Abschlussstatus
+            # Update the UI with the final aggregate status.
             final_result = STATUS_ERROR if failure else STATUS_SUCCESS
             self.ui.update_status(
                 task="finished",
@@ -75,7 +75,7 @@ class SyncCommandRunnerUI(CommandRunnerUi):
                 instance=AGGREGATE_INSTANCE,
             )
 
-            # Warte auf das Ende des UI-Threads
+            # Wait for the UI thread to finish.
             self.logger.info("Waiting for UI thread to close...")
             await self.ui.ui_thread
 

@@ -53,16 +53,16 @@ class AsyncCommandRunnerUI(CommandRunnerUi):
         failures: list[BaseException] = []
 
         try:
-            # Starte die parallele Ausführung der Befehle für jede VM
+            # Execute commands for each VM concurrently.
             tasks = {
                 vm: asyncio.create_task(self.command_execute.execute(self.command_list[vm]))
                 for vm in self.instances
             }
 
-            # Warte darauf, dass alle VMs abgeschlossen sind und sammle Ergebnisse
+            # Collect results after all VM executions finish.
             results = await asyncio.gather(*tasks.values(), return_exceptions=True)
 
-            # Fehlerhandling für einzelne VMs
+            # Handle each VM result independently.
             for vm, result in zip(self.instances, results):
                 if isinstance(result, Exception):
                     failures.append(result)
@@ -73,7 +73,7 @@ class AsyncCommandRunnerUI(CommandRunnerUi):
                     self.ui.update_status(task="completed", step="execution", result=STATUS_SUCCESS, instance=vm)
 
         finally:
-            # Aktualisiere die UI mit Abschlussstatus
+            # Update the UI with the final aggregate status.
             final_result = STATUS_ERROR if failures else STATUS_SUCCESS
             self.ui.update_status(
                 task="finished",
@@ -82,7 +82,7 @@ class AsyncCommandRunnerUI(CommandRunnerUi):
                 instance=AGGREGATE_INSTANCE,
             )
 
-            # Warte auf das Ende des UI-Threads
+            # Wait for the UI thread to finish.
             self.logger.info("Waiting for UI thread to close...")
             await self.ui.ui_thread
 
