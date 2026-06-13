@@ -24,7 +24,15 @@ topological sorting and lock validation.
 - Keep roles focused on disjoint responsibilities.
 - Do not allow overlapping edits without explicit ownership boundaries.
 - Require S3D execution-plan output before write-capable execution.
-- Coordinate role handoffs after S3D validates dependency order and locks.
+- Coordinate role handoffs after S3D validates dependency order, locks and
+  automatic stream distribution.
+- Use real Codex subagents where supported by the current environment and the
+  slice distribution decision selects safe stream execution.
+- Require explicit role-based fallback review when real subagents are
+  unavailable or not visible.
+- Require isolated Git worktrees for parallel execution streams.
+- Keep Codex as final consolidation owner; stream workers must not merge
+  directly to the main workflow branch.
 - Route overlapping locks as `LOCK_CONFLICT` through Senior Execution Orchestrator, Typed Error Router and Root Architect escalation.
 - Detect conflicts early through git status and changed-file review.
 - End each slice with targeted verification and a clear quality-gate status.

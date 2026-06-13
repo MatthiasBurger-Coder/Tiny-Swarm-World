@@ -134,3 +134,27 @@ the dedicated decomposition, runtime-readiness, migration-safety and contract
 governance skills. This preserves future service-boundary review without
 reclassifying Tiny Swarm World as a Spring Boot application, a browser React
 project, forensic analytics, or Kubernetes-first.
+
+=== Workflow Execute Work Distribution
+
+`workflow execute` performs automatic work distribution analysis for every
+executable slice. The executor classifies affected areas across backend,
+frontend, tests, runtime, documentation, quality, architecture, and security.
+When those concerns are clearly separable, Codex may distribute work to
+specialist execution streams. Real Codex subagents are used where the runtime
+supports them; otherwise the same specialist responsibilities are applied as
+explicit role-based fallback review in the main execution thread.
+
+Parallel slice streams are isolated through Git worktrees and stream branches
+named `<workflow-branch>-slice-<number>-<stream>`. Codex remains final
+integration owner, consolidates all stream results into the main workflow
+branch, runs the required quality gates, records distribution and consolidation
+evidence under `.codex/evidence/`, and preserves PR and merge readiness rules.
+
+The distribution policy is fail-closed. Slices remain sequential when file
+ownership overlaps, architecture boundaries are unclear, requirements
+contradict each other, ordering is mandatory, a shared migration or schema
+sequence must happen first, generated files would conflict, Three Amigos
+rejects safe parallelization, secrets handling is unclear, or safety guards
+would be weakened. Three Amigos remains mandatory and is not replaced by
+automatic distribution.

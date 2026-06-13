@@ -134,6 +134,8 @@ Every workflow should include:
 - ordered slices
 - slice dependency graph
 - Parallel Execution
+- Automatic Work Distribution Policy
+- Git Worktree Execution Rule
 - parallelization opportunities
 - role or subagent ownership map
 - quality-gate expectations from `QUALITY.md`
@@ -256,6 +258,24 @@ workflow templates, governance files, skill files, agent files, tests, package
 structures and architecture decisions do not overlap, and verification can be
 run independently. Conflicting workflows must be executed sequentially.
 
+Every executable workflow must also include `## Automatic Work Distribution
+Policy` and `## Git Worktree Execution Rule` sections that mirror the active
+workflow executor policy. The workflow must state that `workflow execute`
+automatically analyzes each slice for safe specialist stream decomposition,
+uses real Codex subagents where supported, falls back to explicit role-based
+review when subagents are unavailable, requires
+`.codex/evidence/slice-<number>-distribution.md` before implementation,
+requires `.codex/evidence/slice-<number>-consolidation.md` for implemented
+slices, and keeps Codex as final integration owner.
+
+The workflow must define the stream map for backend, frontend, tests, runtime,
+documentation, quality, architecture and security. It must also define the
+non-parallelization rules for overlapping files, unclear architecture,
+contradictory requirements, mandatory ordering, shared migrations, strict
+database/schema sequencing, generated-file conflicts, a Three Amigos
+not-safely-parallelizable decision, unclear secrets handling and weakened
+safety guards.
+
 ## Subagent Assignment
 
 Assign roles by verified responsibility:
@@ -267,9 +287,17 @@ Assign roles by verified responsibility:
 - quality verification: Senior Tester or quality-gate skills
 - branch, commit and push readiness: git commit preparation skills
 
-Use subagents only when the user explicitly asks for delegated or parallel agent work.
+During `workflow execute`, the command itself authorizes automatic distribution
+analysis and safe stream execution. Use real Codex subagents where supported.
+If callable subagents are unavailable or not visible, perform the same review
+through explicit role-based fallback in the main execution thread and document
+the fallback in evidence.
 
-Subagents must verify that the active branch belongs to the current workflow before modifying files. They must not switch branches or implement on `main`, `master`, `develop`, or any shared branch unless the workflow explicitly authorizes the branch operation.
+Subagents must verify that the active branch or stream worktree branch belongs
+to the current workflow before modifying files. They must not implement on
+`main`, `master`, `develop`, or any shared branch. Stream workers must not
+merge directly to the main workflow branch; Codex consolidates accepted stream
+results after evidence and tests pass.
 
 ## Quality Gates
 

@@ -19,6 +19,10 @@ Tiny Swarm World.
 - `push auto` must create or reuse a pull request, wait or retry until required
   checks are green including SonarQube when configured, merge only after green
   checks, delete the merged remote head branch, and clean up the local branch.
+- Parallel `workflow execute` streams must use isolated Git worktrees and
+  stream branches. Stream workers must not merge directly to the main workflow
+  branch; Codex consolidates accepted stream results after evidence and
+  stream-specific tests pass.
 
 ## Branch Matrix
 
@@ -28,6 +32,7 @@ Tiny Swarm World.
 | Agent roles, routing, process structure or workflow governance | `architecture/agents-<short-topic>-<yyyyMMdd>` |
 | Workflow creation | `feature/workflow-<short-topic>-<yyyyMMdd>` |
 | Workflow execution | Use the branch declared by the active checked workflow |
+| Workflow execution stream | `<workflow-branch>-slice-<number>-<stream>` |
 | Product feature work | `feature/<short-topic>-<yyyyMMdd>` |
 | Product bug fix | `fix/<short-topic>-<yyyyMMdd>` |
 | Documentation-only work | `docs/<short-topic>-<yyyyMMdd>` |

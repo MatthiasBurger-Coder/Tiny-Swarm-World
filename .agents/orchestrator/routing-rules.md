@@ -46,6 +46,14 @@ gates. Unclear impact defaults to `FULL_PATH`.
 - Incoming requirement gatekeeping before workflow authoring, Three Amigos review, acceptance-criteria validation, dependency/deadlock checks or `READY_FOR_WORKFLOW` versus `REQUIRES_REFINEMENT` decisions route to `skills/three-amigos-requirement-gatekeeper/SKILL.md`.
 - Multi-role coordination, conflict resolution or slice planning routes to `roles/senior-swarm-orchestrator.md`.
 - S3D execution orchestration, dependency graph construction, topological sorting, parallelization grouping or file/contract/module/architecture-boundary conflict locks route to `roles/senior-execution-orchestrator.md` and `skills/s3d-execution-orchestrator/SKILL.md`.
+- Automatic `workflow execute` stream distribution uses this stream map:
+  backend routes to Senior Python Automation Developer or the verified backend
+  owner; frontend routes to console/status UI skills unless a browser frontend
+  workflow is verified; tests routes to Senior Tester; runtime routes to
+  Senior DevOps; documentation routes to Senior Documentation Engineer;
+  quality routes to quality-gate skills and Senior Tester; architecture routes
+  to Senior System Architect; security routes to Senior Security Sandbox
+  Engineer and security skills.
 - Protobuf contracts, streaming RPC design, request validation or gRPC compatibility route to `roles/senior-grpc-proto-specialist.md`.
 - Repository checkout, workspace lifecycle, source-root preparation or large Git repositories route to `roles/senior-git-workspace-specialist.md`.
 - Plugin producer handoff, plugin-side request construction or plugin-to-server communication routes to `roles/senior-plugin-integration-developer.md`.

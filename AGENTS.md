@@ -253,6 +253,29 @@ authoritative skill entrypoints.
 - Verify the active workflow, branch, slice metadata, locks, and quality gates
   before any write-capable work.
 - Use S3/S3D preflight for workflow execution.
+- During every `workflow execute`, inspect each executable slice and decide
+  automatically whether it can be split into specialist execution streams.
+- Prefer automatic work distribution when backend, frontend, tests, runtime,
+  documentation, quality, architecture, or security concerns are clearly
+  separable.
+- Use real Codex subagents where supported. If real subagents are unavailable
+  or not visible, perform an explicit role-based fallback review in the main
+  execution thread and record that fallback in evidence.
+- Parallel stream work must use isolated Git worktrees and stream branches.
+- Do not parallelize unsafe slices, including overlapping files, unclear
+  architecture boundaries, contradictory requirements, mandatory ordering,
+  shared migrations, strict database/schema sequencing, generated-file merge
+  conflicts, unclear secrets handling, weakened safety guards, or a Three
+  Amigos decision that marks the slice as not safely parallelizable.
+- Codex remains the final integration owner for consolidation, tests,
+  evidence, PR readiness, and merge readiness.
+- `workflow execute` must never call `workflow create` backwards.
+- Each slice commit must represent exactly one slice; multi-slice commits are
+  forbidden.
+- External AI, subagents, or stream workers may advise or produce isolated
+  stream changes, but Codex remains the final executor and decision owner.
+- Subagents or stream workers must not directly merge to the main workflow
+  branch without consolidation.
 - Keep slice edits inside the workflow's allowed files and locks.
 - Run targeted checks first, then required `QUALITY.md` gates.
 - Classify failures through the Typed Error Router before retries.

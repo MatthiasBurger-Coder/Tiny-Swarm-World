@@ -13,24 +13,32 @@ git show-ref --verify --quiet refs/heads/<workflow-branch>
 ```
 
 3. Verify required files, symbols, tasks, contracts and commands before editing.
-4. Route to required subagents or role reviews.
-5. Apply the smallest verified change.
-6. Run targeted checks first.
-7. Run required quality gates from `QUALITY.md` or the workflow.
-8. Treat the required quality decision as `D8`; D8 blocks commit and checkpoint
+4. Run the Three Amigos or specialist review gate for the slice.
+5. Create `.codex/evidence/slice-<number>-distribution.md` with affected
+   areas, selected execution mode, selected streams, subagent or fallback
+   status, worktree status, risks, quality gates and consolidation plan.
+6. Route to required subagents or role reviews.
+7. If parallel, use isolated Git worktrees and stream branches named
+   `<workflow-branch>-slice-<number>-<stream>`.
+8. Apply the smallest verified change.
+9. Run targeted checks first.
+10. Run required quality gates from `QUALITY.md` or the workflow.
+11. Fix in-scope test, quality-gate and SonarQube findings without weakening gates.
+12. Treat the required quality decision as `D8`; D8 blocks commit and checkpoint
    push on failed build, failed tests, architecture violation, missing required
    documentation, missing workflow version or failed required quality gate.
-9. Inspect `git diff` and `git diff --check`.
-10. When the slice quality gate passed, prepare the `CP_RECORD` with workflow
+13. Inspect `git diff` and `git diff --check`.
+14. Create or update `.codex/evidence/slice-<number>-consolidation.md`.
+15. When the slice quality gate passed, prepare the `CP_RECORD` with workflow
    version, slice ID, slice title, responsible agent, changed files,
    quality-gate commands, quality-gate result, rollback reference,
    `arc42Updated` and `adrUpdated`.
-11. Stage only current-slice files.
-12. Run `git diff --cached --check`.
-13. Create the slice-scoped checkpoint commit.
-14. Push the current workflow branch to `origin`.
-15. Record commit SHA, push result, blockers and handoff state.
-16. Route asynchronous execution-report notes through `Q11`; Q11 is
+16. Stage only current-slice files.
+17. Run `git diff --cached --check`.
+18. Create the slice-scoped checkpoint commit.
+19. Push the current workflow branch to `origin`.
+20. Record commit SHA, push result, blockers and handoff state.
+21. Route asynchronous execution-report notes through `Q11`; Q11 is
    non-blocking by default unless a regulatory or compliance report is
    explicitly declared as a D8 requirement.
 
@@ -47,6 +55,7 @@ Stop when:
 - write scope is unclear;
 - active workflow branch is missing, inactive, or has no local ref;
 - required role review is missing;
+- distribution or consolidation evidence is missing;
 - exact repository artifact cannot be verified;
 - tests or required gates fail;
 - D8 fails or cannot be verified;

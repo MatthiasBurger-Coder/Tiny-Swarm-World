@@ -25,6 +25,10 @@ Orchestrator coordination.
 - Build the dependency graph before write-capable execution starts.
 - Allow parallel execution only when file, contract, module and
   architecture-boundary locks are disjoint.
+- Classify backend, frontend, tests, runtime, documentation, quality,
+  architecture and security streams for every executable slice.
+- Require distribution evidence before implementation.
+- Require isolated Git worktrees and stream branches for parallel execution.
 - Route lock conflicts as `LOCK_CONFLICT` through the Typed Error Router.
 - Keep Senior Swarm Orchestrator responsible for cross-role coordination and
   handoff sequencing.

@@ -34,13 +34,18 @@ Read, when present:
 3. Verify required start artifacts from project instructions, such as a checked workflow file and architecture documentation.
 4. Run the S3 safety preflight when project governance defines it: check working tree status, active execution branch, local branch ref and active workflow scope before classifying a slice. Project-defined S3 classification must include a default unclassified STOP and escalation path; unclassifiable slices must not execute automatically.
 5. Identify slices, dependencies, write scopes, and verification commands.
-6. Route each slice to the smallest suitable set of subagents or role reviews.
-7. Execute one slice at a time unless project governance explicitly approves
-   independent parallel workflow execution in isolated Git worktrees.
-8. Run required targeted checks and quality gates after each slice.
-9. Inspect `git diff` and `git diff --check`.
-10. When the active project workflow permits slice checkpoint pushes, stage only current-slice files, run `git diff --cached --check`, create the slice-scoped checkpoint commit, push only the current workflow branch to `origin`, and record the commit SHA and push result.
-11. Continue only when the slice is clean, the required checkpoint is recorded, or the workflow explicitly permits carrying a documented blocker.
+6. Automatically analyze each slice for backend, frontend, tests, runtime,
+   documentation, quality, architecture and security stream separation.
+7. Route each slice to the smallest suitable set of subagents or role reviews.
+   Use callable subagents where supported; if unavailable, perform explicit
+   role-based fallback review and record it.
+8. Execute one slice at a time unless project governance approves safe stream
+   parallelization in isolated Git worktrees.
+9. Run required targeted checks and quality gates after each slice.
+10. Fix in-scope test, quality-gate and SonarQube findings without weakening gates.
+11. Inspect `git diff` and `git diff --check`.
+12. When the active project workflow permits slice checkpoint pushes, stage only current-slice files, run `git diff --cached --check`, create the slice-scoped checkpoint commit, push only the current workflow branch to `origin`, and record the commit SHA and push result.
+13. Continue only when the slice is clean, the required checkpoint is recorded, or the workflow explicitly permits carrying a documented blocker.
 
 Slice checkpoint push is separate from `push` and `push auto`; it does not create or merge a PR, run branch cleanup, force-push or push to `main`.
 A later explicit `push auto` may publish any task-scoped repository change from
@@ -54,6 +59,12 @@ shared live infrastructure validation unless isolated infrastructure is
 verified. Merge parallel workflow PRs one at a time after refreshing the
 integration branch, updating the branch when required, rerunning affected tests
 and rechecking CI plus SonarQube.
+
+Parallel slice stream execution requires one dedicated stream branch and
+worktree per stream. Branch names follow
+`<workflow-branch>-slice-<number>-<stream>`. Stream workers may not merge
+directly to the main workflow branch; Codex must consolidate accepted stream
+results after stream tests, evidence and conflict review pass.
 
 ## Stop Conditions
 

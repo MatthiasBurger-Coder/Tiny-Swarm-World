@@ -29,8 +29,11 @@ strand and must not rewrite workflow-create artifacts.
 4. Reject cycles before implementation.
 5. Build topological execution groups.
 6. Validate file locks, contract locks, module locks and architecture locks.
-7. Decide whether execution is serial or parallel.
-8. Return a structured result.
+7. Classify affected stream areas: backend, frontend, tests, runtime,
+   documentation, quality, architecture and security.
+8. Decide whether execution is serial or parallel for each slice.
+9. Require distribution evidence before write-capable implementation.
+10. Return a structured result.
 
 ## Result Contract
 
@@ -45,6 +48,8 @@ with:
 - ordered slice IDs;
 - topological groups;
 - serial or parallel decision;
+- selected stream map per slice;
+- expected distribution evidence path per slice;
 - lock sets;
 - required owners and reviewers;
 - quality gates.
@@ -77,6 +82,12 @@ with:
 - Do not call `workflow create`.
 - Do not infer missing slice IDs, locks, modules, contracts or owners.
 - Do not allow parallel work when locks overlap.
+- Do not allow parallel work when the slice modifies the same files across
+  streams, the architecture boundary is unclear, requirements contradict each
+  other, implementation order is mandatory, a shared migration must happen
+  first, database/schema changes need strict sequencing, generated files would
+  conflict, Three Amigos rejects safe parallelization, secrets handling is
+  unclear, or safety guards would be weakened.
 - Do not mark a quality gate passed or optional.
 
 ## STOP Rules
@@ -88,5 +99,6 @@ Stop before implementation when:
 - a dependency references an unknown slice;
 - the dependency graph contains a cycle;
 - file, contract, module or architecture locks overlap;
+- stream ownership or distribution evidence cannot be verified;
 - owner or reviewer cannot be verified;
 - the active branch or worktree status is unsafe.

@@ -20,6 +20,8 @@ role files, skill files, or `documentation/workflow/workflow.md`.
 - Platform preflight
 - Deployment setup safety
 - Documentation synchronization
+- Automatic workflow execute work distribution
+- Git worktree stream isolation
 - Commit and push publication
 
 ## Affected Areas
@@ -34,6 +36,8 @@ role files, skill files, or `documentation/workflow/workflow.md`.
 - Future `infra/config/**`
 - Future `tests/**`
 - Future README, deployment, user guide, and arc42 documentation
+- Future `.codex/evidence/slice-*-distribution.md`
+- Future `.codex/evidence/slice-*-consolidation.md`
 
 ## Forbidden Areas
 
