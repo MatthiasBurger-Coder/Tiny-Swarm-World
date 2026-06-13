@@ -24,8 +24,7 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
             raise ValueError("compose stack name contains invalid characters")
 
         for base_directory in self.base_directories:
-            compose_path = base_directory / stack_name / "docker-compose.yml"
-            if compose_path.is_file():
+            for compose_path in self._compose_paths_for(base_directory, stack_name):
                 self.logger.info("Loaded compose file for stack '%s'.", stack_name)
                 return StackDefinition(
                     name=stack_name,
@@ -33,3 +32,17 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
                 )
 
         raise FileNotFoundError(f"No docker-compose.yml found for stack '{stack_name}' in {self.base_directories}.")
+
+    def _compose_paths_for(self, base_directory: Path, stack_name: str) -> list[Path]:
+        if not base_directory.is_dir():
+            return []
+
+        direct_path = base_directory / stack_name / "docker-compose.yml"
+        if direct_path.is_file():
+            return [direct_path]
+
+        return sorted(
+            compose_path
+            for compose_path in base_directory.rglob("docker-compose.yml")
+            if compose_path.parent.name == stack_name
+        )

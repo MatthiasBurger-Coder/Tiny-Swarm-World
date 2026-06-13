@@ -35,6 +35,20 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             self.assertEqual(stack_definition.name, "nexus")
             self.assertIn("image: nexus:latest", stack_definition.compose_content)
 
+    def test_recursively_loads_compose_content_from_matching_stack_directory(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            config_root = Path(temp_dir) / "config" / "compose"
+            config_root.joinpath("platform", "services", "nexus").mkdir(parents=True)
+            compose_file = config_root / "platform" / "services" / "nexus" / "docker-compose.yml"
+            compose_file.write_text("services:\n  nexus:\n    image: nested\n", encoding="utf-8")
+
+            repository = ComposeFileRepositoryYaml(base_directories=[compose_root, config_root])
+            stack_definition = repository.get_compose_of("nexus")
+
+            self.assertEqual(stack_definition.name, "nexus")
+            self.assertIn("image: nested", stack_definition.compose_content)
+
     def test_prefers_first_matching_base_directory(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             compose_root = Path(temp_dir) / "compose"

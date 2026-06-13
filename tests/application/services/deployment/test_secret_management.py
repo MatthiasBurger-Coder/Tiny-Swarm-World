@@ -62,6 +62,17 @@ class TestSecretManagement(unittest.TestCase):
         self.assertEqual("infisical_bootstrap_identity", entry.source)
         self.assertFalse(entry.required)
 
+    def test_committed_manifest_tracks_required_infisical_login_identity(self):
+        entries = SecretManifestRenderer(Path("config/secrets/infisical-secrets.yaml")).run()
+        entries_by_key = {entry.key: entry for entry in entries}
+
+        entry = entries_by_key["TSW_INFISICAL_LOGIN_EMAIL"]
+
+        self.assertEqual("infisical", entry.service)
+        self.assertEqual("placeholder_only", entry.type)
+        self.assertEqual("placeholder_only", entry.source)
+        self.assertTrue(entry.required)
+
     def test_secret_discovery_classifies_managed_placeholder_and_blocker(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
