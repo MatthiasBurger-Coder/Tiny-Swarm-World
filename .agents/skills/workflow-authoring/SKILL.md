@@ -133,6 +133,7 @@ Every workflow should include:
 - resilience requirements
 - ordered slices
 - slice dependency graph
+- Parallel Execution
 - parallelization opportunities
 - role or subagent ownership map
 - quality-gate expectations from `QUALITY.md`
@@ -188,6 +189,13 @@ For each slice define:
 - allowed write scope
 - dependencies
 - parallel group
+- parallel execution eligibility
+- conflicting workflows
+- shared files
+- shared infrastructure
+- isolated worktree requirement
+- serialized live validation requirement
+- merge-order constraints
 - file, contract and architecture locks
 - parallelization status
 - done criteria
@@ -222,7 +230,31 @@ Use empty arrays for none. Dependencies must be concrete slice IDs, not ranges
 or prose. Missing metadata blocks future `workflow execute` until the workflow
 is corrected.
 
-Parallelize only when write scopes are disjoint, shared contracts are stable and verification can be run independently.
+Every executable workflow must include this section:
+
+```markdown
+## Parallel Execution
+
+- Can this workflow run in parallel?
+- Conflicting workflows:
+- Shared files:
+- Shared infrastructure:
+- Requires isolated worktree:
+- Requires serialized live validation:
+- Merge-order constraints:
+```
+
+Default policy:
+
+- Every workflow requires its own Git worktree.
+- Parallel execution is allowed only after Three Amigos confirms
+  independence.
+- Live validation is serialized unless isolated infrastructure is available.
+
+Parallelize only when write scopes are disjoint, shared contracts are stable,
+workflow templates, governance files, skill files, agent files, tests, package
+structures and architecture decisions do not overlap, and verification can be
+run independently. Conflicting workflows must be executed sequentially.
 
 ## Subagent Assignment
 

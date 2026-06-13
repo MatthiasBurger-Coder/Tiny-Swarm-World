@@ -80,7 +80,11 @@ git branch --show-current
     matches the workflow branch.
 16. Create or regenerate workflow artifacts only after successful branch verification.
 17. Build slices, role ownership, quality gates and stop conditions through the workflow-authoring skill.
-18. Validate that `documentation/workflow/workflow.md` and checked or updated `documentation/arc42/**` documentation exist before releasing `workflow execute`.
+18. Add the required `## Parallel Execution` workflow section. Default every
+    workflow to a required isolated Git worktree, allow parallel execution only
+    after Three Amigos confirms independence, and serialize live validation
+    unless isolated infrastructure is available.
+19. Validate that `documentation/workflow/workflow.md` and checked or updated `documentation/arc42/**` documentation exist before releasing `workflow execute`.
 
 For microservice migration workflows, record the Three Amigos decision before
 workflow authoring continues. The decision must include scope, non-scope,

@@ -13,12 +13,18 @@ Root `AGENTS.md` and `QUALITY.md`, when present, remain authoritative for projec
 2. Slice detection
    - Identify the smallest meaningful implementation or documentation slice.
    - Record dependencies, affected files, role owners, verification commands, and stop conditions.
+   - For parallel workflow plans, verify disjoint files, tests, package
+     structures, workflow templates, governance files, skill files, agent
+     files, architecture decisions, dependencies and live infrastructure state.
 
 3. Role assignment
    - Route slices to the smallest suitable set of subagents or role reviews.
    - Prefer project-specific routing rules when the repository provides them.
    - Use callable subagents only when delegated execution is authorized by the active request or workflow command.
    - If callable subagents are unavailable, perform an explicit local review with the matching role file and report that limitation.
+   - When multiple independent workflows are intentionally executed in
+     parallel, use one dedicated Git worktree, branch, working directory, PR
+     and quality-gate lifecycle per workflow.
 
 4. Implementation
    - Apply only the smallest verified change.
@@ -43,6 +49,19 @@ Root `AGENTS.md` and `QUALITY.md`, when present, remain authoritative for projec
    - A later explicit `push auto` may publish any task-scoped repository
      change only through the guarded commit, pull request, green
      required-checks, SonarQube when configured, merge and cleanup lifecycle.
+
+## Parallel Workflow Execution
+
+Parallel workflows may run only when the project-specific governance confirms
+independence. Never execute multiple parallel workflows in the same worktree.
+Serialize workflows with overlapping files, tests, package structures,
+governance artifacts, workflow templates, skill files, agent files,
+architecture decisions, dependencies, or shared live infrastructure.
+
+Quality gates, evidence, CI, SonarQube observation, PR remediation and merge
+are per workflow branch and per worktree. Merge completed PRs one at a time
+after re-checking the latest integration branch state and rerunning affected
+tests when a branch is updated.
 
 ## Workflow Execute Protocol
 
@@ -71,5 +90,9 @@ Stop and report when:
 - source and documentation conflict in a behavior-relevant way;
 - a change would fabricate evidence, test data, runtime facts, analysis output, or user-visible behavior;
 - a slice would violate verified architecture or service-boundary rules;
+- a parallel workflow worktree cannot be created, is dirty, overlaps another
+  workflow, or depends on a workflow that has not merged;
+- shared live infrastructure would be mutated concurrently;
+- merge order matters and cannot be determined safely;
 - a quality command cannot be verified from repository documentation or build files;
 - continuing would require guessing.
