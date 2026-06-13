@@ -1,4 +1,16 @@
-from setuptools import setup, find_packages
+from pathlib import Path
+
+from setuptools import find_packages, setup
+
+
+def _runtime_requirements() -> list[str]:
+    requirements_path = Path(__file__).with_name("requirements.txt")
+    requirements = []
+    for line in requirements_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            requirements.append(stripped)
+    return requirements
 
 
 setup(
@@ -7,6 +19,6 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     include_package_data=True,
-    install_requires=[],
+    install_requires=_runtime_requirements(),
+    python_requires=">=3.12",
 )
-

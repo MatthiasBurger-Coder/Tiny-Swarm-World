@@ -80,7 +80,7 @@ source .venv/bin/activate
 ```bash
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
-python3 -m pip install ruff mypy import-linter types-requests
+python3 -m pip install pytest ruff mypy import-linter types-PyYAML types-requests
 ```
 
 4. Run the development quality gate
