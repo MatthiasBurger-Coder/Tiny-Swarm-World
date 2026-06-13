@@ -35,6 +35,9 @@ git show-ref --verify --quiet refs/heads/<workflow-branch>
    explicitly declared as a D8 requirement.
 
 The slice checkpoint push is not `push auto`. It must not create or merge a PR, clean up branches, force-push or push to `main`.
+A later explicit `push auto` may publish any task-scoped repository change
+from a slice only through the guarded commit, pull request, green
+required-checks, SonarQube when configured, merge and cleanup lifecycle.
 Each checkpoint commit must contain exactly one slice.
 
 ## Stop Conditions

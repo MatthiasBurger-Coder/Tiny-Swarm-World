@@ -258,6 +258,16 @@ authoritative skill entrypoints.
 - Classify failures through the Typed Error Router before retries.
 - Slice checkpoint push is not `push auto` and must not create or merge a pull
   request.
+- Exact `push auto` may publish and automatically merge any task-scoped
+  repository change, including Python product code and Python
+  product-behavior tests.
+- `push auto` must run the full guarded lifecycle: create the commit, push the
+  branch, create or reuse a pull request, wait or retry until required checks
+  are green including SonarQube when configured, merge the pull request, delete
+  the merged remote head branch, and clean up the local branch.
+- `push auto` must stop on unrelated changes, sensitive files, generated local
+  artifacts, failed or unverifiable required checks, failed or unverifiable
+  SonarQube status, unknown mergeability, or unverifiable branch cleanup.
 
 Stop and report when documented behavior cannot be verified from repository
 evidence, governance documents conflict, ownership or quality authority would

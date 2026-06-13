@@ -36,9 +36,11 @@ There are three separate publication modes:
    - pushes the branch and creates or updates a PR;
    - does not automatically merge.
 3. `push auto`
-   - belongs only to `skills-agents`;
-   - runs a guarded PR lifecycle;
-   - may merge the PR and clean up only after guard checks pass.
+   - applies to any task-scoped repository change, including Python product
+     code and Python product-behavior tests;
+   - runs a guarded commit, PR, check-loop, merge and cleanup lifecycle;
+   - may merge the PR and clean up only after required checks are green,
+     including SonarQube when configured.
 
 ## Rules
 
@@ -47,8 +49,11 @@ There are three separate publication modes:
 - Do not push unrelated local changes.
 - Create PRs only when workflow or user request allows it.
 - For slice checkpoint push, stage only current-slice files and push only to `origin/<workflow-branch>`.
-- For `push auto`, stop unless the active process strand is `skills-agents`.
-- `push auto` must not publish product implementation, services, contracts, Docker/runtime, build logic, frontend or analytics files.
+- For `push auto`, stop unless the active change is task-scoped and free of
+  unrelated, sensitive, generated local or unclassified files.
+- `push auto` must create or reuse a pull request, wait or retry until required
+  checks are green including SonarQube when configured, merge only after green
+  checks, delete the merged remote head branch and run local cleanup.
 
 ## STOP Rules
 
@@ -61,5 +66,7 @@ Stop when:
 - workflow does not allow push.
 - slice checkpoint push would include files outside the current slice;
 - slice checkpoint push would push to `main`, create or merge a PR, run `push auto`, run branch cleanup or force-push;
-- `push auto` is requested outside the `skills-agents` strand;
-- `push auto` would publish backend, frontend, Docker/runtime, contracts, persistence, analysis engine, Joern, JavaParser, BTM generator or analytics implementation changes.
+- `push auto` would publish unrelated, sensitive, generated local,
+  unclassified or out-of-task files;
+- required checks, SonarQube status when configured, mergeability, merge
+  result, remote branch deletion or local cleanup cannot be verified.

@@ -40,6 +40,9 @@ Root `AGENTS.md` and `QUALITY.md`, when present, remain authoritative for projec
    - Push only the current workflow branch to `origin`.
    - Record commit SHA and push result.
    - Do not create or merge a PR, run branch cleanup, run `push auto`, force-push or push to `main`.
+   - A later explicit `push auto` may publish any task-scoped repository
+     change only through the guarded commit, pull request, green
+     required-checks, SonarQube when configured, merge and cleanup lifecycle.
 
 ## Workflow Execute Protocol
 

@@ -259,6 +259,9 @@ For each slice:
 16. Continue with the next slice only when the current slice is clean, the checkpoint push succeeded, or the workflow explicitly permits carrying a documented blocker without a commit.
 
 Slice checkpoint push is not `push auto`. It must not create or merge a PR, run branch cleanup, force-push or push to `main`.
+A later explicit `push auto` may publish any task-scoped repository change
+produced by workflow execution only through the guarded commit, pull request,
+green required-checks, SonarQube when configured, merge and cleanup lifecycle.
 
 Each workflow-execute checkpoint commit must represent exactly one slice. Do
 not combine multiple slice IDs, opportunistic documentation edits or unrelated
@@ -294,3 +297,5 @@ Stop and report if:
 - commit or push is requested but not explicitly allowed by the workflow
 - checkpoint push would include files outside the current slice
 - checkpoint push would push to `main`, create or merge a PR, run `push auto`, run branch cleanup or force-push
+- `push auto` is requested but commit, pull request, green required-checks,
+  SonarQube when configured, merge or cleanup verification cannot be completed

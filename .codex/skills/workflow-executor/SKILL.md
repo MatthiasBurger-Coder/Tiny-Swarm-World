@@ -42,6 +42,9 @@ Read, when present:
 11. Continue only when the slice is clean, the required checkpoint is recorded, or the workflow explicitly permits carrying a documented blocker.
 
 Slice checkpoint push is separate from `push` and `push auto`; it does not create or merge a PR, run branch cleanup, force-push or push to `main`.
+A later explicit `push auto` may publish any task-scoped repository change from
+workflow execution only through the guarded commit, pull request, green
+required-checks, SonarQube when configured, merge and cleanup lifecycle.
 
 ## Stop Conditions
 

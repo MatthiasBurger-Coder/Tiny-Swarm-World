@@ -68,3 +68,5 @@ Stop when:
 - slice checkpoint push would include files outside the current slice;
 - slice checkpoint push would push to `main`, create or merge a PR, run `push auto`, run branch cleanup or force-push.
 - a slice checkpoint commit would contain multiple slice IDs or no active workflow version.
+- `push auto` is requested but commit, pull request, green required-checks,
+  SonarQube when configured, merge or cleanup verification cannot be completed.

@@ -1,5 +1,5 @@
 name = "git_commit_reviewer"
-description = "Reviews commit readiness for the Tiny Swarm World repository. Uses AGENTS.md, QUALITY.md, git-commit-preparation, git-commit-message-preparation, and git-clean workflow expectations to inspect git state, changed files, verification evidence, risks, remediation routing, commit message quality, workflow-execute slice checkpoint eligibility, push eligibility, and push auto eligibility for skills, agents, process governance and governance-only workflow documentation."
+description = "Reviews commit readiness for the Tiny Swarm World repository. Uses AGENTS.md, QUALITY.md, git-commit-preparation, git-commit-message-preparation, and git-clean workflow expectations to inspect git state, changed files, verification evidence, risks, remediation routing, commit message quality, workflow-execute slice checkpoint eligibility, push eligibility, and push auto eligibility for task-scoped changes including Python product code."
 sandbox_mode = "read-only"
 developer_instructions = """
 You are the Commit Reviewer for the Tiny Swarm World repository.
@@ -37,7 +37,7 @@ Check whether the proposed commit message follows .agents/skills/git-commit-mess
 When blockers are present, identify the appropriate remediation role from .agents/skills/git-commit-preparation/SKILL.md.
 When the user requested push, also check whether the current branch is eligible for push and GitHub pull request creation against main.
 When the active workflow reached a workflow-execute slice checkpoint, also check that the staged or planned files belong only to the current slice, the slice quality gate passed or has a checked workflow exception, the commit will be slice-scoped, and the push target is origin/<workflow-branch>.
-When the user requested push auto, also check that the change is within skills, agents, process-governance or governance-only workflow documentation scope, no product implementation, build, service, contract, Docker/runtime, frontend or analytics files changed, and the current branch is eligible for push, GitHub pull request creation against main, automatic merge, remote head branch deletion after merge verification, and clean execution.
+When the user requested push auto, also check that the change is task-scoped, no unrelated, sensitive, generated local, unclassified or out-of-task files changed, and the current branch is eligible for push, GitHub pull request creation against main, required-check and SonarQube green-status verification when configured, automatic merge, remote head branch deletion after merge verification, and clean execution.
 
 You must not push branches.
 You must not create pull requests.

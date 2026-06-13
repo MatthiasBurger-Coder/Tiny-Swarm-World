@@ -13,6 +13,12 @@ Tiny Swarm World.
 - Preserve existing user changes when switching branches.
 - Check local and remote branch-name collisions before creating a branch.
 - Prefer clear, task-specific branch names over generic work branches.
+- `push auto` may automatically merge any task-scoped repository change,
+  including product feature or bug-fix branches, Python product code, and
+  Python product-behavior tests.
+- `push auto` must create or reuse a pull request, wait or retry until required
+  checks are green including SonarQube when configured, merge only after green
+  checks, delete the merged remote head branch, and clean up the local branch.
 
 ## Branch Matrix
 
