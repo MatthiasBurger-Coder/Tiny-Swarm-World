@@ -1,4 +1,6 @@
 import unittest
+from typing import cast
+
 from tests.support.async_helpers import async_checkpoint
 
 from tiny_swarm_world.domain.inventory import VerificationStatus
@@ -1242,45 +1244,67 @@ def _node(
 
 
 def _assert_safe_lifecycle_command(args) -> None:
-    argv = tuple(args)
+    raw_argv = tuple(args)
+    _assert_provider_argv(raw_argv)
+    argv = cast(tuple[str, ...], raw_argv)
+    if _safe_lifecycle_list_command(argv):
+        return
+    if _safe_lifecycle_profile_create(argv):
+        return
+    if _safe_lifecycle_profile_set(argv):
+        return
+    _assert_safe_lifecycle_shape(argv)
+
+
+def _assert_provider_argv(argv: tuple[object, ...]) -> None:
     if not argv or argv[0] not in {"incus", "lxc"}:
         raise AssertionError(f"unexpected provider executable: {argv!r}")
     if any(not isinstance(item, str) for item in argv):
         raise AssertionError(f"provider argv must contain strings only: {argv!r}")
-    if any(
-        token in {"delete", "remove", "restart", "stop", "exec", "config"}
-        for token in argv
-    ):
+    blocked_tokens = {"delete", "remove", "restart", "stop", "exec", "config"}
+    if any(token in blocked_tokens for token in argv):
         raise AssertionError(f"unsafe provider command was called: {argv!r}")
-    if argv[:3] in {("incus", "profile", "list"), ("lxc", "profile", "list")}:
-        if len(argv) != 5 or argv[3:] != ("--format", "json"):
-            raise AssertionError(f"unexpected provider profile list was called: {argv!r}")
-        return
-    if argv[:3] in {("incus", "network", "list"), ("lxc", "network", "list")}:
-        if len(argv) != 5 or argv[3:] != ("--format", "json"):
-            raise AssertionError(f"unexpected provider network list was called: {argv!r}")
-        return
-    if argv[:3] in {("incus", "storage", "list"), ("lxc", "storage", "list")}:
-        if len(argv) != 5 or argv[3:] != ("--format", "json"):
-            raise AssertionError(f"unexpected provider storage list was called: {argv!r}")
-        return
-    if argv[:3] in {("incus", "profile", "create"), ("lxc", "profile", "create")}:
-        if len(argv) != 4 or argv[3] not in {"docker-swarm", "docker-swarm-manager"}:
-            raise AssertionError(f"unexpected provider profile create was called: {argv!r}")
-        return
-    if argv[:3] in {("incus", "profile", "set"), ("lxc", "profile", "set")}:
-        allowed_settings = {
-            "security.nesting": "true",
-            "security.syscalls.intercept.mknod": "true",
-            "security.syscalls.intercept.setxattr": "true",
-        }
-        if (
-            len(argv) != 6
-            or argv[3] != "docker-swarm"
-            or allowed_settings.get(argv[4]) != argv[5]
-        ):
-            raise AssertionError(f"unexpected provider profile set was called: {argv!r}")
-        return
+
+
+def _safe_lifecycle_list_command(argv: tuple[str, ...]) -> bool:
+    list_shapes = {
+        ("incus", "profile", "list"),
+        ("lxc", "profile", "list"),
+        ("incus", "network", "list"),
+        ("lxc", "network", "list"),
+        ("incus", "storage", "list"),
+        ("lxc", "storage", "list"),
+    }
+    if argv[:3] not in list_shapes:
+        return False
+    if len(argv) != 5 or argv[3:] != ("--format", "json"):
+        raise AssertionError(f"unexpected provider list was called: {argv!r}")
+    return True
+
+
+def _safe_lifecycle_profile_create(argv: tuple[str, ...]) -> bool:
+    if argv[:3] not in {("incus", "profile", "create"), ("lxc", "profile", "create")}:
+        return False
+    if len(argv) != 4 or argv[3] not in {"docker-swarm", "docker-swarm-manager"}:
+        raise AssertionError(f"unexpected provider profile create was called: {argv!r}")
+    return True
+
+
+def _safe_lifecycle_profile_set(argv: tuple[str, ...]) -> bool:
+    if argv[:3] not in {("incus", "profile", "set"), ("lxc", "profile", "set")}:
+        return False
+    allowed_settings = {
+        "security.nesting": "true",
+        "security.syscalls.intercept.mknod": "true",
+        "security.syscalls.intercept.setxattr": "true",
+    }
+    if len(argv) != 6 or argv[3] != "docker-swarm" or allowed_settings.get(argv[4]) != argv[5]:
+        raise AssertionError(f"unexpected provider profile set was called: {argv!r}")
+    return True
+
+
+def _assert_safe_lifecycle_shape(argv: tuple[str, ...]) -> None:
+    shape = argv[:3] if argv[:2] in {("incus", "profile"), ("lxc", "profile")} else argv[:2]
     allowed_shapes = {
         ("incus", "profile", "show"),
         ("lxc", "profile", "show"),
@@ -1291,7 +1315,6 @@ def _assert_safe_lifecycle_command(args) -> None:
         ("incus", "start"),
         ("lxc", "start"),
     }
-    shape = argv[:3] if argv[:2] in {("incus", "profile"), ("lxc", "profile")} else argv[:2]
     if shape not in allowed_shapes:
         raise AssertionError(f"unexpected provider command was called: {argv!r}")
 

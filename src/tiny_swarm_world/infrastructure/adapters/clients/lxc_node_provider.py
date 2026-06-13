@@ -559,7 +559,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             return ()
         if not isinstance(payload, list):
             return ()
-        names = tuple(
+        names = (
             name
             for item in payload
             if isinstance(item, Mapping)
@@ -1157,7 +1157,7 @@ def _name_list_from_json(result: LxcNodeCommandResult) -> tuple[str, ...]:
         return ()
     if not isinstance(payload, list):
         return ()
-    names = tuple(
+    names = (
         name
         for item in payload
         if isinstance(item, Mapping)

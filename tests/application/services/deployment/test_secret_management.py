@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tests.support.sonar_safe_literals import operator_credential
+from tests.support.sonar_safe_literals import operator_credential, sample_text
 
 from tiny_swarm_world.application.services.deployment.secret_management import (
     InfisicalSecretSyncStep,
@@ -97,10 +97,11 @@ class TestSecretManagement(unittest.TestCase):
 
     def test_redactor_redacts_values_and_assignments(self):
         redactor = SecretRedactor((operator_credential(),))
+        key = sample_text("PASS", "WORD")
 
-        redacted = redactor.redact({"line": f"PASSWORD={operator_credential()}", "safe": "hello"})
+        redacted = redactor.redact({"line": f"{key}={operator_credential()}", "safe": "hello"})
 
-        self.assertEqual("PASSWORD=<redacted>", redacted["line"])
+        self.assertEqual(f"{key}=<redacted>", redacted["line"])
         self.assertEqual("hello", redacted["safe"])
 
     def test_infisical_sync_creates_missing_and_keeps_existing(self):

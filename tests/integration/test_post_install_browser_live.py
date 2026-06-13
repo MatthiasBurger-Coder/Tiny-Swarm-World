@@ -11,7 +11,6 @@ TSW_RUN_POST_INSTALL_BROWSER_INTEGRATION=1 python -m unittest \
 from __future__ import annotations
 
 import os
-import ssl
 import time
 import unittest
 from dataclasses import dataclass
@@ -417,9 +416,8 @@ def _http_text(url: str, username: str | None, password: str | None, timeout_sec
 
         token = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode("ascii")
         request.add_header("Authorization", f"Basic {token}")
-    context = ssl._create_unverified_context() if url.startswith("https://") else None
     try:
-        response_context = urlopen(request, timeout=timeout_seconds, context=context)
+        response_context = urlopen(request, timeout=timeout_seconds)
     except HTTPError as exc:
         if exc.code < 500:
             return exc.read().decode("utf-8", errors="replace")

@@ -533,110 +533,15 @@ async def _run_mutating_steps(
 ) -> PlatformWorkflowResult:
     verification_results: list[VerificationResult] = list(initial_verification_results)
     for step in steps:
-        blocking_result = _pre_apply_blocking_result(
+        step_result = await _run_mutating_step(
             step,
             semantics,
             verification_evidence_repository,
             verification_results,
             progress,
         )
-        if blocking_result is not None:
-            return blocking_result
-
-        if not _step_has_verification_contract(step):
-            return _missing_verification_contract_result(
-                step,
-                semantics,
-                verification_evidence_repository,
-                verification_results,
-                progress,
-            )
-
-        target_id = _verification_target_id(step)
-        _report_step_progress(
-            progress,
-            semantics,
-            target_id=target_id,
-            step="apply",
-            status="started",
-            result="pending",
-            safe_message="Platform mutating step started.",
-        )
-        try:
-            apply_result = await step.run()
-        except Exception as exc:
-            return _failed_apply_result_from_exception(
-                exc,
-                target_id,
-                semantics,
-                verification_evidence_repository,
-                verification_results,
-                progress,
-            )
-
-        failed_apply_result = _failed_apply_result(apply_result)
-        if failed_apply_result is not None:
-            return _failed_apply_workflow_result(
-                failed_apply_result,
-                target_id,
-                semantics,
-                verification_evidence_repository,
-                verification_results,
-                progress,
-            )
-
-        _report_step_progress(
-            progress,
-            semantics,
-            target_id=target_id,
-            step="apply",
-            status="completed",
-            result="completed",
-            safe_message="Platform mutating step completed.",
-        )
-        direct_verification = _direct_verification_result(apply_result)
-        if direct_verification is not None:
-            direct_result = _workflow_result_from_direct_verification(
-                direct_verification,
-                target_id,
-                semantics,
-                verification_evidence_repository,
-                verification_results,
-                progress,
-            )
-            if direct_result is None:
-                continue
-            return direct_result
-
-        _report_step_progress(
-            progress,
-            semantics,
-            target_id=target_id,
-            step="verify",
-            status="started",
-            result="pending",
-            safe_message="Platform verify step started.",
-        )
-        verification = await _verify_step(step, target_id)
-        if verification is None:
-            return _missing_verification_evidence_result(
-                target_id,
-                semantics,
-                verification_evidence_repository,
-                verification_results,
-                progress,
-            )
-
-        verification_result = _workflow_result_from_verification(
-            verification,
-            target_id,
-            semantics,
-            verification_evidence_repository,
-            verification_results,
-            progress,
-        )
-        if verification_result is not None:
-            return verification_result
+        if step_result is not None:
+            return step_result
 
     _report_workflow_progress(
         progress,
@@ -650,6 +555,153 @@ async def _run_mutating_steps(
         semantics,
         executed=bool(steps),
         verification_results=tuple(verification_results),
+    )
+
+
+async def _run_mutating_step(
+    step: AsyncWorkflowStep,
+    semantics: PlatformWorkflowSemantics,
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    verification_results: list[VerificationResult],
+    progress: PortWorkflowProgress,
+) -> PlatformWorkflowResult | None:
+    blocking_result = _pre_apply_blocking_result(
+        step,
+        semantics,
+        verification_evidence_repository,
+        verification_results,
+        progress,
+    )
+    if blocking_result is not None:
+        return blocking_result
+
+    if not _step_has_verification_contract(step):
+        return _missing_verification_contract_result(
+            step,
+            semantics,
+            verification_evidence_repository,
+            verification_results,
+            progress,
+        )
+
+    target_id = _verification_target_id(step)
+    apply_result = await _apply_mutating_step(
+        step,
+        target_id,
+        semantics,
+        verification_evidence_repository,
+        verification_results,
+        progress,
+    )
+    if isinstance(apply_result, PlatformWorkflowResult):
+        return apply_result
+
+    direct_verification = _direct_verification_result(apply_result)
+    if direct_verification is not None:
+        return _workflow_result_from_direct_verification(
+            direct_verification,
+            target_id,
+            semantics,
+            verification_evidence_repository,
+            verification_results,
+            progress,
+        )
+
+    return await _verification_workflow_result(
+        step,
+        target_id,
+        semantics,
+        verification_evidence_repository,
+        verification_results,
+        progress,
+    )
+
+
+async def _apply_mutating_step(
+    step: AsyncWorkflowStep,
+    target_id: str,
+    semantics: PlatformWorkflowSemantics,
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    verification_results: list[VerificationResult],
+    progress: PortWorkflowProgress,
+) -> object:
+    _report_step_progress(
+        progress,
+        semantics,
+        target_id=target_id,
+        step="apply",
+        status="started",
+        result="pending",
+        safe_message="Platform mutating step started.",
+    )
+    try:
+        apply_result = await step.run()
+    except Exception as exc:
+        return _failed_apply_result_from_exception(
+            exc,
+            target_id,
+            semantics,
+            verification_evidence_repository,
+            verification_results,
+            progress,
+        )
+
+    failed_apply_result = _failed_apply_result(apply_result)
+    if failed_apply_result is not None:
+        return _failed_apply_workflow_result(
+            failed_apply_result,
+            target_id,
+            semantics,
+            verification_evidence_repository,
+            verification_results,
+            progress,
+        )
+
+    _report_step_progress(
+        progress,
+        semantics,
+        target_id=target_id,
+        step="apply",
+        status="completed",
+        result="completed",
+        safe_message="Platform mutating step completed.",
+    )
+    return apply_result
+
+
+async def _verification_workflow_result(
+    step: AsyncWorkflowStep,
+    target_id: str,
+    semantics: PlatformWorkflowSemantics,
+    verification_evidence_repository: PortVerificationEvidenceRepository | None,
+    verification_results: list[VerificationResult],
+    progress: PortWorkflowProgress,
+) -> PlatformWorkflowResult | None:
+    _report_step_progress(
+        progress,
+        semantics,
+        target_id=target_id,
+        step="verify",
+        status="started",
+        result="pending",
+        safe_message="Platform verify step started.",
+    )
+    verification = await _verify_step(step, target_id)
+    if verification is None:
+        return _missing_verification_evidence_result(
+            target_id,
+            semantics,
+            verification_evidence_repository,
+            verification_results,
+            progress,
+        )
+    return _workflow_result_from_verification(
+        verification,
+        target_id,
+        semantics,
+        verification_evidence_repository,
+        verification_results,
+        progress,
     )
 
 

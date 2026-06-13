@@ -9,7 +9,6 @@ import re
 import shutil
 import stat
 import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -19,6 +18,8 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 INSTALL_SCRIPT = "install.sh"
 SECRET_ENV_FILE = ".tiny-swarm-world/local/live-installation.env"
 EVIDENCE_ROOT = ".tiny-swarm-world/evidence/installation-tests/wsl2"
+INSTALL_SH_EXECUTABLE_LABEL = "install.sh executable"
+SECRET_FILE_MODE_LABEL = "Secret file mode"
 EXCLUDED_SCAN_DIRS = {
     ".git",
     ".tiny-swarm-world",
@@ -210,17 +211,17 @@ def check_install_script(
 
     executable = os.access(path, os.X_OK)
     if executable:
-        findings.append(Finding("OK", "install.sh executable", "install.sh is executable."))
+        findings.append(Finding("OK", INSTALL_SH_EXECUTABLE_LABEL, "install.sh is executable."))
     elif live and fix_permissions:
         path.chmod(path.stat().st_mode | stat.S_IXUSR)
         findings.append(
-            Finding("FIXED", "install.sh executable", "Added owner execute bit to install.sh.")
+            Finding("FIXED", INSTALL_SH_EXECUTABLE_LABEL, "Added owner execute bit to install.sh.")
         )
     else:
         findings.append(
             Finding(
                 "FAIL",
-                "install.sh executable",
+                INSTALL_SH_EXECUTABLE_LABEL,
                 "install.sh is not executable.",
                 ("Run: chmod u+x install.sh",),
             )
@@ -234,7 +235,18 @@ def check_permissions(
     live: bool,
     fix_permissions: bool,
 ) -> list[Finding]:
-    findings: list[Finding] = []
+    findings = _filesystem_permission_findings(repo_root)
+    findings.append(
+        _secret_file_mode_finding(
+            repo_root / SECRET_ENV_FILE,
+            live=live,
+            fix_permissions=fix_permissions,
+        )
+    )
+    return findings
+
+
+def _filesystem_permission_findings(repo_root: Path) -> list[Finding]:
     uid = os.geteuid()
     gid = os.getegid()
     owner_mismatches: list[str] = []
@@ -257,51 +269,40 @@ def check_permissions(
         if path.is_file() and path.suffix == ".sh" and not os.access(path, os.X_OK):
             non_executable_shell_scripts.append(relative_path)
 
-    findings.append(_count_finding("Owner mismatch", owner_mismatches, "WARN", _chown_hint(repo_root)))
-    findings.append(_count_finding("Unreadable files", unreadable_files, "FAIL", ()))
-    findings.append(_count_finding("Unwritable directories", unwritable_dirs, "WARN", ()))
-    findings.append(
+    return [
+        _count_finding("Owner mismatch", owner_mismatches, "WARN", _chown_hint(repo_root)),
+        _count_finding("Unreadable files", unreadable_files, "FAIL", ()),
+        _count_finding("Unwritable directories", unwritable_dirs, "WARN", ()),
         _count_finding(
             "Shell scripts without execute bit",
             non_executable_shell_scripts,
             "WARN",
             ("Run targeted chmod only for scripts you execute, for example: chmod u+x install.sh",),
-        )
-    )
+        ),
+    ]
 
-    secret_file = repo_root / SECRET_ENV_FILE
-    if secret_file.exists():
-        mode = stat.S_IMODE(secret_file.stat().st_mode)
-        if mode & 0o077:
-            if live and fix_permissions:
-                secret_file.chmod(0o600)
-                findings.append(
-                    Finding(
-                        "FIXED",
-                        "Secret file mode",
-                        f"Set {SECRET_ENV_FILE} mode to 0600.",
-                    )
-                )
-            else:
-                findings.append(
-                    Finding(
-                        "WARN",
-                        "Secret file mode",
-                        f"{SECRET_ENV_FILE} is {mode:04o}; expected 0600.",
-                        (f"Run: chmod 600 {SECRET_ENV_FILE}",),
-                    )
-                )
-        else:
-            findings.append(Finding("OK", "Secret file mode", f"{SECRET_ENV_FILE} is private."))
-    else:
-        findings.append(
-            Finding(
-                "INFO",
-                "Secret file mode",
-                f"{SECRET_ENV_FILE} does not exist yet.",
-            )
-        )
-    return findings
+
+def _secret_file_mode_finding(
+    secret_file: Path,
+    *,
+    live: bool,
+    fix_permissions: bool,
+) -> Finding:
+    if not secret_file.exists():
+        return Finding("INFO", SECRET_FILE_MODE_LABEL, f"{SECRET_ENV_FILE} does not exist yet.")
+
+    mode = stat.S_IMODE(secret_file.stat().st_mode)
+    if not mode & 0o077:
+        return Finding("OK", SECRET_FILE_MODE_LABEL, f"{SECRET_ENV_FILE} is private.")
+    if live and fix_permissions:
+        secret_file.chmod(0o600)
+        return Finding("FIXED", SECRET_FILE_MODE_LABEL, f"Set {SECRET_ENV_FILE} mode to 0600.")
+    return Finding(
+        "WARN",
+        SECRET_FILE_MODE_LABEL,
+        f"{SECRET_ENV_FILE} is {mode:04o}; expected 0600.",
+        (f"Run: chmod 600 {SECRET_ENV_FILE}",),
+    )
 
 
 def check_systemd(*, live: bool) -> tuple[SystemdState, list[Finding]]:

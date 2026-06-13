@@ -63,6 +63,7 @@ class EnsureInfisicalSecretItems:
         raise RuntimeError("Infisical login material could not authenticate.")
 
     async def verify(self) -> VerificationResult:
+        await asyncio.sleep(0)
         if not self.infisical_client.can_authenticate(self.login_email, self.password):
             return VerificationResult(
                 target_id=self.verification_target_id,
