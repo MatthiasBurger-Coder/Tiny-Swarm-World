@@ -18,6 +18,9 @@ This skill governs coordination artifacts. It does not implement product functio
 - Ensure each slice has exactly one accountable owner at a time.
 - Ensure input artifacts, output expectations, assumptions, blockers and validation state are explicit.
 - Prevent parallel work on the same files unless ownership and ordering are documented.
+- Require isolated Git worktrees for parallel `workflow execute` streams.
+- Ensure stream handoffs record whether real subagents or fallback role-based
+  reviews were used.
 - Preserve review provenance for architecture, quality, security, API, data ownership and release decisions.
 
 ## Authority
@@ -55,6 +58,7 @@ The Agent Handoff Protocol may block parallel or delegated work when:
 - handoff report
 - blocker classification
 - owner and reviewer map
+- stream distribution and consolidation summary
 - validation handoff summary
 
 ## Collaboration Rules
@@ -75,5 +79,7 @@ Stop and report when:
 - blockers are not classified;
 - validation status is unknown;
 - parallel work would modify the same files without explicit ownership and merge order;
+- parallel stream work would run without isolated worktrees;
+- a stream worker would merge directly to the main workflow branch;
 - a handoff chain is cyclic and no orchestrator decision resolves it;
 - continuing would require guessing another agent's assumptions or outputs.

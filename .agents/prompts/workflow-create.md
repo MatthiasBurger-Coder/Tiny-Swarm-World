@@ -84,7 +84,12 @@ git branch --show-current
     workflow to a required isolated Git worktree, allow parallel execution only
     after Three Amigos confirms independence, and serialize live validation
     unless isolated infrastructure is available.
-19. Validate that `documentation/workflow/workflow.md` and checked or updated `documentation/arc42/**` documentation exist before releasing `workflow execute`.
+19. Add the required `## Automatic Work Distribution Policy` and
+    `## Git Worktree Execution Rule` sections so `workflow execute`
+    automatically analyzes every slice for safe specialist streams, requires
+    evidence, uses real subagents where supported, and uses fallback
+    role-based review where subagents are unavailable.
+20. Validate that `documentation/workflow/workflow.md` and checked or updated `documentation/arc42/**` documentation exist before releasing `workflow execute`.
 
 For microservice migration workflows, record the Three Amigos decision before
 workflow authoring continues. The decision must include scope, non-scope,
@@ -96,7 +101,10 @@ and stop conditions.
 - Subagents must verify that the active branch belongs to the current workflow before modifying files.
 - Subagents must not switch branches unless the workflow explicitly authorizes that branch operation.
 - Subagents must stop before implementation work on `main`, `master`, `develop`, or any shared branch.
-- Parallel subagents must work inside the same workflow branch unless the workflow explicitly defines separate worktrees.
+- Parallel `workflow execute` streams must use separate worktrees and stream
+  branches named `<workflow-branch>-slice-<number>-<stream>`.
+- Subagents and stream workers must not directly merge to the main workflow
+  branch without Codex consolidation.
 
 ## Stop Conditions
 

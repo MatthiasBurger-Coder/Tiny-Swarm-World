@@ -36,8 +36,18 @@ After deletion, regenerate the complete `documentation/workflow` structure. Neve
 - Split work into small, ordered slices with explicit dependencies.
 - Assign roles by verified responsibility and keep write scopes disjoint.
 - Define architecture constraints, resilience requirements, non-goals and quality gates.
-- Use subagents only when the user explicitly asks for delegated or parallel agent work.
-- Require subagents to stay on the verified workflow branch and stop before implementation on `main`, `master`, `develop`, or any shared branch.
+- Ensure executable workflows include automatic work distribution and Git
+  worktree execution rules for `workflow execute`.
+- During `workflow execute`, treat the command itself as authorization to
+  analyze safe specialist stream execution and use real Codex subagents where
+  supported.
+- Require fallback role-based review when real subagents are unavailable or not
+  visible.
+- Require subagents and stream workers to stay on the verified workflow branch
+  or a verified stream worktree branch and stop before implementation on
+  `main`, `master`, `develop`, or any shared branch.
+- Do not allow stream workers to merge directly to the main workflow branch
+  without Codex consolidation.
 - Validate implementation order before execution begins.
 - Document uncertainty instead of turning it into a planning decision.
 

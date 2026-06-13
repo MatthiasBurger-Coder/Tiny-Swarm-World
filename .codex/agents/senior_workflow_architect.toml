@@ -8,7 +8,8 @@ Before creating a new workflow, verify the Git repository context, working tree 
 Never create or modify workflow artifacts on main, master, develop, or another shared branch.
 Create small ordered slices with prerequisites, owners, write scopes, dependencies, stop conditions, and verification commands.
 For workflow create, include the Requirement Clarification Loop, five mandatory Three Amigos roles, checked documentation/workflow/workflow.md, checked or updated arc42 documentation, Documentation Governance, and explicit release for workflow execute.
-For workflow execute planning, include slice checkpoint commit and push semantics after every successful slice quality gate.
-Use subagents only when the user explicitly asks for delegated or parallel agent work.
+For workflow execute planning, include automatic work distribution policy, Git worktree execution rule, distribution evidence, consolidation evidence, and slice checkpoint commit and push semantics after every successful slice quality gate.
+Use subagents for explicit delegated or parallel requests, or when workflow execute selects safe specialist stream execution.
+Require fallback role-based review when real subagents are unavailable or not visible, and do not allow stream workers to merge directly to the main workflow branch.
 Stop and report when the workflow branch cannot be created or verified, architecture conflicts, EPIC drift, multiple workflows, service ownership, resilience expectations, or quality-gate authority are unclear.
 """

@@ -738,6 +738,66 @@ S01
   locked and both slices avoid editing the same files.
 - S04 waits for S03 because preflight wiring must consume the loader contract.
 
+## Automatic Work Distribution Policy
+
+During `workflow execute`, Codex must automatically inspect every slice and
+determine whether it can be split into specialist execution streams. Codex
+must prefer automatic work distribution when the slice contains clearly
+separable concerns, without replacing Three Amigos, S3/S3D, evidence,
+quality-gate, SonarQube, branch, PR, or merge protections.
+
+Codex must use real Codex subagents where supported. If real subagents are
+unavailable or not visible, Codex must perform explicit role-based fallback
+review in the main execution thread and record the fallback in evidence.
+
+| Stream | Scope |
+|---|---|
+| backend | Java/Python backend, domain logic, ports, adapters, service code |
+| frontend | UI, UX, frontend components, frontend tests |
+| tests | unit, component, integration, acceptance tests, fixtures |
+| runtime | Docker, LXD/LXC, install.sh, deployment, CI/CD, platform scripts |
+| documentation | arc42, README, workflow.md, ADR, evidence, process documentation |
+| quality | SonarQube, linting, coverage, static analysis, quality gate repair |
+| architecture | boundaries, module structure, hexagonal architecture, SCA/SCAP constraints |
+| security | secrets, permissions, credentials, network exposure, risky automation |
+
+Do not split work if the slice modifies the same files across multiple
+streams, the architectural boundary is unclear, the workflow contains
+contradictory requirements, implementation order is mandatory, a shared
+migration step must happen first, database/schema changes require strict
+sequencing, generated files would create merge conflicts, the Three Amigos
+gate marks the slice as not safely parallelizable, secrets or credentials
+handling is unclear, or safety guards would be weakened.
+
+For every slice, create `.codex/evidence/slice-<number>-distribution.md`
+before implementation. For every implemented slice, create or update
+`.codex/evidence/slice-<number>-consolidation.md`. Codex remains the final
+integration owner for consolidation, tests, evidence, PR, and merge readiness.
+
+## Git Worktree Execution Rule
+
+Parallel execution must use isolated Git worktrees. Each stream must use its
+own branch and worktree.
+
+Branch names must follow this pattern:
+
+```text
+<workflow-branch>-slice-<number>-<stream>
+```
+
+Examples:
+
+```text
+feature/workflow-refactor-config-20260613-slice-01-backend
+feature/workflow-refactor-config-20260613-slice-01-tests
+feature/workflow-refactor-config-20260613-slice-01-docs
+```
+
+Stream branches may only be merged back after stream-specific tests pass, file
+ownership conflicts are resolved, evidence is written, and consolidation
+review accepts the changes. Subagents and stream workers must not merge
+directly to the main workflow branch.
+
 ## Role And Ownership Map
 
 - Senior Workflow Architect: workflow dependency ordering and handoff.

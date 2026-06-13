@@ -13,6 +13,9 @@ Root `AGENTS.md` and `QUALITY.md`, when present, remain authoritative for projec
 2. Slice detection
    - Identify the smallest meaningful implementation or documentation slice.
    - Record dependencies, affected files, role owners, verification commands, and stop conditions.
+   - For `workflow execute`, automatically decide whether each slice can be
+     split into backend, frontend, tests, runtime, documentation, quality,
+     architecture or security streams.
    - For parallel workflow plans, verify disjoint files, tests, package
      structures, workflow templates, governance files, skill files, agent
      files, architecture decisions, dependencies and live infrastructure state.
@@ -22,6 +25,9 @@ Root `AGENTS.md` and `QUALITY.md`, when present, remain authoritative for projec
    - Prefer project-specific routing rules when the repository provides them.
    - Use callable subagents only when delegated execution is authorized by the active request or workflow command.
    - If callable subagents are unavailable, perform an explicit local review with the matching role file and report that limitation.
+   - During `workflow execute`, the command authorizes automatic stream
+     distribution analysis. Prefer distribution when concerns are separable and
+     safe; do not distribute unsafe slices.
    - When multiple independent workflows are intentionally executed in
      parallel, use one dedicated Git worktree, branch, working directory, PR
      and quality-gate lifecycle per workflow.
@@ -33,6 +39,8 @@ Root `AGENTS.md` and `QUALITY.md`, when present, remain authoritative for projec
 5. Verification
    - Run the narrowest meaningful checks first.
    - Run the applicable quality gate from project quality documentation when required by the slice or commit readiness.
+   - Fix in-scope test, quality-gate and SonarQube findings without weakening
+     gates.
    - Run `git diff` and `git diff --check` before claiming completion.
 
 6. Reporting
@@ -63,6 +71,19 @@ are per workflow branch and per worktree. Merge completed PRs one at a time
 after re-checking the latest integration branch state and rerunning affected
 tests when a branch is updated.
 
+## Parallel Slice Stream Execution
+
+Parallel slice streams may run only after project-specific governance accepts
+the distribution decision. Use isolated Git worktrees and stream branches named
+`<workflow-branch>-slice-<number>-<stream>`. Do not split a slice when files
+overlap, architecture boundaries are unclear, requirements conflict, ordering
+is mandatory, shared migrations or schema changes require sequencing,
+generated files would conflict, Three Amigos rejects safe parallelization,
+secrets handling is unclear or safety guards would be weakened.
+
+Codex remains the final integration owner. Stream workers and subagents may
+not merge directly to the main workflow branch.
+
 ## Workflow Execute Protocol
 
 When the active command is `workflow execute`, use a discovered
@@ -75,12 +96,14 @@ Execution order:
 1. Locate the active workflow.
 2. Read the complete workflow.
 3. Identify all slices and dependencies.
-4. Assign roles or subagents.
-5. Execute one slice at a time.
-6. Run required tests and quality checks after each slice.
-7. Inspect diffs after each slice.
-8. Run the project-defined slice checkpoint push after each successful slice when the active workflow requires it.
-9. Stop on unverifiable assumptions, architecture conflicts, missing commands, quality failures, failed checkpoint push, or ambiguity that could change behavior.
+4. Create a distribution decision for each slice before implementation.
+5. Assign roles or subagents, using fallback role review when callable
+   subagents are unavailable.
+6. Execute one slice at a time unless safe stream worktree execution is accepted.
+7. Run required tests and quality checks after each slice.
+8. Inspect diffs after each slice.
+9. Run the project-defined slice checkpoint push after each successful slice when the active workflow requires it.
+10. Stop on unverifiable assumptions, architecture conflicts, missing commands, quality failures, failed checkpoint push, or ambiguity that could change behavior.
 
 ## Stop Conditions
 

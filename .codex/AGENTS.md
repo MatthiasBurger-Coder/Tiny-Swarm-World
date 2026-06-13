@@ -74,12 +74,16 @@ Codex must:
 
 1. Locate the active workflow.
 2. Read all slices.
-3. Assign subagents or role reviews.
-4. Execute slice by slice.
-5. Run tests and quality checks after each slice.
-6. Review `git diff` and `git diff --check`.
-7. Run the project-defined slice checkpoint push after each successful slice when the active workflow requires it.
-8. Continue only when the slice is clean or a documented blocker is explicitly allowed by the workflow.
+3. Automatically analyze each slice for safe specialist work distribution.
+4. Assign subagents or role reviews. Use callable subagents where supported;
+   if unavailable, perform explicit role-based fallback review.
+5. Use isolated Git worktrees for parallel execution streams.
+6. Execute slice by slice, with Codex retaining final consolidation ownership.
+7. Run tests and quality checks after each slice.
+8. Repair in-scope test, quality-gate and SonarQube findings without weakening gates.
+9. Review `git diff` and `git diff --check`.
+10. Run the project-defined slice checkpoint push after each successful slice when the active workflow requires it.
+11. Continue only when the slice is clean or a documented blocker is explicitly allowed by the workflow.
 
 If a project-specific workflow-executor skill exists, use it after reading this reusable workflow.
 

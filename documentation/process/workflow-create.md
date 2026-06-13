@@ -19,7 +19,16 @@ Use this process when the user requests `workflow create`.
 4. Generate or regenerate `documentation/workflow`.
 5. Define slices with owners, dependencies, allowed write scopes, stop conditions, and quality gates from `QUALITY.md`.
 6. Add the required `## Parallel Execution` section to every executable workflow, including parallel eligibility, conflicting workflows, shared files, shared infrastructure, isolated worktree requirement, serialized live validation requirement, and merge-order constraints.
-7. Verify that `documentation/workflow/workflow.md` and relevant `documentation/arc42` updates exist before releasing `workflow execute`.
+7. Add the required `## Automatic Work Distribution Policy` section to every
+   executable workflow so `workflow execute` automatically analyzes each slice
+   for backend, frontend, tests, runtime, documentation, quality, architecture
+   and security streams, uses real subagents where supported, falls back to
+   explicit role-based review where needed, and records distribution plus
+   consolidation evidence.
+8. Add the required `## Git Worktree Execution Rule` section to every
+   executable workflow so parallel stream work uses isolated worktrees and
+   branches named `<workflow-branch>-slice-<number>-<stream>`.
+9. Verify that `documentation/workflow/workflow.md` and relevant `documentation/arc42` updates exist before releasing `workflow execute`.
 
 ## Stop Conditions
 

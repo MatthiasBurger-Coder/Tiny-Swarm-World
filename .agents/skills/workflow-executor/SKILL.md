@@ -138,6 +138,109 @@ architecture-boundary locks before any write-capable worker starts. Parallel
 execution is allowed only when locks are disjoint and quality gates can be
 attributed independently.
 
+## Automatic Work Distribution Policy
+
+During `workflow execute`, Codex must automatically inspect every executable
+slice and determine whether it can be split into specialist execution streams.
+The user does not need to say "with subagents" for this analysis.
+
+Codex must prefer automatic work distribution when a slice contains clearly
+separable concerns, while preserving Three Amigos, S3/S3D, branch, evidence,
+quality-gate, SonarQube and merge protections. Codex must use real Codex
+subagents where the current environment supports them. If real subagents are
+unavailable or not visible, Codex must perform an explicit role-based fallback
+review in the main execution thread and record the fallback in distribution
+and consolidation evidence.
+
+For every slice, determine affected areas from this stream map:
+
+| Stream | Scope |
+|---|---|
+| backend | Java/Python backend, domain logic, ports, adapters, service code |
+| frontend | UI, UX, frontend components, frontend tests |
+| tests | unit, component, integration, acceptance tests, fixtures |
+| runtime | Docker, LXD/LXC, install.sh, deployment, CI/CD, platform scripts |
+| documentation | arc42, README, workflow.md, ADR, evidence, process documentation |
+| quality | SonarQube, linting, coverage, static analysis, quality gate repair |
+| architecture | boundaries, module structure, hexagonal architecture, SCA/SCAP constraints |
+| security | secrets, permissions, credentials, network exposure, risky automation |
+
+Codex must not split work when:
+
+- the slice modifies the same files across multiple streams;
+- the architectural boundary is unclear;
+- the workflow contains contradictory requirements;
+- implementation order is mandatory;
+- a shared migration step must happen first;
+- database or schema changes require strict sequencing;
+- generated files would create merge conflicts;
+- the Three Amigos gate marks the slice as not safely parallelizable;
+- secrets or credentials handling is unclear;
+- safety guards would be weakened.
+
+Codex remains responsible for final consolidation, tests, evidence, PR
+readiness and merge readiness. Subagents or stream workers may advise or
+produce stream changes, but they must not directly merge to the main workflow
+branch without consolidation.
+
+For every slice, create `.codex/evidence/slice-<number>-distribution.md`
+before implementation. The file must contain:
+
+- workflow id;
+- slice id;
+- slice title;
+- affected areas;
+- chosen execution mode: sequential or parallel;
+- selected streams;
+- whether real subagents were used;
+- whether fallback role-based review was used;
+- whether Git worktrees were used;
+- expected touched files/directories;
+- conflict risks;
+- quality gates to run;
+- consolidation plan;
+- reason why parallelization was accepted or rejected.
+
+For every implemented slice, create or update
+`.codex/evidence/slice-<number>-consolidation.md`. The file must contain:
+
+- stream results;
+- accepted findings;
+- rejected findings with reason;
+- files changed per stream;
+- conflicts found;
+- conflicts resolved;
+- tests executed;
+- SonarQube findings and fixes;
+- documentation updates;
+- final integration decision.
+
+## Git Worktree Execution Rule
+
+Parallel execution must use isolated Git worktrees. Each stream must use its
+own branch and worktree.
+
+Branch names must follow this pattern:
+
+```text
+<workflow-branch>-slice-<number>-<stream>
+```
+
+Examples:
+
+```text
+feature/workflow-refactor-config-20260613-slice-01-backend
+feature/workflow-refactor-config-20260613-slice-01-tests
+feature/workflow-refactor-config-20260613-slice-01-docs
+```
+
+Stream branches may only be merged back after:
+
+- stream-specific tests pass;
+- file ownership conflicts are resolved;
+- evidence is written;
+- consolidation review accepts the changes.
+
 ## Parallel Worktree Execution
 
 Parallel workflow execution is supported only for workflows that S3D and Three
@@ -267,30 +370,52 @@ slices or commit unresolved failures.
 
 For each slice:
 
-1. Understand scope, prerequisites, dependencies, and allowed write scope.
-2. Run S3D dependency, topological-order and conflict-lock checks.
-3. Route the slice to the suitable subagent or role for implementation or review.
-4. Apply only the changes authorized by the slice.
-5. Run targeted tests first.
-6. Run the required quality checks from `QUALITY.md` or the workflow.
-7. Treat the required quality decision as `D8`. Failed build, failed tests,
+1. Read `documentation/workflow/workflow.md`.
+2. Read root `AGENTS.md` and relevant skill definitions.
+3. Run the Three Amigos or specialist review gate for the slice.
+4. Run S3D dependency, topological-order and conflict-lock checks.
+5. Create `.codex/evidence/slice-<number>-distribution.md` with the automatic
+   work distribution decision.
+6. Select sequential or parallel execution.
+7. If parallel, create isolated Git worktrees per selected stream, execute
+   stream-specific work, collect stream evidence, and consolidate into the main
+   workflow branch only after the Git Worktree Execution Rule is satisfied.
+8. If sequential, document why sequential execution was chosen and execute the
+   slice in the main workflow branch.
+9. Apply only the changes authorized by the slice.
+10. Run targeted tests first.
+11. Run the required quality checks from `QUALITY.md` or the workflow.
+12. Fix quality-gate, test and SonarQube findings that are inside the active
+   workflow branch and slice scope. Stop only when the fix would be unsafe,
+   out of scope, unverifiable or would weaken gates.
+13. Treat the required quality decision as `D8`. Failed build, failed tests,
    architecture violation, missing required documentation, missing workflow
    version or failed required quality gate blocks commit, checkpoint push and
    release readiness.
-8. Inspect `git diff` and `git diff --check`.
-9. Document the result in the workflow quality log or the workflow-designated location.
-10. When the slice quality gate passed, stage only files changed by the current slice.
-11. Run `git diff --cached --check`.
-12. Create the slice-scoped checkpoint commit.
-13. Push the current workflow branch to `origin`.
-14. Record the workflow version, slice ID, slice title, responsible agent,
+14. Inspect `git diff` and `git diff --check`.
+15. Create or update `.codex/evidence/slice-<number>-consolidation.md` with
+    stream results, accepted and rejected findings, conflicts, tests,
+    SonarQube fixes, documentation updates and final integration decision.
+16. Document the result in the workflow quality log or the workflow-designated location.
+17. When the slice quality gate passed, stage only files changed by the current slice.
+18. Run `git diff --cached --check`.
+19. Create the slice-scoped checkpoint commit. Each commit must represent
+    exactly one slice; multi-slice commits are forbidden.
+20. Push the current workflow branch to `origin`.
+21. Create or update the pull request when the workflow or publication command
+    requires it. Merge only after required gates pass, including SonarQube when
+    configured.
+22. Record the workflow version, slice ID, slice title, responsible agent,
     changed files, quality-gate commands, quality-gate result, commit SHA,
     rollback reference, arc42 update status, ADR update status and push result
     in the execution report.
-15. Route asynchronous execution-report notes through `Q11`; Q11 is
+23. Route asynchronous execution-report notes through `Q11`; Q11 is
     non-blocking by default unless the active workflow explicitly declares a
     regulatory or compliance report as a D8 requirement.
-16. Continue with the next slice only when the current slice is clean, the checkpoint push succeeded, or the workflow explicitly permits carrying a documented blocker without a commit.
+24. Continue with the next slice or next workflow issue only when the current
+    slice is clean, the checkpoint push or required PR lifecycle succeeded, or
+    the workflow explicitly permits carrying a documented blocker without a
+    commit.
 
 Slice checkpoint push is not `push auto`. It must not create or merge a PR, run branch cleanup, force-push or push to `main`.
 A later explicit `push auto` may publish any task-scoped repository change
@@ -303,7 +428,10 @@ fixes in one checkpoint commit. If the slice record cannot identify the active
 workflow version or rollback reference, stop and route the blocker through
 Documentation Governance or Root Architect escalation.
 
-Use one write-capable implementation worker at a time unless the active workflow explicitly defines disjoint write scopes and the orchestrator confirms that parallel edits are safe.
+`workflow execute` must never call `workflow create` backwards. If the active
+workflow is missing mandatory distribution metadata, evidence requirements or
+execution-safety fields, stop and report the workflow governance blocker
+instead of rewriting the workflow during execution.
 
 ## Stop Conditions
 
@@ -320,9 +448,13 @@ Stop and report if:
 - `S3_CLASSIFY` cannot classify the slice and routes to `S3_UNCLASSIFIED`
 - S3D cannot verify required slice metadata, a dependency graph, topological order or disjoint locks
 - S3D detects a file, contract, module or architecture-boundary lock conflict
+- the distribution decision evidence cannot be created before implementation
 - parallel workflow worktrees cannot be created or are dirty before execution
 - two parallel workflows unexpectedly modify the same file, test, governance
   artifact, skill file, agent file, package structure or architecture decision
+- a stream worker or subagent would merge directly to the main workflow branch
+- a slice would need a multi-slice commit
+- a slice requires hidden or undocumented behavior
 - shared live infrastructure would be modified concurrently
 - merge order matters and cannot be determined safely
 - a rebase or merge conflict occurs after another parallel workflow merged
@@ -333,7 +465,8 @@ Stop and report if:
 - checked or updated arc42 documentation is missing
 - the workflow branch is missing, inactive, or cannot be verified as a local ref
 - a change would introduce shared Java code modules between microservices
-- subagent or role execution is required but unavailable
+- subagent or role execution is required and neither a real subagent nor an
+  explicit fallback role-based review can be performed
 - commit or push is requested but not explicitly allowed by the workflow
 - checkpoint push would include files outside the current slice
 - checkpoint push would push to `main`, create or merge a PR, run `push auto`, run branch cleanup or force-push

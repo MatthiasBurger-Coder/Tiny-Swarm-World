@@ -29,25 +29,44 @@ git status --short --branch
 13. Run Skill Conflict Audit before implementation slices.
 14. Build or verify the slice plan.
 15. Run S3D orchestration: dependency graph, topological sort and file, contract, module and architecture-boundary lock checks.
-16. Assign subagents or role reviews.
-17. Use Agent Handoff Protocol for owner changes and parallel work.
-18. Run required quality gates.
-19. Evaluate the required quality decision as `D8`; D8 blocks commit,
+16. For every slice, run automatic work distribution analysis:
+   - determine affected backend, frontend, tests, runtime, documentation,
+     quality, architecture and security areas;
+   - choose sequential or parallel execution;
+   - reject unsafe parallelization for overlapping files, unclear boundaries,
+     contradictory requirements, mandatory ordering, shared migrations, strict
+     database/schema sequencing, generated-file conflicts, Three Amigos
+     rejection, unclear secrets handling or weakened safety guards;
+   - create `.codex/evidence/slice-<number>-distribution.md`.
+17. Assign subagents or role reviews. Use real Codex subagents where
+   supported; otherwise perform explicit role-based fallback review and record
+   it in evidence.
+18. Use Agent Handoff Protocol for owner changes and parallel work.
+19. For parallel streams, create isolated Git worktrees and stream branches
+   named `<workflow-branch>-slice-<number>-<stream>`.
+20. Run required quality gates.
+21. Fix in-scope test, quality-gate and SonarQube findings inside the active
+   workflow branch without weakening gates.
+22. Evaluate the required quality decision as `D8`; D8 blocks commit,
    checkpoint push and release readiness on failed build, failed tests,
    architecture violation, missing required documentation, missing workflow
    version or failed required quality gate.
-20. After each successful slice, create the `CP_RECORD` defined by
+23. Create or update `.codex/evidence/slice-<number>-consolidation.md`.
+24. After each successful slice, create the `CP_RECORD` defined by
    `documentation/process/workflow-execute.md` with workflow version, slice ID, slice
    title, responsible agent, changed files, quality-gate commands,
    quality-gate result, rollback reference, arc42 update status and ADR update
    status.
-21. Run the slice checkpoint push defined by `documentation/process/workflow-execute.md`.
-22. After `CP_COMMIT` succeeds, record the actual commit hash and push result.
-23. Route asynchronous execution-report findings through `Q11`; Q11 is
+25. Run the slice checkpoint push defined by `documentation/process/workflow-execute.md`.
+26. After `CP_COMMIT` succeeds, record the actual commit hash and push result.
+27. Route asynchronous execution-report findings through `Q11`; Q11 is
    non-blocking by default unless the workflow explicitly declares a regulatory
    or compliance reporting gate as part of D8.
-24. Produce a summary with exact validation evidence.
-25. Commit or push only when the workflow explicitly allows it and required gates are clean.
+28. Produce a summary with exact validation evidence.
+29. Commit or push only when the workflow explicitly allows it and required gates are clean.
+30. Create or update PRs and merge only after required gates pass. Continue
+    with the next workflow or issue after successful merge unless a real
+    blocker occurs.
 
 ## Stop Conditions
 
@@ -61,7 +80,9 @@ Stop when:
 - requirement gate was required but skipped;
 - subagent or role ownership is missing;
 - S3D cannot verify slice metadata, dependency order or conflict locks;
+- distribution decision evidence is missing before implementation;
 - handoff rules are missing for parallel work;
+- parallel stream worktrees or branches cannot be isolated;
 - required quality gates fail or cannot be verified;
 - D8 fails or cannot be verified;
 - commit or push is requested without workflow permission.
