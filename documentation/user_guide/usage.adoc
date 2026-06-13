@@ -193,6 +193,11 @@ Important variables:
 * `TSW_NEXUS_MAX_ATTEMPTS`
 * `TSW_NEXUS_WAIT_SECONDS`
 
+The current validated setup contract is documented in
+`documentation/configuration/operator-configuration-contract.md`; `.env.example`
+contains placeholders for every contract key. Preflight reports only key names,
+scopes, value kinds and source classification, not secret values.
+
 The repository still contains local static defaults for this non-production
 system. For real local work, provide explicit values through environment
 variables where supported.

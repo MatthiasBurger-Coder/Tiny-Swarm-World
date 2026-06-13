@@ -336,7 +336,10 @@ classification and credential/host-specific data rules.
   under `.tiny-swarm-world/`; this path is ignored and must not be committed.
 - Networking helpers and legacy netplan templates: `infra/config/network`.
 - Logs: `.tiny-swarm-world/logs`.
-- Python settings can be provided via environment variables or `.env` when supported by specific modules.
+- Operator-facing `TSW_*` values are documented in
+  `documentation/configuration/operator-configuration-contract.md`; start from
+  `.env.example` and keep secret-bearing local values in
+  `.tiny-swarm-world/local/live-installation.env` or the process environment.
 
 ---
 
