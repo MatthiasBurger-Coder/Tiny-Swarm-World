@@ -14,6 +14,8 @@ jobs:
   sonarcloud:
     name: Python Quality And SonarCloud
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN || secrets.SONAR_CLOUD_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -49,6 +51,10 @@ jobs:
           coverage xml -o coverage.xml
 
       - name: SonarCloud Scan
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-scan-action@v8
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN || secrets.SONAR_CLOUD_TOKEN }}
+
+      - name: Skip SonarCloud Scan
+        if: ${{ env.SONAR_TOKEN == '' }}
+        run: |
+          echo "SONAR_TOKEN or SONAR_CLOUD_TOKEN is not configured; skipping SonarCloud upload."
