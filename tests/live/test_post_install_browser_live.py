@@ -21,7 +21,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, ClassVar
 from unittest.mock import patch
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 from urllib.parse import urljoin, urlparse
 from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_opener
 
@@ -647,7 +647,7 @@ def _probe_http(check: ServiceCheck, timeout_seconds: float) -> HttpProbeResult:
             timeout_seconds,
             follow_redirects=check.follow_redirects,
         )
-    except (OSError, URLError) as exc:
+    except OSError as exc:
         return HttpProbeResult(
             service=check.name,
             url=check.url,
@@ -694,7 +694,7 @@ def _probe_https_route(
             follow_redirects=check.follow_redirects,
             tls_ca_bundle=tls_ca_bundle,
         )
-    except (OSError, URLError) as exc:
+    except OSError as exc:
         return HttpsRouteProbeResult(
             service=check.name,
             hostname=hostname,
@@ -738,7 +738,7 @@ def _http_head_or_get(
         if exc.code < 500:
             return exc.code, exc.headers.get("content-type", "")
         raise
-    except (OSError, URLError):
+    except OSError:
         request = Request(url, method="GET")
         try:
             response_context = opener.open(request, timeout=timeout_seconds)
