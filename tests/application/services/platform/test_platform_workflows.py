@@ -791,7 +791,7 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertGreater(len(progress.events), 2)
-        direct_event = progress.events[2]
+        _, _, direct_event, *_ = progress.events
         self.assertEqual("direct verification", direct_event.step)
         self.assertIn("result_count=2", direct_event.safe_message)
         self.assertIn("verified_count=2", direct_event.safe_message)

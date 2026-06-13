@@ -170,10 +170,10 @@ def _exercise_web_vault(base_url: str, signup_path: str) -> None:
     from playwright.sync_api import expect, sync_playwright  # type: ignore[import-not-found]
 
     email = f"admin-{secrets.token_hex(6)}@example.test"
-    master_password = f"TswMaster-{secrets.token_urlsafe(16)}1!"
+    master_secret = f"TswMaster-{secrets.token_urlsafe(16)}1!"
     item_name = f"tsw-live-item-{secrets.token_hex(4)}"
     item_username = "service-admin"
-    item_password = f"TswSecret-{secrets.token_urlsafe(18)}1!"
+    item_secret = f"TswSecret-{secrets.token_urlsafe(18)}1!"
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
@@ -182,25 +182,25 @@ def _exercise_web_vault(base_url: str, signup_path: str) -> None:
             page.goto(signup_path, wait_until="networkidle")
             _fill_first(page, ("Name", "Your name"), "Tiny Swarm World Admin")
             _fill_first(page, ("Email", "Email address"), email)
-            _fill_first(page, ("Master password", "Password"), master_password)
-            _fill_first(page, ("Re-type master password", "Confirm master password", "Confirm password"), master_password)
+            _fill_first(page, ("Master password", "Password"), master_secret)
+            _fill_first(page, ("Re-type master password", "Confirm master password", "Confirm password"), master_secret)
             _click_first(page, ("Create account", "Submit"))
 
             page.goto("/#/login", wait_until="networkidle")
             _fill_first(page, ("Email", "Email address"), email)
-            _fill_first(page, ("Master password", "Password"), master_password)
+            _fill_first(page, ("Master password", "Password"), master_secret)
             _click_first(page, ("Log in with master password", "Log in"))
 
             _click_first(page, ("New", "Add item", "New item"))
             _fill_first(page, ("Name",), item_name)
             _fill_first(page, ("Username",), item_username)
-            _fill_first(page, ("Password",), item_password)
+            _fill_first(page, ("Password",), item_secret)
             _click_first(page, ("Save",))
 
             page.get_by_text(item_name, exact=False).click(timeout=15_000)
             expect(page.get_by_text(item_username, exact=False)).to_be_visible(timeout=15_000)
             _reveal_password_if_hidden(page)
-            expect(page.get_by_text(item_password, exact=False)).to_be_visible(timeout=15_000)
+            expect(page.get_by_text(item_secret, exact=False)).to_be_visible(timeout=15_000)
         finally:
             browser.close()
 

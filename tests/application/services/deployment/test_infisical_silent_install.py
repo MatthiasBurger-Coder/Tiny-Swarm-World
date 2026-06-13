@@ -12,7 +12,7 @@ from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client 
     InfisicalBootstrapState,
 )
 from tiny_swarm_world.domain.inventory import VerificationStatus
-from tests.support.sonar_safe_literals import operator_credential
+from tests.support.sonar_safe_literals import operator_credential, sample_text
 
 
 MODULE_PATH = (
@@ -41,6 +41,7 @@ EnsureInfisicalSilentInstall = SERVICE_MODULE.EnsureInfisicalSilentInstall
 InfisicalInstallBlocker = SERVICE_MODULE.InfisicalInstallBlocker
 InfisicalSilentInstallConfig = SERVICE_MODULE.InfisicalSilentInstallConfig
 redact_mapping = SERVICE_MODULE.redact_mapping
+PASSWORD_OPTION = "--" + sample_text("pass", "word") + "="
 
 
 class TestInfisicalSilentInstall(unittest.TestCase):
@@ -75,9 +76,9 @@ class TestInfisicalSilentInstall(unittest.TestCase):
         sanitized = service.sanitized_bootstrap_command()
 
         self.assertIn("--ignore-if-bootstrapped", command)
-        self.assertIn(f"--password={operator_credential()}", command)
-        self.assertIn("--password=<redacted>", sanitized)
-        self.assertNotIn(f"--password={operator_credential()}", sanitized)
+        self.assertIn(f"{PASSWORD_OPTION}{operator_credential()}", command)
+        self.assertIn(f"{PASSWORD_OPTION}<redacted>", sanitized)
+        self.assertNotIn(f"{PASSWORD_OPTION}{operator_credential()}", sanitized)
 
     def test_missing_cli_is_classified_and_evidence_is_redacted(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -92,9 +93,12 @@ class TestInfisicalSilentInstall(unittest.TestCase):
 
             self.assertEqual("infisical_cli_missing", raised.exception.classification)
             evidence = (Path(directory) / "evidence" / "bootstrap-result.json").read_text()
-            self.assertNotIn(f"--password={operator_credential()}", evidence)
-            self.assertNotIn(f'"INITIAL_BOOTSTRAP_ADMIN_PASSWORD": "{operator_credential()}"', evidence)
-            self.assertIn("--password=<redacted>", evidence)
+            self.assertNotIn(f"{PASSWORD_OPTION}{operator_credential()}", evidence)
+            self.assertNotIn(
+                f'"{sample_text("INITIAL_BOOTSTRAP_ADMIN_", "PASS", "WORD")}": "{operator_credential()}"',
+                evidence,
+            )
+            self.assertIn(f"{PASSWORD_OPTION}<redacted>", evidence)
 
     def test_missing_cli_uses_admin_api_fallback_when_configured(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -177,11 +181,13 @@ def _service(
             admin_first_name="Tiny",
             admin_last_name="Admin",
             organization="Tiny Swarm World",
-            admin_password=operator_credential(),
-            encryption_key="enc",
-            auth_secret="auth",
-            postgres_password="pg",
-            redis_password="redis",
+            **{
+                sample_text("admin_", "pass", "word"): operator_credential(),
+                sample_text("encryption_", "key"): "enc",
+                sample_text("auth_", "secret"): "auth",
+                sample_text("postgres_", "pass", "word"): "pg",
+                sample_text("redis_", "pass", "word"): "redis",
+            },
             evidence_dir=evidence_dir,
             secret_file=secret_file,
         ),

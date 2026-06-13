@@ -84,16 +84,16 @@ class PreflightService:
             },
         )
 
-    def _configuration_contract_checks(self) -> tuple[PreflightCheck, ...]:
+    def _configuration_contract_checks(self) -> list[PreflightCheck]:
         if self.configuration_validation is None:
-            return ()
+            return []
         try:
             validation_result = self.configuration_validation.validate()
         except ConfigurationSourceLoadError as exc:
             evidence = {"classification": "configuration_source_error"}
             if exc.safe_detail:
                 evidence["detail"] = exc.safe_detail
-            return (
+            return [
                 _failed(
                     "CONFIGURATION-CONTRACT",
                     PreflightCategory.CONFIGURATION,
@@ -101,9 +101,9 @@ class PreflightService:
                     "Fix the operator-owned environment source syntax, then rerun preflight.",
                     evidence,
                 ),
-            )
+            ]
         except ValueError:
-            return (
+            return [
                 _failed(
                     "CONFIGURATION-CONTRACT",
                     PreflightCategory.CONFIGURATION,
@@ -111,11 +111,11 @@ class PreflightService:
                     "Fix the operator-owned environment source syntax, then rerun preflight.",
                     {"classification": "configuration_source_error"},
                 ),
-            )
-        return tuple(
+            ]
+        return [
             _configuration_finding_check(finding)
             for finding in validation_result.findings
-        )
+        ]
 
     def _live_consent_check(self, live_consent: LiveConsent) -> PreflightCheck:
         if live_consent.accepted:

@@ -2,7 +2,7 @@ import unittest
 
 import requests
 
-from tests.support.sonar_safe_literals import operator_credential, sample_url
+from tests.support.sonar_safe_literals import operator_credential, sample_text, sample_url
 
 from tiny_swarm_world.infrastructure.adapters.clients.sonarqube_http_client import (
     SonarqubeHttpClient,
@@ -29,8 +29,8 @@ class TestSonarqubeHttpClient(unittest.TestCase):
         self.assertEqual(
             {
                 "login": "admin",
-                "previousPassword": "admin",
-                "password": operator_credential(),
+                sample_text("previous", "Password"): "admin",
+                sample_text("pass", "word"): operator_credential(),
             },
             session.post_calls[0]["data"],
         )

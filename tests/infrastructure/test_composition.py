@@ -1792,6 +1792,7 @@ def _setup_lifecycle_bundle(
 
     class SetupRun:
         async def run(self):
+            await async_checkpoint()
             calls.append("workflow run")
             if ui is not None:
                 for status in status_updates:

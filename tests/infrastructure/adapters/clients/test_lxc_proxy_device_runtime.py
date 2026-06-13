@@ -1,5 +1,7 @@
 import unittest
 
+from tests.support.async_helpers import async_checkpoint
+
 from tiny_swarm_world.application.ports.node_provider import LxcProxyDeviceState
 from tiny_swarm_world.domain.network import LxcProxyDevicePlan
 from tiny_swarm_world.domain.node_provider import (
@@ -118,20 +120,21 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
         created = await runtime.create_proxy_device(_manager_profile(), _plan())
 
         self.assertTrue(created)
-        self.assertEqual(1, len(runner.calls))
         self.assertEqual(
-            (
-                "incus",
-                "profile",
-                "device",
-                "add",
-                "docker-swarm-manager",
-                "tsw-proxy-8080",
-                "proxy",
-                "listen=tcp:0.0.0.0:8080",
-                "connect=tcp:127.0.0.1:8080",
-            ),
-            runner.calls[0],
+            [
+                (
+                    "incus",
+                    "profile",
+                    "device",
+                    "add",
+                    "docker-swarm-manager",
+                    "tsw-proxy-8080",
+                    "proxy",
+                    "listen=tcp:0.0.0.0:8080",
+                    "connect=tcp:127.0.0.1:8080",
+                )
+            ],
+            runner.calls,
         )
 
     async def test_update_sets_listen_and_connect_without_live_output(self):
@@ -148,6 +151,7 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(updated)
         self.assertEqual(2, len(runner.calls))
+        listen_call, connect_call = runner.calls
         self.assertEqual(
             (
                 "lxc",
@@ -159,9 +163,9 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
                 "listen",
                 "tcp:0.0.0.0:8080",
             ),
-            runner.calls[0],
+            listen_call,
         )
-        _, _, _, _, _, _, device_field, *_ = runner.calls[1]
+        _, _, _, _, _, _, device_field, *_ = connect_call
         self.assertEqual("connect", device_field)
 
     async def test_mutating_methods_refuse_when_live_mutation_is_disabled(self):
@@ -324,6 +328,7 @@ class _RecordingRunner:
         args: tuple[str, ...],
         timeout_seconds: float,
     ) -> LxcNodeCommandResult:
+        await async_checkpoint()
         self.calls.append(tuple(args))
         if not self.results:
             raise AssertionError("No fake command result configured.")

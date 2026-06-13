@@ -2064,12 +2064,12 @@ def _swarm_registry_endpoint() -> str:
 
 def _infisical_secret_seed_steps(
     service_profile: ServiceStackProfile,
-) -> tuple[EnsureInfisicalSecretItems, ...]:
+) -> list[EnsureInfisicalSecretItems]:
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
-        return ()
+        return []
     if os.environ.get(SEED_INFISICAL_ITEMS_ENVIRONMENT) != "1":
-        return ()
-    return (
+        return []
+    return [
         EnsureInfisicalSecretItems(
             infisical_client=PlaywrightInfisicalClient(
                 base_url=_operator_config_value(
@@ -2081,17 +2081,17 @@ def _infisical_secret_seed_steps(
             password=_operator_secret_value(INFISICAL_PASSWORD_ENVIRONMENT),
             items=_infisical_seed_items(),
         ),
-    )
+    ]
 
 
 def _infisical_bootstrap_steps(
     service_profile: ServiceStackProfile,
     *,
     cli: InfisicalCliClient | None = None,
-) -> tuple[EnsureInfisicalSilentInstall, ...]:
+) -> list[EnsureInfisicalSilentInstall]:
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
-        return ()
-    return (
+        return []
+    return [
         EnsureInfisicalSilentInstall(
             cli=cli or InfisicalCliClient(),
             bootstrap_client=InfisicalBootstrapHttpClient(
@@ -2140,7 +2140,7 @@ def _infisical_bootstrap_steps(
                 redis_password=_operator_secret_value(INFISICAL_REDIS_PASSWORD_ENVIRONMENT),
             ),
         ),
-    )
+    ]
 
 
 def _with_infisical_post_apply_steps(

@@ -206,6 +206,9 @@ def _verification_classification(
     return "unknown_probe"
 
 
+VM_REPOSITORY_NOT_CONFIGURED = "VM repository is not configured"
+
+
 class _EmptyVmRepository(PortVmRepository):
     def get_all_vms(self) -> list[VmEntity]:
         return []
@@ -214,13 +217,13 @@ class _EmptyVmRepository(PortVmRepository):
         return None
 
     def add_vm(self, vm: VmEntity) -> None:
-        raise ValueError("VM repository is not configured")
+        raise ValueError(VM_REPOSITORY_NOT_CONFIGURED)
 
     def remove_vm(self, name: str) -> None:
-        raise ValueError("VM repository is not configured")
+        raise ValueError(VM_REPOSITORY_NOT_CONFIGURED)
 
     def update_vm(self, vm: VmEntity) -> None:
-        raise ValueError("VM repository is not configured")
+        raise ValueError(VM_REPOSITORY_NOT_CONFIGURED)
 
     def find_all_vms(self) -> list[VmEntity]:
         return []

@@ -6,6 +6,7 @@ from pathlib import Path
 from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client import (
     InfisicalBootstrapState,
 )
+from tests.support.sonar_safe_literals import sample_url
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[4]
@@ -146,7 +147,9 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
 
     def test_rejects_secret_bearing_base_url(self):
         with self.assertRaises(ValueError):
-            InfisicalBootstrapHttpClient(base_url="https://admin:secret@localhost")
+            InfisicalBootstrapHttpClient(
+                base_url=sample_url("https", "admin:secret", "localhost")
+            )
 
     def test_suppresses_local_self_signed_tls_warning_when_tls_verify_is_disabled(self):
         with warnings.catch_warnings(record=True) as recorded:

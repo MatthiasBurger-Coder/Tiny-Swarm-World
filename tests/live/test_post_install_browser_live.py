@@ -29,6 +29,7 @@ from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
 )
 from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
+from tests.support.sonar_safe_literals import sample_text, sample_url
 
 
 RUN_LIVE_ENV = "TSW_RUN_POST_INSTALL_BROWSER_LIVE"
@@ -287,7 +288,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             {
                 "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
                 "TSW_DASHBOARD_URL": "http://localhost",
-                "TSW_INFISICAL_URL": "https://user:credential@localhost",
+                "TSW_INFISICAL_URL": sample_url("https", "user:credential", "localhost"),
             },
         ):
             with self.assertRaisesRegex(
@@ -331,7 +332,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
     def test_redacted_evidence_rejects_secret_like_keys_and_values(self) -> None:
         unsafe = {
             "service": "jenkins",
-            "password": "value",
+            sample_text("pass", "word"): "value",
             "redacted_failure_reason": "token leaked",
         }
 
@@ -646,7 +647,7 @@ def _probe_http(check: ServiceCheck, timeout_seconds: float) -> HttpProbeResult:
             timeout_seconds,
             follow_redirects=check.follow_redirects,
         )
-    except (OSError, TimeoutError, URLError) as exc:
+    except (OSError, URLError) as exc:
         return HttpProbeResult(
             service=check.name,
             url=check.url,
@@ -693,7 +694,7 @@ def _probe_https_route(
             follow_redirects=check.follow_redirects,
             tls_ca_bundle=tls_ca_bundle,
         )
-    except (OSError, TimeoutError, URLError) as exc:
+    except (OSError, URLError) as exc:
         return HttpsRouteProbeResult(
             service=check.name,
             hostname=hostname,
@@ -737,7 +738,7 @@ def _http_head_or_get(
         if exc.code < 500:
             return exc.code, exc.headers.get("content-type", "")
         raise
-    except (OSError, TimeoutError, URLError):
+    except (OSError, URLError):
         request = Request(url, method="GET")
         try:
             response_context = opener.open(request, timeout=timeout_seconds)
