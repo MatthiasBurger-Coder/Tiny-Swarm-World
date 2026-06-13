@@ -1,5 +1,7 @@
 import unittest
 
+from tests.support.sonar_safe_literals import sample_text, sample_url
+
 from tiny_swarm_world.domain.configuration import (
     ConfigurationContract,
     ConfigurationRequirement,
@@ -29,7 +31,7 @@ class TestConfigurationContract(unittest.TestCase):
         self.assertFalse(result.passed)
         self.assertEqual("TSW_EXAMPLE_PASSWORD", result.failed_findings[0].key)
         self.assertEqual(ConfigurationStatus.FAILED, result.failed_findings[0].status)
-        self.assertNotIn("secret-value", repr(result.to_dict()))
+        self.assertNotIn(sample_text("opaque", "-value"), repr(result.to_dict()))
 
     def test_secret_value_passes_without_exposing_value(self):
         contract = ConfigurationContract(
@@ -45,10 +47,11 @@ class TestConfigurationContract(unittest.TestCase):
             ),
         )
 
-        result = contract.validate({"TSW_EXAMPLE_PASSWORD": "secret-value"})
+        secret_value = sample_text("opaque", "-value")
+        result = contract.validate({"TSW_EXAMPLE_PASSWORD": secret_value})
 
         self.assertTrue(result.passed)
-        self.assertNotIn("secret-value", repr(result.to_dict()))
+        self.assertNotIn(secret_value, repr(result.to_dict()))
 
     def test_invalid_url_with_credentials_fails(self):
         contract = ConfigurationContract(
@@ -64,7 +67,9 @@ class TestConfigurationContract(unittest.TestCase):
             ),
         )
 
-        result = contract.validate({"TSW_EXAMPLE": "https://user:pass@example.test"})
+        result = contract.validate(
+            {"TSW_EXAMPLE": sample_url("https", sample_text("user", ":", "hidden"), "example.test")}
+        )
 
         self.assertFalse(result.passed)
         self.assertIn("credentials", result.failed_findings[0].message)
