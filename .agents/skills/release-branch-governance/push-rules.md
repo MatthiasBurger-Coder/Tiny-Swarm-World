@@ -70,7 +70,10 @@ documented, and workflow status is updated.
   unrelated, sensitive, generated local or unclassified files.
 - `push auto` must create or reuse a pull request, wait or retry until required
   checks are green including SonarQube when configured, merge only after green
-  checks, delete the merged remote head branch and run local cleanup.
+  checks, delete the merged remote head branch and run local cleanup. When the
+  PR was squash-merged, local cleanup must delete the verified local PR branch
+  with the git-clean squash-merge fallback after merge and remote-branch
+  deletion are verified.
 - For parallel workflows, keep one branch, one worktree, one PR and one
   quality lifecycle per workflow.
 - Re-check integration branch state and affected tests before merging each PR

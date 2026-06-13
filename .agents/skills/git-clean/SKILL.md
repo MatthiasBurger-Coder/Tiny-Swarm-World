@@ -1,6 +1,6 @@
 ---
 name: git-clean
-description: Use when the user enters exactly `clean`, when `push auto` needs post-merge cleanup, or when Codex is asked to clean up after a GitHub pull request was merged in the repository. Verifies the PR merge, fetches and prunes origin, switches the worktree to main, fast-forwards main, deletes only local branches proven merged and unnecessary, and reports blockers without force deletion.
+description: Use when the user enters exactly `clean`, when `push auto` needs post-merge cleanup, or when Codex is asked to clean up after a GitHub pull request was merged in the repository. Verifies the PR merge, fetches and prunes origin, switches the worktree to main, fast-forwards main, deletes local branches proven merged and the verified local head branch of a squash-merged PR, and reports blockers.
 ---
 
 # Clean Skill
@@ -61,7 +61,9 @@ You must:
 - otherwise verify that the branch tip is an ancestor of `origin/main` or `main`,
 - fetch and prune remote-tracking references before deciding branch status,
 - switch the worktree to `main` and fast-forward it,
-- delete only local branches proven merged and unnecessary,
+- delete local branches proven merged and unnecessary,
+- delete the verified local head branch of a squash-merged PR when `git branch
+  -d` refuses only because the branch tip is not an ancestor of `main`,
 - keep branches with unclear ownership, unmerged commits, active worktrees, or missing merge evidence,
 - report every deleted, kept, and blocked branch.
 - report every removed, kept, and blocked workflow worktree when parallel
@@ -99,6 +101,7 @@ When a candidate branch is known, verify it before deletion:
 git merge-base --is-ancestor <branch> main
 git merge-base --is-ancestor <branch> origin/main
 git branch -d <branch>
+git branch -D <branch>
 ```
 
 Use shell-safe branch names and avoid string-built destructive commands.
@@ -158,13 +161,27 @@ Delete local branches only when all are true:
 - the branch is not `main`,
 - the branch is not the current branch,
 - the branch is not used by another worktree,
-- the branch has no unmerged commits relative to `main` or `origin/main`,
 - the branch belongs to the completed task or is otherwise clearly unnecessary,
-- `git branch -d <branch>` succeeds.
+- either the branch tip is an ancestor of `main` or `origin/main`, or the branch
+  is the verified head branch of a squash-merged pull request,
+- `git branch -d <branch>` succeeds, or the squash-merge fallback below
+  applies.
 
-Never use `git branch -D` as part of this skill.
+Squash-merge fallback:
 
-Keep and report any branch that needs force deletion, has unclear ownership, has unmerged commits, is attached to another worktree, or cannot be matched to a completed PR.
+- Use `git branch -D <branch>` only when GitHub metadata proves the PR is
+  merged, the PR base is `main`, the PR head branch matches `<branch>`, local
+  `main` has been fast-forwarded to `origin/main`, the remote head branch is
+  deleted or already gone, the local branch is not attached to another
+  worktree, and `git branch -d <branch>` refused only because the branch is not
+  fully merged after a squash merge.
+- Do not use `git branch -D` for unclear branch ownership, non-PR branches,
+  active worktree branches, unmerged non-squash work, or failed merge
+  verification.
+
+Keep and report any branch that needs force deletion outside the squash-merge
+fallback, has unclear ownership, has unmerged non-squash work, is attached to
+another worktree, or cannot be matched to a completed PR.
 
 ### Phase 5b: Remove Only Safe Workflow Worktrees
 
@@ -229,7 +246,8 @@ Stop if:
 - `main` cannot be checked out,
 - `main` cannot be fast-forwarded,
 - a candidate branch is used by another worktree,
-- deleting a branch would require `git branch -D`,
+- deleting a branch would require `git branch -D` without satisfying the
+  squash-merge fallback,
 - a workflow worktree has uncommitted changes, unclear ownership, missing merge
   evidence, or would require forced removal,
 - remote branch deletion would be needed but was not explicitly requested,
@@ -241,7 +259,8 @@ Do not:
 
 - delete `main`,
 - delete the current branch,
-- force-delete branches,
+- force-delete branches except for the verified local head branch of a
+  squash-merged PR under the squash-merge fallback,
 - delete remote branches unless explicitly requested,
 - remove worktrees unless this is verified parallel workflow cleanup after a
   successful merge and clean-state verification,
