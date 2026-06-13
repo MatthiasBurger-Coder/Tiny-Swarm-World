@@ -1,6 +1,4 @@
 import importlib.util
-import sys
-import types
 import unittest
 import warnings
 from pathlib import Path
@@ -21,11 +19,6 @@ MODULE_PATH = (
 
 
 def _load_client_module():
-    requests_module = types.ModuleType("requests")
-    requests_module.Session = object
-    requests_module.Response = object
-    requests_module.RequestException = Exception
-    sys.modules["requests"] = requests_module
     spec = importlib.util.spec_from_file_location("infisical_bootstrap_http_client", MODULE_PATH)
     if spec is None or spec.loader is None:
         raise RuntimeError("Could not load Infisical bootstrap HTTP client module.")
