@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from tiny_swarm_world.application.services.configuration import ConfigurationValidationService
+from tiny_swarm_world.application.ports.configuration import ConfigurationSourceLoadError
 from tiny_swarm_world.domain.configuration import (
     ConfigurationContract,
     ConfigurationRequirement,
@@ -75,6 +76,8 @@ class TestConfigurationSources(unittest.TestCase):
         self.assertIn("lines 1 and 2", message)
         self.assertNotIn("first-secret", message)
         self.assertNotIn("second-secret", message)
+        self.assertIsInstance(failure.exception, ConfigurationSourceLoadError)
+        self.assertEqual(message, failure.exception.safe_detail)
 
     def test_shell_env_file_rejects_command_substitution_without_execution(self):
         with TemporaryDirectory() as temporary_directory:

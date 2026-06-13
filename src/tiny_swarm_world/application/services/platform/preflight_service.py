@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping
 
+from tiny_swarm_world.application.ports.configuration import ConfigurationSourceLoadError
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.application.services.configuration import ConfigurationValidationService
 from tiny_swarm_world.domain.configuration import ConfigurationFinding
@@ -88,6 +89,19 @@ class PreflightService:
             return ()
         try:
             validation_result = self.configuration_validation.validate()
+        except ConfigurationSourceLoadError as exc:
+            evidence = {"classification": "configuration_source_error"}
+            if exc.safe_detail:
+                evidence["detail"] = exc.safe_detail
+            return (
+                _failed(
+                    "CONFIGURATION-CONTRACT",
+                    PreflightCategory.CONFIGURATION,
+                    "Configuration contract validation could not load operator configuration.",
+                    "Fix the operator-owned environment source syntax, then rerun preflight.",
+                    evidence,
+                ),
+            )
         except ValueError:
             return (
                 _failed(

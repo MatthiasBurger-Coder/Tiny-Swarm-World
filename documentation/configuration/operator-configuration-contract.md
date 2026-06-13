@@ -52,6 +52,7 @@ The default contract requires these keys before setup execution:
 ## Redaction
 
 Preflight reports configuration status, key names, scopes, value kinds,
-requiredness, and source classification only. It does not report raw secret
+requiredness, source classification, and redaction-safe parser details such as
+duplicate key names and line numbers only. It does not report raw secret
 values, full environment payloads, or local file contents. Parser failures are
 reported as configuration source errors without echoing the rejected line.

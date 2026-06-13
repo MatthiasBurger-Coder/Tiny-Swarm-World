@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from tests.support.sonar_safe_literals import token_marker
 
+from tiny_swarm_world.application.ports.configuration import ConfigurationSourceLoadError
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.domain.configuration import (
@@ -128,6 +129,28 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             "configuration_source_error",
             failed_by_id["CONFIGURATION-CONTRACT"].evidence["classification"],
+        )
+        self.assertNotIn("secret-value", repr(result.to_dict()))
+
+    async def test_configuration_source_error_reports_safe_detail_without_value_leak(self):
+        result = await PreflightService(
+            _fake_probe(),
+            configuration_validation=_RaisingConfigurationValidation(
+                ConfigurationSourceLoadError(
+                    "Duplicate configuration key TSW_EXAMPLE_PASSWORD at lines 1 and 2.",
+                    safe_detail="Duplicate configuration key TSW_EXAMPLE_PASSWORD at lines 1 and 2.",
+                )
+            ),
+        ).run()
+
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+        evidence = failed_by_id["CONFIGURATION-CONTRACT"].evidence
+
+        self.assertFalse(result.passed)
+        self.assertEqual("configuration_source_error", evidence["classification"])
+        self.assertEqual(
+            "Duplicate configuration key TSW_EXAMPLE_PASSWORD at lines 1 and 2.",
+            evidence["detail"],
         )
         self.assertNotIn("secret-value", repr(result.to_dict()))
 
