@@ -94,6 +94,7 @@ from tiny_swarm_world.application.services.platform import (
     PreflightService,
     SocatManager,
 )
+from tiny_swarm_world.application.services.configuration import ConfigurationValidationService
 from tiny_swarm_world.application.services.setup import (
     SetupWorkflow,
     SetupWorkflowPhase,
@@ -168,6 +169,11 @@ from tiny_swarm_world.infrastructure.adapters.clients.infisical_bootstrap_http_c
 from tiny_swarm_world.infrastructure.adapters.clients.sonarqube_http_client import (
     SonarqubeHttpClient,
 )
+from tiny_swarm_world.infrastructure.adapters.configuration import (
+    CombinedConfigurationSource,
+    EnvironmentConfigurationSource,
+    ShellEnvFileConfigurationSource,
+)
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
@@ -197,6 +203,7 @@ from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
 
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
+DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
 DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
 PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT = "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS"
 DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS = 180
@@ -818,21 +825,38 @@ def build_application_logger():
 def build_preflight_service(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
     return PreflightService(
         HostPreflightProbe(),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
+        configuration_validation=configuration_validation,
+    )
+
+
+def build_configuration_validation_service(
+    env_file: Path = DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE,
+) -> ConfigurationValidationService:
+    return ConfigurationValidationService(
+        CombinedConfigurationSource(
+            (
+                ShellEnvFileConfigurationSource(env_file),
+                EnvironmentConfigurationSource(),
+            )
+        )
     )
 
 
 def build_post_install_preflight_service(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
     configuration = _preflight_configuration_for_provider(service_profile, node_provider_request)
     return PreflightService(
         HostPreflightProbe(),
         replace(configuration, required_ports=()),
+        configuration_validation=configuration_validation,
     )
 
 
@@ -879,6 +903,7 @@ async def run_setup_with_terminal_status(
             service_profile=service_profile,
             node_provider_request=node_provider_request,
             ui=ui,
+            configuration_validation=build_configuration_validation_service(),
         )
         match action:
             case "run":
@@ -1363,8 +1388,13 @@ def build_setup_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
+    configuration_validation: ConfigurationValidationService | None = None,
 ) -> SetupServices:
-    preflight = _build_preflight_service_for_request(service_profile, node_provider_request)
+    preflight = _build_preflight_service_for_request(
+        service_profile,
+        node_provider_request,
+        configuration_validation=configuration_validation,
+    )
     trace_correlation_id = _new_installation_trace_correlation_id()
     platform = _build_platform_services_for_request(
         service_profile,
@@ -1516,24 +1546,34 @@ def _build_deployment_services_for_request(
 def _build_preflight_service_for_request(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
+    configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
     if node_provider_request is None:
-        return build_preflight_service(service_profile=service_profile)
+        return build_preflight_service(
+            service_profile=service_profile,
+            configuration_validation=configuration_validation,
+        )
     return build_preflight_service(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
+        configuration_validation=configuration_validation,
     )
 
 
 def _build_post_install_preflight_service_for_request(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
+    configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
     if node_provider_request is None:
-        return build_post_install_preflight_service(service_profile=service_profile)
+        return build_post_install_preflight_service(
+            service_profile=service_profile,
+            configuration_validation=configuration_validation,
+        )
     return build_post_install_preflight_service(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
+        configuration_validation=configuration_validation,
     )
 
 

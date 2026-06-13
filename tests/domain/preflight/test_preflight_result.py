@@ -94,6 +94,29 @@ class TestPreflightResult(unittest.TestCase):
         self.assertEqual(".env", check.evidence["path"])
         self.assertEqual(".env", check.to_dict()["evidence"]["path"])
 
+    def test_configuration_check_serializes_redacted_contract_evidence(self):
+        check = PreflightCheck(
+            check_id="CONFIG-TSW_EXAMPLE_PASSWORD",
+            category=PreflightCategory.CONFIGURATION,
+            status=PreflightStatus.FAILED,
+            severity=PreflightSeverity.MANDATORY,
+            message="Required configuration value is missing.",
+            remediation="Provide TSW_EXAMPLE_PASSWORD through an operator-owned environment source.",
+            evidence={
+                "configuration_key": "TSW_EXAMPLE_PASSWORD",
+                "scope": "example",
+                "value_kind": "secret_value",
+                "required": "true",
+                "source": "missing",
+            },
+        )
+
+        result_payload = PreflightResult((check,)).to_dict()
+
+        self.assertEqual("FAILED", result_payload["status"])
+        self.assertEqual("CONFIGURATION", result_payload["checks"][0]["category"])
+        self.assertNotIn("password_value", repr(result_payload).lower())
+
     def test_default_forbidden_secret_fingerprints_do_not_expose_raw_values(self):
         configuration_text = repr(default_preflight_configuration())
         raw_values = (

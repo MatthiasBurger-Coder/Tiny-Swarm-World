@@ -26,6 +26,7 @@ CONSOLE_UI_INFRASTRUCTURE_ROOT = SOURCE_ROOT / "infrastructure" / "adapters" / "
 CLI_ENTRYPOINT = SOURCE_ROOT / "__main__.py"
 ALLOWED_APPLICATION_SERVICE_DIRECTORIES = {
     "commands",
+    "configuration",
     "network",
     "nexus",
     "setup",

@@ -4,6 +4,8 @@ import asyncio
 from collections.abc import Mapping
 
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
+from tiny_swarm_world.application.services.configuration import ConfigurationValidationService
+from tiny_swarm_world.domain.configuration import ConfigurationFinding
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentReport,
     LiveConsent,
@@ -22,15 +24,18 @@ class PreflightService:
         self,
         host_probe: PortHostPreflightProbe,
         configuration: PreflightConfiguration | None = None,
+        configuration_validation: ConfigurationValidationService | None = None,
     ):
         self.host_probe = host_probe
         self.configuration = configuration or default_preflight_configuration()
+        self.configuration_validation = configuration_validation
 
     async def run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
         await asyncio.sleep(0)
         host_environment = self.host_probe.host_environment_report()
         checks = [
             self._setup_manifest_check(),
+            *self._configuration_contract_checks(),
             self._host_check(host_environment),
             self._python_check(),
             *self._dependency_checks(),
@@ -43,13 +48,18 @@ class PreflightService:
             and host_environment.allows_live_setup
         ):
             checks.extend(self._runtime_checks())
+        secret_checks = (
+            self._secret_checks()
+            if self.configuration_validation is None
+            else ()
+        )
         checks.extend(
             (
                 self._cpu_check(),
                 self._memory_check(),
                 self._disk_check(),
                 *self._port_checks(),
-                *self._secret_checks(),
+                *secret_checks,
                 *self._ignore_policy_checks(),
                 self._forbidden_secret_fingerprint_check(),
             )
@@ -71,6 +81,26 @@ class PreflightService:
                 "services": ",".join(manifest.service_names),
                 "evidence_root": manifest.evidence_root,
             },
+        )
+
+    def _configuration_contract_checks(self) -> tuple[PreflightCheck, ...]:
+        if self.configuration_validation is None:
+            return ()
+        try:
+            validation_result = self.configuration_validation.validate()
+        except ValueError:
+            return (
+                _failed(
+                    "CONFIGURATION-CONTRACT",
+                    PreflightCategory.CONFIGURATION,
+                    "Configuration contract validation could not load operator configuration.",
+                    "Fix the operator-owned environment source syntax, then rerun preflight.",
+                    {"classification": "configuration_source_error"},
+                ),
+            )
+        return tuple(
+            _configuration_finding_check(finding)
+            for finding in validation_result.findings
         )
 
     def _live_consent_check(self, live_consent: LiveConsent) -> PreflightCheck:
@@ -441,6 +471,26 @@ def _failed(
         message=message,
         remediation=remediation,
         evidence=evidence or {},
+    )
+
+
+def _configuration_finding_check(finding: ConfigurationFinding) -> PreflightCheck:
+    evidence = {
+        "configuration_key": finding.key,
+        "scope": finding.evidence.get("scope", "unknown"),
+        "value_kind": finding.evidence.get("value_kind", "unknown"),
+        "required": finding.evidence.get("required", "unknown"),
+        "source": finding.evidence.get("source", "unknown"),
+    }
+    status = PreflightStatus.PASSED if finding.passed else PreflightStatus.FAILED
+    return PreflightCheck(
+        check_id=f"CONFIG-{finding.key}",
+        category=PreflightCategory.CONFIGURATION,
+        status=status,
+        severity=PreflightSeverity.MANDATORY,
+        message=finding.message,
+        remediation=finding.remediation,
+        evidence=evidence,
     )
 
 

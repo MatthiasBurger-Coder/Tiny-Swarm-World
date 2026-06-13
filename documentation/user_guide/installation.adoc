@@ -213,6 +213,11 @@ including `reset-run.log`, `reset-run.exit`, `setup-run.log`, and
 It loads or generates local `TSW_*` secrets in
 `.tiny-swarm-world/local/live-installation.env` without printing secret
 values.
+Use `.env.example` as the tracked placeholder template. Before live setup,
+copy the needed keys into `.tiny-swarm-world/local/live-installation.env` or
+export them in the process environment. Process environment values override
+the local file, and preflight validates the resulting contract before setup
+continues.
 On native Linux, if the runtime Python dependencies from `requirements.txt`
 are not importable, `install.sh` creates an ignored local environment at
 `.tiny-swarm-world/install-venv` and uses its Python interpreter for the reset
