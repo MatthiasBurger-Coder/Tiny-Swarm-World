@@ -8,7 +8,10 @@ from tiny_swarm_world.domain.deployment.service_stack_contract import (
     portainer_managed_service_stack_contracts_for_profile,
     service_stack_contracts_for_profile,
 )
-from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
+from tiny_swarm_world.domain.deployment.stack_definition import (
+    ComposeServiceDefinition,
+    StackDefinition,
+)
 
 __all__ = [
     "DEFAULT_SERVICE_STACK_CONTRACTS",
@@ -17,6 +20,7 @@ __all__ = [
     "ServiceEndpoint",
     "ServiceStackProfile",
     "ServiceStackContract",
+    "ComposeServiceDefinition",
     "StackDefinition",
     "portainer_managed_service_stack_contracts_for_profile",
     "service_stack_contracts_for_profile",

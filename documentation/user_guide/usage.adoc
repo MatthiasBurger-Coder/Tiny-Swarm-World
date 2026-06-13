@@ -249,11 +249,11 @@ observed-state contracts, and live success still requires explicit deployment
 and readiness evidence. Direct Portainer upload scripts have been retired so
 compose assets cannot bypass the CLI consent gate.
 
-== Service Access Dashboard And Vaultwarden
+== Service Access Dashboard
 
 The full guided setup selects the service-access stack profile by default. It
 provides the intended management landing page contract for service links and
-Vaultwarden credential references after a verified provider-specific live
+Infisical credential references after a verified provider-specific live
 deployment. Operators who intentionally want only the older base service set
 can pass `--service-profile default` to setup, deployment, or preflight
 commands.
@@ -261,21 +261,23 @@ commands.
 Implemented repository assets:
 
 * `infra/config/compose/service-access/docker-compose.yml` defines the
-  service-access dashboard, Vaultwarden and service-access NGINX services.
+  service-access dashboard and service-access NGINX services.
 * `infra/compose/service-access/dashboard/**` contains a static dashboard
   image asset.
 * `infra/compose/service-access/nginx/**` contains the image-packaged NGINX
   route configuration.
 
 When the default full profile is deployed by an operator workflow, the
-dashboard route is `http://localhost`; Vaultwarden is available for clients at `https://localhost`, with `8086` retained as a local HTTP compatibility route.
+dashboard route is available through the configured local ingress. The
+service-access NGINX compose service also publishes `8086` as a local
+compatibility route.
 The dashboard is a static management table with `Server`, `URL`, `user` and
 `pwd` columns. It provides central paths such as `/jenkins`, `/nexus`,
-`/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and `/vaultwarden`.
+`/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and `/infisical`.
 It does not show password values.
 
-Authorized operators reveal or copy password values only through
-Vaultwarden's authenticated UI.
+Authorized operators reveal or copy password values only through the
+configured secret-management surface.
 
 The current central `http://localhost` route requires provider-specific
 redeployment before browser verification.

@@ -64,6 +64,9 @@ from tiny_swarm_world.application.ports.node_provider import (
     PortLxcProxyDeviceRuntime,
 )
 from tiny_swarm_world.application.ports.progress import PortWorkflowProgress
+from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
+    PortComposeFileRepository,
+)
 from tiny_swarm_world.application.ports.ui.port_ui import (
     AGGREGATE_INSTANCE,
     STATUS_ERROR,
@@ -845,6 +848,10 @@ def build_configuration_validation_service(
             )
         )
     )
+
+
+def build_compose_file_repository() -> PortComposeFileRepository:
+    return ComposeFileRepositoryYaml()
 
 
 def build_post_install_preflight_service(
