@@ -105,5 +105,58 @@
     "Senior Security Sandbox Engineer"
   ],
   "workflow_id": "config-contract-validation-issue-24-20260613",
-  "workflow_version": "1.0.0"
+  "workflow_version": "1.0.0",
+  "execution_closeout": {
+    "status": "COMPLETED_WITH_EVIDENCE",
+    "slice_commits": [
+      {
+        "slice_id": "S01",
+        "commit": "c819847",
+        "evidence": "configuration surface inventory"
+      },
+      {
+        "slice_id": "S02",
+        "commit": "9bb2f75",
+        "evidence": "typed configuration contract"
+      },
+      {
+        "slice_id": "S03",
+        "commit": "7ca805d",
+        "evidence": "operator configuration sources"
+      },
+      {
+        "slice_id": "S04",
+        "commit": "57f36dd",
+        "evidence": "preflight contract validation"
+      },
+      {
+        "slice_id": "S05",
+        "commit": "a0f8741",
+        "evidence": "template and operator documentation"
+      }
+    ],
+    "acceptance_mapping": {
+      "config_schema_validates_before_execution": [
+        "src/tiny_swarm_world/domain/configuration/configuration_contract.py",
+        "src/tiny_swarm_world/application/services/configuration/configuration_validation_service.py",
+        "src/tiny_swarm_world/application/services/platform/preflight_service.py",
+        "src/tiny_swarm_world/infrastructure/composition.py"
+      ],
+      "example_template_provided": [
+        ".env.example"
+      ],
+      "overrides_documented": [
+        "documentation/configuration/operator-configuration-contract.md",
+        "README.md",
+        "documentation/user_guide/installation.adoc",
+        "documentation/deployment/system.adoc",
+        "documentation/user_guide/usage.adoc"
+      ]
+    },
+    "final_quality_gate": {
+      "command": ".venv/bin/python tools/quality_gate.py quality",
+      "status": "passed",
+      "note": "System python3 quality attempt stopped because Ruff was not installed for system Python."
+    }
+  }
 }

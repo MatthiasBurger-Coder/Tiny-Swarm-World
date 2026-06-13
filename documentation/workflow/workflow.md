@@ -852,6 +852,47 @@ Issue #24 implementation is done when:
 - focused tests prove the config contract and preflight integration;
 - full quality gate passes or an accepted blocker is documented before merge.
 
+## Workflow Execution Evidence
+
+Execution status: `COMPLETED_WITH_EVIDENCE`.
+
+Slice checkpoints pushed to `origin/feature/workflow-config-contracts-20260613`:
+
+| Slice | Commit | Evidence |
+|---|---|---|
+| S01 | `c819847` | `documentation/configuration/config-contract-inventory.md` inventories required keys, optional overrides, validation gaps, and local-file policy without secret values. |
+| S02 | `9bb2f75` | `src/tiny_swarm_world/domain/configuration/**` and application ports/services define the typed configuration contract and redacted validation result. |
+| S03 | `7ca805d` | `src/tiny_swarm_world/infrastructure/adapters/configuration/**` loads process and local env sources with duplicate-key and shell-syntax fail-closed behavior. |
+| S04 | `57f36dd` | `PreflightService` maps configuration findings to `CONFIGURATION` checks before setup phases and keeps evidence summary-only. |
+| S05 | `a0f8741` | `.env.example` and operator documentation describe required values, optional overrides, defaults, source precedence, local env file handling, and redaction. |
+
+Issue #24 acceptance mapping:
+
+- Config schema validates before execution: `ConfigurationValidationService`
+  validates `default_configuration_contract()` and `setup run` injects it into
+  preflight before mutating setup phases.
+- Example env/config template: `.env.example` is tracked and covered by
+  `tests.architecture.test_repository_hygiene`.
+- Overrides documented: `documentation/configuration/operator-configuration-contract.md`
+  is linked from README, installation, deployment, and usage docs.
+
+Verification evidence:
+
+```bash
+git diff --check
+PYTHONPATH=src python3 -m unittest tests.domain.configuration tests.application.services.configuration
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.configuration tests.infrastructure.test_composition
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service tests.domain.preflight.test_preflight_result
+PYTHONPATH=src python3 -m unittest tests.architecture.test_repository_hygiene
+python3 tools/quality_gate.py test
+.venv/bin/python tools/quality_gate.py quality
+```
+
+The system `python3 tools/quality_gate.py quality` attempt stopped at missing
+tooling (`ruff` was not installed for system Python). The repository-local
+`.venv` contains Ruff and mypy, and `.venv/bin/python tools/quality_gate.py
+quality` completed successfully.
+
 ## Handoff To Workflow Execute
 
 To execute this workflow, run the repository's `workflow execute` procedure

@@ -89,7 +89,29 @@ Required before merge when practical:
 python3 tools/quality_gate.py quality
 ```
 
+Execution closeout used the repository-local development environment because
+system `python3` did not have Ruff installed:
+
+```bash
+.venv/bin/python tools/quality_gate.py quality
+```
+
 No live infrastructure command is part of this workflow by default.
+
+## Execution Evidence
+
+Status: `COMPLETED_WITH_EVIDENCE`
+
+Pushed slice commits:
+
+- `c819847` - S01 configuration surface inventory.
+- `9bb2f75` - S02 typed configuration contract.
+- `7ca805d` - S03 operator configuration sources.
+- `57f36dd` - S04 preflight contract validation.
+- `a0f8741` - S05 template and operator documentation.
+
+Issue #24 acceptance criteria are mapped in
+`documentation/workflow/workflow.md`.
 
 ## Hash Provenance
 
