@@ -1,71 +1,95 @@
 # Workflow Context Pack
 
-Workflow: `traefik-https-ingress-existing-ca-20260609`
+Workflow: `config-contract-validation-issue-24-20260613`
 Version: `1.0.0`
-Branch: `feature/traefik-https-ingress-existing-ca-20260609`
+Branch: `feature/workflow-config-contracts-20260613`
 Profile: `FULL_PATH`
+Issue: `https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/24`
 
 ## Purpose
 
-Navigation aid for the active Traefik HTTPS ingress workflow. This file does
-not replace `AGENTS.md`, `QUALITY.md`, ADRs, arc42, routing rules, role files,
-or skill files.
+Navigation aid for the active Issue #24 configuration contract workflow. This
+file does not replace `AGENTS.md`, `QUALITY.md`, ADRs, arc42, routing rules,
+role files, skill files, or `documentation/workflow/workflow.md`.
 
 ## Process Strand
 
 - Workflow authoring
-- Architecture governance
+- Configuration governance
 - Python automation
-- Docker Swarm / LXC runtime
-- TLS and existing CA validation
-- Live browser verification
+- Platform preflight
+- Deployment setup safety
+- Documentation synchronization
+- Commit and push publication
 
 ## Affected Areas
 
 - `documentation/workflow/**`
-- `documentation/architecture/**`
-- `documentation/arc42/**`
-- `src/tiny_swarm_world/**`
-- `infra/config/**`
-- `infra/compose/**`
-- `tests/**`
+- Future `documentation/configuration/**`
+- Future `src/tiny_swarm_world/domain/configuration/**`
+- Future `src/tiny_swarm_world/application/services/configuration/**`
+- Future `src/tiny_swarm_world/application/ports/configuration/**`
+- Future `src/tiny_swarm_world/infrastructure/adapters/configuration/**`
+- Future `src/tiny_swarm_world/infrastructure/composition.py`
+- Future `infra/config/**`
+- Future `tests/**`
+- Future README, deployment, user guide, and arc42 documentation
 
 ## Forbidden Areas
 
 - Java, Maven, Spring Boot project structure
 - React, TypeScript, Vite, TSX/JSX frontend project setup
-- Kubernetes-first deployment
-- Windows-native command examples for normal setup
-- Committed secrets, CA private keys, live evidence, raw command output, local
-  host topology
+- Kubernetes-first deployment model
+- Windows-native setup examples for normal operation
+- Committed secrets, passwords, tokens, local env files, generated evidence,
+  logs, local IP addresses, user names, host-specific paths, or raw environment
+  payloads
+- Live LXD, Incus, LXC, Docker Swarm, compose deployment, or service bootstrap
+  commands without explicit live consent
 
 ## Required Roles
 
 - Senior Requirement Engineer
 - Senior System Architect
 - Senior Python Automation Developer
-- Senior DevOps Engineer
-- Senior Security Engineer
+- Senior React Frontend Developer
 - Senior Tester
 - Senior Documentation Engineer
+- Senior Security Engineer
 
 ## Conditional Roles
 
-- Greenpath Recovery Lead
-- Failure Classification Expert
-- Evidence Auditor
+- ADR Steward
+- Quality Gate Orchestrator
+- Documentation Sync
+- Platform Quality Gates
 
 ## Quality Commands
 
+Workflow creation:
+
 ```bash
 git diff --check
-python3 tools/quality_gate.py test
-python3 tools/quality_gate.py quality
-TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live
 ```
 
-The live browser command is opt-in only and not part of the default quality
-gate.
+Workflow execution targeted checks:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.configuration
+PYTHONPATH=src python3 -m unittest tests.application.services.configuration
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.configuration
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+PYTHONPATH=src python3 -m unittest tests.architecture.test_repository_hygiene
+```
+
+Required before merge when practical:
+
+```bash
+python3 tools/quality_gate.py quality
+```
+
+No live infrastructure command is part of this workflow by default.
 
 ## Hash Provenance
 

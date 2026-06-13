@@ -1,26 +1,36 @@
 {
   "affected_areas": [
     "documentation/workflow/**",
-    "documentation/architecture/**",
-    "documentation/arc42/**",
-    "src/tiny_swarm_world/**",
+    "documentation/configuration/**",
+    "src/tiny_swarm_world/domain/configuration/**",
+    "src/tiny_swarm_world/application/services/configuration/**",
+    "src/tiny_swarm_world/application/ports/configuration/**",
+    "src/tiny_swarm_world/infrastructure/adapters/configuration/**",
+    "src/tiny_swarm_world/infrastructure/composition.py",
     "infra/config/**",
-    "infra/compose/**",
-    "tests/**"
+    "tests/**",
+    "README.md",
+    "documentation/deployment/**",
+    "documentation/user_guide/**",
+    "documentation/arc42/**"
   ],
-  "branch": "feature/traefik-https-ingress-existing-ca-20260609",
+  "branch": "feature/workflow-config-contracts-20260613",
   "conditional_roles": [
-    "Greenpath Recovery Lead",
-    "Failure Classification Expert",
-    "Evidence Auditor"
+    "ADR Steward",
+    "Quality Gate Orchestrator",
+    "Documentation Sync",
+    "Platform Quality Gates"
   ],
+  "created_utc": "2026-06-13T00:00:00Z",
   "execution_profile": "FULL_PATH",
   "forbidden_areas": [
     "Java/Maven/Spring Boot",
-    "React/TypeScript/Vite frontend",
+    "React/TypeScript/Vite frontend project setup",
     "Kubernetes-first deployment",
     "Windows-native setup examples",
-    "committed secrets or live evidence"
+    "committed secrets or local runtime env files",
+    "generated live evidence or logs",
+    "live infrastructure commands without explicit consent"
   ],
   "governing_files": [
     {
@@ -32,8 +42,12 @@
       "sha256": "458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6"
     },
     {
-      "path": "documentation/architecture/adr-lxc-native-node-provider.adoc",
-      "sha256": "3562c55c3a27205929e0b58dc98b30fef466e5717026c2f2bd6b57cb791fc4e0"
+      "path": "documentation/epics/autonomous-runnable-setup.md",
+      "sha256": "026a1c3349d19601b8b0d3733649206b9b53a0c5a0536b086dbe62feffbc6307"
+    },
+    {
+      "path": "documentation/epics/system-unification.md",
+      "sha256": "7ccaf0165a53fa3393a8bfbf8d0973e67d542cf4b24d661a234f72dec9e9f152"
     },
     {
       "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
@@ -44,41 +58,52 @@
       "sha256": "aa54aba46e870c27fe6c8cc80f64cf50100d7c8726f28de0b89beabbc86913c9"
     },
     {
-      "path": "documentation/arc42/07_deployment_view.adoc",
-      "sha256": "de982db4b59a2c9802f3f2000dc7934e032e3cdccd3c9b95a5fbde36e9dd2c02"
+      "path": "documentation/arc42/05_building_blocks.adoc",
+      "sha256": "fc41d9cdf52080355de9467799e123ac9121577ac90ec97f973c9347a4414e61"
     },
     {
-      "path": "documentation/arc42/08_concepts.adoc",
-      "sha256": "9b6906bd6bf0dd4b15ff9af52371391407e297f4ee391404a38e88ab44faa1eb"
+      "path": "documentation/arc42/06_runtime_view.adoc",
+      "sha256": "df8d4e3d1f9ecae07f614f4ab3b270b9ab4cf87294ac64f53fe04faedcca166f"
+    },
+    {
+      "path": "documentation/arc42/10_quality_requirements.adoc",
+      "sha256": "0856922c1ab9967003993020f9ed932d1d119119055b09a8c047fdc6818d5fd4"
     },
     {
       "path": ".agents/skills/workflow-authoring/SKILL.md",
       "sha256": "087658240296e3b1ec74205c60a96a9a4c67a17cf653f7867e6f316bd9afa94e"
     }
   ],
+  "issue": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/24",
   "process_strand": [
     "workflow-authoring",
-    "architecture-governance",
+    "configuration-governance",
     "python-automation",
-    "docker-swarm-lxc-runtime",
-    "tls-existing-ca-validation",
-    "live-browser-verification"
+    "platform-preflight",
+    "deployment-setup-safety",
+    "documentation-sync",
+    "commit-and-push"
   ],
   "quality_commands": [
     "git diff --check",
-    "python3 tools/quality_gate.py test",
-    "python3 tools/quality_gate.py quality",
-    "TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live"
+    "PYTHONPATH=src python3 -m unittest tests.domain.configuration",
+    "PYTHONPATH=src python3 -m unittest tests.application.services.configuration",
+    "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.configuration",
+    "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service",
+    "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition",
+    "PYTHONPATH=src python3 -m unittest tests.architecture.test_repository_hygiene",
+    "python3 tools/quality_gate.py quality"
   ],
+  "released_for_workflow_execute": true,
   "required_roles": [
     "Senior Requirement Engineer",
     "Senior System Architect",
     "Senior Python Automation Developer",
-    "Senior DevOps Engineer",
-    "Senior Security Engineer",
+    "Senior React Frontend Developer",
     "Senior Tester",
-    "Senior Documentation Engineer"
+    "Senior Documentation Engineer",
+    "Senior Security Engineer"
   ],
-  "workflow_id": "traefik-https-ingress-existing-ca-20260609",
+  "workflow_id": "config-contract-validation-issue-24-20260613",
   "workflow_version": "1.0.0"
 }

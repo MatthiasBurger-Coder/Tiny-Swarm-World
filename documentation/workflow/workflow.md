@@ -1,763 +1,873 @@
-# Workflow: Traefik HTTPS Ingress With Existing CA
+# Workflow: Configuration Contract Validation For Issue 24
 
 ```yaml
-workflow_id: traefik-https-ingress-existing-ca-20260609
+workflow_id: config-contract-validation-issue-24-20260613
 workflow_version: 1.0.0
-branch: feature/traefik-https-ingress-existing-ca-20260609
+branch: feature/workflow-config-contracts-20260613
 execution_profile: FULL_PATH
 released_for_workflow_execute: true
-created_utc: "2026-06-09T00:00:00Z"
-request: "Create and execute a repository-compliant workflow from the external Traefik HTTPS ingress migration plan, using tests/live/test_post_install_browser_live.py as the live browser verification reference."
+created_utc: "2026-06-13T00:00:00Z"
+issue: "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/24"
+request: "Create a workflow for Issue #24, Configuration contracts are implicit and unvalidated, and push it."
 decision: READY_FOR_WORKFLOW
-confidence: 91
+confidence: 92
 ```
 
 ## Executive Summary
 
-This workflow migrates Tiny Swarm World toward centralized HTTPS ingress with
-Traefik and an operator-provided existing CA. The current architecture records
-Traefik and TLS automation as deferred, so this workflow starts with governance:
-an ADR/arc42 update must authorize Traefik routing ownership, TLS policy,
-rollback, and safety constraints before implementation claims Traefik behavior.
+Issue #24 reports that required configuration parameters are implicit,
+partially hardcoded, and not validated through a single documented contract.
+The repository already has important pieces: node-provider YAML validation,
+command catalog validation, setup-manifest secret requirements, and guarded
+preflight checks. The gap is that the full operator-facing configuration
+surface is not inventoried, not exposed through a versioned template, and not
+validated consistently before live setup or deployment paths consume it.
 
-The workflow then adds desired-state and reconciliation slices for discovery,
-certificate validation, Traefik stack configuration, Swarm service routing,
-Infisical-backed secret coverage, LXC public port reconciliation, hostname
-resolution, and opt-in live browser verification through
-`tests/live/test_post_install_browser_live.py`.
+This workflow creates an executable implementation plan for a typed
+configuration contract. The target is deliberately small and fail-closed:
+inventory the current config surface, add a typed contract for supported
+`TSW_*` settings and product YAML files, provide a tracked example template,
+wire validation into static and live preflight before mutation, update
+operator documentation, and prove behavior with focused unit tests plus the
+repository quality gate.
 
-Live LXD/LXC, Docker Swarm, Traefik deployment, certificate validation, DNS or
-hosts checks, and `./install.sh --confirm-reset` are live infrastructure
-operations. They may run only inside workflow execute after branch, slice,
-consent, evidence, and S3D checks pass. Default quality gates stay static or
-mocked.
+No live LXD, Incus, LXC, Docker Swarm, compose deployment, Portainer, Nexus,
+Jenkins, RabbitMQ, SonarQube, Infisical, Traefik, or browser smoke run is part
+of workflow creation. Future workflow execution must keep those operations
+mocked unless the user explicitly grants live infrastructure consent.
 
 ## Requirement Clarification Gate
 
 Original request:
 
-- Create a workflow from
-  `C:/Users/micro/Downloads/workflow-traefik-https-ingress-expanded.md`.
-- Use `tests/live/test_post_install_browser_live.py` as live browser
-  verification reference.
-- Execute the workflow only after it is repository-compliant.
+- Create and push a workflow for GitHub Issue #24.
+- The referenced local `.tiny-swarm-world/local/live-installation.env` is a
+  local runtime secret file and must not be committed.
 
 Interpreted intent:
 
-- Convert the external Traefik HTTPS ingress plan into the active workflow under
-  `documentation/workflow`.
-- Preserve Tiny Swarm World governance: branch-first workflow creation,
-  executable slice metadata, locks, quality gates, role ownership, stop
-  conditions, arc42/ADR synchronization, and live-evidence constraints.
-- Keep the project Linux/WSL-only, Docker Swarm-first, LXC-native, and Python
-  hexagonal.
+- Replace the active workflow under `documentation/workflow` with a
+  repository-compliant workflow for Issue #24.
+- Make the workflow ready for `workflow execute`.
+- Keep changes limited to workflow documentation in this commit.
+- Push the workflow branch after commit.
 
 Change type:
 
-- Workflow and governance authoring.
-- Future architecture decision for ingress ownership.
-- Future Python automation for Traefik desired state, certificate validation,
-  route validation, LXC reconciliation, and live evidence classification.
-- Future Docker Swarm and LXC runtime changes.
-- Future opt-in live browser/TLS verification.
+- Workflow creation.
+- Future Python automation changes.
+- Future configuration contract and preflight behavior changes.
+- Future documentation and example-template changes.
 
 Affected process strand:
 
-- Workflow creation and workflow execute.
-- Deployment and live greenpath repair.
-- Docker Swarm routing and LXC public port exposure.
-- TLS/certificate validation with an existing CA.
-- Browser route and credential inventory verification.
+- Workflow authoring.
+- Future workflow execution.
+- Configuration governance.
+- Platform preflight.
+- Deployment and setup safety.
+- Documentation synchronization.
 
 Affected architecture area:
 
 - `documentation/workflow/**`
-- `documentation/architecture/**`
-- `documentation/arc42/**`
-- `src/tiny_swarm_world/domain`
-- `src/tiny_swarm_world/application`
-- `src/tiny_swarm_world/infrastructure`
-- `infra/config/**`
-- `infra/compose/**`
-- `tests/**`
+- Future `src/tiny_swarm_world/domain/configuration/**`
+- Future `src/tiny_swarm_world/application/services/configuration/**`
+- Future `src/tiny_swarm_world/application/ports/**`
+- Future `src/tiny_swarm_world/infrastructure/adapters/**`
+- Future `src/tiny_swarm_world/infrastructure/composition.py`
+- Future `infra/config/**`
+- Future example template and documentation files
+- Future `tests/**`
 
 Explicit requirements:
 
-- Branch: `feature/traefik-https-ingress-existing-ca-20260609`.
-- Use an existing CA; do not generate, replace, or commit operator CA material
-  silently.
-- Introduce centralized HTTPS ingress with Traefik.
-- Keep Docker Swarm as runtime target and LXC as provider target.
-- Use a reconciler pattern for desired versus observed ingress, certificates,
-  Swarm labels, and LXC public port exposure.
-- Keep public LXC exposure limited to ports 80 and 443.
-- Require Traefik entrypoints `web` on `:80` and `websecure` on `:443`.
-- Redirect HTTP to HTTPS.
-- Use `exposedByDefault=false`.
-- Forbid `--api.insecure=true`.
-- Route Jenkins, SonarQube, Nexus, Portainer, Grafana when configured, and
-  Infisical through HTTPS hostnames.
-- Validate CN, SAN, issuer, validity, KeyUsage, ExtendedKeyUsage, and chain
-  verification.
-- Validate hostname resolution through DNS or hosts fallback.
-- Run live install/verify/classify/repair/rerun only after governance and
-  safety gates pass.
-- Preserve secret redaction and Infisical-managed credential coverage.
+- Address Issue #24 acceptance criteria:
+  - config schema validates before execution;
+  - example env or config template is provided;
+  - overrides are documented.
+- Preserve Linux/WSL-only operating assumptions.
+- Preserve Python 3.12 compatibility.
+- Preserve hexagonal architecture.
+- Do not commit local secrets, generated runtime env files, evidence, logs, or
+  host-specific values.
+- Keep live infrastructure commands out of default verification.
+- Push the workflow branch.
 
 Implicit requirements:
 
-- Do not expand Windows-specific behavior.
-- Do not introduce Java, Maven, Spring Boot, React, or Kubernetes-first
-  architecture.
-- Preserve hexagonal architecture and composition root wiring.
-- Mock Docker, LXC, OpenSSL, HTTP, DNS, and filesystem side effects in default
-  tests.
-- Keep live evidence under ignored `.tiny-swarm-world/evidence/**` paths.
-- Keep planned Traefik behavior separate from verified implementation.
+- Existing validated repositories must be reused or extended instead of
+  bypassed.
+- `infra/config` remains product behavior, not throwaway examples.
+- Environment overrides must be allowlisted and typed.
+- Secret values must be checked for presence and policy without logging raw
+  values.
+- Defaults must be explicit and documented.
+- Local runtime files such as `.tiny-swarm-world/local/live-installation.env`
+  remain ignored.
 
 Assumptions:
 
-- Existing CA/certificate/key references are operator-supplied through ignored
-  local configuration or secret management.
-- Local DNS or hosts fallback may require explicit operator consent and
-  rollback because host name resolution can mutate host state.
-- Grafana is conditional until repository configuration verifies it as part of
-  the selected service profile.
-- `tests/live/test_post_install_browser_live.py` may be extended or paired with
-  a Traefik-specific live test; existing redaction checks must not be weakened.
+- A tracked shell-style example file is acceptable for the installer-facing
+  local env contract.
+- The existing setup manifest remains the source of required secret names
+  unless a slice explicitly changes that contract.
+- The first implementation should cover currently consumed `TSW_*` settings
+  and product YAML files before adding new configuration surfaces.
+- The local duplicate `TSW_SONARQUBE_ADMIN_PASSWORD` entry is operator-local
+  cleanup and is not part of this commit.
 
 Non-goals:
 
-- No public internet exposure.
-- No ACME/Let's Encrypt automation unless later explicitly approved.
-- No Kubernetes ingress controller.
-- No replacement of Infisical as credential inventory authority.
-- No committed CA private keys, secrets, live evidence, local hosts files, raw
-  command output, local IP addresses, or host-specific absolute paths.
-- No browser React frontend project.
+- No live infrastructure mutation.
+- No secret value migration from the user's local env file.
+- No Kubernetes-first configuration model.
+- No Java, Maven, Spring Boot, React, TypeScript, Vite, or browser frontend
+  project.
+- No broad rewrite of existing deployment, artifact, or platform workflows.
+- No committed raw environment payloads.
 
 Risks:
 
-- Existing ADRs defer Traefik and TLS automation, making S01 mandatory.
-- TLS and host resolution can leak secrets or host topology without strict
-  evidence redaction.
-- Swarm label migration can create routing drift if not reconciled.
-- LXC proxy reconciliation can disrupt access if ports 80/443 are not verified
-  before removing older exposure.
-- The current live browser suite defaults to localhost routes and may need
-  hostname-aware extension.
+- Centralizing config validation can accidentally change runtime defaults if
+  not introduced with compatibility tests.
+- Compose variable parsing can become brittle if implemented with ad hoc string
+  handling.
+- Treating secret values as normal config can leak credentials through logs or
+  evidence.
+- Preflight integration can block existing greenpath runs if required values
+  are over-scoped.
+- Documentation can drift if the template and runtime allowlist are not tested
+  against each other.
 
 Open questions:
 
-- Exact existing CA file locations are intentionally not committed.
-- Grafana service inclusion must be verified from repository configuration.
+- Whether the final tracked template should live at the repository root as
+  `.env.example` or under `documentation/configuration/` as a shell-sourceable
+  `live-installation.env.example`.
+- Whether non-secret local values currently generated by `install.sh` should be
+  represented as optional config or installer-owned derived values.
 
 Blocking questions:
 
-- None for workflow authoring. Open questions become slice preconditions.
+- None for workflow authoring. Open questions are slice decisions with explicit
+  stop conditions.
 
-Confidence level: 91 percent.
+Confidence level: 92 percent.
 
 Decision: `READY_FOR_WORKFLOW`.
+
+## Execution Profile
+
+```text
+executionProfile=FULL_PATH
+reason=The workflow creates future product configuration, preflight, documentation, branch, commit, and push work that can affect runtime setup safety.
+requiredFullReviews=Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior React Frontend Developer, Senior Tester, Senior Documentation Engineer, Security review for secret-handling behavior.
+allowedImpactChecks=Senior React Frontend Developer may return no browser/React impact after verifying no frontend module is introduced.
+requiredQualityChecks=git diff --check; targeted unittest files for changed config/preflight behavior; python3 tools/quality_gate.py quality before merge when practical.
+stopConditions=Unclear config ownership, secret leakage risk, architecture boundary violation, live infrastructure requirement without consent, or missing template-to-contract verification.
+```
 
 ## Three Amigos Review
 
 Senior Requirement Engineer:
 
-- The workflow matches the request by treating the external Markdown as input
-  and converting it into repository-governed executable slices.
-- Does the implementation still match the EPIC? Yes, if Traefik remains local
-  Linux/WSL scoped, Docker Swarm-first, LXC-native, and fail-closed under live
-  consent.
+- The issue goal is clear and testable: validation before execution, a tracked
+  example template, and documented overrides.
+- Does the implementation still match the EPIC? Yes, it supports the
+  autonomous runnable setup EPIC by failing closed on configuration blockers
+  before mutation.
 
 Senior System Architect:
 
-- The current architecture records Traefik as deferred. S01 must update ADR and
-  arc42 before implementation changes claim Traefik ownership.
-- Routing ownership must move from service-access NGINX baseline to Traefik
-  only through an explicit ingress decision, rollback model, and test-backed
-  service contract.
+- The contract must preserve hexagonal boundaries. Domain models define typed
+  values and policy, application services orchestrate validation, and
+  infrastructure adapters read environment and YAML sources.
+- Concrete env access must not spread further through application services.
+  Standard wiring remains in `infrastructure/composition.py`.
 
 Senior Python Automation Developer:
 
-- Ingress desired state, certificate validation, route reconciliation, and
-  evidence classification belong behind domain/application contracts.
-- Docker, LXC, OpenSSL, HTTP/TLS, DNS, YAML, command execution, and evidence
-  file writes stay in infrastructure adapters.
+- Use small typed value objects and deterministic parsers.
+- Reuse `ruamel.yaml` or existing YAML helpers for product YAML files.
+- Keep command, Docker, LXC, HTTP, and filesystem side effects mocked in tests.
 
 Senior React Frontend Developer:
 
-- No React frontend work is authorized. Browser checks target deployed service
-  surfaces only.
+- No React or browser frontend work is authorized. Any UI impact is limited to
+  CLI/preflight output text and must remain terminal-oriented.
 
 Senior Tester:
 
-- Default gates remain static or mocked. Live browser/TLS checks are opt-in and
-  must write only redacted evidence.
+- Acceptance is provable with unit tests for valid, missing, invalid, duplicate,
+  undocumented, and secret-redacted configuration cases.
+- Default verification must remain non-mutating.
+
+Dependency / Deadlock Validator:
+
+- Slice dependencies are linear where shared contracts are introduced, then
+  partially parallel for documentation once the config key inventory stabilizes.
+- No slice may write implementation files outside its declared file locks.
 
 ## Target Picture
 
-A local Linux/WSL LXC-native Docker Swarm environment uses Traefik as central
-HTTPS ingress. Public host exposure is limited to ports 80 and 443. HTTP
-redirects to HTTPS. Traefik routes configured service hostnames to the matching
-Swarm services. Certificates are issued by the operator-provided existing CA
-and pass validation. Hostname resolution works through verified DNS or hosts
-fallback. The live greenpath reaches a verified pass or stops with a precise,
-classified blocker and redacted evidence.
+Tiny Swarm World has a documented, typed configuration contract for the
+operator-facing setup and deployment configuration surface. Static and live
+preflight validate required configuration before any mutation. The tracked
+example template lists supported overrides without secrets. Documentation
+explains defaults, required values, source precedence, and secret handling. The
+contract is test-backed and aligned with current compose, setup, and
+composition behavior.
 
 ## Verified Baseline
 
-- Active workflow branch:
-  `feature/traefik-https-ingress-existing-ca-20260609`.
-- Repository identity: Python automation, Linux/WSL-only, Docker Swarm-first,
-  LXC-native by default.
-- `adr-service-access-dashboard-vaultwarden.adoc` currently states Traefik and
-  TLS automation are deferred.
-- arc42 deployment view currently states service-access NGINX owns central
-  `http://localhost` routing.
-- `tests/live/test_post_install_browser_live.py` exists and is opt-in via
-  `TSW_RUN_POST_INSTALL_BROWSER_LIVE=1`.
-- Workflow creation has not run live Docker, LXC, OpenSSL, DNS, hosts-file, or
-  install commands.
+- GitHub Issue #24 is open and has no comments at workflow creation time.
+- The repository already validates node-provider config through
+  `NodeProviderConfigYamlRepository`.
+- The command catalog repository has typed contract validation, although
+  product command YAML files are currently retired.
+- Setup preflight checks required secret presence from `SetupManifest`.
+- Many operator values are still read directly from environment helper
+  functions in `infrastructure/composition.py`.
+- No tracked `.env.example`, `live-installation.env.example`, or equivalent
+  complete config template exists.
+- The local `.tiny-swarm-world/local/live-installation.env` file is ignored and
+  must not be committed.
 
 ## Scope
 
-In scope:
+In scope for workflow execution:
 
-- Workflow and context-pack regeneration.
-- ADR/arc42 updates needed to permit Traefik ingress migration.
-- Desired ingress state and certificate model.
-- Traefik stack/configuration and Docker Swarm label migration.
-- Existing CA validation and secret-safe certificate handling.
-- LXC exposure reconciliation to ports 80 and 443.
-- Hostname resolution validation for `*.tsw.local` hostnames.
-- Opt-in live install, TLS, route, browser, and Infisical checks.
-- Redacted evidence and final report.
+- Inventory all currently consumed `TSW_*` environment variables from source,
+  compose files, installer script, tests, and documentation.
+- Define typed config contract models with source precedence, requiredness,
+  defaults, secret classification, validation rules, and redaction policy.
+- Add infrastructure loading for environment and optional local env files
+  without committing secret values.
+- Add static preflight checks that validate config contracts before live setup
+  or deployment mutation.
+- Add a tracked example template with placeholder values only.
+- Update README, deployment docs, user guide, and arc42 where behavior changes.
+- Add focused tests and run repository quality gates.
 
 Out of scope:
 
-- Kubernetes ingress.
-- Public internet ingress.
-- ACME automation.
-- Windows-native setup examples.
-- Java, Maven, Spring Boot, React, TypeScript, Vite, TSX/JSX.
-- Committed certificate private keys, live secrets, raw command output, or
-  local host topology.
+- Executing live setup, reset, or deployment.
+- Modifying the user's local env file.
+- Rotating or generating real credentials in committed files.
+- Introducing external static-analysis CI.
+- Replacing existing node-provider config validation.
+- Reintroducing Multipass as a supported provider.
 
 ## Architecture Constraints
 
-- Preserve hexagonal architecture.
-- Domain owns provider-neutral and ingress-neutral value objects and
-  invariants.
-- Application services orchestrate ports and domain models.
-- Infrastructure owns Docker Swarm commands, LXC commands, OpenSSL invocations,
-  DNS/hosts checks, YAML parsing, HTTP/TLS probes, evidence file writes, and
-  composition wiring.
-- `src/tiny_swarm_world/infrastructure/composition.py` remains the wiring root.
-- Entry points stay thin.
-- Live infrastructure mutation requires workflow execution, active branch
-  verification, live consent, and slice preconditions.
+- Domain configuration types must not import infrastructure, OS env access,
+  YAML libraries, logging, Docker, HTTP, command runners, or composition code.
+- Application services may depend on ports and domain types only.
+- Infrastructure adapters own environment reads, shell env parsing, YAML
+  loading, and file path handling.
+- `infrastructure/composition.py` remains the standard construction point for
+  concrete adapters.
+- Secrets must never appear in verification evidence, logs, exceptions,
+  templates with real values, or committed test fixtures.
+- Product YAML under `infra/config` must be parsed through structured APIs.
 
 ## Python Automation Assessment
 
-Implementation should introduce a desired-state/reconciler model for ingress
-routes, certificate inputs, Swarm label expectations, and LXC public exposure.
-The model compares desired and observed state, classifies drift, and emits
-redacted remediation hints. Certificate validation records only summaries:
-subject/CN, SAN DNS names, issuer, validity window, KeyUsage,
-ExtendedKeyUsage, and chain result. It must not persist private key content,
-PEM payloads, absolute host paths, or raw `openssl` output.
+The future implementation is Python automation work. It should add focused
+domain/application contracts and infrastructure adapters rather than extending
+ad hoc environment lookups. Use `unittest`, mocks, and deterministic fixtures.
+Keep compatibility with Python 3.12.
 
 ## Frontend Assessment
 
-No browser frontend module is created. The live browser test may verify HTTPS
-route behavior and service landing pages, but the repository remains Python
-automation. Static dashboard assets may be updated only if routing labels or
-links change.
+No browser or React frontend work is authorized. If preflight output changes,
+keep it concise, terminal-safe, and secret-redacted.
 
 ## Test Strategy
 
-Default tests:
-
-- Unit tests for ingress desired-state modeling, certificate summary parsing,
-  route classification, LXC exposure reconciliation, and redaction.
-- Mock all Docker, LXC, OpenSSL, DNS/hosts, HTTP/TLS, Infisical, and filesystem
-  side effects unless explicitly live.
-- Run targeted `unittest` commands before broader quality gates.
-
-Live tests:
-
-```bash
-TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live
-```
-
-Repository gates:
-
-```bash
-git diff --check
-python3 tools/quality_gate.py test
-python3 tools/quality_gate.py quality
-```
+- Unit-test contract parsing and validation in domain/application layers.
+- Unit-test environment adapter source precedence without reading real local
+  secret files.
+- Unit-test template coverage against the allowlisted config contract.
+- Unit-test preflight behavior for valid config, missing required secrets,
+  invalid integers, invalid URLs, invalid secret-name values, and redaction.
+- Keep Docker, LXC, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Infisical,
+  Traefik, and browser checks mocked unless explicitly approved as live tests.
 
 ## Resilience Requirements
 
-- Reconciler operations must be idempotent.
-- Repair loop maximum: 10 iterations.
-- Stop if the same blocker repeats after a fix.
-- Stop if existing CA material is missing or ambiguous.
-- Stop if a repair would weaken consent, safety, secret redaction,
-  certificate validation, or architecture boundaries.
-- Stop before hosts/DNS mutation unless operator intent and rollback are
-  explicit.
-- Stop if LXD/Docker state is ambiguous.
-- Stop if evidence would include secrets, raw command output, local IP
-  addresses, absolute host paths, or credential-bearing URLs.
+- Validation must fail closed before mutation.
+- Error messages must name the config key and remediation without disclosing
+  raw secret values.
+- Unknown env keys may be ignored globally, but keys documented as supported
+  must be contract-tested.
+- Duplicate keys in shell env files should produce a clear warning or failure
+  policy before the local file is trusted by automation.
+- Optional defaults must be explicit, typed, and documented.
 
 ## Ordered Slices
 
-### Slice 01: Governance Baseline And Traefik ADR
+### Slice 01: Config Surface Inventory
+
+Purpose:
+
+- Produce a repository-evidence inventory of current `TSW_*` env variables,
+  product YAML files, compose placeholders, installer-generated values, and
+  direct env lookups.
+- Decide the template path and contract ownership before implementation.
 
 ```yaml
 slice_id: S01
 profile: FULL_PATH
-owner: Senior System Architect
-secondary_reviewers: [Senior Requirement Engineer, Senior Documentation Engineer, Senior Security Engineer]
-affected_files: [documentation/architecture/**, documentation/arc42/**, documentation/workflow/**]
-affected_modules: [documentation, architecture]
-affected_contracts: [traefik_ingress_decision, service_access_routing_ownership]
+owner: Senior Requirement Engineer
+secondary_reviewers:
+  - Senior System Architect
+  - Senior Tester
+affected_files:
+  - documentation/configuration/config-contract-inventory.md
+  - documentation/workflow/workflow.md
+affected_modules:
+  - documentation
+affected_contracts:
+  - configuration_contract_inventory
 dependencies: []
-parallel_group: sequential
-file_locks: [documentation/architecture, documentation/arc42, documentation/workflow]
-contract_locks: [routing_ownership, tls_policy]
-architecture_locks: [deployment_view, adr]
+parallel_group: inventory
+file_locks:
+  - documentation/configuration/
+  - documentation/workflow/workflow.md
+contract_locks:
+  - configuration_contract_inventory
+architecture_locks:
+  - hexagonal_configuration_boundary
 quality_gates:
-  targeted: [git diff --check]
-  required: [git diff --check]
+  targeted:
+    - git diff --check
+  required:
+    - git diff --check
 documentation:
-  arc42: update-required-for-traefik-ingress-ownership
-  adr: create-or-update-required-for-traefik-existing-ca-ingress
-stop_conditions: [branch_mismatch, dirty_unrelated_worktree, unresolved_routing_ownership, missing_tls_policy]
+  arc42: checked-no-change-unless-new-contract-decision-is-needed
+  adr: checked-no-change-unless-config-source-precedence-decision-is-needed
+stop_conditions:
+  - Current configuration surface cannot be verified from repository evidence.
+  - Template path or source precedence requires an ADR before implementation.
 ```
 
 Done criteria:
 
-- ADR or architecture decision records Traefik ingress, existing CA handling,
-  routing ownership, rollback, and forbidden insecure dashboard mode.
-- arc42 deployment/concepts are updated or explicitly checked.
-- Planned versus implemented behavior remains separate.
+- Inventory lists each supported key, source file, default, requiredness,
+  secret classification, and consumer.
+- The workflow records whether root `.env.example` or
+  `documentation/configuration/live-installation.env.example` is the chosen
+  tracked template.
+- No secret values or host-specific values are copied into documentation.
 
-### Slice 02: Baseline Capture And Discovery Model
+Verification commands:
+
+```bash
+git diff --check
+```
+
+### Slice 02: Typed Configuration Contract Model
+
+Purpose:
+
+- Add domain/application configuration contract types and validation result
+  models for supported operator config values.
 
 ```yaml
 slice_id: S02
 profile: FULL_PATH
-owner: Senior DevOps Engineer
-secondary_reviewers: [Senior Python Automation Developer, Senior Tester, Evidence Auditor]
-affected_files: [src/tiny_swarm_world/**, infra/config/**, tests/**, documentation/workflow/**]
-affected_modules: [domain, application, infrastructure, tests, workflow]
-affected_contracts: [traefik_baseline_discovery, redacted_runtime_evidence]
-dependencies: [S01]
-parallel_group: sequential
-file_locks: [src/tiny_swarm_world, infra/config, tests, documentation/workflow]
-contract_locks: [runtime_evidence, command_safety]
-architecture_locks: [hexagonal, evidence_redaction]
+owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Senior System Architect
+  - Senior Tester
+affected_files:
+  - src/tiny_swarm_world/domain/configuration/**
+  - src/tiny_swarm_world/application/services/configuration/**
+  - src/tiny_swarm_world/application/ports/configuration/**
+  - tests/domain/configuration/**
+  - tests/application/services/configuration/**
+affected_modules:
+  - domain.configuration
+  - application.services.configuration
+  - application.ports.configuration
+affected_contracts:
+  - typed_configuration_contract
+dependencies:
+  - S01
+parallel_group: contract
+file_locks:
+  - src/tiny_swarm_world/domain/configuration/
+  - src/tiny_swarm_world/application/services/configuration/
+  - src/tiny_swarm_world/application/ports/configuration/
+  - tests/domain/configuration/
+  - tests/application/services/configuration/
+contract_locks:
+  - typed_configuration_contract
+  - secret_redaction_contract
+architecture_locks:
+  - domain_independence
+  - application_depends_on_ports
 quality_gates:
-  targeted: [PYTHONPATH=src python3 -m unittest <relevant-tests>]
-  required: [python3 tools/quality_gate.py test, git diff --check]
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.domain.configuration
+    - PYTHONPATH=src python3 -m unittest tests.application.services.configuration
+  required:
+    - python3 tools/quality_gate.py test
 documentation:
-  arc42: update-if-evidence-contract-changes
-  adr: checked-traefik-ingress-decision
-stop_conditions: [live_command_without_consent, raw_command_output_persisted, secret_or_host_data_in_evidence]
+  arc42: checked-for-building-block-update
+  adr: checked-no-change-unless-source-precedence-policy-changes
+stop_conditions:
+  - Domain code needs infrastructure imports.
+  - Secret values would be represented in persisted validation evidence.
+  - Validation cannot distinguish secret value, secret name, URL, integer, boolean, and image reference kinds.
 ```
 
 Done criteria:
 
-- Discovery contracts can represent Git, Docker, Swarm, LXC, route, and
-  certificate summary state.
-- Evidence redaction blocks secrets, tokens, raw command output, local IP
-  addresses, and host absolute paths.
+- Contract definitions cover required and optional values from S01.
+- Validation results are structured and redacted.
+- Tests prove missing, invalid, defaulted, and secret-classified values.
 
-### Slice 03: Desired Ingress And Certificate Validation
+Verification commands:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.configuration
+PYTHONPATH=src python3 -m unittest tests.application.services.configuration
+python3 tools/quality_gate.py test
+```
+
+### Slice 03: Infrastructure Loader And Source Precedence
+
+Purpose:
+
+- Implement infrastructure adapters that read environment and optional local
+  shell env files through the typed contract without leaking secret values.
 
 ```yaml
 slice_id: S03
 profile: FULL_PATH
 owner: Senior Python Automation Developer
-secondary_reviewers: [Senior System Architect, Senior Security Engineer, Senior Tester]
-affected_files: [src/tiny_swarm_world/**, infra/config/**, tests/**, documentation/workflow/**]
-affected_modules: [domain, application, infrastructure, tests]
-affected_contracts: [desired_https_ingress, existing_ca_certificate_validation]
-dependencies: [S02]
-parallel_group: sequential
-file_locks: [src/tiny_swarm_world, infra/config, tests, documentation/workflow]
-contract_locks: [certificate_validation, service_route_catalog]
-architecture_locks: [hexagonal, secret_redaction]
+secondary_reviewers:
+  - Senior Security Engineer
+  - Senior Tester
+affected_files:
+  - src/tiny_swarm_world/infrastructure/adapters/configuration/**
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/infrastructure/adapters/configuration/**
+  - tests/infrastructure/test_composition.py
+affected_modules:
+  - infrastructure.adapters.configuration
+  - infrastructure.composition
+affected_contracts:
+  - configuration_source_precedence
+  - secret_redaction_contract
+dependencies:
+  - S02
+parallel_group: loader
+file_locks:
+  - src/tiny_swarm_world/infrastructure/adapters/configuration/
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/infrastructure/adapters/configuration/
+  - tests/infrastructure/test_composition.py
+contract_locks:
+  - configuration_source_precedence
+  - composition_wiring
+architecture_locks:
+  - composition_root_only
+  - infrastructure_owns_env_and_file_io
 quality_gates:
-  targeted: [PYTHONPATH=src python3 -m unittest <relevant-tests>]
-  required: [python3 tools/quality_gate.py test, git diff --check]
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.configuration
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+  required:
+    - python3 tools/quality_gate.py test
 documentation:
-  arc42: update-if-certificate-contract-changes
-  adr: checked-existing-ca-policy
-stop_conditions: [ca_material_missing, ca_material_ambiguous, private_key_content_persisted, certificate_policy_unclear]
+  arc42: checked-for-runtime-view-update
+  adr: checked-no-change-unless-source-precedence-policy-changes
+stop_conditions:
+  - Loader reads live infrastructure state.
+  - Loader logs or persists raw secrets.
+  - Composition starts constructing adapters inside application services.
 ```
 
 Done criteria:
 
-- Hostnames include Jenkins, SonarQube, Nexus, Portainer, conditional Grafana,
-  and Infisical.
-- Certificate checks cover CN, SAN, issuer, validity, KeyUsage,
-  ExtendedKeyUsage, and chain verification.
-- Tests cover accepted and rejected certificate summaries without live OpenSSL.
+- Source precedence is deterministic and tested.
+- Duplicate local env key policy is explicit and tested.
+- Existing composition consumers get values from the contract loader or a
+  compatibility wrapper with tests.
 
-### Slice 04: Traefik Stack And Swarm Routing Migration
+Verification commands:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.configuration
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+python3 tools/quality_gate.py test
+```
+
+### Slice 04: Preflight Integration
+
+Purpose:
+
+- Add a preflight configuration-contract check that runs before live mutation
+  and reports redacted blockers.
 
 ```yaml
 slice_id: S04
 profile: FULL_PATH
-owner: Senior DevOps Engineer
-secondary_reviewers: [Senior Python Automation Developer, Senior System Architect, Senior Tester]
-affected_files: [infra/config/**, infra/compose/**, src/tiny_swarm_world/**, tests/**, documentation/workflow/**]
-affected_modules: [deployment, infrastructure, tests]
-affected_contracts: [traefik_stack, swarm_route_labels, service_migration]
-dependencies: [S03]
-parallel_group: sequential
-file_locks: [infra/config, infra/compose, src/tiny_swarm_world, tests, documentation/workflow]
-contract_locks: [traefik_entrypoints, swarm_routing]
-architecture_locks: [deployment_view, hexagonal]
+owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Senior Tester
+  - Senior System Architect
+affected_files:
+  - src/tiny_swarm_world/application/services/platform/preflight_service.py
+  - src/tiny_swarm_world/domain/preflight/**
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/application/services/platform/test_preflight_service.py
+  - tests/domain/preflight/test_preflight_result.py
+affected_modules:
+  - application.services.platform
+  - domain.preflight
+  - infrastructure.composition
+affected_contracts:
+  - preflight_configuration_validation
+  - setup_manifest_secret_requirements
+dependencies:
+  - S03
+parallel_group: preflight
+file_locks:
+  - src/tiny_swarm_world/application/services/platform/preflight_service.py
+  - src/tiny_swarm_world/domain/preflight/
+  - src/tiny_swarm_world/infrastructure/composition.py
+  - tests/application/services/platform/test_preflight_service.py
+  - tests/domain/preflight/test_preflight_result.py
+contract_locks:
+  - preflight_configuration_validation
+  - setup_manifest_secret_requirements
+architecture_locks:
+  - application_orchestrates_ports
+  - fail_closed_before_mutation
 quality_gates:
-  targeted: [PYTHONPATH=src python3 -m unittest <relevant-tests>]
-  required: [python3 tools/quality_gate.py test, git diff --check]
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
+    - PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
+  required:
+    - python3 tools/quality_gate.py test
 documentation:
-  arc42: update-required-for-runtime-routing-change
-  adr: checked-traefik-ingress-decision
-stop_conditions: [api_insecure_enabled, exposed_by_default_not_false, route_label_drift, rollback_missing]
+  arc42: documentation/arc42/10_quality_requirements.adoc
+  adr: checked-no-change-unless-preflight-safety-policy-changes
+stop_conditions:
+  - Static preflight requires live Docker, LXC, HTTP, or browser access.
+  - Preflight output includes raw env values or secret values.
+  - Existing setup manifest secret checks are weakened.
 ```
 
 Done criteria:
 
-- Traefik uses `web :80`, `websecure :443`, HTTP to HTTPS redirect, and
-  `exposedByDefault=false`.
-- `--api.insecure=true` is absent and tested as forbidden.
-- Service migration is represented in configuration/tests without claiming
-  live success.
+- Preflight includes a configuration contract category or equivalent structured
+  checks.
+- Missing or invalid config fails before live mutation.
+- Preflight evidence remains summary-only and secret-redacted.
 
-### Slice 05: Secrets Inventory And Infisical Coverage
+Verification commands:
+
+```bash
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
+PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
+python3 tools/quality_gate.py test
+```
+
+### Slice 05: Template And Documentation Synchronization
+
+Purpose:
+
+- Add the tracked example template and synchronize operator documentation with
+  the validated override contract.
 
 ```yaml
 slice_id: S05
-profile: FULL_PATH
-owner: Senior Security Engineer
-secondary_reviewers: [Senior Tester, Senior Python Automation Developer, Senior Documentation Engineer]
-affected_files: [src/tiny_swarm_world/**, infra/config/**, config/secrets/**, tests/**, documentation/workflow/**]
-affected_modules: [security, deployment, tests]
-affected_contracts: [secret_inventory, infisical_credential_inventory]
-dependencies: [S04]
-parallel_group: sequential
-file_locks: [src/tiny_swarm_world, infra/config, config/secrets, tests, documentation/workflow]
-contract_locks: [secret_redaction, infisical_inventory]
-architecture_locks: [secret_management]
+profile: NORMAL_PATH
+owner: Senior Documentation Engineer
+secondary_reviewers:
+  - Senior Requirement Engineer
+  - Senior Tester
+affected_files:
+  - .env.example
+  - documentation/configuration/**
+  - documentation/deployment/system.adoc
+  - documentation/user_guide/installation.adoc
+  - documentation/user_guide/usage.adoc
+  - README.md
+  - tests/architecture/test_repository_hygiene.py
+affected_modules:
+  - documentation
+  - repository_hygiene_tests
+affected_contracts:
+  - operator_override_documentation
+  - example_env_template
+dependencies:
+  - S01
+  - S02
+parallel_group: docs
+file_locks:
+  - .env.example
+  - documentation/configuration/
+  - documentation/deployment/system.adoc
+  - documentation/user_guide/installation.adoc
+  - documentation/user_guide/usage.adoc
+  - README.md
+  - tests/architecture/test_repository_hygiene.py
+contract_locks:
+  - operator_override_documentation
+  - example_env_template
+architecture_locks:
+  - linux_wsl_only_documentation
+  - no_committed_secret_values
 quality_gates:
-  targeted: [PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live]
-  required: [python3 tools/quality_gate.py test, git diff --check]
+  targeted:
+    - git diff --check
+    - PYTHONPATH=src python3 -m unittest tests.architecture.test_repository_hygiene
+  required:
+    - python3 tools/quality_gate.py test
 documentation:
-  arc42: update-if-secret-policy-changes
-  adr: checked-secret-management-policy
-stop_conditions: [secret_value_committed, credential_bearing_url_persisted, infisical_inventory_contradiction]
+  arc42: checked-for-quality-requirements-update
+  adr: checked-no-change-unless-template-location-policy-changes
+stop_conditions:
+  - Template includes real secrets, local IPs, host paths, user names, or credentials.
+  - Documentation expands Windows-native setup behavior.
+  - Template and typed contract disagree.
 ```
 
 Done criteria:
 
-- Secret inventory logic scans configuration surfaces for secret-like keys
-  without persisting values.
-- Infisical coverage remains value-free.
-- Existing live-suite static tests pass or are updated without weakening
-  redaction.
+- A tracked example template exists and contains placeholders only.
+- Documentation describes required values, optional overrides, defaults,
+  source precedence, local env file handling, and redaction behavior.
+- Tests or static checks prove template coverage against the contract.
 
-### Slice 06: LXC Public Port Reconciliation
+Verification commands:
+
+```bash
+git diff --check
+PYTHONPATH=src python3 -m unittest tests.architecture.test_repository_hygiene
+python3 tools/quality_gate.py test
+```
+
+### Slice 06: Final Quality Gate And Issue Closure Evidence
+
+Purpose:
+
+- Run final verification, update workflow status if needed, and prepare
+  evidence for Issue #24 closure.
 
 ```yaml
 slice_id: S06
 profile: FULL_PATH
-owner: Senior DevOps Engineer
-secondary_reviewers: [Senior System Architect, Senior Security Engineer, Senior Tester]
-affected_files: [src/tiny_swarm_world/**, infra/config/**, tests/**, documentation/workflow/**]
-affected_modules: [infrastructure, deployment, tests]
-affected_contracts: [lxc_proxy_reconciliation, ingress_public_ports]
-dependencies: [S05]
-parallel_group: sequential
-file_locks: [src/tiny_swarm_world, infra/config, tests, documentation/workflow]
-contract_locks: [lxc_public_ports, provider_reconciliation]
-architecture_locks: [deployment_view, safety_contract]
-quality_gates:
-  targeted: [PYTHONPATH=src python3 -m unittest <relevant-tests>]
-  required: [python3 tools/quality_gate.py test, git diff --check]
-documentation:
-  arc42: update-if-port-exposure-contract-changes
-  adr: checked-lxc-native-provider
-stop_conditions: [unexpected_public_port, ambiguous_lxc_state, destructive_proxy_change_without_rollback]
-```
-
-Done criteria:
-
-- Desired public port set is exactly 80 and 443.
-- Drift detection reports extra/missing proxy devices without unsafe automatic
-  removal.
-- Mutating reconciliation is consent-gated and test-backed.
-
-### Slice 07: Hostname Resolution And HTTPS Route Verification
-
-```yaml
-slice_id: S07
-profile: FULL_PATH
 owner: Senior Tester
-secondary_reviewers: [Senior DevOps Engineer, Senior Python Automation Developer, Senior Security Engineer]
-affected_files: [tests/live/**, src/tiny_swarm_world/**, documentation/workflow/**]
-affected_modules: [tests, infrastructure]
-affected_contracts: [hostname_resolution, https_endpoint_matrix, browser_live_verification]
-dependencies: [S06]
-parallel_group: sequential
-file_locks: [tests/live, src/tiny_swarm_world, documentation/workflow]
-contract_locks: [dns_hosts_fallback, browser_verification]
-architecture_locks: [secret_redaction]
+secondary_reviewers:
+  - Senior Documentation Engineer
+  - Senior System Architect
+affected_files:
+  - documentation/workflow/workflow.md
+  - documentation/workflow/context-pack.md
+  - documentation/workflow/context-pack.json
+affected_modules:
+  - workflow_documentation
+affected_contracts:
+  - issue_24_acceptance_evidence
+dependencies:
+  - S03
+  - S04
+  - S05
+parallel_group: closeout
+file_locks:
+  - documentation/workflow/
+contract_locks:
+  - issue_24_acceptance_evidence
+architecture_locks:
+  - quality_gate_integrity
 quality_gates:
-  targeted: [TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live]
-  required: [python3 tools/quality_gate.py test, git diff --check]
+  targeted:
+    - git diff --check
+  required:
+    - python3 tools/quality_gate.py quality
 documentation:
-  arc42: checked
-  adr: checked-traefik-ingress-decision
-stop_conditions: [hosts_mutation_without_consent, browser_trace_contains_secret, https_route_matrix_incomplete]
+  arc42: checked-updated-if-behavior-changed
+  adr: checked-updated-if-config-policy-changed
+stop_conditions:
+  - Full quality gate fails without documented and accepted blocker.
+  - Acceptance evidence cannot map to Issue #24 criteria.
+  - Workflow changes include unclassified implementation drift.
 ```
 
 Done criteria:
 
-- Hostname resolution is verified or blocked with precise remediation.
-- HTTPS endpoint matrix records redacted service, hostname, status, TLS status,
-  and result.
-- Browser/live checks remain opt-in and do not persist secrets or screenshots.
+- Issue #24 acceptance criteria map to committed files and verification
+  evidence.
+- `python3 tools/quality_gate.py quality` passes or any blocker is documented
+  and routed before merge.
+- No local env file, secret value, generated evidence, cache, or IDE state is
+  staged.
 
-### Slice 08: Live Greenpath Repair Loop
+Verification commands:
 
-```yaml
-slice_id: S08
-profile: FULL_PATH
-owner: Greenpath Recovery Lead
-secondary_reviewers: [Senior DevOps Engineer, Senior Python Automation Developer, Senior Tester, Failure Classification Expert, Evidence Auditor]
-affected_files: [.tiny-swarm-world/evidence/**, src/tiny_swarm_world/**, infra/config/**, infra/compose/**, tests/**, documentation/workflow/reports/**]
-affected_modules: [runtime, infrastructure, deployment, tests, documentation]
-affected_contracts: [install_greenpath, traefik_https_greenpath]
-dependencies: [S07]
-parallel_group: sequential
-file_locks: [.tiny-swarm-world/evidence, src/tiny_swarm_world, infra/config, infra/compose, tests, documentation/workflow/reports]
-contract_locks: [install_greenpath, live_repair_loop]
-architecture_locks: [hexagonal, safety_contract, secret_redaction]
-quality_gates:
-  targeted: [./install.sh --confirm-reset, TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live]
-  required: [python3 tools/quality_gate.py test, git diff --check]
-documentation:
-  arc42: update-if-runtime-contract-changes
-  adr: checked
-stop_conditions: [max_10_iterations, same_blocker_twice_after_fix, manual_approval_required, security_violation, external_dependency_unavailable, unknown_root_cause_after_repeated_attempts]
+```bash
+git diff --check
+python3 tools/quality_gate.py quality
 ```
-
-Done criteria:
-
-- Each iteration records redacted install summary, browser-live-test result,
-  failure classification, changed files, Docker/LXC/Traefik state summary, and
-  HTTPS endpoint matrix.
-- Each blocker fix is minimal, test-backed, and slice-scoped.
-- Loop reaches greenpath or stops with precise owner, blocker, evidence path,
-  and next action.
-
-### Slice 09: Final Report And Handoff
-
-```yaml
-slice_id: S09
-profile: FULL_PATH
-owner: Senior Documentation Engineer
-secondary_reviewers: [Senior Tester, Senior DevOps Engineer, Senior System Architect, Evidence Auditor]
-affected_files: [documentation/workflow/reports/**, documentation/workflow/**]
-affected_modules: [documentation, workflow]
-affected_contracts: []
-dependencies: [S08]
-parallel_group: sequential
-file_locks: [documentation/workflow/reports, documentation/workflow]
-contract_locks: []
-architecture_locks: []
-quality_gates:
-  targeted: [git diff --check]
-  required: [git diff --check]
-documentation:
-  arc42: checked-or-updated
-  adr: checked-or-updated
-stop_conditions: [missing_evidence, unverified_success_claim, unredacted_secret_evidence]
-```
-
-Done criteria:
-
-- Report documents branch, changed files, architecture decision status, CA
-  validation, certificate validation, Traefik status, routing table, LXC state,
-  endpoint matrix, risks, recommendations, quality commands, commit SHAs, and
-  rollback references.
-- Report distinguishes verified live facts from planned, skipped, or blocked
-  checks.
 
 ## Slice Dependency Graph
 
 ```text
-S01 -> S02 -> S03 -> S04 -> S05 -> S06 -> S07 -> S08 -> S09
+S01
+ |
+ +--> S02
+       |
+       +--> S03 --> S04 --+
+       |                  |
+       +--> S05 ----------+--> S06
 ```
 
-Parallelization opportunities:
+## Parallelization Opportunities
 
-- None for write-capable execution. Routing ownership, certificate policy,
-  live state, LXC exposure, and browser evidence are sequentially dependent.
+- S05 documentation can start after S01 and S02 once the key inventory and
+  typed contract names stabilize.
+- S03 and S05 may proceed in parallel only if the template coverage contract is
+  locked and both slices avoid editing the same files.
+- S04 waits for S03 because preflight wiring must consume the loader contract.
 
-## Role Ownership Map
+## Role And Ownership Map
 
-- Senior Requirement Engineer: requirement drift, EPIC consistency, acceptance
-  criteria.
-- Senior System Architect: Traefik ingress ADR, routing ownership, hexagonal
-  boundary review.
-- Senior Python Automation Developer: domain/application/infrastructure
-  implementation slices.
-- Senior DevOps Engineer: Docker Swarm, Traefik, LXC, install, and live runtime
-  verification.
-- Senior Security Engineer: existing CA, TLS, secrets, Infisical, and evidence
-  redaction.
-- Senior Tester: default and live test strategy, opt-in browser suite, quality
-  gates.
-- Senior Documentation Engineer: workflow, arc42, ADR alignment, final report.
-- Greenpath Recovery Lead: single-threaded repair loop and blocker
-  prioritization.
-- Failure Classification Expert: typed blocker classification.
-- Evidence Auditor: evidence completeness and redaction.
+- Senior Workflow Architect: workflow dependency ordering and handoff.
+- Senior Requirement Engineer: Issue #24 acceptance traceability.
+- Senior System Architect: hexagonal boundary and arc42 impact.
+- Senior Python Automation Developer: typed contract, loader, and preflight
+  implementation.
+- Senior React Frontend Developer: no-impact verification for browser/React
+  scope.
+- Senior Documentation Engineer: template and operator documentation.
+- Senior Security Engineer: secret classification and redaction review.
+- Senior Tester: regression design and final quality evidence.
 
-## Failure Classification
+## Quality-Gate Expectations
 
-- CONFIGURATION
-- INFRASTRUCTURE
-- LXC
-- SWARM
-- NETWORK
-- TLS
-- DNS
-- TRAEFIK
-- SERVICE
-- SECRETS
-- TEST
-- ARCHITECTURE
-- QUALITY
-- UNKNOWN
+Workflow creation commit:
 
-Every failure report must include classification, owner, retry count, evidence
-path, next action, and rerun command.
+```bash
+git diff --check
+```
 
-## Quality Gate Expectations
+Workflow execution targeted gates:
 
-- Run targeted tests first.
-- Run `python3 tools/quality_gate.py test` for Python/test/config behavior
-  changes.
-- Run `python3 tools/quality_gate.py quality` before final push when practical.
-- Run `git diff --check` before every checkpoint commit.
-- Live commands are not default quality gates and run only in explicitly
-  authorized live slices.
+```bash
+PYTHONPATH=src python3 -m unittest tests.domain.configuration
+PYTHONPATH=src python3 -m unittest tests.application.services.configuration
+PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.configuration
+PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service
+PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+PYTHONPATH=src python3 -m unittest tests.architecture.test_repository_hygiene
+```
+
+Required before merge when practical:
+
+```bash
+python3 tools/quality_gate.py quality
+```
+
+Live tests are not required for Issue #24 unless a future slice explicitly
+changes live deployment behavior and the user grants live infrastructure
+consent.
 
 ## Documentation Synchronization Points
 
-- Create or update ADR for Traefik HTTPS ingress with existing CA before
-  implementation claims Traefik ownership.
-- Update arc42 deployment/concepts if routing ownership, TLS policy, LXC
-  exposure, or evidence semantics change.
-- Update workflow reports under `documentation/workflow/reports/**`.
-- Do not commit raw `.tiny-swarm-world/evidence/**` runtime evidence.
+- Update README when the operator setup path or template location changes.
+- Update `documentation/deployment/system.adoc` and user guide pages when
+  override defaults or source precedence change.
+- Update arc42 quality/runtime/building-block sections if preflight or config
+  ownership changes.
+- Add or update ADR only if source precedence, template location, or config
+  ownership becomes an architectural decision rather than implementation detail.
 
 ## Stop Conditions
 
-Stop workflow execution when:
+Stop workflow execution and report when:
 
-- branch does not match `feature/traefik-https-ingress-existing-ca-20260609`;
-- unrelated or unclear worktree changes exist;
-- workflow metadata cannot be parsed by S3D;
-- required ADR/arc42 changes are missing before implementation;
-- live command would run without explicit consent;
-- existing CA material is missing, ambiguous, expired, mismatched, or would
-  require committing secret material;
-- `--api.insecure=true` appears in Traefik configuration;
-- `exposedByDefault=false` is missing;
-- LXC/Docker state is ambiguous;
-- host DNS/hosts mutation lacks explicit operator consent and rollback;
-- evidence would include secrets, tokens, raw command output, local IP
-  addresses, absolute host paths, or credential-bearing URLs;
-- the same blocker repeats after a fix;
-- the repair loop reaches 10 iterations;
-- documentation would claim unverified live success.
+- repository evidence cannot prove a config key is supported;
+- a planned check requires live infrastructure without explicit consent;
+- a secret value would be committed, logged, persisted, or echoed;
+- domain code needs infrastructure imports;
+- application services need direct `os.environ`, file IO, YAML parser, HTTP,
+  Docker, LXC, or command-runner access;
+- template and contract definitions drift;
+- quality gates fail and the failure is not understood;
+- Issue #24 acceptance criteria cannot be mapped to tests and documentation.
 
 ## Uncertainty Escalation Rules
 
-- Requirement conflict: Senior Requirement Engineer and Root Architect.
-- Routing ownership or ADR conflict: Senior System Architect.
-- Existing CA, TLS, or secret exposure risk: Senior Security Engineer.
-- LXC/Docker/Traefik runtime ambiguity: Senior DevOps Engineer.
-- Quality failure: Senior Tester and Quality Gate owner.
-- Unknown blocker: Failure Classification Expert, then Root Architect.
+- Escalate source-precedence policy changes to Senior System Architect and ADR
+  Steward.
+- Escalate new secret handling semantics to Security Engineer and Senior
+  Tester.
+- Escalate broad composition rewiring to Senior System Architect.
+- Escalate quality-gate uncertainty to Quality Gate Orchestrator.
+- Escalate documentation mismatch to Documentation Sync.
 
 ## Commit And Push Plan
 
-- Do not push to `main`.
-- Workflow branch: `feature/traefik-https-ingress-existing-ca-20260609`.
-- Workflow creation may be committed as one workflow-scoped commit after
-  `git diff --check` passes.
-- During workflow execute, each implementation or repair slice gets its own
-  checkpoint commit.
-- Do not commit ignored local CA private material, live evidence, local
-  environment files, host resolver files, or secrets.
-- Push only as workflow checkpoint push, not `push auto`, and never create or
-  merge a PR unless a later explicit command authorizes that flow.
+Workflow creation:
+
+- Branch: `feature/workflow-config-contracts-20260613`.
+- Commit type: `docs(workflow)`.
+- Stage only `documentation/workflow/**`.
+- Run `git diff --check`.
+- Push branch to `origin`.
+
+Future workflow execution:
+
+- Use this branch unless a later workflow-execute preflight requires a
+  successor branch.
+- Commit each completed slice or logical set only after scoped diff review and
+  required verification.
+- Never push directly to `main`.
 
 ## Definition Of Done
 
-- Active workflow exists at `documentation/workflow/workflow.md` and is
-  released for workflow execute.
-- Context pack exists and records governing hashes.
-- ADR/arc42 authorize Traefik ingress before implementation changes.
-- Traefik routes configured services through HTTPS using existing CA material.
-- LXC public exposure is limited to 80 and 443.
-- Hostname resolution works or is blocked with precise remediation.
-- `./install.sh --confirm-reset` succeeds or stops with classified blocker.
-- Live browser/TLS verification passes with explicit opt-in or stops with
-  redacted evidence.
-- Secrets inventory and Infisical coverage are complete without exposing
-  values.
-- Final report distinguishes verified facts from planned or blocked work.
+Workflow creation is done when:
+
+- `documentation/workflow/workflow.md` describes Issue #24 with executable
+  slice metadata.
+- `documentation/workflow/context-pack.md` and
+  `documentation/workflow/context-pack.json` are updated.
+- The workflow records arc42 and ADR check status.
+- `git diff --check` passes.
+- The branch is committed and pushed.
+
+Issue #24 implementation is done when:
+
+- config schema validates before execution;
+- an example env/config template is tracked;
+- overrides are documented;
+- focused tests prove the config contract and preflight integration;
+- full quality gate passes or an accepted blocker is documented before merge.
 
 ## Handoff To Workflow Execute
 
-Before write-capable execution:
-
-```bash
-git status --short --branch
-git branch --show-current
-git show-ref --verify --quiet refs/heads/feature/traefik-https-ingress-existing-ca-20260609
-```
-
-Recommended execution sequence:
-
-```bash
-git diff --check
-python3 tools/quality_gate.py test
-./install.sh --confirm-reset
-TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live
-git diff --check
-```
-
-Operator-provided ignored inputs are expected for existing CA material,
-certificate/key references, Infisical login material, and any local DNS/hosts
-fallback approval. The workflow must stop rather than invent or commit those
-values.
+To execute this workflow, run the repository's `workflow execute` procedure
+against `documentation/workflow/workflow.md`. The executor must verify the
+active branch, context-pack hashes, slice metadata, locks, and quality gates
+before any write-capable implementation work.
 
 ## arc42 Check Status
 
-Checked during workflow creation. Current arc42 deployment view and
-service-access ADR defer Traefik and TLS automation. This workflow therefore
-requires S01 to create/update the Traefik ingress decision and update arc42
-before implementation slices claim Traefik behavior as implemented.
+- `documentation/arc42/05_building_blocks.adoc`: checked. Future update likely
+  needed when the configuration contract module is implemented.
+- `documentation/arc42/06_runtime_view.adoc`: checked. Future update likely
+  needed when preflight consumes the config contract.
+- `documentation/arc42/10_quality_requirements.adoc`: checked. Future update
+  likely needed when config blockers become an explicit preflight quality
+  behavior.
+- ADR status: checked. No ADR is required for workflow creation. Future ADR
+  may be required if template location or source precedence becomes
+  architecture-significant.
