@@ -94,7 +94,7 @@ _COMMAND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _SECRET_ASSIGNMENT_PATTERN = re.compile(
-    r"\b(?:api(?:_|-)?key|passphrase|password|secret|token)\s*[:=]",
+    r"\b(?:api[_-]?key|passphrase|password|secret|token)\s*[:=]",
     re.IGNORECASE,
 )
 _SAFE_IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")

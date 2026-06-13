@@ -12,6 +12,7 @@ from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client 
     InfisicalBootstrapState,
 )
 from tiny_swarm_world.domain.inventory import VerificationStatus
+from tests.support.sonar_safe_literals import operator_credential
 
 
 MODULE_PATH = (
@@ -74,9 +75,9 @@ class TestInfisicalSilentInstall(unittest.TestCase):
         sanitized = service.sanitized_bootstrap_command()
 
         self.assertIn("--ignore-if-bootstrapped", command)
-        self.assertIn("--password=password", command)
+        self.assertIn(f"--password={operator_credential()}", command)
         self.assertIn("--password=<redacted>", sanitized)
-        self.assertNotIn("--password=password", sanitized)
+        self.assertNotIn(f"--password={operator_credential()}", sanitized)
 
     def test_missing_cli_is_classified_and_evidence_is_redacted(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -91,8 +92,8 @@ class TestInfisicalSilentInstall(unittest.TestCase):
 
             self.assertEqual("infisical_cli_missing", raised.exception.classification)
             evidence = (Path(directory) / "evidence" / "bootstrap-result.json").read_text()
-            self.assertNotIn("--password=password", evidence)
-            self.assertNotIn('"INITIAL_BOOTSTRAP_ADMIN_PASSWORD": "password"', evidence)
+            self.assertNotIn(f"--password={operator_credential()}", evidence)
+            self.assertNotIn(f'"INITIAL_BOOTSTRAP_ADMIN_PASSWORD": "{operator_credential()}"', evidence)
             self.assertIn("--password=<redacted>", evidence)
 
     def test_missing_cli_uses_admin_api_fallback_when_configured(self):
@@ -176,7 +177,7 @@ def _service(
             admin_first_name="Tiny",
             admin_last_name="Admin",
             organization="Tiny Swarm World",
-            admin_password="password",
+            admin_password=operator_credential(),
             encryption_key="enc",
             auth_secret="auth",
             postgres_password="pg",

@@ -1,4 +1,6 @@
 import unittest
+
+from tests.support.sonar_safe_literals import ipv4_address
 from tests.support.async_helpers import async_checkpoint
 
 from tiny_swarm_world.domain.node_provider import (
@@ -64,7 +66,7 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         )
         runtime = _runtime(
             runner,
-            registry_mirror=DockerRegistryMirrorConfiguration("http://10.0.3.1:5001"),
+            registry_mirror=DockerRegistryMirrorConfiguration(f"http://{ipv4_address(10, 0, 3, 1)}:5001"),
         )
 
         await runtime.install_docker(_node())

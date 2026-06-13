@@ -305,7 +305,7 @@ def _safe_exception_detail(exc: Exception) -> str:
     return detail
 
 
-def _apply_failure_reason(target_id: str, exc: Exception, safe_error: str) -> str:
+def _apply_failure_reason(target_id: str, _exc: Exception, safe_error: str) -> str:
     return f"apply failed for {target_id}: {safe_error}"
 
 

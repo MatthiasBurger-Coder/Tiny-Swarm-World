@@ -243,7 +243,7 @@ INFISICAL_ENCRYPTION_KEY_ENVIRONMENT = "TSW_INFISICAL_ENCRYPTION_KEY"
 INFISICAL_AUTH_SECRET_ENVIRONMENT = "TSW_INFISICAL_AUTH_SECRET"
 INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_POSTGRES_PASSWORD"
 INFISICAL_REDIS_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_REDIS_PASSWORD"
-REGISTRY_ENDPOINT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*(?::[0-9]{1,5})?$")
+REGISTRY_ENDPOINT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*(?::\d{1,5})?$")
 DEFAULT_LXC_PLATFORM_NODES = (
     NodeSpec("swarm-manager", NodeRole.MANAGER, NodeProviderKind.LXC_NATIVE),
     NodeSpec("swarm-worker-1", NodeRole.WORKER, NodeProviderKind.LXC_NATIVE),
@@ -1600,7 +1600,7 @@ def _lxc_backend_for_provider_request(
 
 def _preflight_configuration_for_provider(
     service_profile: ServiceStackProfile | str,
-    node_provider_request: NodeProviderSelectionRequest | None,
+    _node_provider_request: NodeProviderSelectionRequest | None,
 ) -> PreflightConfiguration:
     return default_preflight_configuration(service_profile=service_profile)
 

@@ -2,6 +2,8 @@ import unittest
 
 import requests
 
+from tests.support.sonar_safe_literals import operator_credential, sample_url
+
 from tiny_swarm_world.infrastructure.adapters.clients.sonarqube_http_client import (
     SonarqubeHttpClient,
 )
@@ -13,14 +15,14 @@ class TestSonarqubeHttpClient(unittest.TestCase):
         client = SonarqubeHttpClient("http://localhost:9001", session=session)
 
         self.assertTrue(client.is_available())
-        self.assertTrue(client.can_authenticate("admin", "configured"))
+        self.assertTrue(client.can_authenticate("admin", operator_credential()))
         self.assertFalse(client.can_authenticate("admin", "wrong"))
 
     def test_posts_change_password_payload(self):
         session = _FakeSession()
         client = SonarqubeHttpClient("http://localhost:9001", session=session)
 
-        client.change_password("admin", "admin", "configured")
+        client.change_password("admin", "admin", operator_credential())
 
         self.assertEqual("/api/users/change_password", session.post_calls[0]["path"])
         self.assertEqual(("admin", "admin"), session.post_calls[0]["auth"])
@@ -28,21 +30,21 @@ class TestSonarqubeHttpClient(unittest.TestCase):
             {
                 "login": "admin",
                 "previousPassword": "admin",
-                "password": "configured",
+                "password": operator_credential(),
             },
             session.post_calls[0]["data"],
         )
 
     def test_rejects_secret_bearing_base_url(self):
         with self.assertRaises(ValueError):
-            SonarqubeHttpClient("http://admin:secret@localhost:9001")
+            SonarqubeHttpClient(sample_url("http", "admin:secret", "localhost:9001"))
 
     def test_redacts_authentication_transport_failures(self):
         session = _FakeSession(authentication_error=True)
         client = SonarqubeHttpClient("http://localhost:9001", session=session)
 
         with self.assertRaisesRegex(RuntimeError, "redacted output"):
-            client.can_authenticate("admin", "configured")
+            client.can_authenticate("admin", operator_credential())
 
     def test_unavailable_status_endpoint_is_not_ready(self):
         session = _FakeSession(status_error=True)
@@ -70,7 +72,7 @@ class _FakeSession:
         if url.endswith("/api/authentication/validate"):
             if self.authentication_error:
                 raise requests.ConnectionError("reset")
-            return _FakeResponse(200, {"valid": kwargs["auth"] == ("admin", "configured")})
+            return _FakeResponse(200, {"valid": kwargs["auth"] == ("admin", operator_credential())})
         raise AssertionError(url)
 
     def post(self, url: str, **kwargs):

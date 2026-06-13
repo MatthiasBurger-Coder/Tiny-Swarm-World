@@ -279,7 +279,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         config_result = _load_config(self.config_repository, node, selection, backend)
         if isinstance(config_result, VerificationResult):
             return config_result
-        config, node_config, profiles = config_result
+        config, node_config, _ = config_result
 
         lookup = await self._lookup_node(node, backend, config)
         if lookup.failed:
@@ -560,9 +560,11 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         if not isinstance(payload, list):
             return ()
         names = tuple(
-            str(item.get("name"))
+            name
             for item in payload
-            if isinstance(item, Mapping) and isinstance(item.get("name"), str)
+            if isinstance(item, Mapping)
+            for name in (_mapping_name(item),)
+            if name is not None
         )
         return tuple(sorted(names))
 
@@ -1156,11 +1158,18 @@ def _name_list_from_json(result: LxcNodeCommandResult) -> tuple[str, ...]:
     if not isinstance(payload, list):
         return ()
     names = tuple(
-        str(item.get("name"))
+        name
         for item in payload
-        if isinstance(item, Mapping) and isinstance(item.get("name"), str)
+        if isinstance(item, Mapping)
+        for name in (_mapping_name(item),)
+        if name is not None
     )
     return tuple(sorted(names))
+
+
+def _mapping_name(item: Mapping[object, object]) -> str | None:
+    name = item.get("name")
+    return name if isinstance(name, str) else None
 
 
 def _string_tuple(value: object) -> tuple[str, ...]:

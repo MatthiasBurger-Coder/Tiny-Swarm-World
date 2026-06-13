@@ -37,6 +37,9 @@ class SetupWorkflowStatus(str, Enum):
     RESOURCE_GATED = "resource_gated"
 
 
+RUN_SETUP_WORKFLOW_TASK = "Run setup workflow"
+
+
 class SetupPhase(Protocol):
     name: str
 
@@ -137,7 +140,7 @@ class SetupWorkflow:
             self._report_progress(
                 phase="setup",
                 target="setup",
-                task="Run setup workflow",
+                task=RUN_SETUP_WORKFLOW_TASK,
                 step="live consent",
                 status=SetupWorkflowStatus.REFUSED.value,
                 result=SetupWorkflowStatus.REFUSED.value,
@@ -155,7 +158,7 @@ class SetupWorkflow:
             self._report_progress(
                 phase="setup",
                 target="setup",
-                task="Run setup workflow",
+                task=RUN_SETUP_WORKFLOW_TASK,
                 step="phase configuration",
                 status=SetupWorkflowStatus.BLOCKED.value,
                 result=SetupWorkflowStatus.BLOCKED.value,
@@ -290,7 +293,7 @@ class SetupWorkflow:
         self._report_progress(
             phase="setup",
             target="setup",
-            task="Run setup workflow",
+            task=RUN_SETUP_WORKFLOW_TASK,
             step="workflow completed",
             status=SetupWorkflowStatus.COMPLETED.value,
             result=SetupWorkflowStatus.COMPLETED.value,
@@ -342,7 +345,7 @@ class SetupWorkflow:
         self._report_progress(
             phase="setup",
             target="setup",
-            task="Run setup workflow",
+            task=RUN_SETUP_WORKFLOW_TASK,
             step="workflow stopped",
             status="stopped",
             result=result,

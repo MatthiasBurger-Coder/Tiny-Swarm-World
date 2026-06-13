@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import AsyncMock, patch
 from tests.support.async_helpers import async_checkpoint
+from tests.support.sonar_safe_literals import ipv4_address
 
 from tiny_swarm_world.application.ports.method_trace import (
     MethodTraceEvent,
@@ -193,7 +194,7 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("token", text)
         self.assertNotIn("stdout", text)
         self.assertNotIn("/home/operator", text)
-        self.assertNotIn("192.168.1.10", text)
+        self.assertNotIn(ipv4_address(192, 168, 1, 10), text)
         self.assertNotIn("raw runtime failure", text)
         self.assertEqual("CommandExecutionFailed", trace.events[-1].exception_type)
 

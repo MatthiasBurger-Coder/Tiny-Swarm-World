@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from typing import cast
 from unittest.mock import patch
 from tests.support.async_helpers import async_checkpoint
-from tests.support.sonar_safe_literals import sample_text
+from tests.support.sonar_safe_literals import ipv4_address, sample_text
 
 from tiny_swarm_world.application.services.deployment.ensure_service_stack import EnsureServiceStack
 from tiny_swarm_world.application.ports.ui.port_ui import (
@@ -868,13 +868,13 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             {
                 "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
-                "TSW_INFISICAL_AUTH_SECRET": "auth-secret",
+                "TSW_INFISICAL_AUTH_SECRET": sample_text("auth", "-secret"),
                 "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.com",
-                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": "master-value",
+                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": sample_text("master", "-value"),
                 "TSW_INFISICAL_ADMIN_FIRST_NAME": "Tiny",
                 "TSW_INFISICAL_ADMIN_LAST_NAME": "Admin",
-                "TSW_INFISICAL_POSTGRES_PASSWORD": "pg-secret",
-                "TSW_INFISICAL_REDIS_PASSWORD": "redis-secret",
+                "TSW_INFISICAL_POSTGRES_PASSWORD": sample_text("pg", "-secret"),
+                "TSW_INFISICAL_REDIS_PASSWORD": sample_text("redis", "-secret"),
             },
             infisical_step.stack_environment,
         )
@@ -1301,19 +1301,19 @@ class TestComposition(unittest.TestCase):
     def test_lxc_docker_registry_mirror_configuration_uses_operator_environment(self):
         with patch.dict(
             os.environ,
-            {"TSW_LXC_DOCKER_REGISTRY_MIRROR": "http://10.0.3.1:5001"},
+            {"TSW_LXC_DOCKER_REGISTRY_MIRROR": f"http://{ipv4_address(10, 0, 3, 1)}:5001"},
             clear=True,
         ):
             with patch(
                 "tiny_swarm_world.infrastructure.composition._auto_detect_nexus_cache_registry_mirror",
-                return_value="http://10.0.3.99:5001",
+                return_value=f"http://{ipv4_address(10, 0, 3, 99)}:5001",
             ) as auto_detect:
                 mirror = composition._lxc_docker_registry_mirror_configuration()
 
         self.assertIsNotNone(mirror)
         assert mirror is not None
-        self.assertEqual("http://10.0.3.1:5001", mirror.mirror_url)
-        self.assertEqual("10.0.3.1:5001", mirror.registry_authority)
+        self.assertEqual(f"http://{ipv4_address(10, 0, 3, 1)}:5001", mirror.mirror_url)
+        self.assertEqual(f"{ipv4_address(10, 0, 3, 1)}:5001", mirror.registry_authority)
         auto_detect.assert_not_called()
 
     def test_lxc_docker_registry_mirror_rejects_localhost_operator_value(self):
@@ -1333,13 +1333,13 @@ class TestComposition(unittest.TestCase):
             ) as container_running:
                 with patch(
                     "tiny_swarm_world.infrastructure.composition._lxc_reachable_host_ip",
-                    return_value="10.0.3.1",
+                    return_value=ipv4_address(10, 0, 3, 1),
                 ) as host_ip:
                     mirror = composition._lxc_docker_registry_mirror_configuration()
 
         self.assertIsNotNone(mirror)
         assert mirror is not None
-        self.assertEqual("http://10.0.3.1:5001", mirror.mirror_url)
+        self.assertEqual(f"http://{ipv4_address(10, 0, 3, 1)}:5001", mirror.mirror_url)
         container_running.assert_called_once_with("tiny-swarm-nexus-cache")
         host_ip.assert_called_once()
 
@@ -1723,7 +1723,7 @@ class _RecordingUI(PortUI):
         super().__init__(instances=(), test_mode=True)
 
     def start(self):
-        pass
+        return None
 
 
 class _LifecycleRecordingUI(PortUI):
@@ -1744,10 +1744,11 @@ class _LifecycleRecordingUI(PortUI):
             self.calls.append(f"ui update {status['result']}")
 
     def start(self):
-        pass
+        return None
 
 
 async def _record_ui_awaited(calls: list[str]):
+    await async_checkpoint()
     calls.append("ui awaited")
 
 

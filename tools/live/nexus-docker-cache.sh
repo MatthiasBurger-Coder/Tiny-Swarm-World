@@ -14,6 +14,7 @@ NEXUS_DOCKER_PROXY_PORT="${NEXUS_DOCKER_PROXY_PORT:-5000}"
 
 NEXUS_ADMIN_PASSWORD="${NEXUS_ADMIN_PASSWORD:-}"
 NEXUS_REPOSITORY_NAME="${NEXUS_REPOSITORY_NAME:-docker-hub-proxy}"
+JSON_CONTENT_TYPE_HEADER="Content-Type: application/json"
 
 # For normal local Docker use: 127.0.0.1
 # For LXC nodes, set this to an IP/hostname reachable from inside the nodes.
@@ -23,12 +24,14 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE_LIST_FILE="${IMAGE_LIST_FILE:-${SCRIPT_DIR}/images-to-cache.txt}"
 
 log() {
-  printf '[nexus-cache] %s\n' "$1"
+  local message="$1"
+  printf '[nexus-cache] %s\n' "$message"
 }
 
 require_command() {
-  command -v "$1" >/dev/null 2>&1 || {
-    echo "Missing required command: $1" >&2
+  local command_name="$1"
+  command -v "$command_name" >/dev/null 2>&1 || {
+    echo "Missing required command: $command_name" >&2
     exit 1
   }
 }
@@ -97,7 +100,7 @@ enable_docker_bearer_token_realm() {
 
   curl -fsS -u "admin:${NEXUS_ADMIN_PASSWORD}" \
     -X PUT \
-    -H "Content-Type: application/json" \
+    -H "$JSON_CONTENT_TYPE_HEADER" \
     --data "${updated_realms}" \
     "http://127.0.0.1:${NEXUS_WEB_PORT}/service/rest/v1/security/realms/active" >/dev/null
 }
@@ -121,7 +124,7 @@ accept_community_eula() {
 
   curl -fsS -u "admin:${NEXUS_ADMIN_PASSWORD}" \
     -X POST \
-    -H "Content-Type: application/json" \
+    -H "$JSON_CONTENT_TYPE_HEADER" \
     --data "${accepted_payload}" \
     "http://127.0.0.1:${NEXUS_WEB_PORT}/service/rest/v1/system/eula" >/dev/null
 }
@@ -131,7 +134,7 @@ enable_anonymous_access() {
 
   curl -fsS -u "admin:${NEXUS_ADMIN_PASSWORD}" \
     -X PUT \
-    -H "Content-Type: application/json" \
+    -H "$JSON_CONTENT_TYPE_HEADER" \
     --data '{
       "enabled": true,
       "userId": "anonymous",
@@ -155,7 +158,7 @@ create_docker_proxy_repository() {
 
   curl -fsS -u "admin:${NEXUS_ADMIN_PASSWORD}" \
     -X POST \
-    -H "Content-Type: application/json" \
+    -H "$JSON_CONTENT_TYPE_HEADER" \
     --data "{
       \"name\": \"${NEXUS_REPOSITORY_NAME}\",
       \"online\": true,

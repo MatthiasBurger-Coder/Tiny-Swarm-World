@@ -87,7 +87,8 @@ is_wsl_environment() {
 }
 
 python_imports_available() {
-  "$1" - <<'PY' >/dev/null 2>&1
+  local python_bin="$1"
+  "$python_bin" - <<'PY' >/dev/null 2>&1
 import pydantic
 import requests
 import ruamel.yaml

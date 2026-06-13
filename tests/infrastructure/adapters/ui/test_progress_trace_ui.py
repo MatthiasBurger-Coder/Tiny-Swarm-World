@@ -87,4 +87,4 @@ class RecordingUI(PortUI):
         self.updates.append((instance, task, step, target_status["result"]))
 
     def start(self):
-        pass
+        return None

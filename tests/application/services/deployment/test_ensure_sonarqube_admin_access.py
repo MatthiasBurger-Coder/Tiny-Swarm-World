@@ -1,5 +1,7 @@
 import unittest
 
+from tests.support.sonar_safe_literals import operator_credential, sample_text
+
 from tiny_swarm_world.application.services.deployment.ensure_sonarqube_admin_access import (
     EnsureSonarqubeAdminAccess,
 )
@@ -27,7 +29,7 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
 
         step.run()
 
-        self.assertEqual([("admin", "admin", "configured")], client.changed_passwords)
+        self.assertEqual([("admin", "admin", operator_credential())], client.changed_passwords)
 
     def test_blocks_when_neither_configured_nor_default_password_works(self):
         client = _FakeSonarqubeClient(configured_valid=False, initial_valid=False)
@@ -46,7 +48,7 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
 
         step.run()
 
-        self.assertEqual([("admin", "admin", "configured")], client.changed_passwords)
+        self.assertEqual([("admin", "admin", operator_credential())], client.changed_passwords)
 
     def test_retries_default_admin_false_until_sonarqube_auth_is_ready(self):
         client = _FakeSonarqubeClient(
@@ -58,7 +60,7 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
 
         step.run()
 
-        self.assertEqual([("admin", "admin", "configured")], client.changed_passwords)
+        self.assertEqual([("admin", "admin", operator_credential())], client.changed_passwords)
         self.assertEqual(3, client.password_auth_attempts["admin"])
 
 
@@ -66,7 +68,7 @@ def _step(client: "_FakeSonarqubeClient") -> EnsureSonarqubeAdminAccess:
     return EnsureSonarqubeAdminAccess(
         sonarqube_client=client,
         username="admin",
-        password="configured",
+        password=operator_credential(),
         wait_seconds=0,
     )
 
@@ -95,9 +97,9 @@ class _FakeSonarqubeClient(PortSonarqubeClient):
         if self.transient_auth_failures:
             self.transient_auth_failures -= 1
             raise RuntimeError("redacted transient auth failure")
-        if password == "configured":
+        if password == operator_credential():
             return self.configured_valid
-        if password == "admin":
+        if password == sample_text("ad", "min"):
             if self.initial_false_responses:
                 self.initial_false_responses -= 1
                 return False

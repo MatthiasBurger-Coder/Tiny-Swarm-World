@@ -1,5 +1,7 @@
 import unittest
 
+from tests.support.async_helpers import async_checkpoint
+
 from tiny_swarm_world.application.ports.node_provider import (
     LxcProxyDeviceState,
     LxcProxyDriftRepairOutcome,
@@ -238,6 +240,7 @@ class _RecordingProxyRuntime:
         profile_name: str,
         plan: LxcProxyDevicePlan,
     ) -> LxcProxyDeviceState:
+        await async_checkpoint()
         self.inspected.append((profile_name, plan))
         return self.states.get(plan.listen_port, self.default_state)
 
@@ -246,6 +249,7 @@ class _RecordingProxyRuntime:
         profile_name: str,
         plan: LxcProxyDevicePlan,
     ) -> bool:
+        await async_checkpoint()
         self.created.append((profile_name, plan))
         return self.create_success
 
@@ -254,6 +258,7 @@ class _RecordingProxyRuntime:
         profile_name: str,
         plan: LxcProxyDevicePlan,
     ) -> bool:
+        await async_checkpoint()
         self.updated.append((profile_name, plan))
         return self.update_success
 
@@ -263,6 +268,7 @@ class _RecordingProxyRuntime:
         gateway_node: NodeSpec,
         plans: tuple[LxcProxyDevicePlan, ...],
     ) -> LxcProxyDriftRepairOutcome:
+        await async_checkpoint()
         self.repaired.append((profile_name, gateway_node, plans))
         return self.repair_outcome
 

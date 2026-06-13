@@ -208,9 +208,9 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(1, len(lifecycle.ensure_calls))
-        ensure_call, = lifecycle.ensure_calls
-        self.assertIs(node, ensure_call[0])
-        self.assertEqual(ManagedLxcBackend.INCUS, ensure_call[1].backend_selection.backend)
+        (ensured_node, selection), = lifecycle.ensure_calls
+        self.assertIs(node, ensured_node)
+        self.assertEqual(ManagedLxcBackend.INCUS, selection.backend_selection.backend)
 
     async def test_selected_provider_calls_managed_reset_port(self):
         readiness = _ready_incus_probe()
@@ -225,7 +225,7 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(1, len(teardown.reset_calls))
-        reset_nodes, selection = teardown.reset_calls[0]
+        (reset_nodes, selection), = teardown.reset_calls
         self.assertEqual(nodes, reset_nodes)
         self.assertEqual(ManagedLxcBackend.INCUS, selection.backend_selection.backend)
         self.assertEqual([], teardown.destroy_calls)
@@ -245,7 +245,7 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual("platform:destroy:managed-nodes", step.verification_target_id)
         self.assertEqual(1, len(teardown.destroy_calls))
-        destroy_nodes, selection = teardown.destroy_calls[0]
+        (destroy_nodes, selection), = teardown.destroy_calls
         self.assertEqual(nodes, destroy_nodes)
         self.assertEqual(ManagedLxcBackend.INCUS, selection.backend_selection.backend)
         self.assertEqual([], teardown.reset_calls)
@@ -265,7 +265,7 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual("platform:reset:managed-nodes", step.verification_target_id)
         self.assertEqual(1, len(teardown.reset_calls))
-        reset_nodes, selection = teardown.reset_calls[0]
+        (reset_nodes, selection), = teardown.reset_calls
         self.assertEqual(nodes, reset_nodes)
         self.assertEqual(ManagedLxcBackend.INCUS, selection.backend_selection.backend)
         self.assertEqual([], teardown.destroy_calls)

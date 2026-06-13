@@ -36,39 +36,46 @@ class EnsurePortainerAdminAccess:
         for attempt in range(1, self.max_attempts + 1):
             if self._can_authenticate():
                 return
-
-            try:
-                self.portainer_admin_client.initialize_admin_user(self.username, self.password)
-            except PortainerAdminInitializationRejected as exc:
-                if self._can_authenticate():
-                    self.logger.info(
-                        "Portainer admin initialization was rejected after credentials became active."
-                    )
-                    return
-                safe_error = _safe_exception_summary(exc)
-                self.logger.error(
-                    "Failed to initialize Portainer admin access. Error: %s",
-                    safe_error,
-                )
-                if self.ui is not None:
-                    self.ui.update_status(
-                        instance=AGGREGATE_INSTANCE,
-                        task=self.deployment_target_id,
-                        step="Error",
-                        result="failed_to_apply",
-                    )
-                raise
-            except Exception:
-                if attempt >= self.max_attempts:
-                    raise
-            else:
-                if self._can_authenticate():
-                    return
-
+            if self._initialize_admin_access(attempt):
+                return
             if attempt < self.max_attempts:
                 await asyncio.sleep(self.wait_seconds)
 
         raise RuntimeError("Portainer admin access could not be initialized.")
+
+    def _initialize_admin_access(self, attempt: int) -> bool:
+        try:
+            self.portainer_admin_client.initialize_admin_user(self.username, self.password)
+        except PortainerAdminInitializationRejected as exc:
+            return self._handle_rejected_initialization(exc)
+        except Exception:
+            if attempt >= self.max_attempts:
+                raise
+            return False
+        return self._can_authenticate()
+
+    def _handle_rejected_initialization(
+        self,
+        exc: PortainerAdminInitializationRejected,
+    ) -> bool:
+        if self._can_authenticate():
+            self.logger.info(
+                "Portainer admin initialization was rejected after credentials became active."
+            )
+            return True
+        safe_error = _safe_exception_summary(exc)
+        self.logger.error(
+            "Failed to initialize Portainer admin access. Error: %s",
+            safe_error,
+        )
+        if self.ui is not None:
+            self.ui.update_status(
+                instance=AGGREGATE_INSTANCE,
+                task=self.deployment_target_id,
+                step="Error",
+                result="failed_to_apply",
+            )
+        raise exc
 
     async def verify(self) -> VerificationResult:
         last_exception: Exception | None = None

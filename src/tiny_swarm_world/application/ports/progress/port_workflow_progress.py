@@ -51,7 +51,7 @@ class PortWorkflowProgress(ABC):
 
 class NullWorkflowProgress(PortWorkflowProgress):
     def report(self, event: WorkflowProgressEvent) -> None:
-        pass
+        return None
 
 
 def _reject_unsafe_progress_text(field_name: str, value: str) -> None:
