@@ -8,5 +8,9 @@ Read QUALITY.md and relevant Python tooling files before making claims.
 Identify the exact commands required to verify the project.
 Check whether documented quality commands match tools/quality_gate.py, .importlinter, requirements.txt, setup.py, and the test layout.
 Report missing tests, weak assertions, stale commands, coverage gaps, architecture-rule risks, and verification blockers.
+For parallel workflows, determine whether live validation can run in parallel or
+must be serialized. Require separate test evidence per workflow worktree unless
+the workflow explicitly defines shared evidence. Require re-validation when a
+parallel workflow branch is rebased or updated after another workflow merged.
 Do not weaken quality gates, coverage thresholds, architecture rules, or test expectations.
 """

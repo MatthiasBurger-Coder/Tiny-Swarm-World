@@ -78,6 +78,17 @@ For push auto, first verify that the diff is task-scoped and contains no unrelat
 - the remote branch deletion target is exactly the merged pull request head branch,
 - the git-clean skill can switch to main, fast-forward main, and delete the local merged branch.
 
+For parallel workflow publication, manage one PR per workflow worktree. Each
+workflow must have its own branch, worktree, working directory and quality
+lifecycle. Observe CI and SonarQube independently for each PR. Merge completed
+PRs one at a time after refreshing the integration branch, checking whether
+another workflow merged first, updating or rebasing when policy requires it,
+rerunning affected tests, and rechecking CI plus SonarQube.
+
+Remove a workflow worktree only after the PR is verified merged, the
+integration branch is updated locally, the worktree has no uncommitted changes,
+evidence is documented, and workflow status is updated.
+
 If required checks fail because of an in-scope defect that can be safely fixed, repair it, commit it, push the branch, and repeat the required-check loop. Stop if checks remain failed, pending indefinitely, missing, unknown, unverifiable, or require out-of-scope or unsafe changes.
 
 The pull request must target main.
@@ -101,6 +112,9 @@ You must not:
 - retarget the pull request away from main,
 - delete remote branches unless the user entered exactly push auto and the pull request was verified as merged,
 - delete local branches directly instead of using the git-clean workflow after push auto,
+- remove a workflow worktree before merge and clean-state verification,
+- batch-merge parallel workflow PRs without checking each PR's quality gates
+  independently,
 - bypass failed verification,
 - bypass failed, pending, or unknown required checks,
 - stage unrelated files,

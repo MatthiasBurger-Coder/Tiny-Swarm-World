@@ -138,6 +138,40 @@ architecture-boundary locks before any write-capable worker starts. Parallel
 execution is allowed only when locks are disjoint and quality gates can be
 attributed independently.
 
+## Parallel Worktree Execution
+
+Parallel workflow execution is supported only for workflows that S3D and Three
+Amigos confirm as independent. Independence requires disjoint changed files,
+tests, package structures, governance files, workflow templates, skill files,
+agent files, architecture decisions, and live infrastructure state.
+
+Each parallel workflow must run in its own Git worktree, branch, working
+directory, pull request and quality-gate lifecycle. Never execute multiple
+parallel workflows inside the same worktree. Use the preferred worktree parent
+`../Tiny-Swarm-World-worktrees/` and create each worktree from the current
+integration branch defined by repository governance.
+
+For every parallel workflow worktree:
+
+1. Create a dedicated worktree and branch before write-capable work.
+2. Run Three Amigos Gate inside that worktree.
+3. Execute exactly one workflow.
+4. Run validation, commit, push, PR, CI, SonarQube remediation, and merge
+   lifecycle independently for that worktree.
+5. Merge completed PRs one at a time after checking the latest integration
+   branch, rebasing or updating when policy requires it, and rerunning affected
+   tests.
+6. Remove the worktree only after the PR is verified merged, the integration
+   branch is updated locally, the worktree is clean, evidence is documented,
+   and workflow status is updated.
+
+Serialize workflows when file locks, tests, package structures, architecture
+decisions, governance artifacts, skill files, agent files, or live
+infrastructure state overlap. Live LXD, LXC, Docker, Docker Swarm, networking,
+firewall, Portainer, Jenkins, SonarQube, Nexus, secrets-management, install,
+reset or reinstall validation must be serialized unless the workflow proves an
+isolated live environment.
+
 Route lock conflicts as `LOCK_CONFLICT` through the Typed Error Router. S3D may
 stop, report, escalate or recommend manual workflow refinement, but it must not
 call `workflow create`, rewrite the active workflow from S3 or expand scope
@@ -286,6 +320,12 @@ Stop and report if:
 - `S3_CLASSIFY` cannot classify the slice and routes to `S3_UNCLASSIFIED`
 - S3D cannot verify required slice metadata, a dependency graph, topological order or disjoint locks
 - S3D detects a file, contract, module or architecture-boundary lock conflict
+- parallel workflow worktrees cannot be created or are dirty before execution
+- two parallel workflows unexpectedly modify the same file, test, governance
+  artifact, skill file, agent file, package structure or architecture decision
+- shared live infrastructure would be modified concurrently
+- merge order matters and cannot be determined safely
+- a rebase or merge conflict occurs after another parallel workflow merged
 - a quality or validation failure cannot be classified except as `UNKNOWN_FAILURE`
 - the typed error owner cannot be mapped to a verified role, skill or documented interim owner
 - typed-router retries exceed `maxRetries = 3`

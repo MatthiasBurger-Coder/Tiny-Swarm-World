@@ -18,7 +18,8 @@ Use this process when the user requests `workflow create`.
 3. Create or verify the dedicated workflow branch.
 4. Generate or regenerate `documentation/workflow`.
 5. Define slices with owners, dependencies, allowed write scopes, stop conditions, and quality gates from `QUALITY.md`.
-6. Verify that `documentation/workflow/workflow.md` and relevant `documentation/arc42` updates exist before releasing `workflow execute`.
+6. Add the required `## Parallel Execution` section to every executable workflow, including parallel eligibility, conflicting workflows, shared files, shared infrastructure, isolated worktree requirement, serialized live validation requirement, and merge-order constraints.
+7. Verify that `documentation/workflow/workflow.md` and relevant `documentation/arc42` updates exist before releasing `workflow execute`.
 
 ## Stop Conditions
 

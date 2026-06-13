@@ -101,6 +101,34 @@ Stop and report only when the required branch cannot be created, the branch stat
 
 Never push directly to `main`.
 
+## Parallel Workflow Publication Rule
+
+When multiple independent workflows are selected for parallel execution, each
+workflow must have one dedicated Git worktree, branch, isolated working
+directory, focused pull request and quality-gate lifecycle. Do not execute or
+publish multiple parallel workflows from the same worktree.
+
+Before parallel publication, verify that the workflows do not modify the same
+files, tests, package structures, workflow templates, governance files, skill
+files, agent files, shared architecture decisions or shared live infrastructure
+state. Conflicting workflows must be serialized.
+
+For each parallel workflow PR:
+
+- run commit readiness, verification, CI and SonarQube checks independently;
+- keep evidence separate per workflow branch and worktree;
+- merge completed PRs one at a time after refreshing the integration branch;
+- update or rebase the workflow branch when policy requires it and rerun
+  affected tests;
+- delete only the verified merged remote head branch;
+- remove the workflow worktree only after the PR is verified merged, the
+  integration branch is updated locally, the worktree is clean, evidence is
+  documented and workflow status is updated.
+
+Live infrastructure validation must be serialized unless the workflow proves
+isolated LXD, LXC, Docker, Docker Swarm, networking, firewall, service
+bootstrap, secrets-management, install, reset or reinstall infrastructure.
+
 ## Workflow
 
 ### Phase 0: Preconditions
@@ -372,8 +400,8 @@ Execute this order:
 11. Merge the pull request through GitHub.
 12. Re-fetch the pull request and verify `merged: true` before any branch deletion.
 13. Delete only the merged pull request's remote head branch.
-14. Run `.agents/skills/git-clean/SKILL.md` to switch to `main`, fast-forward it, and delete the local merged branch.
-15. Report the merge commit, required-check and SonarQube status, remote branch deletion result, clean result, and final `main` status.
+14. Run `.agents/skills/git-clean/SKILL.md` to switch to `main`, fast-forward it, delete the local merged branch, and remove a workflow worktree only when the parallel workflow cleanup rule allows it.
+15. Report the merge commit, required-check and SonarQube status, remote branch deletion result, clean result, any worktree cleanup result, and final `main` status.
 
 For `push auto`, the pull request body must include the same content as the `push` workflow plus an explicit note that the workflow intends to wait or retry until required checks are green including SonarQube when configured, merge the PR, delete the merged PR head branch, and run clean after merge verification.
 
@@ -472,6 +500,10 @@ Stop if:
 - `.codex/agents/git_commit_operator.toml` cannot be read when commit, push, or pull-request execution is requested,
 - branch or worktree is unclear,
 - the worktree is detached,
+- parallel workflow publication cannot prove one branch, one worktree, one PR
+  and one quality lifecycle per workflow,
+- parallel workflow scopes overlap or merge order cannot be determined safely,
+- shared live infrastructure validation would run concurrently,
 - the current branch is `main` and a work branch cannot be created safely,
 - staged and unstaged changes conflict,
 - unexpected files exist,

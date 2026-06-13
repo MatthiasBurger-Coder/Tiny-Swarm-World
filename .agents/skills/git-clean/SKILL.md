@@ -43,6 +43,12 @@ Also use it when the user explicitly asks to clean up after a merged PR.
 
 Also use it when `.agents/skills/git-commit-preparation/SKILL.md` invokes cleanup after a successful `push auto` merge.
 
+For parallel workflow cleanup, this skill may remove the completed workflow
+worktree only after the pull request was verified merged, the integration
+branch was updated locally, no uncommitted changes remain in that worktree,
+evidence was documented, and workflow status was updated. Do not remove a
+worktree with uncommitted changes or unclear ownership.
+
 Do not treat Gradle's `clean` task as this workflow unless the request is about Git or PR cleanup.
 
 ## Mandatory Behavior
@@ -58,6 +64,8 @@ You must:
 - delete only local branches proven merged and unnecessary,
 - keep branches with unclear ownership, unmerged commits, active worktrees, or missing merge evidence,
 - report every deleted, kept, and blocked branch.
+- report every removed, kept, and blocked workflow worktree when parallel
+  workflow cleanup is in scope.
 
 Remote branch deletion is not part of this skill unless the user explicitly requests remote deletion in addition to `clean`. The `push auto` workflow may delete the merged pull request's remote head branch before invoking this skill.
 
@@ -75,6 +83,14 @@ git switch main
 git pull --ff-only origin main
 git branch --merged main
 git branch --no-merged main
+```
+
+For parallel workflow worktree cleanup, inspect the candidate worktree before
+removal:
+
+```bash
+git -C <workflow-worktree> status --short --branch
+git worktree remove <workflow-worktree>
 ```
 
 When a candidate branch is known, verify it before deletion:
@@ -150,6 +166,22 @@ Never use `git branch -D` as part of this skill.
 
 Keep and report any branch that needs force deletion, has unclear ownership, has unmerged commits, is attached to another worktree, or cannot be matched to a completed PR.
 
+### Phase 5b: Remove Only Safe Workflow Worktrees
+
+Remove a workflow worktree only when all are true:
+
+- the cleanup follows a verified merged workflow PR;
+- the worktree belongs to that completed workflow;
+- the integration branch is updated locally;
+- `git -C <workflow-worktree> status --short --branch` shows no uncommitted
+  changes;
+- evidence and workflow status were documented;
+- `git worktree remove <workflow-worktree>` succeeds without force.
+
+Keep and report any worktree with uncommitted changes, unclear ownership,
+missing merge evidence, missing status evidence, or a removal that would require
+force.
+
 ### Phase 6: Final Verification
 
 Run:
@@ -173,6 +205,7 @@ PR merge status:
 
 Branch cleanup:
 - <branch>: <deleted / kept / blocked and reason>
+- <workflow worktree>: <removed / kept / blocked and reason>
 
 Main status:
 - <branch, commit, tracking status>
@@ -197,6 +230,8 @@ Stop if:
 - `main` cannot be fast-forwarded,
 - a candidate branch is used by another worktree,
 - deleting a branch would require `git branch -D`,
+- a workflow worktree has uncommitted changes, unclear ownership, missing merge
+  evidence, or would require forced removal,
 - remote branch deletion would be needed but was not explicitly requested,
 - credentials, tokens, or unrelated local files appear during cleanup.
 
@@ -208,7 +243,8 @@ Do not:
 - delete the current branch,
 - force-delete branches,
 - delete remote branches unless explicitly requested,
-- remove worktrees,
+- remove worktrees unless this is verified parallel workflow cleanup after a
+  successful merge and clean-state verification,
 - discard uncommitted changes,
 - run `git reset --hard`,
 - run `git clean`,

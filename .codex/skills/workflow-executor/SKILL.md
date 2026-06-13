@@ -35,7 +35,8 @@ Read, when present:
 4. Run the S3 safety preflight when project governance defines it: check working tree status, active execution branch, local branch ref and active workflow scope before classifying a slice. Project-defined S3 classification must include a default unclassified STOP and escalation path; unclassifiable slices must not execute automatically.
 5. Identify slices, dependencies, write scopes, and verification commands.
 6. Route each slice to the smallest suitable set of subagents or role reviews.
-7. Execute one slice at a time.
+7. Execute one slice at a time unless project governance explicitly approves
+   independent parallel workflow execution in isolated Git worktrees.
 8. Run required targeted checks and quality gates after each slice.
 9. Inspect `git diff` and `git diff --check`.
 10. When the active project workflow permits slice checkpoint pushes, stage only current-slice files, run `git diff --cached --check`, create the slice-scoped checkpoint commit, push only the current workflow branch to `origin`, and record the commit SHA and push result.
@@ -46,6 +47,18 @@ A later explicit `push auto` may publish any task-scoped repository change from
 workflow execution only through the guarded commit, pull request, green
 required-checks, SonarQube when configured, merge and cleanup lifecycle.
 
+Parallel workflow execution requires one dedicated worktree, branch, working
+directory, PR and quality lifecycle per workflow. Do not execute multiple
+parallel workflows in the same worktree. Serialize overlapping workflows and
+shared live infrastructure validation unless isolated infrastructure is
+verified. Merge parallel workflow PRs one at a time after refreshing the
+integration branch, updating the branch when required, rerunning affected tests
+and rechecking CI plus SonarQube.
+
 ## Stop Conditions
 
-Stop when a slice, symbol, module, API, build task, schema, command, architecture rule, quality gate, start artifact, checkpoint target, service boundary, active branch, working-tree status, local branch ref, workflow scope, or slice classification cannot be verified exactly.
+Stop when a slice, symbol, module, API, build task, schema, command,
+architecture rule, quality gate, start artifact, checkpoint target, service
+boundary, active branch, working-tree status, local branch ref, workflow scope,
+parallel worktree isolation, merge order, live infrastructure isolation, or
+slice classification cannot be verified exactly.
