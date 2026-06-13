@@ -291,7 +291,11 @@ class _InstallScriptFixture:
             **{
                 key: value
                 for key, value in os.environ.items()
-                if key not in _install_secret_environment_names()
+                if key
+                not in (
+                    *_install_secret_environment_names(),
+                    *_wsl_environment_names(),
+                )
             },
             **(self.secret_environment or _required_secret_environment()),
             "PATH": f"{self.fake_bin}:{os.environ['PATH']}",
@@ -350,6 +354,7 @@ class _InstallScriptFixture:
         (self.root / "src" / "tiny_swarm_world").mkdir(parents=True)
         self.fake_bin.mkdir()
         _write_executable(self.fake_bin / "python3", _fake_python3())
+        _write_executable(self.fake_bin / "grep", _fake_grep())
         _write_executable(self.fake_bin / "script", _fake_script())
 
 
@@ -401,9 +406,29 @@ def _install_secret_environment_names() -> tuple[str, ...]:
     )
 
 
+def _wsl_environment_names() -> tuple[str, ...]:
+    return (
+        "WSL_DISTRO_NAME",
+        "WSL_INTEROP",
+    )
+
+
 def _write_executable(path: Path, content: str) -> None:
     path.write_text(content)
     path.chmod(0o755)
+
+
+def _fake_grep() -> str:
+    return textwrap.dedent(
+        """\
+        #!/usr/bin/env bash
+        set -euo pipefail
+        if [[ "$*" == *microsoft* || "$*" == *wsl* ]]; then
+          exit 1
+        fi
+        exec /usr/bin/grep "$@"
+        """
+    )
 
 
 def _fake_python3() -> str:
