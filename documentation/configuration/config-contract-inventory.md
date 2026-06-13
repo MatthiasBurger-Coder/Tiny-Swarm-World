@@ -68,7 +68,7 @@ loading, schema checks, or explicit pass-through handling:
 | `infra/config/inventory/desired_inventory.yaml` | Host-neutral desired inventory. | Domain loading rejects unknown fields and invalid collection shapes. |
 | `infra/config/services.yml` | Service catalogue material. | Needs explicit contract review before being included in the typed config loader. |
 | `infra/config/cloud-init-manager.yaml` | Cloud-init manager configuration. | Legacy/specialized surface; include only after consumer ownership is verified. |
-| `infra/config/compose/*/docker-compose.yml` | Stack definitions and compose placeholders. | Parsed by compose repository tests; placeholder variables need inventory and template coverage. |
+| `infra/config/compose/*/docker-compose.yml` | Stack definitions and compose placeholders. | Parsed by compose repository tests for stack content, service names, and published ports; placeholder variables need inventory and template coverage. |
 | `config/secrets/infisical-secrets.yaml` | Managed secret manifest for Infisical synchronization. | `SecretManifestRenderer` validates schema, duplicate keys, key pattern, type, and policy. |
 
 ## Required Setup Secrets
@@ -146,7 +146,7 @@ distinguish service images, secret values, secret names, paths, and defaults.
 | `TSW_TRAEFIK_IMAGE` | `traefik:v3.7.4` | image reference | Traefik compose |
 | `TSW_TRAEFIK_TLS_CERT_SECRET_NAME` | `tsw_traefik_tls_cert` | external secret name | Traefik compose, installer |
 | `TSW_TRAEFIK_TLS_KEY_SECRET_NAME` | `tsw_traefik_tls_key` | external secret name | Traefik compose, installer |
-| `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` | `tsw_vaultwarden_admin_token` in compose/contract | external secret name | service-access/vaultwarden docs and deployment tests |
+| `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` | legacy/opt-in Vaultwarden surfaces only | external secret name | not part of the current service-access compose contract |
 
 ## Documentation-Only Or Drifted Keys
 

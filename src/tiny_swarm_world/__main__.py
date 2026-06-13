@@ -14,7 +14,11 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     PlatformWorkflowResult,
     PlatformWorkflowStatus,
 )
+from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
+    PortComposeFileRepository,
+)
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
+from tiny_swarm_world.domain.deployment.stack_definition import ComposeServiceDefinition
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProviderKind
 from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_PROMPT,
@@ -32,6 +36,7 @@ from tiny_swarm_world.infrastructure.composition import (
     SetupServices,
     build_application_services,
     build_artifact_services_for_provider,
+    build_compose_file_repository,
     build_deployment_services_for_provider,
     build_preflight_service,
     build_application_logger,
@@ -440,6 +445,7 @@ def _print_preflight_summary(result: PreflightResult, *, live: bool = False) -> 
 def _print_setup_installation_plan(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    compose_repository: PortComposeFileRepository | None = None,
 ) -> None:
     selected_service_profile = ServiceStackProfile(service_profile)
     configuration = default_preflight_configuration(service_profile=selected_service_profile)
@@ -474,16 +480,6 @@ def _print_setup_installation_plan(
     ):
         print(f"- {phase}")
     print("Services:")
-    stack_sources = {
-        "Jenkins": "infra/config/compose/jenkins/docker-compose.yml",
-        "Infisical": "infra/config/compose/infisical/docker-compose.yml",
-        "Nexus": "infra/config/compose/nexus/docker-compose.yml",
-        "Portainer": "infra/config/compose/portainer/docker-compose.yml",
-        "RabbitMQ": "infra/config/compose/rabbitmq/docker-compose.yml",
-        "Service Access": "infra/config/compose/service-access/docker-compose.yml",
-        "SonarQube": "infra/config/compose/sonarqube/docker-compose.yml",
-        "Swagger/NGINX": "infra/config/compose/swagger/docker-compose.yml",
-    }
     stack_names = {
         "Jenkins": "jenkins",
         "Infisical": "infisical",
@@ -493,14 +489,49 @@ def _print_setup_installation_plan(
         "Service Access": "service-access",
         "SonarQube": "sonarqube",
         "Swagger/NGINX": "swagger",
+        "Traefik Ingress": "traefik",
     }
+    repository = compose_repository or build_compose_file_repository()
     for service in manifest.services:
-        ports = ", ".join(str(port.port) for port in service.ports) or "no published port"
+        stack_name = stack_names.get(service.name, "infra")
+        compose_services = _compose_services_for_plan(repository, stack_name)
+        compose_service_names = _format_compose_service_names(compose_services)
+        ports = _format_compose_published_ports(compose_services)
         print(
-            f"- {service.name}: stack {stack_names.get(service.name, 'infra')}, "
-            f"source {stack_sources.get(service.name, 'infra')}, published port(s) {ports}"
+            f"- {service.name}: stack {stack_name}, "
+            f"source infra/config/compose/{stack_name}/docker-compose.yml, "
+            f"compose service(s) {compose_service_names}, published port(s) {ports}"
         )
     print()
+
+
+def _compose_services_for_plan(
+    repository: PortComposeFileRepository,
+    stack_name: str,
+) -> tuple[ComposeServiceDefinition, ...]:
+    try:
+        return repository.get_services_of(stack_name)
+    except FileNotFoundError:
+        return ()
+
+
+def _format_compose_service_names(
+    services: tuple[ComposeServiceDefinition, ...],
+) -> str:
+    return ", ".join(service.name for service in services) or "not declared"
+
+
+def _format_compose_published_ports(
+    services: tuple[ComposeServiceDefinition, ...],
+) -> str:
+    published_ports = tuple(
+        dict.fromkeys(
+            port
+            for service in services
+            for port in service.published_ports
+        )
+    )
+    return ", ".join(str(port) for port in published_ports) or "no published port"
 
 
 def _print_setup_installation_summary(result: SetupWorkflowResult) -> None:

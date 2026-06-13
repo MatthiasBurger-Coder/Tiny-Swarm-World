@@ -127,25 +127,20 @@ Quality scenarios:
 
 === Service Access And Credential Display Safety
 
-The service-access dashboard and Vaultwarden stack must preserve credential
-and reachability boundaries without live infrastructure side effects in the
+The service-access dashboard and stack metadata must preserve credential and
+reachability boundaries without live infrastructure side effects in the
 default quality gate.
 
 Quality scenarios:
 
 * the base stack profile excludes `service-access`;
 * the full guided setup profile includes the `service-access` stack with
-  required services `service-access-dashboard`, `vaultwarden`, and
-  `service-access-nginx`;
-* the default setup CLI plan lists the service-access landing page and
-  Vaultwarden ports, while `--service-profile default` can omit the management
-  stack intentionally;
+  required services `service-access-dashboard` and `service-access-nginx`;
+* the default setup CLI plan lists compose service names and published ports
+  parsed from the selected stacks, while `--service-profile default` can omit
+  the management stack intentionally;
 * committed service-access YAML loads through the compose repository and
   publishes only the service-access NGINX ports `80`, `8086`, and `443`;
-* Vaultwarden receives its administrator token through an external Swarm
-  secret name and no committed token value or static password default exists;
-* deployment apply blocks before Portainer stack create/update when the
-  configured external Swarm input for Vaultwarden is not observed;
 * Portainer and direct Swarm deployment paths propagate only allowlisted stack
   environment values, and verification evidence records no literal token,
   secret, password or credential names;
@@ -155,8 +150,8 @@ Quality scenarios:
   repository bind mounts for the Portainer-managed path;
 * dashboard links use central service-access route paths and do not include
   credential-bearing query strings, fragments, or userinfo URLs;
-* dashboard `pwd` cells show Vaultwarden item references instead of raw
-  password values;
+* dashboard `pwd` cells show secret item references instead of raw password
+  values;
 * no React, Vite, TSX, JSX, package-manager lockfile, host-side live helper,
   Docker build script, Portainer upload script, token, password, API key, or
   credential-bearing URL is introduced in service-access assets.

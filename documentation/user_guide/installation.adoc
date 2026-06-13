@@ -376,44 +376,21 @@ Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX environment is intentional.
 == Service Access Management Prerequisites
 
 The full guided setup includes the service-access management stack with a
-static landing page, Vaultwarden and service-access NGINX assets. The setup
-CLI selects this profile by default. Operators who intentionally want only the
-older base service set can pass `--service-profile default`.
+static landing page and service-access NGINX assets. The setup CLI selects
+this profile by default. Operators who intentionally want only the older base
+service set can pass `--service-profile default`.
 
-The Swarm target publishes port `80` for the service-access landing page,
-port `443` for the Vaultwarden HTTPS route, and port `8086` for the local HTTP
-compatibility route. WSL `localhost` forwarding is a
-separate host-network concern. Endpoint defaults are configuration hints, not
-service-health evidence. If localhost forwarding is stale, use the current
-Swarm node IP only for manual diagnosis until the forwarding issue is repaired.
-The Vaultwarden administrator token is provided through an external Swarm
-secret. The guided installer stores the secret value as an Argon2 PHC string in
-`TSW_VAULTWARDEN_ADMIN_TOKEN`; when it sees a local plaintext token, it hashes
-that value and records the original admin login token as
-`TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN` in the local `0600` environment file. It
-prefers the local `argon2` command and falls back to
-`docker run --rm -i vaultwarden/server:latest /vaultwarden hash --preset owasp`
-when `argon2` is not installed. The fallback image can be overridden with
-`TSW_VAULTWARDEN_HASH_IMAGE`. By default the compose stack references
-`tsw_vaultwarden_admin_token`; operators may override only the secret name through
-`TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET`. Document only the secret name, never the
-token value.
-
-The local `service-access` default allows initial Vaultwarden account signup.
-Operators can disable that behavior with:
-
-[source,bash]
-----
-export TSW_VAULTWARDEN_SIGNUPS_ALLOWED=false
-----
-
-During `deployment apply`, the setup checks that the configured external
-Swarm input is observable before uploading the service-access stack. A missing
-input returns a blocked deployment result with redacted evidence instead of
-attempting the Portainer stack create/update.
+The service-access setup profile exposes Traefik ingress ports `80` and `443`
+through the LXC/WSL exposure workflow. The service-access NGINX compose
+service publishes ports `80`, `8086`, and `443` as stack metadata parsed from
+`infra/config/compose/service-access/docker-compose.yml`. WSL `localhost`
+forwarding is a separate host-network concern. Endpoint defaults are
+configuration hints, not service-health evidence. If localhost forwarding is
+stale, use the current Swarm node IP only for manual diagnosis until the
+forwarding issue is repaired.
 
 The service-access dashboard is a static management table. It lists service
-links, users and Vaultwarden item references; password values are visible only
-through Vaultwarden's authenticated UI. The dashboard source is
+links, users and Infisical item references; password values are visible only
+through the configured secret-management surface. The dashboard source is
 `infra/compose/service-access/dashboard/index.html`, and the dashboard
 Dockerfile packages that file into the default `service-access` setup path.

@@ -36,34 +36,29 @@ Portainer-managed plan excludes Portainer itself to avoid a bootstrap cycle
 and can exclude bootstrap-owned Nexus. Stack apply checks record Portainer
 stack-registration context only; service readiness is verified separately
 through observed Swarm service evidence. The service-access deployment path
-also has a pre-apply external Swarm input check for the Vaultwarden
-administrator-token Swarm secret reference. Missing input blocks deployment
-before Portainer stack create/update runs, and verification evidence records
-only neutral presence/source classifications.
+uses allowlisted stack environment values and records only neutral
+presence/source classifications in verification evidence.
 
-== Service Access And Vaultwarden Routing Baseline
+== Service Access And Traefik Routing Baseline
 
-The service-access dashboard and Vaultwarden capability is implemented as
-repository assets and setup-selected service contracts. The repository now
-contains the service-access compose stack, image-packaged dashboard and NGINX
-assets, service-stack contracts, setup-manifest requirements and static tests.
-The current central `http://localhost` route requires a fresh
-provider-specific deployment before it is claimed as live-verified.
+The service-access dashboard capability is implemented as repository assets
+and setup-selected service contracts. The repository now contains the
+service-access compose stack, image-packaged dashboard and NGINX assets,
+service-stack contracts, setup-manifest requirements and static tests. The
+current local ingress route requires a fresh provider-specific deployment
+before it is claimed as live-verified.
 
-The accepted routing baseline is `SERVICE_ACCESS_CENTRAL_NGINX`:
+The active routing baseline is Traefik-backed local ingress:
 
-* the service-access stack is the accepted owner of published port `80` and is
-  intended to serve `http://localhost` as the local management overview after
-  verified provider-specific deployment;
-* the service-access stack owns its own NGINX ingress instead of modifying the
-  Swagger-owned NGINX service;
-* stable central paths such as `/jenkins`, `/nexus`, `/portainer`,
-  `/rabbitmq`, `/sonarqube`, `/swagger` and `/vaultwarden` are managed by
-  service-access NGINX;
+* Traefik owns the public manager profile proxy set on published ports `80`
+  and `443` for the service-access setup profile;
+* service stack routes are declared with Traefik Swarm labels and the external
+  `traefik_ingress` network;
+* the service-access stack remains the dashboard stack and may publish its own
+  NGINX compatibility ports from compose metadata;
 * the Swagger/NGINX stack uses published port `8084`;
-* the Vaultwarden HTTPS route uses published port `443`, while `8086` remains a local HTTP compatibility route;
-* Traefik remains deferred until a later ADR and tests add a provider, labels,
-  dashboard exposure policy, network model and rollback.
+* live route success, hostname resolution and browser-visible HTTPS behavior
+  remain opt-in verification concerns, not static documentation claims.
 
 Portainer may manage service-access stack create/update only after Portainer
 is reachable. First-time Portainer bootstrap remains outside the
@@ -73,11 +68,6 @@ For the Portainer-managed path, service-access dashboard and NGINX assets are
 image-packaged under `infra/compose/service-access/**`. Bind-mounted
 repository files are not an accepted Portainer path unless a later slice adds
 a tested asset-preparation port or adapter and documents when it runs.
-
-The Vaultwarden administrator-token secret name is propagated through an
-allowlisted stack environment variable for both Portainer-managed and direct
-Swarm stack deployment paths. The literal Swarm secret name is a deployment
-input and must not be copied into `VerificationResult` evidence.
 
 == Planned Traefik HTTPS Ingress Migration
 
@@ -106,10 +96,10 @@ The migration must preserve these deployment constraints:
 * live browser and TLS checks remain opt-in and write only redacted local
   evidence under ignored `.tiny-swarm-world/evidence/**` paths.
 
-The current service-access NGINX routing baseline remains the comparison and
-rollback point until implementation slices verify Traefik routing, LXC public
-port reconciliation, certificate validation and browser-visible HTTPS
-behavior.
+The former service-access NGINX routing baseline remains a rollback and
+diagnostic comparison point until implementation slices verify Traefik
+routing, LXC public port reconciliation, certificate validation and
+browser-visible HTTPS behavior.
 
 The repository now includes static Traefik Swarm ingress configuration under
 `infra/config/compose/traefik/docker-compose.yml` plus the dynamic TLS summary

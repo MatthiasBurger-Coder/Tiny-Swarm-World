@@ -160,20 +160,20 @@ adapters. On the default `lxc_native` path, provider-native stack deployment
 remains blocked until the reviewed setup workflow wires and verifies those
 contracts.
 
-== Service-access routing and Vaultwarden
+== Service-access routing
 
-The service-access dashboard and Vaultwarden capability is implemented as
-repository assets, setup-selected service contracts, and routing design. It is
-not claimed as a live-installed management surface for the default
-`lxc_native` path until provider-native deployment and service readiness are
-verified. The current repository design makes the service-access NGINX the
-intended central local HTTP entry point at `http://localhost`. Swagger/NGINX
-moves to its own `8084` published route after a verified deployment.
+The service-access dashboard capability is implemented as repository assets,
+setup-selected service contracts, and routing design. It is not claimed as a
+live-installed management surface for the default `lxc_native` path until
+provider-native deployment and service readiness are verified. The current
+repository design uses Traefik as the local ingress owner for the
+service-access setup profile. Swagger/NGINX moves to its own `8084` published
+route after a verified deployment.
 
 Implemented repository behavior:
 
 * `infra/config/compose/service-access/docker-compose.yml` defines the
-  dashboard, Vaultwarden and service-access NGINX stack.
+  dashboard and service-access NGINX stack.
 * `infra/compose/service-access/dashboard/**` and
   `infra/compose/service-access/nginx/**` provide image-packaged static
   assets for the Portainer-managed path.
@@ -181,22 +181,23 @@ Implemented repository behavior:
   selected setup profile includes the service-access landing page contract.
   Operators can use `--service-profile default` to run only the older base
   service set.
-* The setup manifest for the service-access profile records ports `80`, `8086`, and `443`
-  plus the `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` credential-source name only.
-  It does not record a token value.
+* The setup manifest for the service-access profile records Traefik ingress
+  ports `80` and `443` as the LXC/WSL exposure targets.
+* Compose metadata is parsed from each `docker-compose.yml`; the
+  service-access NGINX compose service publishes ports `80`, `8086`, and
+  `443`.
 
-The accepted routing decision is
-`SERVICE_ACCESS_CENTRAL_NGINX`:
+The accepted routing direction is Traefik-backed local ingress:
 
-* Service Access owns published port `80` and serves the overview at
-  `http://localhost`.
-* Service Access NGINX manages stable local paths such as `/jenkins`,
-  `/nexus`, `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and
-  `/vaultwarden`.
+* Traefik owns published ports `80` and `443` for the service-access setup
+  profile.
+* Service Access remains the dashboard stack and serves the local management
+  overview through the configured ingress path after verified deployment.
 * Swagger/NGINX uses published port `8084`.
-* The Vaultwarden HTTPS route uses published Swarm port `443`; `8086` remains a local HTTP compatibility route.
-* Wider-than-local exposure, Traefik, and public certificate automation require
-  later ADR coverage and tests.
+* The service-access NGINX compose service still publishes `8086` as a local
+  compatibility route.
+* Wider-than-local exposure and public certificate automation require later
+  ADR coverage and tests.
 
 Portainer may manage the service-access stack only after Portainer is
 reachable. First-time Portainer bootstrap remains outside Portainer-managed
@@ -207,9 +208,9 @@ image-packaged. Do not rely on bind-mounted repository files unless a later
 slice adds a tested asset-preparation boundary.
 
 The static dashboard is a management table with `Server`, `URL`, `user` and
-`pwd` columns. Service entries use central route paths and Vaultwarden item
-references. Password values remain visible only through Vaultwarden's
-authenticated reveal/copy flow.
+`pwd` columns. Service entries use central route paths and Infisical item
+references. Password values remain visible only through the configured
+secret-management surface.
 
 Current live verification note:
 

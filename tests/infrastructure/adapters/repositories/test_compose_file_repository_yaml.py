@@ -35,6 +35,46 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             self.assertEqual(stack_definition.name, "nexus")
             self.assertIn("image: nexus:latest", stack_definition.compose_content)
 
+    def test_extracts_service_names_and_published_ports_from_compose_file(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            compose_root.joinpath("mixed").mkdir(parents=True)
+            compose_root.joinpath("mixed", "docker-compose.yml").write_text(
+                """
+services:
+  web:
+    image: nginx
+    ports:
+      - target: 80
+        published: 8080
+        protocol: tcp
+        mode: host
+      - "127.0.0.1:8443:443/tcp"
+      - "9000"
+  worker:
+    image: busybox
+  admin:
+    image: nginx
+    ports:
+      - published: "9090"
+        target: 90
+""",
+                encoding="utf-8",
+            )
+
+            repository = ComposeFileRepositoryYaml(base_directories=[compose_root])
+
+            services = repository.get_services_of("mixed")
+
+        self.assertEqual(
+            [
+                ("web", (8080, 8443)),
+                ("worker", ()),
+                ("admin", (9090,)),
+            ],
+            [(service.name, service.published_ports) for service in services],
+        )
+
     def test_recursively_loads_compose_content_from_matching_stack_directory(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             compose_root = Path(temp_dir) / "compose"
@@ -155,6 +195,33 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
                 missing_services_by_stack[contract.stack_name] = missing_services
 
         self.assertEqual({}, missing_services_by_stack)
+
+    def test_committed_compose_metadata_exposes_service_names_and_published_ports(self):
+        repository = ComposeFileRepositoryYaml()
+
+        metadata = {
+            stack: {
+                service.name: service.published_ports
+                for service in repository.get_services_of(stack)
+            }
+            for stack in (
+                "jenkins",
+                "infisical",
+                "nexus",
+                "portainer",
+                "rabbitmq",
+                "service-access",
+                "sonarqube",
+                "swagger",
+                "traefik",
+            )
+        }
+
+        self.assertEqual((8080, 50000), metadata["jenkins"]["jenkins"])
+        self.assertEqual((), metadata["infisical"]["infisical"])
+        self.assertEqual((8081, 5000, 5001), metadata["nexus"]["nexus"])
+        self.assertEqual((80, 8086, 443), metadata["service-access"]["service-access-nginx"])
+        self.assertEqual((80, 443), metadata["traefik"]["traefik"])
 
     def test_committed_jenkins_compose_uses_overridable_registry_image(self):
         repository_root = Path(__file__).resolve().parents[4]
