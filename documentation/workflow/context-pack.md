@@ -55,7 +55,7 @@ role files, skill files, or `documentation/workflow/workflow.md`.
 - Senior React Frontend Developer
 - Senior Tester
 - Senior Documentation Engineer
-- Senior Security Engineer
+- Senior Security Sandbox Engineer
 
 ## Conditional Roles
 

@@ -450,7 +450,7 @@ slice_id: S03
 profile: FULL_PATH
 owner: Senior Python Automation Developer
 secondary_reviewers:
-  - Senior Security Engineer
+  - Senior Security Sandbox Engineer
   - Senior Tester
 affected_files:
   - src/tiny_swarm_world/infrastructure/adapters/configuration/**
@@ -748,7 +748,7 @@ S01
 - Senior React Frontend Developer: no-impact verification for browser/React
   scope.
 - Senior Documentation Engineer: template and operator documentation.
-- Senior Security Engineer: secret classification and redaction review.
+- Senior Security Sandbox Engineer: secret classification, redaction, and local-file safety review.
 - Senior Tester: regression design and final quality evidence.
 
 ## Quality-Gate Expectations
