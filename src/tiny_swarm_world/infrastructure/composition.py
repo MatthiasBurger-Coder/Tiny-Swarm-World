@@ -94,6 +94,7 @@ from tiny_swarm_world.application.services.platform import (
     PreflightService,
     SocatManager,
 )
+from tiny_swarm_world.application.services.configuration import ConfigurationValidationService
 from tiny_swarm_world.application.services.setup import (
     SetupWorkflow,
     SetupWorkflowPhase,
@@ -168,6 +169,11 @@ from tiny_swarm_world.infrastructure.adapters.clients.infisical_bootstrap_http_c
 from tiny_swarm_world.infrastructure.adapters.clients.sonarqube_http_client import (
     SonarqubeHttpClient,
 )
+from tiny_swarm_world.infrastructure.adapters.configuration import (
+    CombinedConfigurationSource,
+    EnvironmentConfigurationSource,
+    ShellEnvFileConfigurationSource,
+)
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
@@ -197,6 +203,7 @@ from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
 
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
+DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
 DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
 PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT = "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS"
 DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS = 180
@@ -822,6 +829,19 @@ def build_preflight_service(
     return PreflightService(
         HostPreflightProbe(),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
+    )
+
+
+def build_configuration_validation_service(
+    env_file: Path = DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE,
+) -> ConfigurationValidationService:
+    return ConfigurationValidationService(
+        CombinedConfigurationSource(
+            (
+                ShellEnvFileConfigurationSource(env_file),
+                EnvironmentConfigurationSource(),
+            )
+        )
     )
 
 

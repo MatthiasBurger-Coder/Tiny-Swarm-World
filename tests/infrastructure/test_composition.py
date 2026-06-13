@@ -2,6 +2,8 @@ import asyncio
 import os
 import unittest
 from dataclasses import fields
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import cast
 from unittest.mock import patch
 from tests.support.async_helpers import async_checkpoint
@@ -132,6 +134,34 @@ class TestComposition(unittest.TestCase):
             },
             workflow_field_names,
         )
+
+    def test_build_configuration_validation_service_uses_env_file_and_process_environment(self):
+        with TemporaryDirectory() as temporary_directory:
+            env_file = Path(temporary_directory) / "operator.env"
+            env_file.write_text(
+                "\n".join(
+                    (
+                        "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS=0",
+                        "TSW_NEXUS_ADMIN_PASSWORD='file-secret'",
+                        "TSW_SONARQUBE_ADMIN_PASSWORD='file-secret'",
+                    )
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            environment = {
+                **_required_infisical_bootstrap_env(),
+                "TSW_NEXUS_ADMIN_PASSWORD": sample_text("nexus", "-value"),
+                "TSW_SONARQUBE_ADMIN_PASSWORD": sample_text("sonar", "-value"),
+                "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS": "30",
+            }
+
+            with patch.dict(os.environ, environment, clear=True):
+                result = composition.build_configuration_validation_service(env_file).validate()
+
+        self.assertTrue(result.passed)
+        self.assertNotIn("file-secret", repr(result.to_dict()))
+        self.assertNotIn(environment["TSW_NEXUS_ADMIN_PASSWORD"], repr(result.to_dict()))
 
     def test_wsl_lxc_user_namespace_gate_allows_missing_kernel_flag(self):
         with patch.object(
