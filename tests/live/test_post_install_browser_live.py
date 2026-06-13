@@ -33,6 +33,9 @@ from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
 
 RUN_LIVE_ENV = "TSW_RUN_POST_INSTALL_BROWSER_LIVE"
 DEFAULT_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
+MISSING_TEST_ENV_FILE = ".tiny-swarm-world/local/missing-live-installation.env"
+MISSING_TEST_CA_BUNDLE = ".tiny-swarm-world/local/missing-ca-bundle.pem"
+TEST_CA_BUNDLE = "/etc/ssl/certs/tiny-swarm-world-ca.pem"
 DEFAULT_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/post_install_browser_live")
 SERVICE_ACCESS_DASHBOARD = Path("infra/compose/service-access/dashboard/index.html")
 INFISICAL_SECRET_MANIFEST = Path("config/secrets/infisical-secrets.yaml")
@@ -130,6 +133,7 @@ class LivePostInstallConfig:
     sonarqube_username: str
     sonarqube_password: str | None
     timeout_seconds: float
+    tls_ca_bundle: str | None
 
     @classmethod
     def from_environment(cls) -> "LivePostInstallConfig":
@@ -157,6 +161,10 @@ class LivePostInstallConfig:
             sonarqube_username=_env_value(local_env, "TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
             sonarqube_password=_env_optional(local_env, "TSW_SONARQUBE_ADMIN_PASSWORD"),
             timeout_seconds=float(os.environ.get("TSW_POST_INSTALL_BROWSER_TIMEOUT", "45")),
+            tls_ca_bundle=_validated_tls_ca_bundle(
+                os.environ.get("TSW_LIVE_TLS_CA_BUNDLE")
+                or local_env.get("TSW_LIVE_TLS_CA_BUNDLE")
+            ),
         )
 
 
@@ -249,7 +257,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         with patch.dict(
             os.environ,
             {
-                "TSW_LIVE_INSTALLATION_ENV": "/tmp/tiny-swarm-world-missing.env",
+                "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
                 "TSW_DASHBOARD_URL": "https://example.invalid",
             },
         ):
@@ -263,7 +271,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         with patch.dict(
             os.environ,
             {
-                "TSW_LIVE_INSTALLATION_ENV": "/tmp/tiny-swarm-world-missing.env",
+                "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
                 "TSW_INGRESS_BASE_DOMAIN": "localhost",
             },
         ):
@@ -277,7 +285,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         with patch.dict(
             os.environ,
             {
-                "TSW_LIVE_INSTALLATION_ENV": "/tmp/tiny-swarm-world-missing.env",
+                "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
                 "TSW_DASHBOARD_URL": "http://localhost",
                 "TSW_INFISICAL_URL": "https://user:credential@localhost",
             },
@@ -285,6 +293,38 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             with self.assertRaisesRegex(
                 AssertionError,
                 "infisical_setup_blocker: invalid_local_infisical_url",
+            ):
+                LivePostInstallConfig.from_environment()
+
+    def test_live_config_accepts_operator_ca_bundle_path(self) -> None:
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
+                    "TSW_LIVE_TLS_CA_BUNDLE": TEST_CA_BUNDLE,
+                },
+            ),
+            patch.object(Path, "is_file", return_value=True),
+        ):
+            config = LivePostInstallConfig.from_environment()
+
+        self.assertEqual(TEST_CA_BUNDLE, config.tls_ca_bundle)
+
+    def test_live_config_rejects_missing_operator_ca_bundle(self) -> None:
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
+                    "TSW_LIVE_TLS_CA_BUNDLE": MISSING_TEST_CA_BUNDLE,
+                },
+            ),
+            patch.object(Path, "is_file", return_value=False),
+        ):
+            with self.assertRaisesRegex(
+                AssertionError,
+                "post_install_browser_setup_blocker: invalid_tls_ca_bundle",
             ):
                 LivePostInstallConfig.from_environment()
 
@@ -391,7 +431,11 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
         for check in _https_route_checks(self.config.ingress_base_domain):
             hostname = _hostname_for_check(check)
             with self.subTest(service=check.name, hostname=hostname):
-                result = _probe_https_route(check, self.config.timeout_seconds)
+                result = _probe_https_route(
+                    check,
+                    self.config.timeout_seconds,
+                    tls_ca_bundle=self.config.tls_ca_bundle,
+                )
                 self.evidence.record("https_route", result.to_evidence())
                 if not result.reachable:
                     failures.append(result)
@@ -625,7 +669,12 @@ def _probe_http(check: ServiceCheck, timeout_seconds: float) -> HttpProbeResult:
     )
 
 
-def _probe_https_route(check: ServiceCheck, timeout_seconds: float) -> HttpsRouteProbeResult:
+def _probe_https_route(
+    check: ServiceCheck,
+    timeout_seconds: float,
+    *,
+    tls_ca_bundle: str | None = None,
+) -> HttpsRouteProbeResult:
     hostname = _hostname_for_check(check)
     if not _hostname_resolves(hostname):
         return HttpsRouteProbeResult(
@@ -642,6 +691,7 @@ def _probe_https_route(check: ServiceCheck, timeout_seconds: float) -> HttpsRout
             check.url,
             timeout_seconds,
             follow_redirects=check.follow_redirects,
+            tls_ca_bundle=tls_ca_bundle,
         )
     except (OSError, TimeoutError, URLError) as exc:
         return HttpsRouteProbeResult(
@@ -660,7 +710,7 @@ def _probe_https_route(check: ServiceCheck, timeout_seconds: float) -> HttpsRout
         hostname=hostname,
         reachable=reachable,
         status_code=status_code,
-        tls_status="https_reachable_unverified",
+        tls_status="https_reachable_verified",
         result="passed" if reachable else "failed",
         redacted_failure_reason="" if reachable else "http_status_out_of_range",
     )
@@ -671,9 +721,10 @@ def _http_head_or_get(
     timeout_seconds: float,
     *,
     follow_redirects: bool,
+    tls_ca_bundle: str | None = None,
 ) -> tuple[int, str]:
     request = Request(url, method="HEAD")
-    context = ssl._create_unverified_context() if url.startswith("https://") else None
+    context = _ssl_context_for_url(url, tls_ca_bundle)
     handlers: list[Any] = []
     if not follow_redirects:
         handlers.append(_NoRedirectHandler)
@@ -753,24 +804,52 @@ def _infisical_management_status(
         health = session.get(
             urljoin(config.infisical_url.rstrip("/") + "/", "api/status"),
             timeout=config.timeout_seconds,
-            verify=False,
+            verify=_requests_tls_verify(config),
         )
     except requests.RequestException as exc:
-        return _InfisicalManagementStatus(False, False, False, 0, len(expected_password_keys), type(exc).__name__)
+        return _InfisicalManagementStatus(
+            False,
+            False,
+            False,
+            0,
+            len(expected_password_keys),
+            type(exc).__name__,
+        )
     if health.status_code != 200:
-        return _InfisicalManagementStatus(False, False, False, 0, len(expected_password_keys), "infisical_status_unavailable")
+        return _InfisicalManagementStatus(
+            False,
+            False,
+            False,
+            0,
+            len(expected_password_keys),
+            "infisical_status_unavailable",
+        )
 
     try:
         organization_token = _infisical_organization_token(session, config)
         project_id = _infisical_project_id(session, config, organization_token)
         present_keys = _infisical_secret_keys(session, config, organization_token, project_id)
     except requests.RequestException as exc:
-        return _InfisicalManagementStatus(True, False, False, 0, len(expected_password_keys), type(exc).__name__)
+        return _InfisicalManagementStatus(
+            True,
+            False,
+            False,
+            0,
+            len(expected_password_keys),
+            type(exc).__name__,
+        )
     except AssertionError as exc:
         reason = str(exc) or "infisical_api_contract_failed"
         super_admin_present = reason not in {"admin_login_failed", "organization_missing"}
         project_present = reason != "project_missing" and super_admin_present
-        return _InfisicalManagementStatus(True, super_admin_present, project_present, 0, len(expected_password_keys), reason)
+        return _InfisicalManagementStatus(
+            True,
+            super_admin_present,
+            project_present,
+            0,
+            len(expected_password_keys),
+            reason,
+        )
 
     missing = tuple(key for key in expected_password_keys if key not in present_keys)
     return _InfisicalManagementStatus(
@@ -794,7 +873,7 @@ def _infisical_organization_token(
             "password": config.infisical_password,
         },
         timeout=config.timeout_seconds,
-        verify=False,
+        verify=_requests_tls_verify(config),
     )
     if response.status_code != 200:
         raise AssertionError("admin_login_failed")
@@ -806,7 +885,7 @@ def _infisical_organization_token(
         urljoin(config.infisical_url.rstrip("/") + "/", "api/v1/organization"),
         headers=headers,
         timeout=config.timeout_seconds,
-        verify=False,
+        verify=_requests_tls_verify(config),
     )
     if organizations.status_code != 200:
         raise AssertionError("organization_missing")
@@ -821,7 +900,7 @@ def _infisical_organization_token(
         headers=headers,
         json={"organizationId": organization_id},
         timeout=config.timeout_seconds,
-        verify=False,
+        verify=_requests_tls_verify(config),
     )
     if selected.status_code != 200:
         raise AssertionError("organization_missing")
@@ -840,7 +919,7 @@ def _infisical_project_id(
         urljoin(config.infisical_url.rstrip("/") + "/", "api/v1/projects"),
         headers={"Authorization": f"Bearer {organization_token}"},
         timeout=config.timeout_seconds,
-        verify=False,
+        verify=_requests_tls_verify(config),
     )
     if response.status_code != 200:
         raise AssertionError("project_missing")
@@ -850,7 +929,11 @@ def _infisical_project_id(
     for project in projects:
         if not isinstance(project, dict):
             continue
-        names = {str(project.get("name", "")), str(project.get("projectName", "")), str(project.get("slug", ""))}
+        names = {
+            str(project.get("name", "")),
+            str(project.get("projectName", "")),
+            str(project.get("slug", "")),
+        }
         if "tiny-swarm-world" in names:
             project_id = project.get("id")
             if isinstance(project_id, str) and project_id:
@@ -871,7 +954,7 @@ def _infisical_secret_keys(
         ),
         headers={"Authorization": f"Bearer {organization_token}"},
         timeout=config.timeout_seconds,
-        verify=False,
+        verify=_requests_tls_verify(config),
     )
     if response.status_code != 200:
         raise AssertionError("credential_entries_missing")
@@ -1055,6 +1138,31 @@ def _validated_ingress_base_domain(raw_domain: str) -> str:
             "post_install_browser_setup_blocker: invalid_ingress_base_domain"
         ) from exc
     return domain
+
+
+def _validated_tls_ca_bundle(raw_path: str | None) -> str | None:
+    if not raw_path:
+        return None
+    path = Path(raw_path)
+    if not path.is_file():
+        raise AssertionError("post_install_browser_setup_blocker: invalid_tls_ca_bundle")
+    return raw_path
+
+
+def _ssl_context_for_url(url: str, tls_ca_bundle: str | None = None) -> ssl.SSLContext | None:
+    if not url.startswith("https://"):
+        return None
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    if tls_ca_bundle is None:
+        context.load_default_certs()
+    else:
+        context.load_verify_locations(cafile=tls_ca_bundle)
+    return context
+
+
+def _requests_tls_verify(config: LivePostInstallConfig) -> bool | str:
+    return config.tls_ca_bundle or True
 
 
 def _invalid_local_url_reason(purpose: str) -> str:
