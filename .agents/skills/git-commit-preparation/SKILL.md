@@ -400,7 +400,10 @@ Execute this order:
 11. Merge the pull request through GitHub.
 12. Re-fetch the pull request and verify `merged: true` before any branch deletion.
 13. Delete only the merged pull request's remote head branch.
-14. Run `.agents/skills/git-clean/SKILL.md` to switch to `main`, fast-forward it, delete the local merged branch, and remove a workflow worktree only when the parallel workflow cleanup rule allows it.
+14. Run `.agents/skills/git-clean/SKILL.md` to switch to `main`, fast-forward
+    it, delete the local PR branch, use the squash-merge cleanup fallback when
+    the verified PR was squash-merged, and remove a workflow worktree only when
+    the parallel workflow cleanup rule allows it.
 15. Report the merge commit, required-check and SonarQube status, remote branch deletion result, clean result, any worktree cleanup result, and final `main` status.
 
 For `push auto`, the pull request body must include the same content as the `push` workflow plus an explicit note that the workflow intends to wait or retry until required checks are green including SonarQube when configured, merge the PR, delete the merged PR head branch, and run clean after merge verification.
@@ -531,7 +534,8 @@ Do not:
 - push directly to `main`,
 - merge pull requests unless the user enters exactly `push auto`, the diff is task-scoped, and all required checks including SonarQube when configured are green,
 - delete remote branches unless the user enters exactly `push auto`, the diff is task-scoped, all required checks including SonarQube when configured are green, and the pull request was verified as merged,
-- delete local branches directly instead of using the git-clean workflow after push auto,
+- delete local branches directly instead of using the git-clean workflow after
+  push auto, including the verified squash-merge fallback,
 - force-push,
 - enable GitHub auto-merge,
 - retarget the pull request away from `main`,

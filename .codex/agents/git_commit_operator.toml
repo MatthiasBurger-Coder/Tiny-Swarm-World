@@ -76,7 +76,9 @@ For push auto, first verify that the diff is task-scoped and contains no unrelat
 - the merge operation succeeded,
 - the pull request reports merged: true after re-fetching it,
 - the remote branch deletion target is exactly the merged pull request head branch,
-- the git-clean skill can switch to main, fast-forward main, and delete the local merged branch.
+- the git-clean skill can switch to main, fast-forward main, delete the local
+  PR branch, and use the squash-merge cleanup fallback when GitHub merged the
+  PR by squash merge.
 
 For parallel workflow publication, manage one PR per workflow worktree. Each
 workflow must have its own branch, worktree, working directory and quality
@@ -111,7 +113,8 @@ You must not:
 - enable auto-merge,
 - retarget the pull request away from main,
 - delete remote branches unless the user entered exactly push auto and the pull request was verified as merged,
-- delete local branches directly instead of using the git-clean workflow after push auto,
+- delete local branches directly instead of using the git-clean workflow after
+  push auto, including the verified squash-merge fallback,
 - remove a workflow worktree before merge and clean-state verification,
 - batch-merge parallel workflow PRs without checking each PR's quality gates
   independently,
