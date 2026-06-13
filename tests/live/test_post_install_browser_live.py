@@ -33,6 +33,9 @@ from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
 
 RUN_LIVE_ENV = "TSW_RUN_POST_INSTALL_BROWSER_LIVE"
 DEFAULT_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
+MISSING_TEST_ENV_FILE = ".tiny-swarm-world/local/missing-live-installation.env"
+MISSING_TEST_CA_BUNDLE = ".tiny-swarm-world/local/missing-ca-bundle.pem"
+TEST_CA_BUNDLE = "/etc/ssl/certs/tiny-swarm-world-ca.pem"
 DEFAULT_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/post_install_browser_live")
 SERVICE_ACCESS_DASHBOARD = Path("infra/compose/service-access/dashboard/index.html")
 INFISICAL_SECRET_MANIFEST = Path("config/secrets/infisical-secrets.yaml")
@@ -254,7 +257,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         with patch.dict(
             os.environ,
             {
-                "TSW_LIVE_INSTALLATION_ENV": "/tmp/tiny-swarm-world-missing.env",
+                "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
                 "TSW_DASHBOARD_URL": "https://example.invalid",
             },
         ):
@@ -268,7 +271,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         with patch.dict(
             os.environ,
             {
-                "TSW_LIVE_INSTALLATION_ENV": "/tmp/tiny-swarm-world-missing.env",
+                "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
                 "TSW_INGRESS_BASE_DOMAIN": "localhost",
             },
         ):
@@ -282,7 +285,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         with patch.dict(
             os.environ,
             {
-                "TSW_LIVE_INSTALLATION_ENV": "/tmp/tiny-swarm-world-missing.env",
+                "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
                 "TSW_DASHBOARD_URL": "http://localhost",
                 "TSW_INFISICAL_URL": "https://user:credential@localhost",
             },
@@ -298,23 +301,23 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             patch.dict(
                 os.environ,
                 {
-                    "TSW_LIVE_INSTALLATION_ENV": "/tmp/tiny-swarm-world-missing.env",
-                    "TSW_LIVE_TLS_CA_BUNDLE": "/etc/ssl/certs/tiny-swarm-world-ca.pem",
+                    "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
+                    "TSW_LIVE_TLS_CA_BUNDLE": TEST_CA_BUNDLE,
                 },
             ),
             patch.object(Path, "is_file", return_value=True),
         ):
             config = LivePostInstallConfig.from_environment()
 
-        self.assertEqual("/etc/ssl/certs/tiny-swarm-world-ca.pem", config.tls_ca_bundle)
+        self.assertEqual(TEST_CA_BUNDLE, config.tls_ca_bundle)
 
     def test_live_config_rejects_missing_operator_ca_bundle(self) -> None:
         with (
             patch.dict(
                 os.environ,
                 {
-                    "TSW_LIVE_INSTALLATION_ENV": "/tmp/tiny-swarm-world-missing.env",
-                    "TSW_LIVE_TLS_CA_BUNDLE": "/tmp/tiny-swarm-world-missing-ca.pem",
+                    "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
+                    "TSW_LIVE_TLS_CA_BUNDLE": MISSING_TEST_CA_BUNDLE,
                 },
             ),
             patch.object(Path, "is_file", return_value=False),
@@ -1149,7 +1152,13 @@ def _validated_tls_ca_bundle(raw_path: str | None) -> str | None:
 def _ssl_context_for_url(url: str, tls_ca_bundle: str | None = None) -> ssl.SSLContext | None:
     if not url.startswith("https://"):
         return None
-    return ssl.create_default_context(cafile=tls_ca_bundle)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    if tls_ca_bundle is None:
+        context.load_default_certs()
+    else:
+        context.load_verify_locations(cafile=tls_ca_bundle)
+    return context
 
 
 def _requests_tls_verify(config: LivePostInstallConfig) -> bool | str:
