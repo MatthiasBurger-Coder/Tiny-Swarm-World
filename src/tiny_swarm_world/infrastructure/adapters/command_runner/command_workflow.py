@@ -97,7 +97,7 @@ class CommandWorkflow(PortCommandWorkflow):
                 parameter,
                 workflow_id=workflow_id,
             )
-        except (CommandCatalogValidationError, TypeError):
+        except (CommandCatalogValidationError, TypeError, ValueError):
             return VerificationResult(
                 target_id=target_id,
                 status=VerificationStatus.BLOCKED,

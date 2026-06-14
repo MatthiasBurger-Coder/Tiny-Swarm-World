@@ -4,6 +4,7 @@ from tiny_swarm_world.application.ports.commands.port_command_runner import Port
 
 
 class AnsiblePortCommandRunner(PortCommandRunner):
+    """Legacy placeholder retained for compatibility; not selectable by active workflows."""
 
     def __init__(self):
         super().__init__()
@@ -12,11 +13,8 @@ class AnsiblePortCommandRunner(PortCommandRunner):
 
     async def run(self, command: str) -> str:
         async with self.lock:
-            self.status["current_step"] = "Executing command"
-            self.status["result"] = "Running..."
-
-        # do something
-        async with self.lock:
-            self.status["result"] = "Success"
-
-        return ""
+            self.status["current_step"] = "Unsupported command runner"
+            self.status["result"] = "Unsupported"
+        raise NotImplementedError(
+            "Ansible command runner is unsupported in active Tiny Swarm World workflows."
+        )

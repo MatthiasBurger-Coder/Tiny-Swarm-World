@@ -1,0 +1,33 @@
+# Slice 70 Distribution Evidence
+
+- Workflow id: `issue-70-command-runner-responsibility-20260614`
+- Slice id: `70`
+- Slice title: Clarify command runner responsibility
+- Affected areas: command runner infrastructure, domain command metadata, tests, documentation, architecture
+- Chosen execution mode: sequential
+- Selected streams: command runner factory, placeholder runner behavior, tests, documentation
+- Real subagents used: yes, Beauvoir completed read-only review
+- Fallback role-based review used: no
+- Git worktrees used: no
+- Expected touched files/directories:
+  - `src/tiny_swarm_world/domain/command/**`
+  - `src/tiny_swarm_world/application/ports/commands/**`
+  - `src/tiny_swarm_world/infrastructure/adapters/command_runner/**`
+  - `tests/infrastructure/adapters/command_runner/**`
+  - `documentation/architecture/**`
+- Conflict risks:
+  - Issue #71 and #72 depend on this runner responsibility decision.
+  - REST and Ansible enum values are retained as legacy compatibility, but must not be active workflow selections.
+  - Placeholder runners must fail closed instead of reporting success.
+- Quality gates:
+  - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_runner_factory tests.infrastructure.adapters.command_runner.test_async_command_runner`
+  - `python3 tools/quality_gate.py lint`
+  - `python3 tools/quality_gate.py typecheck`
+  - `python3 tools/quality_gate.py quality`
+- Consolidation plan:
+  - Keep implementation sequential because factory behavior, placeholder behavior, and documentation define one policy.
+  - Incorporated read-only subagent findings before final commit.
+  - Publish through guarded PR lifecycle after local and remote checks pass.
+- Parallelization decision:
+  - Rejected for write work due to overlapping command-runner policy files.
+  - Accepted only for read-only subagent review.
