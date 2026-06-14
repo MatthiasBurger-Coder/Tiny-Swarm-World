@@ -4,7 +4,7 @@ from tiny_swarm_world.application.ports.commands.port_command_runner import Port
 
 
 class RestApiPortCommandRunner(PortCommandRunner):
-    """Legacy placeholder retained for compatibility; not selectable by active workflows."""
+    """Legacy REST placeholder retained for compatibility; not selectable."""
 
     def __init__(self):
         super().__init__()

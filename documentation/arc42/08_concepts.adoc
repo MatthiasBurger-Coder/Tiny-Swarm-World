@@ -34,6 +34,9 @@ Their placeholder adapters fail closed if instantiated directly and must not
 report success without a real, tested implementation. Reintroducing either
 runner as supported runtime surface requires an explicit workflow with
 implementation, tests, and documentation.
+Because REST command execution is currently disabled, active workflows do not
+define REST HTTP method, URL, header/body, timeout, response-validation, or
+error-mapping semantics.
 
 Tests and quality gates parse and validate command YAML without running live
 LXD, Incus, LXC container lifecycle, Docker Swarm, netplan, socat,

@@ -19,5 +19,11 @@ supported runner requires an explicit future workflow with real implementation,
 tests for success and failure behavior, documentation, and quality-gate
 coverage.
 
+REST command execution is disabled rather than partially implemented. Current
+workflows therefore do not define REST command HTTP methods, URLs, headers,
+bodies, timeouts, response validation, retry behavior, or non-success response
+mapping. Those semantics belong to a future infrastructure adapter and port
+contract if REST command execution is reintroduced.
+
 This decision keeps the current LXC-native setup path independent from
 Ansible-specific abstractions and from placeholder REST behavior.

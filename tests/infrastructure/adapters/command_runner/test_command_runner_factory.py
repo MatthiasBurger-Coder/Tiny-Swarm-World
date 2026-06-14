@@ -53,6 +53,15 @@ class TestCommandRunnerFactory(unittest.TestCase):
                     asyncio.run(runner.run("echo unsafe"))
                 self.assertEqual("Unsupported", runner.status["result"])
 
+    def test_rest_placeholder_does_not_return_empty_success(self):
+        runner = RestApiPortCommandRunner()
+
+        with self.assertRaisesRegex(NotImplementedError, "REST command runner is unsupported"):
+            asyncio.run(runner.run("GET https://example.invalid/health"))
+
+        self.assertEqual("Unsupported command runner", runner.status["current_step"])
+        self.assertEqual("Unsupported", runner.status["result"])
+
     def test_verify_config_contract_blocks_unsupported_runner_types(self):
         for runner in ("ansible", "rest"):
             with self.subTest(runner=runner):
