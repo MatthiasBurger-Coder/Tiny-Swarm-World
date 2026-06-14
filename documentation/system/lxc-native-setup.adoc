@@ -121,6 +121,17 @@ PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd --preflight
 PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
 ----
 
+Preflight selection is provider-aware. Generic host, Python, Docker CLI,
+resource, port, secret, and ignore-policy checks remain shared. The selected
+managed LXC backend contributes provider-specific checks: `incus` requires the
+`incus` CLI, and `lxd` requires the `lxc` CLI. If no backend is explicitly
+selected, Tiny Swarm World honors the configured backend candidate order and
+the executable available on `PATH` without running daemon-mutating commands.
+Provider preflight metadata records the selected backend plus the daemon,
+network, storage, and Docker Swarm profile expectations that later read-only
+provider checks must verify. A missing backend candidate definition blocks
+configuration construction instead of falling back silently.
+
 The default live setup command is:
 
 [source,bash]

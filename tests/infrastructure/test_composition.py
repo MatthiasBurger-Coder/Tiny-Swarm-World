@@ -1385,6 +1385,77 @@ class TestComposition(unittest.TestCase):
 
         self.assertEqual(composition.ManagedLxcBackend.LXD, backend)
 
+    def test_preflight_configuration_for_incus_requires_incus_cli(self):
+        request = composition.NodeProviderSelectionRequest(
+            preferred_backend=composition.ManagedLxcBackend.INCUS,
+        )
+
+        configuration = composition._preflight_configuration_for_provider(
+            composition.ServiceStackProfile.SERVICE_ACCESS,
+            request,
+        )
+
+        dependency_names = {item.name for item in configuration.required_dependencies}
+        self.assertIn("incus", dependency_names)
+        self.assertNotIn("lxc", dependency_names)
+        self.assertEqual("lxc_native", configuration.provider_metadata.provider)
+        self.assertEqual("incus", configuration.provider_metadata.backend)
+        self.assertIn(
+            "selected-backend-control-network",
+            configuration.provider_metadata.network_checks,
+        )
+
+    def test_preflight_configuration_for_lxd_requires_lxc_cli(self):
+        request = composition.NodeProviderSelectionRequest(
+            preferred_backend=composition.ManagedLxcBackend.LXD,
+        )
+
+        configuration = composition._preflight_configuration_for_provider(
+            composition.ServiceStackProfile.SERVICE_ACCESS,
+            request,
+        )
+
+        dependency_names = {item.name for item in configuration.required_dependencies}
+        self.assertIn("lxc", dependency_names)
+        self.assertNotIn("incus", dependency_names)
+        self.assertEqual("lxd", configuration.provider_metadata.backend)
+        self.assertEqual(
+            ("backend-cli:lxc",),
+            configuration.provider_metadata.provider_checks,
+        )
+
+    def test_preflight_configuration_honors_backend_candidate_order(self):
+        def which(name: str):
+            return f"/usr/bin/{name}" if name in {"incus", "lxc"} else None
+
+        request = composition.NodeProviderSelectionRequest(
+            backend_candidates=(
+                composition.ManagedLxcBackend.LXD,
+                composition.ManagedLxcBackend.INCUS,
+            )
+        )
+
+        with patch.object(composition.shutil, "which", side_effect=which):
+            configuration = composition._preflight_configuration_for_provider(
+                composition.ServiceStackProfile.SERVICE_ACCESS,
+                request,
+            )
+
+        dependency_names = {item.name for item in configuration.required_dependencies}
+        self.assertIn("lxc", dependency_names)
+        self.assertNotIn("incus", dependency_names)
+        self.assertEqual("lxd", configuration.provider_metadata.backend)
+
+    def test_preflight_configuration_blocks_missing_lxc_backend_candidates(self):
+        request = composition.NodeProviderSelectionRequest(backend_candidates=())
+
+        with patch.object(composition.shutil, "which", return_value=None):
+            with self.assertRaisesRegex(ValueError, "requires at least one"):
+                composition._preflight_configuration_for_provider(
+                    composition.ServiceStackProfile.SERVICE_ACCESS,
+                    request,
+                )
+
     def test_default_node_provider_request_uses_committed_candidate_order(self):
         request = composition._default_node_provider_request()
 

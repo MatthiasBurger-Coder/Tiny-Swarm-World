@@ -132,8 +132,10 @@ from tiny_swarm_world.domain.node_provider import (
 from tiny_swarm_world.domain.preflight import (
     LiveConsent,
     PreflightConfiguration,
+    ProviderPreflightMetadata,
     default_setup_manifest,
     default_preflight_configuration,
+    RequiredDependency,
 )
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
@@ -963,10 +965,10 @@ def build_platform_services(
 
     command_workflow = CommandWorkflow()
     verification_evidence_repository = VerificationEvidenceLocalRepository()
-    preflight = _build_preflight_service_for_request(service_profile, node_provider_request)
+    preflight = _build_preflight_service_for_request(service_profile, provider_request)
     post_install_preflight = _build_post_install_preflight_service_for_request(
         service_profile,
-        node_provider_request,
+        provider_request,
     )
     lxc_runner = AsyncLxcNodeCommandRunner()
     lxc_node_provider = LxcNodeProvider(
@@ -1621,9 +1623,60 @@ def _node_provider_request_from_config(
 
 def _preflight_configuration_for_provider(
     service_profile: ServiceStackProfile | str,
-    _node_provider_request: NodeProviderSelectionRequest | None,
+    node_provider_request: NodeProviderSelectionRequest | None,
 ) -> PreflightConfiguration:
-    return default_preflight_configuration(service_profile=service_profile)
+    configuration = default_preflight_configuration(service_profile=service_profile)
+    provider_request = node_provider_request or _default_node_provider_request()
+    if provider_request.requested_provider is not NodeProviderKind.LXC_NATIVE:
+        return replace(
+            configuration,
+            provider_metadata=ProviderPreflightMetadata(
+                provider=provider_request.requested_provider.value,
+                generic_checks=configuration.provider_metadata.generic_checks,
+            ),
+        )
+    backend = _lxc_backend_for_provider_request(provider_request)
+    if backend is None:
+        if not provider_request.backend_candidates:
+            raise ValueError(
+                "LXC-native preflight requires at least one managed backend candidate."
+            )
+        provider_dependencies = tuple(
+            RequiredDependency(_LXC_BACKEND_CLI[candidate])
+            for candidate in provider_request.backend_candidates
+        )
+        backend_label = "auto"
+        provider_checks = tuple(
+            f"backend-cli:{_LXC_BACKEND_CLI[candidate]}"
+            for candidate in provider_request.backend_candidates
+        )
+    else:
+        provider_dependencies = (RequiredDependency(_LXC_BACKEND_CLI[backend]),)
+        backend_label = backend.value
+        provider_checks = (f"backend-cli:{_LXC_BACKEND_CLI[backend]}",)
+    return replace(
+        configuration,
+        required_dependencies=(
+            *configuration.required_dependencies,
+            *provider_dependencies,
+        ),
+        provider_metadata=ProviderPreflightMetadata(
+            provider=provider_request.requested_provider.value,
+            backend=backend_label,
+            generic_checks=configuration.provider_metadata.generic_checks,
+            provider_checks=provider_checks,
+            daemon_checks=(
+                "managed-lxc-daemon-selected-backend",
+            ),
+            network_checks=(
+                "selected-backend-control-network",
+            ),
+            resource_expectations=(
+                "selected-backend-storage-pool",
+                "docker-swarm-profile",
+            ),
+        ),
+    )
 
 
 def _platform_init_steps(

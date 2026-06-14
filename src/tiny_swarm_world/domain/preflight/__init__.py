@@ -24,6 +24,7 @@ from tiny_swarm_world.domain.preflight.preflight_check import (
 from tiny_swarm_world.domain.preflight.preflight_configuration import (
     ForbiddenSecretFingerprint,
     PreflightConfiguration,
+    ProviderPreflightMetadata,
     RequiredDependency,
     RequiredRuntimeReadiness,
     RequiredPort,
@@ -57,6 +58,7 @@ __all__ = [
     "PreflightCategory",
     "PreflightCheck",
     "PreflightConfiguration",
+    "ProviderPreflightMetadata",
     "PreflightResult",
     "PreflightSeverity",
     "PreflightStatus",
