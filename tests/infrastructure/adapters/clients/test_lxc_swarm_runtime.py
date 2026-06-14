@@ -537,6 +537,59 @@ networks:
             check=False,
         )
 
+    def test_lxc_portainer_client_apply_stack_uses_gateway_and_overlay_preflight(self):
+        from tiny_swarm_world.application.ports.clients.port_deployment_gateway import (
+            DeploymentStackRequest,
+        )
+        from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
+            LxcPortainerHttpClient,
+        )
+
+        client = LxcPortainerHttpClient(
+            backend=ManagedLxcBackend.LXD,
+            username="admin",
+            password=operator_credential(),
+        )
+        stack = StackDefinition(
+            name="service-access",
+            compose_content="""
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true
+""",
+        )
+        delegate = _FakePortainerDelegate(stack_id=None)
+
+        with patch.object(
+            client,
+            "_run_manager_shell",
+            side_effect=(
+                subprocess.CompletedProcess([], 1),
+                subprocess.CompletedProcess([], 0),
+            ),
+        ) as run_manager_shell:
+            with patch.object(client, "_client", return_value=delegate):
+                client.apply_stack(
+                    DeploymentStackRequest(
+                        target_stack="service-access",
+                        stack_definition=stack,
+                        stack_environment={"TSW_EXAMPLE": "value"},
+                    )
+                )
+
+        scripts = [call.args[0] for call in run_manager_shell.call_args_list]
+        self.assertEqual(
+            [
+                "docker network inspect -- service_access_link >/dev/null 2>&1",
+                "docker network create --driver overlay --attachable -- service_access_link >/dev/null",
+            ],
+            scripts,
+        )
+        self.assertEqual(["local"], delegate.requested_endpoints)
+        self.assertEqual(["service-access"], delegate.requested_stacks)
+        self.assertEqual([(stack, 1, {"TSW_EXAMPLE": "value"})], delegate.created_stacks)
+
     def test_lxc_portainer_client_reuses_delegate_for_workflow_lifetime(self):
         from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
             LxcPortainerHttpClient,
@@ -599,9 +652,20 @@ class _FakeSession:
 
 
 class _FakePortainerDelegate:
-    def __init__(self) -> None:
+    def __init__(self, stack_id: int | None = None) -> None:
+        self.stack_id = stack_id
+        self.requested_endpoints: list[str] = []
+        self.requested_stacks: list[str] = []
         self.created_stacks: list[tuple[StackDefinition, int, dict[str, str]]] = []
         self.updated_stacks: list[tuple[int, StackDefinition, int, dict[str, str]]] = []
+
+    def get_endpoint_id_by_name(self, endpoint_name: str) -> int:
+        self.requested_endpoints.append(endpoint_name)
+        return 1
+
+    def find_stack_id_by_name(self, stack_name: str) -> int | None:
+        self.requested_stacks.append(stack_name)
+        return self.stack_id
 
     def create_stack(
         self,

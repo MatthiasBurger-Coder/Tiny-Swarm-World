@@ -1,8 +1,9 @@
 """Stack and service deployment application service namespace.
 
 Deployment owns stack lifecycle behavior such as ensuring that the Nexus stack
-exists through compose definitions and Portainer stack APIs. The old Nexus
-import path remains as a compatibility facade.
+exists through compose definitions and the deployment gateway port. Portainer is
+the current infrastructure gateway implementation. The old Nexus import path
+remains as a compatibility facade.
 """
 
 from tiny_swarm_world.application.services.deployment.ensure_external_swarm_secret import (

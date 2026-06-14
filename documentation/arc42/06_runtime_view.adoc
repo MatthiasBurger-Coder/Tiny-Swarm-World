@@ -88,11 +88,12 @@ The current artifact and deployment runtime flow is deliberately fail-closed:
 * `deployment apply` requires live consent, dispatches to
   `DeploymentApplyWorkflow`, and can run configured stack apply contracts only
   when they expose verify-after-apply evidence. The tested
-  `EnsureServiceStack` contract can create or update Portainer-managed stacks
-  and then verify stack registration through `PortPortainerClient`. The
-  default `lxc_native` path wires Portainer-admin bootstrap, stack contracts,
-  service-access external-input checks, and service-readiness verification
-  through deployment workflow ports.
+  `EnsureServiceStack` contract applies stack intent through the deployment
+  gateway port and verifies stack registration without depending on Portainer
+  endpoint IDs, stack IDs, or Swarm IDs. The current infrastructure gateway is
+  Portainer-backed. The default `lxc_native` path wires Portainer-admin
+  bootstrap, stack contracts, service-access external-input checks, and
+  service-readiness verification through deployment workflow ports.
 * `deployment verify` dispatches without live consent and returns `blocked`
   or `failed_to_verify` when observed stack or service-readiness evidence is
   missing. It does not claim container or service health from endpoint

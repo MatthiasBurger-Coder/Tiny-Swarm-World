@@ -1,6 +1,9 @@
 import unittest
 from unittest.mock import MagicMock
 
+from tiny_swarm_world.application.ports.clients.port_deployment_gateway import (
+    DeploymentStackRequest,
+)
 from tiny_swarm_world.application.services.deployment.ensure_portainer_stack import (
     EnsurePortainerStack,
 )
@@ -12,63 +15,67 @@ class TestEnsurePortainerStack(unittest.IsolatedAsyncioTestCase):
         stack_definition = StackDefinition(name="portainer", compose_content="services: {}")
         compose_repository = MagicMock()
         compose_repository.get_compose_of.return_value = stack_definition
-        portainer_client = MagicMock()
-        portainer_client.get_endpoint_id_by_name.return_value = 7
-        portainer_client.find_stack_id_by_name.return_value = None
+        deployment_gateway = _FakeDeploymentGateway()
 
-        service = EnsurePortainerStack(compose_repository, portainer_client, "portainer", "local")
+        service = EnsurePortainerStack(compose_repository, deployment_gateway, "portainer")
         await service.run()
 
         compose_repository.get_compose_of.assert_called_once_with("portainer")
-        portainer_client.get_endpoint_id_by_name.assert_called_once_with("local")
-        portainer_client.find_stack_id_by_name.assert_called_once_with("portainer")
-        portainer_client.create_stack.assert_called_once_with(stack_definition, 7)
-        portainer_client.update_stack.assert_not_called()
+        self.assertEqual(1, len(deployment_gateway.applied_requests))
+        request = deployment_gateway.applied_requests[0]
+        self.assertEqual("portainer", request.target_stack)
+        self.assertEqual(stack_definition, request.stack_definition)
 
     async def test_updates_stack_when_portainer_stack_exists(self):
         stack_definition = StackDefinition(name="portainer", compose_content="services: {}")
         compose_repository = MagicMock()
         compose_repository.get_compose_of.return_value = stack_definition
-        portainer_client = MagicMock()
-        portainer_client.get_endpoint_id_by_name.return_value = 7
-        portainer_client.find_stack_id_by_name.return_value = 42
+        deployment_gateway = _FakeDeploymentGateway()
 
-        service = EnsurePortainerStack(compose_repository, portainer_client, "portainer", "local")
+        service = EnsurePortainerStack(compose_repository, deployment_gateway, "portainer")
         await service.run()
 
-        portainer_client.create_stack.assert_not_called()
-        portainer_client.update_stack.assert_called_once_with(42, stack_definition, 7)
+        self.assertEqual(1, len(deployment_gateway.applied_requests))
+        self.assertEqual(stack_definition, deployment_gateway.applied_requests[0].stack_definition)
 
     async def test_compose_lookup_failure_does_not_deploy_stack(self):
         compose_repository = MagicMock()
         compose_repository.get_compose_of.side_effect = FileNotFoundError("missing")
-        portainer_client = MagicMock()
+        deployment_gateway = _FakeDeploymentGateway()
 
-        service = EnsurePortainerStack(compose_repository, portainer_client, "portainer", "local")
+        service = EnsurePortainerStack(compose_repository, deployment_gateway, "portainer")
 
         with self.assertRaises(FileNotFoundError):
             await service.run()
 
-        portainer_client.get_endpoint_id_by_name.assert_not_called()
-        portainer_client.find_stack_id_by_name.assert_not_called()
-        portainer_client.create_stack.assert_not_called()
-        portainer_client.update_stack.assert_not_called()
+        self.assertEqual([], deployment_gateway.applied_requests)
 
-    async def test_endpoint_lookup_failure_does_not_create_or_update_stack(self):
+    async def test_gateway_failure_is_propagated(self):
         stack_definition = StackDefinition(name="portainer", compose_content="services: {}")
         compose_repository = MagicMock()
         compose_repository.get_compose_of.return_value = stack_definition
-        portainer_client = MagicMock()
-        portainer_client.get_endpoint_id_by_name.side_effect = RuntimeError("endpoint missing")
+        deployment_gateway = _FakeDeploymentGateway(RuntimeError("deployment gateway failed"))
 
-        service = EnsurePortainerStack(compose_repository, portainer_client, "portainer", "local")
+        service = EnsurePortainerStack(compose_repository, deployment_gateway, "portainer")
 
         with self.assertRaises(RuntimeError):
             await service.run()
 
-        portainer_client.find_stack_id_by_name.assert_not_called()
-        portainer_client.create_stack.assert_not_called()
-        portainer_client.update_stack.assert_not_called()
+        self.assertEqual(1, len(deployment_gateway.applied_requests))
+
+
+class _FakeDeploymentGateway:
+    def __init__(self, apply_exception: Exception | None = None) -> None:
+        self.apply_exception = apply_exception
+        self.applied_requests: list[DeploymentStackRequest] = []
+
+    def apply_stack(self, request: DeploymentStackRequest) -> None:
+        self.applied_requests.append(request)
+        if self.apply_exception is not None:
+            raise self.apply_exception
+
+    def stack_registered(self, stack_name: str) -> bool:
+        return bool(self.applied_requests)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient
+from tiny_swarm_world.application.ports.clients.port_deployment_gateway import (
+    PortDeploymentGateway,
+)
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
     PortComposeFileRepository,
 )
@@ -18,20 +20,17 @@ DEFAULT_PORTAINER_ENDPOINT_NAME = "local"
 
 def build_default_service_stack_steps(
     compose_repository: PortComposeFileRepository,
-    portainer_client: PortPortainerClient,
-    endpoint_name: str = DEFAULT_PORTAINER_ENDPOINT_NAME,
+    deployment_gateway: PortDeploymentGateway,
 ) -> tuple[EnsureServiceStack, ...]:
     return build_service_stack_steps(
         compose_repository=compose_repository,
-        portainer_client=portainer_client,
-        endpoint_name=endpoint_name,
+        deployment_gateway=deployment_gateway,
     )
 
 
 def build_service_stack_steps(
     compose_repository: PortComposeFileRepository,
-    portainer_client: PortPortainerClient,
-    endpoint_name: str = DEFAULT_PORTAINER_ENDPOINT_NAME,
+    deployment_gateway: PortDeploymentGateway,
     *,
     service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
     excluded_stack_names: tuple[str, ...] = (),
@@ -47,9 +46,8 @@ def build_service_stack_steps(
     return tuple(
         EnsureServiceStack(
             compose_repository=compose_repository,
-            portainer_client=portainer_client,
+            deployment_gateway=deployment_gateway,
             service_stack=service_stack,
-            endpoint_name=endpoint_name,
             stack_environment=environments.get(service_stack.stack_name),
         )
         for service_stack in contracts

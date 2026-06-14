@@ -3,12 +3,16 @@ from urllib.parse import urlparse
 
 import requests
 
+from tiny_swarm_world.application.ports.clients.port_deployment_gateway import (
+    DeploymentStackRequest,
+    PortDeploymentGateway,
+)
 from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient
 from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
-class PortainerHttpClient(PortPortainerClient):
+class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
     def __init__(
         self,
         base_url: str,
@@ -17,6 +21,7 @@ class PortainerHttpClient(PortPortainerClient):
         session: requests.Session | None = None,
         request_timeout_seconds: int = 30,
         stack_request_timeout_seconds: int = 180,
+        deployment_endpoint_name: str = "local",
     ):
         parsed_base_url = urlparse(base_url)
         if parsed_base_url.username or parsed_base_url.password:
@@ -32,6 +37,7 @@ class PortainerHttpClient(PortPortainerClient):
         self.session = session or requests.Session()
         self.request_timeout_seconds = request_timeout_seconds
         self.stack_request_timeout_seconds = stack_request_timeout_seconds
+        self.deployment_endpoint_name = deployment_endpoint_name
         self.logger = LoggerFactory.get_logger(self.__class__)
         self._jwt_token: str | None = None
 
@@ -121,6 +127,26 @@ class PortainerHttpClient(PortPortainerClient):
             },
         )
         self._ensure_success(response, f"update Portainer stack '{stack_definition.name}'")
+
+    def apply_stack(self, request: DeploymentStackRequest) -> None:
+        endpoint_id = self.get_endpoint_id_by_name(self.deployment_endpoint_name)
+        stack_id = self.find_stack_id_by_name(request.stack_definition.name)
+        if stack_id is None:
+            self.create_stack(
+                request.stack_definition,
+                endpoint_id,
+                request.stack_environment,
+            )
+            return
+        self.update_stack(
+            stack_id,
+            request.stack_definition,
+            endpoint_id,
+            request.stack_environment,
+        )
+
+    def stack_registered(self, stack_name: str) -> bool:
+        return self.find_stack_id_by_name(stack_name) is not None
 
     def _fetch_endpoints(self, action: str) -> tuple[Mapping[str, object], ...]:
         response = self._send("GET", "/api/endpoints")

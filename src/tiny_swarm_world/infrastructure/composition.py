@@ -1371,8 +1371,7 @@ def build_lxc_deployment_services(
     )
     application_steps: tuple[object, ...] = build_service_stack_steps(
         compose_repository=compose_repository,
-        portainer_client=portainer_client,
-        endpoint_name=DEFAULT_PORTAINER_ENDPOINT_NAME,
+        deployment_gateway=portainer_client,
         service_profile=selected_service_profile,
         excluded_stack_names=("nexus",),
         stack_environments=stack_environment,
