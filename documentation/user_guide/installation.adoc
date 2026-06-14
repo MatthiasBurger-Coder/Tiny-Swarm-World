@@ -267,6 +267,9 @@ alongside `reset-run.log`, `reset-run.exit`, `setup-run.log`, and
 It loads or generates local `TSW_*` secrets in
 `.tiny-swarm-world/local/live-installation.env` without printing secret
 values.
+Required local bootstrap values are derived from
+`infra/config/secrets/infisical-secrets.yaml`; installer code does not maintain
+a separate required-secret list.
 Use `.env.example` as the tracked placeholder template. Before live setup,
 copy the needed keys into `.tiny-swarm-world/local/live-installation.env` or
 export them in the process environment. Process environment values override

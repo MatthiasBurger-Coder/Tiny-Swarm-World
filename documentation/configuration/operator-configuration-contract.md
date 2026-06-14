@@ -19,6 +19,26 @@ ignored by Git, and must not be committed. The parser accepts simple
 `KEY=value` and `export KEY=value` assignments, ignores non-`TSW_*` keys, and
 fails closed on duplicate `TSW_*` keys or unsupported shell syntax.
 
+## Ownership And Lifecycle
+
+| Value group | Owner | Storage | Lifecycle |
+|---|---|---|---|
+| Operator runtime secrets | Operator | `.tiny-swarm-world/local/live-installation.env` or process environment | Created before install, reused across reruns, edited or rotated by the operator. |
+| Generated local bootstrap secrets | Python installer | `.tiny-swarm-world/local/live-installation.env` | Generated only when missing and secret generation is enabled; existing values are kept. |
+| Infisical bootstrap runtime file | Python installer | `.tiny-swarm/secrets/bootstrap.local.env` | Rewritten from the resolved local values for the self-hosted Infisical stack; ignored by Git. |
+| Generated recovery file | Secret sync service | `.tiny-swarm/secrets/generated.local.env` | Stores generated values needed for idempotent Infisical sync or recovery; ignored by Git and mode `0600` when written by automation. |
+| Infisical-managed values | Infisical sync service | Infisical project/environment | Synchronized from generated or operator-supplied local values; existing Infisical values are kept unless a manifest entry explicitly requests rotation. |
+| External Docker secret names | Operator | `.tiny-swarm-world/local/live-installation.env`, process environment, or defaults | Names identify externally managed Docker secrets and are not secret material. |
+
+The Python installer derives required local bootstrap values from
+`infra/config/secrets/infisical-secrets.yaml`. Installer code must not keep a
+separate required-secret list. Values whose manifest source is
+`generated_local_secret` or `placeholder_only` and whose entry is required must
+be present before live setup; missing generated values may be created locally
+when secret generation is enabled. Values whose source is
+`external_user_secret` identify external resources and are not generated as
+secret values by the installer.
+
 ## Required Values
 
 The default contract requires these keys before setup execution:

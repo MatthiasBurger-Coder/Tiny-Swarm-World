@@ -64,6 +64,35 @@ class TestSecretManagement(unittest.TestCase):
         self.assertEqual("infisical_bootstrap_identity", entry.source)
         self.assertFalse(entry.required)
 
+    def test_committed_manifest_marks_infisical_redis_password_required(self):
+        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
+        entries_by_key = {entry.key: entry for entry in entries}
+
+        entry = entries_by_key["TSW_INFISICAL_REDIS_PASSWORD"]
+
+        self.assertEqual("infisical", entry.service)
+        self.assertEqual("generated_secret", entry.type)
+        self.assertEqual("generated_local_secret", entry.source)
+        self.assertTrue(entry.required)
+
+    def test_manifest_entries_expose_ownership_storage_and_lifecycle(self):
+        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
+        entries_by_key = {entry.key: entry for entry in entries}
+
+        generated = entries_by_key["TSW_NEXUS_ADMIN_PASSWORD"]
+        external = entries_by_key["TSW_TRAEFIK_TLS_CERT_SECRET_NAME"]
+        bootstrap = entries_by_key["TSW_INFISICAL_BOOTSTRAP_TOKEN"]
+
+        self.assertEqual("python_installer", generated.owner)
+        self.assertEqual(".tiny-swarm-world/local/live-installation.env", generated.storage)
+        self.assertEqual("generated_when_missing_and_kept_existing", generated.lifecycle)
+        self.assertEqual("operator", external.owner)
+        self.assertEqual("external_docker_secret_or_operator_env", external.storage)
+        self.assertEqual("operator_created_and_rotated", external.lifecycle)
+        self.assertEqual("infisical_sync", bootstrap.owner)
+        self.assertEqual(".tiny-swarm/secrets/generated.local.env", bootstrap.storage)
+        self.assertEqual("created_during_infisical_sync_and_reused", bootstrap.lifecycle)
+
     def test_committed_manifest_tracks_required_infisical_login_identity(self):
         entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
         entries_by_key = {entry.key: entry for entry in entries}

@@ -19,9 +19,9 @@ evidence.
 
 The current configuration surface is spread across these repository areas:
 
-- `install.sh`: installer-local env file paths, generated secret behavior,
-  required secret bootstrap, default Traefik secret names, and setup invocation
-  flags.
+- `src/tiny_swarm_world/installer.py`: installer-local env file paths,
+  generated secret behavior, required secret bootstrap derived from the secret
+  manifest, default Traefik secret names, and setup invocation flags.
 - `src/tiny_swarm_world/infrastructure/composition.py`: deployment and
   artifact wiring that reads operator config through helper functions or direct
   environment access.
@@ -78,19 +78,19 @@ are secret values unless explicitly noted otherwise.
 
 | Key | Service | Requiredness | Value kind | Source |
 |---|---|---|---|---|
-| `TSW_PORTAINER_ADMIN_PASSWORD` | Portainer | Required | secret value | `setup_manifest.py`, `install.sh`, composition |
-| `TSW_NEXUS_ADMIN_PASSWORD` | Nexus | Required | secret value | `setup_manifest.py`, `install.sh`, composition |
-| `TSW_JENKINS_ADMIN_PASSWORD` | Jenkins | Required | secret value | `setup_manifest.py`, `install.sh`, compose |
-| `TSW_RABBITMQ_PASSWORD` | RabbitMQ | Required | secret value | `setup_manifest.py`, `install.sh`, compose |
-| `TSW_SONARQUBE_ADMIN_PASSWORD` | SonarQube | Required | secret value | `setup_manifest.py`, `install.sh`, composition |
-| `TSW_POSTGRES_PASSWORD` | SonarQube PostgreSQL | Required | secret value | `setup_manifest.py`, `install.sh`, compose |
-| `TSW_SONARQUBE_POSTGRES_PASSWORD` | SonarQube PostgreSQL | Required by installer/deployment env | secret value | `install.sh`, composition, compose |
-| `TSW_INFISICAL_LOGIN_EMAIL` | Infisical admin login | Required for service-access profile | non-secret identity value | `setup_manifest.py`, `install.sh`, composition, compose |
-| `TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD` | Infisical admin login | Required for service-access profile | secret value | `setup_manifest.py`, `install.sh`, composition, compose |
-| `TSW_INFISICAL_ENCRYPTION_KEY` | Infisical | Required for service-access profile | secret value | `setup_manifest.py`, `install.sh`, composition, compose |
-| `TSW_INFISICAL_AUTH_SECRET` | Infisical | Required for service-access profile | secret value | `setup_manifest.py`, `install.sh`, composition, compose |
-| `TSW_INFISICAL_POSTGRES_PASSWORD` | Infisical PostgreSQL | Required for service-access profile | secret value | `setup_manifest.py`, `install.sh`, composition, compose |
-| `TSW_INFISICAL_REDIS_PASSWORD` | Infisical Redis | Required by installer/deployment env | secret value | `install.sh`, composition |
+| `TSW_PORTAINER_ADMIN_PASSWORD` | Portainer | Required | secret value | `setup_manifest.py`, `installer.py`, composition |
+| `TSW_NEXUS_ADMIN_PASSWORD` | Nexus | Required | secret value | `setup_manifest.py`, `installer.py`, composition |
+| `TSW_JENKINS_ADMIN_PASSWORD` | Jenkins | Required | secret value | `setup_manifest.py`, `installer.py`, compose |
+| `TSW_RABBITMQ_PASSWORD` | RabbitMQ | Required | secret value | `setup_manifest.py`, `installer.py`, compose |
+| `TSW_SONARQUBE_ADMIN_PASSWORD` | SonarQube | Required | secret value | `setup_manifest.py`, `installer.py`, composition |
+| `TSW_POSTGRES_PASSWORD` | SonarQube PostgreSQL | Required | secret value | `setup_manifest.py`, `installer.py`, compose |
+| `TSW_SONARQUBE_POSTGRES_PASSWORD` | SonarQube PostgreSQL | Required by installer/deployment env | secret value | `installer.py`, composition, compose |
+| `TSW_INFISICAL_LOGIN_EMAIL` | Infisical admin login | Required for service-access profile | non-secret identity value | `setup_manifest.py`, `installer.py`, composition, compose |
+| `TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD` | Infisical admin login | Required for service-access profile | secret value | `setup_manifest.py`, `installer.py`, composition, compose |
+| `TSW_INFISICAL_ENCRYPTION_KEY` | Infisical | Required for service-access profile | secret value | `setup_manifest.py`, `installer.py`, composition, compose |
+| `TSW_INFISICAL_AUTH_SECRET` | Infisical | Required for service-access profile | secret value | `setup_manifest.py`, `installer.py`, composition, compose |
+| `TSW_INFISICAL_POSTGRES_PASSWORD` | Infisical PostgreSQL | Required for service-access profile | secret value | `setup_manifest.py`, `installer.py`, composition, compose |
+| `TSW_INFISICAL_REDIS_PASSWORD` | Infisical Redis | Required by installer/deployment env | secret value | `installer.py`, composition |
 
 ## Runtime And Deployment Overrides
 
@@ -105,7 +105,7 @@ logic. Defaults are listed only when visible from committed source.
 | `TSW_JENKINS_ADMIN_USERNAME` | `admin` | Optional | identifier | `composition.py` |
 | `TSW_NEXUS_ADMIN_USERNAME` | `admin` | Optional | identifier | `composition.py`, docs |
 | `TSW_RABBITMQ_USERNAME` | `admin` | Optional | identifier | `composition.py` |
-| `TSW_SEED_INFISICAL_ITEMS` | `0` in installer | Optional | boolean flag as `0`/`1` | `install.sh`, `composition.py` |
+| `TSW_SEED_INFISICAL_ITEMS` | `0` in installer | Optional | boolean flag as `0`/`1` | `installer.py`, `composition.py` |
 | `TSW_LXC_DOCKER_REGISTRY_MIRROR` | auto-detected when possible | Optional | URL reachable from managed nodes | `install.sh`, `composition.py`, docs |
 | `TSW_LXC_PROXY_LISTEN_ADDRESS` | implementation default | Optional | listen address | `composition.py` |
 | `TSW_SWARM_REGISTRY_ENDPOINT` | implementation default | Optional | registry endpoint | `composition.py` |
@@ -211,9 +211,9 @@ local values from the user's runtime environment.
 - Add a typed allowlist for supported operator keys, including requiredness,
   source precedence, value kind, defaults, and redaction classification.
 - Reconcile setup-manifest required secrets with installer/runtime-required
-  secrets. Current gaps are `TSW_SONARQUBE_POSTGRES_PASSWORD` and
-  `TSW_INFISICAL_REDIS_PASSWORD`, which are required by installer/runtime paths
-  but are not currently listed in `default_setup_manifest`.
+  secrets. `TSW_INFISICAL_REDIS_PASSWORD` is now required in the secret
+  manifest and consumed by the Python installer; setup-manifest ownership should
+  still be reviewed when service-profile validation is expanded.
 - Decide whether documented but currently hardcoded or test-only overrides such
   as `TSW_PORTAINER_URL`, `TSW_PORTAINER_ENDPOINT`,
   `TSW_NEXUS_INITIAL_PASSWORD_PATH`, `TSW_NEXUS_MAX_ATTEMPTS`, and

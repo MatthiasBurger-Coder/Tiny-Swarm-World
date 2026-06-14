@@ -497,6 +497,11 @@ class _InstallScriptFixture:
             REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "installer.py",
             self.root / "src" / "tiny_swarm_world" / "installer.py",
         )
+        (self.root / "infra" / "config" / "secrets").mkdir(parents=True)
+        shutil.copy2(
+            REPOSITORY_ROOT / "infra" / "config" / "secrets" / "infisical-secrets.yaml",
+            self.root / "infra" / "config" / "secrets" / "infisical-secrets.yaml",
+        )
         self.fake_bin.mkdir()
         _write_executable(self.fake_bin / "python3", _fake_python3())
         _write_executable(self.fake_bin / "grep", _fake_grep())

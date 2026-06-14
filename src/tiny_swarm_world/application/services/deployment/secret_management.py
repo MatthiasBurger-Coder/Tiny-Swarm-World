@@ -80,6 +80,9 @@ class SecretManifestEntry:
     source: str
     required: bool
     policy: SecretPolicy = "keep_existing"
+    owner: str = ""
+    storage: str = ""
+    lifecycle: str = ""
 
 
 @dataclass(frozen=True)
@@ -357,16 +360,52 @@ def _manifest_entry(item: object) -> SecretManifestEntry:
     policy = str(item.get("policy", "keep_existing"))
     if policy not in {"keep_existing", "rotate"}:
         raise SecretManagementBlocker("manifest_schema_invalid", f"Invalid secret policy for {key}: {policy}")
+    source = str(item.get("source", ""))
     return SecretManifestEntry(
         key=key,
         service=str(item.get("service", "")),
         type=entry_type,  # type: ignore[arg-type]
         environment=str(item.get("environment", "local")),
         description=str(item.get("description", "")),
-        source=str(item.get("source", "")),
+        source=source,
         required=bool(item.get("required", False)),
         policy=policy,  # type: ignore[arg-type]
+        owner=str(item.get("owner", _manifest_owner(source))),
+        storage=str(item.get("storage", _manifest_storage(source))),
+        lifecycle=str(item.get("lifecycle", _manifest_lifecycle(source))),
     )
+
+
+def _manifest_owner(source: str) -> str:
+    if source == "external_user_secret":
+        return "operator"
+    if source == "infisical_bootstrap_identity":
+        return "infisical_sync"
+    if source in {"generated_local_secret", "placeholder_only"}:
+        return "python_installer"
+    return "unknown"
+
+
+def _manifest_storage(source: str) -> str:
+    if source == "external_user_secret":
+        return "external_docker_secret_or_operator_env"
+    if source == "infisical_bootstrap_identity":
+        return ".tiny-swarm/secrets/generated.local.env"
+    if source in {"generated_local_secret", "placeholder_only"}:
+        return ".tiny-swarm-world/local/live-installation.env"
+    return "unknown"
+
+
+def _manifest_lifecycle(source: str) -> str:
+    if source == "external_user_secret":
+        return "operator_created_and_rotated"
+    if source == "infisical_bootstrap_identity":
+        return "created_during_infisical_sync_and_reused"
+    if source == "generated_local_secret":
+        return "generated_when_missing_and_kept_existing"
+    if source == "placeholder_only":
+        return "operator_supplied_and_kept_existing"
+    return "unknown"
 
 
 def _candidate_files(repo_root: Path) -> tuple[Path, ...]:
