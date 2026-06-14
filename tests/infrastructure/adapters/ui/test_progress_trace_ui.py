@@ -28,13 +28,27 @@ class TestProgressTraceUi(unittest.TestCase):
                 status="started",
                 result="pending",
                 safe_message="Platform init started.",
+                recovery_hint="Wait for platform init evidence.",
+                evidence_path=".tiny-swarm-world/evidence/platform-init.json",
+                correlation_id="setup-123",
+                trace_id="trace-456",
             )
         )
 
         self.assertEqual(
-            [(AGGREGATE_INSTANCE, "Run platform init", "platform init:apply", "pending")],
+            [(AGGREGATE_INSTANCE, "setup run", "platform init:apply", "pending")],
             ui.updates,
         )
+        self.assertEqual(
+            "Wait for platform init evidence.",
+            ui.aggregate_status["recovery_hint"],
+        )
+        self.assertEqual(
+            ".tiny-swarm-world/evidence/platform-init.json",
+            ui.aggregate_status["evidence_path"],
+        )
+        self.assertEqual("setup-123", ui.aggregate_status["correlation_id"])
+        self.assertEqual("trace-456", ui.aggregate_status["trace_id"])
 
     def test_raised_method_trace_updates_aggregate_failure_state(self):
         ui = RecordingUI()

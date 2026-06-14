@@ -99,18 +99,27 @@ class LinuxUI(PortUI):
         stdscr.addstr(2, column, f"Task: {current_task[:col_width - 7]}")
         stdscr.addstr(3, column, f"Step: {current_step[:col_width - 7]}")
         stdscr.addstr(4, column, f"Status: {current_result[:col_width - 7]}")
-        recovery_action = self.recovery_action(current_result)
+        recovery_action = self.status_recovery_action(current_status)
         if recovery_action:
             stdscr.addstr(5, column, f"Action: {recovery_action[:col_width - 8]}")
+        evidence_path = current_status.get("evidence_path", "")
+        if evidence_path:
+            stdscr.addstr(6, column, f"Evidence: {evidence_path[:col_width - 10]}")
+        correlation_id = current_status.get("correlation_id", "")
+        if correlation_id:
+            stdscr.addstr(7, column, f"Trace: {correlation_id[:col_width - 7]}")
 
     def _draw_aggregate_status(self, stdscr, width):
         aggregate_result = self.aggregate_status["result"]
         if not self.is_terminal_result(aggregate_result):
             return
         stdscr.addstr(6, 0, f"Overall: {aggregate_result}"[:width], curses.A_BOLD)
-        aggregate_recovery = self.recovery_action(aggregate_result)
+        aggregate_recovery = self.status_recovery_action(self.aggregate_status)
         if aggregate_recovery:
             stdscr.addstr(7, 0, f"Action: {aggregate_recovery}"[:width])
+        evidence_path = self.aggregate_status.get("evidence_path", "")
+        if evidence_path:
+            stdscr.addstr(8, 0, f"Evidence: {evidence_path}"[:width])
 
     def _draw_completion_if_terminal(self, stdscr, height, width):
         if not self.all_instances_terminal():

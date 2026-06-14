@@ -18,6 +18,9 @@ class TestWorkflowProgressEvent(unittest.TestCase):
             result="pending",
             safe_message="Checking host prerequisites.",
             recovery_hint="Resolve reported blockers and rerun setup.",
+            evidence_path=".tiny-swarm-world/evidence/preflight.json",
+            correlation_id="setup-123",
+            trace_id="trace-456",
         )
 
         self.assertEqual(
@@ -31,6 +34,9 @@ class TestWorkflowProgressEvent(unittest.TestCase):
                 "result": "pending",
                 "safe_message": "Checking host prerequisites.",
                 "recovery_hint": "Resolve reported blockers and rerun setup.",
+                "evidence_path": ".tiny-swarm-world/evidence/preflight.json",
+                "correlation_id": "setup-123",
+                "trace_id": "trace-456",
             },
             event.to_dict(),
         )
