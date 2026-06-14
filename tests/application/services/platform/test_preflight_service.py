@@ -20,6 +20,7 @@ from tiny_swarm_world.domain.preflight import (
     PreflightSeverity,
     PreflightStatus,
     RequiredPort,
+    RequiredDependency,
     RequiredSecret,
     SetupPath,
     SetupManifest,
@@ -56,6 +57,26 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("LIVE-CONSENT", check_ids)
         self.assertNotIn("RUNTIME-MULTIPASS", check_ids)
         self.assertFalse(any(check_id.startswith("RUNTIME-") for check_id in check_ids))
+
+    async def test_preflight_reports_selected_provider_backend_dependency(self):
+        configuration = replace(
+            default_preflight_configuration(),
+            required_dependencies=(
+                RequiredDependency("python3"),
+                RequiredDependency("docker"),
+                RequiredDependency("lxc"),
+            ),
+        )
+
+        result = await PreflightService(
+            _fake_probe(executable_availability={"lxc": False}),
+            configuration,
+        ).run()
+
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+        self.assertIn("DEPENDENCY-lxc", failed_by_id)
+        self.assertEqual(PreflightStatus.FAILED, failed_by_id["DEPENDENCY-lxc"].status)
+        self.assertIn("lxc", failed_by_id["DEPENDENCY-lxc"].remediation)
 
     async def test_configuration_contract_checks_are_reported_as_preflight_checks(self):
         result = await PreflightService(

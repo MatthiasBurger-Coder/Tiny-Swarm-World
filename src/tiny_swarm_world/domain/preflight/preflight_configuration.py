@@ -60,6 +60,17 @@ class ResourceThresholds:
 
 
 @dataclass(frozen=True)
+class ProviderPreflightMetadata:
+    provider: str
+    backend: str | None = None
+    generic_checks: tuple[str, ...] = ()
+    provider_checks: tuple[str, ...] = ()
+    daemon_checks: tuple[str, ...] = ()
+    network_checks: tuple[str, ...] = ()
+    resource_expectations: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class PreflightConfiguration:
     setup_profile: SetupProfile
     setup_manifest: SetupManifest
@@ -72,6 +83,19 @@ class PreflightConfiguration:
     required_ignored_paths: tuple[str, ...]
     resources: ResourceThresholds
     minimum_python_version: tuple[int, int]
+    provider_metadata: ProviderPreflightMetadata = field(
+        default_factory=lambda: ProviderPreflightMetadata(
+            provider="generic",
+            generic_checks=(
+                "python",
+                "docker-cli",
+                "host-environment",
+                "service-ports",
+                "required-secrets",
+                "resource-thresholds",
+            ),
+        )
+    )
 
 
 def default_preflight_configuration(

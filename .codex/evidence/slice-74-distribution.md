@@ -1,0 +1,33 @@
+# Slice 74 Distribution Evidence
+
+- Workflow id: `issue-74-provider-aware-preflight-20260614`
+- Slice id: `74`
+- Slice title: Make preflight provider aware
+- Affected areas: preflight configuration, infrastructure composition, platform preflight tests, documentation
+- Chosen execution mode: sequential
+- Selected streams: provider/backend configuration selection, tests, documentation
+- Real subagents used: yes, Ohm completed read-only review
+- Fallback role-based review used: no
+- Git worktrees used: no
+- Expected touched files/directories:
+  - `src/tiny_swarm_world/domain/preflight/**`
+  - `src/tiny_swarm_world/infrastructure/composition.py`
+  - `tests/infrastructure/test_composition.py`
+  - `tests/application/services/platform/test_preflight_service.py`
+  - `documentation/system/lxc-native-setup.adoc`
+- Conflict risks:
+  - Preflight must not run live LXD, Incus, LXC, Docker, Swarm, or networking mutations during wiring or tests.
+  - Incus-only and LXD-only hosts must not be blocked by requiring both backend CLIs when a backend is selected.
+  - Provider readiness and static host preflight must remain separate.
+- Quality gates:
+  - `PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition tests.application.services.platform.test_preflight_service tests.infrastructure.adapters.preflight.test_lxc_provider_preflight`
+  - `python3 tools/quality_gate.py lint`
+  - `python3 tools/quality_gate.py typecheck`
+  - `python3 tools/quality_gate.py quality`
+- Consolidation plan:
+  - Keep implementation sequential because the composition and preflight tests share the same selection contract.
+  - Incorporate read-only subagent findings before final commit.
+  - Publish through guarded PR lifecycle after local and remote checks pass.
+- Parallelization decision:
+  - Rejected for write work due to overlapping composition/preflight files.
+  - Accepted only for read-only subagent review.
