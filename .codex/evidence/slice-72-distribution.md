@@ -1,0 +1,32 @@
+# Slice 72 Distribution Evidence
+
+- Workflow id: `issue-72-rest-runner-decision-20260614`
+- Slice id: `72`
+- Slice title: Implement or disable REST command runner
+- Affected areas: command runner infrastructure, command-runner tests, architecture documentation
+- Chosen execution mode: sequential
+- Selected streams: REST runner safety, unsupported-runner contract tests, documentation
+- Real subagents used: yes, Kant completed read-only review
+- Fallback role-based review used: no
+- Git worktrees used: no
+- Expected touched files/directories:
+  - `src/tiny_swarm_world/infrastructure/adapters/command_runner/**`
+  - `tests/infrastructure/adapters/command_runner/**`
+  - `documentation/architecture/**`
+  - `documentation/arc42/**`
+- Conflict risks:
+  - Issue #72 depends on Issue #70 command-runner responsibility and must not re-enable placeholder REST execution.
+  - Implementing a real REST adapter would require a broader port contract for method, URL, headers, body, timeout, response validation, and error mapping.
+  - Active LXC-native workflows must not depend on REST placeholder execution.
+- Quality gates:
+  - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_runner_factory`
+  - `python3 tools/quality_gate.py lint`
+  - `python3 tools/quality_gate.py typecheck`
+  - `python3 tools/quality_gate.py quality`
+- Consolidation plan:
+  - Keep implementation sequential because the chosen path is disabling REST command execution explicitly.
+  - Incorporated read-only subagent findings before final commit.
+  - Publish through guarded PR lifecycle after local and remote checks pass.
+- Parallelization decision:
+  - Rejected for write work due to overlapping command-runner policy/test files.
+  - Accepted only for read-only subagent review.
