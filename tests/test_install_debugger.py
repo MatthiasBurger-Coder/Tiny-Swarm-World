@@ -33,8 +33,8 @@ class TestInstallDebugger(unittest.TestCase):
             findings = install_debugger.diagnose(root)
 
         findings_by_title = {finding.title: finding for finding in findings}
-        self.assertEqual("OK", findings_by_title["install.sh fresh-install reset command"].status)
-        self.assertEqual("OK", findings_by_title["install.sh canonical setup command"].status)
+        self.assertEqual("OK", findings_by_title["install.sh Python installer entry point"].status)
+        self.assertEqual("OK", findings_by_title["install.sh source checkout Python path"].status)
         self.assertEqual("FAIL", findings_by_title["install.sh executable"].status)
 
     def test_live_fix_permissions_repairs_install_script_and_secret_mode(self):
@@ -165,8 +165,7 @@ def _install_script_text() -> str:
         (
             "#!/usr/bin/env bash",
             "set -Eeuo pipefail",
-            "EVIDENCE_ROOT='.tiny-swarm-world/evidence/installation-tests'",
-            "script -q -e -c 'PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live'",
-            "script -q -e -c 'PYTHONPATH=src python3 -m tiny_swarm_world setup run --live'",
+            "export PYTHONPATH=\"${PYTHONPATH:+$PYTHONPATH:}src\"",
+            "exec python3 -m tiny_swarm_world.installer \"$@\"",
         )
     )

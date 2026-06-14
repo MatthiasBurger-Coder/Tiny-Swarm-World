@@ -146,6 +146,11 @@ wrapper:
 ./install.sh
 ```
 
+`install.sh` is intentionally only a Linux/WSL bootstrapper. Installer policy,
+secret handling, host-runtime detection, evidence layout, reset sequencing, and
+headless execution live in the Python entry point
+`python3 -m tiny_swarm_world.installer`, which the wrapper delegates to.
+
 For deliberate test-system automation, use `./install.sh --confirm-reset` to
 confirm the wrapper's reset prompt with an explicit flag. The underlying reset
 workflow still uses `--confirm RESET_TINY_SWARM_PLATFORM`.

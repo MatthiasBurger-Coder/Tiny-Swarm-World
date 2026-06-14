@@ -197,10 +197,8 @@ def check_install_script(
         )
     )
     for needle, description in (
-        ("platform reset --live", "fresh-install reset command"),
-        ("setup run --live", "canonical setup command"),
-        ("script -q -e -c", "terminal recording through script(1)"),
-        (EVIDENCE_ROOT, "host-specific evidence root"),
+        ("python3 -m tiny_swarm_world.installer", "Python installer entry point"),
+        ("PYTHONPATH", "source checkout Python path"),
     ):
         findings.append(
             Finding(
