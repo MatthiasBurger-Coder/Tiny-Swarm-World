@@ -165,6 +165,18 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         workflows.init.run.assert_awaited_once_with()
         self.assertIn('"workflow": "platform init"', output.getvalue())
 
+    async def test_mutating_workflow_accepts_explicit_noninteractive_live_approval(self):
+        services, workflows = _application_services_with_platform_workflows()
+        output = io.StringIO()
+
+        with patch("builtins.input", side_effect=AssertionError("prompt must not run")):
+            with patch.object(entrypoint, "build_application_services", return_value=services):
+                with redirect_stdout(output):
+                    await entrypoint.main(["platform", "init", "--live", "--approve-live"])
+
+        workflows.init.run.assert_awaited_once_with()
+        self.assertIn('"workflow": "platform init"', output.getvalue())
+
     async def test_mutating_workflow_refuses_noninteractive_eof(self):
         output = io.StringIO()
 

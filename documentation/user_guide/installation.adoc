@@ -224,12 +224,26 @@ replaced by an explicit flag:
 ./install.sh --confirm-reset
 ----
 
+The CLI live-infrastructure prompt is separate from the reset prompt. Normal
+wrapper runs keep that prompt interactive inside the terminal recorder. For
+deliberate non-interactive automation, pass an explicit live-approval flag:
+
+[source,bash]
+----
+./install.sh --non-interactive-live-approval
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --approve-live
+----
+
+The automation flag is an approval source; it does not remove the `--live`
+requirement.
+
 The wrapper writes run context, reset logs, setup logs and exit codes below
 `.tiny-swarm-world/evidence/installation-tests/<host-runtime>/<UTC timestamp>/`.
 The stable host directory is `wsl2` for WSL2 and `native_linux` for native
 Linux. The run `context.txt` records `host_runtime_type`,
-`host_runtime_detection_source`, and `selected_evidence_directory` alongside
-`reset-run.log`, `reset-run.exit`, `setup-run.log`, and `setup-run.exit`.
+`host_runtime_detection_source`, `selected_evidence_directory`,
+`live_execution_mode`, and `live_approval_source` alongside `reset-run.log`,
+`reset-run.exit`, `setup-run.log`, and `setup-run.exit`.
 It loads or generates local `TSW_*` secrets in
 `.tiny-swarm-world/local/live-installation.env` without printing secret
 values.

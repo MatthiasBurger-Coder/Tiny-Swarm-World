@@ -9,6 +9,7 @@ GENERATED_SECRET_ENV_FILE="${TSW_GENERATED_SECRET_ENV_FILE:-.tiny-swarm/secrets/
 NATIVE_LINUX_VENV="${TSW_NATIVE_LINUX_VENV:-.tiny-swarm-world/install-venv}"
 RESET_CONFIRMATION="RESET_TINY_SWARM_PLATFORM"
 RESET_CONFIRMED_BY_FLAG=0
+NON_INTERACTIVE_LIVE_APPROVAL=0
 
 REQUIRED_SECRETS=(
   TSW_PORTAINER_ADMIN_PASSWORD
@@ -31,12 +32,16 @@ usage() {
 Tiny Swarm World live installation wrapper.
 
 Usage:
-  ./install.sh [--service-profile NAME] [--no-generate-secrets] [--confirm-reset]
+  ./install.sh [--service-profile NAME] [--no-generate-secrets] [--confirm-reset] [--non-interactive-live-approval]
 
 Options:
   --service-profile NAME   Service profile passed to setup run (default: service-access).
   --no-generate-secrets    Fail if required TSW_* secrets are missing.
   --confirm-reset          Confirm the governed fresh-install reset without prompting.
+  --non-interactive-live-approval
+                           Pass explicit non-interactive live approval to the CLI.
+                           Without this flag, recorded live commands ask for the
+                           CLI's interactive live confirmation.
   -h, --help               Show this help.
 
 Optional environment:
@@ -269,6 +274,8 @@ write_context() {
   local secrets_generated_count="$3"
   local resolved_host_type="$4"
   local detection_source="$5"
+  local live_execution_mode="$6"
+  local live_approval_source="$7"
 
   {
     printf 'run_id=%s\n' "$run_id"
@@ -283,6 +290,8 @@ write_context() {
     printf 'host_runtime_type=%s\n' "$resolved_host_type"
     printf 'host_runtime_detection_source=%s\n' "$detection_source"
     printf 'selected_evidence_directory=%s\n' "$evidence_dir"
+    printf 'live_execution_mode=%s\n' "$live_execution_mode"
+    printf 'live_approval_source=%s\n' "$live_approval_source"
     printf 'platform_system=%s\n' "$(uname -s)"
     printf 'kernel_release=%s\n' "$(uname -r)"
     printf 'proc_osrelease=%s\n' "$(cat /proc/sys/kernel/osrelease 2>/dev/null || true)"
@@ -308,7 +317,7 @@ run_recorded_command() {
     effective_command="sg ${TSW_INSTALL_COMMAND_GROUP} -c $(shell_quote "$command_line")"
   fi
 
-  printf 'y\n' | script -q -e -c "$effective_command" "$log_file"
+  script -q -e -c "$effective_command" "$log_file"
 }
 
 configure_native_linux_command_group() {
@@ -370,6 +379,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --confirm-reset)
       RESET_CONFIRMED_BY_FLAG=1
+      shift
+      ;;
+    --non-interactive-live-approval)
+      NON_INTERACTIVE_LIVE_APPROVAL=1
       shift
       ;;
     -h|--help)
@@ -462,9 +475,25 @@ fi
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
 RESOLVED_HOST_TYPE="$(host_runtime_type)"
 HOST_DETECTION_SOURCE="$(host_detection_source)"
+if (( NON_INTERACTIVE_LIVE_APPROVAL == 1 )); then
+  LIVE_EXECUTION_MODE="non_interactive"
+  LIVE_APPROVAL_SOURCE="explicit_automation_flag"
+  LIVE_APPROVAL_ARGUMENT=" --approve-live"
+else
+  LIVE_EXECUTION_MODE="interactive"
+  LIVE_APPROVAL_SOURCE="operator_prompt"
+  LIVE_APPROVAL_ARGUMENT=""
+fi
 EVIDENCE_DIR=".tiny-swarm-world/evidence/installation-tests/$RESOLVED_HOST_TYPE/$RUN_ID"
 mkdir -p "$EVIDENCE_DIR"
-write_context "$EVIDENCE_DIR" "$RUN_ID" "$secrets_generated_count" "$RESOLVED_HOST_TYPE" "$HOST_DETECTION_SOURCE"
+write_context \
+  "$EVIDENCE_DIR" \
+  "$RUN_ID" \
+  "$secrets_generated_count" \
+  "$RESOLVED_HOST_TYPE" \
+  "$HOST_DETECTION_SOURCE" \
+  "$LIVE_EXECUTION_MODE" \
+  "$LIVE_APPROVAL_SOURCE"
 
 cat <<EOF
 Tiny Swarm World live installation
@@ -487,8 +516,8 @@ else
   printf 'reset_confirmation_source=interactive_prompt\n' >>"$EVIDENCE_DIR/context.txt"
 fi
 
-reset_command="PYTHONPATH=src $(shell_quote "$PYTHON_BIN") -m tiny_swarm_world platform reset --live --confirm $RESET_CONFIRMATION --service-profile $(shell_quote "$SERVICE_PROFILE")"
-setup_command="PYTHONPATH=src $(shell_quote "$PYTHON_BIN") -m tiny_swarm_world setup run --live --service-profile $(shell_quote "$SERVICE_PROFILE")"
+reset_command="PYTHONPATH=src $(shell_quote "$PYTHON_BIN") -m tiny_swarm_world platform reset --live${LIVE_APPROVAL_ARGUMENT} --confirm $RESET_CONFIRMATION --service-profile $(shell_quote "$SERVICE_PROFILE")"
+setup_command="PYTHONPATH=src $(shell_quote "$PYTHON_BIN") -m tiny_swarm_world setup run --live${LIVE_APPROVAL_ARGUMENT} --service-profile $(shell_quote "$SERVICE_PROFILE")"
 
 printf 'Starting fresh-install reset. Terminal UI is visible and recorded at: %s/reset-run.log\n' "$EVIDENCE_DIR"
 set +e
