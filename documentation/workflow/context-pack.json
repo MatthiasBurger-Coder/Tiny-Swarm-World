@@ -1,170 +1,58 @@
 {
+  "workflow_id": "issue-4-swarm-stack-validation-20260614",
+  "workflow_version": "1.0.0",
+  "issue": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/4",
+  "issue_number": 4,
+  "workflow_path": "documentation/workflow/issues/issue-4/workflow.md",
+  "authoring_branch": "feature/workflow-index-open-issues-20260614",
+  "branch": "feature/workflow-issue-4-swarm-stack-validation-20260614",
+  "proposed_execution_branch": "feature/workflow-issue-4-swarm-stack-validation-20260614",
+  "execution_profile": "NORMAL_PATH",
+  "status": "ACTIVE_READY_FOR_WORKFLOW_EXECUTE",
+  "created_utc": "2026-06-14T00:00:00Z",
+  "dependencies": [],
   "affected_areas": [
-    "documentation/workflow/**",
-    "documentation/configuration/**",
-    "src/tiny_swarm_world/domain/configuration/**",
-    "src/tiny_swarm_world/application/services/configuration/**",
-    "src/tiny_swarm_world/application/ports/configuration/**",
-    "src/tiny_swarm_world/infrastructure/adapters/configuration/**",
-    "src/tiny_swarm_world/infrastructure/composition.py",
-    "infra/config/**",
+    "infra/config/compose/**",
+    "src/tiny_swarm_world/domain/deployment/**",
+    "src/tiny_swarm_world/application/services/deployment/**",
     "tests/**",
-    "README.md",
-    "documentation/deployment/**",
-    "documentation/user_guide/**",
-    "documentation/arc42/**",
-    ".codex/evidence/slice-*-distribution.md",
-    ".codex/evidence/slice-*-consolidation.md"
+    "documentation/**"
   ],
-  "branch": "feature/workflow-config-contracts-20260613",
-  "conditional_roles": [
-    "ADR Steward",
-    "Quality Gate Orchestrator",
-    "Documentation Sync",
-    "Platform Quality Gates"
-  ],
-  "created_utc": "2026-06-13T00:00:00Z",
-  "execution_profile": "FULL_PATH",
   "forbidden_areas": [
     "Java/Maven/Spring Boot",
-    "React/TypeScript/Vite frontend project setup",
+    "React/TypeScript/Vite frontend setup",
     "Kubernetes-first deployment",
-    "Windows-native setup examples",
-    "committed secrets or local runtime env files",
-    "generated live evidence or logs",
-    "live infrastructure commands without explicit consent"
+    "Multipass provider reintroduction",
+    "Windows-native behavior",
+    "committed secrets",
+    "live infrastructure without explicit approval"
   ],
-  "governing_files": [
-    {
-      "path": "AGENTS.md",
-      "sha256": "e95f7cb81cbc70823de6ea09c620a4bb2d1e91a72f17ac990f1b9830c7ade603"
-    },
-    {
-      "path": "QUALITY.md",
-      "sha256": "458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6"
-    },
-    {
-      "path": "documentation/epics/autonomous-runnable-setup.md",
-      "sha256": "026a1c3349d19601b8b0d3733649206b9b53a0c5a0536b086dbe62feffbc6307"
-    },
-    {
-      "path": "documentation/epics/system-unification.md",
-      "sha256": "7ccaf0165a53fa3393a8bfbf8d0973e67d542cf4b24d661a234f72dec9e9f152"
-    },
-    {
-      "path": "documentation/architecture/adr-autonomous-setup-safety.adoc",
-      "sha256": "0e6c48917d1550330b15a9a70c44eb7db5c937f96c29b6a7abafb3c7214c2d3d"
-    },
-    {
-      "path": "documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc",
-      "sha256": "aa54aba46e870c27fe6c8cc80f64cf50100d7c8726f28de0b89beabbc86913c9"
-    },
-    {
-      "path": "documentation/arc42/05_building_blocks.adoc",
-      "sha256": "fc41d9cdf52080355de9467799e123ac9121577ac90ec97f973c9347a4414e61"
-    },
-    {
-      "path": "documentation/arc42/06_runtime_view.adoc",
-      "sha256": "df8d4e3d1f9ecae07f614f4ab3b270b9ab4cf87294ac64f53fe04faedcca166f"
-    },
-    {
-      "path": "documentation/arc42/10_quality_requirements.adoc",
-      "sha256": "0856922c1ab9967003993020f9ed932d1d119119055b09a8c047fdc6818d5fd4"
-    },
-    {
-      "path": ".agents/skills/workflow-authoring/SKILL.md",
-      "sha256": "4711371208cabc8102c3a308ceab8349af90baef908b23eb633c7f3a14ba8b5a"
-    },
-    {
-      "path": "documentation/workflow/workflow.md",
-      "sha256": "8bcd911d0089c66cee62baa5845ee4c092c12c72a2460e57ffac64d0956636a0"
-    }
-  ],
-  "issue": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/24",
-  "process_strand": [
-    "workflow-authoring",
-    "configuration-governance",
-    "python-automation",
-    "platform-preflight",
-    "deployment-setup-safety",
-    "documentation-sync",
-    "automatic-work-distribution",
-    "git-worktree-stream-isolation",
-    "commit-and-push"
-  ],
-  "quality_commands": [
-    "git diff --check",
-    "PYTHONPATH=src python3 -m unittest tests.domain.configuration",
-    "PYTHONPATH=src python3 -m unittest tests.application.services.configuration",
-    "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.configuration",
-    "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service",
-    "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition",
-    "PYTHONPATH=src python3 -m unittest tests.architecture.test_repository_hygiene",
-    "python3 tools/quality_gate.py quality"
-  ],
-  "released_for_workflow_execute": true,
   "required_roles": [
     "Senior Requirement Engineer",
     "Senior System Architect",
     "Senior Python Automation Developer",
     "Senior React Frontend Developer",
     "Senior Tester",
-    "Senior Documentation Engineer",
-    "Senior Security Sandbox Engineer"
+    "Senior Documentation Engineer"
   ],
-  "workflow_id": "config-contract-validation-issue-24-20260613",
-  "workflow_version": "1.0.0",
-  "execution_closeout": {
-    "status": "COMPLETED_WITH_EVIDENCE",
-    "slice_commits": [
-      {
-        "slice_id": "S01",
-        "commit": "c819847",
-        "evidence": "configuration surface inventory"
-      },
-      {
-        "slice_id": "S02",
-        "commit": "9bb2f75",
-        "evidence": "typed configuration contract"
-      },
-      {
-        "slice_id": "S03",
-        "commit": "7ca805d",
-        "evidence": "operator configuration sources"
-      },
-      {
-        "slice_id": "S04",
-        "commit": "57f36dd",
-        "evidence": "preflight contract validation"
-      },
-      {
-        "slice_id": "S05",
-        "commit": "a0f8741",
-        "evidence": "template and operator documentation"
-      }
-    ],
-    "acceptance_mapping": {
-      "config_schema_validates_before_execution": [
-        "src/tiny_swarm_world/domain/configuration/configuration_contract.py",
-        "src/tiny_swarm_world/application/services/configuration/configuration_validation_service.py",
-        "src/tiny_swarm_world/application/services/platform/preflight_service.py",
-        "src/tiny_swarm_world/infrastructure/composition.py"
-      ],
-      "example_template_provided": [
-        ".env.example"
-      ],
-      "overrides_documented": [
-        "documentation/configuration/operator-configuration-contract.md",
-        "README.md",
-        "documentation/user_guide/installation.adoc",
-        "documentation/deployment/system.adoc",
-        "documentation/user_guide/usage.adoc"
-      ]
+  "quality_commands": [
+    "git diff --check",
+    "python3 tools/quality_gate.py test",
+    "python3 tools/quality_gate.py arch-tests",
+    "python3 tools/quality_gate.py quality"
+  ],
+  "governing_files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "e2a689e25890138e7a383e2b50efe5094f8ae6a878ce0d84682e32e74fdade71"
     },
-    "final_quality_gate": {
-      "command": ".venv/bin/python tools/quality_gate.py quality",
-      "status": "passed",
-      "note": "System python3 quality attempt stopped because Ruff was not installed for system Python."
+    {
+      "path": "QUALITY.md",
+      "sha256": "458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6"
+    },
+    {
+      "path": ".agents/skills/workflow-authoring/SKILL.md",
+      "sha256": "5ef238ca8a98d08a3594906e5a30100649d4c09e64a01b377d690f6580b1ca03"
     }
-  }
+  ]
 }
