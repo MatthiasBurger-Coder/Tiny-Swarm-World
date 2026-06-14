@@ -204,6 +204,42 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         workflows.expose.run.assert_not_awaited()
         self.assertIn('"workflow": "platform init"', output.getvalue())
 
+    async def test_platform_reconcile_cli_output_reports_converged_outcome(self):
+        reconcile_result = PlatformWorkflowResult(
+            kind=PlatformWorkflowKind.RECONCILE,
+            status=PlatformWorkflowStatus.COMPLETED,
+            message="reconcile workflow completed.",
+            executed=True,
+            verification_results=(
+                VerificationResult(
+                    target_id="platform:node:swarm-worker-1",
+                    status=VerificationStatus.VERIFIED,
+                    message="Node was reconciled.",
+                    evidence={
+                        "phase": "apply",
+                        "classification": "started",
+                        "applied": "true",
+                    },
+                ),
+            ),
+        )
+        services, workflows = _application_services_with_platform_workflows(
+            reconcile_result=reconcile_result
+        )
+        output = io.StringIO()
+
+        with patch.object(entrypoint, "build_application_services", return_value=services):
+            with redirect_stdout(output):
+                await entrypoint.main(
+                    ["platform", "reconcile", "--live", "--approve-live"]
+                )
+
+        workflows.reconcile.run.assert_awaited_once_with()
+        payload = _json_payload_from_output(output.getvalue())
+        self.assertEqual("platform reconcile", payload["workflow"])
+        self.assertEqual("converged", payload["outcome"]["mutation"]["result"])
+        self.assertEqual("verified", payload["outcome"]["verification"])
+
     async def test_platform_init_uses_composed_guarded_workflow_result(self):
         services, workflows = _application_services_with_platform_workflows(
             init_result=_blocked_platform_init_result()
@@ -616,13 +652,17 @@ class _FakePreflightResult:
 def _application_services_with_platform_workflows(
     preflight_result: _FakePreflightResult | None = None,
     init_result: PlatformWorkflowResult | None = None,
+    reconcile_result: PlatformWorkflowResult | None = None,
 ):
     workflows = SimpleNamespace(
         init=SimpleNamespace(
             run=AsyncMock(return_value=init_result or _workflow_result(PlatformWorkflowKind.INIT))
         ),
         reconcile=SimpleNamespace(
-            run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.RECONCILE))
+            run=AsyncMock(
+                return_value=reconcile_result
+                or _workflow_result(PlatformWorkflowKind.RECONCILE)
+            )
         ),
         expose=SimpleNamespace(
             run=AsyncMock(return_value=_workflow_result(PlatformWorkflowKind.EXPOSE))

@@ -21,6 +21,7 @@ from tiny_swarm_world.application.services.platform import (
     PlatformResetWorkflow,
     PlatformVerifyWorkflow,
     PlatformWorkflowKind,
+    PlatformWorkflowResult,
     PlatformWorkflowStatus,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
@@ -51,6 +52,55 @@ class TestPlatformWorkflowTaxonomy(unittest.TestCase):
             self.assertEqual(mutating, semantics.mutating)
             self.assertEqual(destructive, semantics.destructive)
             self.assertEqual(requires_confirmation, semantics.requires_confirmation)
+
+    def test_workflow_result_outcome_distinguishes_noop_converged_and_blocked(self):
+        no_op = PlatformWorkflowResult.completed(
+            PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.RECONCILE],
+            executed=True,
+            verification_results=(
+                VerificationResult(
+                    target_id="platform:node:swarm-manager",
+                    status=VerificationStatus.VERIFIED,
+                    message="Node already matches configured state.",
+                    evidence={"phase": "verify", "classification": "already_present"},
+                ),
+            ),
+        )
+        converged = PlatformWorkflowResult.completed(
+            PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.RECONCILE],
+            executed=True,
+            verification_results=(
+                VerificationResult(
+                    target_id="platform:node:swarm-manager",
+                    status=VerificationStatus.VERIFIED,
+                    message="Node was started and verified.",
+                    evidence={
+                        "phase": "apply",
+                        "classification": "started",
+                        "applied": "true",
+                    },
+                ),
+            ),
+        )
+        blocked = PlatformWorkflowResult.blocked(
+            PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.RECONCILE],
+            "reconcile step blocked.",
+            (
+                VerificationResult(
+                    target_id="platform:node:swarm-manager",
+                    status=VerificationStatus.BLOCKED,
+                    message="Live mutation is required.",
+                    evidence={"phase": "pre_apply"},
+                ),
+            ),
+        )
+
+        self.assertEqual("no_op", no_op.to_dict()["outcome"]["mutation"]["result"])
+        self.assertEqual("verified", no_op.to_dict()["outcome"]["verification"])
+        self.assertEqual("converged", converged.to_dict()["outcome"]["mutation"]["result"])
+        self.assertEqual("verified", converged.to_dict()["outcome"]["verification"])
+        self.assertEqual("blocked", blocked.to_dict()["outcome"]["mutation"]["result"])
+        self.assertEqual("blocked", blocked.to_dict()["outcome"]["verification"])
 
 
 class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):

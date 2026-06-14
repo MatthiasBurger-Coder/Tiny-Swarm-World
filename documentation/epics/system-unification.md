@@ -116,7 +116,7 @@ Planned or incomplete:
   selection, provider-neutral contracts, LXD/Incus readiness, node lifecycle
   adapters, Docker Engine setup inside managed LXC nodes, Docker Swarm
   bootstrap inside those nodes, setup/platform init integration, LXC-native
-  reconcile no-op completion, and fail-closed rejection of removed provider
+  managed-node reconcile completion, and fail-closed rejection of removed provider
   selections such as `multipass_legacy`.
   Artifact/deployment wiring, Docker Swarm-in-container live validation, and
   WSL2 live proof remain incomplete and fail closed.

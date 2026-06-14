@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from tiny_swarm_world.domain.inventory import VerificationResult
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
 RESET_TINY_SWARM_PLATFORM_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
@@ -54,6 +54,7 @@ class PlatformWorkflowResult:
         return {
             "executed": self.executed,
             "message": self.message,
+            "outcome": _platform_workflow_outcome(self),
             "status": self.status.value,
             "verification_results": [
                 verification.to_dict() for verification in self.verification_results
@@ -191,3 +192,81 @@ PLATFORM_WORKFLOW_TAXONOMY = {
         meaning="inspect current state",
     ),
 }
+
+
+def _platform_workflow_outcome(result: PlatformWorkflowResult) -> dict[str, object]:
+    semantics = PLATFORM_WORKFLOW_TAXONOMY[result.kind]
+    applied = any(
+        verification.evidence.get("applied") == "true"
+        for verification in result.verification_results
+    )
+    blocked = result.status == PlatformWorkflowStatus.BLOCKED or any(
+        verification.status == VerificationStatus.BLOCKED
+        for verification in result.verification_results
+    )
+    verified = (
+        result.status == PlatformWorkflowStatus.COMPLETED
+        and bool(result.verification_results)
+        and all(
+            verification.status == VerificationStatus.VERIFIED
+            for verification in result.verification_results
+        )
+    )
+    return {
+        "mutation": _mutation_outcome(
+            mutating=semantics.mutating,
+            status=result.status,
+            applied=applied,
+            blocked=blocked,
+            verified=verified,
+        ),
+        "verification": _verification_outcome(
+            status=result.status,
+            blocked=blocked,
+            verified=verified,
+        ),
+    }
+
+
+def _mutation_outcome(
+    *,
+    mutating: bool,
+    status: PlatformWorkflowStatus,
+    applied: bool,
+    blocked: bool,
+    verified: bool,
+) -> dict[str, object]:
+    if not mutating:
+        result = "not_applicable"
+    elif blocked:
+        result = "blocked"
+    elif status == PlatformWorkflowStatus.FAILED_TO_APPLY:
+        result = "failed_to_apply"
+    elif status == PlatformWorkflowStatus.FAILED_TO_VERIFY:
+        result = "failed_to_verify"
+    elif applied:
+        result = "converged"
+    elif verified:
+        result = "no_op"
+    else:
+        result = "skipped"
+    return {
+        "planned": mutating,
+        "executed": applied,
+        "result": result,
+    }
+
+
+def _verification_outcome(
+    *,
+    status: PlatformWorkflowStatus,
+    blocked: bool,
+    verified: bool,
+) -> str:
+    if blocked:
+        return "blocked"
+    if verified:
+        return "verified"
+    if status == PlatformWorkflowStatus.COMPLETED:
+        return "not_available"
+    return status.value

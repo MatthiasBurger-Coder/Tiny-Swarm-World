@@ -202,9 +202,12 @@ mutation when backend selection, daemon access, WSL2 capability, or profile
 requirements are not satisfied. After accepted live consent, default
 `platform init` continues from LXC node lifecycle into Docker Engine setup and
 Docker Swarm bootstrap inside `swarm-manager`, `swarm-worker-1`, and
-`swarm-worker-2`. Default `platform reconcile` is currently a verified no-op
-boundary for `lxc_native`. Default `platform expose` configures idempotent
-profile-level LXC proxy devices in the manager-specific
+`swarm-worker-2`. Default `platform reconcile` uses the same guarded
+LXC-native node lifecycle contracts to verify configured nodes and converge
+managed node drift such as missing or stopped nodes when live consent and
+provider readiness allow mutation. Its JSON output reports whether mutation
+was a verified `no_op`, `converged`, or `blocked`. Default `platform expose`
+configures idempotent profile-level LXC proxy devices in the manager-specific
 `docker-swarm-manager` profile for the published setup-manifest service ports,
 so host traffic reaches the Swarm ingress mesh through the manager gateway.
 Direct instance-level `tsw-proxy-*` devices on `swarm-manager` are drift and

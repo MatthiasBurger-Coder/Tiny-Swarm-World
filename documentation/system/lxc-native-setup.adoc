@@ -161,10 +161,15 @@ tests. It is not, by itself, live proof that a specific WSL2/LXD, WSL2/Incus,
 native-Linux/LXD, or native-Linux/Incus target has succeeded. Store any
 approved live-smoke result separately under the ignored local evidence tree.
 
-Default `platform reconcile` is currently a verified no-op boundary for
-`lxc_native` after Platform init. Artifact publication, service deployment,
-and service readiness remain separate provider-native work and still block
-until their contracts are implemented and verified.
+Default `platform reconcile` is the canonical managed-node convergence path
+for `lxc_native` after Platform init. It verifies configured managed nodes and
+applies only required node lifecycle changes, such as creating a missing
+managed node or starting a stopped managed node, when live consent and
+provider readiness allow mutation. Matching nodes report a verified no-op;
+blocked provider selection, missing consent, unmanaged mismatch evidence, or
+unsafe state returns blocked before mutation. Artifact publication, service
+deployment, and service readiness remain separate provider-native work and
+still block until their contracts are implemented and verified.
 
 Default `platform expose` configures host reachability for published Swarm
 service ports by ensuring profile-level LXC proxy devices in the
