@@ -128,7 +128,11 @@ canonical live operator command uses the default `lxc_native` provider:
 tiny-swarm-world setup run --live
 ```
 
-Operators may select a managed LXC backend explicitly:
+Backend selection first honors an explicit `--lxc-backend` override, then
+`backend_selection.preferred_backend`, then the ordered
+`backend_selection.candidates` list in
+`infra/config/node-providers/provider_config.yaml`. Operators may select a
+managed LXC backend explicitly:
 
 ```bash
 tiny-swarm-world --lxc-backend lxd setup run --live
@@ -426,8 +430,8 @@ Notes:
 ## Troubleshooting
 
 - LXC-native provider not ready: verify `incus version`/`incus info` or
-  `lxc version`/`lxc info`, and select `--lxc-backend` if both backends are
-  installed.
+  `lxc version`/`lxc info`, review the configured backend candidate order, and
+  use `--lxc-backend` only when an explicit override is required.
 - Docker connection issues: Verify Docker Engine or the Docker CLI target is available and your user has permission to access the Docker socket.
 - WSL2 networking/ports: Install `socat` and review `infra/config/network` for port-forwarding helpers.
 - Python import errors: Use the installed `tiny-swarm-world` CLI after

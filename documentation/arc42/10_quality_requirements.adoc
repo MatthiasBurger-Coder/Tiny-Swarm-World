@@ -56,8 +56,8 @@ Quality scenarios:
 * preflight reports missing host prerequisites, resource limits, credentials,
   port conflicts, or configuration blockers before mutation;
 * accepted live preflight distinguishes LXD/Incus executable presence, daemon
-  access, backend ambiguity, WSL2 capability, and Docker-in-container profile
-  requirements before LXC-native node mutation;
+  access, backend candidate selection, WSL2 capability, and Docker-in-container
+  profile requirements before LXC-native node mutation;
 * direct `platform init --live` and setup-driven platform init both stop before
   mutating steps when the shared live preflight guard fails;
 * provider readiness diagnostics expose safe classifications and return codes,

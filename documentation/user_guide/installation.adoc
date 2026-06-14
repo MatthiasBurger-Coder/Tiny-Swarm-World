@@ -103,6 +103,11 @@ The quality gate sets `PYTHONPATH=src` automatically.
 The default provider is `lxc_native`. Prepare either Incus or LXD before a
 live setup run.
 
+Backend selection first honors an explicit `--lxc-backend` override, then
+`backend_selection.preferred_backend`, then the ordered
+`backend_selection.candidates` list in
+`infra/config/node-providers/provider_config.yaml`.
+
 For LXD on Ubuntu where Snap is available:
 
 [source,bash]

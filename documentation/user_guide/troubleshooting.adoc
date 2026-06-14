@@ -54,7 +54,8 @@ lxc version
 lxc info
 ----
 
-If both backends are installed and usable, select one explicitly:
+If the configured backend order should not be used for this run, select one
+explicitly:
 
 [source,bash]
 ----
