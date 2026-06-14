@@ -38,6 +38,15 @@ class TestInstallScript(unittest.TestCase):
             self.assertTrue((evidence_dir / "setup-run.log").is_file())
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("fresh_install_reset=required", context)
+            self.assertIn("host_runtime_type=native_linux", context)
+            self.assertIn(
+                "host_runtime_detection_source=uname_linux_without_wsl_signal",
+                context,
+            )
+            self.assertIn(
+                "selected_evidence_directory=.tiny-swarm-world/evidence/installation-tests/native_linux/",
+                context,
+            )
             self.assertIn("reset_confirmation_present=yes", context)
             self.assertIn("reset_confirmation_source=interactive_prompt", context)
             self.assertIn("reset_exit=0", context)
@@ -252,6 +261,33 @@ class TestInstallScript(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertFalse((fixture.root / ".tiny-swarm-world" / "install-venv").exists())
             self.assertIn("PYTHONPATH=src 'python3' -m tiny_swarm_world", fixture.recorded_commands()[0])
+            evidence_dir = fixture.single_evidence_dir("wsl2")
+            context = (evidence_dir / "context.txt").read_text()
+            self.assertIn("host_runtime_type=wsl2", context)
+            self.assertIn("host_runtime_detection_source=wsl_environment", context)
+
+    def test_native_linux_and_wsl2_use_distinct_evidence_directories(self):
+        with _install_script_fixture() as native_fixture:
+            native_result = native_fixture.run()
+
+            self.assertEqual(0, native_result.returncode, native_result.stderr)
+            native_evidence_dir = native_fixture.single_evidence_dir("native_linux")
+            self.assertIn(
+                ".tiny-swarm-world/evidence/installation-tests/native_linux/",
+                native_evidence_dir.as_posix(),
+            )
+
+        with _install_script_fixture(
+            extra_environment={"WSL_DISTRO_NAME": "Ubuntu"},
+        ) as wsl_fixture:
+            wsl_result = wsl_fixture.run()
+
+            self.assertEqual(0, wsl_result.returncode, wsl_result.stderr)
+            wsl_evidence_dir = wsl_fixture.single_evidence_dir("wsl2")
+            self.assertIn(
+                ".tiny-swarm-world/evidence/installation-tests/wsl2/",
+                wsl_evidence_dir.as_posix(),
+            )
 
 
 class _InstallScriptFixture:
@@ -342,8 +378,14 @@ class _InstallScriptFixture:
             return []
         return seed_file.read_text().splitlines()
 
-    def single_evidence_dir(self) -> Path:
-        evidence_root = self.root / ".tiny-swarm-world" / "evidence" / "installation-tests" / "wsl2"
+    def single_evidence_dir(self, host_directory: str = "native_linux") -> Path:
+        evidence_root = (
+            self.root
+            / ".tiny-swarm-world"
+            / "evidence"
+            / "installation-tests"
+            / host_directory
+        )
         evidence_dirs = tuple(evidence_root.iterdir())
         self_test = unittest.TestCase()
         self_test.assertEqual(1, len(evidence_dirs))

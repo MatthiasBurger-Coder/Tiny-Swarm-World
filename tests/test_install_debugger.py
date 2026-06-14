@@ -100,8 +100,14 @@ class TestInstallDebugger(unittest.TestCase):
     def test_log_guidance_points_to_latest_evidence_and_service_search(self):
         with tempfile.TemporaryDirectory() as tempdir:
             root = _minimal_repo(Path(tempdir))
-            older = root / ".tiny-swarm-world" / "evidence" / "installation-tests" / "wsl2" / "20260101T000000Z"
-            newer = root / ".tiny-swarm-world" / "evidence" / "installation-tests" / "wsl2" / "20260201T000000Z"
+            older = (
+                root / ".tiny-swarm-world" / "evidence" / "installation-tests" / "wsl2"
+                / "20260101T000000Z"
+            )
+            newer = (
+                root / ".tiny-swarm-world" / "evidence" / "installation-tests" / "wsl2"
+                / "20260201T000000Z"
+            )
             older.mkdir(parents=True)
             newer.mkdir(parents=True)
             (newer / "setup-run.log").write_text("Service failed\n", encoding="utf-8")
@@ -112,6 +118,41 @@ class TestInstallDebugger(unittest.TestCase):
         self.assertIn("20260201T000000Z", rendered)
         self.assertIn('grep -n -i "service"', rendered)
         self.assertIn("journalctl --no-pager -u '<unit>.service'", rendered)
+
+    def test_log_guidance_points_to_latest_evidence_across_host_directories(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = _minimal_repo(Path(tempdir))
+            older = (
+                root / ".tiny-swarm-world" / "evidence" / "installation-tests" / "wsl2"
+                / "20260101T000000Z"
+            )
+            newer = (
+                root / ".tiny-swarm-world" / "evidence" / "installation-tests"
+                / "native_linux" / "20260201T000000Z"
+            )
+            older.mkdir(parents=True)
+            newer.mkdir(parents=True)
+            (newer / "setup-run.log").write_text("Service failed\n", encoding="utf-8")
+
+            guidance = install_debugger.log_guidance(root)
+
+        rendered = "\n".join(guidance)
+        self.assertIn("installation-tests/native_linux/20260201T000000Z", rendered)
+
+    def test_log_guidance_keeps_legacy_wsl2_evidence_readable(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = _minimal_repo(Path(tempdir))
+            legacy = (
+                root / ".tiny-swarm-world" / "evidence" / "installation-tests" / "wsl2"
+                / "20260101T000000Z"
+            )
+            legacy.mkdir(parents=True)
+            (legacy / "setup-run.log").write_text("Service failed\n", encoding="utf-8")
+
+            guidance = install_debugger.log_guidance(root)
+
+        rendered = "\n".join(guidance)
+        self.assertIn("installation-tests/wsl2/20260101T000000Z", rendered)
 
 
 def _minimal_repo(root: Path) -> Path:
@@ -124,7 +165,7 @@ def _install_script_text() -> str:
         (
             "#!/usr/bin/env bash",
             "set -Eeuo pipefail",
-            "EVIDENCE_ROOT='.tiny-swarm-world/evidence/installation-tests/wsl2'",
+            "EVIDENCE_ROOT='.tiny-swarm-world/evidence/installation-tests'",
             "script -q -e -c 'PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live'",
             "script -q -e -c 'PYTHONPATH=src python3 -m tiny_swarm_world setup run --live'",
         )

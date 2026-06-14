@@ -17,7 +17,8 @@ from typing import Literal
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 INSTALL_SCRIPT = "install.sh"
 SECRET_ENV_FILE = ".tiny-swarm-world/local/live-installation.env"
-EVIDENCE_ROOT = ".tiny-swarm-world/evidence/installation-tests/wsl2"
+EVIDENCE_ROOT = ".tiny-swarm-world/evidence/installation-tests"
+SUPPORTED_EVIDENCE_HOST_DIRECTORIES = ("wsl2", "native_linux")
 INSTALL_SH_EXECUTABLE_LABEL = "install.sh executable"
 SECRET_FILE_MODE_LABEL = "Secret file mode"
 EXCLUDED_SCAN_DIRS = {
@@ -199,7 +200,7 @@ def check_install_script(
         ("platform reset --live", "fresh-install reset command"),
         ("setup run --live", "canonical setup command"),
         ("script -q -e -c", "terminal recording through script(1)"),
-        (EVIDENCE_ROOT, "WSL2 evidence directory"),
+        (EVIDENCE_ROOT, "host-specific evidence root"),
     ):
         findings.append(
             Finding(
@@ -420,7 +421,7 @@ def log_guidance(repo_root: Path) -> tuple[str, ...]:
     evidence_ref = (
         evidence_dir.relative_to(repo_root).as_posix()
         if evidence_dir is not None
-        else EVIDENCE_ROOT + "/<UTC timestamp>"
+        else EVIDENCE_ROOT + "/<host-runtime>/<UTC timestamp>"
     )
     return (
         f"EVIDENCE={evidence_ref}",
@@ -457,10 +458,24 @@ def latest_evidence_dir(repo_root: Path) -> Path | None:
     root = repo_root / EVIDENCE_ROOT
     if not root.is_dir():
         return None
-    candidates = tuple(path for path in root.iterdir() if path.is_dir())
+    candidates = tuple(_evidence_run_directories(root))
     if not candidates:
         return None
     return max(candidates, key=lambda path: path.name)
+
+
+def _evidence_run_directories(root: Path) -> tuple[Path, ...]:
+    candidates: list[Path] = []
+    for host_directory in SUPPORTED_EVIDENCE_HOST_DIRECTORIES:
+        host_root = root / host_directory
+        if host_root.is_dir():
+            candidates.extend(path for path in host_root.iterdir() if path.is_dir())
+    candidates.extend(
+        path
+        for path in root.iterdir()
+        if path.is_dir() and path.name[:4].isdigit()
+    )
+    return tuple(candidates)
 
 
 def _unit_compatibility_issues(text: str, systemd_state: SystemdState) -> tuple[str, ...]:

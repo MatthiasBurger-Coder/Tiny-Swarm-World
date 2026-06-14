@@ -132,12 +132,15 @@ Check the reset evidence first:
 [source,bash]
 ----
 RUN_ID=20260604T120000Z
-EVIDENCE_DIR=".tiny-swarm-world/evidence/installation-tests/wsl2/$RUN_ID"
+HOST_RUNTIME=wsl2
+EVIDENCE_DIR=".tiny-swarm-world/evidence/installation-tests/$HOST_RUNTIME/$RUN_ID"
 cat "$EVIDENCE_DIR/reset-run.exit"
 cat "$EVIDENCE_DIR/setup-run.exit"
 ----
 
-Use the concrete run ID printed by the wrapper.
+Use the concrete host runtime and run ID printed by the wrapper. Supported
+host runtime directories are `wsl2` and `native_linux`; the run context file
+also records `host_runtime_type` and `selected_evidence_directory`.
 
 Then verify that the operator-provided `TSW_PORTAINER_USERNAME` and
 `TSW_PORTAINER_ADMIN_PASSWORD` values are the intended values for this local
@@ -147,8 +150,8 @@ committed documentation.
 == Installation Debugger For WSL2
 
 Use the installation debugger when `install.sh` aborts and the next question is
-whether the checkout, WSL2 host, systemd availability, service definitions, or
-evidence logs are the problem:
+whether the checkout, host runtime, WSL2 systemd availability, service
+definitions, or evidence logs are the problem:
 
 [source,bash]
 ----
@@ -157,9 +160,9 @@ python3 tools/install_debugger.py
 
 The default mode analyzes `install.sh`, repository permissions, ownership
 markers, WSL2/systemd indicators, systemd unit definitions, and the newest
-installation evidence directory. It also prints exact `grep`, `tail`,
-`systemctl`, and `journalctl` commands for finding the abort point after a
-`Service` log line.
+installation evidence directory across supported host directories. It also
+prints exact `grep`, `tail`, `systemctl`, and `journalctl` commands for finding
+the abort point after a `Service` log line.
 
 For live host diagnostics, including `systemctl is-system-running`, use:
 
