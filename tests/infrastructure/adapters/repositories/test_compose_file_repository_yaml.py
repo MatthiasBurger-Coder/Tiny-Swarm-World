@@ -27,7 +27,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             config_root = Path(temp_dir) / "config" / "compose"
             config_root.joinpath("nexus").mkdir(parents=True)
             compose_file = config_root / "nexus" / "docker-compose.yml"
-            compose_file.write_text("services:\n  nexus:\n    image: nexus:latest\n", encoding="utf-8")
+            compose_file.write_text("services:\n  nexus:\n    image: nexus:latest\n    deploy: {}\n", encoding="utf-8")
 
             repository = ComposeFileRepositoryYaml(base_directories=[compose_root, config_root])
             stack_definition = repository.get_compose_of("nexus")
@@ -44,6 +44,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
 services:
   web:
     image: nginx
+    deploy: {}
     ports:
       - target: 80
         published: 8080
@@ -53,8 +54,10 @@ services:
       - "9000"
   worker:
     image: busybox
+    deploy: {}
   admin:
     image: nginx
+    deploy: {}
     ports:
       - published: "9090"
         target: 90
@@ -81,7 +84,7 @@ services:
             config_root = Path(temp_dir) / "config" / "compose"
             config_root.joinpath("platform", "services", "nexus").mkdir(parents=True)
             compose_file = config_root / "platform" / "services" / "nexus" / "docker-compose.yml"
-            compose_file.write_text("services:\n  nexus:\n    image: nested\n", encoding="utf-8")
+            compose_file.write_text("services:\n  nexus:\n    image: nested\n    deploy: {}\n", encoding="utf-8")
 
             repository = ComposeFileRepositoryYaml(base_directories=[compose_root, config_root])
             stack_definition = repository.get_compose_of("nexus")
@@ -96,11 +99,11 @@ services:
             compose_root.joinpath("portainer").mkdir(parents=True)
             config_root.joinpath("portainer").mkdir(parents=True)
             compose_root.joinpath("portainer", "docker-compose.yml").write_text(
-                "services:\n  portainer:\n    image: preferred\n",
+                "services:\n  portainer:\n    image: preferred\n    deploy: {}\n",
                 encoding="utf-8",
             )
             config_root.joinpath("portainer", "docker-compose.yml").write_text(
-                "services:\n  portainer:\n    image: fallback\n",
+                "services:\n  portainer:\n    image: fallback\n    deploy: {}\n",
                 encoding="utf-8",
             )
 
@@ -115,7 +118,7 @@ services:
             root = Path(temp_dir)
             root.joinpath("config", "compose", "jenkins").mkdir(parents=True)
             root.joinpath("config", "compose", "jenkins", "docker-compose.yml").write_text(
-                "services:\n  jenkins:\n    image: config-side\n",
+                "services:\n  jenkins:\n    image: config-side\n    deploy: {}\n",
                 encoding="utf-8",
             )
 
@@ -149,6 +152,48 @@ services:
             with self.subTest(stack_name=stack_name):
                 with self.assertRaises(ValueError):
                     repository.get_compose_of(stack_name)
+
+    def test_rejects_compose_file_without_services_mapping(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            compose_root.joinpath("broken").mkdir(parents=True)
+            compose_root.joinpath("broken", "docker-compose.yml").write_text(
+                "name: broken\n",
+                encoding="utf-8",
+            )
+
+            repository = ComposeFileRepositoryYaml(base_directories=[compose_root])
+
+            with self.assertRaisesRegex(ValueError, "non-empty services mapping"):
+                repository.get_compose_of("broken")
+
+    def test_rejects_compose_service_without_deploy_mapping(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            compose_root.joinpath("broken").mkdir(parents=True)
+            compose_root.joinpath("broken", "docker-compose.yml").write_text(
+                "services:\n  web:\n    image: nginx\n",
+                encoding="utf-8",
+            )
+
+            repository = ComposeFileRepositoryYaml(base_directories=[compose_root])
+
+            with self.assertRaisesRegex(ValueError, "web"):
+                repository.get_compose_of("broken")
+
+    def test_rejects_compose_service_with_non_mapping_deploy_section(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            compose_root.joinpath("broken").mkdir(parents=True)
+            compose_root.joinpath("broken", "docker-compose.yml").write_text(
+                "services:\n  web:\n    image: nginx\n    deploy: invalid\n",
+                encoding="utf-8",
+            )
+
+            repository = ComposeFileRepositoryYaml(base_directories=[compose_root])
+
+            with self.assertRaisesRegex(ValueError, "deploy mapping"):
+                repository.get_compose_of("broken")
 
     def test_committed_portainer_compose_uses_docker_socket_mount(self):
         repository_root = Path(__file__).resolve().parents[4]

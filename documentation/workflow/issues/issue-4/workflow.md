@@ -200,8 +200,7 @@ affected_modules:
   - deployment configuration validation
 affected_contracts:
   - issue_4_swarm_stack_validation
-dependencies:
-  []
+dependencies: []
 parallel_group: issue-4-group-1
 file_locks:
   - documentation/workflow/issues/issue-4/**
@@ -214,10 +213,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -279,10 +278,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -340,10 +339,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -399,10 +398,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes

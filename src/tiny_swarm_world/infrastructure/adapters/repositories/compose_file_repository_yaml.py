@@ -31,10 +31,12 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
 
         for base_directory in self.base_directories:
             for compose_path in self._compose_paths_for(base_directory, stack_name):
+                compose_content = compose_path.read_text(encoding="utf-8")
+                _validate_swarm_stack_compose(stack_name, compose_content)
                 self.logger.info("Loaded compose file for stack '%s'.", stack_name)
                 return StackDefinition(
                     name=stack_name,
-                    compose_content=compose_path.read_text(encoding="utf-8"),
+                    compose_content=compose_content,
                 )
 
         raise FileNotFoundError(f"No docker-compose.yml found for stack '{stack_name}' in {self.base_directories}.")
@@ -83,6 +85,32 @@ def _published_ports_from_service(service_payload: Mapping[object, object]) -> t
         if published is not None:
             published_ports.append(published)
     return tuple(dict.fromkeys(published_ports))
+
+
+def _validate_swarm_stack_compose(stack_name: str, compose_content: str) -> None:
+    payload = _YAML.load(compose_content) or {}
+    if not isinstance(payload, Mapping):
+        raise ValueError(f"compose stack '{stack_name}' must be a YAML mapping")
+
+    services = payload.get("services")
+    if not isinstance(services, Mapping) or not services:
+        raise ValueError(f"compose stack '{stack_name}' must define a non-empty services mapping")
+
+    invalid_services: list[str] = []
+    for service_name, service_payload in services.items():
+        if not isinstance(service_name, str):
+            invalid_services.append(str(service_name))
+            continue
+        if not isinstance(service_payload, Mapping):
+            invalid_services.append(service_name)
+            continue
+        deploy = service_payload.get("deploy")
+        if not isinstance(deploy, Mapping):
+            invalid_services.append(service_name)
+
+    if invalid_services:
+        invalid = ", ".join(sorted(invalid_services))
+        raise ValueError(f"compose stack '{stack_name}' has services without a deploy mapping: {invalid}")
 
 
 def _published_port_from_entry(port_entry: object) -> int | None:
