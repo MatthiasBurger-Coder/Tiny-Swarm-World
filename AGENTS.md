@@ -33,7 +33,7 @@ explicit task changes the product scope.
   YAML handling, command runners, UI adapters, and file management.
 - `infra/config`: YAML command, node-provider, network, and compose stack
   configuration data.
-- `infra/compose`: image build contexts and related Dockerfiles for stack services.
+- `infra/config/compose`: image build contexts and related Dockerfiles for stack services.
 - `tests`: unit tests organized by architecture layer.
 - `documentation`: arc42, deployment, system, and user guide documentation.
 
@@ -82,8 +82,7 @@ explicit task changes the product scope.
 - Keep command templates readable and deterministic.
 - Avoid embedding host-specific absolute paths, user names, IP addresses, or
   secrets in committed configuration.
-- Preserve service stack boundaries under `infra/config/compose` and
-  `infra/compose`.
+- Preserve service stack boundaries under `infra/config/compose`.
 
 ## External System Safety
 

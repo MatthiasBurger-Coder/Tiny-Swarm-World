@@ -127,7 +127,7 @@ Allowed files after architecture approval:
 
 Forbidden files:
 
-- `infra/compose`
+- `infra/config/compose`
 - service stack deployment logic
 - Portainer stack upload logic
 - Nexus repository bootstrap except as a documented platform dependency
@@ -278,7 +278,7 @@ Allowed files after architecture approval:
 - deployment-related application services
 - `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
 - `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
-- `infra/compose`
+- `infra/config/compose`
 - `infra/config/compose`
 - deployment-related tests and docs
 

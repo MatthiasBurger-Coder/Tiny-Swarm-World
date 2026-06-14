@@ -86,7 +86,7 @@ Maven repository setup from platform provisioning and stack deployment.
 - `src/tiny_swarm_world/domain/nexus`
 - `src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
 - `src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
-- `infra/compose/**/Dockerfile`
+- `infra/config/compose/**/Dockerfile`
 - Python artifact workflow contracts
 
 ### Recommended remediation
@@ -119,7 +119,7 @@ deployment lifecycle from platform provisioning and artifact publishing.
 - `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
 - `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
 - `infra/config/compose`
-- image build contexts under `infra/compose`
+- image build contexts under `infra/config/compose`
 - `infra/config/compose`
 - Python deployment workflow contracts
 

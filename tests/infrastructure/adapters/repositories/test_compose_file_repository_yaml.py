@@ -110,30 +110,21 @@ services:
             self.assertIn("image: preferred", stack_definition.compose_content)
             self.assertNotIn("image: fallback", stack_definition.compose_content)
 
-    def test_default_search_order_prefers_config_compose_before_image_assets(self):
+    def test_default_search_order_uses_config_compose(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
-            root.joinpath("compose", "jenkins").mkdir(parents=True)
             root.joinpath("config", "compose", "jenkins").mkdir(parents=True)
-            root.joinpath("compose", "jenkins", "docker-compose.yml").write_text(
-                "services:\n  jenkins:\n    image: image-asset-side\n",
-                encoding="utf-8",
-            )
             root.joinpath("config", "compose", "jenkins", "docker-compose.yml").write_text(
                 "services:\n  jenkins:\n    image: config-side\n",
                 encoding="utf-8",
             )
 
             repository = ComposeFileRepositoryYaml()
-            repository.base_directories = [
-                root / "config" / "compose",
-                root / "compose",
-            ]
+            repository.base_directories = [root / "config" / "compose"]
 
             stack_definition = repository.get_compose_of("jenkins")
 
         self.assertIn("image: config-side", stack_definition.compose_content)
-        self.assertNotIn("image: image-asset-side", stack_definition.compose_content)
 
     def test_raises_when_stack_is_missing(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -474,7 +465,7 @@ services:
 
     def test_committed_traefik_dynamic_tls_config_references_secret_mounts_only(self):
         repository_root = Path(__file__).resolve().parents[4]
-        tls_path = repository_root / "infra" / "compose" / "traefik" / "dynamic" / "tls.yml"
+        tls_path = repository_root / "infra" / "config" / "compose" / "traefik" / "dynamic" / "tls.yml"
         tls_content = tls_path.read_text(encoding="utf-8")
         tls_data = YAML(typ="safe").load(tls_content)
 
@@ -541,12 +532,24 @@ services:
         )
         packaged_services = {
             "service-access-dashboard": (
-                repository_root / "infra" / "compose" / "service-access" / "dashboard" / "Dockerfile",
+                repository_root
+                / "infra"
+                / "config"
+                / "compose"
+                / "service-access"
+                / "dashboard"
+                / "Dockerfile",
                 "COPY index.html /usr/share/nginx/html/index.html",
                 "FROM nginx:mainline-alpine",
             ),
             "service-access-nginx": (
-                repository_root / "infra" / "compose" / "service-access" / "nginx" / "Dockerfile",
+                repository_root
+                / "infra"
+                / "config"
+                / "compose"
+                / "service-access"
+                / "nginx"
+                / "Dockerfile",
                 "COPY default.conf /etc/nginx/conf.d/default.conf",
                 "FROM nginx:mainline",
             ),
@@ -748,5 +751,11 @@ class _CapturingImagePublisher(LxcContainerImagePublisher):
 def _service_access_dashboard_html() -> str:
     repository_root = Path(__file__).resolve().parents[4]
     return (
-        repository_root / "infra" / "compose" / "service-access" / "dashboard" / "index.html"
+        repository_root
+        / "infra"
+        / "config"
+        / "compose"
+        / "service-access"
+        / "dashboard"
+        / "index.html"
     ).read_text(encoding="utf-8")

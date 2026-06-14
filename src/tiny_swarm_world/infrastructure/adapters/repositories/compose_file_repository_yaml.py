@@ -22,7 +22,6 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
         root = infra_root()
         self.base_directories = base_directories or [
             root / "config" / "compose",
-            root / "compose",
         ]
         self.logger = LoggerFactory.get_logger(self.__class__)
 

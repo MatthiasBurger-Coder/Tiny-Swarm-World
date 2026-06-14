@@ -65,7 +65,7 @@ the service-access compose stack itself publishes service-access NGINX ports
 `80`, `8086`, and `443`.
 
 The service-access dashboard and NGINX assets are image-packaged under
-`infra/compose/service-access/**`, while the stack definition lives under
+`infra/config/compose/service-access/**`, while the stack definition lives under
 `infra/config/compose/service-access/docker-compose.yml`. Static tests verify
 that the dashboard exposes a management table with central route links and
 Infisical item references, does not render password values, and does not
@@ -176,7 +176,7 @@ application code.
 
 * `infra/config` contains command, node-provider, network, and compose
   configuration.
-* `infra/compose` contains image build-context assets.
+* `infra/config/compose` contains stack definitions and service image/runtime assets.
 * Removed direct setup and legacy Swarm helper material remains historical
   live-operation surface context, not a supported workflow entry point. It must
   not be reintroduced without an explicit cleanup or migration slice with tests

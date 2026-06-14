@@ -29,16 +29,16 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             "`infra/prepare/nexus/addMavenMirror.sh`": "Retired",
             "`infra/prepare/nexus/addLocalDockerRepository.sh`": "Retired",
             "`infra/prepare/nexus/test.sh`": "Retired",
-            "`infra/compose/create_dockerfiles.sh`": "Retired",
-            "`infra/compose/upload_all_stacks.sh`": "Retired",
+            "Former `create_dockerfiles.sh` helper": "Retired",
+            "Former `upload_all_stacks.sh` helper": "Retired",
             "`infra/config/compose/portainer/docker-compose.yml`": "Supported Asset",
             "`infra/config/compose/nexus/docker-compose.yml`": "Supported Asset",
             "`infra/config/compose/jenkins/docker-compose.yml`": "Supported Asset",
             "`infra/config/compose/swagger/docker-compose.yml`": "Supported Asset",
-            "`infra/compose/swagger/nginx/default.conf`": "Supported Asset",
+            "`infra/config/compose/swagger/nginx/default.conf`": "Supported Asset",
             "`infra/config/compose/service-access/docker-compose.yml`": "Supported Asset",
-            "`infra/compose/service-access/dashboard/**`": "Supported Asset",
-            "`infra/compose/service-access/nginx/**`": "Supported Asset",
+            "`infra/config/compose/service-access/dashboard/**`": "Supported Asset",
+            "`infra/config/compose/service-access/nginx/**`": "Supported Asset",
         }
 
         for path, status in expected_rows.items():
@@ -47,11 +47,11 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
 
     def test_compose_area_has_no_host_side_shell_orchestration(self):
         allowed_container_entrypoint_scripts = {
-            "infra/compose/service-access/nginx/generate-self-signed-cert.sh",
+            "infra/config/compose/service-access/nginx/generate-self-signed-cert.sh",
         }
         shell_scripts = {
             path.relative_to(REPOSITORY_ROOT).as_posix()
-            for path in (REPOSITORY_ROOT / "infra" / "compose").rglob("*.sh")
+            for path in (REPOSITORY_ROOT / "infra" / "config" / "compose").rglob("*.sh")
         }
 
         self.assertEqual(allowed_container_entrypoint_scripts, shell_scripts)
@@ -75,15 +75,19 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertEqual({}, violations)
 
     def test_swagger_nginx_uses_official_image_with_mounted_runtime_config(self):
-        nginx_config = (REPOSITORY_ROOT / "infra" / "compose" / "swagger" / "nginx" / "default.conf").read_text(
-            encoding="utf-8"
-        )
+        nginx_config = (
+            REPOSITORY_ROOT / "infra" / "config" / "compose" / "swagger" / "nginx" / "default.conf"
+        ).read_text(encoding="utf-8")
         compose = (REPOSITORY_ROOT / "infra" / "config" / "compose" / "swagger" / "docker-compose.yml").read_text(
             encoding="utf-8"
         )
 
-        self.assertFalse((REPOSITORY_ROOT / "infra" / "compose" / "swagger" / "nginx" / "Dockerfile").exists())
-        self.assertFalse((REPOSITORY_ROOT / "infra" / "compose" / "swagger" / "nginx" / "wait-for-it.sh").exists())
+        self.assertFalse(
+            (REPOSITORY_ROOT / "infra" / "config" / "compose" / "swagger" / "nginx" / "Dockerfile").exists()
+        )
+        self.assertFalse(
+            (REPOSITORY_ROOT / "infra" / "config" / "compose" / "swagger" / "nginx" / "wait-for-it.sh").exists()
+        )
         self.assertIn("image: nginx:mainline-alpine", compose)
         self.assertIn("/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro", compose)
         self.assertIn("resolver 127.0.0.11", nginx_config)
@@ -92,16 +96,10 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertIn("proxy_pass $swagger_api_upstream;", nginx_config)
 
     def test_compose_area_has_no_stack_definitions(self):
-        stack_definitions = sorted(
-            path.relative_to(REPOSITORY_ROOT).as_posix()
-            for path in (REPOSITORY_ROOT / "infra" / "compose").rglob("docker-compose.yml")
-        )
-
-        self.assertEqual([], stack_definitions)
+        self.assertFalse((REPOSITORY_ROOT / "infra" / "compose").exists())
 
     def test_service_access_assets_do_not_introduce_frontend_project_or_live_orchestration_surface(self):
         roots = [
-            INFRA_ROOT / "compose" / "service-access",
             INFRA_ROOT / "config" / "compose" / "service-access",
         ]
         forbidden_names = {
@@ -147,7 +145,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
 
     def test_service_access_nginx_owns_central_routes_without_request_logs(self):
         nginx_config = (
-            INFRA_ROOT / "compose" / "service-access" / "nginx" / "default.conf"
+            INFRA_ROOT / "config" / "compose" / "service-access" / "nginx" / "default.conf"
         ).read_text(encoding="utf-8")
 
         self.assertEqual(3, nginx_config.count("access_log off;"))

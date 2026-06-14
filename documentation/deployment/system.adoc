@@ -17,7 +17,7 @@ This project is developed and operated from WSL or Linux shells. Windows-specifi
 The repository separates deployment work into three areas:
 
 * `src/tiny_swarm_world/__main__.py` contains the Python entry point for infrastructure orchestration.
-* `infra/compose` contains image build-context assets for workflow-managed deployment.
+* `infra/config/compose` contains stack definitions and service image/runtime assets for workflow-managed deployment.
 
 The active Python entry point exposes workflow-level commands. Running without
 arguments does not execute infrastructure commands, and `--list-workflows`
@@ -174,8 +174,8 @@ Implemented repository behavior:
 
 * `infra/config/compose/service-access/docker-compose.yml` defines the
   dashboard and service-access NGINX stack.
-* `infra/compose/service-access/dashboard/**` and
-  `infra/compose/service-access/nginx/**` provide image-packaged static
+* `infra/config/compose/service-access/dashboard/**` and
+  `infra/config/compose/service-access/nginx/**` provide image-packaged static
   assets for the Portainer-managed path.
 * The setup CLI uses `ServiceStackProfile.SERVICE_ACCESS` by default so the
   selected setup profile includes the service-access landing page contract.

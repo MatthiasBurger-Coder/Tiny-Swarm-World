@@ -142,7 +142,7 @@ Affected files/directories:
 
 Files explicitly forbidden:
 
-- `infra/compose`
+- `infra/config/compose`
 - Nexus repository bootstrap logic
 - Portainer stack upload logic
 
@@ -187,7 +187,7 @@ Affected files/directories:
 - `src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
 - `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
 - `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
-- `infra/compose`
+- `infra/config/compose`
 - `infra/config/compose`
 - deployment-related tests and docs
 
@@ -331,7 +331,7 @@ Goal:
 Affected files/directories:
 
 - `infra/config`
-- `infra/compose`
+- `infra/config/compose`
 - `infra/utils.sh`
 - documentation and tests that reference these paths
 

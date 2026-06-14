@@ -33,7 +33,7 @@ Additional relevant areas inspected:
 - `src/tiny_swarm_world/application`
 - `src/tiny_swarm_world/infrastructure`
 - `infra/config`
-- `infra/compose`
+- `infra/config/compose`
 - `tests`
 - existing import-ready issue files
 
@@ -56,10 +56,9 @@ runtime tool instead of by responsibility:
 - Compose stacks, Portainer stack upload, and service deployment.
 - Shared command/YAML/file/path/logging infrastructure.
 
-The target `infra/platform`, `infra/artifacts`, `infra/deployment`, and
-`infra/shared` directories now exist as documentation markers only. Existing
-infra assets have not been moved yet, so existing documented commands and
-script-relative paths remain unchanged.
+Responsibility-owned infra asset directories should be introduced only when
+concrete files move there. Existing infra assets have not been moved yet, so
+existing documented commands and script-relative paths remain unchanged.
 
 ## A. Platform Provisioning
 
@@ -93,7 +92,6 @@ cluster substrate.
 - `infra/config/docker/command_multipass_docker_swarm_manager_join_token.yaml`
 - `infra/config/network`
 - `infra/config/vm`
-- `infra/platform/README.md` as target boundary marker
 
 ### Tests and Documentation
 
@@ -122,8 +120,7 @@ Nexus repository behavior, and future Maven or Docker registry workflows.
 
 ### Infrastructure Assets
 
-- `infra/compose/**/Dockerfile`
-- `infra/artifacts/README.md` as target boundary marker
+- `infra/config/compose/**/Dockerfile`
 - service configuration files that are used as image build contexts
 
 ### Tests and Documentation
@@ -152,14 +149,13 @@ Portainer stack APIs, and service lifecycle through Portainer or Docker Swarm.
 ### Infrastructure Assets
 
 - `infra/config/compose`
-- stack directories under `infra/compose`, including:
+- stack directories under `infra/config/compose`, including:
   - `infra/config/compose/jenkins`
   - `infra/config/compose/swagger`
   surface
 - Portainer stack compose files under `infra/config/compose/portainer`
 - service stack compose files under `infra/config/compose/nexus`,
   `infra/config/compose/rabbitmq`, and `infra/config/compose/sonarqube`
-- `infra/deployment/README.md` as target boundary marker
 
 ### Tests and Documentation
 
@@ -197,7 +193,6 @@ artifact, or deployment decisions.
 ### Repository and Quality Tooling
 
 - `tools/quality_gate.py`
-- `infra/shared/README.md` as target boundary marker
 - `.importlinter`
 - `.gitattributes`
 - `.gitignore`
@@ -230,8 +225,8 @@ These areas need explicit classification before any cleanup:
 | C-001 | `src/tiny_swarm_world/application/services/nexus/ensure_nexus_stack.py` | Nexus bootstrap | Portainer stack deployment | A Nexus service directly owns stack creation/update through Portainer. | Deployment | Medium | Stack Deployment Agent |
 | C-002 | `src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py` | Nexus workflow orchestration | Deployment plus registry configuration | A single workflow combines stack deployment, readiness, credential rotation, and anonymous access. | Split between Deployment and Artifacts | Medium | Artifact Registry Agent plus Stack Deployment Agent |
 | C-003 | `infra/prepare/nexus/setup.py` | Retired Nexus setup entrypoint | Composition root, Portainer client, Docker runtime, Nexus client | The former direct script wired concrete deployment and artifact adapters outside the main composition root. | Resolved by removal; behavior belongs behind setup workflow contracts | Retired | Composition / CLI Workflow Agent |
-| C-004 | `infra/compose/create_dockerfiles.sh` | Retired image build and registry push helper | Stack deployment directory | The former helper mixed Dockerfile generation, build, login, push, and registry credentials in `infra/compose`. | Resolved by removal; artifacts behavior belongs to Python artifact workflow | Retired | Artifact Registry Agent |
-| C-005 | `infra/compose/upload_all_stacks.sh` | Retired stack upload helper | Image build and push | The former helper sourced image publishing before stack processing. | Resolved by removal; deployment should call artifact output through workflow contracts | Retired | Stack Deployment Agent |
+| C-004 | Former `create_dockerfiles.sh` helper | Retired image build and registry push helper | Stack deployment directory | The former helper mixed Dockerfile generation, build, login, push, and registry credentials. | Resolved by removal; artifacts behavior belongs to Python artifact workflow | Retired | Artifact Registry Agent |
+| C-005 | Former `upload_all_stacks.sh` helper | Retired stack upload helper | Image build and push | The former helper sourced image publishing before stack processing. | Resolved by removal; deployment should call artifact output through workflow contracts | Retired | Stack Deployment Agent |
 | C-006 | `infra/prepare/prepare.sh` | Retired top-level preparation helper | Portainer setup with optional Nexus setup | The former umbrella script could mix unrelated live setup actions. | Resolved by removal; use setup workflow | Retired | Composition / CLI Workflow Agent |
 | C-007 | `infra/prepare/portainer/portain_setup.py` | Retired Portainer setup duplicate | Multipass, socat, iptables, Docker cleanup, stack deploy | The former script coupled platform networking and deployment. | Resolved by removal; split behavior across Platform and Deployment workflow contracts | Retired | Platform Provisioning Agent plus Stack Deployment Agent |
 | C-008 | `infra/prepare/portainer/prepare.sh` | Retired Portainer stack deployment helper | Docker system prune and volume removal | The former helper mixed deployment bootstrap with destructive Docker cleanup. | Resolved by removal; reset behavior must stay explicit | Retired | Stack Deployment Agent |

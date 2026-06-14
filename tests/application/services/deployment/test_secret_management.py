@@ -39,7 +39,7 @@ class TestSecretManagement(unittest.TestCase):
             self.assertEqual("keep_existing", entries[0].policy)
 
     def test_committed_manifest_tracks_traefik_tls_secret_names_without_values(self):
-        entries = SecretManifestRenderer(Path("config/secrets/infisical-secrets.yaml")).run()
+        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         for key in (
@@ -56,7 +56,7 @@ class TestSecretManagement(unittest.TestCase):
                 self.assertNotIn("REDACTED", entry.description)
 
     def test_committed_manifest_keeps_infisical_bootstrap_token_optional(self):
-        entries = SecretManifestRenderer(Path("config/secrets/infisical-secrets.yaml")).run()
+        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         entry = entries_by_key["TSW_INFISICAL_BOOTSTRAP_TOKEN"]
@@ -65,7 +65,7 @@ class TestSecretManagement(unittest.TestCase):
         self.assertFalse(entry.required)
 
     def test_committed_manifest_tracks_required_infisical_login_identity(self):
-        entries = SecretManifestRenderer(Path("config/secrets/infisical-secrets.yaml")).run()
+        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         entry = entries_by_key["TSW_INFISICAL_LOGIN_EMAIL"]
