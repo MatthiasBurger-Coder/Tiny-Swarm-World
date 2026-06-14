@@ -108,6 +108,8 @@ class PortUI(ABC):
     def all_instances_terminal(self):
         if self.is_terminal_result(self.aggregate_status["result"]):
             return True
+        if not self.instances:
+            return False
         return all(
             self.is_terminal_result(self.status[instance]["result"])
             for instance in self.instances
