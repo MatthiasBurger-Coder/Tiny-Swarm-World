@@ -1,0 +1,57 @@
+{
+  "workflow_id": "issue-83-ui-status-evidence-contract-20260614",
+  "workflow_version": "1.0.0",
+  "issue": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/83",
+  "issue_number": 83,
+  "workflow_path": "documentation/workflow/issues/issue-83/workflow.md",
+  "authoring_branch": "feature/workflow-index-open-issues-20260614",
+  "proposed_execution_branch": "feature/workflow-issue-83-ui-status-evidence-contract-20260614",
+  "execution_profile": "FULL_PATH",
+  "status": "AUTHORED_INDEXED_NOT_ACTIVE",
+  "created_utc": "2026-06-14T00:00:00Z",
+  "dependencies": [],
+  "affected_areas": [
+    "src/tiny_swarm_world/application/ports/**",
+    "src/tiny_swarm_world/domain/**",
+    "src/tiny_swarm_world/infrastructure/adapters/ui/**",
+    "tests/**",
+    "documentation/**"
+  ],
+  "forbidden_areas": [
+    "Java/Maven/Spring Boot",
+    "React/TypeScript/Vite frontend setup",
+    "Kubernetes-first deployment",
+    "Multipass provider reintroduction",
+    "Windows-native behavior",
+    "committed secrets",
+    "live infrastructure without explicit approval"
+  ],
+  "required_roles": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Python Automation Developer",
+    "Senior React Frontend Developer",
+    "Senior Tester",
+    "Senior Documentation Engineer"
+  ],
+  "quality_commands": [
+    "git diff --check",
+    "python3 tools/quality_gate.py test",
+    "python3 tools/quality_gate.py arch-tests",
+    "python3 tools/quality_gate.py quality"
+  ],
+  "governing_files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "e2a689e25890138e7a383e2b50efe5094f8ae6a878ce0d84682e32e74fdade71"
+    },
+    {
+      "path": "QUALITY.md",
+      "sha256": "458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6"
+    },
+    {
+      "path": ".agents/skills/workflow-authoring/SKILL.md",
+      "sha256": "5ef238ca8a98d08a3594906e5a30100649d4c09e64a01b377d690f6580b1ca03"
+    }
+  ]
+}

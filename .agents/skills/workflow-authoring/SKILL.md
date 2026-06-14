@@ -116,6 +116,46 @@ Before creating a new workflow:
 
 Do not partially overwrite old slices. Do not keep stale workflow files unless the user explicitly asks to archive them outside the active workflow.
 
+## Multi-Issue Workflow Index Rule
+
+When a user explicitly asks to create workflows for multiple issues before
+executing any of them, do not overwrite the single active workflow file for
+each issue. Preserve `documentation/workflow/workflow.md` unless the user
+explicitly asks to replace the active workflow.
+
+Use this indexed layout:
+
+```text
+documentation/workflow/workflow.index.md
+documentation/workflow/issues/issue-<number>/workflow.md
+documentation/workflow/issues/issue-<number>/context-pack.md
+documentation/workflow/issues/issue-<number>/context-pack.json
+```
+
+The index must list each included issue, workflow id, workflow path, branch,
+status, dependencies, blockers, and execution order. It must also list excluded
+issues with the reason they were excluded.
+
+Each issue workflow remains executable only after it is promoted to the active
+workflow location or the workflow executor is explicitly extended to accept an
+indexed workflow path. Until then, `workflow execute` must not guess which
+indexed workflow to run.
+
+For multi-issue authoring:
+
+1. Create one dedicated multi-workflow authoring branch unless the user
+   explicitly requests one branch per issue.
+2. Create or update `workflow.index.md` first.
+3. Create one issue-local `workflow.md` per authoring-ready issue.
+4. Keep issue-local context packs beside the issue-local workflow.
+5. Do not execute slices until all requested issue workflows are authored and
+   the execution order is confirmed from `workflow.index.md`.
+6. Use Git worktrees for later parallel execution only when S3D confirms
+   disjoint locks and the workflow index declares the workflows independent.
+
+Issues that fail the requirement clarification gate must be listed in the
+index as excluded or blocked instead of receiving executable workflow plans.
+
 ## Workflow Structure
 
 Every workflow should include:
