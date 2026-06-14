@@ -7,7 +7,7 @@ from tiny_swarm_world.domain.inventory import VerificationResult
 
 class PortainerVerificationService(Protocol):
     async def verify(self) -> VerificationResult:
-        pass
+        ...
 
 
 class PortainerEndpointVerifyStep:

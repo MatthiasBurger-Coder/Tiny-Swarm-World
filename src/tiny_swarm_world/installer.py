@@ -389,21 +389,34 @@ def _load_export_file(path: Path) -> dict[str, str]:
         return {}
     values: dict[str, str] = {}
     for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
+        assignment = _export_assignment_from_line(raw_line)
+        if assignment is None:
             continue
-        if line.startswith("export "):
-            line = line.removeprefix("export ").strip()
-        if "=" not in line:
-            continue
-        name, raw_value = line.split("=", 1)
-        if name.isidentifier():
-            try:
-                parsed = shlex.split(raw_value, posix=True)
-            except ValueError:
-                parsed = [raw_value]
-            values[name] = parsed[0] if parsed else ""
+        name, raw_value = assignment
+        values[name] = _parse_export_value(raw_value)
     return values
+
+
+def _export_assignment_from_line(raw_line: str) -> tuple[str, str] | None:
+    line = raw_line.strip()
+    if not line or line.startswith("#"):
+        return None
+    if line.startswith("export "):
+        line = line.removeprefix("export ").strip()
+    if "=" not in line:
+        return None
+    name, raw_value = line.split("=", 1)
+    if not name.isidentifier():
+        return None
+    return name, raw_value
+
+
+def _parse_export_value(raw_value: str) -> str:
+    try:
+        parsed = shlex.split(raw_value, posix=True)
+    except ValueError:
+        parsed = [raw_value]
+    return parsed[0] if parsed else ""
 
 
 def _generated_secret_values(entries: Sequence[InstallerSecretEntry]) -> dict[str, str]:

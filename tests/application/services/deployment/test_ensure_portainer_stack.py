@@ -21,8 +21,7 @@ class TestEnsurePortainerStack(unittest.IsolatedAsyncioTestCase):
         await service.run()
 
         compose_repository.get_compose_of.assert_called_once_with("portainer")
-        self.assertEqual(1, len(deployment_gateway.applied_requests))
-        request = deployment_gateway.applied_requests[0]
+        request = _single_applied_request(deployment_gateway)
         self.assertEqual("portainer", request.target_stack)
         self.assertEqual(stack_definition, request.stack_definition)
 
@@ -35,8 +34,8 @@ class TestEnsurePortainerStack(unittest.IsolatedAsyncioTestCase):
         service = EnsurePortainerStack(compose_repository, deployment_gateway, "portainer")
         await service.run()
 
-        self.assertEqual(1, len(deployment_gateway.applied_requests))
-        self.assertEqual(stack_definition, deployment_gateway.applied_requests[0].stack_definition)
+        request = _single_applied_request(deployment_gateway)
+        self.assertEqual(stack_definition, request.stack_definition)
 
     async def test_compose_lookup_failure_does_not_deploy_stack(self):
         compose_repository = MagicMock()
@@ -76,6 +75,13 @@ class _FakeDeploymentGateway:
 
     def stack_registered(self, stack_name: str) -> bool:
         return bool(self.applied_requests)
+
+
+def _single_applied_request(
+    deployment_gateway: _FakeDeploymentGateway,
+) -> DeploymentStackRequest:
+    (request,) = deployment_gateway.applied_requests
+    return request
 
 
 if __name__ == "__main__":

@@ -16,9 +16,11 @@ NEXUS_ADMIN_PASSWORD="${NEXUS_ADMIN_PASSWORD:-}"
 NEXUS_REPOSITORY_NAME="${NEXUS_REPOSITORY_NAME:-docker-hub-proxy}"
 JSON_CONTENT_TYPE_HEADER="Content-Type: application/json"
 
-# For normal local Docker use: 127.0.0.1
+# For normal local Docker use: localhost.
 # For LXC nodes, set this to an IP/hostname reachable from inside the nodes.
-NEXUS_REGISTRY_HOST="${NEXUS_REGISTRY_HOST:-127.0.0.1}"
+NEXUS_LOCAL_API_HOST="${NEXUS_LOCAL_API_HOST:-localhost}"
+NEXUS_REGISTRY_HOST="${NEXUS_REGISTRY_HOST:-localhost}"
+NEXUS_LOCAL_API_BASE_URL="http://${NEXUS_LOCAL_API_HOST}:${NEXUS_WEB_PORT}"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE_LIST_FILE="${IMAGE_LIST_FILE:-${SCRIPT_DIR}/images-to-cache.txt}"
@@ -50,7 +52,7 @@ wait_for_nexus() {
   log "Waiting for Nexus to become reachable..."
 
   for _ in $(seq 1 120); do
-    if curl -fsS "http://127.0.0.1:${NEXUS_WEB_PORT}/service/rest/v1/status" >/dev/null 2>&1; then
+    if curl -fsS "${NEXUS_LOCAL_API_BASE_URL}/service/rest/v1/status" >/dev/null 2>&1; then
       log "Nexus is reachable."
       return 0
     fi
@@ -80,7 +82,7 @@ set_admin_password_if_needed() {
     -X PUT \
     -H "Content-Type: text/plain" \
     --data "${NEXUS_ADMIN_PASSWORD}" \
-    "http://127.0.0.1:${NEXUS_WEB_PORT}/service/rest/v1/security/users/admin/change-password" >/dev/null
+    "${NEXUS_LOCAL_API_BASE_URL}/service/rest/v1/security/users/admin/change-password" >/dev/null
 }
 
 enable_docker_bearer_token_realm() {
@@ -88,7 +90,7 @@ enable_docker_bearer_token_realm() {
 
   local active_realms
   active_realms="$(curl -fsS -u "admin:${NEXUS_ADMIN_PASSWORD}" \
-    "http://127.0.0.1:${NEXUS_WEB_PORT}/service/rest/v1/security/realms/active")"
+    "${NEXUS_LOCAL_API_BASE_URL}/service/rest/v1/security/realms/active")"
 
   if printf '%s' "${active_realms}" | grep -q '"DockerToken"'; then
     log "Docker Bearer Token Realm is already active."
@@ -102,7 +104,7 @@ enable_docker_bearer_token_realm() {
     -X PUT \
     -H "$JSON_CONTENT_TYPE_HEADER" \
     --data "${updated_realms}" \
-    "http://127.0.0.1:${NEXUS_WEB_PORT}/service/rest/v1/security/realms/active" >/dev/null
+    "${NEXUS_LOCAL_API_BASE_URL}/service/rest/v1/security/realms/active" >/dev/null
 }
 
 accept_community_eula() {
@@ -110,7 +112,7 @@ accept_community_eula() {
 
   local eula_status
   eula_status="$(curl -fsS -u "admin:${NEXUS_ADMIN_PASSWORD}" \
-    "http://127.0.0.1:${NEXUS_WEB_PORT}/service/rest/v1/system/eula" || true)"
+    "${NEXUS_LOCAL_API_BASE_URL}/service/rest/v1/system/eula" || true)"
 
   if printf '%s' "${eula_status}" | grep -q '"accepted"[[:space:]]*:[[:space:]]*true'; then
     log "Nexus Community EULA is already accepted."
@@ -126,7 +128,7 @@ accept_community_eula() {
     -X POST \
     -H "$JSON_CONTENT_TYPE_HEADER" \
     --data "${accepted_payload}" \
-    "http://127.0.0.1:${NEXUS_WEB_PORT}/service/rest/v1/system/eula" >/dev/null
+    "${NEXUS_LOCAL_API_BASE_URL}/service/rest/v1/system/eula" >/dev/null
 }
 
 enable_anonymous_access() {
@@ -140,12 +142,12 @@ enable_anonymous_access() {
       "userId": "anonymous",
       "realmName": "NexusAuthorizingRealm"
     }' \
-    "http://127.0.0.1:${NEXUS_WEB_PORT}/service/rest/v1/security/anonymous" >/dev/null
+    "${NEXUS_LOCAL_API_BASE_URL}/service/rest/v1/security/anonymous" >/dev/null
 }
 
 repository_exists() {
   curl -fsS -u "admin:${NEXUS_ADMIN_PASSWORD}" \
-    "http://127.0.0.1:${NEXUS_WEB_PORT}/service/rest/v1/repositories/${NEXUS_REPOSITORY_NAME}" >/dev/null 2>&1
+    "${NEXUS_LOCAL_API_BASE_URL}/service/rest/v1/repositories/${NEXUS_REPOSITORY_NAME}" >/dev/null 2>&1
 }
 
 create_docker_proxy_repository() {
@@ -190,7 +192,7 @@ create_docker_proxy_repository() {
         \"foreignLayerUrlWhitelist\": []
       }
     }" \
-    "http://127.0.0.1:${NEXUS_WEB_PORT}/service/rest/v1/repositories/docker/proxy" >/dev/null
+    "${NEXUS_LOCAL_API_BASE_URL}/service/rest/v1/repositories/docker/proxy" >/dev/null
 }
 
 start_nexus() {
@@ -290,7 +292,7 @@ main() {
   cache_images
 
   log "Done."
-  log "Nexus UI:      http://127.0.0.1:${NEXUS_WEB_PORT}"
+  log "Nexus UI:      ${NEXUS_LOCAL_API_BASE_URL}"
   log "Docker cache: http://${NEXUS_REGISTRY_HOST}:${NEXUS_DOCKER_PROXY_PORT}"
 }
 
