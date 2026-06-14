@@ -39,9 +39,11 @@ default selection and setup/platform init direction. The runtime now has
 provider-neutral contracts, LXD/Incus readiness checks, node lifecycle
 adapters, Docker Engine setup and Swarm bootstrap adapters, setup integration,
 LXC proxy exposure, explicit stale proxy drift repair, and fail-closed
-unsupported-provider behavior. Default platform reconcile is currently a
-verified no-op boundary for `lxc_native` after Platform init. Default platform
-expose uses `swarm-manager` as the host-reachable LXC gateway for published
+unsupported-provider behavior. Default platform reconcile now uses the
+LXC-native node lifecycle contracts to verify configured managed nodes and
+converge node drift only when live consent and provider readiness allow
+mutation. Default platform expose uses `swarm-manager` as the host-reachable
+LXC gateway for published
 service ports by ensuring profile-level proxy devices in the manager-specific
 `docker-swarm-manager` profile. The explicit
 `platform repair-lxc-proxy-drift` workflow is separate from normal setup and
@@ -230,10 +232,12 @@ target IDs and LXD/Incus provider readiness guards, then continues to
 container Docker setup and Swarm bootstrap when live consent and provider
 contracts allow mutation. It blocks before mutation when readiness, backend
 selection, WSL2 capability, or provider profile requirements are not
-satisfied. Default `platform reconcile` returns a verified `lxc_native` no-op
-boundary after Platform init. Default `platform expose` returns verified
-evidence only after the configured manager-profile proxy devices are present
-or updated. Default normal flows do not remove direct instance-level
+satisfied. Default `platform reconcile` returns verified no-op evidence for
+matching managed nodes, converged evidence when it applies required managed
+node lifecycle changes, and blocked evidence before unsafe or unapproved
+mutation. Default `platform expose` returns verified evidence only after the
+configured manager-profile proxy devices are present or updated. Default
+normal flows do not remove direct instance-level
 `tsw-proxy-*` devices; those are surfaced as drift and handled only by the
 explicit repair workflow.
 

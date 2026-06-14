@@ -5,7 +5,10 @@ Creates or prepares missing managed platform resources. Normal init is
 non-destructive and must not select destructive cleanup commands.
 
 `reconcile`::
-Converges existing managed resources non-destructively.
+Converges existing managed resources non-destructively. For the default
+`lxc_native` platform workflow this means verifying configured managed nodes
+and applying only required node lifecycle changes when live consent and
+provider readiness allow mutation.
 
 `verify`::
 Inspects or validates state without mutating local infrastructure.

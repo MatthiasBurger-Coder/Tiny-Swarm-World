@@ -260,12 +260,6 @@ _LXC_BACKEND_CLI = {
 LXC_BACKEND_REQUIRED_MESSAGE = (
     "LXC-native workflows require an available or explicitly selected Incus or LXD backend."
 )
-LXC_RECONCILE_VERIFIED_REASON = "lxc_native_reconcile_noop"
-LXC_RECONCILE_VERIFIED_MESSAGE = (
-    "platform reconcile is satisfied by LXC-native platform init boundaries."
-)
-
-
 _BlockedArtifactWorkflow = BlockedArtifactWorkflow
 _BlockedDeploymentWorkflow = BlockedDeploymentWorkflow
 _ProviderSelectedLxcDockerRuntime = ProviderSelectedLxcDockerRuntime
@@ -697,7 +691,10 @@ def build_platform_services(
             trace_correlation_id=trace_correlation_id,
         ),
         reconcile=PlatformReconcileWorkflow(
-            _platform_reconcile_steps(provider_request),
+            _platform_reconcile_steps(
+                provider_request=provider_request,
+                node_provider_selection=node_provider_selection,
+            ),
             verification_evidence_repository=verification_evidence_repository,
             progress=workflow_progress,
             method_trace=method_trace,
@@ -1343,15 +1340,13 @@ def _platform_init_steps(
 
 
 def _platform_reconcile_steps(
+    *,
     provider_request: NodeProviderSelectionRequest,
+    node_provider_selection: NodeProviderSelectionService,
 ) -> tuple[AsyncWorkflowStep, ...]:
-    return (
-        _VerifiedPlatformProviderStep(
-            target_id="platform:reconcile:lxc-native-provider-boundary",
-            provider_request=provider_request,
-            message=LXC_RECONCILE_VERIFIED_MESSAGE,
-            reason=LXC_RECONCILE_VERIFIED_REASON,
-        ),
+    return tuple(
+        NodeProviderEnsureNodeStep(node, node_provider_selection, provider_request)
+        for node in DEFAULT_LXC_PLATFORM_NODES
     )
 
 

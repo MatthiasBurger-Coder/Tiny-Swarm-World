@@ -1702,37 +1702,144 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
-    def test_composed_default_lxc_reconcile_completes_without_provider_fallback(self):
+    def test_composed_default_lxc_reconcile_verifies_configured_nodes_without_provider_fallback(self):
         evidence_repository = _RecordingEvidenceRepository()
+
+        async def verified_node(node, request=None):
+            await async_checkpoint()
+            return VerificationResult(
+                target_id=f"platform:node:{node.name}",
+                status=VerificationStatus.VERIFIED,
+                message="Node already matches configured state.",
+                evidence={
+                    "phase": "verify",
+                    "classification": "already_present",
+                    "node": node.name,
+                },
+            )
+
         with patch.object(
             composition,
             "VerificationEvidenceLocalRepository",
             return_value=evidence_repository,
         ):
             with patch.object(
-                composition.CommandWorkflow,
-                "verify_config_contract",
-                side_effect=AssertionError(
-                    "default reconcile must not inspect command contracts"
-                ),
-            ) as verify_config_contract:
-                services = composition.build_platform_services()
-                result = asyncio.run(services.workflows.reconcile.run())
+                composition.NodeProviderSelectionService,
+                "ensure_node",
+                side_effect=verified_node,
+            ) as ensure_node:
+                with patch.object(
+                    composition.CommandWorkflow,
+                    "verify_config_contract",
+                    side_effect=AssertionError(
+                        "default reconcile must not inspect command contracts"
+                    ),
+                ) as verify_config_contract:
+                    services = composition.build_platform_services()
+                    result = asyncio.run(services.workflows.reconcile.run())
 
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertTrue(result.executed)
         verify_config_contract.assert_not_called()
         self.assertEqual(
-            "platform:reconcile:lxc-native-provider-boundary",
+            tuple(
+                f"platform:node:{node.name}"
+                for node in composition.DEFAULT_LXC_PLATFORM_NODES
+            ),
+            tuple(item.target_id for item in result.verification_results),
+        )
+        self.assertEqual(
+            ["swarm-manager", "swarm-worker-1", "swarm-worker-2"],
+            [call.args[0].name for call in ensure_node.call_args_list],
+        )
+        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+
+    def test_composed_default_lxc_reconcile_reports_converged_node_drift(self):
+        evidence_repository = _RecordingEvidenceRepository()
+
+        async def reconcile_node(node, request=None):
+            await async_checkpoint()
+            applied = node.name == "swarm-worker-1"
+            evidence = {
+                "phase": "apply" if applied else "verify",
+                "classification": "started" if applied else "already_present",
+                "node": node.name,
+            }
+            if applied:
+                evidence["applied"] = "true"
+            return VerificationResult(
+                target_id=f"platform:node:{node.name}",
+                status=VerificationStatus.VERIFIED,
+                message="Node lifecycle is reconciled.",
+                evidence=evidence,
+            )
+
+        with patch.object(
+            composition,
+            "VerificationEvidenceLocalRepository",
+            return_value=evidence_repository,
+        ):
+            with patch.object(
+                composition.NodeProviderSelectionService,
+                "ensure_node",
+                side_effect=reconcile_node,
+            ):
+                services = composition.build_platform_services()
+                result = asyncio.run(services.workflows.reconcile.run())
+
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            "converged",
+            result.to_dict()["outcome"]["mutation"]["result"],
+        )
+        self.assertEqual(
+            "platform:node:swarm-worker-1",
+            next(
+                item
+                for item in result.verification_results
+                if item.evidence.get("applied") == "true"
+            ).target_id,
+        )
+        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+
+    def test_composed_default_lxc_reconcile_blocks_before_unapproved_mutation(self):
+        evidence_repository = _RecordingEvidenceRepository()
+
+        async def blocked_node(node, request=None):
+            await async_checkpoint()
+            return VerificationResult(
+                target_id=f"platform:node:{node.name}",
+                status=VerificationStatus.BLOCKED,
+                message="Live mutation is required to reconcile node drift.",
+                evidence={
+                    "phase": "pre_apply",
+                    "reason": "live_mutation_required",
+                    "node": node.name,
+                },
+            )
+
+        with patch.object(
+            composition,
+            "VerificationEvidenceLocalRepository",
+            return_value=evidence_repository,
+        ):
+            with patch.object(
+                composition.NodeProviderSelectionService,
+                "ensure_node",
+                side_effect=blocked_node,
+            ):
+                services = composition.build_platform_services()
+                result = asyncio.run(services.workflows.reconcile.run())
+
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual(
+            "blocked",
+            result.to_dict()["outcome"]["mutation"]["result"],
+        )
+        self.assertEqual(
+            "platform:node:swarm-manager",
             result.verification_results[0].target_id,
-        )
-        self.assertEqual(
-            "lxc_native_reconcile_noop",
-            result.verification_results[0].evidence["reason"],
-        )
-        self.assertEqual(
-            "lxc_native",
-            result.verification_results[0].evidence["requested_provider"],
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
