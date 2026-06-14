@@ -189,6 +189,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_reposito
     ComposeFileRepositoryYaml,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
+    NodeProviderConfig,
     NodeProviderConfigYamlRepository,
 )
 from tiny_swarm_world.infrastructure.os_types import OsTypes
@@ -250,6 +251,10 @@ DEFAULT_LXC_PLATFORM_NODES = (
     NodeSpec("swarm-worker-2", NodeRole.WORKER, NodeProviderKind.LXC_NATIVE),
 )
 LXC_BACKEND_REQUIRED_REASON = "lxc_backend_required"
+_LXC_BACKEND_CLI = {
+    ManagedLxcBackend.INCUS: "incus",
+    ManagedLxcBackend.LXD: "lxc",
+}
 LXC_BACKEND_REQUIRED_MESSAGE = (
     "LXC-native workflows require an available or explicitly selected Incus or LXD backend."
 )
@@ -949,7 +954,9 @@ def build_platform_services(
     trace_correlation_id: str | None = None,
 ) -> PlatformServices:
     configure_infrastructure_container()
-    provider_request = node_provider_request or NodeProviderSelectionRequest()
+    node_provider_config_repository = NodeProviderConfigYamlRepository()
+    provider_config = node_provider_config_repository.load()
+    provider_request = node_provider_request or _node_provider_request_from_config(provider_config)
     workflow_progress = _build_workflow_progress_sink(ui)
     method_trace = _build_method_trace_sink(ui)
     trace_correlation_id = trace_correlation_id or _new_installation_trace_correlation_id()
@@ -963,7 +970,7 @@ def build_platform_services(
     )
     lxc_runner = AsyncLxcNodeCommandRunner()
     lxc_node_provider = LxcNodeProvider(
-        config_repository=NodeProviderConfigYamlRepository(),
+        config_repository=node_provider_config_repository,
         runner=lxc_runner,
         allow_live_mutation=False if live_consent is None else live_consent.accepted
     )
@@ -1117,7 +1124,7 @@ def build_artifact_services_for_provider(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
 ) -> ArtifactServices:
-    provider_request = node_provider_request or NodeProviderSelectionRequest()
+    provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
     if backend is not None:
         return build_lxc_artifact_services(backend=backend, ui=ui)
@@ -1227,7 +1234,7 @@ def build_deployment_services_for_provider(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
 ) -> DeploymentServices:
-    provider_request = node_provider_request or NodeProviderSelectionRequest()
+    provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
     if backend is not None:
         return build_lxc_deployment_services(
@@ -1591,11 +1598,25 @@ def _lxc_backend_for_provider_request(
         return None
     if provider_request.preferred_backend is not None:
         return provider_request.preferred_backend
-    if shutil.which("lxc"):
-        return ManagedLxcBackend.LXD
-    if shutil.which("incus"):
-        return ManagedLxcBackend.INCUS
+    for backend in provider_request.backend_candidates:
+        if shutil.which(_LXC_BACKEND_CLI[backend]):
+            return backend
     return None
+
+
+def _default_node_provider_request() -> NodeProviderSelectionRequest:
+    provider_config = NodeProviderConfigYamlRepository().load()
+    return _node_provider_request_from_config(provider_config)
+
+
+def _node_provider_request_from_config(
+    provider_config: NodeProviderConfig,
+) -> NodeProviderSelectionRequest:
+    return NodeProviderSelectionRequest(
+        requested_provider=provider_config.default_provider,
+        preferred_backend=provider_config.preferred_backend,
+        backend_candidates=provider_config.backend_candidates,
+    )
 
 
 def _preflight_configuration_for_provider(

@@ -88,7 +88,11 @@ The setup sequence includes `platform expose`, which configures the
 LXC-native manager gateway for published Swarm service ports after platform
 init/reconcile and before deployment bootstrap.
 
-Select a managed LXC backend explicitly when both LXD and Incus are available:
+Backend selection first honors an explicit `--lxc-backend` override, then
+`backend_selection.preferred_backend`, then the ordered
+`backend_selection.candidates` list in
+`infra/config/node-providers/provider_config.yaml`. Select a managed LXC
+backend explicitly when the configured default should be overridden:
 
 [source,bash]
 ----

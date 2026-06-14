@@ -414,7 +414,9 @@ def _live_consent_from_args(args: Namespace) -> LiveConsent:
     return LiveConsent(live_flag=args.live, confirmed=confirmed)
 
 
-def _node_provider_request_from_args(args: Namespace) -> NodeProviderSelectionRequest:
+def _node_provider_request_from_args(args: Namespace) -> NodeProviderSelectionRequest | None:
+    if args.node_provider == NodeProviderKind.LXC_NATIVE.value and args.lxc_backend is None:
+        return None
     return NodeProviderSelectionRequest(
         requested_provider=NodeProviderKind(args.node_provider),
         preferred_backend=(

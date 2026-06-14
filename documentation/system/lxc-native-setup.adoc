@@ -78,8 +78,11 @@ incus version
 incus info
 ----
 
-If both LXD and Incus are installed and usable, Tiny Swarm World blocks
-provider selection until the backend is explicit:
+For `lxc_native`, backend selection first honors an explicit
+`--lxc-backend` override, then `backend_selection.preferred_backend`, then the
+ordered `backend_selection.candidates` list in
+`infra/config/node-providers/provider_config.yaml`. Operators may still select
+a managed LXC backend explicitly:
 
 [source,bash]
 ----
@@ -96,7 +99,7 @@ The committed provider configuration lives at:
 It declares:
 
 * `default_provider: lxc_native`;
-* candidate backends `incus` and `lxd`;
+* ordered candidate backends `incus` and `lxd`;
 * node names `swarm-manager`, `swarm-worker-1`, and `swarm-worker-2`;
 * the `docker-swarm` profile requirements.
 
@@ -168,7 +171,9 @@ operation and needs explicit operator consent.
 
 Common failure modes to check manually before rerunning live setup:
 
-* backend ambiguity: select `--lxc-backend lxd` or `--lxc-backend incus`;
+* backend readiness failure: verify the selected or ordered LXD/Incus backend,
+  or select `--lxc-backend lxd` or `--lxc-backend incus` when an explicit
+  override is required;
 * daemon access denied: repair local LXD/Incus group or socket access outside
   Tiny Swarm World, then reopen the shell;
 * profile or nesting issue: inspect the provider profile and confirm nesting

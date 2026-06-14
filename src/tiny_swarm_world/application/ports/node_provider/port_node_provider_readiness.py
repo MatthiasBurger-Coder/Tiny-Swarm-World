@@ -15,5 +15,6 @@ class PortNodeProviderReadiness(ABC):
         self,
         provider: NodeProviderKind,
         preferred_backend: ManagedLxcBackend | None = None,
+        backend_candidates: tuple[ManagedLxcBackend, ...] = (),
     ) -> ProviderReadiness:
         pass

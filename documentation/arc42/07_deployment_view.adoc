@@ -137,23 +137,24 @@ The platform init workflow also owns the live-readiness pre-apply guard. Direct
 application workflow boundary before provider node creation, Docker
 installation, or Swarm initialization can begin. The default guard is
 read-only and classifies LXD/Incus runtime readiness, WSL2 capability,
-backend ambiguity, and provider profile requirements; it does not repair host
+backend candidate selection, and provider profile requirements; it does not repair host
 services, install packages, change groups, create profiles, or create nodes
 without accepted live consent.
 
 The provider deployment target is now `lxc_native` through LXD or Incus by
 default. The committed provider configuration in
-`infra/config/node-providers/provider_config.yaml` declares Incus/LXD backend
-candidates, Docker Swarm node names, Docker-in-container profile risk labels,
-the common `docker-swarm` profile, the manager-only
+`infra/config/node-providers/provider_config.yaml` declares the ordered
+Incus/LXD backend candidates, Docker Swarm node names, Docker-in-container
+profile risk labels, the common `docker-swarm` profile, the manager-only
 `docker-swarm-manager` proxy profile, and verification metadata. The manager
 node expects both profiles. Worker nodes expect only worker-safe profiles and
 must not receive the manager proxy profile. Deployment evidence must keep
 native Linux LXD/Incus and WSL2 LXD/Incus results separate.
 
 For the LXC-native target, deployment must block before mutation when LXD or
-Incus readiness is absent, backend selection is ambiguous, WSL2 capability is
-missing, or Docker-in-container profile requirements are not satisfied. Host
+Incus readiness is absent for the selected or ordered backend candidate, WSL2
+capability is missing, or Docker-in-container profile requirements are not
+satisfied. Host
 package installation, provider daemon repair, bridge or firewall mutation,
 group membership repair, and privileged container profile changes are live
 host mutations and are not deployment defaults in this slice.

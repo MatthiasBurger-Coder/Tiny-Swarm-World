@@ -275,8 +275,8 @@ def _validate_backend_selection(
     if status == ManagedLxcBackendSelectionStatus.SELECTED:
         if backend is None:
             raise ValueError("selected managed LXC backend requires a backend")
-        if candidates and candidates != (backend,):
-            raise ValueError("selected managed LXC backend candidates must match backend")
+        if candidates and backend not in candidates:
+            raise ValueError("selected managed LXC backend candidates must include backend")
         return
     if backend is not None:
         raise ValueError("blocked managed LXC backend selection must not set backend")

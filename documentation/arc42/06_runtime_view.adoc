@@ -249,8 +249,8 @@ Failed preflight checks now return `failed_to_verify` with summary-only
 verification evidence instead of reporting a completed verify workflow.
 Static preflight does not claim live provider readiness. The default
 `lxc_native` path evaluates LXD/Incus readiness, WSL2 capability, backend
-ambiguity, and Docker-in-container profile requirements through the platform
-init provider guard before mutation.
+candidate selection, and Docker-in-container profile requirements through the
+platform init provider guard before mutation.
 
 === Autonomous Setup Runtime Flow
 
@@ -297,9 +297,12 @@ Vaultwarden evidence must be collected during an explicit operator live run
 before live success is claimed.
 
 The provider selected by setup defaults to `lxc_native` through LXD or Incus.
-If both managed backends are usable, the operator must choose one explicitly
-with `--lxc-backend`. Unsupported provider values fail closed and are not used
-as silent fallbacks after LXD/Incus readiness fails.
+Backend selection first honors an explicit `--lxc-backend` override, then
+`backend_selection.preferred_backend`, then the ordered
+`backend_selection.candidates` list in
+`infra/config/node-providers/provider_config.yaml`. Unsupported provider values
+fail closed and are not used as silent fallbacks after LXD/Incus readiness
+fails.
 
 Optional live smoke validation remains a separate operator action and is not
 part of default architecture tests or the default quality gate.

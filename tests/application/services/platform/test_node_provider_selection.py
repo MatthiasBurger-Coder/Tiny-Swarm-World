@@ -48,7 +48,16 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(NodeProviderKind.LXC_NATIVE, selection.requested_provider)
         self.assertEqual(NodeProviderKind.LXC_NATIVE, selection.selected_provider)
         self.assertEqual(ManagedLxcBackend.INCUS, selection.backend_selection.backend)
-        self.assertEqual([(NodeProviderKind.LXC_NATIVE, None)], readiness.calls)
+        self.assertEqual(
+            [
+                (
+                    NodeProviderKind.LXC_NATIVE,
+                    None,
+                    (ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD),
+                )
+            ],
+            readiness.calls,
+        )
 
     async def test_explicit_preferred_lxd_backend_is_passed_to_readiness_port(self):
         readiness = _ReadinessProbe(
@@ -72,7 +81,45 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(selection.selected)
         self.assertEqual(ManagedLxcBackend.LXD, selection.backend_selection.backend)
         self.assertEqual(
-            [(NodeProviderKind.LXC_NATIVE, ManagedLxcBackend.LXD)],
+            [
+                (
+                    NodeProviderKind.LXC_NATIVE,
+                    ManagedLxcBackend.LXD,
+                    (ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD),
+                )
+            ],
+            readiness.calls,
+        )
+
+    async def test_configured_backend_candidate_order_is_passed_to_readiness_port(self):
+        readiness = _ReadinessProbe(
+            ProviderReadiness(
+                provider=NodeProviderKind.LXC_NATIVE,
+                status=ProviderReadinessStatus.READY,
+                backend_selection=ManagedLxcBackendSelection.for_backend(
+                    ManagedLxcBackend.LXD,
+                    evidence={"source": "unit"},
+                ),
+            )
+        )
+
+        selection = await NodeProviderSelectionService(readiness).select_provider(
+            NodeProviderSelectionRequest(
+                requested_provider=NodeProviderKind.LXC_NATIVE,
+                backend_candidates=(ManagedLxcBackend.LXD, ManagedLxcBackend.INCUS),
+            )
+        )
+
+        self.assertTrue(selection.selected)
+        self.assertEqual(ManagedLxcBackend.LXD, selection.backend_selection.backend)
+        self.assertEqual(
+            [
+                (
+                    NodeProviderKind.LXC_NATIVE,
+                    None,
+                    (ManagedLxcBackend.LXD, ManagedLxcBackend.INCUS),
+                )
+            ],
             readiness.calls,
         )
 
@@ -347,15 +394,22 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
 class _ReadinessProbe(PortNodeProviderReadiness):
     def __init__(self, readiness: ProviderReadiness):
         self.readiness = readiness
-        self.calls: list[tuple[NodeProviderKind, ManagedLxcBackend | None]] = []
+        self.calls: list[
+            tuple[
+                NodeProviderKind,
+                ManagedLxcBackend | None,
+                tuple[ManagedLxcBackend, ...],
+            ]
+        ] = []
 
     async def provider_readiness(
         self,
         provider: NodeProviderKind,
         preferred_backend: ManagedLxcBackend | None = None,
+        backend_candidates: tuple[ManagedLxcBackend, ...] = (),
     ) -> ProviderReadiness:
         await async_checkpoint()
-        self.calls.append((provider, preferred_backend))
+        self.calls.append((provider, preferred_backend, backend_candidates))
         return self.readiness
 
 

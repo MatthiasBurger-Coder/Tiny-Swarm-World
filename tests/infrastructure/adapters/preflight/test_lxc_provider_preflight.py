@@ -139,21 +139,71 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ProviderReadinessStatus.UNKNOWN_FAILURE, readiness.status)
         self.assertEvidenceIsSummaryOnly(readiness)
 
-    async def test_both_backends_ready_without_preference_is_ambiguous(self):
+    async def test_incus_first_candidate_order_selects_ready_incus_before_lxd(self):
         runner = _FakeRunner(_ok(), _ok(), _ok(), _ok())
 
         readiness = await _probe(
             available=("incus", "lxc"),
             runner=runner,
-        ).provider_readiness(NodeProviderKind.LXC_NATIVE)
+        ).provider_readiness(
+            NodeProviderKind.LXC_NATIVE,
+            backend_candidates=(ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD),
+        )
 
-        self.assertEqual(ProviderReadinessStatus.BACKEND_AMBIGUOUS, readiness.status)
-        self.assertEqual(ManagedLxcBackendSelectionStatus.AMBIGUOUS, readiness.backend_selection.status)
+        self.assertEqual(ProviderReadinessStatus.READY, readiness.status)
+        self.assertEqual(ManagedLxcBackend.INCUS, readiness.backend_selection.backend)
+        self.assertEqual(
+            [
+                (("incus", "version"), 5.0),
+                (("incus", "info"), 5.0),
+                (("lxc", "version"), 5.0),
+                (("lxc", "info"), 5.0),
+            ],
+            runner.calls,
+        )
+        self.assertEqual("candidate_order", readiness.backend_selection.evidence["selected_reason"])
+        self.assertEqual("lxd", readiness.backend_selection.evidence["skipped_candidates"])
+        self.assertEqual(
+            "lower_priority_ready",
+            readiness.backend_selection.evidence["skipped_candidate_reasons"],
+        )
         self.assertEqual(
             (ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD),
             readiness.backend_selection.candidates,
         )
-        self.assertNotIn("multipass", repr(readiness.to_dict()).casefold())
+
+    async def test_lxd_first_candidate_order_selects_ready_lxd_before_incus(self):
+        runner = _FakeRunner(_ok(), _ok(), _ok(), _ok())
+
+        readiness = await _probe(
+            available=("incus", "lxc"),
+            runner=runner,
+        ).provider_readiness(
+            NodeProviderKind.LXC_NATIVE,
+            backend_candidates=(ManagedLxcBackend.LXD, ManagedLxcBackend.INCUS),
+        )
+
+        self.assertEqual(ProviderReadinessStatus.READY, readiness.status)
+        self.assertEqual(ManagedLxcBackend.LXD, readiness.backend_selection.backend)
+        self.assertEqual(
+            [
+                (("lxc", "version"), 5.0),
+                (("lxc", "info"), 5.0),
+                (("incus", "version"), 5.0),
+                (("incus", "info"), 5.0),
+            ],
+            runner.calls,
+        )
+        self.assertEqual("candidate_order", readiness.backend_selection.evidence["selected_reason"])
+        self.assertEqual("incus", readiness.backend_selection.evidence["skipped_candidates"])
+        self.assertEqual(
+            "lower_priority_ready",
+            readiness.backend_selection.evidence["skipped_candidate_reasons"],
+        )
+        self.assertEqual(
+            (ManagedLxcBackend.LXD, ManagedLxcBackend.INCUS),
+            readiness.backend_selection.candidates,
+        )
 
     async def test_preferred_backend_resolves_ambiguous_availability(self):
         runner = _FakeRunner(_ok(), _ok())
@@ -168,6 +218,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(ProviderReadinessStatus.READY, readiness.status)
         self.assertEqual(ManagedLxcBackend.LXD, readiness.backend_selection.backend)
+        self.assertEqual("explicit_backend", readiness.backend_selection.evidence["selected_reason"])
         self.assertEqual(
             [
                 (("lxc", "version"), 5.0),
@@ -175,6 +226,29 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
             ],
             runner.calls,
         )
+
+    async def test_unavailable_first_candidate_uses_next_available_backend(self):
+        runner = _FakeRunner(_ok(), _ok())
+
+        readiness = await _probe(
+            available=("lxc",),
+            runner=runner,
+        ).provider_readiness(
+            NodeProviderKind.LXC_NATIVE,
+            backend_candidates=(ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD),
+        )
+
+        self.assertEqual(ProviderReadinessStatus.READY, readiness.status)
+        self.assertEqual(ManagedLxcBackend.LXD, readiness.backend_selection.backend)
+        self.assertEqual(
+            [
+                (("lxc", "version"), 5.0),
+                (("lxc", "info"), 5.0),
+            ],
+            runner.calls,
+        )
+        self.assertEqual("incus", readiness.backend_selection.evidence["skipped_candidates"])
+        self.assertEqual("cli_absent", readiness.backend_selection.evidence["skipped_candidate_reasons"])
 
     async def test_wsl2_without_systemd_reports_systemd_unavailable(self):
         runner = _FakeRunner()

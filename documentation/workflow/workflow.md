@@ -1,28 +1,28 @@
-# Workflow: Add standard Python packaging
+# Workflow: Honor backend selection order
 
 ```yaml
-workflow_id: issue-78-python-packaging-20260614
+workflow_id: issue-64-backend-selection-order-20260614
 workflow_version: 1.0.0
-issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/78
-issue_number: 78
+issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/64
+issue_number: 64
 authoring_branch: feature/workflow-index-open-issues-20260614
-branch: feature/workflow-issue-78-python-packaging-20260614
-proposed_execution_branch: feature/workflow-issue-78-python-packaging-20260614
+branch: feature/workflow-issue-64-backend-selection-order-20260614
+proposed_execution_branch: feature/workflow-issue-64-backend-selection-order-20260614
 indexed_workflow: true
 active_workflow: true
 execution_profile: NORMAL_PATH
 released_for_workflow_execute: true
 created_utc: "2026-06-14T00:00:00Z"
 decision: PROCEED_WITH_ACCEPTED_ASSUMPTIONS
-confidence: 89
+confidence: 92
 dependencies: []
 ```
 
 ## Executive Summary
 
-Add Python 3.12 packaging metadata and a CLI entry point while preserving the thin module entry path.
+Make backend selection deterministic: explicit override first, then configured candidate order, with diagnostics for selected and skipped candidates.
 
-This workflow has been promoted from the indexed workflow set and is active for `workflow execute` on branch `feature/workflow-issue-78-python-packaging-20260614`.
+This workflow has been promoted from the indexed workflow set and is active for `workflow execute` on branch `feature/workflow-issue-64-backend-selection-order-20260614`.
 
 ## Requirement Clarification Gate
 
@@ -35,27 +35,26 @@ Original request:
 
 Interpreted intent:
 
-- Create an executable workflow plan for Issue #78: Add standard Python packaging.
+- Create an executable workflow plan for Issue #64: Honor backend selection order.
 - Defer implementation until all indexed workflows are authored and the
   execution order is selected from `workflow.index.md`.
 
 Change type:
 
-- Workflow creation for future Python packaging and CLI entry point work.
+- Workflow creation for future node-provider selection work.
 
 Affected process strand:
 
-- Python packaging and CLI entry point.
+- node-provider selection.
 - Workflow execution with S3/S3D validation.
 - Documentation and quality-gate synchronization.
 
 Affected architecture area:
 
-- `pyproject.toml`
-- `src/tiny_swarm_world/__main__.py`
-- `requirements.txt`
+- `infra/config/node-providers/**`
+- `src/tiny_swarm_world/domain/node_provider/**`
+- `src/tiny_swarm_world/application/services/platform/**`
 - `tests/**`
-- `README.md`
 - `documentation/**`
 
 Explicit requirements:
@@ -107,13 +106,13 @@ Blocking questions:
 - None for workflow authoring. Any issue-specific decision is represented
   as an early executable decision slice when required.
 
-Confidence level: 89 percent.
+Confidence level: 92 percent.
 
 Decision: `PROCEED_WITH_ACCEPTED_ASSUMPTIONS`.
 
 ## Target Picture
 
-Issue #78 has an executable, test-backed implementation path that
+Issue #64 has an executable, test-backed implementation path that
 preserves Linux/WSL-only operation, Python 3.12 compatibility, hexagonal
 boundaries, and guarded live-infrastructure safety.
 
@@ -121,16 +120,15 @@ boundaries, and guarded live-infrastructure safety.
 
 - Root `AGENTS.md`, `QUALITY.md`, and `.agents/skills/workflow-authoring/SKILL.md`
   were checked during indexed workflow authoring.
-- The workflow is stored under `documentation/workflow/issues/issue-78/`.
-- This workflow is not the active workflow until explicitly promoted or
-  selected by an indexed executor.
+- The workflow is stored under `documentation/workflow/issues/issue-64/`.
+- This workflow has been promoted to the active workflow path for Issue #64 execution.
 
 ## Scope
 
 In scope:
 
 - Files and modules listed in the affected architecture area.
-- Tests and documentation needed to satisfy Issue #78.
+- Tests and documentation needed to satisfy Issue #64.
 - Quality gates from `QUALITY.md`.
 
 Out of scope:
@@ -184,7 +182,7 @@ any, remains terminal-oriented and routes through console/status UI skills.
 
 Purpose:
 
-- Requirement, repository baseline, and decision gate for Issue #78.
+- Requirement, repository baseline, and decision gate for Issue #64.
 
 ```yaml
 slice_id: S01
@@ -194,21 +192,22 @@ secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - documentation/workflow/issues/issue-78/**
-  - pyproject.toml
-  - src/tiny_swarm_world/__main__.py
+  - documentation/workflow/issues/issue-64/**
+  - infra/config/node-providers/**
+  - src/tiny_swarm_world/domain/node_provider/**
 affected_modules:
-  - Python packaging and CLI entry point
+  - node-provider selection
 affected_contracts:
-  - issue_78_python_packaging
-dependencies: []
-parallel_group: issue-78-group-1
+  - issue_64_backend_selection_order
+dependencies:
+  []
+parallel_group: issue-64-group-1
 file_locks:
-  - documentation/workflow/issues/issue-78/**
-  - pyproject.toml
-  - src/tiny_swarm_world/__main__.py
+  - documentation/workflow/issues/issue-64/**
+  - infra/config/node-providers/**
+  - src/tiny_swarm_world/domain/node_provider/**
 contract_locks:
-  - issue_78_python_packaging
+  - issue_64_backend_selection_order
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -244,7 +243,7 @@ python3 tools/quality_gate.py test
 
 Purpose:
 
-- Scoped implementation inside the declared architecture boundary for Issue #78.
+- Scoped implementation inside the declared architecture boundary for Issue #64.
 
 ```yaml
 slice_id: S02
@@ -254,28 +253,26 @@ secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - pyproject.toml
-  - src/tiny_swarm_world/__main__.py
-  - requirements.txt
+  - infra/config/node-providers/**
+  - src/tiny_swarm_world/domain/node_provider/**
+  - src/tiny_swarm_world/application/services/platform/**
   - tests/**
-  - README.md
   - documentation/**
 affected_modules:
-  - Python packaging and CLI entry point
+  - node-provider selection
 affected_contracts:
-  - issue_78_python_packaging
+  - issue_64_backend_selection_order
 dependencies:
   - S01
-parallel_group: issue-78-group-2
+parallel_group: issue-64-group-2
 file_locks:
-  - pyproject.toml
-  - src/tiny_swarm_world/__main__.py
-  - requirements.txt
+  - infra/config/node-providers/**
+  - src/tiny_swarm_world/domain/node_provider/**
+  - src/tiny_swarm_world/application/services/platform/**
   - tests/**
-  - README.md
   - documentation/**
 contract_locks:
-  - issue_78_python_packaging
+  - issue_64_backend_selection_order
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -311,7 +308,7 @@ python3 tools/quality_gate.py test
 
 Purpose:
 
-- Focused regression and architecture tests for Issue #78.
+- Focused regression and architecture tests for Issue #64.
 
 ```yaml
 slice_id: S03
@@ -322,21 +319,21 @@ secondary_reviewers:
   - Senior Tester
 affected_files:
   - tests/**
-  - pyproject.toml
-  - src/tiny_swarm_world/__main__.py
+  - infra/config/node-providers/**
+  - src/tiny_swarm_world/domain/node_provider/**
 affected_modules:
-  - Python packaging and CLI entry point
+  - node-provider selection
 affected_contracts:
-  - issue_78_python_packaging
+  - issue_64_backend_selection_order
 dependencies:
   - S02
-parallel_group: issue-78-group-3
+parallel_group: issue-64-group-3
 file_locks:
   - tests/**
-  - pyproject.toml
-  - src/tiny_swarm_world/__main__.py
+  - infra/config/node-providers/**
+  - src/tiny_swarm_world/domain/node_provider/**
 contract_locks:
-  - issue_78_python_packaging
+  - issue_64_backend_selection_order
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -372,7 +369,7 @@ python3 tools/quality_gate.py test
 
 Purpose:
 
-- Documentation synchronization and final quality evidence for Issue #78.
+- Documentation synchronization and final quality evidence for Issue #64.
 
 ```yaml
 slice_id: S04
@@ -385,17 +382,17 @@ affected_files:
   - documentation/**
   - README.md
 affected_modules:
-  - Python packaging and CLI entry point
+  - node-provider selection
 affected_contracts:
-  - issue_78_python_packaging
+  - issue_64_backend_selection_order
 dependencies:
   - S03
-parallel_group: issue-78-group-4
+parallel_group: issue-64-group-4
 file_locks:
   - documentation/**
   - README.md
 contract_locks:
-  - issue_78_python_packaging
+  - issue_64_backend_selection_order
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -440,7 +437,7 @@ Cross-workflow dependencies: none.
 - Can this workflow run in parallel? Only after S3D confirms disjoint file,
   contract, module, and architecture locks.
 - Conflicting workflows: see `documentation/workflow/workflow.index.md`.
-- Shared files: pyproject.toml, src/tiny_swarm_world/__main__.py, requirements.txt, tests/**, README.md, documentation/**.
+- Shared files: infra/config/node-providers/**, src/tiny_swarm_world/domain/node_provider/**, src/tiny_swarm_world/application/services/platform/**, tests/**, documentation/**.
 - Shared infrastructure: none for default verification; live validation is
   serialized unless isolated infrastructure is explicitly provided.
 - Requires isolated worktree: yes for workflow execution streams.
@@ -536,7 +533,7 @@ Workflow authoring commit:
 Future workflow execution:
 
 - Promote or explicitly select this indexed workflow.
-- Use proposed execution branch `feature/workflow-issue-78-python-packaging-20260614` unless a later
+- Use proposed execution branch `feature/workflow-issue-64-backend-selection-order-20260614` unless a later
   governance decision selects another branch.
 - Commit each executable slice separately.
 
@@ -545,7 +542,7 @@ Future workflow execution:
 Workflow authoring is done when this file, its context pack, and the index
 entry exist and pass documentation checks.
 
-Issue #78 implementation is done when acceptance criteria are satisfied
+Issue #64 implementation is done when acceptance criteria are satisfied
 by scoped code, tests, documentation, quality evidence, and merge-ready
 review.
 
