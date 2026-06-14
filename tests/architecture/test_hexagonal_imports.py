@@ -159,7 +159,10 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
         legacy_imports = [imported for imported, _line_number in _direct_imports(legacy_service_file)]
 
         self.assertTrue(deployment_service_file.is_file())
-        self.assertIn("tiny_swarm_world.application.ports.clients.port_portainer_client", deployment_imports)
+        self.assertIn(
+            "tiny_swarm_world.application.ports.clients.port_deployment_gateway",
+            deployment_imports,
+        )
         self.assertIn(
             "tiny_swarm_world.application.ports.repositories.port_compose_file_repository",
             deployment_imports,

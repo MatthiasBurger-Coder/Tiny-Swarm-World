@@ -2,6 +2,9 @@ import unittest
 
 from tests.support.sonar_safe_literals import sample_text, sample_url
 
+from tiny_swarm_world.application.ports.clients.port_deployment_gateway import (
+    DeploymentStackRequest,
+)
 from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import (
     PortainerHttpClient,
@@ -69,6 +72,92 @@ class TestPortainerHttpClient(unittest.TestCase):
             [{"name": "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET", "value": "operator_defined"}],
             session.request_calls[1]["json"]["env"],
         )
+
+    def test_apply_stack_creates_missing_stack_through_deployment_gateway(self):
+        session = _FakeSession(
+            post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
+            request_responses=[
+                _FakeResponse(200, [{"Name": "local", "Id": 7}]),
+                _FakeResponse(200, []),
+                _swarm_info_response(),
+                _FakeResponse(200, {}),
+            ],
+        )
+        client = PortainerHttpClient(
+            "http://portainer.local",
+            "admin",
+            OPERATOR_CREDENTIAL,
+            session=session,
+        )
+
+        client.apply_stack(
+            DeploymentStackRequest(
+                target_stack="jenkins",
+                stack_definition=StackDefinition(
+                    name="jenkins",
+                    compose_content="services: {}",
+                ),
+                stack_environment={"TSW_JENKINS_IMAGE": "jenkins:latest"},
+            )
+        )
+
+        self.assertEqual("http://portainer.local/api/endpoints", session.request_calls[0]["url"])
+        self.assertEqual("http://portainer.local/api/stacks", session.request_calls[1]["url"])
+        self.assertEqual(
+            "http://portainer.local/api/endpoints/7/docker/info",
+            session.request_calls[2]["url"],
+        )
+        self.assertEqual("jenkins", session.request_calls[3]["json"]["name"])
+        self.assertEqual(
+            [{"name": "TSW_JENKINS_IMAGE", "value": "jenkins:latest"}],
+            session.request_calls[3]["json"]["env"],
+        )
+
+    def test_apply_stack_updates_existing_stack_through_deployment_gateway(self):
+        session = _FakeSession(
+            post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
+            request_responses=[
+                _FakeResponse(200, [{"Name": "local", "Id": 7}]),
+                _FakeResponse(200, [{"Name": "swagger", "Id": 42}]),
+                _FakeResponse(200, {}),
+            ],
+        )
+        client = PortainerHttpClient(
+            "http://portainer.local",
+            "admin",
+            OPERATOR_CREDENTIAL,
+            session=session,
+        )
+
+        client.apply_stack(
+            DeploymentStackRequest(
+                target_stack="swagger",
+                stack_definition=StackDefinition(
+                    name="swagger",
+                    compose_content="services: {}",
+                ),
+            )
+        )
+
+        request = session.request_calls[2]
+        self.assertEqual("PUT", request["method"])
+        self.assertEqual("http://portainer.local/api/stacks/42?endpointId=7", request["url"])
+        self.assertEqual("services: {}", request["json"]["stackFileContent"])
+
+    def test_stack_registered_uses_portainer_stack_lookup_inside_adapter(self):
+        session = _FakeSession(
+            post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
+            request_responses=[_FakeResponse(200, [{"Name": "nexus", "Id": 31}])],
+        )
+        client = PortainerHttpClient(
+            "http://portainer.local",
+            "admin",
+            OPERATOR_CREDENTIAL,
+            session=session,
+        )
+
+        self.assertTrue(client.stack_registered("nexus"))
+        self.assertEqual("http://portainer.local/api/stacks", session.request_calls[0]["url"])
 
     def test_create_stack_uses_extended_stack_request_timeout(self):
         session = _FakeSession(

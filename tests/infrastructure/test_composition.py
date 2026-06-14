@@ -695,7 +695,7 @@ class TestComposition(unittest.TestCase):
         )
         self.assertTrue(
             all(
-                step.endpoint_name == composition.DEFAULT_PORTAINER_ENDPOINT_NAME
+                step.deployment_gateway is services.workflows.bootstrap.steps[2].portainer_client
                 for step in services.workflows.apply.steps
                 if step.verification_target_id.endswith("-stack")
             )

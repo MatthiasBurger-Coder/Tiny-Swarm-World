@@ -17,6 +17,10 @@ from tiny_swarm_world.application.ports.clients.port_container_image_publisher i
 from tiny_swarm_world.application.ports.clients.port_container_runtime import (
     PortContainerRuntime,
 )
+from tiny_swarm_world.application.ports.clients.port_deployment_gateway import (
+    DeploymentStackRequest,
+    PortDeploymentGateway,
+)
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
 from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
     PortainerAdminInitializationRejected,
@@ -451,7 +455,7 @@ class LxcNexusHttpClient(PortNexusClient):
         )
 
 
-class LxcPortainerHttpClient(PortPortainerClient):
+class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
     def __init__(
         self,
         *,
@@ -510,6 +514,26 @@ class LxcPortainerHttpClient(PortPortainerClient):
             endpoint_id,
             stack_environment,
         )
+
+    def apply_stack(self, request: DeploymentStackRequest) -> None:
+        endpoint_id = self.get_endpoint_id_by_name("local")
+        stack_id = self.find_stack_id_by_name(request.stack_definition.name)
+        if stack_id is None:
+            self.create_stack(
+                request.stack_definition,
+                endpoint_id,
+                request.stack_environment,
+            )
+            return
+        self.update_stack(
+            stack_id,
+            request.stack_definition,
+            endpoint_id,
+            request.stack_environment,
+        )
+
+    def stack_registered(self, stack_name: str) -> bool:
+        return self.find_stack_id_by_name(stack_name) is not None
 
     def _ensure_external_overlay_networks(self, stack_definition: StackDefinition) -> None:
         for network_name in _external_overlay_network_names(stack_definition):

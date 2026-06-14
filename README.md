@@ -216,7 +216,7 @@ observed-state contracts and report blocked or failed phase evidence when live
 prerequisites are unavailable.
 Deployment bootstrap starts Portainer, activates admin access, and registers
 the local Docker endpoint before later stacks use Portainer as the deployment
-gateway.
+gateway implementation behind the deployment gateway port.
 
 `platform reset` and `platform destroy` additionally require
 `RESET_TINY_SWARM_PLATFORM` or `DESTROY_TINY_SWARM_PLATFORM` through

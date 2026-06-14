@@ -54,11 +54,12 @@ Portainer stack and admin credentials are available, the bootstrap workflow
 ensures the local Docker endpoint named `local` exists in Portainer before
 Portainer-managed application stacks are applied.
 
-The Deployment boundary now contains a tested post-bootstrap
-`EnsurePortainerStack` application service and a sanitized Portainer HTTP
-adapter contract. The CLI composition root does not wire that contract as a
-successful live `deployment apply` path yet, because first-time Portainer
-bootstrap and verify-after-apply evidence remain incomplete.
+The Deployment boundary now contains tested post-bootstrap stack application
+services and a provider-neutral deployment gateway port. The current
+infrastructure implementation is Portainer-backed, but Portainer endpoint IDs,
+stack IDs, Swarm IDs, and API fallback behavior remain inside the adapter. The
+CLI composition root wires this boundary only after first-time Portainer
+bootstrap and verify-after-apply evidence are available.
 
 The Deployment boundary also contains a generic `EnsureServiceStack` contract
 and stack plans for the default service set plus selected service profiles.
@@ -67,7 +68,7 @@ and Swagger/NGINX. The full guided setup selects the service-access profile by
 default, which adds the `service-access` management stack. The
 Portainer-managed plan intentionally excludes the Portainer stack itself to
 avoid a bootstrap cycle and can exclude bootstrap-owned Nexus. These
-contracts can apply a stack through the Portainer port, then record
+contracts can apply a stack through the deployment gateway port, then record
 stack-registration context. They do not claim container health or application
 readiness; readiness remains separate observed-state verification.
 

@@ -42,15 +42,16 @@ microservices:
   service namespace now owns `EnsurePortainerStack`, `EnsureNexusStack`, and
   the generic `EnsureServiceStack` contract for the base runnable-service
   stack set plus the service-access setup profile.
-  `EnsurePortainerStack` is a post-bootstrap Portainer API contract for
-  compose lookup plus stack create/update through `PortComposeFileRepository`
-  and `PortPortainerClient`. The compose repository also exposes service names
-  and published ports parsed from each stack's `docker-compose.yml`. Stack
-  mutation is owned by live-consent-gated workflow execution, not by service
-  construction. `deployment apply` and `deployment verify` can evaluate
-  configured stack, external-input, and readiness contracts, but live success
-  still depends on observable registry, Portainer, Swarm and service-readiness
-  evidence.
+  Stack application services express deployment intent through
+  `PortDeploymentGateway` using target stack, compose content, stack
+  environment, and update policy. Portainer endpoint IDs, stack IDs, Swarm IDs
+  and API fallbacks stay inside the infrastructure gateway adapter. The compose
+  repository also exposes service names and published ports parsed from each
+  stack's `docker-compose.yml`. Stack mutation is owned by live-consent-gated
+  workflow execution, not by service construction. `deployment apply` and
+  `deployment verify` can evaluate configured stack, external-input, and
+  readiness contracts, but live success still depends on observable registry,
+  Portainer, Swarm and service-readiness evidence.
 * `ApplicationServices` aggregates `platform`, `artifacts`, and `deployment`
   instead of aliasing `PlatformServices`.
 

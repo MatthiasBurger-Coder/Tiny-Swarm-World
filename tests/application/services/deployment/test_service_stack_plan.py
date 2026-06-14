@@ -1,12 +1,14 @@
 import unittest
 from typing import cast
 
-from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient
+from tiny_swarm_world.application.ports.clients.port_deployment_gateway import (
+    DeploymentStackRequest,
+    PortDeploymentGateway,
+)
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
     PortComposeFileRepository,
 )
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
-    DEFAULT_PORTAINER_ENDPOINT_NAME,
     build_default_service_stack_steps,
     build_service_stack_steps,
 )
@@ -18,9 +20,9 @@ from tiny_swarm_world.domain.inventory import VerificationStatus
 class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
     def test_builds_default_service_stack_steps_without_concrete_adapters(self):
         compose_repository = _compose_repository_stub()
-        portainer_client = _portainer_client_stub()
+        deployment_gateway = _deployment_gateway_stub()
 
-        steps = build_default_service_stack_steps(compose_repository, portainer_client, "local")
+        steps = build_default_service_stack_steps(compose_repository, deployment_gateway)
 
         self.assertEqual(5, len(steps))
         self.assertEqual(
@@ -34,47 +36,23 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
             [step.verification_target_id for step in steps],
         )
         self.assertTrue(all(step.compose_repository is compose_repository for step in steps))
-        self.assertTrue(all(step.portainer_client is portainer_client for step in steps))
-        self.assertTrue(all(step.endpoint_name == "local" for step in steps))
+        self.assertTrue(all(step.deployment_gateway is deployment_gateway for step in steps))
 
     def test_default_service_stack_steps_do_not_include_portainer_bootstrap_cycle(self):
         steps = build_default_service_stack_steps(
             _compose_repository_stub(),
-            _portainer_client_stub(),
-            "local",
+            _deployment_gateway_stub(),
         )
 
         self.assertNotIn("portainer", [step.service_stack.stack_name for step in steps])
 
-    def test_default_service_stack_steps_use_named_portainer_endpoint_default(self):
-        steps = build_default_service_stack_steps(
-            _compose_repository_stub(),
-            _portainer_client_stub(),
-        )
-
-        self.assertEqual("local", DEFAULT_PORTAINER_ENDPOINT_NAME)
-        self.assertTrue(
-            all(step.endpoint_name == DEFAULT_PORTAINER_ENDPOINT_NAME for step in steps)
-        )
-
-    def test_service_stack_steps_use_named_portainer_endpoint_default(self):
-        steps = build_service_stack_steps(
-            _compose_repository_stub(),
-            _portainer_client_stub(),
-        )
-
-        self.assertTrue(
-            all(step.endpoint_name == DEFAULT_PORTAINER_ENDPOINT_NAME for step in steps)
-        )
-
     def test_service_access_profile_steps_include_selected_stack(self):
         compose_repository = _compose_repository_stub()
-        portainer_client = _portainer_client_stub()
+        deployment_gateway = _deployment_gateway_stub()
 
         steps = build_service_stack_steps(
             compose_repository,
-            portainer_client,
-            "local",
+            deployment_gateway,
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
         )
 
@@ -84,14 +62,12 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         )
         self.assertNotIn("portainer", tuple(step.service_stack.stack_name for step in steps))
         self.assertTrue(all(step.compose_repository is compose_repository for step in steps))
-        self.assertTrue(all(step.portainer_client is portainer_client for step in steps))
-        self.assertTrue(all(step.endpoint_name == "local" for step in steps))
+        self.assertTrue(all(step.deployment_gateway is deployment_gateway for step in steps))
 
     def test_service_stack_steps_can_exclude_bootstrap_owned_stacks(self):
         steps = build_service_stack_steps(
             _compose_repository_stub(),
-            _portainer_client_stub(),
-            "local",
+            _deployment_gateway_stub(),
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             excluded_stack_names=("nexus",),
         )
@@ -104,8 +80,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
     def test_service_stack_steps_attach_stack_specific_environment(self):
         steps = build_service_stack_steps(
             _compose_repository_stub(),
-            _portainer_client_stub(),
-            "local",
+            _deployment_gateway_stub(),
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             stack_environments={
                 "infisical": {
@@ -127,12 +102,11 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
 
     async def test_default_service_stack_steps_verify_stack_registration_without_readiness_claim(self):
         compose_repository = _FakeComposeRepository()
-        portainer_client = _FakePortainerClient()
+        deployment_gateway = _FakeDeploymentGateway()
 
         steps = build_default_service_stack_steps(
             cast(PortComposeFileRepository, compose_repository),
-            cast(PortPortainerClient, portainer_client),
-            "local",
+            cast(PortDeploymentGateway, deployment_gateway),
         )
         verification_results = [await step.verify() for step in steps]
 
@@ -152,6 +126,12 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(
             all(verification.evidence["readiness_observed"] == "false" for verification in verification_results)
         )
+        self.assertTrue(
+            all(
+                verification.evidence["registration_scope"] == "deployment_gateway_stack"
+                for verification in verification_results
+            )
+        )
         self.assertEqual([], compose_repository.requested_stacks)
 
 
@@ -164,17 +144,20 @@ class _FakeComposeRepository:
         return StackDefinition(name=stack_name, compose_content="services: {}")
 
 
-class _FakePortainerClient:
-    def get_endpoint_id_by_name(self, endpoint_name: str) -> int:
-        return 7
+class _FakeDeploymentGateway:
+    def __init__(self) -> None:
+        self.applied_requests: list[DeploymentStackRequest] = []
 
-    def find_stack_id_by_name(self, stack_name: str) -> int | None:
-        return 42
+    def apply_stack(self, request: DeploymentStackRequest) -> None:
+        self.applied_requests.append(request)
+
+    def stack_registered(self, stack_name: str) -> bool:
+        return True
 
 
 def _compose_repository_stub() -> PortComposeFileRepository:
     return cast(PortComposeFileRepository, object())
 
 
-def _portainer_client_stub() -> PortPortainerClient:
-    return cast(PortPortainerClient, object())
+def _deployment_gateway_stub() -> PortDeploymentGateway:
+    return cast(PortDeploymentGateway, object())
