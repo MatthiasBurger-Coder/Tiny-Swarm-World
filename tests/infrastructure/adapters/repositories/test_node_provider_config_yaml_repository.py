@@ -48,10 +48,33 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
         if config.provider_resource_resolution is None:
             raise AssertionError("provider resource resolution must be configured")
         self.assertEqual(
-            {"control": "lxdbr0"},
-            dict(config.provider_resource_resolution.network_mappings),
+            {"control": "incusbr0"},
+            dict(
+                config.provider_resource_resolution.backends[
+                    ManagedLxcBackend.INCUS
+                ].network_mappings
+            ),
         )
-        self.assertEqual("default", config.provider_resource_resolution.storage_pool)
+        self.assertEqual(
+            {"control": "lxdbr0"},
+            dict(
+                config.provider_resource_resolution.backends[
+                    ManagedLxcBackend.LXD
+                ].network_mappings
+            ),
+        )
+        self.assertEqual(
+            "default",
+            config.provider_resource_resolution.backends[
+                ManagedLxcBackend.INCUS
+            ].storage_pool,
+        )
+        self.assertEqual(
+            "default",
+            config.provider_resource_resolution.backends[
+                ManagedLxcBackend.LXD
+            ].storage_pool,
+        )
 
     def test_committed_provider_config_matches_desired_inventory_nodes(self):
         config = NodeProviderConfigYamlRepository().load()
@@ -215,9 +238,18 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
         with self.assertRaises(NodeProviderConfigError):
             _repository_for(data).load()
 
+    def test_rejects_missing_backend_resource_mapping(self):
+        data = _valid_config_with_resource_resolution()
+        del data["provider_resource_resolution"]["backends"]["incus"]
+
+        with self.assertRaises(NodeProviderConfigError):
+            _repository_for(data).load()
+
     def test_rejects_unmapped_node_network_when_resource_resolution_is_enabled(self):
         data = _valid_config_with_resource_resolution()
-        data["nodes"][0]["networks"] = ["private"]
+        del data["provider_resource_resolution"]["backends"]["incus"]["network_mappings"][
+            "control"
+        ]
 
         with self.assertRaises(NodeProviderConfigError):
             _repository_for(data).load()
@@ -378,10 +410,20 @@ def _with_backend_candidate(backend: str) -> dict[str, Any]:
 def _valid_config_with_resource_resolution() -> dict[str, Any]:
     data = _valid_config()
     data["provider_resource_resolution"] = {
-        "network_mappings": {
-            "control": "lxdbr0",
+        "backends": {
+            "incus": {
+                "network_mappings": {
+                    "control": "incusbr0",
+                },
+                "storage_pool": "default",
+            },
+            "lxd": {
+                "network_mappings": {
+                    "control": "lxdbr0",
+                },
+                "storage_pool": "default",
+            },
         },
-        "storage_pool": "default",
     }
     data["verification_metadata"]["checks"].append("provider_resource_resolution")
     return data
