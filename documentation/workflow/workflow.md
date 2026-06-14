@@ -1,28 +1,28 @@
-# Workflow: Honor backend selection order
+# Workflow: Make resource mapping backend aware
 
 ```yaml
-workflow_id: issue-64-backend-selection-order-20260614
+workflow_id: issue-65-backend-resource-mapping-20260614
 workflow_version: 1.0.0
-issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/64
-issue_number: 64
-authoring_branch: feature/workflow-index-open-issues-20260614
-branch: feature/workflow-issue-64-backend-selection-order-20260614
-proposed_execution_branch: feature/workflow-issue-64-backend-selection-order-20260614
+issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/65
+issue_number: 65
+authoring_branch: feature/workflow-issue-65-backend-resource-mapping-20260614
+proposed_execution_branch: feature/workflow-issue-65-backend-resource-mapping-20260614
 indexed_workflow: true
 active_workflow: true
-execution_profile: NORMAL_PATH
+execution_profile: FULL_PATH
 released_for_workflow_execute: true
 created_utc: "2026-06-14T00:00:00Z"
 decision: PROCEED_WITH_ACCEPTED_ASSUMPTIONS
-confidence: 92
+confidence: 88
 dependencies: []
 ```
 
 ## Executive Summary
 
-Make backend selection deterministic: explicit override first, then configured candidate order, with diagnostics for selected and skipped candidates.
+Resolve network, storage, profile, image and related resource names through backend-aware configuration instead of unconditional LXD-specific mappings.
 
-This workflow has been promoted from the indexed workflow set and is active for `workflow execute` on branch `feature/workflow-issue-64-backend-selection-order-20260614`.
+This indexed workflow is authored for later promotion or explicit indexed
+execution. It does not replace `documentation/workflow/workflow.md`.
 
 ## Requirement Clarification Gate
 
@@ -35,17 +35,17 @@ Original request:
 
 Interpreted intent:
 
-- Create an executable workflow plan for Issue #64: Honor backend selection order.
+- Create an executable workflow plan for Issue #65: Make resource mapping backend aware.
 - Defer implementation until all indexed workflows are authored and the
   execution order is selected from `workflow.index.md`.
 
 Change type:
 
-- Workflow creation for future node-provider selection work.
+- Workflow creation for future provider resource configuration work.
 
 Affected process strand:
 
-- node-provider selection.
+- provider resource configuration.
 - Workflow execution with S3/S3D validation.
 - Documentation and quality-gate synchronization.
 
@@ -53,7 +53,7 @@ Affected architecture area:
 
 - `infra/config/node-providers/**`
 - `src/tiny_swarm_world/domain/node_provider/**`
-- `src/tiny_swarm_world/application/services/platform/**`
+- `src/tiny_swarm_world/infrastructure/adapters/**`
 - `tests/**`
 - `documentation/**`
 
@@ -106,13 +106,13 @@ Blocking questions:
 - None for workflow authoring. Any issue-specific decision is represented
   as an early executable decision slice when required.
 
-Confidence level: 92 percent.
+Confidence level: 88 percent.
 
 Decision: `PROCEED_WITH_ACCEPTED_ASSUMPTIONS`.
 
 ## Target Picture
 
-Issue #64 has an executable, test-backed implementation path that
+Issue #65 has an executable, test-backed implementation path that
 preserves Linux/WSL-only operation, Python 3.12 compatibility, hexagonal
 boundaries, and guarded live-infrastructure safety.
 
@@ -120,15 +120,16 @@ boundaries, and guarded live-infrastructure safety.
 
 - Root `AGENTS.md`, `QUALITY.md`, and `.agents/skills/workflow-authoring/SKILL.md`
   were checked during indexed workflow authoring.
-- The workflow is stored under `documentation/workflow/issues/issue-64/`.
-- This workflow has been promoted to the active workflow path for Issue #64 execution.
+- The workflow is stored under `documentation/workflow/issues/issue-65/`.
+- This workflow is not the active workflow until explicitly promoted or
+  selected by an indexed executor.
 
 ## Scope
 
 In scope:
 
 - Files and modules listed in the affected architecture area.
-- Tests and documentation needed to satisfy Issue #64.
+- Tests and documentation needed to satisfy Issue #65.
 - Quality gates from `QUALITY.md`.
 
 Out of scope:
@@ -182,32 +183,32 @@ any, remains terminal-oriented and routes through console/status UI skills.
 
 Purpose:
 
-- Requirement, repository baseline, and decision gate for Issue #64.
+- Requirement, repository baseline, and decision gate for Issue #65.
 
 ```yaml
 slice_id: S01
-profile: NORMAL_PATH
+profile: FULL_PATH
 owner: Senior Requirement Engineer
 secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - documentation/workflow/issues/issue-64/**
+  - documentation/workflow/issues/issue-65/**
   - infra/config/node-providers/**
   - src/tiny_swarm_world/domain/node_provider/**
 affected_modules:
-  - node-provider selection
+  - provider resource configuration
 affected_contracts:
-  - issue_64_backend_selection_order
+  - issue_65_backend_resource_mapping
 dependencies:
   []
-parallel_group: issue-64-group-1
+parallel_group: issue-65-group-1
 file_locks:
-  - documentation/workflow/issues/issue-64/**
+  - documentation/workflow/issues/issue-65/**
   - infra/config/node-providers/**
   - src/tiny_swarm_world/domain/node_provider/**
 contract_locks:
-  - issue_64_backend_selection_order
+  - issue_65_backend_resource_mapping
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -243,11 +244,11 @@ python3 tools/quality_gate.py test
 
 Purpose:
 
-- Scoped implementation inside the declared architecture boundary for Issue #64.
+- Scoped implementation inside the declared architecture boundary for Issue #65.
 
 ```yaml
 slice_id: S02
-profile: NORMAL_PATH
+profile: FULL_PATH
 owner: Senior Python Automation Developer
 secondary_reviewers:
   - Senior System Architect
@@ -255,24 +256,24 @@ secondary_reviewers:
 affected_files:
   - infra/config/node-providers/**
   - src/tiny_swarm_world/domain/node_provider/**
-  - src/tiny_swarm_world/application/services/platform/**
+  - src/tiny_swarm_world/infrastructure/adapters/**
   - tests/**
   - documentation/**
 affected_modules:
-  - node-provider selection
+  - provider resource configuration
 affected_contracts:
-  - issue_64_backend_selection_order
+  - issue_65_backend_resource_mapping
 dependencies:
   - S01
-parallel_group: issue-64-group-2
+parallel_group: issue-65-group-2
 file_locks:
   - infra/config/node-providers/**
   - src/tiny_swarm_world/domain/node_provider/**
-  - src/tiny_swarm_world/application/services/platform/**
+  - src/tiny_swarm_world/infrastructure/adapters/**
   - tests/**
   - documentation/**
 contract_locks:
-  - issue_64_backend_selection_order
+  - issue_65_backend_resource_mapping
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -308,11 +309,11 @@ python3 tools/quality_gate.py test
 
 Purpose:
 
-- Focused regression and architecture tests for Issue #64.
+- Focused regression and architecture tests for Issue #65.
 
 ```yaml
 slice_id: S03
-profile: NORMAL_PATH
+profile: FULL_PATH
 owner: Senior Tester
 secondary_reviewers:
   - Senior System Architect
@@ -322,18 +323,18 @@ affected_files:
   - infra/config/node-providers/**
   - src/tiny_swarm_world/domain/node_provider/**
 affected_modules:
-  - node-provider selection
+  - provider resource configuration
 affected_contracts:
-  - issue_64_backend_selection_order
+  - issue_65_backend_resource_mapping
 dependencies:
   - S02
-parallel_group: issue-64-group-3
+parallel_group: issue-65-group-3
 file_locks:
   - tests/**
   - infra/config/node-providers/**
   - src/tiny_swarm_world/domain/node_provider/**
 contract_locks:
-  - issue_64_backend_selection_order
+  - issue_65_backend_resource_mapping
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -369,11 +370,11 @@ python3 tools/quality_gate.py test
 
 Purpose:
 
-- Documentation synchronization and final quality evidence for Issue #64.
+- Documentation synchronization and final quality evidence for Issue #65.
 
 ```yaml
 slice_id: S04
-profile: NORMAL_PATH
+profile: FULL_PATH
 owner: Senior Documentation Engineer
 secondary_reviewers:
   - Senior System Architect
@@ -382,17 +383,17 @@ affected_files:
   - documentation/**
   - README.md
 affected_modules:
-  - node-provider selection
+  - provider resource configuration
 affected_contracts:
-  - issue_64_backend_selection_order
+  - issue_65_backend_resource_mapping
 dependencies:
   - S03
-parallel_group: issue-64-group-4
+parallel_group: issue-65-group-4
 file_locks:
   - documentation/**
   - README.md
 contract_locks:
-  - issue_64_backend_selection_order
+  - issue_65_backend_resource_mapping
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -437,7 +438,7 @@ Cross-workflow dependencies: none.
 - Can this workflow run in parallel? Only after S3D confirms disjoint file,
   contract, module, and architecture locks.
 - Conflicting workflows: see `documentation/workflow/workflow.index.md`.
-- Shared files: infra/config/node-providers/**, src/tiny_swarm_world/domain/node_provider/**, src/tiny_swarm_world/application/services/platform/**, tests/**, documentation/**.
+- Shared files: infra/config/node-providers/**, src/tiny_swarm_world/domain/node_provider/**, src/tiny_swarm_world/infrastructure/adapters/**, tests/**, documentation/**.
 - Shared infrastructure: none for default verification; live validation is
   serialized unless isolated infrastructure is explicitly provided.
 - Requires isolated worktree: yes for workflow execution streams.
@@ -524,7 +525,7 @@ or when acceptance criteria cannot be mapped to tests and documentation.
 
 Workflow authoring commit:
 
-- Branch: `feature/workflow-index-open-issues-20260614`.
+- Branch: `feature/workflow-issue-65-backend-resource-mapping-20260614`.
 - Stage this issue workflow, its context pack, `workflow.index.md`, and the
   workflow-authoring skill update.
 - Run `git diff --check`.
@@ -533,7 +534,7 @@ Workflow authoring commit:
 Future workflow execution:
 
 - Promote or explicitly select this indexed workflow.
-- Use proposed execution branch `feature/workflow-issue-64-backend-selection-order-20260614` unless a later
+- Use proposed execution branch `feature/workflow-issue-65-backend-resource-mapping-20260614` unless a later
   governance decision selects another branch.
 - Commit each executable slice separately.
 
@@ -542,13 +543,15 @@ Future workflow execution:
 Workflow authoring is done when this file, its context pack, and the index
 entry exist and pass documentation checks.
 
-Issue #64 implementation is done when acceptance criteria are satisfied
+Issue #65 implementation is done when acceptance criteria are satisfied
 by scoped code, tests, documentation, quality evidence, and merge-ready
 review.
 
 ## Handoff To Workflow Execute
 
-Run `workflow execute` from this branch and this worktree. The executor must verify S3/S3D metadata, locks, evidence, targeted checks, and quality gates before implementation.
+Do not run unqualified `workflow execute` for this indexed workflow. First
+promote it to `documentation/workflow/workflow.md` or extend the executor to
+accept an explicit indexed workflow path.
 
 ## arc42 Check Status
 

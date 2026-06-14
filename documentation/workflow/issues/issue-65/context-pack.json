@@ -4,10 +4,11 @@
   "issue": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/65",
   "issue_number": 65,
   "workflow_path": "documentation/workflow/issues/issue-65/workflow.md",
-  "authoring_branch": "feature/workflow-index-open-issues-20260614",
+  "authoring_branch": "feature/workflow-issue-65-backend-resource-mapping-20260614",
+  "execution_branch": "feature/workflow-issue-65-backend-resource-mapping-20260614",
   "proposed_execution_branch": "feature/workflow-issue-65-backend-resource-mapping-20260614",
   "execution_profile": "FULL_PATH",
-  "status": "AUTHORED_INDEXED_NOT_ACTIVE",
+  "status": "ACTIVE_RELEASED_FOR_WORKFLOW_EXECUTE",
   "created_utc": "2026-06-14T00:00:00Z",
   "dependencies": [],
   "affected_areas": [

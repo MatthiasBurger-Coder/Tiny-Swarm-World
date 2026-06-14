@@ -5,12 +5,12 @@ workflow_id: issue-65-backend-resource-mapping-20260614
 workflow_version: 1.0.0
 issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/65
 issue_number: 65
-authoring_branch: feature/workflow-index-open-issues-20260614
+authoring_branch: feature/workflow-issue-65-backend-resource-mapping-20260614
 proposed_execution_branch: feature/workflow-issue-65-backend-resource-mapping-20260614
 indexed_workflow: true
-active_workflow: false
+active_workflow: true
 execution_profile: FULL_PATH
-released_for_workflow_execute: false
+released_for_workflow_execute: true
 created_utc: "2026-06-14T00:00:00Z"
 decision: PROCEED_WITH_ACCEPTED_ASSUMPTIONS
 confidence: 88
@@ -214,10 +214,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -279,10 +279,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -340,10 +340,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -399,10 +399,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -525,7 +525,7 @@ or when acceptance criteria cannot be mapped to tests and documentation.
 
 Workflow authoring commit:
 
-- Branch: `feature/workflow-index-open-issues-20260614`.
+- Branch: `feature/workflow-issue-65-backend-resource-mapping-20260614`.
 - Stage this issue workflow, its context pack, `workflow.index.md`, and the
   workflow-authoring skill update.
 - Run `git diff --check`.
