@@ -1,0 +1,31 @@
+# Slice 71 Distribution Evidence
+
+- Workflow id: `issue-71-disable-ansible-runner-20260614`
+- Slice id: `71`
+- Slice title: Remove placeholder automation runner
+- Affected areas: command runner infrastructure, command-runner tests, architecture documentation
+- Chosen execution mode: sequential
+- Selected streams: Ansible runner safety, unsupported-runner contract tests, documentation
+- Real subagents used: yes, Einstein completed read-only review
+- Fallback role-based review used: no
+- Git worktrees used: no
+- Expected touched files/directories:
+  - `src/tiny_swarm_world/infrastructure/adapters/command_runner/**`
+  - `tests/infrastructure/adapters/command_runner/**`
+  - `documentation/architecture/**`
+- Conflict risks:
+  - Issue #71 depends on Issue #70 command-runner responsibility and must not undo the legacy compatibility decision.
+  - Removing the `ansible` enum would broaden the compatibility surface beyond this slice.
+  - Active workflow configuration must fail closed before any placeholder runner can report success.
+- Quality gates:
+  - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_runner_factory`
+  - `python3 tools/quality_gate.py lint`
+  - `python3 tools/quality_gate.py typecheck`
+  - `python3 tools/quality_gate.py quality`
+- Consolidation plan:
+  - Keep implementation sequential because the remaining #71 gap is an Ansible-specific refinement of the #70 policy.
+  - Incorporated read-only subagent findings before final commit.
+  - Publish through guarded PR lifecycle after local and remote checks pass.
+- Parallelization decision:
+  - Rejected for write work due to overlapping command-runner policy/test files.
+  - Accepted only for read-only subagent review.

@@ -1,0 +1,22 @@
+# Slice 71 Consolidation Evidence
+
+- Workflow id: `issue-71-disable-ansible-runner-20260614`
+- Slice id: `71`
+- Slice title: Remove placeholder automation runner
+- Branch: `feature/workflow-issue-71-disable-ansible-runner-20260614`
+- Subagent review: Einstein, read-only
+- Subagent findings incorporated:
+  - `verify_config_contract` coverage now includes `runner="ansible"` as unsupported configuration.
+  - Architecture documentation now states that Ansible is not a current node-provider path.
+- Implementation summary:
+  - Active workflow contract verification now explicitly covers `ansible` as an unsupported runner type.
+  - The existing Ansible placeholder remains a legacy compatibility adapter but cannot be selected through `CommandRunnerFactory`.
+  - Direct placeholder execution remains fail-closed through `NotImplementedError` and `Unsupported` status evidence.
+  - Architecture documentation now states that Tiny Swarm World's current node-provider path is managed LXC through LXD or Incus, not Ansible, and that Ansible is not an operator-selectable backend.
+- Local verification:
+  - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_runner_factory` passed, 4 tests.
+  - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_runner_factory tests.infrastructure.adapters.command_runner.test_async_command_runner tests.infrastructure.adapters.repositories.test_command_repository_yaml_contract` passed, 23 tests.
+  - `python3 tools/quality_gate.py lint` passed.
+  - `python3 tools/quality_gate.py typecheck` passed.
+  - `python3 tools/quality_gate.py quality` passed, 866 tests, 17 skipped.
+- Live infrastructure commands: not run.
