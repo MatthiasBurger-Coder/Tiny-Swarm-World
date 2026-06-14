@@ -139,6 +139,11 @@ command, result status, recovery hint, evidence path, correlation ID, and trace
 ID through that event. Console adapters consume the supplied event state and
 render it; they do not inspect command-runner internals or decide workflow
 lifecycle outcomes.
+Architecture tests enforce this boundary for all console UI adapter modules:
+UI adapters may import rendering ports and progress/status contracts, but must
+not import command execution services, setup/deployment/platform orchestration,
+node-provider clients, Docker/Swarm clients, command-runner adapters, or the
+composition root.
 
 Aggregate updates use the reserved `all` instance and are stored separately
 from per-VM state. The terminal renderer derives completion summaries from

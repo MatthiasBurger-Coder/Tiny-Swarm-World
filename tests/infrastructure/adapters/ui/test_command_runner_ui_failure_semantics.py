@@ -13,6 +13,7 @@ from tiny_swarm_world.application.ports.ui.port_ui import (
     PortUI,
 )
 from tiny_swarm_world.application.services.commands.command_executer.command_executer import (
+    CommandExecuter,
     CommandExecutionFailed,
 )
 from tiny_swarm_world.application.ports.commands.executable_command import (
@@ -33,7 +34,10 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = AsyncCommandRunnerUI(_command_list(FailingRunner()))
+            runner_ui = AsyncCommandRunnerUI(
+                _command_list(FailingRunner()),
+                command_executor_factory=_command_executor_factory,
+            )
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
@@ -52,7 +56,10 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = SyncCommandRunnerUI(_command_list(FailingRunner()))
+            runner_ui = SyncCommandRunnerUI(
+                _command_list(FailingRunner()),
+                command_executor_factory=_command_executor_factory,
+            )
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
@@ -71,7 +78,10 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = AsyncCommandRunnerUI(_command_list(SensitiveRuntimeFailureRunner()))
+            runner_ui = AsyncCommandRunnerUI(
+                _command_list(SensitiveRuntimeFailureRunner()),
+                command_executor_factory=_command_executor_factory,
+            )
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
@@ -88,7 +98,10 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = SyncCommandRunnerUI(_command_list(SensitiveRuntimeFailureRunner()))
+            runner_ui = SyncCommandRunnerUI(
+                _command_list(SensitiveRuntimeFailureRunner()),
+                command_executor_factory=_command_executor_factory,
+            )
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
@@ -109,7 +122,8 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
                 {
                     "swarm-manager": _commands_for("swarm-manager", FailingRunner()),
                     "swarm-worker": _commands_for("swarm-worker", SuccessfulRunner()),
-                }
+                },
+                command_executor_factory=_command_executor_factory,
             )
 
         with patch(
@@ -129,7 +143,10 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = AsyncCommandRunnerUI(_command_list(SuccessfulRunner()))
+            runner_ui = AsyncCommandRunnerUI(
+                _command_list(SuccessfulRunner()),
+                command_executor_factory=_command_executor_factory,
+            )
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
@@ -148,7 +165,10 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = SyncCommandRunnerUI(_command_list(SuccessfulRunner()))
+            runner_ui = SyncCommandRunnerUI(
+                _command_list(SuccessfulRunner()),
+                command_executor_factory=_command_executor_factory,
+            )
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
@@ -167,7 +187,10 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = AsyncCommandRunnerUI(_command_list(StatusOnlyFailureRunner()))
+            runner_ui = AsyncCommandRunnerUI(
+                _command_list(StatusOnlyFailureRunner()),
+                command_executor_factory=_command_executor_factory,
+            )
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
@@ -186,7 +209,10 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = SyncCommandRunnerUI(_command_list(StatusOnlyFailureRunner()))
+            runner_ui = SyncCommandRunnerUI(
+                _command_list(StatusOnlyFailureRunner()),
+                command_executor_factory=_command_executor_factory,
+            )
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
@@ -203,6 +229,10 @@ def _command_list(runner: PortCommandRunner):
     return {
         "swarm-manager": _commands_for("swarm-manager", runner)
     }
+
+
+def _command_executor_factory(ui: PortUI) -> CommandExecuter:
+    return CommandExecuter(ui=ui)
 
 
 def _commands_for(vm_instance_name: str, runner: PortCommandRunner):

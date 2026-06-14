@@ -257,6 +257,29 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
 
         self.assertEqual([], violations)
 
+    def test_console_ui_adapters_remain_presentation_only(self):
+        forbidden_prefixes = (
+            "tiny_swarm_world.application.services.artifacts",
+            "tiny_swarm_world.application.services.commands",
+            "tiny_swarm_world.application.services.deployment",
+            "tiny_swarm_world.application.services.nexus",
+            "tiny_swarm_world.application.services.platform",
+            "tiny_swarm_world.application.services.setup",
+            "tiny_swarm_world.infrastructure.adapters.clients",
+            "tiny_swarm_world.infrastructure.adapters.command_runner",
+            "tiny_swarm_world.infrastructure.composition",
+        )
+        violations = [
+            violation
+            for forbidden_prefix in forbidden_prefixes
+            for violation in _find_forbidden_imports(
+                root=CONSOLE_UI_INFRASTRUCTURE_ROOT,
+                forbidden_prefix=forbidden_prefix,
+            )
+        ]
+
+        self.assertEqual([], violations)
+
     def test_nexus_artifact_repository_contracts_do_not_import_deployment_or_infrastructure(self):
         repository_contract_file = APPLICATION_SERVICES_ROOT / "nexus" / "ensure_nexus_repository.py"
         forbidden_prefixes = (

@@ -1,8 +1,8 @@
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from typing import Protocol
 from typing import Dict
 
-from tiny_swarm_world.application.services.commands.command_executer.command_executer import CommandExecuter
 from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 from tiny_swarm_world.application.ports.ui.port_ui import (
     AGGREGATE_INSTANCE,
@@ -11,20 +11,28 @@ from tiny_swarm_world.application.ports.ui.port_ui import (
     PortUI,
 )
 from tiny_swarm_world.infrastructure.adapters.ui.command_runner_ui import CommandRunnerUi
-from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import TerminalMethodTrace
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
-from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
-    CompositeMethodTrace,
-    LoggingMethodTrace,
-)
 from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI
+
+
+class _CommandExecutor(Protocol):
+    async def execute(self, commands: Dict[int, ExecutableCommandEntity]) -> object:
+        ...
+
+
+CommandExecutorFactory = Callable[[PortUI], _CommandExecutor]
+
 
 class AsyncCommandRunnerUI(CommandRunnerUi):
     """
     Handles the UI initialization and asynchronous execution of commands.
     """
 
-    def __init__(self, command_list: Dict[str, Dict[int, ExecutableCommandEntity]]):
+    def __init__(
+        self,
+        command_list: Dict[str, Dict[int, ExecutableCommandEntity]],
+        command_executor_factory: CommandExecutorFactory,
+    ):
         """
         Initializes the UI and command execution logic.
 
@@ -34,11 +42,7 @@ class AsyncCommandRunnerUI(CommandRunnerUi):
         self.command_list = command_list
         self.instances = list(command_list.keys())
         self.ui = FactoryUI().get_ui(instances=self.instances, test_mode=False)
-        self.command_execute = CommandExecuter(
-            ui=self.ui,
-            method_trace=_build_command_method_trace(self.ui),
-            trace_correlation_id="trace-command-execution",
-        )
+        self.command_execute = command_executor_factory(self.ui)
         self.logger = LoggerFactory.get_logger(self.__class__)
         self.logger.info(f"CommandRunnerUI initialized {self.instances} instances")
 
@@ -92,12 +96,3 @@ class AsyncCommandRunnerUI(CommandRunnerUi):
             raise failures[0]
 
         return results
-
-
-def _build_command_method_trace(ui: PortUI) -> CompositeMethodTrace:
-    return CompositeMethodTrace(
-        (
-            LoggingMethodTrace(LoggerFactory.get_logger("MethodTrace")),
-            TerminalMethodTrace(ui),
-        )
-    )
