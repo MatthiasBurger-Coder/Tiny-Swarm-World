@@ -1,10 +1,9 @@
-# Context Pack: Issue #78 Add standard Python packaging
+# Context Pack: Issue #64 Honor backend selection order
 
-- Workflow id: `issue-78-python-packaging-20260614`
-- Workflow path: `documentation/workflow/issues/issue-78/workflow.md`
+- Workflow id: `issue-64-backend-selection-order-20260614`
+- Workflow path: `documentation/workflow/issues/issue-64/workflow.md`
 - Authoring branch: `feature/workflow-index-open-issues-20260614`
-- Active execution branch: `feature/workflow-issue-78-python-packaging-20260614`
-- Proposed execution branch: `feature/workflow-issue-78-python-packaging-20260614`
+- Proposed execution branch: `feature/workflow-issue-64-backend-selection-order-20260614`
 - Execution profile: `NORMAL_PATH`
 - Status: `ACTIVE_READY_FOR_WORKFLOW_EXECUTE`
 - Dependencies: none

@@ -6,11 +6,12 @@ workflow_version: 1.0.0
 issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/64
 issue_number: 64
 authoring_branch: feature/workflow-index-open-issues-20260614
+branch: feature/workflow-issue-64-backend-selection-order-20260614
 proposed_execution_branch: feature/workflow-issue-64-backend-selection-order-20260614
 indexed_workflow: true
-active_workflow: false
+active_workflow: true
 execution_profile: NORMAL_PATH
-released_for_workflow_execute: false
+released_for_workflow_execute: true
 created_utc: "2026-06-14T00:00:00Z"
 decision: PROCEED_WITH_ACCEPTED_ASSUMPTIONS
 confidence: 92
@@ -21,8 +22,7 @@ dependencies: []
 
 Make backend selection deterministic: explicit override first, then configured candidate order, with diagnostics for selected and skipped candidates.
 
-This indexed workflow is authored for later promotion or explicit indexed
-execution. It does not replace `documentation/workflow/workflow.md`.
+This workflow has been promoted from the indexed workflow set and is active for `workflow execute` on branch `feature/workflow-issue-64-backend-selection-order-20260614`.
 
 ## Requirement Clarification Gate
 
@@ -121,8 +121,7 @@ boundaries, and guarded live-infrastructure safety.
 - Root `AGENTS.md`, `QUALITY.md`, and `.agents/skills/workflow-authoring/SKILL.md`
   were checked during indexed workflow authoring.
 - The workflow is stored under `documentation/workflow/issues/issue-64/`.
-- This workflow is not the active workflow until explicitly promoted or
-  selected by an indexed executor.
+- This workflow has been promoted to the active workflow path for Issue #64 execution.
 
 ## Scope
 
@@ -214,10 +213,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -279,10 +278,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -340,10 +339,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -399,10 +398,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -549,9 +548,7 @@ review.
 
 ## Handoff To Workflow Execute
 
-Do not run unqualified `workflow execute` for this indexed workflow. First
-promote it to `documentation/workflow/workflow.md` or extend the executor to
-accept an explicit indexed workflow path.
+Run `workflow execute` from this branch and this worktree. The executor must verify S3/S3D metadata, locks, evidence, targeted checks, and quality gates before implementation.
 
 ## arc42 Check Status
 

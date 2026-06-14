@@ -7,7 +7,7 @@
   "authoring_branch": "feature/workflow-index-open-issues-20260614",
   "proposed_execution_branch": "feature/workflow-issue-64-backend-selection-order-20260614",
   "execution_profile": "NORMAL_PATH",
-  "status": "AUTHORED_INDEXED_NOT_ACTIVE",
+  "status": "ACTIVE_READY_FOR_WORKFLOW_EXECUTE",
   "created_utc": "2026-06-14T00:00:00Z",
   "dependencies": [],
   "affected_areas": [
@@ -53,5 +53,6 @@
       "path": ".agents/skills/workflow-authoring/SKILL.md",
       "sha256": "5ef238ca8a98d08a3594906e5a30100649d4c09e64a01b377d690f6580b1ca03"
     }
-  ]
+  ],
+  "branch": "feature/workflow-issue-64-backend-selection-order-20260614"
 }
