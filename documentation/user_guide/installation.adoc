@@ -216,6 +216,12 @@ For repeatable Linux or WSL operator runs with local evidence capture, use:
 ./install.sh
 ----
 
+`install.sh` is intentionally a minimal Linux/WSL bootstrapper. The
+authoritative installer policy is `python3 -m tiny_swarm_world.installer`:
+that Python entry point owns secret handling, host-runtime detection, evidence
+layout, reset/setup sequencing, native Linux dependency bootstrap, and headless
+execution. The shell wrapper only verifies the repository shape and delegates.
+
 For deliberate test-system automation, the wrapper confirmation prompt can be
 replaced by an explicit flag:
 

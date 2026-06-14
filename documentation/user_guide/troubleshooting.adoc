@@ -158,11 +158,14 @@ definitions, or evidence logs are the problem:
 python3 tools/install_debugger.py
 ----
 
-The default mode analyzes `install.sh`, repository permissions, ownership
-markers, WSL2/systemd indicators, systemd unit definitions, and the newest
-installation evidence directory across supported host directories. It also
-prints exact `grep`, `tail`, `systemctl`, and `journalctl` commands for finding
-the abort point after a `Service` log line.
+The default mode analyzes the `install.sh` bootstrap contract, repository
+permissions, ownership markers, WSL2/systemd indicators, systemd unit
+definitions, and the newest installation evidence directory across supported
+host directories. `install.sh` must delegate to
+`python3 -m tiny_swarm_world.installer`; the Python installer owns the reset,
+setup, terminal recording, headless logging, and evidence policy. The debugger
+also prints exact `grep`, `tail`, `systemctl`, and `journalctl` commands for
+finding the abort point after a `Service` log line.
 
 For live host diagnostics, including `systemctl is-system-running`, use:
 
