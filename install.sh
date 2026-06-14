@@ -50,7 +50,11 @@ Optional environment:
       0 because the Infisical silent-bootstrap greenpath must not automate
       browser/UI clicks.
 The script is Linux/WSL-only. It writes evidence under:
-  .tiny-swarm-world/evidence/installation-tests/wsl2/<UTC timestamp>/
+  .tiny-swarm-world/evidence/installation-tests/<host-directory>/<UTC timestamp>/
+
+Supported host directories:
+  wsl2          WSL2 detected from WSL environment or kernel signals.
+  native_linux  Native Linux when no WSL signal is present.
 
 It runs the governed reset command before the canonical live setup command:
   PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM
@@ -84,6 +88,24 @@ is_wsl_environment() {
     return 0
   fi
   grep -qiE 'microsoft|wsl' /proc/sys/kernel/osrelease /proc/version 2>/dev/null
+}
+
+host_runtime_type() {
+  if is_wsl_environment; then
+    printf 'wsl2\n'
+  else
+    printf 'native_linux\n'
+  fi
+}
+
+host_detection_source() {
+  if [[ -n "${WSL_DISTRO_NAME:-}" || -n "${WSL_INTEROP:-}" ]]; then
+    printf 'wsl_environment\n'
+  elif grep -qiE 'microsoft|wsl' /proc/sys/kernel/osrelease /proc/version 2>/dev/null; then
+    printf 'kernel_signal\n'
+  else
+    printf 'uname_linux_without_wsl_signal\n'
+  fi
 }
 
 python_imports_available() {
@@ -245,6 +267,8 @@ write_context() {
   local evidence_dir="$1"
   local run_id="$2"
   local secrets_generated_count="$3"
+  local resolved_host_type="$4"
+  local detection_source="$5"
 
   {
     printf 'run_id=%s\n' "$run_id"
@@ -256,6 +280,9 @@ write_context() {
     printf 'fresh_install_reset=required\n'
     printf 'secret_env_file=%s\n' "$SECRET_ENV_FILE"
     printf 'secrets_generated_count=%s\n' "$secrets_generated_count"
+    printf 'host_runtime_type=%s\n' "$resolved_host_type"
+    printf 'host_runtime_detection_source=%s\n' "$detection_source"
+    printf 'selected_evidence_directory=%s\n' "$evidence_dir"
     printf 'platform_system=%s\n' "$(uname -s)"
     printf 'kernel_release=%s\n' "$(uname -r)"
     printf 'proc_osrelease=%s\n' "$(cat /proc/sys/kernel/osrelease 2>/dev/null || true)"
@@ -433,9 +460,11 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
 fi
 
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
-EVIDENCE_DIR=".tiny-swarm-world/evidence/installation-tests/wsl2/$RUN_ID"
+RESOLVED_HOST_TYPE="$(host_runtime_type)"
+HOST_DETECTION_SOURCE="$(host_detection_source)"
+EVIDENCE_DIR=".tiny-swarm-world/evidence/installation-tests/$RESOLVED_HOST_TYPE/$RUN_ID"
 mkdir -p "$EVIDENCE_DIR"
-write_context "$EVIDENCE_DIR" "$RUN_ID" "$secrets_generated_count"
+write_context "$EVIDENCE_DIR" "$RUN_ID" "$secrets_generated_count" "$RESOLVED_HOST_TYPE" "$HOST_DETECTION_SOURCE"
 
 cat <<EOF
 Tiny Swarm World live installation

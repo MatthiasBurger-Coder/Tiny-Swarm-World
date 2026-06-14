@@ -151,9 +151,11 @@ confirm the wrapper's reset prompt with an explicit flag. The underlying reset
 workflow still uses `--confirm RESET_TINY_SWARM_PLATFORM`.
 
 The wrapper records run context, reset logs, setup logs, and exit codes under
-`.tiny-swarm-world/evidence/installation-tests/`. It loads or generates local
+`.tiny-swarm-world/evidence/installation-tests/<host-runtime>/`, where the
+stable host directory is `wsl2` or `native_linux`. It loads or generates local
 `TSW_*` secrets in `.tiny-swarm-world/local/live-installation.env` without
-printing secret values, runs the governed reset prelude, then calls the
+printing secret values, records the detected host type and selected evidence
+directory in `context.txt`, runs the governed reset prelude, then calls the
 canonical setup workflow.
 
 With live consent, it sequences setup preflight, platform, artifact,
