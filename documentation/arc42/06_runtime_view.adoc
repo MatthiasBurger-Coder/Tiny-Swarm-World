@@ -17,6 +17,13 @@ configuration before returning their explicit contract result. `setup run`
 builds a dedicated `SetupServices` bundle only after accepted live consent and
 delegates all sequencing to the setup application workflow.
 
+The public composition facade delegates focused internal structure to
+`composition_models.py`, `composition_blocked_workflows.py`, and
+`composition_lxc_runtimes.py`. These modules are still infrastructure wiring:
+they do not change CLI behavior, do not move adapter construction into
+application services, and do not execute live commands during service bundle
+construction.
+
 The composition root builds `ApplicationServices` as an aggregate of three
 service bundles:
 
