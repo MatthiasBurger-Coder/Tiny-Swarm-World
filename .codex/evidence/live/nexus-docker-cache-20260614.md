@@ -45,6 +45,11 @@ run live nexus-docker-cache.sh der läuft schon. Da kannst du gerne artefakte an
   - Default `NEXUS_DOCKER_PROXY_PORT=5000`, observed host port is `5001`.
 - `NEXUS_ADMIN_PASSWORD` was not present in the WSL environment.
 - Nexus status endpoint on host port `8082` was reachable by `curl`.
+- Follow-up check:
+  - `/nexus-data/admin.password` is not present in the running container.
+  - This indicates the initial admin password has already been consumed or
+    removed.
+  - Nexus status endpoint on host port `8082` remains reachable.
 
 ## Result
 
@@ -52,6 +57,9 @@ The script was not continued past preflight because required authentication
 input was missing and the running container uses non-default ports. Continuing
 without explicit redacted configuration would either fail closed or target the
 wrong host ports.
+
+Follow-up live configuration is still blocked until the current Nexus admin
+password is supplied by the operator or exported in the WSL environment.
 
 ## Required Command Shape For Next Live Run
 
