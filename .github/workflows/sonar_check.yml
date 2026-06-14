@@ -10,10 +10,14 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   sonarcloud:
     name: Python Quality And SonarCloud
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN || secrets.SONAR_CLOUD_TOKEN }}
     steps:
@@ -25,7 +29,7 @@ jobs:
       - name: Set Up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: pip
           cache-dependency-path: requirements.txt
 
@@ -38,16 +42,16 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m pip install coverage import-linter mypy pytest ruff types-PyYAML types-requests
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+          python3 -m pip install coverage import-linter mypy pytest ruff types-PyYAML types-requests
 
       - name: Quality Gate
-        run: python tools/quality_gate.py quality
+        run: python3 tools/quality_gate.py quality
 
       - name: Generate Coverage Report
         run: |
-          PYTHONPATH=src coverage run --branch -m unittest discover -s tests -t .
+          PYTHONPATH=src python3 -m coverage run --branch -m unittest discover -s tests -t .
           coverage xml -o coverage.xml
 
       - name: SonarCloud Scan
