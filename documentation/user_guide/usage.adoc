@@ -68,6 +68,11 @@ Non-mutating workflow checks can be selected explicitly:
 tiny-swarm-world platform verify
 ----
 
+`platform verify` is non-mutating. It checks post-install preflight state,
+managed LXC nodes, Docker Engine readiness, Swarm membership, profile-level
+proxy devices, and Portainer endpoint reachability, reporting target,
+expected state, observed state, and next action in verification evidence.
+
 The safe setup probe is `setup run` without `--live`. It refuses before setup
 services are constructed:
 

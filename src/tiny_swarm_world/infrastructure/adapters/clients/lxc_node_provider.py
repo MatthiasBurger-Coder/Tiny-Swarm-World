@@ -132,6 +132,61 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             **dict(image_references or {}),
         }
 
+    async def verify_node(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+    ) -> VerificationResult:
+        backend_selection = _selected_backend(node, selection)
+        if isinstance(backend_selection, VerificationResult):
+            return backend_selection
+        backend = backend_selection
+
+        config_result = _load_config(self.config_repository, node, selection, backend)
+        if isinstance(config_result, VerificationResult):
+            return config_result
+        config, node_config, _ = config_result
+
+        lookup = await self._lookup_node(node, backend, config)
+        if lookup.failed:
+            return _blocked(
+                node,
+                selection,
+                "verify_node_lookup_failed",
+                backend=backend,
+                return_code=lookup.returncode,
+                timed_out=lookup.timed_out,
+            )
+        if lookup.node is None:
+            return _verify_failed(
+                node,
+                selection,
+                "managed_node_missing",
+                backend=backend,
+                return_code=lookup.returncode,
+            )
+        if not lookup.node.matches_expected(node_config):
+            return _managed_node_verify_failed(
+                node,
+                selection,
+                "managed_node_mismatch",
+                backend=backend,
+                return_code=lookup.returncode,
+                observed_node=lookup.node,
+                node_config=node_config,
+            )
+        if not lookup.node.running:
+            return _managed_node_verify_failed(
+                node,
+                selection,
+                "managed_node_not_running",
+                backend=backend,
+                return_code=lookup.returncode,
+                observed_node=lookup.node,
+                node_config=node_config,
+            )
+        return _verified(node, backend, "already_present")
+
     async def ensure_node(
         self,
         node: NodeSpec,
@@ -1571,6 +1626,41 @@ def _verify_failed(
             timed_out=timed_out,
             selection_status=selection.status.value,
         ),
+    )
+
+
+def _managed_node_verify_failed(
+    node: NodeSpec,
+    selection: ProviderSelection,
+    reason: str,
+    *,
+    backend: ManagedLxcBackend,
+    return_code: int,
+    observed_node: _ObservedNode,
+    node_config: NodeProviderNodeConfig,
+) -> VerificationResult:
+    evidence = _evidence(
+        "verify",
+        reason,
+        node,
+        backend,
+        return_code=return_code,
+        selection_status=selection.status.value,
+    )
+    evidence.update(_managed_node_mismatch_evidence(observed_node, node_config))
+    evidence["observed_status"] = observed_node.status
+    evidence["expected"] = "managed_lxc_node_running"
+    evidence["observed"] = (
+        "managed_node_configuration_mismatch"
+        if reason == "managed_node_mismatch"
+        else f"managed_node_{observed_node.status.casefold() or 'unknown'}"
+    )
+    evidence["next_action"] = "Run platform init or inspect the managed LXC node."
+    return VerificationResult(
+        target_id=_target_id(node),
+        status=VerificationStatus.FAILED_TO_VERIFY,
+        message="LXC managed node verification did not reach the desired state.",
+        evidence=evidence,
     )
 
 

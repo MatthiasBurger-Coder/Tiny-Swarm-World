@@ -11,24 +11,31 @@ from tiny_swarm_world.application.services.platform.docker_swarm_lxc_contract im
 from tiny_swarm_world.application.services.platform.lxc_docker_install import (
     LxcDockerInstallService,
     LxcDockerInstallStep,
+    LxcDockerVerifyStep,
 )
 from tiny_swarm_world.application.services.platform.lxc_service_exposure import (
     LxcProxyDriftRepairService,
     LxcProxyDriftRepairStep,
     LxcServiceExposureService,
     LxcServiceExposureStep,
+    LxcServiceExposureVerifyStep,
 )
 from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapService,
     LxcSwarmBootstrapStep,
+    LxcSwarmVerifyStep,
 )
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
+from tiny_swarm_world.application.services.platform.portainer_verify import (
+    PortainerEndpointVerifyStep,
+)
 from tiny_swarm_world.application.services.platform.node_provider_selection import (
     NodeProviderDestroyManagedNodesStep,
     NodeProviderEnsureNodeStep,
     NodeProviderResetManagedNodesStep,
     NodeProviderSelectionRequest,
     NodeProviderSelectionService,
+    NodeProviderVerifyNodeStep,
 )
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
@@ -55,17 +62,21 @@ __all__ = [
     "DockerSwarmInLxcContractService",
     "LxcDockerInstallService",
     "LxcDockerInstallStep",
+    "LxcDockerVerifyStep",
     "LxcProxyDriftRepairService",
     "LxcProxyDriftRepairStep",
     "LxcServiceExposureService",
     "LxcServiceExposureStep",
+    "LxcServiceExposureVerifyStep",
     "LxcSwarmBootstrapService",
     "LxcSwarmBootstrapStep",
+    "LxcSwarmVerifyStep",
     "NodeProviderDestroyManagedNodesStep",
     "NodeProviderEnsureNodeStep",
     "NodeProviderResetManagedNodesStep",
     "NodeProviderSelectionRequest",
     "NodeProviderSelectionService",
+    "NodeProviderVerifyNodeStep",
     "PreflightService",
     "DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION",
     "PLATFORM_WORKFLOW_TAXONOMY",
@@ -83,4 +94,5 @@ __all__ = [
     "PlatformWorkflowSemantics",
     "PlatformWorkflowStatus",
     "SocatManager",
+    "PortainerEndpointVerifyStep",
 ]

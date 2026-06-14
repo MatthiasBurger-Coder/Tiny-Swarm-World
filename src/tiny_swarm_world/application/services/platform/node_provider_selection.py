@@ -108,8 +108,38 @@ class NodeProviderSelectionService:
                 selection,
                 "Node lifecycle port is not configured.",
                 "node_lifecycle_port_missing",
-        )
+            )
         return await self.node_lifecycle.ensure_node(node, selection)
+
+    async def verify_node(
+        self,
+        node: NodeSpec,
+        request: NodeProviderSelectionRequest | None = None,
+    ) -> VerificationResult:
+        selection_request = request or NodeProviderSelectionRequest(
+            requested_provider=node.provider,
+            preferred_backend=node.backend,
+        )
+        selection = await self.select_provider(selection_request)
+        if selection.blocks_mutation:
+            return _blocked_result(
+                selection,
+                "Provider selection blocked managed node verification.",
+                "provider_selection_blocked",
+            )
+        if node.provider != selection.selected_provider:
+            return _blocked_result(
+                selection,
+                "Node provider does not match the selected provider.",
+                "node_provider_mismatch",
+            )
+        if self.node_lifecycle is None:
+            return _blocked_result(
+                selection,
+                "Node lifecycle port is not configured.",
+                "node_lifecycle_port_missing",
+            )
+        return await self.node_lifecycle.verify_node(node, selection)
 
     async def reset_managed_nodes(
         self,
@@ -209,6 +239,24 @@ class NodeProviderEnsureNodeStep:
 
     async def run(self) -> VerificationResult:
         return await self.provider_selection.ensure_node(self.node, self.request)
+
+
+class NodeProviderVerifyNodeStep:
+    returns_verification_result = True
+
+    def __init__(
+        self,
+        node: NodeSpec,
+        provider_selection: NodeProviderSelectionService,
+        request: NodeProviderSelectionRequest | None = None,
+    ):
+        self.node = node
+        self.provider_selection = provider_selection
+        self.request = request
+        self.verification_target_id = f"platform:node:{node.name}"
+
+    async def run(self) -> VerificationResult:
+        return await self.provider_selection.verify_node(self.node, self.request)
 
 
 class NodeProviderResetManagedNodesStep:

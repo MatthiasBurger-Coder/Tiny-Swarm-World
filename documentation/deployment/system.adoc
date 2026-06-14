@@ -40,7 +40,11 @@ Docker Swarm profile; workers do not receive it. Direct instance-level
 `tsw-proxy-*` devices on `swarm-manager` are drift, not expected deployment
 state. The explicit `platform repair-lxc-proxy-drift` workflow can remove stale
 direct `tsw-proxy-*` devices only after the equivalent manager-profile device
-is verified. Platform reconcile, artifact workflows, and deployment workflows
+is verified. The non-mutating `platform verify` workflow runs post-install
+preflight plus read-only checks for managed LXC node presence, Docker Engine
+readiness, Swarm membership, profile-level proxy devices, and the Portainer
+local endpoint when an LXC backend is selected. Platform reconcile, artifact
+workflows, and deployment workflows
 block at provider-native boundaries until their LXC-native contracts are wired.
 Unsupported node-provider values fail closed; they are not remapped to another
 provider.
