@@ -1,28 +1,28 @@
-# Workflow: Validate Docker Swarm stack definitions
+# Workflow: Add standard Python packaging
 
 ```yaml
-workflow_id: issue-4-swarm-stack-validation-20260614
+workflow_id: issue-78-python-packaging-20260614
 workflow_version: 1.0.0
-issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/4
-issue_number: 4
+issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/78
+issue_number: 78
 authoring_branch: feature/workflow-index-open-issues-20260614
-branch: feature/workflow-issue-4-swarm-stack-validation-20260614
-proposed_execution_branch: feature/workflow-issue-4-swarm-stack-validation-20260614
+branch: feature/workflow-issue-78-python-packaging-20260614
+proposed_execution_branch: feature/workflow-issue-78-python-packaging-20260614
 indexed_workflow: true
 active_workflow: true
 execution_profile: NORMAL_PATH
 released_for_workflow_execute: true
 created_utc: "2026-06-14T00:00:00Z"
 decision: PROCEED_WITH_ACCEPTED_ASSUMPTIONS
-confidence: 75
+confidence: 89
 dependencies: []
 ```
 
 ## Executive Summary
 
-Validate compose files as Docker Swarm stack definitions and fail when stack-only requirements such as deploy sections are missing.
+Add Python 3.12 packaging metadata and a CLI entry point while preserving the thin module entry path.
 
-This workflow has been promoted from the indexed workflow set and is active for `workflow execute` on branch `feature/workflow-issue-4-swarm-stack-validation-20260614`.
+This workflow has been promoted from the indexed workflow set and is active for `workflow execute` on branch `feature/workflow-issue-78-python-packaging-20260614`.
 
 ## Requirement Clarification Gate
 
@@ -35,26 +35,27 @@ Original request:
 
 Interpreted intent:
 
-- Create an executable workflow plan for Issue #4: Validate Docker Swarm stack definitions.
+- Create an executable workflow plan for Issue #78: Add standard Python packaging.
 - Defer implementation until all indexed workflows are authored and the
   execution order is selected from `workflow.index.md`.
 
 Change type:
 
-- Workflow creation for future deployment configuration validation work.
+- Workflow creation for future Python packaging and CLI entry point work.
 
 Affected process strand:
 
-- deployment configuration validation.
+- Python packaging and CLI entry point.
 - Workflow execution with S3/S3D validation.
 - Documentation and quality-gate synchronization.
 
 Affected architecture area:
 
-- `infra/config/compose/**`
-- `src/tiny_swarm_world/domain/deployment/**`
-- `src/tiny_swarm_world/application/services/deployment/**`
+- `pyproject.toml`
+- `src/tiny_swarm_world/__main__.py`
+- `requirements.txt`
 - `tests/**`
+- `README.md`
 - `documentation/**`
 
 Explicit requirements:
@@ -106,13 +107,13 @@ Blocking questions:
 - None for workflow authoring. Any issue-specific decision is represented
   as an early executable decision slice when required.
 
-Confidence level: 75 percent.
+Confidence level: 89 percent.
 
 Decision: `PROCEED_WITH_ACCEPTED_ASSUMPTIONS`.
 
 ## Target Picture
 
-Issue #4 has an executable, test-backed implementation path that
+Issue #78 has an executable, test-backed implementation path that
 preserves Linux/WSL-only operation, Python 3.12 compatibility, hexagonal
 boundaries, and guarded live-infrastructure safety.
 
@@ -120,7 +121,7 @@ boundaries, and guarded live-infrastructure safety.
 
 - Root `AGENTS.md`, `QUALITY.md`, and `.agents/skills/workflow-authoring/SKILL.md`
   were checked during indexed workflow authoring.
-- The workflow is stored under `documentation/workflow/issues/issue-4/`.
+- The workflow is stored under `documentation/workflow/issues/issue-78/`.
 - This workflow is not the active workflow until explicitly promoted or
   selected by an indexed executor.
 
@@ -129,7 +130,7 @@ boundaries, and guarded live-infrastructure safety.
 In scope:
 
 - Files and modules listed in the affected architecture area.
-- Tests and documentation needed to satisfy Issue #4.
+- Tests and documentation needed to satisfy Issue #78.
 - Quality gates from `QUALITY.md`.
 
 Out of scope:
@@ -183,7 +184,7 @@ any, remains terminal-oriented and routes through console/status UI skills.
 
 Purpose:
 
-- Requirement, repository baseline, and decision gate for Issue #4.
+- Requirement, repository baseline, and decision gate for Issue #78.
 
 ```yaml
 slice_id: S01
@@ -193,21 +194,21 @@ secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - documentation/workflow/issues/issue-4/**
-  - infra/config/compose/**
-  - src/tiny_swarm_world/domain/deployment/**
+  - documentation/workflow/issues/issue-78/**
+  - pyproject.toml
+  - src/tiny_swarm_world/__main__.py
 affected_modules:
-  - deployment configuration validation
+  - Python packaging and CLI entry point
 affected_contracts:
-  - issue_4_swarm_stack_validation
+  - issue_78_python_packaging
 dependencies: []
-parallel_group: issue-4-group-1
+parallel_group: issue-78-group-1
 file_locks:
-  - documentation/workflow/issues/issue-4/**
-  - infra/config/compose/**
-  - src/tiny_swarm_world/domain/deployment/**
+  - documentation/workflow/issues/issue-78/**
+  - pyproject.toml
+  - src/tiny_swarm_world/__main__.py
 contract_locks:
-  - issue_4_swarm_stack_validation
+  - issue_78_python_packaging
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -243,7 +244,7 @@ python3 tools/quality_gate.py test
 
 Purpose:
 
-- Scoped implementation inside the declared architecture boundary for Issue #4.
+- Scoped implementation inside the declared architecture boundary for Issue #78.
 
 ```yaml
 slice_id: S02
@@ -253,26 +254,28 @@ secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - infra/config/compose/**
-  - src/tiny_swarm_world/domain/deployment/**
-  - src/tiny_swarm_world/application/services/deployment/**
+  - pyproject.toml
+  - src/tiny_swarm_world/__main__.py
+  - requirements.txt
   - tests/**
+  - README.md
   - documentation/**
 affected_modules:
-  - deployment configuration validation
+  - Python packaging and CLI entry point
 affected_contracts:
-  - issue_4_swarm_stack_validation
+  - issue_78_python_packaging
 dependencies:
   - S01
-parallel_group: issue-4-group-2
+parallel_group: issue-78-group-2
 file_locks:
-  - infra/config/compose/**
-  - src/tiny_swarm_world/domain/deployment/**
-  - src/tiny_swarm_world/application/services/deployment/**
+  - pyproject.toml
+  - src/tiny_swarm_world/__main__.py
+  - requirements.txt
   - tests/**
+  - README.md
   - documentation/**
 contract_locks:
-  - issue_4_swarm_stack_validation
+  - issue_78_python_packaging
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -308,7 +311,7 @@ python3 tools/quality_gate.py test
 
 Purpose:
 
-- Focused regression and architecture tests for Issue #4.
+- Focused regression and architecture tests for Issue #78.
 
 ```yaml
 slice_id: S03
@@ -319,21 +322,21 @@ secondary_reviewers:
   - Senior Tester
 affected_files:
   - tests/**
-  - infra/config/compose/**
-  - src/tiny_swarm_world/domain/deployment/**
+  - pyproject.toml
+  - src/tiny_swarm_world/__main__.py
 affected_modules:
-  - deployment configuration validation
+  - Python packaging and CLI entry point
 affected_contracts:
-  - issue_4_swarm_stack_validation
+  - issue_78_python_packaging
 dependencies:
   - S02
-parallel_group: issue-4-group-3
+parallel_group: issue-78-group-3
 file_locks:
   - tests/**
-  - infra/config/compose/**
-  - src/tiny_swarm_world/domain/deployment/**
+  - pyproject.toml
+  - src/tiny_swarm_world/__main__.py
 contract_locks:
-  - issue_4_swarm_stack_validation
+  - issue_78_python_packaging
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -369,7 +372,7 @@ python3 tools/quality_gate.py test
 
 Purpose:
 
-- Documentation synchronization and final quality evidence for Issue #4.
+- Documentation synchronization and final quality evidence for Issue #78.
 
 ```yaml
 slice_id: S04
@@ -382,17 +385,17 @@ affected_files:
   - documentation/**
   - README.md
 affected_modules:
-  - deployment configuration validation
+  - Python packaging and CLI entry point
 affected_contracts:
-  - issue_4_swarm_stack_validation
+  - issue_78_python_packaging
 dependencies:
   - S03
-parallel_group: issue-4-group-4
+parallel_group: issue-78-group-4
 file_locks:
   - documentation/**
   - README.md
 contract_locks:
-  - issue_4_swarm_stack_validation
+  - issue_78_python_packaging
 architecture_locks:
   - hexagonal_architecture
   - linux_wsl_only_runtime
@@ -437,7 +440,7 @@ Cross-workflow dependencies: none.
 - Can this workflow run in parallel? Only after S3D confirms disjoint file,
   contract, module, and architecture locks.
 - Conflicting workflows: see `documentation/workflow/workflow.index.md`.
-- Shared files: infra/config/compose/**, src/tiny_swarm_world/domain/deployment/**, src/tiny_swarm_world/application/services/deployment/**, tests/**, documentation/**.
+- Shared files: pyproject.toml, src/tiny_swarm_world/__main__.py, requirements.txt, tests/**, README.md, documentation/**.
 - Shared infrastructure: none for default verification; live validation is
   serialized unless isolated infrastructure is explicitly provided.
 - Requires isolated worktree: yes for workflow execution streams.
@@ -533,7 +536,7 @@ Workflow authoring commit:
 Future workflow execution:
 
 - Promote or explicitly select this indexed workflow.
-- Use proposed execution branch `feature/workflow-issue-4-swarm-stack-validation-20260614` unless a later
+- Use proposed execution branch `feature/workflow-issue-78-python-packaging-20260614` unless a later
   governance decision selects another branch.
 - Commit each executable slice separately.
 
@@ -542,44 +545,9 @@ Future workflow execution:
 Workflow authoring is done when this file, its context pack, and the index
 entry exist and pass documentation checks.
 
-Issue #4 implementation is done when acceptance criteria are satisfied
+Issue #78 implementation is done when acceptance criteria are satisfied
 by scoped code, tests, documentation, quality evidence, and merge-ready
 review.
-
-## Workflow Execution Evidence
-
-Execution status: `COMPLETED_WITH_EVIDENCE`.
-
-Slice checkpoint commits:
-
-| Slice | Commit | Evidence |
-|---|---|---|
-| S01 | `ec24db3` | Baseline and decision gate for per-service `deploy` validation. |
-| S02 | `fa0744d` | `ComposeFileRepositoryYaml` validates Swarm stack compose files and focused tests cover invalid definitions. |
-| S03 | `920dc94` | Architecture validation evidence confirms hexagonal boundaries remain intact. |
-
-Issue #4 acceptance mapping:
-
-- Valid Docker Swarm stack detection: product compose files are loaded through
-  structured YAML and must define a non-empty `services` mapping.
-- `deploy:` section present: each service returned by the compose repository
-  must define a mapping-valued `deploy` section.
-- Failure before live mutation: invalid compose files raise `ValueError` at the
-  repository boundary before Portainer or Swarm runtime adapters are called.
-
-Verification evidence:
-
-```bash
-PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
-python3 tools/quality_gate.py test
-python3 tools/quality_gate.py arch-tests
-python3 tools/quality_gate.py quality
-```
-
-Final quality result:
-
-- `python3 tools/quality_gate.py quality` passed.
-- 833 repository tests passed, 17 skipped.
 
 ## Handoff To Workflow Execute
 
