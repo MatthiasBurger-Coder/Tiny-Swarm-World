@@ -19,21 +19,8 @@ DEFAULT_SECRET_ENV_FILE = ".tiny-swarm-world/local/live-installation.env"
 DEFAULT_INFISICAL_SECRET_ENV_FILE = ".tiny-swarm/secrets/bootstrap.local.env"
 DEFAULT_GENERATED_SECRET_ENV_FILE = ".tiny-swarm/secrets/generated.local.env"
 DEFAULT_NATIVE_LINUX_VENV = ".tiny-swarm-world/install-venv"
-REQUIRED_SECRETS = (
-    "TSW_PORTAINER_ADMIN_PASSWORD",
-    "TSW_NEXUS_ADMIN_PASSWORD",
-    "TSW_JENKINS_ADMIN_PASSWORD",
-    "TSW_RABBITMQ_PASSWORD",
-    "TSW_SONARQUBE_ADMIN_PASSWORD",
-    "TSW_POSTGRES_PASSWORD",
-    "TSW_SONARQUBE_POSTGRES_PASSWORD",
-    "TSW_INFISICAL_LOGIN_EMAIL",
-    "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD",
-    "TSW_INFISICAL_ENCRYPTION_KEY",
-    "TSW_INFISICAL_AUTH_SECRET",
-    "TSW_INFISICAL_POSTGRES_PASSWORD",
-    "TSW_INFISICAL_REDIS_PASSWORD",
-)
+DEFAULT_SECRET_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
+INSTALLER_REQUIRED_SOURCES = {"generated_local_secret", "placeholder_only"}
 
 
 @dataclass(frozen=True)
@@ -57,6 +44,13 @@ class InstallerPaths:
 class HostRuntime:
     name: str
     detection_source: str
+
+
+@dataclass(frozen=True)
+class InstallerSecretEntry:
+    key: str
+    source: str
+    required: bool
 
 
 class InstallerError(RuntimeError):
@@ -127,11 +121,12 @@ def run(
     install_env.update(_load_export_file(paths.secret_env_file))
     install_env.update(_load_export_file(paths.infisical_secret_env_file))
 
-    missing = [name for name in REQUIRED_SECRETS if not install_env.get(name)]
+    required_entries = _required_installer_secret_entries(cwd / DEFAULT_SECRET_MANIFEST_PATH)
+    missing = [entry for entry in required_entries if not install_env.get(entry.key)]
     secrets_generated_count = 0
     if missing:
         if not options.generate_secrets:
-            _print_missing_secrets(missing)
+            _print_missing_secrets([entry.key for entry in missing])
             raise InstallerError(
                 f"Provide the missing values in {paths.secret_env_file.as_posix()} "
                 "or remove --no-generate-secrets."
@@ -266,6 +261,37 @@ def _require_repository(cwd: Path) -> None:
         raise InstallerError("Run this script from the Tiny Swarm World repository root.")
 
 
+def _required_installer_secret_entries(manifest_path: Path) -> tuple[InstallerSecretEntry, ...]:
+    try:
+        import yaml
+
+        payload = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise InstallerError(f"Secret manifest is invalid: {error}") from error
+    if not isinstance(payload, dict) or not isinstance(payload.get("secrets"), list):
+        raise InstallerError("Secret manifest is invalid: expected a secrets list.")
+    entries = tuple(_installer_secret_entry(item) for item in payload["secrets"])
+    return tuple(
+        entry
+        for entry in entries
+        if entry.required and entry.source in INSTALLER_REQUIRED_SOURCES
+    )
+
+
+def _installer_secret_entry(item: object) -> InstallerSecretEntry:
+    if not isinstance(item, dict):
+        raise InstallerError("Secret manifest is invalid: secret entries must be mappings.")
+    key = str(item.get("key", ""))
+    source = str(item.get("source", ""))
+    if not key.startswith("TSW_"):
+        raise InstallerError(f"Secret manifest is invalid: unsupported key {key!r}.")
+    return InstallerSecretEntry(
+        key=key,
+        source=source,
+        required=bool(item.get("required", False)),
+    )
+
+
 def detect_host_runtime(env: Mapping[str, str]) -> HostRuntime:
     test_runtime = env.get("TSW_INSTALL_TEST_HOST_RUNTIME")
     if env.get("TSW_INSTALL_TEST_MODE") == "1" and test_runtime in {"wsl2", "native_linux"}:
@@ -380,9 +406,10 @@ def _load_export_file(path: Path) -> dict[str, str]:
     return values
 
 
-def _generated_secret_values(names: Sequence[str]) -> dict[str, str]:
+def _generated_secret_values(entries: Sequence[InstallerSecretEntry]) -> dict[str, str]:
     generated: dict[str, str] = {}
-    for name in names:
+    for entry in entries:
+        name = entry.key
         if name == "TSW_INFISICAL_ENCRYPTION_KEY":
             generated[name] = secrets.token_hex(16)
         elif name == "TSW_INFISICAL_LOGIN_EMAIL":

@@ -171,6 +171,9 @@ directory in `context.txt`, records whether live approval came from an operator
 prompt or explicit automation flag, records whether command output came from
 the terminal recorder or headless logging, runs the governed reset prelude, then
 calls the canonical setup workflow.
+Required local bootstrap values are derived from
+`infra/config/secrets/infisical-secrets.yaml`; the installer does not keep a
+separate required-secret list.
 
 With live consent, it sequences setup preflight, platform, artifact,
 deployment, and final verification phases. Current live behavior remains

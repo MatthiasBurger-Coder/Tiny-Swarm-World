@@ -77,6 +77,19 @@ class TestInstaller(unittest.TestCase):
             values,
         )
 
+    def test_required_installer_secret_entries_come_from_manifest(self):
+        entries = installer._required_installer_secret_entries(
+            Path("infra/config/secrets/infisical-secrets.yaml")
+        )
+        keys = {entry.key for entry in entries}
+
+        self.assertIn("TSW_PORTAINER_ADMIN_PASSWORD", keys)
+        self.assertIn("TSW_INFISICAL_REDIS_PASSWORD", keys)
+        self.assertNotIn("TSW_TRAEFIK_TLS_CERT_SECRET_NAME", keys)
+        self.assertTrue(
+            all(entry.source in installer.INSTALLER_REQUIRED_SOURCES for entry in entries)
+        )
+
     def test_confirm_reset_reports_missing_noninteractive_input(self):
         options = installer.InstallerOptions(
             service_profile="service-access",
