@@ -16,7 +16,7 @@ class ExecutableCommandEntity(BaseModel):
     :param vm_instance_name: VM instance name
     :param description: Description of the command
     :param command: The actual executable command
-    :param runner: CommandRunner type (async, rest, ansible, ...)
+    :param runner: CommandRunner implementation selected by the active workflow.
     """
 
     index: Optional[int] = Field(default=None)

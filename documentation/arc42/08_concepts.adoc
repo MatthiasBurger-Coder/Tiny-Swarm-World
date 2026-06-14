@@ -25,6 +25,14 @@ Infrastructure owns YAML parsing and file lookup. Application command building
 passes the active workflow identifier through the command port and validates
 catalog entries before runner-specific executable commands are created.
 
+Current active workflows may select only the `async` shell command runner.
+`rest` and `ansible` remain legacy compatibility enum values, but
+`CommandRunnerFactory` rejects them for active Tiny Swarm World workflows.
+Their placeholder adapters fail closed if instantiated directly and must not
+report success without a real, tested implementation. Reintroducing either
+runner as supported runtime surface requires an explicit workflow with
+implementation, tests, and documentation.
+
 Tests and quality gates parse and validate command YAML without running live
 LXD, Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
 compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX

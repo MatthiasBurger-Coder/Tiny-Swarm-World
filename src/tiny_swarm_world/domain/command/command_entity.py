@@ -128,7 +128,7 @@ class CommandEntity(BaseModel):
     :param effects: Declared side effects or read effects
     :param verify: Verification specification for the command
     :param command: The actual command template
-    :param runner: CommandRunner type (async, rest, ansible, ...)
+    :param runner: CommandRunner type. Current active workflows select async only.
     :param command_type: Command type (HOSTOS, VM, ...)
     :param vm_type: VM types (worker, manager, ...)
     """

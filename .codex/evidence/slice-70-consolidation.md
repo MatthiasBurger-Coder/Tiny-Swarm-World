@@ -1,0 +1,23 @@
+# Slice 70 Consolidation Evidence
+
+- Workflow id: `issue-70-command-runner-responsibility-20260614`
+- Slice id: `70`
+- Slice title: Clarify command runner responsibility
+- Branch: `feature/workflow-issue-70-command-runner-responsibility-20260614`
+- Subagent review: Beauvoir, read-only
+- Subagent findings incorporated:
+  - `CommandWorkflow.verify_config_contract` now classifies unsupported runner factory failures as `BLOCKED` contract validation evidence.
+  - `CommandRunnerFactory` is covered by direct tests for async-only selection and REST/Ansible rejection.
+  - Placeholder REST and Ansible runners are covered by fail-closed tests.
+  - Domain/application runner documentation and arc42 concepts now state that only the async shell runner is selectable by active workflows.
+- Implementation summary:
+  - Active command workflows can select only `CommandRunnerType.ASYNC`.
+  - Legacy `REST` and `ANSIBLE` enum values remain for compatibility but cannot enter active workflow wiring.
+  - Directly instantiated REST and Ansible placeholder runners raise `NotImplementedError` and mark status as `Unsupported`.
+  - LXC-native adapter paths remain independent from Ansible abstractions.
+- Local verification:
+  - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.command_runner.test_command_runner_factory tests.infrastructure.adapters.command_runner.test_async_command_runner tests.infrastructure.adapters.repositories.test_command_repository_yaml_contract tests.infrastructure.test_composition tests.infrastructure.adapters.clients.test_lxc_node_provider tests.infrastructure.adapters.clients.test_lxc_container_docker_runtime tests.infrastructure.adapters.clients.test_lxc_container_swarm_bootstrap` passed, 137 tests.
+  - `python3 tools/quality_gate.py lint` passed.
+  - `python3 tools/quality_gate.py typecheck` passed.
+  - `python3 tools/quality_gate.py quality` passed, 866 tests, 17 skipped.
+- Live infrastructure commands: not run.
