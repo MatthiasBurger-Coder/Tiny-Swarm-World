@@ -144,6 +144,10 @@ UI adapters may import rendering ports and progress/status contracts, but must
 not import command execution services, setup/deployment/platform orchestration,
 node-provider clients, Docker/Swarm clients, command-runner adapters, or the
 composition root.
+Legacy async and sync command-runner UI adapters are now UI session adapters:
+they create/start the terminal UI, expose status update helpers, and wait for
+the UI thread. `CommandWorkflow` owns command execution orchestration and
+passes decided status results into those UI sessions.
 
 Aggregate updates use the reserved `all` instance and are stored separately
 from per-VM state. The terminal renderer derives completion summaries from

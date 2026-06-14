@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
@@ -76,10 +77,31 @@ class CommandWorkflow(PortCommandWorkflow):
         *,
         workflow_id: str,
     ) -> Any:
-        return await AsyncCommandRunnerUI(
-            self.build_command_list(config_file, parameter, workflow_id=workflow_id),
-            command_executor_factory=_build_command_executor,
-        ).run()
+        command_list = self.build_command_list(config_file, parameter, workflow_id=workflow_id)
+        runner_ui = AsyncCommandRunnerUI(command_list)
+        runner_ui.start()
+        command_executor = _build_command_executor(runner_ui.ui)
+        results: tuple[object, ...] = ()
+        failures: list[BaseException] = []
+        try:
+            tasks = {
+                vm: asyncio.create_task(command_executor.execute(command_list[vm]))
+                for vm in runner_ui.instances
+            }
+            results = tuple(await asyncio.gather(*tasks.values(), return_exceptions=True))
+            for vm, result in zip(runner_ui.instances, results):
+                if isinstance(result, BaseException):
+                    failures.append(result)
+                    runner_ui.mark_instance_failed(vm, result)
+                else:
+                    runner_ui.mark_instance_completed(vm)
+        finally:
+            runner_ui.finish(failed=bool(failures))
+            await runner_ui.wait_until_closed()
+
+        if failures:
+            raise failures[0]
+        return results
 
     async def run_sync(
         self,
@@ -88,10 +110,30 @@ class CommandWorkflow(PortCommandWorkflow):
         *,
         workflow_id: str,
     ) -> Any:
-        return await SyncCommandRunnerUI(
-            self.build_command_list(config_file, parameter, workflow_id=workflow_id),
-            command_executor_factory=_build_command_executor,
-        ).run()
+        command_list = self.build_command_list(config_file, parameter, workflow_id=workflow_id)
+        runner_ui = SyncCommandRunnerUI(command_list)
+        runner_ui.start()
+        command_executor = _build_command_executor(runner_ui.ui)
+        failure: BaseException | None = None
+        results = []
+        try:
+            for vm in runner_ui.instances:
+                try:
+                    result = await command_executor.execute(command_list[vm])
+                except Exception as exc:
+                    failure = exc
+                    runner_ui.mark_instance_failed(vm, exc)
+                    break
+                else:
+                    results.append(result)
+                    runner_ui.mark_instance_completed(vm)
+        finally:
+            runner_ui.finish(failed=failure is not None)
+            await runner_ui.wait_until_closed()
+
+        if failure is not None:
+            raise failure
+        return results
 
     def verify_config_contract(
         self,
