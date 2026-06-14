@@ -80,6 +80,7 @@ source .venv/bin/activate
 ```bash
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
+python3 -m pip install -e .
 python3 -m pip install pytest ruff mypy import-linter types-PyYAML types-requests
 ```
 
@@ -92,20 +93,20 @@ python3 tools/quality_gate.py quality
 5. Inspect the current workflow entry point
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+tiny-swarm-world --list-workflows
 ```
 
 6. Run the static preflight check for the default node provider
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+tiny-swarm-world --preflight
 ```
 
 Running the module without arguments does not execute infrastructure commands.
 Use an explicit workflow selection before running automation:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world platform verify
+tiny-swarm-world platform verify
 ```
 
 Mutating workflows can call LXD/Incus/LXC, Docker, networking, or other local
@@ -116,7 +117,7 @@ exact `--confirm` phrase shown by the workflow contract.
 The safe setup probe is `setup run` without `--live`:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world setup run
+tiny-swarm-world setup run
 ```
 
 Without the full live-consent contract this command refuses before setup
@@ -124,14 +125,14 @@ services are constructed and prints `REFUSED_LIVE_CONSENT_MISSING`. The
 canonical live operator command uses the default `lxc_native` provider:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+tiny-swarm-world setup run --live
 ```
 
 Operators may select a managed LXC backend explicitly:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd setup run --live
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
+tiny-swarm-world --lxc-backend lxd setup run --live
+tiny-swarm-world --lxc-backend incus setup run --live
 ```
 
 For repeatable WSL/Linux operator runs with evidence capture, use the repository
@@ -242,26 +243,26 @@ Where to find the scripts/services:
 List the supported workflow-level commands first:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+tiny-swarm-world --list-workflows
 ```
 
 Run only the workflow you explicitly intend to execute, for example:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world platform verify
+tiny-swarm-world platform verify
 ```
 
 For the autonomous setup flow, `setup run` without `--live` is the safe refusal
 probe:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world setup run
+tiny-swarm-world setup run
 ```
 
 The canonical live operator command is:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+tiny-swarm-world setup run --live
 ```
 
 Platform workflows are constructed through the infrastructure composition root
@@ -394,6 +395,7 @@ Prepare a local environment:
 - `source .venv/bin/activate`
 - `python3 -m pip install --upgrade pip`
 - `python3 -m pip install -r requirements.txt`
+- `python3 -m pip install -e .`
 - `python3 -m pip install ruff mypy import-linter types-requests`
 
 Run the full gate before handing off a change:
@@ -428,7 +430,9 @@ Notes:
   installed.
 - Docker connection issues: Verify Docker Engine or the Docker CLI target is available and your user has permission to access the Docker socket.
 - WSL2 networking/ports: Install `socat` and review `infra/config/network` for port-forwarding helpers.
-- Python import errors: Run commands from the repository root and set `PYTHONPATH=src` for direct script execution.
+- Python import errors: Use the installed `tiny-swarm-world` CLI after
+  `python3 -m pip install -e .`; set `PYTHONPATH=src` only for direct
+  source-checkout module execution.
 
 ---
 

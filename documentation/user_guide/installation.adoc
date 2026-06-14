@@ -73,6 +73,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
+python3 -m pip install -e .
 python3 -m pip install ruff mypy import-linter types-requests
 ----
 
@@ -140,21 +141,26 @@ LXD/Incus setup notes and official references.
 Python source code lives under `src/tiny_swarm_world` and uses package imports
 such as `tiny_swarm_world.application...`,
 `tiny_swarm_world.domain...`, and `tiny_swarm_world.infrastructure...`.
-Manual Python commands therefore need `PYTHONPATH=src` unless they are run
-through `tools/quality_gate.py`.
+Install the repository in editable mode from a Linux or WSL shell before
+operator runs:
 
 Example:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world
+python3 -m pip install -e .
+tiny-swarm-world
 ----
+
+Manual source-checkout commands can still use
+`PYTHONPATH=src python3 -m tiny_swarm_world`. `tools/quality_gate.py` sets the
+needed source path for repository checks.
 
 List supported workflow-level commands without building application services:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+tiny-swarm-world --list-workflows
 ----
 
 == IntelliJ Execution Context
@@ -166,7 +172,7 @@ preflight checks. The command remains:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+tiny-swarm-world setup run --live
 ----
 
 The live confirmation prompt requires stdin. Run the command from an IntelliJ
@@ -177,7 +183,7 @@ The safe setup probe is:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run
+tiny-swarm-world setup run
 ----
 
 Without the complete live-consent contract, `setup run` refuses before setup
@@ -188,7 +194,7 @@ The canonical live operator command uses `lxc_native` by default:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+tiny-swarm-world setup run --live
 ----
 
 For repeatable Linux or WSL operator runs with local evidence capture, use:

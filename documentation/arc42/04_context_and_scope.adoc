@@ -28,8 +28,12 @@ The supported operator entry point is:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world
+tiny-swarm-world
 ----
+
+This command is provided by the editable or packaged Python installation.
+`PYTHONPATH=src python3 -m tiny_swarm_world` remains the source-checkout
+fallback for diagnostics before installation.
 
 Removed direct setup helpers and host-side orchestration scripts are classified
 in `documentation/system/live-operation-surfaces.adoc`. They are not default
