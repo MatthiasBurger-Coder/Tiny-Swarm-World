@@ -11,7 +11,6 @@ from tiny_swarm_world.application.services.commands.command_builder.vm_parameter
 from tiny_swarm_world.application.services.commands.command_executer.command_executer import CommandExecuter
 from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
-from tiny_swarm_world.domain.command.command_entity import CommandCatalogValidationError
 from tiny_swarm_world.domain.command.vm_entity import VmEntity
 from tiny_swarm_world.domain.command.vm_type import VmType
 from tiny_swarm_world.domain.command.verification_probe import is_probe_allowed_for_workflow
@@ -149,7 +148,7 @@ class CommandWorkflow(PortCommandWorkflow):
                 parameter,
                 workflow_id=workflow_id,
             )
-        except (CommandCatalogValidationError, TypeError, ValueError):
+        except (TypeError, ValueError):
             return VerificationResult(
                 target_id=target_id,
                 status=VerificationStatus.BLOCKED,

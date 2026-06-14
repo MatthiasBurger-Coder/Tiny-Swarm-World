@@ -390,7 +390,7 @@ def _selection_evidence(
             candidate.value for candidate in backend_selection.candidates
         )
     for key, value in backend_selection.evidence.items():
-        if key.startswith("selected_") or key.startswith("skipped_"):
+        if key.startswith(("selected_", "skipped_")):
             evidence[key] = value
     return evidence
 

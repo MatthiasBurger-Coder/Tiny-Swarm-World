@@ -24,8 +24,7 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         await service.run()
 
         self.assertEqual(["jenkins"], compose_repository.requested_stacks)
-        self.assertEqual(1, len(deployment_gateway.applied_requests))
-        request = deployment_gateway.applied_requests[0]
+        request = _single_applied_request(deployment_gateway)
         self.assertEqual("jenkins", request.target_stack)
         self.assertEqual(stack_definition, request.stack_definition)
         self.assertEqual({}, dict(request.stack_environment))
@@ -42,8 +41,8 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
 
         await service.run()
 
-        self.assertEqual(1, len(deployment_gateway.applied_requests))
-        self.assertEqual("rabbitmq", deployment_gateway.applied_requests[0].target_stack)
+        request = _single_applied_request(deployment_gateway)
+        self.assertEqual("rabbitmq", request.target_stack)
 
     async def test_passes_stack_environment_when_creating_service_access_stack(self):
         stack_definition = StackDefinition(name="service-access", compose_content="services: {}")
@@ -60,7 +59,7 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
-            dict(deployment_gateway.applied_requests[0].stack_environment),
+            dict(_single_applied_request(deployment_gateway).stack_environment),
         )
 
     async def test_treats_create_timeout_as_success_when_stack_registration_is_visible(self):
@@ -74,11 +73,17 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
             compose_repository,
             deployment_gateway,
             ServiceStackContract("swagger", ("swagger-ui",)),
+            stack_environment={"TSW_SWAGGER_PUBLIC_URL": "https://swagger.example.test"},
             verify_wait_seconds=0,
         )
 
         await service.run()
 
+        request = _single_applied_request(deployment_gateway)
+        self.assertEqual(
+            {"TSW_SWAGGER_PUBLIC_URL": "https://swagger.example.test"},
+            dict(request.stack_environment),
+        )
         self.assertEqual(["swagger"], deployment_gateway.registration_checks)
 
     async def test_treats_update_timeout_as_success_when_stack_registration_is_visible(self):
@@ -249,3 +254,10 @@ class _FakeDeploymentGateway:
         if self.registered_values:
             return self.registered_values.pop(0)
         return False
+
+
+def _single_applied_request(
+    deployment_gateway: _FakeDeploymentGateway,
+) -> DeploymentStackRequest:
+    (request,) = deployment_gateway.applied_requests
+    return request

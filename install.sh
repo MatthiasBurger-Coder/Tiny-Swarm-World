@@ -15,6 +15,8 @@ case "${1:-}" in
     usage
     exit 0
     ;;
+  *)
+    ;;
 esac
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

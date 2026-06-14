@@ -413,13 +413,12 @@ def _blocked_workflow_result(workflow: CliWorkflow) -> dict[str, object]:
 
 def _live_consent_from_args(args: Namespace) -> LiveConsent:
     confirmed = bool(args.approve_live)
-    if args.live:
-        if not confirmed:
-            try:
-                answer = input(f"{LIVE_CONSENT_PROMPT} ")
-                confirmed = answer.strip().lower() in LIVE_CONSENT_YES_VALUES
-            except EOFError:
-                confirmed = False
+    if args.live and not confirmed:
+        try:
+            answer = input(f"{LIVE_CONSENT_PROMPT} ")
+            confirmed = answer.strip().lower() in LIVE_CONSENT_YES_VALUES
+        except EOFError:
+            confirmed = False
     return LiveConsent(live_flag=args.live, confirmed=confirmed)
 
 
