@@ -12,15 +12,11 @@ from tiny_swarm_world.application.ports.ui.port_ui import (
     STATUS_SUCCESS,
     PortUI,
 )
-from tiny_swarm_world.application.services.commands.command_executer.command_executer import (
-    CommandExecuter,
-    CommandExecutionFailed,
-)
+from tiny_swarm_world.application.services.commands.command_executer.command_executer import CommandExecutionFailed
 from tiny_swarm_world.application.ports.commands.executable_command import (
     ExecutableCommandEntity,
 )
-from tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui import AsyncCommandRunnerUI
-from tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui import SyncCommandRunnerUI
+from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
 from tiny_swarm_world.infrastructure.adapters.exceptions.exception_command_execution import (
     CommandExecutionError,
 )
@@ -34,16 +30,15 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = AsyncCommandRunnerUI(
-                _command_list(FailingRunner()),
-                command_executor_factory=_command_executor_factory,
-            )
+            workflow = _workflow_for(_command_list(FailingRunner()))
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            await _assert_redacted_runner_ui_failure(runner_ui)
+            await _assert_redacted_runner_ui_failure(
+                lambda: _run_async_with_ui(workflow, ui)
+            )
 
         self.assertIn(("swarm-manager", "failed", "execution", STATUS_ERROR), ui.updates)
         self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_ERROR), ui.updates)
@@ -56,16 +51,15 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = SyncCommandRunnerUI(
-                _command_list(FailingRunner()),
-                command_executor_factory=_command_executor_factory,
-            )
+            workflow = _workflow_for(_command_list(FailingRunner()))
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            await _assert_redacted_runner_ui_failure(runner_ui)
+            await _assert_redacted_runner_ui_failure(
+                lambda: _run_sync_with_ui(workflow, ui)
+            )
 
         self.assertIn(("swarm-manager", "failed", "execution", STATUS_ERROR), ui.updates)
         self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_ERROR), ui.updates)
@@ -78,16 +72,16 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = AsyncCommandRunnerUI(
-                _command_list(SensitiveRuntimeFailureRunner()),
-                command_executor_factory=_command_executor_factory,
-            )
+            workflow = _workflow_for(_command_list(SensitiveRuntimeFailureRunner()))
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            await _assert_arbitrary_runner_ui_failure_redacted(runner_ui)
+            await _assert_arbitrary_runner_ui_failure_redacted(
+                lambda: _run_async_with_ui(workflow, ui),
+                ui,
+            )
 
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
 
@@ -98,16 +92,16 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = SyncCommandRunnerUI(
-                _command_list(SensitiveRuntimeFailureRunner()),
-                command_executor_factory=_command_executor_factory,
-            )
+            workflow = _workflow_for(_command_list(SensitiveRuntimeFailureRunner()))
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            await _assert_arbitrary_runner_ui_failure_redacted(runner_ui)
+            await _assert_arbitrary_runner_ui_failure_redacted(
+                lambda: _run_sync_with_ui(workflow, ui),
+                ui,
+            )
 
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
 
@@ -118,19 +112,20 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = SyncCommandRunnerUI(
+            workflow = _workflow_for(
                 {
                     "swarm-manager": _commands_for("swarm-manager", FailingRunner()),
                     "swarm-worker": _commands_for("swarm-worker", SuccessfulRunner()),
-                },
-                command_executor_factory=_command_executor_factory,
+                }
             )
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            await _assert_redacted_runner_ui_failure(runner_ui)
+            await _assert_redacted_runner_ui_failure(
+                lambda: _run_sync_with_ui(workflow, ui)
+            )
 
         self.assertEqual("Pending", ui.status["swarm-worker"]["result"])
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
@@ -143,16 +138,13 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = AsyncCommandRunnerUI(
-                _command_list(SuccessfulRunner()),
-                command_executor_factory=_command_executor_factory,
-            )
+            workflow = _workflow_for(_command_list(SuccessfulRunner()))
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            await runner_ui.run()
+            await _run_async_with_ui(workflow, ui)
 
         self.assertIn(("swarm-manager", "completed", "execution", STATUS_SUCCESS), ui.updates)
         self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_SUCCESS), ui.updates)
@@ -165,16 +157,13 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = SyncCommandRunnerUI(
-                _command_list(SuccessfulRunner()),
-                command_executor_factory=_command_executor_factory,
-            )
+            workflow = _workflow_for(_command_list(SuccessfulRunner()))
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            await runner_ui.run()
+            await _run_sync_with_ui(workflow, ui)
 
         self.assertIn(("swarm-manager", "completed", "execution", STATUS_SUCCESS), ui.updates)
         self.assertIn((AGGREGATE_INSTANCE, "finished", "execution", STATUS_SUCCESS), ui.updates)
@@ -187,16 +176,13 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = AsyncCommandRunnerUI(
-                _command_list(StatusOnlyFailureRunner()),
-                command_executor_factory=_command_executor_factory,
-            )
+            workflow = _workflow_for(_command_list(StatusOnlyFailureRunner()))
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            await runner_ui.run()
+            await _run_async_with_ui(workflow, ui)
 
         self.assertEqual(STATUS_FAILED_TO_VERIFY, ui.status["swarm-manager"]["result"])
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
@@ -209,16 +195,13 @@ class TestCommandRunnerUiFailureSemantics(unittest.IsolatedAsyncioTestCase):
             "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
         ) as factory:
             factory.return_value.get_ui.return_value = ui
-            runner_ui = SyncCommandRunnerUI(
-                _command_list(StatusOnlyFailureRunner()),
-                command_executor_factory=_command_executor_factory,
-            )
+            workflow = _workflow_for(_command_list(StatusOnlyFailureRunner()))
 
         with patch(
             "tiny_swarm_world.application.services.commands.command_executer.command_executer.asyncio.sleep",
             new=AsyncMock(),
         ):
-            await runner_ui.run()
+            await _run_sync_with_ui(workflow, ui)
 
         self.assertEqual(STATUS_FAILED_TO_VERIFY, ui.status["swarm-manager"]["result"])
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
@@ -231,8 +214,26 @@ def _command_list(runner: PortCommandRunner):
     }
 
 
-def _command_executor_factory(ui: PortUI) -> CommandExecuter:
-    return CommandExecuter(ui=ui)
+def _workflow_for(command_list):
+    workflow = CommandWorkflow()
+    workflow.build_command_list = lambda *_args, **_kwargs: command_list
+    return workflow
+
+
+async def _run_async_with_ui(workflow, ui):
+    with patch(
+        "tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui.FactoryUI"
+    ) as factory:
+        factory.return_value.get_ui.return_value = ui
+        return await workflow.run_async("commands.yaml", workflow_id="test")
+
+
+async def _run_sync_with_ui(workflow, ui):
+    with patch(
+        "tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui.FactoryUI"
+    ) as factory:
+        factory.return_value.get_ui.return_value = ui
+        return await workflow.run_sync("commands.yaml", workflow_id="test")
 
 
 def _commands_for(vm_instance_name: str, runner: PortCommandRunner):
@@ -309,36 +310,26 @@ class RecordingUI(PortUI):
         pass
 
 
-async def _assert_redacted_runner_ui_failure(runner_ui):
-    with patch.object(runner_ui.command_execute.logger, "error") as command_error:
-        with patch.object(runner_ui.logger, "error") as ui_error:
-            with unittest.TestCase().assertRaises(CommandExecutionFailed) as context:
-                await runner_ui.run()
+async def _assert_redacted_runner_ui_failure(run_workflow):
+    with unittest.TestCase().assertRaises(CommandExecutionFailed) as context:
+        await run_workflow()
 
-    text = " ".join(
-        str(call.args)
-        for call in (*command_error.call_args_list, *ui_error.call_args_list)
-    )
-    text = f"{text} {context.exception}"
+    text = str(context.exception)
     unittest.TestCase().assertIn("return code 2", text)
     unittest.TestCase().assertNotIn("cannot connect to the provider socket", text)
     unittest.TestCase().assertNotIn("raw vm output", text)
     unittest.TestCase().assertNotIn("incus info", text)
 
 
-async def _assert_arbitrary_runner_ui_failure_redacted(runner_ui):
-    with patch.object(runner_ui.command_execute.logger, "error") as command_error:
-        with patch.object(runner_ui.logger, "error") as ui_error:
-            with unittest.TestCase().assertRaises(CommandExecutionFailed) as context:
-                await runner_ui.run()
+async def _assert_arbitrary_runner_ui_failure_redacted(run_workflow, ui):
+    with unittest.TestCase().assertRaises(CommandExecutionFailed) as context:
+        await run_workflow()
 
     text = " ".join(
         str(value)
         for value in (
-            command_error.call_args_list,
-            ui_error.call_args_list,
             context.exception,
-            runner_ui.ui.updates,
+            ui.updates,
         )
     )
     unittest.TestCase().assertIn("RuntimeError", text)
