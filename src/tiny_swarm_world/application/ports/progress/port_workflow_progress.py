@@ -32,6 +32,9 @@ class WorkflowProgressEvent:
     result: str
     safe_message: str
     recovery_hint: str | None = None
+    evidence_path: str | None = None
+    correlation_id: str | None = None
+    trace_id: str | None = None
 
     def __post_init__(self) -> None:
         for field_name, value in self.to_dict().items():

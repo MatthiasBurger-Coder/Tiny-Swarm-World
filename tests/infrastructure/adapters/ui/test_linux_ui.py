@@ -5,6 +5,7 @@ from unittest.mock import patch, MagicMock
 
 from tiny_swarm_world.application.ports.ui.port_ui import (
     AGGREGATE_INSTANCE,
+    ConsoleStatusEvent,
     SETUP_RECOVERY_ACTIONS,
     STATUS_BLOCKED,
     STATUS_FAILED,
@@ -78,6 +79,57 @@ class TestLinuxUI(unittest.TestCase):
             },
             self.ui.aggregate_status,
         )
+
+    def test_update_status_event_records_console_status_contract(self):
+        self.ui.update_status_event(
+            ConsoleStatusEvent(
+                instance="Instance1",
+                workflow_command="setup run",
+                step="deployment verify",
+                result_status=STATUS_FAILED_TO_VERIFY,
+                recovery_hint="Inspect deployment verification evidence.",
+                evidence_path=".tiny-swarm-world/evidence/deployment.json",
+                correlation_id="setup-123",
+                trace_id="trace-456",
+            )
+        )
+
+        self.assertEqual(
+            {
+                "current_task": "setup run",
+                "current_step": "deployment verify",
+                "result": STATUS_FAILED_TO_VERIFY,
+                "recovery_hint": "Inspect deployment verification evidence.",
+                "evidence_path": ".tiny-swarm-world/evidence/deployment.json",
+                "correlation_id": "setup-123",
+                "trace_id": "trace-456",
+            },
+            self.ui.status["Instance1"],
+        )
+
+    def test_draw_instance_status_renders_supplied_evidence_event_only(self):
+        self.ui.update_status_event(
+            ConsoleStatusEvent(
+                instance="Instance1",
+                workflow_command="deployment apply",
+                step="nexus stack",
+                result_status=STATUS_FAILED_TO_APPLY,
+                recovery_hint="Repair deployment apply failure.",
+                evidence_path=".tiny-swarm-world/evidence/nexus.json",
+                correlation_id="deployment-789",
+            )
+        )
+        stdscr = MagicMock()
+
+        self.ui._draw_instance_status(stdscr, 0, 80, self.ui.status["Instance1"])
+
+        rendered = [call.args[2] for call in stdscr.addstr.call_args_list]
+        self.assertIn("Task: deployment apply", rendered)
+        self.assertIn("Step: nexus stack", rendered)
+        self.assertIn(f"Status: {STATUS_FAILED_TO_APPLY}", rendered)
+        self.assertIn("Action: Repair deployment apply failure.", rendered)
+        self.assertIn("Evidence: .tiny-swarm-world/evidence/nexus.json", rendered)
+        self.assertIn("Trace: deployment-789", rendered)
 
     def test_terminal_status_contract_accepts_runner_and_executer_values(self):
         terminal_results = (

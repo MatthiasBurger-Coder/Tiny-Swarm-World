@@ -310,6 +310,10 @@ The composition root remains the public facade; focused
 `src/tiny_swarm_world/infrastructure/composition_*.py` modules hold
 service-bundle models, fail-closed workflow stubs, and provider-selected LXC
 runtime wiring.
+Console/status rendering consumes the application-level `ConsoleStatusEvent`
+contract from `tiny_swarm_world.application.ports.ui.port_ui`. The event carries
+workflow command, result status, recovery hint, evidence path, and correlation
+or trace IDs when available, keeping terminal adapters presentation-only.
 
 The canonical setup path is the workflow-level Python command. Former direct preparation scripts and host-side compose orchestration
 scripts have been removed so service bootstrap, image publication, and stack

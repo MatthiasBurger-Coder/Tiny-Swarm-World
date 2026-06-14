@@ -133,6 +133,13 @@ renderers. Command runners report per-instance terminal results with the same
 `Success`, `Error`, and `Failed` semantics that the Linux console adapter uses
 to decide when all visible instances have reached a terminal state.
 
+The presentation boundary is the `ConsoleStatusEvent` contract exposed by the
+application UI port. Workflow and command paths can publish the workflow
+command, result status, recovery hint, evidence path, correlation ID, and trace
+ID through that event. Console adapters consume the supplied event state and
+render it; they do not inspect command-runner internals or decide workflow
+lifecycle outcomes.
+
 Aggregate updates use the reserved `all` instance and are stored separately
 from per-VM state. The terminal renderer derives completion summaries from
 both aggregate and per-instance status, so failed command runs display

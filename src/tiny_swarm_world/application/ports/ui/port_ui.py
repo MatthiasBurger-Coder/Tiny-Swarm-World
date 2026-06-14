@@ -2,6 +2,7 @@ import asyncio
 import threading
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 
 AGGREGATE_INSTANCE = "all"
 STATUS_PENDING = "Pending"
@@ -42,6 +43,18 @@ FAILURE_RESULTS = frozenset(
 TERMINAL_RESULTS = SUCCESS_RESULTS | FAILURE_RESULTS
 
 
+@dataclass(frozen=True, kw_only=True)
+class ConsoleStatusEvent:
+    instance: str
+    workflow_command: str
+    step: str
+    result_status: str
+    recovery_hint: str | None = None
+    evidence_path: str | None = None
+    correlation_id: str | None = None
+    trace_id: str | None = None
+
+
 class PortUI(ABC):
     def __init__(self, instances, test_mode=False):
         self.instances = instances
@@ -70,6 +83,22 @@ class PortUI(ABC):
                 target_status["current_step"] = step
                 if result is not None:
                     target_status["result"] = self._safe_result_update(instance, result)
+
+    def update_status_event(self, event: ConsoleStatusEvent) -> None:
+        self.update_status(
+            event.instance,
+            task=event.workflow_command,
+            step=event.step,
+            result=event.result_status,
+        )
+        with self.lock:
+            target_status = self._status_for_instance(event.instance)
+            if target_status is None:
+                return
+            target_status["recovery_hint"] = event.recovery_hint or ""
+            target_status["evidence_path"] = event.evidence_path or ""
+            target_status["correlation_id"] = event.correlation_id or ""
+            target_status["trace_id"] = event.trace_id or ""
 
     def _status_for_instance(self, instance):
         if instance == AGGREGATE_INSTANCE:
@@ -107,6 +136,12 @@ class PortUI(ABC):
 
     def recovery_action(self, result):
         return SETUP_RECOVERY_ACTIONS.get(_normalize_result(result), "")
+
+    def status_recovery_action(self, status):
+        recovery_hint = status.get("recovery_hint", "")
+        if recovery_hint:
+            return recovery_hint
+        return self.recovery_action(status["result"])
 
     def _safe_result_update(self, instance, result):
         if not self.is_success_result(result):
