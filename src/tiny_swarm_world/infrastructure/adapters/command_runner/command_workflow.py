@@ -5,7 +5,9 @@ from tiny_swarm_world.application.ports.commands.port_command_workflow import Po
 from tiny_swarm_world.application.ports.commands.port_command_runner_factory import PortCommandRunnerFactory
 from tiny_swarm_world.application.ports.repositories.port_command_repository import PortCommandRepository
 from tiny_swarm_world.application.ports.repositories.port_vm_repository import PortVmRepository
+from tiny_swarm_world.application.ports.ui.port_ui import PortUI
 from tiny_swarm_world.application.services.commands.command_builder.vm_parameter.command_builder import CommandBuilder
+from tiny_swarm_world.application.services.commands.command_executer.command_executer import CommandExecuter
 from tiny_swarm_world.application.ports.commands.parameter_type import ParameterType
 from tiny_swarm_world.application.ports.commands.executable_command import ExecutableCommandEntity
 from tiny_swarm_world.domain.command.command_entity import CommandCatalogValidationError
@@ -19,6 +21,12 @@ from tiny_swarm_world.infrastructure.adapters.repositories.command_repository_ya
 )
 from tiny_swarm_world.infrastructure.adapters.ui.command_async_runner_ui import AsyncCommandRunnerUI
 from tiny_swarm_world.infrastructure.adapters.ui.command_sync_runner_ui import SyncCommandRunnerUI
+from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import TerminalMethodTrace
+from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
+    CompositeMethodTrace,
+    LoggingMethodTrace,
+)
 
 
 CommandRepositoryFactory = Callable[[str], PortCommandRepository]
@@ -69,7 +77,8 @@ class CommandWorkflow(PortCommandWorkflow):
         workflow_id: str,
     ) -> Any:
         return await AsyncCommandRunnerUI(
-            self.build_command_list(config_file, parameter, workflow_id=workflow_id)
+            self.build_command_list(config_file, parameter, workflow_id=workflow_id),
+            command_executor_factory=_build_command_executor,
         ).run()
 
     async def run_sync(
@@ -80,7 +89,8 @@ class CommandWorkflow(PortCommandWorkflow):
         workflow_id: str,
     ) -> Any:
         return await SyncCommandRunnerUI(
-            self.build_command_list(config_file, parameter, workflow_id=workflow_id)
+            self.build_command_list(config_file, parameter, workflow_id=workflow_id),
+            command_executor_factory=_build_command_executor,
         ).run()
 
     def verify_config_contract(
@@ -204,6 +214,19 @@ def _verification_classification(
     if is_probe_allowed_for_workflow(probe_id, workflow_id):
         return "command_backed"
     return "unknown_probe"
+
+
+def _build_command_executor(ui: PortUI) -> CommandExecuter:
+    return CommandExecuter(
+        ui=ui,
+        method_trace=CompositeMethodTrace(
+            (
+                LoggingMethodTrace(LoggerFactory.get_logger("MethodTrace")),
+                TerminalMethodTrace(ui),
+            )
+        ),
+        trace_correlation_id="trace-command-execution",
+    )
 
 
 VM_REPOSITORY_NOT_CONFIGURED = "VM repository is not configured"
