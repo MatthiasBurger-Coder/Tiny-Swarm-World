@@ -208,6 +208,10 @@ async def main(argv: Sequence[str] | None = None) -> None:
     logger.info("Done")
 
 
+def cli(argv: Sequence[str] | None = None) -> None:
+    asyncio.run(main(argv))
+
+
 def _print_workflow_list() -> None:
     for workflow in CLI_WORKFLOWS:
         print(f"{workflow.name}\tmutating={workflow.mutating}\tdestructive={workflow.destructive}")
@@ -544,4 +548,4 @@ def _print_setup_installation_summary(result: SetupWorkflowResult) -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    cli()

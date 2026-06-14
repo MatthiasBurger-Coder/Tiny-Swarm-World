@@ -15,10 +15,15 @@ def _runtime_requirements() -> list[str]:
 
 setup(
     name="tiny-swarm-world",
-    version="0.1",
+    version="0.1.0",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     include_package_data=True,
     install_requires=_runtime_requirements(),
     python_requires=">=3.12",
+    entry_points={
+        "console_scripts": [
+            "tiny-swarm-world=tiny_swarm_world.__main__:cli",
+        ],
+    },
 )
