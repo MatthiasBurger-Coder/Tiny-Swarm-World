@@ -149,14 +149,18 @@ wrapper:
 For deliberate test-system automation, use `./install.sh --confirm-reset` to
 confirm the wrapper's reset prompt with an explicit flag. The underlying reset
 workflow still uses `--confirm RESET_TINY_SWARM_PLATFORM`.
+Use `./install.sh --non-interactive-live-approval` only for deliberate
+automation that must pass the CLI live-consent prompt without terminal input;
+otherwise the recorded live commands ask for interactive confirmation.
 
 The wrapper records run context, reset logs, setup logs, and exit codes under
 `.tiny-swarm-world/evidence/installation-tests/<host-runtime>/`, where the
 stable host directory is `wsl2` or `native_linux`. It loads or generates local
 `TSW_*` secrets in `.tiny-swarm-world/local/live-installation.env` without
 printing secret values, records the detected host type and selected evidence
-directory in `context.txt`, runs the governed reset prelude, then calls the
-canonical setup workflow.
+directory in `context.txt`, records whether live approval came from an operator
+prompt or explicit automation flag, runs the governed reset prelude, then calls
+the canonical setup workflow.
 
 With live consent, it sequences setup preflight, platform, artifact,
 deployment, and final verification phases. Current live behavior remains
@@ -174,6 +178,10 @@ controls before application services are constructed:
 
 - `--live`
 - answering `y` at the short live-infrastructure confirmation prompt
+
+Non-interactive automation may replace the prompt with `--approve-live` on the
+CLI or `--non-interactive-live-approval` on `install.sh`. The flag is a separate
+explicit approval source; it does not remove the `--live` requirement.
 
 The current default provider is `lxc_native`. `platform init` selects the
 LXD/Incus provider path after provider readiness checks and blocks before

@@ -120,6 +120,14 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
         help="Allow live infrastructure execution after the required consent checks pass.",
     )
     parser.add_argument(
+        "--approve-live",
+        action="store_true",
+        help=(
+            "Explicit non-interactive approval for --live infrastructure changes. "
+            "Without this flag, --live asks for interactive confirmation."
+        ),
+    )
+    parser.add_argument(
         "--confirm",
         help="Exact confirmation phrase required by destructive workflows.",
     )
@@ -404,13 +412,14 @@ def _blocked_workflow_result(workflow: CliWorkflow) -> dict[str, object]:
 
 
 def _live_consent_from_args(args: Namespace) -> LiveConsent:
-    confirmed = False
+    confirmed = bool(args.approve_live)
     if args.live:
-        try:
-            answer = input(f"{LIVE_CONSENT_PROMPT} ")
-            confirmed = answer.strip().lower() in LIVE_CONSENT_YES_VALUES
-        except EOFError:
-            confirmed = False
+        if not confirmed:
+            try:
+                answer = input(f"{LIVE_CONSENT_PROMPT} ")
+                confirmed = answer.strip().lower() in LIVE_CONSENT_YES_VALUES
+            except EOFError:
+                confirmed = False
     return LiveConsent(live_flag=args.live, confirmed=confirmed)
 
 

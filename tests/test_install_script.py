@@ -47,6 +47,8 @@ class TestInstallScript(unittest.TestCase):
                 "selected_evidence_directory=.tiny-swarm-world/evidence/installation-tests/native_linux/",
                 context,
             )
+            self.assertIn("live_execution_mode=interactive", context)
+            self.assertIn("live_approval_source=operator_prompt", context)
             self.assertIn("reset_confirmation_present=yes", context)
             self.assertIn("reset_confirmation_source=interactive_prompt", context)
             self.assertIn("reset_exit=0", context)
@@ -214,12 +216,39 @@ class TestInstallScript(unittest.TestCase):
             self.assertIn("TSW_TRAEFIK_TLS_CERT_SECRET_NAME='tsw_traefik_tls_cert'", secret_content)
             self.assertIn("TSW_TRAEFIK_TLS_KEY_SECRET_NAME='tsw_traefik_tls_key'", secret_content)
 
-    def test_install_answers_each_recorded_live_consent_once(self):
+    def test_interactive_install_does_not_pipe_live_consent_into_cli_prompt(self):
         with _install_script_fixture() as fixture:
             result = fixture.run()
 
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertEqual(["y", "y"], fixture.recorded_live_confirmations())
+            self.assertEqual(["", ""], fixture.recorded_live_confirmations())
+
+    def test_noninteractive_live_approval_flag_passes_explicit_cli_approval(self):
+        with _install_script_fixture(
+            extra_args=("--non-interactive-live-approval",),
+        ) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(
+                [
+                    (
+                        "PYTHONPATH=src 'python3' -m tiny_swarm_world platform reset "
+                        "--live --approve-live --confirm RESET_TINY_SWARM_PLATFORM "
+                        "--service-profile 'service-access'"
+                    ),
+                    (
+                        "PYTHONPATH=src 'python3' -m tiny_swarm_world setup run "
+                        "--live --approve-live --service-profile 'service-access'"
+                    ),
+                ],
+                fixture.recorded_commands(),
+            )
+            evidence_dir = fixture.single_evidence_dir()
+            context = (evidence_dir / "context.txt").read_text()
+            self.assertIn("live_execution_mode=non_interactive", context)
+            self.assertIn("live_approval_source=explicit_automation_flag", context)
+            self.assertEqual(["", ""], fixture.recorded_live_confirmations())
 
     def test_install_disables_infisical_item_seed_by_default(self):
         with _install_script_fixture() as fixture:
