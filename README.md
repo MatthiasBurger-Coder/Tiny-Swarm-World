@@ -306,6 +306,10 @@ nodes count as reset/destroy evidence; unrelated provider resources are never
 a supported cleanup target. Direct no-argument construction from the old
 `docker` layout is no longer supported. Use `build_application_services()` for
 the standard local wiring, or pass compatible port implementations in tests.
+The composition root remains the public facade; focused
+`src/tiny_swarm_world/infrastructure/composition_*.py` modules hold
+service-bundle models, fail-closed workflow stubs, and provider-selected LXC
+runtime wiring.
 
 The canonical setup path is the workflow-level Python command. Former direct preparation scripts and host-side compose orchestration
 scripts have been removed so service bootstrap, image publication, and stack

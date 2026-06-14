@@ -22,6 +22,18 @@ application services and keeps `src/tiny_swarm_world/__main__.py` thin. Services
 are constructed with explicit ports and repositories instead of creating
 infrastructure adapters inside the application layer.
 
+`composition.py` remains the public runtime wiring facade. Focused internal
+composition modules keep the root navigable without creating new domain or
+application responsibilities:
+
+* `composition_models.py` contains the service-bundle dataclasses used by the
+  facade and entry point.
+* `composition_blocked_workflows.py` contains fail-closed workflow stubs for
+  unsupported provider selections.
+* `composition_lxc_runtimes.py` contains provider-selected LXC runtime
+  adapters that delegate to concrete Docker, Swarm, and proxy-device adapters
+  only after composed provider selection allows it.
+
 The composition root now exposes separate in-process application service
 bundles. These bundles are responsibility boundaries inside the Python
 automation process; they are not independently deployable services or
