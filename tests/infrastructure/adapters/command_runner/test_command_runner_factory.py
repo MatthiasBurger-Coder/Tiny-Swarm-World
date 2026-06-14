@@ -54,16 +54,22 @@ class TestCommandRunnerFactory(unittest.TestCase):
                 self.assertEqual("Unsupported", runner.status["result"])
 
     def test_verify_config_contract_blocks_unsupported_runner_types(self):
-        workflow = CommandWorkflow(command_repository_factory=lambda _: _FakeCommandRepository("rest"))
+        for runner in ("ansible", "rest"):
+            with self.subTest(runner=runner):
+                workflow = CommandWorkflow(
+                    command_repository_factory=lambda _, runner=runner: _FakeCommandRepository(
+                        runner
+                    )
+                )
 
-        result = workflow.verify_config_contract(
-            "synthetic.yaml",
-            workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
-            target_id="commands:synthetic",
-        )
+                result = workflow.verify_config_contract(
+                    "synthetic.yaml",
+                    workflow_id=CommandWorkflowId.PLATFORM_INIT.value,
+                    target_id="commands:synthetic",
+                )
 
-        self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("catalog_validation_failed", result.evidence["reason"])
+                self.assertEqual(VerificationStatus.BLOCKED, result.status)
+                self.assertEqual("catalog_validation_failed", result.evidence["reason"])
 
 
 class _FakeCommandRepository:

@@ -26,6 +26,8 @@ passes the active workflow identifier through the command port and validates
 catalog entries before runner-specific executable commands are created.
 
 Current active workflows may select only the `async` shell command runner.
+Tiny Swarm World's current node-provider path is managed LXC through LXD or
+Incus, not Ansible.
 `rest` and `ansible` remain legacy compatibility enum values, but
 `CommandRunnerFactory` rejects them for active Tiny Swarm World workflows.
 Their placeholder adapters fail closed if instantiated directly and must not
