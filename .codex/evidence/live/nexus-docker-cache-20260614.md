@@ -61,6 +61,93 @@ wrong host ports.
 Follow-up live configuration is still blocked until the current Nexus admin
 password is supplied by the operator or exported in the WSL environment.
 
+## Continued Run After Operator Access Grant
+
+The operator supplied the current Nexus admin password in chat and then
+confirmed access. The value was used only as a process environment value and
+is intentionally not recorded here.
+
+The interrupted script process was still running and was blocked at:
+
+```text
+sudo mkdir -p /etc/docker
+```
+
+Passwordless sudo was not available, so the blocked script process was stopped
+to avoid a hidden long-running live operation.
+
+Observed successful script effects before the sudo block:
+
+- Nexus authentication with the supplied admin password succeeded.
+- Docker Bearer Token Realm is active.
+- Anonymous read access is enabled.
+- `docker-hub-proxy` repository exists.
+
+Observed Docker host state:
+
+- `/etc/docker/daemon.json` already contains:
+
+```json
+{
+  "registry-mirrors": [
+    "http://127.0.0.1:5001"
+  ],
+  "insecure-registries": [
+    "127.0.0.1:5001"
+  ]
+}
+```
+
+- Docker daemon reports registry mirror:
+
+```json
+["http://127.0.0.1:5001/"]
+```
+
+Because the daemon was already configured and loaded with the mirror, the image
+cache step was run manually instead of re-running the full script and blocking
+again on sudo.
+
+## Image Cache Result
+
+The following image pulls completed successfully:
+
+```text
+danielgtaylor/apisprout:latest
+docker.swagger.io/swaggerapi/swagger-editor:latest
+docker.swagger.io/swaggerapi/swagger-ui:latest
+nginx:mainline-alpine
+```
+
+Local Docker images after pull:
+
+```text
+danielgtaylor/apisprout:latest
+docker.swagger.io/swaggerapi/swagger-editor:latest
+docker.swagger.io/swaggerapi/swagger-ui:latest
+nginx:mainline-alpine
+```
+
+Nexus `docker-hub-proxy` search returned cached components including:
+
+```text
+danielgtaylor/apisprout
+library/nginx
+swaggerapi/swagger-editor
+swaggerapi/swagger-ui
+```
+
+## Final Live Status
+
+- Nexus container is running.
+- Nexus UI is reachable through host port `8082`.
+- Docker proxy cache is exposed through host port `5001`.
+- Docker daemon mirror is configured as `http://127.0.0.1:5001/`.
+- The required service-access images were pulled successfully.
+- Full script completion remains partially blocked in non-interactive mode by
+  sudo for `/etc/docker`, but the intended Nexus cache and image pull state is
+  present.
+
 ## Required Command Shape For Next Live Run
 
 Run from WSL/Linux with the operator-provided password in the environment:
