@@ -26,6 +26,10 @@ from tiny_swarm_world.domain.node_provider import (
 class NodeProviderSelectionRequest:
     requested_provider: NodeProviderKind = NodeProviderKind.LXC_NATIVE
     preferred_backend: ManagedLxcBackend | None = None
+    backend_candidates: tuple[ManagedLxcBackend, ...] = (
+        ManagedLxcBackend.INCUS,
+        ManagedLxcBackend.LXD,
+    )
 
 
 class NodeProviderSelectionService:
@@ -55,6 +59,7 @@ class NodeProviderSelectionService:
         readiness = await self.readiness_probe.provider_readiness(
             selection_request.requested_provider,
             selection_request.preferred_backend,
+            selection_request.backend_candidates,
         )
         return _selection_from_lxc_readiness(readiness)
 
@@ -336,6 +341,9 @@ def _selection_evidence(
         evidence["backend_candidates"] = ",".join(
             candidate.value for candidate in backend_selection.candidates
         )
+    for key, value in backend_selection.evidence.items():
+        if key.startswith("selected_") or key.startswith("skipped_"):
+            evidence[key] = value
     return evidence
 
 

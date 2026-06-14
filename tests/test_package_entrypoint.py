@@ -227,11 +227,30 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         build_services.assert_called_once_with(
             live_consent=None,
             service_profile=ServiceStackProfile.SERVICE_ACCESS.value,
-            node_provider_request=entrypoint.NodeProviderSelectionRequest(),
+            node_provider_request=None,
         )
         workflows.verify.run.assert_awaited_once_with()
         workflows.init.run.assert_not_awaited()
         self.assertIn('"workflow": "platform verify"', output.getvalue())
+
+    async def test_explicit_lxc_backend_override_builds_provider_request(self):
+        services, workflows = _application_services_with_platform_workflows()
+        output = io.StringIO()
+
+        with patch.object(entrypoint, "build_application_services", return_value=services) as build_services:
+            with redirect_stdout(output):
+                await entrypoint.main(["--lxc-backend", "lxd", "platform", "verify"])
+
+        build_services.assert_called_once()
+        request = build_services.call_args.kwargs["node_provider_request"]
+        self.assertEqual(
+            entrypoint.NodeProviderSelectionRequest(
+                requested_provider=entrypoint.NodeProviderKind.LXC_NATIVE,
+                preferred_backend=entrypoint.ManagedLxcBackend.LXD,
+            ),
+            request,
+        )
+        workflows.verify.run.assert_awaited_once_with()
 
     async def test_platform_expose_requires_live_consent_and_dispatches(self):
         services, workflows = _application_services_with_platform_workflows()
@@ -404,14 +423,14 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 build_application_services.assert_not_called()
                 if namespace == "artifacts":
                     build_artifact_services.assert_called_once_with(
-                        node_provider_request=entrypoint.NodeProviderSelectionRequest()
+                        node_provider_request=None
                     )
                     build_deployment_services.assert_not_called()
                 else:
                     build_artifact_services.assert_not_called()
                     build_deployment_services.assert_called_once_with(
                         service_profile=ServiceStackProfile.SERVICE_ACCESS.value,
-                        node_provider_request=entrypoint.NodeProviderSelectionRequest(),
+                        node_provider_request=None,
                     )
                 runs[(namespace, action)].assert_awaited_once_with()
                 payload = _json_payload_from_output(output.getvalue())
@@ -454,7 +473,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             {
                 "service_profile": ServiceStackProfile.SERVICE_ACCESS.value,
-                "node_provider_request": entrypoint.NodeProviderSelectionRequest(),
+                "node_provider_request": None,
             },
             run_setup.call_args.kwargs,
         )
@@ -486,7 +505,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         build_preflight.assert_called_once_with(
             service_profile=ServiceStackProfile.SERVICE_ACCESS.value,
-            node_provider_request=entrypoint.NodeProviderSelectionRequest(),
+            node_provider_request=None,
         )
         build_services.assert_not_called()
         preflight.run.assert_awaited_once_with(None)

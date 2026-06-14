@@ -1353,6 +1353,50 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsNone(mirror)
 
+    def test_lxc_backend_for_provider_request_honors_candidate_order(self):
+        def which(name: str):
+            return f"/usr/bin/{name}" if name in {"incus", "lxc"} else None
+
+        request = composition.NodeProviderSelectionRequest(
+            backend_candidates=(
+                composition.ManagedLxcBackend.INCUS,
+                composition.ManagedLxcBackend.LXD,
+            )
+        )
+
+        with patch.object(composition.shutil, "which", side_effect=which):
+            backend = composition._lxc_backend_for_provider_request(request)
+
+        self.assertEqual(composition.ManagedLxcBackend.INCUS, backend)
+
+    def test_lxc_backend_for_provider_request_supports_lxd_first_order(self):
+        def which(name: str):
+            return f"/usr/bin/{name}" if name in {"incus", "lxc"} else None
+
+        request = composition.NodeProviderSelectionRequest(
+            backend_candidates=(
+                composition.ManagedLxcBackend.LXD,
+                composition.ManagedLxcBackend.INCUS,
+            )
+        )
+
+        with patch.object(composition.shutil, "which", side_effect=which):
+            backend = composition._lxc_backend_for_provider_request(request)
+
+        self.assertEqual(composition.ManagedLxcBackend.LXD, backend)
+
+    def test_default_node_provider_request_uses_committed_candidate_order(self):
+        request = composition._default_node_provider_request()
+
+        self.assertIsNone(request.preferred_backend)
+        self.assertEqual(
+            (
+                composition.ManagedLxcBackend.INCUS,
+                composition.ManagedLxcBackend.LXD,
+            ),
+            request.backend_candidates,
+        )
+
     def test_build_setup_services_wires_live_consent_into_platform_init_guard(self):
         live_consent = _accepted_live_consent()
         captured: dict[str, object] = {}

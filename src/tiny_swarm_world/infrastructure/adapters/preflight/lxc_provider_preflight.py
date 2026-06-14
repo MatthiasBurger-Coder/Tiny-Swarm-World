@@ -13,6 +13,7 @@ from tiny_swarm_world.application.ports.node_provider import PortNodeProviderRea
 from tiny_swarm_world.domain.node_provider import (
     ManagedLxcBackend,
     ManagedLxcBackendSelection,
+    ManagedLxcBackendSelectionStatus,
     NodeProviderKind,
     ProviderReadiness,
     ProviderReadinessStatus,
@@ -116,6 +117,7 @@ class LxcProviderPreflightProbe(PortNodeProviderReadiness):
         self,
         provider: NodeProviderKind,
         preferred_backend: ManagedLxcBackend | None = None,
+        backend_candidates: tuple[ManagedLxcBackend, ...] = (),
     ) -> ProviderReadiness:
         if provider != NodeProviderKind.LXC_NATIVE:
             return ProviderReadiness(
@@ -134,42 +136,44 @@ class LxcProviderPreflightProbe(PortNodeProviderReadiness):
         if host_gate is not None:
             return host_gate
 
-        backend_candidates = (
+        ordered_candidates = (
             (preferred_backend,)
             if preferred_backend is not None
-            else (ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD)
+            else _normalized_backend_candidates(backend_candidates)
         )
         available_backends = tuple(
             backend
-            for backend in backend_candidates
+            for backend in ordered_candidates
             if self.executable_available(_BACKEND_CLI[backend])
         )
         if not available_backends:
-            return _backend_missing_readiness(host_environment, backend_candidates)
+            return _backend_missing_readiness(host_environment, ordered_candidates)
 
         probe_results: list[_BackendProbeReadiness] = []
         for backend in available_backends:
             probe_results.append(await self._probe_backend(backend, host_environment))
 
         ready_backends = tuple(result.backend for result in probe_results if result.ready)
-        if preferred_backend is None and len(ready_backends) > 1:
-            return ProviderReadiness(
-                provider=NodeProviderKind.LXC_NATIVE,
-                status=ProviderReadinessStatus.BACKEND_AMBIGUOUS,
-                backend_selection=ManagedLxcBackendSelection.ambiguous(
-                    candidates=ready_backends,
-                    remediation=("Set an explicit managed LXC backend preference.",),
-                    evidence=_backend_presence_evidence(
-                        host_environment,
-                        backend_candidates,
-                        available_backends,
-                    ),
-                ),
-                remediation=("Both Incus and LXD are usable; choose one explicitly.",),
-                evidence={"host_kind": host_environment.environment.value},
-            )
         if ready_backends:
-            return _ready_readiness(host_environment, ready_backends[0])
+            selected_backend = ready_backends[0]
+            skipped = _skipped_backend_diagnostics(
+                ordered_candidates,
+                selected_backend,
+                available_backends,
+                probe_results,
+            )
+            return _ready_readiness(
+                host_environment,
+                selected_backend,
+                candidates=ordered_candidates,
+                skipped=tuple(item.backend for item in skipped),
+                skip_reasons=tuple(item.reason for item in skipped),
+                selected_reason=(
+                    "explicit_backend"
+                    if preferred_backend is not None
+                    else "candidate_order"
+                ),
+            )
 
         return probe_results[0].readiness
 
@@ -284,18 +288,30 @@ def _backend_missing_readiness(
 def _ready_readiness(
     host_environment: HostEnvironmentReport,
     backend: ManagedLxcBackend,
+    *,
+    candidates: tuple[ManagedLxcBackend, ...] | None = None,
+    skipped: tuple[ManagedLxcBackend, ...] = (),
+    skip_reasons: tuple[str, ...] = (),
+    selected_reason: str = "only_ready_backend",
 ) -> ProviderReadiness:
+    ordered_candidates = candidates or (backend,)
     evidence = {
         "host_kind": host_environment.environment.value,
         "backend": backend.value,
         "version_probe": "passed",
         "info_probe": "passed",
+        "selected_backend": backend.value,
+        "selected_reason": selected_reason,
+        "skipped_candidates": ",".join(item.value for item in skipped),
+        "skipped_candidate_reasons": ",".join(skip_reasons),
     }
     return ProviderReadiness(
         provider=NodeProviderKind.LXC_NATIVE,
         status=ProviderReadinessStatus.READY,
-        backend_selection=ManagedLxcBackendSelection.for_backend(
-            backend,
+        backend_selection=ManagedLxcBackendSelection(
+            status=ManagedLxcBackendSelectionStatus.SELECTED,
+            backend=backend,
+            candidates=ordered_candidates,
             evidence=evidence,
         ),
         evidence=evidence,
@@ -373,6 +389,49 @@ def _backend_presence_evidence(
     for backend in candidates:
         evidence[f"{backend.value}_cli"] = "present" if backend in available else "absent"
     return evidence
+
+
+def _normalized_backend_candidates(
+    candidates: tuple[ManagedLxcBackend, ...],
+) -> tuple[ManagedLxcBackend, ...]:
+    if not candidates:
+        return (ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD)
+    seen: list[ManagedLxcBackend] = []
+    for backend in candidates:
+        if backend not in seen:
+            seen.append(backend)
+    return tuple(seen)
+
+
+@dataclass(frozen=True)
+class _SkippedBackendDiagnostic:
+    backend: ManagedLxcBackend
+    reason: str
+
+
+def _skipped_backend_diagnostics(
+    candidates: tuple[ManagedLxcBackend, ...],
+    selected_backend: ManagedLxcBackend,
+    available_backends: tuple[ManagedLxcBackend, ...],
+    probe_results: Sequence[_BackendProbeReadiness],
+) -> tuple[_SkippedBackendDiagnostic, ...]:
+    available = set(available_backends)
+    failures = {
+        result.backend: result.readiness.status.value
+        for result in probe_results
+        if not result.ready
+    }
+    skipped: list[_SkippedBackendDiagnostic] = []
+    for backend in candidates:
+        if backend == selected_backend:
+            continue
+        if backend not in available:
+            skipped.append(_SkippedBackendDiagnostic(backend, "cli_absent"))
+        elif backend in failures:
+            skipped.append(_SkippedBackendDiagnostic(backend, failures[backend]))
+        else:
+            skipped.append(_SkippedBackendDiagnostic(backend, "lower_priority_ready"))
+    return tuple(skipped)
 
 
 def _default_executable_available(
