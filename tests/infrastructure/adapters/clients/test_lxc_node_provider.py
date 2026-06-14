@@ -27,6 +27,38 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
 
 
 class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
+    async def test_verify_node_uses_read_only_lookup_for_running_managed_node(self):
+        runner = _FakeRunner(_list(_node("swarm-manager", "Running")))
+        provider = _provider(runner, allow_live_mutation=False)
+
+        result = await provider.verify_node(
+            _node_spec(),
+            _selection(ManagedLxcBackend.INCUS),
+        )
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("already_present", result.evidence["lifecycle_outcome"])
+        self.assertEqual(
+            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
+            runner.calls,
+        )
+
+    async def test_verify_node_reports_missing_managed_node_without_launch(self):
+        runner = _FakeRunner(_list())
+        provider = _provider(runner, allow_live_mutation=False)
+
+        result = await provider.verify_node(
+            _node_spec(),
+            _selection(ManagedLxcBackend.INCUS),
+        )
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
+        self.assertEqual("managed_node_missing", result.evidence["classification"])
+        self.assertEqual(
+            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
+            runner.calls,
+        )
+
     async def test_missing_node_launches_incus_container_and_verifies_created(self):
         runner = _FakeRunner(
             _profile(),

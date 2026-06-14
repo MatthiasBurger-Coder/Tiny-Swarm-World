@@ -416,6 +416,21 @@ class _ReadinessProbe(PortNodeProviderReadiness):
 class _RecordingNodeLifecycle(PortNodeLifecycle):
     def __init__(self):
         self.ensure_calls: list[tuple[NodeSpec, ProviderSelection]] = []
+        self.verify_calls: list[tuple[NodeSpec, ProviderSelection]] = []
+
+    async def verify_node(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+    ) -> VerificationResult:
+        await async_checkpoint()
+        self.verify_calls.append((node, selection))
+        return VerificationResult(
+            target_id=f"platform:node:{node.name}",
+            status=VerificationStatus.VERIFIED,
+            message="Node lifecycle verify port was called.",
+            evidence={"phase": "verify"},
+        )
 
     async def ensure_node(
         self,

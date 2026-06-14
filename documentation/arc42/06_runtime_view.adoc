@@ -248,7 +248,9 @@ The non-mutating `platform verify` workflow also interprets preflight results.
 Failed preflight checks now return `failed_to_verify` with summary-only
 verification evidence instead of reporting a completed verify workflow.
 Static preflight does not claim live provider readiness. The default
-`lxc_native` path evaluates LXD/Incus readiness, WSL2 capability, backend
+`lxc_native` verify path then performs read-only managed-node, Docker Engine,
+Swarm membership, LXC proxy-device, and Portainer endpoint checks. The default
+`lxc_native` init path evaluates LXD/Incus readiness, WSL2 capability, backend
 candidate selection, and Docker-in-container profile requirements through the
 platform init provider guard before mutation.
 

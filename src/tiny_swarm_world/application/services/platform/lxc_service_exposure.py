@@ -32,6 +32,15 @@ class LxcServiceExposureSummary:
         )
 
 
+@dataclass(frozen=True)
+class LxcServiceExposureVerificationSummary:
+    plans: tuple[LxcProxyDevicePlan, ...]
+    present_count: int = 0
+    missing_count: int = 0
+    drifted_count: int = 0
+    unknown_count: int = 0
+
+
 class LxcServiceExposureService:
     def __init__(
         self,
@@ -60,6 +69,46 @@ class LxcServiceExposureService:
             self.gateway_node.name,
             self.manager_profile_name,
             self.listen_address,
+        )
+
+    async def verify_service_exposure(self) -> VerificationResult:
+        plans = _plans_from_manifest(
+            self.setup_manifest,
+            gateway_node=self.gateway_node.name,
+            listen_address=self.listen_address,
+        )
+        summary = await self._verify_plans(plans)
+        return _verify_summary_result(
+            summary,
+            self.gateway_node.name,
+            self.manager_profile_name,
+            self.listen_address,
+        )
+
+    async def _verify_plans(
+        self,
+        plans: tuple[LxcProxyDevicePlan, ...],
+    ) -> LxcServiceExposureVerificationSummary:
+        present_count = 0
+        missing_count = 0
+        drifted_count = 0
+        unknown_count = 0
+        for plan in plans:
+            state = await self.runtime.inspect_proxy_device(self.manager_profile_name, plan)
+            if state == LxcProxyDeviceState.PRESENT:
+                present_count += 1
+            elif state == LxcProxyDeviceState.MISSING:
+                missing_count += 1
+            elif state == LxcProxyDeviceState.DRIFTED:
+                drifted_count += 1
+            else:
+                unknown_count += 1
+        return LxcServiceExposureVerificationSummary(
+            plans=plans,
+            present_count=present_count,
+            missing_count=missing_count,
+            drifted_count=drifted_count,
+            unknown_count=unknown_count,
         )
 
     async def _apply_plans(
@@ -112,6 +161,17 @@ class LxcServiceExposureStep:
 
     async def run(self) -> VerificationResult:
         return await self.service.ensure_service_exposure()
+
+
+class LxcServiceExposureVerifyStep:
+    returns_verification_result = True
+    verification_target_id = "platform:verify:lxc-proxy-devices"
+
+    def __init__(self, service: LxcServiceExposureService) -> None:
+        self.service = service
+
+    async def run(self) -> VerificationResult:
+        return await self.service.verify_service_exposure()
 
 
 class LxcProxyDriftRepairService:
@@ -309,6 +369,75 @@ def _summary_result(
             "create_failure_count": str(summary.create_failure_count),
             "update_failure_count": str(summary.update_failure_count),
             "failed_apply_count": str(failed_apply_count),
+            "published_ports": ",".join(
+                str(plan.listen_port)
+                for plan in sorted(summary.plans, key=lambda item: item.listen_port)
+            ),
+        },
+    )
+
+
+def _verify_summary_result(
+    summary: LxcServiceExposureVerificationSummary,
+    gateway_node: str,
+    manager_profile_name: str,
+    listen_address: str,
+) -> VerificationResult:
+    if not summary.plans:
+        return VerificationResult(
+            target_id=LxcServiceExposureVerifyStep.verification_target_id,
+            status=VerificationStatus.BLOCKED,
+            message="LXC proxy verification has no published service ports to validate.",
+            evidence={
+                "phase": "verify",
+                "classification": "published_ports_missing",
+                "expected": "published_lxc_proxy_devices",
+                "observed": "no_published_ports",
+                "next_action": "Select a service profile with published ports.",
+            },
+        )
+
+    failed_verify_count = (
+        summary.missing_count + summary.drifted_count + summary.unknown_count
+    )
+    status = (
+        VerificationStatus.VERIFIED
+        if failed_verify_count == 0
+        else VerificationStatus.FAILED_TO_VERIFY
+    )
+    classification = (
+        "lxc_proxy_devices_verified"
+        if status == VerificationStatus.VERIFIED
+        else "lxc_proxy_devices_not_verified"
+    )
+    return VerificationResult(
+        target_id=LxcServiceExposureVerifyStep.verification_target_id,
+        status=status,
+        message="LXC proxy device verification reached a terminal state.",
+        evidence={
+            "phase": "verify",
+            "classification": classification,
+            "expected": "published_lxc_proxy_devices_on_manager_profile",
+            "observed": (
+                "all_proxy_devices_present"
+                if status == VerificationStatus.VERIFIED
+                else "one_or_more_proxy_devices_missing_or_drifted"
+            ),
+            "next_action": (
+                "No action required."
+                if status == VerificationStatus.VERIFIED
+                else "Run platform expose or inspect the manager profile proxy devices."
+            ),
+            "gateway_node": gateway_node,
+            "manager_profile": manager_profile_name,
+            "listen_address": listen_address,
+            "target_address": "127.0.0.1",
+            "published_port_count": str(len(summary.plans)),
+            "present_count": str(summary.present_count),
+            "missing_count": str(summary.missing_count),
+            "drifted_count": str(summary.drifted_count),
+            "unknown_count": str(summary.unknown_count),
+            "failed_verify_count": str(failed_verify_count),
             "published_ports": ",".join(
                 str(plan.listen_port)
                 for plan in sorted(summary.plans, key=lambda item: item.listen_port)

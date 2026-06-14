@@ -335,15 +335,30 @@ class TestComposition(unittest.TestCase):
         self.assertEqual("trace-test", services.workflows.destroy.trace_correlation_id)
         self.assertEqual("trace-test", services.workflows.verify.trace_correlation_id)
 
-    def test_build_platform_services_uses_post_install_preflight_for_verify(self):
+    def test_build_platform_services_wires_read_only_platform_verify_steps(self):
         services = composition.build_platform_services()
 
         verify_preflight = services.workflows.verify.steps[0]
+        verify_steps = services.workflows.verify.steps
 
         self.assertIsInstance(verify_preflight, PreflightService)
         self.assertIsNot(services.preflight, verify_preflight)
         self.assertGreater(len(services.preflight.configuration.required_ports), 0)
         self.assertEqual((), verify_preflight.configuration.required_ports)
+        self.assertEqual(8, len(verify_steps))
+        self.assertTrue(
+            all(
+                isinstance(step, composition.NodeProviderVerifyNodeStep)
+                for step in verify_steps[1:4]
+            )
+        )
+        self.assertIsInstance(verify_steps[4], composition.LxcDockerVerifyStep)
+        self.assertIsInstance(verify_steps[5], composition.LxcSwarmVerifyStep)
+        self.assertIsInstance(verify_steps[6], composition.LxcServiceExposureVerifyStep)
+        self.assertEqual(
+            composition.PortainerEndpointVerifyStep.verification_target_id,
+            verify_steps[7].verification_target_id,
+        )
 
     def test_build_platform_services_wires_reset_destroy_managed_node_steps(self):
         services = composition.build_platform_services()

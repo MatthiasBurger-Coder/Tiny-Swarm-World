@@ -76,17 +76,21 @@ from tiny_swarm_world.application.services.platform import (
     AsyncWorkflowStep,
     LxcDockerInstallService,
     LxcDockerInstallStep,
+    LxcDockerVerifyStep,
     LxcProxyDriftRepairService,
     LxcProxyDriftRepairStep,
     LxcServiceExposureService,
     LxcServiceExposureStep,
+    LxcServiceExposureVerifyStep,
     LxcSwarmBootstrapService,
     LxcSwarmBootstrapStep,
+    LxcSwarmVerifyStep,
     NodeProviderDestroyManagedNodesStep,
     NodeProviderEnsureNodeStep,
     NodeProviderResetManagedNodesStep,
     NodeProviderSelectionRequest,
     NodeProviderSelectionService,
+    NodeProviderVerifyNodeStep,
     PlatformDestroyWorkflow,
     PlatformExposeWorkflow,
     PlatformInitWorkflow,
@@ -94,6 +98,7 @@ from tiny_swarm_world.application.services.platform import (
     PlatformReconcileWorkflow,
     PlatformResetWorkflow,
     PlatformVerifyWorkflow,
+    PortainerEndpointVerifyStep,
     PreflightService,
     SocatManager,
 )
@@ -540,14 +545,16 @@ class _ProviderSelectedLxcDockerRuntime(PortContainerDockerRuntime):
         provider_request: NodeProviderSelectionRequest,
         runner: LxcNodeCommandRunner,
         allow_live_mutation: bool,
+        allow_live_inspection: bool = False,
     ) -> None:
         self.provider_selection = provider_selection
         self.provider_request = provider_request
         self.runner = runner
         self.allow_live_mutation = allow_live_mutation
+        self.allow_live_inspection = allow_live_inspection
 
     async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
-        if not self.allow_live_mutation:
+        if not self.allow_live_mutation and not self.allow_live_inspection:
             return ContainerDockerReadiness(
                 node=node,
                 observed=False,
@@ -579,7 +586,7 @@ class _ProviderSelectedLxcDockerRuntime(PortContainerDockerRuntime):
         return await delegate.install_docker(node)
 
     async def verify_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
-        if not self.allow_live_mutation:
+        if not self.allow_live_mutation and not self.allow_live_inspection:
             return ContainerDockerReadiness(
                 node=node,
                 observed=False,
@@ -620,11 +627,13 @@ class _ProviderSelectedLxcSwarmRuntime(
         provider_request: NodeProviderSelectionRequest,
         runner: LxcNodeCommandRunner,
         allow_live_mutation: bool,
+        allow_live_inspection: bool = False,
     ) -> None:
         self.provider_selection = provider_selection
         self.provider_request = provider_request
         self.runner = runner
         self.allow_live_mutation = allow_live_mutation
+        self.allow_live_inspection = allow_live_inspection
 
     async def manager_advertise_address(self, node: NodeSpec) -> str:
         if not self.allow_live_mutation:
@@ -641,7 +650,7 @@ class _ProviderSelectedLxcSwarmRuntime(
         ).manager_advertise_address(node)
 
     async def inspect_manager(self, node: NodeSpec) -> SwarmManagerBootstrapOutcome:
-        if not self.allow_live_mutation:
+        if not self.allow_live_mutation and not self.allow_live_inspection:
             return SwarmManagerBootstrapOutcome(node=node, state=SwarmManagerState.UNKNOWN)
         delegate = await self._delegate()
         if delegate is None:
@@ -669,7 +678,7 @@ class _ProviderSelectedLxcSwarmRuntime(
         return await delegate.worker_join_credential(node)
 
     async def inspect_worker(self, node: NodeSpec) -> SwarmWorkerJoinOutcome:
-        if not self.allow_live_mutation:
+        if not self.allow_live_mutation and not self.allow_live_inspection:
             return SwarmWorkerJoinOutcome(
                 node=node,
                 state=WorkerJoinState.UNKNOWN,
@@ -737,18 +746,20 @@ class _ProviderSelectedLxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
         provider_request: NodeProviderSelectionRequest,
         runner: LxcNodeCommandRunner,
         allow_live_mutation: bool,
+        allow_live_inspection: bool = False,
     ) -> None:
         self.provider_selection = provider_selection
         self.provider_request = provider_request
         self.runner = runner
         self.allow_live_mutation = allow_live_mutation
+        self.allow_live_inspection = allow_live_inspection
 
     async def inspect_proxy_device(
         self,
         profile_name: str,
         plan: LxcProxyDevicePlan,
     ) -> LxcProxyDeviceState:
-        if not self.allow_live_mutation:
+        if not self.allow_live_mutation and not self.allow_live_inspection:
             return LxcProxyDeviceState.UNKNOWN
         delegate = await self._delegate()
         if delegate is None:
@@ -990,6 +1001,15 @@ def build_platform_services(
         allow_live_mutation=False if live_consent is None else live_consent.accepted,
     )
     lxc_docker_install = LxcDockerInstallService(lxc_docker_runtime)
+    lxc_docker_verify = LxcDockerInstallService(
+        _ProviderSelectedLxcDockerRuntime(
+            provider_selection=node_provider_selection,
+            provider_request=provider_request,
+            runner=lxc_runner,
+            allow_live_mutation=False,
+            allow_live_inspection=True,
+        )
+    )
     lxc_swarm_runtime = _ProviderSelectedLxcSwarmRuntime(
         provider_selection=node_provider_selection,
         provider_request=provider_request,
@@ -1000,6 +1020,16 @@ def build_platform_services(
         lxc_swarm_runtime,
         lxc_swarm_runtime,
     )
+    lxc_swarm_verify = LxcSwarmBootstrapService(
+        _ProviderSelectedLxcSwarmRuntime(
+            provider_selection=node_provider_selection,
+            provider_request=provider_request,
+            runner=lxc_runner,
+            allow_live_mutation=False,
+            allow_live_inspection=True,
+        ),
+        lxc_swarm_runtime,
+    )
     lxc_proxy_runtime = _ProviderSelectedLxcProxyDeviceRuntime(
         provider_selection=node_provider_selection,
         provider_request=provider_request,
@@ -1008,6 +1038,19 @@ def build_platform_services(
     )
     lxc_service_exposure = LxcServiceExposureService(
         lxc_proxy_runtime,
+        gateway_node=_lxc_manager_node(),
+        manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
+        setup_manifest=default_setup_manifest(service_profile=service_profile),
+        listen_address=_lxc_proxy_listen_address(),
+    )
+    lxc_service_exposure_verify = LxcServiceExposureService(
+        _ProviderSelectedLxcProxyDeviceRuntime(
+            provider_selection=node_provider_selection,
+            provider_request=provider_request,
+            runner=lxc_runner,
+            allow_live_mutation=False,
+            allow_live_inspection=True,
+        ),
         gateway_node=_lxc_manager_node(),
         manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
         setup_manifest=default_setup_manifest(service_profile=service_profile),
@@ -1099,7 +1142,14 @@ def build_platform_services(
             trace_correlation_id=trace_correlation_id,
         ),
         verify=PlatformVerifyWorkflow(
-            (post_install_preflight,),
+            _platform_verify_steps(
+                post_install_preflight,
+                provider_request=provider_request,
+                node_provider_selection=node_provider_selection,
+                lxc_docker_install=lxc_docker_verify,
+                lxc_swarm_bootstrap=lxc_swarm_verify,
+                lxc_service_exposure=lxc_service_exposure_verify,
+            ),
             progress=workflow_progress,
             method_trace=method_trace,
             trace_correlation_id=trace_correlation_id,
@@ -1726,6 +1776,59 @@ def _platform_repair_lxc_proxy_drift_steps(
     lxc_proxy_drift_repair: LxcProxyDriftRepairService,
 ) -> tuple[AsyncWorkflowStep, ...]:
     return (LxcProxyDriftRepairStep(lxc_proxy_drift_repair),)
+
+
+def _platform_verify_steps(
+    post_install_preflight: PreflightService,
+    *,
+    provider_request: NodeProviderSelectionRequest,
+    node_provider_selection: NodeProviderSelectionService,
+    lxc_docker_install: LxcDockerInstallService,
+    lxc_swarm_bootstrap: LxcSwarmBootstrapService,
+    lxc_service_exposure: LxcServiceExposureService,
+) -> tuple[AsyncWorkflowStep, ...]:
+    node_steps = tuple(
+        NodeProviderVerifyNodeStep(node, node_provider_selection, provider_request)
+        for node in DEFAULT_LXC_PLATFORM_NODES
+    )
+    return (
+        post_install_preflight,
+        *node_steps,
+        LxcDockerVerifyStep(lxc_docker_install, DEFAULT_LXC_PLATFORM_NODES),
+        LxcSwarmVerifyStep(lxc_swarm_bootstrap, DEFAULT_LXC_PLATFORM_NODES),
+        LxcServiceExposureVerifyStep(lxc_service_exposure),
+        _portainer_endpoint_verify_step(provider_request),
+    )
+
+
+def _portainer_endpoint_verify_step(
+    provider_request: NodeProviderSelectionRequest,
+) -> AsyncWorkflowStep:
+    backend = _lxc_backend_for_provider_request(provider_request)
+    if backend is None:
+        return _BlockedPlatformProviderStep(
+            target_id=PortainerEndpointVerifyStep.verification_target_id,
+            provider_request=provider_request,
+            message="Portainer endpoint verification requires a selected LXC backend.",
+            reason=LXC_BACKEND_REQUIRED_REASON,
+        )
+    return PortainerEndpointVerifyStep(
+        EnsurePortainerEndpoint(
+            portainer_client=LxcPortainerHttpClient(
+                backend=backend,
+                username="admin",
+                password=_operator_secret_value("TSW_PORTAINER_ADMIN_PASSWORD"),
+                stack_request_timeout_seconds=_operator_config_int(
+                    PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT,
+                    DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS,
+                    minimum=1,
+                ),
+            ),
+            endpoint_name=DEFAULT_PORTAINER_ENDPOINT_NAME,
+            max_attempts=1,
+            wait_seconds=0,
+        )
+    )
 
 
 def _wsl_socat_forwarding_plans(
