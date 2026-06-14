@@ -12,8 +12,8 @@ stack boundaries and mocked verification.
 
 ## Responsibilities
 
-- Keep service stacks under `infra/config/compose` and `infra/compose`
-  boundaries.
+- Keep service stacks and service-owned image/runtime assets under
+  `infra/config/compose` boundaries.
 - Preserve deterministic command templates and deployment results.
 - Separate planning, command construction and live deployment execution.
 

@@ -65,7 +65,7 @@ is reachable. First-time Portainer bootstrap remains outside the
 Portainer-managed upload path.
 
 For the Portainer-managed path, service-access dashboard and NGINX assets are
-image-packaged under `infra/compose/service-access/**`. Bind-mounted
+image-packaged under `infra/config/compose/service-access/**`. Bind-mounted
 repository files are not an accepted Portainer path unless a later slice adds
 a tested asset-preparation port or adapter and documents when it runs.
 
@@ -103,7 +103,7 @@ browser-visible HTTPS behavior.
 
 The repository now includes static Traefik Swarm ingress configuration under
 `infra/config/compose/traefik/docker-compose.yml` plus the dynamic TLS summary
-configuration under `infra/compose/traefik/dynamic/tls.yml`. The Traefik stack
+configuration under `infra/config/compose/traefik/dynamic/tls.yml`. The Traefik stack
 uses Swarm discovery with `exposedByDefault=false`, `web` on `:80`,
 `websecure` on `:443`, HTTP-to-HTTPS redirect, external certificate secrets,
 and no insecure API flag.

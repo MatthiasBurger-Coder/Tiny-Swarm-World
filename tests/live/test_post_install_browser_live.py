@@ -38,8 +38,8 @@ MISSING_TEST_ENV_FILE = ".tiny-swarm-world/local/missing-live-installation.env"
 MISSING_TEST_CA_BUNDLE = ".tiny-swarm-world/local/missing-ca-bundle.pem"
 TEST_CA_BUNDLE = "/etc/ssl/certs/tiny-swarm-world-ca.pem"
 DEFAULT_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/post_install_browser_live")
-SERVICE_ACCESS_DASHBOARD = Path("infra/compose/service-access/dashboard/index.html")
-INFISICAL_SECRET_MANIFEST = Path("config/secrets/infisical-secrets.yaml")
+SERVICE_ACCESS_DASHBOARD = Path("infra/config/compose/service-access/dashboard/index.html")
+INFISICAL_SECRET_MANIFEST = Path("infra/config/secrets/infisical-secrets.yaml")
 EXPECTED_INFISICAL_ITEMS = (
     "platform/jenkins",
     "platform/nexus",

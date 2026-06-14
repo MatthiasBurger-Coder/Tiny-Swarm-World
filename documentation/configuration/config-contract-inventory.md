@@ -37,7 +37,7 @@ The current configuration surface is spread across these repository areas:
 - `infra/config/compose/**/docker-compose.yml`: compose-time environment
   placeholders for service images, credentials, secret names, stack paths, and
   service-specific defaults.
-- `infra/compose/**`: image-context scripts and service configuration that
+- `infra/config/compose/**`: image-context scripts and service configuration that
   consume environment values.
 - `documentation/deployment/**`, `documentation/user_guide/**`, and
   `README.md`: partial override documentation.
@@ -69,7 +69,7 @@ loading, schema checks, or explicit pass-through handling:
 | `infra/config/services.yml` | Service catalogue material. | Needs explicit contract review before being included in the typed config loader. |
 | `infra/config/cloud-init-manager.yaml` | Cloud-init manager configuration. | Legacy/specialized surface; include only after consumer ownership is verified. |
 | `infra/config/compose/*/docker-compose.yml` | Stack definitions and compose placeholders. | Parsed by compose repository tests for stack content, service names, and published ports; placeholder variables need inventory and template coverage. |
-| `config/secrets/infisical-secrets.yaml` | Managed secret manifest for Infisical synchronization. | `SecretManifestRenderer` validates schema, duplicate keys, key pattern, type, and policy. |
+| `infra/config/secrets/infisical-secrets.yaml` | Managed secret manifest for Infisical synchronization. | `SecretManifestRenderer` validates schema, duplicate keys, key pattern, type, and policy. |
 
 ## Required Setup Secrets
 

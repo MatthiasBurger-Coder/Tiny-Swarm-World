@@ -14,8 +14,8 @@ Implemented repository behavior:
 
 * `infra/config/compose/service-access/docker-compose.yml` defines the
   service-access dashboard, Vaultwarden and service-access NGINX stack.
-* `infra/compose/service-access/dashboard/**` and
-  `infra/compose/service-access/nginx/**` provide image-packaged static
+* `infra/config/compose/service-access/dashboard/**` and
+  `infra/config/compose/service-access/nginx/**` provide image-packaged static
   dashboard and NGINX assets.
 * `ServiceStackProfile.SERVICE_ACCESS` and `SERVICE_ACCESS_STACK_CONTRACT`
   add service-access as the full guided setup profile. Operators can still

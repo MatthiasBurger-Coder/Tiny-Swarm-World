@@ -168,7 +168,7 @@ The canonical classification is maintained in
 | Path | Status
 | `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts.
 | `infra/config/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands.
-| `infra/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow.
+| `infra/config/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow.
 |===
 
 Do not re-enable legacy or retired scripts without a dedicated cleanup slice,
@@ -262,9 +262,9 @@ Implemented repository assets:
 
 * `infra/config/compose/service-access/docker-compose.yml` defines the
   service-access dashboard and service-access NGINX services.
-* `infra/compose/service-access/dashboard/**` contains a static dashboard
+* `infra/config/compose/service-access/dashboard/**` contains a static dashboard
   image asset.
-* `infra/compose/service-access/nginx/**` contains the image-packaged NGINX
+* `infra/config/compose/service-access/nginx/**` contains the image-packaged NGINX
   route configuration.
 
 When the default full profile is deployed by an operator workflow, the

@@ -392,5 +392,5 @@ forwarding issue is repaired.
 The service-access dashboard is a static management table. It lists service
 links, users and Infisical item references; password values are visible only
 through the configured secret-management surface. The dashboard source is
-`infra/compose/service-access/dashboard/index.html`, and the dashboard
+`infra/config/compose/service-access/dashboard/index.html`, and the dashboard
 Dockerfile packages that file into the default `service-access` setup path.

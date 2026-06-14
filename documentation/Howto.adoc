@@ -47,7 +47,7 @@ retired.
 == Stack Deployment
 
 Stack deployment is handled by the workflow-level setup command. Compose files
-under `infra/compose` and `infra/config/compose` are source assets, not direct
+under `infra/config/compose` are source assets, not direct
 operator scripts.
 
 == Service Ports

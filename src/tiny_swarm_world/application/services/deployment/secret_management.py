@@ -25,7 +25,7 @@ SecretClassification = Literal[
 SecretPolicy = Literal["keep_existing", "rotate"]
 
 REDACTED = "<redacted>"
-DEFAULT_MANIFEST_PATH = Path("config/secrets/infisical-secrets.yaml")
+DEFAULT_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
 DEFAULT_BOOTSTRAP_LOCAL_ENV = Path(".tiny-swarm/secrets/bootstrap.local.env")
 DEFAULT_GENERATED_LOCAL_ENV = Path(".tiny-swarm/secrets/generated.local.env")
 DEFAULT_EVIDENCE_DIR = Path(".tiny-swarm/evidence/secrets")

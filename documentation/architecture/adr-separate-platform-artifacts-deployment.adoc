@@ -92,18 +92,9 @@ src/tiny_swarm_world/infrastructure/adapters/deployment
 src/tiny_swarm_world/infrastructure/adapters/shared
 ----
 
-The long-term infra asset layout should move toward this shape:
-
-[source,text]
-----
-infra/platform
-infra/artifacts
-infra/deployment
-infra/shared
-----
-
-This should be migrated in small compatibility-preserving steps. Existing paths
-should not be moved in a big bang.
+Future responsibility-owned infra asset directories should be introduced only
+when committed assets are moved or added in reviewed, compatibility-preserving
+steps. Empty marker directories are not required for the current state.
 
 == Responsibility Definitions
 
@@ -226,16 +217,9 @@ It may expose boundary-specific builder functions such as
 
 == Consequences for `infra/`
 
-The target structure should become:
-
-* `infra/platform`: LXD/Incus managed nodes, network, guarded legacy netplan
-  handling, Docker daemon install, Swarm init/join.
-* `infra/artifacts`: Dockerfile generation, image build/push, Nexus repository
-  setup, Maven repository setup.
-* `infra/deployment`: compose files, Portainer bootstrap, stack upload, service
-  deployment metadata.
-* `infra/shared`: reusable shell helpers.
-
+Committed infra assets should remain in their current canonical locations until
+a reviewed workflow slice moves concrete files into responsibility-owned
+directories. Placeholder directories are not part of the required layout.
 Existing script paths should be migrated in slices with compatibility shims or
 documentation updates. Scripts that run live infrastructure must remain clearly
 marked as live operations.

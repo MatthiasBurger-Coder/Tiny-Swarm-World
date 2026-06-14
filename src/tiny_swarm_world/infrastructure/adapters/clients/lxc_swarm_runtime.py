@@ -181,7 +181,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
 
     def _transfer_stack_assets(self, stack_name: str, remote_dir: str) -> None:
         if stack_name == "traefik":
-            tls_config = infra_root() / "compose" / "traefik" / "dynamic" / "tls.yml"
+            tls_config = infra_root() / "config" / "compose" / "traefik" / "dynamic" / "tls.yml"
             script = (
                 f"set -e; mkdir -p {_quote_remote_path(remote_dir + '/dynamic')}; "
                 f"cat > {_quote_remote_path(remote_dir + '/dynamic/tls.yml')}"
@@ -190,8 +190,8 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             return
         if stack_name != "swagger":
             return
-        openapi_file = infra_root() / "compose" / "swagger" / "swagger" / "openapi.json"
-        nginx_config = infra_root() / "compose" / "swagger" / "nginx" / "default.conf"
+        openapi_file = infra_root() / "config" / "compose" / "swagger" / "swagger" / "openapi.json"
+        nginx_config = infra_root() / "config" / "compose" / "swagger" / "nginx" / "default.conf"
         script = (
             f"set -e; mkdir -p {_quote_remote_path(remote_dir + '/swagger')}; "
             f"cat > {_quote_remote_path(remote_dir + '/swagger/openapi.json')}"
@@ -638,9 +638,9 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
 
     def _context_path(self, contract: ContainerImageContract) -> Path:
         contexts = {
-            "jenkins": infra_root() / "compose" / "jenkins",
-            "service-access-dashboard": infra_root() / "compose" / "service-access" / "dashboard",
-            "service-access-nginx": infra_root() / "compose" / "service-access" / "nginx",
+            "jenkins": infra_root() / "config" / "compose" / "jenkins" / "image",
+            "service-access-dashboard": infra_root() / "config" / "compose" / "service-access" / "dashboard",
+            "service-access-nginx": infra_root() / "config" / "compose" / "service-access" / "nginx",
         }
         try:
             return contexts[contract.build_context]

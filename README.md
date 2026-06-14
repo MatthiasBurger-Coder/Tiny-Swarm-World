@@ -36,7 +36,7 @@ The system follows a hexagonal architecture and provides async Python automation
   - static landing page content for server links and credential references
   - Infisical and service-access NGINX stack configuration
   - password-value visibility restricted to Infisical's authenticated UI
-- Modular infrastructure assets in `infra/config` and `infra/compose`, driven by the Python setup workflow.
+- Modular infrastructure assets in `infra/config`, driven by the Python setup workflow.
 - WSL2 capability checks for managed LXC providers, with optional `socat` forwarding where needed.
 - Rich test suite and enforced separation between domain, application, and infrastructure layers.
 
@@ -237,7 +237,7 @@ Where to find the scripts/services:
 - `infra/config/node-providers`
 - `src/tiny_swarm_world/application/services/network`
 - `src/tiny_swarm_world/application/services/commands`
-- `infra/compose`
+- `infra/config/compose`
 
 List the supported workflow-level commands first:
 
@@ -290,12 +290,12 @@ boundaries. On the default `lxc_native` path they run only through guarded
 artifact, image-publication, stack, external-input, and readiness contracts,
 and they still require explicit live evidence before success is claimed. Stack
 definitions live under `infra/config/compose`; image build contexts live under
-`infra/compose`.
+`infra/config/compose`.
 
 The full guided setup selects the `service-access` management stack profile by
 default. The static dashboard and NGINX compose definition lives under
 `infra/config/compose/service-access/docker-compose.yml`, and its dashboard
-and NGINX assets are image-packaged under `infra/compose/service-access/**`.
+and NGINX assets are image-packaged under `infra/config/compose/service-access/**`.
 Infisical is deployed as a separate stack from
 `infra/config/compose/infisical/docker-compose.yml`.
 After a verified provider-specific live deployment, the dashboard is intended
@@ -319,7 +319,7 @@ Live-operation surface summary:
 | --- | --- |
 | `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts. |
 | `infra/config/compose/**/docker-compose.yml` | Supported stack assets used by the Python setup workflow. |
-| `infra/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow. |
+| `infra/config/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow. |
 
 See `documentation/system/live-operation-surfaces.adoc` for the full
 classification and credential/host-specific data rules.
@@ -329,7 +329,7 @@ classification and credential/host-specific data rules.
 ## Configuration
 
 - Compose stack files live under `infra/config/compose`; image build contexts
-  and service image configuration live under `infra/compose`.
+  and service image configuration live under `infra/config/compose`.
 - Node-provider defaults live under `infra/config/node-providers`.
 - Desired product configuration may live under `infra/config`.
 - Observed inventory and verification evidence are local runtime artifacts
@@ -346,7 +346,7 @@ classification and credential/host-specific data rules.
 ## Project Structure (high-level)
 
 - `src/tiny_swarm_world/domain`, `src/tiny_swarm_world/application`, `src/tiny_swarm_world/infrastructure` - hexagonal architecture layers
-- `infra/compose` - image build contexts and related service image assets
+- `infra/config/compose` - image build contexts and related service image assets
 - `documentation` - arc42, user guides, deployment notes
 - `tests` - unit and integration tests for adapters, services, and domain logic
 
