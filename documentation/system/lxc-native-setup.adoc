@@ -100,8 +100,17 @@ It declares:
 
 * `default_provider: lxc_native`;
 * ordered candidate backends `incus` and `lxd`;
+* backend-specific `provider_resource_resolution.backends.<backend>` network
+  and storage mappings, for example `incus` resolving `control` to `incusbr0`
+  and `lxd` resolving `control` to `lxdbr0`;
 * node names `swarm-manager`, `swarm-worker-1`, and `swarm-worker-2`;
 * the `docker-swarm` profile requirements.
+
+Operators can override local network or storage names by editing the matching
+backend section in `infra/config/node-providers/provider_config.yaml` before a
+live run. The old global
+`provider_resource_resolution.network_mappings/storage_pool` shape is no
+longer accepted; missing selected-backend mappings block before mutation.
 
 Run the non-mutating project preflight before a live run:
 
