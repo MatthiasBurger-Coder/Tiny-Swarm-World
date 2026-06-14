@@ -49,6 +49,7 @@ class TestInstallScript(unittest.TestCase):
             )
             self.assertIn("live_execution_mode=interactive", context)
             self.assertIn("live_approval_source=operator_prompt", context)
+            self.assertIn("terminal_recording_mode=terminal_recorder", context)
             self.assertIn("reset_confirmation_present=yes", context)
             self.assertIn("reset_confirmation_source=interactive_prompt", context)
             self.assertIn("reset_exit=0", context)
@@ -249,6 +250,66 @@ class TestInstallScript(unittest.TestCase):
             self.assertIn("live_execution_mode=non_interactive", context)
             self.assertIn("live_approval_source=explicit_automation_flag", context)
             self.assertEqual(["", ""], fixture.recorded_live_confirmations())
+
+    def test_headless_install_runs_governed_commands_without_terminal_recorder(self):
+        with _install_script_fixture(
+            extra_args=("--headless", "--non-interactive-live-approval"),
+        ) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(
+                [
+                    (
+                        "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
+                        "--live --approve-live --confirm RESET_TINY_SWARM_PLATFORM "
+                        "--service-profile service-access"
+                    ),
+                    (
+                        "PYTHONPATH=src python3 -m tiny_swarm_world setup run "
+                        "--live --approve-live --service-profile service-access"
+                    ),
+                ],
+                fixture.recorded_commands(),
+            )
+            evidence_dir = fixture.single_evidence_dir()
+            context = (evidence_dir / "context.txt").read_text()
+            self.assertIn("terminal_recording_mode=headless", context)
+            self.assertIn("live_execution_mode=non_interactive", context)
+            self.assertEqual("0", (evidence_dir / "reset-run.exit").read_text().strip())
+            self.assertEqual("0", (evidence_dir / "setup-run.exit").read_text().strip())
+            self.assertIn("fake headless command", (evidence_dir / "reset-run.log").read_text())
+            self.assertIn("fake headless command", (evidence_dir / "setup-run.log").read_text())
+            self.assertFalse(fixture.recorded_live_confirmations())
+
+    def test_headless_install_preserves_reset_failure_exit_code_and_skips_setup(self):
+        with _install_script_fixture(
+            reset_exit=17,
+            extra_args=("--headless", "--non-interactive-live-approval"),
+        ) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(17, result.returncode)
+            self.assertEqual(1, len(fixture.recorded_commands()))
+            evidence_dir = fixture.single_evidence_dir()
+            self.assertEqual("17", (evidence_dir / "reset-run.exit").read_text().strip())
+            self.assertFalse((evidence_dir / "setup-run.exit").exists())
+            self.assertFalse(fixture.recorded_live_confirmations())
+
+    def test_headless_install_can_be_enabled_by_environment(self):
+        with _install_script_fixture(
+            extra_args=("--non-interactive-live-approval",),
+            extra_environment={"TSW_INSTALL_HEADLESS": "1"},
+        ) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            evidence_dir = fixture.single_evidence_dir()
+            context = (evidence_dir / "context.txt").read_text()
+            self.assertIn("terminal_recording_mode=headless", context)
+            self.assertIn("fake headless command", (evidence_dir / "reset-run.log").read_text())
+            self.assertIn("fake headless command", (evidence_dir / "setup-run.log").read_text())
+            self.assertFalse(fixture.recorded_live_confirmations())
 
     def test_install_disables_infisical_item_seed_by_default(self):
         with _install_script_fixture() as fixture:
@@ -544,6 +605,21 @@ exit 44
 SH
           chmod 755 "$target/bin/python"
           exit 0
+        fi
+        if [[ "${1:-}" == "-m" && "${2:-}" == "tiny_swarm_world" ]]; then
+          printf 'PYTHONPATH=%s python3 %s\\n' "${PYTHONPATH:-}" "$*" >>"$TSW_FAKE_SCRIPT_COMMANDS"
+          printf 'fake headless command for %s\\n' "$*"
+          case "$*" in
+            *" platform reset "*)
+              exit "$TSW_FAKE_RESET_EXIT"
+              ;;
+            *" setup run "*)
+              exit "$TSW_FAKE_SETUP_EXIT"
+              ;;
+            *)
+              exit 99
+              ;;
+          esac
         fi
         printf 'fake python3 should be invoked only through fake script or secret generation\\n' >&2
         exit 43

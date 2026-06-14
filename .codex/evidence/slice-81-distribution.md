@@ -1,0 +1,23 @@
+# Slice 81 Distribution
+
+- workflow id: issue-81-headless-install-20260614
+- slice id: issue-81
+- slice title: Make install.sh complete without requiring the console TUI
+- affected areas: runtime, tests, documentation, quality
+- chosen execution mode: sequential
+- selected streams: runtime, tests, documentation
+- real subagents used: attempted read-only review by Helmholtz; timed out before completion and was closed
+- fallback role-based review used: yes, main-thread Senior DevOps/Tester review
+- Git worktrees used: no
+- expected touched files/directories:
+  - install.sh
+  - tests/test_install_script.py
+  - README.md
+  - documentation/user_guide/installation.adoc
+- conflict risks: shared install wrapper and evidence contract; no safe parallel split because headless execution, exit codes, and logs are one behavior.
+- quality gates to run:
+  - PYTHONPATH=src python3 -m unittest tests.test_install_script
+  - git diff --check
+  - python3 tools/quality_gate.py quality
+- consolidation plan: integrate headless execution flag, direct log capture, regression tests, and documentation in one issue branch before full quality and push auto.
+- parallelization decision: rejected because the implementation changes one shell execution primitive and its tests/documentation must move together.

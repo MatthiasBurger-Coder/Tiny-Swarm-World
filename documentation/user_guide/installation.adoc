@@ -237,13 +237,27 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --approve-live
 The automation flag is an approval source; it does not remove the `--live`
 requirement.
 
+Terminal recording is optional presentation. For headless systems that cannot
+or should not start the terminal recorder/TUI surface, use:
+
+[source,bash]
+----
+./install.sh --headless
+TSW_INSTALL_HEADLESS=1 ./install.sh
+----
+
+Headless mode executes the same governed reset and setup commands, writes the
+same `reset-run.log`, `reset-run.exit`, `setup-run.log`, and `setup-run.exit`
+evidence files, and preserves command exit codes.
+
 The wrapper writes run context, reset logs, setup logs and exit codes below
 `.tiny-swarm-world/evidence/installation-tests/<host-runtime>/<UTC timestamp>/`.
 The stable host directory is `wsl2` for WSL2 and `native_linux` for native
 Linux. The run `context.txt` records `host_runtime_type`,
 `host_runtime_detection_source`, `selected_evidence_directory`,
-`live_execution_mode`, and `live_approval_source` alongside `reset-run.log`,
-`reset-run.exit`, `setup-run.log`, and `setup-run.exit`.
+`live_execution_mode`, `live_approval_source`, and `terminal_recording_mode`
+alongside `reset-run.log`, `reset-run.exit`, `setup-run.log`, and
+`setup-run.exit`.
 It loads or generates local `TSW_*` secrets in
 `.tiny-swarm-world/local/live-installation.env` without printing secret
 values.

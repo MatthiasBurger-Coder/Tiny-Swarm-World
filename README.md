@@ -152,6 +152,10 @@ workflow still uses `--confirm RESET_TINY_SWARM_PLATFORM`.
 Use `./install.sh --non-interactive-live-approval` only for deliberate
 automation that must pass the CLI live-consent prompt without terminal input;
 otherwise the recorded live commands ask for interactive confirmation.
+Use `./install.sh --headless` or `TSW_INSTALL_HEADLESS=1 ./install.sh` when the
+same governed reset/setup flow must run without the terminal recorder/TUI
+presentation. Headless mode still writes reset/setup logs and preserves command
+exit codes.
 
 The wrapper records run context, reset logs, setup logs, and exit codes under
 `.tiny-swarm-world/evidence/installation-tests/<host-runtime>/`, where the
@@ -159,8 +163,9 @@ stable host directory is `wsl2` or `native_linux`. It loads or generates local
 `TSW_*` secrets in `.tiny-swarm-world/local/live-installation.env` without
 printing secret values, records the detected host type and selected evidence
 directory in `context.txt`, records whether live approval came from an operator
-prompt or explicit automation flag, runs the governed reset prelude, then calls
-the canonical setup workflow.
+prompt or explicit automation flag, records whether command output came from
+the terminal recorder or headless logging, runs the governed reset prelude, then
+calls the canonical setup workflow.
 
 With live consent, it sequences setup preflight, platform, artifact,
 deployment, and final verification phases. Current live behavior remains

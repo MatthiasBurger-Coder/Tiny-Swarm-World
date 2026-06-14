@@ -10,6 +10,7 @@ NATIVE_LINUX_VENV="${TSW_NATIVE_LINUX_VENV:-.tiny-swarm-world/install-venv}"
 RESET_CONFIRMATION="RESET_TINY_SWARM_PLATFORM"
 RESET_CONFIRMED_BY_FLAG=0
 NON_INTERACTIVE_LIVE_APPROVAL=0
+HEADLESS_INSTALL="${TSW_INSTALL_HEADLESS:-0}"
 
 REQUIRED_SECRETS=(
   TSW_PORTAINER_ADMIN_PASSWORD
@@ -32,7 +33,7 @@ usage() {
 Tiny Swarm World live installation wrapper.
 
 Usage:
-  ./install.sh [--service-profile NAME] [--no-generate-secrets] [--confirm-reset] [--non-interactive-live-approval]
+  ./install.sh [--service-profile NAME] [--no-generate-secrets] [--confirm-reset] [--non-interactive-live-approval] [--headless]
 
 Options:
   --service-profile NAME   Service profile passed to setup run (default: service-access).
@@ -42,6 +43,8 @@ Options:
                            Pass explicit non-interactive live approval to the CLI.
                            Without this flag, recorded live commands ask for the
                            CLI's interactive live confirmation.
+  --headless               Disable terminal recorder/TUI presentation and capture
+                           command stdout/stderr directly to evidence logs.
   -h, --help               Show this help.
 
 Optional environment:
@@ -276,6 +279,7 @@ write_context() {
   local detection_source="$5"
   local live_execution_mode="$6"
   local live_approval_source="$7"
+  local terminal_recording_mode="$8"
 
   {
     printf 'run_id=%s\n' "$run_id"
@@ -292,6 +296,7 @@ write_context() {
     printf 'selected_evidence_directory=%s\n' "$evidence_dir"
     printf 'live_execution_mode=%s\n' "$live_execution_mode"
     printf 'live_approval_source=%s\n' "$live_approval_source"
+    printf 'terminal_recording_mode=%s\n' "$terminal_recording_mode"
     printf 'platform_system=%s\n' "$(uname -s)"
     printf 'kernel_release=%s\n' "$(uname -r)"
     printf 'proc_osrelease=%s\n' "$(cat /proc/sys/kernel/osrelease 2>/dev/null || true)"
@@ -317,7 +322,11 @@ run_recorded_command() {
     effective_command="sg ${TSW_INSTALL_COMMAND_GROUP} -c $(shell_quote "$command_line")"
   fi
 
-  script -q -e -c "$effective_command" "$log_file"
+  if (( HEADLESS_INSTALL == 1 )); then
+    bash -lc "$effective_command" >"$log_file" 2>&1
+  else
+    script -q -e -c "$effective_command" "$log_file"
+  fi
 }
 
 configure_native_linux_command_group() {
@@ -385,6 +394,10 @@ while [[ $# -gt 0 ]]; do
       NON_INTERACTIVE_LIVE_APPROVAL=1
       shift
       ;;
+    --headless)
+      HEADLESS_INSTALL=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -409,7 +422,9 @@ cd "$SCRIPT_DIR"
 [[ "$(uname -s)" == "Linux" ]] || fail "Tiny Swarm World installation is supported only on Linux/WSL."
 [[ -d src/tiny_swarm_world ]] || fail "Run this script from the Tiny Swarm World repository root."
 require_command python3
-require_command script
+if (( HEADLESS_INSTALL != 1 )); then
+  require_command script
+fi
 
 PYTHON_BIN="$(ensure_native_linux_python_environment)"
 configure_native_linux_command_group
@@ -484,6 +499,11 @@ else
   LIVE_APPROVAL_SOURCE="operator_prompt"
   LIVE_APPROVAL_ARGUMENT=""
 fi
+if (( HEADLESS_INSTALL == 1 )); then
+  TERMINAL_RECORDING_MODE="headless"
+else
+  TERMINAL_RECORDING_MODE="terminal_recorder"
+fi
 EVIDENCE_DIR=".tiny-swarm-world/evidence/installation-tests/$RESOLVED_HOST_TYPE/$RUN_ID"
 mkdir -p "$EVIDENCE_DIR"
 write_context \
@@ -493,7 +513,8 @@ write_context \
   "$RESOLVED_HOST_TYPE" \
   "$HOST_DETECTION_SOURCE" \
   "$LIVE_EXECUTION_MODE" \
-  "$LIVE_APPROVAL_SOURCE"
+  "$LIVE_APPROVAL_SOURCE" \
+  "$TERMINAL_RECORDING_MODE"
 
 cat <<EOF
 Tiny Swarm World live installation
@@ -519,7 +540,11 @@ fi
 reset_command="PYTHONPATH=src $(shell_quote "$PYTHON_BIN") -m tiny_swarm_world platform reset --live${LIVE_APPROVAL_ARGUMENT} --confirm $RESET_CONFIRMATION --service-profile $(shell_quote "$SERVICE_PROFILE")"
 setup_command="PYTHONPATH=src $(shell_quote "$PYTHON_BIN") -m tiny_swarm_world setup run --live${LIVE_APPROVAL_ARGUMENT} --service-profile $(shell_quote "$SERVICE_PROFILE")"
 
-printf 'Starting fresh-install reset. Terminal UI is visible and recorded at: %s/reset-run.log\n' "$EVIDENCE_DIR"
+if (( HEADLESS_INSTALL == 1 )); then
+  printf 'Starting fresh-install reset. Headless output is recorded at: %s/reset-run.log\n' "$EVIDENCE_DIR"
+else
+  printf 'Starting fresh-install reset. Terminal UI is visible and recorded at: %s/reset-run.log\n' "$EVIDENCE_DIR"
+fi
 set +e
 run_recorded_command "$reset_command" "$EVIDENCE_DIR/reset-run.log"
 reset_exit=$?
@@ -538,7 +563,11 @@ if (( reset_exit != 0 )); then
   exit "$reset_exit"
 fi
 
-printf 'Starting live setup. Terminal UI is visible and recorded at: %s/setup-run.log\n' "$EVIDENCE_DIR"
+if (( HEADLESS_INSTALL == 1 )); then
+  printf 'Starting live setup. Headless output is recorded at: %s/setup-run.log\n' "$EVIDENCE_DIR"
+else
+  printf 'Starting live setup. Terminal UI is visible and recorded at: %s/setup-run.log\n' "$EVIDENCE_DIR"
+fi
 set +e
 run_recorded_command "$setup_command" "$EVIDENCE_DIR/setup-run.log"
 setup_exit=$?
