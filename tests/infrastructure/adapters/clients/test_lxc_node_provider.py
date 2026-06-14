@@ -20,6 +20,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
     NodeProviderConfig,
     NodeProviderNodeConfig,
     NodeProviderProfileRequirement,
+    ProviderBackendResourceResolution,
     ProviderResourceResolution,
     ProviderVerificationMetadata,
 )
@@ -495,7 +496,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEvidenceIsSummaryOnly(result)
 
-    async def test_provider_resource_resolution_blocks_when_lxd_network_missing(self):
+    async def test_provider_resource_resolution_blocks_when_incus_network_missing(self):
         runner = _FakeRunner(
             _name_list("default"),
         )
@@ -506,10 +507,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
         self.assertEqual("network_missing", result.evidence["classification"])
         self.assertEqual("control", result.evidence["logical_network"])
-        self.assertEqual("lxdbr0", result.evidence["resolved_network"])
+        self.assertEqual("incusbr0", result.evidence["resolved_network"])
         self.assertEqual("default", result.evidence["available_networks"])
         self.assertEqual("default", result.evidence["expected_storage_pool"])
-        self.assertIn("resolved LXD network", result.evidence["remediation_hint"])
+        self.assertIn("resolved backend network", result.evidence["remediation_hint"])
         self.assertEqual(
             [
                 (("incus", "network", "list", "--format", "json"), 5.0),
@@ -520,7 +521,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
     async def test_provider_resource_resolution_blocks_when_storage_pool_missing(self):
         runner = _FakeRunner(
-            _name_list("lxdbr0"),
+            _name_list("incusbr0"),
             _name_list("other"),
         )
         provider = _provider(runner, config=_config(resolve_provider_resources=True))
@@ -529,10 +530,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
         self.assertEqual("storage_pool_missing", result.evidence["classification"])
-        self.assertEqual("lxdbr0", result.evidence["available_networks"])
+        self.assertEqual("incusbr0", result.evidence["available_networks"])
         self.assertEqual("default", result.evidence["expected_storage_pool"])
         self.assertEqual("other", result.evidence["available_storage_pools"])
-        self.assertIn("expected LXD storage pool", result.evidence["remediation_hint"])
+        self.assertIn("expected backend storage pool", result.evidence["remediation_hint"])
         self.assertEqual(
             [
                 (("incus", "network", "list", "--format", "json"), 5.0),
@@ -571,6 +572,63 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertIn("fastpool", launch_call)
         self.assertEvidenceIsSummaryOnly(result)
 
+    async def test_provider_resource_resolution_uses_lxd_mapping_for_lxd_selection(self):
+        runner = _FakeRunner(
+            _name_list("lxdbr0"),
+            _name_list("lxdpool"),
+            _profile(),
+            _list(),
+            _ok(),
+            _list(_node("swarm-manager", "Running")),
+        )
+        provider = _provider(
+            runner,
+            config=_config(
+                resolve_provider_resources=True,
+                provider_network_mappings={
+                    ManagedLxcBackend.INCUS: {"control": "incusbr0"},
+                    ManagedLxcBackend.LXD: {"control": "lxdbr0"},
+                },
+                provider_storage_pools={
+                    ManagedLxcBackend.INCUS: "default",
+                    ManagedLxcBackend.LXD: "lxdpool",
+                },
+            ),
+        )
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        launch_call = runner.calls[4][0]
+        self.assertEqual("lxc", launch_call[0])
+        self.assertIn("lxdbr0", launch_call)
+        self.assertIn("lxdpool", launch_call)
+        self.assertNotIn("incusbr0", launch_call)
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_provider_resource_resolution_blocks_missing_selected_backend_mapping(self):
+        runner = _FakeRunner()
+        provider = _provider(
+            runner,
+            config=_config(
+                resolve_provider_resources=True,
+                provider_network_mappings={
+                    ManagedLxcBackend.LXD: {"control": "lxdbr0"},
+                },
+                provider_storage_pools={
+                    ManagedLxcBackend.LXD: "default",
+                },
+            ),
+        )
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("inventory_mapping_missing", result.evidence["classification"])
+        self.assertEqual("incus", result.evidence["backend"])
+        self.assertIn("selected backend", result.evidence["remediation_hint"])
+        self.assertEqual([], runner.calls)
+
     async def test_provider_resource_resolution_blocks_unmapped_logical_network(self):
         runner = _FakeRunner()
         provider = _provider(
@@ -587,7 +645,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("inventory_mapping_missing", result.evidence["classification"])
         self.assertEqual("private", result.evidence["logical_network"])
         self.assertEqual("", result.evidence["resolved_network"])
-        self.assertIn("logical-to-LXD network mapping", result.evidence["remediation_hint"])
+        self.assertIn("logical-to-backend network mapping", result.evidence["remediation_hint"])
         self.assertEqual([], runner.calls)
 
     async def test_missing_provider_node_config_is_inventory_mapping_missing(self):
@@ -1069,7 +1127,10 @@ def _config(
     additional_profiles: tuple[str, ...] = (),
     resolve_provider_resources: bool = False,
     node_networks: tuple[str, ...] = ("control",),
-    provider_network_mappings: dict[str, str] | None = None,
+    provider_network_mappings: (
+        dict[ManagedLxcBackend, dict[str, str]] | dict[str, str] | None
+    ) = None,
+    provider_storage_pools: dict[ManagedLxcBackend, str] | None = None,
     provider_storage_pool: str = "default",
 ) -> NodeProviderConfig:
     profiles = [
@@ -1130,8 +1191,11 @@ def _config(
         profiles=tuple(profiles),
         provider_resource_resolution=(
             ProviderResourceResolution(
-                network_mappings=provider_network_mappings or {"control": "lxdbr0"},
-                storage_pool=provider_storage_pool,
+                backends=_backend_resource_resolution(
+                    provider_network_mappings,
+                    provider_storage_pools,
+                    provider_storage_pool,
+                ),
             )
             if resolve_provider_resources
             else None
@@ -1151,6 +1215,43 @@ def _config(
             ),
         ),
     )
+
+
+def _backend_resource_resolution(
+    provider_network_mappings: (
+        dict[ManagedLxcBackend, dict[str, str]] | dict[str, str] | None
+    ),
+    provider_storage_pools: dict[ManagedLxcBackend, str] | None,
+    provider_storage_pool: str,
+) -> dict[ManagedLxcBackend, ProviderBackendResourceResolution]:
+    typed_network_mappings: dict[ManagedLxcBackend, dict[str, str]]
+    if provider_network_mappings and all(
+        isinstance(key, ManagedLxcBackend) for key in provider_network_mappings
+    ):
+        typed_network_mappings = cast(
+            dict[ManagedLxcBackend, dict[str, str]],
+            provider_network_mappings,
+        )
+    else:
+        shared_network_mappings = cast(
+            dict[str, str] | None,
+            provider_network_mappings,
+        )
+        typed_network_mappings = {
+            ManagedLxcBackend.INCUS: shared_network_mappings or {"control": "incusbr0"},
+            ManagedLxcBackend.LXD: shared_network_mappings or {"control": "lxdbr0"},
+        }
+    storage_pools = provider_storage_pools or {
+        ManagedLxcBackend.INCUS: provider_storage_pool,
+        ManagedLxcBackend.LXD: provider_storage_pool,
+    }
+    return {
+        backend: ProviderBackendResourceResolution(
+            network_mappings=network_mappings,
+            storage_pool=storage_pools[backend],
+        )
+        for backend, network_mappings in typed_network_mappings.items()
+    }
 
 
 def _ok() -> LxcNodeCommandResult:

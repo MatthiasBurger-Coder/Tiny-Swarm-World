@@ -108,6 +108,13 @@ Backend selection first honors an explicit `--lxc-backend` override, then
 `backend_selection.candidates` list in
 `infra/config/node-providers/provider_config.yaml`.
 
+Backend resource names are configured under
+`provider_resource_resolution.backends.<backend>`. The committed defaults map
+Incus `control` traffic to `incusbr0` and LXD `control` traffic to `lxdbr0`,
+with `default` as the storage pool for both backends. Override the selected
+backend section before live setup when the local network bridge or storage
+pool uses a different name.
+
 For LXD on Ubuntu where Snap is available:
 
 [source,bash]
@@ -238,14 +245,16 @@ current shell session has not activated that group yet, `install.sh` runs the
 live reset and setup commands through `sg lxd` so LXD socket access works
 without changing the WSL path.
 
-On native Linux, Docker Swarm also requires that the managed LXD containers can
-reach each other on the LXD bridge. If workers can reach the `lxdbr0` gateway
-but cannot ping the manager container or connect to Swarm port `2377`, allow
-bridge-internal forwarding on the host:
+On native Linux, Docker Swarm also requires that the managed LXC containers can
+reach each other on the selected backend bridge. Use the bridge name resolved
+from `provider_resource_resolution.backends.<backend>.network_mappings.control`
+when applying host firewall rules. If workers can reach the configured bridge
+gateway but cannot ping the manager container or connect to Swarm port `2377`,
+allow bridge-internal forwarding on the host:
 
 [source,bash]
 ----
-sudo iptables -I FORWARD 1 -i lxdbr0 -o lxdbr0 -j ACCEPT
+sudo iptables -I FORWARD 1 -i <backend-bridge> -o <backend-bridge> -j ACCEPT
 ----
 
 Verify the host firewall path before rerunning installation. Replace the
@@ -262,7 +271,7 @@ If `ufw` manages the host firewall, persist the bridge route rule with:
 
 [source,bash]
 ----
-sudo ufw route allow in on lxdbr0 out on lxdbr0
+sudo ufw route allow in on <backend-bridge> out on <backend-bridge>
 sudo ufw reload
 ----
 
@@ -277,7 +286,8 @@ sudo netfilter-persistent save
 
 Swarm bootstrap needs container-to-container access for `2377/tcp`, and later
 Swarm traffic uses `7946/tcp`, `7946/udp`, and `4789/udp`. The bridge-internal
-FORWARD rule above allows that managed LXD-node traffic on `lxdbr0`.
+FORWARD rule above allows that managed backend-node traffic on the configured
+bridge.
 
 Portainer stack create and update calls can take longer than ordinary API
 lookups while Docker Swarm pulls images or reconciles services. The installer

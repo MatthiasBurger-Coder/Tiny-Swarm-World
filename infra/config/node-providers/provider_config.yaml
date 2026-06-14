@@ -90,9 +90,15 @@ profiles:
     live_mutation_consent_required: true
     blocks_mutation_when_missing: true
 provider_resource_resolution:
-  network_mappings:
-    control: lxdbr0
-  storage_pool: default
+  backends:
+    incus:
+      network_mappings:
+        control: incusbr0
+      storage_pool: default
+    lxd:
+      network_mappings:
+        control: lxdbr0
+      storage_pool: default
 verification_metadata:
   readiness_timeout_seconds: 5
   evidence_policy:

@@ -65,7 +65,8 @@ _PROFILE_FIELDS = frozenset(
 )
 _VERIFICATION_FIELDS = frozenset(("readiness_timeout_seconds", "evidence_policy", "checks"))
 _EVIDENCE_POLICY_FIELDS = frozenset(("summary_only", "store_raw_output"))
-_PROVIDER_RESOURCE_RESOLUTION_FIELDS = frozenset(("network_mappings", "storage_pool"))
+_PROVIDER_RESOURCE_RESOLUTION_FIELDS = frozenset(("backends",))
+_PROVIDER_BACKEND_RESOURCE_RESOLUTION_FIELDS = frozenset(("network_mappings", "storage_pool"))
 
 _FORBIDDEN_KEY_PARTS = (
     "api_key",
@@ -145,9 +146,20 @@ class ProviderVerificationMetadata:
 
 
 @dataclass(frozen=True)
-class ProviderResourceResolution:
+class ProviderBackendResourceResolution:
     network_mappings: Mapping[str, str]
     storage_pool: str
+
+
+@dataclass(frozen=True)
+class ProviderResourceResolution:
+    backends: Mapping[ManagedLxcBackend, ProviderBackendResourceResolution]
+
+    def for_backend(
+        self,
+        backend: ManagedLxcBackend,
+    ) -> ProviderBackendResourceResolution | None:
+        return self.backends.get(backend)
 
 
 @dataclass(frozen=True)
@@ -388,6 +400,43 @@ def _provider_resource_resolution(
         _PROVIDER_RESOURCE_RESOLUTION_FIELDS,
         "provider_resource_resolution",
     )
+    backend_mapping = _required_mapping(
+        resolution,
+        "backends",
+        "provider_resource_resolution",
+    )
+    if not backend_mapping:
+        raise NodeProviderConfigError("provider backend resource mappings must not be empty")
+
+    backends: dict[ManagedLxcBackend, ProviderBackendResourceResolution] = {}
+    for backend_name, backend_resolution in backend_mapping.items():
+        backend = _optional_backend(backend_name)
+        if backend is None:
+            raise NodeProviderConfigError("provider backend resource mapping is invalid")
+        if backend in backends:
+            raise NodeProviderConfigError("provider backend resource mappings must be unique")
+        if not isinstance(backend_resolution, Mapping):
+            raise NodeProviderConfigError(
+                f"provider_resource_resolution.backends.{backend.value} must be a mapping"
+            )
+        backends[backend] = _provider_backend_resource_resolution(
+            backend,
+            backend_resolution,
+        )
+
+    return ProviderResourceResolution(backends=backends)
+
+
+def _provider_backend_resource_resolution(
+    backend: ManagedLxcBackend,
+    resolution: Mapping[str, Any],
+) -> ProviderBackendResourceResolution:
+    path = f"provider_resource_resolution.backends.{backend.value}"
+    _reject_unknown_fields(
+        resolution,
+        _PROVIDER_BACKEND_RESOURCE_RESOLUTION_FIELDS,
+        path,
+    )
     network_mappings = {
         _safe_identifier(logical_network, "logical provider network"): _safe_identifier(
             provider_network,
@@ -396,16 +445,16 @@ def _provider_resource_resolution(
         for logical_network, provider_network in _required_mapping(
             resolution,
             "network_mappings",
-            "provider_resource_resolution",
+            path,
         ).items()
     }
     if not network_mappings:
         raise NodeProviderConfigError("provider network mappings must not be empty")
 
-    return ProviderResourceResolution(
+    return ProviderBackendResourceResolution(
         network_mappings=network_mappings,
         storage_pool=_safe_identifier(
-            _required(resolution, "storage_pool", "provider_resource_resolution"),
+            _required(resolution, "storage_pool", path),
             "provider storage pool",
         ),
     )
@@ -421,19 +470,29 @@ def _validate_provider_resource_resolution(
     if provider_resource_resolution is None:
         raise NodeProviderConfigError("provider resource resolution is required")
 
-    mapped_networks = set(provider_resource_resolution.network_mappings)
-    missing_networks = sorted(
-        {
-            network
-            for node in nodes
-            for network in node.networks
-            if network not in mapped_networks
-        }
-    )
-    if missing_networks:
+    required_backends = {ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD}
+    configured_backends = set(provider_resource_resolution.backends)
+    missing_backends = sorted(backend.value for backend in required_backends - configured_backends)
+    if missing_backends:
         raise NodeProviderConfigError(
-            f"node networks require provider resource mappings: {missing_networks}"
+            f"provider resource mappings are missing for backends: {missing_backends}"
         )
+
+    for backend, resolution in provider_resource_resolution.backends.items():
+        mapped_networks = set(resolution.network_mappings)
+        missing_networks = sorted(
+            {
+                network
+                for node in nodes
+                for network in node.networks
+                if network not in mapped_networks
+            }
+        )
+        if missing_networks:
+            raise NodeProviderConfigError(
+                f"{backend.value} node networks require provider resource mappings: "
+                f"{missing_networks}"
+            )
 
 
 def _provider(value: object) -> NodeProviderKind:

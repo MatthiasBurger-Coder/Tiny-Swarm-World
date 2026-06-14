@@ -23,6 +23,7 @@ from tiny_swarm_world.domain.node_provider import (
     ProviderSelection,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
+    ProviderBackendResourceResolution,
     NodeProviderConfig,
     NodeProviderNodeConfig,
     NodeProviderProfileRequirement,
@@ -196,7 +197,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 node_config,
                 self.image_references,
                 provider_resource_resolution=(
-                    config.provider_resource_resolution
+                    _selected_provider_resource_resolution(config, backend)
                     if _uses_provider_resource_resolution(config)
                     else None
                 ),
@@ -396,8 +397,9 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         if "provider_resource_resolution" not in config.verification_metadata.checks:
             return None
         resource_resolution = config.provider_resource_resolution
+        backend_resource_resolution = _selected_provider_resource_resolution(config, backend)
         logical_networks = node_config.networks
-        if resource_resolution is None or not logical_networks:
+        if resource_resolution is None or backend_resource_resolution is None or not logical_networks:
             return _blocked(
                 node,
                 selection,
@@ -406,12 +408,13 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 extra_evidence=_resource_resolution_evidence(
                     node_config,
                     resource_resolution,
+                    backend=backend,
                 ),
             )
         unresolved_networks = tuple(
             network
             for network in logical_networks
-            if network not in resource_resolution.network_mappings
+            if network not in backend_resource_resolution.network_mappings
         )
         if unresolved_networks:
             return _blocked(
@@ -422,10 +425,11 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 extra_evidence=_resource_resolution_evidence(
                     node_config,
                     resource_resolution,
+                    backend=backend,
                 ),
             )
 
-        resolved_network = _resolved_network(node_config, resource_resolution)
+        resolved_network = _resolved_network(node_config, backend_resource_resolution)
         available_networks = await self._available_network_names(backend, config)
         if resolved_network not in available_networks:
             return _blocked(
@@ -436,12 +440,13 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 extra_evidence=_resource_resolution_evidence(
                     node_config,
                     resource_resolution,
+                    backend=backend,
                     available_networks=available_networks,
                 ),
             )
 
         available_storage_pools = await self._available_storage_pool_names(backend, config)
-        if resource_resolution.storage_pool not in available_storage_pools:
+        if backend_resource_resolution.storage_pool not in available_storage_pools:
             return _blocked(
                 node,
                 selection,
@@ -450,6 +455,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 extra_evidence=_resource_resolution_evidence(
                     node_config,
                     resource_resolution,
+                    backend=backend,
                     available_networks=available_networks,
                     available_storage_pools=available_storage_pools,
                 ),
@@ -1098,7 +1104,7 @@ def _launch_args(
     node_config: NodeProviderNodeConfig,
     image_references: Mapping[str, str],
     *,
-    provider_resource_resolution: ProviderResourceResolution | None = None,
+    provider_resource_resolution: ProviderBackendResourceResolution | None = None,
 ) -> tuple[str, ...]:
     args: list[str] = [
         _BACKEND_CLI[backend],
@@ -1141,9 +1147,18 @@ def _uses_provider_resource_resolution(config: NodeProviderConfig) -> bool:
     return "provider_resource_resolution" in config.verification_metadata.checks
 
 
+def _selected_provider_resource_resolution(
+    config: NodeProviderConfig,
+    backend: ManagedLxcBackend,
+) -> ProviderBackendResourceResolution | None:
+    if config.provider_resource_resolution is None:
+        return None
+    return config.provider_resource_resolution.for_backend(backend)
+
+
 def _resolved_network(
     node_config: NodeProviderNodeConfig,
-    provider_resource_resolution: ProviderResourceResolution,
+    provider_resource_resolution: ProviderBackendResourceResolution,
 ) -> str:
     return provider_resource_resolution.network_mappings[node_config.networks[0]]
 
@@ -1356,25 +1371,32 @@ def _resource_resolution_evidence(
     node_config: NodeProviderNodeConfig,
     provider_resource_resolution: ProviderResourceResolution | None,
     *,
+    backend: ManagedLxcBackend,
     available_networks: Sequence[str] = (),
     available_storage_pools: Sequence[str] = (),
 ) -> dict[str, str]:
     logical_network = ",".join(node_config.networks)
-    resolved_network = (
-        _resolved_network(node_config, provider_resource_resolution)
+    backend_resource_resolution = (
+        provider_resource_resolution.for_backend(backend)
         if provider_resource_resolution is not None
+        else None
+    )
+    resolved_network = (
+        _resolved_network(node_config, backend_resource_resolution)
+        if backend_resource_resolution is not None
         and node_config.networks
-        and node_config.networks[0] in provider_resource_resolution.network_mappings
+        and node_config.networks[0] in backend_resource_resolution.network_mappings
         else ""
     )
     expected_storage_pool = (
-        provider_resource_resolution.storage_pool
-        if provider_resource_resolution is not None
+        backend_resource_resolution.storage_pool
+        if backend_resource_resolution is not None
         else ""
     )
     return {
         "expected_profile": node_config.profile,
         "available_profiles": "",
+        "backend": backend.value,
         "logical_network": logical_network,
         "resolved_network": resolved_network,
         "available_networks": ",".join(available_networks),
@@ -1383,6 +1405,7 @@ def _resource_resolution_evidence(
         "remediation_hint": _resource_resolution_remediation_hint(
             node_config,
             provider_resource_resolution,
+            backend=backend,
             available_networks=available_networks,
             available_storage_pools=available_storage_pools,
         ),
@@ -1393,20 +1416,24 @@ def _resource_resolution_remediation_hint(
     node_config: NodeProviderNodeConfig,
     provider_resource_resolution: ProviderResourceResolution | None,
     *,
+    backend: ManagedLxcBackend,
     available_networks: Sequence[str],
     available_storage_pools: Sequence[str],
 ) -> str:
     if provider_resource_resolution is None:
         return "Configure provider resource resolution for the LXC-native node inventory."
+    backend_resource_resolution = provider_resource_resolution.for_backend(backend)
+    if backend_resource_resolution is None:
+        return "Configure provider resource resolution for the selected backend."
     if not node_config.networks:
         return "Configure at least one logical network for the LXC-native node."
-    if node_config.networks[0] not in provider_resource_resolution.network_mappings:
-        return "Add an explicit logical-to-LXD network mapping for the inventory network."
-    resolved_network = _resolved_network(node_config, provider_resource_resolution)
+    if node_config.networks[0] not in backend_resource_resolution.network_mappings:
+        return "Add an explicit logical-to-backend network mapping for the inventory network."
+    resolved_network = _resolved_network(node_config, backend_resource_resolution)
     if resolved_network not in available_networks:
-        return "Create or configure the resolved LXD network before platform mutation."
-    if provider_resource_resolution.storage_pool not in available_storage_pools:
-        return "Create or configure the expected LXD storage pool before platform mutation."
+        return "Create or configure the resolved backend network before platform mutation."
+    if backend_resource_resolution.storage_pool not in available_storage_pools:
+        return "Create or configure the expected backend storage pool before platform mutation."
     return "Provider resource resolution is satisfied."
 
 
