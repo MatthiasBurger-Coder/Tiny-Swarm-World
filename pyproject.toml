@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tiny-swarm-world"
+version = "0.1.0"
+description = "Linux/WSL local infrastructure automation for Tiny Swarm World"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic==2.10.6",
+  "PyYAML==6.0.1",
+  "requests==2.32.0",
+  "ruamel.yaml==0.17.21",
+]
+
+[project.scripts]
+tiny-swarm-world = "tiny_swarm_world.__main__:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]

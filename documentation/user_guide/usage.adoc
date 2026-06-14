@@ -35,33 +35,37 @@ directory.
 
 == Main Python Entrypoint
 
-The main workflow entry point is:
+After installing the repository in editable mode, the main workflow entry point
+is:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world
+tiny-swarm-world
 ----
+
+For source-checkout diagnostics before installation, the equivalent module
+fallback remains `PYTHONPATH=src python3 -m tiny_swarm_world`.
 
 Running without arguments does not execute infrastructure commands. List the
 workflow-level commands first:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+tiny-swarm-world --list-workflows
 ----
 
 Static preflight remains available without live-infrastructure consent:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+tiny-swarm-world --preflight
 ----
 
 Non-mutating workflow checks can be selected explicitly:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform verify
+tiny-swarm-world platform verify
 ----
 
 The safe setup probe is `setup run` without `--live`. It refuses before setup
@@ -69,7 +73,7 @@ services are constructed:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run
+tiny-swarm-world setup run
 ----
 
 The canonical live operator command requires live-infrastructure consent before
@@ -77,7 +81,7 @@ services are constructed and uses `lxc_native` by default:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+tiny-swarm-world setup run --live
 ----
 
 The setup sequence includes `platform expose`, which configures the
@@ -88,8 +92,8 @@ Select a managed LXC backend explicitly when both LXD and Incus are available:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd setup run --live
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
+tiny-swarm-world --lxc-backend lxd setup run --live
+tiny-swarm-world --lxc-backend incus setup run --live
 ----
 
 The command prompts for a short confirmation:
@@ -107,8 +111,8 @@ Destructive platform workflows also require the exact confirmation phrase:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform reset --confirm RESET_TINY_SWARM_PLATFORM --live
-PYTHONPATH=src python3 -m tiny_swarm_world platform destroy --confirm DESTROY_TINY_SWARM_PLATFORM --live
+tiny-swarm-world platform reset --confirm RESET_TINY_SWARM_PLATFORM --live
+tiny-swarm-world platform destroy --confirm DESTROY_TINY_SWARM_PLATFORM --live
 ----
 
 Reset and destroy are explicit confirmation contracts. Their destructive
@@ -148,7 +152,7 @@ blocked or failed phase evidence when live prerequisites are unavailable:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+tiny-swarm-world setup run --live
 ----
 
 Former direct service preparation helpers have been

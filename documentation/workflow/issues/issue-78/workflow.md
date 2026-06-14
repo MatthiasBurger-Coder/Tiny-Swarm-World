@@ -6,11 +6,12 @@ workflow_version: 1.0.0
 issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/78
 issue_number: 78
 authoring_branch: feature/workflow-index-open-issues-20260614
+branch: feature/workflow-issue-78-python-packaging-20260614
 proposed_execution_branch: feature/workflow-issue-78-python-packaging-20260614
 indexed_workflow: true
-active_workflow: false
+active_workflow: true
 execution_profile: NORMAL_PATH
-released_for_workflow_execute: false
+released_for_workflow_execute: true
 created_utc: "2026-06-14T00:00:00Z"
 decision: PROCEED_WITH_ACCEPTED_ASSUMPTIONS
 confidence: 89
@@ -21,8 +22,7 @@ dependencies: []
 
 Add Python 3.12 packaging metadata and a CLI entry point while preserving the thin module entry path.
 
-This indexed workflow is authored for later promotion or explicit indexed
-execution. It does not replace `documentation/workflow/workflow.md`.
+This workflow has been promoted from the indexed workflow set and is active for `workflow execute` on branch `feature/workflow-issue-78-python-packaging-20260614`.
 
 ## Requirement Clarification Gate
 
@@ -201,8 +201,7 @@ affected_modules:
   - Python packaging and CLI entry point
 affected_contracts:
   - issue_78_python_packaging
-dependencies:
-  []
+dependencies: []
 parallel_group: issue-78-group-1
 file_locks:
   - documentation/workflow/issues/issue-78/**
@@ -215,10 +214,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -282,10 +281,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -343,10 +342,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -402,10 +401,10 @@ architecture_locks:
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
-- git diff --check
-- python3 tools/quality_gate.py test
+    - git diff --check
+    - python3 tools/quality_gate.py test
   required:
-- python3 tools/quality_gate.py quality
+    - python3 tools/quality_gate.py quality
 documentation:
   arc42: checked-update-if-behavior-or-boundary-changes
   adr: checked-update-if-policy-or-architecture-decision-changes
@@ -552,9 +551,7 @@ review.
 
 ## Handoff To Workflow Execute
 
-Do not run unqualified `workflow execute` for this indexed workflow. First
-promote it to `documentation/workflow/workflow.md` or extend the executor to
-accept an explicit indexed workflow path.
+Run `workflow execute` from this branch and this worktree. The executor must verify S3/S3D metadata, locks, evidence, targeted checks, and quality gates before implementation.
 
 ## arc42 Check Status
 
