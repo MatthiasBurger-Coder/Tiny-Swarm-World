@@ -165,6 +165,13 @@ known recovery path exists. Successful setup-style terminal values such as
 `completed`, `passed`, and `verified` remain terminal success states and do
 not render recovery guidance.
 
+Console/status UI output is advisory status display, not the authoritative
+source of workflow completion. Setup and command workflows decide completion
+from application results, then publish aggregate status to the UI. Empty UI
+instance collections are valid for setup-style aggregate status, but they do
+not complete by default; completion requires an explicit terminal aggregate
+status event.
+
 When an aggregate setup state is terminal while individual rows are still
 pending, the Linux terminal renderer shows the aggregate status and recovery
 guidance explicitly. This avoids relying on color and prevents refused,

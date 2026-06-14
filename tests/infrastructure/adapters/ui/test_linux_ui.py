@@ -234,6 +234,24 @@ class TestLinuxUI(unittest.TestCase):
         self.assertTrue(self.ui.all_instances_terminal())
         self.assertEqual("All instances completed with errors", self.ui.completion_summary())
 
+    def test_empty_instance_status_is_not_complete_without_terminal_aggregate(self):
+        ui = LinuxUI(())
+
+        self.assertFalse(ui.all_instances_terminal())
+
+    def test_empty_instance_status_completes_from_terminal_aggregate_only(self):
+        ui = LinuxUI(())
+
+        ui.update_status(
+            AGGREGATE_INSTANCE,
+            task="setup",
+            step="complete",
+            result=STATUS_SUCCESS,
+        )
+
+        self.assertTrue(ui.all_instances_terminal())
+        self.assertEqual("All instances completed", ui.completion_summary())
+
     @patch("asyncio.get_running_loop", return_value=asyncio.new_event_loop())
     @patch("threading.Thread")
     def test_run_in_thread(self, mock_thread, mock_loop):
