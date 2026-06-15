@@ -1,0 +1,46 @@
+= Tiny Swarm World Documentation
+:toc:
+:sectnums:
+
+This directory is the documentation root for Tiny Swarm World. The canonical
+reader entry points are:
+
+* xref:arc42.adoc[System Architecture, arc42] for the complete system model,
+  architecture constraints, runtime behavior, deployment topology, risks, and
+  decision references.
+* xref:user-handbook.adoc[User Handbook] for operator-facing installation,
+  operation, credential access, verification, and troubleshooting steps.
+* xref:configuration/operator-configuration-contract.md[Operator Configuration
+  Contract] for supported environment variables and secret lifecycle rules.
+* xref:system/live-operation-surfaces.adoc[Live Operation Surfaces] for commands
+  and assets that can mutate local infrastructure.
+
+== Documentation Structure
+
+[options="header"]
+|===
+| Path | Role
+| `arc42.adoc` | Canonical architecture book assembled from `documentation/arc42`.
+| `arc42/` | Maintained arc42 section sources.
+| `user-handbook.adoc` | Canonical operator handbook with step-by-step use cases.
+| `user_guide/` | Detailed user-guide source pages used by the handbook.
+| `system/` | Runtime, LXC-native, networking, and live-operation reference pages.
+| `deployment/` | Deployment and Infisical setup reference pages.
+| `configuration/` | Operator configuration and secret contract references.
+| `architecture/` | ADRs and architecture analysis records. ADRs are historical decision records and are not rewritten during documentation consolidation.
+| `epics/` | Requirement and epic context.
+| `process/` | Repository process, workflow, and skill/agent documentation.
+| `workflow/` | Active and issue-scoped workflow records. These are execution artifacts, not the primary user handbook.
+| `skill-audit/` | Skill registry and ownership audit artifacts.
+|===
+
+== Consolidation Rules
+
+Use `arc42.adoc` and `user-handbook.adoc` as the two primary readable books.
+Keep detailed reference pages in their existing folders when they carry
+specialized operational, ADR, or workflow evidence. Do not copy password values,
+tokens, host-specific IP addresses, or generated local evidence into committed
+documentation.
+
+When behavior changes, update the nearest source page and then update the
+canonical book that exposes the behavior to readers.

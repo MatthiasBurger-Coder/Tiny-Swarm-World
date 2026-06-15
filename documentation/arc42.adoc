@@ -1,0 +1,184 @@
+= Tiny Swarm World Architecture
+:doctype: book
+:toc:
+:toc-title: Contents
+:sectnums:
+:sectnumlevels: 5
+:chapter-label:
+:icons: font
+
+This is the canonical arc42 system documentation for Tiny Swarm World. It
+assembles the maintained section files under `documentation/arc42` and adds
+reader-oriented diagrams that describe the verified architecture without
+promoting workflow records or ADR history into duplicate source material.
+
+== System Overview Diagrams
+
+=== Context Diagram
+
+[plantuml,tiny-swarm-world-context,svg]
+----
+@startuml
+!pragma layout smetana
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor Operator
+rectangle "Linux or WSL shell" as Shell
+component "Tiny Swarm World\nPython CLI" as CLI
+component "Configuration\ninfra/config" as Config
+database "Ignored local state\n.tiny-swarm-world\n.tiny-swarm" as LocalState
+cloud "LXD or Incus" as Provider
+node "Managed LXC nodes" as Nodes {
+  component "Docker Engine" as Docker
+  component "Docker Swarm" as Swarm
+}
+component "Portainer" as Portainer
+component "Service stacks\nNexus, Jenkins, RabbitMQ,\nSonarQube, Swagger/NGINX,\nInfisical, Service Access,\nTraefik" as Stacks
+
+Operator --> Shell
+Shell --> CLI
+CLI --> Config
+CLI --> LocalState
+CLI --> Provider
+Provider --> Nodes
+Docker --> Swarm
+Swarm --> Portainer
+Portainer --> Stacks
+CLI --> Portainer : deployment gateway
+CLI --> Stacks : readiness and evidence checks
+@enduml
+----
+
+=== Hexagonal Building Blocks
+
+[plantuml,tiny-swarm-world-hexagonal,svg]
+----
+@startuml
+!pragma layout smetana
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+package "Domain" {
+  component "Command, provider,\nnetwork, deployment,\nsecret, ingress,\npreflight models" as Domain
+}
+package "Application" {
+  component "Use cases and\nworkflow services" as AppServices
+  interface "Ports" as Ports
+}
+package "Infrastructure" {
+  component "Composition root" as Composition
+  component "Command runners" as Commands
+  component "YAML and file adapters" as Files
+  component "HTTP/CLI clients" as Clients
+  component "Console/status UI" as UI
+}
+component "CLI entry point" as Entrypoint
+
+Entrypoint --> Composition
+Composition --> AppServices
+AppServices --> Domain
+AppServices --> Ports
+Commands ..|> Ports
+Files ..|> Ports
+Clients ..|> Ports
+UI ..|> Ports
+Composition --> Commands
+Composition --> Files
+Composition --> Clients
+Composition --> UI
+@enduml
+----
+
+=== Guided Setup Runtime Flow
+
+[plantuml,tiny-swarm-world-setup-flow,svg]
+----
+@startuml
+skinparam shadowing false
+actor Operator
+participant "install.sh" as Install
+participant "tiny-swarm-world CLI" as CLI
+participant "Preflight" as Preflight
+participant "Platform" as Platform
+participant "Artifacts" as Artifacts
+participant "Deployment" as Deployment
+participant "Verification" as Verify
+database "Sanitized evidence" as Evidence
+
+Operator -> Install : ./install.sh
+Install -> CLI : platform reset --live --confirm ...
+CLI -> Preflight : validate host, config, ports, consent
+CLI -> Platform : reset managed TSW state
+CLI -> Evidence : write reset log and exit code
+Install -> CLI : setup run --live --service-profile service-access
+CLI -> Preflight : fail closed if prerequisites are missing
+CLI -> Platform : provider nodes, Docker, Swarm, exposure
+CLI -> Artifacts : registry, Nexus, image contracts
+CLI -> Deployment : Portainer bootstrap and stack contracts
+CLI -> Verify : observed-state checks
+CLI -> Evidence : write setup log and exit code
+@enduml
+----
+
+=== Deployment Topology
+
+[plantuml,tiny-swarm-world-deployment,svg]
+----
+@startuml
+!pragma layout smetana
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+node "Linux/WSL host" {
+  component "Operator shell" as Shell
+  component "Tiny Swarm World CLI" as CLI
+  database "local env and evidence\nignored by Git" as Evidence
+}
+
+cloud "LXD or Incus" {
+  node "swarm-manager" {
+    component "Docker Engine" as MgrDocker
+    component "Swarm manager" as Manager
+    component "Traefik ingress\n80/443" as Traefik
+    component "Portainer" as Portainer
+    component "Service stacks" as ServiceStacks
+  }
+  node "swarm-worker-1" as Worker1
+  node "swarm-worker-2" as Worker2
+}
+
+Shell --> CLI
+CLI --> Evidence
+CLI --> MgrDocker
+Manager --> Worker1
+Manager --> Worker2
+Traefik --> ServiceStacks
+Portainer --> ServiceStacks
+CLI --> Portainer
+@enduml
+----
+
+include::arc42/01_introduction.adoc[leveloffset=+1]
+
+include::arc42/02_constraints.adoc[leveloffset=+1]
+
+include::arc42/04_context_and_scope.adoc[leveloffset=+1]
+
+include::arc42/03_solution_strategy.adoc[leveloffset=+1]
+
+include::arc42/05_building_blocks.adoc[leveloffset=+1]
+
+include::arc42/06_runtime_view.adoc[leveloffset=+1]
+
+include::arc42/07_deployment_view.adoc[leveloffset=+1]
+
+include::arc42/08_concepts.adoc[leveloffset=+1]
+
+include::arc42/09_architecture_decisions.adoc[leveloffset=+1]
+
+include::arc42/10_quality_requirements.adoc[leveloffset=+1]
+
+include::arc42/11_risks_and_debt.adoc[leveloffset=+1]
+
+include::arc42/12_glossary.adoc[leveloffset=+1]

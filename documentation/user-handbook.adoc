@@ -1,0 +1,387 @@
+= Tiny Swarm World User Handbook
+:doctype: book
+:toc:
+:toc-title: Contents
+:sectnums:
+:sectnumlevels: 4
+:chapter-label:
+:icons: font
+
+This handbook explains how to operate Tiny Swarm World from a Linux or WSL
+shell without reading source code or generated local files as the normal
+navigation method. It references local ignored files only where an operator
+must intentionally provide or recover local secrets.
+
+== Operating Model
+
+Tiny Swarm World prepares a local Docker Swarm target environment on managed
+LXC nodes through LXD or Incus. The supported operator surface is the
+`tiny-swarm-world` CLI and the Linux/WSL `install.sh` wrapper. Multipass and
+Windows-native execution are not supported node-provider paths.
+
+[plantuml,user-handbook-operator-map,svg]
+----
+@startuml
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor Operator
+component "Linux/WSL shell" as Shell
+component "install.sh" as Installer
+component "tiny-swarm-world CLI" as CLI
+component "LXD or Incus" as Provider
+node "Managed Docker Swarm" as Swarm
+component "Service Access\nlanding page" as Access
+component "Infisical" as Infisical
+database "Ignored local env\nand evidence" as Local
+
+Operator --> Shell
+Shell --> Installer
+Shell --> CLI
+Installer --> CLI
+CLI --> Provider
+Provider --> Swarm
+Swarm --> Access
+Swarm --> Infisical
+Installer --> Local
+CLI --> Local
+Access --> Infisical : credential references
+@enduml
+----
+
+== Before You Start
+
+Use a Linux or WSL2 shell from the repository root. Prepare:
+
+* Python 3.12;
+* Git;
+* LXD or Incus initialized and usable from the same shell;
+* Docker CLI access for diagnostics;
+* `socat` when WSL localhost forwarding is required.
+
+Install the Python package in editable mode:
+
+[source,bash]
+----
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+python3 -m pip install -e .
+----
+
+Verify development readiness without live infrastructure mutation:
+
+[source,bash]
+----
+python3 tools/quality_gate.py quality
+tiny-swarm-world --list-workflows
+tiny-swarm-world --preflight
+----
+
+If the package is not installed yet, use the source checkout fallback:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+----
+
+== Prepare Operator Configuration
+
+The tracked template is `.env.example`. Copy the keys you want to provide into
+the ignored local runtime file:
+
+[source,bash]
+----
+mkdir -p .tiny-swarm-world/local
+cp .env.example .tiny-swarm-world/local/live-installation.env
+chmod 600 .tiny-swarm-world/local/live-installation.env
+----
+
+Edit `.tiny-swarm-world/local/live-installation.env` and replace placeholder
+values. Process environment values override this file. If `./install.sh` runs
+with secret generation enabled, missing generated local secrets are created and
+kept in ignored local files instead of being printed.
+
+The required values are defined by
+`infra/config/secrets/infisical-secrets.yaml` and summarized in
+`documentation/configuration/operator-configuration-contract.md`. The important
+operator groups are:
+
+* service administrator passwords for Portainer, Nexus, Jenkins, RabbitMQ, and
+  SonarQube;
+* shared PostgreSQL and SonarQube PostgreSQL passwords;
+* Infisical bootstrap values;
+* Traefik TLS Docker secret names for certificate and key material.
+
+Do not commit `.tiny-swarm-world/local/live-installation.env`,
+`.tiny-swarm/secrets/bootstrap.local.env`,
+`.tiny-swarm/secrets/generated.local.env`, or evidence files.
+
+== Run The Guided Installation
+
+For a full fresh local install with evidence capture:
+
+[source,bash]
+----
+./install.sh
+----
+
+The wrapper first asks for the reset phrase `RESET_TINY_SWARM_PLATFORM`, then
+runs the governed platform reset, then starts `setup run --live` with the
+default `service-access` profile. The CLI live prompt is separate:
+
+[source,text]
+----
+Live setup can change local infrastructure. Continue? [y/N]:
+----
+
+Answer `y` only when changing local LXD/Incus/LXC state, Docker Swarm,
+networking, Portainer, Nexus, service stacks, images, and credentials is
+intentional.
+
+For deliberate repeatable test-system automation:
+
+[source,bash]
+----
+./install.sh --confirm-reset
+./install.sh --confirm-reset --non-interactive-live-approval
+----
+
+For headless systems:
+
+[source,bash]
+----
+./install.sh --headless
+TSW_INSTALL_HEADLESS=1 ./install.sh
+----
+
+The wrapper writes run context, reset logs, setup logs, and exit codes below:
+
+[source,text]
+----
+.tiny-swarm-world/evidence/installation-tests/<host-runtime>/<UTC timestamp>/
+----
+
+`<host-runtime>` is `wsl2` for WSL2 and `native_linux` for native Linux.
+
+== Use The CLI Directly
+
+List supported workflows:
+
+[source,bash]
+----
+tiny-swarm-world --list-workflows
+----
+
+Run a non-mutating preflight:
+
+[source,bash]
+----
+tiny-swarm-world --preflight
+tiny-swarm-world --lxc-backend lxd --preflight
+tiny-swarm-world --lxc-backend incus --preflight
+----
+
+Run the canonical live setup directly:
+
+[source,bash]
+----
+tiny-swarm-world setup run --live
+tiny-swarm-world --lxc-backend lxd setup run --live
+tiny-swarm-world --lxc-backend incus setup run --live
+----
+
+Run read-only post-install verification:
+
+[source,bash]
+----
+tiny-swarm-world platform verify
+----
+
+Reset or destroy require exact confirmation and live consent:
+
+[source,bash]
+----
+tiny-swarm-world platform reset --confirm RESET_TINY_SWARM_PLATFORM --live
+tiny-swarm-world platform destroy --confirm DESTROY_TINY_SWARM_PLATFORM --live
+----
+
+== Open The Services
+
+The default full setup uses the `service-access` profile. After a verified
+deployment, use the Service Access landing page as the operator start page:
+
+[source,text]
+----
+http://localhost
+----
+
+Common local service routes and ports are:
+
+[options="header"]
+|===
+| Service | Default route or port | Notes
+| Service Access | `http://localhost` and compatibility route `http://localhost:8086` | Static management table with service links and Infisical item references.
+| Infisical | `/infisical` through local ingress or `http://localhost:8086` | Secret-management UI for authorized operators.
+| Portainer | `/portainer` or `http://localhost:9000` | Deployment gateway after bootstrap.
+| Nexus | `/nexus` or `http://localhost:8081` | Repository service and Docker proxy behavior.
+| Jenkins | `/jenkins` or `http://localhost:8080` | CI service.
+| RabbitMQ | `/rabbitmq` or `http://localhost:15672` | Management UI.
+| SonarQube | `/sonarqube` or `http://localhost:9001` | Static analysis service.
+| Swagger/NGINX | `/swagger` or `http://localhost:8084` | API documentation surface.
+| Traefik | ports `80` and `443` | Ingress owner for the service-access setup profile.
+|===
+
+Localhost reachability depends on the selected provider, LXC profile proxy
+state, WSL forwarding, and verified stack deployment. Treat route defaults as
+operator targets, not proof that a service is healthy.
+
+== Get Infisical Credentials
+
+Infisical has two distinct credential concerns:
+
+* bootstrap login credentials for the Infisical UI;
+* service credential entries synchronized into or referenced from Infisical.
+
+The bootstrap login email and initial admin password are resolved during
+installation from the process environment or from:
+
+[source,text]
+----
+.tiny-swarm-world/local/live-installation.env
+----
+
+Check that the expected keys are present without printing password values into
+logs or tickets:
+
+[source,bash]
+----
+grep -q '^TSW_INFISICAL_LOGIN_EMAIL=' .tiny-swarm-world/local/live-installation.env
+grep -q '^TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD=' .tiny-swarm-world/local/live-installation.env
+----
+
+Open the ignored local file in a private terminal or editor to read the
+bootstrap email and password, then use those values to sign in to Infisical at
+the configured Infisical route. The default external URL is:
+
+[source,text]
+----
+http://localhost:8086
+----
+
+The installer also writes Infisical runtime bootstrap material to:
+
+[source,text]
+----
+.tiny-swarm/secrets/bootstrap.local.env
+----
+
+That file is for the self-hosted Infisical stack and recovery workflows, not
+for routine browsing. Keep its mode at `0600`.
+
+After signing in, use the Infisical UI to reveal or copy service secret values.
+The Service Access dashboard intentionally shows only users and Infisical item
+references; it does not display password values. If Infisical item
+synchronization has not been enabled or completed, service values remain in
+the ignored local environment files and the dashboard references are only
+navigation hints.
+
+To intentionally enable optional legacy Infisical item seeding for a local
+run, set:
+
+[source,bash]
+----
+export TSW_SEED_INFISICAL_ITEMS=1
+./install.sh --confirm-reset
+----
+
+The default installer value is `TSW_SEED_INFISICAL_ITEMS=0`, so do not assume
+that every generated service credential has already been copied into Infisical
+unless the setup evidence confirms it.
+
+== Verify A Finished Installation
+
+Use the non-mutating workflow first:
+
+[source,bash]
+----
+tiny-swarm-world platform verify
+----
+
+Then inspect the newest install evidence:
+
+[source,bash]
+----
+find .tiny-swarm-world/evidence/installation-tests -maxdepth 3 -type f \
+  \( -name 'context.txt' -o -name 'reset-run.exit' -o -name 'setup-run.exit' \) \
+  -print
+----
+
+Useful provider checks, using the backend selected for the run:
+
+[source,bash]
+----
+incus list
+incus exec swarm-manager -- docker node ls
+incus exec swarm-manager -- docker stack ls
+incus exec swarm-manager -- docker service ls
+----
+
+For LXD, replace `incus` with `lxc`.
+
+== Troubleshooting Checklist
+
+If `setup run` prints `REFUSED_LIVE_CONSENT_MISSING`, rerun with `--live` and
+answer the confirmation prompt only when mutation is intentional.
+
+If the LXC backend is not ready, verify from the same shell:
+
+[source,bash]
+----
+incus version
+incus info
+lxc version
+lxc info
+----
+
+If a service port is occupied, the preflight accepts it only when the listener
+matches the expected Tiny Swarm World service. Unknown listeners must be
+stopped or remapped before live setup.
+
+If Portainer initialization returns HTTP 409, check whether the configured
+Portainer username and password authenticate. A rejected initialization is
+accepted only when those same requested credentials work immediately
+afterward.
+
+If Service Access is not reachable through `http://localhost`, verify that the
+service-access profile was deployed, Traefik ports `80` and `443` are exposed,
+and WSL localhost forwarding is current. The Swarm node IP can be used for
+diagnosis, but documentation should not commit host-specific IPs.
+
+For deeper troubleshooting, use:
+
+[source,bash]
+----
+python3 tools/install_debugger.py
+python3 tools/install_debugger.py --live
+----
+
+The debugger reports checkout, host-runtime, service-definition, permission,
+and evidence-log findings. Use `--fix-permissions` only for the narrow
+installer execute-bit and local secret-file mode repair.
+
+== Reference Pages
+
+Detailed reference material remains in:
+
+* `documentation/user_guide/installation.adoc`;
+* `documentation/user_guide/usage.adoc`;
+* `documentation/user_guide/troubleshooting.adoc`;
+* `documentation/deployment/infisical-silent-setup.adoc`;
+* `documentation/deployment/system.adoc`;
+* `documentation/system/lxc-native-setup.adoc`;
+* `documentation/system/network.adoc`;
+* `documentation/system/live-operation-surfaces.adoc`;
+* `documentation/configuration/operator-configuration-contract.md`.
