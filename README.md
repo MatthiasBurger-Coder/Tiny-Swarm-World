@@ -492,6 +492,9 @@ until a `LICENSE` file or explicit license statement is added.
 
 ## Links
 
+- Documentation root: `documentation/README.adoc`
+- System architecture: `documentation/arc42.adoc`
+- User handbook: `documentation/user-handbook.adoc`
 - Portainer: https://www.portainer.io/
 - LXD: https://documentation.ubuntu.com/lxd/
 - Incus: https://linuxcontainers.org/incus/

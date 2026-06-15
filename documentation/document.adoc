@@ -11,7 +11,8 @@
 
 **Your tiny Docker swarm for big ideas.**
 
-include::system/system.adoc[]
+include::README.adoc[leveloffset=+1]
 
-= HowTo
-include::Howto.adoc[]
+include::arc42.adoc[leveloffset=+1]
+
+include::user-handbook.adoc[leveloffset=+1]
