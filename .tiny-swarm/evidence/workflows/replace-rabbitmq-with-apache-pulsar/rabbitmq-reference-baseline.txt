@@ -1,0 +1,303 @@
+.codex/evidence/slice-01-distribution.md:3:Workflow id: `workflow-replace-rabbitmq-with-apache-pulsar`
+.codex/evidence/slice-01-distribution.md:34:- `.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**`
+.codex/evidence/slice-01-distribution.md:51:- Capture RabbitMQ and Pulsar baseline scans.
+.env.example:10:TSW_RABBITMQ_PASSWORD="<replace-with-rabbitmq-password>"
+AGENTS.md:8:service-stack configuration for Portainer, Nexus, Jenkins, RabbitMQ,
+AGENTS.md:100:- Nexus, Jenkins, Portainer, RabbitMQ, or SonarQube bootstrap scripts
+OPERATIONAL_READINESS_CHECKLIST.md:67:- [ ] RabbitMQ reachable.
+README.md:3:Tiny Swarm World is a local development and test infrastructure to simulate a production-like microservices environment on your machine. Its node-provider direction is managed LXC through LXD or Incus for Docker Swarm nodes, and it includes guarded workflow boundaries plus configuration for developer services such as Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger + NGINX.
+README.md:32:  - RabbitMQ (message broker)
+README.md:232:Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, Infisical, image build, image
+README.md:245:Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX environment is intentional.
+README.md:343:`/jenkins`, `/nexus`, `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and
+documentation/Howto.adoc:62:* RabbitMQ: `http://localhost:15672`
+documentation/arc42.adoc:37:component "Service stacks\nNexus, Jenkins, RabbitMQ,\nSonarQube, Swagger/NGINX,\nInfisical, Service Access,\nTraefik" as Stacks
+documentation/arc42/01_introduction.adoc:8:for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX.
+documentation/arc42/04_context_and_scope.adoc:18:* Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, and other deployed stacks;
+documentation/arc42/06_runtime_view.adoc:218:socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, compose, or stack
+documentation/arc42/07_deployment_view.adoc:33:Base service stack contracts cover Portainer, Nexus, Jenkins, RabbitMQ,
+documentation/arc42/07_deployment_view.adoc:122:RabbitMQ, SonarQube, Swagger/NGINX, service-access NGINX, and Infisical remain
+documentation/arc42/08_concepts.adoc:43:compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX
+documentation/arc42/10_quality_requirements.adoc:126:  Nexus, Jenkins, RabbitMQ, SonarQube or service bootstrap commands.
+documentation/arc42/10_quality_requirements.adoc:208:  RabbitMQ, SonarQube or service bootstrap commands.
+documentation/arc42/11_risks_and_debt.adoc:61:* Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX service
+documentation/architecture/adr-autonomous-setup-safety.adoc:26:Swarm, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, image
+documentation/architecture/adr-autonomous-setup-safety.adoc:57:  RabbitMQ, SonarQube, Swagger/NGINX, image build, image push, stack upload,
+documentation/architecture/adr-separate-platform-artifacts-deployment.adoc:40:  such as Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX.
+documentation/architecture/adr-separate-platform-artifacts-deployment.adoc:124:* Service stack lifecycle for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc:46:Nexus, Jenkins, RabbitMQ, SonarQube and Swagger/NGINX are governed through
+documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc:106:  Portainer, RabbitMQ, SonarQube, Swagger and Vaultwarden.
+documentation/architecture/agent-split-plan.md:27:  - Jenkins/RabbitMQ/SonarQube live setup
+documentation/architecture/agent-split-plan.md:270:- Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, Nexus, and Portainer stack
+documentation/architecture/migration-plan.md:14:  Jenkins, RabbitMQ, SonarQube, or compose deployment commands during migration
+documentation/architecture/responsibility-separation-analysis.md:158:  `infra/config/compose/rabbitmq`, and `infra/config/compose/sonarqube`
+documentation/architecture/responsibility-separation-analysis.md:246:  RabbitMQ, SonarQube, Swagger/NGINX.
+documentation/configuration/config-contract-inventory.md:84:| `TSW_RABBITMQ_PASSWORD` | RabbitMQ | Required | secret value | `setup_manifest.py`, `installer.py`, compose |
+documentation/configuration/config-contract-inventory.md:107:| `TSW_RABBITMQ_USERNAME` | `admin` | Optional | identifier | `composition.py` |
+documentation/configuration/operator-configuration-contract.md:51:| `TSW_RABBITMQ_PASSWORD` | secret value | RabbitMQ |
+documentation/deployment/system.adoc:66:The base service set covers Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+documentation/epics/autonomous-runnable-setup.md:141:- RabbitMQ is reachable when included in the selected profile;
+documentation/epics/autonomous-runnable-setup.md:179:compose, stack, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+documentation/epics/system-unification.md:146:  Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, LXD, Incus, LXC container, or
+documentation/system/live-operation-surfaces.adoc:99:Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX bootstrap,
+documentation/system/live-operation-surfaces.adoc:116:Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, image, and stack changes are
+documentation/system/lxc-native-setup.adoc:236:RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image publication, or stack
+documentation/user-handbook.adoc:112:* service administrator passwords for Portainer, Nexus, Jenkins, RabbitMQ, and
+documentation/user-handbook.adoc:231:| RabbitMQ | `/rabbitmq` or `http://localhost:15672` | Management UI.
+documentation/user_guide/installation.adoc:434:Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX environment is intentional.
+documentation/user_guide/troubleshooting.adoc:208:curl -s http://localhost:15672
+documentation/user_guide/usage.adoc:143:Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, image, and stack changes
+documentation/user_guide/usage.adoc:152:Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX commands.
+documentation/user_guide/usage.adoc:289:`/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and `/infisical`.
+documentation/workflow/context-pack.json:2:  "workflow_id": "workflow-replace-rabbitmq-with-apache-pulsar",
+documentation/workflow/context-pack.json:5:  "authoring_branch": "feature/replace-rabbitmq-with-apache-pulsar-20260616",
+documentation/workflow/context-pack.json:6:  "execution_branch": "feature/replace-rabbitmq-with-apache-pulsar-20260616",
+documentation/workflow/context-pack.json:7:  "required_execution_branch": "feature/replace-rabbitmq-with-apache-pulsar-20260616",
+documentation/workflow/context-pack.json:30:    "RabbitMQ compatibility fallback",
+documentation/workflow/context-pack.md:1:# Context Pack: Replace RabbitMQ with Apache Pulsar
+documentation/workflow/context-pack.md:3:- Workflow id: `workflow-replace-rabbitmq-with-apache-pulsar`
+documentation/workflow/context-pack.md:5:- Authoring branch: `feature/replace-rabbitmq-with-apache-pulsar-20260616`
+documentation/workflow/context-pack.md:6:- Required execution branch: `feature/replace-rabbitmq-with-apache-pulsar-20260616`
+documentation/workflow/context-pack.md:18:  RabbitMQ compatibility fallback, Ansible, Windows-native behavior, committed
+documentation/workflow/issues/issue-4/swarm-stack-validation-baseline.md:28:- `infra/config/compose/rabbitmq/docker-compose.yml`
+documentation/workflow/issues/issue-4/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-63/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-64/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-65/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-66/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-67/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-68/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-69/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-70/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-71/workflow.md:84:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-72/workflow.md:84:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-73/workflow.md:84:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-74/workflow.md:86:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-75/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-76/workflow.md:86:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-77/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-78/workflow.md:86:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-80/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-81/workflow.md:84:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-82/workflow.md:83:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/issues/issue-83/workflow.md:85:  RabbitMQ, SonarQube, networking, or socat mutation during normal
+documentation/workflow/workflow.md:1:# Workflow: Replace RabbitMQ with Apache Pulsar
+documentation/workflow/workflow.md:4:workflow_id: workflow-replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:6:authoring_branch: feature/replace-rabbitmq-with-apache-pulsar-20260616
+documentation/workflow/workflow.md:7:required_execution_branch: feature/replace-rabbitmq-with-apache-pulsar-20260616
+documentation/workflow/workflow.md:23:Replace RabbitMQ with Apache Pulsar as the Tiny Swarm World platform messaging
+documentation/workflow/workflow.md:27:the RabbitMQ compose stack and verify no active RabbitMQ runtime or config
+documentation/workflow/workflow.md:34:- Create a workflow to replace RabbitMQ with Apache Pulsar.
+documentation/workflow/workflow.md:37:- Use the branch `feature/replace-rabbitmq-with-apache-pulsar-20260616`.
+documentation/workflow/workflow.md:43:- Remove RabbitMQ from active desired platform state with no hidden fallback.
+documentation/workflow/workflow.md:70:- RabbitMQ is removed from active desired inventory, setup/preflight manifest,
+documentation/workflow/workflow.md:78:- The old RabbitMQ compose stack is deleted only after Pulsar is wired through
+documentation/workflow/workflow.md:95:- Repository evidence continues to show RabbitMQ as platform infrastructure
+documentation/workflow/workflow.md:96:  rather than deep AMQP runtime coupling.
+documentation/workflow/workflow.md:107:- No RabbitMQ compatibility mode target.
+documentation/workflow/workflow.md:113:- Pulsar has a higher resource footprint than RabbitMQ.
+documentation/workflow/workflow.md:117:- Browser access differs because RabbitMQ Management UI has no direct Pulsar
+documentation/workflow/workflow.md:119:- Historical evidence files may still contain RabbitMQ references and must be
+documentation/workflow/workflow.md:142:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/three-amigos-review.md
+documentation/workflow/workflow.md:177:  - RabbitMQ absent from active desired platform state
+documentation/workflow/workflow.md:184:- A lightweight authoring scan found active RabbitMQ references in `.env.example`,
+documentation/workflow/workflow.md:199:- RabbitMQ compose stack removal.
+documentation/workflow/workflow.md:234:unless existing terminal output lists RabbitMQ as an active service.
+documentation/workflow/workflow.md:241:- Adapt RabbitMQ expectations to Pulsar.
+documentation/workflow/workflow.md:247:  RabbitMQ references are ambiguous.
+documentation/workflow/workflow.md:248:- Do not skip safety guards, disable validations, or silently keep RabbitMQ as
+documentation/workflow/workflow.md:251:  `.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/`.
+documentation/workflow/workflow.md:259:- Capture all RabbitMQ and Pulsar references before implementation changes.
+documentation/workflow/workflow.md:270:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:278:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:293:  - Baseline scan reveals deep RabbitMQ runtime client coupling that changes the scope.
+documentation/workflow/workflow.md:299:mkdir -p .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:300:grep -RIn -e "rabbitmq" -e "RabbitMQ" -e "RABBITMQ" -e "amqp" -e "AMQP" -e "5672" -e "15672" -e "pika" -e "aio_pika" -e "kombu" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=__pycache__ > .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/rabbitmq-reference-baseline.txt || true
+documentation/workflow/workflow.md:301:grep -RIn -e "pulsar" -e "Pulsar" -e "PULSAR" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=__pycache__ > .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/pulsar-reference-baseline.txt || true
+documentation/workflow/workflow.md:308:git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:309:git commit -m "docs: capture rabbitmq pulsar migration baseline"
+documentation/workflow/workflow.md:359:- RabbitMQ compose file remains untouched in this slice.
+documentation/workflow/workflow.md:368:### Slice 03: Replace RabbitMQ in desired inventory and setup manifest
+documentation/workflow/workflow.md:372:- Make Pulsar part of active desired platform state and remove RabbitMQ from
+documentation/workflow/workflow.md:418:  - RabbitMQ remains active in desired inventory or preflight.
+documentation/workflow/workflow.md:426:git commit -m "feat: replace rabbitmq with pulsar in desired platform state"
+documentation/workflow/workflow.md:433:- Replace RabbitMQ with Pulsar in the deployment service stack contract.
+documentation/workflow/workflow.md:470:  - Stack contract still requires RabbitMQ.
+documentation/workflow/workflow.md:485:- Replace RabbitMQ dashboard/service-access entries with Pulsar Admin API
+documentation/workflow/workflow.md:500:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:512:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:533:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/test-limitations.md
+documentation/workflow/workflow.md:539:git add infra/config/compose/service-access tests/integration documentation/system .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:547:- Remove active RabbitMQ secrets/config and add minimal Pulsar values only if
+documentation/workflow/workflow.md:592:  - RabbitMQ credentials remain active.
+documentation/workflow/workflow.md:603:### Slice 07: Remove RabbitMQ compose stack
+documentation/workflow/workflow.md:607:- Delete the old RabbitMQ compose stack after Pulsar is fully wired.
+documentation/workflow/workflow.md:617:  - infra/config/compose/rabbitmq/docker-compose.yml
+documentation/workflow/workflow.md:627:  - infra/config/compose/rabbitmq/**
+documentation/workflow/workflow.md:643:  - Active references to infra/config/compose/rabbitmq remain.
+documentation/workflow/workflow.md:649:grep -RIn -e "infra/config/compose/rabbitmq" -e "compose/rabbitmq" -e "rabbitmq/docker-compose.yml" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=__pycache__
+documentation/workflow/workflow.md:656:git commit -m "feat: remove rabbitmq compose stack"
+documentation/workflow/workflow.md:709:  - Active documentation still claims RabbitMQ is part of the current stack.
+documentation/workflow/workflow.md:720:### Slice 09: Global RabbitMQ residue check
+documentation/workflow/workflow.md:724:- Record final RabbitMQ and Pulsar reference scans and classify remaining
+documentation/workflow/workflow.md:725:  RabbitMQ references.
+documentation/workflow/workflow.md:735:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:744:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:758:  - Any remaining RabbitMQ reference is active runtime, config, or contract state.
+documentation/workflow/workflow.md:764:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/final-reference-classification.md
+documentation/workflow/workflow.md:767:Classify each remaining RabbitMQ reference as `historical documentation`,
+documentation/workflow/workflow.md:774:git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:775:git commit -m "test: record final rabbitmq pulsar reference validation"
+documentation/workflow/workflow.md:791:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/full-test-run.txt
+documentation/workflow/workflow.md:801:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:823:python3 tools/quality_gate.py quality | tee .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/full-test-run.txt
+documentation/workflow/workflow.md:831:git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar tests
+documentation/workflow/workflow.md:850:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/**
+documentation/workflow/workflow.md:851:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath-not-run.md
+documentation/workflow/workflow.md:860:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:877:  - RabbitMQ deploys during the live greenpath.
+documentation/workflow/workflow.md:883:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/install-output.txt
+documentation/workflow/workflow.md:884:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/docker-service-ls.txt
+documentation/workflow/workflow.md:885:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/docker-stack-ls.txt
+documentation/workflow/workflow.md:886:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/pulsar-healthcheck.txt
+documentation/workflow/workflow.md:887:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/service-access-check.txt
+documentation/workflow/workflow.md:896:git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:914:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:923:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:945:Replace RabbitMQ with Apache Pulsar platform messaging stack
+documentation/workflow/workflow.md:953:This PR replaces RabbitMQ with Apache Pulsar as the platform messaging service for Tiny Swarm World.
+documentation/workflow/workflow.md:958:- Removed RabbitMQ from active desired inventory.
+documentation/workflow/workflow.md:963:- Removed RabbitMQ compose stack.
+documentation/workflow/workflow.md:978:- [ ] RabbitMQ residue scan completed
+documentation/workflow/workflow.md:983:- Pulsar has a higher resource footprint than RabbitMQ.
+documentation/workflow/workflow.md:986:- Existing downstream code must not assume RabbitMQ Management UI semantics.
+documentation/workflow/workflow.md:990:See `.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/`.
+documentation/workflow/workflow.md:1013:- Merge-order constraints: preserve slice order; do not delete RabbitMQ compose
+documentation/workflow/workflow.md:1048:feature/replace-rabbitmq-with-apache-pulsar-20260616-slice-<number>-<stream>
+documentation/workflow/workflow.md:1104:- The active branch is not `feature/replace-rabbitmq-with-apache-pulsar-20260616`.
+documentation/workflow/workflow.md:1106:- Repository evidence shows deep RabbitMQ application runtime coupling.
+documentation/workflow/workflow.md:1109:- RabbitMQ must be kept as hidden fallback to pass tests.
+documentation/workflow/workflow.md:1112:- Any active RabbitMQ runtime/config/contract reference remains after S09.
+documentation/workflow/workflow.md:1136:- Branch `feature/replace-rabbitmq-with-apache-pulsar-20260616` exists.
+documentation/workflow/workflow.md:1137:- RabbitMQ compose stack is removed.
+documentation/workflow/workflow.md:1141:  Pulsar instead of RabbitMQ for active platform messaging.
+documentation/workflow/workflow.md:1144:- No active RabbitMQ runtime/config/contract reference remains.
+documentation/workflow/workflow.md:1154:2. Do not silently reintroduce RabbitMQ.
+documentation/workflow/workflow.md:1155:3. Create a rollback commit that restores the last known green RabbitMQ stack.
+documentation/workflow/workflow.md:1159:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/blockers.md
+documentation/workflow/workflow.md:1165:git commit -m "revert: restore rabbitmq stack after pulsar migration blocker"
+documentation/workflow/workflow.md:1178:  deployment views change from RabbitMQ to Pulsar.
+infra/AGENTS.md:17:  RabbitMQ, SonarQube, or compose deployment commands unless the user explicitly
+infra/config/compose/rabbitmq/docker-compose.yml:2:  rabbitmq:
+infra/config/compose/rabbitmq/docker-compose.yml:3:    image: rabbitmq:3-management-alpine
+infra/config/compose/rabbitmq/docker-compose.yml:5:      RABBITMQ_DEFAULT_USER: guest
+infra/config/compose/rabbitmq/docker-compose.yml:6:      RABBITMQ_DEFAULT_PASS: ${TSW_RABBITMQ_PASSWORD}
+infra/config/compose/rabbitmq/docker-compose.yml:7:      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit loopback_users []"
+infra/config/compose/rabbitmq/docker-compose.yml:9:      - target: 5672
+infra/config/compose/rabbitmq/docker-compose.yml:10:        published: 5672
+infra/config/compose/rabbitmq/docker-compose.yml:13:      - target: 15672
+infra/config/compose/rabbitmq/docker-compose.yml:14:        published: 15672
+infra/config/compose/rabbitmq/docker-compose.yml:18:      - rabbitmq_data:/var/lib/rabbitmq
+infra/config/compose/rabbitmq/docker-compose.yml:19:      - rabbitmq_log:/var/log/rabbitmq
+infra/config/compose/rabbitmq/docker-compose.yml:26:  rabbitmq_data:
+infra/config/compose/rabbitmq/docker-compose.yml:27:  rabbitmq_log:
+infra/config/compose/service-access/dashboard/index.html:233:            <th scope="row">rabbitmq</th>
+infra/config/compose/service-access/dashboard/index.html:234:            <td><a href="/rabbitmq" target="_blank" rel="noopener noreferrer">http://localhost/rabbitmq</a></td>
+infra/config/compose/service-access/dashboard/index.html:236:            <td><span class="pwd"><a href="/infisical" target="_blank" rel="noopener noreferrer"><code>platform/rabbitmq</code></a><small>View secret in Infisical</small></span></td>
+infra/config/compose/service-access/nginx/default.conf:38:  location = /rabbitmq {
+infra/config/compose/service-access/nginx/default.conf:39:    return 302 $scheme://$host:15672/;
+infra/config/compose/service-access/nginx/default.conf:42:  location = /rabbitmq/ {
+infra/config/compose/service-access/nginx/default.conf:43:    return 302 $scheme://$host:15672/;
+infra/config/inventory/desired_inventory.yaml:13:      - rabbitmq
+infra/config/inventory/desired_inventory.yaml:29:      - rabbitmq
+infra/config/inventory/desired_inventory.yaml:45:      - rabbitmq
+infra/config/inventory/desired_inventory.yaml:55:  - rabbitmq
+infra/config/secrets/infisical-secrets.yaml:122:  - key: TSW_RABBITMQ_PASSWORD
+infra/config/secrets/infisical-secrets.yaml:123:    service: rabbitmq
+infra/config/secrets/infisical-secrets.yaml:126:    description: RabbitMQ admin password
+src/tiny_swarm_world/__main__.py:502:        "RabbitMQ": "rabbitmq",
+src/tiny_swarm_world/domain/configuration/configuration_contract.py:145:            _required_secret("TSW_RABBITMQ_PASSWORD", "rabbitmq", "RabbitMQ default password."),
+src/tiny_swarm_world/domain/deployment/service_stack_contract.py:114:        "rabbitmq",
+src/tiny_swarm_world/domain/deployment/service_stack_contract.py:115:        ("rabbitmq",),
+src/tiny_swarm_world/domain/deployment/service_stack_contract.py:116:        endpoints=(ServiceEndpoint("rabbitmq-management", "http://localhost:15672"),),
+src/tiny_swarm_world/domain/preflight/setup_manifest.py:135:            name="RabbitMQ",
+src/tiny_swarm_world/domain/preflight/setup_manifest.py:137:                SetupPortRequirement(5672, "RabbitMQ AMQP"),
+src/tiny_swarm_world/domain/preflight/setup_manifest.py:138:                SetupPortRequirement(15672, "RabbitMQ management"),
+src/tiny_swarm_world/domain/preflight/setup_manifest.py:140:            secrets=(SetupSecretRequirement("TSW_RABBITMQ_PASSWORD", "RabbitMQ"),),
+src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py:164:        if "rabbitmq management" in service_name:
+src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py:165:            return _http_service_available(port, ("/",), ("rabbitmq",))
+src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py:166:        if "rabbitmq amqp" in service_name:
+src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py:167:            return _tcp_connects(port) and _http_service_available(15672, ("/",), ("rabbitmq",))
+src/tiny_swarm_world/infrastructure/composition.py:1700:        "rabbitmq": {
+src/tiny_swarm_world/infrastructure/composition.py:1701:            "TSW_RABBITMQ_PASSWORD": _operator_secret_value("TSW_RABBITMQ_PASSWORD"),
+src/tiny_swarm_world/infrastructure/composition.py:1975:            "platform/rabbitmq",
+src/tiny_swarm_world/infrastructure/composition.py:1976:            _operator_config_value("TSW_RABBITMQ_USERNAME", "admin"),
+src/tiny_swarm_world/infrastructure/composition.py:1977:            _required_operator_secret_value("TSW_RABBITMQ_PASSWORD"),
+tests/application/services/deployment/test_deployment_workflows.py:308:        third_step = _OrderedApplyStep("deployment:rabbitmq-stack", VerificationStatus.VERIFIED)
+tests/application/services/deployment/test_deployment_workflows.py:359:        check = _ExceptionDeploymentCheck("deployment:rabbitmq-stack")
+tests/application/services/deployment/test_ensure_service_stack.py:33:        stack_definition = StackDefinition(name="rabbitmq", compose_content="services: {}")
+tests/application/services/deployment/test_ensure_service_stack.py:39:            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+tests/application/services/deployment/test_ensure_service_stack.py:45:        self.assertEqual("rabbitmq", request.target_stack)
+tests/application/services/deployment/test_ensure_swarm_stack.py:47:        repository = _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}"))
+tests/application/services/deployment/test_ensure_swarm_stack.py:50:            services=(SwarmServiceStatus("rabbitmq_rabbitmq", 1, 1),),
+tests/application/services/deployment/test_ensure_swarm_stack.py:55:            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+tests/application/services/deployment/test_ensure_swarm_stack.py:61:        self.assertEqual("deployment:rabbitmq-stack", verification.target_id)
+tests/application/services/deployment/test_ensure_swarm_stack.py:66:            _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}")),
+tests/application/services/deployment/test_ensure_swarm_stack.py:69:                services=(SwarmServiceStatus("rabbitmq_rabbitmq", 1, 1),),
+tests/application/services/deployment/test_ensure_swarm_stack.py:71:            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+tests/application/services/deployment/test_ensure_swarm_stack.py:81:            _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}")),
+tests/application/services/deployment/test_ensure_swarm_stack.py:83:            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+tests/application/services/deployment/test_ensure_swarm_stack.py:89:        self.assertEqual("rabbitmq", verification.evidence["missing_services"])
+tests/application/services/deployment/test_ensure_swarm_stack.py:97:            _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}")),
+tests/application/services/deployment/test_ensure_swarm_stack.py:99:            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+tests/application/services/deployment/test_service_stack_plan.py:32:                "deployment:rabbitmq-stack",
+tests/application/services/deployment/test_service_stack_plan.py:60:            ("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
+tests/application/services/deployment/test_service_stack_plan.py:76:            ("jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
+tests/application/services/deployment/test_service_stack_plan.py:117:                "deployment:rabbitmq-stack",
+tests/architecture/test_legacy_surface_documentation.py:164:        for route in ("jenkins", "nexus", "portainer", "rabbitmq", "sonarqube", "swagger", "infisical"):
+tests/domain/deployment/test_service_stack_contract.py:22:            ("portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"),
+tests/domain/deployment/test_service_stack_contract.py:32:            ("portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
+tests/domain/deployment/test_service_stack_contract.py:70:            ("http://localhost:15672",),
+tests/domain/deployment/test_service_stack_contract.py:71:            _endpoint_urls(endpoints_by_stack["rabbitmq"]),
+tests/domain/deployment/test_service_stack_contract.py:116:                "deployment:rabbitmq-service-readiness",
+tests/domain/deployment/test_service_stack_contract.py:128:        self.assertEqual(("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"), stack_names)
+tests/domain/deployment/test_service_stack_contract.py:139:            ("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
+tests/domain/preflight/test_preflight_result.py:166:                "RabbitMQ",
+tests/domain/preflight/test_preflight_result.py:173:            (9000, 8081, 5000, 8080, 5672, 15672, 9001, 8084),
+tests/domain/preflight/test_preflight_result.py:181:                "TSW_RABBITMQ_PASSWORD",
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:214:        self.assertEqual(["portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"], loaded_stack_names)
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:248:                "rabbitmq",
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:287:    def test_committed_rabbitmq_compose_keeps_host_ports_on_manager_gateway(self):
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:290:            repository_root / "infra" / "config" / "compose" / "rabbitmq" / "docker-compose.yml"
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:293:        rabbitmq = compose_data["services"]["rabbitmq"]
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:297:            rabbitmq["deploy"]["placement"]["constraints"],
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:301:                {"target": 5672, "published": 5672, "protocol": "tcp", "mode": "host"},
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:302:                {"target": 15672, "published": 15672, "protocol": "tcp", "mode": "host"},
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:304:            rabbitmq["ports"],
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:690:                "/rabbitmq",
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:708:            "http://localhost:15672",
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:732:            "platform/rabbitmq",
+tests/infrastructure/adapters/repositories/test_inventory_repositories.py:80:                "rabbitmq",
+tests/infrastructure/test_composition.py:47:        "TSW_RABBITMQ_PASSWORD": sample_text("rabbitmq", "-value"),
+tests/infrastructure/test_composition.py:682:                "deployment:rabbitmq-stack",
+tests/infrastructure/test_composition.py:729:                "deployment:rabbitmq-service-readiness",
+tests/infrastructure/test_composition.py:809:                "deployment:rabbitmq-stack",
+tests/infrastructure/test_composition.py:835:                "deployment:rabbitmq-service-readiness",
+tests/infrastructure/test_composition.py:1022:            "TSW_RABBITMQ_PASSWORD": sample_text("rabbitmq", "-value"),
+tests/infrastructure/test_composition.py:1048:                "platform/rabbitmq",
+tests/infrastructure/test_composition.py:1117:        "TSW_RABBITMQ_PASSWORD": sample_text("rabbitmq", "-value"),
+tests/integration/test_post_install_browser_live.py:50:    rabbitmq_url: str
+tests/integration/test_post_install_browser_live.py:51:    rabbitmq_username: str
+tests/integration/test_post_install_browser_live.py:52:    rabbitmq_password: str | None
+tests/integration/test_post_install_browser_live.py:79:            rabbitmq_url=_env_value(local_env, "TSW_RABBITMQ_URL", "http://localhost:15672"),
+tests/integration/test_post_install_browser_live.py:80:            rabbitmq_username=_env_value(local_env, "TSW_RABBITMQ_USERNAME", "guest"),
+tests/integration/test_post_install_browser_live.py:81:            rabbitmq_password=_env_optional(local_env, "TSW_RABBITMQ_PASSWORD") or "guest",
+tests/integration/test_post_install_browser_live.py:98:            ServiceEndpoint("rabbitmq", self.rabbitmq_url),
+tests/integration/test_post_install_browser_live.py:239:    def test_rabbitmq_admin_login(self) -> None:
+tests/integration/test_post_install_browser_live.py:241:            self.config.rabbitmq_url,
+tests/integration/test_post_install_browser_live.py:242:            self.config.rabbitmq_username,
+tests/integration/test_post_install_browser_live.py:243:            self.config.rabbitmq_password,
+tests/live/test_post_install_browser_live.py:47:    "platform/rabbitmq",
+tests/live/test_post_install_browser_live.py:54:    "platform/rabbitmq": "TSW_RABBITMQ_PASSWORD",
+tests/live/test_post_install_browser_live.py:360:        self.assertIn("TSW_RABBITMQ_PASSWORD", expected_keys)
+tests/test_install_script.py:538:        "TSW_RABBITMQ_PASSWORD": "rabbitmq-password",
