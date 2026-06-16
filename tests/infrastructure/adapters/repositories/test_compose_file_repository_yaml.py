@@ -246,7 +246,6 @@ services:
                 "nexus",
                 "portainer",
                 "pulsar",
-                "rabbitmq",
                 "service-access",
                 "sonarqube",
                 "swagger",
@@ -284,26 +283,6 @@ services:
             compose_data["services"]["jenkins"]["environment"],
         )
         self.assertNotIn("secrets", compose_data)
-
-    def test_committed_rabbitmq_compose_keeps_host_ports_on_manager_gateway(self):
-        repository_root = Path(__file__).resolve().parents[4]
-        compose_path = (
-            repository_root / "infra" / "config" / "compose" / "rabbitmq" / "docker-compose.yml"
-        )
-        compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
-        rabbitmq = compose_data["services"]["rabbitmq"]
-
-        self.assertEqual(
-            ["node.role == manager"],
-            rabbitmq["deploy"]["placement"]["constraints"],
-        )
-        self.assertEqual(
-            [
-                {"target": 5672, "published": 5672, "protocol": "tcp", "mode": "host"},
-                {"target": 15672, "published": 15672, "protocol": "tcp", "mode": "host"},
-            ],
-            rabbitmq["ports"],
-        )
 
     def test_committed_pulsar_compose_uses_standalone_with_non_conflicting_admin_port(self):
         repository_root = Path(__file__).resolve().parents[4]

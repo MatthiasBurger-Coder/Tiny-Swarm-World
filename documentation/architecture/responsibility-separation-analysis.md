@@ -155,7 +155,7 @@ Portainer stack APIs, and service lifecycle through Portainer or Docker Swarm.
   surface
 - Portainer stack compose files under `infra/config/compose/portainer`
 - service stack compose files under `infra/config/compose/nexus`,
-  `infra/config/compose/rabbitmq`, and `infra/config/compose/sonarqube`
+  `infra/config/compose/pulsar`, and `infra/config/compose/sonarqube`
 
 ### Tests and Documentation
 

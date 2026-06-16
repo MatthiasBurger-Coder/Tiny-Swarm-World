@@ -26,7 +26,6 @@ Current product compose files:
 - `infra/config/compose/nexus/docker-compose.yml`
 - `infra/config/compose/portainer/docker-compose.yml`
 - `infra/config/compose/pulsar/docker-compose.yml`
-- `infra/config/compose/rabbitmq/docker-compose.yml`
 - `infra/config/compose/service-access/docker-compose.yml`
 - `infra/config/compose/sonarqube/docker-compose.yml`
 - `infra/config/compose/swagger/docker-compose.yml`
