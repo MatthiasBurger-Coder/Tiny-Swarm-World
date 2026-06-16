@@ -1,486 +1,1071 @@
-# Workflow: Make resource mapping backend aware
+# Workflow: Replace RabbitMQ with Apache Pulsar
 
 ```yaml
-workflow_id: issue-65-backend-resource-mapping-20260614
+workflow_id: workflow-replace-rabbitmq-with-apache-pulsar
 workflow_version: 1.0.0
-issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/65
-issue_number: 65
-authoring_branch: feature/workflow-issue-65-backend-resource-mapping-20260614
-proposed_execution_branch: feature/workflow-issue-65-backend-resource-mapping-20260614
-indexed_workflow: true
+authoring_branch: feature/replace-rabbitmq-with-apache-pulsar-20260616
+required_execution_branch: feature/replace-rabbitmq-with-apache-pulsar-20260616
+repository: Tiny-Swarm-World
+branch_type: feature/
+execution_mode: Controlled Codex workflow
+architecture_style: Hexagonal architecture, declarative infrastructure reconciliation
+target_platform: Local Linux / LXD-native Docker Swarm
 active_workflow: true
-execution_profile: FULL_PATH
 released_for_workflow_execute: true
-created_utc: "2026-06-14T00:00:00Z"
-decision: PROCEED_WITH_ACCEPTED_ASSUMPTIONS
-confidence: 88
+created_utc: "2026-06-16T00:00:00Z"
+decision: READY_FOR_WORKFLOW
+confidence: 94
 dependencies: []
 ```
 
 ## Executive Summary
 
-Resolve network, storage, profile, image and related resource names through backend-aware configuration instead of unconditional LXD-specific mappings.
-
-This indexed workflow is authored for later promotion or explicit indexed
-execution. It does not replace `documentation/workflow/workflow.md`.
+Replace RabbitMQ with Apache Pulsar as the Tiny Swarm World platform messaging
+service. The migration is treated as a controlled platform stack replacement:
+add Apache Pulsar standalone, wire it into inventory, preflight, deployment
+contracts, service access, configuration, tests, and documentation, then remove
+the RabbitMQ compose stack and verify no active RabbitMQ runtime or config
+references remain.
 
 ## Requirement Clarification Gate
 
 Original request:
 
-- Create workflows for all open GitHub issues except Issue #5 and Issue #7.
-- Use `workflow.index.md` so multiple `workflow.md` files do not overwrite
-  each other.
-- Use subagents for workflow creation analysis.
+- Create a workflow to replace RabbitMQ with Apache Pulsar.
+- Preserve the Linux/WSL-only, Python automation, Docker Swarm, and hexagonal
+  architecture constraints.
+- Use the branch `feature/replace-rabbitmq-with-apache-pulsar-20260616`.
 
 Interpreted intent:
 
-- Create an executable workflow plan for Issue #65: Make resource mapping backend aware.
-- Defer implementation until all indexed workflows are authored and the
-  execution order is selected from `workflow.index.md`.
+- Author an executable workflow plan, not execute the implementation yet.
+- Use Apache Pulsar standalone for the phase-1 local greenpath.
+- Remove RabbitMQ from active desired platform state with no hidden fallback.
 
 Change type:
 
-- Workflow creation for future provider resource configuration work.
+- Platform service replacement across declarative infrastructure, domain
+  contracts, configuration, service access, tests, and documentation.
 
 Affected process strand:
 
-- provider resource configuration.
-- Workflow execution with S3/S3D validation.
-- Documentation and quality-gate synchronization.
+- Docker Swarm service-stack reconciliation.
+- Preflight and setup manifest checks.
+- Operator configuration and secrets contract.
+- Service access dashboard and live validation evidence.
 
 Affected architecture area:
 
-- `infra/config/node-providers/**`
-- `src/tiny_swarm_world/domain/node_provider/**`
-- `src/tiny_swarm_world/infrastructure/adapters/**`
+- `infra/config/**`
+- `src/tiny_swarm_world/domain/preflight/**`
+- `src/tiny_swarm_world/domain/deployment/**`
+- `src/tiny_swarm_world/domain/configuration/**`
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/**`
 - `tests/**`
 - `documentation/**`
+- `AGENTS.md`, `infra/AGENTS.md`, `README.md`, `OPERATIONAL_READINESS_CHECKLIST.md`
 
 Explicit requirements:
 
-- Address the linked GitHub issue acceptance criteria.
-- Preserve hexagonal architecture and Linux/WSL-only assumptions.
-- Keep live infrastructure commands mocked or static unless explicitly
-  approved.
-- Add or update tests for changed product behavior.
-- Update relevant documentation when behavior or operator workflow changes.
+- RabbitMQ is removed from active desired inventory, setup/preflight manifest,
+  deployment service stack contract, service access, secrets/env contract, and
+  documentation.
+- Apache Pulsar is introduced as the platform messaging broker.
+- `./install.sh` remains the primary greenpath command.
+- Pulsar binary protocol uses port `6650`.
+- Pulsar admin HTTP uses internal port `8080` and must not map host `8080`.
+- Prefer host `8087` for direct admin HTTP exposure when required.
+- The old RabbitMQ compose stack is deleted only after Pulsar is wired through
+  inventory, contracts, service access, configuration, tests, and docs.
+- Every implementation slice is committed separately.
 
 Implicit requirements:
 
-- Keep domain independent from infrastructure adapters and side effects.
-- Keep application services dependent on ports rather than concrete adapters.
-- Keep concrete adapter construction in infrastructure composition.
-- Preserve deterministic, redacted, host-neutral evidence.
+- Keep domain code independent from infrastructure adapters and YAML/file
+  parsing.
+- Keep application services dependent on ports, not concrete adapters.
+- Use structured YAML handling or existing repository helpers.
+- Preserve safety guards and do not execute live infrastructure commands
+  without explicit approval.
+- Mock Docker, Swarm, network, and node-provider operations in tests unless
+  live validation is explicitly requested.
 
 Assumptions:
 
-- Subagent analysis classified this issue as workflow-authoring-ready.
-- Slice-local product decisions must be resolved from repository evidence
-  before implementation.
+- Repository evidence continues to show RabbitMQ as platform infrastructure
+  rather than deep AMQP runtime coupling.
+- No production-grade Pulsar cluster is required for this workflow.
+- Decision A applies for service access: expose/link Pulsar Admin API only;
+  do not add Pulsar Manager unless tests or documented UX force it.
 
 Non-goals:
 
-- No live LXD, Incus, LXC, Docker, Swarm, Portainer, Nexus, Jenkins,
-  RabbitMQ, SonarQube, networking, or socat mutation during normal
-  verification.
-- No Java, Maven, Spring Boot, browser React, Kubernetes-first, Multipass,
-  or Windows-native behavior.
-- No committed secrets, host-specific absolute paths, local runtime env
-  files, generated evidence, logs, caches, or IDE state.
+- No business-level producer/consumer implementation.
+- No `MessagingPort`, `PulsarMessagingAdapter`, topics, DLQ/retry policy,
+  Pulsar authentication, or clustered Pulsar topology unless failing tests
+  prove the need.
+- No RabbitMQ compatibility mode target.
+- No Ansible, Kubernetes-first behavior, Multipass, Java, Maven, Spring Boot,
+  browser React, or Windows-native behavior.
 
 Risks:
 
-- Shared files may overlap with other indexed workflows; execution must use
-  the dependency order and S3D lock checks from the index.
-- Quality-gate failures block commit and push until classified and fixed
-  inside the active workflow scope.
+- Pulsar has a higher resource footprint than RabbitMQ.
+- Pulsar standalone is not equivalent to a production Pulsar cluster.
+- Pulsar admin HTTP uses internal port `8080`, creating collision risk if host
+  exposure is configured incorrectly.
+- Browser access differs because RabbitMQ Management UI has no direct Pulsar
+  standalone UI equivalent without Pulsar Manager.
+- Historical evidence files may still contain RabbitMQ references and must be
+  classified rather than treated as active product state.
 
 Open questions:
 
-- Resolve slice-local design choices from repository evidence before code
-  changes.
+- Whether direct host mapping `8087:8080` is required, or service-access proxy
+  is sufficient, must be resolved from existing compose conventions in Slice 02
+  and Slice 05.
 
 Blocking questions:
 
-- None for workflow authoring. Any issue-specific decision is represented
-  as an early executable decision slice when required.
+- None for workflow authoring. Implementation must stop if repository evidence
+  contradicts the platform-only migration assumption.
 
-Confidence level: 88 percent.
+Confidence level: 94 percent.
 
-Decision: `PROCEED_WITH_ACCEPTED_ASSUMPTIONS`.
+Decision: `READY_FOR_WORKFLOW`.
+
+## Three Amigos Review Gate
+
+Before implementation, create:
+
+```text
+.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/three-amigos-review.md
+```
+
+Use this required structure:
+
+```markdown
+# Three Amigos Review
+
+## Requirement Engineer
+Decision: accepted / changes required
+Notes:
+
+## System Architect
+Decision: accepted / changes required
+Notes:
+
+## Senior Tester
+Decision: accepted / changes required
+Notes:
+
+## Final Gate Decision
+Decision: accepted / blocked
+Required changes before implementation:
+```
+
+Implementation may continue only when the final gate decision is `accepted`.
 
 ## Target Picture
 
-Issue #65 has an executable, test-backed implementation path that
-preserves Linux/WSL-only operation, Python 3.12 compatibility, hexagonal
-boundaries, and guarded live-infrastructure safety.
+```text
+Docker Swarm
+  - Apache Pulsar standalone
+      - Pulsar broker protocol: 6650
+      - Pulsar admin HTTP: internal 8080
+      - Optional direct host admin mapping: 8087:8080
+  - RabbitMQ absent from active desired platform state
+```
 
 ## Verified Baseline
 
 - Root `AGENTS.md`, `QUALITY.md`, and `.agents/skills/workflow-authoring/SKILL.md`
-  were checked during indexed workflow authoring.
-- The workflow is stored under `documentation/workflow/issues/issue-65/`.
-- This workflow is not the active workflow until explicitly promoted or
-  selected by an indexed executor.
+  were checked during workflow authoring.
+- A lightweight authoring scan found active RabbitMQ references in `.env.example`,
+  `AGENTS.md`, `README.md`, `OPERATIONAL_READINESS_CHECKLIST.md`, runtime
+  configuration, docs, tests, and historical evidence.
+- `rg` is unavailable in this environment; use `grep` on Linux/WSL during
+  workflow execution as specified by the slices.
 
 ## Scope
 
 In scope:
 
-- Files and modules listed in the affected architecture area.
-- Tests and documentation needed to satisfy Issue #65.
-- Quality gates from `QUALITY.md`.
+- Apache Pulsar compose stack.
+- Desired inventory and setup/preflight manifest.
+- Deployment service stack contract.
+- Service-access NGINX/dashboard and post-install browser checks.
+- Secrets and environment configuration contract.
+- RabbitMQ compose stack removal.
+- Documentation, arc42, operational readiness, and agent/infra instructions.
+- Migration evidence and residue classification.
 
 Out of scope:
 
-- Live infrastructure execution.
-- Java, Maven, Spring Boot, browser React, Kubernetes-first, Multipass, or
-  Windows-native behavior.
-- Secret, local evidence, cache, or IDE-state commits.
+- Live infrastructure mutation during normal development slices.
+- Pulsar Manager unless required by tests or documented user experience.
+- Pulsar authentication and production cluster hardening.
+- Business messaging APIs or application-level broker adapters.
 
 ## Architecture Constraints
 
-- Domain code must not import infrastructure, YAML parsers, command runners,
-  Docker/LXC clients, logging setup, file managers, or composition.
-- Application services orchestrate ports and domain types only.
-- Infrastructure adapters own filesystem, YAML, HTTP, shell, Docker, LXC,
-  and composition details.
-- `src/tiny_swarm_world/infrastructure/composition.py` remains the standard
-  wiring boundary unless this issue explicitly and safely refactors its
-  internal modules.
+- Domain modules must not import command runners, file managers, HTTP clients,
+  Docker clients, UI adapters, YAML parsers, logging setup, or dependency
+  injection containers.
+- Infrastructure adapters own concrete YAML, filesystem, HTTP, Docker, and
+  command-runner details.
+- Declarative inventory and stack contracts remain the source of truth.
+- Keep standard runtime wiring in
+  `src/tiny_swarm_world/infrastructure/composition.py`.
+- Do not move concrete adapter construction into application services.
+- Do not add external static-analysis CI configuration.
 
 ## Python Automation Assessment
 
-This is Python automation work. Keep Python 3.12 compatibility, typed value
-objects where useful, deterministic unit tests, and mocked external command
-or network behavior.
+This workflow affects Python automation contracts and tests. Keep Python 3.12
+compatibility, package imports, typed domain concepts where changed, and
+deterministic unit tests. Use `PYTHONPATH=src` for manual Python test commands
+that import `tiny_swarm_world`.
 
 ## Frontend Assessment
 
-No browser or React frontend work is authorized. Console/status UI work, if
-any, remains terminal-oriented and routes through console/status UI skills.
+No browser React frontend work is authorized. Slice 05 touches static
+service-access dashboard content only. Console/status UI skills are not primary
+unless existing terminal output lists RabbitMQ as an active service.
 
 ## Test Strategy
 
-- Run focused unit or architecture tests for changed files first.
-- Run `python3 tools/quality_gate.py quality` before merge when practical.
-- Do not execute live infrastructure commands in tests.
-- Mock command execution, LXC/Incus/LXD, Docker, Swarm, Portainer, and
-  network calls unless a later explicit live-validation approval exists.
+- Run targeted tests after each slice.
+- Run `python3 tools/quality_gate.py quality` as the final required local gate.
+- Do not delete tests to make the suite green.
+- Adapt RabbitMQ expectations to Pulsar.
+- Record test limitations when live infrastructure is required but unavailable.
 
 ## Resilience Requirements
 
-- Fail closed before mutation when configuration, consent, runtime state, or
-  ownership is ambiguous.
-- Report blockers with target, expected state, observed state, and next
-  action when applicable.
-- Preserve deterministic, redacted evidence and diagnostics.
+- Fail closed if service ownership, port exposure, or active versus historical
+  RabbitMQ references are ambiguous.
+- Do not skip safety guards, disable validations, or silently keep RabbitMQ as
+  fallback.
+- Store evidence under
+  `.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/`.
 
 ## Ordered Slices
 
-### Slice 01: Requirement, repository baseline, and decision gate
+### Slice 01: Repository scan and migration baseline
 
 Purpose:
 
-- Requirement, repository baseline, and decision gate for Issue #65.
+- Capture all RabbitMQ and Pulsar references before implementation changes.
+- Complete and record the Three Amigos gate.
 
 ```yaml
 slice_id: S01
-profile: FULL_PATH
+profile: NORMAL_PATH
 owner: Senior Requirement Engineer
 secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - documentation/workflow/issues/issue-65/**
-  - infra/config/node-providers/**
-  - src/tiny_swarm_world/domain/node_provider/**
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
 affected_modules:
-  - provider resource configuration
+  - workflow evidence
 affected_contracts:
-  - issue_65_backend_resource_mapping
-dependencies:
-  []
-parallel_group: issue-65-group-1
+  - migration_baseline
+dependencies: []
+parallel_group: serial
 file_locks:
-  - documentation/workflow/issues/issue-65/**
-  - infra/config/node-providers/**
-  - src/tiny_swarm_world/domain/node_provider/**
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
 contract_locks:
-  - issue_65_backend_resource_mapping
+  - migration_baseline
 architecture_locks:
-  - hexagonal_architecture
   - linux_wsl_only_runtime
 quality_gates:
   targeted:
     - git diff --check
-    - python3 tools/quality_gate.py test
   required:
     - python3 tools/quality_gate.py quality
 documentation:
-  arc42: checked-update-if-behavior-or-boundary-changes
-  adr: checked-update-if-policy-or-architecture-decision-changes
+  arc42: checked
+  adr: checked-no-adr-required-for-authoring
 stop_conditions:
-  - Repository evidence contradicts the selected implementation direction.
-  - A slice requires live infrastructure mutation without explicit approval.
-  - The change would violate hexagonal architecture or Linux/WSL-only scope.
+  - Three Amigos final decision is not accepted.
+  - Baseline scan reveals deep RabbitMQ runtime client coupling that changes the scope.
 ```
-
-Done criteria:
-
-- The slice is complete inside the declared file locks.
-- Targeted checks cover the accepted behavior.
-- No live infrastructure command is executed by default verification.
 
 Verification commands:
 
 ```bash
+mkdir -p .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+grep -RIn -e "rabbitmq" -e "RabbitMQ" -e "RABBITMQ" -e "amqp" -e "AMQP" -e "5672" -e "15672" -e "pika" -e "aio_pika" -e "kombu" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=__pycache__ > .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/rabbitmq-reference-baseline.txt || true
+grep -RIn -e "pulsar" -e "Pulsar" -e "PULSAR" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=__pycache__ > .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/pulsar-reference-baseline.txt || true
 git diff --check
-python3 tools/quality_gate.py test
 ```
 
-### Slice 02: Scoped implementation inside the declared architecture boundary
+Commit:
+
+```bash
+git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+git commit -m "docs: capture rabbitmq pulsar migration baseline"
+```
+
+### Slice 02: Add Apache Pulsar compose stack
 
 Purpose:
 
-- Scoped implementation inside the declared architecture boundary for Issue #65.
+- Add `infra/config/compose/pulsar/docker-compose.yml` for Pulsar standalone.
 
 ```yaml
 slice_id: S02
-profile: FULL_PATH
+profile: NORMAL_PATH
 owner: Senior Python Automation Developer
 secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - infra/config/node-providers/**
-  - src/tiny_swarm_world/domain/node_provider/**
-  - src/tiny_swarm_world/infrastructure/adapters/**
-  - tests/**
-  - documentation/**
+  - infra/config/compose/pulsar/docker-compose.yml
+  - tests/infrastructure/adapters/repositories/**
 affected_modules:
-  - provider resource configuration
+  - compose stack repository
 affected_contracts:
-  - issue_65_backend_resource_mapping
+  - compose_stack_definition
 dependencies:
   - S01
-parallel_group: issue-65-group-2
+parallel_group: compose
 file_locks:
-  - infra/config/node-providers/**
-  - src/tiny_swarm_world/domain/node_provider/**
-  - src/tiny_swarm_world/infrastructure/adapters/**
-  - tests/**
-  - documentation/**
+  - infra/config/compose/pulsar/**
+  - tests/infrastructure/adapters/repositories/**
 contract_locks:
-  - issue_65_backend_resource_mapping
+  - compose_stack_definition
 architecture_locks:
-  - hexagonal_architecture
-  - linux_wsl_only_runtime
+  - declarative_infrastructure
 quality_gates:
   targeted:
-    - git diff --check
-    - python3 tools/quality_gate.py test
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
   required:
     - python3 tools/quality_gate.py quality
 documentation:
-  arc42: checked-update-if-behavior-or-boundary-changes
-  adr: checked-update-if-policy-or-architecture-decision-changes
+  arc42: update-if-compose-conventions-change
+  adr: checked-update-if-port-or-stack-policy-changes
 stop_conditions:
-  - Repository evidence contradicts the selected implementation direction.
-  - A slice requires live infrastructure mutation without explicit approval.
-  - The change would violate hexagonal architecture or Linux/WSL-only scope.
+  - Existing compose conventions conflict with the proposed Pulsar layout.
+  - Host port 8080 would be exposed directly.
 ```
 
 Done criteria:
 
-- The slice is complete inside the declared file locks.
-- Targeted checks cover the accepted behavior.
-- No live infrastructure command is executed by default verification.
+- Pulsar standalone service exists with persistent volumes, healthcheck,
+  overlay network convention, `6650`, internal `8080`, and no `8080:8080`.
+- RabbitMQ compose file remains untouched in this slice.
 
-Verification commands:
+Commit:
 
 ```bash
-git diff --check
-python3 tools/quality_gate.py test
+git add infra/config/compose/pulsar tests
+git commit -m "feat: add apache pulsar compose stack"
 ```
 
-### Slice 03: Focused regression and architecture tests
+### Slice 03: Replace RabbitMQ in desired inventory and setup manifest
 
 Purpose:
 
-- Focused regression and architecture tests for Issue #65.
+- Make Pulsar part of active desired platform state and remove RabbitMQ from
+  active inventory/preflight checks.
 
 ```yaml
 slice_id: S03
-profile: FULL_PATH
-owner: Senior Tester
+profile: NORMAL_PATH
+owner: Senior Python Automation Developer
 secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - tests/**
-  - infra/config/node-providers/**
-  - src/tiny_swarm_world/domain/node_provider/**
+  - infra/config/inventory/desired_inventory.yaml
+  - src/tiny_swarm_world/domain/preflight/setup_manifest.py
+  - src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py
+  - tests/domain/preflight/**
+  - tests/infrastructure/adapters/preflight/**
 affected_modules:
-  - provider resource configuration
+  - preflight
+  - desired inventory
 affected_contracts:
-  - issue_65_backend_resource_mapping
+  - desired_platform_state
+  - preflight_port_contract
 dependencies:
   - S02
-parallel_group: issue-65-group-3
+parallel_group: platform-state
 file_locks:
-  - tests/**
-  - infra/config/node-providers/**
-  - src/tiny_swarm_world/domain/node_provider/**
+  - infra/config/inventory/**
+  - src/tiny_swarm_world/domain/preflight/**
+  - src/tiny_swarm_world/infrastructure/adapters/preflight/**
+  - tests/domain/preflight/**
+  - tests/infrastructure/adapters/preflight/**
 contract_locks:
-  - issue_65_backend_resource_mapping
+  - desired_platform_state
+  - preflight_port_contract
 architecture_locks:
   - hexagonal_architecture
-  - linux_wsl_only_runtime
 quality_gates:
   targeted:
-    - git diff --check
-    - python3 tools/quality_gate.py test
+    - PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result
+    - PYTHONPATH=src python3 -m unittest discover tests/infrastructure/adapters/preflight
   required:
     - python3 tools/quality_gate.py quality
 documentation:
-  arc42: checked-update-if-behavior-or-boundary-changes
-  adr: checked-update-if-policy-or-architecture-decision-changes
+  arc42: update-if-runtime-or-deployment-view-changes
+  adr: checked
 stop_conditions:
-  - Repository evidence contradicts the selected implementation direction.
-  - A slice requires live infrastructure mutation without explicit approval.
-  - The change would violate hexagonal architecture or Linux/WSL-only scope.
+  - RabbitMQ remains active in desired inventory or preflight.
+  - Preflight embeds infrastructure details into domain code.
 ```
 
-Done criteria:
-
-- The slice is complete inside the declared file locks.
-- Targeted checks cover the accepted behavior.
-- No live infrastructure command is executed by default verification.
-
-Verification commands:
+Commit:
 
 ```bash
-git diff --check
-python3 tools/quality_gate.py test
+git add infra/config/inventory src/tiny_swarm_world/domain/preflight src/tiny_swarm_world/infrastructure/adapters/preflight tests
+git commit -m "feat: replace rabbitmq with pulsar in desired platform state"
 ```
 
-### Slice 04: Documentation synchronization and final quality evidence
+### Slice 04: Update service stack contract
 
 Purpose:
 
-- Documentation synchronization and final quality evidence for Issue #65.
+- Replace RabbitMQ with Pulsar in the deployment service stack contract.
 
 ```yaml
 slice_id: S04
-profile: FULL_PATH
+profile: NORMAL_PATH
+owner: Senior System Architect
+secondary_reviewers:
+  - Senior Python Automation Developer
+  - Senior Tester
+affected_files:
+  - src/tiny_swarm_world/domain/deployment/service_stack_contract.py
+  - tests/domain/deployment/test_service_stack_contract.py
+  - documentation/workflow/issues/issue-4/swarm-stack-validation-baseline.md
+affected_modules:
+  - deployment contracts
+affected_contracts:
+  - service_stack_contract
+dependencies:
+  - S03
+parallel_group: platform-state
+file_locks:
+  - src/tiny_swarm_world/domain/deployment/**
+  - tests/domain/deployment/**
+  - documentation/workflow/issues/issue-4/swarm-stack-validation-baseline.md
+contract_locks:
+  - service_stack_contract
+architecture_locks:
+  - hexagonal_architecture
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: update-if-stack-contract-changes-runtime-view
+  adr: checked
+stop_conditions:
+  - Stack contract still requires RabbitMQ.
+  - Contract validation skips the Pulsar compose stack.
+```
+
+Commit:
+
+```bash
+git add src/tiny_swarm_world/domain/deployment tests/domain/deployment documentation/workflow/issues/issue-4
+git commit -m "feat: update service stack contract for pulsar"
+```
+
+### Slice 05: Update service-access and dashboard
+
+Purpose:
+
+- Replace RabbitMQ dashboard/service-access entries with Pulsar Admin API
+  entries using Decision A.
+
+```yaml
+slice_id: S05
+profile: NORMAL_PATH
 owner: Senior Documentation Engineer
 secondary_reviewers:
   - Senior System Architect
   - Senior Tester
 affected_files:
-  - documentation/**
-  - README.md
+  - infra/config/compose/service-access/nginx/default.conf
+  - infra/config/compose/service-access/dashboard/index.html
+  - tests/integration/test_post_install_browser_live.py
+  - documentation/system/live-operation-surfaces.adoc
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
 affected_modules:
-  - provider resource configuration
+  - service access
 affected_contracts:
-  - issue_65_backend_resource_mapping
+  - operator_browser_access
 dependencies:
-  - S03
-parallel_group: issue-65-group-4
+  - S04
+parallel_group: service-access
 file_locks:
-  - documentation/**
-  - README.md
+  - infra/config/compose/service-access/**
+  - tests/integration/test_post_install_browser_live.py
+  - documentation/system/live-operation-surfaces.adoc
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
 contract_locks:
-  - issue_65_backend_resource_mapping
+  - operator_browser_access
+architecture_locks:
+  - declarative_infrastructure
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.integration.test_post_install_browser_live
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: update-if-user-facing-runtime-surface-changes
+  adr: checked
+stop_conditions:
+  - Pulsar Manager is added without test or documentation evidence requiring UI parity.
+  - Service access proxies a conflicting or unsafe admin path.
+```
+
+If the live browser test cannot run locally, record the reason in:
+
+```text
+.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/test-limitations.md
+```
+
+Commit:
+
+```bash
+git add infra/config/compose/service-access tests/integration documentation/system .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+git commit -m "feat: update service access for pulsar"
+```
+
+### Slice 06: Update secrets and environment contract
+
+Purpose:
+
+- Remove active RabbitMQ secrets/config and add minimal Pulsar values only if
+  required.
+
+```yaml
+slice_id: S06
+profile: NORMAL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers:
+  - Senior Requirement Engineer
+  - Senior Tester
+affected_files:
+  - .env.example
+  - infra/config/secrets/infisical-secrets.yaml
+  - documentation/configuration/operator-configuration-contract.md
+  - documentation/configuration/config-contract-inventory.md
+  - src/tiny_swarm_world/domain/configuration/configuration_contract.py
+  - tests/**
+affected_modules:
+  - configuration contract
+affected_contracts:
+  - operator_configuration
+  - secret_manifest
+dependencies:
+  - S05
+parallel_group: configuration
+file_locks:
+  - .env.example
+  - infra/config/secrets/**
+  - documentation/configuration/**
+  - src/tiny_swarm_world/domain/configuration/**
+  - tests/**
+contract_locks:
+  - operator_configuration
+  - secret_manifest
 architecture_locks:
   - hexagonal_architecture
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest discover tests -k configuration
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: update-if-configuration-model-changes
+  adr: checked-update-if-auth-policy-changes
+stop_conditions:
+  - RabbitMQ credentials remain active.
+  - Pulsar passwords are invented without authentication being enabled.
+```
+
+Commit:
+
+```bash
+git add .env.example infra/config/secrets documentation/configuration src/tiny_swarm_world/domain/configuration tests
+git commit -m "feat: update configuration contract for pulsar"
+```
+
+### Slice 07: Remove RabbitMQ compose stack
+
+Purpose:
+
+- Delete the old RabbitMQ compose stack after Pulsar is fully wired.
+
+```yaml
+slice_id: S07
+profile: NORMAL_PATH
+owner: Senior System Architect
+secondary_reviewers:
+  - Senior Python Automation Developer
+  - Senior Tester
+affected_files:
+  - infra/config/compose/rabbitmq/docker-compose.yml
+  - infra/config/compose/**
+affected_modules:
+  - compose stack repository
+affected_contracts:
+  - compose_stack_definition
+dependencies:
+  - S06
+parallel_group: serial
+file_locks:
+  - infra/config/compose/rabbitmq/**
+  - infra/config/compose/**
+contract_locks:
+  - compose_stack_definition
+architecture_locks:
+  - declarative_infrastructure
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
+    - PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: update-if-deployment-view-changes
+  adr: checked
+stop_conditions:
+  - Active references to infra/config/compose/rabbitmq remain.
+```
+
+Safety check:
+
+```bash
+grep -RIn -e "infra/config/compose/rabbitmq" -e "compose/rabbitmq" -e "rabbitmq/docker-compose.yml" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=__pycache__
+```
+
+Commit:
+
+```bash
+git add -A infra/config/compose
+git commit -m "feat: remove rabbitmq compose stack"
+```
+
+### Slice 08: Update documentation and arc42
+
+Purpose:
+
+- Align README, guides, arc42, epics, operational readiness, and agent docs
+  with Pulsar as the platform messaging stack.
+
+```yaml
+slice_id: S08
+profile: NORMAL_PATH
+owner: Senior Documentation Engineer
+secondary_reviewers:
+  - Senior System Architect
+  - Senior Requirement Engineer
+affected_files:
+  - README.md
+  - documentation/**
+  - OPERATIONAL_READINESS_CHECKLIST.md
+  - infra/AGENTS.md
+  - AGENTS.md
+affected_modules:
+  - documentation
+  - architecture documentation
+affected_contracts:
+  - operator_documentation
+  - arc42_runtime_deployment_view
+dependencies:
+  - S07
+parallel_group: documentation
+file_locks:
+  - README.md
+  - documentation/**
+  - OPERATIONAL_READINESS_CHECKLIST.md
+  - infra/AGENTS.md
+  - AGENTS.md
+contract_locks:
+  - operator_documentation
+  - arc42_runtime_deployment_view
+architecture_locks:
   - linux_wsl_only_runtime
+  - docker_swarm_first
 quality_gates:
   targeted:
     - git diff --check
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: required-update
+  adr: checked-update-if-pulsar-standalone-decision-requires-record
+stop_conditions:
+  - Active documentation still claims RabbitMQ is part of the current stack.
+  - Pulsar standalone limitations are not documented.
+```
+
+Commit:
+
+```bash
+git add README.md documentation OPERATIONAL_READINESS_CHECKLIST.md infra/AGENTS.md AGENTS.md
+git commit -m "docs: document pulsar platform messaging stack"
+```
+
+### Slice 09: Global RabbitMQ residue check
+
+Purpose:
+
+- Record final RabbitMQ and Pulsar reference scans and classify remaining
+  RabbitMQ references.
+
+```yaml
+slice_id: S09
+profile: NORMAL_PATH
+owner: Senior Tester
+secondary_reviewers:
+  - Senior Requirement Engineer
+  - Senior System Architect
+affected_files:
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+affected_modules:
+  - workflow evidence
+affected_contracts:
+  - residue_classification
+dependencies:
+  - S08
+parallel_group: serial
+file_locks:
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+contract_locks:
+  - residue_classification
+architecture_locks:
+  - platform_service_contract
+quality_gates:
+  targeted:
+    - git diff --check
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: checked
+  adr: checked
+stop_conditions:
+  - Any remaining RabbitMQ reference is active runtime, config, or contract state.
+```
+
+Create:
+
+```text
+.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/final-reference-classification.md
+```
+
+Classify each remaining RabbitMQ reference as `historical documentation`,
+`migration evidence`, `deprecated compatibility note`, or `bug - must be
+removed`.
+
+Commit:
+
+```bash
+git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+git commit -m "test: record final rabbitmq pulsar reference validation"
+```
+
+### Slice 10: Full automated test run
+
+Purpose:
+
+- Run the strongest available local quality checks and store evidence.
+
+```yaml
+slice_id: S10
+profile: NORMAL_PATH
+owner: Senior Tester
+secondary_reviewers:
+  - Quality Gate Orchestrator
+affected_files:
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/full-test-run.txt
+  - tests/**
+affected_modules:
+  - quality gates
+affected_contracts:
+  - repository_quality_gate
+dependencies:
+  - S09
+parallel_group: serial
+file_locks:
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+  - tests/**
+contract_locks:
+  - repository_quality_gate
+architecture_locks:
+  - hexagonal_architecture
+quality_gates:
+  targeted:
     - python3 tools/quality_gate.py test
   required:
     - python3 tools/quality_gate.py quality
 documentation:
-  arc42: checked-update-if-behavior-or-boundary-changes
-  adr: checked-update-if-policy-or-architecture-decision-changes
+  arc42: checked
+  adr: checked
 stop_conditions:
-  - Repository evidence contradicts the selected implementation direction.
-  - A slice requires live infrastructure mutation without explicit approval.
-  - The change would violate hexagonal architecture or Linux/WSL-only scope.
+  - Full quality gate fails with migration-related regressions.
+  - A failure is undocumented or classified by guessing.
 ```
 
-Done criteria:
-
-- The slice is complete inside the declared file locks.
-- Targeted checks cover the accepted behavior.
-- No live infrastructure command is executed by default verification.
-
-Verification commands:
+Run and store output:
 
 ```bash
-git diff --check
-python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality | tee .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/full-test-run.txt
+./install.sh --help || true
+find . -maxdepth 3 -type f \( -name "Makefile" -o -name "pyproject.toml" -o -name "tox.ini" -o -name "noxfile.py" -o -name "QUALITY.md" \) -print
+```
+
+Commit:
+
+```bash
+git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar tests
+git commit -m "test: verify pulsar migration test suite"
+```
+
+### Slice 11: Live greenpath validation
+
+Purpose:
+
+- Validate `./install.sh` and deployed platform state on a suitable Linux/LXD
+  native environment.
+
+```yaml
+slice_id: S11
+profile: LIVE_VALIDATION
+owner: Senior DevOps Engineer
+secondary_reviewers:
+  - Senior Tester
+  - Senior System Architect
+affected_files:
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/**
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath-not-run.md
+affected_modules:
+  - live platform validation
+affected_contracts:
+  - install_greenpath
+dependencies:
+  - S10
+parallel_group: serial-live
+file_locks:
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+contract_locks:
+  - install_greenpath
+architecture_locks:
+  - linux_wsl_only_runtime
+  - docker_swarm_first
+quality_gates:
+  targeted:
+    - ./install.sh
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: checked-update-if-live-behavior-differs
+  adr: checked
+stop_conditions:
+  - Live infrastructure approval or suitable environment is unavailable.
+  - Safety guards would need to be skipped.
+  - RabbitMQ deploys during the live greenpath.
+```
+
+Required evidence if run:
+
+```text
+.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/install-output.txt
+.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/docker-service-ls.txt
+.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/docker-stack-ls.txt
+.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/pulsar-healthcheck.txt
+.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/service-access-check.txt
+```
+
+If not run, create `live-greenpath-not-run.md` with reason, environment,
+commands that would be run, remaining risk, and required manual validation.
+
+Commit if run or documented:
+
+```bash
+git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+git commit -m "test: verify live pulsar greenpath"
+```
+
+### Slice 12: Pull request preparation
+
+Purpose:
+
+- Prepare PR body, final evidence references, and merge-readiness checks.
+
+```yaml
+slice_id: S12
+profile: PR_READINESS
+owner: Senior Workflow Architect
+secondary_reviewers:
+  - Senior Tester
+  - Senior System Architect
+affected_files:
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+affected_modules:
+  - pull request readiness
+affected_contracts:
+  - pr_readiness
+dependencies:
+  - S11
+parallel_group: serial
+file_locks:
+  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+contract_locks:
+  - pr_readiness
+architecture_locks:
+  - release_governance
+quality_gates:
+  targeted:
+    - git status --short
+    - git log --oneline --decorate -n 20
+  required:
+    - python3 tools/quality_gate.py quality
+documentation:
+  arc42: checked
+  adr: checked
+stop_conditions:
+  - Required quality or residue evidence is missing.
+  - Mergeability or required checks cannot be verified.
+```
+
+PR title:
+
+```text
+Replace RabbitMQ with Apache Pulsar platform messaging stack
+```
+
+PR body:
+
+```markdown
+## Summary
+
+This PR replaces RabbitMQ with Apache Pulsar as the platform messaging service for Tiny Swarm World.
+
+## Scope
+
+- Added Apache Pulsar compose stack.
+- Removed RabbitMQ from active desired inventory.
+- Updated setup/preflight contracts.
+- Updated deployment service stack contract.
+- Updated service-access/dashboard references.
+- Updated secrets and environment configuration.
+- Removed RabbitMQ compose stack.
+- Updated documentation and arc42.
+- Added migration evidence.
+
+## Architecture decision
+
+This PR uses Apache Pulsar standalone mode for the local Docker Swarm greenpath. This is sufficient for local development and controlled platform validation. A production-like Pulsar cluster with separate brokers/bookies/metadata store is explicitly deferred.
+
+## Validation
+
+- [ ] Three Amigos gate completed
+- [ ] Compose/YAML tests passed
+- [ ] Preflight tests passed
+- [ ] Deployment contract tests passed
+- [ ] Full quality gate passed
+- [ ] RabbitMQ residue scan completed
+- [ ] Live `./install.sh` greenpath completed or documented as not run
+
+## Risks
+
+- Pulsar has a higher resource footprint than RabbitMQ.
+- Pulsar standalone mode is not equivalent to a production cluster.
+- Pulsar admin HTTP uses internal port 8080, so external mapping must avoid collisions.
+- Existing downstream code must not assume RabbitMQ Management UI semantics.
+
+## Evidence
+
+See `.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/`.
 ```
 
 ## Slice Dependency Graph
 
 ```text
-S01 -> S02 -> S03 -> S04
+S01 -> S02 -> S03 -> S04 -> S05 -> S06 -> S07 -> S08 -> S09 -> S10 -> S11 -> S12
 ```
-
-Cross-workflow dependencies: none.
 
 ## Parallel Execution
 
-- Can this workflow run in parallel? Only after S3D confirms disjoint file,
-  contract, module, and architecture locks.
-- Conflicting workflows: see `documentation/workflow/workflow.index.md`.
-- Shared files: infra/config/node-providers/**, src/tiny_swarm_world/domain/node_provider/**, src/tiny_swarm_world/infrastructure/adapters/**, tests/**, documentation/**.
-- Shared infrastructure: none for default verification; live validation is
-  serialized unless isolated infrastructure is explicitly provided.
-- Requires isolated worktree: yes for workflow execution streams.
+- Can this workflow run in parallel? Limited. Default execution is serial
+  because platform contracts, inventory, docs, and residue validation are
+  tightly coupled.
+- Conflicting workflows: any active workflow touching `infra/config/**`,
+  service stack contracts, preflight, configuration contracts, service-access,
+  README, arc42, or documentation workflow evidence.
+- Shared files: `infra/config/**`, `src/tiny_swarm_world/domain/**`,
+  `tests/**`, `documentation/**`, `AGENTS.md`, `README.md`.
+- Shared infrastructure: Docker Swarm, LXD/Incus/LXC, service-access, host
+  ports `6650`, `8080`, and `8087`.
+- Requires isolated worktree: yes for any stream execution.
 - Requires serialized live validation: yes.
-- Merge-order constraints: honor cross-workflow dependencies and slice order.
+- Merge-order constraints: preserve slice order; do not delete RabbitMQ compose
+  before Pulsar is wired into inventory, contracts, service access,
+  configuration, tests, and documentation.
 
 ## Automatic Work Distribution Policy
 
 During `workflow execute`, Codex must inspect each slice for safe specialist
-stream decomposition. Real Codex subagents should be used where supported;
-otherwise explicit role-based fallback review must be recorded in evidence.
+stream decomposition. Use real Codex subagents where supported; otherwise
+perform explicit role-based fallback review in the main execution thread and
+record the fallback in evidence.
+
 For every slice, create `.codex/evidence/slice-<number>-distribution.md`
 before implementation and `.codex/evidence/slice-<number>-consolidation.md`
-after implementation. Codex remains final integration owner.
+after implemented slices. Codex remains the final integration owner.
 
-Stream map: backend, frontend, tests, runtime, documentation, quality,
-architecture, security. Do not split work when files overlap, architecture
-is unclear, requirements contradict, ordering is mandatory, generated files
-may conflict, secrets handling is unclear, or safety guards would be
-weakened.
+Stream map:
+
+- Backend/Python: S03, S04, S06.
+- Runtime/DevOps: S02, S07, S11.
+- Tests/Quality: S01, S09, S10, S12.
+- Documentation/Architecture: S05, S08.
+- Frontend: static service-access dashboard only in S05; no React stream.
+- Security/configuration: S06.
+
+Do not split work when files overlap, architecture is unclear, requirements
+contradict, ordering is mandatory, generated files may conflict, secrets
+handling is unclear, a Three Amigos decision marks the slice not safely
+parallelizable, or safety guards would be weakened.
 
 ## Git Worktree Execution Rule
 
-Parallel execution must use isolated Git worktrees. Stream branch names must
+Parallel stream work must use isolated Git worktrees. Stream branch names must
 follow:
 
 ```text
-<workflow-branch>-slice-<number>-<stream>
+feature/replace-rabbitmq-with-apache-pulsar-20260616-slice-<number>-<stream>
 ```
 
-Subagents or stream workers must not merge directly to the integration
-branch. Codex consolidates accepted changes after tests and evidence pass.
+Stream workers must verify the active branch or worktree branch belongs to this
+workflow before modifying files. Stream workers must not merge directly to the
+integration branch; Codex consolidates accepted changes after evidence and
+tests pass.
 
 ## Role And Ownership Map
 
-- Senior Workflow Architect: dependency order and workflow handoff.
-- Senior Requirement Engineer: issue acceptance traceability.
-- Senior System Architect: hexagonal boundaries and architecture decisions.
-- Senior Python Automation Developer: Python implementation slices.
-- Senior React Frontend Developer: no-impact check for browser/React scope.
-- Senior Tester: regression and quality evidence.
-- Senior Documentation Engineer: documentation synchronization.
+- Senior Requirement Engineer: Three Amigos requirement gate and residue
+  acceptance.
+- Senior System Architect: Pulsar standalone architecture, stack contracts,
+  deletion sequencing, arc42 alignment.
+- Senior Python Automation Developer: inventory, preflight, deployment, and
+  configuration contract code.
+- Senior React Frontend Developer: no-impact review; static dashboard only.
+- Senior Tester: targeted tests, full quality gate, final residue validation.
+- Senior DevOps Engineer: compose stack and live greenpath validation.
+- Senior Documentation Engineer: README, guides, arc42, operational readiness,
+  and agent instructions.
 
 ## Quality-Gate Expectations
 
@@ -498,64 +1083,99 @@ python3 tools/quality_gate.py arch-tests
 python3 tools/quality_gate.py quality
 ```
 
+For focused tests, use `PYTHONPATH=src python3 -m unittest ...` unless the
+repository has a verified pytest equivalent in the current environment.
+
 ## Documentation Synchronization Points
 
-- Update README or user guide when operator behavior changes.
-- Update `documentation/arc42/**` when boundaries, runtime view, quality
-  attributes, or building blocks change.
-- Add or update ADRs only when a slice creates architecture-significant
-  policy or ownership decisions.
+- Update README and user guide when operator-facing service lists or access
+  URLs change.
+- Update `documentation/arc42/**` when runtime view, deployment view, quality
+  requirements, concepts, or risks change.
+- Update operator configuration docs when env/secrets contracts change.
+- Add or update ADRs only if execution introduces an architecture-significant
+  policy decision beyond the accepted Pulsar standalone phase-1 direction.
 
 ## Stop Conditions
 
-Stop and report when repository evidence contradicts this workflow, when
-live infrastructure would be required without approval, when architecture
-boundaries are unclear, when quality gates fail without a safe scoped fix,
-or when acceptance criteria cannot be mapped to tests and documentation.
+Stop and report when:
+
+- The working tree is dirty before implementation starts.
+- The active branch is not `feature/replace-rabbitmq-with-apache-pulsar-20260616`.
+- Three Amigos final decision is not `accepted`.
+- Repository evidence shows deep RabbitMQ application runtime coupling.
+- Pulsar cannot satisfy stack contract or preflight requirements without
+  weakening guards.
+- RabbitMQ must be kept as hidden fallback to pass tests.
+- Live infrastructure commands would be required without explicit approval.
+- Quality gates fail and cannot be fixed inside the declared slice scope.
+- Any active RabbitMQ runtime/config/contract reference remains after S09.
 
 ## Uncertainty Escalation Rules
 
-- Architecture ambiguity: Root Architect and Senior System Architect.
 - Requirement ambiguity: Senior Requirement Engineer.
-- Quality failure: Senior Tester and Quality Gate Orchestrator.
-- Security or secret handling: security and configuration owners.
-- Documentation mismatch: Senior Documentation Engineer.
+- Platform/architecture ambiguity: Senior System Architect and Root Architect.
+- Port exposure or live validation ambiguity: Senior DevOps Engineer.
+- Config/secrets ambiguity: security and configuration owners.
+- Quality failures: Senior Tester and Quality Gate Orchestrator.
 
 ## Commit And Push Plan
 
-Workflow authoring commit:
-
-- Branch: `feature/workflow-issue-65-backend-resource-mapping-20260614`.
-- Stage this issue workflow, its context pack, `workflow.index.md`, and the
-  workflow-authoring skill update.
-- Run `git diff --check`.
-- Push the authoring branch after all indexed workflows are created.
-
-Future workflow execution:
-
-- Promote or explicitly select this indexed workflow.
-- Use proposed execution branch `feature/workflow-issue-65-backend-resource-mapping-20260614` unless a later
-  governance decision selects another branch.
-- Commit each executable slice separately.
+- Commit each implementation slice separately using the commit messages
+  declared in the relevant slice.
+- Do not make multi-slice commits.
+- Do not create or merge a PR until required quality gates and residue
+  validation have passed or limitations are explicitly documented.
+- `push auto`, if requested later, must follow the full guarded lifecycle from
+  `AGENTS.md`.
 
 ## Definition Of Done
 
-Workflow authoring is done when this file, its context pack, and the index
-entry exist and pass documentation checks.
+This workflow is done when:
 
-Issue #65 implementation is done when acceptance criteria are satisfied
-by scoped code, tests, documentation, quality evidence, and merge-ready
-review.
+- Branch `feature/replace-rabbitmq-with-apache-pulsar-20260616` exists.
+- RabbitMQ compose stack is removed.
+- Pulsar compose stack exists.
+- Desired inventory, setup/preflight manifest, deployment service stack
+  contract, service-access/dashboard, env/secrets config, docs, and arc42 use
+  Pulsar instead of RabbitMQ for active platform messaging.
+- Tests and `python3 tools/quality_gate.py quality` pass, or unrelated failures
+  are documented with evidence.
+- No active RabbitMQ runtime/config/contract reference remains.
+- Live greenpath is successful or explicitly documented as not executable in
+  the current environment.
+- PR is prepared with risks and evidence.
+
+## Rollback Strategy
+
+If Pulsar cannot be made green without unsafe shortcuts:
+
+1. Stop implementation.
+2. Do not silently reintroduce RabbitMQ.
+3. Create a rollback commit that restores the last known green RabbitMQ stack.
+4. Document the blocker in:
+
+```text
+.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/blockers.md
+```
+
+Rollback commit message:
+
+```bash
+git commit -m "revert: restore rabbitmq stack after pulsar migration blocker"
+```
 
 ## Handoff To Workflow Execute
 
-Do not run unqualified `workflow execute` for this indexed workflow. First
-promote it to `documentation/workflow/workflow.md` or extend the executor to
-accept an explicit indexed workflow path.
+This is the active workflow in `documentation/workflow/workflow.md`.
+`workflow execute` may run it only after verifying the active branch,
+slice metadata, locks, Three Amigos gate, and quality commands from
+`QUALITY.md`.
 
 ## arc42 Check Status
 
-- arc42 impact: checked during workflow authoring; update during execution
-  if behavior, boundaries, runtime view, or quality requirements change.
-- ADR impact: checked during workflow authoring; add or update ADR only for
-  architecture-significant decisions.
+- arc42 impact: required during execution because platform runtime and
+  deployment views change from RabbitMQ to Pulsar.
+- ADR impact: checked during authoring; execution should add or update an ADR
+  only if a new architecture-significant decision is made beyond local Pulsar
+  standalone as the phase-1 greenpath.
