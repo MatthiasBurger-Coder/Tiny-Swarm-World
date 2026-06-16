@@ -111,13 +111,14 @@ class TestConfigurationContract(unittest.TestCase):
         self.assertIn("TSW_SONARQUBE_POSTGRES_PASSWORD", keys)
         self.assertIn("TSW_INFISICAL_REDIS_PASSWORD", keys)
 
-    def test_default_contract_uses_pulsar_urls_without_rabbitmq_secret(self):
+    def test_default_contract_uses_pulsar_urls_without_legacy_messaging_secret(self):
         requirements = {requirement.key: requirement for requirement in default_configuration_contract().requirements}
 
-        self.assertNotIn("TSW_RABBITMQ_PASSWORD", requirements)
         self.assertEqual(ConfigurationValueKind.URL, requirements["TSW_PULSAR_ADMIN_URL"].value_kind)
+        self.assertEqual("pulsar", requirements["TSW_PULSAR_ADMIN_URL"].scope)
         self.assertFalse(requirements["TSW_PULSAR_ADMIN_URL"].required)
         self.assertEqual(ConfigurationValueKind.URL, requirements["TSW_PULSAR_PUBLIC_ADMIN_URL"].value_kind)
+        self.assertEqual("pulsar", requirements["TSW_PULSAR_PUBLIC_ADMIN_URL"].scope)
         self.assertFalse(requirements["TSW_PULSAR_PUBLIC_ADMIN_URL"].required)
 
 

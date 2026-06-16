@@ -243,7 +243,7 @@ These areas need explicit classification before any cleanup:
   setup, Maven/Docker registry configuration, future publishing workflows.
 - Deployment: compose stack definitions, compose repository, Portainer stack
   create/update/upload, service lifecycle for Portainer, Nexus, Jenkins,
-  RabbitMQ, SonarQube, Swagger/NGINX.
+  Apache Pulsar, SonarQube, Swagger/NGINX.
 - Shared: command execution abstractions, YAML/file/path/logging utilities,
   composition root, quality gate, import rules, test infrastructure.
 

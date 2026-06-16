@@ -30,19 +30,19 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         self.assertEqual({}, dict(request.stack_environment))
 
     async def test_updates_existing_default_service_stack(self):
-        stack_definition = StackDefinition(name="rabbitmq", compose_content="services: {}")
+        stack_definition = StackDefinition(name="pulsar", compose_content="services: {}")
         compose_repository = _FakeComposeRepository(stack_definition)
         deployment_gateway = _FakeDeploymentGateway(registered_values=[True])
         service = EnsureServiceStack(
             compose_repository,
             deployment_gateway,
-            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+            ServiceStackContract("pulsar", ("pulsar",)),
         )
 
         await service.run()
 
         request = _single_applied_request(deployment_gateway)
-        self.assertEqual("rabbitmq", request.target_stack)
+        self.assertEqual("pulsar", request.target_stack)
 
     async def test_passes_stack_environment_when_creating_service_access_stack(self):
         stack_definition = StackDefinition(name="service-access", compose_content="services: {}")

@@ -499,7 +499,7 @@ def _print_setup_installation_plan(
         "Infisical": "infisical",
         "Nexus": "nexus",
         "Portainer": "portainer",
-        "RabbitMQ": "rabbitmq",
+        "Pulsar": "pulsar",
         "Service Access": "service-access",
         "SonarQube": "sonarqube",
         "Swagger/NGINX": "swagger",
