@@ -44,14 +44,12 @@ EXPECTED_INFISICAL_ITEMS = (
     "platform/jenkins",
     "platform/nexus",
     "platform/portainer",
-    "platform/rabbitmq",
     "platform/sonarqube",
 )
 EXPECTED_INFISICAL_ITEM_KEYS = {
     "platform/jenkins": "TSW_JENKINS_ADMIN_PASSWORD",
     "platform/nexus": "TSW_NEXUS_ADMIN_PASSWORD",
     "platform/portainer": "TSW_PORTAINER_ADMIN_PASSWORD",
-    "platform/rabbitmq": "TSW_RABBITMQ_PASSWORD",
     "platform/sonarqube": "TSW_SONARQUBE_ADMIN_PASSWORD",
 }
 NO_LOGIN_SERVICES = ("service-access", "swagger")

@@ -161,7 +161,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             nginx_config,
         )
         self.assertIn("set $infisical_upstream http://tasks.infisical:8080;", nginx_config)
-        for route in ("jenkins", "nexus", "portainer", "rabbitmq", "sonarqube", "swagger", "infisical"):
+        for route in ("jenkins", "nexus", "portainer", "pulsar", "sonarqube", "swagger", "infisical"):
             with self.subTest(route=route):
                 self.assertIn(f"location = /{route}", nginx_config)
         self.assertNotIn("password=", nginx_config)

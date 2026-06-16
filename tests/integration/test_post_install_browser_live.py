@@ -47,9 +47,7 @@ class PostInstallConfig:
     portainer_url: str
     portainer_username: str
     portainer_password: str | None
-    rabbitmq_url: str
-    rabbitmq_username: str
-    rabbitmq_password: str | None
+    pulsar_admin_url: str
     sonarqube_url: str
     sonarqube_username: str
     sonarqube_password: str | None
@@ -76,9 +74,7 @@ class PostInstallConfig:
             portainer_url=_env_value(local_env, "TSW_PORTAINER_URL", "http://localhost:9000"),
             portainer_username=_env_value(local_env, "TSW_PORTAINER_USERNAME", "admin"),
             portainer_password=_env_optional(local_env, "TSW_PORTAINER_ADMIN_PASSWORD"),
-            rabbitmq_url=_env_value(local_env, "TSW_RABBITMQ_URL", "http://localhost:15672"),
-            rabbitmq_username=_env_value(local_env, "TSW_RABBITMQ_USERNAME", "guest"),
-            rabbitmq_password=_env_optional(local_env, "TSW_RABBITMQ_PASSWORD") or "guest",
+            pulsar_admin_url=_env_value(local_env, "TSW_PULSAR_PUBLIC_ADMIN_URL", "http://localhost:8087"),
             sonarqube_url=_env_value(local_env, "TSW_SONARQUBE_URL", "http://localhost:9001"),
             sonarqube_username=_env_value(local_env, "TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
             sonarqube_password=_env_optional(local_env, "TSW_SONARQUBE_ADMIN_PASSWORD"),
@@ -95,7 +91,7 @@ class PostInstallConfig:
             ServiceEndpoint("jenkins", self.jenkins_url),
             ServiceEndpoint("nexus", self.nexus_url),
             ServiceEndpoint("portainer", self.portainer_url),
-            ServiceEndpoint("rabbitmq", self.rabbitmq_url),
+            ServiceEndpoint("pulsar-admin-api", self.pulsar_admin_url),
             ServiceEndpoint("sonarqube", self.sonarqube_url),
             ServiceEndpoint("swagger", self.swagger_url),
         )
@@ -236,13 +232,15 @@ class PostInstallBrowserIntegrationTest(unittest.TestCase):
             success_texts=("Home", "Environments", "Stacks"),
         )
 
-    def test_rabbitmq_admin_login(self) -> None:
-        self._login_with_username_password(
-            self.config.rabbitmq_url,
-            self.config.rabbitmq_username,
-            self.config.rabbitmq_password,
-            success_texts=("Overview", "Connections", "Queues"),
+    def test_pulsar_admin_api_lists_clusters(self) -> None:
+        clusters = _http_text(
+            urljoin(self.config.pulsar_admin_url, "/admin/v2/clusters"),
+            None,
+            None,
+            self.config.timeout_seconds,
         )
+
+        self.assertIn("standalone", clusters.casefold())
 
     def test_sonarqube_admin_login(self) -> None:
         self._require_secret(self.config.sonarqube_password, "TSW_SONARQUBE_ADMIN_PASSWORD")

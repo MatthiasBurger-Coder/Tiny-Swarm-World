@@ -725,7 +725,7 @@ services:
                 "/jenkins",
                 "/nexus",
                 "/portainer",
-                "/rabbitmq",
+                "/pulsar",
                 "/sonarqube",
                 "/swagger",
                 "/infisical",
@@ -743,7 +743,7 @@ services:
             "http://localhost:9000",
             "http://localhost:8081",
             "http://localhost:8086",
-            "http://localhost:15672",
+            "http://localhost:8087",
             "http://localhost:9001",
         ):
             self.assertNotIn(forbidden_link, dashboard)
@@ -767,7 +767,6 @@ services:
             "platform/portainer",
             "platform/nexus",
             "platform/jenkins",
-            "platform/rabbitmq",
             "platform/sonarqube",
         )
 
