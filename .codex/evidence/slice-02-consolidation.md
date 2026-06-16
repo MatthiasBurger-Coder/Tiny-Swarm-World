@@ -1,62 +1,72 @@
-# Slice 02 Consolidation: Issue 4 Swarm Stack Validation
+# Slice 02 Consolidation
 
-Workflow id: `issue-4-swarm-stack-validation-20260614`
+Workflow id: `workflow-replace-rabbitmq-with-apache-pulsar`
+
 Slice id: `S02`
 
-## Stream Results
+Slice title: Add Apache Pulsar compose stack
 
-- Backend stream added structured Swarm stack validation in
-  `ComposeFileRepositoryYaml`.
-- Test stream updated compose fixtures to represent Swarm stack files and added
-  negative tests for invalid stack definitions.
+Stream results:
 
-## Accepted Findings
+- Runtime: added `infra/config/compose/pulsar/docker-compose.yml`.
+- Tests: added focused coverage for the committed Pulsar compose file.
+- Architecture: kept this slice limited to adding Pulsar; RabbitMQ contracts
+  and RabbitMQ compose remain unchanged for later ordered slices.
 
-- The validation belongs at the YAML repository boundary because that adapter
-  owns structured YAML parsing.
-- A compose stack file must have a non-empty mapping-valued `services` section.
-- Every service must define a mapping-valued `deploy` section before the stack
-  can be returned to deployment services.
-- Current committed product stack files remain valid under this rule.
+Accepted findings:
 
-## Rejected Findings
+- Existing compose files use Docker Swarm `deploy` sections and manager
+  placement constraints.
+- Host port mappings use structured mappings with `mode: host`.
+- `service_access_link` is the existing external network used for service
+  access to internal HTTP services.
 
-- Live Docker or `docker stack config` validation was rejected because default
-  verification must remain non-mutating and deterministic.
+Rejected findings:
 
-## Files Changed
+- Direct `8080:8080` host mapping was rejected because Jenkins and other
+  service-access surfaces already use or depend on host `8080`.
+- RabbitMQ removal was rejected for this slice because the workflow reserves it
+  for Slice 07 after inventory, contracts, service access, configuration, and
+  documentation are updated.
 
-- `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
-- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
-- `.codex/evidence/slice-02-distribution.md`
-- `.codex/evidence/slice-02-consolidation.md`
+Files changed per stream:
 
-## Conflicts
+- runtime:
+  - `infra/config/compose/pulsar/docker-compose.yml`
+- tests:
+  - `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- documentation/evidence:
+  - `.codex/evidence/slice-02-distribution.md`
+  - `.codex/evidence/slice-02-consolidation.md`
 
-No file conflicts were found in Slice 02.
+Conflicts found:
 
-## Tests Executed
+- None.
 
-```bash
-PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml
-python3 tools/quality_gate.py test
-```
+Conflicts resolved:
 
-Results:
+- Not applicable.
 
-- Focused compose repository tests: 32 tests passed.
-- Repository test gate: 833 tests passed, 17 skipped.
+Tests executed:
 
-## SonarQube
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World && PATH="$PWD/.venv/bin:$PWD/venv/bin:$PWD/bin:$PATH" PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml'`
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World && PATH="$PWD/.venv/bin:$PWD/venv/bin:$PWD/bin:$PATH" python3 tools/quality_gate.py quality'`
 
-No local SonarQube scan was run. Remote PR checks will provide the configured
-repository CI/SonarCloud result.
+Quality-gate result:
 
-## Documentation Updates
+- Targeted compose repository test: passed, 33 tests.
+- Full quality gate: passed, 886 tests with 17 skipped.
 
-No operator documentation changed in this slice. The Slice 01 baseline records
-the selected validation boundary.
+SonarQube findings and fixes:
 
-## Final Integration Decision
+- Not applicable for local Slice 02 execution.
 
-Slice 02 is complete. Continue with Slice 03 after checkpoint commit.
+Documentation updates:
+
+- Slice execution evidence was created.
+
+Final integration decision:
+
+- Accepted. The Pulsar compose stack exists, includes a healthcheck, persists
+  data/config volumes, exposes `6650` and `8087:8080`, avoids host `8080`, and
+  remains scoped to Slice 02.

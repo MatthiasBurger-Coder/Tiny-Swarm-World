@@ -304,6 +304,43 @@ services:
             rabbitmq["ports"],
         )
 
+    def test_committed_pulsar_compose_uses_standalone_with_non_conflicting_admin_port(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_path = (
+            repository_root / "infra" / "config" / "compose" / "pulsar" / "docker-compose.yml"
+        )
+        compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
+        pulsar = compose_data["services"]["pulsar"]
+
+        self.assertEqual(
+            "${TSW_PULSAR_IMAGE:-apachepulsar/pulsar:latest}",
+            pulsar["image"],
+        )
+        self.assertEqual(["bin/pulsar", "standalone"], pulsar["command"])
+        self.assertEqual(
+            [
+                {"target": 6650, "published": 6650, "protocol": "tcp", "mode": "host"},
+                {"target": 8080, "published": 8087, "protocol": "tcp", "mode": "host"},
+            ],
+            pulsar["ports"],
+        )
+        self.assertNotIn(
+            {"target": 8080, "published": 8080, "protocol": "tcp", "mode": "host"},
+            pulsar["ports"],
+        )
+        self.assertEqual(["pulsar-data:/pulsar/data", "pulsar-conf:/pulsar/conf"], pulsar["volumes"])
+        self.assertIn("healthcheck", pulsar)
+        self.assertIn("bin/pulsar-admin brokers healthcheck", pulsar["healthcheck"]["test"][-1])
+        self.assertEqual(["service_access_link"], pulsar["networks"])
+        self.assertEqual(
+            {"name": "service_access_link", "external": True},
+            compose_data["networks"]["service_access_link"],
+        )
+        self.assertEqual(
+            ["node.role == manager"],
+            pulsar["deploy"]["placement"]["constraints"],
+        )
+
     def test_committed_swagger_compose_uses_official_images_and_remote_openapi_bind(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = repository_root / "infra" / "config" / "compose" / "swagger" / "docker-compose.yml"

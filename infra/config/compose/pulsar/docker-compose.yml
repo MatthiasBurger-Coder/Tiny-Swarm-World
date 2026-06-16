@@ -1,0 +1,43 @@
+services:
+  pulsar:
+    image: ${TSW_PULSAR_IMAGE:-apachepulsar/pulsar:latest}
+    hostname: pulsar
+    command:
+      - bin/pulsar
+      - standalone
+    ports:
+      - target: 6650
+        published: 6650
+        protocol: tcp
+        mode: host
+      - target: 8080
+        published: 8087
+        protocol: tcp
+        mode: host
+    volumes:
+      - pulsar-data:/pulsar/data
+      - pulsar-conf:/pulsar/conf
+    networks:
+      - service_access_link
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - bin/pulsar-admin brokers healthcheck || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 60s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+volumes:
+  pulsar-data:
+  pulsar-conf:
+
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true
