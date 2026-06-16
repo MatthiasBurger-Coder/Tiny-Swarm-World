@@ -163,14 +163,14 @@ class TestPreflightResult(unittest.TestCase):
                 "Portainer",
                 "Nexus",
                 "Jenkins",
-                "RabbitMQ",
+                "Pulsar",
                 "SonarQube",
                 "Swagger/NGINX",
             ),
             manifest.service_names,
         )
         self.assertEqual(
-            (9000, 8081, 5000, 8080, 5672, 15672, 9001, 8084),
+            (9000, 8081, 5000, 8080, 6650, 8087, 9001, 8084),
             tuple(port.port for port in manifest.required_ports),
         )
         self.assertEqual(
@@ -178,7 +178,6 @@ class TestPreflightResult(unittest.TestCase):
                 "TSW_PORTAINER_ADMIN_PASSWORD",
                 "TSW_NEXUS_ADMIN_PASSWORD",
                 "TSW_JENKINS_ADMIN_PASSWORD",
-                "TSW_RABBITMQ_PASSWORD",
                 "TSW_SONARQUBE_ADMIN_PASSWORD",
                 "TSW_POSTGRES_PASSWORD",
             ),

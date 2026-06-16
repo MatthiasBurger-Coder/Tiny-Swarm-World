@@ -161,10 +161,10 @@ class HostPreflightProbe(PortHostPreflightProbe):
             )
         if "jenkins" in service_name:
             return _http_service_available(port, ("/login", "/"), ("jenkins",))
-        if "rabbitmq management" in service_name:
-            return _http_service_available(port, ("/",), ("rabbitmq",))
-        if "rabbitmq amqp" in service_name:
-            return _tcp_connects(port) and _http_service_available(15672, ("/",), ("rabbitmq",))
+        if "pulsar admin" in service_name:
+            return _http_service_available(port, ("/admin/v2/clusters",), ("standalone", "clusters"))
+        if "pulsar broker" in service_name:
+            return _tcp_connects(port)
         if "sonarqube" in service_name:
             return _http_service_available(port, ("/api/system/status", "/"), ("sonar", "status"))
         if "swagger api" in service_name:

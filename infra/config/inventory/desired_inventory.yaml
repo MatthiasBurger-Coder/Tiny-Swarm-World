@@ -10,7 +10,7 @@ vms:
       - portainer
       - nexus
       - jenkins
-      - rabbitmq
+      - pulsar
       - sonarqube
       - swagger
       - infisical
@@ -26,7 +26,7 @@ vms:
       - portainer
       - nexus
       - jenkins
-      - rabbitmq
+      - pulsar
       - sonarqube
       - swagger
       - infisical
@@ -42,7 +42,7 @@ vms:
       - portainer
       - nexus
       - jenkins
-      - rabbitmq
+      - pulsar
       - sonarqube
       - swagger
       - infisical
@@ -52,7 +52,7 @@ expected_stacks:
   - portainer
   - nexus
   - jenkins
-  - rabbitmq
+  - pulsar
   - sonarqube
   - swagger
   - infisical

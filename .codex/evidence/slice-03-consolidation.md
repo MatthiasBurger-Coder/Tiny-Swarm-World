@@ -1,55 +1,87 @@
-# Slice 03 Consolidation: Issue 4 Swarm Stack Validation
+# Slice 03 Consolidation
 
-Workflow id: `issue-4-swarm-stack-validation-20260614`
+Workflow id: `workflow-replace-rabbitmq-with-apache-pulsar`
+
 Slice id: `S03`
 
-## Stream Results
+Slice title: Replace RabbitMQ in desired inventory and setup manifest
 
-- Tests stream confirmed focused regression tests passed in Slice 02.
-- Architecture stream verified hexagonal import guardrails after the
-  infrastructure adapter validation change.
+Stream results:
 
-## Accepted Findings
+- Backend/domain: replaced RabbitMQ with Pulsar in the setup manifest.
+- Runtime/configuration: replaced `rabbitmq` with `pulsar` in desired inventory.
+- Infrastructure: replaced RabbitMQ occupied-port recognition with Pulsar
+  broker/Admin API recognition.
+- Tests: updated preflight and inventory expectations.
 
-- YAML parsing remains in infrastructure.
-- Domain and application layers did not gain YAML parser or infrastructure
-  dependencies.
-- The selected validation boundary is compatible with existing architecture
-  tests.
+Accepted findings:
 
-## Rejected Findings
+- Desired inventory now lists `pulsar` as the active platform messaging stack.
+- Default setup manifest now lists `Pulsar` and checks ports `6650` and `8087`
+  outside centralized ingress.
+- Setup manifest no longer requires `TSW_RABBITMQ_PASSWORD`.
+- Host preflight recognizes an existing Pulsar Admin API on
+  `/admin/v2/clusters` and the Pulsar broker TCP port.
 
-- No live validation was run; it is unnecessary for this static repository
-  validation feature.
+Rejected findings:
 
-## Files Changed
+- RabbitMQ deployment contract updates were not included because the workflow
+  reserves service stack contract changes for Slice 04.
+- RabbitMQ compose deletion was not included because deletion is reserved for
+  Slice 07.
 
-- `.codex/evidence/slice-03-distribution.md`
-- `.codex/evidence/slice-03-consolidation.md`
+Files changed per stream:
 
-## Conflicts
+- runtime/configuration:
+  - `infra/config/inventory/desired_inventory.yaml`
+- backend/domain:
+  - `src/tiny_swarm_world/domain/preflight/setup_manifest.py`
+- infrastructure:
+  - `src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py`
+- tests:
+  - `tests/domain/preflight/test_preflight_result.py`
+  - `tests/infrastructure/adapters/preflight/test_host_preflight_probe.py`
+  - `tests/infrastructure/adapters/repositories/test_inventory_repositories.py`
+- documentation/evidence:
+  - `.codex/evidence/slice-03-distribution.md`
+  - `.codex/evidence/slice-03-consolidation.md`
 
-No conflicts found.
+Conflicts found:
 
-## Tests Executed
+- Full quality initially failed because inventory repository tests still
+  expected `rabbitmq`.
+- One inventory test compared inventory directly against deployment service
+  stack contracts, which are intentionally migrated in Slice 04.
 
-```bash
-python3 tools/quality_gate.py arch-tests
-```
+Conflicts resolved:
 
-Result:
+- Updated committed inventory expectations to `pulsar`.
+- Added a narrow in-flight bridge in the inventory-to-contract comparison so
+  Slice 03 can be green before Slice 04 moves the deployment contract.
 
-- 16 architecture tests passed.
+Tests executed:
 
-## SonarQube
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World && PATH="$PWD/.venv/bin:$PWD/venv/bin:$PWD/bin:$PATH" PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result'`
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World && PATH="$PWD/.venv/bin:$PWD/venv/bin:$PWD/bin:$PATH" PYTHONPATH=src python3 -m unittest discover tests/infrastructure/adapters/preflight'`
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World && PATH="$PWD/.venv/bin:$PWD/venv/bin:$PWD/bin:$PATH" PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_inventory_repositories'`
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World && PATH="$PWD/.venv/bin:$PWD/venv/bin:$PWD/bin:$PATH" python3 tools/quality_gate.py quality'`
 
-No local SonarQube scan was run. Remote PR checks will provide the configured
-repository CI/SonarCloud result.
+Quality-gate result:
 
-## Documentation Updates
+- Domain preflight tests: passed, 15 tests.
+- Infrastructure preflight tests: passed, 47 tests.
+- Inventory repository tests: passed, 17 tests.
+- Full quality gate: passed, 888 tests with 17 skipped.
 
-No product documentation changes were required in this slice.
+SonarQube findings and fixes:
 
-## Final Integration Decision
+- Not applicable for local Slice 03 execution.
 
-Slice 03 is complete. Continue with Slice 04 after checkpoint commit.
+Documentation updates:
+
+- Slice execution evidence was created.
+
+Final integration decision:
+
+- Accepted. RabbitMQ is no longer active desired inventory or setup/preflight
+  state. Pulsar is active in both, and tests pass.

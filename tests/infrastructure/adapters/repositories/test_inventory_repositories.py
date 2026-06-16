@@ -77,7 +77,7 @@ expected_artifact_registries:
                 "portainer",
                 "nexus",
                 "jenkins",
-                "rabbitmq",
+                "pulsar",
                 "sonarqube",
                 "swagger",
                 "infisical",
@@ -96,6 +96,10 @@ expected_artifact_registries:
             for contract in service_stack_contracts_for_profile(
                 composition.DEFAULT_SETUP_SERVICE_PROFILE
             )
+        )
+        stack_names = tuple(
+            "pulsar" if stack_name == "rabbitmq" else stack_name
+            for stack_name in stack_names
         )
 
         self.assertEqual(stack_names, inventory.expected_stacks)
