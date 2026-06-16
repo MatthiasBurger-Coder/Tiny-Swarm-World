@@ -44,7 +44,6 @@ def _required_infisical_bootstrap_env() -> dict[str, str]:
         "TSW_INFISICAL_REDIS_PASSWORD": sample_text("redis", "-secret"),
         "TSW_PORTAINER_ADMIN_PASSWORD": sample_text("portainer", "-value"),
         "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
-        "TSW_RABBITMQ_PASSWORD": sample_text("rabbitmq", "-value"),
         "TSW_POSTGRES_PASSWORD": sample_text("postgres", "-value"),
         "TSW_SONARQUBE_POSTGRES_PASSWORD": sample_text("sonar-pg", "-value"),
     }
@@ -1019,7 +1018,6 @@ class TestComposition(unittest.TestCase):
             "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
             "TSW_NEXUS_ADMIN_PASSWORD": sample_text("nexus", "-value"),
             "TSW_PORTAINER_ADMIN_PASSWORD": sample_text("portainer", "-value"),
-            "TSW_RABBITMQ_PASSWORD": sample_text("rabbitmq", "-value"),
             "TSW_SONARQUBE_ADMIN_PASSWORD": sample_text("sonarqube", "-value"),
         }
         with patch.dict("os.environ", env, clear=True):
@@ -1045,7 +1043,6 @@ class TestComposition(unittest.TestCase):
                 "platform/jenkins",
                 "platform/nexus",
                 "platform/portainer",
-                "platform/rabbitmq",
                 "platform/sonarqube",
             ),
             tuple(item.item_name for item in seed_step.items),
@@ -1114,7 +1111,6 @@ class TestComposition(unittest.TestCase):
         "TSW_INFISICAL_REDIS_PASSWORD": sample_text("redis", "-secret"),
         "TSW_PORTAINER_ADMIN_PASSWORD": sample_text("portainer", "-value"),
         "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
-        "TSW_RABBITMQ_PASSWORD": sample_text("rabbitmq", "-value"),
         "TSW_POSTGRES_PASSWORD": sample_text("postgres", "-value"),
         "TSW_SONARQUBE_POSTGRES_PASSWORD": sample_text("sonar-pg", "-value"),
             },

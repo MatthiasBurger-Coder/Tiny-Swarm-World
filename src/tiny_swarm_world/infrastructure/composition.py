@@ -1697,9 +1697,6 @@ def _deployment_stack_environment(
             ),
             "TSW_JENKINS_ADMIN_PASSWORD": _operator_secret_value("TSW_JENKINS_ADMIN_PASSWORD"),
         },
-        "rabbitmq": {
-            "TSW_RABBITMQ_PASSWORD": _operator_secret_value("TSW_RABBITMQ_PASSWORD"),
-        },
         "sonarqube": {
             "TSW_SONARQUBE_POSTGRES_PASSWORD": _operator_secret_value("TSW_SONARQUBE_POSTGRES_PASSWORD"),
             "TSW_POSTGRES_PASSWORD": _operator_secret_value("TSW_POSTGRES_PASSWORD"),
@@ -1970,11 +1967,6 @@ def _infisical_seed_items() -> tuple[InfisicalSecretItem, ...]:
             "platform/portainer",
             _operator_config_value("TSW_PORTAINER_USERNAME", "admin"),
             _required_operator_secret_value("TSW_PORTAINER_ADMIN_PASSWORD"),
-        ),
-        InfisicalSecretItem(
-            "platform/rabbitmq",
-            _operator_config_value("TSW_RABBITMQ_USERNAME", "admin"),
-            _required_operator_secret_value("TSW_RABBITMQ_PASSWORD"),
         ),
         InfisicalSecretItem(
             "platform/sonarqube",

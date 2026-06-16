@@ -535,7 +535,6 @@ def _required_secret_environment() -> dict[str, str]:
         "TSW_PORTAINER_ADMIN_PASSWORD": "portainer-admin-password",
         "TSW_NEXUS_ADMIN_PASSWORD": "nexus-password",
         "TSW_JENKINS_ADMIN_PASSWORD": "jenkins-password",
-        "TSW_RABBITMQ_PASSWORD": "rabbitmq-password",
         "TSW_SONARQUBE_ADMIN_PASSWORD": "sonarqube-password!",
         "TSW_POSTGRES_PASSWORD": "postgres-password",
         "TSW_SONARQUBE_POSTGRES_PASSWORD": "sonarqube-postgres-password",

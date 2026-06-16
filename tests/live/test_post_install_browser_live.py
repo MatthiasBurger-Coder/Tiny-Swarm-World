@@ -355,7 +355,6 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         self.assertIn("TSW_JENKINS_ADMIN_PASSWORD", expected_keys)
         self.assertIn("TSW_NEXUS_ADMIN_PASSWORD", expected_keys)
         self.assertIn("TSW_PORTAINER_ADMIN_PASSWORD", expected_keys)
-        self.assertIn("TSW_RABBITMQ_PASSWORD", expected_keys)
         self.assertTrue(all("PASSWORD" in key or key.endswith("HTPASSWD") for key in expected_keys))
 
     def test_traefik_tls_secret_name_manifest_entries_are_value_free(self) -> None:
