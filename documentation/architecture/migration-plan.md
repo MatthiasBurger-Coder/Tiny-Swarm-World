@@ -11,7 +11,7 @@ and should avoid live infrastructure commands.
 ## Global Rules
 
 - Do not run live `multipass`, Docker Swarm, netplan, socat, Portainer, Nexus,
-  Jenkins, RabbitMQ, SonarQube, or compose deployment commands during migration
+  Jenkins, Apache Pulsar, SonarQube, or compose deployment commands during migration
   work unless explicitly requested.
 - Preserve the current hexagonal rules:
   - domain does not import application

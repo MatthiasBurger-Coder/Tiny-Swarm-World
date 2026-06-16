@@ -63,7 +63,7 @@ bootstrap and verify-after-apply evidence are available.
 
 The Deployment boundary also contains a generic `EnsureServiceStack` contract
 and stack plans for the default service set plus selected service profiles.
-The base service set covers Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+The base service set covers Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube,
 and Swagger/NGINX. The full guided setup selects the service-access profile by
 default, which adds the `service-access` management stack. The
 Portainer-managed plan intentionally excludes the Portainer stack itself to

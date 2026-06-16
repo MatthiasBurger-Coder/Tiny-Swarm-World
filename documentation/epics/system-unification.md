@@ -143,7 +143,7 @@ In scope:
 Out of scope:
 
 - Live Multipass, Docker Swarm, compose, netplan, socat, Portainer, Nexus,
-  Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, LXD, Incus, LXC container, or
+  Jenkins, Apache Pulsar, SonarQube, Swagger/NGINX, LXD, Incus, LXC container, or
   Docker-in-container execution.
 - Kubernetes-first architecture.
 - Browser React frontend work.

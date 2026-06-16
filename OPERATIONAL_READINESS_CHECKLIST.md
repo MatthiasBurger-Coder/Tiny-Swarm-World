@@ -64,7 +64,7 @@
 ## Supporting service accessibility
 - [ ] Nexus reachable.
 - [ ] Jenkins reachable.
-- [ ] RabbitMQ reachable.
+- [ ] Pulsar broker reachable on port `6650` and Pulsar Admin API reachable on port `8087`.
 - [ ] SonarQube reachable.
 - [ ] Swagger/NGINX reachable.
 - [ ] Any resource-gated service omission has Three Amigos approval and is

@@ -40,7 +40,7 @@ error-mapping semantics.
 
 Tests and quality gates parse and validate command YAML without running live
 LXD, Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
-compose, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX
+compose, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, or Swagger/NGINX
 commands.
 
 === Desired Inventory, Observed State, And Evidence

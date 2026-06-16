@@ -233,7 +233,7 @@ incus delete test-lxc --force
 
 Passing this smoke check proves only the local provider/container/DNS path for
 that host. It is not proof that Docker Swarm, Portainer, Nexus, Jenkins,
-RabbitMQ, SonarQube, Swagger/NGINX, Vaultwarden, image publication, or stack
+Apache Pulsar, SonarQube, Swagger/NGINX, Vaultwarden, image publication, or stack
 deployment is complete.
 
 == Optional Live Setup Smoke Evidence

@@ -15,7 +15,7 @@ infrastructure:
 * socat and WSL port-forwarding helpers;
 * Portainer and its API;
 * Nexus and its API;
-* Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, and other deployed stacks;
+* Jenkins, Apache Pulsar, SonarQube, Swagger/NGINX, and other deployed stacks;
 
 The default development quality gate does not call these systems. Tests use
 mocks, static inspection, architecture checks, and typed configuration

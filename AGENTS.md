@@ -5,7 +5,7 @@
 Tiny Swarm World is a Linux/WSL-only local infrastructure automation project.
 Its default node-provider direction is managed LXC through LXD or Incus for a
 Docker Swarm target environment. It ships guarded workflow boundaries and
-service-stack configuration for Portainer, Nexus, Jenkins, RabbitMQ,
+service-stack configuration for Portainer, Nexus, Jenkins, Apache Pulsar,
 SonarQube, and Swagger/NGINX. Multipass is not a supported node provider.
 
 The project is a Python automation codebase using a hexagonal architecture.
@@ -97,7 +97,7 @@ live infrastructure changes:
 - compose deployments
 - netplan changes
 - `socat` port forwarding
-- Nexus, Jenkins, Portainer, RabbitMQ, or SonarQube bootstrap scripts
+- Nexus, Jenkins, Portainer, Apache Pulsar, or SonarQube bootstrap scripts
 
 For normal development, prefer unit tests with mocks and targeted static
 inspection.
