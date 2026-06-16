@@ -1,0 +1,355 @@
+# Slice 10 Full Automated Test Run
+
+## Command: python3 -m pytest
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.3.4, pluggy-1.5.0
+rootdir: /mnt/d/Projects/Tiny-Swarm-World
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.13.0
+collected 1048 items
+
+tests/adapters/file_management/test_path_normalizer.py ......            [  0%]
+tests/adapters/file_management/yaml/test_yaml_builder.py ............... [  2%]
+........                                                                 [  2%]
+tests/adapters/file_management/yaml/test_yaml_node.py ........           [  3%]
+tests/application/ports/test_method_trace.py ........                    [  4%]
+tests/application/ports/test_workflow_progress.py .....                  [  4%]
+tests/application/services/artifacts/test_artifact_service_exports.py .. [  4%]
+.                                                                        [  5%]
+tests/application/services/artifacts/test_artifact_workflows.py ........ [  5%]
+.                                                                        [  5%]
+tests/application/services/artifacts/test_ensure_container_image.py ..   [  6%]
+tests/application/services/commands/test_command_executer.py .......     [  6%]
+tests/application/services/configuration/test_configuration_validation_service.py . [  6%]
+                                                                         [  6%]
+tests/application/services/deployment/test_deployment_service_exports.py . [  6%]
+.                                                                        [  7%]
+tests/application/services/deployment/test_deployment_workflows.py ..... [  7%]
+..............                                                           [  8%]
+tests/application/services/deployment/test_ensure_external_swarm_secret.py . [  8%]
+..                                                                       [  9%]
+tests/application/services/deployment/test_ensure_infisical_bootstrap.py . [  9%]
+..                                                                       [  9%]
+tests/application/services/deployment/test_ensure_infisical_secret_items.py . [  9%]
+..                                                                       [  9%]
+tests/application/services/deployment/test_ensure_nexus_stack.py ..      [  9%]
+tests/application/services/deployment/test_ensure_portainer_admin_access.py . [ 10%]
+.......                                                                  [ 10%]
+tests/application/services/deployment/test_ensure_portainer_endpoint.py . [ 10%]
+...                                                                      [ 11%]
+tests/application/services/deployment/test_ensure_portainer_stack.py ... [ 11%]
+.                                                                        [ 11%]
+tests/application/services/deployment/test_ensure_service_stack.py ..... [ 11%]
+......                                                                   [ 12%]
+tests/application/services/deployment/test_ensure_sonarqube_admin_access.py . [ 12%]
+....                                                                     [ 12%]
+tests/application/services/deployment/test_ensure_swarm_stack.py ......  [ 13%]
+tests/application/services/deployment/test_infisical_silent_install.py . [ 13%]
+......                                                                   [ 14%]
+tests/application/services/deployment/test_secret_management.py ........ [ 14%]
+......                                                                   [ 15%]
+tests/application/services/deployment/test_service_stack_plan.py ......  [ 16%]
+tests/application/services/deployment/test_verify_external_swarm_input.py . [ 16%]
+..                                                                       [ 16%]
+tests/application/services/deployment/test_verify_swarm_service_readiness.py . [ 16%]
+....                                                                     [ 16%]
+tests/application/services/network/test_socat_manager.py ...             [ 17%]
+tests/application/services/nexus/test_bootstrap_nexus.py ............... [ 18%]
+.                                                                        [ 18%]
+tests/application/services/nexus/test_ensure_nexus_stack_compatibility.py . [ 18%]
+                                                                         [ 18%]
+tests/application/services/nexus/test_nexus_repository_contracts.py .... [ 19%]
+....                                                                     [ 19%]
+tests/application/services/platform/test_docker_swarm_lxc_contract.py .. [ 19%]
+.........                                                                [ 20%]
+tests/application/services/platform/test_lxc_docker_install.py .....     [ 21%]
+tests/application/services/platform/test_lxc_service_exposure.py ....... [ 21%]
+.                                                                        [ 21%]
+tests/application/services/platform/test_lxc_swarm_bootstrap.py .....    [ 22%]
+tests/application/services/platform/test_node_provider_selection.py .... [ 22%]
+............                                                             [ 23%]
+tests/application/services/platform/test_platform_service_exports.py .   [ 23%]
+tests/application/services/platform/test_platform_verify_checks.py ..... [ 24%]
+.                                                                        [ 24%]
+tests/application/services/platform/test_platform_workflows.py ......... [ 25%]
+...........................                                              [ 27%]
+tests/application/services/platform/test_preflight_service.py .......... [ 28%]
+...................                                                      [ 30%]
+tests/application/services/setup/test_setup_workflow.py ................ [ 32%]
+......                                                                   [ 32%]
+tests/application/services/shared/test_method_trace_wrapper.py .....     [ 33%]
+tests/architecture/test_hexagonal_imports.py .................           [ 34%]
+tests/architecture/test_infra_responsibility_boundaries.py .             [ 35%]
+tests/architecture/test_init_safety_contracts.py ...                     [ 35%]
+tests/architecture/test_installation_method_trace_coverage.py .....      [ 35%]
+tests/architecture/test_legacy_surface_documentation.py ...........      [ 36%]
+tests/architecture/test_local_state_storage.py ....                      [ 37%]
+tests/architecture/test_repository_hygiene.py ...                        [ 37%]
+tests/domain/artifacts/test_container_image_contract.py .                [ 37%]
+tests/domain/command/test_command_spec.py ...............                [ 39%]
+tests/domain/configuration/test_configuration_contract.py .......        [ 39%]
+tests/domain/deployment/test_service_stack_contract.py ...............   [ 41%]
+tests/domain/ingress/test_certificate.py ....                            [ 41%]
+tests/domain/ingress/test_desired_state.py ....                          [ 41%]
+tests/domain/ingress/test_discovery.py .....                             [ 42%]
+tests/domain/inventory/test_inventory_model.py ...............           [ 43%]
+tests/domain/network/test_container_network_plan.py ....                 [ 44%]
+tests/domain/network/test_ip_extractors.py .                             [ 44%]
+tests/domain/network/test_lxc_proxy_device_plan.py ...                   [ 44%]
+tests/domain/network/test_network.py ........                            [ 45%]
+tests/domain/network/test_port_forwarding_plan.py ....                   [ 45%]
+tests/domain/node_provider/test_docker_swarm_lxc_contract.py ........... [ 46%]
+...                                                                      [ 47%]
+tests/domain/node_provider/test_provider_model.py ..............         [ 48%]
+tests/domain/preflight/test_host_environment.py .......                  [ 49%]
+tests/domain/preflight/test_preflight_result.py ...............          [ 50%]
+tests/infrastructure/adapters/clients/test_docker_cli_runtime.py .....   [ 50%]
+tests/infrastructure/adapters/clients/test_infisical_bootstrap_http_client.py . [ 51%]
+......                                                                   [ 51%]
+tests/infrastructure/adapters/clients/test_infisical_cli_client.py ..    [ 51%]
+tests/infrastructure/adapters/clients/test_infisical_playwright_client.py . [ 51%]
+.                                                                        [ 52%]
+tests/infrastructure/adapters/clients/test_lxc_container_docker_runtime.py . [ 52%]
+.....                                                                    [ 52%]
+tests/infrastructure/adapters/clients/test_lxc_container_swarm_bootstrap.py . [ 52%]
+.......                                                                  [ 53%]
+tests/infrastructure/adapters/clients/test_lxc_node_provider.py ........ [ 54%]
+..............................                                           [ 56%]
+tests/infrastructure/adapters/clients/test_lxc_proxy_device_runtime.py . [ 57%]
+.........                                                                [ 57%]
+tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py ........ [ 58%]
+...................                                                      [ 60%]
+tests/infrastructure/adapters/clients/test_nexus_http_client.py ........ [ 61%]
+...                                                                      [ 61%]
+tests/infrastructure/adapters/clients/test_portainer_http_client.py .... [ 61%]
+....................                                                     [ 63%]
+tests/infrastructure/adapters/clients/test_sonarqube_http_client.py .... [ 64%]
+.                                                                        [ 64%]
+tests/infrastructure/adapters/command_runner/test_async_command_runner.py . [ 64%]
+........                                                                 [ 65%]
+tests/infrastructure/adapters/command_runner/test_command_runner_factory.py . [ 65%]
+....                                                                     [ 65%]
+tests/infrastructure/adapters/configuration/test_configuration_sources.py . [ 65%]
+......                                                                   [ 66%]
+tests/infrastructure/adapters/preflight/test_host_preflight_probe.py ... [ 66%]
+.............................                                            [ 69%]
+tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py . [ 69%]
+..............                                                           [ 70%]
+tests/infrastructure/adapters/repositories/test_command_repository_yaml_contract.py . [ 70%]
+.........                                                                [ 71%]
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py . [ 71%]
+...............................                                          [ 74%]
+tests/infrastructure/adapters/repositories/test_inventory_repositories.py . [ 74%]
+................                                                         [ 76%]
+tests/infrastructure/adapters/repositories/test_netplan_repository.py .. [ 76%]
+                                                                         [ 76%]
+tests/infrastructure/adapters/repositories/test_node_provider_config_yaml_repository.py . [ 76%]
+........................                                                 [ 79%]
+tests/infrastructure/adapters/ui/test_command_runner_ui_failure_semantics.py . [ 79%]
+........                                                                 [ 79%]
+tests/infrastructure/adapters/ui/test_linux_ui.py ...................... [ 81%]
+.                                                                        [ 82%]
+tests/infrastructure/adapters/ui/test_progress_trace_ui.py ..            [ 82%]
+tests/infrastructure/adapters/ui/test_windows_ui.py ....                 [ 82%]
+tests/infrastructure/logging/test_progress_trace_logging.py ...          [ 82%]
+tests/infrastructure/test_composition.py ............................... [ 85%]
+.......................................                                  [ 89%]
+tests/infrastructure/test_os_types.py .......                            [ 90%]
+tests/integration/test_post_install_browser_live.py ssssssssss           [ 91%]
+tests/integration/test_vaultwarden_live.py s                             [ 91%]
+tests/live/test_post_install_browser_live.py ...............ssssss       [ 93%]
+tests/test_install_debugger.py .......                                   [ 93%]
+tests/test_install_script.py ....................                        [ 95%]
+tests/test_installer.py .......                                          [ 96%]
+tests/test_package_entrypoint.py ................................        [ 99%]
+tests/test_package_metadata.py ....                                      [100%]
+
+=========================== short test summary info ============================
+SKIPPED [1] tests/integration/test_post_install_browser_live.py:142: set TSW_RUN_POST_INSTALL_BROWSER_INTEGRATION=1 to run post-install browser integration checks
+SKIPPED [1] tests/integration/test_post_install_browser_live.py:182: set TSW_RUN_POST_INSTALL_BROWSER_INTEGRATION=1 to run post-install browser integration checks
+SKIPPED [1] tests/integration/test_post_install_browser_live.py:120: set TSW_RUN_POST_INSTALL_BROWSER_INTEGRATION=1 to run post-install browser integration checks
+SKIPPED [1] tests/integration/test_post_install_browser_live.py:191: set TSW_RUN_POST_INSTALL_BROWSER_INTEGRATION=1 to run post-install browser integration checks
+SKIPPED [1] tests/integration/test_post_install_browser_live.py:226: set TSW_RUN_POST_INSTALL_BROWSER_INTEGRATION=1 to run post-install browser integration checks
+SKIPPED [1] tests/integration/test_post_install_browser_live.py:235: set TSW_RUN_POST_INSTALL_BROWSER_INTEGRATION=1 to run post-install browser integration checks
+SKIPPED [1] tests/integration/test_post_install_browser_live.py:245: set TSW_RUN_POST_INSTALL_BROWSER_INTEGRATION=1 to run post-install browser integration checks
+SKIPPED [1] tests/integration/test_post_install_browser_live.py:271: set TSW_RUN_POST_INSTALL_BROWSER_INTEGRATION=1 to run post-install browser integration checks
+SKIPPED [1] tests/integration/test_post_install_browser_live.py:147: set TSW_RUN_POST_INSTALL_BROWSER_INTEGRATION=1 to run post-install browser integration checks
+SKIPPED [1] tests/integration/test_post_install_browser_live.py:164: set TSW_RUN_POST_INSTALL_BROWSER_INTEGRATION=1 to run post-install browser integration checks
+SKIPPED [1] tests/integration/test_vaultwarden_live.py:56: set TSW_RUN_LIVE_VAULTWARDEN_INTEGRATION=1 to run the live Docker Vaultwarden integration test
+SKIPPED [1] tests/live/test_post_install_browser_live.py:388: set TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 to run post-install live browser checks
+SKIPPED [1] tests/live/test_post_install_browser_live.py:404: set TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 to run post-install live browser checks
+SKIPPED [1] tests/live/test_post_install_browser_live.py:427: set TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 to run post-install live browser checks
+SKIPPED [1] tests/live/test_post_install_browser_live.py:448: set TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 to run post-install live browser checks
+SKIPPED [1] tests/live/test_post_install_browser_live.py:486: set TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 to run post-install live browser checks
+SKIPPED [1] tests/live/test_post_install_browser_live.py:530: set TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 to run post-install live browser checks
+================= 1031 passed, 17 skipped in 74.69s (0:01:14) ==================
+exit_code=0
+
+## Command: ./install.sh --help || true
+usage: installer.py [-h] [--service-profile {default,service-access}]
+                    [--no-generate-secrets] [--confirm-reset]
+                    [--non-interactive-live-approval] [--headless]
+
+Tiny Swarm World live installation wrapper.
+
+options:
+  -h, --help            show this help message and exit
+  --service-profile {default,service-access}
+                        Service profile passed to setup run.
+  --no-generate-secrets
+                        Fail if required TSW_* secrets are missing.
+  --confirm-reset       Confirm the governed fresh-install reset without
+                        prompting.
+  --non-interactive-live-approval
+                        Pass explicit non-interactive live approval to the
+                        CLI.
+  --headless            Disable terminal recorder/TUI presentation and capture
+                        command output directly.
+exit_code=0
+
+## Command: quality command discovery
+./pyproject.toml
+./QUALITY.md
+exit_code=0
+
+## Command: python3 tools/quality_gate.py quality
+[quality] Running lint: /mnt/d/Projects/Tiny-Swarm-World/.venv/bin/python3 -m ruff check /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/application /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/domain /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/infrastructure /mnt/d/Projects/Tiny-Swarm-World/tests
+All checks passed!
+[quality] Running arch-lint: /mnt/d/Projects/Tiny-Swarm-World/.venv/bin/lint-imports --config /mnt/d/Projects/Tiny-Swarm-World/.importlinter
+
+╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐
+╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │
+ ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗
+ ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝
+╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║
+╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝
+  └──▶║║                    ▲ 
+      ╚╝────────────────────┘
+
+
+---------
+Contracts
+---------
+
+Analyzed 258 files, 561 dependencies.
+-------------------------------------
+
+Domain layer does not import infrastructure KEPT
+Domain layer does not import application KEPT
+Application layer does not import infrastructure KEPT
+
+Contracts: 3 kept, 0 broken.
+[quality] Running arch-tests: /mnt/d/Projects/Tiny-Swarm-World/.venv/bin/python3 -m unittest tests.architecture.test_hexagonal_imports
+.................
+----------------------------------------------------------------------
+Ran 17 tests in 3.485s
+
+OK
+[quality] Running typecheck: /mnt/d/Projects/Tiny-Swarm-World/.venv/bin/python3 -m mypy --explicit-package-bases /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/application /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/domain /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/infrastructure /mnt/d/Projects/Tiny-Swarm-World/tests
+tests/infrastructure/adapters/repositories/test_command_repository_yaml_contract.py:102: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/test_infisical_cli_client.py:13: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/test_infisical_cli_client.py:31: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/architecture/test_local_state_storage.py:37: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/deployment/test_ensure_external_swarm_secret.py:35: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/shared/test_method_trace_wrapper.py:120: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:220: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:773: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:774: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:799: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/nexus/test_bootstrap_nexus.py:217: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/nexus/test_bootstrap_nexus.py:240: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/nexus/test_bootstrap_nexus.py:310: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/deployment/test_ensure_portainer_admin_access.py:248: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/commands/test_command_executer.py:296: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/platform/test_node_provider_selection.py:418: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/platform/test_node_provider_selection.py:419: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/platform/test_node_provider_selection.py:452: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/platform/test_node_provider_selection.py:453: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:58: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:68: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:85: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:190: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:216: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:236: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:264: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:292: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:320: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:427: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:448: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/test_composition.py:447: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/test_composition.py:519: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/test_composition.py:547: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/test_composition.py:1216: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/test_composition.py:1484: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+Success: no issues found in 399 source files
+[quality] Running test: /mnt/d/Projects/Tiny-Swarm-World/.venv/bin/python3 -m unittest discover -s /mnt/d/Projects/Tiny-Swarm-World/tests -t /mnt/d/Projects/Tiny-Swarm-World
+.........................................................Failed to prepare artifact target 'artifacts:nexus-admin-access'. Error: NexusAdminAccessRecoveryBlocked. Diagnostic: initial_admin_value_unavailable.
+.Failed to prepare artifact target 'artifacts:nexus-docker-hosted-repository'. Error: RuntimeError. Diagnostic payload redacted.
+................Failed to apply deployment target 'deployment:portainer-stack'. Error: RuntimeError. Diagnostic payload redacted.
+...Failed to prepare deployment input 'deployment:service-access-external-input'. Error: RuntimeError. Diagnostic payload redacted.
+.....................Failed to initialize Portainer admin access. Error: PortainerAdminInitializationRejected. Diagnostic payload redacted.
+..........................................................................................................................................................................................................................[setup] preflight: START
+[setup] preflight: COMPLETED
+[setup] platform init: START
+[setup] platform init: COMPLETED
+.[setup] preflight: START
+[setup] preflight: FAILED
+.[setup] preflight: START
+[setup] preflight: COMPLETED
+[setup] deployment apply: START
+[setup] deployment apply: FAILED_TO_APPLY
+.[setup] deployment verify: START
+[setup] deployment verify: FAILED_TO_VERIFY
+..[setup] preflight: START
+[setup] preflight: COMPLETED
+[setup] platform init: START
+[setup] platform init: BLOCKED
+.[setup] preflight: START
+[setup] preflight: COMPLETED
+[setup] platform init: START
+[setup] platform init: FAILED_TO_APPLY
+..[setup] unsafe: START
+[setup] unsafe: FAILED (unsafe result payload)
+.[setup] unsafe: START
+[setup] unsafe: FAILED (unsafe result payload)
+.[setup] preflight: START
+[setup] preflight: FAILED (RuntimeError)
+.[setup] preflight: START
+[setup] preflight: COMPLETED
+..[setup] preflight: START
+[setup] preflight: COMPLETED
+[setup] platform init: START
+[setup] platform init: COMPLETED
+..[setup] preflight: START
+[setup] preflight: COMPLETED
+[setup] artifacts prepare: START
+[setup] artifacts prepare: BLOCKED
+.[setup] deployment apply: START
+[setup] deployment apply: FAILED (RuntimeError)
+.[setup] preflight: START
+[setup] preflight: COMPLETED
+[setup] deployment bootstrap: START
+[setup] deployment bootstrap: FAILED_TO_VERIFY
+.[setup] preflight: START
+[setup] preflight: COMPLETED
+[setup] artifacts prepare: START
+[setup] artifacts prepare: BLOCKED
+.[setup] artifacts prepare: START
+[setup] artifacts prepare: BLOCKED
+.[setup] platform init: START
+[setup] platform init: BLOCKED
+...............................................................................................................................................................................................................................................................................................................................................Failed to execute command on VM 'swarm-manager'. Error: CommandExecutionError return code 2. Diagnostic payload redacted.
+...Failed to execute command on VM 'swarm-manager'. Error: RuntimeError. Diagnostic payload redacted.
+.Failed to execute command on VM 'swarm-manager'. Error: CommandExecutionError return code 2. Diagnostic payload redacted.
+.Failed to execute command on VM 'swarm-manager'. Error: CommandExecutionError return code 2. Diagnostic payload redacted.
+...Failed to execute command on VM 'swarm-manager'. Error: RuntimeError. Diagnostic payload redacted.
+...........................................................................................................sssssssssssssssss..............................................................................Executing <Task finished name='Task-1422' coro=<TestPackageEntrypoint.test_setup_run_dispatches_to_setup_workflow_after_live_consent() done, defined at /mnt/d/Projects/Tiny-Swarm-World/tests/test_package_entrypoint.py:491> result=None created at /usr/lib/python3.12/asyncio/runners.py:100> took 0.170 seconds
+.Executing <Task finished name='Task-1427' coro=<TestPackageEntrypoint.test_setup_run_propagates_composition_lifecycle_failure() done, defined at /mnt/d/Projects/Tiny-Swarm-World/tests/test_package_entrypoint.py:532> result=None created at /usr/lib/python3.12/asyncio/runners.py:100> took 0.172 seconds
+......
+----------------------------------------------------------------------
+Ran 888 tests in 63.393s
+
+OK (skipped=17)
+Fresh install will reset configured Tiny Swarm World managed state.
+exit_code=0
