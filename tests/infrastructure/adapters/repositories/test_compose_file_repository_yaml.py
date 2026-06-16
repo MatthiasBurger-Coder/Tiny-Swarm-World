@@ -211,7 +211,7 @@ services:
             for contract in DEFAULT_SERVICE_STACK_CONTRACTS
         ]
 
-        self.assertEqual(["portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"], loaded_stack_names)
+        self.assertEqual(["portainer", "nexus", "jenkins", "pulsar", "sonarqube", "swagger"], loaded_stack_names)
 
     def test_committed_default_service_stack_compose_files_declare_required_services(self):
         repository = ComposeFileRepositoryYaml()
@@ -245,6 +245,7 @@ services:
                 "infisical",
                 "nexus",
                 "portainer",
+                "pulsar",
                 "rabbitmq",
                 "service-access",
                 "sonarqube",

@@ -97,10 +97,6 @@ expected_artifact_registries:
                 composition.DEFAULT_SETUP_SERVICE_PROFILE
             )
         )
-        stack_names = tuple(
-            "pulsar" if stack_name == "rabbitmq" else stack_name
-            for stack_name in stack_names
-        )
 
         self.assertEqual(stack_names, inventory.expected_stacks)
 

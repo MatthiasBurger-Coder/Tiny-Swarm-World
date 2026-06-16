@@ -19,7 +19,7 @@ class TestServiceStackContract(unittest.TestCase):
         stack_names = tuple(contract.stack_name for contract in DEFAULT_SERVICE_STACK_CONTRACTS)
 
         self.assertEqual(
-            ("portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"),
+            ("portainer", "nexus", "jenkins", "pulsar", "sonarqube", "swagger"),
             stack_names,
         )
         self.assertNotIn("service-access", stack_names)
@@ -29,7 +29,7 @@ class TestServiceStackContract(unittest.TestCase):
         selected_by_name = {contract.stack_name: contract for contract in selected}
 
         self.assertEqual(
-            ("portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
+            ("portainer", "nexus", "jenkins", "pulsar", "sonarqube", "swagger", "infisical", "service-access"),
             tuple(contract.stack_name for contract in selected),
         )
         self.assertEqual(SERVICE_ACCESS_STACK_CONTRACT, selected_by_name["service-access"])
@@ -67,8 +67,8 @@ class TestServiceStackContract(unittest.TestCase):
         )
         self.assertEqual(("http://localhost:8080",), _endpoint_urls(endpoints_by_stack["jenkins"]))
         self.assertEqual(
-            ("http://localhost:15672",),
-            _endpoint_urls(endpoints_by_stack["rabbitmq"]),
+            ("http://localhost:8087",),
+            _endpoint_urls(endpoints_by_stack["pulsar"]),
         )
         self.assertEqual(
             ("http://localhost:9001",),
@@ -113,7 +113,7 @@ class TestServiceStackContract(unittest.TestCase):
                 "deployment:portainer-service-readiness",
                 "deployment:nexus-service-readiness",
                 "deployment:jenkins-service-readiness",
-                "deployment:rabbitmq-service-readiness",
+                "deployment:pulsar-service-readiness",
                 "deployment:sonarqube-service-readiness",
                 "deployment:swagger-service-readiness",
             },
@@ -125,7 +125,7 @@ class TestServiceStackContract(unittest.TestCase):
             contract.stack_name for contract in DEFAULT_PORTAINER_MANAGED_SERVICE_STACK_CONTRACTS
         )
 
-        self.assertEqual(("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"), stack_names)
+        self.assertEqual(("nexus", "jenkins", "pulsar", "sonarqube", "swagger"), stack_names)
 
     def test_selected_portainer_managed_stack_contracts_include_service_access(self):
         stack_names = tuple(
@@ -136,7 +136,7 @@ class TestServiceStackContract(unittest.TestCase):
         )
 
         self.assertEqual(
-            ("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
+            ("nexus", "jenkins", "pulsar", "sonarqube", "swagger", "infisical", "service-access"),
             stack_names,
         )
         self.assertNotIn("portainer", stack_names)

@@ -679,7 +679,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             (
                 "deployment:jenkins-stack",
-                "deployment:rabbitmq-stack",
+                "deployment:pulsar-stack",
                 "deployment:sonarqube-stack",
                 "deployment:sonarqube-admin-access",
                 "deployment:swagger-stack",
@@ -726,7 +726,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:portainer-service-readiness",
                 "deployment:nexus-service-readiness",
                 "deployment:jenkins-service-readiness",
-                "deployment:rabbitmq-service-readiness",
+                "deployment:pulsar-service-readiness",
                 "deployment:sonarqube-service-readiness",
                 "deployment:swagger-service-readiness",
                 "deployment:infisical-service-readiness",
@@ -806,7 +806,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             (
                 "deployment:jenkins-stack",
-                "deployment:rabbitmq-stack",
+                "deployment:pulsar-stack",
                 "deployment:sonarqube-stack",
                 "deployment:sonarqube-admin-access",
                 "deployment:swagger-stack",
@@ -832,7 +832,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:portainer-service-readiness",
                 "deployment:nexus-service-readiness",
                 "deployment:jenkins-service-readiness",
-                "deployment:rabbitmq-service-readiness",
+                "deployment:pulsar-service-readiness",
                 "deployment:sonarqube-service-readiness",
                 "deployment:swagger-service-readiness",
                 "deployment:infisical-service-readiness",
