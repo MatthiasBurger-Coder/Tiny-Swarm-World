@@ -145,6 +145,16 @@ def default_configuration_contract() -> ConfigurationContract:
             _required_secret("TSW_SONARQUBE_ADMIN_PASSWORD", "sonarqube", "SonarQube admin password."),
             _required_secret("TSW_POSTGRES_PASSWORD", "sonarqube", "SonarQube PostgreSQL password."),
             _required_secret(
+                "TSW_PULSAR_TOKEN_SECRET_KEY",
+                "pulsar",
+                "Base64 encoded key used to sign local Pulsar Admin API tokens.",
+            ),
+            _required_secret(
+                "TSW_PULSAR_ADMIN_TOKEN",
+                "pulsar",
+                "JWT bearer token for the local Pulsar Admin API.",
+            ),
+            _required_secret(
                 "TSW_SONARQUBE_POSTGRES_PASSWORD",
                 "sonarqube",
                 "SonarQube PostgreSQL service password.",

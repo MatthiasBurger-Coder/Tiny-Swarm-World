@@ -44,6 +44,8 @@ def _required_infisical_bootstrap_env() -> dict[str, str]:
         "TSW_INFISICAL_REDIS_PASSWORD": sample_text("redis", "-secret"),
         "TSW_PORTAINER_ADMIN_PASSWORD": sample_text("portainer", "-value"),
         "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
+        "TSW_PULSAR_TOKEN_SECRET_KEY": "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+        "TSW_PULSAR_ADMIN_TOKEN": "header.payload.signature",
         "TSW_POSTGRES_PASSWORD": sample_text("postgres", "-value"),
         "TSW_SONARQUBE_POSTGRES_PASSWORD": sample_text("sonar-pg", "-value"),
     }
@@ -161,6 +163,27 @@ class TestComposition(unittest.TestCase):
         self.assertTrue(result.passed)
         self.assertNotIn("file-secret", repr(result.to_dict()))
         self.assertNotIn(environment["TSW_NEXUS_ADMIN_PASSWORD"], repr(result.to_dict()))
+
+    def test_build_configuration_validation_service_uses_install_env_file_override(self):
+        with TemporaryDirectory() as temporary_directory:
+            env_file = Path(temporary_directory) / "operator.env"
+            env_file.write_text(
+                "\n".join(
+                    f"{key}='{value}'"
+                    for key, value in {
+                        **_required_infisical_bootstrap_env(),
+                        "TSW_NEXUS_ADMIN_PASSWORD": sample_text("nexus", "-value"),
+                        "TSW_SONARQUBE_ADMIN_PASSWORD": sample_text("sonar", "-value"),
+                    }.items()
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.dict(os.environ, {"TSW_INSTALL_ENV_FILE": str(env_file)}, clear=True):
+                result = composition.build_configuration_validation_service().validate()
+
+        self.assertTrue(result.passed)
 
     def test_wsl_lxc_user_namespace_gate_allows_missing_kernel_flag(self):
         with patch.object(
@@ -1043,6 +1066,7 @@ class TestComposition(unittest.TestCase):
                 "platform/jenkins",
                 "platform/nexus",
                 "platform/portainer",
+                "platform/pulsar",
                 "platform/sonarqube",
             ),
             tuple(item.item_name for item in seed_step.items),

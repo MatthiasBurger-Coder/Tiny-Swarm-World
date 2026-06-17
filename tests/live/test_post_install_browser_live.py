@@ -14,6 +14,7 @@ import os
 import requests
 import socket
 import ssl
+import subprocess
 import unittest
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -44,12 +45,14 @@ EXPECTED_INFISICAL_ITEMS = (
     "platform/jenkins",
     "platform/nexus",
     "platform/portainer",
+    "platform/pulsar",
     "platform/sonarqube",
 )
 EXPECTED_INFISICAL_ITEM_KEYS = {
     "platform/jenkins": "TSW_JENKINS_ADMIN_PASSWORD",
     "platform/nexus": "TSW_NEXUS_ADMIN_PASSWORD",
     "platform/portainer": "TSW_PORTAINER_ADMIN_PASSWORD",
+    "platform/pulsar": "TSW_PULSAR_ADMIN_TOKEN",
     "platform/sonarqube": "TSW_SONARQUBE_ADMIN_PASSWORD",
 }
 NO_LOGIN_SERVICES = ("service-access", "swagger")
@@ -67,6 +70,7 @@ FORBIDDEN_EVIDENCE_FRAGMENTS = (
     "TSW_",
     "userinfo",
 )
+MANAGED_CREDENTIAL_KEY_SUFFIXES = ("HTPASSWD", "PASSWORD", "TOKEN")
 
 
 @dataclass(frozen=True)
@@ -128,6 +132,8 @@ class LivePostInstallConfig:
     infisical_url: str
     infisical_email: str | None
     infisical_password: str | None
+    pulsar_admin_url: str
+    pulsar_admin_token: str | None
     sonarqube_url: str
     sonarqube_username: str
     sonarqube_password: str | None
@@ -146,6 +152,7 @@ class LivePostInstallConfig:
             "tsw.local",
         )
         infisical_url = _env_value(local_env, "TSW_INFISICAL_URL", "https://localhost")
+        pulsar_admin_url = _env_value(local_env, "TSW_PULSAR_PUBLIC_ADMIN_URL", "http://localhost:8087")
         sonarqube_url = _env_value(local_env, "TSW_SONARQUBE_URL", "http://localhost:9001")
         return cls(
             dashboard_url=_validated_local_url(dashboard_url, "dashboard"),
@@ -156,6 +163,8 @@ class LivePostInstallConfig:
                 local_env,
                 "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD",
             ),
+            pulsar_admin_url=_validated_local_url(pulsar_admin_url, "pulsar"),
+            pulsar_admin_token=_env_optional(local_env, "TSW_PULSAR_ADMIN_TOKEN"),
             sonarqube_url=_validated_local_url(sonarqube_url, "sonarqube"),
             sonarqube_username=_env_value(local_env, "TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
             sonarqube_password=_env_optional(local_env, "TSW_SONARQUBE_ADMIN_PASSWORD"),
@@ -355,7 +364,8 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         self.assertIn("TSW_JENKINS_ADMIN_PASSWORD", expected_keys)
         self.assertIn("TSW_NEXUS_ADMIN_PASSWORD", expected_keys)
         self.assertIn("TSW_PORTAINER_ADMIN_PASSWORD", expected_keys)
-        self.assertTrue(all("PASSWORD" in key or key.endswith("HTPASSWD") for key in expected_keys))
+        self.assertIn("TSW_PULSAR_ADMIN_TOKEN", expected_keys)
+        self.assertTrue(all(key.endswith(MANAGED_CREDENTIAL_KEY_SUFFIXES) for key in expected_keys))
 
     def test_traefik_tls_secret_name_manifest_entries_are_value_free(self) -> None:
         manifest = INFISICAL_SECRET_MANIFEST.read_text(encoding="utf-8")
@@ -570,6 +580,42 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
             raise AssertionError(
                 "sonarqube_managed_credential_incomplete: "
                 f"evidence={self.evidence.path.as_posix()}"
+            )
+
+    def test_07_pulsar_admin_api_requires_and_accepts_configured_token(self) -> None:
+        if not self.config.pulsar_admin_token:
+            self.evidence.record(
+                "pulsar_management",
+                _pulsar_management_evidence(
+                    result="blocked",
+                    unauthenticated_rejected=False,
+                    configured_login_valid=False,
+                    redacted_failure_reason="missing_login_material",
+                ),
+            )
+            raise AssertionError(
+                "pulsar_setup_blocker: missing_login_material; "
+                f"evidence={self.evidence.path.as_posix()}"
+            )
+
+        status = _pulsar_admin_auth_status(
+            self.config.pulsar_admin_url,
+            self.config.pulsar_admin_token,
+            self.config.timeout_seconds,
+        )
+        self.evidence.record(
+            "pulsar_management",
+            _pulsar_management_evidence(
+                result="passed" if status["passed"] else "failed",
+                unauthenticated_rejected=bool(status["unauthenticated_rejected"]),
+                configured_login_valid=bool(status["configured_login_valid"]),
+                redacted_failure_reason=str(status["redacted_failure_reason"]),
+            ),
+        )
+        if not status["passed"]:
+            raise AssertionError(
+                "pulsar_managed_credential_incomplete: "
+                f"{status['redacted_failure_reason']}; evidence={self.evidence.path.as_posix()}"
             )
 
 
@@ -987,6 +1033,150 @@ def _sonarqube_auth_valid(
     return isinstance(payload, dict) and payload.get("valid") is True
 
 
+def _pulsar_admin_auth_status(
+    base_url: str,
+    token: str,
+    timeout_seconds: float,
+) -> dict[str, object]:
+    clusters_url = urljoin(base_url.rstrip("/") + "/", "admin/v2/clusters")
+    try:
+        unauthenticated = requests.get(clusters_url, timeout=timeout_seconds)
+    except requests.RequestException as exc:
+        fallback = _pulsar_admin_auth_status_from_lxc(token)
+        if fallback["passed"]:
+            return fallback
+        fallback["redacted_failure_reason"] = type(exc).__name__
+        return fallback
+    unauthenticated_rejected = unauthenticated.status_code in {401, 403}
+    try:
+        authenticated = requests.get(
+            clusters_url,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=timeout_seconds,
+        )
+    except requests.RequestException as exc:
+        return {
+            "configured_login_valid": False,
+            "passed": False,
+            "redacted_failure_reason": type(exc).__name__,
+            "unauthenticated_rejected": unauthenticated_rejected,
+        }
+    configured_login_valid = (
+        authenticated.status_code == 200 and "standalone" in authenticated.text.casefold()
+    )
+    return {
+        "configured_login_valid": configured_login_valid,
+        "passed": unauthenticated_rejected and configured_login_valid,
+        "redacted_failure_reason": (
+            ""
+            if unauthenticated_rejected and configured_login_valid
+            else "managed_login_inactive"
+        ),
+        "unauthenticated_rejected": unauthenticated_rejected,
+    }
+
+
+def _pulsar_admin_auth_status_from_lxc(token: str) -> dict[str, object]:
+    container = _pulsar_container_id_from_lxc()
+    if not container:
+        return {
+            "configured_login_valid": False,
+            "passed": False,
+            "redacted_failure_reason": "pulsar_container_missing",
+            "unauthenticated_rejected": False,
+        }
+    probe = """
+read AUTH_TOKEN
+export AUTH_TOKEN
+python3 - <<'PY'
+import os
+from urllib import error, request
+
+url = "http://localhost:8080/admin/v2/clusters"
+
+def status(headers=None):
+    req = request.Request(url, headers=headers or {})
+    try:
+        with request.urlopen(req, timeout=30) as response:
+            return response.status, response.read().decode("utf-8", errors="replace")
+    except error.HTTPError as exc:
+        return exc.code, exc.read().decode("utf-8", errors="replace")
+
+unauthenticated_status, _ = status()
+authenticated_status, authenticated_body = status(
+    {"Authorization": "Bearer " + os.environ.get("AUTH_TOKEN", "")}
+)
+print(unauthenticated_status)
+print(authenticated_status)
+print("standalone" in authenticated_body.casefold())
+PY
+"""
+    result = subprocess.run(
+        [
+            "lxc",
+            "exec",
+            "swarm-manager",
+            "--",
+            "docker",
+            "exec",
+            "-i",
+            container,
+            "sh",
+            "-c",
+            probe,
+        ],
+        input=f"{token}\n",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    lines = result.stdout.splitlines()
+    if result.returncode != 0 or len(lines) < 3:
+        return {
+            "configured_login_valid": False,
+            "passed": False,
+            "redacted_failure_reason": "lxc_pulsar_probe_failed",
+            "unauthenticated_rejected": False,
+        }
+    unauthenticated_rejected = lines[0] in {"401", "403"}
+    configured_login_valid = lines[1] == "200" and lines[2] == "True"
+    return {
+        "configured_login_valid": configured_login_valid,
+        "passed": unauthenticated_rejected and configured_login_valid,
+        "redacted_failure_reason": (
+            ""
+            if unauthenticated_rejected and configured_login_valid
+            else "managed_login_inactive"
+        ),
+        "unauthenticated_rejected": unauthenticated_rejected,
+    }
+
+
+def _pulsar_container_id_from_lxc() -> str:
+    result = subprocess.run(
+        [
+            "lxc",
+            "exec",
+            "swarm-manager",
+            "--",
+            "docker",
+            "ps",
+            "--filter",
+            "name=pulsar_pulsar",
+            "--format",
+            "{{.ID}}",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return ""
+    return next((line.strip() for line in result.stdout.splitlines() if line.strip()), "")
+
+
 def _fill_first(page: Any, labels: tuple[str, ...], value: str) -> None:
     last_error: Exception | None = None
     for label in labels:
@@ -1079,6 +1269,22 @@ def _sonarqube_management_evidence(
     }
 
 
+def _pulsar_management_evidence(
+    *,
+    result: str,
+    unauthenticated_rejected: bool,
+    configured_login_valid: bool,
+    redacted_failure_reason: str,
+) -> dict[str, object]:
+    return {
+        "configured_login_valid": configured_login_valid,
+        "redacted_failure_reason": redacted_failure_reason,
+        "result": result,
+        "service": "pulsar",
+        "unauthenticated_rejected": unauthenticated_rejected,
+    }
+
+
 def _expected_infisical_password_keys() -> tuple[str, ...]:
     keys: list[str] = []
     current_key = ""
@@ -1088,7 +1294,7 @@ def _expected_infisical_password_keys() -> tuple[str, ...]:
             current_key = line.removeprefix("- key: ").strip()
             continue
         if line.startswith("required:"):
-            if current_key and ("PASSWORD" in current_key or current_key.endswith("HTPASSWD")):
+            if current_key and any(current_key.endswith(suffix) for suffix in MANAGED_CREDENTIAL_KEY_SUFFIXES):
                 keys.append(current_key)
             current_key = ""
     return tuple(dict.fromkeys(keys))

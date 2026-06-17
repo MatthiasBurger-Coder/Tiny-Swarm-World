@@ -538,6 +538,8 @@ def _required_secret_environment() -> dict[str, str]:
         "TSW_SONARQUBE_ADMIN_PASSWORD": "sonarqube-password!",
         "TSW_POSTGRES_PASSWORD": "postgres-password",
         "TSW_SONARQUBE_POSTGRES_PASSWORD": "sonarqube-postgres-password",
+        "TSW_PULSAR_TOKEN_SECRET_KEY": "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+        "TSW_PULSAR_ADMIN_TOKEN": "header.payload.signature",
         "TSW_INFISICAL_LOGIN_EMAIL": "admin@tiny-swarm-world.local",
         "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": "infisical-bootstrap-admin-password",
         "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",

@@ -116,6 +116,12 @@ state, Docker Swarm, networking, Portainer, Nexus,
 Jenkins, Pulsar, SonarQube, Swagger/NGINX, image, and stack changes are
 intentional.
 
+Pulsar live validation must include the token-authenticated Admin API check:
+the unauthenticated `/admin/v2/clusters` request must be rejected and the same
+request with the configured `TSW_PULSAR_ADMIN_TOKEN` bearer token must return
+the standalone cluster list. Evidence must record only pass/fail status and
+redacted failure reasons, never the token.
+
 Live smoke evidence must stay in ignored local state such as
 `.tiny-swarm-world/`, must be redacted, and must not be committed. A
 resource-gated, blocked, refused, failed-to-apply, or failed-to-verify result

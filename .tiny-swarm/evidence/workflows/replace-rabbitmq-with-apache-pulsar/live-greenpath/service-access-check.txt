@@ -1,0 +1,5 @@
+# Service Access Check
+
+http_status=200
+rabbitmq_visible=false
+pulsar_visible=true

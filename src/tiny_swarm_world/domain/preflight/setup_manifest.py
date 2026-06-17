@@ -137,6 +137,10 @@ def default_setup_manifest(
                 SetupPortRequirement(6650, "Pulsar broker protocol"),
                 SetupPortRequirement(8087, "Pulsar Admin API"),
             ),
+            secrets=(
+                SetupSecretRequirement("TSW_PULSAR_TOKEN_SECRET_KEY", "Pulsar token signing key"),
+                SetupSecretRequirement("TSW_PULSAR_ADMIN_TOKEN", "Pulsar Admin API token"),
+            ),
         ),
         SetupServiceRequirement(
             name="SonarQube",

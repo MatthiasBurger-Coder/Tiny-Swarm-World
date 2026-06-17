@@ -114,6 +114,10 @@ class TestConfigurationContract(unittest.TestCase):
     def test_default_contract_uses_pulsar_urls_without_legacy_messaging_secret(self):
         requirements = {requirement.key: requirement for requirement in default_configuration_contract().requirements}
 
+        self.assertEqual(ConfigurationValueKind.SECRET_VALUE, requirements["TSW_PULSAR_TOKEN_SECRET_KEY"].value_kind)
+        self.assertTrue(requirements["TSW_PULSAR_TOKEN_SECRET_KEY"].required)
+        self.assertEqual(ConfigurationValueKind.SECRET_VALUE, requirements["TSW_PULSAR_ADMIN_TOKEN"].value_kind)
+        self.assertTrue(requirements["TSW_PULSAR_ADMIN_TOKEN"].required)
         self.assertEqual(ConfigurationValueKind.URL, requirements["TSW_PULSAR_ADMIN_URL"].value_kind)
         self.assertEqual("pulsar", requirements["TSW_PULSAR_ADMIN_URL"].scope)
         self.assertFalse(requirements["TSW_PULSAR_ADMIN_URL"].required)

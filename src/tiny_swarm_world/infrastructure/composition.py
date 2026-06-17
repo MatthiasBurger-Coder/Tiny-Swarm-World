@@ -445,12 +445,15 @@ def build_preflight_service(
 
 
 def build_configuration_validation_service(
-    env_file: Path = DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE,
+    env_file: Path | None = None,
 ) -> ConfigurationValidationService:
+    resolved_env_file = env_file or Path(
+        os.environ.get("TSW_INSTALL_ENV_FILE", DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE)
+    )
     return ConfigurationValidationService(
         CombinedConfigurationSource(
             (
-                ShellEnvFileConfigurationSource(env_file),
+                ShellEnvFileConfigurationSource(resolved_env_file),
                 EnvironmentConfigurationSource(),
             )
         )
@@ -1697,6 +1700,10 @@ def _deployment_stack_environment(
             ),
             "TSW_JENKINS_ADMIN_PASSWORD": _operator_secret_value("TSW_JENKINS_ADMIN_PASSWORD"),
         },
+        "pulsar": {
+            "TSW_PULSAR_TOKEN_SECRET_KEY": _operator_secret_value("TSW_PULSAR_TOKEN_SECRET_KEY"),
+            "TSW_PULSAR_ADMIN_TOKEN": _operator_secret_value("TSW_PULSAR_ADMIN_TOKEN"),
+        },
         "sonarqube": {
             "TSW_SONARQUBE_POSTGRES_PASSWORD": _operator_secret_value("TSW_SONARQUBE_POSTGRES_PASSWORD"),
             "TSW_POSTGRES_PASSWORD": _operator_secret_value("TSW_POSTGRES_PASSWORD"),
@@ -1967,6 +1974,11 @@ def _infisical_seed_items() -> tuple[InfisicalSecretItem, ...]:
             "platform/portainer",
             _operator_config_value("TSW_PORTAINER_USERNAME", "admin"),
             _required_operator_secret_value("TSW_PORTAINER_ADMIN_PASSWORD"),
+        ),
+        InfisicalSecretItem(
+            "platform/pulsar",
+            "admin",
+            _required_operator_secret_value("TSW_PULSAR_ADMIN_TOKEN"),
         ),
         InfisicalSecretItem(
             "platform/sonarqube",

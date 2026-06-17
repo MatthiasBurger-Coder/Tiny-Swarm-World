@@ -178,6 +178,8 @@ class TestPreflightResult(unittest.TestCase):
                 "TSW_PORTAINER_ADMIN_PASSWORD",
                 "TSW_NEXUS_ADMIN_PASSWORD",
                 "TSW_JENKINS_ADMIN_PASSWORD",
+                "TSW_PULSAR_TOKEN_SECRET_KEY",
+                "TSW_PULSAR_ADMIN_TOKEN",
                 "TSW_SONARQUBE_ADMIN_PASSWORD",
                 "TSW_POSTGRES_PASSWORD",
             ),

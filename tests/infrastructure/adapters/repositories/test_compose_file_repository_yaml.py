@@ -296,7 +296,23 @@ services:
             "${TSW_PULSAR_IMAGE:-apachepulsar/pulsar:latest}",
             pulsar["image"],
         )
-        self.assertEqual(["bin/pulsar", "standalone"], pulsar["command"])
+        self.assertEqual(["sh", "-lc"], pulsar["command"][:2])
+        self.assertIn("bin/apply-config-from-env.py conf/standalone.conf", pulsar["command"][-1])
+        self.assertIn("exec bin/pulsar standalone", pulsar["command"][-1])
+        self.assertEqual("true", pulsar["environment"]["PULSAR_PREFIX_authenticationEnabled"])
+        self.assertIn(
+            "AuthenticationProviderToken",
+            pulsar["environment"]["PULSAR_PREFIX_authenticationProviders"],
+        )
+        self.assertEqual(
+            "data:;base64,${TSW_PULSAR_TOKEN_SECRET_KEY}",
+            pulsar["environment"]["PULSAR_PREFIX_tokenSecretKey"],
+        )
+        self.assertEqual(
+            "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m",
+            pulsar["environment"]["PULSAR_MEM"],
+        )
+        self.assertEqual("${TSW_PULSAR_ADMIN_TOKEN}", pulsar["environment"]["TSW_PULSAR_ADMIN_TOKEN"])
         self.assertEqual(
             [
                 {"target": 6650, "published": 6650, "protocol": "tcp", "mode": "host"},
@@ -308,9 +324,10 @@ services:
             {"target": 8080, "published": 8080, "protocol": "tcp", "mode": "host"},
             pulsar["ports"],
         )
-        self.assertEqual(["pulsar-data:/pulsar/data", "pulsar-conf:/pulsar/conf"], pulsar["volumes"])
+        self.assertEqual(["pulsar-data:/pulsar/data"], pulsar["volumes"])
         self.assertIn("healthcheck", pulsar)
-        self.assertIn("bin/pulsar-admin brokers healthcheck", pulsar["healthcheck"]["test"][-1])
+        self.assertIn("http://localhost:8080/admin/v2/clusters", pulsar["healthcheck"]["test"][-1])
+        self.assertIn("TSW_PULSAR_ADMIN_TOKEN", pulsar["healthcheck"]["test"][-1])
         self.assertEqual(["service_access_link"], pulsar["networks"])
         self.assertEqual(
             {"name": "service_access_link", "external": True},
@@ -746,6 +763,7 @@ services:
             "platform/portainer",
             "platform/nexus",
             "platform/jenkins",
+            "platform/pulsar",
             "platform/sonarqube",
         )
 

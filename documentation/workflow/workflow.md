@@ -853,6 +853,7 @@ affected_modules:
   - live platform validation
 affected_contracts:
   - install_greenpath
+  - pulsar_admin_api_credential_login
 dependencies:
   - S10
 parallel_group: serial-live
@@ -860,6 +861,7 @@ file_locks:
   - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
 contract_locks:
   - install_greenpath
+  - pulsar_admin_api_auth
 architecture_locks:
   - linux_wsl_only_runtime
   - docker_swarm_first
@@ -875,6 +877,9 @@ stop_conditions:
   - Live infrastructure approval or suitable environment is unavailable.
   - Safety guards would need to be skipped.
   - RabbitMQ deploys during the live greenpath.
+  - Pulsar Admin API accepts unauthenticated requests.
+  - Pulsar Admin API rejects the configured admin token.
+  - Pulsar credentials are missing from the local secret source or Infisical item inventory.
 ```
 
 Required evidence if run:
@@ -884,8 +889,25 @@ Required evidence if run:
 .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/docker-service-ls.txt
 .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/docker-stack-ls.txt
 .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/pulsar-healthcheck.txt
+.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/pulsar-auth-check.txt
 .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/service-access-check.txt
 ```
+
+Pulsar live validation must verify both credential storage and authenticated
+access:
+
+```bash
+grep -q '^TSW_PULSAR_ADMIN_TOKEN=' .tiny-swarm-world/local/live-installation.env
+curl -sS -o /dev/null -w '%{http_code}\n' http://localhost:8087/admin/v2/clusters
+curl -fsS -H "Authorization: Bearer ${TSW_PULSAR_ADMIN_TOKEN}" \
+  http://localhost:8087/admin/v2/clusters
+TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest \
+  tests.live.test_post_install_browser_live.PostInstallBrowserLiveTest.test_07_pulsar_admin_api_requires_and_accepts_configured_token
+```
+
+The unauthenticated curl must return `401` or `403`; the authenticated request
+must include `standalone` in the cluster list. Do not print the token value in
+evidence.
 
 If not run, create `live-greenpath-not-run.md` with reason, environment,
 commands that would be run, remaining risk, and required manual validation.

@@ -227,7 +227,7 @@ Common local service routes and ports are:
 | Portainer | `/portainer` or `http://localhost:9000` | Deployment gateway after bootstrap.
 | Nexus | `/nexus` or `http://localhost:8081` | Repository service and Docker proxy behavior.
 | Jenkins | `/jenkins` or `http://localhost:8080` | CI service.
-| Pulsar | `/pulsar` or `http://localhost:8087/admin/v2/clusters` | Admin API for local standalone broker; no Pulsar Manager UI is bundled.
+| Pulsar | `/pulsar` or `http://localhost:8087/admin/v2/clusters` | Token-authenticated Admin API for local standalone broker; use the `platform/pulsar` Infisical item for the bearer token. No Pulsar Manager UI is bundled.
 | SonarQube | `/sonarqube` or `http://localhost:9001` | Static analysis service.
 | Swagger/NGINX | `/swagger` or `http://localhost:8084` | API documentation surface.
 | Traefik | ports `80` and `443` | Ingress owner for the service-access setup profile.
