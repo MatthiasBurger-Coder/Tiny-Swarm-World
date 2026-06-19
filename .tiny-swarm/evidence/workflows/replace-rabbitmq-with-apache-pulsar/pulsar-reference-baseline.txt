@@ -1,0 +1,124 @@
+.codex/evidence/slice-01-distribution.md:3:Workflow id: `workflow-replace-rabbitmq-with-apache-pulsar`
+.codex/evidence/slice-01-distribution.md:34:- `.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**`
+.codex/evidence/slice-01-distribution.md:51:- Capture RabbitMQ and Pulsar baseline scans.
+documentation/workflow/context-pack.json:2:  "workflow_id": "workflow-replace-rabbitmq-with-apache-pulsar",
+documentation/workflow/context-pack.json:5:  "authoring_branch": "feature/replace-rabbitmq-with-apache-pulsar-20260616",
+documentation/workflow/context-pack.json:6:  "execution_branch": "feature/replace-rabbitmq-with-apache-pulsar-20260616",
+documentation/workflow/context-pack.json:7:  "required_execution_branch": "feature/replace-rabbitmq-with-apache-pulsar-20260616",
+documentation/workflow/context-pack.md:1:# Context Pack: Replace RabbitMQ with Apache Pulsar
+documentation/workflow/context-pack.md:3:- Workflow id: `workflow-replace-rabbitmq-with-apache-pulsar`
+documentation/workflow/context-pack.md:5:- Authoring branch: `feature/replace-rabbitmq-with-apache-pulsar-20260616`
+documentation/workflow/context-pack.md:6:- Required execution branch: `feature/replace-rabbitmq-with-apache-pulsar-20260616`
+documentation/workflow/workflow.md:1:# Workflow: Replace RabbitMQ with Apache Pulsar
+documentation/workflow/workflow.md:4:workflow_id: workflow-replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:6:authoring_branch: feature/replace-rabbitmq-with-apache-pulsar-20260616
+documentation/workflow/workflow.md:7:required_execution_branch: feature/replace-rabbitmq-with-apache-pulsar-20260616
+documentation/workflow/workflow.md:23:Replace RabbitMQ with Apache Pulsar as the Tiny Swarm World platform messaging
+documentation/workflow/workflow.md:25:add Apache Pulsar standalone, wire it into inventory, preflight, deployment
+documentation/workflow/workflow.md:34:- Create a workflow to replace RabbitMQ with Apache Pulsar.
+documentation/workflow/workflow.md:37:- Use the branch `feature/replace-rabbitmq-with-apache-pulsar-20260616`.
+documentation/workflow/workflow.md:42:- Use Apache Pulsar standalone for the phase-1 local greenpath.
+documentation/workflow/workflow.md:73:- Apache Pulsar is introduced as the platform messaging broker.
+documentation/workflow/workflow.md:75:- Pulsar binary protocol uses port `6650`.
+documentation/workflow/workflow.md:76:- Pulsar admin HTTP uses internal port `8080` and must not map host `8080`.
+documentation/workflow/workflow.md:78:- The old RabbitMQ compose stack is deleted only after Pulsar is wired through
+documentation/workflow/workflow.md:97:- No production-grade Pulsar cluster is required for this workflow.
+documentation/workflow/workflow.md:98:- Decision A applies for service access: expose/link Pulsar Admin API only;
+documentation/workflow/workflow.md:99:  do not add Pulsar Manager unless tests or documented UX force it.
+documentation/workflow/workflow.md:104:- No `MessagingPort`, `PulsarMessagingAdapter`, topics, DLQ/retry policy,
+documentation/workflow/workflow.md:105:  Pulsar authentication, or clustered Pulsar topology unless failing tests
+documentation/workflow/workflow.md:113:- Pulsar has a higher resource footprint than RabbitMQ.
+documentation/workflow/workflow.md:114:- Pulsar standalone is not equivalent to a production Pulsar cluster.
+documentation/workflow/workflow.md:115:- Pulsar admin HTTP uses internal port `8080`, creating collision risk if host
+documentation/workflow/workflow.md:117:- Browser access differs because RabbitMQ Management UI has no direct Pulsar
+documentation/workflow/workflow.md:118:  standalone UI equivalent without Pulsar Manager.
+documentation/workflow/workflow.md:142:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/three-amigos-review.md
+documentation/workflow/workflow.md:173:  - Apache Pulsar standalone
+documentation/workflow/workflow.md:174:      - Pulsar broker protocol: 6650
+documentation/workflow/workflow.md:175:      - Pulsar admin HTTP: internal 8080
+documentation/workflow/workflow.md:194:- Apache Pulsar compose stack.
+documentation/workflow/workflow.md:206:- Pulsar Manager unless required by tests or documented user experience.
+documentation/workflow/workflow.md:207:- Pulsar authentication and production cluster hardening.
+documentation/workflow/workflow.md:241:- Adapt RabbitMQ expectations to Pulsar.
+documentation/workflow/workflow.md:251:  `.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/`.
+documentation/workflow/workflow.md:259:- Capture all RabbitMQ and Pulsar references before implementation changes.
+documentation/workflow/workflow.md:270:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:278:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:299:mkdir -p .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:300:grep -RIn -e "rabbitmq" -e "RabbitMQ" -e "RABBITMQ" -e "amqp" -e "AMQP" -e "5672" -e "15672" -e "pika" -e "aio_pika" -e "kombu" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=__pycache__ > .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/rabbitmq-reference-baseline.txt || true
+documentation/workflow/workflow.md:301:grep -RIn -e "pulsar" -e "Pulsar" -e "PULSAR" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=__pycache__ > .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/pulsar-reference-baseline.txt || true
+documentation/workflow/workflow.md:308:git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:309:git commit -m "docs: capture rabbitmq pulsar migration baseline"
+documentation/workflow/workflow.md:312:### Slice 02: Add Apache Pulsar compose stack
+documentation/workflow/workflow.md:316:- Add `infra/config/compose/pulsar/docker-compose.yml` for Pulsar standalone.
+documentation/workflow/workflow.md:326:  - infra/config/compose/pulsar/docker-compose.yml
+documentation/workflow/workflow.md:336:  - infra/config/compose/pulsar/**
+documentation/workflow/workflow.md:351:  - Existing compose conventions conflict with the proposed Pulsar layout.
+documentation/workflow/workflow.md:357:- Pulsar standalone service exists with persistent volumes, healthcheck,
+documentation/workflow/workflow.md:364:git add infra/config/compose/pulsar tests
+documentation/workflow/workflow.md:365:git commit -m "feat: add apache pulsar compose stack"
+documentation/workflow/workflow.md:372:- Make Pulsar part of active desired platform state and remove RabbitMQ from
+documentation/workflow/workflow.md:426:git commit -m "feat: replace rabbitmq with pulsar in desired platform state"
+documentation/workflow/workflow.md:433:- Replace RabbitMQ with Pulsar in the deployment service stack contract.
+documentation/workflow/workflow.md:471:  - Contract validation skips the Pulsar compose stack.
+documentation/workflow/workflow.md:478:git commit -m "feat: update service stack contract for pulsar"
+documentation/workflow/workflow.md:485:- Replace RabbitMQ dashboard/service-access entries with Pulsar Admin API
+documentation/workflow/workflow.md:500:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:512:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:526:  - Pulsar Manager is added without test or documentation evidence requiring UI parity.
+documentation/workflow/workflow.md:533:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/test-limitations.md
+documentation/workflow/workflow.md:539:git add infra/config/compose/service-access tests/integration documentation/system .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:540:git commit -m "feat: update service access for pulsar"
+documentation/workflow/workflow.md:547:- Remove active RabbitMQ secrets/config and add minimal Pulsar values only if
+documentation/workflow/workflow.md:593:  - Pulsar passwords are invented without authentication being enabled.
+documentation/workflow/workflow.md:600:git commit -m "feat: update configuration contract for pulsar"
+documentation/workflow/workflow.md:607:- Delete the old RabbitMQ compose stack after Pulsar is fully wired.
+documentation/workflow/workflow.md:664:  with Pulsar as the platform messaging stack.
+documentation/workflow/workflow.md:707:  adr: checked-update-if-pulsar-standalone-decision-requires-record
+documentation/workflow/workflow.md:710:  - Pulsar standalone limitations are not documented.
+documentation/workflow/workflow.md:717:git commit -m "docs: document pulsar platform messaging stack"
+documentation/workflow/workflow.md:724:- Record final RabbitMQ and Pulsar reference scans and classify remaining
+documentation/workflow/workflow.md:735:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:744:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:764:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/final-reference-classification.md
+documentation/workflow/workflow.md:774:git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:775:git commit -m "test: record final rabbitmq pulsar reference validation"
+documentation/workflow/workflow.md:791:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/full-test-run.txt
+documentation/workflow/workflow.md:801:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:823:python3 tools/quality_gate.py quality | tee .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/full-test-run.txt
+documentation/workflow/workflow.md:831:git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar tests
+documentation/workflow/workflow.md:832:git commit -m "test: verify pulsar migration test suite"
+documentation/workflow/workflow.md:850:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/**
+documentation/workflow/workflow.md:851:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath-not-run.md
+documentation/workflow/workflow.md:860:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:883:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/install-output.txt
+documentation/workflow/workflow.md:884:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/docker-service-ls.txt
+documentation/workflow/workflow.md:885:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/docker-stack-ls.txt
+documentation/workflow/workflow.md:886:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/pulsar-healthcheck.txt
+documentation/workflow/workflow.md:887:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/live-greenpath/service-access-check.txt
+documentation/workflow/workflow.md:896:git add .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar
+documentation/workflow/workflow.md:897:git commit -m "test: verify live pulsar greenpath"
+documentation/workflow/workflow.md:914:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:923:  - .tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/**
+documentation/workflow/workflow.md:945:Replace RabbitMQ with Apache Pulsar platform messaging stack
+documentation/workflow/workflow.md:953:This PR replaces RabbitMQ with Apache Pulsar as the platform messaging service for Tiny Swarm World.
+documentation/workflow/workflow.md:957:- Added Apache Pulsar compose stack.
+documentation/workflow/workflow.md:969:This PR uses Apache Pulsar standalone mode for the local Docker Swarm greenpath. This is sufficient for local development and controlled platform validation. A production-like Pulsar cluster with separate brokers/bookies/metadata store is explicitly deferred.
+documentation/workflow/workflow.md:983:- Pulsar has a higher resource footprint than RabbitMQ.
+documentation/workflow/workflow.md:984:- Pulsar standalone mode is not equivalent to a production cluster.
+documentation/workflow/workflow.md:985:- Pulsar admin HTTP uses internal port 8080, so external mapping must avoid collisions.
+documentation/workflow/workflow.md:990:See `.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/`.
+documentation/workflow/workflow.md:1014:  before Pulsar is wired into inventory, contracts, service access,
+documentation/workflow/workflow.md:1048:feature/replace-rabbitmq-with-apache-pulsar-20260616-slice-<number>-<stream>
+documentation/workflow/workflow.md:1060:- Senior System Architect: Pulsar standalone architecture, stack contracts,
+documentation/workflow/workflow.md:1097:  policy decision beyond the accepted Pulsar standalone phase-1 direction.
+documentation/workflow/workflow.md:1104:- The active branch is not `feature/replace-rabbitmq-with-apache-pulsar-20260616`.
+documentation/workflow/workflow.md:1107:- Pulsar cannot satisfy stack contract or preflight requirements without
+documentation/workflow/workflow.md:1136:- Branch `feature/replace-rabbitmq-with-apache-pulsar-20260616` exists.
+documentation/workflow/workflow.md:1138:- Pulsar compose stack exists.
+documentation/workflow/workflow.md:1141:  Pulsar instead of RabbitMQ for active platform messaging.
+documentation/workflow/workflow.md:1151:If Pulsar cannot be made green without unsafe shortcuts:
+documentation/workflow/workflow.md:1159:.tiny-swarm/evidence/workflows/replace-rabbitmq-with-apache-pulsar/blockers.md
+documentation/workflow/workflow.md:1165:git commit -m "revert: restore rabbitmq stack after pulsar migration blocker"
+documentation/workflow/workflow.md:1178:  deployment views change from RabbitMQ to Pulsar.
+documentation/workflow/workflow.md:1180:  only if a new architecture-significant decision is made beyond local Pulsar

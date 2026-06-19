@@ -48,7 +48,6 @@ The default contract requires these keys before setup execution:
 | `TSW_PORTAINER_ADMIN_PASSWORD` | secret value | Portainer |
 | `TSW_NEXUS_ADMIN_PASSWORD` | secret value | Nexus |
 | `TSW_JENKINS_ADMIN_PASSWORD` | secret value | Jenkins |
-| `TSW_RABBITMQ_PASSWORD` | secret value | RabbitMQ |
 | `TSW_SONARQUBE_ADMIN_PASSWORD` | secret value | SonarQube |
 | `TSW_POSTGRES_PASSWORD` | secret value | SonarQube |
 | `TSW_SONARQUBE_POSTGRES_PASSWORD` | secret value | SonarQube |
@@ -66,8 +65,17 @@ The default contract requires these keys before setup execution:
 | `TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS` | `180` | positive integer | Portainer stack request timeout in seconds. |
 | `TSW_SEED_INFISICAL_ITEMS` | `0` | boolean flag | Enables optional legacy Infisical item seeding. |
 | `TSW_LXC_DOCKER_REGISTRY_MIRROR` | unset | URL | Docker registry mirror reachable from managed LXC nodes. |
+| `TSW_PULSAR_ADMIN_URL` | unset | URL | Internal Pulsar Admin API URL for local standalone mode. |
+| `TSW_PULSAR_PUBLIC_ADMIN_URL` | unset | URL | Host-accessible Pulsar Admin API URL for browser/live checks. |
+| `TSW_PULSAR_TOKEN_SECRET_KEY` | generated | secret value | Base64 encoded signing key for local Pulsar Admin API tokens. |
+| `TSW_PULSAR_ADMIN_TOKEN` | generated | secret value | JWT bearer token used by live checks and operators for the local Pulsar Admin API. |
 | `TSW_TRAEFIK_TLS_CERT_SECRET_NAME` | `tsw_traefik_tls_cert` | secret name | External Docker secret name for Traefik TLS certificate material. |
 | `TSW_TRAEFIK_TLS_KEY_SECRET_NAME` | `tsw_traefik_tls_key` | secret name | External Docker secret name for Traefik TLS private key material. |
+
+Pulsar runs in local standalone mode with token authentication enabled. The
+operator contract does not define a password because the Admin API credential is
+a generated bearer token stored in the local secret source and synchronized to
+Infisical as `platform/pulsar` when item seeding is enabled.
 
 ## Redaction
 

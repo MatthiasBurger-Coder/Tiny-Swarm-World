@@ -1,60 +1,84 @@
-# Slice 04 Consolidation: Issue 4 Swarm Stack Validation
+# Slice 04 Consolidation
 
-Workflow id: `issue-4-swarm-stack-validation-20260614`
+Workflow id: `workflow-replace-rabbitmq-with-apache-pulsar`
+
 Slice id: `S04`
 
-## Stream Results
+Slice title: Update service stack contract
 
-- Quality stream ran the full repository quality gate.
-- Documentation stream updated workflow closeout evidence.
+Stream results:
 
-## Accepted Findings
+- Backend/domain: replaced the RabbitMQ service stack contract with Pulsar.
+- Tests: updated deployment contract tests and contract consumers.
+- Documentation: updated Issue 4 stack-validation baseline to include Pulsar.
 
-- Full quality gate passed after the Swarm stack compose validation change.
-- Architecture boundaries remain intact.
-- No product compose file needed modification because current committed stack
-  files already satisfy the per-service `deploy` rule.
+Accepted findings:
 
-## Rejected Findings
+- Default service stack contracts now include `pulsar` instead of `rabbitmq`.
+- Pulsar service readiness target is `deployment:pulsar-service-readiness`.
+- Pulsar stack target is `deployment:pulsar-stack`.
+- Pulsar localhost endpoint is `http://localhost:8087`.
+- Desired inventory now matches the default service stack profile directly; the
+  Slice 03 temporary inventory-test bridge was removed.
 
-- No live deployment validation was run. The issue is covered by static
-  structured YAML validation and unit tests.
+Rejected findings:
 
-## Files Changed
+- RabbitMQ compose stack deletion was not included because Slice 07 owns
+  deletion after service access, configuration, docs, and residue checks are
+  updated.
+- RabbitMQ secrets/config cleanup was not included because Slice 06 owns the
+  configuration contract.
 
-- `.codex/evidence/slice-04-distribution.md`
-- `.codex/evidence/slice-04-consolidation.md`
-- `documentation/workflow/workflow.md`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/context-pack.json`
+Files changed per stream:
 
-## Conflicts
+- backend/domain:
+  - `src/tiny_swarm_world/domain/deployment/service_stack_contract.py`
+- tests:
+  - `tests/domain/deployment/test_service_stack_contract.py`
+  - `tests/application/services/deployment/test_service_stack_plan.py`
+  - `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+  - `tests/infrastructure/adapters/repositories/test_inventory_repositories.py`
+  - `tests/infrastructure/test_composition.py`
+- documentation:
+  - `documentation/workflow/issues/issue-4/swarm-stack-validation-baseline.md`
+- documentation/evidence:
+  - `.codex/evidence/slice-04-distribution.md`
+  - `.codex/evidence/slice-04-consolidation.md`
 
-No conflicts found.
+Conflicts found:
 
-## Tests Executed
+- Full quality initially found deployment planning and composition tests still
+  expecting RabbitMQ stack target IDs.
 
-```bash
-python3 tools/quality_gate.py quality
-```
+Conflicts resolved:
 
-Result:
+- Updated contract-consumer expectations to Pulsar target IDs and stack names.
 
-- `lint`: passed.
-- `arch-lint`: passed, 3 contracts kept.
-- `arch-tests`: passed, 16 tests.
-- `typecheck`: passed, 390 source files.
-- `test`: passed, 833 tests, 17 skipped.
+Tests executed:
 
-## SonarQube
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World && PATH="$PWD/.venv/bin:$PWD/venv/bin:$PWD/bin:$PATH" PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract'`
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World && PATH="$PWD/.venv/bin:$PWD/venv/bin:$PWD/bin:$PATH" PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml tests.infrastructure.adapters.repositories.test_inventory_repositories'`
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World && PATH="$PWD/.venv/bin:$PWD/venv/bin:$PWD/bin:$PATH" PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_service_stack_plan tests.domain.deployment.test_service_stack_contract'`
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World && PATH="$PWD/.venv/bin:$PWD/venv/bin:$PWD/bin:$PATH" PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition'`
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World && PATH="$PWD/.venv/bin:$PWD/venv/bin:$PWD/bin:$PATH" python3 tools/quality_gate.py quality'`
 
-No local SonarQube scan was run. Remote PR checks will provide the configured
-repository CI/SonarCloud result.
+Quality-gate result:
 
-## Documentation Updates
+- Deployment contract tests: passed, 15 tests.
+- Compose and inventory repository tests: passed, 50 tests.
+- Deployment planning and contract tests: passed, 21 tests.
+- Composition tests: passed, 70 tests.
+- Full quality gate: passed, 888 tests with 17 skipped.
 
-Workflow closeout evidence was added to the active workflow and context pack.
+SonarQube findings and fixes:
 
-## Final Integration Decision
+- Not applicable for local Slice 04 execution.
 
-Issue #4 workflow execution is complete and ready for push/PR lifecycle.
+Documentation updates:
+
+- Issue 4 stack-validation baseline now lists the Pulsar compose stack.
+
+Final integration decision:
+
+- Accepted. Service stack contracts no longer require RabbitMQ and now require
+  Pulsar, with downstream tests and composition wiring aligned.

@@ -34,7 +34,7 @@ node "Managed LXC nodes" as Nodes {
   component "Docker Swarm" as Swarm
 }
 component "Portainer" as Portainer
-component "Service stacks\nNexus, Jenkins, RabbitMQ,\nSonarQube, Swagger/NGINX,\nInfisical, Service Access,\nTraefik" as Stacks
+component "Service stacks\nNexus, Jenkins, Apache Pulsar,\nSonarQube, Swagger/NGINX,\nInfisical, Service Access,\nTraefik" as Stacks
 
 Operator --> Shell
 Shell --> CLI

@@ -29,7 +29,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
             [
                 "deployment:nexus-stack",
                 "deployment:jenkins-stack",
-                "deployment:rabbitmq-stack",
+                "deployment:pulsar-stack",
                 "deployment:sonarqube-stack",
                 "deployment:swagger-stack",
             ],
@@ -57,7 +57,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            ("nexus", "jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
+            ("nexus", "jenkins", "pulsar", "sonarqube", "swagger", "infisical", "service-access"),
             tuple(step.service_stack.stack_name for step in steps),
         )
         self.assertNotIn("portainer", tuple(step.service_stack.stack_name for step in steps))
@@ -73,7 +73,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            ("jenkins", "rabbitmq", "sonarqube", "swagger", "infisical", "service-access"),
+            ("jenkins", "pulsar", "sonarqube", "swagger", "infisical", "service-access"),
             tuple(step.service_stack.stack_name for step in steps),
         )
 
@@ -114,7 +114,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
             [
                 "deployment:nexus-stack",
                 "deployment:jenkins-stack",
-                "deployment:rabbitmq-stack",
+                "deployment:pulsar-stack",
                 "deployment:sonarqube-stack",
                 "deployment:swagger-stack",
             ],

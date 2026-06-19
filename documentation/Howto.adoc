@@ -59,7 +59,7 @@ Common local ports after stack deployment:
 * Swagger editor/UI/API proxy: `http://localhost:8082`, `http://localhost:8083`,
   `http://localhost:8084`
 * SonarQube: `http://localhost:9001`
-* RabbitMQ: `http://localhost:15672`
+* Pulsar Admin API: `http://localhost:8087/admin/v2/clusters`
 * Service Access landing page and route overview: `http://localhost`
 * Vaultwarden: `https://localhost` for clients after trusting the local self-signed certificate; `http://localhost:8086` remains a local browser compatibility route
 

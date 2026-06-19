@@ -431,7 +431,7 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 
 When prompted, answer `y` only if changing the local LXD/Incus/LXC provider
 state, Docker Swarm, networking, Portainer, Nexus,
-Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX environment is intentional.
+Jenkins, Apache Pulsar, SonarQube, and Swagger/NGINX environment is intentional.
 
 == Service Access Management Prerequisites
 

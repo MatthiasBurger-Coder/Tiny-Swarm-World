@@ -77,7 +77,7 @@ expected_artifact_registries:
                 "portainer",
                 "nexus",
                 "jenkins",
-                "rabbitmq",
+                "pulsar",
                 "sonarqube",
                 "swagger",
                 "infisical",

@@ -123,7 +123,7 @@ Quality scenarios:
   entry, returned, or raised trace coverage;
 * default tests and quality gates use mocks or static inspection and do not
   execute live LXD, Incus, LXC, Docker Swarm, compose, Portainer,
-  Nexus, Jenkins, RabbitMQ, SonarQube or service bootstrap commands.
+  Nexus, Jenkins, Apache Pulsar, SonarQube or service bootstrap commands.
 
 === Service Access And Credential Display Safety
 
@@ -205,4 +205,4 @@ Quality scenarios:
   admin access and does not raise the typed rejection;
 * tests use mocked clients or request sessions and do not execute live LXD,
   Incus, LXC, Docker Swarm, compose, Portainer, Nexus, Jenkins,
-  RabbitMQ, SonarQube or service bootstrap commands.
+  Apache Pulsar, SonarQube or service bootstrap commands.

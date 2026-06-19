@@ -1,0 +1,65 @@
+services:
+  pulsar:
+    image: ${TSW_PULSAR_IMAGE:-apachepulsar/pulsar:latest}
+    hostname: pulsar
+    environment:
+      PULSAR_PREFIX_authenticationEnabled: "true"
+      PULSAR_PREFIX_authenticationProviders: org.apache.pulsar.broker.authentication.AuthenticationProviderToken
+      PULSAR_PREFIX_superUserRoles: admin
+      PULSAR_PREFIX_tokenSecretKey: data:;base64,${TSW_PULSAR_TOKEN_SECRET_KEY}
+      PULSAR_PREFIX_brokerClientAuthenticationPlugin: org.apache.pulsar.client.impl.auth.AuthenticationToken
+      PULSAR_PREFIX_brokerClientAuthenticationParameters: token:${TSW_PULSAR_ADMIN_TOKEN}
+      PULSAR_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m"
+      TSW_PULSAR_ADMIN_TOKEN: ${TSW_PULSAR_ADMIN_TOKEN}
+    command:
+      - sh
+      - -lc
+      - |
+        bin/apply-config-from-env.py conf/standalone.conf
+        printf '%s\n' \
+          "webServiceUrl=http://localhost:8080" \
+          "brokerServiceUrl=pulsar://localhost:6650" \
+          "authPlugin=org.apache.pulsar.client.impl.auth.AuthenticationToken" \
+          "authParams=token:$${TSW_PULSAR_ADMIN_TOKEN}" \
+          > conf/client.conf
+        exec bin/pulsar standalone
+    ports:
+      - target: 6650
+        published: 6650
+        protocol: tcp
+        mode: host
+      - target: 8080
+        published: 8087
+        protocol: tcp
+        mode: host
+    volumes:
+      - pulsar-data:/pulsar/data
+    networks:
+      - service_access_link
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python3 -c 'import os, sys, urllib.request; req =
+          urllib.request.Request("http://localhost:8080/admin/v2/clusters",
+          headers={"Authorization": "Bearer " +
+          os.environ["TSW_PULSAR_ADMIN_TOKEN"]}); body =
+          urllib.request.urlopen(req, timeout=10).read().decode(); sys.exit(0
+          if "standalone" in body else 1)'
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 60s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+volumes:
+  pulsar-data:
+
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true

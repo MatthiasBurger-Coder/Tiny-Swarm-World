@@ -155,7 +155,7 @@ Portainer stack APIs, and service lifecycle through Portainer or Docker Swarm.
   surface
 - Portainer stack compose files under `infra/config/compose/portainer`
 - service stack compose files under `infra/config/compose/nexus`,
-  `infra/config/compose/rabbitmq`, and `infra/config/compose/sonarqube`
+  `infra/config/compose/pulsar`, and `infra/config/compose/sonarqube`
 
 ### Tests and Documentation
 
@@ -243,7 +243,7 @@ These areas need explicit classification before any cleanup:
   setup, Maven/Docker registry configuration, future publishing workflows.
 - Deployment: compose stack definitions, compose repository, Portainer stack
   create/update/upload, service lifecycle for Portainer, Nexus, Jenkins,
-  RabbitMQ, SonarQube, Swagger/NGINX.
+  Apache Pulsar, SonarQube, Swagger/NGINX.
 - Shared: command execution abstractions, YAML/file/path/logging utilities,
   composition root, quality gate, import rules, test infrastructure.
 

@@ -14,7 +14,7 @@ Additional scope for `infra/`:
   entry points under `infra/config/compose` or any replacement legacy helper
   directory; route those behaviors through the Python setup workflow.
 - Do not run live Multipass, Docker Swarm, netplan, Portainer, Nexus, Jenkins,
-  RabbitMQ, SonarQube, or compose deployment commands unless the user explicitly
+  Apache Pulsar, SonarQube, or compose deployment commands unless the user explicitly
   asks for live infrastructure changes.
 - Avoid embedding host-specific absolute paths, user names, IP addresses, or
   secrets in committed configuration.

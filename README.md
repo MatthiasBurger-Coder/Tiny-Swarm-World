@@ -1,6 +1,6 @@
 # Tiny Swarm World
 
-Tiny Swarm World is a local development and test infrastructure to simulate a production-like microservices environment on your machine. Its node-provider direction is managed LXC through LXD or Incus for Docker Swarm nodes, and it includes guarded workflow boundaries plus configuration for developer services such as Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger + NGINX.
+Tiny Swarm World is a local development and test infrastructure to simulate a production-like microservices environment on your machine. Its node-provider direction is managed LXC through LXD or Incus for Docker Swarm nodes, and it includes guarded workflow boundaries plus configuration for developer services such as Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, and Swagger + NGINX.
 
 This README gives you a clear entry point: what it is, how to set it up, how to run it, and where to find more documentation.
 
@@ -29,7 +29,7 @@ The system follows a hexagonal architecture and provides async Python automation
 - Component configuration assets for:
   - Nexus (local Docker + Maven repository)
   - Jenkins (CI/CD with configuration-as-code)
-  - RabbitMQ (message broker)
+  - Apache Pulsar standalone (platform messaging broker)
   - SonarQube (static code analysis)
   - Swagger + NGINX (API documentation)
 - Service-access management assets:
@@ -229,7 +229,7 @@ Swarm World ownership evidence is verified before mutation.
 These behaviors are verified by unit tests, architecture checks, and static
 quality gates. This repository workflow did not run live LXD, Incus, LXC
 container, Docker Swarm, compose, netplan, socat, Portainer, Nexus,
-Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, Infisical, image build, image
+Jenkins, Apache Pulsar, SonarQube, Swagger/NGINX, Infisical, image build, image
 push, or stack deployment commands.
 
 Optional live smoke validation is a separate operator action, not part of the
@@ -242,7 +242,7 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 
 When prompted, answer `y` only if changing the local LXD/Incus/LXC provider
 state, Docker Swarm, networking, Portainer, Nexus,
-Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX environment is intentional.
+Jenkins, Apache Pulsar, SonarQube, and Swagger/NGINX environment is intentional.
 
 ---
 
@@ -340,7 +340,7 @@ Infisical is deployed as a separate stack from
 After a verified provider-specific live deployment, the dashboard is intended
 to be the management landing page at `http://localhost`. A central
 service-access NGINX is the accepted routing design for stable paths such as
-`/jenkins`, `/nexus`, `/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and
+`/jenkins`, `/nexus`, `/portainer`, `/pulsar`, `/sonarqube`, `/swagger` and
 `/infisical`. The table shows users and Infisical item references;
 password values are visible only in Infisical's authenticated UI. Operators
 who intentionally want the older base service set can pass
@@ -353,6 +353,10 @@ environment file when they are missing. These values are exported only into
 the Infisical stack environment during deployment and must not be committed.
 
 Live-operation surface summary:
+
+Pulsar uses local standalone mode for the Docker Swarm greenpath. The broker
+uses port `6650`; the Admin API is exposed through the non-conflicting host
+port `8087`. A clustered Pulsar topology is future work.
 
 | Path | Status |
 | --- | --- |

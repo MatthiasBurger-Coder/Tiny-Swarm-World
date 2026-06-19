@@ -1,0 +1,26 @@
+Wed Jun 17 05:32:37 UTC 2026
+Removing pulsar stack
+Removing service pulsar_pulsar
+Services after stack rm:
+Volumes before removal:
+pulsar_pulsar-conf
+pulsar_pulsar-data
+pulsar_pulsar-conf
+pulsar_pulsar-data
+Volumes after removal:
+Wed Jun 17 05:54:12 UTC 2026
+Removing pulsar stack before healthcheck retry
+Removing service pulsar_pulsar
+Volumes before removal:
+pulsar_pulsar-data
+pulsar_pulsar-data
+Error response from daemon: volume pulsar_pulsar-conf not found
+Volumes after removal:
+Wed Jun 17 06:31:41 UTC 2026
+Removing pulsar stack before python-healthcheck retry
+Removing service pulsar_pulsar
+Volumes before removal:
+pulsar_pulsar-data
+pulsar_pulsar-data
+Error response from daemon: volume pulsar_pulsar-conf not found
+Volumes after removal:

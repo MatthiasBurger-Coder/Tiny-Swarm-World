@@ -1,0 +1,17 @@
+ID             NAME                                      MODE         REPLICAS   IMAGE                                            PORTS
+a4wmn7hvvmcs   infisical_infisical                       replicated   1/1        infisical/infisical:latest
+da92q1spkzod   infisical_infisical-db                    replicated   1/1        postgres:14-alpine
+99msw955sqxv   infisical_infisical-redis                 replicated   1/1        redis:7-alpine
+sk9k3fs0rf1f   jenkins_jenkins                           replicated   1/1        127.0.0.1:5000/jenkins:latest
+hqyyb7cnx69x   nexus_nexus                               replicated   1/1        sonatype/nexus3:3.75.1
+jtuxb3uloong   portainer_agent                           global       3/3        portainer/agent:2.39.2
+sjcpkd6xjlyt   portainer_portainer                       replicated   1/1        portainer/portainer-ce:2.39.2
+r64x47a3wvzp   pulsar_pulsar                             replicated   1/1        apachepulsar/pulsar:latest
+c8riec15g21s   service-access_service-access-dashboard   replicated   1/1        127.0.0.1:5000/service-access-dashboard:latest
+ube6qa75ztpr   service-access_service-access-nginx       replicated   1/1        127.0.0.1:5000/service-access-nginx:latest
+0flxkqayzri1   sonarqube_sonar_db                        replicated   1/1        postgres:13
+trmam8v2pewp   sonarqube_sonarqube                       replicated   1/1        sonarqube:26.6.0.123539-community
+pz4ttfyleus9   swagger_swagger-api                       replicated   1/1        danielgtaylor/apisprout:latest
+wrs35zlz854e   swagger_swagger-editor                    replicated   1/1        swaggerapi/swagger-editor:v5.6.2-unprivileged
+1os8zchg31k0   swagger_swagger-nginx                     replicated   1/1        nginx:mainline-alpine
+pptvg3t8aj6o   swagger_swagger-ui                        replicated   1/1        swaggerapi/swagger-ui:v5.32.6

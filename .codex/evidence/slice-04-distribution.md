@@ -1,49 +1,60 @@
-# Slice 04 Distribution: Issue 4 Swarm Stack Validation
+# Slice 04 Distribution Decision
 
-Workflow id: `issue-4-swarm-stack-validation-20260614`
+Workflow id: `workflow-replace-rabbitmq-with-apache-pulsar`
+
 Slice id: `S04`
-Slice title: Documentation synchronization and final quality evidence
 
-## Affected Areas
+Slice title: Update service stack contract
 
-- `documentation/workflow/workflow.md`
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/context-pack.json`
-- `.codex/evidence/**`
+Affected areas:
 
-## Execution Mode
-
-Sequential.
-
-## Subagents
-
-Real subagents were not used. This closeout slice consolidates verification
-evidence in the main execution thread.
-
-## Selected Streams
-
+- backend
+- tests
 - documentation
-- quality
 
-## Worktrees
+Chosen execution mode: sequential
 
-Main issue worktree:
+Selected streams:
 
-```text
-../Tiny-Swarm-World-worktrees/issue-4-swarm-stack-validation
-```
+- backend
+- tests
+- documentation
 
-## Conflict Risks
+Real subagents used: no
 
-No product code changes are expected in this slice. The full quality gate may
-surface repository-wide issues that must be classified before push.
+Fallback role-based review used: yes
 
-## Quality Gates
+Git worktrees used: no
 
+Expected touched files/directories:
+
+- `src/tiny_swarm_world/domain/deployment/service_stack_contract.py`
+- `tests/domain/deployment/test_service_stack_contract.py`
+- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- `tests/infrastructure/adapters/repositories/test_inventory_repositories.py`
+- `documentation/workflow/issues/issue-4/swarm-stack-validation-baseline.md`
+- `.codex/evidence/slice-04-distribution.md`
+- `.codex/evidence/slice-04-consolidation.md`
+
+Conflict risks:
+
+- Deployment contracts must now align with the Slice 03 desired inventory.
+- RabbitMQ compose still exists until Slice 07, so tests may still inspect it
+  as a committed file but must not treat it as a default required stack.
+
+Quality gates to run:
+
+- `PYTHONPATH=src python3 -m unittest tests.domain.deployment.test_service_stack_contract`
 - `python3 tools/quality_gate.py quality`
-- `git diff --check`
 
-## Consolidation Plan
+Consolidation plan:
 
-Run full quality, update active workflow closeout evidence, record
-consolidation, and commit the final workflow closeout slice.
+- Replace the RabbitMQ service stack contract with Pulsar.
+- Update deployment contract tests and downstream contract consumers.
+- Remove the Slice 03 temporary inventory-test bridge.
+- Update Issue 4 stack-validation baseline documentation.
+
+Parallelization decision:
+
+- Rejected. Contract, inventory consistency tests, and baseline documentation
+  must change together.

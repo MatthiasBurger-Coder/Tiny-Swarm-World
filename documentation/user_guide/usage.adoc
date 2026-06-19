@@ -140,7 +140,7 @@ Optional live smoke validation is a separate operator action, not part of
 `python3 tools/quality_gate.py quality`. Run `setup run --live` only on a
 disposable or recoverable local environment and only when LXD/Incus/LXC or
 provider state, Docker Swarm, networking, Portainer,
-Nexus, Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, image, and stack changes
+Nexus, Jenkins, Apache Pulsar, SonarQube, Swagger/NGINX, image, and stack changes
 are intentional.
 
 == Verification Scope
@@ -149,7 +149,7 @@ The workflow safety behavior is verified through unit tests, architecture
 checks, import-linter contracts, type checks, and static command catalog
 validation. The default quality gate does not run live LXD, Incus, LXC
 container lifecycle, Docker Swarm, compose, netplan, socat,
-Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, or Swagger/NGINX commands.
+Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, or Swagger/NGINX commands.
 
 == Service Preparation
 
@@ -286,7 +286,7 @@ service-access NGINX compose service also publishes `8086` as a local
 compatibility route.
 The dashboard is a static management table with `Server`, `URL`, `user` and
 `pwd` columns. It provides central paths such as `/jenkins`, `/nexus`,
-`/portainer`, `/rabbitmq`, `/sonarqube`, `/swagger` and `/infisical`.
+`/portainer`, `/pulsar`, `/sonarqube`, `/swagger` and `/infisical`.
 It does not show password values.
 
 Authorized operators reveal or copy password values only through the

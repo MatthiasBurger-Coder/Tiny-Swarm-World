@@ -47,9 +47,8 @@ class PostInstallConfig:
     portainer_url: str
     portainer_username: str
     portainer_password: str | None
-    rabbitmq_url: str
-    rabbitmq_username: str
-    rabbitmq_password: str | None
+    pulsar_admin_url: str
+    pulsar_admin_token: str | None
     sonarqube_url: str
     sonarqube_username: str
     sonarqube_password: str | None
@@ -76,9 +75,8 @@ class PostInstallConfig:
             portainer_url=_env_value(local_env, "TSW_PORTAINER_URL", "http://localhost:9000"),
             portainer_username=_env_value(local_env, "TSW_PORTAINER_USERNAME", "admin"),
             portainer_password=_env_optional(local_env, "TSW_PORTAINER_ADMIN_PASSWORD"),
-            rabbitmq_url=_env_value(local_env, "TSW_RABBITMQ_URL", "http://localhost:15672"),
-            rabbitmq_username=_env_value(local_env, "TSW_RABBITMQ_USERNAME", "guest"),
-            rabbitmq_password=_env_optional(local_env, "TSW_RABBITMQ_PASSWORD") or "guest",
+            pulsar_admin_url=_env_value(local_env, "TSW_PULSAR_PUBLIC_ADMIN_URL", "http://localhost:8087"),
+            pulsar_admin_token=_env_optional(local_env, "TSW_PULSAR_ADMIN_TOKEN"),
             sonarqube_url=_env_value(local_env, "TSW_SONARQUBE_URL", "http://localhost:9001"),
             sonarqube_username=_env_value(local_env, "TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
             sonarqube_password=_env_optional(local_env, "TSW_SONARQUBE_ADMIN_PASSWORD"),
@@ -95,7 +93,7 @@ class PostInstallConfig:
             ServiceEndpoint("jenkins", self.jenkins_url),
             ServiceEndpoint("nexus", self.nexus_url),
             ServiceEndpoint("portainer", self.portainer_url),
-            ServiceEndpoint("rabbitmq", self.rabbitmq_url),
+            ServiceEndpoint("pulsar-admin-api", self.pulsar_admin_url),
             ServiceEndpoint("sonarqube", self.sonarqube_url),
             ServiceEndpoint("swagger", self.swagger_url),
         )
@@ -236,13 +234,18 @@ class PostInstallBrowserIntegrationTest(unittest.TestCase):
             success_texts=("Home", "Environments", "Stacks"),
         )
 
-    def test_rabbitmq_admin_login(self) -> None:
-        self._login_with_username_password(
-            self.config.rabbitmq_url,
-            self.config.rabbitmq_username,
-            self.config.rabbitmq_password,
-            success_texts=("Overview", "Connections", "Queues"),
+    def test_pulsar_admin_api_requires_and_accepts_admin_token(self) -> None:
+        self._require_secret(self.config.pulsar_admin_token, "TSW_PULSAR_ADMIN_TOKEN")
+        clusters_url = urljoin(self.config.pulsar_admin_url, "/admin/v2/clusters")
+
+        self.assertIn(_http_status(clusters_url, self.config.timeout_seconds), {401, 403})
+        clusters = _http_text(
+            clusters_url,
+            timeout_seconds=self.config.timeout_seconds,
+            bearer_token=self.config.pulsar_admin_token,
         )
+
+        self.assertIn("standalone", clusters.casefold())
 
     def test_sonarqube_admin_login(self) -> None:
         self._require_secret(self.config.sonarqube_password, "TSW_SONARQUBE_ADMIN_PASSWORD")
@@ -409,8 +412,17 @@ def _wait_for_http(url: str, timeout_seconds: float) -> None:
     raise AssertionError(f"{url} did not become reachable before timeout: {last_error}")
 
 
-def _http_text(url: str, username: str | None, password: str | None, timeout_seconds: float) -> str:
+def _http_text(
+    url: str,
+    username: str | None = None,
+    password: str | None = None,
+    timeout_seconds: float = 45,
+    *,
+    bearer_token: str | None = None,
+) -> str:
     request = Request(url)
+    if bearer_token is not None:
+        request.add_header("Authorization", f"Bearer {bearer_token}")
     if username is not None and password is not None:
         import base64
 
@@ -424,6 +436,16 @@ def _http_text(url: str, username: str | None, password: str | None, timeout_sec
         raise
     with response_context as response:
         return response.read().decode("utf-8", errors="replace")
+
+
+def _http_status(url: str, timeout_seconds: float) -> int:
+    request = Request(url)
+    try:
+        response_context = urlopen(request, timeout=timeout_seconds)
+    except HTTPError as exc:
+        return int(exc.code)
+    with response_context as response:
+        return int(response.status)
 
 
 def _env_value(local_env: dict[str, str], key: str, default: str) -> str:

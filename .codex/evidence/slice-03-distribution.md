@@ -1,48 +1,62 @@
-# Slice 03 Distribution: Issue 4 Swarm Stack Validation
+# Slice 03 Distribution Decision
 
-Workflow id: `issue-4-swarm-stack-validation-20260614`
+Workflow id: `workflow-replace-rabbitmq-with-apache-pulsar`
+
 Slice id: `S03`
-Slice title: Focused regression and architecture tests
 
-## Affected Areas
+Slice title: Replace RabbitMQ in desired inventory and setup manifest
 
-- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
-- `tests/architecture/test_hexagonal_imports.py`
-- `.codex/evidence/**`
+Affected areas:
 
-## Execution Mode
-
-Sequential.
-
-## Subagents
-
-Real subagents were not used. The slice is a verification slice over the
-already committed implementation and uses role-based fallback review.
-
-## Selected Streams
-
+- backend
+- runtime
 - tests
-- architecture
-- quality
 
-## Worktrees
+Chosen execution mode: sequential
 
-Main issue worktree:
+Selected streams:
 
-```text
-../Tiny-Swarm-World-worktrees/issue-4-swarm-stack-validation
-```
+- backend
+- tests
 
-## Conflict Risks
+Real subagents used: no
 
-No implementation files are changed in this slice. The main risk is an
-architecture regression introduced by Slice 02.
+Fallback role-based review used: yes
 
-## Quality Gates
+Git worktrees used: no
 
-- `python3 tools/quality_gate.py arch-tests`
-- `git diff --check`
+Expected touched files/directories:
 
-## Consolidation Plan
+- `infra/config/inventory/desired_inventory.yaml`
+- `src/tiny_swarm_world/domain/preflight/setup_manifest.py`
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py`
+- `tests/domain/preflight/test_preflight_result.py`
+- `tests/infrastructure/adapters/preflight/test_host_preflight_probe.py`
+- `.codex/evidence/slice-03-distribution.md`
+- `.codex/evidence/slice-03-consolidation.md`
 
-Run architecture tests, record results, and commit evidence only.
+Conflict risks:
+
+- Inventory and setup manifest must agree on the active platform service name.
+- Host preflight must not keep RabbitMQ port recognition as an active expected
+  service path.
+- RabbitMQ compose and deployment contract removal are intentionally later
+  slices.
+
+Quality gates to run:
+
+- `PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result`
+- `PYTHONPATH=src python3 -m unittest discover tests/infrastructure/adapters/preflight`
+- `python3 tools/quality_gate.py quality`
+
+Consolidation plan:
+
+- Replace active inventory stack entries with `pulsar`.
+- Replace setup manifest RabbitMQ service with Pulsar port checks.
+- Add/adjust host preflight recognition for occupied Pulsar ports.
+- Update preflight tests and run targeted gates before the full quality gate.
+
+Parallelization decision:
+
+- Rejected. Domain manifest, infrastructure recognition, and tests must move
+  together to avoid a transient inconsistent preflight contract.

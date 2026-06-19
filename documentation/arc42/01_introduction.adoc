@@ -5,7 +5,7 @@ production-like local Docker Swarm environment on managed provider nodes. The
 provider path is `lxc_native` through LXD or Incus. Multipass is not a
 supported node provider. The project provides workflow-level
 commands for platform preparation and verification, plus infrastructure assets
-for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX.
+for Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, and Swagger/NGINX.
 
 The current architecture goals are:
 

@@ -211,7 +211,7 @@ services:
             for contract in DEFAULT_SERVICE_STACK_CONTRACTS
         ]
 
-        self.assertEqual(["portainer", "nexus", "jenkins", "rabbitmq", "sonarqube", "swagger"], loaded_stack_names)
+        self.assertEqual(["portainer", "nexus", "jenkins", "pulsar", "sonarqube", "swagger"], loaded_stack_names)
 
     def test_committed_default_service_stack_compose_files_declare_required_services(self):
         repository = ComposeFileRepositoryYaml()
@@ -245,7 +245,7 @@ services:
                 "infisical",
                 "nexus",
                 "portainer",
-                "rabbitmq",
+                "pulsar",
                 "service-access",
                 "sonarqube",
                 "swagger",
@@ -284,24 +284,58 @@ services:
         )
         self.assertNotIn("secrets", compose_data)
 
-    def test_committed_rabbitmq_compose_keeps_host_ports_on_manager_gateway(self):
+    def test_committed_pulsar_compose_uses_standalone_with_non_conflicting_admin_port(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = (
-            repository_root / "infra" / "config" / "compose" / "rabbitmq" / "docker-compose.yml"
+            repository_root / "infra" / "config" / "compose" / "pulsar" / "docker-compose.yml"
         )
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
-        rabbitmq = compose_data["services"]["rabbitmq"]
+        pulsar = compose_data["services"]["pulsar"]
 
         self.assertEqual(
-            ["node.role == manager"],
-            rabbitmq["deploy"]["placement"]["constraints"],
+            "${TSW_PULSAR_IMAGE:-apachepulsar/pulsar:latest}",
+            pulsar["image"],
+        )
+        self.assertEqual(["sh", "-lc"], pulsar["command"][:2])
+        self.assertIn("bin/apply-config-from-env.py conf/standalone.conf", pulsar["command"][-1])
+        self.assertIn("exec bin/pulsar standalone", pulsar["command"][-1])
+        self.assertEqual("true", pulsar["environment"]["PULSAR_PREFIX_authenticationEnabled"])
+        self.assertIn(
+            "AuthenticationProviderToken",
+            pulsar["environment"]["PULSAR_PREFIX_authenticationProviders"],
         )
         self.assertEqual(
+            "data:;base64,${TSW_PULSAR_TOKEN_SECRET_KEY}",
+            pulsar["environment"]["PULSAR_PREFIX_tokenSecretKey"],
+        )
+        self.assertEqual(
+            "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m",
+            pulsar["environment"]["PULSAR_MEM"],
+        )
+        self.assertEqual("${TSW_PULSAR_ADMIN_TOKEN}", pulsar["environment"]["TSW_PULSAR_ADMIN_TOKEN"])
+        self.assertEqual(
             [
-                {"target": 5672, "published": 5672, "protocol": "tcp", "mode": "host"},
-                {"target": 15672, "published": 15672, "protocol": "tcp", "mode": "host"},
+                {"target": 6650, "published": 6650, "protocol": "tcp", "mode": "host"},
+                {"target": 8080, "published": 8087, "protocol": "tcp", "mode": "host"},
             ],
-            rabbitmq["ports"],
+            pulsar["ports"],
+        )
+        self.assertNotIn(
+            {"target": 8080, "published": 8080, "protocol": "tcp", "mode": "host"},
+            pulsar["ports"],
+        )
+        self.assertEqual(["pulsar-data:/pulsar/data"], pulsar["volumes"])
+        self.assertIn("healthcheck", pulsar)
+        self.assertIn("http://localhost:8080/admin/v2/clusters", pulsar["healthcheck"]["test"][-1])
+        self.assertIn("TSW_PULSAR_ADMIN_TOKEN", pulsar["healthcheck"]["test"][-1])
+        self.assertEqual(["service_access_link"], pulsar["networks"])
+        self.assertEqual(
+            {"name": "service_access_link", "external": True},
+            compose_data["networks"]["service_access_link"],
+        )
+        self.assertEqual(
+            ["node.role == manager"],
+            pulsar["deploy"]["placement"]["constraints"],
         )
 
     def test_committed_swagger_compose_uses_official_images_and_remote_openapi_bind(self):
@@ -687,7 +721,7 @@ services:
                 "/jenkins",
                 "/nexus",
                 "/portainer",
-                "/rabbitmq",
+                "/pulsar",
                 "/sonarqube",
                 "/swagger",
                 "/infisical",
@@ -705,7 +739,7 @@ services:
             "http://localhost:9000",
             "http://localhost:8081",
             "http://localhost:8086",
-            "http://localhost:15672",
+            "http://localhost:8087",
             "http://localhost:9001",
         ):
             self.assertNotIn(forbidden_link, dashboard)
@@ -729,7 +763,7 @@ services:
             "platform/portainer",
             "platform/nexus",
             "platform/jenkins",
-            "platform/rabbitmq",
+            "platform/pulsar",
             "platform/sonarqube",
         )
 

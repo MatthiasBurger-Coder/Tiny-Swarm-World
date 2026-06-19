@@ -44,31 +44,31 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_verify_confirms_stack_registration_and_expected_services(self):
-        repository = _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}"))
+        repository = _FakeComposeRepository(StackDefinition(name="pulsar", compose_content="services: {}"))
         runtime = _FakeSwarmRuntime(
             stack_exists=True,
-            services=(SwarmServiceStatus("rabbitmq_rabbitmq", 1, 1),),
+            services=(SwarmServiceStatus("pulsar_pulsar", 1, 1),),
         )
         service = EnsureSwarmStack(
             repository,
             runtime,
-            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+            ServiceStackContract("pulsar", ("pulsar",)),
         )
 
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("deployment:rabbitmq-stack", verification.target_id)
+        self.assertEqual("deployment:pulsar-stack", verification.target_id)
         self.assertEqual("true", verification.evidence["stack_registered"])
 
     async def test_verify_fails_when_stack_is_missing(self):
         service = EnsureSwarmStack(
-            _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}")),
+            _FakeComposeRepository(StackDefinition(name="pulsar", compose_content="services: {}")),
             _FakeSwarmRuntime(
                 stack_exists=False,
-                services=(SwarmServiceStatus("rabbitmq_rabbitmq", 1, 1),),
+                services=(SwarmServiceStatus("pulsar_pulsar", 1, 1),),
             ),
-            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+            ServiceStackContract("pulsar", ("pulsar",)),
         )
 
         verification = await service.verify()
@@ -78,15 +78,15 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
 
     async def test_verify_fails_when_required_service_is_missing(self):
         service = EnsureSwarmStack(
-            _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}")),
+            _FakeComposeRepository(StackDefinition(name="pulsar", compose_content="services: {}")),
             _FakeSwarmRuntime(stack_exists=True, services=()),
-            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+            ServiceStackContract("pulsar", ("pulsar",)),
         )
 
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
-        self.assertEqual("rabbitmq", verification.evidence["missing_services"])
+        self.assertEqual("pulsar", verification.evidence["missing_services"])
 
     async def test_verify_sanitizes_runtime_failure_and_does_not_deploy(self):
         runtime = _FakeSwarmRuntime(
@@ -94,9 +94,9 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
             stack_exception=RuntimeError(sensitive_assignment()),
         )
         service = EnsureSwarmStack(
-            _FakeComposeRepository(StackDefinition(name="rabbitmq", compose_content="services: {}")),
+            _FakeComposeRepository(StackDefinition(name="pulsar", compose_content="services: {}")),
             runtime,
-            ServiceStackContract("rabbitmq", ("rabbitmq",)),
+            ServiceStackContract("pulsar", ("pulsar",)),
         )
 
         verification = await service.verify()

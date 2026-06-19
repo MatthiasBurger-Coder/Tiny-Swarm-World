@@ -499,6 +499,33 @@ class TestHostPreflightProbe(unittest.TestCase):
         request = urlopen.call_args.args[0]
         self.assertEqual("https://127.0.0.1:443/", request.full_url)
 
+    def test_port_matches_expected_service_recognizes_pulsar_admin_api(self):
+        probe = HostPreflightProbe(Path.cwd())
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.status = 200
+        response.headers = {"Content-Type": "application/json"}
+        response.read.return_value = b'["standalone"]'
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",
+            return_value=response,
+        ) as urlopen:
+            self.assertTrue(probe.port_matches_expected_service(8087, "Pulsar Admin API"))
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual("http://127.0.0.1:8087/admin/v2/clusters", request.full_url)
+
+    def test_port_matches_expected_service_recognizes_pulsar_broker_tcp(self):
+        probe = HostPreflightProbe(Path.cwd())
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.socket.create_connection",
+        ) as create_connection:
+            create_connection.return_value.__enter__.return_value = create_connection.return_value
+
+            self.assertTrue(probe.port_matches_expected_service(6650, "Pulsar broker protocol"))
+
     def test_port_matches_expected_service_rejects_empty_nginx_404_for_service_access(self):
         probe = HostPreflightProbe(Path.cwd())
         error = urllib.error.HTTPError(

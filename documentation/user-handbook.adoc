@@ -109,8 +109,7 @@ The required values are defined by
 `documentation/configuration/operator-configuration-contract.md`. The important
 operator groups are:
 
-* service administrator passwords for Portainer, Nexus, Jenkins, RabbitMQ, and
-  SonarQube;
+* service administrator passwords for Portainer, Nexus, Jenkins, and SonarQube;
 * shared PostgreSQL and SonarQube PostgreSQL passwords;
 * Infisical bootstrap values;
 * Traefik TLS Docker secret names for certificate and key material.
@@ -228,7 +227,7 @@ Common local service routes and ports are:
 | Portainer | `/portainer` or `http://localhost:9000` | Deployment gateway after bootstrap.
 | Nexus | `/nexus` or `http://localhost:8081` | Repository service and Docker proxy behavior.
 | Jenkins | `/jenkins` or `http://localhost:8080` | CI service.
-| RabbitMQ | `/rabbitmq` or `http://localhost:15672` | Management UI.
+| Pulsar | `/pulsar` or `http://localhost:8087/admin/v2/clusters` | Token-authenticated Admin API for local standalone broker; use the `platform/pulsar` Infisical item for the bearer token. No Pulsar Manager UI is bundled.
 | SonarQube | `/sonarqube` or `http://localhost:9001` | Static analysis service.
 | Swagger/NGINX | `/swagger` or `http://localhost:8084` | API documentation surface.
 | Traefik | ports `80` and `443` | Ingress owner for the service-access setup profile.

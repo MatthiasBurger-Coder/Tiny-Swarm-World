@@ -205,7 +205,7 @@ curl -s http://localhost:9000/api/status
 curl -s http://localhost:8081/service/rest/v1/status
 curl -s http://localhost:5000/v2/
 curl -s http://localhost:8080/login
-curl -s http://localhost:15672
+curl -s http://localhost:8087/admin/v2/clusters
 curl -s http://localhost:9001/api/system/status
 ----
 

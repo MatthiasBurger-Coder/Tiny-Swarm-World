@@ -111,9 +111,9 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
         endpoints=(ServiceEndpoint("jenkins", "http://localhost:8080"),),
     ),
     ServiceStackContract(
-        "rabbitmq",
-        ("rabbitmq",),
-        endpoints=(ServiceEndpoint("rabbitmq-management", "http://localhost:15672"),),
+        "pulsar",
+        ("pulsar",),
+        endpoints=(ServiceEndpoint("pulsar-admin-api", "http://localhost:8087"),),
     ),
     ServiceStackContract(
         "sonarqube",

@@ -138,7 +138,7 @@ through test-backed contracts or explicitly approved live smoke evidence:
 - Portainer is reachable;
 - Nexus is reachable and artifact registry expectations are verified;
 - Jenkins is reachable when included in the selected profile;
-- RabbitMQ is reachable when included in the selected profile;
+- Pulsar broker and Admin API are reachable when included in the selected profile;
 - SonarQube is reachable when included in the selected profile;
 - Swagger/NGINX is reachable when included in the selected profile;
 - service-access dashboard and Vaultwarden are reachable only if a later
@@ -176,7 +176,7 @@ changes it:
 
 Missing consent must return `REFUSED_LIVE_CONSENT_MISSING` before any
 Multipass, LXD, Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
-compose, stack, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
+compose, stack, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube,
 Swagger/NGINX, image build, image push, or bootstrap command runs.
 
 Non-interactive live execution is out of scope until a later workflow and ADR

@@ -1,54 +1,57 @@
-# Slice 02 Distribution: Issue 4 Swarm Stack Validation
+# Slice 02 Distribution Decision
 
-Workflow id: `issue-4-swarm-stack-validation-20260614`
+Workflow id: `workflow-replace-rabbitmq-with-apache-pulsar`
+
 Slice id: `S02`
-Slice title: Scoped implementation inside the declared architecture boundary
 
-## Affected Areas
+Slice title: Add Apache Pulsar compose stack
 
-- `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
-- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+Affected areas:
 
-## Execution Mode
+- runtime
+- tests
+- architecture
 
-Sequential.
+Chosen execution mode: sequential
 
-## Subagents
+Selected streams:
 
-Real subagents were not used. The implementation is tightly scoped to one
-infrastructure adapter and one focused test module, so role-based fallback
-review is recorded in this evidence.
-
-## Selected Streams
-
-- backend
+- runtime
 - tests
 
-## Worktrees
+Real subagents used: no
 
-Main issue worktree:
+Fallback role-based review used: yes
 
-```text
-../Tiny-Swarm-World-worktrees/issue-4-swarm-stack-validation
-```
+Git worktrees used: no
 
-No additional stream worktrees are used for Slice 02 because implementation and
-tests touch coupled files.
+Expected touched files/directories:
 
-## Conflict Risks
+- `infra/config/compose/pulsar/docker-compose.yml`
+- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- `.codex/evidence/slice-02-distribution.md`
+- `.codex/evidence/slice-02-consolidation.md`
 
-- Existing tests use minimal compose fixtures that are not Swarm stack-valid
-  once per-service `deploy` validation is introduced.
-- Product compose files are expected to stay unchanged.
+Conflict risks:
 
-## Quality Gates
+- Compose conventions must remain compatible with Docker Swarm stack
+  deployment.
+- Slice 02 must not remove or retarget RabbitMQ contracts yet.
+- Host port `8080` must not be exposed directly.
+
+Quality gates to run:
 
 - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml`
-- `python3 tools/quality_gate.py test`
-- `git diff --check`
+- `python3 tools/quality_gate.py quality`
 
-## Consolidation Plan
+Consolidation plan:
 
-Add repository-boundary validation, update fixtures to represent Swarm stack
-files, run focused tests, then record Slice 02 consolidation evidence before
-committing.
+- Add the Pulsar compose file.
+- Add focused compose repository test coverage for the committed Pulsar file.
+- Run the targeted compose repository test under WSL.
+- Run the full quality gate under WSL before checkpoint commit.
+
+Parallelization decision:
+
+- Rejected. The compose file and its focused test are tightly coupled, and the
+  workflow requires RabbitMQ to remain untouched in this slice.

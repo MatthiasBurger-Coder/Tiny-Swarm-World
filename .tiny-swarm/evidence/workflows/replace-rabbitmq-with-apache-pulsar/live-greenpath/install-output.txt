@@ -1,0 +1,15 @@
+Tiny Swarm World live installation
+
+Repository:      /mnt/d/Projects/Tiny-Swarm-World
+Service profile: service-access
+Evidence:        /mnt/d/Projects/Tiny-Swarm-World/.tiny-swarm-world/evidence/installation-tests/wsl2/20260617T063226Z
+Secret file:     /mnt/d/Projects/Tiny-Swarm-World/.tiny-swarm-world/local/live-installation-dedup.env
+
+This will run live infrastructure automation. It may create or change VMs,
+Docker resources, local service state, networks, and deployment artifacts.
+Fresh install starts by resetting configured Tiny Swarm World managed state.
+Fresh-install reset confirmed by explicit --confirm-reset flag.
+Starting fresh-install reset. Headless output is recorded at: /mnt/d/Projects/Tiny-Swarm-World/.tiny-swarm-world/evidence/installation-tests/wsl2/20260617T063226Z/reset-run.log
+Starting live setup. Headless output is recorded at: /mnt/d/Projects/Tiny-Swarm-World/.tiny-swarm-world/evidence/installation-tests/wsl2/20260617T063226Z/setup-run.log
+Installation completed successfully.
+Evidence directory: /mnt/d/Projects/Tiny-Swarm-World/.tiny-swarm-world/evidence/installation-tests/wsl2/20260617T063226Z

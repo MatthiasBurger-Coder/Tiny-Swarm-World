@@ -142,9 +142,18 @@ def default_configuration_contract() -> ConfigurationContract:
             _required_secret("TSW_PORTAINER_ADMIN_PASSWORD", "portainer", "Portainer admin password."),
             _required_secret("TSW_NEXUS_ADMIN_PASSWORD", "nexus", "Nexus admin password."),
             _required_secret("TSW_JENKINS_ADMIN_PASSWORD", "jenkins", "Jenkins admin password."),
-            _required_secret("TSW_RABBITMQ_PASSWORD", "rabbitmq", "RabbitMQ default password."),
             _required_secret("TSW_SONARQUBE_ADMIN_PASSWORD", "sonarqube", "SonarQube admin password."),
             _required_secret("TSW_POSTGRES_PASSWORD", "sonarqube", "SonarQube PostgreSQL password."),
+            _required_secret(
+                "TSW_PULSAR_TOKEN_SECRET_KEY",
+                "pulsar",
+                "Base64 encoded key used to sign local Pulsar Admin API tokens.",
+            ),
+            _required_secret(
+                "TSW_PULSAR_ADMIN_TOKEN",
+                "pulsar",
+                "JWT bearer token for the local Pulsar Admin API.",
+            ),
             _required_secret(
                 "TSW_SONARQUBE_POSTGRES_PASSWORD",
                 "sonarqube",
@@ -192,6 +201,20 @@ def default_configuration_contract() -> ConfigurationContract:
                 value_kind=ConfigurationValueKind.URL,
                 required=False,
                 description="Docker registry mirror URL reachable from managed LXC nodes.",
+            ),
+            ConfigurationRequirement(
+                key="TSW_PULSAR_ADMIN_URL",
+                scope="pulsar",
+                value_kind=ConfigurationValueKind.URL,
+                required=False,
+                description="Internal Pulsar Admin API URL for local standalone mode.",
+            ),
+            ConfigurationRequirement(
+                key="TSW_PULSAR_PUBLIC_ADMIN_URL",
+                scope="pulsar",
+                value_kind=ConfigurationValueKind.URL,
+                required=False,
+                description="Host-accessible Pulsar Admin API URL for browser/live checks.",
             ),
             ConfigurationRequirement(
                 key="TSW_TRAEFIK_TLS_CERT_SECRET_NAME",

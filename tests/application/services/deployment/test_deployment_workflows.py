@@ -305,7 +305,7 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
     async def test_apply_workflow_stops_later_stacks_when_verification_blocks(self):
         first_step = _OrderedApplyStep("deployment:nexus-stack", VerificationStatus.VERIFIED)
         second_step = _OrderedApplyStep("deployment:jenkins-service-readiness", VerificationStatus.BLOCKED)
-        third_step = _OrderedApplyStep("deployment:rabbitmq-stack", VerificationStatus.VERIFIED)
+        third_step = _OrderedApplyStep("deployment:pulsar-stack", VerificationStatus.VERIFIED)
 
         result = await DeploymentApplyWorkflow((first_step, second_step, third_step)).run()
 
@@ -356,7 +356,7 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("verification is blocked for deployment:nexus-service-readiness", result.reason)
 
     async def test_verify_workflow_sanitizes_check_exceptions(self):
-        check = _ExceptionDeploymentCheck("deployment:rabbitmq-stack")
+        check = _ExceptionDeploymentCheck("deployment:pulsar-stack")
 
         result = await DeploymentVerifyWorkflow((check,)).run()
 

@@ -215,7 +215,7 @@ through `VerificationResult`; raw command strings, stdout, stderr, environment
 payloads, and keys that imply secrets are rejected before persistence.
 
 No live LXD, Incus, LXC container lifecycle, Docker Swarm, netplan,
-socat, Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, compose, or stack
+socat, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, compose, or stack
 deployment command is required to create or round-trip these inventory
 artifacts in tests.
 
