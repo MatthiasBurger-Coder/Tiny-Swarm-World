@@ -60,6 +60,52 @@ class VerifySwarmServiceReadiness:
         )
 
 
+class EnsureSwarmServiceReadiness:
+    def __init__(
+        self,
+        swarm_runtime: PortSwarmStackRuntime,
+        service_stack: ServiceStackContract,
+        *,
+        verification_target_id: str,
+        max_attempts: int = 60,
+        wait_seconds: int = 10,
+    ):
+        self.verification_target_id = verification_target_id
+        self.deployment_target_id = verification_target_id
+        self._readiness = VerifySwarmServiceReadiness(
+            swarm_runtime,
+            service_stack,
+            max_attempts=max_attempts,
+            wait_seconds=wait_seconds,
+        )
+        self._verification = VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.BLOCKED,
+            message="Swarm service readiness has not run yet.",
+            evidence={
+                "phase": "apply",
+                "reason": "readiness_not_run",
+                "stack_name": service_stack.stack_name,
+            },
+        )
+
+    async def run(self) -> None:
+        verification = await self._readiness.verify()
+        self._verification = VerificationResult(
+            target_id=self.verification_target_id,
+            status=verification.status,
+            message=verification.message,
+            evidence={
+                **verification.evidence,
+                "phase": "apply",
+                "readiness_guard": "pre_infisical_bootstrap",
+            },
+        )
+
+    def verify(self) -> VerificationResult:
+        return self._verification
+
+
 def _all_required_services_ready(
     service_stack: ServiceStackContract,
     services: tuple[SwarmServiceStatus, ...],

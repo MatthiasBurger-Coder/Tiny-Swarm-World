@@ -56,6 +56,136 @@ services:
         constraints:
           - node.role == manager
 
+  pulsar-manager:
+    image: ${TSW_PULSAR_MANAGER_IMAGE:-apachepulsar/pulsar-manager:latest}
+    environment:
+      SPRING_CONFIGURATION_FILE: /pulsar-manager/pulsar-manager/application.properties
+    ports:
+      - target: 9527
+        published: 9527
+        protocol: tcp
+        mode: host
+      - target: 7750
+        published: 7750
+        protocol: tcp
+        mode: host
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  pulsar-manager-bootstrap:
+    image: ${TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE:-python:3.12-alpine}
+    environment:
+      TSW_PULSAR_MANAGER_ADMIN_PASSWORD: ${TSW_PULSAR_MANAGER_ADMIN_PASSWORD}
+      TSW_PULSAR_MANAGER_BACKEND_URL: http://tasks.pulsar-manager:7750
+    command:
+      - sh
+      - -ec
+      - |
+        python - <<'PY'
+        import json
+        import os
+        import sys
+        import time
+        import urllib.request
+        import urllib.error
+
+        backend_url = os.environ["TSW_PULSAR_MANAGER_BACKEND_URL"].rstrip("/")
+        admin_value = os.environ["TSW_PULSAR_MANAGER_ADMIN_PASSWORD"]
+        superuser_payload = json.dumps(
+            {
+                "name": "admin",
+                "password": admin_value,
+                "description": "Tiny Swarm World local Pulsar Manager admin",
+                "email": "admin@example.org",
+            }
+        ).encode("utf-8")
+        login_payload = json.dumps(
+            {
+                "username": "admin",
+                "password": admin_value,
+            }
+        ).encode("utf-8")
+        backend_host_header = "localhost:7750"
+        last_error = "not_attempted"
+        for _ in range(60):
+            try:
+                request = urllib.request.Request(
+                    f"{backend_url}/pulsar-manager/csrf-token",
+                    headers={"Host": backend_host_header},
+                )
+                csrf_value = urllib.request.urlopen(request, timeout=5).read().decode("utf-8").strip()
+                xsrf_header = "XSRF-" + "TOKEN"
+                request = urllib.request.Request(
+                    f"{backend_url}/pulsar-manager/login",
+                    data=login_payload,
+                    method="POST",
+                    headers={
+                        "Content-Type": "application/json",
+                        "Host": backend_host_header,
+                        "Cookie": f"{xsrf_header}={csrf_value};",
+                        "X-" + xsrf_header: csrf_value,
+                    },
+                )
+                try:
+                    body = urllib.request.urlopen(request, timeout=10).read().decode("utf-8")
+                    response = json.loads(body or "{}")
+                    if response.get("login") == "success":
+                        sys.exit(0)
+                    if response.get("error") != "The user is not exist":
+                        last_error = "login_verification_failed"
+                        time.sleep(2)
+                        continue
+                except urllib.error.HTTPError as exc:
+                    if exc.code != 400:
+                        raise
+                request = urllib.request.Request(
+                    f"{backend_url}/pulsar-manager/users/superuser",
+                    data=superuser_payload,
+                    method="PUT",
+                    headers={
+                        "Content-Type": "application/json",
+                        "Host": backend_host_header,
+                        "Cookie": f"{xsrf_header}={csrf_value};",
+                        "X-" + xsrf_header: csrf_value,
+                    },
+                )
+                try:
+                    body = urllib.request.urlopen(request, timeout=10).read().decode("utf-8")
+                    response = json.loads(body or "{}")
+                    if response.get("error") not in (None, ""):
+                        last_error = "api_rejected_superuser"
+                        time.sleep(2)
+                        continue
+                except urllib.error.HTTPError as exc:
+                    if exc.code != 400:
+                        raise
+                last_error = "superuser_created_waiting_for_login"
+                time.sleep(2)
+            except urllib.error.HTTPError as exc:
+                last_error = f"http_{exc.code}"
+                time.sleep(2)
+            except Exception as exc:
+                last_error = type(exc).__name__
+                time.sleep(2)
+        raise SystemExit(f"pulsar_manager_bootstrap_failed:{last_error}")
+        PY
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      update_config:
+        failure_action: continue
+      restart_policy:
+        condition: none
+      placement:
+        constraints:
+          - node.role == manager
+
 volumes:
   pulsar-data:
 

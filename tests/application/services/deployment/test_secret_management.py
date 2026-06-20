@@ -104,6 +104,20 @@ class TestSecretManagement(unittest.TestCase):
         self.assertEqual("placeholder_only", entry.source)
         self.assertTrue(entry.required)
 
+    def test_pulsar_compose_bootstrap_does_not_create_secret_inventory_blocker(self):
+        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "docker-compose.yml").write_text(
+                Path("infra/config/compose/pulsar/docker-compose.yml").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            discovery = SecretDiscoveryStep(repo_root=root, manifest_entries=entries)
+
+            findings = discovery.run()
+
+        self.assertFalse([finding for finding in findings if finding.classification == "blocker"])
+
     def test_secret_discovery_classifies_managed_placeholder_and_blocker(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

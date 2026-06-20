@@ -19,6 +19,7 @@ from typing import Mapping, Sequence
 
 RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
 DEFAULT_SERVICE_PROFILE = "service-access"
+DEFAULT_INFISICAL_LOGIN_EMAIL = "admin@tiny-swarm-world.local"
 DEFAULT_SECRET_ENV_FILE = ".tiny-swarm-world/local/live-installation.env"
 DEFAULT_INFISICAL_SECRET_ENV_FILE = ".tiny-swarm/secrets/bootstrap.local.env"
 DEFAULT_GENERATED_SECRET_ENV_FILE = ".tiny-swarm/secrets/generated.local.env"
@@ -124,6 +125,7 @@ def run(
     _ensure_private_file(paths.generated_secret_env_file)
     install_env.update(_load_export_file(paths.secret_env_file))
     install_env.update(_load_export_file(paths.infisical_secret_env_file))
+    _normalize_infisical_login_email(paths, install_env)
 
     required_entries = _required_installer_secret_entries(cwd / DEFAULT_SECRET_MANIFEST_PATH)
     missing = [entry for entry in required_entries if not install_env.get(entry.key)]
@@ -146,6 +148,7 @@ def run(
 
     _ensure_sonarqube_password_policy(options, paths, install_env)
     _ensure_default_config_exports(paths, install_env)
+    _normalize_export_file_if_duplicate_keys(paths.secret_env_file)
     _write_infisical_secret_file(paths.infisical_secret_env_file, install_env)
     install_env.setdefault("TSW_SEED_INFISICAL_ITEMS", "0")
     _configure_native_linux_command_group(host_runtime, install_env)
@@ -401,6 +404,33 @@ def _load_export_file(path: Path) -> dict[str, str]:
     return values
 
 
+def _normalize_export_file_if_duplicate_keys(path: Path) -> None:
+    duplicates = _duplicate_export_keys(path)
+    if not duplicates:
+        return
+    _write_exports(
+        path,
+        f"Normalized by install.sh after duplicate key cleanup at {_utc_timestamp()} UTC",
+        _load_export_file(path),
+    )
+
+
+def _duplicate_export_keys(path: Path) -> tuple[str, ...]:
+    if not path.exists():
+        return ()
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        assignment = _export_assignment_from_line(raw_line)
+        if assignment is None:
+            continue
+        name, _ = assignment
+        if name in seen:
+            duplicates.add(name)
+        seen.add(name)
+    return tuple(sorted(duplicates))
+
+
 def _export_assignment_from_line(raw_line: str) -> tuple[str, str] | None:
     line = raw_line.strip()
     if not line or line.startswith("#"):
@@ -418,8 +448,8 @@ def _export_assignment_from_line(raw_line: str) -> tuple[str, str] | None:
 def _parse_export_value(raw_value: str) -> str:
     try:
         parsed = shlex.split(raw_value, posix=True)
-    except ValueError:
-        parsed = [raw_value]
+    except ValueError as exc:
+        raise InstallerError("Local installer environment file contains invalid shell quoting.") from exc
     return parsed[0] if parsed else ""
 
 
@@ -434,7 +464,7 @@ def _generated_secret_values(
         if name == "TSW_INFISICAL_ENCRYPTION_KEY":
             generated[name] = secrets.token_hex(16)
         elif name == "TSW_INFISICAL_LOGIN_EMAIL":
-            generated[name] = "admin@tiny-swarm-world.local"
+            generated[name] = DEFAULT_INFISICAL_LOGIN_EMAIL
         elif name == "TSW_SONARQUBE_ADMIN_PASSWORD":
             generated[name] = f"{secrets.token_urlsafe(32)}!"
         elif name == "TSW_PULSAR_TOKEN_SECRET_KEY":
@@ -510,6 +540,27 @@ def _ensure_default_config_exports(paths: InstallerPaths, env: dict[str, str]) -
     )
 
 
+def _normalize_infisical_login_email(paths: InstallerPaths, env: dict[str, str]) -> None:
+    current = env.get("TSW_INFISICAL_LOGIN_EMAIL", "")
+    normalized = _normalized_email_value(current)
+    if not normalized or normalized == current:
+        return
+    env["TSW_INFISICAL_LOGIN_EMAIL"] = normalized
+    _append_exports(
+        paths.secret_env_file,
+        f"Corrected Infisical login email shell quoting at {_utc_timestamp()} UTC",
+        {"TSW_INFISICAL_LOGIN_EMAIL": normalized},
+    )
+
+
+def _normalized_email_value(value: str) -> str:
+    stripped = value.strip()
+    quote_stripped = stripped.strip("'\"")
+    if quote_stripped and "@" in quote_stripped and "." in quote_stripped.partition("@")[2]:
+        return quote_stripped
+    return stripped
+
+
 def _write_infisical_secret_file(path: Path, env: Mapping[str, str]) -> None:
     exports = {
         "TSW_INFISICAL_ENCRYPTION_KEY": env["TSW_INFISICAL_ENCRYPTION_KEY"],
@@ -518,11 +569,6 @@ def _write_infisical_secret_file(path: Path, env: Mapping[str, str]) -> None:
         "TSW_INFISICAL_REDIS_PASSWORD": env["TSW_INFISICAL_REDIS_PASSWORD"],
         "TSW_INFISICAL_LOGIN_EMAIL": env["TSW_INFISICAL_LOGIN_EMAIL"],
         "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": env["TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"],
-        "ENCRYPTION_KEY": env["TSW_INFISICAL_ENCRYPTION_KEY"],
-        "AUTH_SECRET": env["TSW_INFISICAL_AUTH_SECRET"],
-        "POSTGRES_PASSWORD": env["TSW_INFISICAL_POSTGRES_PASSWORD"],
-        "REDIS_PASSWORD": env["TSW_INFISICAL_REDIS_PASSWORD"],
-        "INITIAL_BOOTSTRAP_ADMIN_PASSWORD": env["TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"],
     }
     _write_exports(path, "Generated by install.sh. Do not commit.", exports)
 

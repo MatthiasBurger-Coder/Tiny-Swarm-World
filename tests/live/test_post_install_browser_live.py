@@ -26,6 +26,8 @@ from urllib.error import HTTPError
 from urllib.parse import urljoin, urlparse
 from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_opener
 
+from ruamel.yaml import YAML
+
 from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
 )
@@ -45,6 +47,7 @@ EXPECTED_INFISICAL_ITEMS = (
     "platform/jenkins",
     "platform/nexus",
     "platform/portainer",
+    "platform/pulsar-manager",
     "platform/pulsar",
     "platform/sonarqube",
 )
@@ -53,6 +56,7 @@ EXPECTED_INFISICAL_ITEM_KEYS = {
     "platform/nexus": "TSW_NEXUS_ADMIN_PASSWORD",
     "platform/portainer": "TSW_PORTAINER_ADMIN_PASSWORD",
     "platform/pulsar": "TSW_PULSAR_ADMIN_TOKEN",
+    "platform/pulsar-manager": "TSW_PULSAR_MANAGER_ADMIN_PASSWORD",
     "platform/sonarqube": "TSW_SONARQUBE_ADMIN_PASSWORD",
 }
 NO_LOGIN_SERVICES = ("service-access", "swagger")
@@ -365,6 +369,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         self.assertIn("TSW_NEXUS_ADMIN_PASSWORD", expected_keys)
         self.assertIn("TSW_PORTAINER_ADMIN_PASSWORD", expected_keys)
         self.assertIn("TSW_PULSAR_ADMIN_TOKEN", expected_keys)
+        self.assertNotIn("TSW_INFISICAL_BOOTSTRAP_TOKEN", expected_keys)
         self.assertTrue(all(key.endswith(MANAGED_CREDENTIAL_KEY_SUFFIXES) for key in expected_keys))
 
     def test_traefik_tls_secret_name_manifest_entries_are_value_free(self) -> None:
@@ -1287,16 +1292,17 @@ def _pulsar_management_evidence(
 
 def _expected_infisical_password_keys() -> tuple[str, ...]:
     keys: list[str] = []
-    current_key = ""
-    for raw_line in INFISICAL_SECRET_MANIFEST.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if line.startswith("- key: "):
-            current_key = line.removeprefix("- key: ").strip()
+    manifest = YAML(typ="safe").load(INFISICAL_SECRET_MANIFEST.read_text(encoding="utf-8")) or {}
+    for entry in manifest.get("secrets", []):
+        if not isinstance(entry, dict):
             continue
-        if line.startswith("required:"):
-            if current_key and any(current_key.endswith(suffix) for suffix in MANAGED_CREDENTIAL_KEY_SUFFIXES):
-                keys.append(current_key)
-            current_key = ""
+        key = entry.get("key")
+        if (
+            isinstance(key, str)
+            and entry.get("required") is True
+            and any(key.endswith(suffix) for suffix in MANAGED_CREDENTIAL_KEY_SUFFIXES)
+        ):
+            keys.append(key)
     return tuple(dict.fromkeys(keys))
 
 

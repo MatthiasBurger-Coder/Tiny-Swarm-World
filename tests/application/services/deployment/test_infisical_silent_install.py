@@ -126,6 +126,24 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             self.assertEqual("admin_api_fallback", result["bootstrap_method"])
             self.assertEqual("<redacted>", result["redacted_config"]["DB_CONNECTION_URI"])
 
+    def test_admin_api_fallback_failure_writes_redacted_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = _service(
+                cli=_FakeCli(available=False),
+                bootstrap_client=_FailingBootstrapClient(),
+                evidence_dir=Path(directory) / "evidence",
+                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
+            )
+
+            with self.assertRaises(_BootstrapUnavailable):
+                service.run()
+
+            result = json.loads((Path(directory) / "evidence" / "bootstrap-result.json").read_text())
+            self.assertEqual("failed", result["status"])
+            self.assertEqual("infisical_bootstrap_api_unavailable", result["classification"])
+            self.assertEqual("502", result["diagnostic"]["bootstrap_http_status"])
+            self.assertNotIn(operator_credential(), json.dumps(result))
+
     def test_readiness_timeout_is_classified(self):
         with tempfile.TemporaryDirectory() as directory:
             service = _service(
@@ -237,6 +255,22 @@ class _FakeBootstrapClient:
     ) -> InfisicalBootstrapResult:
         self.calls.append((email, organization))
         return self.result
+
+
+class _BootstrapUnavailable(RuntimeError):
+    status_code = 502
+    reason = "not_ready"
+
+
+class _FailingBootstrapClient:
+    def bootstrap_instance(
+        self,
+        *,
+        email: str,
+        password: str,
+        organization: str,
+    ) -> InfisicalBootstrapResult:
+        raise _BootstrapUnavailable("Infisical bootstrap API is not ready.")
 
 
 if __name__ == "__main__":

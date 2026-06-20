@@ -338,6 +338,46 @@ services:
             pulsar["deploy"]["placement"]["constraints"],
         )
 
+        pulsar_manager = compose_data["services"]["pulsar-manager"]
+        self.assertEqual(
+            "${TSW_PULSAR_MANAGER_IMAGE:-apachepulsar/pulsar-manager:latest}",
+            pulsar_manager["image"],
+        )
+        self.assertEqual(
+            "/pulsar-manager/pulsar-manager/application.properties",
+            pulsar_manager["environment"]["SPRING_CONFIGURATION_FILE"],
+        )
+        self.assertEqual(
+            [
+                {"target": 9527, "published": 9527, "protocol": "tcp", "mode": "host"},
+                {"target": 7750, "published": 7750, "protocol": "tcp", "mode": "host"},
+            ],
+            pulsar_manager["ports"],
+        )
+        self.assertEqual(["service_access_link"], pulsar_manager["networks"])
+
+        bootstrap = compose_data["services"]["pulsar-manager-bootstrap"]
+        self.assertEqual(
+            "${TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE:-python:3.12-alpine}",
+            bootstrap["image"],
+        )
+        self.assertEqual(
+            "${TSW_PULSAR_MANAGER_ADMIN_PASSWORD}",
+            bootstrap["environment"]["TSW_PULSAR_MANAGER_ADMIN_PASSWORD"],
+        )
+        self.assertIn("users/superuser", bootstrap["command"][-1])
+        self.assertIn("admin@example.org", bootstrap["command"][-1])
+        self.assertIn("pulsar-manager/login", bootstrap["command"][-1])
+        self.assertIn('"username": "admin"', bootstrap["command"][-1])
+        self.assertIn('"Host": backend_host_header', bootstrap["command"][-1])
+        self.assertIn('"localhost:7750"', bootstrap["command"][-1])
+        self.assertIn("api_rejected_superuser", bootstrap["command"][-1])
+        self.assertIn("exc.code != 400", bootstrap["command"][-1])
+        self.assertIn('response.get("login") == "success"', bootstrap["command"][-1])
+        self.assertIn("json.dumps", bootstrap["command"][-1])
+        self.assertEqual("continue", bootstrap["deploy"]["update_config"]["failure_action"])
+        self.assertEqual("none", bootstrap["deploy"]["restart_policy"]["condition"])
+
     def test_committed_swagger_compose_uses_official_images_and_remote_openapi_bind(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = repository_root / "infra" / "config" / "compose" / "swagger" / "docker-compose.yml"
@@ -722,6 +762,7 @@ services:
                 "/nexus",
                 "/portainer",
                 "/pulsar",
+                "/pulsar-admin-api",
                 "/sonarqube",
                 "/swagger",
                 "/infisical",
@@ -740,6 +781,8 @@ services:
             "http://localhost:8081",
             "http://localhost:8086",
             "http://localhost:8087",
+            "http://localhost:9527",
+            "http://localhost:7750",
             "http://localhost:9001",
         ):
             self.assertNotIn(forbidden_link, dashboard)
@@ -764,6 +807,7 @@ services:
             "platform/nexus",
             "platform/jenkins",
             "platform/pulsar",
+            "platform/pulsar-manager",
             "platform/sonarqube",
         )
 

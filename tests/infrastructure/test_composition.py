@@ -46,6 +46,7 @@ def _required_infisical_bootstrap_env() -> dict[str, str]:
         "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
         "TSW_PULSAR_TOKEN_SECRET_KEY": "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         "TSW_PULSAR_ADMIN_TOKEN": "header.payload.signature",
+        "TSW_PULSAR_MANAGER_ADMIN_PASSWORD": sample_text("pulsar-manager", "-value"),
         "TSW_POSTGRES_PASSWORD": sample_text("postgres", "-value"),
         "TSW_SONARQUBE_POSTGRES_PASSWORD": sample_text("sonar-pg", "-value"),
     }
@@ -707,6 +708,8 @@ class TestComposition(unittest.TestCase):
                 "deployment:swagger-stack",
                 "deployment:infisical-stack",
                 "deployment:service-access-stack",
+                "deployment:infisical-bootstrap-service-readiness",
+                "deployment:infisical-bootstrap-access-readiness",
                 "deployment:managed-config-inventory",
                 "deployment:infisical-silent-install",
                 "deployment:infisical-sync",
@@ -770,7 +773,7 @@ class TestComposition(unittest.TestCase):
 
         compose_repository.assert_called_once_with()
         self.assertEqual(4, len(services.workflows.bootstrap.steps))
-        self.assertEqual(12, len(services.workflows.apply.steps))
+        self.assertEqual(14, len(services.workflows.apply.steps))
         self.assertEqual(8, len(services.workflows.verify.checks))
 
     def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
@@ -834,6 +837,8 @@ class TestComposition(unittest.TestCase):
                 "deployment:swagger-stack",
                 "deployment:infisical-stack",
                 "deployment:service-access-stack",
+                "deployment:infisical-bootstrap-service-readiness",
+                "deployment:infisical-bootstrap-access-readiness",
                 "deployment:managed-config-inventory",
                 "deployment:infisical-silent-install",
                 "deployment:infisical-sync",
@@ -1067,9 +1072,31 @@ class TestComposition(unittest.TestCase):
                 "platform/nexus",
                 "platform/portainer",
                 "platform/pulsar",
+                "platform/pulsar-manager",
                 "platform/sonarqube",
             ),
             tuple(item.item_name for item in seed_step.items),
+        )
+
+    def test_build_deployment_services_waits_for_infisical_before_silent_install(self):
+        env = _required_infisical_bootstrap_env()
+        with patch.dict("os.environ", env, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                    service_profile=ServiceStackProfile.SERVICE_ACCESS,
+                )
+
+        target_ids = tuple(step.verification_target_id for step in services.workflows.apply.steps)
+        service_guard_index = target_ids.index("deployment:infisical-bootstrap-service-readiness")
+        access_guard_index = target_ids.index("deployment:infisical-bootstrap-access-readiness")
+        bootstrap_index = target_ids.index("deployment:infisical-silent-install")
+
+        self.assertLess(service_guard_index, bootstrap_index)
+        self.assertLess(access_guard_index, bootstrap_index)
+        self.assertIsInstance(
+            services.workflows.apply.steps[service_guard_index],
+            composition.EnsureSwarmServiceReadiness,
         )
 
     def test_build_deployment_services_uses_configurable_infisical_readiness_window(self):
@@ -1091,6 +1118,8 @@ class TestComposition(unittest.TestCase):
             if step.verification_target_id == "deployment:infisical-silent-install"
         )
         self.assertEqual("deployment:infisical-silent-install", bootstrap_step.verification_target_id)
+        self.assertEqual(240, bootstrap_step.bootstrap_client.readiness_attempts)
+        self.assertEqual(2.5, bootstrap_step.bootstrap_client.readiness_interval_seconds)
 
     def test_build_deployment_services_uses_extended_infisical_readiness_default(self):
         env = _required_infisical_bootstrap_env()
@@ -1107,6 +1136,14 @@ class TestComposition(unittest.TestCase):
             if step.verification_target_id == "deployment:infisical-silent-install"
         )
         self.assertEqual("deployment:infisical-silent-install", bootstrap_step.verification_target_id)
+        self.assertEqual(
+            composition.DEFAULT_INFISICAL_READINESS_ATTEMPTS,
+            bootstrap_step.bootstrap_client.readiness_attempts,
+        )
+        self.assertEqual(
+            composition.DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS,
+            bootstrap_step.bootstrap_client.readiness_interval_seconds,
+        )
 
     def test_build_deployment_services_rejects_invalid_infisical_readiness_window(self):
         env = {
@@ -1115,12 +1152,11 @@ class TestComposition(unittest.TestCase):
         }
         with patch.dict("os.environ", env, clear=True):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
-                services = composition.build_lxc_deployment_services(
-                    backend=composition.ManagedLxcBackend.INCUS,
-                    service_profile=ServiceStackProfile.SERVICE_ACCESS,
-                )
-
-        self.assertTrue(services.workflows.apply.steps)
+                with self.assertRaises(ValueError):
+                    composition.build_lxc_deployment_services(
+                        backend=composition.ManagedLxcBackend.INCUS,
+                        service_profile=ServiceStackProfile.SERVICE_ACCESS,
+                    )
 
     def test_build_deployment_services_rejects_enabled_infisical_seed_without_passwords(self):
         with patch.dict(

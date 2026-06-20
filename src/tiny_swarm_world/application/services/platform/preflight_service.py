@@ -312,11 +312,21 @@ class PreflightService:
                     )
                 )
                 continue
-            replaced_service = _planned_replaced_service(required_port.port, required_port.service)
-            if replaced_service and self.host_probe.port_matches_expected_service(
-                required_port.port,
-                replaced_service,
-            ):
+            replaced_service = next(
+                (
+                    candidate
+                    for candidate in _planned_replaced_services(
+                        required_port.port,
+                        required_port.service,
+                    )
+                    if self.host_probe.port_matches_expected_service(
+                        required_port.port,
+                        candidate,
+                    )
+                ),
+                "",
+            )
+            if replaced_service:
                 checks.append(
                     _passed(
                         check_id,
@@ -574,11 +584,11 @@ def _port_remediation(service: str) -> str:
     return "Stop the process using the port or change the service mapping before live execution."
 
 
-def _planned_replaced_service(port: int, service: str) -> str | None:
+def _planned_replaced_services(port: int, service: str) -> tuple[str, ...]:
     if port == 80 and service == "Traefik HTTP ingress":
-        return "Swagger/NGINX"
+        return ("Swagger/NGINX", "Service Access")
     if port == 443 and service == "Traefik HTTPS ingress":
-        return "Infisical HTTPS"
+        return ("Infisical HTTPS", "Service Access")
     if port == 8084 and service == "Swagger/NGINX":
-        return "Swagger API"
-    return None
+        return ("Swagger API",)
+    return ()

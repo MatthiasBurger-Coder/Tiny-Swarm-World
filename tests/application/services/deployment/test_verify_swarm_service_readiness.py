@@ -4,6 +4,7 @@ from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import 
     SwarmServiceStatus,
 )
 from tiny_swarm_world.application.services.deployment.verify_swarm_service_readiness import (
+    EnsureSwarmServiceReadiness,
     VerifySwarmServiceReadiness,
 )
 from tiny_swarm_world.domain.deployment import ServiceStackContract
@@ -113,6 +114,54 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
             "infisical-db,infisical-redis",
             verification.evidence["missing_services"],
         )
+
+    async def test_apply_readiness_guard_records_verified_evidence(self):
+        runtime = _FakeSwarmRuntime(
+            (
+                SwarmServiceStatus("infisical_infisical", 1, 1),
+                SwarmServiceStatus("infisical_infisical-db", 1, 1),
+                SwarmServiceStatus("infisical_infisical-redis", 1, 1),
+            )
+        )
+        service = EnsureSwarmServiceReadiness(
+            runtime,
+            ServiceStackContract(
+                "infisical",
+                ("infisical", "infisical-db", "infisical-redis"),
+            ),
+            verification_target_id="deployment:infisical-bootstrap-service-readiness",
+            max_attempts=1,
+            wait_seconds=0,
+        )
+
+        await service.run()
+        verification = service.verify()
+
+        self.assertEqual(VerificationStatus.VERIFIED, verification.status)
+        self.assertEqual("apply", verification.evidence["phase"])
+        self.assertEqual(
+            "pre_infisical_bootstrap",
+            verification.evidence["readiness_guard"],
+        )
+
+    async def test_apply_readiness_guard_preserves_failed_readiness(self):
+        runtime = _FakeSwarmRuntime((SwarmServiceStatus("infisical_infisical", 0, 1),))
+        service = EnsureSwarmServiceReadiness(
+            runtime,
+            ServiceStackContract(
+                "infisical",
+                ("infisical", "infisical-db", "infisical-redis"),
+            ),
+            verification_target_id="deployment:infisical-bootstrap-service-readiness",
+            max_attempts=1,
+            wait_seconds=0,
+        )
+
+        await service.run()
+        verification = service.verify()
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
+        self.assertEqual("infisical-db,infisical-redis", verification.evidence["missing_services"])
 
 
 class _FakeSwarmRuntime:

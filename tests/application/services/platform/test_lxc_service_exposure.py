@@ -61,8 +61,8 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.ensure_service_exposure()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("8", result.evidence["published_port_count"])
-        self.assertEqual("8", result.evidence["created_count"])
+        self.assertEqual("10", result.evidence["published_port_count"])
+        self.assertEqual("10", result.evidence["created_count"])
         self.assertEqual("127.0.0.1", result.evidence["listen_address"])
         self.assertEqual({"docker-swarm-manager"}, {profile for profile, _plan in runtime.created})
         self.assertNotIn("swarm-worker", repr(runtime.created))
@@ -80,7 +80,7 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.ensure_service_exposure()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("8", result.evidence["updated_count"])
+        self.assertEqual("10", result.evidence["updated_count"])
         self.assertEqual({"docker-swarm-manager"}, {profile for profile, _plan in runtime.updated})
 
     async def test_unknown_or_failed_proxy_device_apply_reports_actionable_counts(self):

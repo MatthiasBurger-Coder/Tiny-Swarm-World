@@ -6,6 +6,7 @@ import platform
 import re
 import shutil
 import socket
+import ssl
 import subprocess
 import sys
 import urllib.error
@@ -163,6 +164,8 @@ class HostPreflightProbe(PortHostPreflightProbe):
             return _http_service_available(port, ("/login", "/"), ("jenkins",))
         if "pulsar admin" in service_name:
             return _http_service_available(port, ("/admin/v2/clusters",), ("standalone", "clusters"))
+        if "pulsar manager" in service_name:
+            return _http_service_available(port, ("/",), ("pulsar", "manager"))
         if "pulsar broker" in service_name:
             return _tcp_connects(port)
         if "sonarqube" in service_name:
@@ -181,7 +184,16 @@ class HostPreflightProbe(PortHostPreflightProbe):
                 scheme="https",
             )
         if "service access" in service_name:
-            return _http_service_available(port, ("/",), ("service access", "infisical"))
+            return _http_service_available(
+                port,
+                ("/",),
+                ("service access", "infisical"),
+            ) or _http_service_available(
+                port,
+                ("/",),
+                ("service access", "infisical"),
+                scheme="https",
+            )
         if "infisical https" in service_name:
             return _http_service_available(
                 port,
@@ -441,7 +453,8 @@ def _read_http_response(port: int, path: str, *, scheme: str = "http") -> tuple[
         headers={"User-Agent": "tiny-swarm-world-preflight/1.0"},
     )
     try:
-        with urllib.request.urlopen(request, timeout=2.0) as response:
+        context = ssl._create_unverified_context() if scheme == "https" else None
+        with urllib.request.urlopen(request, timeout=2.0, context=context) as response:
             return response.status, _response_text(response.read(4096), response.headers)
     except urllib.error.HTTPError as error:
         return error.code, _response_text(error.read(4096), error.headers)
