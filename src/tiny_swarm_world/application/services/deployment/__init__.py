@@ -62,6 +62,7 @@ from tiny_swarm_world.application.services.deployment.workflows import (
     DeploymentWorkflowKind,
     DeploymentWorkflowResult,
     DeploymentWorkflowStatus,
+    ValidationPlan,
 )
 
 __all__ = [
@@ -96,6 +97,7 @@ __all__ = [
     "SecretRedactor",
     "VerifyExternalSwarmInput",
     "VerifySwarmServiceReadiness",
+    "ValidationPlan",
     "build_default_service_stack_steps",
     "redact_mapping",
 ]

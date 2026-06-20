@@ -277,6 +277,115 @@ class DeploymentVerifyWorkflow:
         )
 
 
+@dataclass(frozen=True)
+class ValidationPlan:
+    name: str
+    required_targets: tuple[str, ...]
+    optional_targets: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("validation plan name must not be empty")
+        required_targets = _normalized_target_ids(self.required_targets, "required_targets")
+        optional_targets = _normalized_target_ids(self.optional_targets, "optional_targets")
+        overlap = sorted(set(required_targets) & set(optional_targets))
+        if overlap:
+            raise ValueError("validation plan targets must not be both required and optional")
+        object.__setattr__(self, "name", self.name.strip())
+        object.__setattr__(self, "required_targets", required_targets)
+        object.__setattr__(self, "optional_targets", optional_targets)
+
+    def evaluate(
+        self,
+        evidence: Sequence[VerificationResult],
+    ) -> DeploymentWorkflowResult:
+        evidence_by_target = {item.target_id: item for item in evidence}
+        results: list[VerificationResult] = []
+        for target_id in self.required_targets:
+            verification = evidence_by_target.get(target_id)
+            if verification is None:
+                results.append(
+                    VerificationResult(
+                        target_id=target_id,
+                        status=VerificationStatus.FAILED_TO_VERIFY,
+                        message="Required validation evidence is missing.",
+                        evidence={
+                            "phase": "validation",
+                            "reason": "required_evidence_missing",
+                            "validation_plan": self.name,
+                        },
+                    )
+                )
+                continue
+            if verification.status == VerificationStatus.VERIFIED and not _has_observed_evidence(
+                verification
+            ):
+                results.append(
+                    VerificationResult(
+                        target_id=target_id,
+                        status=VerificationStatus.FAILED_TO_VERIFY,
+                        message="Required validation evidence is not observed runtime evidence.",
+                        evidence={
+                            "phase": "validation",
+                            "reason": "observed_evidence_missing",
+                            "validation_plan": self.name,
+                        },
+                    )
+                )
+                continue
+            results.append(verification)
+
+        for target_id in self.optional_targets:
+            verification = evidence_by_target.get(target_id)
+            if verification is not None:
+                results.append(verification)
+
+        if any(result.status == VerificationStatus.BLOCKED for result in results):
+            status = DeploymentWorkflowStatus.BLOCKED
+            message = "deployment validation is blocked by observed evidence."
+            reason = "validation evidence contains blocked target"
+        elif any(result.status != VerificationStatus.VERIFIED for result in results):
+            status = DeploymentWorkflowStatus.FAILED_TO_VERIFY
+            message = "deployment validation failed for observed evidence."
+            reason = "validation evidence missing or failed"
+        else:
+            status = DeploymentWorkflowStatus.COMPLETED
+            message = "deployment validation completed for observed evidence."
+            reason = "required validation evidence verified"
+
+        return DeploymentWorkflowResult(
+            kind=DeploymentWorkflowKind.VERIFY,
+            status=status,
+            message=message,
+            reason=reason,
+            verification_results=tuple(results),
+        )
+
+
+def _normalized_target_ids(values: tuple[str, ...], field_name: str) -> tuple[str, ...]:
+    normalized = tuple(value.strip() for value in values)
+    if any(not value for value in normalized):
+        raise ValueError(f"validation plan {field_name} entries must not be empty")
+    duplicates = sorted(
+        target_id
+        for target_id in set(normalized)
+        if normalized.count(target_id) > 1
+    )
+    if duplicates:
+        raise ValueError(f"validation plan {field_name} contains duplicate targets")
+    return normalized
+
+
+def _has_observed_evidence(verification: VerificationResult) -> bool:
+    if verification.evidence.get("readiness_observed") == "false":
+        return False
+    return (
+        "replicas" in verification.evidence
+        and "required_services" in verification.evidence
+        and "stack_name" in verification.evidence
+    )
+
+
 def _step_has_verification(step: DeploymentApplyStep | DeploymentVerifyCheck) -> bool:
     return callable(getattr(step, "verify", None))
 

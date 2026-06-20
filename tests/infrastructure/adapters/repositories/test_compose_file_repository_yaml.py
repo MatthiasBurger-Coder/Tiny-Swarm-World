@@ -341,6 +341,65 @@ services:
             with self.subTest(stack_name=stack_name):
                 self.assertLessEqual(published_ports, classified_ports)
 
+    def test_committed_health_checks_align_with_services_and_contracts(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        health_checks = YAML(typ="safe").load(
+            (repository_root / "infra" / "config" / "health-checks.yaml").read_text(
+                encoding="utf-8"
+            )
+        )["checks"]
+        service_entries = YAML(typ="safe").load(
+            (repository_root / "infra" / "config" / "services.yml").read_text(
+                encoding="utf-8"
+            )
+        )["services"]
+        contract_by_stack = {
+            contract.stack_name: contract
+            for contract in service_stack_contracts_for_profile(ServiceStackProfile.SERVICE_ACCESS)
+        }
+        plan_phase_ids = {phase.phase_id for phase in default_installation_plan().phases}
+
+        ids = [check["id"] for check in health_checks]
+        target_ids = [check["target_id"] for check in health_checks]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(len(target_ids), len(set(target_ids)))
+
+        checks_by_stack = {check["stack"]: check for check in health_checks}
+        self.assertEqual(set(service_entries), set(checks_by_stack))
+        for stack_name, entry in service_entries.items():
+            check = checks_by_stack[stack_name]
+            with self.subTest(stack_name=stack_name):
+                self.assertFalse(check["live_default"])
+                self.assertEqual("swarm_service_replicas", check["evidence_kind"])
+                self.assertEqual(entry["readiness_target"], check["target_id"])
+                self.assertEqual(entry["phase"], check["phase"])
+                self.assertIn(check["phase"], plan_phase_ids)
+                self.assertEqual(entry["required_services"], check["required_services"])
+                if stack_name in contract_by_stack:
+                    contract = contract_by_stack[stack_name]
+                    self.assertEqual(contract.service_readiness_target_id, check["target_id"])
+                    self.assertEqual(list(contract.required_services), check["required_services"])
+
+    def test_committed_validation_plan_covers_required_health_check_targets(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        health_checks = YAML(typ="safe").load(
+            (repository_root / "infra" / "config" / "health-checks.yaml").read_text(
+                encoding="utf-8"
+            )
+        )["checks"]
+        validation_plan = YAML(typ="safe").load(
+            (repository_root / "infra" / "config" / "validation-plan.yaml").read_text(
+                encoding="utf-8"
+            )
+        )["plans"]["greenpath"]
+        health_targets = {check["target_id"] for check in health_checks}
+        required_targets = validation_plan["required_targets"]
+
+        self.assertFalse(validation_plan["live_default"])
+        self.assertEqual(len(required_targets), len(set(required_targets)))
+        self.assertEqual(health_targets, set(required_targets))
+        self.assertEqual([], validation_plan["optional_targets"])
+
     def test_committed_jenkins_compose_uses_overridable_registry_image(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = (
