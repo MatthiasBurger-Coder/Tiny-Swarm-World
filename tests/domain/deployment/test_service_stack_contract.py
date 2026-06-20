@@ -58,6 +58,18 @@ class TestServiceStackContract(unittest.TestCase):
             tuple(endpoint.url for endpoint in selected_by_name["infisical"].endpoints),
         )
 
+    def test_contracts_expose_phase_and_port_ids_without_readiness_claims(self):
+        nexus = _contract_by_stack("nexus")
+
+        self.assertEqual("artifacts", nexus.phase_id)
+        self.assertEqual(
+            ("nexus-http", "nexus-docker-http", "nexus-docker-https"),
+            nexus.port_ids,
+        )
+        self.assertEqual("deployment:nexus-service-readiness", nexus.service_readiness_target_id)
+        self.assertNotEqual(nexus.stack_target_id, nexus.service_readiness_target_id)
+        self.assertFalse(any(endpoint.readiness_claimed for endpoint in nexus.endpoints))
+
     def test_service_stack_contracts_publish_localhost_endpoint_defaults(self):
         endpoints_by_stack = {
             contract.stack_name: contract.endpoints
@@ -157,6 +169,13 @@ class TestServiceStackContract(unittest.TestCase):
         with self.assertRaises(ValueError):
             ServiceStackContract("nexus", ("Nexus Service",))
 
+    def test_rejects_invalid_phase_or_port_ids(self):
+        with self.assertRaises(ValueError):
+            ServiceStackContract("nexus", ("nexus",), phase_id="../artifacts")
+
+        with self.assertRaises(ValueError):
+            ServiceStackContract("nexus", ("nexus",), port_ids=("Nexus HTTP",))
+
     def test_rejects_host_specific_endpoint_url(self):
         with self.assertRaises(ValueError):
             ServiceEndpoint("service", f"http://{ipv4_address(10, 157, 2, 182)}:8080")
@@ -183,6 +202,8 @@ class TestServiceStackContract(unittest.TestCase):
         self.assertEqual(
             {
                 "endpoints": [],
+                "phase_id": None,
+                "port_ids": [],
                 "required_services": ["nexus"],
                 "service_readiness_target_id": "deployment:nexus-service-readiness",
                 "stack_target_id": "deployment:nexus-stack",
@@ -194,3 +215,11 @@ class TestServiceStackContract(unittest.TestCase):
 
 def _endpoint_urls(endpoints: tuple[ServiceEndpoint, ...]) -> tuple[str, ...]:
     return tuple(endpoint.url for endpoint in endpoints)
+
+
+def _contract_by_stack(stack_name: str) -> ServiceStackContract:
+    return next(
+        contract
+        for contract in service_stack_contracts_for_profile(ServiceStackProfile.SERVICE_ACCESS)
+        if contract.stack_name == stack_name
+    )

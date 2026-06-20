@@ -12,12 +12,18 @@ from tiny_swarm_world.domain.artifacts import DEFAULT_CONTAINER_IMAGE_CONTRACTS
 from tiny_swarm_world.domain.deployment import (
     DEFAULT_SERVICE_STACK_CONTRACTS,
     SERVICE_ACCESS_STACK_CONTRACT,
+    ServiceStackProfile,
+    service_stack_contracts_for_profile,
 )
+from tiny_swarm_world.domain.preflight import default_installation_plan
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
     LxcContainerImagePublisher,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import ComposeFileRepositoryYaml
+from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
+    PortRegistryYamlRepository,
+)
 
 
 class TestComposeFileRepositoryYaml(unittest.TestCase):
@@ -258,6 +264,82 @@ services:
         self.assertEqual((8081, 5000, 5001), metadata["nexus"]["nexus"])
         self.assertEqual((80, 8086, 443), metadata["service-access"]["service-access-nginx"])
         self.assertEqual((80, 443), metadata["traefik"]["traefik"])
+
+    def test_committed_service_registry_aligns_selected_stacks_with_phase_and_ports(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        registry = YAML(typ="safe").load(
+            (repository_root / "infra" / "config" / "services.yml").read_text(
+                encoding="utf-8"
+            )
+        )
+        service_entries = registry["services"]
+        expected_stacks = YAML(typ="safe").load(
+            (
+                repository_root / "infra" / "config" / "inventory" / "desired_inventory.yaml"
+            ).read_text(encoding="utf-8")
+        )["expected_stacks"]
+        plan_phase_ids = {phase.phase_id for phase in default_installation_plan().phases}
+        registry_port_ids = {mapping.port_id for mapping in PortRegistryYamlRepository().load().mappings}
+        contract_by_stack = {
+            contract.stack_name: contract
+            for contract in service_stack_contracts_for_profile(ServiceStackProfile.SERVICE_ACCESS)
+        }
+
+        self.assertLessEqual(set(expected_stacks), set(service_entries))
+        self.assertEqual({"traefik"}, set(service_entries) - set(expected_stacks))
+        self.assertEqual(set(expected_stacks), set(contract_by_stack))
+        self.assertNotIn("rabbitmq", service_entries)
+
+        for stack_name in expected_stacks:
+            entry = service_entries[stack_name]
+            with self.subTest(stack_name=stack_name):
+                contract = contract_by_stack[stack_name]
+                self.assertTrue(entry["enabled"])
+                self.assertEqual(stack_name, entry["stack"])
+                self.assertEqual(contract.phase_id, entry["phase"])
+                self.assertIn(entry["phase"], plan_phase_ids)
+                self.assertEqual(list(contract.required_services), entry["required_services"])
+                self.assertEqual(list(contract.port_ids), entry["port_ids"])
+                self.assertEqual(contract.service_readiness_target_id, entry["readiness_target"])
+                self.assertLessEqual(set(entry["port_ids"]), registry_port_ids)
+
+        self.assertEqual("network-routing", service_entries["traefik"]["phase"])
+        self.assertEqual(["traefik"], service_entries["traefik"]["required_services"])
+        self.assertLessEqual(set(service_entries["traefik"]["port_ids"]), registry_port_ids)
+
+    def test_committed_compose_published_ports_are_registry_ingress_or_compatibility(self):
+        repository = ComposeFileRepositoryYaml()
+        repository_root = Path(__file__).resolve().parents[4]
+        service_entries = YAML(typ="safe").load(
+            (repository_root / "infra" / "config" / "services.yml").read_text(
+                encoding="utf-8"
+            )
+        )["services"]
+        registry_ports_by_id = {
+            mapping.port_id: mapping.external_port
+            for mapping in PortRegistryYamlRepository().load().mappings
+        }
+
+        for stack_name, entry in service_entries.items():
+            published_ports = {
+                port
+                for service in repository.get_services_of(stack_name)
+                for port in service.published_ports
+            }
+            registry_published_ports = {
+                registry_ports_by_id[port_id]
+                for port_id in entry["port_ids"]
+                if registry_ports_by_id[port_id] is not None
+            }
+            classified_ports = (
+                set(entry.get("compatibility_published_ports", ()))
+                | set(entry.get("deferred_published_ports", ()))
+                | set(entry.get("ingress_published_ports", ()))
+                | registry_published_ports
+            )
+
+            with self.subTest(stack_name=stack_name):
+                self.assertLessEqual(published_ports, classified_ports)
 
     def test_committed_jenkins_compose_uses_overridable_registry_image(self):
         repository_root = Path(__file__).resolve().parents[4]

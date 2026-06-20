@@ -67,6 +67,15 @@ ports:
     protocol: tcp
     route_host: tsw.local
     required_for_preflight: true
+  - id: portainer-http
+    service_id: portainer
+    internal_port: 9000
+    external_port: 10001
+    exposure: compatibility
+    range_id: core-gateway
+    protocol: tcp
+    route_host: portainer.tsw.local
+    required_for_preflight: false
   - id: service-access-http
     service_id: service-access
     internal_port: 80

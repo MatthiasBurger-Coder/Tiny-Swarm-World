@@ -1,7 +1,117 @@
+schema_version: "1"
+metadata:
+  workflow_id: workflow-install-order-and-port-allocation-20260620
+  readiness_policy: "Static registry data must not claim observed runtime readiness."
+  port_policy: >
+    Port IDs reference infra/config/ports.yaml target allocations. Legacy
+    published Compose ports remain classified as compatibility until a
+    dedicated deployment migration changes stack publication.
 services:
+  portainer:
+    enabled: true
+    stack: portainer
+    phase: platform
+    required_services:
+      - portainer
+      - agent
+    port_ids:
+      - portainer-http
+    readiness_target: deployment:portainer-service-readiness
+    compatibility_published_ports:
+      - 9000
+
+  nexus:
+    enabled: true
+    stack: nexus
+    phase: artifacts
+    required_services:
+      - nexus
+    port_ids:
+      - nexus-http
+      - nexus-docker-http
+      - nexus-docker-https
+    readiness_target: deployment:nexus-service-readiness
+    compatibility_published_ports:
+      - 8081
+      - 5000
+      - 5001
+
+  jenkins:
+    enabled: true
+    stack: jenkins
+    phase: cicd
+    required_services:
+      - jenkins
+    port_ids:
+      - jenkins-http
+      - jenkins-agent
+    readiness_target: deployment:jenkins-service-readiness
+    compatibility_published_ports:
+      - 8080
+      - 50000
+
+  pulsar:
+    enabled: true
+    stack: pulsar
+    phase: messaging
+    required_services:
+      - pulsar
+      - pulsar-manager
+    port_ids:
+      - pulsar-broker
+      - pulsar-admin-api
+    readiness_target: deployment:pulsar-service-readiness
+    compatibility_published_ports:
+      - 6650
+      - 8087
+      - 9527
+      - 7750
+
+  sonarqube:
+    enabled: true
+    stack: sonarqube
+    phase: quality
+    required_services:
+      - sonarqube
+      - sonar_db
+    port_ids:
+      - sonarqube-http
+    readiness_target: deployment:sonarqube-service-readiness
+    compatibility_published_ports:
+      - 9001
+
+  swagger:
+    enabled: true
+    stack: swagger
+    phase: docs
+    required_services:
+      - swagger-editor
+      - swagger-ui
+      - swagger-api
+      - swagger-nginx
+    port_ids:
+      - swagger-ui
+      - openapi-aggregator
+    readiness_target: deployment:swagger-service-readiness
+    compatibility_published_ports:
+      - 8082
+      - 8083
+      - 8084
+
   infisical:
     enabled: true
+    stack: infisical
+    phase: secrets
     mode: self_hosted
+    required_services:
+      - infisical
+      - infisical-db
+      - infisical-redis
+    port_ids:
+      - infisical-http
+    readiness_target: deployment:infisical-service-readiness
+    compatibility_published_ports:
+      - 8086
     bootstrap:
       enabled: true
       organization: "Tiny Swarm World"
@@ -12,3 +122,33 @@ services:
     endpoint:
       internal_url: "http://infisical:8080"
       external_url: "http://localhost:8086"
+
+  service-access:
+    enabled: true
+    stack: service-access
+    phase: control
+    required_services:
+      - service-access-dashboard
+      - service-access-nginx
+    port_ids:
+      - service-access-http
+    readiness_target: deployment:service-access-service-readiness
+    ingress_published_ports:
+      - 80
+      - 443
+    compatibility_published_ports:
+      - 8086
+
+  traefik:
+    enabled: true
+    stack: traefik
+    phase: network-routing
+    required_services:
+      - traefik
+    port_ids:
+      - traefik-http
+      - traefik-https
+    readiness_target: deployment:traefik-service-readiness
+    ingress_published_ports:
+      - 80
+      - 443
