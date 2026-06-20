@@ -78,7 +78,7 @@ setup selects `ServiceStackProfile.SERVICE_ACCESS` by default and adds
 remains available for explicit `--service-profile default` runs. The
 service-access setup manifest exposes Traefik ingress ports `80` and `443`;
 the service-access compose stack itself publishes service-access NGINX ports
-`80`, `8086`, and `443`.
+`10000` and `8086`.
 
 `infra/config/health-checks.yaml` and `infra/config/validation-plan.yaml`
 belong to the deployment boundary as static desired-state declarations. They

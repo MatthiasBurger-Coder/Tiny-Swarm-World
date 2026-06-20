@@ -133,10 +133,8 @@ services:
     port_ids:
       - service-access-http
     readiness_target: deployment:service-access-service-readiness
-    ingress_published_ports:
-      - 80
-      - 443
     compatibility_published_ports:
+      - 10000
       - 8086
 
   traefik:

@@ -118,7 +118,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Service Access: stack service-access", plan)
         self.assertIn(
             "compose service(s) service-access-dashboard, service-access-nginx, "
-            "published port(s) 80, 8086, 443",
+            "published port(s) 10000, 8086",
             plan,
         )
         self.assertIn("Infisical: stack infisical", plan)

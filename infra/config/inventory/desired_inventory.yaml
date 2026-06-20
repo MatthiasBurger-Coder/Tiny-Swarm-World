@@ -8,6 +8,7 @@ vms:
       - control
     stacks:
       - portainer
+      - traefik
       - nexus
       - jenkins
       - pulsar
@@ -24,6 +25,7 @@ vms:
       - control
     stacks:
       - portainer
+      - traefik
       - nexus
       - jenkins
       - pulsar
@@ -40,6 +42,7 @@ vms:
       - control
     stacks:
       - portainer
+      - traefik
       - nexus
       - jenkins
       - pulsar
@@ -50,6 +53,7 @@ vms:
 
 expected_stacks:
   - portainer
+  - traefik
   - nexus
   - jenkins
   - pulsar

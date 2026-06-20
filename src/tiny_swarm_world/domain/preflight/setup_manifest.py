@@ -57,6 +57,14 @@ class SetupServiceRequirement:
         }
 
 
+def compatibility_port(port: int, service: str) -> SetupPortRequirement:
+    return SetupPortRequirement(
+        port,
+        service,
+        host_preflight_required=False,
+    )
+
+
 @dataclass(frozen=True)
 class SetupManifest:
     profile: SetupProfile
@@ -108,7 +116,7 @@ def default_setup_manifest(
         SetupServiceRequirement(
             name="Portainer",
             ports=(
-                ()
+                (compatibility_port(9000, "Portainer"),)
                 if centralized_ingress
                 else (SetupPortRequirement(9000, "Portainer"),)
             ),
@@ -116,16 +124,27 @@ def default_setup_manifest(
         ),
         SetupServiceRequirement(
             name="Nexus",
-            ports=() if centralized_ingress else (
-                SetupPortRequirement(8081, "Nexus"),
-                SetupPortRequirement(5000, "Nexus Docker registry"),
+            ports=(
+                (
+                    compatibility_port(8081, "Nexus"),
+                    compatibility_port(5000, "Nexus Docker registry"),
+                    compatibility_port(5001, "Nexus Docker proxy registry"),
+                )
+                if centralized_ingress
+                else (
+                    SetupPortRequirement(8081, "Nexus"),
+                    SetupPortRequirement(5000, "Nexus Docker registry"),
+                )
             ),
             secrets=(SetupSecretRequirement("TSW_NEXUS_ADMIN_PASSWORD", "Nexus"),),
         ),
         SetupServiceRequirement(
             name="Jenkins",
             ports=(
-                ()
+                (
+                    compatibility_port(8080, "Jenkins"),
+                    compatibility_port(50000, "Jenkins inbound agent"),
+                )
                 if centralized_ingress
                 else (SetupPortRequirement(8080, "Jenkins"),)
             ),
@@ -133,11 +152,20 @@ def default_setup_manifest(
         ),
         SetupServiceRequirement(
             name="Pulsar",
-            ports=() if centralized_ingress else (
-                SetupPortRequirement(6650, "Pulsar broker protocol"),
-                SetupPortRequirement(8087, "Pulsar Admin API"),
-                SetupPortRequirement(9527, "Pulsar Manager UI"),
-                SetupPortRequirement(7750, "Pulsar Manager backend"),
+            ports=(
+                (
+                    compatibility_port(6650, "Pulsar broker protocol"),
+                    compatibility_port(8087, "Pulsar Admin API"),
+                    compatibility_port(9527, "Pulsar Manager UI"),
+                    compatibility_port(7750, "Pulsar Manager backend"),
+                )
+                if centralized_ingress
+                else (
+                    SetupPortRequirement(6650, "Pulsar broker protocol"),
+                    SetupPortRequirement(8087, "Pulsar Admin API"),
+                    SetupPortRequirement(9527, "Pulsar Manager UI"),
+                    SetupPortRequirement(7750, "Pulsar Manager backend"),
+                )
             ),
             secrets=(
                 SetupSecretRequirement("TSW_PULSAR_TOKEN_SECRET_KEY", "Pulsar token signing key"),
@@ -148,7 +176,7 @@ def default_setup_manifest(
         SetupServiceRequirement(
             name="SonarQube",
             ports=(
-                ()
+                (compatibility_port(9001, "SonarQube"),)
                 if centralized_ingress
                 else (SetupPortRequirement(9001, "SonarQube"),)
             ),
@@ -160,7 +188,11 @@ def default_setup_manifest(
         SetupServiceRequirement(
             name="Swagger/NGINX",
             ports=(
-                ()
+                (
+                    compatibility_port(8082, "Swagger Editor"),
+                    compatibility_port(8083, "Swagger UI"),
+                    compatibility_port(8084, "Swagger/NGINX"),
+                )
                 if centralized_ingress
                 else (SetupPortRequirement(8084, "Swagger/NGINX"),)
             ),
@@ -177,11 +209,15 @@ def default_setup_manifest(
             )
         )
         services.append(
-            SetupServiceRequirement(name="Service Access")
+            SetupServiceRequirement(
+                name="Service Access",
+                ports=(compatibility_port(10000, "Service Access"),),
+            )
         )
         services.append(
             SetupServiceRequirement(
                 name="Infisical",
+                ports=(compatibility_port(8086, "Infisical"),),
                 secrets=(
                     SetupSecretRequirement("TSW_INFISICAL_LOGIN_EMAIL", "Infisical admin login"),
                     SetupSecretRequirement("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD", "Infisical admin login"),

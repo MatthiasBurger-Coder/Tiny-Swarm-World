@@ -22,7 +22,7 @@ services:
       labels:
         - traefik.enable=true
         - traefik.swarm.network=traefik_ingress
-        - traefik.http.routers.infisical.rule=Host(`infisical.tsw.local`)
+        - traefik.http.routers.infisical.rule=Host(`infisical.tsw.local`) || Host(`localhost`)
         - traefik.http.routers.infisical.entrypoints=websecure
         - traefik.http.routers.infisical.tls=true
         - traefik.http.services.infisical.loadbalancer.server.port=8080

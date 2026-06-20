@@ -138,6 +138,8 @@ class LivePostInstallConfig:
     infisical_password: str | None
     pulsar_admin_url: str
     pulsar_admin_token: str | None
+    pulsar_manager_url: str
+    pulsar_manager_password: str | None
     sonarqube_url: str
     sonarqube_username: str
     sonarqube_password: str | None
@@ -157,6 +159,11 @@ class LivePostInstallConfig:
         )
         infisical_url = _env_value(local_env, "TSW_INFISICAL_URL", "https://localhost")
         pulsar_admin_url = _env_value(local_env, "TSW_PULSAR_PUBLIC_ADMIN_URL", "http://localhost:8087")
+        pulsar_manager_url = _env_value(
+            local_env,
+            "TSW_PULSAR_MANAGER_URL",
+            "http://localhost:7750",
+        )
         sonarqube_url = _env_value(local_env, "TSW_SONARQUBE_URL", "http://localhost:9001")
         return cls(
             dashboard_url=_validated_local_url(dashboard_url, "dashboard"),
@@ -169,6 +176,11 @@ class LivePostInstallConfig:
             ),
             pulsar_admin_url=_validated_local_url(pulsar_admin_url, "pulsar"),
             pulsar_admin_token=_env_optional(local_env, "TSW_PULSAR_ADMIN_TOKEN"),
+            pulsar_manager_url=_validated_local_url(pulsar_manager_url, "pulsar_manager"),
+            pulsar_manager_password=_env_optional(
+                local_env,
+                "TSW_PULSAR_MANAGER_ADMIN_PASSWORD",
+            ),
             sonarqube_url=_validated_local_url(sonarqube_url, "sonarqube"),
             sonarqube_username=_env_value(local_env, "TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
             sonarqube_password=_env_optional(local_env, "TSW_SONARQUBE_ADMIN_PASSWORD"),
@@ -620,6 +632,42 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
         if not status["passed"]:
             raise AssertionError(
                 "pulsar_managed_credential_incomplete: "
+                f"{status['redacted_failure_reason']}; evidence={self.evidence.path.as_posix()}"
+            )
+
+    def test_08_pulsar_manager_admin_login_is_configured(self) -> None:
+        if not self.config.pulsar_manager_password:
+            self.evidence.record(
+                "pulsar_manager_management",
+                _pulsar_manager_management_evidence(
+                    result="blocked",
+                    csrf_available=False,
+                    configured_login_valid=False,
+                    redacted_failure_reason="missing_login_material",
+                ),
+            )
+            raise AssertionError(
+                "pulsar_manager_setup_blocker: missing_login_material; "
+                f"evidence={self.evidence.path.as_posix()}"
+            )
+
+        status = _pulsar_manager_auth_status(
+            self.config.pulsar_manager_url,
+            self.config.pulsar_manager_password,
+            self.config.timeout_seconds,
+        )
+        self.evidence.record(
+            "pulsar_manager_management",
+            _pulsar_manager_management_evidence(
+                result="passed" if status["passed"] else "failed",
+                csrf_available=bool(status["csrf_available"]),
+                configured_login_valid=bool(status["configured_login_valid"]),
+                redacted_failure_reason=str(status["redacted_failure_reason"]),
+            ),
+        )
+        if not status["passed"]:
+            raise AssertionError(
+                "pulsar_manager_managed_credential_incomplete: "
                 f"{status['redacted_failure_reason']}; evidence={self.evidence.path.as_posix()}"
             )
 
@@ -1158,6 +1206,70 @@ PY
     }
 
 
+def _pulsar_manager_auth_status(
+    base_url: str,
+    password: str,
+    timeout_seconds: float,
+) -> dict[str, object]:
+    session = requests.Session()
+    manager_url = base_url.rstrip() + "/"
+    csrf_url = urljoin(manager_url, "pulsar-manager/csrf-token")
+    login_url = urljoin(manager_url, "pulsar-manager/login")
+    try:
+        csrf_response = session.get(
+            csrf_url,
+            headers={"Host": "localhost:7750"},
+            timeout=timeout_seconds,
+        )
+    except requests.RequestException as exc:
+        return {
+            "configured_login_valid": False,
+            "csrf_available": False,
+            "passed": False,
+            "redacted_failure_reason": type(exc).__name__,
+        }
+    csrf_available = csrf_response.status_code == 200 and bool(csrf_response.text.strip())
+    headers = {
+        "Content-Type": "application/json",
+        "Host": "localhost:7750",
+    }
+    if csrf_available:
+        csrf_token = csrf_response.text.strip()
+        headers["X-XSRF-TOKEN"] = csrf_token
+        session.cookies.set("XSRF-TOKEN", csrf_token)
+    try:
+        login_response = session.post(
+            login_url,
+            json={
+                "username": "admin",
+                "password": password,
+            },
+            headers=headers,
+            timeout=timeout_seconds,
+        )
+    except requests.RequestException as exc:
+        return {
+            "configured_login_valid": False,
+            "csrf_available": csrf_available,
+            "passed": False,
+            "redacted_failure_reason": type(exc).__name__,
+        }
+    configured_login_valid = False
+    if login_response.status_code == 200:
+        try:
+            configured_login_valid = login_response.json().get("login") == "success"
+        except requests.JSONDecodeError:
+            configured_login_valid = False
+    return {
+        "configured_login_valid": configured_login_valid,
+        "csrf_available": csrf_available,
+        "passed": csrf_available and configured_login_valid,
+        "redacted_failure_reason": (
+            "" if csrf_available and configured_login_valid else "managed_login_inactive"
+        ),
+    }
+
+
 def _pulsar_container_id_from_lxc() -> str:
     result = subprocess.run(
         [
@@ -1287,6 +1399,22 @@ def _pulsar_management_evidence(
         "result": result,
         "service": "pulsar",
         "unauthenticated_rejected": unauthenticated_rejected,
+    }
+
+
+def _pulsar_manager_management_evidence(
+    *,
+    result: str,
+    csrf_available: bool,
+    configured_login_valid: bool,
+    redacted_failure_reason: str,
+) -> dict[str, object]:
+    return {
+        "configured_login_valid": configured_login_valid,
+        "csrf_available": csrf_available,
+        "redacted_failure_reason": redacted_failure_reason,
+        "result": result,
+        "service": "pulsar-manager",
     }
 
 

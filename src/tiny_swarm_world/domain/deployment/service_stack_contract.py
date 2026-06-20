@@ -114,6 +114,13 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
         endpoints=(ServiceEndpoint("portainer", "http://localhost:9000"),),
     ),
     ServiceStackContract(
+        "traefik",
+        ("traefik",),
+        phase_id="network-routing",
+        port_ids=("traefik-http", "traefik-https"),
+        endpoints=(ServiceEndpoint("traefik", "https://localhost"),),
+    ),
+    ServiceStackContract(
         "nexus",
         ("nexus",),
         phase_id="artifacts",
@@ -163,7 +170,7 @@ SERVICE_ACCESS_STACK_CONTRACT = ServiceStackContract(
     phase_id="control",
     port_ids=("service-access-http",),
     endpoints=(
-        ServiceEndpoint("service-access", "http://localhost"),
+        ServiceEndpoint("service-access", "http://localhost:10000"),
     ),
 )
 

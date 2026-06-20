@@ -5,6 +5,7 @@ services:
     environment:
       PULSAR_PREFIX_authenticationEnabled: "true"
       PULSAR_PREFIX_authenticationProviders: org.apache.pulsar.broker.authentication.AuthenticationProviderToken
+      PULSAR_PREFIX_advertisedAddress: pulsar
       PULSAR_PREFIX_superUserRoles: admin
       PULSAR_PREFIX_tokenSecretKey: data:;base64,${TSW_PULSAR_TOKEN_SECRET_KEY}
       PULSAR_PREFIX_brokerClientAuthenticationPlugin: org.apache.pulsar.client.impl.auth.AuthenticationToken
@@ -22,7 +23,7 @@ services:
           "authPlugin=org.apache.pulsar.client.impl.auth.AuthenticationToken" \
           "authParams=token:$${TSW_PULSAR_ADMIN_TOKEN}" \
           > conf/client.conf
-        exec bin/pulsar standalone
+        exec bin/pulsar standalone --advertised-address pulsar --bookkeeper-port 3181 --no-functions-worker
     ports:
       - target: 6650
         published: 6650

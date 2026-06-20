@@ -214,7 +214,7 @@ deployment, use the Service Access landing page as the operator start page:
 
 [source,text]
 ----
-http://localhost
+http://localhost:10000
 ----
 
 Common local service routes and ports are:
@@ -222,7 +222,7 @@ Common local service routes and ports are:
 [options="header"]
 |===
 | Service | Default route or port | Notes
-| Service Access | `http://localhost` and compatibility route `http://localhost:8086` | Static management table with service links and Infisical item references.
+| Service Access | `http://localhost:10000` | Static management table with service links and Infisical item references.
 | Infisical | `/infisical` through local ingress or `http://localhost:8086` | Secret-management UI for authorized operators.
 | Portainer | `/portainer` or `http://localhost:9000` | Deployment gateway after bootstrap.
 | Nexus | `/nexus` or `http://localhost:8081` | Repository service and Docker proxy behavior.
@@ -355,7 +355,7 @@ Portainer username and password authenticate. A rejected initialization is
 accepted only when those same requested credentials work immediately
 afterward.
 
-If Service Access is not reachable through `http://localhost`, verify that the
+If Service Access is not reachable through `http://localhost:10000`, verify that the
 service-access profile was deployed, Traefik ports `80` and `443` are exposed,
 and WSL localhost forwarding is current. The Swarm node IP can be used for
 diagnosis, but documentation should not commit host-specific IPs.

@@ -39,11 +39,33 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.ensure_service_exposure()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("2", result.evidence["published_port_count"])
-        self.assertEqual("2", result.evidence["existing_count"])
+        self.assertEqual("18", result.evidence["published_port_count"])
+        self.assertEqual("18", result.evidence["existing_count"])
         self.assertEqual("0", result.evidence["created_count"])
         self.assertEqual([], runtime.created)
-        self.assertEqual((80, 443), tuple(plan.listen_port for _profile, plan in runtime.inspected))
+        self.assertEqual(
+            (
+                9000,
+                8081,
+                5000,
+                5001,
+                8080,
+                50000,
+                6650,
+                8087,
+                9527,
+                7750,
+                9001,
+                8082,
+                8083,
+                8084,
+                80,
+                443,
+                10000,
+                8086,
+            ),
+            tuple(plan.listen_port for _profile, plan in runtime.inspected),
+        )
         self.assertEqual("swarm-manager", result.evidence["gateway_node"])
         self.assertEqual("docker-swarm-manager", result.evidence["manager_profile"])
         self.assertEqual("0.0.0.0", result.evidence["listen_address"])

@@ -720,6 +720,7 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(
             (
+                "deployment:traefik-stack",
                 "deployment:jenkins-stack",
                 "deployment:pulsar-stack",
                 "deployment:sonarqube-stack",
@@ -742,6 +743,7 @@ class TestComposition(unittest.TestCase):
                 step.deployment_gateway is services.workflows.bootstrap.steps[2].portainer_client
                 for step in services.workflows.apply.steps
                 if step.verification_target_id.endswith("-stack")
+                and step.verification_target_id != "deployment:traefik-stack"
             )
         )
         jenkins_step = next(
@@ -768,6 +770,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             (
                 "deployment:portainer-service-readiness",
+                "deployment:traefik-service-readiness",
                 "deployment:nexus-service-readiness",
                 "deployment:jenkins-service-readiness",
                 "deployment:pulsar-service-readiness",
@@ -780,7 +783,7 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual((), services.workflows.apply.pre_apply_checks)
         self.assertEqual(
-            ("deployment:swagger-stack-assets",),
+            ("deployment:traefik-stack-assets", "deployment:swagger-stack-assets"),
             tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
         )
 
@@ -792,8 +795,8 @@ class TestComposition(unittest.TestCase):
 
         compose_repository.assert_called_once_with()
         self.assertEqual(4, len(services.workflows.bootstrap.steps))
-        self.assertEqual(14, len(services.workflows.apply.steps))
-        self.assertEqual(8, len(services.workflows.verify.checks))
+        self.assertEqual(15, len(services.workflows.apply.steps))
+        self.assertEqual(9, len(services.workflows.verify.checks))
 
     def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
@@ -849,6 +852,7 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(
             (
+                "deployment:traefik-stack",
                 "deployment:jenkins-stack",
                 "deployment:pulsar-stack",
                 "deployment:sonarqube-stack",
@@ -871,11 +875,13 @@ class TestComposition(unittest.TestCase):
                 isinstance(step, EnsureServiceStack)
                 for step in services.workflows.apply.steps
                 if step.verification_target_id.endswith("-stack")
+                and step.verification_target_id != "deployment:traefik-stack"
             )
         )
         self.assertEqual(
             (
                 "deployment:portainer-service-readiness",
+                "deployment:traefik-service-readiness",
                 "deployment:nexus-service-readiness",
                 "deployment:jenkins-service-readiness",
                 "deployment:pulsar-service-readiness",
@@ -941,7 +947,7 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual((), services.workflows.apply.pre_apply_checks)
         self.assertEqual(
-            ("deployment:swagger-stack-assets",),
+            ("deployment:traefik-stack-assets", "deployment:swagger-stack-assets"),
             tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
         )
 
@@ -1938,7 +1944,7 @@ class TestComposition(unittest.TestCase):
             composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
             step.service.listen_address,
         )
-        self.assertEqual(2, len(step.service.setup_manifest.required_ports))
+        self.assertEqual(18, len(step.service.setup_manifest.required_ports))
         self.assertEqual("Infisical", step.service.setup_manifest.services[-1].name)
 
     def test_composed_wsl_socat_expose_verifies_not_required_on_native_linux(self):
@@ -1968,7 +1974,7 @@ class TestComposition(unittest.TestCase):
             composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
             step.service.listen_address,
         )
-        self.assertEqual(2, len(step.service.setup_manifest.required_ports))
+        self.assertEqual(18, len(step.service.setup_manifest.required_ports))
 
     def test_composed_default_lxc_expose_without_live_consent_fails_closed(self):
         with patch.object(
@@ -1985,7 +1991,7 @@ class TestComposition(unittest.TestCase):
             result.verification_results[0].target_id,
         )
         self.assertEqual(
-            "2",
+            "18",
             result.verification_results[0].evidence["lookup_failure_count"],
         )
 

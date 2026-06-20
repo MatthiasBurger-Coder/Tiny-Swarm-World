@@ -986,9 +986,11 @@ def build_lxc_deployment_services(
         compose_repository=compose_repository,
         deployment_gateway=portainer_client,
         service_profile=selected_service_profile,
-        excluded_stack_names=("nexus",),
+        excluded_stack_names=("nexus", "traefik"),
         stack_environments=stack_environment,
     )
+    if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS:
+        application_steps = (stack_steps["traefik"], *application_steps)
     application_steps = _with_post_stack_steps(
         application_steps,
         "sonarqube",
@@ -1063,6 +1065,7 @@ def build_lxc_deployment_services(
                     ),
                 ),
                 pre_apply_steps=(
+                    _PrepareLxcStackAssets(swarm_runtime, "traefik"),
                     _PrepareLxcStackAssets(swarm_runtime, "swagger"),
                 ),
             ),

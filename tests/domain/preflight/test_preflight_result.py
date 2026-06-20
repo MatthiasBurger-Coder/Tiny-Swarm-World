@@ -190,7 +190,7 @@ class TestPreflightResult(unittest.TestCase):
             tuple(secret.name for secret in manifest.required_secrets),
         )
 
-    def test_service_access_setup_manifest_lists_ports_and_secret_source_name(self):
+    def test_service_access_setup_manifest_lists_ingress_and_compatibility_ports(self):
         manifest = default_setup_manifest(service_profile=ServiceStackProfile.SERVICE_ACCESS)
         configuration = default_preflight_configuration(
             service_profile=ServiceStackProfile.SERVICE_ACCESS
@@ -200,8 +200,24 @@ class TestPreflightResult(unittest.TestCase):
         self.assertIn("Infisical", manifest.service_names)
         self.assertEqual(
             (
+                (9000, "Portainer"),
+                (8081, "Nexus"),
+                (5000, "Nexus Docker registry"),
+                (5001, "Nexus Docker proxy registry"),
+                (8080, "Jenkins"),
+                (50000, "Jenkins inbound agent"),
+                (6650, "Pulsar broker protocol"),
+                (8087, "Pulsar Admin API"),
+                (9527, "Pulsar Manager UI"),
+                (7750, "Pulsar Manager backend"),
+                (9001, "SonarQube"),
+                (8082, "Swagger Editor"),
+                (8083, "Swagger UI"),
+                (8084, "Swagger/NGINX"),
                 (80, "Traefik HTTP ingress"),
                 (443, "Traefik HTTPS ingress"),
+                (10000, "Service Access"),
+                (8086, "Infisical"),
             ),
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
@@ -214,6 +230,13 @@ class TestPreflightResult(unittest.TestCase):
                 port
                 for port in manifest.required_ports
                 if port.service == "Traefik HTTP ingress"
+            ).host_preflight_required
+        )
+        self.assertFalse(
+            next(
+                port
+                for port in manifest.required_ports
+                if port.service == "Pulsar Admin API"
             ).host_preflight_required
         )
         self.assertEqual(
@@ -248,9 +271,27 @@ class TestPreflightResult(unittest.TestCase):
             ],
             traefik_payload["ports"],
         )
-        self.assertEqual([], service_access_payload["ports"])
+        self.assertEqual(
+            [
+                {
+                    "host_preflight_required": False,
+                    "port": 10000,
+                    "service": "Service Access",
+                },
+            ],
+            service_access_payload["ports"],
+        )
         self.assertEqual([], service_access_payload["secrets"])
-        self.assertEqual([], infisical_payload["ports"])
+        self.assertEqual(
+            [
+                {
+                    "host_preflight_required": False,
+                    "port": 8086,
+                    "service": "Infisical",
+                },
+            ],
+            infisical_payload["ports"],
+        )
         self.assertEqual(
             [
                 "TSW_INFISICAL_LOGIN_EMAIL",
