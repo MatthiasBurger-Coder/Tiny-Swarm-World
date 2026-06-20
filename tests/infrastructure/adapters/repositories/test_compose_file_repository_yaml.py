@@ -217,7 +217,10 @@ services:
             for contract in DEFAULT_SERVICE_STACK_CONTRACTS
         ]
 
-        self.assertEqual(["portainer", "nexus", "jenkins", "pulsar", "sonarqube", "swagger"], loaded_stack_names)
+        self.assertEqual(
+            ["portainer", "traefik", "nexus", "jenkins", "pulsar", "sonarqube", "swagger"],
+            loaded_stack_names,
+        )
 
     def test_committed_default_service_stack_compose_files_declare_required_services(self):
         repository = ComposeFileRepositoryYaml()
@@ -262,7 +265,7 @@ services:
         self.assertEqual((8080, 50000), metadata["jenkins"]["jenkins"])
         self.assertEqual((), metadata["infisical"]["infisical"])
         self.assertEqual((8081, 5000, 5001), metadata["nexus"]["nexus"])
-        self.assertEqual((80, 8086, 443), metadata["service-access"]["service-access-nginx"])
+        self.assertEqual((10000, 8086), metadata["service-access"]["service-access-nginx"])
         self.assertEqual((80, 443), metadata["traefik"]["traefik"])
 
     def test_committed_service_registry_aligns_selected_stacks_with_phase_and_ports(self):
@@ -286,11 +289,12 @@ services:
         }
 
         self.assertLessEqual(set(expected_stacks), set(service_entries))
-        self.assertEqual({"traefik"}, set(service_entries) - set(expected_stacks))
-        self.assertEqual(set(expected_stacks), set(contract_by_stack))
+        selected_stacks = expected_stacks
+        self.assertEqual(set(), set(service_entries) - set(expected_stacks))
+        self.assertEqual(set(selected_stacks), set(contract_by_stack))
         self.assertNotIn("rabbitmq", service_entries)
 
-        for stack_name in expected_stacks:
+        for stack_name in selected_stacks:
             entry = service_entries[stack_name]
             with self.subTest(stack_name=stack_name):
                 contract = contract_by_stack[stack_name]
@@ -440,7 +444,11 @@ services:
         self.assertEqual(["sh", "-lc"], pulsar["command"][:2])
         self.assertIn("bin/apply-config-from-env.py conf/standalone.conf", pulsar["command"][-1])
         self.assertIn("exec bin/pulsar standalone", pulsar["command"][-1])
+        self.assertIn("--advertised-address pulsar", pulsar["command"][-1])
+        self.assertIn("--bookkeeper-port 3181", pulsar["command"][-1])
+        self.assertIn("--no-functions-worker", pulsar["command"][-1])
         self.assertEqual("true", pulsar["environment"]["PULSAR_PREFIX_authenticationEnabled"])
+        self.assertEqual("pulsar", pulsar["environment"]["PULSAR_PREFIX_advertisedAddress"])
         self.assertIn(
             "AuthenticationProviderToken",
             pulsar["environment"]["PULSAR_PREFIX_authenticationProviders"],
@@ -449,6 +457,7 @@ services:
             "data:;base64,${TSW_PULSAR_TOKEN_SECRET_KEY}",
             pulsar["environment"]["PULSAR_PREFIX_tokenSecretKey"],
         )
+        self.assertNotIn("PULSAR_PREFIX_bookieId", pulsar["environment"])
         self.assertEqual(
             "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m",
             pulsar["environment"]["PULSAR_MEM"],
@@ -609,9 +618,8 @@ services:
         )
         self.assertEqual(
             [
-                {"target": 80, "published": 80, "protocol": "tcp", "mode": "host"},
+                {"target": 80, "published": 10000, "protocol": "tcp", "mode": "host"},
                 {"target": 8086, "published": 8086, "protocol": "tcp", "mode": "host"},
-                {"target": 443, "published": 443, "protocol": "tcp", "mode": "host"},
             ],
             services["service-access-nginx"]["ports"],
         )
@@ -708,18 +716,18 @@ services:
         )
         self.assertEqual(
             {"external": True},
-            compose_data["secrets"]["${TSW_TRAEFIK_TLS_CERT_SECRET_NAME:-tsw_traefik_tls_cert}"],
+            compose_data["secrets"]["tsw_traefik_tls_cert"],
         )
         self.assertEqual(
             {"external": True},
-            compose_data["secrets"]["${TSW_TRAEFIK_TLS_KEY_SECRET_NAME:-tsw_traefik_tls_key}"],
+            compose_data["secrets"]["tsw_traefik_tls_key"],
         )
         self.assertEqual(
-            "${TSW_TRAEFIK_TLS_CERT_SECRET_NAME:-tsw_traefik_tls_cert}",
+            "tsw_traefik_tls_cert",
             traefik["secrets"][0]["source"],
         )
         self.assertEqual(
-            "${TSW_TRAEFIK_TLS_KEY_SECRET_NAME:-tsw_traefik_tls_key}",
+            "tsw_traefik_tls_key",
             traefik["secrets"][1]["source"],
         )
 
@@ -766,10 +774,17 @@ services:
                 )
                 self.assertIn("traefik.enable=true", labels)
                 self.assertIn("traefik.swarm.network=traefik_ingress", labels)
-                self.assertIn(
-                    f"traefik.http.routers.{service_name}.rule=Host(`{hostname}`)",
-                    labels,
-                )
+                if service_name == "infisical":
+                    self.assertIn(
+                        "traefik.http.routers.infisical.rule="
+                        "Host(`infisical.tsw.local`) || Host(`localhost`)",
+                        labels,
+                    )
+                else:
+                    self.assertIn(
+                        f"traefik.http.routers.{service_name}.rule=Host(`{hostname}`)",
+                        labels,
+                    )
                 self.assertIn(
                     f"traefik.http.routers.{service_name}.entrypoints=websecure",
                     labels,

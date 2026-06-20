@@ -215,15 +215,14 @@ Implemented repository behavior:
 * The setup manifest for the service-access profile records Traefik ingress
   ports `80` and `443` as the LXC/WSL exposure targets.
 * Compose metadata is parsed from each `docker-compose.yml`; the
-  service-access NGINX compose service publishes ports `80`, `8086`, and
-  `443`.
+  service-access NGINX compose service publishes ports `10000` and `8086`.
 
 The accepted routing direction is Traefik-backed local ingress:
 
 * Traefik owns published ports `80` and `443` for the service-access setup
   profile.
 * Service Access remains the dashboard stack and serves the local management
-  overview through the configured ingress path after verified deployment.
+  overview through `http://localhost:10000` after verified deployment.
 * Swagger/NGINX uses published port `8084`.
 * The service-access NGINX compose service still publishes `8086` as a local
   compatibility route.
@@ -261,8 +260,9 @@ secret-management surface.
 
 Current live verification note:
 
-* The central `http://localhost` route requires a fresh provider-specific
-  service-access stack deployment before it is claimed as live-verified.
+* The direct `http://localhost:10000` dashboard route requires a fresh
+  provider-specific service-access stack deployment before it is claimed as
+  live-verified.
 
 == Verification
 

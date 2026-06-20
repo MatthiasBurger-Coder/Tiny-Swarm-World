@@ -75,6 +75,7 @@ expected_artifact_registries:
         self.assertEqual(
             (
                 "portainer",
+                "traefik",
                 "nexus",
                 "jenkins",
                 "pulsar",

@@ -24,9 +24,10 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
 
         steps = build_default_service_stack_steps(compose_repository, deployment_gateway)
 
-        self.assertEqual(5, len(steps))
+        self.assertEqual(6, len(steps))
         self.assertEqual(
             [
+                "deployment:traefik-stack",
                 "deployment:nexus-stack",
                 "deployment:jenkins-stack",
                 "deployment:pulsar-stack",
@@ -57,7 +58,16 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            ("nexus", "jenkins", "pulsar", "sonarqube", "swagger", "infisical", "service-access"),
+            (
+                "traefik",
+                "nexus",
+                "jenkins",
+                "pulsar",
+                "sonarqube",
+                "swagger",
+                "infisical",
+                "service-access",
+            ),
             tuple(step.service_stack.stack_name for step in steps),
         )
         self.assertNotIn("portainer", tuple(step.service_stack.stack_name for step in steps))
@@ -65,6 +75,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(step.deployment_gateway is deployment_gateway for step in steps))
         self.assertEqual(
             {
+                "traefik": "network-routing",
                 "nexus": "artifacts",
                 "jenkins": "cicd",
                 "pulsar": "messaging",
@@ -93,7 +104,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            ("jenkins", "pulsar", "sonarqube", "swagger", "infisical", "service-access"),
+            ("traefik", "jenkins", "pulsar", "sonarqube", "swagger", "infisical", "service-access"),
             tuple(step.service_stack.stack_name for step in steps),
         )
 
@@ -132,6 +143,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             [
+                "deployment:traefik-stack",
                 "deployment:nexus-stack",
                 "deployment:jenkins-stack",
                 "deployment:pulsar-stack",

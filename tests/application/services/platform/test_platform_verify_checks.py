@@ -139,7 +139,7 @@ class TestPlatformVerifyChecks(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual("lxc_proxy_devices_verified", result.evidence["classification"])
-        self.assertEqual("2", result.evidence["present_count"])
+        self.assertEqual("18", result.evidence["present_count"])
         self.assertEqual(0, runtime.create_calls)
         self.assertEqual(0, runtime.update_calls)
 

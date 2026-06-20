@@ -442,7 +442,7 @@ service set can pass `--service-profile default`.
 
 The service-access setup profile exposes Traefik ingress ports `80` and `443`
 through the LXC/WSL exposure workflow. The service-access NGINX compose
-service publishes ports `80`, `8086`, and `443` as stack metadata parsed from
+service publishes ports `10000` and `8086` as stack metadata parsed from
 `infra/config/compose/service-access/docker-compose.yml`. WSL `localhost`
 forwarding is a separate host-network concern. Endpoint defaults are
 configuration hints, not service-health evidence. If localhost forwarding is

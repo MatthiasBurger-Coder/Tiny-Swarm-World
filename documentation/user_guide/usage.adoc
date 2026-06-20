@@ -281,9 +281,10 @@ Implemented repository assets:
   route configuration.
 
 When the default full profile is deployed by an operator workflow, the
-dashboard route is available through the configured local ingress. The
-service-access NGINX compose service also publishes `8086` as a local
-compatibility route.
+dashboard route is available through the direct local compatibility port
+`10000`. Traefik owns the public local ingress ports `80` and `443`, and the
+service-access NGINX compose service also publishes `8086` as the local
+Infisical compatibility route.
 The dashboard is a static management table with `Server`, `URL`, `user` and
 `pwd` columns. It provides central paths such as `/jenkins`, `/nexus`,
 `/portainer`, `/pulsar`, `/sonarqube`, `/swagger` and `/infisical`.
@@ -292,8 +293,8 @@ It does not show password values.
 Authorized operators reveal or copy password values only through the
 configured secret-management surface.
 
-The current central `http://localhost` route requires provider-specific
-redeployment before browser verification.
+The direct dashboard route is `http://localhost:10000`. Localhost reachability
+still requires provider-specific exposure and verified deployment evidence.
 
 == Commit And Push Shortcut
 
