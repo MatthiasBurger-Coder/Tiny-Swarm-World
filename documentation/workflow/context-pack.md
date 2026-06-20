@@ -1,9 +1,11 @@
 # Workflow Context Pack
 
 Workflow: `installation-phases-port-registry-v1.0.0`
+Workflow ID: `workflow-install-order-and-port-allocation-20260620`
 Branch: `feature/workflow-installation-phases-port-registry-20260620`
 Created: `2026-06-20`
 Status: `READY_FOR_WORKFLOW`
+Evidence Root: `.codex/evidence/workflow-install-order-and-port-allocation-20260620/`
 
 ## Purpose
 
@@ -65,6 +67,13 @@ Targeted:
 Required final:
 
 - `python3 tools/quality_gate.py quality`
+
+## Evidence Governance
+
+- Evidence files for this workflow must be written only below `.codex/evidence/workflow-install-order-and-port-allocation-20260620/`.
+- Generic evidence paths such as `.codex/evidence/slice-01-distribution.md` and `.codex/evidence/slice-01-consolidation.md` are forbidden.
+- Before writing evidence, verify that the target file is absent or belongs to this workflow.
+- If an evidence file exists and belongs to another workflow, stop and report a blocker instead of overwriting it.
 
 ## Governing File Hashes
 

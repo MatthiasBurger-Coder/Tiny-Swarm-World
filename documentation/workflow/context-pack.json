@@ -1,6 +1,8 @@
 {
   "workflow_version": "installation-phases-port-registry-v1.0.0",
+  "workflow_id": "workflow-install-order-and-port-allocation-20260620",
   "branch": "feature/workflow-installation-phases-port-registry-20260620",
+  "evidence_root": ".codex/evidence/workflow-install-order-and-port-allocation-20260620/",
   "created": "2026-06-20",
   "status": "READY_FOR_WORKFLOW",
   "process_strand": "workflow create",
@@ -49,6 +51,15 @@
     "required": [
       "python3 tools/quality_gate.py quality"
     ]
+  },
+  "evidence_governance": {
+    "required_root": ".codex/evidence/workflow-install-order-and-port-allocation-20260620/",
+    "forbidden_generic_paths": [
+      ".codex/evidence/slice-01-distribution.md",
+      ".codex/evidence/slice-01-consolidation.md"
+    ],
+    "preflight_guard": "Before writing evidence, verify that the target file is absent or belongs to this workflow. Stop if an existing evidence file belongs to another workflow.",
+    "overwrite_policy": "Do not overwrite, modify, truncate, rename, or delete evidence belonging to another workflow."
   },
   "governing_hashes": {
     "AGENTS.md": "FB1EE9B2A878D4662C96B9BC7255F3D7EC151FB2D1997FD981D4D1A34F54EC3F",

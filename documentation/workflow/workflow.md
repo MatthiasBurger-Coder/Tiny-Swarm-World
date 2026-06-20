@@ -1,9 +1,11 @@
 # Workflow: Installation Phases And Port Registry
 
 Version: `installation-phases-port-registry-v1.0.0`
+Workflow ID: `workflow-install-order-and-port-allocation-20260620`
 Created: `2026-06-20`
 Branch: `feature/workflow-installation-phases-port-registry-20260620`
 Status: `READY_FOR_WORKFLOW`
+Evidence Root: `.codex/evidence/workflow-install-order-and-port-allocation-20260620/`
 
 ## Executive Summary
 
@@ -745,7 +747,7 @@ secondary_reviewers:
   - "Quality Gate Orchestrator"
   - "Senior Workflow Architect"
 affected_files:
-  - ".codex/evidence/**"
+  - ".codex/evidence/workflow-install-order-and-port-allocation-20260620/**"
   - "documentation/workflow/context-pack.md"
   - "documentation/workflow/context-pack.json"
 affected_modules: []
@@ -755,7 +757,7 @@ dependencies:
   - "07"
 parallel_group: "quality"
 file_locks:
-  - ".codex/evidence/**"
+  - ".codex/evidence/workflow-install-order-and-port-allocation-20260620/**"
   - "documentation/workflow/**"
 contract_locks:
   - "workflow execute evidence"
@@ -836,17 +838,31 @@ Stream map:
 - architecture: Senior System Architect and arc42 governance.
 - security: security and secrets/configuration review where port exposure, credentials, or evidence are touched.
 
-`workflow execute` must use real Codex subagents where supported. If callable subagents are unavailable, the executor must perform explicit role-based fallback review in the main thread and record that fallback in `.codex/evidence/slice-<number>-distribution.md`.
+`workflow execute` must use real Codex subagents where supported. If callable subagents are unavailable, the executor must perform explicit role-based fallback review in the main thread and record that fallback in `.codex/evidence/workflow-install-order-and-port-allocation-20260620/slice-<number>-distribution.md`.
+
+Evidence governance:
+
+- Evidence files must never be written directly into `.codex/evidence/` using generic slice names.
+- Every workflow must write evidence into its dedicated workflow-specific subdirectory.
+- This workflow writes evidence only under `.codex/evidence/workflow-install-order-and-port-allocation-20260620/`.
+- Forbidden generic paths include `.codex/evidence/slice-01-distribution.md` and `.codex/evidence/slice-01-consolidation.md`.
+
+Evidence collision preflight guard:
+
+- Before writing evidence, check whether the target file already exists.
+- If the target file exists and belongs to another workflow, stop and report a blocker.
+- Do not overwrite, modify, truncate, rename, or delete evidence belonging to another workflow.
+- Existing generic evidence files for unrelated workflows must remain unchanged.
 
 Before implementation for each slice:
 
-- write `.codex/evidence/slice-<number>-distribution.md`;
+- write `.codex/evidence/workflow-install-order-and-port-allocation-20260620/slice-<number>-distribution.md`;
 - record whether the slice can be split into backend, frontend, tests, runtime, documentation, quality, architecture, or security streams;
 - record file locks, contract locks, and stop conditions.
 
 After implementation for each implemented slice:
 
-- write `.codex/evidence/slice-<number>-consolidation.md`;
+- write `.codex/evidence/workflow-install-order-and-port-allocation-20260620/slice-<number>-consolidation.md`;
 - record accepted stream changes, rejected changes, tests run, and remaining risk.
 
 Non-parallelization rules:
