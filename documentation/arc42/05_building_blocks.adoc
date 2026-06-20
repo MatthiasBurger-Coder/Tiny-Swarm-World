@@ -59,7 +59,10 @@ microservices:
   environment, and update policy. Portainer endpoint IDs, stack IDs, Swarm IDs
   and API fallbacks stay inside the infrastructure gateway adapter. The compose
   repository also exposes service names and published ports parsed from each
-  stack's `docker-compose.yml`. Stack mutation is owned by live-consent-gated
+  stack's `docker-compose.yml`. Service-stack contracts now carry static
+  phase IDs and port-registry IDs so they can be aligned with
+  `infra/config/services.yml`, `infra/config/installation-plan.yaml`, and
+  `infra/config/ports.yaml`. Stack mutation is owned by live-consent-gated
   workflow execution, not by service construction. `deployment apply` and
   `deployment verify` can evaluate configured stack, external-input, and
   readiness contracts, but live success still depends on observable registry,
@@ -76,6 +79,13 @@ remains available for explicit `--service-profile default` runs. The
 service-access setup manifest exposes Traefik ingress ports `80` and `443`;
 the service-access compose stack itself publishes service-access NGINX ports
 `80`, `8086`, and `443`.
+
+`infra/config/health-checks.yaml` and `infra/config/validation-plan.yaml`
+belong to the deployment boundary as static desired-state declarations. They
+are aligned by tests, not runtime-loaded by deployment verification yet. The
+application `ValidationPlan` can evaluate observed `VerificationResult`
+evidence and fails closed when required runtime evidence is missing or only
+static stack-registration evidence is present.
 
 The service-access dashboard and NGINX assets are image-packaged under
 `infra/config/compose/service-access/**`, while the stack definition lives under

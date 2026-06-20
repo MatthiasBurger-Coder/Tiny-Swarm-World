@@ -42,6 +42,21 @@ provider selections such as `multipass_legacy`. Provider-native platform
 reconcile, artifact publication, deployment, Docker Swarm-in-container live
 validation, and WSL2 live proof remain incomplete and fail closed.
 
+The setup baseline now has committed declarative registries for installation
+phases, ports, services, health checks, and greenpath validation evidence:
+
+- `infra/config/installation-plan.yaml`
+- `infra/config/ports.yaml`
+- `infra/config/services.yml`
+- `infra/config/health-checks.yaml`
+- `infra/config/validation-plan.yaml`
+
+These registries are tested as desired-state and evidence contracts. Runtime
+execution currently uses typed domain defaults and service contracts where no
+YAML adapter is wired. The registries do not claim a completed live
+installation. Missing or static-only service readiness evidence remains a
+failed or blocked verification result when validation is evaluated.
+
 ## EPIC Extensions
 
 The service-access dashboard and Vaultwarden baseline extends this EPIC:
@@ -239,6 +254,8 @@ smoke validation is a separate operator action and requires:
 - A missing verification contract returns `blocked`, not success.
 - Service health is never claimed without observed-state or smoke-test
   evidence.
+- The validation plan fails closed when required observed evidence is missing,
+  blocked, failed, or only static stack-registration evidence.
 - LXC-native through LXD or Incus is the default provider direction, while
   provider-native Platform init now covers Docker Engine setup and Swarm
   bootstrap. Remaining artifact, deployment, service-readiness, and live

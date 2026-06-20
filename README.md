@@ -180,6 +180,22 @@ deployment, and final verification phases. Current live behavior remains
 fail-closed where verification, readiness, credentials, or resource
 requirements are incomplete.
 
+The setup order is mirrored as product configuration in
+`infra/config/installation-plan.yaml` and represented by typed Python domain
+objects. Runtime wiring currently uses the typed `default_installation_plan()`
+and `SetupWorkflow` enforces typed plans when provided. The implemented order
+covers preflight, platform, cluster, network/routing, secrets, artifacts,
+CI/CD, quality, messaging, observability, control, docs, and validation.
+Cycles, missing required phases, missing required services, and missing
+required workflow phases fail closed in tests before setup can report success.
+
+Ports are centrally recorded in `infra/config/ports.yaml`. Traefik owns the
+public ingress baseline on ports `80` and `443`; higher-numbered service ports
+are direct, diagnostic, compatibility, or deferred allocations unless a later
+ADR changes the ingress model. Current compose files still publish some legacy
+compatibility ports, and those are documented in `infra/config/services.yml`
+instead of being treated as registry-backed runtime migrations.
+
 ---
 
 ## Operator Safety Model
@@ -345,6 +361,17 @@ service-access NGINX is the accepted routing design for stable paths such as
 password values are visible only in Infisical's authenticated UI. Operators
 who intentionally want the older base service set can pass
 `--service-profile default`.
+
+Service metadata is declared in `infra/config/services.yml` as a static
+selected-service catalogue for cross-file validation and documentation.
+Runtime deployment selection still uses `ServiceStackContract` domain
+contracts. The catalogue maps selected stacks to installation phases,
+service-stack contracts, port-registry IDs, readiness target IDs, and explicit
+compatibility published ports. Health and greenpath validation declarations
+live in `infra/config/health-checks.yaml` and
+`infra/config/validation-plan.yaml`; these files declare required observed
+evidence, tests align them with contracts, and runtime success still requires
+observed `VerificationResult` evidence.
 
 The Infisical stack runs Infisical with PostgreSQL and Redis. The guided
 installer writes `TSW_INFISICAL_ENCRYPTION_KEY`, `TSW_INFISICAL_AUTH_SECRET`,

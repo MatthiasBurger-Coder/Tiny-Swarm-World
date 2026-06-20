@@ -80,6 +80,25 @@ Quality scenarios:
 * optional live smoke validation is documented and invoked separately from the
   default quality gate.
 
+=== Registry And Validation Plans
+
+Quality scenarios:
+
+* installation phases sort deterministically by dependency, order, and phase
+  identifier;
+* dependency cycles, unknown dependencies, missing required phases, missing
+  required services, and missing required workflow phases fail closed;
+* service-stack contracts map to declared installation phases and port-registry
+  IDs;
+* compose published ports are classified as registry-backed, Traefik ingress,
+  compatibility, or deferred;
+* health-check registry entries match service registry and service-stack
+  contracts;
+* validation-plan targets cover the required health-check targets;
+* missing required observed evidence returns `failed_to_verify`;
+* verified static stack-registration evidence does not satisfy service
+  readiness.
+
 === Installation Progress And Cross-Cutting Method Trace Logging
 
 Installation progress and logging are implemented through two correlated

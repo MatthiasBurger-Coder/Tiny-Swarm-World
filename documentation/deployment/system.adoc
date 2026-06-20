@@ -79,6 +79,26 @@ construction and preserves blocked, resource-gated, failed-to-apply, and
 failed-to-verify states instead of reporting full deployment success without
 observed evidence.
 
+Setup sequencing is mirrored in `infra/config/installation-plan.yaml` and
+represented by the typed `InstallationPlan` model. Runtime composition
+currently passes the typed `default_installation_plan()` into `SetupWorkflow`;
+the YAML file is the committed declarative contract and static validation
+surface, not yet a runtime-loaded repository adapter. The current phase order
+is preflight, platform, cluster, network/routing, secrets, artifacts, CI/CD,
+quality, messaging, observability, control, docs, and validation. The workflow
+fails closed for dependency cycles, missing required phases, missing required
+services, or missing required workflow phases.
+
+Service registry data is centralized in `infra/config/services.yml` as a
+static selected-service catalogue used for cross-file validation and
+documentation. Runtime stack selection still comes from
+`ServiceStackContract` domain contracts. Each enabled stack maps to an
+installation phase, service-stack contract, readiness target, port-registry
+IDs, and any compatibility published ports. Portainer remains outside the
+Portainer-managed deployment plan to avoid a bootstrap cycle. Apache Pulsar
+remains the selected messaging stack; RabbitMQ is not part of the selected
+baseline.
+
 Setup preflight is idempotent for an already running Tiny Swarm World
 environment. Required ports pass when they are either free or already serve the
 expected local service, reported as `source=existing_expected_service`.
@@ -157,6 +177,12 @@ The localhost defaults above are operator targets for the Linux/WSL execution
 context. They may depend on WSL forwarding state and must not be treated as
 proof that a service is live or healthy.
 
+The committed port registry is `infra/config/ports.yaml`. Traefik owns public
+ingress ports `80` and `443`. High-numbered service allocations are desired
+diagnostic or compatibility targets. Existing compose files may still publish
+legacy host ports; these are classified in `services.yml` and are not silently
+treated as migrated port-registry behavior.
+
 == Stack deployment
 
 The supported stack deployment boundary is the workflow-level setup command.
@@ -203,6 +229,22 @@ The accepted routing direction is Traefik-backed local ingress:
   compatibility route.
 * Wider-than-local exposure and public certificate automation require later
   ADR coverage and tests.
+
+== Health And Validation Registries
+
+`infra/config/health-checks.yaml` declares desired readiness checks by stack,
+target ID, phase, evidence kind, and required services. `live_default: false`
+means the registry is not a live health probe and is not part of the default
+quality gate.
+
+`infra/config/validation-plan.yaml` declares the current greenpath evidence
+targets. Tests align the YAML declarations with service contracts and health
+checks. Runtime verification does not yet load those YAML files directly; when
+the application `ValidationPlan` is explicitly evaluated, it accepts observed
+`VerificationResult` records only. Missing required evidence, blocked
+evidence, failed evidence, or verified evidence without observed runtime
+fields reports `failed_to_verify` or `blocked`; static stack registration does
+not satisfy service readiness.
 
 Portainer may manage the service-access stack only after Portainer is
 reachable. First-time Portainer bootstrap remains outside Portainer-managed
