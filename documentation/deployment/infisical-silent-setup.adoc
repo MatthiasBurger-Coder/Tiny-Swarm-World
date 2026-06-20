@@ -47,9 +47,11 @@ Infisical secrets are written only to ignored local files:
 * `.tiny-swarm-world/local/live-installation.env`
 * `.tiny-swarm/secrets/bootstrap.local.env`
 
-The Infisical-specific file contains the local `TSW_INFISICAL_*` values only.
-Compose and the bootstrap service map those values to Infisical's
-`INITIAL_BOOTSTRAP_*` runtime environment names. Do not commit either file.
+The Infisical bootstrap file contains local `TSW_INFISICAL_*` values and
+non-secret browser URL overrides such as `TSW_DASHBOARD_URL` and
+`TSW_INFISICAL_URL`. Compose and the bootstrap service map the Infisical values
+to Infisical's `INITIAL_BOOTSTRAP_*` runtime environment names. Do not commit
+either file.
 
 == Bootstrap Behavior
 

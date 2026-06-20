@@ -171,6 +171,15 @@ class TestInstallScript(unittest.TestCase):
             infisical_secret_content = (
                 fixture.root / ".tiny-swarm" / "secrets" / "bootstrap.local.env"
             ).read_text()
+            self.assertIn("TSW_DASHBOARD_URL=http://localhost:10000", infisical_secret_content)
+            self.assertIn("TSW_INFISICAL_URL=http://localhost:8086", infisical_secret_content)
+            self.assertIn("TSW_JENKINS_URL=http://localhost:8080", infisical_secret_content)
+            self.assertIn("TSW_NEXUS_URL=http://localhost:8081", infisical_secret_content)
+            self.assertIn("TSW_PORTAINER_URL=http://localhost:9000", infisical_secret_content)
+            self.assertIn("TSW_PULSAR_PUBLIC_ADMIN_URL=http://localhost:8087", infisical_secret_content)
+            self.assertIn("TSW_PULSAR_MANAGER_URL=http://localhost:7750", infisical_secret_content)
+            self.assertIn("TSW_SONARQUBE_URL=http://localhost:9001", infisical_secret_content)
+            self.assertIn("TSW_SWAGGER_URL=http://localhost:8084", infisical_secret_content)
             self.assertIn("TSW_INFISICAL_LOGIN_EMAIL=admin@tiny-swarm-world.local", infisical_secret_content)
             self.assertIn("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD=", infisical_secret_content)
             self.assertNotIn("export INITIAL_BOOTSTRAP_ADMIN_EMAIL=", infisical_secret_content)

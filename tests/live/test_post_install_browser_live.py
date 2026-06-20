@@ -151,13 +151,13 @@ class LivePostInstallConfig:
         local_env = _load_shell_environment(
             Path(os.environ.get("TSW_LIVE_INSTALLATION_ENV", DEFAULT_ENV_FILE))
         )
-        dashboard_url = _env_value(local_env, "TSW_DASHBOARD_URL", "http://localhost")
+        dashboard_url = _env_value(local_env, "TSW_DASHBOARD_URL", "http://localhost:10000")
         ingress_base_domain = _env_value(
             local_env,
             "TSW_INGRESS_BASE_DOMAIN",
             "tsw.local",
         )
-        infisical_url = _env_value(local_env, "TSW_INFISICAL_URL", "https://localhost")
+        infisical_url = _env_value(local_env, "TSW_INFISICAL_URL", "http://localhost:8086")
         pulsar_admin_url = _env_value(local_env, "TSW_PULSAR_PUBLIC_ADMIN_URL", "http://localhost:8087")
         pulsar_manager_url = _env_value(
             local_env,
@@ -310,7 +310,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             os.environ,
             {
                 "TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE,
-                "TSW_DASHBOARD_URL": "http://localhost",
+                "TSW_DASHBOARD_URL": "http://localhost:10000",
                 "TSW_INFISICAL_URL": sample_url("https", "user:credential", "localhost"),
             },
         ):
