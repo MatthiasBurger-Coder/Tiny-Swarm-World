@@ -140,11 +140,32 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
     def _ensure_stack_prerequisites(self, stack_name: str, stack_definition: StackDefinition) -> None:
         for network_name in _external_overlay_network_names(stack_definition):
             self._ensure_external_overlay_network(network_name)
+        if stack_name == "traefik":
+            self._ensure_traefik_tls_secrets()
         if stack_name != "sonarqube":
             return
         self._run_manager_shell(
             "sysctl -w vm.max_map_count=524288 fs.file-max=131072 >/dev/null",
         )
+
+    def _ensure_traefik_tls_secrets(self) -> None:
+        cert_secret = "tsw_traefik_tls_cert"
+        key_secret = "tsw_traefik_tls_key"
+        if self.external_secret_exists(cert_secret) and self.external_secret_exists(key_secret):
+            return
+        script = (
+            "set -e; "
+            "tmpdir=$(mktemp -d); "
+            "trap 'rm -rf \"$tmpdir\"' EXIT; "
+            "openssl req -x509 -nodes -newkey rsa:2048 -days 365 "
+            "-subj '/CN=tiny-swarm-world.local' "
+            "-keyout \"$tmpdir/tls.key\" -out \"$tmpdir/tls.crt\" >/dev/null 2>&1; "
+            f"docker secret inspect -- {shlex.quote(cert_secret)} >/dev/null 2>&1 "
+            f"|| docker secret create -- {shlex.quote(cert_secret)} \"$tmpdir/tls.crt\" >/dev/null; "
+            f"docker secret inspect -- {shlex.quote(key_secret)} >/dev/null 2>&1 "
+            f"|| docker secret create -- {shlex.quote(key_secret)} \"$tmpdir/tls.key\" >/dev/null"
+        )
+        self._run_manager_shell(script)
 
     def _ensure_external_overlay_network(self, name: str) -> None:
         result = self._run_manager_shell(
