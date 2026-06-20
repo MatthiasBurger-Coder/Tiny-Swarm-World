@@ -34,6 +34,11 @@ from tiny_swarm_world.domain.preflight.preflight_configuration import (
     default_preflight_configuration,
 )
 from tiny_swarm_world.domain.preflight.preflight_result import PreflightResult
+from tiny_swarm_world.domain.preflight.installation_plan import (
+    InstallationPhase,
+    InstallationPlan,
+    default_installation_plan,
+)
 from tiny_swarm_world.domain.preflight.setup_manifest import (
     SetupManifest,
     SetupPortRequirement,
@@ -54,6 +59,8 @@ __all__ = [
     "HostEnvironmentReport",
     "HostRuntimeReadiness",
     "HostRuntimeReadinessStatus",
+    "InstallationPhase",
+    "InstallationPlan",
     "LiveConsent",
     "PreflightCategory",
     "PreflightCheck",
@@ -75,5 +82,6 @@ __all__ = [
     "SetupSecretRequirement",
     "SetupServiceRequirement",
     "default_preflight_configuration",
+    "default_installation_plan",
     "default_setup_manifest",
 ]

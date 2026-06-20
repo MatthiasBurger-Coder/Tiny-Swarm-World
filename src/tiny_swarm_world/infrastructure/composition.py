@@ -118,6 +118,7 @@ from tiny_swarm_world.domain.preflight import (
     LiveConsent,
     PreflightConfiguration,
     ProviderPreflightMetadata,
+    default_installation_plan,
     default_setup_manifest,
     default_preflight_configuration,
     RequiredDependency,
@@ -1150,6 +1151,7 @@ def build_setup_services(
                 progress=workflow_progress,
                 method_trace=method_trace,
                 trace_correlation_id=trace_correlation_id,
+                installation_plan=default_installation_plan(),
             )
         )
     )
