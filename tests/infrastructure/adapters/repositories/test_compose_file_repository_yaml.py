@@ -943,6 +943,33 @@ services:
         ):
             self.assertNotIn(forbidden_link, dashboard)
 
+    def test_service_access_dashboard_displays_service_access_port(self):
+        dashboard = _service_access_dashboard_html()
+
+        for expected in (
+            "http://localhost:10000",
+            "http://localhost:10000/jenkins",
+            "http://localhost:10000/nexus",
+            "http://localhost:10000/portainer",
+            "http://localhost:10000/pulsar",
+            "http://localhost:10000/pulsar-admin-api",
+            "http://localhost:10000/sonarqube",
+            "http://localhost:10000/swagger",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, dashboard)
+        for stale_url in (
+            "http://localhost/jenkins",
+            "http://localhost/nexus",
+            "http://localhost/portainer",
+            "http://localhost/pulsar",
+            "http://localhost/pulsar-admin-api",
+            "http://localhost/sonarqube",
+            "http://localhost/swagger",
+        ):
+            with self.subTest(stale_url=stale_url):
+                self.assertNotIn(stale_url, dashboard)
+
     def test_service_access_dashboard_links_open_new_tabs_safely(self):
         dashboard = _service_access_dashboard_html()
         collector = _LinkCollector()

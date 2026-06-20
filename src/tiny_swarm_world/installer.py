@@ -26,6 +26,17 @@ DEFAULT_GENERATED_SECRET_ENV_FILE = ".tiny-swarm/secrets/generated.local.env"
 DEFAULT_NATIVE_LINUX_VENV = ".tiny-swarm-world/install-venv"
 DEFAULT_SECRET_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
 INSTALLER_REQUIRED_SOURCES = {"generated_local_secret", "placeholder_only"}
+DEFAULT_LOCAL_SERVICE_URL_EXPORTS = {
+    "TSW_DASHBOARD_URL": "http://localhost:10000",
+    "TSW_INFISICAL_URL": "http://localhost:8086",
+    "TSW_JENKINS_URL": "http://localhost:8080",
+    "TSW_NEXUS_URL": "http://localhost:8081",
+    "TSW_PORTAINER_URL": "http://localhost:9000",
+    "TSW_PULSAR_PUBLIC_ADMIN_URL": "http://localhost:8087",
+    "TSW_PULSAR_MANAGER_URL": "http://localhost:7750",
+    "TSW_SONARQUBE_URL": "http://localhost:9001",
+    "TSW_SWAGGER_URL": "http://localhost:8084",
+}
 
 
 @dataclass(frozen=True)
@@ -563,6 +574,7 @@ def _normalized_email_value(value: str) -> str:
 
 def _write_infisical_secret_file(path: Path, env: Mapping[str, str]) -> None:
     exports = {
+        **DEFAULT_LOCAL_SERVICE_URL_EXPORTS,
         "TSW_INFISICAL_ENCRYPTION_KEY": env["TSW_INFISICAL_ENCRYPTION_KEY"],
         "TSW_INFISICAL_AUTH_SECRET": env["TSW_INFISICAL_AUTH_SECRET"],
         "TSW_INFISICAL_POSTGRES_PASSWORD": env["TSW_INFISICAL_POSTGRES_PASSWORD"],

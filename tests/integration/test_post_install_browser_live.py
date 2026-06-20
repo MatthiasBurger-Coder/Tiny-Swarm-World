@@ -60,7 +60,7 @@ class PostInstallConfig:
     def from_environment(cls) -> "PostInstallConfig":
         local_env = _load_shell_environment(Path(os.environ.get("TSW_LIVE_INSTALLATION_ENV", DEFAULT_ENV_FILE)))
         return cls(
-            dashboard_url=_env_value(local_env, "TSW_DASHBOARD_URL", "http://localhost"),
+            dashboard_url=_env_value(local_env, "TSW_DASHBOARD_URL", "http://localhost:10000"),
             vaultwarden_url=_env_value(local_env, "TSW_VAULTWARDEN_URL", "https://localhost"),
             vaultwarden_admin_token=_env_optional(local_env, "TSW_VAULTWARDEN_ADMIN_LOGIN_TOKEN")
             or _env_optional(local_env, "TSW_VAULTWARDEN_ADMIN_TOKEN"),
