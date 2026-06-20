@@ -1,0 +1,164 @@
+schema_version: 1
+metadata:
+  workflow_id: workflow-install-order-and-port-allocation-20260620
+  public_ingress_owner: traefik
+  note: >
+    Declarative installation phase registry. Runtime parsing requires a future
+    infrastructure repository adapter; domain and setup workflow code consume
+    typed InstallationPlan objects only.
+required_services:
+  - docker
+  - swarm
+  - traefik
+  - infisical
+  - nexus
+  - jenkins
+  - sonarqube
+  - pulsar
+  - service-access
+  - swagger
+required_phase_ids:
+  - preflight
+  - platform
+  - cluster
+  - network-routing
+  - secrets
+  - artifacts
+  - cicd
+  - quality
+  - messaging
+  - control
+  - docs
+  - validation
+phases:
+  - id: preflight
+    order: 0
+    required: true
+    depends_on: []
+    services: []
+    workflow_phases:
+      - preflight
+
+  - id: platform
+    order: 10
+    required: true
+    depends_on:
+      - preflight
+    services: []
+    workflow_phases:
+      - platform init
+      - platform reconcile
+
+  - id: cluster
+    order: 20
+    required: true
+    depends_on:
+      - platform
+    services:
+      - docker
+      - swarm
+    workflow_phases: []
+
+  - id: network-routing
+    order: 30
+    required: true
+    depends_on:
+      - cluster
+    services:
+      - traefik
+    workflow_phases:
+      - platform expose
+
+  - id: secrets
+    order: 40
+    required: true
+    depends_on:
+      - network-routing
+    services:
+      - infisical
+    workflow_phases:
+      - deployment bootstrap
+
+  - id: artifacts
+    order: 50
+    required: true
+    depends_on:
+      - secrets
+    services:
+      - nexus
+    workflow_phases:
+      - artifacts prepare
+      - artifacts verify
+
+  - id: cicd
+    order: 60
+    required: true
+    depends_on:
+      - artifacts
+      - secrets
+    services:
+      - jenkins
+    workflow_phases: []
+
+  - id: quality
+    order: 70
+    required: true
+    depends_on:
+      - artifacts
+      - secrets
+    services:
+      - sonarqube
+    workflow_phases: []
+
+  - id: messaging
+    order: 80
+    required: true
+    depends_on:
+      - secrets
+    services:
+      - pulsar
+    workflow_phases: []
+
+  - id: observability
+    order: 90
+    required: false
+    depends_on:
+      - network-routing
+    services:
+      - prometheus
+      - grafana
+      - loki
+      - alertmanager
+    workflow_phases: []
+
+  - id: control
+    order: 100
+    required: true
+    depends_on:
+      - cicd
+      - quality
+      - messaging
+    services:
+      - service-access
+    workflow_phases: []
+
+  - id: docs
+    order: 110
+    required: true
+    depends_on:
+      - control
+    services:
+      - swagger
+      - openapi-aggregator
+    workflow_phases: []
+
+  - id: validation
+    order: 120
+    required: true
+    depends_on:
+      - docs
+    services: []
+    workflow_phases:
+      - deployment apply
+      - deployment verify
+      - platform verify

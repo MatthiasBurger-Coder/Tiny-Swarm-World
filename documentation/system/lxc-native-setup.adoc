@@ -132,6 +132,13 @@ network, storage, and Docker Swarm profile expectations that later read-only
 provider checks must verify. A missing backend candidate definition blocks
 configuration construction instead of falling back silently.
 
+Host-port preflight reads the typed port registry from `infra/config/ports.yaml`.
+For the service-access profile, only Traefik public ingress ports `80` and
+`443` are required by default preflight. Diagnostic and compatibility
+allocations stay recorded in the registry and service catalogue, but they are
+not treated as required live host-port blockers unless marked as such in the
+registry.
+
 The default live setup command is:
 
 [source,bash]
@@ -267,6 +274,8 @@ Evidence checklist:
 * do not generalize one target's result to another target class;
 * do not report service-stack success unless deployment and service readiness
   phases are also verified for that run.
+* keep static health-check and validation-plan declarations separate from
+  observed `VerificationResult` evidence for that run.
 
 == References
 

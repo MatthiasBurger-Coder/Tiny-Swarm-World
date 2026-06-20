@@ -63,6 +63,26 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("portainer", tuple(step.service_stack.stack_name for step in steps))
         self.assertTrue(all(step.compose_repository is compose_repository for step in steps))
         self.assertTrue(all(step.deployment_gateway is deployment_gateway for step in steps))
+        self.assertEqual(
+            {
+                "nexus": "artifacts",
+                "jenkins": "cicd",
+                "pulsar": "messaging",
+                "sonarqube": "quality",
+                "swagger": "docs",
+                "infisical": "secrets",
+                "service-access": "control",
+            },
+            {step.service_stack.stack_name: step.service_stack.phase_id for step in steps},
+        )
+        self.assertEqual(
+            ("pulsar-broker", "pulsar-admin-api"),
+            next(
+                step.service_stack.port_ids
+                for step in steps
+                if step.service_stack.stack_name == "pulsar"
+            ),
+        )
 
     def test_service_stack_steps_can_exclude_bootstrap_owned_stacks(self):
         steps = build_service_stack_steps(

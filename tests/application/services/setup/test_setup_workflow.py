@@ -34,6 +34,8 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.preflight import (
+    InstallationPhase,
+    InstallationPlan,
     LIVE_CONSENT_ENVIRONMENT_VALUE,
     LIVE_CONSENT_PHRASE,
     LiveConsent,
@@ -80,6 +82,66 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.executed)
         self.assertEqual(["preflight", "platform init"], calls)
         self.assertEqual(["preflight", "platform init"], [phase.name for phase in result.phase_results])
+
+    async def test_installation_plan_orders_configured_phases_before_execution(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("validation", lambda: _completed_result("validation", calls)),
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=_minimal_installation_plan(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(["preflight", "platform init", "validation"], calls)
+        self.assertEqual(
+            ["preflight", "platform init", "validation"],
+            [phase.name for phase in result.phase_results],
+        )
+
+    async def test_installation_plan_missing_required_phase_blocks_before_execution(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=_minimal_installation_plan(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual([], calls)
+        self.assertIn("required setup workflow phases are missing", result.reason)
+
+    async def test_installation_plan_preserves_downstream_not_run_after_blocked_phase(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("validation", lambda: _completed_result("validation", calls)),
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _blocked_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=_minimal_installation_plan(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(["preflight", "platform init"], calls)
+        self.assertEqual(
+            ["completed", "blocked", "not_run"],
+            [phase.status for phase in result.phase_results],
+        )
 
     async def test_prints_progress_for_each_configured_phase(self):
         calls: list[str] = []
@@ -509,6 +571,30 @@ def _completed_result(name: str, calls: list[str]) -> ArtifactWorkflowResult:
         message=f"{name} completed.",
         reason="completed",
         executed=True,
+    )
+
+
+def _minimal_installation_plan() -> InstallationPlan:
+    return InstallationPlan(
+        phases=(
+            InstallationPhase(
+                "preflight",
+                0,
+                workflow_phase_names=("preflight",),
+            ),
+            InstallationPhase(
+                "platform",
+                10,
+                depends_on=("preflight",),
+                workflow_phase_names=("platform init",),
+            ),
+            InstallationPhase(
+                "validation",
+                20,
+                depends_on=("platform",),
+                workflow_phase_names=("validation",),
+            ),
+        )
     )
 
 

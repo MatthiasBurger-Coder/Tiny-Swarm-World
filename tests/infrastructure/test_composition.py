@@ -25,6 +25,7 @@ from tiny_swarm_world.application.services.setup import (
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
+from tiny_swarm_world.domain.network import PortRegistry
 from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_ENVIRONMENT_VALUE,
     LIVE_CONSENT_PHRASE,
@@ -136,6 +137,24 @@ class TestComposition(unittest.TestCase):
             },
             workflow_field_names,
         )
+
+    def test_build_preflight_service_loads_port_registry(self):
+        registry = PortRegistry(ranges=(), mappings=())
+        provider_request = composition.NodeProviderSelectionRequest(
+            requested_provider=composition.NodeProviderKind.UNSUPPORTED,
+            backend_candidates=(),
+        )
+
+        with patch.object(composition, "PortRegistryYamlRepository") as repository_class:
+            repository_class.return_value.load.return_value = registry
+
+            service = composition.build_preflight_service(
+                node_provider_request=provider_request,
+            )
+
+        self.assertIs(registry, service.port_registry)
+        repository_class.assert_called_once_with()
+        repository_class.return_value.load.assert_called_once_with()
 
     def test_build_configuration_validation_service_uses_env_file_and_process_environment(self):
         with TemporaryDirectory() as temporary_directory:

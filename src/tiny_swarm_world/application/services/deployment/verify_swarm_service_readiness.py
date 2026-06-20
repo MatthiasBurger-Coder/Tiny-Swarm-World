@@ -149,6 +149,7 @@ def _readiness_evidence(
     )
     return {
         "attempt": str(attempt),
+        "evidence_kind": "swarm_service_replicas",
         "missing_services": ",".join(missing),
         "phase": "verify",
         "replicas": ",".join(f"{name}={replicas}" for name, replicas in sorted(replica_summary.items())),

@@ -73,7 +73,12 @@ microservice boundary and it does not construct low-level adapters in the entry
 point. The setup bundle wires phase calls for preflight, platform init,
 platform reconcile, platform expose, deployment bootstrap, artifacts prepare,
 artifacts verify, deployment apply, deployment verify, and final platform
-verify. `platform expose` configures the LXC-native manager gateway only; it
+verify. Runtime composition currently passes the typed
+`default_installation_plan()` into `SetupWorkflow`; the committed phase
+registry mirrors that contract for static validation and documentation. The
+typed plan blocks on cycles, missing required phases, missing required
+services, or missing required workflow phases. `platform expose` configures
+the LXC-native manager gateway only; it
 does not proxy individual service containers or worker nodes. It does not wire
 platform reset or destroy behavior; the `install.sh` fresh-install wrapper owns
 the reset prelude before it invokes setup.
@@ -105,8 +110,16 @@ The current artifact and deployment runtime flow is deliberately fail-closed:
   service-readiness verification through deployment workflow ports.
 * `deployment verify` dispatches without live consent and returns `blocked`
   or `failed_to_verify` when observed stack or service-readiness evidence is
-  missing. It does not claim container or service health from endpoint
-  configuration alone.
+missing. It does not claim container or service health from endpoint
+configuration alone.
+
+Greenpath validation is a runtime evidence evaluation step when an application
+`ValidationPlan` is explicitly evaluated; it is not a live probe triggered by
+static YAML configuration. The validation plan accepts only observed
+service-readiness `VerificationResult` evidence with Swarm replica fields.
+Missing required evidence, blocked evidence, failed evidence, or verified
+stack-registration evidence without observed service fields returns blocked or
+failed verification rather than success.
 
 Nexus repository mutation, Docker registry mutation, image build, and image
 push side effects run only through live-consent-gated workflow execution, not

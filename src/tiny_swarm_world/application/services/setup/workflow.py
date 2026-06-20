@@ -19,7 +19,7 @@ from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResu
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import PlatformWorkflowResult
 from tiny_swarm_world.application.services.shared import MethodTraceWrapper
-from tiny_swarm_world.domain.preflight import LiveConsent, PreflightResult
+from tiny_swarm_world.domain.preflight import InstallationPlan, LiveConsent, PreflightResult
 
 
 class SetupWorkflowKind(str, Enum):
@@ -116,12 +116,14 @@ class SetupWorkflow:
         progress: PortWorkflowProgress | None = None,
         method_trace: PortMethodTrace | None = None,
         trace_correlation_id: str | None = None,
+        installation_plan: InstallationPlan | None = None,
     ):
         self.phases = tuple(phases)
         self.live_consent = live_consent
         self.progress = progress or NullWorkflowProgress()
         self.method_trace = method_trace or NullMethodTrace()
         self.trace_correlation_id = trace_correlation_id
+        self.installation_plan = installation_plan
 
     async def run(self) -> SetupWorkflowResult:
         return await MethodTraceWrapper(
@@ -154,7 +156,27 @@ class SetupWorkflow:
                 reason="live consent is required before setup orchestration can run",
             )
 
-        if not self.phases:
+        try:
+            phases = self._ordered_phases()
+        except ValueError as exc:
+            self._report_progress(
+                phase="setup",
+                target="setup",
+                task=RUN_SETUP_WORKFLOW_TASK,
+                step="phase configuration",
+                status=SetupWorkflowStatus.BLOCKED.value,
+                result=SetupWorkflowStatus.BLOCKED.value,
+                safe_message="Setup run is blocked by the installation phase plan.",
+                recovery_hint="Repair the installation phase plan before retrying.",
+            )
+            return SetupWorkflowResult(
+                kind=SetupWorkflowKind.RUN,
+                status=SetupWorkflowStatus.BLOCKED,
+                message="setup run is blocked by the installation phase plan.",
+                reason=str(exc),
+            )
+
+        if not phases:
             self._report_progress(
                 phase="setup",
                 target="setup",
@@ -173,7 +195,7 @@ class SetupWorkflow:
             )
 
         phase_results: list[SetupPhaseResult] = []
-        for phase in self.phases:
+        for phase in phases:
             _print_phase_progress(phase.name, "START")
             self._report_phase_progress(
                 phase_name=phase.name,
@@ -195,7 +217,7 @@ class SetupWorkflow:
                 )
                 phase_results.append(failed_phase)
                 not_run_phase_results = _not_run_phase_results(
-                    self.phases[len(phase_results) :]
+                    phases[len(phase_results) :]
                 )
                 self._report_phase_progress(
                     phase_name=phase.name,
@@ -232,7 +254,7 @@ class SetupWorkflow:
                 )
                 phase_results.append(failed_phase)
                 not_run_phase_results = _not_run_phase_results(
-                    self.phases[len(phase_results) :]
+                    phases[len(phase_results) :]
                 )
                 self._report_phase_progress(
                     phase_name=phase.name,
@@ -274,7 +296,7 @@ class SetupWorkflow:
 
             setup_status = _setup_status_for_phase_status(phase_status)
             not_run_phase_results = _not_run_phase_results(
-                self.phases[len(phase_results) :]
+                phases[len(phase_results) :]
             )
             self._report_not_run_phase_progress(not_run_phase_results)
             self._report_stopped_progress(setup_status.value)
@@ -307,6 +329,11 @@ class SetupWorkflow:
             executed=True,
             phase_results=tuple(phase_results),
         )
+
+    def _ordered_phases(self) -> tuple[SetupWorkflowPhase, ...]:
+        if self.installation_plan is None:
+            return self.phases
+        return self.installation_plan.arrange_workflow_phases(self.phases)
 
     def _report_phase_progress(
         self,

@@ -78,6 +78,39 @@ This separation lets apply workflows report apply failure and verify failure
 separately without treating generated logs or command output as validated
 runtime evidence.
 
+=== Installation And Port Registries
+
+Installation order is declared separately from executable setup phases.
+`infra/config/installation-plan.yaml` mirrors the intended phase dependency
+graph. Runtime wiring currently uses the typed `default_installation_plan()`;
+the YAML file is a committed contract and documentation surface until a later
+adapter loads it. The Python domain model rejects cycles, unknown
+dependencies, missing required phase IDs, missing required services, duplicate
+setup workflow phases, and missing required workflow phases before setup can
+report success.
+
+`infra/config/ports.yaml` is the central port registry. It records port ranges,
+service port mappings, exposure class, route hosts, and whether a port is part
+of preflight. Traefik owns public ingress on `80` and `443`. Other published
+or desired service ports are direct, diagnostic, compatibility, or deferred
+allocations and must not be silently interpreted as public ingress.
+
+`infra/config/services.yml` statically links selected stacks to installation
+phases, service-stack contracts, port-registry IDs, readiness targets, and
+explicit compatibility published ports. Runtime deployment selection still
+uses `ServiceStackContract` domain contracts. Current Apache Pulsar remains
+the messaging baseline; RabbitMQ is not part of the selected service registry.
+
+=== Health And Validation Evidence
+
+`infra/config/health-checks.yaml` and `infra/config/validation-plan.yaml`
+declare desired observed-state evidence. They are not live probes and do not
+claim health. They are aligned by tests; default deployment verification does
+not yet load them as YAML. The application validation plan evaluates actual
+`VerificationResult` values when provided and fails closed when required
+evidence is missing, blocked, failed, or lacks observed Swarm service fields
+such as stack name, required services, and replica summary.
+
 === Ingress Desired State And Certificate Summaries
 
 The Traefik HTTPS ingress workflow now has provider-neutral domain contracts

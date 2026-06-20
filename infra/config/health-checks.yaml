@@ -1,0 +1,94 @@
+schema_version: "1"
+metadata:
+  workflow_id: workflow-install-order-and-port-allocation-20260620
+  policy: "Health checks declare desired checks only; runtime evidence must come from observed VerificationResult records."
+checks:
+  - id: portainer-service-readiness
+    stack: portainer
+    target_id: deployment:portainer-service-readiness
+    phase: platform
+    evidence_kind: swarm_service_replicas
+    required_services:
+      - portainer
+      - agent
+    live_default: false
+
+  - id: nexus-service-readiness
+    stack: nexus
+    target_id: deployment:nexus-service-readiness
+    phase: artifacts
+    evidence_kind: swarm_service_replicas
+    required_services:
+      - nexus
+    live_default: false
+
+  - id: jenkins-service-readiness
+    stack: jenkins
+    target_id: deployment:jenkins-service-readiness
+    phase: cicd
+    evidence_kind: swarm_service_replicas
+    required_services:
+      - jenkins
+    live_default: false
+
+  - id: pulsar-service-readiness
+    stack: pulsar
+    target_id: deployment:pulsar-service-readiness
+    phase: messaging
+    evidence_kind: swarm_service_replicas
+    required_services:
+      - pulsar
+      - pulsar-manager
+    live_default: false
+
+  - id: sonarqube-service-readiness
+    stack: sonarqube
+    target_id: deployment:sonarqube-service-readiness
+    phase: quality
+    evidence_kind: swarm_service_replicas
+    required_services:
+      - sonarqube
+      - sonar_db
+    live_default: false
+
+  - id: swagger-service-readiness
+    stack: swagger
+    target_id: deployment:swagger-service-readiness
+    phase: docs
+    evidence_kind: swarm_service_replicas
+    required_services:
+      - swagger-editor
+      - swagger-ui
+      - swagger-api
+      - swagger-nginx
+    live_default: false
+
+  - id: infisical-service-readiness
+    stack: infisical
+    target_id: deployment:infisical-service-readiness
+    phase: secrets
+    evidence_kind: swarm_service_replicas
+    required_services:
+      - infisical
+      - infisical-db
+      - infisical-redis
+    live_default: false
+
+  - id: service-access-service-readiness
+    stack: service-access
+    target_id: deployment:service-access-service-readiness
+    phase: control
+    evidence_kind: swarm_service_replicas
+    required_services:
+      - service-access-dashboard
+      - service-access-nginx
+    live_default: false
+
+  - id: traefik-service-readiness
+    stack: traefik
+    target_id: deployment:traefik-service-readiness
+    phase: network-routing
+    evidence_kind: swarm_service_replicas
+    required_services:
+      - traefik
+    live_default: false

@@ -13,6 +13,12 @@ from tiny_swarm_world.domain.configuration import (
     ConfigurationValidationResult,
 )
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
+from tiny_swarm_world.domain.network import (
+    PortExposureClass,
+    PortRange,
+    PortRegistry,
+    ServicePortMapping,
+)
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentKind,
     HostEnvironmentReport,
@@ -298,6 +304,56 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("SECRET-TSW_CUSTOM_SECRET", check_ids)
         self.assertNotIn("PORT-9000", check_ids)
         self.assertNotIn("SECRET-TSW_PORTAINER_ADMIN_PASSWORD", check_ids)
+
+    async def test_preflight_uses_port_registry_external_ports_when_provided(self):
+        registry = PortRegistry(
+            ranges=(PortRange("public-ingress", 80, 443),),
+            mappings=(
+                ServicePortMapping(
+                    service_id="traefik",
+                    port_id="traefik-http",
+                    internal_port=80,
+                    external_port=80,
+                    exposure=PortExposureClass.PUBLIC_INGRESS,
+                    range_id="public-ingress",
+                    required_for_preflight=True,
+                ),
+            ),
+        )
+
+        result = await PreflightService(
+            _fake_probe(port_availability={80: False}),
+            port_registry=registry,
+        ).run()
+
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+
+        self.assertIn("PORT-80", failed_by_id)
+        self.assertEqual("80", failed_by_id["PORT-80"].evidence["port"])
+        self.assertEqual("traefik-http", failed_by_id["PORT-80"].evidence["service"])
+
+    async def test_preflight_ignores_non_preflight_registry_ports(self):
+        registry = PortRegistry(
+            ranges=(PortRange("diagnostic", 10000, 19999),),
+            mappings=(
+                ServicePortMapping(
+                    service_id="jenkins",
+                    port_id="jenkins-http",
+                    internal_port=8080,
+                    external_port=11080,
+                    exposure=PortExposureClass.DIAGNOSTIC,
+                    range_id="diagnostic",
+                    required_for_preflight=False,
+                ),
+            ),
+        )
+
+        result = await PreflightService(
+            _fake_probe(port_availability={11080: False}),
+            port_registry=registry,
+        ).run()
+
+        self.assertNotIn("PORT-11080", {check.check_id for check in result.checks})
 
     async def test_incomplete_live_consent_fails_preflight(self):
         result = await PreflightService(_fake_probe()).run(

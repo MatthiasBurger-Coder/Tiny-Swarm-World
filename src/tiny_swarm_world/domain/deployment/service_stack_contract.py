@@ -52,11 +52,15 @@ class ServiceEndpoint:
 class ServiceStackContract:
     stack_name: str
     required_services: tuple[str, ...]
+    phase_id: str | None = None
+    port_ids: tuple[str, ...] = ()
     endpoints: tuple[ServiceEndpoint, ...] = ()
 
     def __post_init__(self) -> None:
         if not STACK_NAME_PATTERN.fullmatch(self.stack_name):
             raise ValueError("service stack name contains invalid characters")
+        if self.phase_id is not None and not STACK_NAME_PATTERN.fullmatch(self.phase_id):
+            raise ValueError("service stack phase id contains invalid characters")
         if not self.required_services:
             raise ValueError("service stack contract requires at least one service")
         invalid_services = [
@@ -66,7 +70,15 @@ class ServiceStackContract:
         ]
         if invalid_services:
             raise ValueError("service stack contract contains invalid service names")
+        invalid_port_ids = [
+            port_id
+            for port_id in self.port_ids
+            if not SERVICE_NAME_PATTERN.fullmatch(port_id)
+        ]
+        if invalid_port_ids:
+            raise ValueError("service stack contract contains invalid port ids")
         object.__setattr__(self, "required_services", tuple(self.required_services))
+        object.__setattr__(self, "port_ids", tuple(self.port_ids))
         object.__setattr__(self, "endpoints", tuple(self.endpoints))
 
     @property
@@ -84,6 +96,8 @@ class ServiceStackContract:
     def to_dict(self) -> dict[str, object]:
         return {
             "endpoints": [endpoint.to_dict() for endpoint in self.endpoints],
+            "phase_id": self.phase_id,
+            "port_ids": list(self.port_ids),
             "required_services": list(self.required_services),
             "service_readiness_target_id": self.service_readiness_target_id,
             "stack_target_id": self.stack_target_id,
@@ -95,11 +109,15 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
     ServiceStackContract(
         "portainer",
         ("portainer", "agent"),
+        phase_id="platform",
+        port_ids=("portainer-http",),
         endpoints=(ServiceEndpoint("portainer", "http://localhost:9000"),),
     ),
     ServiceStackContract(
         "nexus",
         ("nexus",),
+        phase_id="artifacts",
+        port_ids=("nexus-http", "nexus-docker-http", "nexus-docker-https"),
         endpoints=(
             ServiceEndpoint("nexus", "http://localhost:8081"),
             ServiceEndpoint("nexus-docker-registry", "http://localhost:5000"),
@@ -108,11 +126,15 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
     ServiceStackContract(
         "jenkins",
         ("jenkins",),
+        phase_id="cicd",
+        port_ids=("jenkins-http", "jenkins-agent"),
         endpoints=(ServiceEndpoint("jenkins", "http://localhost:8080"),),
     ),
     ServiceStackContract(
         "pulsar",
         ("pulsar", "pulsar-manager"),
+        phase_id="messaging",
+        port_ids=("pulsar-broker", "pulsar-admin-api"),
         endpoints=(
             ServiceEndpoint("pulsar-admin-api", "http://localhost:8087"),
             ServiceEndpoint("pulsar-manager", "http://localhost:9527"),
@@ -122,11 +144,15 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
     ServiceStackContract(
         "sonarqube",
         ("sonarqube", "sonar_db"),
+        phase_id="quality",
+        port_ids=("sonarqube-http",),
         endpoints=(ServiceEndpoint("sonarqube", "http://localhost:9001"),),
     ),
     ServiceStackContract(
         "swagger",
         ("swagger-editor", "swagger-ui", "swagger-api", "swagger-nginx"),
+        phase_id="docs",
+        port_ids=("swagger-ui", "openapi-aggregator"),
         endpoints=(ServiceEndpoint("swagger", "http://localhost:8084"),),
     ),
 )
@@ -134,6 +160,8 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
 SERVICE_ACCESS_STACK_CONTRACT = ServiceStackContract(
     "service-access",
     ("service-access-dashboard", "service-access-nginx"),
+    phase_id="control",
+    port_ids=("service-access-http",),
     endpoints=(
         ServiceEndpoint("service-access", "http://localhost"),
     ),
@@ -142,6 +170,8 @@ SERVICE_ACCESS_STACK_CONTRACT = ServiceStackContract(
 INFISICAL_STACK_CONTRACT = ServiceStackContract(
     "infisical",
     ("infisical", "infisical-db", "infisical-redis"),
+    phase_id="secrets",
+    port_ids=("infisical-http",),
     endpoints=(ServiceEndpoint("infisical", "http://localhost:8086"),),
 )
 

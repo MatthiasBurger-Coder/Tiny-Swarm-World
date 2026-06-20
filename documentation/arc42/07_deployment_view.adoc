@@ -40,6 +40,24 @@ separately through observed Swarm service evidence. The service-access deploymen
 uses allowlisted stack environment values and records only neutral
 presence/source classifications in verification evidence.
 
+The deployment configuration model is now split across committed registries:
+
+* `infra/config/installation-plan.yaml` mirrors the typed default setup phase
+  plan and dependencies;
+* `infra/config/ports.yaml` declares desired internal/external service port
+  allocations;
+* `infra/config/services.yml` is a static selected-service catalogue that maps
+  selected stacks to phases, service-stack contracts, port-registry IDs,
+  readiness target IDs, and compatibility published ports;
+* `infra/config/health-checks.yaml` and
+  `infra/config/validation-plan.yaml` declare desired observed evidence
+  targets without running live checks or being loaded by default deployment
+  verification.
+
+Current compose files still publish some legacy host ports. Those ports are
+classified as compatibility in the service registry and are not presented as a
+completed port migration.
+
 == Service Access And Traefik Routing Baseline
 
 The service-access dashboard capability is implemented as repository assets

@@ -7,15 +7,23 @@ from tiny_swarm_world.domain.network.lxc_proxy_device_plan import LxcProxyDevice
 from tiny_swarm_world.domain.network.network import Network
 from tiny_swarm_world.domain.network.port_forwarding_plan import (
     ForwardingStrategy,
+    PortExposureClass,
     PortForwardingPlan,
+    PortRange,
+    PortRegistry,
+    ServicePortMapping,
 )
 
 __all__ = [
     "ForwardingStrategy",
+    "PortExposureClass",
     "ContainerNetworkPlan",
     "ContainerNetworkPurpose",
     "IpValue",
     "LxcProxyDevicePlan",
     "Network",
     "PortForwardingPlan",
+    "PortRange",
+    "PortRegistry",
+    "ServicePortMapping",
 ]

@@ -118,6 +118,7 @@ from tiny_swarm_world.domain.preflight import (
     LiveConsent,
     PreflightConfiguration,
     ProviderPreflightMetadata,
+    default_installation_plan,
     default_setup_manifest,
     default_preflight_configuration,
     RequiredDependency,
@@ -173,6 +174,9 @@ from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_reposito
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderConfig,
     NodeProviderConfigYamlRepository,
+)
+from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
+    PortRegistryYamlRepository,
 )
 from tiny_swarm_world.infrastructure.os_types import OsTypes
 from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
@@ -443,10 +447,12 @@ def build_preflight_service(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
+    port_registry = PortRegistryYamlRepository().load()
     return PreflightService(
         HostPreflightProbe(),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
         configuration_validation=configuration_validation,
+        port_registry=port_registry,
     )
 
 
@@ -1145,6 +1151,7 @@ def build_setup_services(
                 progress=workflow_progress,
                 method_trace=method_trace,
                 trace_correlation_id=trace_correlation_id,
+                installation_plan=default_installation_plan(),
             )
         )
     )

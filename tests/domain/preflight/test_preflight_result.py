@@ -3,6 +3,8 @@ import unittest
 from tests.support.sonar_safe_literals import sample_text, token_marker
 
 from tiny_swarm_world.domain.preflight import (
+    InstallationPhase,
+    InstallationPlan,
     LIVE_CONSENT_ENVIRONMENT_VALUE,
     LIVE_CONSENT_PHRASE,
     LiveConsent,
@@ -16,6 +18,7 @@ from tiny_swarm_world.domain.preflight import (
     SetupProfile,
     SetupSecretRequirement,
     SetupServiceRequirement,
+    default_installation_plan,
     default_preflight_configuration,
     default_setup_manifest,
 )
@@ -292,4 +295,88 @@ class TestPreflightResult(unittest.TestCase):
                     ),
                 ),
                 evidence_root=".tiny-swarm-world/../leak",
+            )
+
+
+class TestInstallationPlan(unittest.TestCase):
+    def test_default_installation_plan_sorts_full_setup_order(self):
+        plan = default_installation_plan()
+
+        self.assertEqual(
+            (
+                "preflight",
+                "platform",
+                "cluster",
+                "network-routing",
+                "secrets",
+                "artifacts",
+                "cicd",
+                "quality",
+                "messaging",
+                "observability",
+                "control",
+                "docs",
+                "validation",
+            ),
+            tuple(phase.phase_id for phase in plan.ordered_phases()),
+        )
+        self.assertEqual(
+            (
+                "preflight",
+                "platform init",
+                "platform reconcile",
+                "platform expose",
+                "deployment bootstrap",
+                "artifacts prepare",
+                "artifacts verify",
+                "deployment apply",
+                "deployment verify",
+                "platform verify",
+            ),
+            plan.ordered_workflow_phase_names(),
+        )
+
+    def test_installation_plan_sorts_independent_phases_by_order_then_id(self):
+        plan = InstallationPlan(
+            phases=(
+                InstallationPhase("zeta", 20),
+                InstallationPhase("alpha", 20),
+                InstallationPhase("beta", 10),
+            )
+        )
+
+        self.assertEqual(
+            ("beta", "alpha", "zeta"),
+            tuple(phase.phase_id for phase in plan.ordered_phases()),
+        )
+
+    def test_installation_plan_rejects_dependency_cycle(self):
+        with self.assertRaisesRegex(ValueError, "cycle"):
+            InstallationPlan(
+                phases=(
+                    InstallationPhase("platform", 10, depends_on=("secrets",)),
+                    InstallationPhase("secrets", 20, depends_on=("platform",)),
+                )
+            )
+
+    def test_installation_plan_rejects_unknown_dependency(self):
+        with self.assertRaisesRegex(ValueError, "missing"):
+            InstallationPlan(
+                phases=(
+                    InstallationPhase("cicd", 20, depends_on=("artifacts",)),
+                )
+            )
+
+    def test_installation_plan_rejects_missing_required_phase(self):
+        with self.assertRaisesRegex(ValueError, "required installation phases"):
+            InstallationPlan(
+                phases=(InstallationPhase("preflight", 0),),
+                required_phase_ids=("preflight", "validation"),
+            )
+
+    def test_installation_plan_rejects_missing_required_service(self):
+        with self.assertRaisesRegex(ValueError, "required installation services"):
+            InstallationPlan(
+                phases=(InstallationPhase("artifacts", 10, services=("nexus",)),),
+                required_services=("nexus", "jenkins"),
             )

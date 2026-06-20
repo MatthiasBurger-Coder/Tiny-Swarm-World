@@ -14,6 +14,7 @@ from tiny_swarm_world.application.services.deployment.workflows import (
     DeploymentVerifyWorkflow,
     DeploymentWorkflowKind,
     DeploymentWorkflowStatus,
+    ValidationPlan,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
@@ -301,6 +302,91 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(DeploymentWorkflowStatus.COMPLETED, result.status)
         self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
         self.assertEqual("active", result.verification_results[0].evidence["access_state"])
+
+    async def test_validation_plan_fails_closed_when_required_evidence_is_missing(self):
+        plan = ValidationPlan(
+            "greenpath",
+            required_targets=("deployment:nexus-service-readiness",),
+        )
+
+        result = plan.evaluate(())
+
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertEqual(
+            "required_evidence_missing",
+            result.verification_results[0].evidence["reason"],
+        )
+
+    async def test_validation_plan_rejects_verified_static_evidence(self):
+        plan = ValidationPlan(
+            "greenpath",
+            required_targets=("deployment:nexus-service-readiness",),
+        )
+
+        result = plan.evaluate(
+            (
+                VerificationResult(
+                    target_id="deployment:nexus-service-readiness",
+                    status=VerificationStatus.VERIFIED,
+                    message="Stack registration verified.",
+                    evidence={
+                        "phase": "verify",
+                        "readiness_observed": "false",
+                        "registration_scope": "deployment_gateway_stack",
+                    },
+                ),
+            )
+        )
+
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertEqual(
+            "observed_evidence_missing",
+            result.verification_results[0].evidence["reason"],
+        )
+
+    async def test_validation_plan_completes_with_observed_runtime_evidence(self):
+        plan = ValidationPlan(
+            "greenpath",
+            required_targets=("deployment:nexus-service-readiness",),
+        )
+
+        result = plan.evaluate(
+            (
+                VerificationResult(
+                    target_id="deployment:nexus-service-readiness",
+                    status=VerificationStatus.VERIFIED,
+                    message="Swarm services reached desired replica counts.",
+                    evidence={
+                        "phase": "verify",
+                        "evidence_kind": "swarm_service_replicas",
+                        "replicas": "nexus=1/1",
+                        "required_services": "nexus",
+                        "stack_name": "nexus",
+                    },
+                ),
+            )
+        )
+
+        self.assertEqual(DeploymentWorkflowStatus.COMPLETED, result.status)
+
+    async def test_validation_plan_blocks_when_required_evidence_blocks(self):
+        plan = ValidationPlan(
+            "greenpath",
+            required_targets=("deployment:nexus-service-readiness",),
+        )
+
+        result = plan.evaluate(
+            (
+                VerificationResult(
+                    target_id="deployment:nexus-service-readiness",
+                    status=VerificationStatus.BLOCKED,
+                    message="Readiness check blocked.",
+                    evidence={"phase": "verify"},
+                ),
+            )
+        )
+
+        self.assertEqual(DeploymentWorkflowStatus.BLOCKED, result.status)
 
     async def test_apply_workflow_stops_later_stacks_when_verification_blocks(self):
         first_step = _OrderedApplyStep("deployment:nexus-stack", VerificationStatus.VERIFIED)

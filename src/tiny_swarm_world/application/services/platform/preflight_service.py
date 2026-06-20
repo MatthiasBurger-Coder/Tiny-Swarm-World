@@ -7,6 +7,7 @@ from tiny_swarm_world.application.ports.configuration import ConfigurationSource
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.application.services.configuration import ConfigurationValidationService
 from tiny_swarm_world.domain.configuration import ConfigurationFinding
+from tiny_swarm_world.domain.network import PortRegistry
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentReport,
     LiveConsent,
@@ -16,6 +17,7 @@ from tiny_swarm_world.domain.preflight import (
     PreflightResult,
     PreflightSeverity,
     PreflightStatus,
+    RequiredPort,
     default_preflight_configuration,
 )
 
@@ -26,10 +28,12 @@ class PreflightService:
         host_probe: PortHostPreflightProbe,
         configuration: PreflightConfiguration | None = None,
         configuration_validation: ConfigurationValidationService | None = None,
+        port_registry: PortRegistry | None = None,
     ):
         self.host_probe = host_probe
         self.configuration = configuration or default_preflight_configuration()
         self.configuration_validation = configuration_validation
+        self.port_registry = port_registry
 
     async def run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
         await asyncio.sleep(0)
@@ -280,7 +284,7 @@ class PreflightService:
 
     def _port_checks(self) -> tuple[PreflightCheck, ...]:
         checks: list[PreflightCheck] = []
-        for required_port in self.configuration.required_ports:
+        for required_port in self._required_ports():
             check_id = f"PORT-{required_port.port}"
             if self.host_probe.port_available(required_port.port):
                 checks.append(
@@ -354,6 +358,15 @@ class PreflightService:
                 )
             )
         return tuple(checks)
+
+    def _required_ports(self) -> tuple[RequiredPort, ...]:
+        if self.port_registry is None:
+            return self.configuration.required_ports
+        return tuple(
+            RequiredPort(mapping.external_port, mapping.port_id)
+            for mapping in self.port_registry.preflight_ports
+            if mapping.external_port is not None
+        )
 
     def _secret_checks(self) -> tuple[PreflightCheck, ...]:
         checks: list[PreflightCheck] = []

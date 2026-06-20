@@ -31,6 +31,8 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
         self.assertEqual("deployment:sonarqube-service-readiness", verification.target_id)
         self.assertEqual("sonarqube", verification.evidence["stack_name"])
+        self.assertEqual("swarm_service_replicas", verification.evidence["evidence_kind"])
+        self.assertIn("sonarqube=1/1", verification.evidence["replicas"])
 
     async def test_fails_when_required_service_does_not_converge(self):
         runtime = _FakeSwarmRuntime((SwarmServiceStatus("nexus_nexus", 0, 1),))
