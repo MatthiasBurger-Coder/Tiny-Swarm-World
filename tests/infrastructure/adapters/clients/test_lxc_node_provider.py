@@ -693,7 +693,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("inventory_mapping_missing", result.evidence["classification"])
         self.assertEqual([], runner.calls)
 
-    async def test_launch_failure_maps_to_failed_to_apply_without_raw_output(self):
+    async def test_launch_failure_maps_to_failed_to_apply_with_sanitized_diagnostic(self):
         runner = _FakeRunner(
             _profile(),
             _list(),
@@ -711,6 +711,143 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
         self.assertEqual("launch_failed", result.evidence["classification"])
         self.assertEqual("2", result.evidence["return_code"])
+        self.assertEqual(
+            "provider_launch_failed_unclassified",
+            result.evidence["failure_reason"],
+        )
+        self.assertEqual(
+            "inspect_provider_launch_error",
+            result.evidence["operator_action"],
+        )
+        self.assertEqual("ubuntu-24.04", result.evidence["expected_image_alias"])
+        self.assertEqual("docker-swarm", result.evidence["expected_profile"])
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_lxd_launch_failure_reports_resource_context_and_reason_code(self):
+        runner = _FakeRunner(
+            _name_list("lxdbr0"),
+            _name_list("default"),
+            _profile(),
+            _list(),
+            LxcNodeCommandResult(
+                returncode=1,
+                stderr="Failed getting remote image info: The requested image couldn't be found",
+            ),
+            _list(),
+        )
+        provider = _provider(runner, config=_config(resolve_provider_resources=True))
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
+
+        self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual("launch_failed", result.evidence["classification"])
+        self.assertEqual("image_unavailable", result.evidence["failure_reason"])
+        self.assertEqual(
+            "verify_provider_image_remote",
+            result.evidence["operator_action"],
+        )
+        self.assertEqual("lxdbr0", result.evidence["resolved_network"])
+        self.assertEqual("default", result.evidence["expected_storage_pool"])
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_configured_image_availability_check_runs_before_launch(self):
+        runner = _FakeRunner(
+            _profile(),
+            _list(),
+            _ok(),
+            _ok(),
+            _list(_node("swarm-manager", "Running")),
+        )
+        provider = _provider(runner, config=_config(check_provider_image=True))
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual(
+            [
+                (("lxc", "profile", "show", "docker-swarm"), 5.0),
+                (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
+                (("lxc", "image", "info", "ubuntu:24.04"), 5.0),
+                (
+                    (
+                        "lxc",
+                        "launch",
+                        "ubuntu:24.04",
+                        "swarm-manager",
+                        "--profile",
+                        "docker-swarm",
+                        "-c",
+                        "user.tiny_swarm_world.managed=true",
+                        "-c",
+                        "user.tiny_swarm_world.node=swarm-manager",
+                        "-c",
+                        "user.tiny_swarm_world.image_alias=ubuntu-24.04",
+                        "-c",
+                        "limits.cpu=2",
+                        "-c",
+                        "limits.memory=4GiB",
+                        "-d",
+                        "root,size=20GiB",
+                    ),
+                    300.0,
+                ),
+                (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
+            ],
+            runner.calls,
+        )
+
+    async def test_configured_image_availability_failure_blocks_before_launch(self):
+        runner = _FakeRunner(
+            _profile(),
+            _list(),
+            LxcNodeCommandResult(
+                returncode=1,
+                stderr="Remote not found for ubuntu:24.04 under /home/alice",
+            ),
+        )
+        provider = _provider(runner, config=_config(check_provider_image=True))
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("image_unavailable", result.evidence["classification"])
+        self.assertEqual("ubuntu-24.04", result.evidence["expected_image_alias"])
+        self.assertEqual("ubuntu:24.04", result.evidence["provider_image_ref"])
+        self.assertEqual("image_unavailable", result.evidence["failure_reason"])
+        self.assertEqual(
+            "verify_provider_image_remote",
+            result.evidence["operator_action"],
+        )
+        self.assertEqual(
+            [
+                (("lxc", "profile", "show", "docker-swarm"), 5.0),
+                (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
+                (("lxc", "image", "info", "ubuntu:24.04"), 5.0),
+            ],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_lxd_launch_permission_failure_reports_access_reason_without_raw_output(self):
+        runner = _FakeRunner(
+            _profile(),
+            _list(),
+            LxcNodeCommandResult(
+                returncode=1,
+                stderr="Permission denied while opening /home/alice/.config/lxc/config.yml",
+            ),
+            _list(),
+        )
+        provider = _provider(runner)
+
+        result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
+
+        self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual("daemon_access_denied", result.evidence["failure_reason"])
+        self.assertEqual(
+            "verify_backend_daemon_access",
+            result.evidence["operator_action"],
+        )
         self.assertEvidenceIsSummaryOnly(result)
 
     async def test_apply_success_with_missing_verify_maps_to_failed_to_verify(self):
@@ -1158,6 +1295,7 @@ def _config(
     nodes: tuple[NodeSpec, ...] | None = None,
     additional_profiles: tuple[str, ...] = (),
     resolve_provider_resources: bool = False,
+    check_provider_image: bool = False,
     node_networks: tuple[str, ...] = ("control",),
     provider_network_mappings: (
         dict[ManagedLxcBackend, dict[str, str]] | dict[str, str] | None
@@ -1244,6 +1382,7 @@ def _config(
                     if resolve_provider_resources
                     else ()
                 ),
+                *(("provider_image_availability",) if check_provider_image else ()),
             ),
         ),
     )
@@ -1386,6 +1525,8 @@ def _assert_safe_lifecycle_command(args) -> None:
         return
     if _safe_lifecycle_profile_set(argv):
         return
+    if _safe_lifecycle_image_info(argv):
+        return
     _assert_safe_lifecycle_shape(argv)
 
 
@@ -1433,6 +1574,14 @@ def _safe_lifecycle_profile_set(argv: tuple[str, ...]) -> bool:
     }
     if len(argv) != 6 or argv[3] != "docker-swarm" or allowed_settings.get(argv[4]) != argv[5]:
         raise AssertionError(f"unexpected provider profile set was called: {argv!r}")
+    return True
+
+
+def _safe_lifecycle_image_info(argv: tuple[str, ...]) -> bool:
+    if argv[:3] not in {("incus", "image", "info"), ("lxc", "image", "info")}:
+        return False
+    if len(argv) != 4 or argv[3] != "ubuntu:24.04":
+        raise AssertionError(f"unexpected provider image info was called: {argv!r}")
     return True
 
 

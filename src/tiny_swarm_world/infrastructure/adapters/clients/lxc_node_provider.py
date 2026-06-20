@@ -246,6 +246,16 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         if mutation_block is not None:
             return mutation_block
 
+        image_result = await self._verify_provider_image(
+            node,
+            selection,
+            backend,
+            config,
+            node_config,
+        )
+        if image_result is not None:
+            return image_result
+
         launch_result = await self.runner.run(
             _launch_args(
                 backend,
@@ -516,6 +526,42 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 ),
             )
         return None
+
+    async def _verify_provider_image(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+        node_config: NodeProviderNodeConfig,
+    ) -> VerificationResult | None:
+        if "provider_image_availability" not in config.verification_metadata.checks:
+            return None
+        result = await self.runner.run(
+            _image_info_args(
+                backend,
+                node_config,
+                self.image_references,
+            ),
+            float(config.verification_metadata.readiness_timeout_seconds),
+        )
+        if not _command_failed(result):
+            return None
+        reason, action = _classify_launch_failure(result)
+        return _blocked(
+            node,
+            selection,
+            "image_unavailable" if reason == "image_unavailable" else "image_check_failed",
+            backend=backend,
+            return_code=result.returncode,
+            timed_out=result.timed_out,
+            extra_evidence=_image_availability_evidence(
+                node_config,
+                self.image_references,
+                failure_reason=reason,
+                operator_action=action,
+            ),
+        )
 
     async def _ensure_profile_available(
         self,
@@ -881,6 +927,12 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             "launch_failed",
             backend=backend,
             result=launch_result,
+            extra_evidence=_launch_failure_evidence(
+                launch_result,
+                config,
+                node_config,
+                backend,
+            ),
         )
 
     async def _created_node_verification_failure(
@@ -1152,6 +1204,19 @@ def _delete_args(
     node_name: str,
 ) -> tuple[str, ...]:
     return (_BACKEND_CLI[backend], "delete", node_name, "--force")
+
+
+def _image_info_args(
+    backend: ManagedLxcBackend,
+    node_config: NodeProviderNodeConfig,
+    image_references: Mapping[str, str],
+) -> tuple[str, ...]:
+    return (
+        _BACKEND_CLI[backend],
+        "image",
+        "info",
+        _image_ref(node_config.image_alias, image_references),
+    )
 
 
 def _launch_args(
@@ -1501,6 +1566,129 @@ def _result_indicates_existing_node(result: LxcNodeCommandResult) -> bool:
     return "already exists" in output or "already in use" in output
 
 
+def _launch_failure_evidence(
+    result: LxcNodeCommandResult,
+    config: NodeProviderConfig,
+    node_config: NodeProviderNodeConfig,
+    backend: ManagedLxcBackend,
+) -> dict[str, str]:
+    evidence = {
+        "expected_image_alias": node_config.image_alias,
+        "expected_profile": node_config.profile,
+        "expected_profiles": ",".join(node_config.expected_profiles),
+    }
+    backend_resource_resolution = (
+        _selected_provider_resource_resolution(config, backend)
+        if _uses_provider_resource_resolution(config)
+        else None
+    )
+    if backend_resource_resolution is not None:
+        evidence["resolved_network"] = _resolved_network(
+            node_config,
+            backend_resource_resolution,
+        )
+        evidence["expected_storage_pool"] = backend_resource_resolution.storage_pool
+
+    reason, action = _classify_launch_failure(result)
+    evidence["failure_reason"] = reason
+    evidence["operator_action"] = action
+    return evidence
+
+
+def _image_availability_evidence(
+    node_config: NodeProviderNodeConfig,
+    image_references: Mapping[str, str],
+    *,
+    failure_reason: str,
+    operator_action: str,
+) -> dict[str, str]:
+    return {
+        "expected_image_alias": node_config.image_alias,
+        "provider_image_ref": _image_ref(node_config.image_alias, image_references),
+        "failure_reason": failure_reason,
+        "operator_action": operator_action,
+    }
+
+
+def _classify_launch_failure(result: LxcNodeCommandResult) -> tuple[str, str]:
+    if result.timed_out:
+        return "provider_launch_timed_out", "inspect_provider_daemon_health"
+
+    output = f"{result.stdout}\n{result.stderr}".casefold()
+    if any(fragment in output for fragment in ("permission denied", "not authorized", "access denied")):
+        return "daemon_access_denied", "verify_backend_daemon_access"
+    if any(
+        fragment in output
+        for fragment in (
+            "image couldn't be found",
+            "image could not be found",
+            "failed getting remote image",
+            "failed to get remote image",
+            "no such image",
+            "not found for remote",
+            "remote not found",
+            "requested image",
+            "unable to resolve remote",
+            "unknown remote",
+        )
+    ):
+        return "image_unavailable", "verify_provider_image_remote"
+    if any(
+        fragment in output
+        for fragment in (
+            "network not found",
+            "network doesn't exist",
+            "unknown network",
+            "failed to load network",
+        )
+    ):
+        return "network_unavailable", "verify_backend_network_mapping"
+    if any(
+        fragment in output
+        for fragment in (
+            "storage pool not found",
+            "storage pool doesn't exist",
+            "unknown storage pool",
+            "no storage pool",
+        )
+    ):
+        return "storage_pool_unavailable", "verify_backend_storage_pool"
+    if any(
+        fragment in output
+        for fragment in (
+            "profile not found",
+            "profile doesn't exist",
+            "invalid devices",
+            "failed to start device",
+            "failed to add device",
+        )
+    ):
+        return "profile_launch_rejected", "inspect_provider_profiles"
+    if any(
+        fragment in output
+        for fragment in (
+            "cgroup",
+            "apparmor",
+            "seccomp",
+            "operation not permitted",
+            "not supported",
+        )
+    ):
+        return "wsl2_lxd_capability_blocked", "verify_wsl2_lxd_capabilities"
+    if any(
+        fragment in output
+        for fragment in (
+            "no space left",
+            "insufficient",
+            "not enough",
+            "quota exceeded",
+            "cannot allocate",
+        )
+    ):
+        return "host_resource_exhausted", "verify_provider_host_resources"
+    return "provider_launch_failed_unclassified", "inspect_provider_launch_error"
+
+
 def _verified(
     node: NodeSpec,
     backend: ManagedLxcBackend,
@@ -1559,20 +1747,24 @@ def _apply_failed(
     *,
     backend: ManagedLxcBackend,
     result: LxcNodeCommandResult,
+    extra_evidence: Mapping[str, str] | None = None,
 ) -> VerificationResult:
+    evidence = _evidence(
+        "apply",
+        reason,
+        node,
+        backend,
+        return_code=result.returncode,
+        timed_out=result.timed_out,
+        selection_status=selection.status.value,
+    )
+    if extra_evidence:
+        evidence.update(extra_evidence)
     return VerificationResult(
         target_id=_target_id(node),
         status=VerificationStatus.FAILED_TO_APPLY,
         message="LXC node lifecycle could not apply the desired state.",
-        evidence=_evidence(
-            "apply",
-            reason,
-            node,
-            backend,
-            return_code=result.returncode,
-            timed_out=result.timed_out,
-            selection_status=selection.status.value,
-        ),
+        evidence=evidence,
     )
 
 

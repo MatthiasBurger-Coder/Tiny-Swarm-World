@@ -108,3 +108,4 @@ verification_metadata:
     - backend_readiness
     - profile_requirements
     - provider_resource_resolution
+    - provider_image_availability
