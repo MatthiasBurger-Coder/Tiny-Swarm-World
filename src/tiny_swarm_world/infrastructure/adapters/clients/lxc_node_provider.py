@@ -246,7 +246,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         if mutation_block is not None:
             return mutation_block
 
-        image_result = await self._verify_provider_image(
+        image_result = await self._verify_provider_image_available(
             node,
             selection,
             backend,
@@ -289,6 +289,41 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         if verification_failure is not None:
             return verification_failure
         return _verified(node, backend, "created")
+
+    async def _verify_provider_image_available(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        backend: ManagedLxcBackend,
+        config: NodeProviderConfig,
+        node_config: NodeProviderNodeConfig,
+    ) -> VerificationResult | None:
+        if "provider_image_availability" not in config.verification_metadata.checks:
+            return None
+        result = await self.runner.run(
+            _image_info_args(
+                backend,
+                _image_ref(node_config.image_alias, self.image_references),
+            ),
+            float(config.verification_metadata.readiness_timeout_seconds),
+        )
+        if not _command_failed(result):
+            return None
+        return _blocked(
+            node,
+            selection,
+            "image_unavailable",
+            backend=backend,
+            return_code=result.returncode,
+            timed_out=result.timed_out,
+            extra_evidence=_launch_failure_evidence(
+                result,
+                config,
+                node_config,
+                backend=backend,
+                image_references=self.image_references,
+            ),
+        )
 
     async def reset_nodes(
         self,
@@ -526,42 +561,6 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 ),
             )
         return None
-
-    async def _verify_provider_image(
-        self,
-        node: NodeSpec,
-        selection: ProviderSelection,
-        backend: ManagedLxcBackend,
-        config: NodeProviderConfig,
-        node_config: NodeProviderNodeConfig,
-    ) -> VerificationResult | None:
-        if "provider_image_availability" not in config.verification_metadata.checks:
-            return None
-        result = await self.runner.run(
-            _image_info_args(
-                backend,
-                node_config,
-                self.image_references,
-            ),
-            float(config.verification_metadata.readiness_timeout_seconds),
-        )
-        if not _command_failed(result):
-            return None
-        reason, action = _classify_launch_failure(result)
-        return _blocked(
-            node,
-            selection,
-            "image_unavailable" if reason == "image_unavailable" else "image_check_failed",
-            backend=backend,
-            return_code=result.returncode,
-            timed_out=result.timed_out,
-            extra_evidence=_image_availability_evidence(
-                node_config,
-                self.image_references,
-                failure_reason=reason,
-                operator_action=action,
-            ),
-        )
 
     async def _ensure_profile_available(
         self,
@@ -921,6 +920,14 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         raced_lookup = await self._lookup_node(node, backend, config)
         if _launch_race_recovered(launch_result, raced_lookup, node_config):
             return _verified(node, backend, "already_present")
+        if _lookup_existing_expected(raced_lookup, node_config):
+            return await self._start_existing_node(
+                node,
+                selection,
+                backend,
+                config,
+                node_config,
+            )
         return _apply_failed(
             node,
             selection,
@@ -931,7 +938,8 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 launch_result,
                 config,
                 node_config,
-                backend,
+                backend=backend,
+                image_references=self.image_references,
             ),
         )
 
@@ -1058,6 +1066,17 @@ def _lookup_matches_expected(
         not lookup.failed
         and lookup.node is not None
         and lookup.node.running
+        and lookup.node.matches_expected(node_config)
+    )
+
+
+def _lookup_existing_expected(
+    lookup: _NodeLookup,
+    node_config: NodeProviderNodeConfig,
+) -> bool:
+    return (
+        not lookup.failed
+        and lookup.node is not None
         and lookup.node.matches_expected(node_config)
     )
 
@@ -1199,24 +1218,18 @@ def _start_args(
     return (_BACKEND_CLI[backend], "start", node_name)
 
 
+def _image_info_args(
+    backend: ManagedLxcBackend,
+    image_ref: str,
+) -> tuple[str, ...]:
+    return (_BACKEND_CLI[backend], "image", "info", image_ref)
+
+
 def _delete_args(
     backend: ManagedLxcBackend,
     node_name: str,
 ) -> tuple[str, ...]:
     return (_BACKEND_CLI[backend], "delete", node_name, "--force")
-
-
-def _image_info_args(
-    backend: ManagedLxcBackend,
-    node_config: NodeProviderNodeConfig,
-    image_references: Mapping[str, str],
-) -> tuple[str, ...]:
-    return (
-        _BACKEND_CLI[backend],
-        "image",
-        "info",
-        _image_ref(node_config.image_alias, image_references),
-    )
 
 
 def _launch_args(
@@ -1557,66 +1570,37 @@ def _resource_resolution_remediation_hint(
     return "Provider resource resolution is satisfied."
 
 
-def _command_failed(result: LxcNodeCommandResult) -> bool:
-    return result.timed_out or result.returncode != 0
-
-
-def _result_indicates_existing_node(result: LxcNodeCommandResult) -> bool:
-    output = f"{result.stdout}\n{result.stderr}".casefold()
-    return "already exists" in output or "already in use" in output
-
-
 def _launch_failure_evidence(
     result: LxcNodeCommandResult,
     config: NodeProviderConfig,
     node_config: NodeProviderNodeConfig,
+    *,
     backend: ManagedLxcBackend,
+    image_references: Mapping[str, str],
 ) -> dict[str, str]:
+    provider_image_ref = _image_ref(node_config.image_alias, image_references)
     evidence = {
+        "failure_reason": _classify_provider_failure(result),
+        "operator_action": _operator_action_for_provider_failure(result),
         "expected_image_alias": node_config.image_alias,
         "expected_profile": node_config.profile,
         "expected_profiles": ",".join(node_config.expected_profiles),
+        "provider_image_ref": provider_image_ref,
     }
-    backend_resource_resolution = (
-        _selected_provider_resource_resolution(config, backend)
-        if _uses_provider_resource_resolution(config)
-        else None
-    )
+    backend_resource_resolution = _selected_provider_resource_resolution(config, backend)
     if backend_resource_resolution is not None:
-        evidence["resolved_network"] = _resolved_network(
-            node_config,
-            backend_resource_resolution,
-        )
+        if node_config.networks and node_config.networks[0] in backend_resource_resolution.network_mappings:
+            evidence["resolved_network"] = _resolved_network(node_config, backend_resource_resolution)
         evidence["expected_storage_pool"] = backend_resource_resolution.storage_pool
-
-    reason, action = _classify_launch_failure(result)
-    evidence["failure_reason"] = reason
-    evidence["operator_action"] = action
     return evidence
 
 
-def _image_availability_evidence(
-    node_config: NodeProviderNodeConfig,
-    image_references: Mapping[str, str],
-    *,
-    failure_reason: str,
-    operator_action: str,
-) -> dict[str, str]:
-    return {
-        "expected_image_alias": node_config.image_alias,
-        "provider_image_ref": _image_ref(node_config.image_alias, image_references),
-        "failure_reason": failure_reason,
-        "operator_action": operator_action,
-    }
-
-
-def _classify_launch_failure(result: LxcNodeCommandResult) -> tuple[str, str]:
+def _classify_provider_failure(result: LxcNodeCommandResult) -> str:
     if result.timed_out:
-        return "provider_launch_timed_out", "inspect_provider_daemon_health"
-
+        return "provider_command_timed_out"
     output = f"{result.stdout}\n{result.stderr}".casefold()
     if any(fragment in output for fragment in ("permission denied", "not authorized", "access denied")):
-        return "daemon_access_denied", "verify_backend_daemon_access"
+        return "daemon_access_denied"
     if any(
         fragment in output
         for fragment in (
@@ -1632,7 +1616,7 @@ def _classify_launch_failure(result: LxcNodeCommandResult) -> tuple[str, str]:
             "unknown remote",
         )
     ):
-        return "image_unavailable", "verify_provider_image_remote"
+        return "image_unavailable"
     if any(
         fragment in output
         for fragment in (
@@ -1642,7 +1626,7 @@ def _classify_launch_failure(result: LxcNodeCommandResult) -> tuple[str, str]:
             "failed to load network",
         )
     ):
-        return "network_unavailable", "verify_backend_network_mapping"
+        return "network_unavailable"
     if any(
         fragment in output
         for fragment in (
@@ -1652,7 +1636,7 @@ def _classify_launch_failure(result: LxcNodeCommandResult) -> tuple[str, str]:
             "no storage pool",
         )
     ):
-        return "storage_pool_unavailable", "verify_backend_storage_pool"
+        return "storage_pool_unavailable"
     if any(
         fragment in output
         for fragment in (
@@ -1663,7 +1647,7 @@ def _classify_launch_failure(result: LxcNodeCommandResult) -> tuple[str, str]:
             "failed to add device",
         )
     ):
-        return "profile_launch_rejected", "inspect_provider_profiles"
+        return "profile_launch_rejected"
     if any(
         fragment in output
         for fragment in (
@@ -1674,7 +1658,7 @@ def _classify_launch_failure(result: LxcNodeCommandResult) -> tuple[str, str]:
             "not supported",
         )
     ):
-        return "wsl2_lxd_capability_blocked", "verify_wsl2_lxd_capabilities"
+        return "wsl2_lxd_capability_blocked"
     if any(
         fragment in output
         for fragment in (
@@ -1685,8 +1669,38 @@ def _classify_launch_failure(result: LxcNodeCommandResult) -> tuple[str, str]:
             "cannot allocate",
         )
     ):
-        return "host_resource_exhausted", "verify_provider_host_resources"
-    return "provider_launch_failed_unclassified", "inspect_provider_launch_error"
+        return "host_resource_exhausted"
+    return "provider_launch_failed_unclassified"
+
+
+def _operator_action_for_provider_failure(result: LxcNodeCommandResult) -> str:
+    reason = _classify_provider_failure(result)
+    if reason == "daemon_access_denied":
+        return "verify_backend_daemon_access"
+    if reason == "image_unavailable":
+        return "verify_provider_image_remote"
+    if reason == "network_unavailable":
+        return "verify_backend_network_mapping"
+    if reason == "storage_pool_unavailable":
+        return "verify_backend_storage_pool"
+    if reason == "profile_launch_rejected":
+        return "inspect_provider_profiles"
+    if reason == "wsl2_lxd_capability_blocked":
+        return "verify_wsl2_lxd_capabilities"
+    if reason == "host_resource_exhausted":
+        return "verify_provider_host_resources"
+    if reason == "provider_command_timed_out":
+        return "inspect_provider_daemon_or_image_download"
+    return "inspect_provider_launch_error"
+
+
+def _command_failed(result: LxcNodeCommandResult) -> bool:
+    return result.timed_out or result.returncode != 0
+
+
+def _result_indicates_existing_node(result: LxcNodeCommandResult) -> bool:
+    output = f"{result.stdout}\n{result.stderr}".casefold()
+    return "already exists" in output or "already in use" in output
 
 
 def _verified(
