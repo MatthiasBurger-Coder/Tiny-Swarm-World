@@ -174,6 +174,9 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
     NodeProviderConfig,
     NodeProviderConfigYamlRepository,
 )
+from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
+    PortRegistryYamlRepository,
+)
 from tiny_swarm_world.infrastructure.os_types import OsTypes
 from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
     VerificationEvidenceLocalRepository,
@@ -443,10 +446,12 @@ def build_preflight_service(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
+    port_registry = PortRegistryYamlRepository().load()
     return PreflightService(
         HostPreflightProbe(),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
         configuration_validation=configuration_validation,
+        port_registry=port_registry,
     )
 
 
