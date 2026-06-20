@@ -90,6 +90,7 @@ class EnsureInfisicalSilentInstall:
         self._status = "not_run"
         self._classification = ""
         self._bootstrap_method = "not_run"
+        self._bootstrap_diagnostic: dict[str, str] = {}
 
     def render_environment(self) -> dict[str, str]:
         return {
@@ -157,11 +158,18 @@ class EnsureInfisicalSilentInstall:
                 )
         elif self.bootstrap_client is not None:
             self._bootstrap_method = "admin_api_fallback"
-            bootstrap_result = self.bootstrap_client.bootstrap_instance(
-                email=self.config.admin_email,
-                password=self.config.admin_password,
-                organization=self.config.organization,
-            )
+            try:
+                bootstrap_result = self.bootstrap_client.bootstrap_instance(
+                    email=self.config.admin_email,
+                    password=self.config.admin_password,
+                    organization=self.config.organization,
+                )
+            except Exception as exc:
+                self._status = "failed"
+                self._classification = "infisical_bootstrap_api_unavailable"
+                self._bootstrap_diagnostic = _bootstrap_error_diagnostic(exc)
+                self._write_evidence("failed")
+                raise
             self._status = (
                 "already_bootstrapped"
                 if bootstrap_result.state is InfisicalBootstrapState.ALREADY_INITIALIZED
@@ -192,6 +200,7 @@ class EnsureInfisicalSilentInstall:
                 "http_endpoint_responds": str(self.http_ready).lower(),
                 "service_running": str(self.service_running).lower(),
                 "setup_screen_required": str(self.setup_screen_required).lower(),
+                **self._bootstrap_diagnostic,
             },
         )
 
@@ -207,6 +216,8 @@ class EnsureInfisicalSilentInstall:
             "setup_screen_required": self.setup_screen_required,
             "status": status,
         }
+        if self._bootstrap_diagnostic:
+            payload["diagnostic"] = self._bootstrap_diagnostic
         (self.config.evidence_dir / "bootstrap-result.json").write_text(
             json.dumps(payload, indent=2, sort_keys=True),
             encoding="utf-8",
@@ -248,3 +259,16 @@ def redact_mapping(values: dict[str, str]) -> dict[str, str]:
 
 def _is_secret_key(key: str) -> bool:
     return any(secret_name in key.upper() for secret_name in SECRET_NAMES)
+
+
+def _bootstrap_error_diagnostic(exc: Exception) -> dict[str, str]:
+    diagnostic = {
+        "bootstrap_error_class": exc.__class__.__name__,
+    }
+    status_code = getattr(exc, "status_code", None)
+    if isinstance(status_code, int):
+        diagnostic["bootstrap_http_status"] = str(status_code)
+    reason = getattr(exc, "reason", None)
+    if isinstance(reason, str) and reason:
+        diagnostic["bootstrap_failure_reason"] = reason
+    return diagnostic

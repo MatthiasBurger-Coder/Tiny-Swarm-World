@@ -118,6 +118,8 @@ class TestConfigurationContract(unittest.TestCase):
         self.assertTrue(requirements["TSW_PULSAR_TOKEN_SECRET_KEY"].required)
         self.assertEqual(ConfigurationValueKind.SECRET_VALUE, requirements["TSW_PULSAR_ADMIN_TOKEN"].value_kind)
         self.assertTrue(requirements["TSW_PULSAR_ADMIN_TOKEN"].required)
+        self.assertEqual(ConfigurationValueKind.SECRET_VALUE, requirements["TSW_PULSAR_MANAGER_ADMIN_PASSWORD"].value_kind)
+        self.assertTrue(requirements["TSW_PULSAR_MANAGER_ADMIN_PASSWORD"].required)
         self.assertEqual(ConfigurationValueKind.URL, requirements["TSW_PULSAR_ADMIN_URL"].value_kind)
         self.assertEqual("pulsar", requirements["TSW_PULSAR_ADMIN_URL"].scope)
         self.assertFalse(requirements["TSW_PULSAR_ADMIN_URL"].required)

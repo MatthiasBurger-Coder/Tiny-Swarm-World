@@ -38,6 +38,7 @@ from tiny_swarm_world.application.services.deployment import (
     EnsurePortainerAdminAccess,
     EnsureSonarqubeAdminAccess,
     EnsureSwarmStack,
+    EnsureSwarmServiceReadiness,
     VerifySwarmServiceReadiness,
     InfisicalSecretItem,
     InfisicalSecretSyncStep,
@@ -98,6 +99,7 @@ from tiny_swarm_world.application.services.setup import (
 )
 from tiny_swarm_world.domain.artifacts import DEFAULT_CONTAINER_IMAGE_CONTRACTS, ContainerImageContract
 from tiny_swarm_world.domain.deployment import (
+    ServiceStackContract,
     ServiceStackProfile,
     service_stack_contracts_for_profile,
 )
@@ -216,12 +218,16 @@ DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS = 180
 SEED_INFISICAL_ITEMS_ENVIRONMENT = "TSW_SEED_INFISICAL_ITEMS"
 INFISICAL_LOGIN_EMAIL_ENVIRONMENT = "TSW_INFISICAL_LOGIN_EMAIL"
 INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"
+INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT = "TSW_INFISICAL_READINESS_ATTEMPTS"
+INFISICAL_READINESS_INTERVAL_ENVIRONMENT = "TSW_INFISICAL_READINESS_INTERVAL_SECONDS"
 INFISICAL_URL_ENVIRONMENT = "TSW_INFISICAL_URL"
 INFISICAL_INTERNAL_URL_ENVIRONMENT = "TSW_INFISICAL_INTERNAL_URL"
 INFISICAL_ORGANIZATION_ENVIRONMENT = "TSW_INFISICAL_ORGANIZATION"
 INFISICAL_ADMIN_FIRST_NAME_ENVIRONMENT = "TSW_INFISICAL_ADMIN_FIRST_NAME"
 INFISICAL_ADMIN_LAST_NAME_ENVIRONMENT = "TSW_INFISICAL_ADMIN_LAST_NAME"
 DEFAULT_INFISICAL_ORGANIZATION = "Tiny Swarm World"
+DEFAULT_INFISICAL_READINESS_ATTEMPTS = 120
+DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS = 5.0
 SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
 DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:5000"
 LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
@@ -991,6 +997,12 @@ def build_lxc_deployment_services(
         ),
     )
     infisical_cli_client = InfisicalCliClient()
+    service_stack_by_name = {contract.stack_name: contract for contract in service_stack_contracts}
+    infisical_apply_readiness_steps = _infisical_apply_readiness_steps(
+        selected_service_profile,
+        swarm_runtime=swarm_runtime,
+        service_stack_by_name=service_stack_by_name,
+    )
     infisical_bootstrap_steps = _infisical_bootstrap_steps(
         selected_service_profile,
         cli=infisical_cli_client,
@@ -1037,7 +1049,11 @@ def build_lxc_deployment_services(
                     tuple[DeploymentApplyStep, ...],
                     _with_infisical_post_apply_steps(
                         application_steps,
-                        (*infisical_secret_management_steps, *infisical_seed_steps),
+                        (
+                            *infisical_apply_readiness_steps,
+                            *infisical_secret_management_steps,
+                            *infisical_seed_steps,
+                        ),
                     ),
                 ),
                 pre_apply_steps=(
@@ -1703,6 +1719,7 @@ def _deployment_stack_environment(
         "pulsar": {
             "TSW_PULSAR_TOKEN_SECRET_KEY": _operator_secret_value("TSW_PULSAR_TOKEN_SECRET_KEY"),
             "TSW_PULSAR_ADMIN_TOKEN": _operator_secret_value("TSW_PULSAR_ADMIN_TOKEN"),
+            "TSW_PULSAR_MANAGER_ADMIN_PASSWORD": _operator_secret_value("TSW_PULSAR_MANAGER_ADMIN_PASSWORD"),
         },
         "sonarqube": {
             "TSW_SONARQUBE_POSTGRES_PASSWORD": _operator_secret_value("TSW_SONARQUBE_POSTGRES_PASSWORD"),
@@ -1860,6 +1877,42 @@ def _infisical_secret_seed_steps(
     ]
 
 
+def _infisical_apply_readiness_steps(
+    service_profile: ServiceStackProfile,
+    *,
+    swarm_runtime: LxcSwarmRuntime,
+    service_stack_by_name: dict[str, ServiceStackContract],
+) -> tuple[EnsureSwarmServiceReadiness, ...]:
+    if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
+        return ()
+    attempts = _operator_config_int(
+        INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT,
+        DEFAULT_INFISICAL_READINESS_ATTEMPTS,
+        minimum=1,
+    )
+    interval = _operator_config_float(
+        INFISICAL_READINESS_INTERVAL_ENVIRONMENT,
+        DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS,
+        minimum=0,
+    )
+    return (
+        EnsureSwarmServiceReadiness(
+            swarm_runtime,
+            service_stack_by_name["infisical"],
+            verification_target_id="deployment:infisical-bootstrap-service-readiness",
+            max_attempts=attempts,
+            wait_seconds=int(interval),
+        ),
+        EnsureSwarmServiceReadiness(
+            swarm_runtime,
+            service_stack_by_name["service-access"],
+            verification_target_id="deployment:infisical-bootstrap-access-readiness",
+            max_attempts=attempts,
+            wait_seconds=int(interval),
+        ),
+    )
+
+
 def _infisical_bootstrap_steps(
     service_profile: ServiceStackProfile,
     *,
@@ -1876,6 +1929,16 @@ def _infisical_bootstrap_steps(
                     "http://localhost:8086",
                 ),
                 verify_tls=False,
+                readiness_attempts=_operator_config_int(
+                    INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT,
+                    DEFAULT_INFISICAL_READINESS_ATTEMPTS,
+                    minimum=1,
+                ),
+                readiness_interval_seconds=_operator_config_float(
+                    INFISICAL_READINESS_INTERVAL_ENVIRONMENT,
+                    DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS,
+                    minimum=0,
+                ),
             ),
             config=InfisicalSilentInstallConfig(
                 external_url=_operator_config_value(
@@ -1979,6 +2042,11 @@ def _infisical_seed_items() -> tuple[InfisicalSecretItem, ...]:
             "platform/pulsar",
             "admin",
             _required_operator_secret_value("TSW_PULSAR_ADMIN_TOKEN"),
+        ),
+        InfisicalSecretItem(
+            "platform/pulsar-manager",
+            "admin",
+            _required_operator_secret_value("TSW_PULSAR_MANAGER_ADMIN_PASSWORD"),
         ),
         InfisicalSecretItem(
             "platform/sonarqube",

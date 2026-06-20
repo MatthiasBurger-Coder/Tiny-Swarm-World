@@ -155,6 +155,11 @@ def default_configuration_contract() -> ConfigurationContract:
                 "JWT bearer token for the local Pulsar Admin API.",
             ),
             _required_secret(
+                "TSW_PULSAR_MANAGER_ADMIN_PASSWORD",
+                "pulsar",
+                "Pulsar Manager UI admin password.",
+            ),
+            _required_secret(
                 "TSW_SONARQUBE_POSTGRES_PASSWORD",
                 "sonarqube",
                 "SonarQube PostgreSQL service password.",

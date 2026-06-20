@@ -112,8 +112,12 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
     ),
     ServiceStackContract(
         "pulsar",
-        ("pulsar",),
-        endpoints=(ServiceEndpoint("pulsar-admin-api", "http://localhost:8087"),),
+        ("pulsar", "pulsar-manager"),
+        endpoints=(
+            ServiceEndpoint("pulsar-admin-api", "http://localhost:8087"),
+            ServiceEndpoint("pulsar-manager", "http://localhost:9527"),
+            ServiceEndpoint("pulsar-manager-backend", "http://localhost:7750"),
+        ),
     ),
     ServiceStackContract(
         "sonarqube",

@@ -136,10 +136,13 @@ def default_setup_manifest(
             ports=() if centralized_ingress else (
                 SetupPortRequirement(6650, "Pulsar broker protocol"),
                 SetupPortRequirement(8087, "Pulsar Admin API"),
+                SetupPortRequirement(9527, "Pulsar Manager UI"),
+                SetupPortRequirement(7750, "Pulsar Manager backend"),
             ),
             secrets=(
                 SetupSecretRequirement("TSW_PULSAR_TOKEN_SECRET_KEY", "Pulsar token signing key"),
                 SetupSecretRequirement("TSW_PULSAR_ADMIN_TOKEN", "Pulsar Admin API token"),
+                SetupSecretRequirement("TSW_PULSAR_MANAGER_ADMIN_PASSWORD", "Pulsar Manager UI"),
             ),
         ),
         SetupServiceRequirement(

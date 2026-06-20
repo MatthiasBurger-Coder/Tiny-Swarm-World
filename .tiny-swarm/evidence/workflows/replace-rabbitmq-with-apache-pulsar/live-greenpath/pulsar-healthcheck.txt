@@ -1,4 +1,0 @@
-ID                          NAME              IMAGE                                                                                                NODE            DESIRED STATE   CURRENT STATE            ERROR     PORTS
-f9sq6jx7yns4ffhosj1i5xpb2   pulsar_pulsar.1   apachepulsar/pulsar:latest@sha256:1e9f614aab7d3788733d3efb5baf9097230263f799df82732741f7250741632e   swarm-manager   Running         Running 13 minutes ago             *:8087->8080/tcp,*:8087->8080/tcp,*:6650->6650/tcp,*:6650->6650/tcp
-CONTAINER ID   IMAGE                        COMMAND                  CREATED          STATUS                    PORTS                                                                                      NAMES
-d93d4c20f405   apachepulsar/pulsar:latest   "sh -lc 'bin/apply-c…"   13 minutes ago   Up 13 minutes (healthy)   0.0.0.0:6650->6650/tcp, [::]:6650->6650/tcp, 0.0.0.0:8087->8080/tcp, [::]:8087->8080/tcp   pulsar_pulsar.1.f9sq6jx7yns4ffhosj1i5xpb2

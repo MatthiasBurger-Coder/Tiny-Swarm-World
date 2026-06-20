@@ -170,7 +170,7 @@ class TestPreflightResult(unittest.TestCase):
             manifest.service_names,
         )
         self.assertEqual(
-            (9000, 8081, 5000, 8080, 6650, 8087, 9001, 8084),
+            (9000, 8081, 5000, 8080, 6650, 8087, 9527, 7750, 9001, 8084),
             tuple(port.port for port in manifest.required_ports),
         )
         self.assertEqual(
@@ -180,6 +180,7 @@ class TestPreflightResult(unittest.TestCase):
                 "TSW_JENKINS_ADMIN_PASSWORD",
                 "TSW_PULSAR_TOKEN_SECRET_KEY",
                 "TSW_PULSAR_ADMIN_TOKEN",
+                "TSW_PULSAR_MANAGER_ADMIN_PASSWORD",
                 "TSW_SONARQUBE_ADMIN_PASSWORD",
                 "TSW_POSTGRES_PASSWORD",
             ),

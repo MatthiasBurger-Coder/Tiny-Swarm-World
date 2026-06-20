@@ -69,13 +69,14 @@ The default contract requires these keys before setup execution:
 | `TSW_PULSAR_PUBLIC_ADMIN_URL` | unset | URL | Host-accessible Pulsar Admin API URL for browser/live checks. |
 | `TSW_PULSAR_TOKEN_SECRET_KEY` | generated | secret value | Base64 encoded signing key for local Pulsar Admin API tokens. |
 | `TSW_PULSAR_ADMIN_TOKEN` | generated | secret value | JWT bearer token used by live checks and operators for the local Pulsar Admin API. |
+| `TSW_PULSAR_MANAGER_ADMIN_PASSWORD` | generated | secret value | Pulsar Manager UI admin password. |
 | `TSW_TRAEFIK_TLS_CERT_SECRET_NAME` | `tsw_traefik_tls_cert` | secret name | External Docker secret name for Traefik TLS certificate material. |
 | `TSW_TRAEFIK_TLS_KEY_SECRET_NAME` | `tsw_traefik_tls_key` | secret name | External Docker secret name for Traefik TLS private key material. |
 
 Pulsar runs in local standalone mode with token authentication enabled. The
-operator contract does not define a password because the Admin API credential is
-a generated bearer token stored in the local secret source and synchronized to
-Infisical as `platform/pulsar` when item seeding is enabled.
+Admin API credential is a generated bearer token stored as `platform/pulsar`.
+The Pulsar Manager UI uses a separate generated admin password stored as
+`platform/pulsar-manager` when item seeding is enabled.
 
 ## Redaction
 

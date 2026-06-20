@@ -42,6 +42,10 @@ class TestServiceStackContract(unittest.TestCase):
             selected_by_name["infisical"].required_services,
         )
         self.assertEqual(
+            ("pulsar", "pulsar-manager"),
+            selected_by_name["pulsar"].required_services,
+        )
+        self.assertEqual(
             "deployment:service-access-service-readiness",
             selected_by_name["service-access"].service_readiness_target_id,
         )
@@ -67,7 +71,7 @@ class TestServiceStackContract(unittest.TestCase):
         )
         self.assertEqual(("http://localhost:8080",), _endpoint_urls(endpoints_by_stack["jenkins"]))
         self.assertEqual(
-            ("http://localhost:8087",),
+            ("http://localhost:8087", "http://localhost:9527", "http://localhost:7750"),
             _endpoint_urls(endpoints_by_stack["pulsar"]),
         )
         self.assertEqual(

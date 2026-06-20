@@ -526,6 +526,23 @@ class TestHostPreflightProbe(unittest.TestCase):
 
             self.assertTrue(probe.port_matches_expected_service(6650, "Pulsar broker protocol"))
 
+    def test_port_matches_expected_service_recognizes_pulsar_manager_ui(self):
+        probe = HostPreflightProbe(Path.cwd())
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.status = 200
+        response.headers = {"Content-Type": "text/html"}
+        response.read.return_value = b"<html><title>Pulsar Manager</title></html>"
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",
+            return_value=response,
+        ) as urlopen:
+            self.assertTrue(probe.port_matches_expected_service(9527, "Pulsar Manager UI"))
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual("http://127.0.0.1:9527/", request.full_url)
+
     def test_port_matches_expected_service_rejects_empty_nginx_404_for_service_access(self):
         probe = HostPreflightProbe(Path.cwd())
         error = urllib.error.HTTPError(
@@ -546,6 +563,24 @@ class TestHostPreflightProbe(unittest.TestCase):
             self.assertFalse(
                 probe.port_matches_expected_service(80, "Service Access dashboard")
             )
+
+    def test_port_matches_expected_service_recognizes_service_access_https(self):
+        probe = HostPreflightProbe(Path.cwd())
+        http_error = OSError("plain http unavailable")
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.status = 200
+        response.headers = {"Server": "nginx/1.31.2"}
+        response.read.return_value = b"<html>Infisical</html>"
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",
+            side_effect=(http_error, response),
+        ) as urlopen:
+            self.assertTrue(probe.port_matches_expected_service(443, "Service Access"))
+
+        self.assertEqual("http://127.0.0.1:443/", urlopen.call_args_list[0].args[0].full_url)
+        self.assertEqual("https://127.0.0.1:443/", urlopen.call_args_list[1].args[0].full_url)
 
     def test_port_matches_expected_service_recognizes_legacy_swagger_api_cors_404(self):
         probe = HostPreflightProbe(Path.cwd())

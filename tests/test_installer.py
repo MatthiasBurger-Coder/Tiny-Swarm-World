@@ -1,3 +1,4 @@
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -76,6 +77,59 @@ class TestInstaller(unittest.TestCase):
             },
             values,
         )
+
+    def test_load_export_file_rejects_invalid_shell_quoting_without_value_leak(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = Path(tempdir) / "live.env"
+            path.write_text(
+                "export TSW_INFISICAL_LOGIN_EMAIL='admin@tiny-swarm-world.local\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(installer.InstallerError) as raised:
+                installer._load_export_file(path)
+
+        self.assertIn("invalid shell quoting", str(raised.exception))
+        self.assertNotIn("admin@tiny-swarm-world.local", str(raised.exception))
+
+    def test_normalized_email_value_removes_accidental_literal_quote(self):
+        self.assertEqual(
+            "admin@tiny-swarm-world.local",
+            installer._normalized_email_value("'admin@tiny-swarm-world.local"),
+        )
+
+    def test_normalize_export_file_collapses_duplicate_keys(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = Path(tempdir) / "live.env"
+            path.write_text(
+                "\n".join(
+                    (
+                        "# local operator values",
+                        "export TSW_EXAMPLE='first-secret'",
+                        "export TSW_OTHER='other-secret'",
+                        "export TSW_EXAMPLE='second-secret'",
+                    )
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            installer._normalize_export_file_if_duplicate_keys(path)
+
+            content = path.read_text(encoding="utf-8")
+            values = installer._load_export_file(path)
+            mode = stat.S_IMODE(path.stat().st_mode)
+
+        self.assertEqual(
+            {
+                "TSW_EXAMPLE": "second-secret",
+                "TSW_OTHER": "other-secret",
+            },
+            values,
+        )
+        self.assertEqual(0o600, mode)
+        self.assertEqual(1, content.count("TSW_EXAMPLE="))
+        self.assertIn("Normalized by install.sh", content)
 
     def test_required_installer_secret_entries_come_from_manifest(self):
         entries = installer._required_installer_secret_entries(

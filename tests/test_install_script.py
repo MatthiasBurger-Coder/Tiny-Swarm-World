@@ -171,8 +171,11 @@ class TestInstallScript(unittest.TestCase):
             infisical_secret_content = (
                 fixture.root / ".tiny-swarm" / "secrets" / "bootstrap.local.env"
             ).read_text()
-            self.assertIn("INITIAL_BOOTSTRAP_ADMIN_PASSWORD=", infisical_secret_content)
-            self.assertIn("ENCRYPTION_KEY=", infisical_secret_content)
+            self.assertIn("TSW_INFISICAL_LOGIN_EMAIL=admin@tiny-swarm-world.local", infisical_secret_content)
+            self.assertIn("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD=", infisical_secret_content)
+            self.assertNotIn("export INITIAL_BOOTSTRAP_ADMIN_EMAIL=", infisical_secret_content)
+            self.assertNotIn("export INITIAL_BOOTSTRAP_ADMIN_PASSWORD=", infisical_secret_content)
+            self.assertNotIn("export ENCRYPTION_KEY=", infisical_secret_content)
 
     def test_install_regenerates_sonarqube_password_without_special_character(self):
         secret_environment = _required_secret_environment()
@@ -540,6 +543,7 @@ def _required_secret_environment() -> dict[str, str]:
         "TSW_SONARQUBE_POSTGRES_PASSWORD": "sonarqube-postgres-password",
         "TSW_PULSAR_TOKEN_SECRET_KEY": "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         "TSW_PULSAR_ADMIN_TOKEN": "header.payload.signature",
+        "TSW_PULSAR_MANAGER_ADMIN_PASSWORD": "pulsar-manager-password",
         "TSW_INFISICAL_LOGIN_EMAIL": "admin@tiny-swarm-world.local",
         "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": "infisical-bootstrap-admin-password",
         "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",

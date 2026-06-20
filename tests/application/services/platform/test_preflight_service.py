@@ -497,6 +497,48 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
         self.assertEqual("Infisical HTTPS", port_check.evidence["current_service"])
 
+    async def test_service_access_profile_allows_existing_service_access_http_listener(self):
+        configuration = default_preflight_configuration(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS
+        )
+
+        result = await PreflightService(
+            _fake_probe(
+                port_availability={80: False},
+                expected_service_ports={80: False},
+                service_matches={(80, "Service Access"): True},
+            ),
+            configuration,
+        ).run()
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        port_check = checks_by_id["PORT-80"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
+        self.assertEqual("Service Access", port_check.evidence["current_service"])
+
+    async def test_service_access_profile_allows_existing_service_access_https_listener(self):
+        configuration = default_preflight_configuration(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS
+        )
+
+        result = await PreflightService(
+            _fake_probe(
+                port_availability={443: False},
+                expected_service_ports={443: False},
+                service_matches={(443, "Service Access"): True},
+            ),
+            configuration,
+        ).run()
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        port_check = checks_by_id["PORT-443"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
+        self.assertEqual("Service Access", port_check.evidence["current_service"])
+
     async def test_swagger_port_allows_old_swagger_api_listener_to_be_reassigned(self):
         result = await PreflightService(
             _fake_probe(

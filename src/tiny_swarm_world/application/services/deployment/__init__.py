@@ -52,6 +52,7 @@ from tiny_swarm_world.application.services.deployment.verify_external_swarm_inpu
     VerifyExternalSwarmInput,
 )
 from tiny_swarm_world.application.services.deployment.verify_swarm_service_readiness import (
+    EnsureSwarmServiceReadiness,
     VerifySwarmServiceReadiness,
 )
 from tiny_swarm_world.application.services.deployment.workflows import (
@@ -81,6 +82,7 @@ __all__ = [
     "EnsureServiceStack",
     "EnsureSonarqubeAdminAccess",
     "EnsureSwarmStack",
+    "EnsureSwarmServiceReadiness",
     "InfisicalBootstrapStep",
     "InfisicalInstallBlocker",
     "InfisicalSecretItem",
