@@ -14,11 +14,7 @@ import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Mapping, Sequence
-
-from tiny_swarm_world.application.ports.install_reporter import InstallReporter
-from tiny_swarm_world.domain.install import InstallEvent, InstallEventType, InstallStatus
-from tiny_swarm_world.infrastructure.adapters.ui.install_reporter import default_install_reporter
+from typing import Any, Mapping, Protocol, Sequence
 
 
 RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
@@ -73,6 +69,35 @@ class InstallerSecretEntry:
     required: bool
 
 
+class InstallReporter(Protocol):
+    def report(self, event: object) -> None:
+        ...
+
+
+@dataclass(frozen=True)
+class _FallbackInstallEvent:
+    event_type: str
+    status: str
+    step: str
+    target: str = "host"
+    message: str = ""
+    reason: str | None = None
+    evidence_path: Path | None = None
+    suggested_commands: Sequence[str] = ()
+    duration_seconds: float | None = None
+    sequence: int | None = None
+    total: int | None = None
+
+
+class _FallbackInstallReporter:
+    def report(self, event: object) -> None:
+        if not isinstance(event, _FallbackInstallEvent):
+            return
+        stream = sys.stderr if event.status == "FAILED" else sys.stdout
+        for line in _render_fallback_install_event(event):
+            print(line, file=stream)
+
+
 class InstallerError(RuntimeError):
     pass
 
@@ -124,8 +149,8 @@ def parse_args(argv: Sequence[str] | None = None) -> InstallerOptions:
 
 
 def _phase_event(
-    event_type: InstallEventType,
-    status: InstallStatus,
+    event_type: str,
+    status: str,
     step: str,
     *,
     target: str = "host",
@@ -135,8 +160,26 @@ def _phase_event(
     suggested_commands: Sequence[str] = (),
     sequence: int | None = None,
     total: int | None = None,
-) -> InstallEvent:
-    return InstallEvent(
+) -> object:
+    try:
+        from tiny_swarm_world.domain.install import InstallEvent, InstallEventType, InstallStatus
+
+        typed_event_type = InstallEventType(event_type)
+        typed_status = InstallStatus(status)
+        return InstallEvent(
+            event_type=typed_event_type,
+            status=typed_status,
+            step=step,
+            target=target,
+            message=message,
+            reason=reason,
+            evidence_path=evidence_path,
+            suggested_commands=tuple(suggested_commands),
+            sequence=sequence,
+            total=total,
+        )
+    except ModuleNotFoundError:
+        return _FallbackInstallEvent(
         event_type=event_type,
         status=status,
         step=step,
@@ -150,6 +193,15 @@ def _phase_event(
     )
 
 
+def _default_install_reporter() -> InstallReporter:
+    try:
+        from tiny_swarm_world.infrastructure.adapters.ui.install_reporter import default_install_reporter
+
+        return default_install_reporter()
+    except ModuleNotFoundError:
+        return _FallbackInstallReporter()
+
+
 def run(
     options: InstallerOptions,
     *,
@@ -157,7 +209,7 @@ def run(
     cwd: Path,
     reporter: InstallReporter | None = None,
 ) -> int:
-    install_reporter = reporter or default_install_reporter()
+    install_reporter = reporter or _default_install_reporter()
     _require_repository(cwd)
     paths = _paths_from_env(env, cwd)
     host_runtime = detect_host_runtime(env)
@@ -225,8 +277,8 @@ def run(
     _print_install_plan(cwd, options, evidence_dir, paths.secret_env_file)
     install_reporter.report(
         _phase_event(
-            InstallEventType.INSTALL_STARTED,
-            InstallStatus.RUNNING,
+            "INSTALL_STARTED",
+            "RUNNING",
             "install",
             message=(
                 f"Mode: fresh-reset; Profile: {options.service_profile}; "
@@ -272,8 +324,8 @@ def run(
     if reset_exit != 0:
         install_reporter.report(
             _phase_event(
-                InstallEventType.INSTALL_FINISHED,
-                InstallStatus.FAILED,
+                "INSTALL_FINISHED",
+                "FAILED",
                 "install",
                 reason="Fresh-install reset failed. Setup was not started.",
                 evidence_path=evidence_dir,
@@ -313,8 +365,8 @@ def run(
     if setup_exit == 0:
         install_reporter.report(
             _phase_event(
-                InstallEventType.INSTALL_FINISHED,
-                InstallStatus.SUCCEEDED,
+                "INSTALL_FINISHED",
+                "SUCCEEDED",
                 "install",
                 message="Installation completed successfully.",
                 evidence_path=evidence_dir,
@@ -325,8 +377,8 @@ def run(
     else:
         install_reporter.report(
             _phase_event(
-                InstallEventType.INSTALL_FINISHED,
-                InstallStatus.FAILED,
+                "INSTALL_FINISHED",
+                "FAILED",
                 "install",
                 reason=f"Live setup failed with exit code {setup_exit}.",
                 evidence_path=evidence_dir,
@@ -712,11 +764,11 @@ def _run_phase(
     sequence: int | None = None,
     total: int | None = None,
 ) -> int:
-    reporter = reporter or default_install_reporter()
+    reporter = reporter or _default_install_reporter()
     reporter.report(
         _phase_event(
-            InstallEventType.STEP_STARTED,
-            InstallStatus.STARTED,
+            "STEP_STARTED",
+            "STARTED",
             name,
             message=f"{name} started",
             evidence_path=log_file,
@@ -753,8 +805,8 @@ def _run_phase(
     if exit_code == 0:
         reporter.report(
             _phase_event(
-                InstallEventType.STEP_SUCCEEDED,
-                InstallStatus.SUCCEEDED,
+                "STEP_SUCCEEDED",
+                "SUCCEEDED",
                 name,
                 message=f"{name} completed",
                 evidence_path=log_file,
@@ -765,8 +817,8 @@ def _run_phase(
     else:
         reporter.report(
             _phase_event(
-                InstallEventType.STEP_FAILED,
-                InstallStatus.FAILED,
+                "STEP_FAILED",
+                "FAILED",
                 name,
                 reason=f"{name} exited with code {exit_code}.",
                 evidence_path=log_file,
@@ -791,6 +843,28 @@ def _suggested_checks_for_phase(name: str) -> tuple[str, ...]:
             "docker context ls",
         )
     return ()
+
+
+def _render_fallback_install_event(event: _FallbackInstallEvent) -> tuple[str, ...]:
+    if event.event_type == "INSTALL_STARTED":
+        return ("Tiny Swarm World Installer", f"  RUNNING {event.message or event.step}")
+    if event.status == "STARTED":
+        header = f"[{event.sequence}/{event.total}] {event.step}" if event.sequence and event.total else event.step
+        return (header, f"  RUNNING {event.message or event.target}")
+    if event.status == "SUCCEEDED":
+        return (f"  OK      {event.message or event.target}",)
+    if event.status == "FAILED":
+        target = f" on {event.target}" if event.target else ""
+        lines = [f"FAILED {event.step}{target}"]
+        if event.reason:
+            lines.extend(("", "Reason:", f"  {event.reason}"))
+        if event.evidence_path:
+            lines.extend(("", "Evidence:", f"  {event.evidence_path.as_posix()}"))
+        if event.suggested_commands:
+            lines.extend(("", "Suggested checks:"))
+            lines.extend(f"  {command}" for command in event.suggested_commands)
+        return tuple(lines)
+    return (f"  {event.status:<8}{event.message or event.target}",)
 
 
 def _write_context(
