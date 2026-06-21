@@ -14,12 +14,17 @@ from tiny_swarm_world.application.ports.ui.port_ui import (
     PortUI,
 )
 
+SETUP_PHASE_WIDTH = 25
+
 
 class TerminalWorkflowProgress(PortWorkflowProgress):
     def __init__(self, ui: PortUI):
         self.ui = ui
 
     def report(self, event: WorkflowProgressEvent) -> None:
+        line = render_workflow_progress_line(event)
+        if line:
+            print(line, flush=True)
         self.ui.update_status_event(
             ConsoleStatusEvent(
                 instance=AGGREGATE_INSTANCE,
@@ -51,3 +56,15 @@ def _trace_result(event: MethodTraceEvent) -> str:
     if event.status == "raised":
         return "failed"
     return event.safe_result or event.status
+
+
+def render_workflow_progress_line(event: WorkflowProgressEvent) -> str:
+    if event.workflow != "setup run" or event.step != "phase progress":
+        return ""
+    return f"[setup] {event.phase:<{SETUP_PHASE_WIDTH}} {_setup_status_label(event)}"
+
+
+def _setup_status_label(event: WorkflowProgressEvent) -> str:
+    if event.status == "started" and event.result == "pending":
+        return "START"
+    return event.result.upper()

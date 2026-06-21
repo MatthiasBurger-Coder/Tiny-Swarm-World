@@ -143,7 +143,7 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
             [phase.status for phase in result.phase_results],
         )
 
-    async def test_prints_progress_for_each_configured_phase(self):
+    async def test_does_not_print_progress_directly(self):
         calls: list[str] = []
         workflow = SetupWorkflow(
             (
@@ -157,10 +157,7 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         with redirect_stdout(output):
             await workflow.run()
 
-        self.assertIn("[setup] preflight: START", output.getvalue())
-        self.assertIn("[setup] preflight: COMPLETED", output.getvalue())
-        self.assertIn("[setup] platform init: START", output.getvalue())
-        self.assertIn("[setup] platform init: COMPLETED", output.getvalue())
+        self.assertEqual("", output.getvalue())
 
     async def test_reports_progress_for_refused_setup(self):
         progress = _RecordingProgress()

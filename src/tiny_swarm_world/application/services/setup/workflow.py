@@ -196,7 +196,6 @@ class SetupWorkflow:
 
         phase_results: list[SetupPhaseResult] = []
         for phase in phases:
-            _print_phase_progress(phase.name, "START")
             self._report_phase_progress(
                 phase_name=phase.name,
                 status="started",
@@ -206,7 +205,6 @@ class SetupWorkflow:
             try:
                 phase_output = await phase.run()
             except Exception as exc:
-                _print_phase_progress(phase.name, "FAILED", exc.__class__.__name__)
                 failed_phase = SetupPhaseResult(
                     name=phase.name,
                     status=SetupWorkflowStatus.FAILED.value,
@@ -243,7 +241,6 @@ class SetupWorkflow:
             try:
                 _result_to_dict(phase_output)
             except ValueError:
-                _print_phase_progress(phase.name, "FAILED", "unsafe result payload")
                 failed_phase = SetupPhaseResult(
                     name=phase.name,
                     status=SetupWorkflowStatus.FAILED.value,
@@ -278,7 +275,6 @@ class SetupWorkflow:
                 )
 
             phase_status = _result_status_value(phase_output)
-            _print_phase_progress(phase.name, phase_status.upper())
             phase_result = SetupPhaseResult(
                 name=phase.name,
                 status=phase_status,
@@ -405,15 +401,6 @@ class SetupWorkflow:
                 recovery_hint=recovery_hint,
             )
         )
-
-
-def _print_phase_progress(phase_name: str, status: str, detail: str | None = None) -> None:
-    message = f"[setup] {phase_name}: {status}"
-    if detail:
-        message = f"{message} ({detail})"
-    print(message, flush=True)
-
-
 def _result_status_value(result: object) -> str:
     if isinstance(result, Mapping):
         return str(result.get("status", "unknown")).lower()

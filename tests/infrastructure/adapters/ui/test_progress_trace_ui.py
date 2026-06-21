@@ -1,4 +1,6 @@
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 
 from tiny_swarm_world.application.ports.method_trace import MethodTraceEvent
 from tiny_swarm_world.application.ports.progress import WorkflowProgressEvent
@@ -14,6 +16,56 @@ from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
 
 
 class TestProgressTraceUi(unittest.TestCase):
+    def test_workflow_progress_renders_setup_phase_lines_without_drift(self):
+        ui = RecordingUI()
+        adapter = TerminalWorkflowProgress(ui)
+        output = StringIO()
+
+        events = (
+            ("preflight", "started", "pending"),
+            ("preflight", "completed", "completed"),
+            ("platform init", "started", "pending"),
+            ("platform init", "completed", "completed"),
+            ("platform expose", "started", "pending"),
+            ("platform expose", "completed", "completed"),
+            ("deployment apply", "started", "pending"),
+        )
+
+        with redirect_stdout(output):
+            for phase, status, result in events:
+                adapter.report(
+                    WorkflowProgressEvent(
+                        workflow="setup run",
+                        phase=phase,
+                        target=phase,
+                        task="Run setup phase",
+                        step="phase progress",
+                        status=status,
+                        result=result,
+                        safe_message="Setup phase progress.",
+                    )
+                )
+
+        lines = output.getvalue().splitlines()
+
+        self.assertEqual(
+            [
+                "[setup] preflight                 START",
+                "[setup] preflight                 COMPLETED",
+                "[setup] platform init             START",
+                "[setup] platform init             COMPLETED",
+                "[setup] platform expose           START",
+                "[setup] platform expose           COMPLETED",
+                "[setup] deployment apply          START",
+            ],
+            lines,
+        )
+        self.assertTrue(all(line.startswith("[setup]") for line in lines))
+        self.assertFalse(any(line.startswith(" ") for line in lines))
+        self.assertFalse(any("\r" in line for line in lines))
+        self.assertFalse(any(line.startswith("pose:") for line in lines))
+        self.assertFalse(any(line.startswith("up]") for line in lines))
+
     def test_workflow_progress_updates_aggregate_status(self):
         ui = RecordingUI()
         adapter = TerminalWorkflowProgress(ui)

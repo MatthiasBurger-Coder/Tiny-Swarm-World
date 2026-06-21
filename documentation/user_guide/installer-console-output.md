@@ -14,11 +14,30 @@ Tiny Swarm World Installer
   OK      fresh-install reset completed
 [2/2] live setup
   RUNNING live setup started
+[setup] preflight                 START
+[setup] preflight                 PASSED
+[setup] platform init             START
+[setup] platform init             COMPLETED
+[setup] platform reconcile        START
+[setup] platform reconcile        COMPLETED
+[setup] platform expose           START
+[setup] platform expose           COMPLETED
+[setup] deployment bootstrap      START
+[setup] deployment bootstrap      COMPLETED
+[setup] artifacts prepare         START
+[setup] artifacts prepare         COMPLETED
+[setup] artifacts verify          START
+[setup] artifacts verify          COMPLETED
+[setup] deployment apply          START
 ```
 
 Failure diagnostics include the failed phase, reason, evidence path, and
 suggested commands when available. Suggested commands are printed for operator
 use; the reporter does not execute them.
+
+Setup phase progress is emitted as left-aligned text lines. It must remain
+readable in copied terminal logs and CI output, without cursor-positioned drift
+or truncated fragments such as partial phase names.
 
 Console output must not contain raw JSON, raw Python dictionaries, YAML payloads,
 or internal event object representations. Machine-readable JSON belongs in

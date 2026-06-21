@@ -273,6 +273,14 @@ class TestLinuxUI(unittest.TestCase):
         mock_wrapper.assert_called_once_with(self.ui._draw_ui)
 
     @patch("curses.wrapper")
+    def test_start_ui_uses_plain_wait_for_empty_instance_setup_output(self, mock_wrapper):
+        ui = LinuxUI((), test_mode=True)
+
+        ui.start()
+
+        mock_wrapper.assert_not_called()
+
+    @patch("curses.wrapper")
     def test_start_ui_terminates_when_all_instances_completed(self, mock_wrapper):
         """New Test: Ensures UI terminates when all instances mark result as completed."""
 

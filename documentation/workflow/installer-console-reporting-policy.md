@@ -31,6 +31,10 @@ Valid console output is stable, line-oriented, and readable:
 [1/2] fresh-install reset
   RUNNING fresh-install reset started
   OK      fresh-install reset completed
+[setup] preflight                 START
+[setup] preflight                 PASSED
+[setup] platform init             START
+[setup] platform init             COMPLETED
 ```
 
 Invalid console output includes raw structured payloads:
@@ -51,6 +55,9 @@ report file.
 
 - Normal and verbose output are human-readable.
 - CI output, when present, is line-based text and not JSON.
+- Setup progress starts each event at the beginning of a text line.
+- Setup progress does not rely on cursor-positioned carriage-return rendering
+  that can drift or split phase names when copied from a terminal.
 - Failed steps include target, reason, evidence path, and suggested checks when available.
 - Reporters render events; they do not execute diagnostic commands.
 - Automated tests fail on raw JSON, dict, YAML, or event repr output.
