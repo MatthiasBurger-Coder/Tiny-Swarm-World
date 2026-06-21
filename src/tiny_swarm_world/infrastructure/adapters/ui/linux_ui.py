@@ -137,6 +137,9 @@ class LinuxUI(PortUI):
         """
         Runs the curses-based UI.
         """
+        if not self.instances:
+            self._wait_without_curses()
+            return
         try:
             curses.wrapper(self._draw_ui)
         except curses.error:
