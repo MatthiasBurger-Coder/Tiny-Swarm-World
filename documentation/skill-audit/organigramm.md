@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-CURRENT_AFTER_SLICE_05
+CURRENT_AFTER_AUDIT_DERIVED_GOVERNANCE_SKILLS
 ```
 
 ## Root
@@ -28,6 +28,15 @@ The Tiny Swarm World lead authority is the project governance defined in root
   `service-decomposition-bounded-context`,
   `microservice-runtime-readiness-expert`,
   `microservice-migration-safety-gate` and `contract-governance-expert`.
+- Audit and quality governance: `audit-evidence-manager`,
+  `qms-light-governance-expert` and `traceability-engineer`.
+- Security governance: `isms-light-security-governance-expert`,
+  `owasp-asvs-local-infrastructure-expert` and
+  `supply-chain-security-expert`.
+- Operations, CI and release governance: `live-evidence-validation-expert`,
+  `branch-ci-governance-expert` and
+  `release-baseline-governance-expert`.
+- Documentation audience governance: `documentation-audience-architect`.
 
 ## Boundaries
 

@@ -1,5 +1,5 @@
 {
-  "status": "CURRENT_AFTER_SLICE_05",
+  "status": "CURRENT_AFTER_AUDIT_DERIVED_GOVERNANCE_SKILLS",
   "canonical_paths": {
     "skill_registry_markdown": "documentation/skill-audit/skill-registry.md",
     "skill_registry_json": "documentation/skill-audit/skill-registry.json",
@@ -8,7 +8,7 @@
   },
   "skill_format": ".agents/skills/<skill-name>/SKILL.md",
   "counts": {
-    "project_skill_entrypoints": 122,
+    "project_skill_entrypoints": 132,
     "codex_skill_entrypoints": 6,
     "required_tiny_swarm_world_skills": 47,
     "removed_stale_microservice_artifacts": 4
@@ -81,6 +81,118 @@
   "notes": [
     "Repository files remain authoritative.",
     "This registry is an audit and navigation artifact.",
-    ".codex skills remain reusable fallback or portable team assets."
+    ".codex skills remain reusable fallback or portable team assets.",
+    "Governing hashes require refresh after audit-derived governance skill changes."
+  ],
+  "audit_derived_governance_skills": [
+    {
+      "name": "audit-evidence-manager",
+      "group": "Audit and quality",
+      "owner_role": "Senior Documentation Engineer",
+      "primary_paths": ["documentation/audit/"],
+      "supported_workflows": ["audit evidence remediation"],
+      "related_issues": [121],
+      "conflict_notes": "No equivalent narrow audit evidence owner found."
+    },
+    {
+      "name": "qms-light-governance-expert",
+      "group": "Audit and quality",
+      "owner_role": "Senior Tester",
+      "primary_paths": ["documentation/qms/", "QUALITY.md", "AGENTS.md"],
+      "supported_workflows": ["QMS-light governance"],
+      "related_issues": [122],
+      "conflict_notes": "Complements quality-gate skills without replacing them."
+    },
+    {
+      "name": "traceability-engineer",
+      "group": "Audit and quality",
+      "owner_role": "Senior Requirement Engineer",
+      "primary_paths": ["documentation/traceability/"],
+      "supported_workflows": ["traceability matrix"],
+      "related_issues": [124],
+      "conflict_notes": "Complements requirement-engineering with evidence mapping ownership."
+    },
+    {
+      "name": "isms-light-security-governance-expert",
+      "group": "Security",
+      "owner_role": "Security Owner",
+      "primary_paths": ["documentation/security/"],
+      "supported_workflows": ["ISMS-light governance"],
+      "related_issues": [123],
+      "conflict_notes": "Complements security-threat-modeling with governance ownership."
+    },
+    {
+      "name": "owasp-asvs-local-infrastructure-expert",
+      "group": "Security",
+      "owner_role": "Security Owner",
+      "primary_paths": [
+        "documentation/security/owasp-asvs-mapping.md",
+        "documentation/security/admin-surface-rbac.md",
+        "documentation/security/service-access-threat-model.md"
+      ],
+      "supported_workflows": ["OWASP ASVS local infrastructure mapping"],
+      "related_issues": [126],
+      "conflict_notes": "Scopes ASVS to local infrastructure and admin surfaces."
+    },
+    {
+      "name": "supply-chain-security-expert",
+      "group": "Security",
+      "owner_role": "Security Owner",
+      "primary_paths": [
+        "documentation/security/supply-chain-security.md",
+        "documentation/security/sbom-policy.md",
+        "documentation/security/dependency-scan-policy.md",
+        "documentation/security/container-image-scan-policy.md",
+        "tools/security_gate.py"
+      ],
+      "supported_workflows": ["supply-chain security"],
+      "related_issues": [127],
+      "conflict_notes": "Does not introduce external static-analysis CI by default."
+    },
+    {
+      "name": "live-evidence-validation-expert",
+      "group": "Operations, CI, and release governance",
+      "owner_role": "Senior DevOps Engineer",
+      "primary_paths": ["documentation/evidence/", "documentation/system/live-operation-surfaces.adoc"],
+      "supported_workflows": ["live evidence contract"],
+      "related_issues": [125],
+      "conflict_notes": "Does not run live commands without explicit live workflow approval."
+    },
+    {
+      "name": "branch-ci-governance-expert",
+      "group": "Operations, CI, and release governance",
+      "owner_role": "Senior DevOps Engineer",
+      "primary_paths": [
+        "documentation/governance/branch-protection.md",
+        "documentation/governance/ci-quality-gates.md",
+        "documentation/governance/pr-review-policy.md"
+      ],
+      "supported_workflows": ["branch and CI governance"],
+      "related_issues": [128],
+      "conflict_notes": "Complements release-branch-governance and quality-gate-orchestrator."
+    },
+    {
+      "name": "release-baseline-governance-expert",
+      "group": "Operations, CI, and release governance",
+      "owner_role": "Root Architect",
+      "primary_paths": ["documentation/release/", "pyproject.toml", "README.md"],
+      "supported_workflows": ["release and baseline process"],
+      "related_issues": [130],
+      "conflict_notes": "Does not create release tags or distribute artifacts."
+    },
+    {
+      "name": "documentation-audience-architect",
+      "group": "Documentation governance",
+      "owner_role": "Senior Documentation Engineer",
+      "primary_paths": [
+        "documentation/manuals/",
+        "README.md",
+        "documentation/README.adoc",
+        "documentation/user-handbook.adoc"
+      ],
+      "supported_workflows": ["documentation audience architecture"],
+      "related_issues": [129],
+      "conflict_notes": "Complements documentation-sync with audience ownership."
+    }
   ]
 }

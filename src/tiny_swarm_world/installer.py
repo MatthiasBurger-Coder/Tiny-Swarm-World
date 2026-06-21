@@ -16,6 +16,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Mapping, Sequence
 
+from tiny_swarm_world.application.ports.install_reporter import InstallReporter
+from tiny_swarm_world.domain.install import InstallEvent, InstallEventType, InstallStatus
+from tiny_swarm_world.infrastructure.adapters.ui.install_reporter import default_install_reporter
+
 
 RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
 DEFAULT_SERVICE_PROFILE = "service-access"
@@ -119,12 +123,41 @@ def parse_args(argv: Sequence[str] | None = None) -> InstallerOptions:
     )
 
 
+def _phase_event(
+    event_type: InstallEventType,
+    status: InstallStatus,
+    step: str,
+    *,
+    target: str = "host",
+    message: str = "",
+    reason: str | None = None,
+    evidence_path: Path | None = None,
+    suggested_commands: Sequence[str] = (),
+    sequence: int | None = None,
+    total: int | None = None,
+) -> InstallEvent:
+    return InstallEvent(
+        event_type=event_type,
+        status=status,
+        step=step,
+        target=target,
+        message=message,
+        reason=reason,
+        evidence_path=evidence_path,
+        suggested_commands=tuple(suggested_commands),
+        sequence=sequence,
+        total=total,
+    )
+
+
 def run(
     options: InstallerOptions,
     *,
     env: Mapping[str, str],
     cwd: Path,
+    reporter: InstallReporter | None = None,
 ) -> int:
+    install_reporter = reporter or default_install_reporter()
     _require_repository(cwd)
     paths = _paths_from_env(env, cwd)
     host_runtime = detect_host_runtime(env)
@@ -190,6 +223,17 @@ def run(
     )
 
     _print_install_plan(cwd, options, evidence_dir, paths.secret_env_file)
+    install_reporter.report(
+        _phase_event(
+            InstallEventType.INSTALL_STARTED,
+            InstallStatus.RUNNING,
+            "install",
+            message=(
+                f"Mode: fresh-reset; Profile: {options.service_profile}; "
+                f"Provider: {install_env.get('TSW_NODE_PROVIDER', 'lxc_native')}"
+            ),
+        )
+    )
     _confirm_reset(options)
     if not options.headless and shutil.which("script") is None:
         raise InstallerError("Required command 'script' is not available for terminal recording. Use --headless to capture logs directly.")
@@ -219,10 +263,22 @@ def run(
         options,
         install_env,
         cwd,
+        install_reporter,
+        sequence=1,
+        total=2,
     )
     _write_text(evidence_dir / "reset-run.exit", f"{reset_exit}\n")
     _append_context(evidence_dir, {"reset_exit": str(reset_exit)})
     if reset_exit != 0:
+        install_reporter.report(
+            _phase_event(
+                InstallEventType.INSTALL_FINISHED,
+                InstallStatus.FAILED,
+                "install",
+                reason="Fresh-install reset failed. Setup was not started.",
+                evidence_path=evidence_dir,
+            )
+        )
         print(f"Fresh-install reset failed with exit code {reset_exit}. Setup will not start.", file=sys.stderr)
         print(f"Evidence directory: {evidence_dir.as_posix()}", file=sys.stderr)
         _append_context(
@@ -242,6 +298,9 @@ def run(
         options,
         install_env,
         cwd,
+        install_reporter,
+        sequence=2,
+        total=2,
     )
     _write_text(evidence_dir / "setup-run.exit", f"{setup_exit}\n")
     _append_context(
@@ -252,9 +311,27 @@ def run(
         },
     )
     if setup_exit == 0:
+        install_reporter.report(
+            _phase_event(
+                InstallEventType.INSTALL_FINISHED,
+                InstallStatus.SUCCEEDED,
+                "install",
+                message="Installation completed successfully.",
+                evidence_path=evidence_dir,
+            )
+        )
         print("Installation completed successfully.")
         print(f"Evidence directory: {evidence_dir.as_posix()}")
     else:
+        install_reporter.report(
+            _phase_event(
+                InstallEventType.INSTALL_FINISHED,
+                InstallStatus.FAILED,
+                "install",
+                reason=f"Live setup failed with exit code {setup_exit}.",
+                evidence_path=evidence_dir,
+            )
+        )
         print(f"Installation failed with exit code {setup_exit}.", file=sys.stderr)
         print(f"Evidence directory: {evidence_dir.as_posix()}", file=sys.stderr)
         _print_tail(evidence_dir / "setup-run.log", "Last log lines")
@@ -630,7 +707,23 @@ def _run_phase(
     options: InstallerOptions,
     env: Mapping[str, str],
     cwd: Path,
+    reporter: InstallReporter | None = None,
+    *,
+    sequence: int | None = None,
+    total: int | None = None,
 ) -> int:
+    reporter = reporter or default_install_reporter()
+    reporter.report(
+        _phase_event(
+            InstallEventType.STEP_STARTED,
+            InstallStatus.STARTED,
+            name,
+            message=f"{name} started",
+            evidence_path=log_file,
+            sequence=sequence,
+            total=total,
+        )
+    )
     if options.headless:
         print(f"Starting {name}. Headless output is recorded at: {log_file.as_posix()}")
     else:
@@ -649,13 +742,55 @@ def _run_phase(
                 stderr=subprocess.STDOUT,
                 check=False,
             )
-        return completed.returncode
-    return subprocess.run(
-        ["script", "-q", "-e", "-c", effective_command, log_file.as_posix()],
-        cwd=cwd,
-        env=dict(env),
-        check=False,
-    ).returncode
+        exit_code = completed.returncode
+    else:
+        exit_code = subprocess.run(
+            ["script", "-q", "-e", "-c", effective_command, log_file.as_posix()],
+            cwd=cwd,
+            env=dict(env),
+            check=False,
+        ).returncode
+    if exit_code == 0:
+        reporter.report(
+            _phase_event(
+                InstallEventType.STEP_SUCCEEDED,
+                InstallStatus.SUCCEEDED,
+                name,
+                message=f"{name} completed",
+                evidence_path=log_file,
+                sequence=sequence,
+                total=total,
+            )
+        )
+    else:
+        reporter.report(
+            _phase_event(
+                InstallEventType.STEP_FAILED,
+                InstallStatus.FAILED,
+                name,
+                reason=f"{name} exited with code {exit_code}.",
+                evidence_path=log_file,
+                suggested_commands=_suggested_checks_for_phase(name),
+                sequence=sequence,
+                total=total,
+            )
+        )
+    return exit_code
+
+
+def _suggested_checks_for_phase(name: str) -> tuple[str, ...]:
+    normalized = name.casefold()
+    if "setup" in normalized:
+        return (
+            "lxc exec swarm-manager -- docker node ls",
+            "lxc exec swarm-manager -- docker service ls",
+        )
+    if "reset" in normalized:
+        return (
+            "lxc list",
+            "docker context ls",
+        )
+    return ()
 
 
 def _write_context(

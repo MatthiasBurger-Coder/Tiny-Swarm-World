@@ -209,7 +209,10 @@ Owner mapping:
 - Governance and documentation: `engineering-governance`,
   `documentation-sync`, `requirement-engineering`,
   `arc42-architecture-governance`, `adr-steward`,
-  `skill-registry-conflict-auditor`, and
+  `skill-registry-conflict-auditor`,
+  `audit-evidence-manager`, `qms-light-governance-expert`,
+  `traceability-engineer`, `documentation-audience-architect`,
+  `release-baseline-governance-expert`, and
   `tiny-swarm-world-system-architecture`.
 - Workflow execution: `workflow-executor`, `workflow-slice`,
   `workflow-slice-execution`, `workflow-orchestration`,
@@ -235,6 +238,10 @@ Owner mapping:
   `microservice-migration-safety-gate`, `contract-governance-expert`,
   `contract-first-api-steward`, `protobuf-contracts`, `grpc-ingestion`, and
   `grpc-streaming-specialist`.
+- Security and audit remediation: `isms-light-security-governance-expert`,
+  `owasp-asvs-local-infrastructure-expert`,
+  `supply-chain-security-expert`, `live-evidence-validation-expert`, and
+  `branch-ci-governance-expert`.
 
 Do not route Tiny Swarm World work to unrelated Spring Boot, browser React,
 forensic analytics, generic backend/frontend, database/vector/graph analytics,

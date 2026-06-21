@@ -1,0 +1,47 @@
+= ADR: Human-Readable Installer Console Reporting
+
+Status: Accepted
+
+Date: 2026-06-21
+
+== Context
+
+The Python installer is the leading live installation process. Operators need
+readable progress, diagnostics, evidence locations, and suggested recovery
+checks while preserving machine-readable reports and redacted evidence files.
+
+Raw JSON, Python dictionaries, YAML payloads, or internal event representations
+on stdout or stderr make the installer harder to operate and can leak internal
+state. Console reporting also must not control installer behavior.
+
+== Decision
+
+Tiny Swarm World uses the console exclusively for human-readable installer
+progress, diagnostics, and recovery guidance. Structured machine-readable data
+such as JSON must be written to report files and must not be printed to stdout
+or stderr during normal, verbose, or CI execution.
+
+Console output is an infrastructure adapter concern. Installer state is owned
+by the application layer. The console reporter renders application-level
+installer events into readable text but must not control installer execution.
+
+The installer must not introduce a curses UI, full-screen console UI, or
+interactive menu controller for live installation.
+
+== Consequences
+
+Normal and verbose console output remains human-readable. CI output, when
+introduced, must remain line-based text such as:
+
+----
+INSTALL preflight SUCCESS
+INSTALL docker-bootstrap FAILED target=swarm-worker-2
+----
+
+JSON and Markdown reports are allowed as generated files under
+`.tiny-swarm/reports/` or an equivalent ignored report directory. Evidence files
+may be referenced from the console, but their raw content must not be dumped
+during normal installer operation.
+
+Tests must guard against raw JSON event payloads, raw Python dictionaries, YAML
+payload markers, and internal event object representations in console output.

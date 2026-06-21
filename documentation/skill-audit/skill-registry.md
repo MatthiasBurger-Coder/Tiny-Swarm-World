@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-CURRENT_AFTER_SLICE_05
+CURRENT_AFTER_AUDIT_DERIVED_GOVERNANCE_SKILLS
 ```
 
 This is the canonical Tiny Swarm World skill registry path. Repository files
@@ -33,10 +33,35 @@ remain the source of truth; this registry is an audit and navigation artifact.
 
 ## Current Counts
 
-- Project-specific discoverable skills: 122.
+- Project-specific discoverable skills: 132.
 - Reusable `.codex` skills: 6.
 - Canonical required Tiny Swarm World skills: 47.
 - Removed stale microservice-specific artifacts: 4.
+
+## Audit-Derived Governance Skills
+
+These skills were added for audit remediation workflows #121 through #130. No
+existing skill was removed or renamed; the new skills narrow ownership for audit
+evidence, QMS-light, ISMS-light, traceability, live evidence, ASVS mapping,
+supply chain security, branch/CI governance, documentation audiences, and
+release baselines.
+
+| Skill | Group | Owner Role | Primary Paths | Related Issues |
+| --- | --- | --- | --- | --- |
+| `audit-evidence-manager` | Audit and quality | Senior Documentation Engineer | `documentation/audit/` | #121 |
+| `qms-light-governance-expert` | Audit and quality | Senior Tester | `documentation/qms/`, `QUALITY.md`, `AGENTS.md` | #122 |
+| `traceability-engineer` | Audit and quality | Senior Requirement Engineer | `documentation/traceability/` | #124 |
+| `isms-light-security-governance-expert` | Security | Security Owner | `documentation/security/` | #123 |
+| `owasp-asvs-local-infrastructure-expert` | Security | Security Owner | `documentation/security/owasp-asvs-mapping.md`, `documentation/security/admin-surface-rbac.md`, `documentation/security/service-access-threat-model.md` | #126 |
+| `supply-chain-security-expert` | Security | Security Owner | `documentation/security/supply-chain-security.md`, `documentation/security/sbom-policy.md`, `documentation/security/dependency-scan-policy.md`, `documentation/security/container-image-scan-policy.md`, `tools/security_gate.py` | #127 |
+| `live-evidence-validation-expert` | Operations, CI, and release governance | Senior DevOps Engineer | `documentation/evidence/`, `documentation/system/live-operation-surfaces.adoc` | #125 |
+| `branch-ci-governance-expert` | Operations, CI, and release governance | Senior DevOps Engineer | `documentation/governance/branch-protection.md`, `documentation/governance/ci-quality-gates.md`, `documentation/governance/pr-review-policy.md` | #128 |
+| `release-baseline-governance-expert` | Operations, CI, and release governance | Root Architect | `documentation/release/`, `pyproject.toml`, `README.md` | #130 |
+| `documentation-audience-architect` | Documentation governance | Senior Documentation Engineer | `documentation/manuals/`, `README.md`, `documentation/README.adoc`, `documentation/user-handbook.adoc` | #129 |
+
+Conflict decision: no equivalent project skill with the same narrow ownership
+was found in the current registry. Existing broader skills remain escalation and
+collaboration partners.
 
 ## Verification
 
