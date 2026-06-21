@@ -90,6 +90,12 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ServiceStackProfile.SERVICE_ACCESS.value, args.service_profile)
         self.assertEqual(NodeProviderKind.LXC_NATIVE.value, args.node_provider)
         self.assertIsNone(args.lxc_backend)
+        self.assertFalse(args.json)
+
+    def test_json_flag_enables_machine_readable_output(self):
+        args = entrypoint.parse_args(["--json"])
+
+        self.assertTrue(args.json)
 
     def test_lxc_backend_option_is_forwarded_as_provider_preference(self):
         args = entrypoint.parse_args(["--lxc-backend", "incus"])
@@ -163,7 +169,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                     await entrypoint.main(["platform", "init", "--live"])
 
         workflows.init.run.assert_awaited_once_with()
-        self.assertIn('"workflow": "platform init"', output.getvalue())
+        self.assertIn("Workflow: platform init", output.getvalue())
+        self.assertNotIn('{\n', output.getvalue())
 
     async def test_mutating_workflow_accepts_explicit_noninteractive_live_approval(self):
         services, workflows = _application_services_with_platform_workflows()
@@ -175,7 +182,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                     await entrypoint.main(["platform", "init", "--live", "--approve-live"])
 
         workflows.init.run.assert_awaited_once_with()
-        self.assertIn('"workflow": "platform init"', output.getvalue())
+        self.assertIn("Workflow: platform init", output.getvalue())
+        self.assertNotIn('{\n', output.getvalue())
 
     async def test_mutating_workflow_refuses_noninteractive_eof(self):
         output = io.StringIO()
@@ -202,7 +210,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         workflows.init.run.assert_awaited_once_with()
         workflows.reconcile.run.assert_not_awaited()
         workflows.expose.run.assert_not_awaited()
-        self.assertIn('"workflow": "platform init"', output.getvalue())
+        self.assertIn("Workflow: platform init", output.getvalue())
+        self.assertNotIn('{\n', output.getvalue())
 
     async def test_platform_reconcile_cli_output_reports_converged_outcome(self):
         reconcile_result = PlatformWorkflowResult(
@@ -231,7 +240,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         with patch.object(entrypoint, "build_application_services", return_value=services):
             with redirect_stdout(output):
                 await entrypoint.main(
-                    ["platform", "reconcile", "--live", "--approve-live"]
+                    ["platform", "reconcile", "--live", "--approve-live", "--json"]
                 )
 
         workflows.reconcile.run.assert_awaited_once_with()
@@ -250,7 +259,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             with patch.object(entrypoint, "build_application_services", return_value=services):
                 with redirect_stdout(output):
                     with self.assertRaises(SystemExit) as raised:
-                        await entrypoint.main(["platform", "init", "--live"])
+                        await entrypoint.main(["platform", "init", "--live", "--json"])
 
         self.assertEqual(1, raised.exception.code)
         services.platform.preflight.run.assert_not_awaited()
@@ -279,7 +288,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         )
         workflows.verify.run.assert_awaited_once_with()
         workflows.init.run.assert_not_awaited()
-        self.assertIn('"workflow": "platform verify"', output.getvalue())
+        self.assertIn("Workflow: platform verify", output.getvalue())
+        self.assertNotIn('{\n', output.getvalue())
 
     async def test_explicit_lxc_backend_override_builds_provider_request(self):
         services, workflows = _application_services_with_platform_workflows()
@@ -311,7 +321,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         workflows.expose.run.assert_awaited_once_with()
         workflows.init.run.assert_not_awaited()
-        self.assertIn('"workflow": "platform expose"', output.getvalue())
+        self.assertIn("Workflow: platform expose", output.getvalue())
+        self.assertNotIn('{\n', output.getvalue())
 
     async def test_platform_repair_lxc_proxy_drift_requires_live_consent_and_dispatches(self):
         services, workflows = _application_services_with_platform_workflows()
@@ -324,7 +335,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         workflows.repair_lxc_proxy_drift.run.assert_awaited_once_with()
         workflows.expose.run.assert_not_awaited()
-        self.assertIn('"workflow": "platform repair-lxc-proxy-drift"', output.getvalue())
+        self.assertIn("Workflow: platform repair-lxc-proxy-drift", output.getvalue())
+        self.assertNotIn('{\n', output.getvalue())
 
     async def test_reset_refuses_missing_confirmation_before_building_services(self):
         output = io.StringIO()
@@ -463,9 +475,9 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                                 with self.assertRaises(SystemExit) as raised:
                                     if requires_live:
                                         with patch("builtins.input", return_value="y"):
-                                            await entrypoint.main(command)
+                                            await entrypoint.main([*command, "--json"])
                                     else:
-                                        await entrypoint.main(command)
+                                        await entrypoint.main([*command, "--json"])
 
                 self.assertEqual(1, raised.exception.code)
                 build_application_services.assert_not_called()
@@ -511,7 +523,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 ):
                     with redirect_stdout(output):
                         with self.assertRaises(SystemExit) as raised:
-                            await entrypoint.main(["setup", "run", "--live"])
+                            await entrypoint.main(["setup", "run", "--live", "--json"])
 
         self.assertEqual(1, raised.exception.code)
         run_setup.assert_awaited_once()
@@ -557,9 +569,21 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         )
         build_services.assert_not_called()
         preflight.run.assert_awaited_once_with(None)
-        self.assertIn('"status": "PASSED"', output.getvalue())
+        self.assertNotIn('{\n', output.getvalue())
+        self.assertIn("Preflight summary: PASSED", output.getvalue())
         self.assertIn("Static checks passed", output.getvalue())
         self.assertIn("does not claim live provider readiness", output.getvalue())
+
+    async def test_preflight_json_mode_emits_structured_payload(self):
+        preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))
+        output = io.StringIO()
+
+        with patch.object(entrypoint, "build_preflight_service", return_value=preflight):
+            with redirect_stdout(output):
+                await entrypoint.main(["--preflight", "--json"])
+
+        payload = _json_payload_from_output(output.getvalue())
+        self.assertEqual("PASSED", payload["status"])
 
     async def test_failed_preflight_exits_nonzero(self):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(False)))

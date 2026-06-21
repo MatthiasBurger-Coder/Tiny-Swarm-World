@@ -1,99 +1,30 @@
 {
-  "workflow_version": "installation-phases-port-registry-v1.0.0",
-  "workflow_id": "workflow-install-order-and-port-allocation-20260620",
-  "branch": "feature/workflow-installation-phases-port-registry-20260620",
-  "evidence_root": ".codex/evidence/workflow-install-order-and-port-allocation-20260620/",
-  "created": "2026-06-20",
-  "status": "READY_FOR_WORKFLOW",
-  "process_strand": "workflow create",
-  "execution_profile": "FULL_PATH",
+  "workflow": "console-output-issue-151-v1.0.0",
+  "workflow_id": "workflow-console-output-issue-151-20260621",
+  "branch": "fix/workflow-console-output-151-20260621",
+  "status": "EXECUTED_WITH_EVIDENCE",
+  "execution_profile": "NORMAL_PATH",
+  "evidence_root": ".codex/evidence/workflow-console-output-issue-151-20260621/",
   "affected_areas": [
-    "infra/config/**",
-    "infra/config/compose/**",
-    "src/tiny_swarm_world/domain/preflight/**",
-    "src/tiny_swarm_world/domain/network/**",
-    "src/tiny_swarm_world/domain/deployment/**",
-    "src/tiny_swarm_world/application/ports/repositories/**",
-    "src/tiny_swarm_world/application/services/setup/**",
-    "src/tiny_swarm_world/application/services/platform/**",
-    "src/tiny_swarm_world/application/services/deployment/**",
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/**",
-    "src/tiny_swarm_world/infrastructure/composition.py",
-    "tests/**",
-    "documentation/**"
+    "src/tiny_swarm_world/__main__.py",
+    "tests/test_package_entrypoint.py",
+    "documentation/workflow/**",
+    ".codex/evidence/workflow-console-output-issue-151-20260621/**"
   ],
   "forbidden_areas": [
-    "Java/Maven/Spring Boot structure",
-    "Browser React frontend project",
-    "Kubernetes-first deployment behavior",
-    "Multipass provider support",
-    "Live infrastructure mutation during default quality gates",
-    "Committed secrets, tokens, host IP addresses, local absolute paths, raw command output, or credential-bearing URLs"
-  ],
-  "required_roles": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior React Frontend Developer impact check",
-    "Senior Tester"
-  ],
-  "conditional_roles": [
-    "Senior DevOps Engineer",
-    "Senior Documentation Engineer",
-    "Security/secrets reviewer",
-    "Quality Gate Orchestrator"
+    "live infrastructure mutation",
+    "domain model changes",
+    "application orchestration changes",
+    "committed secrets or raw env payloads"
   ],
   "quality_commands": {
     "targeted": [
       "git diff --check",
-      "PYTHONPATH=src python3 -m unittest <nearest test modules>"
+      "PYTHONPATH=src python -m unittest tests.test_package_entrypoint",
+      "PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui"
     ],
     "required": [
-      "python3 tools/quality_gate.py quality"
+      "python3 tools/quality_gate.py test"
     ]
-  },
-  "evidence_governance": {
-    "required_root": ".codex/evidence/workflow-install-order-and-port-allocation-20260620/",
-    "forbidden_generic_paths": [
-      ".codex/evidence/slice-01-distribution.md",
-      ".codex/evidence/slice-01-consolidation.md"
-    ],
-    "preflight_guard": "Before writing evidence, verify that the target file is absent or belongs to this workflow. Stop if an existing evidence file belongs to another workflow.",
-    "overwrite_policy": "Do not overwrite, modify, truncate, rename, or delete evidence belonging to another workflow."
-  },
-  "governing_hashes": {
-    "AGENTS.md": "FB1EE9B2A878D4662C96B9BC7255F3D7EC151FB2D1997FD981D4D1A34F54EC3F",
-    "QUALITY.md": "458E5F4D8FBDEDEA1C413E1FF135EC91392A4BB5A5AEA20300DCAC8E209414B6",
-    ".agents/skills/workflow-authoring/SKILL.md": "5EF238CA8A98D08A3594906E5A30100649D4C09E64A01B377D690F6580B1CA03",
-    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "23DE7D9AAC9D2694EAE26FAC2765D65F369C101AC348DAC24D5F3BBE9E2D3BA4",
-    ".agents/orchestrator/routing-rules.md": "BA3563181DB98DF3F6A1872D676006CF57CC1603C1B0B74D4C41CD3DB02A60A5",
-    "documentation/process/branch-governance.md": "3332F0FB56E7A72FEE3A9B6E89C4D9D5C3BF1198B375CE4D2BBD5C7350588A83",
-    "documentation/epics/autonomous-runnable-setup.md": "758F291E311CF8232937B6820CE6122126C3C8353276E3D38FFF6C5EDE079691",
-    "documentation/epics/service-access-dashboard-vaultwarden.md": "9C93D460A92630F485C0672F26810ECB4832C69D21A8F6F0941DFFA4AACD1606",
-    "documentation/arc42/07_deployment_view.adoc": "8CC484BBB06C42CFEF2E933AB047716B54AEE655E5C62D711E2485151F07BF5C",
-    "documentation/arc42/08_concepts.adoc": "6AD298D14F6AA4BEF530A25C88EA1AB171AC8EF48A295089025D0B716BF78C0F",
-    "documentation/arc42/09_architecture_decisions.adoc": "2C9811C38F1AD2AE4E516C6A4C3C7DBA808FC208B687242C965EB43CCF3FD051",
-    "documentation/arc42/10_quality_requirements.adoc": "F2F824FC64B1DC05AEB8CE49A30833E2F426AED397F1193470ED2DC43BAAB865"
-  },
-  "arc42_check": {
-    "checked_files": [
-      "documentation/arc42/05_building_blocks.adoc",
-      "documentation/arc42/07_deployment_view.adoc",
-      "documentation/arc42/08_concepts.adoc",
-      "documentation/arc42/09_architecture_decisions.adoc",
-      "documentation/arc42/10_quality_requirements.adoc"
-    ],
-    "modified_during_workflow_creation": false,
-    "execution_update_slices": [
-      "01",
-      "07"
-    ]
-  },
-  "stale_when": [
-    "governing hash changes",
-    "workflow.md changes without this pack",
-    "branch mismatch",
-    "ADR changes Traefik ingress or setup safety baseline",
-    "execution slice changes quality commands or file locks"
-  ]
+  }
 }

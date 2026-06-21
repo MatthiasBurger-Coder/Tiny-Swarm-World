@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 from argparse import ArgumentParser, Namespace
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -128,6 +129,11 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
         ),
     )
     parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON workflow results instead of the default human-readable summary.",
+    )
+    parser.add_argument(
         "--confirm",
         help="Exact confirmation phrase required by destructive workflows.",
     )
@@ -190,7 +196,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
         return
 
     _enforce_workflow_confirmation(workflow, args.confirm)
-    _enforce_workflow_implementation(workflow)
+    _enforce_workflow_implementation(workflow, args)
     live_consent = _live_consent_for_workflow(workflow, args)
 
     logger.info("Running workflow: %s", workflow.name)
@@ -207,9 +213,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
         service_profile=args.service_profile,
         node_provider_request=node_provider_request,
     )
-    if isinstance(result, SetupWorkflowResult):
-        _print_setup_installation_summary(result)
-    print(json.dumps(_workflow_result_to_dict(result), indent=2, sort_keys=True))
+    _emit_workflow_result(result, args)
     if _workflow_status_value(result) != PlatformWorkflowStatus.COMPLETED.value:
         raise SystemExit(1)
 
@@ -233,8 +237,10 @@ async def _run_preflight_command(args: Namespace) -> None:
     )
     live_consent = _live_consent_from_args(args) if args.live else None
     result = await preflight.run(live_consent)
-    print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
-    _print_preflight_summary(result, live=args.live)
+    if _should_emit_json(args):
+        _emit_json_payload(result.to_dict())
+    else:
+        _print_preflight_summary(result, live=args.live)
     if not result.passed:
         raise SystemExit(1)
 
@@ -254,16 +260,14 @@ def _enforce_workflow_confirmation(workflow: CliWorkflow, confirmation: str | No
     raise SystemExit(2)
 
 
-def _enforce_workflow_implementation(workflow: CliWorkflow) -> None:
+def _enforce_workflow_implementation(workflow: CliWorkflow, args: Namespace) -> None:
     if workflow.implemented:
         return
-    print(
-        json.dumps(
-            _blocked_workflow_result(workflow),
-            indent=2,
-            sort_keys=True,
-        )
-    )
+    payload = _blocked_workflow_result(workflow)
+    if _should_emit_json(args):
+        _emit_json_payload(payload)
+    else:
+        _print_blocked_workflow_summary(payload)
     raise SystemExit(1)
 
 
@@ -395,11 +399,31 @@ def _workflow_result_to_dict(result: WorkflowResult) -> dict[str, object]:
     return result.to_dict()
 
 
+def _emit_workflow_result(result: WorkflowResult, args: Namespace) -> None:
+    if _should_emit_json(args):
+        _emit_json_payload(_workflow_result_to_dict(result))
+        return
+    if isinstance(result, SetupWorkflowResult):
+        _print_setup_installation_summary(result)
+        return
+    _print_workflow_summary(result)
+
+
+def _emit_json_payload(payload: dict[str, object]) -> None:
+    print(json.dumps(payload, indent=2, sort_keys=True))
+
+
 def _workflow_status_value(result: WorkflowResult) -> str:
     status = result.status
     if isinstance(status, Enum):
         return str(status.value)
     return str(status)
+
+
+def _should_emit_json(args: Namespace) -> bool:
+    if bool(args.json):
+        return True
+    return os.environ.get("TSW_DEBUG_JSON", "").strip().lower() == "true"
 
 
 def _blocked_workflow_result(workflow: CliWorkflow) -> dict[str, object]:
@@ -409,6 +433,35 @@ def _blocked_workflow_result(workflow: CliWorkflow) -> dict[str, object]:
         "status": "blocked",
         "workflow": workflow.name,
     }
+
+
+def _print_blocked_workflow_summary(payload: dict[str, object]) -> None:
+    print()
+    print(f"Workflow: {payload['workflow']}")
+    print(f"Status: {payload['status']}")
+    print(f"Message: {payload['message']}")
+
+
+def _print_workflow_summary(result: WorkflowResult) -> None:
+    print()
+    print(f"Workflow: {_workflow_name(result)}")
+    print(f"Status: {_workflow_status_value(result)}")
+    print(f"Executed: {'yes' if result.executed else 'no'}")
+    message = getattr(result, "message", "")
+    if message:
+        print(f"Message: {message}")
+    reason = getattr(result, "reason", "")
+    if reason:
+        print(f"Reason: {reason}")
+    verification_results = getattr(result, "verification_results", ())
+    if verification_results:
+        print("Verification summary:")
+        for verification in verification_results:
+            print(f"- {verification.target_id}: {verification.status.value}")
+
+
+def _workflow_name(result: WorkflowResult) -> str:
+    return getattr(result, "workflow_name", _workflow_result_to_dict(result).get("workflow", "workflow"))
 
 
 def _live_consent_from_args(args: Namespace) -> LiveConsent:
