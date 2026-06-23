@@ -1903,7 +1903,8 @@ def _infisical_apply_readiness_steps(
     service_stack_by_name: dict[str, ServiceStackContract],
 ) -> tuple[EnsureSwarmServiceReadiness, ...]:
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
-        return ()
+        readiness_steps: list[EnsureSwarmServiceReadiness] = []
+        return tuple(readiness_steps)
     attempts = _operator_config_int(
         INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT,
         DEFAULT_INFISICAL_READINESS_ATTEMPTS,
@@ -1914,7 +1915,7 @@ def _infisical_apply_readiness_steps(
         DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS,
         minimum=0,
     )
-    return (
+    readiness_steps = [
         EnsureSwarmServiceReadiness(
             swarm_runtime,
             service_stack_by_name["infisical"],
@@ -1929,7 +1930,8 @@ def _infisical_apply_readiness_steps(
             max_attempts=attempts,
             wait_seconds=int(interval),
         ),
-    )
+    ]
+    return tuple(readiness_steps)
 
 
 def _infisical_bootstrap_steps(

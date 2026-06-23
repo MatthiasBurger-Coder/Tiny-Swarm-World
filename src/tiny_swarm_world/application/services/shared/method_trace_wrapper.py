@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Awaitable, Callable
-from typing import ParamSpec, TypeVar
 from uuid import uuid4
 
 from tiny_swarm_world.application.ports.method_trace import (
@@ -10,10 +9,6 @@ from tiny_swarm_world.application.ports.method_trace import (
     NullMethodTrace,
     PortMethodTrace,
 )
-
-P = ParamSpec("P")
-R = TypeVar("R")
-
 
 class MethodTraceWrapper:
     def __init__(
@@ -31,7 +26,7 @@ class MethodTraceWrapper:
         self._correlation_id = correlation_id
         self._parent_span_id = parent_span_id
 
-    def wrap_sync(
+    def wrap_sync[**P, R](
         self,
         method: Callable[P, R],
         *,
@@ -69,7 +64,7 @@ class MethodTraceWrapper:
 
         return traced
 
-    def wrap_async(
+    def wrap_async[**P, R](
         self,
         method: Callable[P, Awaitable[R]],
         *,
@@ -216,7 +211,7 @@ def _class_name_from_bound_method(method: Callable[..., object]) -> str:
     return "module"
 
 
-def _safe_result(result: R, result_classifier: Callable[[R], str] | None) -> str:
+def _safe_result[R](result: R, result_classifier: Callable[[R], str] | None) -> str:
     if result_classifier is None:
         return "completed"
     return result_classifier(result)

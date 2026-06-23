@@ -27,18 +27,24 @@ class PlainConsoleInstallReporter:
 def render_install_event(event: InstallEvent) -> tuple[str, ...]:
     prefix = _status_label(event.status)
     header = _step_header(event)
+    lines: list[str]
     if event.event_type is InstallEventType.INSTALL_STARTED:
-        return ("Tiny Swarm World Installer", _detail_line("RUNNING", event.message or event.step))
+        lines = ["Tiny Swarm World Installer", _detail_line("RUNNING", event.message or event.step)]
+        return tuple(lines)
     if event.event_type is InstallEventType.INSTALL_FINISHED:
-        return (_detail_line(prefix, event.message or event.step),)
+        lines = [_detail_line(prefix, event.message or event.step)]
+        return tuple(lines)
     if event.status is InstallStatus.STARTED:
-        return (header, _detail_line("RUNNING", _target_message(event)))
+        lines = [header, _detail_line("RUNNING", _target_message(event))]
+        return tuple(lines)
     if event.status is InstallStatus.FAILED:
         return _failure_lines(event)
     if event.event_type is InstallEventType.EVIDENCE_WRITTEN:
         evidence = _path_text(event.evidence_path)
-        return (_detail_line("EVIDENCE", evidence or event.message or event.step),)
-    return (_detail_line(prefix, _target_message(event)),)
+        lines = [_detail_line("EVIDENCE", evidence or event.message or event.step)]
+        return tuple(lines)
+    lines = [_detail_line(prefix, _target_message(event))]
+    return tuple(lines)
 
 
 def _failure_lines(event: InstallEvent) -> tuple[str, ...]:
