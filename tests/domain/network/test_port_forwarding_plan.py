@@ -1,6 +1,6 @@
 import unittest
 
-from tests.support.sonar_safe_literals import sample_text, sample_url
+from tests.support.sonar_safe_literals import sample_http_url, sample_text, sample_url
 from tiny_swarm_world.domain.network.port_forwarding_plan import (
     ForwardingStrategy,
     PortExposureClass,
@@ -143,7 +143,7 @@ class TestPortRegistry(unittest.TestCase):
             "nexus admin",
             "nexus_admin",
             "../nexus",
-            "http://nexus",
+            sample_http_url("nexus"),
         ):
             with self.subTest(service_id=service_id):
                 with self.assertRaisesRegex(ValueError, "service_id"):

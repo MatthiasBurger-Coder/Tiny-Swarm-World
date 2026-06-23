@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from typing import cast
 from unittest.mock import patch
 from tests.support.async_helpers import async_checkpoint
-from tests.support.sonar_safe_literals import ipv4_address, sample_text
+from tests.support.sonar_safe_literals import ipv4_address, sample_http_url, sample_text
 
 from tiny_swarm_world.application.services.deployment.ensure_swarm_stack import EnsureSwarmStack
 from tiny_swarm_world.application.ports.ui.port_ui import (
@@ -1409,25 +1409,25 @@ class TestComposition(unittest.TestCase):
     def test_lxc_docker_registry_mirror_configuration_uses_operator_environment(self):
         with patch.dict(
             os.environ,
-            {"TSW_LXC_DOCKER_REGISTRY_MIRROR": f"http://{ipv4_address(10, 0, 3, 1)}:5001"},
+            {"TSW_LXC_DOCKER_REGISTRY_MIRROR": sample_http_url(ipv4_address(10, 0, 3, 1), 5001)},
             clear=True,
         ):
             with patch(
                 "tiny_swarm_world.infrastructure.composition._auto_detect_nexus_cache_registry_mirror",
-                return_value=f"http://{ipv4_address(10, 0, 3, 99)}:5001",
+                return_value=sample_http_url(ipv4_address(10, 0, 3, 99), 5001),
             ) as auto_detect:
                 mirror = composition._lxc_docker_registry_mirror_configuration()
 
         self.assertIsNotNone(mirror)
         assert mirror is not None
-        self.assertEqual(f"http://{ipv4_address(10, 0, 3, 1)}:5001", mirror.mirror_url)
+        self.assertEqual(sample_http_url(ipv4_address(10, 0, 3, 1), 5001), mirror.mirror_url)
         self.assertEqual(f"{ipv4_address(10, 0, 3, 1)}:5001", mirror.registry_authority)
         auto_detect.assert_not_called()
 
     def test_lxc_docker_registry_mirror_rejects_localhost_operator_value(self):
         with patch.dict(
             os.environ,
-            {"TSW_LXC_DOCKER_REGISTRY_MIRROR": "http://127.0.0.1:5001"},
+            {"TSW_LXC_DOCKER_REGISTRY_MIRROR": sample_http_url("127.0.0.1", 5001)},
             clear=True,
         ):
             with self.assertRaises(ValueError):
@@ -1447,7 +1447,7 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsNotNone(mirror)
         assert mirror is not None
-        self.assertEqual(f"http://{ipv4_address(10, 0, 3, 1)}:5001", mirror.mirror_url)
+        self.assertEqual(sample_http_url(ipv4_address(10, 0, 3, 1), 5001), mirror.mirror_url)
         container_running.assert_called_once_with("tiny-swarm-nexus-cache")
         host_ip.assert_called_once()
 

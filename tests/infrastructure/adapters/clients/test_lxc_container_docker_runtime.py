@@ -1,6 +1,6 @@
 import unittest
 
-from tests.support.sonar_safe_literals import ipv4_address
+from tests.support.sonar_safe_literals import ipv4_address, sample_http_url
 from tests.support.async_helpers import async_checkpoint
 
 from tiny_swarm_world.domain.node_provider import (
@@ -66,14 +66,16 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         )
         runtime = _runtime(
             runner,
-            registry_mirror=DockerRegistryMirrorConfiguration(f"http://{ipv4_address(10, 0, 3, 1)}:5001"),
+            registry_mirror=DockerRegistryMirrorConfiguration(
+                sample_http_url(ipv4_address(10, 0, 3, 1), 5001)
+            ),
         )
 
         await runtime.install_docker(_node())
 
         script = runner.calls[0][0][-1]
         self.assertIn('"registry-mirrors": [', script)
-        self.assertIn('"http://10.0.3.1:5001"', script)
+        self.assertIn(f'"{sample_http_url(ipv4_address(10, 0, 3, 1), 5001)}"', script)
         self.assertIn('"insecure-registries": [', script)
         self.assertIn('"10.0.3.1:5001"', script)
         self.assertIn("cat > /etc/docker/daemon.json", script)
@@ -81,7 +83,7 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
 
     def test_rejects_localhost_registry_mirror_for_lxc_nodes(self):
         with self.assertRaises(ValueError):
-            DockerRegistryMirrorConfiguration("http://127.0.0.1:5001")
+            DockerRegistryMirrorConfiguration(sample_http_url("127.0.0.1", 5001))
 
     async def test_install_blocks_without_live_mutation_consent(self):
         runner = _FakeRunner()

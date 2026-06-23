@@ -348,12 +348,14 @@ class LxcPortainerAdminClient(PortPortainerAdminClient):
         backend: ManagedLxcBackend,
         manager_node: str = "swarm-manager",
         port: int = 10001,
+        scheme: str = "http",
         session: requests.Session | None = None,
         timeout_seconds: int = 30,
     ):
         self.backend = backend
         self.manager_node = manager_node
         self.port = port
+        self.scheme = _validate_local_http_scheme(scheme)
         self.session = session or requests.Session()
         self.timeout_seconds = timeout_seconds
 
@@ -390,7 +392,11 @@ class LxcPortainerAdminClient(PortPortainerAdminClient):
             )
 
     def _base_url(self) -> str:
-        return f"http://{_lxc_manager_ip(self.backend, self.manager_node, self.timeout_seconds)}:{self.port}"
+        return _local_service_url(
+            self.scheme,
+            _lxc_manager_ip(self.backend, self.manager_node, self.timeout_seconds),
+            self.port,
+        )
 
     def _clear_session_cookies(self) -> None:
         cookies = getattr(self.session, "cookies", None)
@@ -416,12 +422,14 @@ class LxcNexusHttpClient(PortNexusClient):
         backend: ManagedLxcBackend,
         manager_node: str = "swarm-manager",
         port: int = 13081,
+        scheme: str = "http",
         session: requests.Session | None = None,
         timeout_seconds: int = 30,
     ):
         self.backend = backend
         self.manager_node = manager_node
         self.port = port
+        self.scheme = _validate_local_http_scheme(scheme)
         self.session = session
         self.timeout_seconds = timeout_seconds
 
@@ -506,7 +514,11 @@ class LxcNexusHttpClient(PortNexusClient):
         )
 
     def _base_url(self) -> str:
-        return f"http://{_lxc_manager_ip(self.backend, self.manager_node, self.timeout_seconds)}:{self.port}"
+        return _local_service_url(
+            self.scheme,
+            _lxc_manager_ip(self.backend, self.manager_node, self.timeout_seconds),
+            self.port,
+        )
 
 
 class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
@@ -518,6 +530,7 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         password: str,
         manager_node: str = "swarm-manager",
         port: int = 10001,
+        scheme: str = "http",
         api_url: str | None = None,
         session: requests.Session | None = None,
         timeout_seconds: int = 30,
@@ -530,6 +543,7 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         self.password = password
         self.manager_node = manager_node
         self.port = port
+        self.scheme = _validate_local_http_scheme(scheme)
         self.api_url = api_url.rstrip("/") if api_url else None
         self.session = session
         self.timeout_seconds = timeout_seconds
@@ -638,7 +652,11 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         return self._cached_client
 
     def _base_url(self) -> str:
-        return f"http://{_lxc_manager_ip(self.backend, self.manager_node, self.timeout_seconds)}:{self.port}"
+        return _local_service_url(
+            self.scheme,
+            _lxc_manager_ip(self.backend, self.manager_node, self.timeout_seconds),
+            self.port,
+        )
 
 
 class LxcContainerImagePublisher(PortContainerImagePublisher):
@@ -943,6 +961,17 @@ def _publish_add_argument(port: Mapping[str, object]) -> str:
         f"protocol={shlex.quote(protocol)},"
         f"mode={shlex.quote(desired_mode)}"
     )
+
+
+def _validate_local_http_scheme(scheme: str) -> str:
+    normalized = scheme.strip().lower()
+    if normalized not in {"http", "https"}:
+        raise ValueError("Local service URL scheme must be 'http' or 'https'.")
+    return normalized
+
+
+def _local_service_url(scheme: str, host: str, port: int) -> str:
+    return f"{scheme}://{host}:{port}"
 
 
 def _published_port_key(port: Mapping[str, object]) -> tuple[str, str, str, str]:

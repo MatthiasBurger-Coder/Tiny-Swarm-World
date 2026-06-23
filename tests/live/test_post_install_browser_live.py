@@ -698,7 +698,7 @@ def _service_checks(dashboard_url: str) -> tuple[ServiceCheck, ...]:
                 f"service-access-route:{route_name}",
                 _validated_local_url(
                     route_path
-                    if route_path.startswith(("http://", "https://"))
+                    if urlparse(route_path).scheme in {"http", "https"}
                     else urljoin(safe_dashboard_url, route_path),
                     "dashboard",
                 ),

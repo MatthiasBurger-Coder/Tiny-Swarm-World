@@ -12,7 +12,7 @@ from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client 
     InfisicalBootstrapState,
 )
 from tiny_swarm_world.domain.inventory import VerificationStatus
-from tests.support.sonar_safe_literals import operator_credential, sample_text
+from tests.support.sonar_safe_literals import operator_credential, sample_http_url, sample_text
 
 
 MODULE_PATH = (
@@ -50,7 +50,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
 
         rendered = service.render_environment()
 
-        self.assertEqual("http://localhost:17080", rendered["SITE_URL"])
+        self.assertEqual(sample_http_url("localhost", 17080), rendered["SITE_URL"])
         self.assertEqual("enc", rendered["ENCRYPTION_KEY"])
         self.assertIn("postgres://infisical:pg@", rendered["DB_CONNECTION_URI"])
 
@@ -60,14 +60,14 @@ class TestInfisicalSilentInstall(unittest.TestCase):
                 "ENCRYPTION_KEY": "enc",
                 "AUTH_SECRET": "auth",
                 "DB_CONNECTION_URI": "postgres://infisical:secret@tasks.infisical-db:5432/infisical",
-                "SITE_URL": "http://localhost:17080",
+                "SITE_URL": sample_http_url("localhost", 17080),
             }
         )
 
         self.assertEqual("<redacted>", redacted["ENCRYPTION_KEY"])
         self.assertEqual("<redacted>", redacted["AUTH_SECRET"])
         self.assertEqual("<redacted>", redacted["DB_CONNECTION_URI"])
-        self.assertEqual("http://localhost:17080", redacted["SITE_URL"])
+        self.assertEqual(sample_http_url("localhost", 17080), redacted["SITE_URL"])
 
     def test_builds_idempotent_bootstrap_command_and_sanitized_command(self):
         service = _service()
@@ -193,8 +193,8 @@ def _service(
         cli=cli or _FakeCli(),
         bootstrap_client=bootstrap_client,
         config=InfisicalSilentInstallConfig(
-            external_url="http://localhost:17080",
-            internal_url="http://infisical:8080",
+            external_url=sample_http_url("localhost", 17080),
+            internal_url=sample_http_url("infisical", 8080),
             admin_email="admin@tiny-swarm.local",
             admin_first_name="Tiny",
             admin_last_name="Admin",

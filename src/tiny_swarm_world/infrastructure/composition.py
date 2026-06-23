@@ -8,6 +8,7 @@ import subprocess
 from dataclasses import replace
 from pathlib import Path
 from typing import cast
+from urllib.parse import urlparse
 from uuid import uuid4
 
 from tiny_swarm_world.application.ports.method_trace import PortMethodTrace
@@ -1623,7 +1624,7 @@ def _auto_detect_nexus_cache_registry_mirror() -> str:
     host_ip = _lxc_reachable_host_ip()
     if not host_ip:
         return ""
-    return f"http://{host_ip}:{proxy_port}"
+    return _local_http_url(host_ip, proxy_port)
 
 
 def _local_docker_container_running(container_name: str) -> bool:
@@ -1846,7 +1847,7 @@ def _nexus_docker_hub_proxy_remote_url() -> str:
         NEXUS_DOCKER_HUB_PROXY_REMOTE_URL_ENVIRONMENT,
         DEFAULT_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL,
     ).strip()
-    if not remote_url.startswith(("http://", "https://")):
+    if not _is_http_url(remote_url):
         raise ValueError("Nexus Docker Hub proxy remote URL must be HTTP or HTTPS.")
     return remote_url
 
@@ -1861,6 +1862,16 @@ def _swarm_registry_endpoint() -> str:
             "Swarm registry endpoint must be host[:port] without scheme or credentials."
         )
     return endpoint
+
+
+def _is_http_url(value: str) -> bool:
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _local_http_url(host: str, port: str) -> str:
+    scheme = "http"
+    return f"{scheme}://{host}:{port}"
 
 
 def _infisical_secret_seed_steps(
@@ -1935,7 +1946,7 @@ def _infisical_bootstrap_steps(
             bootstrap_client=InfisicalBootstrapHttpClient(
                 base_url=_operator_config_value(
                     INFISICAL_URL_ENVIRONMENT,
-                    "http://localhost:17080",
+                    _local_http_url("localhost", "17080"),
                 ),
                 verify_tls=False,
                 readiness_attempts=_operator_config_int(
@@ -1957,11 +1968,11 @@ def _infisical_bootstrap_steps(
             config=InfisicalSilentInstallConfig(
                 external_url=_operator_config_value(
                     INFISICAL_URL_ENVIRONMENT,
-                    "http://localhost:17080",
+                    _local_http_url("localhost", "17080"),
                 ),
                 internal_url=_operator_config_value(
                     INFISICAL_INTERNAL_URL_ENVIRONMENT,
-                    "http://infisical:8080",
+                    _local_http_url("infisical", "8080"),
                 ),
                 admin_email=_required_operator_secret_value(
                     INFISICAL_LOGIN_EMAIL_ENVIRONMENT,
