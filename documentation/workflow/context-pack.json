@@ -1,27 +1,23 @@
 {
-  "workflow": "console-output-issue-151-v1.0.0",
-  "workflow_id": "workflow-console-output-issue-151-20260621",
-  "branch": "fix/workflow-console-output-151-20260621",
-  "status": "EXECUTED_WITH_EVIDENCE",
+  "workflow": "sonar-s2083-path-v1.0.0",
+  "workflow_id": "workflow-sonar-s2083-path-20260623",
+  "branch": "fix/workflow-sonar-s2083-path-20260623",
+  "status": "IN_PROGRESS",
   "execution_profile": "NORMAL_PATH",
-  "evidence_root": ".codex/evidence/workflow-console-output-issue-151-20260621/",
+  "evidence_root": ".codex/evidence/workflow-sonar-s2083-path-20260623/",
   "affected_areas": [
-    "src/tiny_swarm_world/__main__.py",
-    "tests/test_package_entrypoint.py",
+    "tests/application/services/deployment/test_secret_management.py",
     "documentation/workflow/**",
-    ".codex/evidence/workflow-console-output-issue-151-20260621/**"
+    ".codex/evidence/workflow-sonar-s2083-path-20260623/**"
   ],
   "forbidden_areas": [
     "live infrastructure mutation",
-    "domain model changes",
-    "application orchestration changes",
+    "production secret-management behavior changes",
     "committed secrets or raw env payloads"
   ],
   "quality_commands": {
     "targeted": [
-      "git diff --check",
-      "PYTHONPATH=src python -m unittest tests.test_package_entrypoint",
-      "PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui"
+      "PYTHONPATH=src python -m unittest tests.application.services.deployment.test_secret_management"
     ],
     "required": [
       "python3 tools/quality_gate.py test"
