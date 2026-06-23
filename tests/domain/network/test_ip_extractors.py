@@ -4,6 +4,9 @@ from tests.support.sonar_safe_literals import ipv4_address
 from tiny_swarm_world.domain.network.ip_extractor.strategies.ip_extractor_swarm_manager import (
     IpExtractorSwarmManager,
 )
+from tiny_swarm_world.domain.network.ip_extractor.strategies.ip_extractor_gateway import (
+    IpExtractorGateway,
+)
 from tiny_swarm_world.domain.network.ip_value import IpValue
 
 
@@ -23,3 +26,10 @@ class TestIpExtractors(unittest.TestCase):
         extracted = IpExtractorSwarmManager().extract(result)
 
         self.assertEqual(IpValue(ip_address=ipv4_address(10, 34, 157, 147)), extracted)
+
+    def test_gateway_extractor_uses_first_ipv4_from_gateway_output(self):
+        result = [{1: f"default via {ipv4_address(10, 34, 157, 1)} dev eth0"}]
+
+        extracted = IpExtractorGateway().extract(result)
+
+        self.assertEqual(IpValue(ip_address=ipv4_address(10, 34, 157, 1)), extracted)

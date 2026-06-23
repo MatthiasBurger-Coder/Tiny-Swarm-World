@@ -139,23 +139,7 @@ class EnsureInfisicalSilentInstall:
             )
 
         if self.cli.is_available():
-            self._bootstrap_method = "cli"
-            result = self.cli.run_bootstrap(self.bootstrap_command())
-            output = f"{result.stdout}\n{result.stderr}".lower()
-            if result.return_code == 0:
-                self._status = (
-                    "already_bootstrapped"
-                    if "already" in output and "bootstrap" in output
-                    else "bootstrapped"
-                )
-            else:
-                self._status = "failed"
-                self._classification = "infisical_bootstrap_failed"
-                self._write_evidence("failed")
-                raise InfisicalInstallBlocker(
-                    self._classification,
-                    "Infisical CLI bootstrap failed with redacted output.",
-                )
+            self._run_cli_bootstrap()
         elif self.bootstrap_client is not None:
             self._bootstrap_method = "admin_api_fallback"
             try:
@@ -184,6 +168,26 @@ class EnsureInfisicalSilentInstall:
                 "Infisical CLI is missing and no admin API bootstrap fallback is configured.",
             )
         self._write_evidence(self._status)
+
+    def _run_cli_bootstrap(self) -> None:
+        self._bootstrap_method = "cli"
+        result = self.cli.run_bootstrap(self.bootstrap_command())
+        output = f"{result.stdout}\n{result.stderr}".lower()
+        if result.return_code == 0:
+            self._status = (
+                "already_bootstrapped"
+                if "already" in output and "bootstrap" in output
+                else "bootstrapped"
+            )
+            return
+
+        self._status = "failed"
+        self._classification = "infisical_bootstrap_failed"
+        self._write_evidence("failed")
+        raise InfisicalInstallBlocker(
+            self._classification,
+            "Infisical CLI bootstrap failed with redacted output.",
+        )
 
     def verify(self) -> VerificationResult:
         status = VerificationStatus.VERIFIED

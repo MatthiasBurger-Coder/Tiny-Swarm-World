@@ -7,6 +7,9 @@ from typing import Mapping
 
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 
+PULSAR_MANAGER_UI = "Pulsar Manager UI"
+SWAGGER_NGINX = "Swagger/NGINX"
+
 
 class SetupProfile(str, Enum):
     FULL = "full"
@@ -160,21 +163,21 @@ def default_setup_manifest(
                 (
                     compatibility_port(14001, "Pulsar broker protocol"),
                     compatibility_port(14080, "Pulsar Admin API"),
-                    compatibility_port(14081, "Pulsar Manager UI"),
+                    compatibility_port(14081, PULSAR_MANAGER_UI),
                     compatibility_port(7750, "Pulsar Manager backend"),
                 )
                 if centralized_ingress
                 else (
                     SetupPortRequirement(14001, "Pulsar broker protocol"),
                     SetupPortRequirement(14080, "Pulsar Admin API"),
-                    SetupPortRequirement(14081, "Pulsar Manager UI"),
+                    SetupPortRequirement(14081, PULSAR_MANAGER_UI),
                     SetupPortRequirement(7750, "Pulsar Manager backend"),
                 )
             ),
             secrets=(
                 SetupSecretRequirement("TSW_PULSAR_TOKEN_SECRET_KEY", "Pulsar token signing key"),
                 SetupSecretRequirement("TSW_PULSAR_ADMIN_TOKEN", "Pulsar Admin API token"),
-                SetupSecretRequirement("TSW_PULSAR_MANAGER_ADMIN_PASSWORD", "Pulsar Manager UI"),
+                SetupSecretRequirement("TSW_PULSAR_MANAGER_ADMIN_PASSWORD", PULSAR_MANAGER_UI),
             ),
         ),
         SetupServiceRequirement(
@@ -190,16 +193,16 @@ def default_setup_manifest(
             ),
         ),
         SetupServiceRequirement(
-            name="Swagger/NGINX",
+            name=SWAGGER_NGINX,
             ports=(
                 (
                     compatibility_port(16080, "Swagger UI"),
-                    compatibility_port(16081, "Swagger/NGINX"),
+                    compatibility_port(16081, SWAGGER_NGINX),
                 )
                 if centralized_ingress
                 else (
                     SetupPortRequirement(16080, "Swagger UI"),
-                    SetupPortRequirement(16081, "Swagger/NGINX"),
+                    SetupPortRequirement(16081, SWAGGER_NGINX),
                 )
             ),
         ),

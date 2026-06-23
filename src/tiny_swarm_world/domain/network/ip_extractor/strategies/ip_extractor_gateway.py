@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Union, Any
+from typing import Any
 
 from tiny_swarm_world.domain.network.ip_extractor.strategies.ip_extractor_strategy import ExtractionStrategy
 from tiny_swarm_world.domain.network.ip_value import IpValue
@@ -12,7 +12,7 @@ class IpExtractorGateway(ExtractionStrategy):
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def extract(self, result: Union[dict, list]) -> Any:
+    def extract(self, result: dict | list) -> Any:
         """
         Extracts the first valid IPv4 address from the dictionary entry with key 1.
 

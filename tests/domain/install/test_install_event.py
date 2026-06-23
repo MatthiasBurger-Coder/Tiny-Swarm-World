@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tiny_swarm_world.domain.install import InstallEvent, InstallStatus
+from tiny_swarm_world.domain.install import InstallEvent, InstallEventType, InstallStatus
 from tiny_swarm_world.infrastructure.adapters.ui.install_reporter import (
     NoopInstallReporter,
     PlainConsoleInstallReporter,
@@ -104,6 +104,39 @@ class TestInstallEvent(unittest.TestCase):
         rendered = "\n".join(render_install_event(InstallEvent.succeeded("Preflight", message="OK")))
 
         assert_console_output_is_human_readable(self, rendered)
+
+    def test_renderer_covers_install_lifecycle_events(self):
+        started = render_install_event(
+            InstallEvent(
+                event_type=InstallEventType.INSTALL_STARTED,
+                status=InstallStatus.STARTED,
+                step="setup",
+            )
+        )
+        finished = render_install_event(
+            InstallEvent(
+                event_type=InstallEventType.INSTALL_FINISHED,
+                status=InstallStatus.SUCCEEDED,
+                step="Install",
+                message="done",
+            )
+        )
+        step_started = render_install_event(
+            InstallEvent.started("Preflight", message="checking", sequence=1, total=2)
+        )
+        evidence = render_install_event(
+            InstallEvent(
+                event_type=InstallEventType.EVIDENCE_WRITTEN,
+                status=InstallStatus.SUCCEEDED,
+                step="Report",
+                evidence_path=Path(".tiny-swarm/evidence/report.json"),
+            )
+        )
+
+        self.assertEqual("Tiny Swarm World Installer", started[0])
+        self.assertIn("done", finished[0])
+        self.assertEqual("[1/2] Preflight", step_started[0])
+        self.assertIn(".tiny-swarm/evidence/report.json", evidence[0])
 
 
 if __name__ == "__main__":

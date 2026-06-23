@@ -10,7 +10,7 @@ from tiny_swarm_world.domain.deployment.stack_definition import (
     ComposeServiceDefinition,
     StackDefinition,
 )
-from tiny_swarm_world.domain.network import PortRegistry
+from tiny_swarm_world.domain.network import PortRegistry, ServicePortMapping
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.project_paths import infra_root
 from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
@@ -170,29 +170,8 @@ def _resolve_direct_published_ports(
     if not isinstance(services, Mapping):
         return compose_content
 
-    mutated = False
     ports_by_id = {mapping.port_id: mapping for mapping in port_registry.mappings}
-    for service_name, service_payload in services.items():
-        if not isinstance(service_name, str) or not isinstance(service_payload, Mapping):
-            continue
-        configured_ports = service_payload.get("ports")
-        if not isinstance(configured_ports, list):
-            continue
-
-        for entry in configured_ports:
-            if not isinstance(entry, dict):
-                continue
-            port_id = _port_id_for_entry(stack_name, service_name, entry)
-            if port_id is None:
-                continue
-            mapping = ports_by_id.get(port_id)
-            if mapping is None or mapping.external_port is None:
-                continue
-            if entry.get("published") == mapping.external_port:
-                continue
-            entry["published"] = mapping.external_port
-            mutated = True
-
+    mutated = _apply_direct_published_ports(stack_name, services, ports_by_id)
     if not mutated:
         return compose_content
 
@@ -201,6 +180,49 @@ def _resolve_direct_published_ports(
     yaml.default_flow_style = False
     yaml.dump(payload, sink)
     return sink.getvalue()
+
+
+def _apply_direct_published_ports(
+    stack_name: str,
+    services: Mapping[object, object],
+    ports_by_id: Mapping[str, ServicePortMapping],
+) -> bool:
+    mutated = False
+    for service_name, service_payload in services.items():
+        if not isinstance(service_name, str) or not isinstance(service_payload, Mapping):
+            continue
+        configured_ports = service_payload.get("ports")
+        if not isinstance(configured_ports, list):
+            continue
+
+        for entry in configured_ports:
+            mutated = _apply_direct_published_port(
+                stack_name,
+                service_name,
+                entry,
+                ports_by_id,
+            ) or mutated
+    return mutated
+
+
+def _apply_direct_published_port(
+    stack_name: str,
+    service_name: str,
+    entry: object,
+    ports_by_id: Mapping[str, ServicePortMapping],
+) -> bool:
+    if not isinstance(entry, dict):
+        return False
+    port_id = _port_id_for_entry(stack_name, service_name, entry)
+    if port_id is None:
+        return False
+    mapping = ports_by_id.get(port_id)
+    if mapping is None or mapping.external_port is None:
+        return False
+    if entry.get("published") == mapping.external_port:
+        return False
+    entry["published"] = mapping.external_port
+    return True
 
 
 def _port_id_for_entry(

@@ -24,6 +24,7 @@ from tiny_swarm_world.infrastructure.project_paths import repository_root
 
 
 SECRET_TOKEN_PATTERN = re.compile(r"\w[\w-]{2,}", re.ASCII)
+SERVICE_ACCESS_TEXT = "service access"
 COMMON_LINUX_EXECUTABLE_DIRECTORIES = (Path("/snap/bin"),)
 CI_ENVIRONMENT_KEYS = frozenset(
     (
@@ -183,17 +184,8 @@ class HostPreflightProbe(PortHostPreflightProbe):
                 ("traefik",),
                 scheme="https",
             )
-        if "service access" in service_name:
-            return _http_service_available(
-                port,
-                ("/",),
-                ("service access", "infisical"),
-            ) or _http_service_available(
-                port,
-                ("/",),
-                ("service access", "infisical"),
-                scheme="https",
-            )
+        if SERVICE_ACCESS_TEXT in service_name:
+            return _service_access_available(port)
         if "infisical https" in service_name:
             return _http_service_available(
                 port,
@@ -434,6 +426,20 @@ def _http_service_available(
         if not expected_markers or any(marker in normalized_text for marker in expected_markers):
             return True
     return False
+
+
+def _service_access_available(port: int) -> bool:
+    expected_markers = (SERVICE_ACCESS_TEXT, "infisical")
+    return _http_service_available(
+        port,
+        ("/",),
+        expected_markers,
+    ) or _http_service_available(
+        port,
+        ("/",),
+        expected_markers,
+        scheme="https",
+    )
 
 
 def _privileged_port_without_listener(port: int) -> bool:

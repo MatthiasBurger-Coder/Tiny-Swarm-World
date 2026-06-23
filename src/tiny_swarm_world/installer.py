@@ -832,27 +832,34 @@ def _run_phase(
 
 def _suggested_checks_for_phase(name: str) -> tuple[str, ...]:
     normalized = name.casefold()
+    commands: list[str]
     if "setup" in normalized:
-        return (
+        commands = [
             "lxc exec swarm-manager -- docker node ls",
             "lxc exec swarm-manager -- docker service ls",
-        )
-    if "reset" in normalized:
-        return (
+        ]
+    elif "reset" in normalized:
+        commands = [
             "lxc list",
             "docker context ls",
-        )
-    return ()
+        ]
+    else:
+        commands = []
+    return tuple(commands)
 
 
 def _render_fallback_install_event(event: _FallbackInstallEvent) -> tuple[str, ...]:
+    lines: list[str]
     if event.event_type == "INSTALL_STARTED":
-        return ("Tiny Swarm World Installer", f"  RUNNING {event.message or event.step}")
+        lines = ["Tiny Swarm World Installer", f"  RUNNING {event.message or event.step}"]
+        return tuple(lines)
     if event.status == "STARTED":
         header = f"[{event.sequence}/{event.total}] {event.step}" if event.sequence and event.total else event.step
-        return (header, f"  RUNNING {event.message or event.target}")
+        lines = [header, f"  RUNNING {event.message or event.target}"]
+        return tuple(lines)
     if event.status == "SUCCEEDED":
-        return (f"  OK      {event.message or event.target}",)
+        lines = [f"  OK      {event.message or event.target}"]
+        return tuple(lines)
     if event.status == "FAILED":
         target = f" on {event.target}" if event.target else ""
         lines = [f"FAILED {event.step}{target}"]
@@ -864,7 +871,8 @@ def _render_fallback_install_event(event: _FallbackInstallEvent) -> tuple[str, .
             lines.extend(("", "Suggested checks:"))
             lines.extend(f"  {command}" for command in event.suggested_commands)
         return tuple(lines)
-    return (f"  {event.status:<8}{event.message or event.target}",)
+    lines = [f"  {event.status:<8}{event.message or event.target}"]
+    return tuple(lines)
 
 
 def _write_context(
