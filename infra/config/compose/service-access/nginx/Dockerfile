@@ -1,6 +1,7 @@
 FROM nginx:mainline-alpine
 
 RUN apk add --no-cache libcap openssl \
+    && sed -i 's#pid[[:space:]]\+/run/nginx.pid;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf \
     && setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx \
     && mkdir -p /etc/nginx/tls \
     && chown -R nginx:nginx /var/cache/nginx /var/run /var/log/nginx /etc/nginx/conf.d /etc/nginx/tls
