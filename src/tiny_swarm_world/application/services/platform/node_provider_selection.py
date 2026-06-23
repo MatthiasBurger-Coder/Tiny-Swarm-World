@@ -341,6 +341,16 @@ def _blocked_backend_selection(readiness: ProviderReadiness) -> ManagedLxcBacken
         return backend_selection
 
     evidence = {"readiness_status": readiness.status.value}
+    remediation = readiness.remediation
+    if backend_selection is not None:
+        evidence.update(backend_selection.evidence)
+        remediation = _merge_remediation(backend_selection.remediation, remediation)
+        return ManagedLxcBackendSelection(
+            status=ManagedLxcBackendSelectionStatus.UNSUPPORTED,
+            candidates=backend_selection.candidates,
+            remediation=remediation,
+            evidence=evidence,
+        )
     if readiness.status == ProviderReadinessStatus.BACKEND_MISSING:
         return ManagedLxcBackendSelection.missing(
             remediation=readiness.remediation,
