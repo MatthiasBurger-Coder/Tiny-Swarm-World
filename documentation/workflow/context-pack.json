@@ -1,50 +1,33 @@
 {
-  "workflow": "sonar-s5527-tls-v1.0.0",
-  "workflow_id": "workflow-sonar-s5527-tls-20260623",
-  "branch": "fix/workflow-sonar-s5527-tls-20260623",
-  "status": "READY_FOR_EXECUTION",
+  "workflow": "workflow-sonar-s2068-port-forwarding-v1.0.0",
+  "workflow_id": "workflow-sonar-s2068-port-forwarding-20260623",
+  "branch": "fix/workflow-sonar-s2068-port-forwarding-20260623",
+  "status": "EXECUTED_WITH_EVIDENCE",
   "execution_profile": "NORMAL_PATH",
-  "evidence_root": ".codex/evidence/workflow-sonar-s5527-tls-20260623/",
-  "sonar_issue": {
-    "id": "AZ7kEe623UILYpQnQ6zD",
-    "rule": "python:S5527",
-    "severity": "CRITICAL",
-    "file": "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py",
-    "line": 456
-  },
+  "evidence_root": ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/",
   "affected_areas": [
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py",
-    "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py",
+    "tests/domain/network/test_port_forwarding_plan.py",
     "documentation/workflow/**",
-    ".codex/evidence/workflow-sonar-s5527-tls-20260623/**"
+    ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/**"
   ],
   "forbidden_areas": [
     "live infrastructure mutation",
-    "LXD/Incus/LXC/Docker Swarm/compose/service bootstrap commands",
-    "domain model changes",
-    "application orchestration changes",
-    "SonarCloud issue mutation through credentials",
-    "push/PR/merge"
+    "product source behavior changes",
+    "push, PR creation, merge, or branch cleanup"
   ],
   "quality_commands": {
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe",
-      "python3 tools/quality_gate.py test",
+      "PYTHONPATH=src python -m unittest tests.domain.network.test_port_forwarding_plan",
       "git diff --check"
     ],
-    "required_when_practical": [
-      "python3 tools/quality_gate.py quality"
+    "required": [
+      "python3 tools/quality_gate.py test"
     ]
   },
-  "governing_hashes": {
-    "AGENTS.md": "335a60cd362e40090b09fdd9b982cfce87912aae",
-    "QUALITY.md": "17002150bab9f168eb60be85d55b7a0c1cb441e5",
-    ".agents/orchestrator/routing-rules.md": "0ae51d5d1a02c8a123bec92f546dfce51c1d17ef",
-    ".agents/orchestrator/swarm-orchestrator.md": "c23db2d76231c6fa06ca608651e1315084a4c71d"
-  },
-  "environment_notes": [
-    "WSL is available.",
-    "WSL Git cannot open this worktree because the .git file points at a Windows gitdir.",
-    "Git evidence uses the host shell in the requested worktree."
-  ]
+  "sonar_issues": [
+    "AZ7kcUaJ8N9AxeIuoSBi",
+    "AZ7kcUaJ8N9AxeIuoSBj",
+    "AZ7kcUaJ8N9AxeIuoSBl"
+  ],
+  "sonar_rule": "python:S2068"
 }
