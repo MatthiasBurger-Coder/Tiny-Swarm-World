@@ -131,6 +131,16 @@ class TestEnsureNexusMavenProxyRepository(unittest.IsolatedAsyncioTestCase):
                 admin_password="",
             )
 
+    async def test_rejects_remote_url_without_network_location(self):
+        await async_checkpoint()
+        with self.assertRaises(ValueError):
+            NexusMavenProxyRepositoryConfiguration(
+                repository_name="maven-central",
+                remote_url="https:///maven2/",
+                admin_username="admin",
+                admin_password=sample_text("operator", "-supplied"),
+            )
+
 
 class TestEnsureNexusDockerProxyRepository(unittest.IsolatedAsyncioTestCase):
     async def test_creates_missing_docker_proxy_repository_then_verifies(self):
@@ -182,6 +192,17 @@ class TestEnsureNexusDockerProxyRepository(unittest.IsolatedAsyncioTestCase):
         await service.run()
 
         self.assertEqual(1, nexus_client.create_docker_proxy_attempts)
+
+    async def test_rejects_docker_proxy_remote_url_without_network_location(self):
+        await async_checkpoint()
+        with self.assertRaises(ValueError):
+            NexusDockerProxyRepositoryConfiguration(
+                repository_name="docker-hub-proxy",
+                http_port=5001,
+                remote_url="https:///registry",
+                admin_username="admin",
+                admin_password=sample_text("operator", "-supplied"),
+            )
 
 
 class _FakeNexusClient:

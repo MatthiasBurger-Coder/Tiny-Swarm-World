@@ -597,6 +597,27 @@ networks:
         ):
             self.assertEqual(sample_http_url(ipv4_address(10, 156, 143, 201), 13081), client._base_url())
 
+    def test_nexus_client_accepts_https_scheme_for_direct_access(self):
+        client = LxcNexusHttpClient(
+            backend=ManagedLxcBackend.LXD,
+            scheme="https",
+            session=_FakeSession([]),
+        )
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
+            return_value=ipv4_address(10, 156, 143, 201),
+        ):
+            self.assertEqual(f"https://{ipv4_address(10, 156, 143, 201)}:13081", client._base_url())
+
+    def test_nexus_client_rejects_invalid_direct_access_scheme(self):
+        with self.assertRaises(ValueError):
+            LxcNexusHttpClient(
+                backend=ManagedLxcBackend.LXD,
+                scheme="ftp",
+                session=_FakeSession([]),
+            )
+
     def test_portainer_admin_client_rejects_409_when_auth_probe_fails(self):
         session = _FakeSession(
             [
@@ -820,6 +841,24 @@ networks:
 
         self.assertIs(first, second)
         self.assertEqual(sample_http_url("192.0.2.20", 10001), first.base_url)
+
+    def test_lxc_portainer_client_accepts_https_scheme_for_delegate(self):
+        from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
+            LxcPortainerHttpClient,
+        )
+
+        client = LxcPortainerHttpClient(
+            backend=ManagedLxcBackend.LXD,
+            username="admin",
+            password=operator_credential(),
+            scheme="https",
+        )
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
+            return_value="192.0.2.20",
+        ):
+            self.assertEqual("https://192.0.2.20:10001", client._client().base_url)
 
     def test_lxc_portainer_client_passes_stack_request_timeout_to_delegate(self):
         from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
