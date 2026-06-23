@@ -179,6 +179,25 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             )
             self.assertEqual("already_bootstrapped", result["status"])
 
+    def test_cli_bootstrap_failure_is_classified_and_redacted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = _service(
+                cli=_FakeCli(result=InfisicalCliResult(2, "", "bootstrap failed")),
+                evidence_dir=Path(directory) / "evidence",
+                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
+            )
+
+            with self.assertRaises(InfisicalInstallBlocker) as raised:
+                service.run()
+
+            self.assertEqual("infisical_bootstrap_failed", raised.exception.classification)
+            result = json.loads(
+                (Path(directory) / "evidence" / "bootstrap-result.json").read_text()
+            )
+            self.assertEqual("failed", result["status"])
+            self.assertEqual("infisical_bootstrap_failed", result["classification"])
+            self.assertNotIn(operator_credential(), json.dumps(result))
+
 
 def _service(
     *,

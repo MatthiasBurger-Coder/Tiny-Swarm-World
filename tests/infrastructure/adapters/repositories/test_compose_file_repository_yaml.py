@@ -15,8 +15,9 @@ from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
     service_stack_contracts_for_profile,
 )
-from tiny_swarm_world.domain.preflight import default_installation_plan
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
+from tiny_swarm_world.domain.network import PortExposureClass, PortRegistry, ServicePortMapping
+from tiny_swarm_world.domain.preflight import default_installation_plan
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
     LxcContainerImagePublisher,
 )
@@ -40,6 +41,49 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
 
             self.assertEqual(stack_definition.name, "nexus")
             self.assertIn("image: nexus:latest", stack_definition.compose_content)
+
+    def test_direct_published_port_rewrite_updates_changed_registry_port(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            stack_root = compose_root / "jenkins"
+            stack_root.mkdir(parents=True)
+            stack_root.joinpath("docker-compose.yml").write_text(
+                "\n".join(
+                    (
+                        "services:",
+                        "  jenkins:",
+                        "    image: jenkins/jenkins:lts",
+                        "    deploy: {}",
+                        "    ports:",
+                        "      - target: 8080",
+                        "        published: 8080",
+                        "        protocol: tcp",
+                        "        mode: host",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            registry = PortRegistry(
+                ranges=(),
+                mappings=(
+                    ServicePortMapping(
+                        service_id="jenkins",
+                        port_id="jenkins-http",
+                        internal_port=8080,
+                        external_port=18080,
+                        exposure=PortExposureClass.DIRECT,
+                    ),
+                ),
+            )
+            repository = ComposeFileRepositoryYaml(
+                base_directories=[compose_root],
+                port_registry=registry,
+            )
+
+            stack_definition = repository.get_compose_of("jenkins")
+            compose_data = YAML(typ="safe").load(stack_definition.compose_content)
+
+        self.assertEqual(18080, compose_data["services"]["jenkins"]["ports"][0]["published"])
 
     def test_extracts_service_names_and_published_ports_from_compose_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:

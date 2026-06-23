@@ -1532,6 +1532,15 @@ class TestComposition(unittest.TestCase):
             configuration.provider_metadata.provider_checks,
         )
 
+    def test_infisical_readiness_steps_are_empty_for_default_profile(self):
+        steps = composition._infisical_apply_readiness_steps(
+            composition.ServiceStackProfile.DEFAULT,
+            swarm_runtime=cast(object, None),
+            service_stack_by_name={},
+        )
+
+        self.assertEqual((), steps)
+
     def test_preflight_configuration_honors_backend_candidate_order(self):
         def which(name: str):
             return f"/usr/bin/{name}" if name in {"incus", "lxc"} else None

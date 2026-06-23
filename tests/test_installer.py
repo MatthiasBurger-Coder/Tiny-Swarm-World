@@ -157,6 +157,60 @@ class TestInstaller(unittest.TestCase):
             with self.assertRaisesRegex(installer.InstallerError, "was not provided"):
                 installer._confirm_reset(options)
 
+    def test_suggested_checks_for_phase_returns_phase_specific_commands(self):
+        self.assertEqual(
+            (
+                "lxc exec swarm-manager -- docker node ls",
+                "lxc exec swarm-manager -- docker service ls",
+            ),
+            installer._suggested_checks_for_phase("setup platform"),
+        )
+        self.assertEqual(
+            ("lxc list", "docker context ls"),
+            installer._suggested_checks_for_phase("reset platform"),
+        )
+        self.assertEqual((), installer._suggested_checks_for_phase("preflight"))
+
+    def test_fallback_install_event_renderer_covers_status_branches(self):
+        install_started = installer._FallbackInstallEvent(
+            event_type="INSTALL_STARTED",
+            status="STARTED",
+            step="Install",
+            message="starting",
+        )
+        step_started = installer._FallbackInstallEvent(
+            event_type="STEP_STARTED",
+            status="STARTED",
+            step="Preflight",
+            target="host",
+            message="checking",
+            sequence=1,
+            total=2,
+        )
+        succeeded = installer._FallbackInstallEvent(
+            event_type="STEP_SUCCEEDED",
+            status="SUCCEEDED",
+            step="Preflight",
+            message="done",
+        )
+        unknown = installer._FallbackInstallEvent(
+            event_type="STEP_SKIPPED",
+            status="SKIPPED",
+            step="Preflight",
+            target="host",
+        )
+
+        self.assertEqual(
+            ("Tiny Swarm World Installer", "  RUNNING starting"),
+            installer._render_fallback_install_event(install_started),
+        )
+        self.assertEqual(
+            ("[1/2] Preflight", "  RUNNING checking"),
+            installer._render_fallback_install_event(step_started),
+        )
+        self.assertEqual(("  OK      done",), installer._render_fallback_install_event(succeeded))
+        self.assertEqual(("  SKIPPED host",), installer._render_fallback_install_event(unknown))
+
 
 if __name__ == "__main__":
     unittest.main()
