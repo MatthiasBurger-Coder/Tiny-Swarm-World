@@ -192,6 +192,38 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(NodeProviderKind.LXC_NATIVE, selection.selected_provider)
         self.assertEqual(ManagedLxcBackendSelectionStatus.UNSUPPORTED, selection.backend_selection.status)
 
+    async def test_failed_backend_probe_preserves_candidate_and_failure_evidence(self):
+        readiness = _ReadinessProbe(
+            ProviderReadiness(
+                provider=NodeProviderKind.LXC_NATIVE,
+                status=ProviderReadinessStatus.TIMEOUT,
+                backend_selection=ManagedLxcBackendSelection.for_backend(
+                    ManagedLxcBackend.INCUS,
+                    remediation=("Verify the incus daemon responds to read-only commands.",),
+                    evidence={
+                        "backend": "incus",
+                        "classification": "timeout",
+                        "classification_source": "timeout",
+                        "probe": "info",
+                    },
+                ),
+                remediation=("Verify the incus daemon responds to read-only commands.",),
+            )
+        )
+
+        result = await NodeProviderSelectionService(readiness).verify_provider_selection()
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("provider_selection_blocked", result.evidence["reason"])
+        self.assertEqual("timeout", result.evidence["readiness_status"])
+        self.assertEqual("unsupported", result.evidence["backend_status"])
+        self.assertEqual("1", result.evidence["backend_candidate_count"])
+        self.assertEqual("incus", result.evidence["backend_candidates"])
+        self.assertEqual("incus", result.evidence["backend"])
+        self.assertEqual("timeout", result.evidence["classification"])
+        self.assertEqual("timeout", result.evidence["classification_source"])
+        self.assertEqual("1", result.evidence["remediation_count"])
+
     async def test_unsupported_provider_request_blocks_selection(self):
         readiness = _ReadinessProbe(
             ProviderReadiness(
