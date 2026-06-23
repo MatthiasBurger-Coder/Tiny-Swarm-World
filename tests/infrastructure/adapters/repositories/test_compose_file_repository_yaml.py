@@ -889,6 +889,7 @@ services:
                 self.assertIn(base_image_line, dockerfile)
                 self.assertIn(copy_line, dockerfile)
                 self.assertIn("USER nginx", dockerfile)
+                self.assertIn("pid /tmp/nginx.pid", dockerfile)
                 self.assertIn("setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx", dockerfile)
                 if service_name == "service-access-nginx":
                     self.assertIn("apk add --no-cache libcap openssl", dockerfile)
