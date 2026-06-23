@@ -1,30 +1,33 @@
 {
-  "workflow": "console-output-issue-151-v1.0.0",
-  "workflow_id": "workflow-console-output-issue-151-20260621",
-  "branch": "fix/workflow-console-output-151-20260621",
+  "workflow": "workflow-sonar-s2068-port-forwarding-v1.0.0",
+  "workflow_id": "workflow-sonar-s2068-port-forwarding-20260623",
+  "branch": "fix/workflow-sonar-s2068-port-forwarding-20260623",
   "status": "EXECUTED_WITH_EVIDENCE",
   "execution_profile": "NORMAL_PATH",
-  "evidence_root": ".codex/evidence/workflow-console-output-issue-151-20260621/",
+  "evidence_root": ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/",
   "affected_areas": [
-    "src/tiny_swarm_world/__main__.py",
-    "tests/test_package_entrypoint.py",
+    "tests/domain/network/test_port_forwarding_plan.py",
     "documentation/workflow/**",
-    ".codex/evidence/workflow-console-output-issue-151-20260621/**"
+    ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/**"
   ],
   "forbidden_areas": [
     "live infrastructure mutation",
-    "domain model changes",
-    "application orchestration changes",
-    "committed secrets or raw env payloads"
+    "product source behavior changes",
+    "push, PR creation, merge, or branch cleanup"
   ],
   "quality_commands": {
     "targeted": [
-      "git diff --check",
-      "PYTHONPATH=src python -m unittest tests.test_package_entrypoint",
-      "PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui"
+      "PYTHONPATH=src python -m unittest tests.domain.network.test_port_forwarding_plan",
+      "git diff --check"
     ],
     "required": [
       "python3 tools/quality_gate.py test"
     ]
-  }
+  },
+  "sonar_issues": [
+    "AZ7kcUaJ8N9AxeIuoSBi",
+    "AZ7kcUaJ8N9AxeIuoSBj",
+    "AZ7kcUaJ8N9AxeIuoSBl"
+  ],
+  "sonar_rule": "python:S2068"
 }

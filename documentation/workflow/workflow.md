@@ -1,40 +1,51 @@
-# Workflow: Console Output Issue 151 Remediation
+# Workflow: Sonar S2068 Port Forwarding Test Remediation
 
-Version: `console-output-issue-151-v1.0.0`
-Workflow ID: `workflow-console-output-issue-151-20260621`
-Created: `2026-06-21`
-Branch: `fix/workflow-console-output-151-20260621`
+Version: `workflow-sonar-s2068-port-forwarding-v1.0.0`
+Workflow ID: `workflow-sonar-s2068-port-forwarding-20260623`
+Created: `2026-06-23`
+Branch: `fix/workflow-sonar-s2068-port-forwarding-20260623`
 Status: `EXECUTED_WITH_EVIDENCE`
-Evidence Root: `.codex/evidence/workflow-console-output-issue-151-20260621/`
+Evidence Root: `.codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/`
 
 ## Executive Summary
 
-Validate issues `#143` and `#151` before implementation, prove whether either
-is already fulfilled, then implement only the remaining console-output gap.
-Issue `#143` is already implemented in the repository and is therefore out of
-implementation scope. Issue `#151` remains open because the default CLI still
-prints raw JSON workflow payloads to stdout.
+Remediate three overlapping SonarCloud `python:S2068` vulnerability issues in
+`tests/domain/network/test_port_forwarding_plan.py` without weakening the
+domain test intent. The issues all sit in the same test file and validate the
+same port-forwarding metadata guard, so this workflow executes them as one
+serial issue group in the current dedicated worktree.
 
 ## Requirement Clarification Gate
 
 Original Request:
 
-- Setze issue `143 / 151` gemaess `workflow execute with subagents` um.
-- Beweise vor jeder Umsetzung, ob beide Issues bereits umgesetzt wurden.
-- Wenn die Pruefung abgeschlossen ist, soll daraus ein Workflow mit eigenem
-  Branch entstehen, um fehlende Implementierung umzusetzen.
-- Verwende `@secret-inventory.json` als relevanten Nachweis fuer Secret-/Redaction-Risiken.
+- Work in existing worktree
+  `D:/Projects/Tiny-Swarm-World-worktrees/sonar-s2068-port-forwarding`.
+- Use branch `fix/workflow-sonar-s2068-port-forwarding-20260623`.
+- Fix SonarCloud issues `AZ7kcUaJ8N9AxeIuoSBi`,
+  `AZ7kcUaJ8N9AxeIuoSBj`, and `AZ7kcUaJ8N9AxeIuoSBl`.
+- Rule: `python:S2068`.
+- File and lines: `tests/domain/network/test_port_forwarding_plan.py` lines
+  166, 167, and 182.
+- The three issues overlap in one test file and must be handled serially.
+- Do not run live infrastructure commands.
+- Update workflow documentation and evidence.
+- Run targeted unittest for `tests.domain.network.test_port_forwarding_plan`.
+- Do not push, create a PR, or merge.
 
 Interpreted Intent:
 
-- Execute a guarded, evidence-backed fix workflow for installer and CLI console
-  output, but only after proving the current implementation state of both
-  issues.
+- Replace hardcoded credential-looking URL literals in tests with existing
+  Sonar-safe test literal helpers while preserving assertions that credential
+  URLs and URL-like route hosts are rejected.
 
 Change Type:
 
-- Product bug-fix workflow for Python CLI output, console UX, tests, workflow
-  evidence, and documentation synchronization.
+- Test-data remediation and workflow evidence update.
+
+Execution Profile:
+
+- `NORMAL_PATH`
 
 Affected Process Strand:
 
@@ -42,296 +53,159 @@ Affected Process Strand:
 
 Affected Architecture Area:
 
-- Infrastructure UI adapters
-- Python CLI entrypoint
-- Product-behavior tests
-- Workflow evidence
+- Domain tests only.
 
-Explicit Requirements:
+Explicit Non-Goals:
 
-- Check issue `#143` implementation status first.
-- Check issue `#151` implementation status first.
-- Use subagents for the execute workflow where safe.
-- Create a dedicated branch before write-capable work.
-- Prove the final implementation with repository evidence and verification.
+- No production domain behavior change.
+- No live LXD, Incus, LXC, Docker, Swarm, compose, networking, or service
+  bootstrap commands.
+- No push, PR creation, or merge.
 
-Implicit Requirements:
-
-- Preserve hexagonal boundaries.
-- Keep default console output human-readable.
-- Keep machine-readable JSON available only when explicitly requested.
-- Do not leak secrets or raw env payloads to stdout/stderr.
-- Do not execute live infrastructure commands.
-
-Assumptions:
-
-- Issue `#151` remediation is limited to CLI/console presentation and tests.
-- `@secret-inventory.json` is a risk/governance input, not an output target.
-
-Non-Goals:
-
-- No live install, reset, LXD/Incus/LXC, Docker Swarm, compose, or service
-  bootstrap execution.
-- No browser UI or curses UI work.
-- No change to setup orchestration semantics.
-
-Risks:
-
-- Existing entrypoint tests currently assert JSON on stdout and must be updated
-  together with the runtime behavior.
-- Console summaries must not weaken failure visibility or evidence references.
-
-Open Questions:
-
-- None blocking.
-
-Blocking Questions:
-
-- None.
-
-Confidence Level:
-
-- `95%`
-
-Decision:
-
-- `READY_FOR_WORKFLOW`
-
-## Five-Role Three Amigos Review
+## Five-Role Review
 
 Senior Requirement Engineer:
 
-- The request is concrete. Only issue `#151` requires implementation after the
-  repository-state check.
+- The issue group is concrete and bounded to three Sonar findings in one test
+  file.
 
 Senior System Architect:
 
-- The fix belongs in the CLI/infrastructure presentation surface. Domain and
-  application behavior must remain unchanged.
+- The change is test-only and does not affect hexagonal boundaries.
 
 Senior Python Automation Developer:
 
-- The safest path is to gate JSON emission behind an explicit switch and update
-  tests around the entrypoint output contract.
-
-Senior React Frontend Developer:
-
-- No browser frontend impact. N/A beyond confirming console-only scope.
+- Existing helper `tests.support.sonar_safe_literals` is the appropriate local
+  pattern for constructing sensitive-looking test strings without hardcoded
+  credential literals.
 
 Senior Tester:
 
-- Regression coverage must prove that default stdout is human-readable and that
-  explicit JSON mode still emits structured payloads.
+- The targeted unittest must prove the rejection behavior still holds for
+  credential URL metadata and URL-like route hosts.
 
-## Verified Baseline
+Senior DevOps Engineer:
 
-- Branch precheck before write-capable work started on `main` with a clean tree.
-- Dedicated branch `fix/workflow-console-output-151-20260621` was created and
-  verified before workflow mutation.
-- Issue `#143` is already implemented:
-  - `src/tiny_swarm_world/infrastructure/adapters/ui/progress_trace_ui.py`
-  - `tests/infrastructure/adapters/ui/test_progress_trace_ui.py`
-  - `documentation/user_guide/installer-console-output.md`
-- Issue `#151` remains open:
-  - `src/tiny_swarm_world/__main__.py` still prints raw JSON by default.
-  - `tests/test_package_entrypoint.py` still expects JSON on stdout.
-- Secret/redaction risk inventory reviewed:
-  - `.tiny-swarm/evidence/secrets/secret-inventory.json`
-
-## Execution Outcome
-
-- Issue `#143` verified as already implemented.
-- Issue `#151` implemented on this workflow branch.
-- Targeted verification passed.
-- Workflow-execute evidence written under
-  `.codex/evidence/workflow-console-output-issue-151-20260621/`.
-- Full repository-wide `quality_gate.py test` remains red on this Windows host
-  for unrelated platform/repository reasons and is explicitly not claimed green.
-
-## Target Outcome
-
-- Default CLI stdout/stderr is line-based and human-readable.
-- Raw JSON payloads are no longer printed by default.
-- Explicit JSON/debug mode exists for deliberate machine-readable output.
-- Tests prove both default human-readable behavior and explicit JSON behavior.
-- Evidence documents that issue `#143` required no code changes and issue
-  `#151` was remediated.
+- No live infrastructure validation is needed or allowed for this unit-test
+  remediation.
 
 ## Scope
 
 In scope:
 
-- `src/tiny_swarm_world/__main__.py`
-- `tests/test_package_entrypoint.py`
-- `documentation/workflow/**`
-- optional user-guide synchronization if examples change materially
+- `tests/domain/network/test_port_forwarding_plan.py`
+- `documentation/workflow/workflow.md`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+- `.codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/**`
 
 Out of scope:
 
-- live installer runtime changes
-- setup phase orchestration semantics
-- infrastructure mutation
-
-## Architecture Constraints
-
-- Keep domain free of console formatting.
-- Keep application services free of terminal-specific rendering.
-- Keep CLI and reporter formatting in infrastructure/entrypoint surfaces.
-- Do not print secret-bearing payloads or raw workflow dictionaries by default.
-
-## Test Strategy
-
-Targeted:
-
-- `PYTHONPATH=src python -m unittest tests.test_package_entrypoint`
-- `PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui`
-
-Required final:
-
-- `python3 tools/quality_gate.py test`
+- Product source changes.
+- Live infrastructure commands.
+- Push, PR creation, merge, or branch cleanup.
 
 ## Ordered Slices
 
-### Slice 01 - Status Proof And Workflow Evidence
+### Slice 01 - S2068 Test Literal Remediation
 
 Purpose:
 
-- Record the repository-state proof for issues `#143` and `#151`.
+- Remove hardcoded credential-looking URL literals from the affected domain
+  test while preserving the credential URL rejection scenarios.
 
 ```yaml
 slice_id: "01"
-profile: "NORMAL_PATH"
-owner: "Senior Workflow Architect"
-secondary_reviewers:
-  - "Senior Requirement Engineer"
-  - "Senior Tester"
-affected_files:
-  - "documentation/workflow/workflow.md"
-  - "documentation/workflow/context-pack.md"
-  - "documentation/workflow/context-pack.json"
-  - ".codex/evidence/workflow-console-output-issue-151-20260621/status-check.md"
-affected_modules: []
-affected_contracts:
-  - "workflow evidence"
-dependencies: []
-parallel_group: "governance"
-file_locks:
-  - "documentation/workflow/**"
-  - ".codex/evidence/workflow-console-output-issue-151-20260621/**"
-contract_locks:
-  - "issue status proof"
-architecture_locks:
-  - "hexagonal boundaries unchanged"
-quality_gates:
-  targeted:
-    - "git diff --check"
-  required:
-    - "python3 tools/quality_gate.py test"
-documentation:
-  arc42: "No arc42 change expected."
-  adr: "No ADR change expected."
-stop_conditions:
-  - "Stop if issue status cannot be proven from repository evidence."
-```
-
-### Slice 02 - Default Human Output And Explicit JSON Gate
-
-Purpose:
-
-- Remove default raw JSON emission from the CLI while preserving an explicit
-  machine-readable path.
-
-```yaml
-slice_id: "02"
 profile: "NORMAL_PATH"
 owner: "Senior Python Automation Developer"
 secondary_reviewers:
   - "Senior Tester"
   - "Senior System Architect"
 affected_files:
-  - "src/tiny_swarm_world/__main__.py"
-  - "tests/test_package_entrypoint.py"
+  - "tests/domain/network/test_port_forwarding_plan.py"
+  - "documentation/workflow/workflow.md"
+  - "documentation/workflow/context-pack.md"
+  - "documentation/workflow/context-pack.json"
+  - ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/slice-01-distribution.md"
+  - ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/slice-01-consolidation.md"
 affected_modules:
-  - "tiny_swarm_world.__main__"
+  - "tests.domain.network.test_port_forwarding_plan"
 affected_contracts:
-  - "CLI stdout contract"
-dependencies:
-  - "01"
-parallel_group: "implementation"
+  - "port registry unsafe metadata rejection tests"
+dependencies: []
+parallel_group: "serial-overlapping-test-file"
 file_locks:
-  - "src/tiny_swarm_world/__main__.py"
-  - "tests/test_package_entrypoint.py"
+  - "tests/domain/network/test_port_forwarding_plan.py"
+  - "documentation/workflow/**"
+  - ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/**"
 contract_locks:
-  - "default CLI output"
+  - "Sonar python:S2068 issue group AZ7kcUaJ8N9AxeIuoSBi/AZ7kcUaJ8N9AxeIuoSBj/AZ7kcUaJ8N9AxeIuoSBl"
 architecture_locks:
-  - "console formatting remains outside domain/application"
+  - "domain tests only; no production architecture change"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python -m unittest tests.test_package_entrypoint"
+    - "PYTHONPATH=src python -m unittest tests.domain.network.test_port_forwarding_plan"
+    - "git diff --check"
   required:
     - "python3 tools/quality_gate.py test"
 documentation:
-  arc42: "N/A"
-  adr: "Existing installer console reporting ADR remains valid."
+  arc42: "No arc42 update required; no architecture behavior changes."
+  adr: "No ADR required; test literal remediation only."
 stop_conditions:
-  - "Stop if the fix requires application or domain changes."
-  - "Stop if raw JSON remains on default stdout after tests."
+  - "Stop if the remediation weakens credential URL rejection coverage."
+  - "Stop if live infrastructure commands would be needed."
+  - "Stop if branch or worktree differs from the requested workflow branch."
 ```
 
-### Slice 03 - Final Verification And Consolidation Evidence
+## S3/S3D Execution Decision
 
-Purpose:
+- `S3_STATUS`: clean worktree required before implementation.
+- `S3_BRANCH`: active branch must be
+  `fix/workflow-sonar-s2068-port-forwarding-20260623`.
+- `S3_SCOPE`: only the files listed in scope are authorized.
+- `S3_CLASSIFY`: tests, quality, documentation.
+- `S3D`: one executable slice, no dependency cycle, overlapping issue lines in
+  one file, sequential execution required.
 
-- Execute focused verification and prove the final state.
+## Automatic Work Distribution
 
-```yaml
-slice_id: "03"
-profile: "NORMAL_PATH"
-owner: "Senior Tester"
-secondary_reviewers:
-  - "Senior Workflow Architect"
-affected_files:
-  - ".codex/evidence/workflow-console-output-issue-151-20260621/slice-02-distribution.md"
-  - ".codex/evidence/workflow-console-output-issue-151-20260621/slice-02-consolidation.md"
-affected_modules: []
-affected_contracts:
-  - "verification evidence"
-dependencies:
-  - "02"
-parallel_group: "verification"
-file_locks:
-  - ".codex/evidence/workflow-console-output-issue-151-20260621/**"
-contract_locks:
-  - "verification proof"
-architecture_locks: []
-quality_gates:
-  targeted:
-    - "PYTHONPATH=src python -m unittest tests.test_package_entrypoint"
-    - "PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui"
-  required:
-    - "python3 tools/quality_gate.py test"
-documentation:
-  arc42: "N/A"
-  adr: "N/A"
-stop_conditions:
-  - "Stop if the chosen Python executable cannot run the targeted tests."
-```
+The three Sonar issues overlap in the same test file and share the same
+behavioral assertion. Parallel implementation streams are rejected because they
+would contend on `tests/domain/network/test_port_forwarding_plan.py`.
 
-## Automatic Work Distribution Policy
+Read-only specialist review may run in parallel with workflow preparation, but
+write-capable implementation stays serial in this worktree.
 
-- Slice `02` is safe for parallel analysis only.
-- Real subagents are used for the initial issue-state proof.
-- Final code edits stay sequential because `src/tiny_swarm_world/__main__.py`
-  and `tests/test_package_entrypoint.py` are tightly coupled.
+## Quality Strategy
+
+Targeted:
+
+- `PYTHONPATH=src python -m unittest tests.domain.network.test_port_forwarding_plan`
+- `git diff --check`
+
+Required final when practical:
+
+- `python3 tools/quality_gate.py test`
 
 ## Definition Of Done
 
-- Issue `#143` proven already implemented from repository evidence.
-- Issue `#151` default JSON emission removed from normal CLI output.
-- Explicit JSON mode available and covered by tests.
-- Evidence files written under the workflow evidence root.
+- The three hardcoded credential-looking URL literals are removed from the
+  affected test file.
+- The test still covers credential URL metadata rejection and URL-like
+  `route_host` rejection.
+- Targeted unittest passes.
+- `git diff --check` passes.
+- `python3 tools/quality_gate.py test` passes.
+- Evidence is written under
+  `.codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/`.
+- No push, PR, or merge is performed.
 
-## Handoff To Workflow Execute
+## Execution Outcome
 
-- Execute slices in order `01 -> 02 -> 03`.
-- Do not invoke live infrastructure commands.
+- SonarCloud issues `AZ7kcUaJ8N9AxeIuoSBi`, `AZ7kcUaJ8N9AxeIuoSBj`, and
+  `AZ7kcUaJ8N9AxeIuoSBl` were handled as one serial issue group.
+- The affected test now constructs userinfo URLs through
+  `tests.support.sonar_safe_literals.sample_url` and `sample_text`.
+- No production code was changed.
+- Targeted unittest, repository test gate, and diff whitespace validation
+  passed.
