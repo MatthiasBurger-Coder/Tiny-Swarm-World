@@ -164,6 +164,28 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         for route in ("jenkins", "nexus", "portainer", "pulsar", "sonarqube", "swagger", "infisical"):
             with self.subTest(route=route):
                 self.assertIn(f"location = /{route}", nginx_config)
+        for target in (
+            "http://localhost:10001/",
+            "http://localhost:11080/",
+            "http://localhost:12000/",
+            "http://localhost:13081/",
+            "http://localhost:14080/admin/v2/clusters",
+            "http://localhost:14081/",
+            "http://localhost:16080/",
+            "http://localhost:17080/",
+        ):
+            with self.subTest(target=target):
+                self.assertIn(f"return 302 {target};", nginx_config)
+        for legacy_target in (
+            "$host:8080",
+            "$host:8081",
+            "$host:8087",
+            "$host:9000",
+            "$host:9001",
+            "$host:9527",
+        ):
+            with self.subTest(legacy_target=legacy_target):
+                self.assertNotIn(legacy_target, nginx_config)
         self.assertNotIn("password=", nginx_config)
         self.assertNotIn("token=", nginx_config)
         self.assertNotIn("secret=", nginx_config)

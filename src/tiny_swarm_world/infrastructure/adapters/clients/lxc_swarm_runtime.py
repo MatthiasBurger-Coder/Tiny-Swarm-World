@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import re
 import shlex
 import subprocess
@@ -95,7 +96,8 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         }
         self._run_manager_shell(
             f"{_stack_environment_prefix(environment)} "
-            f"docker stack deploy --detach=true -c {_quote_remote_path(compose_path)} "
+            f"docker stack deploy --detach=true --resolve-image never "
+            f"-c {_quote_remote_path(compose_path)} "
             f"{shlex.quote(stack_definition.name)}"
         )
         self._reconcile_host_published_ports(stack_definition)
@@ -137,6 +139,22 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             input_text=value,
         )
 
+    def recover_infisical_migration_lock(self) -> bool:
+        script = (
+            "set -e; "
+            "db_container=$(docker ps --filter name=infisical-db "
+            "--format '{{.Names}}' | head -n 1); "
+            "test -n \"$db_container\"; "
+            "docker exec \"$db_container\" psql -U infisical -d infisical -tAc "
+            "\"select to_regclass('public.infisical_migrations_lock')\" "
+            "| grep -q infisical_migrations_lock; "
+            "docker exec \"$db_container\" psql -U infisical -d infisical -c "
+            "\"update infisical_migrations_lock set is_locked=0 where is_locked<>0\" "
+            ">/dev/null"
+        )
+        result = self._run_manager_shell(script, check=False)
+        return result.returncode == 0
+
     def _ensure_stack_prerequisites(self, stack_name: str, stack_definition: StackDefinition) -> None:
         for network_name in _external_overlay_network_names(stack_definition):
             self._ensure_external_overlay_network(network_name)
@@ -158,7 +176,8 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             "tmpdir=$(mktemp -d); "
             "trap 'rm -rf \"$tmpdir\"' EXIT; "
             "openssl req -x509 -nodes -newkey rsa:2048 -days 365 "
-            "-subj '/CN=tiny-swarm-world.local' "
+            "-subj '/CN=tsw.local' "
+            "-addext 'subjectAltName=DNS:tsw.local,DNS:*.tsw.local,DNS:localhost' "
             "-keyout \"$tmpdir/tls.key\" -out \"$tmpdir/tls.crt\" >/dev/null 2>&1; "
             f"docker secret inspect -- {shlex.quote(cert_secret)} >/dev/null 2>&1 "
             f"|| docker secret create -- {shlex.quote(cert_secret)} \"$tmpdir/tls.crt\" >/dev/null; "
@@ -182,27 +201,38 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
     def _reconcile_host_published_ports(self, stack_definition: StackDefinition) -> None:
         for service_name, ports in _host_published_ports_by_service(stack_definition).items():
             swarm_service_name = f"{stack_definition.name}_{service_name}"
-            for port in ports:
-                published = str(port["published"])
-                target = str(port["target"])
-                protocol = str(port.get("protocol", "tcp"))
-                current_mode = str(port.get("mode", "ingress"))
-                desired_mode = str(port.get("resolved_mode", current_mode))
-                self._run_manager_shell(
-                    "docker service update "
-                    f"--publish-rm published={shlex.quote(published)},"
-                    f"target={shlex.quote(target)},"
-                    f"protocol={shlex.quote(protocol)},"
-                    f"mode={shlex.quote(current_mode)} "
-                    f"{shlex.quote(swarm_service_name)} >/dev/null 2>&1 || true"
-                )
-                self._run_manager_shell(
-                    "docker service update "
-                    f"--publish-add published={shlex.quote(published)},"
-                    f"target={shlex.quote(target)},"
-                    f"protocol={shlex.quote(protocol)},mode={shlex.quote(desired_mode)} "
-                    f"{shlex.quote(swarm_service_name)}"
-                )
+            existing_ports = self._published_ports(swarm_service_name)
+            publish_removes = tuple(
+                _publish_rm_argument_from_key(existing_port)
+                for port in ports
+                for existing_port in _matching_published_ports(existing_ports, port)
+                if existing_port != _published_port_key(port)
+            )
+            publish_adds = tuple(
+                _publish_add_argument(port)
+                for port in ports
+                if _published_port_key(port) not in existing_ports
+            )
+            if not publish_removes and not publish_adds:
+                continue
+            self._run_manager_shell(
+                "docker service update "
+                + " ".join(f"--publish-rm {publish_remove}" for publish_remove in publish_removes)
+                + (" " if publish_removes and publish_adds else "")
+                + " ".join(f"--publish-add {publish_add}" for publish_add in publish_adds)
+                + f" {shlex.quote(swarm_service_name)}"
+            )
+
+    def _published_ports(self, swarm_service_name: str) -> set[tuple[str, str, str, str]]:
+        result = self._run_manager_shell(
+            "docker service inspect "
+            f"{shlex.quote(swarm_service_name)} "
+            "--format '{{json .Spec.EndpointSpec.Ports}}'",
+            check=False,
+        )
+        if result.returncode != 0:
+            return set()
+        return _published_ports_from_json(result.stdout)
 
     def _transfer_stack_assets(self, stack_name: str, remote_dir: str) -> None:
         if stack_name == "traefik":
@@ -317,7 +347,7 @@ class LxcPortainerAdminClient(PortPortainerAdminClient):
         *,
         backend: ManagedLxcBackend,
         manager_node: str = "swarm-manager",
-        port: int = 9000,
+        port: int = 10001,
         session: requests.Session | None = None,
         timeout_seconds: int = 30,
     ):
@@ -385,7 +415,7 @@ class LxcNexusHttpClient(PortNexusClient):
         *,
         backend: ManagedLxcBackend,
         manager_node: str = "swarm-manager",
-        port: int = 8081,
+        port: int = 13081,
         session: requests.Session | None = None,
         timeout_seconds: int = 30,
     ):
@@ -471,9 +501,12 @@ class LxcNexusHttpClient(PortNexusClient):
 
     def _client(self) -> NexusHttpClient:
         return NexusHttpClient(
-            f"http://{_lxc_manager_ip(self.backend, self.manager_node, self.timeout_seconds)}:{self.port}",
+            self._base_url(),
             session=self.session,
         )
+
+    def _base_url(self) -> str:
+        return f"http://{_lxc_manager_ip(self.backend, self.manager_node, self.timeout_seconds)}:{self.port}"
 
 
 class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
@@ -484,7 +517,7 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         username: str,
         password: str,
         manager_node: str = "swarm-manager",
-        port: int = 9000,
+        port: int = 10001,
         api_url: str | None = None,
         session: requests.Session | None = None,
         timeout_seconds: int = 30,
@@ -497,7 +530,7 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         self.password = password
         self.manager_node = manager_node
         self.port = port
-        self.api_url = (api_url or f"http://localhost:{port}").rstrip("/")
+        self.api_url = api_url.rstrip("/") if api_url else None
         self.session = session
         self.timeout_seconds = timeout_seconds
         self.stack_request_timeout_seconds = stack_request_timeout_seconds
@@ -595,7 +628,7 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
     def _client(self) -> PortainerHttpClient:
         if self._cached_client is None:
             self._cached_client = PortainerHttpClient(
-                self.api_url,
+                self.api_url or self._base_url(),
                 self.username,
                 self.password,
                 session=self.session,
@@ -603,6 +636,9 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
                 stack_request_timeout_seconds=self.stack_request_timeout_seconds,
             )
         return self._cached_client
+
+    def _base_url(self) -> str:
+        return f"http://{_lxc_manager_ip(self.backend, self.manager_node, self.timeout_seconds)}:{self.port}"
 
 
 class LxcContainerImagePublisher(PortContainerImagePublisher):
@@ -646,12 +682,16 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
     def image_available(self, contract: ContainerImageContract) -> bool:
         if contract.source == "build":
             self._docker_login()
+        elif self._load_host_cached_image(contract):
+            return True
         result = self._run_manager_shell(
             f"docker pull {shlex.quote(contract.image_ref)}",
             check=False,
             timeout_seconds=self.timeout_seconds,
         )
         if result.returncode != 0 and _docker_hub_rate_limited(result):
+            if self._load_host_cached_image(contract):
+                return True
             raise PublicImagePullRejected(
                 contract.image_ref,
                 diagnostic="registry_rate_limited",
@@ -663,6 +703,8 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         return result.returncode == 0
 
     def _pull_public_image(self, contract: ContainerImageContract) -> None:
+        if self._load_host_cached_image(contract):
+            return
         result = self._run_manager_shell(
             f"docker pull {shlex.quote(contract.image_ref)}",
             check=False,
@@ -671,6 +713,8 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         if result.returncode == 0:
             return
         if _docker_hub_rate_limited(result):
+            if self._load_host_cached_image(contract):
+                return
             raise PublicImagePullRejected(
                 contract.image_ref,
                 diagnostic="registry_rate_limited",
@@ -680,6 +724,33 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
                 ),
             )
         raise RuntimeError("Public container image pull failed.")
+
+    def _load_host_cached_image(self, contract: ContainerImageContract) -> bool:
+        inspect_result = subprocess.run(
+            ["docker", "image", "inspect", contract.image_ref],
+            capture_output=True,
+            text=True,
+            check=False,
+            shell=False,
+            timeout=120,
+        )
+        if inspect_result.returncode != 0:
+            return False
+
+        command = (
+            "set -o pipefail; "
+            f"docker save {shlex.quote(contract.image_ref)} | "
+            f"{shlex.quote(_BACKEND_CLI[self.backend])} exec {shlex.quote(self.manager_node)} -- docker load"
+        )
+        load_result = subprocess.run(
+            ["bash", "-lc", command],
+            capture_output=True,
+            text=True,
+            check=False,
+            shell=False,
+            timeout=self.timeout_seconds,
+        )
+        return load_result.returncode == 0
 
     def _context_path(self, contract: ContainerImageContract) -> Path:
         contexts = {
@@ -708,7 +779,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
 
     def _docker_login(self) -> None:
         self._run_manager_shell(
-            f"docker login -u {shlex.quote(self.registry_username)} --password-stdin 127.0.0.1:5000",
+            f"docker login -u {shlex.quote(self.registry_username)} --password-stdin 127.0.0.1:13500",
             input_text=f"{self.registry_password}\n",
             timeout_seconds=120,
         )
@@ -858,6 +929,75 @@ def _host_published_ports_by_service(
         if host_ports:
             selected[service_name] = host_ports
     return selected
+
+
+def _publish_add_argument(port: Mapping[str, object]) -> str:
+    published = str(port["published"])
+    target = str(port["target"])
+    protocol = str(port.get("protocol", "tcp"))
+    current_mode = str(port.get("mode", "ingress"))
+    desired_mode = str(port.get("resolved_mode", current_mode))
+    return (
+        f"published={shlex.quote(published)},"
+        f"target={shlex.quote(target)},"
+        f"protocol={shlex.quote(protocol)},"
+        f"mode={shlex.quote(desired_mode)}"
+    )
+
+
+def _published_port_key(port: Mapping[str, object]) -> tuple[str, str, str, str]:
+    current_mode = str(port.get("mode", "ingress"))
+    return (
+        str(port["published"]),
+        str(port["target"]),
+        str(port.get("protocol", "tcp")),
+        str(port.get("resolved_mode", current_mode)),
+    )
+
+
+def _matching_published_ports(
+    existing_ports: set[tuple[str, str, str, str]],
+    port: Mapping[str, object],
+) -> tuple[tuple[str, str, str, str], ...]:
+    published = str(port["published"])
+    target = str(port["target"])
+    protocol = str(port.get("protocol", "tcp"))
+    return tuple(
+        existing_port
+        for existing_port in existing_ports
+        if existing_port[:3] == (published, target, protocol)
+    )
+
+
+def _publish_rm_argument_from_key(port: tuple[str, str, str, str]) -> str:
+    published, target, protocol, mode = port
+    return (
+        f"published={shlex.quote(published)},"
+        f"target={shlex.quote(target)},"
+        f"protocol={shlex.quote(protocol)},"
+        f"mode={shlex.quote(mode)}"
+    )
+
+
+def _published_ports_from_json(value: str) -> set[tuple[str, str, str, str]]:
+    try:
+        payload = json.loads(value)
+    except json.JSONDecodeError:
+        return set()
+    if not isinstance(payload, list):
+        return set()
+    ports: set[tuple[str, str, str, str]] = set()
+    for item in payload:
+        if not isinstance(item, Mapping):
+            continue
+        published = item.get("PublishedPort")
+        target = item.get("TargetPort")
+        protocol = item.get("Protocol", "tcp")
+        mode = item.get("PublishMode", "ingress")
+        if published is None or target is None:
+            continue
+        ports.add((str(published), str(target), str(protocol), str(mode)))
+    return ports
 
 
 def _external_overlay_network_names(stack_definition: StackDefinition) -> tuple[str, ...]:

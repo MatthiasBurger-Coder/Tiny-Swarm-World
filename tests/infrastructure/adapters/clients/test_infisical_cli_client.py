@@ -13,7 +13,7 @@ class TestInfisicalCliClient(unittest.TestCase):
         calls: list[tuple[str, str]] = []
         session = _FakeSession(calls, self)
 
-        client = InfisicalCliClient(base_url="http://localhost:8086", session=session)
+        client = InfisicalCliClient(base_url="http://localhost:17080", session=session)
 
         with patch.dict(
             os.environ,
@@ -25,7 +25,7 @@ class TestInfisicalCliClient(unittest.TestCase):
         ):
             client.ensure_project_environment("tiny-swarm-world", "local")
 
-        self.assertEqual(("POST", "http://localhost:8086/api/v3/auth/login"), calls[0])
+        self.assertEqual(("POST", "http://localhost:17080/api/v3/auth/login"), calls[0])
 
     def test_retries_transient_infisical_request_timeouts(self):
         calls: list[tuple[str, str]] = []
@@ -35,7 +35,7 @@ class TestInfisicalCliClient(unittest.TestCase):
             request_failures=[requests.ReadTimeout("slow Infisical response")],
         )
         client = InfisicalCliClient(
-            base_url="http://localhost:8086",
+            base_url="http://localhost:17080",
             session=session,
             retry_wait_seconds=0,
         )
@@ -52,7 +52,7 @@ class TestInfisicalCliClient(unittest.TestCase):
                 client.secret_exists("TSW_EXAMPLE_PASSWORD", project="tiny-swarm-world", environment="local")
             )
 
-        organization_calls = [call for call in calls if call == ("GET", "http://localhost:8086/api/v1/organization")]
+        organization_calls = [call for call in calls if call == ("GET", "http://localhost:17080/api/v1/organization")]
         self.assertEqual(2, len(organization_calls))
 
 

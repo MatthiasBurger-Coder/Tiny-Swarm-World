@@ -223,14 +223,14 @@ Common local service routes and ports are:
 |===
 | Service | Default route or port | Notes
 | Service Access | `http://localhost:10000` | Static management table with service links and Infisical item references.
-| Infisical | `/infisical` through local ingress or `http://localhost:8086` | Secret-management UI for authorized operators.
-| Portainer | `/portainer` or `http://localhost:9000` | Deployment gateway after bootstrap.
-| Nexus | `/nexus` or `http://localhost:8081` | Repository service and Docker proxy behavior.
-| Jenkins | `/jenkins` or `http://localhost:8080` | CI service.
-| Pulsar | `/pulsar` or `http://localhost:9527/#/environments` | Pulsar Manager UI; use the `platform/pulsar-manager` Infisical item for the UI password.
-| Pulsar Admin API | `/pulsar-admin-api` or `http://localhost:8087/admin/v2/clusters` | Token-authenticated Admin API for local standalone broker; use the `platform/pulsar` Infisical item for the bearer token.
-| SonarQube | `/sonarqube` or `http://localhost:9001` | Static analysis service.
-| Swagger/NGINX | `/swagger` or `http://localhost:8084` | API documentation surface.
+| Infisical | `http://localhost:17080` | Secret-management UI for authorized operators.
+| Portainer | `http://localhost:10001` | Deployment gateway after bootstrap.
+| Nexus | `http://localhost:13081` | Repository service and Docker proxy behavior.
+| Jenkins | `http://localhost:11080` | CI service.
+| Pulsar | `http://localhost:14081` | Pulsar Manager UI; use the `platform/pulsar-manager` Infisical item for the UI password.
+| Pulsar Admin API | `http://localhost:14080/admin/v2/clusters` | Token-authenticated Admin API for local standalone broker; use the `platform/pulsar` Infisical item for the bearer token.
+| SonarQube | `http://localhost:12000` | Static analysis service.
+| Swagger/NGINX | `http://localhost:16080` | API documentation surface.
 | Traefik | ports `80` and `443` | Ingress owner for the service-access setup profile.
 |===
 

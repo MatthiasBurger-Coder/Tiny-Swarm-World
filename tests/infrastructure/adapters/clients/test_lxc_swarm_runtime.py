@@ -13,11 +13,13 @@ from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
     LxcContainerRuntime,
     LxcContainerImagePublisher,
+    LxcNexusHttpClient,
     LxcPortainerAdminClient,
     LxcSwarmRuntime,
     PublicImagePullRejected,
     _external_overlay_network_names,
     _lxc_manager_ip,
+    _published_ports_from_json,
 )
 from tiny_swarm_world.domain.artifacts import ContainerImageContract
 
@@ -38,6 +40,7 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         transfer_stack_assets.assert_called_once_with("swagger", "/custom/stacks/swagger")
         deploy_script = run_manager_shell.call_args_list[-1].args[0]
         self.assertIn("TSW_REMOTE_STACK_ROOT=/custom/stacks docker stack deploy", deploy_script)
+        self.assertIn("--resolve-image never", deploy_script)
         self.assertIn("-c /custom/stacks/swagger/docker-compose.yml swagger", deploy_script)
 
     def test_default_remote_stack_root_matches_committed_compose_fallback(self):
@@ -76,7 +79,19 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertIn("/run/secrets/tsw_traefik_tls_cert", input_text)
         self.assertIn("/run/secrets/tsw_traefik_tls_key", input_text)
 
-    def test_deploy_stack_reconciles_existing_published_ports_to_ingress_mode(self):
+    def test_traefik_tls_secret_generation_covers_local_ingress_hostnames(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+
+        with patch.object(runtime, "external_secret_exists", return_value=False):
+            with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+                runtime._ensure_traefik_tls_secrets()
+
+        script = run_manager_shell.call_args.args[0]
+        self.assertIn("-subj '/CN=tsw.local'", script)
+        self.assertIn("DNS:*.tsw.local", script)
+        self.assertIn("DNS:localhost", script)
+
+    def test_deploy_stack_adds_missing_unconstrained_published_ports_as_ingress(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
         compose = """
 services:
@@ -89,22 +104,71 @@ services:
         mode: host
 """
 
-        with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+        with patch.object(
+            runtime,
+            "_run_manager_shell",
+            side_effect=(
+                subprocess.CompletedProcess([], 0),
+                subprocess.CompletedProcess([], 0),
+                subprocess.CompletedProcess([], 0, stdout="[]"),
+                subprocess.CompletedProcess([], 0),
+            ),
+        ) as run_manager_shell:
             with patch.object(runtime, "_transfer_stack_assets"):
                 runtime.deploy_stack(StackDefinition(name="nexus", compose_content=compose))
 
         scripts = [call.args[0] for call in run_manager_shell.call_args_list]
         self.assertIn(
-            (
-                "docker service update --publish-rm "
-                "published=8081,target=8081,protocol=tcp,mode=host "
-                "nexus_nexus >/dev/null 2>&1 || true"
-            ),
-            scripts,
-        )
-        self.assertIn(
             "docker service update --publish-add published=8081,target=8081,protocol=tcp,mode=ingress nexus_nexus",
             scripts,
+        )
+
+    def test_deploy_stack_reconciles_existing_published_port_mode_in_single_update(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+        compose = """
+services:
+  nexus:
+    image: sonatype/nexus3:3.75.1
+    ports:
+      - target: 8081
+        published: 8081
+        protocol: tcp
+        mode: host
+"""
+
+        with patch.object(
+            runtime,
+            "_run_manager_shell",
+            side_effect=(
+                subprocess.CompletedProcess([], 0),
+                subprocess.CompletedProcess([], 0),
+                subprocess.CompletedProcess(
+                    [],
+                    0,
+                    stdout=(
+                        '[{"Protocol":"tcp","TargetPort":8081,'
+                        '"PublishedPort":8081,"PublishMode":"host"}]'
+                    ),
+                ),
+                subprocess.CompletedProcess([], 0),
+            ),
+        ) as run_manager_shell:
+            with patch.object(runtime, "_transfer_stack_assets"):
+                runtime.deploy_stack(StackDefinition(name="nexus", compose_content=compose))
+
+        update_scripts = [
+            call.args[0]
+            for call in run_manager_shell.call_args_list
+            if call.args[0].startswith("docker service update")
+        ]
+        self.assertEqual(1, len(update_scripts))
+        self.assertIn(
+            "--publish-rm published=8081,target=8081,protocol=tcp,mode=host",
+            update_scripts[0],
+        )
+        self.assertIn(
+            "--publish-add published=8081,target=8081,protocol=tcp,mode=ingress",
+            update_scripts[0],
         )
 
     def test_deploy_stack_keeps_manager_constrained_published_ports_in_host_mode(self):
@@ -124,7 +188,16 @@ services:
           - node.role == manager
 """
 
-        with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+        with patch.object(
+            runtime,
+            "_run_manager_shell",
+            side_effect=(
+                subprocess.CompletedProcess([], 0),
+                subprocess.CompletedProcess([], 0),
+                subprocess.CompletedProcess([], 0, stdout="[]"),
+                subprocess.CompletedProcess([], 0),
+            ),
+        ) as run_manager_shell:
             with patch.object(runtime, "_transfer_stack_assets"):
                 runtime.deploy_stack(StackDefinition(name="portainer", compose_content=compose))
 
@@ -133,6 +206,58 @@ services:
             "docker service update --publish-add published=9000,target=9000,protocol=tcp,mode=host portainer_portainer",
             scripts,
         )
+
+    def test_deploy_stack_adds_only_missing_manager_constrained_published_ports(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+        compose = """
+services:
+  service-access-nginx:
+    image: nginx:mainline-alpine
+    ports:
+      - target: 80
+        published: 10000
+        protocol: tcp
+        mode: host
+      - target: 8086
+        published: 8086
+        protocol: tcp
+        mode: host
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+"""
+
+        with patch.object(
+            runtime,
+            "_run_manager_shell",
+            side_effect=(
+                subprocess.CompletedProcess([], 0),
+                subprocess.CompletedProcess([], 0),
+                subprocess.CompletedProcess(
+                    [],
+                    0,
+                    stdout=(
+                        '[{"Protocol":"tcp","TargetPort":80,'
+                        '"PublishedPort":10000,"PublishMode":"host"}]'
+                    ),
+                ),
+                subprocess.CompletedProcess([], 0),
+            ),
+        ) as run_manager_shell:
+            with patch.object(runtime, "_transfer_stack_assets"):
+                runtime.deploy_stack(
+                    StackDefinition(name="service-access", compose_content=compose)
+                )
+
+        scripts = [call.args[0] for call in run_manager_shell.call_args_list]
+        update_scripts = [script for script in scripts if script.startswith("docker service update")]
+        self.assertEqual(1, len(update_scripts))
+        self.assertIn(
+            "--publish-add published=8086,target=8086,protocol=tcp,mode=host",
+            update_scripts[0],
+        )
+        self.assertNotIn("published=10000,target=80", update_scripts[0])
 
     def test_deploy_stack_creates_missing_external_overlay_networks_idempotently(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
@@ -186,6 +311,19 @@ networks:
             ),
         )
 
+    def test_published_ports_from_json_parses_docker_endpoint_ports(self):
+        self.assertEqual(
+            {("10000", "80", "tcp", "host"), ("8086", "8086", "tcp", "host")},
+            _published_ports_from_json(
+                """
+[
+  {"Protocol": "tcp", "TargetPort": 80, "PublishedPort": 10000, "PublishMode": "host"},
+  {"Protocol": "tcp", "TargetPort": 8086, "PublishedPort": 8086, "PublishMode": "host"}
+]
+"""
+            ),
+        )
+
     def test_stack_exists_reads_docker_stack_names_through_lxc(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
 
@@ -200,6 +338,23 @@ networks:
             "docker stack ls --format '{{.Name}}'",
             check=False,
         )
+
+    def test_infisical_migration_lock_recovery_unlocks_only_known_lock_table(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+
+        with patch.object(
+            runtime,
+            "_run_manager_shell",
+            return_value=subprocess.CompletedProcess([], 0),
+        ) as run_manager_shell:
+            self.assertTrue(runtime.recover_infisical_migration_lock())
+
+        script = run_manager_shell.call_args.args[0]
+        self.assertIn("--filter name=infisical-db", script)
+        self.assertIn("to_regclass('public.infisical_migrations_lock')", script)
+        self.assertIn("update infisical_migrations_lock set is_locked=0", script)
+        self.assertIn("where is_locked<>0", script)
+        run_manager_shell.assert_called_once_with(script, check=False)
 
     def test_list_stack_services_parses_replica_counts(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
@@ -331,7 +486,8 @@ networks:
             return_value=subprocess.CompletedProcess([], 0),
         ) as run_manager_shell:
             with patch.object(publisher, "_docker_login") as docker_login:
-                publisher.publish_image(contract)
+                with patch.object(publisher, "_load_host_cached_image", return_value=False):
+                    publisher.publish_image(contract)
 
         docker_login.assert_not_called()
         run_manager_shell.assert_called_once_with(
@@ -360,12 +516,47 @@ networks:
         )
 
         with patch.object(publisher, "_run_manager_shell", return_value=rejected):
-            with self.assertRaises(PublicImagePullRejected) as raised:
-                publisher.publish_image(contract)
+            with patch.object(publisher, "_load_host_cached_image", return_value=False):
+                with self.assertRaises(PublicImagePullRejected) as raised:
+                    publisher.publish_image(contract)
 
         self.assertEqual("registry_rate_limited", raised.exception.diagnostic)
         self.assertIn("registry mirror", raised.exception.operator_action)
         self.assertNotIn("toomanyrequests", str(raised.exception).lower())
+
+    def test_image_publisher_uses_host_cached_image_when_public_pull_is_rate_limited(self):
+        publisher = LxcContainerImagePublisher(
+            backend=ManagedLxcBackend.LXD,
+            registry_username="admin",
+            registry_password=operator_credential(),
+        )
+        contract = ContainerImageContract(
+            "infisical/infisical",
+            "v0.159.1",
+            "infisical",
+            source="pull",
+        )
+        rejected = subprocess.CompletedProcess(
+            [],
+            1,
+            stdout="",
+            stderr="toomanyrequests: You have reached your unauthenticated pull rate limit",
+        )
+
+        with patch.object(publisher, "_run_manager_shell", return_value=rejected):
+            with patch("subprocess.run", return_value=subprocess.CompletedProcess([], 0)) as run:
+                publisher.publish_image(contract)
+
+        self.assertEqual(
+            ["docker", "image", "inspect", "infisical/infisical:v0.159.1"],
+            run.call_args_list[0].args[0],
+        )
+        self.assertEqual(["bash", "-lc"], run.call_args_list[1].args[0][:2])
+        self.assertIn(
+            "docker save infisical/infisical:v0.159.1",
+            run.call_args_list[1].args[0][2],
+        )
+        self.assertIn("lxc exec swarm-manager -- docker load", run.call_args_list[1].args[0][2])
 
     def test_portainer_admin_client_raises_typed_rejection_for_failed_init(self):
         session = _FakeSession(
@@ -383,9 +574,19 @@ networks:
             with self.assertRaises(PortainerAdminInitializationRejected) as raised:
                 client.initialize_admin_user("admin", operator_credential())
 
+        self.assertTrue(str(session.post_calls[0]["url"]).startswith("http://10.156.143.201:10001/"))
         self.assertIn("HTTP 409", str(raised.exception))
         self.assertEqual(409, raised.exception.status_code)
         self.assertNotIn(sensitive_assignment(), str(raised.exception))
+
+    def test_nexus_client_uses_direct_centralized_port_by_default(self):
+        client = LxcNexusHttpClient(backend=ManagedLxcBackend.LXD, session=_FakeSession([]))
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
+            return_value=ipv4_address(10, 156, 143, 201),
+        ):
+            self.assertEqual(f"http://{ipv4_address(10, 156, 143, 201)}:13081", client._base_url())
 
     def test_portainer_admin_client_rejects_409_when_auth_probe_fails(self):
         session = _FakeSession(
@@ -474,7 +675,7 @@ networks:
             compose_content="""
 services:
   infisical:
-    image: infisical/infisical:latest
+    image: infisical/infisical:v0.159.1
 networks:
   service_access_link:
     name: service_access_link
@@ -601,11 +802,15 @@ networks:
             password=operator_credential(),
         )
 
-        first = client._client()
-        second = client._client()
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
+            return_value="192.0.2.20",
+        ):
+            first = client._client()
+            second = client._client()
 
         self.assertIs(first, second)
-        self.assertEqual("http://localhost:9000", first.base_url)
+        self.assertEqual("http://192.0.2.20:10001", first.base_url)
 
     def test_lxc_portainer_client_passes_stack_request_timeout_to_delegate(self):
         from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
@@ -620,7 +825,11 @@ networks:
             stack_request_timeout_seconds=181,
         )
 
-        delegate = client._client()
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
+            return_value="192.0.2.20",
+        ):
+            delegate = client._client()
 
         self.assertEqual(17, delegate.request_timeout_seconds)
         self.assertEqual(181, delegate.stack_request_timeout_seconds)

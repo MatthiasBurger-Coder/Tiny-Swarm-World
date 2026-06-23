@@ -32,7 +32,7 @@ class InfisicalCliClient(PortInfisicalCli):
             raise ValueError("Infisical retry attempts must be positive.")
         if retry_wait_seconds < 0:
             raise ValueError("Infisical retry wait seconds must not be negative.")
-        self.base_url = (base_url or os.environ.get("TSW_INFISICAL_URL") or "http://localhost:8086").rstrip("/")
+        self.base_url = (base_url or os.environ.get("TSW_INFISICAL_URL") or "http://localhost:17080").rstrip("/")
         self.session = session or requests.Session()
         self.retry_attempts = retry_attempts
         self.retry_wait_seconds = retry_wait_seconds

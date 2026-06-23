@@ -458,6 +458,11 @@ def _print_workflow_summary(result: WorkflowResult) -> None:
         print("Verification summary:")
         for verification in verification_results:
             print(f"- {verification.target_id}: {verification.status.value}")
+            evidence = getattr(verification, "evidence", {})
+            if evidence:
+                print("  Evidence:")
+                for key, value in sorted(evidence.items()):
+                    print(f"  - {key}: {value}")
 
 
 def _workflow_name(result: WorkflowResult) -> str:

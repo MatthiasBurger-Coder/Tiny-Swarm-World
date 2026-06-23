@@ -262,11 +262,11 @@ services:
             )
         }
 
-        self.assertEqual((8080, 50000), metadata["jenkins"]["jenkins"])
-        self.assertEqual((), metadata["infisical"]["infisical"])
-        self.assertEqual((8081, 5000, 5001), metadata["nexus"]["nexus"])
+        self.assertEqual((11080, 11050), metadata["jenkins"]["jenkins"])
+        self.assertEqual((17080,), metadata["infisical"]["infisical"])
+        self.assertEqual((13081, 13500, 13501), metadata["nexus"]["nexus"])
         self.assertEqual((10000, 8086), metadata["service-access"]["service-access-nginx"])
-        self.assertEqual((80, 443), metadata["traefik"]["traefik"])
+        self.assertEqual((10080, 10443), metadata["traefik"]["traefik"])
 
     def test_committed_service_registry_aligns_selected_stacks_with_phase_and_ports(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -412,7 +412,7 @@ services:
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
 
         self.assertEqual(
-            "${TSW_JENKINS_IMAGE:-127.0.0.1:5000/jenkins:latest}",
+            "${TSW_JENKINS_IMAGE:-127.0.0.1:13500/jenkins:latest}",
             compose_data["services"]["jenkins"]["image"],
         )
         self.assertEqual(
@@ -465,8 +465,8 @@ services:
         self.assertEqual("${TSW_PULSAR_ADMIN_TOKEN}", pulsar["environment"]["TSW_PULSAR_ADMIN_TOKEN"])
         self.assertEqual(
             [
-                {"target": 6650, "published": 6650, "protocol": "tcp", "mode": "host"},
-                {"target": 8080, "published": 8087, "protocol": "tcp", "mode": "host"},
+                {"target": 6650, "published": 14001, "protocol": "tcp", "mode": "host"},
+                {"target": 8080, "published": 14080, "protocol": "tcp", "mode": "host"},
             ],
             pulsar["ports"],
         )
@@ -499,8 +499,7 @@ services:
         )
         self.assertEqual(
             [
-                {"target": 9527, "published": 9527, "protocol": "tcp", "mode": "host"},
-                {"target": 7750, "published": 7750, "protocol": "tcp", "mode": "host"},
+                {"target": 9527, "published": 14081, "protocol": "tcp", "mode": "host"},
             ],
             pulsar_manager["ports"],
         )
@@ -520,7 +519,7 @@ services:
         self.assertIn("pulsar-manager/login", bootstrap["command"][-1])
         self.assertIn('"username": "admin"', bootstrap["command"][-1])
         self.assertIn('"Host": backend_host_header', bootstrap["command"][-1])
-        self.assertIn('"localhost:7750"', bootstrap["command"][-1])
+        self.assertIn("backend_host_header = \"localhost:9527\"", bootstrap["command"][-1])
         self.assertIn("api_rejected_superuser", bootstrap["command"][-1])
         self.assertIn("exc.code != 400", bootstrap["command"][-1])
         self.assertIn('response.get("login") == "success"', bootstrap["command"][-1])
@@ -538,13 +537,10 @@ services:
         self.assertIn("image: swaggerapi/swagger-editor:v5.6.2-unprivileged", compose_content)
         self.assertIn("image: swaggerapi/swagger-ui:v5.32.6", compose_content)
         self.assertIn("image: nginx:mainline-alpine", compose_content)
-        self.assertEqual(
-            [{"target": 80, "published": 8082, "protocol": "tcp", "mode": "host"}],
-            compose_data["services"]["swagger-editor"]["ports"],
-        )
+        self.assertNotIn("ports", compose_data["services"]["swagger-editor"])
         self.assertNotIn("ports", compose_data["services"]["swagger-api"])
         self.assertEqual(
-            [{"target": 8084, "published": 8084, "protocol": "tcp", "mode": "host"}],
+            [{"target": 8084, "published": 16081, "protocol": "tcp", "mode": "host"}],
             compose_data["services"]["swagger-nginx"]["ports"],
         )
         self.assertIn("SWAGGER_JSON: /openapi.json", compose_content)
@@ -609,11 +605,11 @@ services:
         self.assertEqual("service-access", ComposeFileRepositoryYaml().get_compose_of("service-access").name)
         self.assertEqual(set(SERVICE_ACCESS_STACK_CONTRACT.required_services), set(services))
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:5000/service-access-dashboard:latest}",
+            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:13500/service-access-dashboard:latest}",
             services["service-access-dashboard"]["image"],
         )
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:5000/service-access-nginx:latest}",
+            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:13500/service-access-nginx:latest}",
             services["service-access-nginx"]["image"],
         )
         self.assertEqual(
@@ -641,11 +637,11 @@ services:
         self.assertEqual("infisical", ComposeFileRepositoryYaml().get_compose_of("infisical").name)
         self.assertEqual({"infisical", "infisical-db", "infisical-redis"}, set(services))
         self.assertEqual(
-            "${TSW_INFISICAL_IMAGE:-infisical/infisical:latest}",
+            "${TSW_INFISICAL_IMAGE:-infisical/infisical:v0.159.1}",
             services["infisical"]["image"],
         )
         self.assertEqual(
-            "${TSW_INFISICAL_SITE_URL:-http://localhost:8086}",
+            "${TSW_INFISICAL_SITE_URL:-http://localhost:17080}",
             services["infisical"]["environment"]["SITE_URL"],
         )
         self.assertEqual(
@@ -672,7 +668,10 @@ services:
             "${TSW_INFISICAL_ADMIN_LAST_NAME:-Admin}",
             services["infisical"]["environment"]["INITIAL_BOOTSTRAP_ADMIN_LAST_NAME"],
         )
-        self.assertNotIn("ports", services["infisical"])
+        self.assertEqual(
+            [{"target": 8080, "published": 17080, "protocol": "tcp", "mode": "host"}],
+            services["infisical"]["ports"],
+        )
         self.assertNotIn("secrets", compose_data)
         self.assertEqual(["infisical_pg_data:/var/lib/postgresql/data"], services["infisical-db"]["volumes"])
         self.assertEqual(["infisical_redis_data:/data"], services["infisical-redis"]["volumes"])
@@ -701,8 +700,8 @@ services:
         self.assertNotIn("--api.insecure=true", compose_content)
         self.assertEqual(
             [
-                {"target": 80, "published": 80, "protocol": "tcp", "mode": "host"},
-                {"target": 443, "published": 443, "protocol": "tcp", "mode": "host"},
+                {"target": 80, "published": 10080, "protocol": "tcp", "mode": "host"},
+                {"target": 443, "published": 10443, "protocol": "tcp", "mode": "host"},
             ],
             traefik["ports"],
         )
@@ -740,6 +739,9 @@ services:
         certificate = tls_data["tls"]["certificates"][0]
         self.assertEqual("/run/secrets/tsw_traefik_tls_cert", certificate["certFile"])
         self.assertEqual("/run/secrets/tsw_traefik_tls_key", certificate["keyFile"])
+        default_certificate = tls_data["tls"]["stores"]["default"]["defaultCertificate"]
+        self.assertEqual("/run/secrets/tsw_traefik_tls_cert", default_certificate["certFile"])
+        self.assertEqual("/run/secrets/tsw_traefik_tls_key", default_certificate["keyFile"])
         self.assertNotIn("BEGIN", tls_content)
         self.assertNotIn("PRIVATE KEY", tls_content)
 
@@ -826,7 +828,7 @@ services:
                 / "nginx"
                 / "Dockerfile",
                 "COPY default.conf /etc/nginx/conf.d/default.conf",
-                "FROM nginx:mainline",
+                "FROM nginx:mainline-alpine",
             ),
         }
 
@@ -843,7 +845,7 @@ services:
                 self.assertIn(base_image_line, dockerfile)
                 self.assertIn(copy_line, dockerfile)
                 if service_name == "service-access-nginx":
-                    self.assertNotIn("apk add --no-cache openssl", dockerfile)
+                    self.assertIn("apk add --no-cache openssl", dockerfile)
                     self.assertIn("generate-self-signed-cert.sh", dockerfile)
 
     def test_service_access_image_publisher_packages_dashboard_and_nginx_assets(self):
@@ -906,22 +908,22 @@ services:
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, dashboard)
 
-    def test_service_access_dashboard_links_to_central_routes_without_credentials(self):
+    def test_service_access_dashboard_links_to_allocated_ports_without_credentials(self):
         dashboard = _service_access_dashboard_html()
         links = _extract_links(dashboard)
 
         self.assertTrue(links)
         self.assertEqual(
             {
-                "/",
-                "/jenkins",
-                "/nexus",
-                "/portainer",
-                "/pulsar",
-                "/pulsar-admin-api",
-                "/sonarqube",
-                "/swagger",
-                "/infisical",
+                "http://localhost:10000",
+                "http://localhost:10001",
+                "http://localhost:11080",
+                "http://localhost:12000",
+                "http://localhost:13081",
+                "http://localhost:14080/admin/v2/clusters",
+                "http://localhost:14081",
+                "http://localhost:16080",
+                "http://localhost:17080",
             },
             set(links),
         )
@@ -933,21 +935,6 @@ services:
             self.assertEqual("", parsed.fragment)
         for forbidden_link in (
             "http://localhost:8085",
-            "http://localhost:9000",
-            "http://localhost:8081",
-            "http://localhost:8086",
-            "http://localhost:8087",
-            "http://localhost:9527",
-            "http://localhost:7750",
-            "http://localhost:9001",
-        ):
-            self.assertNotIn(forbidden_link, dashboard)
-
-    def test_service_access_dashboard_displays_service_access_port(self):
-        dashboard = _service_access_dashboard_html()
-
-        for expected in (
-            "http://localhost:10000",
             "http://localhost:10000/jenkins",
             "http://localhost:10000/nexus",
             "http://localhost:10000/portainer",
@@ -955,6 +942,22 @@ services:
             "http://localhost:10000/pulsar-admin-api",
             "http://localhost:10000/sonarqube",
             "http://localhost:10000/swagger",
+        ):
+            self.assertNotIn(forbidden_link, dashboard)
+
+    def test_service_access_dashboard_displays_allocated_service_ports(self):
+        dashboard = _service_access_dashboard_html()
+
+        for expected in (
+            "http://localhost:10000",
+            "http://localhost:10001",
+            "http://localhost:11080",
+            "http://localhost:12000",
+            "http://localhost:13081",
+            "http://localhost:14080/admin/v2/clusters",
+            "http://localhost:14081",
+            "http://localhost:16080",
+            "http://localhost:17080",
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, dashboard)

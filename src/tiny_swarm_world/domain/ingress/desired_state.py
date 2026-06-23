@@ -51,7 +51,7 @@ class DesiredHttpsRoute:
 @dataclass(frozen=True)
 class DesiredHttpsIngress:
     routes: tuple[DesiredHttpsRoute, ...]
-    public_ports: tuple[int, ...] = (80, 443)
+    public_ports: tuple[int, ...] = (10080, 10443)
     http_redirect_to_https: bool = True
     exposed_by_default: bool = False
     api_insecure: bool = False
@@ -63,8 +63,8 @@ class DesiredHttpsIngress:
         hostnames = tuple(route.hostname for route in routes)
         if len(set(hostnames)) != len(hostnames):
             raise ValueError("desired HTTPS ingress hostnames must be unique")
-        if tuple(self.public_ports) != (80, 443):
-            raise ValueError("desired HTTPS ingress public ports must be exactly 80 and 443")
+        if tuple(self.public_ports) != (10080, 10443):
+            raise ValueError("desired HTTPS ingress public ports must be exactly 10080 and 10443")
         if not self.http_redirect_to_https:
             raise ValueError("desired HTTPS ingress must redirect HTTP to HTTPS")
         if self.exposed_by_default:

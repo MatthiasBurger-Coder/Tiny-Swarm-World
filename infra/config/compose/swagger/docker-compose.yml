@@ -1,11 +1,6 @@
 services:
   swagger-editor:
     image: swaggerapi/swagger-editor:v5.6.2-unprivileged
-    ports:
-      - target: 80
-        published: 8082
-        protocol: tcp
-        mode: host
     deploy:
       replicas: 1
       placement:
@@ -16,7 +11,7 @@ services:
     image: swaggerapi/swagger-ui:v5.32.6
     ports:
       - target: 8080
-        published: 8083
+        published: 16080
         protocol: tcp
         mode: host
     volumes:
@@ -49,7 +44,7 @@ services:
     image: nginx:mainline-alpine
     ports:
       - target: 8084
-        published: 8084
+        published: 16081
         protocol: tcp
         mode: host
     volumes:

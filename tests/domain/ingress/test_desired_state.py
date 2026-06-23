@@ -12,7 +12,7 @@ class TestDesiredHttpsIngress(unittest.TestCase):
     def test_service_access_profile_routes_required_https_hosts(self):
         desired = desired_https_ingress_for_profile(ServiceStackProfile.SERVICE_ACCESS)
 
-        self.assertEqual((80, 443), desired.public_ports)
+        self.assertEqual((10080, 10443), desired.public_ports)
         self.assertTrue(desired.http_redirect_to_https)
         self.assertFalse(desired.exposed_by_default)
         self.assertFalse(desired.api_insecure)
@@ -50,7 +50,7 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         )
 
         for kwargs in (
-            {"public_ports": (80, 8080)},
+            {"public_ports": (80, 443)},
             {"http_redirect_to_https": False},
             {"exposed_by_default": True},
             {"api_insecure": True},

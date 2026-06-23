@@ -10,7 +10,7 @@ from tiny_swarm_world.domain.inventory import VerificationStatus
 class TestEnsureContainerImage(unittest.IsolatedAsyncioTestCase):
     async def test_publishes_image_through_port(self):
         publisher = _FakeImagePublisher(available=True)
-        contract = ContainerImageContract("127.0.0.1:5000/jenkins", "latest", "jenkins")
+        contract = ContainerImageContract("127.0.0.1:13500/jenkins", "latest", "jenkins")
         service = EnsureContainerImage(publisher, contract)
 
         await service.run()
@@ -19,14 +19,14 @@ class TestEnsureContainerImage(unittest.IsolatedAsyncioTestCase):
 
     async def test_verify_confirms_image_availability_without_secret_payloads(self):
         publisher = _FakeImagePublisher(available=True)
-        contract = ContainerImageContract("127.0.0.1:5000/jenkins", "latest", "jenkins")
+        contract = ContainerImageContract("127.0.0.1:13500/jenkins", "latest", "jenkins")
         service = EnsureContainerImage(publisher, contract)
 
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
         self.assertEqual("artifacts:jenkins-image", verification.target_id)
-        self.assertEqual("127.0.0.1:5000/jenkins:latest", verification.evidence["image_ref"])
+        self.assertEqual("127.0.0.1:13500/jenkins:latest", verification.evidence["image_ref"])
         self.assertNotIn("password", str(verification.to_dict()).lower())
 
 

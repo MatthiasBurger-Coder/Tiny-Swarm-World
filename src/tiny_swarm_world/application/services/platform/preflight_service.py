@@ -598,10 +598,10 @@ def _port_remediation(service: str) -> str:
 
 
 def _planned_replaced_services(port: int, service: str) -> tuple[str, ...]:
-    if port == 80 and service == "Traefik HTTP ingress":
+    if port == 10080 and service == "Traefik HTTP ingress":
         return ("Swagger/NGINX", "Service Access")
-    if port == 443 and service == "Traefik HTTPS ingress":
+    if port == 10443 and service == "Traefik HTTPS ingress":
         return ("Infisical HTTPS", "Service Access")
-    if port == 8084 and service == "Swagger/NGINX":
+    if port == 16081 and service == "Swagger/NGINX":
         return ("Swagger API",)
     return ()

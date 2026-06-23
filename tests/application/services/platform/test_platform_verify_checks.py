@@ -146,8 +146,8 @@ class TestPlatformVerifyChecks(unittest.IsolatedAsyncioTestCase):
     async def test_proxy_verify_reports_missing_or_drifted_devices(self):
         runtime = _ProxyRuntime(
             states={
-                80: LxcProxyDeviceState.MISSING,
-                443: LxcProxyDeviceState.DRIFTED,
+                10080: LxcProxyDeviceState.MISSING,
+                10443: LxcProxyDeviceState.DRIFTED,
             },
             default_state=LxcProxyDeviceState.PRESENT,
         )

@@ -9,7 +9,7 @@ services:
       - traefik_ingress
     ports:
       - target: 9000
-        published: 9000
+        published: 10001
         protocol: tcp
         mode: host
     deploy:

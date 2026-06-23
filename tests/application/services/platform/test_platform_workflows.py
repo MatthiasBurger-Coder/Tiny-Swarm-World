@@ -235,11 +235,11 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
                 PreflightResult(
                     (
                         PreflightCheck(
-                            check_id="PORT-9001",
+                            check_id="PORT-12000",
                             category=PreflightCategory.PORT,
                             status=PreflightStatus.FAILED,
                             severity=PreflightSeverity.MANDATORY,
-                            message="Port 9001 for SonarQube is occupied.",
+                            message="Port 12000 for SonarQube is occupied.",
                             remediation="Wait for expected service readiness.",
                         ),
                     )

@@ -2,3 +2,8 @@ tls:
   certificates:
     - certFile: /run/secrets/tsw_traefik_tls_cert
       keyFile: /run/secrets/tsw_traefik_tls_key
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /run/secrets/tsw_traefik_tls_cert
+        keyFile: /run/secrets/tsw_traefik_tls_key

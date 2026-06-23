@@ -1,9 +1,9 @@
 services:
   infisical:
-    image: ${TSW_INFISICAL_IMAGE:-infisical/infisical:latest}
+    image: ${TSW_INFISICAL_IMAGE:-infisical/infisical:v0.159.1}
     environment:
       NODE_ENV: production
-      SITE_URL: ${TSW_INFISICAL_SITE_URL:-http://localhost:8086}
+      SITE_URL: ${TSW_INFISICAL_SITE_URL:-http://localhost:17080}
       ENCRYPTION_KEY: ${TSW_INFISICAL_ENCRYPTION_KEY}
       AUTH_SECRET: ${TSW_INFISICAL_AUTH_SECRET}
       INITIAL_BOOTSTRAP_ADMIN_EMAIL: ${TSW_INFISICAL_LOGIN_EMAIL}
@@ -14,6 +14,11 @@ services:
       REDIS_URL: redis://tasks.infisical-redis:6379
     volumes:
       - infisical_uploads:/app/infisical/uploads
+    ports:
+      - target: 8080
+        published: 17080
+        protocol: tcp
+        mode: host
     networks:
       - service_access_link
       - traefik_ingress

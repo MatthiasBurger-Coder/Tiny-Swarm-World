@@ -450,7 +450,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         result = await PreflightService(
             _fake_probe(
                 host_compatible=False,
-                port_availability={8084: False},
+                port_availability={16081: False},
                 ignored_paths={".env": False},
             )
         ).run()
@@ -458,20 +458,20 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         failed_by_id = {check.check_id: check for check in result.failed_checks}
         self.assertFalse(result.passed)
         self.assertIn("HOST", failed_by_id)
-        self.assertIn("PORT-8084", failed_by_id)
+        self.assertIn("PORT-16081", failed_by_id)
         self.assertIn("IGNORE-.env", failed_by_id)
         self.assertIn("Run Tiny Swarm World from Linux or WSL", failed_by_id["HOST"].remediation)
 
     async def test_occupied_port_passes_when_expected_service_is_detected(self):
         result = await PreflightService(
             _fake_probe(
-                port_availability={9000: False},
-                expected_service_ports={9000: True},
+                port_availability={10001: False},
+                expected_service_ports={10001: True},
             )
         ).run()
 
         checks_by_id = {check.check_id: check for check in result.checks}
-        port_check = checks_by_id["PORT-9000"]
+        port_check = checks_by_id["PORT-10001"]
 
         self.assertTrue(result.passed)
         self.assertEqual("PASSED", port_check.status)
@@ -480,16 +480,16 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
     async def test_occupied_unknown_port_still_fails_preflight(self):
         result = await PreflightService(
             _fake_probe(
-                port_availability={9000: False},
-                expected_service_ports={9000: False},
+                port_availability={10001: False},
+                expected_service_ports={10001: False},
             )
         ).run()
 
         failed_by_id = {check.check_id: check for check in result.failed_checks}
 
         self.assertFalse(result.passed)
-        self.assertIn("PORT-9000", failed_by_id)
-        self.assertIn("occupied", failed_by_id["PORT-9000"].message)
+        self.assertIn("PORT-10001", failed_by_id)
+        self.assertIn("occupied", failed_by_id["PORT-10001"].message)
 
     async def test_service_access_profile_blocks_unexpected_local_http_ingress_listener(self):
         configuration = default_preflight_configuration(
@@ -498,8 +498,8 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         result = await PreflightService(
             _fake_probe(
-                port_availability={80: False},
-                expected_service_ports={80: False},
+                port_availability={10080: False},
+                expected_service_ports={10080: False},
             ),
             configuration,
         ).run()
@@ -507,9 +507,9 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         failed_by_id = {check.check_id: check for check in result.failed_checks}
 
         self.assertFalse(result.passed)
-        self.assertIn("PORT-80", failed_by_id)
-        self.assertIn("Traefik HTTP ingress", failed_by_id["PORT-80"].message)
-        self.assertIn("stale localhost listener", failed_by_id["PORT-80"].remediation)
+        self.assertIn("PORT-10080", failed_by_id)
+        self.assertIn("Traefik HTTP ingress", failed_by_id["PORT-10080"].message)
+        self.assertIn("stale localhost listener", failed_by_id["PORT-10080"].remediation)
 
     async def test_service_access_profile_allows_swagger_to_be_reassigned_from_localhost_root(self):
         configuration = default_preflight_configuration(
@@ -518,15 +518,15 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         result = await PreflightService(
             _fake_probe(
-                port_availability={80: False},
-                expected_service_ports={80: False},
-                service_matches={(80, "Swagger/NGINX"): True},
+                port_availability={10080: False},
+                expected_service_ports={10080: False},
+                service_matches={(10080, "Swagger/NGINX"): True},
             ),
             configuration,
         ).run()
 
         checks_by_id = {check.check_id: check for check in result.checks}
-        port_check = checks_by_id["PORT-80"]
+        port_check = checks_by_id["PORT-10080"]
 
         self.assertTrue(result.passed)
         self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
@@ -539,15 +539,15 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         result = await PreflightService(
             _fake_probe(
-                port_availability={443: False},
-                expected_service_ports={443: False},
-                service_matches={(443, "Infisical HTTPS"): True},
+                port_availability={10443: False},
+                expected_service_ports={10443: False},
+                service_matches={(10443, "Infisical HTTPS"): True},
             ),
             configuration,
         ).run()
 
         checks_by_id = {check.check_id: check for check in result.checks}
-        port_check = checks_by_id["PORT-443"]
+        port_check = checks_by_id["PORT-10443"]
 
         self.assertTrue(result.passed)
         self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
@@ -560,15 +560,15 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         result = await PreflightService(
             _fake_probe(
-                port_availability={80: False},
-                expected_service_ports={80: False},
-                service_matches={(80, "Service Access"): True},
+                port_availability={10080: False},
+                expected_service_ports={10080: False},
+                service_matches={(10080, "Service Access"): True},
             ),
             configuration,
         ).run()
 
         checks_by_id = {check.check_id: check for check in result.checks}
-        port_check = checks_by_id["PORT-80"]
+        port_check = checks_by_id["PORT-10080"]
 
         self.assertTrue(result.passed)
         self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
@@ -581,15 +581,15 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         result = await PreflightService(
             _fake_probe(
-                port_availability={443: False},
-                expected_service_ports={443: False},
-                service_matches={(443, "Service Access"): True},
+                port_availability={10443: False},
+                expected_service_ports={10443: False},
+                service_matches={(10443, "Service Access"): True},
             ),
             configuration,
         ).run()
 
         checks_by_id = {check.check_id: check for check in result.checks}
-        port_check = checks_by_id["PORT-443"]
+        port_check = checks_by_id["PORT-10443"]
 
         self.assertTrue(result.passed)
         self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
@@ -598,14 +598,14 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
     async def test_swagger_port_allows_old_swagger_api_listener_to_be_reassigned(self):
         result = await PreflightService(
             _fake_probe(
-                port_availability={8084: False},
-                expected_service_ports={8084: False},
-                service_matches={(8084, "Swagger API"): True},
+                port_availability={16081: False},
+                expected_service_ports={16081: False},
+                service_matches={(16081, "Swagger API"): True},
             )
         ).run()
 
         checks_by_id = {check.check_id: check for check in result.checks}
-        port_check = checks_by_id["PORT-8084"]
+        port_check = checks_by_id["PORT-16081"]
 
         self.assertTrue(result.passed)
         self.assertEqual("planned_route_reassignment", port_check.evidence["source"])

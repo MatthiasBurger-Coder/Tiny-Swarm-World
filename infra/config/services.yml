@@ -60,11 +60,9 @@ services:
     port_ids:
       - pulsar-broker
       - pulsar-admin-api
+      - pulsar-manager-gui
     readiness_target: deployment:pulsar-service-readiness
     compatibility_published_ports:
-      - 6650
-      - 8087
-      - 9527
       - 7750
 
   sonarqube:
@@ -121,7 +119,7 @@ services:
       password_source: "generated_local_secret"
     endpoint:
       internal_url: "http://infisical:8080"
-      external_url: "http://localhost:8086"
+      external_url: "http://localhost:17080"
 
   service-access:
     enabled: true
@@ -148,5 +146,5 @@ services:
       - traefik-https
     readiness_target: deployment:traefik-service-readiness
     ingress_published_ports:
-      - 80
-      - 443
+      - 10080
+      - 10443

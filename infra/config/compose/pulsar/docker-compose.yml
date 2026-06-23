@@ -26,11 +26,11 @@ services:
         exec bin/pulsar standalone --advertised-address pulsar --bookkeeper-port 3181 --no-functions-worker
     ports:
       - target: 6650
-        published: 6650
+        published: 14001
         protocol: tcp
         mode: host
       - target: 8080
-        published: 8087
+        published: 14080
         protocol: tcp
         mode: host
     volumes:
@@ -63,11 +63,7 @@ services:
       SPRING_CONFIGURATION_FILE: /pulsar-manager/pulsar-manager/application.properties
     ports:
       - target: 9527
-        published: 9527
-        protocol: tcp
-        mode: host
-      - target: 7750
-        published: 7750
+        published: 14081
         protocol: tcp
         mode: host
     networks:
@@ -82,7 +78,7 @@ services:
     image: ${TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE:-python:3.12-alpine}
     environment:
       TSW_PULSAR_MANAGER_ADMIN_PASSWORD: ${TSW_PULSAR_MANAGER_ADMIN_PASSWORD}
-      TSW_PULSAR_MANAGER_BACKEND_URL: http://tasks.pulsar-manager:7750
+      TSW_PULSAR_MANAGER_BACKEND_URL: http://tasks.pulsar-manager:9527
     command:
       - sh
       - -ec
@@ -111,9 +107,9 @@ services:
                 "password": admin_value,
             }
         ).encode("utf-8")
-        backend_host_header = "localhost:7750"
+        backend_host_header = "localhost:9527"
         last_error = "not_attempted"
-        for _ in range(60):
+        for _ in range(180):
             try:
                 request = urllib.request.Request(
                     f"{backend_url}/pulsar-manager/csrf-token",

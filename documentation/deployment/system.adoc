@@ -159,12 +159,12 @@ ignored local env file or the process environment.
 [options="header"]
 |===
 | Variable | Default | Purpose
-| `TSW_PORTAINER_URL` | `http://localhost:9000` | Portainer API base URL
+| `TSW_PORTAINER_URL` | `http://localhost:10001` | Portainer API base URL
 | `TSW_PORTAINER_USERNAME` | `admin` | Portainer login user
 | `TSW_PORTAINER_ADMIN_PASSWORD` | no default, operator supplied | Portainer login password
 | `TSW_PORTAINER_ENDPOINT` | `local` | Portainer endpoint name
 | `TSW_NEXUS_STACK_NAME` | `nexus` | Stack name in Portainer
-| `TSW_NEXUS_URL` | `http://localhost:8081` | Nexus base URL
+| `TSW_NEXUS_URL` | `http://localhost:13081` | Nexus base URL
 | `TSW_NEXUS_ADMIN_USERNAME` | `admin` | Nexus administrator user
 | `TSW_NEXUS_ADMIN_PASSWORD` | no default, operator supplied | New Nexus administrator password
 | `TSW_NEXUS_INITIAL_PASSWORD_PATH` | `/nexus-data/admin.password` | Initial password path inside the Nexus container

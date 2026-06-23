@@ -16,11 +16,11 @@ services:
       - --providers.file.watch=true
     ports:
       - target: 80
-        published: 80
+        published: 10080
         protocol: tcp
         mode: host
       - target: 443
-        published: 443
+        published: 10443
         protocol: tcp
         mode: host
     volumes:

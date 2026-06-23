@@ -13,7 +13,7 @@ class TestPortRegistryYamlRepository(unittest.TestCase):
         registry = PortRegistryYamlRepository().load()
 
         self.assertEqual(11, len(registry.ranges))
-        self.assertEqual(22, len(registry.mappings))
+        self.assertEqual(23, len(registry.mappings))
         self.assertEqual((80, 443), tuple(port.external_port for port in registry.preflight_ports))
         self.assertEqual(
             PortExposureClass.PUBLIC_INGRESS,

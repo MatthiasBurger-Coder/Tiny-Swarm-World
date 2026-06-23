@@ -157,7 +157,7 @@ ports:
   - id: pulsar-broker
     service_id: pulsar
     internal_port: 6650
-    external_port: 14050
+    external_port: 14001
     exposure: diagnostic
     range_id: messaging
     protocol: tcp
@@ -165,7 +165,15 @@ ports:
   - id: pulsar-admin-api
     service_id: pulsar
     internal_port: 8080
-    external_port: 14087
+    external_port: 14080
+    exposure: diagnostic
+    range_id: messaging
+    protocol: tcp
+    required_for_preflight: false
+  - id: pulsar-manager-gui
+    service_id: pulsar
+    internal_port: 9527
+    external_port: 14081
     exposure: diagnostic
     range_id: messaging
     protocol: tcp

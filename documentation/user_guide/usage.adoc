@@ -286,8 +286,9 @@ dashboard route is available through the direct local compatibility port
 service-access NGINX compose service also publishes `8086` as the local
 Infisical compatibility route.
 The dashboard is a static management table with `Server`, `URL`, `user` and
-`pwd` columns. It provides central paths such as `/jenkins`, `/nexus`,
-`/portainer`, `/pulsar`, `/sonarqube`, `/swagger` and `/infisical`.
+`pwd` columns. It links to the allocated local service ports: Jenkins `11080`,
+Nexus `13081`, Portainer `10001`, Pulsar Manager `14081`, Pulsar Admin API
+`14080`, SonarQube `12000`, Swagger `16080`, and Infisical `17080`.
 It does not show password values.
 
 Authorized operators reveal or copy password values only through the

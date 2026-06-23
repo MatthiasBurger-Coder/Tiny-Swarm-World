@@ -121,7 +121,7 @@ logic. Defaults are listed only when visible from committed source.
 | `TSW_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL` | implementation default | Optional | URL | `composition.py`, docs |
 | `TSW_NEXUS_CACHE_CONTAINER` | repository default constant | Optional | container name | `composition.py` |
 | `TSW_NEXUS_CACHE_DOCKER_PROXY_PORT` | repository default constant | Optional | positive integer port | `composition.py` |
-| `TSW_INFISICAL_URL` | `http://localhost:8086` | Optional | URL | `infisical_cli_client.py`, `composition.py` |
+| `TSW_INFISICAL_URL` | `http://localhost:17080` | Optional | URL | `infisical_cli_client.py`, `composition.py` |
 | `TSW_INFISICAL_INTERNAL_URL` | implementation default | Optional | URL | `composition.py` |
 | `TSW_INFISICAL_ORGANIZATION` | implementation default | Optional | identifier | `composition.py` |
 | `TSW_INFISICAL_ADMIN_FIRST_NAME` | `Tiny` | Optional | text | `composition.py`, compose |
@@ -143,10 +143,10 @@ distinguish service images, secret values, secret names, paths, and defaults.
 | `TSW_JENKINS_IMAGE` | local registry Jenkins image | image reference | Jenkins compose, composition, docs |
 | `TSW_SERVICE_ACCESS_DASHBOARD_IMAGE` | local registry dashboard image | image reference | Service-access compose, composition |
 | `TSW_SERVICE_ACCESS_NGINX_IMAGE` | local registry nginx image | image reference | Service-access compose, composition |
-| `TSW_INFISICAL_IMAGE` | `infisical/infisical:latest` | image reference | Infisical compose, composition, docs |
+| `TSW_INFISICAL_IMAGE` | `infisical/infisical:v0.159.1` | image reference | Infisical compose, composition, docs |
 | `TSW_INFISICAL_POSTGRES_IMAGE` | `postgres:14-alpine` | image reference | Infisical compose, composition, docs |
 | `TSW_INFISICAL_REDIS_IMAGE` | `redis:7-alpine` | image reference | Infisical compose, composition, docs |
-| `TSW_INFISICAL_SITE_URL` | `http://localhost:8086` | URL | Infisical compose |
+| `TSW_INFISICAL_SITE_URL` | `http://localhost:17080` | URL | Infisical compose |
 | `TSW_INFISICAL_POSTGRES_USER` | `infisical` | identifier | Infisical compose |
 | `TSW_INFISICAL_POSTGRES_DB` | `infisical` | identifier | Infisical compose |
 | `TSW_REMOTE_STACK_ROOT` | `/var/lib/tiny-swarm-world/stacks` | POSIX path inside managed node | Swagger and Traefik compose, LXC swarm runtime |

@@ -9,7 +9,7 @@ from unittest.mock import patch
 from tests.support.async_helpers import async_checkpoint
 from tests.support.sonar_safe_literals import ipv4_address, sample_text
 
-from tiny_swarm_world.application.services.deployment.ensure_service_stack import EnsureServiceStack
+from tiny_swarm_world.application.services.deployment.ensure_swarm_stack import EnsureSwarmStack
 from tiny_swarm_world.application.ports.ui.port_ui import (
     AGGREGATE_INSTANCE,
     STATUS_ERROR,
@@ -635,6 +635,13 @@ class TestComposition(unittest.TestCase):
                 "artifacts:infisical-image",
                 "artifacts:infisical-postgres-image",
                 "artifacts:infisical-redis-image",
+                "artifacts:traefik-image",
+                "artifacts:sonarqube-image",
+                "artifacts:sonarqube-postgres-image",
+                "artifacts:swagger-editor-image",
+                "artifacts:swagger-ui-image",
+                "artifacts:pulsar-manager-bootstrap-image",
+                "artifacts:swagger-nginx-image",
             ),
             tuple(step.verification_target_id for step in services.workflows.prepare.steps),
         )
@@ -687,17 +694,24 @@ class TestComposition(unittest.TestCase):
             if hasattr(step, "contract")
         }
 
-        self.assertEqual("infisical/infisical:latest", image_refs["infisical"])
+        self.assertEqual("infisical/infisical:v0.159.1", image_refs["infisical"])
         self.assertEqual("postgres:14-alpine", image_refs["infisical-postgres"])
         self.assertEqual("redis:7-alpine", image_refs["infisical-redis"])
+        self.assertEqual("traefik:v3.7.4", image_refs["traefik"])
+        self.assertEqual("sonarqube:26.6.0.123539-community", image_refs["sonarqube"])
+        self.assertEqual("postgres:13", image_refs["sonarqube-postgres"])
+        self.assertEqual("swaggerapi/swagger-editor:v5.6.2-unprivileged", image_refs["swagger-editor"])
+        self.assertEqual("swaggerapi/swagger-ui:v5.32.6", image_refs["swagger-ui"])
+        self.assertEqual("python:3.12-alpine", image_refs["pulsar-manager-bootstrap"])
+        self.assertEqual("nginx:mainline-alpine", image_refs["swagger-nginx"])
 
     def test_build_artifact_services_does_not_call_live_clients_during_construction(self):
         services = composition.build_lxc_artifact_services(
             backend=composition.ManagedLxcBackend.INCUS,
         )
 
-        self.assertEqual(11, len(services.workflows.prepare.steps))
-        self.assertEqual(11, len(services.workflows.verify.checks))
+        self.assertEqual(18, len(services.workflows.prepare.steps))
+        self.assertEqual(18, len(services.workflows.verify.checks))
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
         with patch.dict("os.environ", _required_infisical_bootstrap_env(), clear=True):
@@ -740,10 +754,9 @@ class TestComposition(unittest.TestCase):
         )
         self.assertTrue(
             all(
-                step.deployment_gateway is services.workflows.bootstrap.steps[2].portainer_client
+                isinstance(step, EnsureSwarmStack)
                 for step in services.workflows.apply.steps
                 if step.verification_target_id.endswith("-stack")
-                and step.verification_target_id != "deployment:traefik-stack"
             )
         )
         jenkins_step = next(
@@ -763,7 +776,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             {
                 "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
-                "TSW_JENKINS_IMAGE": "127.0.0.1:5000/jenkins:latest",
+                "TSW_JENKINS_IMAGE": "127.0.0.1:13500/jenkins:latest",
             },
             jenkins_step.stack_environment,
         )
@@ -803,7 +816,7 @@ class TestComposition(unittest.TestCase):
             services = composition.build_artifact_services_for_provider()
 
         self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
-        self.assertEqual(11, len(services.workflows.prepare.steps))
+        self.assertEqual(18, len(services.workflows.prepare.steps))
 
     def test_default_provider_deployment_services_use_lxc_clients_when_backend_is_available(self):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
@@ -872,10 +885,9 @@ class TestComposition(unittest.TestCase):
         )
         self.assertTrue(
             all(
-                isinstance(step, EnsureServiceStack)
+                isinstance(step, EnsureSwarmStack)
                 for step in services.workflows.apply.steps
                 if step.verification_target_id.endswith("-stack")
-                and step.verification_target_id != "deployment:traefik-stack"
             )
         )
         self.assertEqual(
@@ -924,10 +936,10 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             {
                 "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE": (
-                    "127.0.0.1:5000/service-access-dashboard:latest"
+                    "127.0.0.1:13500/service-access-dashboard:latest"
                 ),
                 "TSW_SERVICE_ACCESS_NGINX_IMAGE": (
-                    "127.0.0.1:5000/service-access-nginx:latest"
+                    "127.0.0.1:13500/service-access-nginx:latest"
                 ),
             },
             service_access_step.stack_environment,
