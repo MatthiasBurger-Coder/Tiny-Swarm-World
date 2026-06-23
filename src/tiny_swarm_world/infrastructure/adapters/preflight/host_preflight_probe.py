@@ -453,11 +453,18 @@ def _read_http_response(port: int, path: str, *, scheme: str = "http") -> tuple[
         headers={"User-Agent": "tiny-swarm-world-preflight/1.0"},
     )
     try:
-        context = ssl._create_unverified_context() if scheme == "https" else None
+        context = _verified_tls_context() if scheme == "https" else None
         with urllib.request.urlopen(request, timeout=2.0, context=context) as response:
             return response.status, _response_text(response.read(4096), response.headers)
     except urllib.error.HTTPError as error:
         return error.code, _response_text(error.read(4096), error.headers)
+
+
+def _verified_tls_context() -> ssl.SSLContext:
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    context.load_default_certs()
+    return context
 
 
 def _response_text(body: bytes, headers: object) -> str:
