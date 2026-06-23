@@ -816,7 +816,7 @@ services:
                 / "service-access"
                 / "dashboard"
                 / "Dockerfile",
-                "COPY index.html /usr/share/nginx/html/index.html",
+                "COPY --chown=nginx:nginx index.html /usr/share/nginx/html/index.html",
                 "FROM nginx:mainline-alpine",
             ),
             "service-access-nginx": (
@@ -827,7 +827,7 @@ services:
                 / "service-access"
                 / "nginx"
                 / "Dockerfile",
-                "COPY default.conf /etc/nginx/conf.d/default.conf",
+                "COPY --chown=nginx:nginx default.conf /etc/nginx/conf.d/default.conf",
                 "FROM nginx:mainline-alpine",
             ),
         }
@@ -844,8 +844,10 @@ services:
                 dockerfile = dockerfile_path.read_text(encoding="utf-8")
                 self.assertIn(base_image_line, dockerfile)
                 self.assertIn(copy_line, dockerfile)
+                self.assertIn("USER nginx", dockerfile)
+                self.assertIn("setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx", dockerfile)
                 if service_name == "service-access-nginx":
-                    self.assertIn("apk add --no-cache openssl", dockerfile)
+                    self.assertIn("apk add --no-cache libcap openssl", dockerfile)
                     self.assertIn("generate-self-signed-cert.sh", dockerfile)
 
     def test_service_access_image_publisher_packages_dashboard_and_nginx_assets(self):

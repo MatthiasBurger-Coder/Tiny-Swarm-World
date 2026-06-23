@@ -26,14 +26,14 @@ class TestNexusHttpClient(unittest.TestCase):
                 _FakeResponse(200, []),
             ],
         )
-        client = NexusHttpClient("http://nexus.local", session=session)
+        client = NexusHttpClient("https://nexus.local", session=session)
 
         self.assertTrue(client.is_available())
         self.assertTrue(client.can_authenticate("admin", OPERATOR_CREDENTIAL))
 
-        self.assertEqual("http://nexus.local/service/rest/v1/status", session.get_calls[0]["url"])
+        self.assertEqual("https://nexus.local/service/rest/v1/status", session.get_calls[0]["url"])
         self.assertEqual(
-            "http://nexus.local/service/rest/v1/security/users",
+            "https://nexus.local/service/rest/v1/security/users",
             session.get_calls[1]["url"],
         )
         self.assertEqual(("admin", OPERATOR_CREDENTIAL), session.get_calls[1]["auth"])
@@ -45,7 +45,7 @@ class TestNexusHttpClient(unittest.TestCase):
                 requests.Timeout("timeout"),
             ],
         )
-        client = NexusHttpClient("http://nexus.local", session=session)
+        client = NexusHttpClient("https://nexus.local", session=session)
 
         self.assertFalse(client.is_available())
         self.assertFalse(client.can_authenticate("admin", OPERATOR_CREDENTIAL))
@@ -70,7 +70,7 @@ class TestNexusHttpClient(unittest.TestCase):
                 _FakeResponse(204, {}),
             ],
         )
-        client = NexusHttpClient("http://nexus.local", session=session)
+        client = NexusHttpClient("https://nexus.local", session=session)
 
         user = client.get_user("admin", INITIAL_CREDENTIAL, "admin")
         client.update_user("admin", INITIAL_CREDENTIAL, user.model_copy(update={"status": "active"}))
@@ -85,7 +85,7 @@ class TestNexusHttpClient(unittest.TestCase):
     def test_user_operations_redact_transport_failure_details(self):
         leaked_value = sample_text("token", "=hidden")
         session = _FakeSession(get_responses=[requests.ConnectionError(leaked_value)])
-        client = NexusHttpClient("http://nexus.local", session=session)
+        client = NexusHttpClient("https://nexus.local", session=session)
 
         with self.assertRaises(RuntimeError) as raised:
             client.get_user("admin", INITIAL_CREDENTIAL, "admin")
@@ -105,24 +105,24 @@ class TestNexusHttpClient(unittest.TestCase):
                 )
             ],
         )
-        client = NexusHttpClient("http://nexus.local", session=session)
+        client = NexusHttpClient("https://nexus.local", session=session)
 
         self.assertTrue(client.repository_exists("admin", OPERATOR_CREDENTIAL, "docker-hosted"))
 
         self.assertEqual(
-            "http://nexus.local/service/rest/v1/repositories",
+            "https://nexus.local/service/rest/v1/repositories",
             session.get_calls[0]["url"],
         )
 
     def test_create_docker_hosted_repository_uses_repository_contract_payload(self):
         session = _FakeSession(post_responses=[_FakeResponse(201, {})])
-        client = NexusHttpClient("http://nexus.local", session=session)
+        client = NexusHttpClient("https://nexus.local", session=session)
 
         client.create_docker_hosted_repository("admin", OPERATOR_CREDENTIAL, "docker-hosted", 5000)
 
         request = session.post_calls[0]
         self.assertEqual(
-            "http://nexus.local/service/rest/v1/repositories/docker/hosted",
+            "https://nexus.local/service/rest/v1/repositories/docker/hosted",
             request["url"],
         )
         self.assertEqual("docker-hosted", request["json"]["name"])
@@ -132,13 +132,13 @@ class TestNexusHttpClient(unittest.TestCase):
 
     def test_update_docker_hosted_repository_uses_repository_contract_payload(self):
         session = _FakeSession(put_responses=[_FakeResponse(204, {})])
-        client = NexusHttpClient("http://nexus.local", session=session)
+        client = NexusHttpClient("https://nexus.local", session=session)
 
         client.update_docker_hosted_repository("admin", OPERATOR_CREDENTIAL, "docker-hosted", 5000)
 
         request = session.put_calls[0]
         self.assertEqual(
-            "http://nexus.local/service/rest/v1/repositories/docker/hosted/docker-hosted",
+            "https://nexus.local/service/rest/v1/repositories/docker/hosted/docker-hosted",
             request["url"],
         )
         self.assertEqual("docker-hosted", request["json"]["name"])
@@ -147,7 +147,7 @@ class TestNexusHttpClient(unittest.TestCase):
 
     def test_create_docker_proxy_repository_uses_repository_contract_payload(self):
         session = _FakeSession(post_responses=[_FakeResponse(201, {})])
-        client = NexusHttpClient("http://nexus.local", session=session)
+        client = NexusHttpClient("https://nexus.local", session=session)
 
         client.create_docker_proxy_repository(
             "admin",
@@ -159,7 +159,7 @@ class TestNexusHttpClient(unittest.TestCase):
 
         request = session.post_calls[0]
         self.assertEqual(
-            "http://nexus.local/service/rest/v1/repositories/docker/proxy",
+            "https://nexus.local/service/rest/v1/repositories/docker/proxy",
             request["url"],
         )
         self.assertEqual("docker-hub-proxy", request["json"]["name"])
@@ -173,7 +173,7 @@ class TestNexusHttpClient(unittest.TestCase):
 
     def test_create_maven_proxy_repository_uses_repository_contract_payload(self):
         session = _FakeSession(post_responses=[_FakeResponse(201, {})])
-        client = NexusHttpClient("http://nexus.local", session=session)
+        client = NexusHttpClient("https://nexus.local", session=session)
 
         client.create_maven_proxy_repository(
             "admin",
@@ -184,7 +184,7 @@ class TestNexusHttpClient(unittest.TestCase):
 
         request = session.post_calls[0]
         self.assertEqual(
-            "http://nexus.local/service/rest/v1/repositories/maven/proxy",
+            "https://nexus.local/service/rest/v1/repositories/maven/proxy",
             request["url"],
         )
         self.assertEqual("maven-central", request["json"]["name"])
@@ -197,7 +197,7 @@ class TestNexusHttpClient(unittest.TestCase):
         session = _FakeSession(
             get_responses=[_FakeResponse(500, {}, text="token=secret")],
         )
-        client = NexusHttpClient("http://nexus.local", session=session)
+        client = NexusHttpClient("https://nexus.local", session=session)
 
         with self.assertRaises(RuntimeError) as raised:
             client.repository_exists("admin", OPERATOR_CREDENTIAL, "docker-hosted")

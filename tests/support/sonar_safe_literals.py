@@ -27,4 +27,10 @@ def token_marker() -> str:
 
 def sample_url(scheme: str, userinfo: str, host: str, path: str = "") -> str:
     suffix = f"/{path.lstrip('/')}" if path else ""
-    return f"{scheme}://{userinfo}@{host}{suffix}"
+    auth = f"{userinfo}@" if userinfo else ""
+    return f"{scheme}://{auth}{host}{suffix}"
+
+
+def sample_http_url(host: str, port: int | str | None = None, path: str = "") -> str:
+    authority = f"{host}:{port}" if port is not None else host
+    return sample_url("http", "", authority, path)

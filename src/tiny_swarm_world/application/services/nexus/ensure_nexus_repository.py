@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
@@ -37,7 +38,7 @@ class NexusMavenProxyRepositoryConfiguration:
 
     def __post_init__(self) -> None:
         _validate_repository_name(self.repository_name)
-        if not self.remote_url.startswith(("http://", "https://")):
+        if not _is_http_url(self.remote_url):
             raise ValueError("Nexus Maven proxy remote URL must be HTTP or HTTPS.")
         if not self.admin_username:
             raise ValueError(NEXUS_ADMIN_USERNAME_REQUIRED)
@@ -57,7 +58,7 @@ class NexusDockerProxyRepositoryConfiguration:
         _validate_repository_name(self.repository_name)
         if self.http_port <= 0 or self.http_port > 65535:
             raise ValueError("Nexus Docker proxy repository port must be a valid TCP port.")
-        if not self.remote_url.startswith(("http://", "https://")):
+        if not _is_http_url(self.remote_url):
             raise ValueError("Nexus Docker proxy remote URL must be HTTP or HTTPS.")
         if not self.admin_username:
             raise ValueError(NEXUS_ADMIN_USERNAME_REQUIRED)
@@ -253,6 +254,11 @@ class EnsureNexusMavenProxyRepository:
 def _validate_repository_name(repository_name: str) -> None:
     if not repository_name or any(character.isspace() for character in repository_name):
         raise ValueError("Nexus repository name must be a non-empty token.")
+
+
+def _is_http_url(value: str) -> bool:
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
 
 def _docker_repository_evidence(

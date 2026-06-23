@@ -29,7 +29,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_swarm_info_response(), _FakeResponse(200, {})],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -37,14 +37,14 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         client.create_stack(StackDefinition(name="portainer", compose_content="services: {}"), 1)
 
-        self.assertEqual("http://portainer.local/api/auth", session.post_calls[0]["url"])
+        self.assertEqual("https://portainer.local/api/auth", session.post_calls[0]["url"])
         self.assertEqual(
             {"Username": "admin", "Password": OPERATOR_CREDENTIAL},
             session.post_calls[0]["json"],
         )
         self.assertEqual("Bearer jwt-token", session.request_calls[0]["headers"]["Authorization"])
         self.assertEqual(
-            "http://portainer.local/api/endpoints/1/docker/info",
+            "https://portainer.local/api/endpoints/1/docker/info",
             session.request_calls[0]["url"],
         )
         self.assertEqual("portainer", session.request_calls[1]["json"]["name"])
@@ -56,7 +56,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_swarm_info_response(), _FakeResponse(200, {})],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -84,7 +84,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             ],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -101,10 +101,10 @@ class TestPortainerHttpClient(unittest.TestCase):
             )
         )
 
-        self.assertEqual("http://portainer.local/api/endpoints", session.request_calls[0]["url"])
-        self.assertEqual("http://portainer.local/api/stacks", session.request_calls[1]["url"])
+        self.assertEqual("https://portainer.local/api/endpoints", session.request_calls[0]["url"])
+        self.assertEqual("https://portainer.local/api/stacks", session.request_calls[1]["url"])
         self.assertEqual(
-            "http://portainer.local/api/endpoints/7/docker/info",
+            "https://portainer.local/api/endpoints/7/docker/info",
             session.request_calls[2]["url"],
         )
         self.assertEqual("jenkins", session.request_calls[3]["json"]["name"])
@@ -123,7 +123,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             ],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -141,7 +141,7 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         request = session.request_calls[2]
         self.assertEqual("PUT", request["method"])
-        self.assertEqual("http://portainer.local/api/stacks/42?endpointId=7", request["url"])
+        self.assertEqual("https://portainer.local/api/stacks/42?endpointId=7", request["url"])
         self.assertEqual("services: {}", request["json"]["stackFileContent"])
 
     def test_stack_registered_uses_portainer_stack_lookup_inside_adapter(self):
@@ -150,14 +150,14 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_FakeResponse(200, [{"Name": "nexus", "Id": 31}])],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
         )
 
         self.assertTrue(client.stack_registered("nexus"))
-        self.assertEqual("http://portainer.local/api/stacks", session.request_calls[0]["url"])
+        self.assertEqual("https://portainer.local/api/stacks", session.request_calls[0]["url"])
 
     def test_create_stack_uses_extended_stack_request_timeout(self):
         session = _FakeSession(
@@ -165,7 +165,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_swarm_info_response(), _FakeResponse(200, {})],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -188,7 +188,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             ],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -199,7 +199,7 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         self.assertEqual(1, len(session.post_calls))
         self.assertEqual("GET", session.request_calls[0]["method"])
-        self.assertEqual("http://portainer.local/api/endpoints", session.request_calls[0]["url"])
+        self.assertEqual("https://portainer.local/api/endpoints", session.request_calls[0]["url"])
         self.assertEqual("Bearer jwt-token", session.request_calls[1]["headers"]["Authorization"])
         self.assertEqual(1, session.cookies.clear_count)
 
@@ -215,7 +215,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             ],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -243,7 +243,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             ],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -261,7 +261,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_FakeResponse(200, [{"Name": "primary", "Id": 11}])],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -280,7 +280,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             ],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -294,7 +294,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_FakeResponse(200, [{"Name": "local", "Id": 7}])],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -316,7 +316,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             ],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -325,7 +325,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         self.assertEqual(17, client.ensure_local_endpoint("local"))
         create_call = session.request_calls[1]
         self.assertEqual("POST", create_call["method"])
-        self.assertEqual("http://portainer.local/api/endpoints", create_call["url"])
+        self.assertEqual("https://portainer.local/api/endpoints", create_call["url"])
         self.assertEqual(
             {
                 "Name": (None, "local"),
@@ -345,7 +345,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             ],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -363,7 +363,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_FakeResponse(200, [{"Name": "remote", "Id": 9}])],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -381,7 +381,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_FakeResponse(200, [{"Name": "portainer", "Id": 42}])],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -399,7 +399,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             ],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -408,10 +408,10 @@ class TestPortainerHttpClient(unittest.TestCase):
         client.create_stack(StackDefinition(name="portainer", compose_content="services: {}"), 7)
 
         self.assertEqual(
-            "http://portainer.local/api/stacks/create/swarm/string?endpointId=7",
+            "https://portainer.local/api/stacks/create/swarm/string?endpointId=7",
             session.request_calls[1]["url"],
         )
-        self.assertEqual("http://portainer.local/api/stacks", session.request_calls[2]["url"])
+        self.assertEqual("https://portainer.local/api/stacks", session.request_calls[2]["url"])
         self.assertEqual(7, session.request_calls[2]["json"]["endpointId"])
         self.assertEqual("swarm-cluster-id", session.request_calls[2]["json"]["SwarmID"])
 
@@ -421,7 +421,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_FakeResponse(200, {"Swarm": {"Cluster": {}}})],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -439,7 +439,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_FakeResponse(200, {})],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -449,7 +449,7 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         request = session.request_calls[0]
         self.assertEqual("PUT", request["method"])
-        self.assertEqual("http://portainer.local/api/stacks/42?endpointId=7", request["url"])
+        self.assertEqual("https://portainer.local/api/stacks/42?endpointId=7", request["url"])
         self.assertEqual(
             {
                 "env": [],
@@ -466,7 +466,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_FakeResponse(200, {})],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -490,7 +490,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_FakeResponse(200, {})],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -507,7 +507,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_FakeResponse(200, {})],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,
@@ -525,7 +525,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[_FakeResponse(500, {}, text="token=secret")],
         )
         client = PortainerHttpClient(
-            "http://portainer.local",
+            "https://portainer.local",
             "admin",
             OPERATOR_CREDENTIAL,
             session=session,

@@ -1,6 +1,6 @@
 import unittest
 
-from tests.support.sonar_safe_literals import ipv4_address
+from tests.support.sonar_safe_literals import ipv4_address, sample_http_url
 
 from tiny_swarm_world.domain.deployment import (
     DEFAULT_PORTAINER_MANAGED_SERVICE_STACK_CONTRACTS,
@@ -199,7 +199,7 @@ class TestServiceStackContract(unittest.TestCase):
 
     def test_rejects_host_specific_endpoint_url(self):
         with self.assertRaises(ValueError):
-            ServiceEndpoint("service", f"http://{ipv4_address(10, 157, 2, 182)}:8080")
+            ServiceEndpoint("service", sample_http_url(ipv4_address(10, 157, 2, 182), 8080))
 
     def test_accepts_localhost_https_endpoint_url(self):
         endpoint = ServiceEndpoint("infisical", "http://localhost:17080")

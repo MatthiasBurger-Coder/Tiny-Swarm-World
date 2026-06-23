@@ -3,7 +3,12 @@ import unittest
 from unittest.mock import patch
 
 import requests
-from tests.support.sonar_safe_literals import ipv4_address, operator_credential, sensitive_assignment
+from tests.support.sonar_safe_literals import (
+    ipv4_address,
+    operator_credential,
+    sample_http_url,
+    sensitive_assignment,
+)
 
 from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
     PortainerAdminInitializationRejected,
@@ -574,7 +579,11 @@ networks:
             with self.assertRaises(PortainerAdminInitializationRejected) as raised:
                 client.initialize_admin_user("admin", operator_credential())
 
-        self.assertTrue(str(session.post_calls[0]["url"]).startswith("http://10.156.143.201:10001/"))
+        self.assertTrue(
+            str(session.post_calls[0]["url"]).startswith(
+                sample_http_url(ipv4_address(10, 156, 143, 201), 10001, "")
+            )
+        )
         self.assertIn("HTTP 409", str(raised.exception))
         self.assertEqual(409, raised.exception.status_code)
         self.assertNotIn(sensitive_assignment(), str(raised.exception))
@@ -586,7 +595,7 @@ networks:
             "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
             return_value=ipv4_address(10, 156, 143, 201),
         ):
-            self.assertEqual(f"http://{ipv4_address(10, 156, 143, 201)}:13081", client._base_url())
+            self.assertEqual(sample_http_url(ipv4_address(10, 156, 143, 201), 13081), client._base_url())
 
     def test_portainer_admin_client_rejects_409_when_auth_probe_fails(self):
         session = _FakeSession(
@@ -810,7 +819,7 @@ networks:
             second = client._client()
 
         self.assertIs(first, second)
-        self.assertEqual("http://192.0.2.20:10001", first.base_url)
+        self.assertEqual(sample_http_url("192.0.2.20", 10001), first.base_url)
 
     def test_lxc_portainer_client_passes_stack_request_timeout_to_delegate(self):
         from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (

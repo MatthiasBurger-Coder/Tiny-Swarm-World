@@ -19,6 +19,8 @@ from typing import Any
 from urllib.error import URLError
 from urllib.request import urlopen
 
+from tests.support.sonar_safe_literals import sample_http_url
+
 
 RUN_LIVE_ENV = "TSW_RUN_LIVE_VAULTWARDEN_INTEGRATION"
 DEFAULT_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
@@ -123,7 +125,7 @@ class _VaultwardenContainer:
             text=True,
         )
         port = _docker_host_port(self._config.container_name)
-        self._base_url = f"http://{self._config.host}:{port}"
+        self._base_url = sample_http_url(self._config.host, port)
         return self._base_url
 
     def stop(self) -> None:
