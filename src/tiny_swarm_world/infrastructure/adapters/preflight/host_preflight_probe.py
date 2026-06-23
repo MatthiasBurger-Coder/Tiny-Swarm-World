@@ -462,6 +462,7 @@ def _read_http_response(port: int, path: str, *, scheme: str = "http") -> tuple[
 
 def _verified_tls_context() -> ssl.SSLContext:
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_default_certs()
     return context
 

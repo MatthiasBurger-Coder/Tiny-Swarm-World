@@ -466,6 +466,7 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual("https://127.0.0.1:443/", request.full_url)
         tls_context = urlopen.call_args.kwargs["context"]
         self.assertEqual(ssl.PROTOCOL_TLS_CLIENT, tls_context.protocol)
+        self.assertEqual(ssl.TLSVersion.TLSv1_2, tls_context.minimum_version)
         self.assertEqual(ssl.CERT_REQUIRED, tls_context.verify_mode)
         self.assertTrue(tls_context.check_hostname)
 
@@ -505,6 +506,7 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual("https://127.0.0.1:443/", request.full_url)
         tls_context = urlopen.call_args.kwargs["context"]
         self.assertEqual(ssl.PROTOCOL_TLS_CLIENT, tls_context.protocol)
+        self.assertEqual(ssl.TLSVersion.TLSv1_2, tls_context.minimum_version)
         self.assertEqual(ssl.CERT_REQUIRED, tls_context.verify_mode)
         self.assertTrue(tls_context.check_hostname)
 
@@ -592,6 +594,7 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual("https://127.0.0.1:443/", urlopen.call_args_list[1].args[0].full_url)
         tls_context = urlopen.call_args_list[1].kwargs["context"]
         self.assertEqual(ssl.PROTOCOL_TLS_CLIENT, tls_context.protocol)
+        self.assertEqual(ssl.TLSVersion.TLSv1_2, tls_context.minimum_version)
         self.assertEqual(ssl.CERT_REQUIRED, tls_context.verify_mode)
         self.assertTrue(tls_context.check_hostname)
 
