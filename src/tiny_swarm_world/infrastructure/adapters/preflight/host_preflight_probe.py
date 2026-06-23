@@ -453,7 +453,7 @@ def _read_http_response(port: int, path: str, *, scheme: str = "http") -> tuple[
         headers={"User-Agent": "tiny-swarm-world-preflight/1.0"},
     )
     try:
-        context = ssl._create_unverified_context() if scheme == "https" else None
+        context = ssl.create_default_context() if scheme == "https" else None
         with urllib.request.urlopen(request, timeout=2.0, context=context) as response:
             return response.status, _response_text(response.read(4096), response.headers)
     except urllib.error.HTTPError as error:

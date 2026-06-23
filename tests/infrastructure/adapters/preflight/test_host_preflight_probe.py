@@ -2,6 +2,7 @@ import hashlib
 import io
 import os
 import socket
+import ssl
 import subprocess
 import tempfile
 import urllib.error
@@ -463,6 +464,9 @@ class TestHostPreflightProbe(unittest.TestCase):
 
         request = urlopen.call_args.args[0]
         self.assertEqual("https://127.0.0.1:443/", request.full_url)
+        tls_context = urlopen.call_args.kwargs["context"]
+        self.assertEqual(ssl.CERT_REQUIRED, tls_context.verify_mode)
+        self.assertTrue(tls_context.check_hostname)
 
     def test_port_matches_expected_service_recognizes_traefik_http_ingress(self):
         probe = HostPreflightProbe(Path.cwd())
@@ -498,6 +502,9 @@ class TestHostPreflightProbe(unittest.TestCase):
 
         request = urlopen.call_args.args[0]
         self.assertEqual("https://127.0.0.1:443/", request.full_url)
+        tls_context = urlopen.call_args.kwargs["context"]
+        self.assertEqual(ssl.CERT_REQUIRED, tls_context.verify_mode)
+        self.assertTrue(tls_context.check_hostname)
 
     def test_port_matches_expected_service_recognizes_pulsar_admin_api(self):
         probe = HostPreflightProbe(Path.cwd())
@@ -581,6 +588,9 @@ class TestHostPreflightProbe(unittest.TestCase):
 
         self.assertEqual("http://127.0.0.1:443/", urlopen.call_args_list[0].args[0].full_url)
         self.assertEqual("https://127.0.0.1:443/", urlopen.call_args_list[1].args[0].full_url)
+        tls_context = urlopen.call_args_list[1].kwargs["context"]
+        self.assertEqual(ssl.CERT_REQUIRED, tls_context.verify_mode)
+        self.assertTrue(tls_context.check_hostname)
 
     def test_port_matches_expected_service_recognizes_legacy_swagger_api_cors_404(self):
         probe = HostPreflightProbe(Path.cwd())

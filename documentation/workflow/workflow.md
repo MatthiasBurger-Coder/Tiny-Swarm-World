@@ -1,85 +1,89 @@
-# Workflow: Console Output Issue 151 Remediation
+# Workflow: SonarCloud S5527 TLS Verification Remediation
 
-Version: `console-output-issue-151-v1.0.0`
-Workflow ID: `workflow-console-output-issue-151-20260621`
-Created: `2026-06-21`
-Branch: `fix/workflow-console-output-151-20260621`
-Status: `EXECUTED_WITH_EVIDENCE`
-Evidence Root: `.codex/evidence/workflow-console-output-issue-151-20260621/`
+Version: `sonar-s5527-tls-v1.0.0`
+Workflow ID: `workflow-sonar-s5527-tls-20260623`
+Created: `2026-06-23`
+Branch: `fix/workflow-sonar-s5527-tls-20260623`
+Status: `READY_FOR_EXECUTION`
+Evidence Root: `.codex/evidence/workflow-sonar-s5527-tls-20260623/`
 
 ## Executive Summary
 
-Validate issues `#143` and `#151` before implementation, prove whether either
-is already fulfilled, then implement only the remaining console-output gap.
-Issue `#143` is already implemented in the repository and is therefore out of
-implementation scope. Issue `#151` remains open because the default CLI still
-prints raw JSON workflow payloads to stdout.
+Remediate SonarCloud issue `AZ7kEe623UILYpQnQ6zD`, rule `python:S5527`,
+reported as Critical in
+`src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py`
+line 456. The issue is caused by HTTPS localhost preflight probing with an
+unverified TLS context. The workflow replaces unverified TLS context creation
+with Python's verified default TLS context and proves the behavior with
+focused unit tests.
 
 ## Requirement Clarification Gate
 
 Original Request:
 
-- Setze issue `143 / 151` gemaess `workflow execute with subagents` um.
-- Beweise vor jeder Umsetzung, ob beide Issues bereits umgesetzt wurden.
-- Wenn die Pruefung abgeschlossen ist, soll daraus ein Workflow mit eigenem
-  Branch entstehen, um fehlende Implementierung umzusetzen.
-- Verwende `@secret-inventory.json` als relevanten Nachweis fuer Secret-/Redaction-Risiken.
+- Work in `D:/Projects/Tiny-Swarm-World-worktrees/sonar-s5527-tls`.
+- Use branch `fix/workflow-sonar-s5527-tls-20260623`.
+- Fix SonarCloud issue `AZ7kEe623UILYpQnQ6zD`, rule `python:S5527`.
+- Create or update a workflow for exactly this issue.
+- Create workflow-execute-style slice evidence under
+  `.codex/evidence/workflow-sonar-s5527-tls-20260623/`.
+- Do not run live infrastructure commands.
+- Run targeted checks where practical.
+- Do not push, create a PR, or merge.
 
 Interpreted Intent:
 
-- Execute a guarded, evidence-backed fix workflow for installer and CLI console
-  output, but only after proving the current implementation state of both
-  issues.
+- Perform a scoped security-quality remediation for HTTPS preflight probing
+  without changing live infrastructure behavior or unrelated workflow files.
 
 Change Type:
 
-- Product bug-fix workflow for Python CLI output, console UX, tests, workflow
-  evidence, and documentation synchronization.
+- Python infrastructure adapter security remediation with focused regression
+  tests and workflow evidence.
 
 Affected Process Strand:
 
-- `workflow execute`
+- `workflow create` for this issue-specific workflow.
+- `workflow execute` style execution for the implementation slice.
 
 Affected Architecture Area:
 
-- Infrastructure UI adapters
-- Python CLI entrypoint
-- Product-behavior tests
-- Workflow evidence
+- Infrastructure adapter: host preflight probe.
+- Infrastructure adapter unit tests.
+- Workflow governance and evidence.
 
 Explicit Requirements:
 
-- Check issue `#143` implementation status first.
-- Check issue `#151` implementation status first.
-- Use subagents for the execute workflow where safe.
-- Create a dedicated branch before write-capable work.
-- Prove the final implementation with repository evidence and verification.
+- Remove unverified TLS context creation from the reported source line.
+- Keep work scoped to this issue and this worktree.
+- Preserve Linux/WSL-only governance and avoid live infrastructure mutation.
 
 Implicit Requirements:
 
-- Preserve hexagonal boundaries.
-- Keep default console output human-readable.
-- Keep machine-readable JSON available only when explicitly requested.
-- Do not leak secrets or raw env payloads to stdout/stderr.
-- Do not execute live infrastructure commands.
+- Preserve hexagonal architecture boundaries.
+- Keep HTTPS probing behavior deterministic in unit tests.
+- Do not weaken TLS verification or suppress the Sonar rule.
 
 Assumptions:
 
-- Issue `#151` remediation is limited to CLI/console presentation and tests.
-- `@secret-inventory.json` is a risk/governance input, not an output target.
+- Local preflight HTTPS probes must use normal platform trust validation.
+- Any self-signed local certificate failures should surface as probe failures
+  rather than being bypassed by disabling TLS verification.
 
 Non-Goals:
 
-- No live install, reset, LXD/Incus/LXC, Docker Swarm, compose, or service
-  bootstrap execution.
-- No browser UI or curses UI work.
-- No change to setup orchestration semantics.
+- No certificate store management.
+- No live LXD, Incus, LXC, Docker, Docker Swarm, compose, or service bootstrap.
+- No SonarCloud issue mutation through credentials.
+- No push, PR creation, or merge.
 
 Risks:
 
-- Existing entrypoint tests currently assert JSON on stdout and must be updated
-  together with the runtime behavior.
-- Console summaries must not weaken failure visibility or evidence references.
+- Existing deployments with self-signed localhost certificates may now fail
+  HTTPS content matching until the certificate chain is trusted.
+- WSL cannot use Git in this worktree because the `.git` worktree pointer uses
+  a Windows path. Git evidence is gathered with the host shell and this
+  limitation is recorded in evidence.
 
 Open Questions:
 
@@ -101,102 +105,100 @@ Decision:
 
 Senior Requirement Engineer:
 
-- The request is concrete. Only issue `#151` requires implementation after the
-  repository-state check.
+- The issue identity, rule, branch, file, and non-goals are concrete.
 
 Senior System Architect:
 
-- The fix belongs in the CLI/infrastructure presentation surface. Domain and
-  application behavior must remain unchanged.
+- The change remains inside infrastructure and does not affect domain or
+  application services.
 
 Senior Python Automation Developer:
 
-- The safest path is to gate JSON emission behind an explicit switch and update
-  tests around the entrypoint output contract.
+- Replace the unverified HTTPS context with `ssl.create_default_context()` and
+  keep HTTP probing unchanged.
 
 Senior React Frontend Developer:
 
-- No browser frontend impact. N/A beyond confirming console-only scope.
+- No browser frontend or React scope.
 
 Senior Tester:
 
-- Regression coverage must prove that default stdout is human-readable and that
-  explicit JSON mode still emits structured payloads.
+- Extend existing preflight unit tests to verify certificate and hostname
+  verification on HTTPS requests.
 
 ## Verified Baseline
 
-- Branch precheck before write-capable work started on `main` with a clean tree.
-- Dedicated branch `fix/workflow-console-output-151-20260621` was created and
-  verified before workflow mutation.
-- Issue `#143` is already implemented:
-  - `src/tiny_swarm_world/infrastructure/adapters/ui/progress_trace_ui.py`
-  - `tests/infrastructure/adapters/ui/test_progress_trace_ui.py`
-  - `documentation/user_guide/installer-console-output.md`
-- Issue `#151` remains open:
-  - `src/tiny_swarm_world/__main__.py` still prints raw JSON by default.
-  - `tests/test_package_entrypoint.py` still expects JSON on stdout.
-- Secret/redaction risk inventory reviewed:
-  - `.tiny-swarm/evidence/secrets/secret-inventory.json`
-
-## Execution Outcome
-
-- Issue `#143` verified as already implemented.
-- Issue `#151` implemented on this workflow branch.
-- Targeted verification passed.
-- Workflow-execute evidence written under
-  `.codex/evidence/workflow-console-output-issue-151-20260621/`.
-- Full repository-wide `quality_gate.py test` remains red on this Windows host
-  for unrelated platform/repository reasons and is explicitly not claimed green.
+- Branch: `fix/workflow-sonar-s5527-tls-20260623`.
+- Local branch ref exists.
+- Worktree was clean before implementation.
+- Reported source line contained `ssl._create_unverified_context()` for HTTPS.
+- Existing focused tests cover HTTPS preflight service matching.
+- `documentation/arc42/**` was checked for architecture synchronization need;
+  no arc42 update is required because architecture boundaries do not change.
 
 ## Target Outcome
 
-- Default CLI stdout/stderr is line-based and human-readable.
-- Raw JSON payloads are no longer printed by default.
-- Explicit JSON/debug mode exists for deliberate machine-readable output.
-- Tests prove both default human-readable behavior and explicit JSON behavior.
-- Evidence documents that issue `#143` required no code changes and issue
-  `#151` was remediated.
+- `host_preflight_probe.py` no longer creates unverified TLS contexts.
+- HTTPS preflight probes use a verified default TLS context.
+- Focused tests prove HTTPS requests carry a TLS context with certificate and
+  hostname verification enabled.
+- Evidence records branch, scope, distribution, consolidation, and checks.
 
 ## Scope
 
 In scope:
 
-- `src/tiny_swarm_world/__main__.py`
-- `tests/test_package_entrypoint.py`
-- `documentation/workflow/**`
-- optional user-guide synchronization if examples change materially
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py`
+- `tests/infrastructure/adapters/preflight/test_host_preflight_probe.py`
+- `documentation/workflow/workflow.md`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+- `.codex/evidence/workflow-sonar-s5527-tls-20260623/**`
 
 Out of scope:
 
-- live installer runtime changes
-- setup phase orchestration semantics
-- infrastructure mutation
+- Live infrastructure commands.
+- Runtime certificate provisioning.
+- Other SonarCloud issues.
+- Push, PR creation, merge, or branch cleanup.
 
 ## Architecture Constraints
 
-- Keep domain free of console formatting.
-- Keep application services free of terminal-specific rendering.
-- Keep CLI and reporter formatting in infrastructure/entrypoint surfaces.
-- Do not print secret-bearing payloads or raw workflow dictionaries by default.
+- Keep domain independent from infrastructure details.
+- Keep application services dependent on ports, not concrete adapters.
+- Keep TLS and urllib behavior inside the infrastructure adapter.
+- Do not add Windows-specific runtime behavior.
+
+## Python Automation Assessment
+
+- The change uses the Python standard library TLS default context.
+- No new dependency is introduced.
+- No import-time side effect or constructor-time external command is added.
+
+## Frontend Assessment
+
+- No frontend module exists in scope and no browser or React behavior changes.
 
 ## Test Strategy
 
 Targeted:
 
-- `PYTHONPATH=src python -m unittest tests.test_package_entrypoint`
-- `PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui`
-
-Required final:
-
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe`
 - `python3 tools/quality_gate.py test`
+- `git diff --check`
+
+Required final when practical:
+
+- `python3 tools/quality_gate.py quality`
 
 ## Ordered Slices
 
-### Slice 01 - Status Proof And Workflow Evidence
+### Slice 01 - Workflow And Baseline Evidence
 
 Purpose:
 
-- Record the repository-state proof for issues `#143` and `#151`.
+- Replace the stale active workflow with this issue-specific workflow and
+  record baseline branch, scope, and WSL/Git limitations.
 
 ```yaml
 slice_id: "01"
@@ -209,7 +211,7 @@ affected_files:
   - "documentation/workflow/workflow.md"
   - "documentation/workflow/context-pack.md"
   - "documentation/workflow/context-pack.json"
-  - ".codex/evidence/workflow-console-output-issue-151-20260621/status-check.md"
+  - ".codex/evidence/workflow-sonar-s5527-tls-20260623/status-check.md"
 affected_modules: []
 affected_contracts:
   - "workflow evidence"
@@ -217,9 +219,9 @@ dependencies: []
 parallel_group: "governance"
 file_locks:
   - "documentation/workflow/**"
-  - ".codex/evidence/workflow-console-output-issue-151-20260621/**"
+  - ".codex/evidence/workflow-sonar-s5527-tls-20260623/**"
 contract_locks:
-  - "issue status proof"
+  - "workflow evidence"
 architecture_locks:
   - "hexagonal boundaries unchanged"
 quality_gates:
@@ -228,18 +230,17 @@ quality_gates:
   required:
     - "python3 tools/quality_gate.py test"
 documentation:
-  arc42: "No arc42 change expected."
-  adr: "No ADR change expected."
+  arc42: "Checked; no update required."
+  adr: "No ADR required."
 stop_conditions:
-  - "Stop if issue status cannot be proven from repository evidence."
+  - "Stop if branch or issue scope cannot be verified."
 ```
 
-### Slice 02 - Default Human Output And Explicit JSON Gate
+### Slice 02 - Verified TLS Context Remediation
 
 Purpose:
 
-- Remove default raw JSON emission from the CLI while preserving an explicit
-  machine-readable path.
+- Remove unverified TLS context creation and add focused regression coverage.
 
 ```yaml
 slice_id: "02"
@@ -249,89 +250,95 @@ secondary_reviewers:
   - "Senior Tester"
   - "Senior System Architect"
 affected_files:
-  - "src/tiny_swarm_world/__main__.py"
-  - "tests/test_package_entrypoint.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py"
+  - "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py"
 affected_modules:
-  - "tiny_swarm_world.__main__"
+  - "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe"
 affected_contracts:
-  - "CLI stdout contract"
+  - "HTTPS preflight probe TLS verification"
 dependencies:
   - "01"
 parallel_group: "implementation"
 file_locks:
-  - "src/tiny_swarm_world/__main__.py"
-  - "tests/test_package_entrypoint.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py"
+  - "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py"
 contract_locks:
-  - "default CLI output"
+  - "TLS verification must remain enabled"
 architecture_locks:
-  - "console formatting remains outside domain/application"
+  - "infrastructure adapter only"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python -m unittest tests.test_package_entrypoint"
-  required:
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_host_preflight_probe"
     - "python3 tools/quality_gate.py test"
+    - "git diff --check"
+  required:
+    - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "N/A"
-  adr: "Existing installer console reporting ADR remains valid."
+  arc42: "No update required; adapter-internal security remediation."
+  adr: "No ADR required."
 stop_conditions:
-  - "Stop if the fix requires application or domain changes."
-  - "Stop if raw JSON remains on default stdout after tests."
+  - "Stop if remediation requires disabling TLS verification elsewhere."
+  - "Stop if live infrastructure validation would be required."
 ```
 
-### Slice 03 - Final Verification And Consolidation Evidence
+## Slice Dependency Graph
 
-Purpose:
-
-- Execute focused verification and prove the final state.
-
-```yaml
-slice_id: "03"
-profile: "NORMAL_PATH"
-owner: "Senior Tester"
-secondary_reviewers:
-  - "Senior Workflow Architect"
-affected_files:
-  - ".codex/evidence/workflow-console-output-issue-151-20260621/slice-02-distribution.md"
-  - ".codex/evidence/workflow-console-output-issue-151-20260621/slice-02-consolidation.md"
-affected_modules: []
-affected_contracts:
-  - "verification evidence"
-dependencies:
-  - "02"
-parallel_group: "verification"
-file_locks:
-  - ".codex/evidence/workflow-console-output-issue-151-20260621/**"
-contract_locks:
-  - "verification proof"
-architecture_locks: []
-quality_gates:
-  targeted:
-    - "PYTHONPATH=src python -m unittest tests.test_package_entrypoint"
-    - "PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui"
-  required:
-    - "python3 tools/quality_gate.py test"
-documentation:
-  arc42: "N/A"
-  adr: "N/A"
-stop_conditions:
-  - "Stop if the chosen Python executable cannot run the targeted tests."
+```text
+01 -> 02
 ```
+
+## Parallel Execution
+
+- Sequential execution is selected.
+- The slices are ordered because Slice 02 depends on the workflow and evidence
+  scope established in Slice 01.
+- No separate stream worktrees are used for this single-issue branch.
 
 ## Automatic Work Distribution Policy
 
-- Slice `02` is safe for parallel analysis only.
-- Real subagents are used for the initial issue-state proof.
-- Final code edits stay sequential because `src/tiny_swarm_world/__main__.py`
-  and `tests/test_package_entrypoint.py` are tightly coupled.
+- Affected streams: documentation, backend/infrastructure, tests, quality, and
+  security.
+- Real subagents were not used because the current environment exposes no
+  callable subagent workers for safe isolated stream execution in this worktree.
+- Role-based fallback review is recorded in evidence.
+
+## Quality-Gate Expectations
+
+- Run targeted preflight unit tests first.
+- Run `python3 tools/quality_gate.py test` when practical.
+- Run `git diff --check`.
+- Do not run live infrastructure validation.
+
+## Documentation Synchronization
+
+- Active workflow and context pack are updated for this issue.
+- arc42 was checked and does not need a content update because system structure
+  and deployment behavior are unchanged.
+
+## Stop Conditions
+
+- Live infrastructure commands would be required.
+- TLS verification would need to be disabled to keep behavior passing.
+- Git branch or issue scope becomes unverifiable.
+- Required tests fail for this scoped change.
 
 ## Definition Of Done
 
-- Issue `#143` proven already implemented from repository evidence.
-- Issue `#151` default JSON emission removed from normal CLI output.
-- Explicit JSON mode available and covered by tests.
-- Evidence files written under the workflow evidence root.
+- No `ssl._create_unverified_context()` remains in the target file.
+- HTTPS preflight probes use `ssl.create_default_context()`.
+- Focused tests pass.
+- Evidence is written under
+  `.codex/evidence/workflow-sonar-s5527-tls-20260623/`.
+- No push, PR, or merge is performed.
 
 ## Handoff To Workflow Execute
 
-- Execute slices in order `01 -> 02 -> 03`.
-- Do not invoke live infrastructure commands.
+- Execute Slice 01, then Slice 02.
+- Keep file changes within the declared locks.
+- Record distribution and consolidation evidence for each slice.
+
+## arc42 Check Status
+
+- Checked `documentation/arc42/**`.
+- No architecture documentation update required for this adapter-internal TLS
+  verification remediation.
