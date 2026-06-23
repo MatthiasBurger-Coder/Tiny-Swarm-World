@@ -1,16 +1,17 @@
 # Workflow Context Pack
 
-Workflow: `console-output-issue-151-v1.0.0`
-Workflow ID: `workflow-console-output-issue-151-20260621`
-Branch: `fix/workflow-console-output-151-20260621`
-Created: `2026-06-21`
+Workflow: `workflow-sonar-s2068-port-forwarding-v1.0.0`
+Workflow ID: `workflow-sonar-s2068-port-forwarding-20260623`
+Branch: `fix/workflow-sonar-s2068-port-forwarding-20260623`
+Created: `2026-06-23`
 Status: `EXECUTED_WITH_EVIDENCE`
-Evidence Root: `.codex/evidence/workflow-console-output-issue-151-20260621/`
+Evidence Root: `.codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/`
 
 ## Purpose
 
-Focused execution context for proving issue `#143`, remediating issue `#151`,
-and storing console-output evidence without touching live infrastructure.
+Focused execution context for remediating SonarCloud `python:S2068` issues
+`AZ7kcUaJ8N9AxeIuoSBi`, `AZ7kcUaJ8N9AxeIuoSBj`, and
+`AZ7kcUaJ8N9AxeIuoSBl` in `tests/domain/network/test_port_forwarding_plan.py`.
 
 ## Process Strand
 
@@ -19,37 +20,30 @@ and storing console-output evidence without touching live infrastructure.
 
 ## Affected Areas
 
-- `src/tiny_swarm_world/__main__.py`
-- `tests/test_package_entrypoint.py`
+- `tests/domain/network/test_port_forwarding_plan.py`
 - `documentation/workflow/**`
-- `.codex/evidence/workflow-console-output-issue-151-20260621/**`
+- `.codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/**`
 
 ## Forbidden Areas
 
 - live infrastructure mutation
-- domain model changes
-- application orchestration changes
-- committed secrets or raw env payloads
+- product source behavior changes
+- push, PR creation, merge, or branch cleanup
 
 ## Required Roles
 
 - Senior Requirement Engineer
 - Senior System Architect
 - Senior Python Automation Developer
-- Senior React Frontend Developer impact check
 - Senior Tester
-
-## Conditional Roles
-
-- Security reviewer for secret/redaction assertions
+- Senior DevOps Engineer impact check
 
 ## Quality Commands
 
 Targeted:
 
+- `PYTHONPATH=src python -m unittest tests.domain.network.test_port_forwarding_plan`
 - `git diff --check`
-- `PYTHONPATH=src python -m unittest tests.test_package_entrypoint`
-- `PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_progress_trace_ui`
 
 Required final:
 
@@ -59,12 +53,11 @@ Required final:
 
 - `AGENTS.md`
 - `QUALITY.md`
-- `documentation/workflow/installer-console-reporting-policy.md`
-- `documentation/user_guide/installer-console-output.md`
-- `documentation/architecture/adr-installer-console-reporting-policy.adoc`
-- `.tiny-swarm/evidence/secrets/secret-inventory.json`
+- `documentation/workflow/workflow.md`
+- `tests/support/sonar_safe_literals.py`
+- `src/tiny_swarm_world/domain/network/port_forwarding_plan.py`
 
 ## Branch Evidence
 
-- `git show-ref --verify --quiet refs/heads/fix/workflow-console-output-151-20260621`
 - `git branch --show-current`
+- `git show-ref --verify refs/heads/fix/workflow-sonar-s2068-port-forwarding-20260623`

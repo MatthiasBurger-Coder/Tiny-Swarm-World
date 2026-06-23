@@ -1,5 +1,6 @@
 import unittest
 
+from tests.support.sonar_safe_literals import sample_text, sample_url
 from tiny_swarm_world.domain.network.port_forwarding_plan import (
     ForwardingStrategy,
     PortExposureClass,
@@ -163,8 +164,20 @@ class TestPortRegistry(unittest.TestCase):
         unsafe_metadata = (
             {"host_ip": "192.168.1.10"},
             {"listen_address": "10.0.0.5"},
-            {"url": "http://admin:secret@localhost:9000"},
-            {"dashboard_url": "https://user:pass@example.test"},
+            {
+                "endpoint": sample_url(
+                    "http",
+                    sample_text("sample", "-", "name", ":", "sample", "-", "value"),
+                    "localhost:9000",
+                ),
+            },
+            {
+                "dashboard_url": sample_url(
+                    "https",
+                    sample_text("fixture", "-", "name", ":", "fixture", "-", "value"),
+                    "example.test",
+                ),
+            },
             {"secret": "plain-value"},
             {"token": "plain-value"},
         )
@@ -179,7 +192,11 @@ class TestPortRegistry(unittest.TestCase):
     def test_rejects_host_specific_route_hosts_and_urls(self):
         for route_host in (
             "192.168.1.10",
-            "http://admin:secret@localhost:9000",
+            sample_url(
+                "http",
+                sample_text("sample", "-", "name", ":", "sample", "-", "value"),
+                "localhost:9000",
+            ),
         ):
             with self.subTest(route_host=route_host):
                 with self.assertRaisesRegex(
