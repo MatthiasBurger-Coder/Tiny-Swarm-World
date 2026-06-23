@@ -16,6 +16,8 @@ from tiny_swarm_world.application.services.deployment.secret_management import (
     SecretRedactor,
 )
 
+_PULSAR_COMPOSE_FIXTURE = Path("infra/config/compose/pulsar/docker-compose.yml")
+
 
 class TestSecretManagement(unittest.TestCase):
     def test_manifest_schema_validation(self):
@@ -108,10 +110,7 @@ class TestSecretManagement(unittest.TestCase):
         entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "docker-compose.yml").write_text(
-                Path("infra/config/compose/pulsar/docker-compose.yml").read_text(encoding="utf-8"),
-                encoding="utf-8",
-            )
+            _write_repo_fixture(root, "docker-compose.yml", _PULSAR_COMPOSE_FIXTURE.read_text(encoding="utf-8"))
             discovery = SecretDiscoveryStep(repo_root=root, manifest_entries=entries)
 
             findings = discovery.run()
@@ -247,6 +246,15 @@ def _entry(key: str) -> SecretManifestEntry:
         source="generated_local_secret",
         required=True,
     )
+
+
+def _write_repo_fixture(root: Path, file_name: str, content: str) -> Path:
+    resolved_root = root.resolve(strict=True)
+    destination = (resolved_root / file_name).resolve()
+    if destination.parent != resolved_root or destination.name != file_name:
+        raise ValueError("fixture destination must stay inside the temporary root")
+    destination.write_text(content, encoding="utf-8")
+    return destination
 
 
 class _FakeInfisicalCli:
