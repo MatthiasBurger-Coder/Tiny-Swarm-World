@@ -354,12 +354,13 @@ and NGINX assets are image-packaged under `infra/config/compose/service-access/*
 Infisical is deployed as a separate stack from
 `infra/config/compose/infisical/docker-compose.yml`.
 After a verified provider-specific live deployment, the dashboard is intended
-to be the management landing page at `http://localhost`. A central
-service-access NGINX is the accepted routing design for stable paths such as
-`/jenkins`, `/nexus`, `/portainer`, `/pulsar`, `/sonarqube`, `/swagger` and
-`/infisical`. The table shows users and Infisical item references;
-password values are visible only in Infisical's authenticated UI. Operators
-who intentionally want the older base service set can pass
+to be the management landing page at `http://localhost:10000`. It links to
+the allocated local service ports for Jenkins `11080`, Nexus `13081`,
+Portainer `10001`, Pulsar Manager `14081`, Pulsar Admin API `14080`,
+SonarQube `12000`, Swagger `16080`, and Infisical `17080`. The table shows
+users and Infisical item references; password values are visible only in
+Infisical's authenticated UI. Operators who intentionally want the older base
+service set can pass
 `--service-profile default`.
 
 Service metadata is declared in `infra/config/services.yml` as a static

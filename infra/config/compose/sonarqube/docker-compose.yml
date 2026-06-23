@@ -18,7 +18,7 @@ services:
         exec /opt/sonarqube/docker/entrypoint.sh
     ports:
       - target: 9000
-        published: 9001
+        published: 12000
         protocol: tcp
         mode: host
     volumes:

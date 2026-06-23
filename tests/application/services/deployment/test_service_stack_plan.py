@@ -87,7 +87,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
             {step.service_stack.stack_name: step.service_stack.phase_id for step in steps},
         )
         self.assertEqual(
-            ("pulsar-broker", "pulsar-admin-api"),
+            ("pulsar-broker", "pulsar-admin-api", "pulsar-manager-gui"),
             next(
                 step.service_stack.port_ids
                 for step in steps

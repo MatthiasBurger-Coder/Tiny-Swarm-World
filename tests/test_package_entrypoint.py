@@ -120,7 +120,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Provider readiness: checked before platform mutation", plan)
         self.assertIn("Service profile: service-access", plan)
         self.assertIn("Traefik Ingress: stack traefik", plan)
-        self.assertIn("compose service(s) traefik, published port(s) 80, 443", plan)
+        self.assertIn("compose service(s) traefik, published port(s) 10080, 10443", plan)
         self.assertIn("Service Access: stack service-access", plan)
         self.assertIn(
             "compose service(s) service-access-dashboard, service-access-nginx, "
@@ -130,7 +130,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Infisical: stack infisical", plan)
         self.assertIn("compose service(s) infisical, infisical-db, infisical-redis", plan)
         self.assertIn("Jenkins: stack jenkins", plan)
-        self.assertIn("published port(s) 8080, 50000", plan)
+        self.assertIn("published port(s) 11080, 11050", plan)
         self.assertNotIn("Target: local Linux/WSL Multipass Docker Swarm", plan)
 
     async def test_mutating_workflow_requires_live_consent_before_building_services(self):
@@ -212,6 +212,26 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         workflows.expose.run.assert_not_awaited()
         self.assertIn("Workflow: platform init", output.getvalue())
         self.assertNotIn('{\n', output.getvalue())
+
+    async def test_workflow_summary_prints_verification_evidence(self):
+        services, workflows = _application_services_with_platform_workflows(
+            init_result=_blocked_platform_init_result()
+        )
+        output = io.StringIO()
+
+        with patch.object(entrypoint, "build_application_services", return_value=services):
+            with redirect_stdout(output):
+                with self.assertRaises(SystemExit) as raised:
+                    await entrypoint.main(["platform", "init", "--live", "--approve-live"])
+
+        self.assertEqual(1, raised.exception.code)
+        workflows.init.run.assert_awaited_once_with()
+        rendered = output.getvalue()
+        self.assertIn("Verification summary:", rendered)
+        self.assertIn("- platform:init:preflight: blocked", rendered)
+        self.assertIn("  Evidence:", rendered)
+        self.assertIn("  - failed_check_count: 1", rendered)
+        self.assertIn("  - phase: pre_apply", rendered)
 
     async def test_platform_reconcile_cli_output_reports_converged_outcome(self):
         reconcile_result = PlatformWorkflowResult(

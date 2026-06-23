@@ -1,6 +1,6 @@
 services:
   jenkins:
-    image: ${TSW_JENKINS_IMAGE:-127.0.0.1:5000/jenkins:latest}
+    image: ${TSW_JENKINS_IMAGE:-127.0.0.1:13500/jenkins:latest}
     user: root
     environment:
       TSW_JENKINS_ADMIN_PASSWORD: ${TSW_JENKINS_ADMIN_PASSWORD}
@@ -10,11 +10,11 @@ services:
       - traefik_ingress
     ports:
       - target: 8080
-        published: 8080
+        published: 11080
         protocol: tcp
         mode: host
       - target: 50000
-        published: 50000
+        published: 11050
         protocol: tcp
         mode: host
     deploy:

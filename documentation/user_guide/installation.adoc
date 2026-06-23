@@ -38,7 +38,7 @@ bash tools/live/nexus-docker-cache.sh
 When the local cache container `tiny-swarm-nexus-cache` is running, the
 installer detects it and writes the LXC-reachable cache URL into each managed
 node's Docker daemon mirror configuration. The image references stay as normal
-Docker Hub names, for example `infisical/infisical:latest`; Docker redirects
+Docker Hub names, for example `infisical/infisical:v0.159.1`; Docker redirects
 those pulls through the configured mirror.
 
 The managed Swarm Nexus stack still prepares its own Docker proxy repository

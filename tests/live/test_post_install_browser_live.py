@@ -63,6 +63,7 @@ NO_LOGIN_SERVICES = ("service-access", "swagger")
 SERVICE_ALLOWED_STATUSES = {
     "jenkins": (200, 403),
     "nexus-docker-registry": (401,),
+    "pulsar-admin-api": (200, 401, 403),
 }
 DASHBOARD_REDIRECT_STATUSES = (301, 302, 303, 307, 308)
 FORBIDDEN_EVIDENCE_FRAGMENTS = (
@@ -157,14 +158,14 @@ class LivePostInstallConfig:
             "TSW_INGRESS_BASE_DOMAIN",
             "tsw.local",
         )
-        infisical_url = _env_value(local_env, "TSW_INFISICAL_URL", "http://localhost:8086")
-        pulsar_admin_url = _env_value(local_env, "TSW_PULSAR_PUBLIC_ADMIN_URL", "http://localhost:8087")
+        infisical_url = _env_value(local_env, "TSW_INFISICAL_URL", "http://localhost:17080")
+        pulsar_admin_url = _env_value(local_env, "TSW_PULSAR_PUBLIC_ADMIN_URL", "http://localhost:14080")
         pulsar_manager_url = _env_value(
             local_env,
             "TSW_PULSAR_MANAGER_URL",
-            "http://localhost:7750",
+            "http://localhost:14081",
         )
-        sonarqube_url = _env_value(local_env, "TSW_SONARQUBE_URL", "http://localhost:9001")
+        sonarqube_url = _env_value(local_env, "TSW_SONARQUBE_URL", "http://localhost:12000")
         return cls(
             dashboard_url=_validated_local_url(dashboard_url, "dashboard"),
             ingress_base_domain=_validated_ingress_base_domain(ingress_base_domain),
@@ -215,13 +216,20 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
                 self.assertFalse(parsed.query)
                 self.assertFalse(parsed.fragment)
 
-    def test_live_service_checks_do_not_require_direct_service_ports(self) -> None:
+    def test_live_service_checks_use_allocated_dashboard_ports(self) -> None:
         checks = _service_checks("http://localhost")
-        checked_services = {check.name for check in checks}
+        ports_by_name = {check.name: urlparse(check.url).port for check in checks}
 
-        self.assertNotIn("nexus", checked_services)
-        self.assertNotIn("nexus-docker-registry", checked_services)
-        self.assertTrue(all(urlparse(check.url).port in {None, 80} for check in checks))
+        self.assertIsNone(ports_by_name["service-access"])
+        self.assertEqual(10000, ports_by_name["service-access-route:service-access"])
+        self.assertEqual(10001, ports_by_name["service-access-route:portainer"])
+        self.assertEqual(11080, ports_by_name["service-access-route:jenkins"])
+        self.assertEqual(12000, ports_by_name["service-access-route:sonarqube"])
+        self.assertEqual(13081, ports_by_name["service-access-route:nexus"])
+        self.assertEqual(14080, ports_by_name["service-access-route:pulsar-admin-api"])
+        self.assertEqual(14081, ports_by_name["service-access-route:pulsar"])
+        self.assertEqual(16080, ports_by_name["service-access-route:swagger"])
+        self.assertEqual(17080, ports_by_name["service-access-route:infisical"])
 
     def test_live_service_checks_use_explicit_browser_status_allowlists(self) -> None:
         checks = _service_checks("http://localhost")
@@ -251,6 +259,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             with self.subTest(service=check.name):
                 parsed = urlparse(check.url)
                 self.assertEqual("https", parsed.scheme)
+                self.assertEqual(10443, parsed.port)
                 self.assertIsNotNone(parsed.hostname)
                 self.assertTrue(parsed.hostname and parsed.hostname.endswith(".tsw.local"))
                 self.assertFalse(parsed.username)
@@ -680,12 +689,19 @@ def _service_checks(dashboard_url: str) -> tuple[ServiceCheck, ...]:
 
     for route_name, route_path in _dashboard_references(SERVICE_ACCESS_DASHBOARD).routes:
         allowed_statuses = (
-            (200,) if route_name == "service-access" else DASHBOARD_REDIRECT_STATUSES
+            (200,)
+            if route_name == "service-access"
+            else SERVICE_ALLOWED_STATUSES.get(route_name, (200,))
         )
         checks.append(
             ServiceCheck(
                 f"service-access-route:{route_name}",
-                _validated_local_url(urljoin(safe_dashboard_url, route_path), "dashboard"),
+                _validated_local_url(
+                    route_path
+                    if route_path.startswith(("http://", "https://"))
+                    else urljoin(safe_dashboard_url, route_path),
+                    "dashboard",
+                ),
                 follow_redirects=False,
                 allowed_statuses=allowed_statuses,
             )
@@ -698,10 +714,11 @@ def _https_route_checks(base_domain: str) -> tuple[ServiceCheck, ...]:
         ServiceStackProfile.SERVICE_ACCESS,
         base_domain=_validated_ingress_base_domain(base_domain),
     )
+    https_port = desired_ingress.public_ports[1]
     return tuple(
         ServiceCheck(
             route.service_name,
-            f"https://{route.hostname}/",
+            f"https://{route.hostname}:{https_port}/",
             allowed_statuses=SERVICE_ALLOWED_STATUSES.get(route.service_name, (200,)),
         )
         for route in desired_ingress.routes
@@ -1218,7 +1235,7 @@ def _pulsar_manager_auth_status(
     try:
         csrf_response = session.get(
             csrf_url,
-            headers={"Host": "localhost:7750"},
+            headers={"Host": "localhost:14081"},
             timeout=timeout_seconds,
         )
     except requests.RequestException as exc:
@@ -1231,7 +1248,7 @@ def _pulsar_manager_auth_status(
     csrf_available = csrf_response.status_code == 200 and bool(csrf_response.text.strip())
     headers = {
         "Content-Type": "application/json",
-        "Host": "localhost:7750",
+        "Host": "localhost:14081",
     }
     if csrf_available:
         csrf_token = csrf_response.text.strip()
@@ -1559,6 +1576,11 @@ class _DashboardReferenceParser(HTMLParser):
             if href.startswith("/"):
                 name = href.strip("/") or "service-access"
                 self.routes.append((name, href))
+                return
+            parsed = urlparse(href)
+            if parsed.scheme in {"http", "https"} and parsed.hostname == "localhost":
+                name = _dashboard_route_name(parsed)
+                self.routes.append((name, href))
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "th":
@@ -1586,6 +1608,30 @@ def _dashboard_references(path: Path) -> _DashboardReferences:
         credential_items=tuple(dict.fromkeys(parser.credential_items)),
         no_login_services=tuple(dict.fromkeys(parser.no_login_services)),
     )
+
+
+def _dashboard_route_name(parsed_url) -> str:
+    port = parsed_url.port
+    path = parsed_url.path.rstrip("/")
+    if port == 10000:
+        return "service-access"
+    if port == 10001:
+        return "portainer"
+    if port == 11080:
+        return "jenkins"
+    if port == 12000:
+        return "sonarqube"
+    if port == 13081:
+        return "nexus"
+    if port == 14080 and path.startswith("/admin/v2/clusters"):
+        return "pulsar-admin-api"
+    if port == 14081:
+        return "pulsar"
+    if port == 16080:
+        return "swagger"
+    if port == 17080:
+        return "infisical"
+    return f"localhost-{port or parsed_url.scheme}"
 
 
 class _EvidenceRecorder:

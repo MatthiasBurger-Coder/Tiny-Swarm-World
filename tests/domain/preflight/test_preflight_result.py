@@ -173,7 +173,7 @@ class TestPreflightResult(unittest.TestCase):
             manifest.service_names,
         )
         self.assertEqual(
-            (9000, 8081, 5000, 8080, 6650, 8087, 9527, 7750, 9001, 8084),
+            (10001, 13081, 13500, 13501, 11080, 11050, 14001, 14080, 14081, 7750, 12000, 16080, 16081),
             tuple(port.port for port in manifest.required_ports),
         )
         self.assertEqual(
@@ -200,29 +200,29 @@ class TestPreflightResult(unittest.TestCase):
         self.assertIn("Infisical", manifest.service_names)
         self.assertEqual(
             (
-                (9000, "Portainer"),
-                (8081, "Nexus"),
-                (5000, "Nexus Docker registry"),
-                (5001, "Nexus Docker proxy registry"),
-                (8080, "Jenkins"),
-                (50000, "Jenkins inbound agent"),
-                (6650, "Pulsar broker protocol"),
-                (8087, "Pulsar Admin API"),
-                (9527, "Pulsar Manager UI"),
+                (10001, "Portainer"),
+                (13081, "Nexus"),
+                (13500, "Nexus Docker registry"),
+                (13501, "Nexus Docker proxy registry"),
+                (11080, "Jenkins"),
+                (11050, "Jenkins inbound agent"),
+                (14001, "Pulsar broker protocol"),
+                (14080, "Pulsar Admin API"),
+                (14081, "Pulsar Manager UI"),
                 (7750, "Pulsar Manager backend"),
-                (9001, "SonarQube"),
-                (8082, "Swagger Editor"),
-                (8083, "Swagger UI"),
-                (8084, "Swagger/NGINX"),
-                (80, "Traefik HTTP ingress"),
-                (443, "Traefik HTTPS ingress"),
+                (12000, "SonarQube"),
+                (16080, "Swagger UI"),
+                (16081, "Swagger/NGINX"),
+                (10080, "Traefik HTTP ingress"),
+                (10443, "Traefik HTTPS ingress"),
                 (10000, "Service Access"),
-                (8086, "Infisical"),
+                (8086, "Infisical legacy route"),
+                (17080, "Infisical"),
             ),
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
         self.assertEqual(
-            (80, 443),
+            (10080, 10443),
             tuple(port.port for port in configuration.required_ports),
         )
         self.assertTrue(
@@ -266,8 +266,8 @@ class TestPreflightResult(unittest.TestCase):
         )
         self.assertEqual(
             [
-                {"host_preflight_required": True, "port": 80, "service": "Traefik HTTP ingress"},
-                {"host_preflight_required": True, "port": 443, "service": "Traefik HTTPS ingress"},
+                {"host_preflight_required": True, "port": 10080, "service": "Traefik HTTP ingress"},
+                {"host_preflight_required": True, "port": 10443, "service": "Traefik HTTPS ingress"},
             ],
             traefik_payload["ports"],
         )
@@ -287,6 +287,11 @@ class TestPreflightResult(unittest.TestCase):
                 {
                     "host_preflight_required": False,
                     "port": 8086,
+                    "service": "Infisical legacy route",
+                },
+                {
+                    "host_preflight_required": False,
+                    "port": 17080,
                     "service": "Infisical",
                 },
             ],

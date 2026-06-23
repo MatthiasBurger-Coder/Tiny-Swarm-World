@@ -129,6 +129,41 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
 
         self.assertEqual(502, raised.exception.status_code)
 
+    def test_runs_configured_readiness_recovery_once_before_retrying(self):
+        recovery_calls = []
+        session = _FakeSession(
+            _FakeResponse(
+                200,
+                {
+                    "identity": {"credentials": {"token": "root-token"}},
+                    "organization": {"name": "Tiny Swarm World"},
+                    "user": {"email": "admin@tiny-swarm-world.local"},
+                },
+            ),
+            readiness_responses=(
+                _FakeResponse(502, {}),
+                _FakeResponse(502, {}),
+                _FakeResponse(200, {"status": "ok"}),
+            ),
+        )
+        client = InfisicalBootstrapHttpClient(
+            base_url="https://localhost",
+            session=session,
+            readiness_attempts=2,
+            readiness_interval_seconds=0,
+            readiness_recovery=lambda: not recovery_calls.append("called"),
+        )
+
+        result = client.bootstrap_instance(
+            email="admin@tiny-swarm-world.local",
+            password="infisical-password",
+            organization="Tiny Swarm World",
+        )
+
+        self.assertEqual(InfisicalBootstrapState.CREATED, result.state)
+        self.assertEqual(["called"], recovery_calls)
+        self.assertEqual(3, len(session.get_calls))
+
     def test_treats_conflict_as_already_initialized_for_idempotent_reruns(self):
         client = InfisicalBootstrapHttpClient(
             base_url="https://localhost",

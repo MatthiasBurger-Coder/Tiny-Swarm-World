@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 import warnings
+from collections.abc import Callable
 from collections.abc import Mapping
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -27,6 +28,7 @@ class InfisicalBootstrapHttpClient(PortInfisicalBootstrapClient):
         verify_tls: bool = False,
         readiness_attempts: int = 60,
         readiness_interval_seconds: float = 5.0,
+        readiness_recovery: Callable[[], bool] | None = None,
     ):
         parsed_base_url = urlparse(base_url)
         if parsed_base_url.username or parsed_base_url.password:
@@ -41,6 +43,7 @@ class InfisicalBootstrapHttpClient(PortInfisicalBootstrapClient):
         self.verify_tls = verify_tls
         self.readiness_attempts = readiness_attempts
         self.readiness_interval_seconds = readiness_interval_seconds
+        self.readiness_recovery = readiness_recovery
 
     def bootstrap_instance(
         self,
@@ -80,6 +83,18 @@ class InfisicalBootstrapHttpClient(PortInfisicalBootstrapClient):
         )
 
     def _wait_until_ready(self) -> None:
+        recovery_attempted = False
+        while True:
+            unavailable = self._readiness_unavailable()
+            if unavailable is None:
+                return
+            if self.readiness_recovery is None or recovery_attempted:
+                raise unavailable
+            recovery_attempted = True
+            if not self.readiness_recovery():
+                raise unavailable
+
+    def _readiness_unavailable(self) -> "InfisicalBootstrapUnavailable | None":
         last_status_code: int | None = None
         last_failure: Exception | None = None
         for attempt in range(1, self.readiness_attempts + 1):
@@ -95,15 +110,15 @@ class InfisicalBootstrapHttpClient(PortInfisicalBootstrapClient):
             else:
                 last_status_code = response.status_code
                 if response.status_code < 500:
-                    return
+                    return None
             if attempt < self.readiness_attempts:
                 time.sleep(self.readiness_interval_seconds)
 
         if last_status_code is not None:
-            raise InfisicalBootstrapUnavailable(last_status_code)
+            return InfisicalBootstrapUnavailable(last_status_code)
         if last_failure is not None:
-            raise InfisicalBootstrapUnavailable.from_exception(last_failure)
-        raise InfisicalBootstrapUnavailable()
+            return InfisicalBootstrapUnavailable.from_exception(last_failure)
+        return InfisicalBootstrapUnavailable()
 
 
 class InfisicalBootstrapUnavailable(RuntimeError):

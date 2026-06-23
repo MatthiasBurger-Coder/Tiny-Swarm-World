@@ -28,14 +28,14 @@ DEFAULT_SECRET_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml
 INSTALLER_REQUIRED_SOURCES = {"generated_local_secret", "placeholder_only"}
 DEFAULT_LOCAL_SERVICE_URL_EXPORTS = {
     "TSW_DASHBOARD_URL": "http://localhost:10000",
-    "TSW_INFISICAL_URL": "http://localhost:8086",
-    "TSW_JENKINS_URL": "http://localhost:8080",
-    "TSW_NEXUS_URL": "http://localhost:8081",
-    "TSW_PORTAINER_URL": "http://localhost:9000",
-    "TSW_PULSAR_PUBLIC_ADMIN_URL": "http://localhost:8087",
-    "TSW_PULSAR_MANAGER_URL": "http://localhost:7750",
-    "TSW_SONARQUBE_URL": "http://localhost:9001",
-    "TSW_SWAGGER_URL": "http://localhost:8084",
+    "TSW_INFISICAL_URL": "http://localhost:17080",
+    "TSW_JENKINS_URL": "http://localhost:11080",
+    "TSW_NEXUS_URL": "http://localhost:13081",
+    "TSW_PORTAINER_URL": "http://localhost:10001",
+    "TSW_PULSAR_PUBLIC_ADMIN_URL": "http://localhost:14080",
+    "TSW_PULSAR_MANAGER_URL": "http://localhost:14081",
+    "TSW_SONARQUBE_URL": "http://localhost:12000",
+    "TSW_SWAGGER_URL": "http://localhost:16081",
 }
 
 

@@ -64,7 +64,7 @@ class TestServiceStackContract(unittest.TestCase):
             tuple(endpoint.url for endpoint in selected_by_name["service-access"].endpoints),
         )
         self.assertEqual(
-            ("http://localhost:8086",),
+            ("http://localhost:17080",),
             tuple(endpoint.url for endpoint in selected_by_name["infisical"].endpoints),
         )
 
@@ -86,27 +86,27 @@ class TestServiceStackContract(unittest.TestCase):
             for contract in service_stack_contracts_for_profile(ServiceStackProfile.SERVICE_ACCESS)
         }
 
-        self.assertEqual(("http://localhost:9000",), _endpoint_urls(endpoints_by_stack["portainer"]))
+        self.assertEqual(("http://localhost:10001",), _endpoint_urls(endpoints_by_stack["portainer"]))
         self.assertEqual(("https://localhost",), _endpoint_urls(endpoints_by_stack["traefik"]))
         self.assertEqual(
-            ("http://localhost:8081", "http://localhost:5000"),
+            ("http://localhost:13081", "http://localhost:13500"),
             _endpoint_urls(endpoints_by_stack["nexus"]),
         )
-        self.assertEqual(("http://localhost:8080",), _endpoint_urls(endpoints_by_stack["jenkins"]))
+        self.assertEqual(("http://localhost:11080",), _endpoint_urls(endpoints_by_stack["jenkins"]))
         self.assertEqual(
-            ("http://localhost:8087", "http://localhost:9527", "http://localhost:7750"),
+            ("http://localhost:14080", "http://localhost:14081"),
             _endpoint_urls(endpoints_by_stack["pulsar"]),
         )
         self.assertEqual(
-            ("http://localhost:9001",),
+            ("http://localhost:12000",),
             _endpoint_urls(endpoints_by_stack["sonarqube"]),
         )
-        self.assertEqual(("http://localhost:8084",), _endpoint_urls(endpoints_by_stack["swagger"]))
+        self.assertEqual(("http://localhost:16081",), _endpoint_urls(endpoints_by_stack["swagger"]))
         self.assertEqual(
             ("http://localhost:10000",),
             _endpoint_urls(endpoints_by_stack["service-access"]),
         )
-        self.assertEqual(("http://localhost:8086",), _endpoint_urls(endpoints_by_stack["infisical"]))
+        self.assertEqual(("http://localhost:17080",), _endpoint_urls(endpoints_by_stack["infisical"]))
         all_endpoints = tuple(
             endpoint
             for endpoints in endpoints_by_stack.values()
@@ -116,7 +116,7 @@ class TestServiceStackContract(unittest.TestCase):
         self.assertFalse(any(endpoint.readiness_claimed for endpoint in all_endpoints))
 
     def test_endpoint_configuration_is_not_a_readiness_claim(self):
-        endpoint = ServiceEndpoint("portainer", "http://localhost:9000")
+        endpoint = ServiceEndpoint("portainer", "http://localhost:10001")
 
         self.assertTrue(endpoint.localhost_forwarding_required)
         self.assertFalse(endpoint.readiness_claimed)
@@ -125,7 +125,7 @@ class TestServiceStackContract(unittest.TestCase):
                 "localhost_forwarding_required": True,
                 "name": "portainer",
                 "readiness_claimed": False,
-                "url": "http://localhost:9000",
+                "url": "http://localhost:10001",
             },
             endpoint.to_dict(),
         )
@@ -202,9 +202,9 @@ class TestServiceStackContract(unittest.TestCase):
             ServiceEndpoint("service", f"http://{ipv4_address(10, 157, 2, 182)}:8080")
 
     def test_accepts_localhost_https_endpoint_url(self):
-        endpoint = ServiceEndpoint("infisical", "http://localhost:8086")
+        endpoint = ServiceEndpoint("infisical", "http://localhost:17080")
 
-        self.assertEqual("http://localhost:8086", endpoint.url)
+        self.assertEqual("http://localhost:17080", endpoint.url)
 
     def test_rejects_endpoint_with_credentials_or_query(self):
         with self.assertRaises(ValueError):

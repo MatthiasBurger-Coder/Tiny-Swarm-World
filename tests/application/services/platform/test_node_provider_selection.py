@@ -155,7 +155,11 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
                 status=ProviderReadinessStatus.BACKEND_MISSING,
                 backend_selection=ManagedLxcBackendSelection.missing(
                     remediation=("Install Incus or LXD.",),
-                    evidence={"source": "unit"},
+                    evidence={
+                        "classification": "backend_missing",
+                        "host_kind": "wsl2",
+                        "source": "unit",
+                    },
                 ),
             )
         )
@@ -167,6 +171,8 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(NodeProviderKind.LXC_NATIVE, selection.selected_provider)
         self.assertEqual(ProviderSelectionStatus.BLOCKED, selection.status)
         self.assertEqual(ManagedLxcBackendSelectionStatus.MISSING, selection.backend_selection.status)
+        self.assertEqual("backend_missing", selection.backend_selection.evidence["classification"])
+        self.assertEqual("wsl2", selection.backend_selection.evidence["host_kind"])
 
     async def test_unsupported_lxc_backend_blocks_without_provider_fallback(self):
         readiness = _ReadinessProbe(
@@ -212,7 +218,11 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
                 status=ProviderReadinessStatus.BACKEND_MISSING,
                 backend_selection=ManagedLxcBackendSelection.missing(
                     remediation=("Install Incus or LXD.",),
-                    evidence={"source": "unit"},
+                    evidence={
+                        "classification": "backend_missing",
+                        "host_kind": "wsl2",
+                        "source": "unit",
+                    },
                 ),
             )
         )
@@ -229,6 +239,9 @@ class TestNodeProviderSelectionService(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
         self.assertEqual("provider_selection_blocked", result.evidence["reason"])
+        self.assertEqual("backend_missing", result.evidence["classification"])
+        self.assertEqual("wsl2", result.evidence["host_kind"])
+        self.assertEqual("unit", result.evidence["source"])
         self.assertEqual([], lifecycle.ensure_calls)
 
     async def test_selected_provider_calls_node_lifecycle_port(self):

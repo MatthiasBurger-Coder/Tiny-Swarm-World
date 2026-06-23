@@ -50,23 +50,23 @@ class ContainerImageContract:
 
 DEFAULT_CONTAINER_IMAGE_CONTRACTS = (
     ContainerImageContract(
-        image_name="127.0.0.1:5000/jenkins",
+        image_name="127.0.0.1:13500/jenkins",
         tag="latest",
         build_context="jenkins",
     ),
     ContainerImageContract(
-        image_name="127.0.0.1:5000/service-access-dashboard",
+        image_name="127.0.0.1:13500/service-access-dashboard",
         tag="latest",
         build_context="service-access-dashboard",
     ),
     ContainerImageContract(
-        image_name="127.0.0.1:5000/service-access-nginx",
+        image_name="127.0.0.1:13500/service-access-nginx",
         tag="latest",
         build_context="service-access-nginx",
     ),
     ContainerImageContract(
         image_name="infisical/infisical",
-        tag="latest",
+        tag="v0.159.1",
         build_context="infisical",
         source="pull",
     ),
@@ -80,6 +80,48 @@ DEFAULT_CONTAINER_IMAGE_CONTRACTS = (
         image_name="redis",
         tag="7-alpine",
         build_context="infisical-redis",
+        source="pull",
+    ),
+    ContainerImageContract(
+        image_name="traefik",
+        tag="v3.7.4",
+        build_context="traefik",
+        source="pull",
+    ),
+    ContainerImageContract(
+        image_name="sonarqube",
+        tag="26.6.0.123539-community",
+        build_context="sonarqube",
+        source="pull",
+    ),
+    ContainerImageContract(
+        image_name="postgres",
+        tag="13",
+        build_context="sonarqube-postgres",
+        source="pull",
+    ),
+    ContainerImageContract(
+        image_name="swaggerapi/swagger-editor",
+        tag="v5.6.2-unprivileged",
+        build_context="swagger-editor",
+        source="pull",
+    ),
+    ContainerImageContract(
+        image_name="swaggerapi/swagger-ui",
+        tag="v5.32.6",
+        build_context="swagger-ui",
+        source="pull",
+    ),
+    ContainerImageContract(
+        image_name="python",
+        tag="3.12-alpine",
+        build_context="pulsar-manager-bootstrap",
+        source="pull",
+    ),
+    ContainerImageContract(
+        image_name="nginx",
+        tag="mainline-alpine",
+        build_context="swagger-nginx",
         source="pull",
     ),
 )

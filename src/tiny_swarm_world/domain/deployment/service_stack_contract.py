@@ -111,7 +111,7 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
         ("portainer", "agent"),
         phase_id="platform",
         port_ids=("portainer-http",),
-        endpoints=(ServiceEndpoint("portainer", "http://localhost:9000"),),
+        endpoints=(ServiceEndpoint("portainer", "http://localhost:10001"),),
     ),
     ServiceStackContract(
         "traefik",
@@ -126,8 +126,8 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
         phase_id="artifacts",
         port_ids=("nexus-http", "nexus-docker-http", "nexus-docker-https"),
         endpoints=(
-            ServiceEndpoint("nexus", "http://localhost:8081"),
-            ServiceEndpoint("nexus-docker-registry", "http://localhost:5000"),
+            ServiceEndpoint("nexus", "http://localhost:13081"),
+            ServiceEndpoint("nexus-docker-registry", "http://localhost:13500"),
         ),
     ),
     ServiceStackContract(
@@ -135,17 +135,16 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
         ("jenkins",),
         phase_id="cicd",
         port_ids=("jenkins-http", "jenkins-agent"),
-        endpoints=(ServiceEndpoint("jenkins", "http://localhost:8080"),),
+        endpoints=(ServiceEndpoint("jenkins", "http://localhost:11080"),),
     ),
     ServiceStackContract(
         "pulsar",
         ("pulsar", "pulsar-manager"),
         phase_id="messaging",
-        port_ids=("pulsar-broker", "pulsar-admin-api"),
+        port_ids=("pulsar-broker", "pulsar-admin-api", "pulsar-manager-gui"),
         endpoints=(
-            ServiceEndpoint("pulsar-admin-api", "http://localhost:8087"),
-            ServiceEndpoint("pulsar-manager", "http://localhost:9527"),
-            ServiceEndpoint("pulsar-manager-backend", "http://localhost:7750"),
+            ServiceEndpoint("pulsar-admin-api", "http://localhost:14080"),
+            ServiceEndpoint("pulsar-manager", "http://localhost:14081"),
         ),
     ),
     ServiceStackContract(
@@ -153,14 +152,14 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
         ("sonarqube", "sonar_db"),
         phase_id="quality",
         port_ids=("sonarqube-http",),
-        endpoints=(ServiceEndpoint("sonarqube", "http://localhost:9001"),),
+        endpoints=(ServiceEndpoint("sonarqube", "http://localhost:12000"),),
     ),
     ServiceStackContract(
         "swagger",
         ("swagger-editor", "swagger-ui", "swagger-api", "swagger-nginx"),
         phase_id="docs",
         port_ids=("swagger-ui", "openapi-aggregator"),
-        endpoints=(ServiceEndpoint("swagger", "http://localhost:8084"),),
+        endpoints=(ServiceEndpoint("swagger", "http://localhost:16081"),),
     ),
 )
 
@@ -179,7 +178,7 @@ INFISICAL_STACK_CONTRACT = ServiceStackContract(
     ("infisical", "infisical-db", "infisical-redis"),
     phase_id="secrets",
     port_ids=("infisical-http",),
-    endpoints=(ServiceEndpoint("infisical", "http://localhost:8086"),),
+    endpoints=(ServiceEndpoint("infisical", "http://localhost:17080"),),
 )
 
 

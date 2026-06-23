@@ -45,24 +45,24 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([], runtime.created)
         self.assertEqual(
             (
-                9000,
-                8081,
-                5000,
-                5001,
-                8080,
-                50000,
-                6650,
-                8087,
-                9527,
+                10001,
+                13081,
+                13500,
+                13501,
+                11080,
+                11050,
+                14001,
+                14080,
+                14081,
                 7750,
-                9001,
-                8082,
-                8083,
-                8084,
-                80,
-                443,
+                12000,
+                16080,
+                16081,
+                10080,
+                10443,
                 10000,
                 8086,
+                17080,
             ),
             tuple(plan.listen_port for _profile, plan in runtime.inspected),
         )
@@ -83,8 +83,8 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.ensure_service_exposure()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("10", result.evidence["published_port_count"])
-        self.assertEqual("10", result.evidence["created_count"])
+        self.assertEqual("13", result.evidence["published_port_count"])
+        self.assertEqual("13", result.evidence["created_count"])
         self.assertEqual("127.0.0.1", result.evidence["listen_address"])
         self.assertEqual({"docker-swarm-manager"}, {profile for profile, _plan in runtime.created})
         self.assertNotIn("swarm-worker", repr(runtime.created))
@@ -102,15 +102,15 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.ensure_service_exposure()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("10", result.evidence["updated_count"])
+        self.assertEqual("13", result.evidence["updated_count"])
         self.assertEqual({"docker-swarm-manager"}, {profile for profile, _plan in runtime.updated})
 
     async def test_unknown_or_failed_proxy_device_apply_reports_actionable_counts(self):
         runtime = _RecordingProxyRuntime(
             states={
-                9000: LxcProxyDeviceState.UNKNOWN,
-                8081: LxcProxyDeviceState.MISSING,
-                5000: LxcProxyDeviceState.DRIFTED,
+                10001: LxcProxyDeviceState.UNKNOWN,
+                13081: LxcProxyDeviceState.MISSING,
+                13500: LxcProxyDeviceState.DRIFTED,
             },
             default_state=LxcProxyDeviceState.PRESENT,
             create_success=False,

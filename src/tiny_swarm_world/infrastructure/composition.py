@@ -50,7 +50,6 @@ from tiny_swarm_world.application.services.deployment import (
 from tiny_swarm_world.application.services.deployment.workflows import DeploymentApplyStep
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
     DEFAULT_PORTAINER_ENDPOINT_NAME,
-    build_service_stack_steps,
 )
 from tiny_swarm_world.application.ports.progress import PortWorkflowProgress
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
@@ -216,7 +215,7 @@ from tiny_swarm_world.infrastructure.composition_models import (
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
-DEFAULT_PORTAINER_API_URL = "http://localhost:9000"
+DEFAULT_PORTAINER_API_URL = "http://localhost:10001"
 PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT = "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS"
 DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS = 180
 SEED_INFISICAL_ITEMS_ENVIRONMENT = "TSW_SEED_INFISICAL_ITEMS"
@@ -230,10 +229,10 @@ INFISICAL_ORGANIZATION_ENVIRONMENT = "TSW_INFISICAL_ORGANIZATION"
 INFISICAL_ADMIN_FIRST_NAME_ENVIRONMENT = "TSW_INFISICAL_ADMIN_FIRST_NAME"
 INFISICAL_ADMIN_LAST_NAME_ENVIRONMENT = "TSW_INFISICAL_ADMIN_LAST_NAME"
 DEFAULT_INFISICAL_ORGANIZATION = "Tiny Swarm World"
-DEFAULT_INFISICAL_READINESS_ATTEMPTS = 120
+DEFAULT_INFISICAL_READINESS_ATTEMPTS = 720
 DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS = 5.0
 SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
-DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:5000"
+DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:13500"
 LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
 DEFAULT_LXC_PROXY_LISTEN_ADDRESS = "0.0.0.0"
 DEFAULT_NEXUS_CACHE_CONTAINER = "tiny-swarm-nexus-cache"
@@ -982,12 +981,10 @@ def build_lxc_deployment_services(
         ),
         stack_steps["nexus"],
     )
-    application_steps: tuple[object, ...] = build_service_stack_steps(
-        compose_repository=compose_repository,
-        deployment_gateway=portainer_client,
-        service_profile=selected_service_profile,
-        excluded_stack_names=("nexus", "traefik"),
-        stack_environments=stack_environment,
+    application_steps: tuple[object, ...] = tuple(
+        stack_steps[contract.stack_name]
+        for contract in service_stack_contracts
+        if contract.stack_name not in {"portainer", "nexus", "traefik"}
     )
     if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS:
         application_steps = (stack_steps["traefik"], *application_steps)
@@ -996,7 +993,7 @@ def build_lxc_deployment_services(
         "sonarqube",
         (
             EnsureSonarqubeAdminAccess(
-                sonarqube_client=SonarqubeHttpClient("http://localhost:9001"),
+                sonarqube_client=SonarqubeHttpClient("http://localhost:12000"),
                 username=_operator_config_value("TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
                 password=lambda: _required_operator_secret_value("TSW_SONARQUBE_ADMIN_PASSWORD"),
                 max_attempts=120,
@@ -1014,6 +1011,7 @@ def build_lxc_deployment_services(
     infisical_bootstrap_steps = _infisical_bootstrap_steps(
         selected_service_profile,
         cli=infisical_cli_client,
+        swarm_runtime=swarm_runtime,
     )
     secret_discovery_step = SecretDiscoveryStep(manifest_entries=secret_manifest_entries)
     infisical_secret_sync_step = InfisicalSecretSyncStep(
@@ -1927,6 +1925,7 @@ def _infisical_bootstrap_steps(
     service_profile: ServiceStackProfile,
     *,
     cli: InfisicalCliClient | None = None,
+    swarm_runtime: LxcSwarmRuntime | None = None,
 ) -> list[EnsureInfisicalSilentInstall]:
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
         return []
@@ -1936,7 +1935,7 @@ def _infisical_bootstrap_steps(
             bootstrap_client=InfisicalBootstrapHttpClient(
                 base_url=_operator_config_value(
                     INFISICAL_URL_ENVIRONMENT,
-                    "http://localhost:8086",
+                    "http://localhost:17080",
                 ),
                 verify_tls=False,
                 readiness_attempts=_operator_config_int(
@@ -1949,11 +1948,16 @@ def _infisical_bootstrap_steps(
                     DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS,
                     minimum=0,
                 ),
+                readiness_recovery=(
+                    swarm_runtime.recover_infisical_migration_lock
+                    if swarm_runtime is not None
+                    else None
+                ),
             ),
             config=InfisicalSilentInstallConfig(
                 external_url=_operator_config_value(
                     INFISICAL_URL_ENVIRONMENT,
-                    "http://localhost:8086",
+                    "http://localhost:17080",
                 ),
                 internal_url=_operator_config_value(
                     INFISICAL_INTERNAL_URL_ENVIRONMENT,

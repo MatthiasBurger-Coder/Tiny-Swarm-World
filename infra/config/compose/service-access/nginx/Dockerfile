@@ -1,4 +1,6 @@
-FROM nginx:mainline
+FROM nginx:mainline-alpine
+
+RUN apk add --no-cache openssl
 
 COPY default.conf /etc/nginx/conf.d/default.conf
 COPY generate-self-signed-cert.sh /docker-entrypoint.d/20-generate-self-signed-cert.sh
