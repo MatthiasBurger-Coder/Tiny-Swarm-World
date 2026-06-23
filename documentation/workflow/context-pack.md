@@ -1,16 +1,17 @@
 # Workflow Context Pack
 
-Workflow: `sonar-s2083-path-v1.0.0`
-Workflow ID: `workflow-sonar-s2083-path-20260623`
-Branch: `fix/workflow-sonar-s2083-path-20260623`
+Workflow: `workflow-sonar-s2068-port-forwarding-v1.0.0`
+Workflow ID: `workflow-sonar-s2068-port-forwarding-20260623`
+Branch: `fix/workflow-sonar-s2068-port-forwarding-20260623`
 Created: `2026-06-23`
-Status: `IN_PROGRESS`
-Evidence Root: `.codex/evidence/workflow-sonar-s2083-path-20260623/`
+Status: `EXECUTED_WITH_EVIDENCE`
+Evidence Root: `.codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/`
 
 ## Purpose
 
-Focused workflow-execute context for SonarCloud Blocker issue
-`AZ7kEe0S3UILYpQnQ6zA`.
+Focused execution context for remediating SonarCloud `python:S2068` issues
+`AZ7kcUaJ8N9AxeIuoSBi`, `AZ7kcUaJ8N9AxeIuoSBj`, and
+`AZ7kcUaJ8N9AxeIuoSBl` in `tests/domain/network/test_port_forwarding_plan.py`.
 
 ## Process Strand
 
@@ -19,35 +20,44 @@ Focused workflow-execute context for SonarCloud Blocker issue
 
 ## Affected Areas
 
-- `tests/application/services/deployment/test_secret_management.py`
+- `tests/domain/network/test_port_forwarding_plan.py`
 - `documentation/workflow/**`
-- `.codex/evidence/workflow-sonar-s2083-path-20260623/**`
+- `.codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/**`
 
 ## Forbidden Areas
 
 - live infrastructure mutation
-- production secret-management behavior changes
-- committed secrets or raw env payloads
+- product source behavior changes
+- push, PR creation, merge, or branch cleanup
 
 ## Required Roles
 
 - Senior Requirement Engineer
 - Senior System Architect
 - Senior Python Automation Developer
-- Senior React Frontend Developer impact check
 - Senior Tester
+- Senior DevOps Engineer impact check
 
 ## Quality Commands
 
 Targeted:
 
-- `PYTHONPATH=src python -m unittest tests.application.services.deployment.test_secret_management`
+- `PYTHONPATH=src python -m unittest tests.domain.network.test_port_forwarding_plan`
+- `git diff --check`
 
 Required final:
 
 - `python3 tools/quality_gate.py test`
 
+## Governing Inputs
+
+- `AGENTS.md`
+- `QUALITY.md`
+- `documentation/workflow/workflow.md`
+- `tests/support/sonar_safe_literals.py`
+- `src/tiny_swarm_world/domain/network/port_forwarding_plan.py`
+
 ## Branch Evidence
 
-- `git show-ref --verify --quiet refs/heads/fix/workflow-sonar-s2083-path-20260623`
 - `git branch --show-current`
+- `git show-ref --verify refs/heads/fix/workflow-sonar-s2068-port-forwarding-20260623`

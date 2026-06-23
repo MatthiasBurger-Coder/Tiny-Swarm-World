@@ -1,26 +1,33 @@
 {
-  "workflow": "sonar-s2083-path-v1.0.0",
-  "workflow_id": "workflow-sonar-s2083-path-20260623",
-  "branch": "fix/workflow-sonar-s2083-path-20260623",
-  "status": "IN_PROGRESS",
+  "workflow": "workflow-sonar-s2068-port-forwarding-v1.0.0",
+  "workflow_id": "workflow-sonar-s2068-port-forwarding-20260623",
+  "branch": "fix/workflow-sonar-s2068-port-forwarding-20260623",
+  "status": "EXECUTED_WITH_EVIDENCE",
   "execution_profile": "NORMAL_PATH",
-  "evidence_root": ".codex/evidence/workflow-sonar-s2083-path-20260623/",
+  "evidence_root": ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/",
   "affected_areas": [
-    "tests/application/services/deployment/test_secret_management.py",
+    "tests/domain/network/test_port_forwarding_plan.py",
     "documentation/workflow/**",
-    ".codex/evidence/workflow-sonar-s2083-path-20260623/**"
+    ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/**"
   ],
   "forbidden_areas": [
     "live infrastructure mutation",
-    "production secret-management behavior changes",
-    "committed secrets or raw env payloads"
+    "product source behavior changes",
+    "push, PR creation, merge, or branch cleanup"
   ],
   "quality_commands": {
     "targeted": [
-      "PYTHONPATH=src python -m unittest tests.application.services.deployment.test_secret_management"
+      "PYTHONPATH=src python -m unittest tests.domain.network.test_port_forwarding_plan",
+      "git diff --check"
     ],
     "required": [
       "python3 tools/quality_gate.py test"
     ]
-  }
+  },
+  "sonar_issues": [
+    "AZ7kcUaJ8N9AxeIuoSBi",
+    "AZ7kcUaJ8N9AxeIuoSBj",
+    "AZ7kcUaJ8N9AxeIuoSBl"
+  ],
+  "sonar_rule": "python:S2068"
 }

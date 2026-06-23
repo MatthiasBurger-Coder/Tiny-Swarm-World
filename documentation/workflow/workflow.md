@@ -1,37 +1,51 @@
-# Workflow: Sonar S2083 Secret Test Path Remediation
+# Workflow: Sonar S2068 Port Forwarding Test Remediation
 
-Version: `sonar-s2083-path-v1.0.0`
-Workflow ID: `workflow-sonar-s2083-path-20260623`
+Version: `workflow-sonar-s2068-port-forwarding-v1.0.0`
+Workflow ID: `workflow-sonar-s2068-port-forwarding-20260623`
 Created: `2026-06-23`
-Branch: `fix/workflow-sonar-s2083-path-20260623`
-Status: `IN_PROGRESS`
-Evidence Root: `.codex/evidence/workflow-sonar-s2083-path-20260623/`
+Branch: `fix/workflow-sonar-s2068-port-forwarding-20260623`
+Status: `EXECUTED_WITH_EVIDENCE`
+Evidence Root: `.codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/`
 
 ## Executive Summary
 
-Remediate SonarCloud vulnerability `AZ7kEe0S3UILYpQnQ6zA`
-(`pythonsecurity:S2083`, Blocker) in
-`tests/application/services/deployment/test_secret_management.py`.
+Remediate three overlapping SonarCloud `python:S2068` vulnerability issues in
+`tests/domain/network/test_port_forwarding_plan.py` without weakening the
+domain test intent. The issues all sit in the same test file and validate the
+same port-forwarding metadata guard, so this workflow executes them as one
+serial issue group in the current dedicated worktree.
 
 ## Requirement Clarification Gate
 
 Original Request:
 
-- Work through all open SonarQube/SonarCloud vulnerability issues in logical
-  order.
-- Give each issue its own branch.
-- Use subagents for non-overlapping issues.
-- Execute through the ticket workflow.
-- Verify that no matching SonarCloud vulnerability issues remain open.
+- Work in existing worktree
+  `D:/Projects/Tiny-Swarm-World-worktrees/sonar-s2068-port-forwarding`.
+- Use branch `fix/workflow-sonar-s2068-port-forwarding-20260623`.
+- Fix SonarCloud issues `AZ7kcUaJ8N9AxeIuoSBi`,
+  `AZ7kcUaJ8N9AxeIuoSBj`, and `AZ7kcUaJ8N9AxeIuoSBl`.
+- Rule: `python:S2068`.
+- File and lines: `tests/domain/network/test_port_forwarding_plan.py` lines
+  166, 167, and 182.
+- The three issues overlap in one test file and must be handled serially.
+- Do not run live infrastructure commands.
+- Update workflow documentation and evidence.
+- Run targeted unittest for `tests.domain.network.test_port_forwarding_plan`.
+- Do not push, create a PR, or merge.
 
 Interpreted Intent:
 
-- This workflow covers only the highest-priority Blocker issue for unsafe path
-  construction in a secret-management regression test.
+- Replace hardcoded credential-looking URL literals in tests with existing
+  Sonar-safe test literal helpers while preserving assertions that credential
+  URLs and URL-like route hosts are rejected.
 
 Change Type:
 
-- Test security hardening and workflow evidence.
+- Test-data remediation and workflow evidence update.
+
+Execution Profile:
+
+- `NORMAL_PATH`
 
 Affected Process Strand:
 
@@ -39,125 +53,66 @@ Affected Process Strand:
 
 Affected Architecture Area:
 
-- Python test automation for deployment secret-management behavior.
+- Domain tests only.
 
-Explicit Requirements:
+Explicit Non-Goals:
 
-- Preserve the test intent that the committed Pulsar compose file does not
-  create a secret inventory blocker.
-- Avoid unsafe temporary-path construction at the filesystem sink.
-- Do not run live infrastructure commands.
+- No production domain behavior change.
+- No live LXD, Incus, LXC, Docker, Swarm, compose, networking, or service
+  bootstrap commands.
+- No push, PR creation, or merge.
 
-Implicit Requirements:
-
-- Preserve Linux/WSL-first repository behavior.
-- Keep the fix isolated to the issue branch.
-- Keep production deployment logic unchanged.
-
-Assumptions:
-
-- The Sonar finding is test-only and can be remediated with a small fixture
-  writer that resolves and validates the temporary destination.
-
-Non-Goals:
-
-- No changes to the secret-discovery product implementation.
-- No live Pulsar, Docker, LXC, Incus, LXD, or Swarm execution.
-
-Risks:
-
-- Over-broad fixture changes could weaken the committed-compose regression.
-
-Open Questions:
-
-- None.
-
-Blocking Questions:
-
-- None.
-
-Confidence Level:
-
-- `95%`
-
-Decision:
-
-- `READY_FOR_WORKFLOW`
-
-## Five-Role Three Amigos Review
+## Five-Role Review
 
 Senior Requirement Engineer:
 
-- Scope is concrete: one SonarCloud Blocker issue in one test file.
+- The issue group is concrete and bounded to three Sonar findings in one test
+  file.
 
 Senior System Architect:
 
-- No domain, application service, adapter, runtime, or composition boundary
-  change is required.
+- The change is test-only and does not affect hexagonal boundaries.
 
 Senior Python Automation Developer:
 
-- Add a small test helper that resolves the temporary root and validates the
-  fixture destination before writing.
-
-Senior React Frontend Developer:
-
-- No browser or React frontend impact.
+- Existing helper `tests.support.sonar_safe_literals` is the appropriate local
+  pattern for constructing sensitive-looking test strings without hardcoded
+  credential literals.
 
 Senior Tester:
 
-- Run the focused secret-management unittest and local quality gate where
-  practical.
+- The targeted unittest must prove the rejection behavior still holds for
+  credential URL metadata and URL-like route hosts.
 
-## Verified Baseline
+Senior DevOps Engineer:
 
-- SonarCloud API reported issue `AZ7kEe0S3UILYpQnQ6zA` open on
-  `2026-06-23`.
-- Current branch is `fix/workflow-sonar-s2083-path-20260623`.
-- Working tree was clean before branch creation.
-
-## Target Outcome
-
-- The test no longer writes through an unchecked path expression.
-- The Pulsar compose regression still reads the committed compose fixture.
-- The matching SonarCloud issue is expected to disappear after PR analysis.
+- No live infrastructure validation is needed or allowed for this unit-test
+  remediation.
 
 ## Scope
 
 In scope:
 
-- `tests/application/services/deployment/test_secret_management.py`
-- `documentation/workflow/**`
-- `.codex/evidence/workflow-sonar-s2083-path-20260623/**`
+- `tests/domain/network/test_port_forwarding_plan.py`
+- `documentation/workflow/workflow.md`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+- `.codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/**`
 
 Out of scope:
 
-- Production secret-management behavior.
-- Live infrastructure validation.
-
-## Architecture Constraints
-
-- Keep production code unchanged unless the test proves a real product defect.
-- Preserve hexagonal boundaries.
-
-## Test Strategy
-
-Targeted:
-
-- `PYTHONPATH=src python -m unittest tests.application.services.deployment.test_secret_management`
-
-Required final:
-
-- `python3 tools/quality_gate.py test`
+- Product source changes.
+- Live infrastructure commands.
+- Push, PR creation, merge, or branch cleanup.
 
 ## Ordered Slices
 
-### Slice 01 - Fixture Path Hardening
+### Slice 01 - S2068 Test Literal Remediation
 
 Purpose:
 
-- Fix the Sonar S2083 finding with a validated temporary fixture writer and
-  record workflow evidence.
+- Remove hardcoded credential-looking URL literals from the affected domain
+  test while preserving the credential URL rejection scenarios.
 
 ```yaml
 slice_id: "01"
@@ -167,74 +122,90 @@ secondary_reviewers:
   - "Senior Tester"
   - "Senior System Architect"
 affected_files:
-  - "tests/application/services/deployment/test_secret_management.py"
+  - "tests/domain/network/test_port_forwarding_plan.py"
   - "documentation/workflow/workflow.md"
   - "documentation/workflow/context-pack.md"
   - "documentation/workflow/context-pack.json"
-  - ".codex/evidence/workflow-sonar-s2083-path-20260623/slice-01-distribution.md"
-  - ".codex/evidence/workflow-sonar-s2083-path-20260623/slice-01-consolidation.md"
+  - ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/slice-01-distribution.md"
+  - ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/slice-01-consolidation.md"
 affected_modules:
-  - "tests.application.services.deployment.test_secret_management"
+  - "tests.domain.network.test_port_forwarding_plan"
 affected_contracts:
-  - "secret-management regression fixture path"
+  - "port registry unsafe metadata rejection tests"
 dependencies: []
-parallel_group: "s2083"
+parallel_group: "serial-overlapping-test-file"
 file_locks:
-  - "tests/application/services/deployment/test_secret_management.py"
+  - "tests/domain/network/test_port_forwarding_plan.py"
   - "documentation/workflow/**"
-  - ".codex/evidence/workflow-sonar-s2083-path-20260623/**"
+  - ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/**"
 contract_locks:
-  - "secret-management fixture writing"
+  - "Sonar python:S2068 issue group AZ7kcUaJ8N9AxeIuoSBi/AZ7kcUaJ8N9AxeIuoSBj/AZ7kcUaJ8N9AxeIuoSBl"
 architecture_locks:
-  - "production code unchanged"
+  - "domain tests only; no production architecture change"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python -m unittest tests.application.services.deployment.test_secret_management"
+    - "PYTHONPATH=src python -m unittest tests.domain.network.test_port_forwarding_plan"
+    - "git diff --check"
   required:
     - "python3 tools/quality_gate.py test"
 documentation:
-  arc42: "No arc42 update required; test-only security hardening."
-  adr: "No ADR required."
+  arc42: "No arc42 update required; no architecture behavior changes."
+  adr: "No ADR required; test literal remediation only."
 stop_conditions:
-  - "Stop if production behavior must change."
-  - "Stop if the committed Pulsar compose fixture is no longer exercised."
+  - "Stop if the remediation weakens credential URL rejection coverage."
+  - "Stop if live infrastructure commands would be needed."
+  - "Stop if branch or worktree differs from the requested workflow branch."
 ```
 
-## Parallel Execution
+## S3/S3D Execution Decision
 
-- Can this workflow run in parallel? Yes, with other workflows that do not
-  touch this test file or active workflow files in the same worktree.
-- Conflicting workflows: other active-workflow documentation edits in the same
-  worktree.
-- Shared files: none with the S5527 or S2068 worktrees.
-- Shared infrastructure: none.
-- Requires isolated worktree: yes for parallel execution.
-- Requires serialized live validation: live validation is not allowed.
-- Merge-order constraints: merge independently after checks pass.
+- `S3_STATUS`: clean worktree required before implementation.
+- `S3_BRANCH`: active branch must be
+  `fix/workflow-sonar-s2068-port-forwarding-20260623`.
+- `S3_SCOPE`: only the files listed in scope are authorized.
+- `S3_CLASSIFY`: tests, quality, documentation.
+- `S3D`: one executable slice, no dependency cycle, overlapping issue lines in
+  one file, sequential execution required.
 
-## Automatic Work Distribution Policy
+## Automatic Work Distribution
 
-- Slice `01` runs sequentially in this branch because implementation and test
-  fixture evidence are tightly coupled.
-- Other SonarCloud issues are handled in separate worktrees where file locks
-  are disjoint.
-- Codex remains final integration owner.
+The three Sonar issues overlap in the same test file and share the same
+behavioral assertion. Parallel implementation streams are rejected because they
+would contend on `tests/domain/network/test_port_forwarding_plan.py`.
 
-## Git Worktree Execution Rule
+Read-only specialist review may run in parallel with workflow preparation, but
+write-capable implementation stays serial in this worktree.
 
-- Parallel work uses isolated worktrees and issue branches.
-- Subagents must not merge directly.
-- This branch may be published only through the guarded `push auto` lifecycle.
+## Quality Strategy
+
+Targeted:
+
+- `PYTHONPATH=src python -m unittest tests.domain.network.test_port_forwarding_plan`
+- `git diff --check`
+
+Required final when practical:
+
+- `python3 tools/quality_gate.py test`
 
 ## Definition Of Done
 
-- Targeted secret-management unittest passes.
-- Required quality gate is run or any blocker is reported.
-- Evidence records the SonarCloud finding and fix.
-- Follow-up SonarCloud API verification reports the issue absent or no longer
-  open after PR analysis.
+- The three hardcoded credential-looking URL literals are removed from the
+  affected test file.
+- The test still covers credential URL metadata rejection and URL-like
+  `route_host` rejection.
+- Targeted unittest passes.
+- `git diff --check` passes.
+- `python3 tools/quality_gate.py test` passes.
+- Evidence is written under
+  `.codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/`.
+- No push, PR, or merge is performed.
 
-## Handoff To Workflow Execute
+## Execution Outcome
 
-- Execute Slice `01`.
-- Do not run live infrastructure commands.
+- SonarCloud issues `AZ7kcUaJ8N9AxeIuoSBi`, `AZ7kcUaJ8N9AxeIuoSBj`, and
+  `AZ7kcUaJ8N9AxeIuoSBl` were handled as one serial issue group.
+- The affected test now constructs userinfo URLs through
+  `tests.support.sonar_safe_literals.sample_url` and `sample_text`.
+- No production code was changed.
+- Targeted unittest, repository test gate, and diff whitespace validation
+  passed.
