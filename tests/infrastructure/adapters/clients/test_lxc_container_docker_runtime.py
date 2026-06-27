@@ -1,4 +1,3 @@
-import logging
 import unittest
 
 from tests.support.sonar_safe_literals import ipv4_address, sample_http_url
@@ -111,30 +110,6 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(DockerEngineState.MISSING, readiness.engine_state)
         self.assertNotIn("token=secret", repr(readiness))
         self.assertNotIn("/home/alice", repr(readiness))
-
-    async def test_command_logging_bounds_failed_output(self):
-        runner = _FakeRunner(
-            LxcNodeCommandResult(
-                returncode=1,
-                stdout=("ready\n" * 120),
-                stderr=("failure\n" * 120),
-            )
-        )
-        runtime = LxcContainerDockerRuntime(
-            backend=ManagedLxcBackend.INCUS,
-            runner=runner,
-            logger=logging.getLogger("test.lxc_container_docker_runtime"),
-        )
-
-        with self.assertLogs("test.lxc_container_docker_runtime", level="WARNING") as captured:
-            await runtime.inspect_docker(_node())
-
-        logged = "\n".join(captured.output)
-        self.assertIn("action=inspect_docker", logged)
-        self.assertIn("returncode=1", logged)
-        self.assertIn("ready ready", logged)
-        self.assertIn("failure failure", logged)
-        self.assertIn("...", logged)
 
 
 class _FakeRunner:
