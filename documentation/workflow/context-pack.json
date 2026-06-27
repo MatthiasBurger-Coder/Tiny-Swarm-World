@@ -1,33 +1,89 @@
 {
-  "workflow": "workflow-sonar-s2068-port-forwarding-v1.0.0",
-  "workflow_id": "workflow-sonar-s2068-port-forwarding-20260623",
-  "branch": "fix/workflow-sonar-s2068-port-forwarding-20260623",
+  "workflow": "workflow-remove-netplan-repository-v1.0.0",
+  "workflow_id": "workflow-remove-netplan-repository-20260627",
+  "branch": "feature/workflow-remove-netplan-repository-20260627",
+  "created": "2026-06-27",
   "status": "EXECUTED_WITH_EVIDENCE",
   "execution_profile": "NORMAL_PATH",
-  "evidence_root": ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/",
+  "decision": "READY_FOR_WORKFLOW",
+  "evidence_root": ".codex/evidence/workflow-remove-netplan-repository-20260627/",
   "affected_areas": [
-    "tests/domain/network/test_port_forwarding_plan.py",
+    "src/tiny_swarm_world/infrastructure/adapters/repositories/netplan_repository.py",
+    "tests/infrastructure/adapters/repositories/test_netplan_repository.py",
+    "documentation/architecture/responsibility-separation-analysis.md",
+    "documentation/configuration/config-contract-inventory.md",
     "documentation/workflow/**",
-    ".codex/evidence/workflow-sonar-s2068-port-forwarding-20260623/**"
+    ".codex/evidence/workflow-remove-netplan-repository-20260627/**"
   ],
   "forbidden_areas": [
     "live infrastructure mutation",
-    "product source behavior changes",
+    "live netplan, LXD, Incus, LXC, Docker Swarm, compose, socat, or service bootstrap commands",
+    "broad removal of generic netplan safety references",
+    "Java, Maven, Spring Boot, Multipass reintroduction, or Kubernetes-first scope",
     "push, PR creation, merge, or branch cleanup"
+  ],
+  "required_roles": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Python Automation Developer",
+    "Senior React Frontend Developer",
+    "Senior Tester"
+  ],
+  "conditional_roles": [
+    "Senior Documentation Engineer",
+    "Senior DevOps Engineer",
+    "Security reviewer"
   ],
   "quality_commands": {
     "targeted": [
-      "PYTHONPATH=src python -m unittest tests.domain.network.test_port_forwarding_plan",
+      "rg -n \"PortNetplanRepositoryYaml|netplan_repository|GENERATED_NETPLAN_PATH|DEFAULT_NAMESERVERS\" src tests documentation infra README.md AGENTS.md QUALITY.md -g '!**/__pycache__/**'",
+      "python3 tools/quality_gate.py test",
       "git diff --check"
     ],
     "required": [
-      "python3 tools/quality_gate.py test"
+      "python3 tools/quality_gate.py quality"
     ]
   },
-  "sonar_issues": [
-    "AZ7kcUaJ8N9AxeIuoSBi",
-    "AZ7kcUaJ8N9AxeIuoSBj",
-    "AZ7kcUaJ8N9AxeIuoSBl"
+  "governing_hashes": {
+    "AGENTS.md": "335a60cd362e40090b09fdd9b982cfce87912aae",
+    "QUALITY.md": "17002150bab9f168eb60be85d55b7a0c1cb441e5",
+    "documentation/architecture/adr-retire-multipass-legacy-provider.adoc": "8652b1c7d1dcdb9dddd7ad3ce39c8796214009d3",
+    "documentation/system/network.adoc": "25f068878c3ac16377017a9df5a62d89d1d7766c",
+    "documentation/architecture/responsibility-separation-analysis.md": "123d76426e91bc2cec551cbee59a4fc0c9f95aee",
+    "src/tiny_swarm_world/infrastructure/adapters/repositories/netplan_repository.py": "removed-by-slice-02",
+    "tests/infrastructure/adapters/repositories/test_netplan_repository.py": "removed-by-slice-02"
+  },
+  "execution_result": {
+    "slice_01": "reference audit found no active product consumer",
+    "slice_02": "removed adapter and adapter-only tests",
+    "slice_03": "synchronized active documentation references",
+    "live_infrastructure_commands": "not run"
+  },
+  "slices": [
+    {
+      "slice_id": "01",
+      "name": "Reference Audit And Execution Evidence",
+      "dependencies": []
+    },
+    {
+      "slice_id": "02",
+      "name": "Remove Adapter And Adapter Tests",
+      "dependencies": [
+        "01"
+      ]
+    },
+    {
+      "slice_id": "03",
+      "name": "Documentation Sync And Quality Gate",
+      "dependencies": [
+        "02"
+      ]
+    }
   ],
-  "sonar_rule": "python:S2068"
+  "stale_when": [
+    "governing input hash changes",
+    "active branch changes",
+    "new imports of PortNetplanRepositoryYaml appear",
+    "documentation conflict requires ADR or arc42 changes"
+  ]
 }
