@@ -71,7 +71,7 @@ loading, schema checks, or explicit pass-through handling:
 | `infra/config/services.yml` | Service catalogue for selected stacks, phases, port IDs, readiness targets, and compatibility published ports. | Cross-file tests align it with desired inventory, service-stack contracts, installation phases, port registry IDs, and compose published-port classifications. |
 | `infra/config/health-checks.yaml` | Desired service-readiness check registry. | Tests align stack, phase, target ID, required services, evidence kind, and `live_default: false` with service contracts and service registry. |
 | `infra/config/validation-plan.yaml` | Greenpath validation evidence target plan. | Tests prove required targets cover health checks and missing/static evidence fails closed through `ValidationPlan`. |
-| `infra/config/cloud-init-manager.yaml` | Cloud-init manager configuration. | Legacy/specialized surface; include only after consumer ownership is verified. |
+| `infra/config/cloud-init-manager.yaml` | Retired legacy cloud-init/Netplan configuration data. | Archival compatibility surface only; no active repository consumer is verified. |
 | `infra/config/compose/*/docker-compose.yml` | Stack definitions and compose placeholders. | Parsed by compose repository tests for stack content, service names, and published ports; placeholder variables need inventory and template coverage. |
 | `infra/config/secrets/infisical-secrets.yaml` | Managed secret manifest for Infisical synchronization. | `SecretManifestRenderer` validates schema, duplicate keys, key pattern, type, and policy. |
 
