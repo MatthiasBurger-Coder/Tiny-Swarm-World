@@ -3,6 +3,8 @@ import tomllib
 import unittest
 from pathlib import Path
 
+import yaml
+
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
@@ -41,6 +43,15 @@ class TestPackageMetadata(unittest.TestCase):
         pyproject = tomllib.loads((REPOSITORY_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
         self.assertEqual(requirements, pyproject["project"]["dependencies"])
+
+    def test_environment_declares_ruff_quality_tool(self):
+        environment = yaml.safe_load((REPOSITORY_ROOT / "environment.yml").read_text(encoding="utf-8"))
+        conda_dependencies = [
+            dependency for dependency in environment["dependencies"] if isinstance(dependency, str)
+        ]
+
+        self.assertIn("ruff", conda_dependencies)
+        self.assertNotIn("flake8", conda_dependencies)
 
     def test_package_versions_are_aligned(self):
         pyproject = tomllib.loads((REPOSITORY_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
