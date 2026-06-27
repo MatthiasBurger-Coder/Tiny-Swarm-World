@@ -1,25 +1,36 @@
 {
-  "workflow": "workflow-remove-netplan-repository-v1.0.0",
-  "workflow_id": "workflow-remove-netplan-repository-20260627",
-  "branch": "feature/workflow-remove-netplan-repository-20260627",
+  "workflow": "workflow-project-paths-di-v1.0.0",
+  "workflow_id": "workflow-project-paths-di-20260627",
+  "branch": "architecture/workflow-project-paths-di-20260627",
   "created": "2026-06-27",
-  "status": "EXECUTED_WITH_EVIDENCE",
+  "status": "CREATED_READY_FOR_EXECUTION",
+  "evidence_root": ".codex/evidence/workflow-project-paths-di-20260627/",
+  "process_strand": "workflow create",
   "execution_profile": "NORMAL_PATH",
   "decision": "READY_FOR_WORKFLOW",
-  "evidence_root": ".codex/evidence/workflow-remove-netplan-repository-20260627/",
   "affected_areas": [
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/netplan_repository.py",
-    "tests/infrastructure/adapters/repositories/test_netplan_repository.py",
-    "documentation/architecture/responsibility-separation-analysis.md",
+    "src/tiny_swarm_world/infrastructure/project_paths.py",
+    "src/tiny_swarm_world/infrastructure/composition.py",
+    "src/tiny_swarm_world/infrastructure/adapters/file_management/**",
+    "src/tiny_swarm_world/infrastructure/adapters/repositories/**",
+    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py",
+    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py",
+    "src/tiny_swarm_world/infrastructure/logging/logger_factory.py",
+    "tests/infrastructure/**",
+    "tests/architecture/test_local_state_storage.py",
     "documentation/configuration/config-contract-inventory.md",
+    "documentation/architecture/responsibility-separation-analysis.md",
+    "documentation/arc42/05_building_blocks.adoc",
     "documentation/workflow/**",
-    ".codex/evidence/workflow-remove-netplan-repository-20260627/**"
+    ".codex/evidence/workflow-project-paths-di-20260627/**"
   ],
   "forbidden_areas": [
-    "live infrastructure mutation",
-    "live netplan, LXD, Incus, LXC, Docker Swarm, compose, socat, or service bootstrap commands",
-    "broad removal of generic netplan safety references",
-    "Java, Maven, Spring Boot, Multipass reintroduction, or Kubernetes-first scope",
+    "domain or application imports from infrastructure path configuration",
+    "live infrastructure commands",
+    "Java/Maven/Spring Boot reintroduction",
+    "browser React frontend work",
+    "broad DI-container rewrite",
+    "premature compatibility-function removal",
     "push, PR creation, merge, or branch cleanup"
   ],
   "required_roles": [
@@ -32,58 +43,76 @@
   "conditional_roles": [
     "Senior Documentation Engineer",
     "Senior DevOps Engineer",
+    "ADR Steward",
     "Security reviewer"
   ],
   "quality_commands": {
     "targeted": [
-      "rg -n \"PortNetplanRepositoryYaml|netplan_repository|GENERATED_NETPLAN_PATH|DEFAULT_NAMESERVERS\" src tests documentation infra README.md AGENTS.md QUALITY.md -g '!**/__pycache__/**'",
-      "python3 tools/quality_gate.py test",
+      "rg -n \"project_paths|ProjectPaths|TSW_REPOSITORY_ROOT|TSW_INFRA_ROOT|config_root\\\\(|infra_root\\\\(|repository_root\\\\(|logs_root\\\\(\" src tests documentation infra README.md AGENTS.md QUALITY.md",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_project_paths",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_command_repository_yaml_contract",
+      "PYTHONPATH=src python3 -m unittest tests.architecture.test_local_state_storage",
+      "python3 tools/quality_gate.py arch-tests",
       "git diff --check"
     ],
     "required": [
       "python3 tools/quality_gate.py quality"
     ]
   },
-  "governing_hashes": {
+  "governing_inputs": {
     "AGENTS.md": "335a60cd362e40090b09fdd9b982cfce87912aae",
     "QUALITY.md": "17002150bab9f168eb60be85d55b7a0c1cb441e5",
-    "documentation/architecture/adr-retire-multipass-legacy-provider.adoc": "8652b1c7d1dcdb9dddd7ad3ce39c8796214009d3",
-    "documentation/system/network.adoc": "25f068878c3ac16377017a9df5a62d89d1d7766c",
-    "documentation/architecture/responsibility-separation-analysis.md": "123d76426e91bc2cec551cbee59a4fc0c9f95aee",
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/netplan_repository.py": "removed-by-slice-02",
-    "tests/infrastructure/adapters/repositories/test_netplan_repository.py": "removed-by-slice-02"
-  },
-  "execution_result": {
-    "slice_01": "reference audit found no active product consumer",
-    "slice_02": "removed adapter and adapter-only tests",
-    "slice_03": "synchronized active documentation references",
-    "live_infrastructure_commands": "not run"
+    "documentation/epics/system-unification.md": "c46629b0ba95e8b0efc488548d0d9755663fcd9a",
+    "documentation/arc42/05_building_blocks.adoc": "3126d1f992c6cdabcda0dc701306bda1d4a9e6e7",
+    "documentation/arc42/08_concepts.adoc": "26209aebff8ee7aa7401b0981cdc9135f387db40",
+    "documentation/configuration/config-contract-inventory.md": "c86d3798e6704dca5832bc55824df96d1c0d11c1",
+    "documentation/architecture/responsibility-separation-analysis.md": "14b686b4afd34dc8e2c1e1af9320dc1d07e94437",
+    "src/tiny_swarm_world/infrastructure/project_paths.py": "949844b34b4333c108ea7350b2097114f45dfe39",
+    "src/tiny_swarm_world/infrastructure/composition.py": "b43d5c63320266bc574bc32a63c9b40e1dc710ef",
+    "src/tiny_swarm_world/infrastructure/dependency_injection/infra_core_di_container.py": "f6443574352f01235eceac90b7fe8a3f77e5f8bb"
   },
   "slices": [
     {
       "slice_id": "01",
-      "name": "Reference Audit And Execution Evidence",
-      "dependencies": []
+      "name": "Baseline Audit And Path Contract Tests",
+      "dependencies": [],
+      "parallel_group": "serial-path-config"
     },
     {
       "slice_id": "02",
-      "name": "Remove Adapter And Adapter Tests",
+      "name": "Add ProjectPaths And Compatibility Facade",
       "dependencies": [
         "01"
-      ]
+      ],
+      "parallel_group": "serial-path-config"
     },
     {
       "slice_id": "03",
-      "name": "Documentation Sync And Quality Gate",
+      "name": "Wire ProjectPaths Through Composition And Adapters",
       "dependencies": [
         "02"
-      ]
+      ],
+      "parallel_group": "serial-path-config"
+    },
+    {
+      "slice_id": "04",
+      "name": "Documentation Sync And Final Quality Gate",
+      "dependencies": [
+        "03"
+      ],
+      "parallel_group": "serial-path-config"
     }
   ],
-  "stale_when": [
+  "branch_evidence": {
+    "show_ref": "ref-ok",
+    "active_branch": "architecture/workflow-project-paths-di-20260627"
+  },
+  "staleness_conditions": [
     "governing input hash changes",
     "active branch changes",
-    "new imports of PortNetplanRepositoryYaml appear",
-    "documentation conflict requires ADR or arc42 changes"
+    "new direct project_paths.py users outside infrastructure/tests/documentation appear",
+    "documentation conflict requires ADR",
+    "QUALITY.md changes quality commands"
   ]
 }
