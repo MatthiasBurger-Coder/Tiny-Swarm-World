@@ -75,14 +75,15 @@ cluster substrate.
   compatibility namespace for the incremental platform boundary migration
 - `src/tiny_swarm_world/application/services/vm`
 - `src/tiny_swarm_world/application/ports/repositories/port_vm_repository.py`
-- `src/tiny_swarm_world/application/ports/repositories/port_yaml_repository.py`
-  when used for netplan repository behavior
 - `src/tiny_swarm_world/infrastructure/adapters/repositories/vm_repository_yaml.py`
-- `src/tiny_swarm_world/infrastructure/adapters/repositories/netplan_repository.py`
+- former `src/tiny_swarm_world/infrastructure/adapters/repositories/netplan_repository.py`
+  retired after verification found no active product consumer
 
 ### Infrastructure Assets
 
 - `infra/config/cloud-init-manager.yaml`
+  retained as archival legacy Netplan/cloud-init configuration data; not an
+  active generated repository surface
 - former `infra/config/multipass` (superseded)
 - `infra/config/docker/command_multipass_docker_install_yaml.yaml`
 - `infra/config/docker/command_multipass_docker_prepare_repository_yaml.yaml`
