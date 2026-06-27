@@ -75,7 +75,8 @@ cluster substrate.
   compatibility namespace for the incremental platform boundary migration
 - `src/tiny_swarm_world/application/services/vm`
 - `src/tiny_swarm_world/application/ports/repositories/port_vm_repository.py`
-- `src/tiny_swarm_world/infrastructure/adapters/repositories/vm_repository_yaml.py`
+- former `src/tiny_swarm_world/infrastructure/adapters/repositories/vm_repository_yaml.py`
+  retired after verification found no active product consumer
 - former `src/tiny_swarm_world/infrastructure/adapters/repositories/netplan_repository.py`
   retired after verification found no active product consumer
 
