@@ -186,6 +186,9 @@ artifact, or deployment decisions.
 - `src/tiny_swarm_world/infrastructure/dependency_injection`
 - `src/tiny_swarm_world/infrastructure/logging`
 - `src/tiny_swarm_world/infrastructure/project_paths.py`
+  now owns the immutable `ProjectPaths` value object, environment-backed
+  default construction, and compatibility functions for repository-relative
+  paths used by infrastructure adapters.
 - `src/tiny_swarm_world/infrastructure/os_types.py`
 - `src/tiny_swarm_world/infrastructure/composition.py`
   now exposes `build_platform_services()` and keeps

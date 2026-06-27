@@ -4,7 +4,7 @@ Version: `workflow-project-paths-di-v1.0.0`
 Workflow ID: `workflow-project-paths-di-20260627`
 Created: `2026-06-27`
 Branch: `architecture/workflow-project-paths-di-20260627`
-Status: `CREATED_READY_FOR_EXECUTION`
+Status: `EXECUTED_WITH_EVIDENCE`
 Evidence Root: `.codex/evidence/workflow-project-paths-di-20260627/`
 
 ## Executive Summary
@@ -667,6 +667,20 @@ Run `workflow execute` only after confirming:
 - workflow status: `CREATED_READY_FOR_EXECUTION`
 - context pack hashes are current
 - no unrelated working-tree changes exist
+
+## Execution Outcome
+
+- Slice 01 added focused tests for existing project path contract behavior and
+  recorded baseline reference evidence.
+- Slice 02 introduced immutable `ProjectPaths`, `from_roots`,
+  `from_environment`, and `default_project_paths` while keeping compatibility
+  helper functions active.
+- Slice 03 migrated targeted infrastructure adapters and composition builders
+  to optional `ProjectPaths` injection. Domain and application layers remain
+  independent from infrastructure path configuration.
+- Slice 04 synchronized configuration, responsibility, arc42, workflow, and
+  context-pack documentation and ran the final quality gate.
+- No live infrastructure command was run.
 
 ## arc42 Check Status
 

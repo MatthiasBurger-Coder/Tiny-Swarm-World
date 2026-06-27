@@ -4,7 +4,7 @@ Workflow: `workflow-project-paths-di-v1.0.0`
 Workflow ID: `workflow-project-paths-di-20260627`
 Branch: `architecture/workflow-project-paths-di-20260627`
 Created: `2026-06-27`
-Status: `CREATED_READY_FOR_EXECUTION`
+Status: `EXECUTED_WITH_EVIDENCE`
 Evidence Root: `.codex/evidence/workflow-project-paths-di-20260627/`
 
 ## Purpose
@@ -86,13 +86,22 @@ Required final:
 | `AGENTS.md` | `335a60cd362e40090b09fdd9b982cfce87912aae` |
 | `QUALITY.md` | `17002150bab9f168eb60be85d55b7a0c1cb441e5` |
 | `documentation/epics/system-unification.md` | `c46629b0ba95e8b0efc488548d0d9755663fcd9a` |
-| `documentation/arc42/05_building_blocks.adoc` | `3126d1f992c6cdabcda0dc701306bda1d4a9e6e7` |
+| `documentation/arc42/05_building_blocks.adoc` | `94676ffcd8f62b447d1a44df1e6c115e0055f663` |
 | `documentation/arc42/08_concepts.adoc` | `26209aebff8ee7aa7401b0981cdc9135f387db40` |
-| `documentation/configuration/config-contract-inventory.md` | `c86d3798e6704dca5832bc55824df96d1c0d11c1` |
-| `documentation/architecture/responsibility-separation-analysis.md` | `14b686b4afd34dc8e2c1e1af9320dc1d07e94437` |
-| `src/tiny_swarm_world/infrastructure/project_paths.py` | `949844b34b4333c108ea7350b2097114f45dfe39` |
-| `src/tiny_swarm_world/infrastructure/composition.py` | `b43d5c63320266bc574bc32a63c9b40e1dc710ef` |
+| `documentation/configuration/config-contract-inventory.md` | `487f2d987a7051a31210f3bd6c2aa13b59057f80` |
+| `documentation/architecture/responsibility-separation-analysis.md` | `f0106e7456f96a5ed6b9c9f75b7aee7ea1469a8e` |
+| `src/tiny_swarm_world/infrastructure/project_paths.py` | `777923ad14fde59bfdc49c0794c52cceaebaa458` |
+| `src/tiny_swarm_world/infrastructure/composition.py` | `5475373612d26eca886cce6e5e18e345cfa0f3eb` |
 | `src/tiny_swarm_world/infrastructure/dependency_injection/infra_core_di_container.py` | `f6443574352f01235eceac90b7fe8a3f77e5f8bb` |
+
+## Execution Result
+
+- Slice 01 recorded path contract baseline tests.
+- Slice 02 added immutable `ProjectPaths` and compatibility facade delegation.
+- Slice 03 wired `ProjectPaths` into targeted infrastructure adapters through
+  the composition root.
+- Slice 04 synchronized documentation and final quality evidence.
+- Live infrastructure commands were not run.
 
 ## Branch Evidence
 

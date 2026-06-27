@@ -30,8 +30,8 @@ The current configuration surface is spread across these repository areas:
 - `src/tiny_swarm_world/application/services/deployment/secret_management.py`:
   secret manifest loading, redaction, local generated-secret file handling, and
   tracked-file secret discovery.
-- `src/tiny_swarm_world/infrastructure/project_paths.py`: repository and infra
-  root overrides.
+- `src/tiny_swarm_world/infrastructure/project_paths.py`: immutable
+  `ProjectPaths` construction plus repository and infra root overrides.
 - `src/tiny_swarm_world/infrastructure/adapters/clients/infisical_cli_client.py`:
   Infisical URL, token, login email, and bootstrap password reads.
 - `infra/config/compose/**/docker-compose.yml`: compose-time environment
@@ -128,8 +128,8 @@ logic. Defaults are listed only when visible from committed source.
 | `TSW_INFISICAL_ADMIN_LAST_NAME` | `Admin` | Optional | text | `composition.py`, compose |
 | `TSW_INFISICAL_TOKEN` | none | Optional | secret token | `infisical_cli_client.py` |
 | `TSW_INFISICAL_BOOTSTRAP_TOKEN` | generated at runtime | Optional | secret token | `infisical_cli_client.py` |
-| `TSW_REPOSITORY_ROOT` | current/project root detection | Optional | path | `project_paths.py` |
-| `TSW_INFRA_ROOT` | `infra` under repository root | Optional | path | `project_paths.py` |
+| `TSW_REPOSITORY_ROOT` | repository root used by `ProjectPaths.from_environment()` | Optional | path | `project_paths.py` |
+| `TSW_INFRA_ROOT` | infra root used by `ProjectPaths.from_environment()` | Optional | path | `project_paths.py` |
 | `TSW_LIVE_INFRASTRUCTURE_CONSENT` | none | Required only for live mutation | consent token | `live_consent.py`, docs |
 
 ## Compose Placeholder Overrides
