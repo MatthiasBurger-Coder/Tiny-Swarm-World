@@ -866,6 +866,21 @@ services:
                     labels,
                 )
 
+    def test_committed_service_stack_route_labels_are_renderer_owned(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_root = repository_root / "infra" / "config" / "compose"
+
+        for compose_path in sorted(compose_root.glob("*/docker-compose.yml")):
+            if compose_path.parent.name == "traefik":
+                continue
+            with self.subTest(compose_path=compose_path.as_posix()):
+                raw_compose = compose_path.read_text(encoding="utf-8")
+
+                self.assertNotIn("traefik.enable=", raw_compose)
+                self.assertNotIn("traefik.swarm.network=", raw_compose)
+                self.assertNotIn("traefik.http.routers.", raw_compose)
+                self.assertNotIn("traefik.http.services.", raw_compose)
+
     def test_service_access_dashboard_and_nginx_are_image_packaged(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_data = YAML(typ="safe").load(

@@ -24,8 +24,12 @@ services:
       password_source: "generated_local_secret"
     endpoint:
       internal_url: "http://infisical:8080"
-      external_url: "http://localhost:8086"
+      external_url: "http://localhost:17080"
 ----
+
+The preferred operator browser route is `https://infisical.tsw.local` through
+Traefik. The direct `http://localhost:17080` endpoint is retained as diagnostic
+or compatibility access for bootstrap and recovery workflows.
 
 == Required Environment
 
@@ -60,7 +64,7 @@ The installer runs the official CLI bootstrap behavior equivalent to:
 [source,bash]
 ----
 infisical bootstrap \
-  --domain=http://localhost:8086 \
+  --domain=http://localhost:17080 \
   --email=admin@tiny-swarm.local \
   --password=<redacted> \
   --organization="Tiny Swarm World" \

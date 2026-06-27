@@ -19,13 +19,6 @@ services:
         mode: host
     deploy:
       replicas: 1
-      labels:
-        - traefik.enable=true
-        - traefik.swarm.network=traefik_ingress
-        - traefik.http.routers.jenkins.rule=Host(`jenkins.tsw.local`)
-        - traefik.http.routers.jenkins.entrypoints=websecure
-        - traefik.http.routers.jenkins.tls=true
-        - traefik.http.services.jenkins.loadbalancer.server.port=8080
       placement:
         constraints:
           - node.role == manager

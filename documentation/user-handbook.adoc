@@ -214,29 +214,32 @@ deployment, use the Service Access landing page as the operator start page:
 
 [source,text]
 ----
-http://localhost:10000
+https://service-access.tsw.local
 ----
 
-Common local service routes and ports are:
+Common preferred local service routes are:
 
 [options="header"]
 |===
-| Service | Default route or port | Notes
-| Service Access | `http://localhost:10000` | Static management table with service links and Infisical item references.
-| Infisical | `http://localhost:17080` | Secret-management UI for authorized operators.
-| Portainer | `http://localhost:10001` | Deployment gateway after bootstrap.
-| Nexus | `http://localhost:13081` | Repository service and Docker proxy behavior.
-| Jenkins | `http://localhost:11080` | CI service.
-| Pulsar | `http://localhost:14081` | Pulsar Manager UI; use the `platform/pulsar-manager` Infisical item for the UI password.
-| Pulsar Admin API | `http://localhost:14080/admin/v2/clusters` | Token-authenticated Admin API for local standalone broker; use the `platform/pulsar` Infisical item for the bearer token.
-| SonarQube | `http://localhost:12000` | Static analysis service.
-| Swagger/NGINX | `http://localhost:16080` | API documentation surface.
+| Service | Preferred route | Notes
+| Service Access | `https://service-access.tsw.local` | Generated management table with service links and Infisical item references.
+| Infisical | `https://infisical.tsw.local` | Secret-management UI for authorized operators.
+| Portainer | `https://portainer.tsw.local` | Deployment gateway after bootstrap.
+| Nexus | `https://nexus.tsw.local` | Repository service and Docker proxy behavior.
+| Jenkins | `https://jenkins.tsw.local` | CI service.
+| Pulsar | `https://pulsar.tsw.local` | Pulsar Manager UI; use the `platform/pulsar-manager` Infisical item for the UI password.
+| Pulsar Admin API | `https://pulsar-api.tsw.local/admin/v2/clusters` | Token-authenticated Admin API for local standalone broker; use the `platform/pulsar` Infisical item for the bearer token.
+| SonarQube | `https://sonarqube.tsw.local` | Static analysis service.
+| Swagger/NGINX | `https://swagger.tsw.local` | API documentation surface.
 | Traefik | ports `80` and `443` | Ingress owner for the service-access setup profile.
 |===
 
-Localhost reachability depends on the selected provider, LXC profile proxy
-state, WSL forwarding, and verified stack deployment. Treat route defaults as
-operator targets, not proof that a service is healthy.
+Direct localhost ports such as `10000`, `10001`, `11080`, `12000`, `13081`,
+`14080`, `14081`, `16081`, and `17080` are diagnostic or compatibility access.
+They are not the preferred Service Access links. Localhost reachability depends
+on the selected provider, LXC profile proxy state, WSL forwarding, and verified
+stack deployment. Treat route defaults as operator targets, not proof that a
+service is healthy.
 
 == Get Infisical Credentials
 
@@ -268,8 +271,11 @@ the configured Infisical route. The default external URL is:
 
 [source,text]
 ----
-http://localhost:8086
+https://infisical.tsw.local
 ----
+
+The direct `http://localhost:17080` URL remains a diagnostic compatibility
+target when provider forwarding exposes it.
 
 The installer also writes Infisical runtime bootstrap material to:
 

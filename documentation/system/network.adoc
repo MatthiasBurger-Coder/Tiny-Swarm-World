@@ -87,7 +87,7 @@ Use these checks before debugging application services:
 docker info
 docker node ls
 docker service ls
-curl -s http://localhost:9000
+curl -k -s https://portainer.tsw.local
 ----
 
 `docker node ls` and `docker service ls` require a Docker Swarm manager

@@ -12,13 +12,6 @@ services:
       placement:
         constraints:
           - node.role == manager
-      labels:
-        - traefik.enable=true
-        - traefik.swarm.network=traefik_ingress
-        - traefik.http.routers.service-access.rule=Host(`service-access.tsw.local`)
-        - traefik.http.routers.service-access.entrypoints=websecure
-        - traefik.http.routers.service-access.tls=true
-        - traefik.http.services.service-access.loadbalancer.server.port=80
 
   service-access-nginx:
     image: ${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:13500/service-access-nginx:latest}

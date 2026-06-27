@@ -15,13 +15,6 @@ services:
     deploy:
       mode: replicated # Nur den Portainer-Service als Replikat bereitstellen
       replicas: 1
-      labels:
-        - traefik.enable=true
-        - traefik.swarm.network=traefik_ingress
-        - traefik.http.routers.portainer.rule=Host(`portainer.tsw.local`)
-        - traefik.http.routers.portainer.entrypoints=websecure
-        - traefik.http.routers.portainer.tls=true
-        - traefik.http.services.portainer.loadbalancer.server.port=9000
       placement:
         constraints:
           - node.role == manager

@@ -32,13 +32,6 @@ services:
       - traefik_ingress
     deploy:
       replicas: 1
-      labels:
-        - traefik.enable=true
-        - traefik.swarm.network=traefik_ingress
-        - traefik.http.routers.sonarqube.rule=Host(`sonarqube.tsw.local`)
-        - traefik.http.routers.sonarqube.entrypoints=websecure
-        - traefik.http.routers.sonarqube.tls=true
-        - traefik.http.services.sonarqube.loadbalancer.server.port=9000
       placement:
         constraints:
           - node.role == manager
