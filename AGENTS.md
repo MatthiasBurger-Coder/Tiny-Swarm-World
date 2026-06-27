@@ -287,9 +287,14 @@ authoritative skill entrypoints.
 - Classify failures through the Typed Error Router before retries.
 - Slice checkpoint push is not `push auto` and must not create or merge a pull
   request.
+- Workflow-create publication is not `push auto`; after `workflow create`, the
+  default publication action is a guarded commit and branch push to
+  `origin/<workflow-branch>` without PR merge, branch deletion, or cleanup.
 - Exact `push auto` may publish and automatically merge any task-scoped
-  repository change, including Python product code and Python
-  product-behavior tests.
+  implementation change, including Python product code and Python
+  product-behavior tests. It is blocked for workflow-create-only branches
+  unless the user explicitly confirms a workflow-documentation-only PR merge
+  after the workflow-create guard is reported.
 - `push auto` must run the full guarded lifecycle: create the commit, push the
   branch, create or reuse a pull request, wait or retry until required checks
   are green including SonarQube when configured, merge the pull request, delete

@@ -28,8 +28,14 @@ Use this process when the user requests `workflow create`.
 8. Add the required `## Git Worktree Execution Rule` section to every
    executable workflow so parallel stream work uses isolated worktrees and
    branches named `<workflow-branch>-slice-<number>-<stream>`.
-9. Verify that `documentation/workflow/workflow.md` and relevant `documentation/arc42` updates exist before releasing `workflow execute`.
+9. Commit the completed workflow-authoring artifacts and push only `HEAD` to
+   `origin/<workflow-branch>` as guarded workflow-create publication.
+10. Do not run `push auto` for workflow-create-only output. Stop before PR
+    merge, remote branch deletion or local cleanup unless the user explicitly
+    confirms a workflow-documentation-only PR merge after the workflow-create
+    guard is reported.
+11. Verify that `documentation/workflow/workflow.md` and relevant `documentation/arc42` updates exist before releasing `workflow execute`.
 
 ## Stop Conditions
 
-Stop when requirement ownership, branch safety, architecture impact, quality commands, or workflow artifact paths cannot be verified.
+Stop when requirement ownership, branch safety, architecture impact, quality commands, workflow artifact paths, or guarded workflow-create publication cannot be verified.

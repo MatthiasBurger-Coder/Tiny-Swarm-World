@@ -45,10 +45,15 @@ Coordinate small implementation slices across roles while preserving architectur
   checkpoint push.
 
 The strands must not be mixed. Slice checkpoint push is not `push auto`.
-`push auto` may publish and merge any task-scoped repository change, including
-Python product code and Python product-behavior tests, only through the guarded
-commit, pull request, green required-checks, SonarQube when configured, merge
-and cleanup lifecycle.
+Workflow-create publication is not `push auto`; it commits and pushes the
+workflow branch without automatic PR merge, branch deletion or cleanup.
+`push auto` may publish and merge task-scoped implementation changes,
+including Python product code and Python product-behavior tests, only through
+the guarded commit, pull request, green required-checks, SonarQube when
+configured, merge and cleanup lifecycle. For workflow-create-only branches,
+`push auto` stops unless the user explicitly confirms a
+workflow-documentation-only PR merge after the workflow-create guard is
+reported.
 
 ## Execution Profile Routing
 
