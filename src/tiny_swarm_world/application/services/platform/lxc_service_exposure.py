@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from tiny_swarm_world.application.ports.node_provider import (
@@ -50,12 +51,14 @@ class LxcServiceExposureService:
         manager_profile_name: str,
         setup_manifest: SetupManifest,
         listen_address: str,
+        logger: logging.Logger | None = None,
     ) -> None:
         self.runtime = runtime
         self.gateway_node = gateway_node
         self.manager_profile_name = manager_profile_name
         self.setup_manifest = setup_manifest
         self.listen_address = listen_address
+        self.logger = logger or logging.getLogger(self.__class__.__name__)
 
     async def ensure_service_exposure(self) -> VerificationResult:
         plans = _plans_from_manifest(
@@ -123,23 +126,65 @@ class LxcServiceExposureService:
         update_failure_count = 0
 
         for plan in plans:
+            self.logger.info(
+                "lxc_proxy_exposure inspect profile=%s device=%s service=%s listen=%s target=%s",
+                self.manager_profile_name,
+                plan.device_name,
+                plan.service,
+                plan.listen_endpoint,
+                plan.target_endpoint,
+            )
             state = await self.runtime.inspect_proxy_device(self.manager_profile_name, plan)
+            self.logger.info(
+                "lxc_proxy_exposure inspected profile=%s device=%s state=%s",
+                self.manager_profile_name,
+                plan.device_name,
+                state.value,
+            )
             if state == LxcProxyDeviceState.PRESENT:
                 existing_count += 1
                 continue
             if state == LxcProxyDeviceState.UNKNOWN:
                 lookup_failure_count += 1
+                self.logger.warning(
+                    "lxc_proxy_exposure lookup_failed profile=%s device=%s service=%s",
+                    self.manager_profile_name,
+                    plan.device_name,
+                    plan.service,
+                )
                 continue
             if state == LxcProxyDeviceState.DRIFTED:
                 if await self.runtime.update_proxy_device(self.manager_profile_name, plan):
                     updated_count += 1
+                    self.logger.info(
+                        "lxc_proxy_exposure updated profile=%s device=%s",
+                        self.manager_profile_name,
+                        plan.device_name,
+                    )
                 else:
                     update_failure_count += 1
+                    self.logger.error(
+                        "lxc_proxy_exposure update_failed profile=%s device=%s service=%s",
+                        self.manager_profile_name,
+                        plan.device_name,
+                        plan.service,
+                    )
                 continue
             if await self.runtime.create_proxy_device(self.manager_profile_name, plan):
                 created_count += 1
+                self.logger.info(
+                    "lxc_proxy_exposure created profile=%s device=%s",
+                    self.manager_profile_name,
+                    plan.device_name,
+                )
             else:
                 create_failure_count += 1
+                self.logger.error(
+                    "lxc_proxy_exposure create_failed profile=%s device=%s service=%s",
+                    self.manager_profile_name,
+                    plan.device_name,
+                    plan.service,
+                )
 
         return LxcServiceExposureSummary(
             plans=plans,

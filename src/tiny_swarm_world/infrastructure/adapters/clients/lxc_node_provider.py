@@ -6,6 +6,7 @@ import re
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
+from logging import Logger
 from typing import Literal, Protocol
 
 from ruamel.yaml import YAML
@@ -29,6 +30,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
     NodeProviderProfileRequirement,
     ProviderResourceResolution,
 )
+from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 DEFAULT_LXC_LAUNCH_TIMEOUT_SECONDS = 300.0
@@ -114,6 +116,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         teardown_timeout_seconds: float = DEFAULT_LXC_TEARDOWN_TIMEOUT_SECONDS,
         image_references: Mapping[str, str] | None = None,
         allow_live_mutation: bool = False,
+        logger: Logger | None = None,
     ):
         if launch_timeout_seconds <= 0:
             raise ValueError("LXC launch timeout must be positive.")
@@ -131,6 +134,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             **DEFAULT_LXC_IMAGE_REFERENCES,
             **dict(image_references or {}),
         }
+        self.logger = logger or LoggerFactory.get_logger(self.__class__.__name__)
 
     async def verify_node(
         self,
@@ -269,6 +273,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             ),
             self.launch_timeout_seconds,
         )
+        self._log_command_result("launch", node, backend, launch_result)
         if _command_failed(launch_result):
             return await self._handle_launch_failure(
                 node,
@@ -307,6 +312,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             ),
             float(config.verification_metadata.readiness_timeout_seconds),
         )
+        self._log_command_result("image_info", node, backend, result)
         if not _command_failed(result):
             return None
         return _blocked(
@@ -709,6 +715,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             _profile_create_args(backend, profile.name),
             float(config.verification_metadata.readiness_timeout_seconds),
         )
+        self._log_command_result("profile_create", node, backend, create_result)
         if _command_failed(create_result):
             return _profile_apply_failed(
                 node,
@@ -749,6 +756,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 _profile_set_args(backend, profile.name, key, value),
                 float(config.verification_metadata.readiness_timeout_seconds),
             )
+            self._log_command_result("profile_set", node, backend, set_result)
             if _command_failed(set_result):
                 return _profile_apply_failed(
                     node,
@@ -764,6 +772,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             _profile_show_args(backend, profile.name),
             float(config.verification_metadata.readiness_timeout_seconds),
         )
+        self._log_command_result("profile_show", node, backend, verify_result)
         if _command_failed(verify_result):
             return _profile_verify_failed(
                 node,
@@ -855,6 +864,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             _start_args(backend, node.name),
             self.start_timeout_seconds,
         )
+        self._log_command_result("start", node, backend, start_result)
         if _command_failed(start_result):
             return _apply_failed(
                 node,
@@ -880,6 +890,25 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 timed_out=verify.timed_out,
             )
         return _verified(node, backend, "started")
+
+    def _log_command_result(
+        self,
+        action: str,
+        node: NodeSpec,
+        backend: ManagedLxcBackend,
+        result: LxcNodeCommandResult,
+    ) -> None:
+        log = self.logger.warning if _command_failed(result) else self.logger.info
+        log(
+            "lxc_node_provider action=%s backend=%s node=%s returncode=%s timed_out=%s stdout=%s stderr=%s",
+            action,
+            backend.value,
+            node.name,
+            result.returncode,
+            str(result.timed_out).lower(),
+            _safe_log_text(result.stdout),
+            _safe_log_text(result.stderr),
+        )
 
     async def _handle_existing_node(
         self,
@@ -2115,3 +2144,10 @@ def _safe_process_text(value: bytes | str | None) -> str:
     if isinstance(value, bytes):
         return value.decode("utf-8", errors="ignore")
     return value
+
+
+def _safe_log_text(value: str, limit: int = 400) -> str:
+    collapsed = " ".join(value.split())
+    if len(collapsed) <= limit:
+        return collapsed
+    return f"{collapsed[:limit]}..."

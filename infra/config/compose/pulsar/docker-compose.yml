@@ -66,6 +66,8 @@ services:
         published: 14081
         protocol: tcp
         mode: host
+    volumes:
+      - pulsar-manager-data:/pulsar-manager/pulsar-manager/dbdata
     networks:
       - service_access_link
     deploy:
@@ -185,6 +187,7 @@ services:
 
 volumes:
   pulsar-data:
+  pulsar-manager-data:
 
 networks:
   service_access_link:

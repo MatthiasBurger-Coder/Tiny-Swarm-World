@@ -265,7 +265,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         check: bool = True,
         input_text: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
-        self.logger.info("Running LXC manager shell operation.")
+        self.logger.info("Running LXC manager shell operation script=%s", _safe_log_text(script))
         try:
             result = subprocess.run(
                 [_BACKEND_CLI[self.backend], "exec", self.manager_node, "--", "sh", "-lc", script],
@@ -278,6 +278,13 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             )
         except subprocess.TimeoutExpired as exc:
             raise RuntimeError("LXC manager Swarm operation timed out.") from exc
+        log = self.logger.warning if result.returncode != 0 else self.logger.info
+        log(
+            "lxc_swarm_runtime manager_shell_result returncode=%s stdout=%s stderr=%s",
+            result.returncode,
+            _safe_log_text(result.stdout),
+            _safe_log_text(result.stderr),
+        )
         if check and result.returncode != 0:
             raise RuntimeError(
                 f"LXC manager Swarm operation failed with exit code {result.returncode}."
@@ -1076,3 +1083,10 @@ def _quote_remote_path(path: str) -> str:
     if path.startswith(REMOTE_WORKDIR_PREFIX):
         return f"{REMOTE_WORKDIR_PREFIX}{shlex.quote(path.removeprefix(REMOTE_WORKDIR_PREFIX))}"
     return shlex.quote(path)
+
+
+def _safe_log_text(value: str, limit: int = 500) -> str:
+    collapsed = " ".join(value.split())
+    if len(collapsed) <= limit:
+        return collapsed
+    return f"{collapsed[:limit]}..."

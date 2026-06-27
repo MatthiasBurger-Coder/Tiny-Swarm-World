@@ -170,7 +170,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             "http://localhost:12000/",
             "http://localhost:13081/",
             "http://localhost:14080/admin/v2/clusters",
-            "http://localhost:14081/",
+            "http://localhost:14081/#/environments",
             "http://localhost:16080/",
             "http://localhost:17080/",
         ):

@@ -214,7 +214,10 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
                 self.assertFalse(parsed.username)
                 self.assertFalse(parsed.password)
                 self.assertFalse(parsed.query)
-                self.assertFalse(parsed.fragment)
+                if check.name == "service-access-route:pulsar":
+                    self.assertEqual("/environments", parsed.fragment)
+                else:
+                    self.assertFalse(parsed.fragment)
 
     def test_live_service_checks_use_allocated_dashboard_ports(self) -> None:
         checks = _service_checks("http://localhost")
@@ -1471,7 +1474,7 @@ def _validated_local_url(raw_url: str, purpose: str) -> str:
         or parsed.username
         or parsed.password
         or parsed.query
-        or parsed.fragment
+        or (parsed.fragment and purpose != "dashboard")
         or port is not None
         and not 1 <= port <= 65535
     ):

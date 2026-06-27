@@ -968,7 +968,7 @@ services:
                 "http://localhost:12000",
                 "http://localhost:13081",
                 "http://localhost:14080/admin/v2/clusters",
-                "http://localhost:14081",
+                "http://localhost:14081/#/environments",
                 "http://localhost:16080",
                 "http://localhost:17080",
             },
@@ -979,7 +979,10 @@ services:
             self.assertFalse(parsed.username)
             self.assertFalse(parsed.password)
             self.assertEqual("", parsed.query)
-            self.assertEqual("", parsed.fragment)
+            if link == "http://localhost:14081/#/environments":
+                self.assertEqual("/environments", parsed.fragment)
+            else:
+                self.assertEqual("", parsed.fragment)
         for forbidden_link in (
             "http://localhost:8085",
             "http://localhost:10000/jenkins",
