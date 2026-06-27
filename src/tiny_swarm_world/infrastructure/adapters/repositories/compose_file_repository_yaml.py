@@ -2,6 +2,7 @@ import re
 from collections.abc import Mapping
 from io import StringIO
 from pathlib import Path
+from typing import Any, cast
 
 from ruamel.yaml import YAML
 
@@ -10,6 +11,7 @@ from tiny_swarm_world.domain.deployment.stack_definition import (
     ComposeServiceDefinition,
     StackDefinition,
 )
+from tiny_swarm_world.domain.ingress import DesiredHttpsRoute, desired_https_ingress_for_profile
 from tiny_swarm_world.domain.network import PortRegistry, ServicePortMapping
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
@@ -50,6 +52,11 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
                     stack_name,
                     compose_content,
                     self.port_registry,
+                )
+                compose_content = _resolve_traefik_route_labels(
+                    stack_name,
+                    compose_content,
+                    desired_https_ingress_for_profile().routes,
                 )
                 self.logger.info("Loaded compose file for stack '%s'.", stack_name)
                 return StackDefinition(
@@ -183,6 +190,88 @@ def _resolve_direct_published_ports(
     yaml.default_flow_style = False
     yaml.dump(payload, sink)
     return sink.getvalue()
+
+
+def _resolve_traefik_route_labels(
+    stack_name: str,
+    compose_content: str,
+    routes: tuple[DesiredHttpsRoute, ...],
+) -> str:
+    payload = _YAML.load(compose_content) or {}
+    if not isinstance(payload, Mapping):
+        return compose_content
+    services = payload.get("services")
+    if not isinstance(services, Mapping):
+        return compose_content
+
+    route_by_upstream = {route.upstream_service: route for route in routes}
+    mutated = False
+    for service_name, service_payload in services.items():
+        if not isinstance(service_name, str) or not isinstance(service_payload, dict):
+            continue
+        route = route_by_upstream.get(service_name)
+        if route is None:
+            continue
+        networks = service_payload.setdefault("networks", [])
+        if isinstance(networks, list) and "traefik_ingress" not in networks:
+            networks.append("traefik_ingress")
+            mutated = True
+        deploy = service_payload.setdefault("deploy", {})
+        if not isinstance(deploy, dict):
+            continue
+        labels = deploy.setdefault("labels", [])
+        if not isinstance(labels, list):
+            continue
+        router_name = _router_name_for(route)
+        rendered_labels = _traefik_labels_for_route(route, router_name)
+        retained_labels = [
+            label
+            for label in labels
+            if not (
+                isinstance(label, str)
+                and (
+                    label.startswith("traefik.enable=")
+                    or label.startswith("traefik.swarm.network=")
+                    or label.startswith(f"traefik.http.routers.{router_name}.")
+                    or label.startswith(f"traefik.http.services.{router_name}.")
+                )
+            )
+        ]
+        new_labels = retained_labels + rendered_labels
+        if labels != new_labels:
+            deploy["labels"] = new_labels
+            mutated = True
+
+    if not mutated:
+        return compose_content
+    mutable_payload = cast(dict[str, Any], payload)
+    if "traefik_ingress" not in mutable_payload.get("networks", {}):
+        networks = mutable_payload.setdefault("networks", {})
+        if isinstance(networks, dict):
+            networks["traefik_ingress"] = {"name": "traefik_ingress", "external": True}
+    sink = StringIO()
+    yaml = YAML()
+    yaml.default_flow_style = False
+    yaml.dump(payload, sink)
+    return sink.getvalue()
+
+
+def _traefik_labels_for_route(route: DesiredHttpsRoute, router_name: str) -> list[str]:
+    return [
+        "traefik.enable=true",
+        "traefik.swarm.network=traefik_ingress",
+        f"traefik.http.routers.{router_name}.rule=Host(`{route.hostname}`)",
+        f"traefik.http.routers.{router_name}.entrypoints=websecure",
+        f"traefik.http.routers.{router_name}.tls=true",
+        (
+            f"traefik.http.services.{router_name}"
+            f".loadbalancer.server.port={route.upstream_port}"
+        ),
+    ]
+
+
+def _router_name_for(route: DesiredHttpsRoute) -> str:
+    return route.hostname.split(".", maxsplit=1)[0]
 
 
 def _apply_direct_published_ports(

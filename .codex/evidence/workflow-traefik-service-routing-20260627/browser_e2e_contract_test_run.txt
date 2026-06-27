@@ -1,0 +1,8 @@
+test_all_browser_route_urls_use_routed_https_hosts (tests.live.browser_e2e_contract.BrowserRouteE2EContractStaticTest.test_all_browser_route_urls_use_routed_https_hosts) ... ok
+test_browser_result_evidence_is_redacted (tests.live.browser_e2e_contract.BrowserRouteE2EContractStaticTest.test_browser_result_evidence_is_redacted) ... ok
+test_live_e2e_evidence_target_is_local_and_ignored (tests.live.browser_e2e_contract.BrowserRouteE2EContractStaticTest.test_live_e2e_evidence_target_is_local_and_ignored) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK

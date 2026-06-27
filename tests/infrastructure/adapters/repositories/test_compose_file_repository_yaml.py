@@ -803,19 +803,12 @@ services:
             "sonarqube": ("sonarqube", "sonarqube.tsw.local", "9000"),
             "swagger": ("swagger-nginx", "swagger.tsw.local", "8084"),
         }
-        repository_root = Path(__file__).resolve().parents[4]
+        repository = ComposeFileRepositoryYaml()
 
         for stack_name, (service_name, hostname, upstream_port) in expected.items():
             with self.subTest(stack_name=stack_name):
-                compose_path = (
-                    repository_root
-                    / "infra"
-                    / "config"
-                    / "compose"
-                    / stack_name
-                    / "docker-compose.yml"
-                )
-                compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
+                stack_definition = repository.get_compose_of(stack_name)
+                compose_data = YAML(typ="safe").load(stack_definition.compose_content)
                 service = compose_data["services"][service_name]
                 labels = set(service["deploy"]["labels"])
 
@@ -827,17 +820,11 @@ services:
                 self.assertIn("traefik.enable=true", labels)
                 self.assertIn("traefik.swarm.network=traefik_ingress", labels)
                 router_name = service_name.removesuffix("-dashboard").removesuffix("-nginx")
-                if service_name == "infisical":
-                    self.assertIn(
-                        "traefik.http.routers.infisical.rule="
-                        "Host(`infisical.tsw.local`) || Host(`localhost`)",
-                        labels,
-                    )
-                else:
-                    self.assertIn(
-                        f"traefik.http.routers.{router_name}.rule=Host(`{hostname}`)",
-                        labels,
-                    )
+                self.assertIn(
+                    f"traefik.http.routers.{router_name}.rule=Host(`{hostname}`)",
+                    labels,
+                )
+                self.assertNotIn("Host(`localhost`)", repr(labels))
                 self.assertIn(
                     f"traefik.http.routers.{router_name}.entrypoints=websecure",
                     labels,

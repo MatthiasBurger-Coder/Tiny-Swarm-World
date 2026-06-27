@@ -6,7 +6,7 @@ Branch: `feature/workflow-traefik-service-routing-20260627`
 Issue: `https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/157`
 Process Strand: `workflow create -> workflow execute`
 Execution Profile: `FULL_PATH`
-Status: `PARTIAL_EXECUTION_REQUIRES_ISSUE_157_COMPLETION`
+Status: `PARTIAL_EXECUTION_LIVE_E2E_REQUIRES_OPT_IN`
 
 ## Orientation
 
@@ -19,8 +19,9 @@ the active workflow remain authoritative.
 - Traefik preferred public ingress ports `80/443`.
 - Direct fallback/diagnostic ports including `10080/10443`.
 - Service Access preferred routed links.
-- Domain ingress route model.
-- Compose stack rendering.
+- Central effective access model with routes, fallback classifications,
+  Service Access links, routed health targets and skipped-route reasons.
+- Compose stack rendering from the effective access model.
 - Setup/preflight required port classification.
 - Static integration and opt-in live browser tests.
 - Effective access evidence and routed health-check expectations.
@@ -58,7 +59,7 @@ Targeted:
 - `PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result`
 - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml`
 - `PYTHONPATH=src python3 -m unittest tests.integration.test_service_access_routing`
-- `PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live`
+- `PYTHONPATH=src python3 -m unittest discover -s tests/live -t .`
 - `PYTHONPATH=src python3 -m unittest discover -s tests/integration -t .`
 - `PYTHONPATH=src python3 -m unittest discover -s tests/live -t .`
 - `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint`

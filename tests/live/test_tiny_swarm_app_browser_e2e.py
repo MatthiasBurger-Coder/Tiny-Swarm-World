@@ -8,11 +8,11 @@ class TestTinySwarmAppBrowserE2E(unittest.TestCase):
         evidence = route_evidence()
 
         self.assertIn(
-            {"reason": "route_host_not_configured", "service": "app"},
+            {"reason": "service_not_enabled", "service": "app"},
             evidence["skipped_routes"],
         )
         self.assertIn(
-            {"reason": "route_host_not_configured", "service": "api"},
+            {"reason": "service_not_enabled", "service": "api"},
             evidence["skipped_routes"],
         )
 

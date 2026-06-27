@@ -15,13 +15,14 @@ class TestInfisicalRouting(unittest.TestCase):
     def test_infisical_dashboard_link_prefers_traefik_hostname(self) -> None:
         assert_dashboard_prefers_route(self, "infisical")
 
-    def test_infisical_route_keeps_localhost_as_compatibility_host_only(self) -> None:
+    def test_infisical_route_uses_preferred_host_without_localhost_fallback(self) -> None:
         labels = traefik_labels(route_expectation("infisical"))
 
         self.assertIn(
-            "traefik.http.routers.infisical.rule=Host(`infisical.tsw.local`) || Host(`localhost`)",
+            "traefik.http.routers.infisical.rule=Host(`infisical.tsw.local`)",
             labels,
         )
+        self.assertNotIn("Host(`localhost`)", repr(labels))
 
 
 if __name__ == "__main__":

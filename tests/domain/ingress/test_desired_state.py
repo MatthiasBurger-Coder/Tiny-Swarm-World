@@ -45,6 +45,63 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         self.assertEqual("grafana", grafana_route.upstream_service)
         self.assertEqual(3000, grafana_route.upstream_port)
 
+    def test_conditional_route_candidates_cover_observability_app_and_api(self):
+        desired = desired_https_ingress_for_profile(
+            ServiceStackProfile.SERVICE_ACCESS,
+            conditional_service_names=("api", "app", "grafana", "prometheus"),
+        )
+        routes = {route.service_name: route for route in desired.routes}
+
+        self.assertEqual("api.tsw.local", routes["api"].hostname)
+        self.assertEqual("tiny-swarm", routes["api"].upstream_service)
+        self.assertEqual(8081, routes["api"].upstream_port)
+        self.assertEqual("app.tsw.local", routes["app"].hostname)
+        self.assertEqual("tiny-swarm", routes["app"].upstream_service)
+        self.assertEqual(8080, routes["app"].upstream_port)
+        self.assertEqual("prometheus.tsw.local", routes["prometheus"].hostname)
+        self.assertEqual("prometheus", routes["prometheus"].upstream_service)
+        self.assertEqual(9090, routes["prometheus"].upstream_port)
+
+    def test_effective_access_model_exports_links_health_fallbacks_and_skips(self):
+        desired = desired_https_ingress_for_profile(ServiceStackProfile.SERVICE_ACCESS)
+        evidence = desired.to_dict()
+
+        self.assertEqual([80, 443], evidence["gateway_public_ingress_ports"])
+        self.assertIn(
+            {
+                "classification": "diagnostic",
+                "port": 10080,
+                "port_id": "api-gateway-http",
+                "service": "api-gateway",
+            },
+            evidence["diagnostic_fallback_ports"],
+        )
+        self.assertIn(
+            {
+                "preferred": True,
+                "service": "jenkins",
+                "url": "https://jenkins.tsw.local",
+            },
+            evidence["service_access_links"],
+        )
+        self.assertIn(
+            {
+                "service": "pulsar-admin-api",
+                "target": "https://pulsar-api.tsw.local/admin/v2/clusters",
+                "upstream_port": 8080,
+                "upstream_service": "pulsar",
+            },
+            evidence["health_check_targets"],
+        )
+        self.assertIn(
+            {"reason": "service_not_supported", "service": "rabbitmq"},
+            evidence["skipped_routes"],
+        )
+        self.assertIn(
+            {"reason": "service_not_enabled", "service": "prometheus"},
+            evidence["skipped_routes"],
+        )
+
     def test_rejects_forbidden_ingress_policy(self):
         route = DesiredHttpsRoute(
             service_name="jenkins",

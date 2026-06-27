@@ -5,7 +5,7 @@ Workflow ID: `workflow-traefik-service-routing-20260627`
 Created: `2026-06-27`
 Issue: `https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/157`
 Branch: `feature/workflow-traefik-service-routing-20260627`
-Status: `PARTIAL_EXECUTION_REQUIRES_ISSUE_157_COMPLETION`
+Status: `PARTIAL_EXECUTION_LIVE_E2E_REQUIRES_OPT_IN`
 Evidence Root: `.codex/evidence/workflow-traefik-service-routing-20260627/`
 
 ## Executive Summary
@@ -196,7 +196,7 @@ Implemented and verified by the first execution:
   rendered or committed.
 - Default quality gate passes without live infrastructure.
 
-Still required for full Issue #157 completion:
+Implemented by the remediation execution for static/backend Issue #157 coverage:
 
 - Service-oriented integration tests must be expanded so every enabled routed
   service can be understood and run independently, even if the repository keeps
@@ -230,12 +230,23 @@ from selenium.webdriver.common.by import By
   tested as skipped/not generated unless an active profile/configured route
   enables them.
 
+Still required for full live Issue #157 completion:
+
+- Explicit operator opt-in for live infrastructure, DNS/hosts resolution, TLS
+  trust material and approved credentials.
+- Execution of the opt-in Selenium suite against the running stack, with
+  redacted pass/fail/skip evidence under
+  `.tiny-swarm-world/evidence/solid-typed-evidence/e2e/`.
+
 Acceptance decision:
 
-- Current execution status is `PARTIAL`.
-- Static/backend behavior is accepted.
-- Full Issue #157 acceptance remains blocked until the follow-up slices below
-  are executed and verified.
+- Current execution status is
+  `PARTIAL_EXECUTION_LIVE_E2E_REQUIRES_OPT_IN`.
+- Static/backend model, renderer, Service Access link, evidence, skip-route,
+  routed health-target and Selenium-contract behavior is accepted by targeted
+  tests.
+- Full live Issue #157 acceptance remains blocked until Slice 08 is run with
+  explicit operator opt-in and verified prerequisites.
 
 ## Target Picture
 
@@ -1169,6 +1180,20 @@ Current status:
   internal service ports.
 - Full quality gate after follow-up changes passed with 1052 tests and 52
   skipped.
+- Remediation execution added the central effective access model fields for
+  diagnostic/compatibility fallback ports, skipped-route reasons, generated
+  Service Access links, routed health targets and redacted evidence export.
+- Remediation execution changed Compose repository rendering so Traefik labels
+  are rendered from `DesiredHttpsIngress` instead of being trusted as static
+  source-of-truth labels in stack compose files.
+- Remediation execution expanded service-oriented routing coverage across
+  Service Access, Portainer, Jenkins, SonarQube, Nexus, Swagger, Infisical,
+  Pulsar Manager and Pulsar Admin API, including negative `localhost` route
+  checks.
+- Remediation execution updated the opt-in Selenium contract to use routed
+  URLs, perform approved credential login flows when credentials are present,
+  verify post-login success markers, and keep the live evidence path under
+  `.tiny-swarm-world/evidence/solid-typed-evidence/e2e/`.
 - Slice 08 remains open because live Selenium execution still requires
   explicit live infrastructure opt-in.
 

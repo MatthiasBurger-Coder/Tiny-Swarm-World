@@ -9,6 +9,9 @@ from urllib.parse import urlparse
 from ruamel.yaml import YAML
 
 from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
+from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
+    ComposeFileRepositoryYaml,
+)
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -146,17 +149,10 @@ def dashboard_links() -> tuple[str, ...]:
 
 
 def compose_service(expectation: RouteExpectation) -> dict[str, Any]:
-    compose_path = (
-        REPOSITORY_ROOT
-        / "infra"
-        / "config"
-        / "compose"
-        / expectation.stack_name
-        / "docker-compose.yml"
-    )
+    stack_definition = ComposeFileRepositoryYaml().get_compose_of(expectation.stack_name)
     compose = cast(
         dict[str, Any],
-        YAML(typ="safe").load(compose_path.read_text(encoding="utf-8")),
+        YAML(typ="safe").load(stack_definition.compose_content),
     )
     return cast(dict[str, Any], compose["services"][expectation.service_name])
 
@@ -168,28 +164,11 @@ def traefik_labels(expectation: RouteExpectation) -> set[str]:
 
 
 def route_evidence(route_names: tuple[str, ...] = tuple(ROUTE_EXPECTATIONS)) -> dict[str, Any]:
-    desired = desired_https_ingress_for_profile()
-    selected_routes = [
-        route.to_dict()
-        for route in desired.routes
-        if route.service_name in set(route_names)
-    ]
-    return {
-        "diagnostic_fallback_ports": (
-            {"classification": "diagnostic", "port": 10080},
-            {"classification": "diagnostic", "port": 10443},
-        ),
-        "gateway_public_ingress_ports": desired.public_ports,
-        "routes": tuple(selected_routes),
-        "service_access_preferred_url_source": "traefik_host_route",
-        "skipped_routes": (
-            {"reason": "service_not_supported", "service": "rabbitmq"},
-            {"reason": "service_not_enabled", "service": "prometheus"},
-            {"reason": "service_not_enabled", "service": "grafana"},
-            {"reason": "route_host_not_configured", "service": "app"},
-            {"reason": "route_host_not_configured", "service": "api"},
-        ),
-    }
+    desired = desired_https_ingress_for_profile().to_dict()
+    selected = set(route_names)
+    routes = cast(list[dict[str, Any]], desired["routes"])
+    desired["routes"] = [route for route in routes if route["service_name"] in selected]
+    return desired
 
 
 def assert_routed_url_shape(testcase, url: str) -> None:
@@ -221,6 +200,10 @@ def assert_route_contract(testcase, route_name: str) -> None:
     testcase.assertTrue(
         any(f"Host(`{expectation.hostname}`)" in label for label in rule_labels),
         f"missing preferred routed host {expectation.hostname}",
+    )
+    testcase.assertFalse(
+        any("Host(`localhost`)" in label for label in rule_labels),
+        f"unexpected localhost compatibility host in preferred route {expectation.router_name}",
     )
     testcase.assertIn(
         f"traefik.http.routers.{expectation.router_name}.entrypoints=websecure",
