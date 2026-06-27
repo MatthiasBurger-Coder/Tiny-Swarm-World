@@ -669,7 +669,22 @@ services:
         )
         self.assertNotIn("secrets", compose_data)
         self.assertNotIn("volumes", compose_data)
-        self.assertNotIn("${TSW_REMOTE_STACK_ROOT", compose_content)
+        self.assertEqual(
+            [
+                {
+                    "source": "service_access_dashboard_index",
+                    "target": "/usr/share/nginx/html/index.html",
+                }
+            ],
+            services["service-access-dashboard"]["configs"],
+        )
+        self.assertEqual(
+            (
+                "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}"
+                "/service-access/dashboard/index.html"
+            ),
+            compose_data["configs"]["service_access_dashboard_index"]["file"],
+        )
         self.assertEqual(
             {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
@@ -876,7 +891,25 @@ services:
                 self.assertIn("image", service)
                 self.assertNotIn("build", service)
                 self.assertNotIn("volumes", service)
-                self.assertNotIn("configs", service)
+                if service_name == "service-access-dashboard":
+                    self.assertEqual(
+                        [
+                            {
+                                "source": "service_access_dashboard_index",
+                                "target": "/usr/share/nginx/html/index.html",
+                            }
+                        ],
+                        service["configs"],
+                    )
+                    self.assertEqual(
+                        (
+                            "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}"
+                            "/service-access/dashboard/index.html"
+                        ),
+                        compose_data["configs"]["service_access_dashboard_index"]["file"],
+                    )
+                else:
+                    self.assertNotIn("configs", service)
                 self.assertNotIn("secrets", service)
                 self.assertTrue(dockerfile_path.is_file())
                 dockerfile = dockerfile_path.read_text(encoding="utf-8")
@@ -934,7 +967,7 @@ services:
             "Open Infisical",
             "Passwords are visible through Infisical",
             "Traefik routed access",
-            "View secret in Infisical",
+            "Open Infisical item",
             "Dashboard does not require a login",
             "Swagger/NGINX does not require a login",
             "This page does not store plaintext passwords.",
@@ -1042,6 +1075,7 @@ services:
             "platform/pulsar",
             "platform/pulsar-manager",
             "platform/sonarqube",
+            "platform/infisical",
         )
 
         for item in expected_items:

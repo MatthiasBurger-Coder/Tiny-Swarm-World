@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import json
+import re
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
@@ -78,13 +79,19 @@ class BrowserRouteE2EContract:
     def test_live_e2e_evidence_target_is_local_and_ignored(self) -> None:
         _assert_evidence_target(self)
 
-    @unittest.skipUnless(
-        live_e2e_enabled(),
-        f"set {RUN_LIVE_ENV}=1 to run routed Selenium browser E2E checks",
-    )
     def test_live_routed_link_opens_with_selenium(self) -> None:
         testcase = cast(unittest.TestCase, self)
         expectation = route_expectation_for_browser(self.route_name)
+        if not live_e2e_enabled():
+            _record_route_result(
+                BrowserRouteResult(
+                    self.route_name,
+                    expectation.dashboard_url,
+                    "skipped",
+                    "blocked_live_consent_missing",
+                )
+            )
+            testcase.skipTest(f"set {RUN_LIVE_ENV}=1 to run routed Selenium browser E2E checks")
         try:
             selenium_webdriver, by = selenium_driver()
         except unittest.SkipTest:
@@ -225,8 +232,14 @@ def _record_route_result(result: BrowserRouteResult) -> Path:
 
 
 def _write_suite_summary() -> None:
-    status_matrix: dict[str, list[str]] = {"passed": [], "failed": [], "skipped": []}
+    status_matrix: dict[str, list[str]] = {
+        "passed": [],
+        "failed": [],
+        "skipped": [],
+        "missing": [],
+    }
     route_results: list[dict[str, object]] = []
+    seen_routes: set[str] = set()
     for route_path in sorted(E2E_EVIDENCE_ROOT.glob("*.json")):
         if route_path.name == "suite-summary.json":
             continue
@@ -236,10 +249,25 @@ def _write_suite_summary() -> None:
         if status not in status_matrix:
             status = "failed"
         status_matrix[status].append(route_name)
+        seen_routes.add(route_name)
         route_results.append(evidence)
+    for route_name, expectation in ROUTE_EXPECTATIONS.items():
+        if route_name in seen_routes:
+            continue
+        status_matrix["missing"].append(route_name)
+        route_results.append(
+            BrowserRouteResult(
+                route_name,
+                expectation.dashboard_url,
+                "skipped",
+                "missing_route_evidence",
+            ).to_evidence()
+        )
     suite_summary = {
         "evidence_kind": "routed_browser_e2e_suite_summary",
-        "result": "failed" if status_matrix["failed"] else "skipped" if status_matrix["skipped"] else "passed",
+        "result": "failed" if status_matrix["failed"] else "skipped" if (
+            status_matrix["skipped"] or status_matrix["missing"]
+        ) else "passed",
         "route_results": route_results,
         "status_matrix": status_matrix,
     }
@@ -254,10 +282,16 @@ def _redacted_failure_reason(exc: Exception) -> str:
     message = str(exc).strip().splitlines()[0] if str(exc).strip() else ""
     if message:
         reason = f"{reason}: {message[:160]}"
-    for fragment in ("password", "secret", "token"):
-        reason = reason.replace(fragment, "[redacted]")
-        reason = reason.replace(fragment.upper(), "[redacted]")
-    return reason
+    redacted = re.sub(
+        r"(?i)(password|secret|token|bearer|basic)[^,\s;)]*",
+        "[redacted]",
+        reason,
+    )
+    redacted = re.sub(r"https?://[^\s]+", "[redacted-url]", redacted)
+    redacted = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", "[redacted-ip]", redacted)
+    redacted = re.sub(r"(?i)(?:/[a-z0-9_.-]+){2,}", "[redacted-path]", redacted)
+    redacted = re.sub(r"(?i)[a-z]:\\[^\s]+", "[redacted-path]", redacted)
+    return redacted[:180]
 
 
 def _approved_credential(route_name: str) -> tuple[str, str] | None:

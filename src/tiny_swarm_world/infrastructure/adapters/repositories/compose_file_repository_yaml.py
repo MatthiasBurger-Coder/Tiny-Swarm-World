@@ -1,4 +1,5 @@
 import re
+import hashlib
 from collections.abc import Mapping
 from html import escape
 from io import StringIO
@@ -62,14 +63,16 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
                 compose_content = _resolve_traefik_route_labels(
                     stack_name,
                     compose_content,
-                    desired_https_ingress_for_profile(
+                    _desired_routes_for_compose(
                         self.service_profile,
-                        conditional_service_names=_conditional_route_names(
-                            self.port_registry,
-                            self.enabled_service_names,
-                        ),
-                        port_registry=self.port_registry,
-                    ).routes,
+                        self.port_registry,
+                        self.enabled_service_names,
+                    ),
+                )
+                compose_content = _resolve_service_access_dashboard_config(
+                    stack_name,
+                    compose_content,
+                    self.render_service_access_dashboard() if stack_name == "service-access" else "",
                 )
                 self.logger.info("Loaded compose file for stack '%s'.", stack_name)
                 return StackDefinition(
@@ -121,6 +124,26 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
             port_registry=self.port_registry,
         )
         return render_service_access_dashboard_html(desired_ingress.to_dict())
+
+
+def _desired_routes_for_compose(
+    service_profile: ServiceStackProfile,
+    port_registry: PortRegistry,
+    enabled_service_names: frozenset[str],
+) -> tuple[DesiredHttpsRoute, ...]:
+    try:
+        return desired_https_ingress_for_profile(
+            service_profile,
+            conditional_service_names=_conditional_route_names(
+                port_registry,
+                enabled_service_names,
+            ),
+            port_registry=port_registry,
+        ).routes
+    except ValueError as exc:
+        if str(exc) == "desired HTTPS ingress requires at least one route":
+            return ()
+        raise
 
 
 def _published_ports_from_service(service_payload: Mapping[object, object]) -> tuple[int, ...]:
@@ -280,6 +303,46 @@ def _resolve_traefik_route_labels(
     return sink.getvalue()
 
 
+def _resolve_service_access_dashboard_config(
+    stack_name: str,
+    compose_content: str,
+    dashboard_html: str,
+) -> str:
+    if stack_name != "service-access":
+        return compose_content
+    payload = _YAML.load(compose_content) or {}
+    if not isinstance(payload, Mapping):
+        return compose_content
+    services = payload.get("services")
+    if not isinstance(services, Mapping):
+        return compose_content
+    dashboard_service = services.get("service-access-dashboard")
+    if not isinstance(dashboard_service, dict):
+        return compose_content
+
+    mutable_payload = cast(dict[str, Any], payload)
+    configs = cast(dict[str, Any], mutable_payload.setdefault("configs", {}))
+    configs["service_access_dashboard_index"] = {
+        "file": "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}"
+        "/service-access/dashboard/index.html",
+    }
+    dashboard_service["configs"] = [
+        {
+            "source": "service_access_dashboard_index",
+            "target": "/usr/share/nginx/html/index.html",
+        }
+    ]
+    dashboard_service.setdefault("environment", {})[
+        "TSW_SERVICE_ACCESS_DASHBOARD_SHA256"
+    ] = hashlib.sha256(dashboard_html.encode("utf-8")).hexdigest()
+
+    sink = StringIO()
+    yaml = YAML()
+    yaml.default_flow_style = False
+    yaml.dump(payload, sink)
+    return sink.getvalue()
+
+
 def _traefik_labels_for_route(route: DesiredHttpsRoute, router_name: str) -> list[str]:
     return [
         "traefik.enable=true",
@@ -411,7 +474,7 @@ def render_service_access_dashboard_html(effective_access_model: Mapping[str, ob
 def _dashboard_row(link: Mapping[str, object]) -> str:
     service = str(link["service"])
     url = str(link["url"])
-    user, password_html = _dashboard_credentials_for(service)
+    user, password_html = _dashboard_credentials_for(link)
     return (
         f'          <tr><th scope="row">{escape(service)}</th>'
         f'<td><a href="{escape(url, quote=True)}" target="_blank" rel="noopener noreferrer">{escape(url)}</a></td>'
@@ -419,23 +482,17 @@ def _dashboard_row(link: Mapping[str, object]) -> str:
     )
 
 
-def _dashboard_credentials_for(service: str) -> tuple[str, str]:
-    secret_items = {
-        "infisical": ("admin", "platform/infisical", "View secret in Infisical"),
-        "jenkins": ("admin", "platform/jenkins", "View secret in Infisical"),
-        "nexus": ("admin", "platform/nexus", "View secret in Infisical"),
-        "portainer": ("admin", "platform/portainer", "View secret in Infisical"),
-        "pulsar-admin-api": ("admin", "platform/pulsar", "Admin API token stored in Infisical"),
-        "pulsar-manager": ("admin", "platform/pulsar-manager", "View Pulsar Manager password in Infisical"),
-        "sonarqube": ("admin", "platform/sonarqube", "View secret in Infisical"),
-    }
-    if service not in secret_items:
-        note = "Dashboard does not require a login" if service == "service-access" else "Swagger/NGINX does not require a login"
+def _dashboard_credentials_for(link: Mapping[str, object]) -> tuple[str, str]:
+    credential = link.get("credential")
+    if not isinstance(credential, Mapping):
+        note = str(link.get("no_login_note") or "Login is not required")
         return (
             "none",
             f'<span class="pwd"><code>not required</code><small>{escape(note)}</small></span>',
         )
-    user, item, note = secret_items[service]
+    user = str(credential["username_label"])
+    item = str(credential["item_reference"])
+    note = str(credential["note"])
     return (
         user,
         (

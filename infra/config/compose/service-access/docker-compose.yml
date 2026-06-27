@@ -1,6 +1,9 @@
 services:
   service-access-dashboard:
     image: ${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:13500/service-access-dashboard:latest}
+    configs:
+      - source: service_access_dashboard_index
+        target: /usr/share/nginx/html/index.html
     networks:
       - service_access_link
       - traefik_ingress
@@ -43,3 +46,7 @@ networks:
   traefik_ingress:
     name: traefik_ingress
     external: true
+
+configs:
+  service_access_dashboard_index:
+    file: ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/service-access/dashboard/index.html

@@ -8,11 +8,14 @@ from tiny_swarm_world.domain.ingress import (
     CertificateSummary,
     desired_https_ingress_for_profile,
 )
+from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
+    PortRegistryYamlRepository,
+)
 
 
 class TestCertificateSummary(unittest.TestCase):
     def test_valid_certificate_summary_covers_desired_ingress(self):
-        desired = desired_https_ingress_for_profile(ServiceStackProfile.SERVICE_ACCESS)
+        desired = _desired_service_access_ingress()
         certificate = _certificate_summary(san_dns_names=desired.hostnames)
 
         result = certificate.validation_for(
@@ -37,7 +40,7 @@ class TestCertificateSummary(unittest.TestCase):
         )
 
     def test_certificate_validation_reports_missing_policy_requirements(self):
-        desired = desired_https_ingress_for_profile(ServiceStackProfile.SERVICE_ACCESS)
+        desired = _desired_service_access_ingress()
         certificate = _certificate_summary(
             san_dns_names=("jenkins.tsw.local",),
             not_after_utc=datetime(2026, 6, 8, tzinfo=UTC),
@@ -123,6 +126,13 @@ def _certificate_summary(
         key_usage=key_usage,
         extended_key_usage=extended_key_usage,
         chain_verified=chain_verified,
+    )
+
+
+def _desired_service_access_ingress():
+    return desired_https_ingress_for_profile(
+        ServiceStackProfile.SERVICE_ACCESS,
+        port_registry=PortRegistryYamlRepository().load(),
     )
 
 

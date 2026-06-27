@@ -7,11 +7,17 @@ from tiny_swarm_world.domain.ingress import (
     desired_https_ingress_for_profile,
 )
 from tiny_swarm_world.domain.network import PortExposureClass, PortRegistry, ServicePortMapping
+from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
+    PortRegistryYamlRepository,
+)
 
 
 class TestDesiredHttpsIngress(unittest.TestCase):
     def test_service_access_profile_routes_required_https_hosts(self):
-        desired = desired_https_ingress_for_profile(ServiceStackProfile.SERVICE_ACCESS)
+        desired = desired_https_ingress_for_profile(
+            ServiceStackProfile.SERVICE_ACCESS,
+            port_registry=_committed_port_registry(),
+        )
 
         self.assertEqual((80, 443), desired.public_ports)
         self.assertTrue(desired.http_redirect_to_https)
@@ -37,6 +43,7 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         desired = desired_https_ingress_for_profile(
             ServiceStackProfile.SERVICE_ACCESS,
             conditional_service_names=("grafana",),
+            port_registry=_committed_port_registry(),
         )
 
         self.assertIn("grafana.tsw.local", desired.hostnames)
@@ -50,6 +57,7 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         desired = desired_https_ingress_for_profile(
             ServiceStackProfile.SERVICE_ACCESS,
             conditional_service_names=("api", "app", "grafana", "prometheus"),
+            port_registry=_committed_port_registry(),
         )
         routes = {route.service_name: route for route in desired.routes}
 
@@ -66,7 +74,7 @@ class TestDesiredHttpsIngress(unittest.TestCase):
     def test_effective_access_model_exports_links_health_fallbacks_and_skips(self):
         desired = desired_https_ingress_for_profile(
             ServiceStackProfile.SERVICE_ACCESS,
-            port_registry=_sample_port_registry(),
+            port_registry=_committed_port_registry(),
         )
         evidence = desired.to_dict()
 
@@ -80,13 +88,19 @@ class TestDesiredHttpsIngress(unittest.TestCase):
             },
             evidence["diagnostic_fallback_ports"],
         )
-        self.assertIn(
+        jenkins_link = next(
+            link
+            for link in evidence["service_access_links"]
+            if link["service"] == "jenkins"
+        )
+        self.assertEqual("https://jenkins.tsw.local", jenkins_link["url"])
+        self.assertEqual(
             {
-                "preferred": True,
-                "service": "jenkins",
-                "url": "https://jenkins.tsw.local",
+                "item_reference": "platform/jenkins",
+                "note": "Open Infisical item",
+                "username_label": "admin",
             },
-            evidence["service_access_links"],
+            jenkins_link["credential"],
         )
         self.assertIn(
             {
@@ -109,7 +123,7 @@ class TestDesiredHttpsIngress(unittest.TestCase):
     def test_route_hosts_and_diagnostic_fallbacks_can_come_from_port_registry(self):
         desired = desired_https_ingress_for_profile(
             ServiceStackProfile.SERVICE_ACCESS,
-            port_registry=_sample_port_registry(),
+            port_registry=_committed_port_registry(),
         )
         routes = {route.service_name: route for route in desired.routes}
 
@@ -144,7 +158,10 @@ class TestDesiredHttpsIngress(unittest.TestCase):
                     DesiredHttpsIngress(routes=(route,), **kwargs)
 
     def test_routes_use_internal_service_targets(self):
-        desired = desired_https_ingress_for_profile(ServiceStackProfile.SERVICE_ACCESS)
+        desired = desired_https_ingress_for_profile(
+            ServiceStackProfile.SERVICE_ACCESS,
+            port_registry=_committed_port_registry(),
+        )
         routes = {route.service_name: route for route in desired.routes}
 
         self.assertEqual("service-access-dashboard", routes["service-access"].upstream_service)
@@ -196,6 +213,10 @@ def _sample_port_registry() -> PortRegistry:
             ),
         ),
     )
+
+
+def _committed_port_registry() -> PortRegistry:
+    return PortRegistryYamlRepository().load()
 
 
 if __name__ == "__main__":

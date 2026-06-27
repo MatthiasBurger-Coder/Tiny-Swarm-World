@@ -14,60 +14,45 @@ _SERVICE_IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _HOSTNAME_PATTERN = re.compile(
     r"^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$"
 )
-_DEFAULT_HTTPS_ROUTE_SERVICES = frozenset(
-    {
-        "infisical",
-        "jenkins",
-        "nexus",
-        "portainer",
-        "pulsar-admin-api",
-        "pulsar-manager",
-        "service-access",
-        "sonarqube",
-        "swagger",
-    }
-)
 
-_ROUTE_OVERRIDES = {
-    "api": ("api", "tiny-swarm", 8081),
-    "app": ("app", "tiny-swarm", 8080),
-    "grafana": ("grafana", "grafana", 3000),
-    "infisical": ("infisical", "infisical", 8080),
-    "jenkins": ("jenkins", "jenkins", 8080),
-    "nexus": ("nexus", "nexus", 8081),
-    "portainer": ("portainer", "portainer", 9000),
-    "prometheus": ("prometheus", "prometheus", 9090),
-    "pulsar-admin-api": ("pulsar-api", "pulsar", 8080),
-    "pulsar-manager": ("pulsar", "pulsar-manager", 9527),
-    "service-access": ("service-access", "service-access-dashboard", 80),
-    "sonarqube": ("sonarqube", "sonarqube", 9000),
-    "swagger": ("swagger", "swagger-nginx", 8084),
-}
 
-_ROUTED_HEALTH_PATHS = {
-    "pulsar-admin-api": "/admin/v2/clusters",
-}
-_SERVICE_ACCESS_PATHS = {
-    "pulsar-admin-api": "/admin/v2/clusters",
-}
+@dataclass(frozen=True)
+class CredentialReference:
+    username_label: str
+    item_reference: str
+    note: str
 
-_ROUTE_CANDIDATES = frozenset(
-    {
-        "api",
-        "app",
-        "grafana",
-        "infisical",
-        "jenkins",
-        "nexus",
-        "portainer",
-        "prometheus",
-        "pulsar-admin-api",
-        "pulsar-manager",
-        "service-access",
-        "sonarqube",
-        "swagger",
-    }
-)
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "item_reference": self.item_reference,
+            "note": self.note,
+            "username_label": self.username_label,
+        }
+
+
+@dataclass(frozen=True)
+class RouteDefinition:
+    route_name: str
+    hostname_prefix: str
+    upstream_service: str
+    upstream_port: int
+    enabled_by_default: bool = False
+    health_path: str = ""
+    service_access_path: str = ""
+    credential: CredentialReference | None = None
+    no_login_note: str = ""
+
+    def __post_init__(self) -> None:
+        for field_name, value in (
+            ("route_name", self.route_name),
+            ("hostname_prefix", self.hostname_prefix),
+            ("upstream_service", self.upstream_service),
+        ):
+            validate_ingress_summary_text(field_name, value)
+            if not _SERVICE_IDENTIFIER_PATTERN.fullmatch(value):
+                raise ValueError(f"{field_name} must be a lowercase service identifier")
+        if not 1 <= self.upstream_port <= 65535:
+            raise ValueError("upstream port must be in the valid TCP port range")
 
 
 @dataclass(frozen=True)
@@ -79,6 +64,8 @@ class DesiredHttpsRoute:
     profile_member: bool = True
     health_check_url: str = ""
     service_access_url: str = ""
+    credential: CredentialReference | None = None
+    no_login_note: str = ""
 
     def __post_init__(self) -> None:
         for field_name, value in (
@@ -96,13 +83,9 @@ class DesiredHttpsRoute:
 
     def to_dict(self) -> dict[str, object]:
         base_url = f"https://{self.hostname}"
-        service_access_url = self.service_access_url or (
-            f"{base_url}{_SERVICE_ACCESS_PATHS.get(self.service_name, '')}"
-        )
-        health_check_url = self.health_check_url or (
-            base_url + _ROUTED_HEALTH_PATHS.get(self.service_name, "")
-        )
-        return {
+        service_access_url = self.service_access_url or base_url
+        health_check_url = self.health_check_url or base_url
+        route: dict[str, object] = {
             "health_check_url": health_check_url,
             "hostname": self.hostname,
             "profile_member": self.profile_member,
@@ -111,6 +94,11 @@ class DesiredHttpsRoute:
             "upstream_port": self.upstream_port,
             "upstream_service": self.upstream_service,
         }
+        if self.credential is not None:
+            route["credential"] = self.credential.to_dict()
+        if self.no_login_note:
+            route["no_login_note"] = self.no_login_note
+        return route
 
 
 @dataclass(frozen=True)
@@ -198,16 +186,26 @@ class DesiredHttpsIngress:
             "public_ports": list(self.public_ports),
             "routes": [route.to_dict() for route in self.routes],
             "service_access_links": [
-                {
-                    "preferred": True,
-                    "service": route.service_name,
-                    "url": route.to_dict()["service_access_url"],
-                }
+                _service_access_link_for_route(route)
                 for route in self.routes
             ],
             "service_access_preferred_url_source": self.service_access_preferred_url_source,
             "skipped_routes": [skipped.to_dict() for skipped in self.skipped_routes],
         }
+
+
+def _service_access_link_for_route(route: DesiredHttpsRoute) -> dict[str, object]:
+    route_payload = route.to_dict()
+    link: dict[str, object] = {
+        "preferred": True,
+        "service": route.service_name,
+        "url": route_payload["service_access_url"],
+    }
+    if "credential" in route_payload:
+        link["credential"] = route_payload["credential"]
+    if "no_login_note" in route_payload:
+        link["no_login_note"] = route_payload["no_login_note"]
+    return link
 
 
 def desired_https_ingress_for_profile(
@@ -218,7 +216,11 @@ def desired_https_ingress_for_profile(
     port_registry: PortRegistry | None = None,
 ) -> DesiredHttpsIngress:
     route_registry = _route_registry(port_registry)
-    selected_services = set(_DEFAULT_HTTPS_ROUTE_SERVICES)
+    selected_services = {
+        route_name
+        for route_name, definition in route_registry.items()
+        if definition.enabled_by_default
+    }
     selected_services.update(conditional_service_names)
     routes: list[DesiredHttpsRoute] = []
     profile_endpoint_names: set[str] = set()
@@ -227,40 +229,46 @@ def desired_https_ingress_for_profile(
             profile_endpoint_names.add(endpoint.name)
             if endpoint.name not in selected_services:
                 continue
-            hostname_service, upstream_service, upstream_port = _route_values_for(
-                endpoint.name,
-                contract.required_services[0],
-                _endpoint_port(endpoint.url),
-                route_registry,
-            )
+            route_definition = route_registry.get(endpoint.name)
+            if route_definition is None:
+                continue
             routes.append(
                 DesiredHttpsRoute(
                     service_name=endpoint.name,
-                    hostname=f"{hostname_service}.{base_domain}",
-                    upstream_service=upstream_service,
-                    upstream_port=upstream_port,
+                    hostname=f"{route_definition.hostname_prefix}.{base_domain}",
+                    upstream_service=route_definition.upstream_service,
+                    upstream_port=route_definition.upstream_port,
+                    health_check_url=_url_for_path(route_definition, base_domain, "health"),
+                    service_access_url=_url_for_path(route_definition, base_domain, "access"),
+                    credential=route_definition.credential,
+                    no_login_note=route_definition.no_login_note,
                 )
             )
     for service_name in conditional_service_names:
-        if service_name in _ROUTE_CANDIDATES and not any(
+        route_definition = route_registry.get(service_name)
+        if route_definition is not None and not any(
             route.service_name == service_name for route in routes
         ):
-            hostname_service, upstream_service, upstream_port = _route_values_for(
-                service_name,
-                service_name,
-                443,
-                route_registry,
-            )
             routes.append(
                 DesiredHttpsRoute(
                     service_name=service_name,
-                    hostname=f"{hostname_service}.{base_domain}",
-                    upstream_service=upstream_service,
-                    upstream_port=upstream_port,
+                    hostname=f"{route_definition.hostname_prefix}.{base_domain}",
+                    upstream_service=route_definition.upstream_service,
+                    upstream_port=route_definition.upstream_port,
+                    health_check_url=_url_for_path(route_definition, base_domain, "health"),
+                    service_access_url=_url_for_path(route_definition, base_domain, "access"),
                     profile_member=service_name in profile_endpoint_names,
+                    credential=route_definition.credential,
+                    no_login_note=route_definition.no_login_note,
                 )
             )
-    skipped_routes = _skipped_routes(selected_services, profile_endpoint_names)
+    unsupported_routes = _unsupported_routes(port_registry)
+    skipped_routes = _skipped_routes(
+        selected_services,
+        profile_endpoint_names,
+        set(route_registry),
+        unsupported_routes,
+    )
     return DesiredHttpsIngress(
         routes=tuple(routes),
         diagnostic_fallback_ports=_diagnostic_fallback_ports(port_registry),
@@ -268,68 +276,89 @@ def desired_https_ingress_for_profile(
     )
 
 
-def _route_values_for(
-    endpoint_name: str,
-    default_upstream_service: str,
-    default_upstream_port: int,
-    route_registry: dict[str, ServicePortMapping],
-) -> tuple[str, str, int]:
-    mapping = route_registry.get(endpoint_name)
-    if mapping is not None and mapping.route_host is not None:
-        return (
-            mapping.route_host.split(".", maxsplit=1)[0],
-            _ROUTE_OVERRIDES.get(endpoint_name, (endpoint_name, default_upstream_service, default_upstream_port))[1],
-            mapping.internal_port,
-        )
-    return _ROUTE_OVERRIDES.get(
-        endpoint_name,
-        (endpoint_name, default_upstream_service, default_upstream_port),
+def _url_for_path(route_definition: RouteDefinition, base_domain: str, path_kind: str) -> str:
+    path = (
+        route_definition.health_path
+        if path_kind == "health"
+        else route_definition.service_access_path
     )
-
-
-def _endpoint_port(url: str) -> int:
-    port_text = url.rsplit(":", maxsplit=1)[-1]
-    if port_text.isdigit():
-        return int(port_text)
-    return 443 if url.startswith("https://") else 80
+    return f"https://{route_definition.hostname_prefix}.{base_domain}{path}"
 
 
 def _skipped_routes(
     selected_services: set[str],
     profile_endpoint_names: set[str],
+    route_candidates: set[str],
+    unsupported_routes: tuple[str, ...],
 ) -> tuple[SkippedRoute, ...]:
-    skipped: list[SkippedRoute] = [SkippedRoute("rabbitmq", "service_not_supported")]
-    for service_name in sorted(_ROUTE_CANDIDATES - selected_services):
+    skipped: list[SkippedRoute] = [
+        SkippedRoute(service_name, "service_not_supported")
+        for service_name in unsupported_routes
+    ]
+    for service_name in sorted(route_candidates - selected_services):
         skipped.append(SkippedRoute(service_name, "service_not_enabled"))
     for service_name in sorted(selected_services - profile_endpoint_names):
-        if service_name not in _DEFAULT_HTTPS_ROUTE_SERVICES:
-            skipped.append(SkippedRoute(service_name, "service_not_in_active_profile"))
+        skipped.append(SkippedRoute(service_name, "service_not_in_active_profile"))
     return tuple(skipped)
 
 
-def _route_registry(port_registry: PortRegistry | None) -> dict[str, ServicePortMapping]:
+def _unsupported_routes(port_registry: PortRegistry | None) -> tuple[str, ...]:
+    if port_registry is None:
+        return ()
+    return tuple(
+        route.strip()
+        for route in str((port_registry.metadata or {}).get("unsupported_routes", "")).split(",")
+        if route.strip()
+    )
+
+
+def _route_registry(port_registry: PortRegistry | None) -> dict[str, RouteDefinition]:
     if port_registry is None:
         return {}
-    routes: dict[str, ServicePortMapping] = {}
+    routes: dict[str, RouteDefinition] = {}
     for mapping in port_registry.mappings:
-        route_name = _route_name_for_mapping(mapping)
-        if route_name is not None and route_name in _ROUTE_CANDIDATES and mapping.route_host:
-            routes[route_name] = mapping
+        route_definition = _route_definition_from_mapping(mapping)
+        if route_definition is not None:
+            routes[route_definition.route_name] = route_definition
     return routes
 
 
-def _route_name_for_mapping(mapping: ServicePortMapping) -> str | None:
+def _route_definition_from_mapping(mapping: ServicePortMapping) -> RouteDefinition | None:
     if mapping.route_host is None:
         return None
-    if mapping.port_id == "pulsar-manager-gui":
-        return "pulsar-manager"
-    if mapping.port_id in {"tiny-swarm-frontend", "tiny-swarm-backend"}:
-        return {"tiny-swarm-frontend": "app", "tiny-swarm-backend": "api"}[mapping.port_id]
+    metadata = dict(mapping.metadata or {})
+    route_name = metadata.get("route_name", _default_route_name_for_mapping(mapping))
+    if route_name == "none":
+        return None
+    upstream_service = metadata.get("upstream_service", mapping.service_id)
+    return RouteDefinition(
+        route_name=route_name,
+        hostname_prefix=mapping.route_host.split(".", maxsplit=1)[0],
+        upstream_service=upstream_service,
+        upstream_port=mapping.internal_port,
+        enabled_by_default=metadata.get("route_enabled_by_default") == "true",
+        health_path=metadata.get("health_path", ""),
+        service_access_path=metadata.get("service_access_path", metadata.get("health_path", "")),
+        credential=_credential_from_metadata(metadata),
+        no_login_note=metadata.get("no_login_note", ""),
+    )
+
+
+def _default_route_name_for_mapping(mapping: ServicePortMapping) -> str:
     if mapping.port_id.endswith("-http"):
         return mapping.port_id.removesuffix("-http")
-    if mapping.port_id == "openapi-aggregator":
-        return "swagger"
     return mapping.port_id
+
+
+def _credential_from_metadata(metadata: dict[str, str]) -> CredentialReference | None:
+    item_reference = metadata.get("credential_item_ref")
+    if item_reference is None:
+        return None
+    return CredentialReference(
+        username_label=metadata.get("credential_user", "admin"),
+        item_reference=item_reference,
+        note=metadata.get("credential_note", "View secret in Infisical"),
+    )
 
 
 def _diagnostic_fallback_ports(

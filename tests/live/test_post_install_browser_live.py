@@ -32,6 +32,9 @@ from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
 )
 from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
+from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
+    PortRegistryYamlRepository,
+)
 from tests.support.sonar_safe_literals import sample_text, sample_url
 
 
@@ -719,7 +722,7 @@ def _service_checks(dashboard_url: str) -> tuple[ServiceCheck, ...]:
 def _routed_hostnames() -> set[str]:
     return {
         route.hostname
-        for route in desired_https_ingress_for_profile(ServiceStackProfile.SERVICE_ACCESS).routes
+        for route in _desired_service_access_ingress().routes
     }
 
 
@@ -744,6 +747,7 @@ def _https_route_checks(base_domain: str) -> tuple[ServiceCheck, ...]:
     desired_ingress = desired_https_ingress_for_profile(
         ServiceStackProfile.SERVICE_ACCESS,
         base_domain=_validated_ingress_base_domain(base_domain),
+        port_registry=PortRegistryYamlRepository().load(),
     )
     return tuple(
         ServiceCheck(
@@ -1517,12 +1521,20 @@ def _validated_ingress_base_domain(raw_domain: str) -> str:
         desired_https_ingress_for_profile(
             ServiceStackProfile.SERVICE_ACCESS,
             base_domain=domain,
+            port_registry=PortRegistryYamlRepository().load(),
         )
     except ValueError as exc:
         raise AssertionError(
             "post_install_browser_setup_blocker: invalid_ingress_base_domain"
         ) from exc
     return domain
+
+
+def _desired_service_access_ingress():
+    return desired_https_ingress_for_profile(
+        ServiceStackProfile.SERVICE_ACCESS,
+        port_registry=PortRegistryYamlRepository().load(),
+    )
 
 
 def _validated_tls_ca_bundle(raw_path: str | None) -> str | None:
