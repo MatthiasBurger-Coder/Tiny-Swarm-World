@@ -51,10 +51,13 @@ Use this process when the user requests `workflow execute`.
     real blocker occurs.
 20. When the active workflow requires checkpoint pushes, stage only current-slice files, commit, push the workflow branch, and record the result.
 
-Slice checkpoint push is not `push auto`. A later explicit `push auto` may
-publish any task-scoped repository change produced by workflow execution only
-through the guarded commit, pull request, green required-checks, SonarQube when
-configured, merge and cleanup lifecycle.
+Slice checkpoint push is not `push auto`. Workflow-create publication is also
+not `push auto`; workflow-create-only branches stay at guarded branch
+publication unless the user explicitly confirms a workflow-documentation-only
+PR merge after the workflow-create guard is reported. A later explicit
+`push auto` may publish task-scoped implementation changes produced by workflow
+execution only through the guarded commit, pull request, green required-checks,
+SonarQube when configured, merge and cleanup lifecycle.
 
 ## Automatic Work Distribution Policy
 

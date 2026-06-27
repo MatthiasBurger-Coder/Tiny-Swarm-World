@@ -21,7 +21,7 @@ workflow explicitly declares it as a D8 requirement.
 
 ## Publication Modes
 
-There are three separate publication modes:
+There are four separate publication modes:
 
 1. Slice checkpoint push
    - belongs to `workflow execute`;
@@ -31,16 +31,29 @@ There are three separate publication modes:
    - does not create or merge a PR;
    - does not run branch cleanup;
    - is not `push auto`.
-2. `push`
+2. Workflow create publication
+   - belongs to `workflow create`;
+   - commits the completed workflow-authoring artifacts;
+   - pushes the workflow branch to `origin/<workflow-branch>`;
+   - keeps the branch available for workflow execution and parallel worktrees;
+   - may create or update a PR only on exact `push` or explicit PR request;
+   - does not automatically merge a PR;
+   - does not delete remote or local branches;
+   - is not `push auto`.
+3. `push`
    - normal publication after explicit user approval;
    - pushes the branch and creates or updates a PR;
    - does not automatically merge.
-3. `push auto`
-   - applies to any task-scoped repository change, including Python product
+4. `push auto`
+   - applies to task-scoped implementation changes, including Python product
      code and Python product-behavior tests;
    - runs a guarded commit, PR, check-loop, merge and cleanup lifecycle;
    - may merge the PR and clean up only after required checks are green,
      including SonarQube when configured.
+   - is blocked for branches that contain only completed `workflow create`
+     output and no task-scoped implementation changes, unless the user
+     explicitly confirms a workflow-documentation-only PR merge after the
+     workflow-create guard is reported.
 
 ## Parallel Workflow Publication
 
@@ -66,6 +79,13 @@ documented, and workflow status is updated.
 - Do not push unrelated local changes.
 - Create PRs only when workflow or user request allows it.
 - For slice checkpoint push, stage only current-slice files and push only to `origin/<workflow-branch>`.
+- For workflow create publication, stage only workflow-authoring and directly
+  required governance synchronization files, then push only to
+  `origin/<workflow-branch>`.
+- If exact `push auto` is requested immediately after `workflow create` and
+  the branch contains only workflow-authoring output, downgrade the action to
+  workflow create publication and stop before PR merge, remote branch deletion
+  or cleanup.
 - For `push auto`, stop unless the active change is task-scoped and free of
   unrelated, sensitive, generated local or unclassified files.
 - `push auto` must create or reuse a pull request, wait or retry until required
@@ -90,6 +110,11 @@ Stop when:
 - workflow does not allow push.
 - slice checkpoint push would include files outside the current slice;
 - slice checkpoint push would push to `main`, create or merge a PR, run `push auto`, run branch cleanup or force-push;
+- workflow create publication would include files outside workflow-authoring or
+  directly required governance synchronization scope;
+- exact `push auto` is requested for a workflow-create-only branch without
+  explicit confirmation to override the workflow-create guard for a
+  workflow-documentation-only PR merge;
 - `push auto` would publish unrelated, sensitive, generated local,
   unclassified or out-of-task files;
 - required checks, SonarQube status when configured, mergeability, merge

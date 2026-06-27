@@ -89,7 +89,14 @@ git branch --show-current
     automatically analyzes every slice for safe specialist streams, requires
     evidence, uses real subagents where supported, and uses fallback
     role-based review where subagents are unavailable.
-20. Validate that `documentation/workflow/workflow.md` and checked or updated `documentation/arc42/**` documentation exist before releasing `workflow execute`.
+20. Commit the completed workflow-authoring artifacts and push only
+    `HEAD` to `origin/<workflow-branch>` as guarded workflow-create
+    publication.
+21. Do not run `push auto` for workflow-create-only output. Stop before PR
+    merge, remote branch deletion or local cleanup unless the user explicitly
+    confirms a workflow-documentation-only PR merge after the
+    workflow-create guard is reported.
+22. Validate that `documentation/workflow/workflow.md` and checked or updated `documentation/arc42/**` documentation exist before releasing `workflow execute`.
 
 For microservice migration workflows, record the Three Amigos decision before
 workflow authoring continues. The decision must include scope, non-scope,
@@ -119,6 +126,8 @@ Stop when:
 - the workflow branch cannot be checked out;
 - the workflow branch ref cannot be verified after creation or checkout;
 - the active branch after checkout does not match the expected workflow branch;
+- workflow-create publication would push anywhere other than `origin/<workflow-branch>`;
+- workflow-create publication would create or merge a PR, delete branches, run cleanup, force-push or push to `main`;
 - workflow rules conflict and cannot be resolved from repository sources;
 - creating or modifying workflow artifacts would happen on `main`, `master`, `develop`, or another shared branch.
 - blocking requirement questions remain;

@@ -91,6 +91,39 @@ git branch --show-current
 
 Do not rely on generated workflow notes as proof that a branch exists.
 
+## Workflow Authoring Publication Rule
+
+`workflow create` is a planning and governance publication step, not an
+implementation release step. When workflow authoring completes successfully,
+the workflow branch must be committed and pushed to `origin/<workflow-branch>`
+as the default publication action so other agents, worktrees and parallel
+development streams can see the same workflow baseline.
+
+The workflow authoring publication action must:
+
+1. stage only workflow-authoring files and directly required governance
+   synchronization files;
+2. create a workflow-authoring commit after the reviewed diff and required
+   governance checks pass;
+3. push only `HEAD` to `origin/<workflow-branch>`;
+4. record the branch name, commit SHA, push target and verification result in
+   the workflow handoff;
+5. stop if the branch is `main`, if unrelated files are present, if the remote
+   target is unclear, or if the workflow branch cannot be pushed.
+
+This default publication is equivalent to a guarded `push`, not `push auto`.
+It must not create, merge or clean up a pull request, must not delete local or
+remote branches, must not force-push and must not push to `main`.
+
+After a completed `workflow create`, an immediate user request for `push auto`
+against the same workflow-authoring branch must be treated as a request to keep
+the workflow branch published only. The operator must run or reuse the normal
+`push` publication path and must stop before PR merge, remote branch deletion
+or branch cleanup unless a later task produces implementation changes through
+`workflow execute` or the user explicitly requests a workflow-documentation PR
+merge after acknowledging that `push auto` is blocked for workflow-authoring
+only output.
+
 ## Required Inputs
 
 Read before authoring or regenerating a workflow:

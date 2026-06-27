@@ -1,6 +1,6 @@
 ---
 name: git-commit-preparation
-description: Use when preparing, reviewing, validating, repairing, committing, pushing, creating a PR, running workflow-execute slice checkpoint pushes, or running `push auto` for task-scoped repository changes including Python product code. This skill is the commit-readiness workflow and enforces AGENTS.md, QUALITY.md, git diff inspection, task-scope validation, quality-gate verification, blocker routing, git-commit-message-preparation, PR creation on explicit `push`, and commit, PR, green required-checks, SonarQube when configured, merge plus branch cleanup on explicit `push auto`.
+description: Use when preparing, reviewing, validating, repairing, committing, pushing, creating a PR, running workflow-execute slice checkpoint pushes, handling workflow-create branch publication, or running `push auto` for eligible task-scoped implementation changes including Python product code. This skill is the commit-readiness workflow and enforces AGENTS.md, QUALITY.md, git diff inspection, task-scope validation, quality-gate verification, blocker routing, git-commit-message-preparation, PR creation on explicit `push`, workflow-create publication without automatic merge, and commit, PR, green required-checks, SonarQube when configured, merge plus branch cleanup on eligible explicit `push auto`.
 ---
 
 # Commit Preparation Skill
@@ -339,6 +339,33 @@ For workflow-execute checkpoint commits:
 - record the actual commit hash after `CP_COMMIT` succeeds;
 - stop when staged files or the commit message would mix multiple slices.
 
+### Workflow Create Publication Guard
+
+When the active strand is `workflow create`, successful authoring grants
+permission only for the workflow-authoring publication path:
+
+1. stage only workflow-authoring files and directly required governance
+   synchronization files;
+2. create the reviewed workflow-authoring commit;
+3. push `HEAD` only to `origin/<workflow-branch>`;
+4. create or update a GitHub pull request only when the user entered exact
+   `push` or explicitly requested PR creation for the workflow documentation;
+5. stop before PR merge, remote branch deletion, local branch deletion or
+   `git-clean`.
+
+If the user enters exact `push auto` while the current branch contains only a
+completed `workflow create` result and no implementation changes produced by
+`workflow execute`, do not run Phase 13. Treat the request as a guarded
+workflow-authoring publication request instead: commit and push the workflow
+branch if needed, or report that the branch is already pushed. Do not merge the
+pull request automatically, do not delete the remote branch and do not clean up
+the local workflow branch.
+
+`push auto` becomes eligible again only after a task-scoped implementation
+change exists beyond the workflow-authoring baseline, or after the user
+explicitly confirms that they want to override the workflow-create publication
+guard for a workflow-documentation-only PR merge.
+
 ### Phase 12: Push Command And GitHub Pull Request
 
 When the user enters exactly `push`, treat it as explicit permission to:
@@ -381,7 +408,7 @@ If an open pull request already exists for the current branch against `main`, re
 
 ### Phase 13: Push Auto Check Loop, Merge, Branch Deletion, And Cleanup
 
-When the user enters exactly `push auto`, treat it as explicit permission to run the normal `push` workflow and then automatically finish the GitHub pull request lifecycle for the active task-scoped change, including Python product code and Python product-behavior tests.
+When the user enters exactly `push auto`, treat it as explicit permission to run the normal `push` workflow and then automatically finish the GitHub pull request lifecycle for the active task-scoped implementation change, including Python product code and Python product-behavior tests. This does not apply to workflow-create-only output; that case is governed by the Workflow Create Publication Guard.
 
 `push auto` must not publish unrelated changes, sensitive files, generated local artifacts, credentials, or files that cannot be classified as part of the active task.
 

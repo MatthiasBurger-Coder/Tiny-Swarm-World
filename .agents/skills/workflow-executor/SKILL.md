@@ -417,8 +417,16 @@ For each slice:
     the workflow explicitly permits carrying a documented blocker without a
     commit.
 
-Slice checkpoint push is not `push auto`. It must not create or merge a PR, run branch cleanup, force-push or push to `main`.
-A later explicit `push auto` may publish any task-scoped repository change
+Slice checkpoint push is not `push auto`. It must not create or merge a PR, run
+branch cleanup, force-push or push to `main`.
+
+Workflow-authoring publication is also not `push auto`. A branch that contains
+only the result of `workflow create` must remain in the normal branch-push
+state until implementation slices are executed or the user explicitly requests
+a workflow-documentation pull request merge after acknowledging the
+workflow-create guard.
+
+A later explicit `push auto` may publish task-scoped repository changes
 produced by workflow execution only through the guarded commit, pull request,
 green required-checks, SonarQube when configured, merge and cleanup lifecycle.
 
