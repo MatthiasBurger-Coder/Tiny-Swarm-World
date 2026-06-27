@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-CURRENT_AFTER_AUDIT_DERIVED_GOVERNANCE_SKILLS
+CURRENT_WITH_ISSUE_COMPLETION_GATES
 ```
 
 This is the canonical Tiny Swarm World skill registry path. Repository files
@@ -13,6 +13,8 @@ remain the source of truth; this registry is an audit and navigation artifact.
 
 - Root engineering authority: `AGENTS.md`.
 - Quality authority: `QUALITY.md`.
+- Issue completion authority:
+  `documentation/process/issue-completion-discipline.md`.
 - Project-specific skills: `.agents/skills/<skill-name>/SKILL.md`.
 - Reusable Codex skills: `.codex/skills/<skill-name>/SKILL.md`.
 - Owner map: `documentation/skill-audit/owner-map.md`.
@@ -35,19 +37,20 @@ remain the source of truth; this registry is an audit and navigation artifact.
 
 - Project-specific discoverable skills: 132.
 - Reusable `.codex` skills: 6.
-- Canonical required Tiny Swarm World skills: 47.
+- Canonical required Tiny Swarm World skills: 48.
 - Removed stale microservice-specific artifacts: 4.
 
 ## Audit-Derived Governance Skills
 
-These skills were added for audit remediation workflows #121 through #130. No
-existing skill was removed or renamed; the new skills narrow ownership for audit
-evidence, QMS-light, ISMS-light, traceability, live evidence, ASVS mapping,
-supply chain security, branch/CI governance, documentation audiences, and
-release baselines.
+These skills were added for audit remediation workflows #121 through #130 and
+local completion-discipline hardening. No existing skill was removed or
+renamed; the new skills narrow ownership for issue completion, audit evidence,
+QMS-light, ISMS-light, traceability, live evidence, ASVS mapping, supply chain
+security, branch/CI governance, documentation audiences, and release baselines.
 
 | Skill | Group | Owner Role | Primary Paths | Related Issues |
 | --- | --- | --- | --- | --- |
+| `issue-completion-auditor` | Governance and quality | Senior Requirement Engineer | `.agents/skills/issue-completion-auditor/SKILL.md`, `documentation/process/issue-completion-discipline.md`, `.tiny-swarm/evidence/` | local governance hardening |
 | `audit-evidence-manager` | Audit and quality | Senior Documentation Engineer | `documentation/audit/` | #121 |
 | `qms-light-governance-expert` | Audit and quality | Senior Tester | `documentation/qms/`, `QUALITY.md`, `AGENTS.md` | #122 |
 | `traceability-engineer` | Audit and quality | Senior Requirement Engineer | `documentation/traceability/` | #124 |

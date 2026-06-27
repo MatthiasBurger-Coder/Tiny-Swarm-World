@@ -18,6 +18,7 @@ Inspect the relevant subset of:
 - user request
 - `AGENTS.md`
 - `QUALITY.md`
+- `documentation/process/issue-completion-discipline.md`
 - `documentation/epics`
 - `documentation/arc42`
 - `documentation/adr`
@@ -63,6 +64,7 @@ Run governance checks:
 - before adding resilience behavior
 - before changing quality-gate expectations
 - before aligning existing skills or roles
+- before marking issue-driven work complete
 - before commit readiness review
 
 ## Architecture Rules
@@ -125,6 +127,19 @@ Require:
 - Minimum and full local quality gates recorded when relevant.
 - `git diff --check` run before commit readiness.
 
+### Issue Completion Consistency
+
+- `documentation/process/issue-completion-discipline.md` reviewed for
+  issue-driven work.
+- Requirement matrix exists before implementation.
+- Every requirement maps to implementation evidence and verification evidence.
+- Required `.tiny-swarm/evidence/<workflow-or-issue-id>/` files exist before
+  `DONE`.
+- `issue-completion-auditor` review is recorded before a final completion
+  claim.
+- Open or unverified requirements force `INCOMPLETE`, `BLOCKED` or `FAILED`,
+  never `DONE`.
+
 ## Stop Conditions
 
 Stop and report if:
@@ -135,6 +150,8 @@ Stop and report if:
 - service ownership is ambiguous
 - resilience expectations are unclear
 - quality-gate authority is unclear
+- issue requirements, requirement matrix, evidence path or completion authority
+  are unclear
 - a governance decision would require guessing
 
 ## Expected Outputs

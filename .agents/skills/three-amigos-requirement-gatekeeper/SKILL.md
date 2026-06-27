@@ -44,6 +44,7 @@ Inspect the relevant subset of:
 - user requirement and acceptance criteria
 - root `AGENTS.md`
 - root `QUALITY.md`
+- `documentation/process/issue-completion-discipline.md`
 - `documentation/epics`
 - `documentation/arc42`
 - `documentation/adr`
@@ -94,6 +95,32 @@ Always ask:
 ```text
 Does the implementation still match the EPIC?
 ```
+
+## Required Requirement Matrix Gate
+
+Before implementation can be approved, the gatekeeper must require a
+requirement matrix that follows
+`documentation/process/issue-completion-discipline.md`.
+
+The matrix must include every explicit and implicit behavior requirement,
+mentioned file, service, port, command, workflow and evidence path from the
+issue. Ambiguous requirements must be marked `BLOCKED`; they must not be
+silently omitted or deferred.
+
+## Completion Perspectives
+
+Before any later `DONE` claim, the Three Amigos evidence must cover these
+perspectives:
+
+- Requirement Lead: every issue requirement is captured and no hidden
+  requirement was ignored.
+- System Architect Reviewer: the solution fits hexagonal architecture,
+  provider model, reconciliation and workflow design without shortcuts or
+  local hacks.
+- Test / Evidence Reviewer: every requirement has test or evidence and quality
+  gates were not bypassed.
+
+If one perspective fails, the issue is `INCOMPLETE` or `BLOCKED`.
 
 For microservice migration requests, require a Three Amigos Decision Record with:
 
@@ -196,6 +223,7 @@ Stop with `REQUIRES_REFINEMENT` when:
 - affected services, APIs, storage, data ownership or deployment impact are unclear;
 - microservice service boundary, contract impact, test impact, risk level or forbidden changes are unclear;
 - acceptance criteria are missing or not testable;
+- the requirement matrix is missing or omits issue requirements;
 - API contracts or message semantics are unclear;
 - architecture boundaries, testability, data ownership, service boundaries, APIs, contracts, runtime behavior or scope are unclear;
 - rollback strategy is missing when the change affects deployable behavior or persisted state;

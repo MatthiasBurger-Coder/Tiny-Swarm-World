@@ -6,6 +6,7 @@ Use this process when the user requests `workflow execute`.
 
 - `AGENTS.md`
 - `QUALITY.md`
+- `documentation/process/issue-completion-discipline.md`
 - `.agents/prompts/workflow-execute.md`
 - `.agents/skills/workflow-executor/SKILL.md`
 - `.agents/orchestrator/routing-rules.md`
@@ -27,29 +28,34 @@ Use this process when the user requests `workflow execute`.
    - verify file, contract, module and architecture locks;
    - choose serial execution when locks overlap.
 4. Classify the next slice and route it to the smallest suitable role set.
-5. Run the Three Amigos or specialist review gate for the slice.
-6. Create the automatic distribution decision for the slice.
-7. Select sequential or parallel execution.
-8. If parallel, create isolated Git worktrees per stream, execute
+5. Create or verify the requirement matrix before implementation.
+6. Run the Three Amigos or specialist review gate for the slice.
+7. Create the automatic distribution decision for the slice.
+8. Select sequential or parallel execution.
+9. If parallel, create isolated Git worktrees per stream, execute
    stream-specific work, collect stream evidence and consolidate into the main
    workflow branch.
-9. If sequential, document why sequential execution was chosen and execute the
+10. If sequential, document why sequential execution was chosen and execute the
    slice in the main workflow branch.
-10. Implement only the slice's allowed write scope.
-11. Run targeted checks first, then required gates from `QUALITY.md`.
-12. Classify failures through the Typed Error Router before retries.
-13. Fix in-scope test, quality-gate and SonarQube findings without weakening
+11. Implement only the slice's allowed write scope.
+12. Run targeted checks first, then required gates from `QUALITY.md`.
+13. Classify failures through the Typed Error Router before retries.
+14. Fix in-scope test, quality-gate and SonarQube findings without weakening
     gates. Stop only when the repair would be unsafe, out of scope,
     unverifiable or would bypass quality authority.
-14. Inspect `git diff` and `git diff --check`.
-15. Create or update consolidation evidence for the slice.
-16. Commit exactly one slice. Multi-slice commits are forbidden.
-17. Create or update the PR when the active workflow or publication command
+15. Inspect `git diff` and `git diff --check`.
+16. Create or update consolidation evidence for the slice.
+17. Create or update issue-completion evidence under
+    `.tiny-swarm/evidence/<workflow-or-issue-id>/` when the slice is
+    issue-driven.
+18. Run or record `issue-completion-auditor` review before any `DONE` claim.
+19. Commit exactly one slice. Multi-slice commits are forbidden.
+20. Create or update the PR when the active workflow or publication command
     requires it.
-18. Merge only after required gates pass, including SonarQube when configured.
-19. Continue with the next workflow or issue after successful merge unless a
+21. Merge only after required gates pass, including SonarQube when configured.
+22. Continue with the next workflow or issue after successful merge unless a
     real blocker occurs.
-20. When the active workflow requires checkpoint pushes, stage only current-slice files, commit, push the workflow branch, and record the result.
+23. When the active workflow requires checkpoint pushes, stage only current-slice files, commit, push the workflow branch, and record the result.
 
 Slice checkpoint push is not `push auto`. Workflow-create publication is also
 not `push auto`; workflow-create-only branches stay at guarded branch
@@ -137,6 +143,11 @@ accepts the changes.
 ## Validation Checklist
 
 - `workflow execute` does not depend on the user saying "with subagents".
+- Requirement matrix exists before implementation.
+- Every requirement maps to implementation evidence and verification evidence.
+- Required `.tiny-swarm/evidence/<workflow-or-issue-id>/` files exist for
+  issue-driven work before `DONE`.
+- `issue-completion-auditor` review is recorded before any final `DONE` claim.
 - Every slice has distribution evidence before implementation.
 - Sequential execution records why parallelization was rejected.
 - Parallel execution uses isolated stream worktrees and stream branches.
@@ -152,5 +163,6 @@ accepts the changes.
 
 Stop when the branch, slice metadata, dependency graph, locks, ownership,
 quality gate, write scope, failure route, distribution evidence,
-consolidation evidence, stream worktree isolation, PR readiness, merge
-readiness, or checkpoint target cannot be verified.
+consolidation evidence, requirement matrix, issue-completion evidence,
+auditor review, stream worktree isolation, PR readiness, merge readiness, or
+checkpoint target cannot be verified.
