@@ -1163,6 +1163,14 @@ Current status:
   infrastructure opt-in was requested for this execution.
 - The absence of Selenium browser E2E implementation and execution is now a
   remaining workflow requirement, not an accepted final state.
+- Follow-up execution added Slices 05 through 07 artifacts: service-oriented
+  integration route tests, opt-in Selenium browser E2E test files, and the
+  domain ingress correction that makes Traefik load-balancer target ports use
+  internal service ports.
+- Full quality gate after follow-up changes passed with 1052 tests and 52
+  skipped.
+- Slice 08 remains open because live Selenium execution still requires
+  explicit live infrastructure opt-in.
 
 ## arc42 Check Status
 

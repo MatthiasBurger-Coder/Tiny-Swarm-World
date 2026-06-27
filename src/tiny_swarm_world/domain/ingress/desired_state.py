@@ -28,9 +28,14 @@ _DEFAULT_HTTPS_ROUTE_SERVICES = frozenset(
 )
 
 _ROUTE_OVERRIDES = {
+    "infisical": ("infisical", "infisical", 8080),
+    "jenkins": ("jenkins", "jenkins", 8080),
+    "nexus": ("nexus", "nexus", 8081),
+    "portainer": ("portainer", "portainer", 9000),
     "pulsar-admin-api": ("pulsar-api", "pulsar", 8080),
     "pulsar-manager": ("pulsar", "pulsar-manager", 9527),
     "service-access": ("service-access", "service-access-dashboard", 80),
+    "sonarqube": ("sonarqube", "sonarqube", 9000),
     "swagger": ("swagger", "swagger-nginx", 8084),
 }
 
