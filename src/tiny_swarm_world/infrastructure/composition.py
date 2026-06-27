@@ -190,6 +190,7 @@ from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
     LoggingMethodTrace,
     LoggingWorkflowProgress,
 )
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 from tiny_swarm_world.infrastructure.composition_blocked_workflows import (
     BlockedArtifactWorkflow,
     BlockedDeploymentWorkflow,
@@ -447,9 +448,10 @@ def build_preflight_service(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
-    port_registry = PortRegistryYamlRepository().load()
+    project_paths = default_project_paths()
+    port_registry = PortRegistryYamlRepository(project_paths=project_paths).load()
     return PreflightService(
-        HostPreflightProbe(),
+        HostPreflightProbe(project_paths=project_paths),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
         configuration_validation=configuration_validation,
         port_registry=port_registry,
@@ -473,7 +475,7 @@ def build_configuration_validation_service(
 
 
 def build_compose_file_repository() -> PortComposeFileRepository:
-    return ComposeFileRepositoryYaml()
+    return ComposeFileRepositoryYaml(project_paths=default_project_paths())
 
 
 def build_post_install_preflight_service(
@@ -481,9 +483,10 @@ def build_post_install_preflight_service(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     configuration_validation: ConfigurationValidationService | None = None,
 ) -> PreflightService:
+    project_paths = default_project_paths()
     configuration = _preflight_configuration_for_provider(service_profile, node_provider_request)
     return PreflightService(
-        HostPreflightProbe(),
+        HostPreflightProbe(project_paths=project_paths),
         replace(configuration, required_ports=()),
         configuration_validation=configuration_validation,
     )
@@ -571,7 +574,10 @@ def build_platform_services(
     trace_correlation_id: str | None = None,
 ) -> PlatformServices:
     configure_infrastructure_container()
-    node_provider_config_repository = NodeProviderConfigYamlRepository()
+    project_paths = default_project_paths()
+    node_provider_config_repository = NodeProviderConfigYamlRepository(
+        project_paths=project_paths
+    )
     provider_config = node_provider_config_repository.load()
     provider_request = node_provider_request or _node_provider_request_from_config(provider_config)
     workflow_progress = _build_workflow_progress_sink(ui)
@@ -580,10 +586,15 @@ def build_platform_services(
 
     command_workflow = CommandWorkflow()
     verification_evidence_repository = VerificationEvidenceLocalRepository()
-    preflight = _build_preflight_service_for_request(service_profile, provider_request)
+    preflight = _build_preflight_service_for_request(
+        service_profile,
+        provider_request,
+        project_paths=project_paths,
+    )
     post_install_preflight = _build_post_install_preflight_service_for_request(
         service_profile,
         provider_request,
+        project_paths=project_paths,
     )
     lxc_runner = AsyncLxcNodeCommandRunner()
     lxc_node_provider = LxcNodeProvider(
@@ -820,6 +831,7 @@ def build_lxc_artifact_services(
     backend: ManagedLxcBackend,
     ui: PortUI | None = None,
 ) -> ArtifactServices:
+    project_paths = default_project_paths()
     nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD")
     nexus_client = LxcNexusHttpClient(backend=backend)
     container_runtime = LxcContainerRuntime(backend=backend)
@@ -827,6 +839,7 @@ def build_lxc_artifact_services(
         backend=backend,
         registry_username="admin",
         registry_password=nexus_admin_password,
+        project_paths=project_paths,
     )
     wait_for_nexus_ready = WaitForNexusReady(
         nexus_client=nexus_client,
@@ -942,12 +955,13 @@ def build_lxc_deployment_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     ui: PortUI | None = None,
 ) -> DeploymentServices:
+    project_paths = default_project_paths()
     selected_service_profile = ServiceStackProfile(service_profile)
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
-    swarm_runtime = LxcSwarmRuntime(backend=backend)
+    swarm_runtime = LxcSwarmRuntime(backend=backend, project_paths=project_paths)
     stack_environment = _deployment_stack_environment(selected_service_profile)
     secret_manifest_entries = SecretManifestRenderer().run()
-    compose_repository = ComposeFileRepositoryYaml()
+    compose_repository = ComposeFileRepositoryYaml(project_paths=project_paths)
     portainer_admin_client = LxcPortainerAdminClient(backend=backend)
     portainer_client = LxcPortainerHttpClient(
         backend=backend,
@@ -1082,10 +1096,12 @@ def build_setup_services(
     ui: PortUI | None = None,
     configuration_validation: ConfigurationValidationService | None = None,
 ) -> SetupServices:
+    project_paths = default_project_paths()
     preflight = _build_preflight_service_for_request(
         service_profile,
         node_provider_request,
         configuration_validation=configuration_validation,
+        project_paths=project_paths,
     )
     trace_correlation_id = _new_installation_trace_correlation_id()
     platform = _build_platform_services_for_request(
@@ -1240,16 +1256,17 @@ def _build_preflight_service_for_request(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
     configuration_validation: ConfigurationValidationService | None = None,
+    project_paths: ProjectPaths | None = None,
 ) -> PreflightService:
+    paths = project_paths or default_project_paths()
     if node_provider_request is None:
-        return build_preflight_service(
-            service_profile=service_profile,
-            configuration_validation=configuration_validation,
-        )
-    return build_preflight_service(
-        service_profile=service_profile,
-        node_provider_request=node_provider_request,
+        node_provider_request = None
+    port_registry = PortRegistryYamlRepository(project_paths=paths).load()
+    return PreflightService(
+        HostPreflightProbe(project_paths=paths),
+        _preflight_configuration_for_provider(service_profile, node_provider_request),
         configuration_validation=configuration_validation,
+        port_registry=port_registry,
     )
 
 
@@ -1257,15 +1274,13 @@ def _build_post_install_preflight_service_for_request(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
     configuration_validation: ConfigurationValidationService | None = None,
+    project_paths: ProjectPaths | None = None,
 ) -> PreflightService:
-    if node_provider_request is None:
-        return build_post_install_preflight_service(
-            service_profile=service_profile,
-            configuration_validation=configuration_validation,
-        )
-    return build_post_install_preflight_service(
-        service_profile=service_profile,
-        node_provider_request=node_provider_request,
+    paths = project_paths or default_project_paths()
+    configuration = _preflight_configuration_for_provider(service_profile, node_provider_request)
+    return PreflightService(
+        HostPreflightProbe(project_paths=paths),
+        replace(configuration, required_ports=()),
         configuration_validation=configuration_validation,
     )
 
@@ -1284,7 +1299,9 @@ def _lxc_backend_for_provider_request(
 
 
 def _default_node_provider_request() -> NodeProviderSelectionRequest:
-    provider_config = NodeProviderConfigYamlRepository().load()
+    provider_config = NodeProviderConfigYamlRepository(
+        project_paths=default_project_paths()
+    ).load()
     return _node_provider_request_from_config(provider_config)
 
 

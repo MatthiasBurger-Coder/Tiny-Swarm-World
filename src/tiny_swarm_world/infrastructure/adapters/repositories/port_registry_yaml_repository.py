@@ -14,15 +14,16 @@ from tiny_swarm_world.domain.network import (
     PortRegistry,
     ServicePortMapping,
 )
-from tiny_swarm_world.infrastructure.project_paths import config_root
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 
 DEFAULT_PORT_REGISTRY_PATH = Path("ports.yaml")
 
 
 class PortRegistryYamlRepository(PortPortRegistryRepository):
-    def __init__(self, path: Path | None = None):
-        self.path = path or (config_root() / DEFAULT_PORT_REGISTRY_PATH)
+    def __init__(self, path: Path | None = None, project_paths: ProjectPaths | None = None):
+        paths = project_paths or default_project_paths()
+        self.path = path or (paths.config_root / DEFAULT_PORT_REGISTRY_PATH)
         self.yaml = YAML(typ="safe")
 
     def load(self) -> PortRegistry:

@@ -12,7 +12,7 @@ from tiny_swarm_world.domain.deployment.stack_definition import (
 )
 from tiny_swarm_world.domain.network import PortRegistry, ServicePortMapping
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
-from tiny_swarm_world.infrastructure.project_paths import infra_root
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
     PortRegistryYamlRepository,
 )
@@ -27,12 +27,15 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
         self,
         base_directories: list[Path] | None = None,
         port_registry: PortRegistry | None = None,
+        project_paths: ProjectPaths | None = None,
     ):
-        root = infra_root()
+        paths = project_paths or default_project_paths()
         self.base_directories = base_directories or [
-            root / "config" / "compose",
+            paths.infra_root / "config" / "compose",
         ]
-        self.port_registry = port_registry or PortRegistryYamlRepository().load()
+        self.port_registry = port_registry or PortRegistryYamlRepository(
+            project_paths=paths
+        ).load()
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def get_compose_of(self, stack_name: str) -> StackDefinition:
