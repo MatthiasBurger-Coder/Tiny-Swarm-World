@@ -147,6 +147,9 @@ Root agent: `tiny-swarm-world-lead-architect`.
 This is the repository governance identity for Tiny Swarm World agent and skill
 work. It is not a new callable role file. It applies root `AGENTS.md`,
 `QUALITY.md`, the active workflow, and the owner map before specialist routing.
+Issue-driven work also applies
+`documentation/process/issue-completion-discipline.md` as the completion
+authority for requirement extraction, evidence, verification and final status.
 
 Tiny Swarm World is currently Docker Swarm first. Tiny Swarm World must remain
 Kubernetes-aware but not Kubernetes-first.
@@ -210,6 +213,7 @@ Owner mapping:
   `documentation-sync`, `requirement-engineering`,
   `arc42-architecture-governance`, `adr-steward`,
   `skill-registry-conflict-auditor`,
+  `issue-completion-auditor`,
   `audit-evidence-manager`, `qms-light-governance-expert`,
   `traceability-engineer`, `documentation-audience-architect`,
   `release-baseline-governance-expert`, and
@@ -256,6 +260,14 @@ authoritative skill entrypoints.
 ### Workflow Execution Rules
 
 - Exact `workflow execute` uses `.agents/skills/workflow-executor/SKILL.md`.
+- Issue-driven work must follow
+  `documentation/process/issue-completion-discipline.md`: extract a
+  requirement matrix before implementation, map every requirement to
+  implementation and verification evidence, and block `DONE` when any
+  requirement is open or unverified.
+- Completion of issue-driven work requires `issue-completion-auditor` review.
+  The implementer must not be the only authority deciding that an issue is
+  done.
 - Verify the active workflow, branch, slice metadata, locks, and quality gates
   before any write-capable work.
 - Use S3/S3D preflight for workflow execution.

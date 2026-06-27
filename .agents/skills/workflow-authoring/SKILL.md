@@ -131,11 +131,12 @@ Read before authoring or regenerating a workflow:
 1. User request.
 2. Root `AGENTS.md`.
 3. Root `QUALITY.md`.
-4. Existing `documentation/workflow` if present.
-5. Relevant EPIC files under `documentation/epics` if present.
-6. Relevant `documentation/arc42` and `documentation/adr` files.
-7. Relevant `.agents/skills` and `.agents/roles` files.
-8. Python tooling or CI files only when quality-gate behavior is affected.
+4. `documentation/process/issue-completion-discipline.md`.
+5. Existing `documentation/workflow` if present.
+6. Relevant EPIC files under `documentation/epics` if present.
+7. Relevant `documentation/arc42` and `documentation/adr` files.
+8. Relevant `.agents/skills` and `.agents/roles` files.
+9. Python tooling or CI files only when quality-gate behavior is affected.
 
 ## Workflow Regeneration Rule
 
@@ -211,6 +212,9 @@ Every workflow should include:
 - Git Worktree Execution Rule
 - parallelization opportunities
 - role or subagent ownership map
+- requirement matrix expectations for issue-driven workflows
+- issue-completion evidence expectations
+- issue-completion-auditor handoff
 - quality-gate expectations from `QUALITY.md`
 - documentation synchronization points
 - stop conditions
@@ -274,6 +278,8 @@ For each slice define:
 - file, contract and architecture locks
 - parallelization status
 - done criteria
+- issue-completion evidence path
+- requirement-to-verification mapping
 - verification commands
 - stop conditions
 
@@ -304,6 +310,24 @@ stop_conditions: []
 Use empty arrays for none. Dependencies must be concrete slice IDs, not ranges
 or prose. Missing metadata blocks future `workflow execute` until the workflow
 is corrected.
+
+Every issue-driven executable workflow must include this section:
+
+```markdown
+## Issue Completion Discipline
+
+- Requirement matrix path:
+- Required evidence path:
+- Required evidence files:
+- Requirement Lead review:
+- System Architect Reviewer review:
+- Test / Evidence Reviewer review:
+- Issue Completion Auditor review:
+- DONE blocking rule:
+```
+
+The `DONE` blocking rule must state that open or unverified requirements force
+`INCOMPLETE`, `BLOCKED` or `FAILED`.
 
 Every executable workflow must include this section:
 
@@ -397,6 +421,8 @@ Stop and report if:
 - quality-gate authority is unclear
 - planned file paths cannot be verified
 - blocking requirement questions remain
+- requirement matrix expectations or issue-completion evidence expectations
+  are unclear for issue-driven workflows
 - `documentation/workflow/workflow.md` cannot be validated
 - arc42 documentation cannot be checked or updated
 - continuing would require guessing governance decisions

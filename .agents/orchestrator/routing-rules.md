@@ -9,6 +9,10 @@ Use these rules to select roles for a slice. Prefer the smallest set that covers
 - Exact `skills update` routes to the skills-agents strand, Skill Registry Conflict Auditor, Senior Documentation Engineer as Organigramm Maintainer, and Senior Workflow Architect as Process Governance Maintainer.
 - Exact `workflow create` routes to workflow create.
 - Exact `workflow execute` routes to workflow execute.
+- Issue completion, DONE readiness, acceptance coverage, branch completion
+  audit, or "is this issue fully done" routes to
+  `skills/issue-completion-auditor/SKILL.md` after implementation evidence is
+  available.
 
 Before assigning specialist roles, route every `workflow create` and
 `workflow execute` request through
@@ -33,6 +37,11 @@ gates. Unclear impact defaults to `FULL_PATH`.
 - Production microservice migration safety, rollback, strangler strategy or multi-service risk gates route to `skills/microservice-migration-safety-gate/SKILL.md`.
 - Microservice runtime independence, healthcheck, observability or container-readiness evidence routes to `skills/microservice-runtime-readiness-expert/SKILL.md`.
 - Test strategy, regression coverage, Python architecture checks or quality-gate design routes to `roles/senior-tester.md`.
+- Requirement matrix, acceptance verification, evidence completeness or
+  no-silent-scope-reduction concerns route through
+  `documentation/process/issue-completion-discipline.md`,
+  `skills/three-amigos-requirement-gatekeeper/SKILL.md` and
+  `skills/issue-completion-auditor/SKILL.md` by phase.
 - Quality or validation failures in `workflow execute` route through the Typed Error Router before any retry:
   - `ARCH_VIOLATION` routes to Root Architect escalation, `roles/senior-system-architect.md` and `skills/architecture-hexagonal/SKILL.md`.
   - `BUILD_FAILURE` routes to the responsible Python automation or frontend owner plus `roles/senior-devops.md`; Python quality-gate failures also route to `skills/quality-gate/SKILL.md`.

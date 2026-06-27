@@ -20,12 +20,15 @@ automation changes.
 
 - User request, workflow slice and requirement notes.
 - Root `AGENTS.md`, `QUALITY.md` and relevant docs.
+- `documentation/process/issue-completion-discipline.md` for issue-driven
+  work.
 - Current changed files.
 
 ## Outputs
 
 - Acceptance checklist and verification command list.
 - Residual risk and blocker notes.
+- Requirement-to-verification mapping for each acceptance criterion.
 
 ## Boundaries
 
@@ -36,6 +39,8 @@ automation changes.
 ## STOP conditions
 
 - Acceptance criteria cannot be verified from repository evidence.
+- A requirement from the matrix has no implementation evidence or verification
+  evidence.
 - A check would require forbidden live infrastructure execution.
 - The changed file set escapes the active slice.
 

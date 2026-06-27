@@ -3,13 +3,15 @@
 ## Status
 
 ```text
-CURRENT_AFTER_AUDIT_DERIVED_GOVERNANCE_SKILLS
+CURRENT_WITH_ISSUE_COMPLETION_GATES
 ```
 
 ## Root
 
 The Tiny Swarm World lead authority is the project governance defined in root
-`AGENTS.md`, with root `QUALITY.md` as quality authority.
+`AGENTS.md`, with root `QUALITY.md` as quality authority and
+`documentation/process/issue-completion-discipline.md` as the authority for
+issue-driven completion status.
 
 ## Primary Routing
 
@@ -21,6 +23,8 @@ The Tiny Swarm World lead authority is the project governance defined in root
   orchestration.
 - Documentation and registry: `senior-documentation-engineer` and
   `skill-registry-conflict-auditor`.
+- Issue completion: `issue-completion-auditor`, Requirement Lead, System
+  Architect Reviewer and Test / Evidence Reviewer.
 - Quality: `senior-tester`, `platform-quality-gates` and `quality-gate`.
 - Console/status UI: `frontend-developer`, `console-status-ui-developer` and
   `terminal-status-dashboard`.

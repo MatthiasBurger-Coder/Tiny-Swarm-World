@@ -18,6 +18,10 @@ This skill is a governance reviewer. It does not implement product code, write b
 - Identify duplicated ownership, missing owners, incompatible STOP rules and conflicting quality or architecture expectations.
 - Classify conflicts as `BLOCKING` or `NON_BLOCKING`.
 - Verify that every new skill defines mission, responsibilities, forbidden scope, inputs, outputs, collaboration rules and STOP rules.
+- Verify that every new or changed issue-driven skill applies
+  `documentation/process/issue-completion-discipline.md` through requirement
+  extraction, verification evidence, final status rules or a documented N/A
+  rationale.
 - Preserve the distinction between reusable `.codex` assets and project-specific `.agents` or documentation assets.
 - Reuse a previous registry result only when the recorded governance hashes still match the repository files and no governing path changed.
 - Escalate unresolved architecture, security, quality, API, data ownership or release conflicts to the owning specialist skill or role.
@@ -35,6 +39,8 @@ The Skill Registry & Conflict Auditor may:
 
 - Do not invent missing skills, roles or agent names.
 - Do not allow implementation to bypass the Three Amigos Requirement Gatekeeper for new or changed requirements.
+- Do not allow issue-driven work to bypass the requirement matrix,
+  issue-completion evidence or `issue-completion-auditor` completion decision.
 - Do not allow commit or push without required quality gate evidence.
 - Do not weaken `AGENTS.md`, `QUALITY.md`, ADRs or microservice boundary rules.
 - Do not treat `.codex` reusable templates as the place for project-specific governance unless portability is verified.
@@ -44,6 +50,7 @@ The Skill Registry & Conflict Auditor may:
 
 - Root `AGENTS.md`
 - Root `QUALITY.md`
+- `documentation/process/issue-completion-discipline.md`
 - Active `documentation/workflow/**`
 - Existing `docs/workplan/**` when referenced by migration or historical context
 - `documentation/adr/**`
@@ -66,6 +73,7 @@ The Skill Registry & Conflict Auditor may:
 - Missing-owner report
 - Required specialist review list
 - Updated or validated persistent skill registry matrix
+- Issue-completion discipline coverage findings
 - Registry reuse decision: `REUSE_ALLOWED`, `MANUAL_REVIEW_REQUIRED` or `BLOCKED`
 - `READY_FOR_WORKFLOW` or blocking governance findings when used in a requirement gate
 
@@ -86,6 +94,8 @@ Stop and report when:
 - a skill permits shared Java implementation modules between microservices;
 - a skill permits direct cross-service database access;
 - a skill permits implementation without requirement gate approval;
+- a skill permits issue-driven completion without requirement matrix,
+  verification evidence or auditor review;
 - a skill permits commit or push without required quality gates;
 - several skills own the same output but apply incompatible rules;
 - a workflow references a skill, role, prompt or agent that cannot be verified;

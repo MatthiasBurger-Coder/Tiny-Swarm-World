@@ -35,11 +35,12 @@ Read these files before implementation:
 
 1. Root `AGENTS.md`.
 2. Root `QUALITY.md`.
-3. Active workflow under `documentation/workflow`.
-4. `.agents/orchestrator/routing-rules.md`.
-5. `.agents/orchestrator/swarm-orchestrator.md`.
-6. Relevant `.agents/roles` files for the slice.
-7. Relevant `.agents/skills` files for the slice.
+3. `documentation/process/issue-completion-discipline.md`.
+4. Active workflow under `documentation/workflow`.
+5. `.agents/orchestrator/routing-rules.md`.
+6. `.agents/orchestrator/swarm-orchestrator.md`.
+7. Relevant `.agents/roles` files for the slice.
+8. Relevant `.agents/skills` files for the slice.
 
 When `documentation/workflow/context-pack.md` or
 `documentation/workflow/context-pack.json` exists, read it first for orientation and
@@ -307,6 +308,32 @@ Never implement a workflow slice directly before the relevant subagent or role h
 
 The `workflow execute` command authorizes the configured subagent workflow for that workflow only. Keep unrelated tasks under the normal repository subagent authorization rules.
 
+## Issue Completion Discipline
+
+For every issue-driven workflow slice, apply
+`documentation/process/issue-completion-discipline.md` as a hard execution
+gate.
+
+Before implementation:
+
+- create or verify `.tiny-swarm/evidence/<workflow-or-issue-id>/requirement_matrix.md`;
+- extract every explicit and implicit issue requirement into stable requirement
+  IDs;
+- map each requirement to planned code, config, documentation, test and
+  evidence changes;
+- mark ambiguous requirements `BLOCKED` instead of guessing silently.
+
+Before `DONE`:
+
+- verify every requirement against implementation evidence and test or check
+  evidence;
+- create all required `.tiny-swarm/evidence/<workflow-or-issue-id>/` files;
+- run the Three Amigos completion perspectives for requirement, architecture
+  and test/evidence coverage;
+- run or record `issue-completion-auditor` review;
+- report `INCOMPLETE`, `BLOCKED` or `FAILED` when any requirement is open or
+  unverified.
+
 ## Required Default Roles
 
 Use at least these roles when relevant to the slice:
@@ -372,47 +399,52 @@ For each slice:
 
 1. Read `documentation/workflow/workflow.md`.
 2. Read root `AGENTS.md` and relevant skill definitions.
-3. Run the Three Amigos or specialist review gate for the slice.
-4. Run S3D dependency, topological-order and conflict-lock checks.
-5. Create `.codex/evidence/slice-<number>-distribution.md` with the automatic
+3. Read `documentation/process/issue-completion-discipline.md`.
+4. Create or verify the requirement matrix before implementation.
+5. Run the Three Amigos or specialist review gate for the slice.
+6. Run S3D dependency, topological-order and conflict-lock checks.
+7. Create `.codex/evidence/slice-<number>-distribution.md` with the automatic
    work distribution decision.
-6. Select sequential or parallel execution.
-7. If parallel, create isolated Git worktrees per selected stream, execute
+8. Select sequential or parallel execution.
+9. If parallel, create isolated Git worktrees per selected stream, execute
    stream-specific work, collect stream evidence, and consolidate into the main
    workflow branch only after the Git Worktree Execution Rule is satisfied.
-8. If sequential, document why sequential execution was chosen and execute the
+10. If sequential, document why sequential execution was chosen and execute the
    slice in the main workflow branch.
-9. Apply only the changes authorized by the slice.
-10. Run targeted tests first.
-11. Run the required quality checks from `QUALITY.md` or the workflow.
-12. Fix quality-gate, test and SonarQube findings that are inside the active
+11. Apply only the changes authorized by the slice.
+12. Run targeted tests first.
+13. Run the required quality checks from `QUALITY.md` or the workflow.
+14. Fix quality-gate, test and SonarQube findings that are inside the active
    workflow branch and slice scope. Stop only when the fix would be unsafe,
    out of scope, unverifiable or would weaken gates.
-13. Treat the required quality decision as `D8`. Failed build, failed tests,
+15. Treat the required quality decision as `D8`. Failed build, failed tests,
    architecture violation, missing required documentation, missing workflow
    version or failed required quality gate blocks commit, checkpoint push and
    release readiness.
-14. Inspect `git diff` and `git diff --check`.
-15. Create or update `.codex/evidence/slice-<number>-consolidation.md` with
+16. Inspect `git diff` and `git diff --check`.
+17. Create or update `.codex/evidence/slice-<number>-consolidation.md` with
     stream results, accepted and rejected findings, conflicts, tests,
     SonarQube fixes, documentation updates and final integration decision.
-16. Document the result in the workflow quality log or the workflow-designated location.
-17. When the slice quality gate passed, stage only files changed by the current slice.
-18. Run `git diff --cached --check`.
-19. Create the slice-scoped checkpoint commit. Each commit must represent
+18. Create or update `.tiny-swarm/evidence/<workflow-or-issue-id>/` issue
+    completion evidence when the slice is issue-driven.
+19. Run or record `issue-completion-auditor` review before any `DONE` claim.
+20. Document the result in the workflow quality log or the workflow-designated location.
+21. When the slice quality gate passed, stage only files changed by the current slice.
+22. Run `git diff --cached --check`.
+23. Create the slice-scoped checkpoint commit. Each commit must represent
     exactly one slice; multi-slice commits are forbidden.
-20. Push the current workflow branch to `origin`.
-21. Create or update the pull request when the workflow or publication command
+24. Push the current workflow branch to `origin`.
+25. Create or update the pull request when the workflow or publication command
     requires it. Merge only after required gates pass, including SonarQube when
     configured.
-22. Record the workflow version, slice ID, slice title, responsible agent,
+26. Record the workflow version, slice ID, slice title, responsible agent,
     changed files, quality-gate commands, quality-gate result, commit SHA,
     rollback reference, arc42 update status, ADR update status and push result
     in the execution report.
-23. Route asynchronous execution-report notes through `Q11`; Q11 is
+27. Route asynchronous execution-report notes through `Q11`; Q11 is
     non-blocking by default unless the active workflow explicitly declares a
     regulatory or compliance report as a D8 requirement.
-24. Continue with the next slice or next workflow issue only when the current
+28. Continue with the next slice or next workflow issue only when the current
     slice is clean, the checkpoint push or required PR lifecycle succeeded, or
     the workflow explicitly permits carrying a documented blocker without a
     commit.
@@ -457,6 +489,9 @@ Stop and report if:
 - S3D cannot verify required slice metadata, a dependency graph, topological order or disjoint locks
 - S3D detects a file, contract, module or architecture-boundary lock conflict
 - the distribution decision evidence cannot be created before implementation
+- the requirement matrix is missing before implementation
+- issue-completion evidence is missing before a `DONE` claim
+- `issue-completion-auditor` review is required but missing before completion
 - parallel workflow worktrees cannot be created or are dirty before execution
 - two parallel workflows unexpectedly modify the same file, test, governance
   artifact, skill file, agent file, package structure or architecture decision
