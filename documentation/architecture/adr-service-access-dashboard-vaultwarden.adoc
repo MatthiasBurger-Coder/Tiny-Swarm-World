@@ -43,9 +43,9 @@ Not implemented or not verified:
 
 Tiny Swarm World is a Linux/WSL-only Python automation project for a local
 Docker Swarm target environment. Existing service stacks such as Portainer,
-Nexus, Jenkins, RabbitMQ, SonarQube and Swagger/NGINX are governed through
-Deployment responsibility boundaries, compose assets, explicit verification
-contracts and live-infrastructure consent rules.
+Nexus, Jenkins, Apache Pulsar, SonarQube and Swagger/NGINX are governed
+through Deployment responsibility boundaries, compose assets, explicit
+verification contracts and live-infrastructure consent rules.
 
 The requested capability adds a service-access GUI and a Vaultwarden
 credential store. The user requirement includes password visibility for
@@ -103,7 +103,7 @@ The baseline rules are:
   is intended to serve the management overview at `http://localhost` after a
   verified provider-specific live deployment.
 * The service-access NGINX manages stable central paths for Jenkins, Nexus,
-  Portainer, RabbitMQ, SonarQube, Swagger and Vaultwarden.
+  Portainer, Apache Pulsar, SonarQube, Swagger and Vaultwarden.
 * Swagger/NGINX moves to published port `8084`.
 * Wider shared ingress is deferred until a later ADR defines route ownership,
   tests and rollback.

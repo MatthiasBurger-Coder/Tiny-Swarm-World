@@ -77,7 +77,6 @@ Explicit Requirements:
 - Host-based routes must use service internal target ports behind Traefik.
 - `exposedByDefault=false` is required and `--api.insecure=true` is forbidden.
 - Pulsar broker TCP must not become an HTTP route.
-- RabbitMQ must not be generated.
 - Default tests must stay static or mocked.
 - Live Selenium/browser validation must be opt-in and redacted.
 
@@ -108,7 +107,6 @@ Non-Goals:
 - No LXC/Incus installation change.
 - No Docker installation or Swarm bootstrap behavior change.
 - No Kubernetes support.
-- No RabbitMQ metadata or routes.
 - No automatic Windows hosts-file management.
 - No Linux `/etc/hosts` or DNS resolver mutation.
 - No automatic TLS or CA lifecycle implementation.
@@ -191,7 +189,6 @@ Implemented and verified by the first execution:
   Portainer, Jenkins, SonarQube, Nexus, Swagger, Infisical, Service Access,
   Pulsar Manager GUI and optional Pulsar Admin/API.
 - Pulsar broker TCP is not modelled as a normal HTTP route.
-- RabbitMQ routes and metadata are not generated.
 - Service Access keeps credential display safety; password values are not
   rendered or committed.
 - Default quality gate passes without live infrastructure.
@@ -795,7 +792,6 @@ documentation:
   adr: "No ADR change expected."
 stop_conditions:
   - "Stop if tests require live infrastructure by default."
-  - "Stop if RabbitMQ route metadata appears."
   - "Stop if Pulsar broker TCP is treated as HTTP."
 ```
 
@@ -1086,7 +1082,6 @@ Stop and report if:
 - Live browser or infrastructure checks would run by default.
 - DNS or hosts-file mutation would be required.
 - Pulsar broker TCP is treated as HTTP.
-- RabbitMQ metadata or routes are introduced.
 - Documentation would claim live success without opt-in evidence.
 - Any quality failure cannot be safely classified.
 

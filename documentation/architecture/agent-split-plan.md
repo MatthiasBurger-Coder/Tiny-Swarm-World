@@ -24,7 +24,7 @@ accepted.
   - socat forwarding
   - Nexus bootstrap against a real service
   - Portainer bootstrap against a real service
-  - Jenkins/RabbitMQ/SonarQube live setup
+  - Jenkins/Apache Pulsar/SonarQube live setup
 - Preserve hexagonal imports.
 - Run only safe unit, static, architecture, and quality-gate checks.
 
@@ -267,7 +267,7 @@ Scope:
 - Stack definitions.
 - Portainer stack upload.
 - Service deployment lifecycle.
-- Jenkins, RabbitMQ, SonarQube, Swagger/NGINX, Nexus, and Portainer stack
+- Jenkins, Apache Pulsar, SonarQube, Swagger/NGINX, Nexus, and Portainer stack
   metadata.
 
 Allowed files after architecture approval:

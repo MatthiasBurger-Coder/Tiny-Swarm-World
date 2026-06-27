@@ -99,7 +99,7 @@ allocations and must not be silently interpreted as public ingress.
 phases, service-stack contracts, port-registry IDs, readiness targets, and
 explicit compatibility published ports. Runtime deployment selection still
 uses `ServiceStackContract` domain contracts. Current Apache Pulsar remains
-the messaging baseline; RabbitMQ is not part of the selected service registry.
+the messaging baseline in the selected service registry.
 
 === Health And Validation Evidence
 
