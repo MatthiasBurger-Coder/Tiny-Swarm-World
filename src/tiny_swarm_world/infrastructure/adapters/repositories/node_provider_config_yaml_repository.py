@@ -15,7 +15,7 @@ from tiny_swarm_world.domain.node_provider import (
     NodeRole,
     NodeSpec,
 )
-from tiny_swarm_world.infrastructure.project_paths import config_root
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 
 DEFAULT_NODE_PROVIDER_CONFIG_PATH = Path("node-providers") / "provider_config.yaml"
@@ -179,8 +179,9 @@ class NodeProviderConfig:
 
 
 class NodeProviderConfigYamlRepository:
-    def __init__(self, path: Path | None = None):
-        self.path = path or (config_root() / DEFAULT_NODE_PROVIDER_CONFIG_PATH)
+    def __init__(self, path: Path | None = None, project_paths: ProjectPaths | None = None):
+        paths = project_paths or default_project_paths()
+        self.path = path or (paths.config_root / DEFAULT_NODE_PROVIDER_CONFIG_PATH)
         self.yaml = YAML(typ="safe")
 
     def load(self) -> NodeProviderConfig:

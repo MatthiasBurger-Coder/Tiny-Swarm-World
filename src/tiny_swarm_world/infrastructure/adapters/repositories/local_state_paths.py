@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tiny_swarm_world.infrastructure.project_paths import repository_root
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 
 LOCAL_STATE_DIRECTORY = ".tiny-swarm-world"
@@ -15,9 +15,10 @@ class LocalStatePathError(ValueError):
 def local_state_file(
     *,
     root: Path | None = None,
+    project_paths: ProjectPaths | None = None,
     relative_path: str | Path,
 ) -> Path:
-    repository = _repository_root(root)
+    repository = _repository_root(root, project_paths)
     if _contains_infra_config_segment(repository):
         raise LocalStatePathError("repository root must not be infra/config")
 
@@ -37,10 +38,10 @@ def local_state_file(
     return resolved
 
 
-def _repository_root(root: Path | None) -> Path:
+def _repository_root(root: Path | None, project_paths: ProjectPaths | None) -> Path:
     if root is not None:
         return root.expanduser().resolve()
-    repository = repository_root().resolve()
+    repository = (project_paths or default_project_paths()).repository_root.resolve()
     _require_verified_repository_root(repository)
     return repository
 

@@ -21,6 +21,13 @@ root for the Python automation. It wires concrete infrastructure adapters into
 application services and keeps `src/tiny_swarm_world/__main__.py` thin. Services
 are constructed with explicit ports and repositories instead of creating
 infrastructure adapters inside the application layer.
+Repository-relative path configuration is centralized as the immutable
+`ProjectPaths` infrastructure value object. `composition.py` creates the default
+path configuration and passes it to adapters that need repository, infra,
+config, local-state, log, compose, or image-context paths. Compatibility helper
+functions remain in `project_paths.py` for existing tests and legacy direct
+callers, but infrastructure adapters no longer need to discover these roots
+independently.
 
 `composition.py` remains the public runtime wiring facade. Focused internal
 composition modules keep the root navigable without creating new domain or

@@ -153,7 +153,8 @@ class TestComposition(unittest.TestCase):
             )
 
         self.assertIs(registry, service.port_registry)
-        repository_class.assert_called_once_with()
+        self.assertEqual(1, repository_class.call_count)
+        self.assertIn("project_paths", repository_class.call_args.kwargs)
         repository_class.return_value.load.assert_called_once_with()
 
     def test_build_configuration_validation_service_uses_env_file_and_process_environment(self):
@@ -262,7 +263,8 @@ class TestComposition(unittest.TestCase):
                 ) as wsl_capability_probe:
                     services = composition.build_platform_services()
 
-        node_config_repository_factory.assert_called_once_with()
+        self.assertEqual(1, node_config_repository_factory.call_count)
+        self.assertIn("project_paths", node_config_repository_factory.call_args.kwargs)
         lxc_runner_factory.assert_called_once_with()
         self.assertIsInstance(services.preflight, PreflightService)
         self.assertIsInstance(services.preflight.host_probe, HostPreflightProbe)
@@ -806,7 +808,8 @@ class TestComposition(unittest.TestCase):
                 backend=composition.ManagedLxcBackend.INCUS,
             )
 
-        compose_repository.assert_called_once_with()
+        self.assertEqual(1, compose_repository.call_count)
+        self.assertIn("project_paths", compose_repository.call_args.kwargs)
         self.assertEqual(4, len(services.workflows.bootstrap.steps))
         self.assertEqual(15, len(services.workflows.apply.steps))
         self.assertEqual(9, len(services.workflows.verify.checks))
@@ -1224,7 +1227,10 @@ class TestComposition(unittest.TestCase):
                     )
 
     def test_build_setup_services_wires_phase_orchestrator_without_running_phases(self):
-        with patch.object(composition, "build_preflight_service") as build_preflight:
+        with patch.object(
+            composition,
+            "_build_preflight_service_for_request",
+        ) as build_preflight:
             with patch.object(composition, "build_platform_services") as build_platform:
                 with patch.object(
                     composition,
@@ -1286,10 +1292,14 @@ class TestComposition(unittest.TestCase):
             ),
             tuple(phase.name for phase in services.workflows.run.phases),
         )
-        build_preflight.assert_called_once_with(
-            service_profile=ServiceStackProfile.SERVICE_ACCESS,
-            configuration_validation=None,
+        self.assertEqual(1, build_preflight.call_count)
+        self.assertEqual(
+            ServiceStackProfile.SERVICE_ACCESS,
+            build_preflight.call_args.args[0],
         )
+        self.assertIsNone(build_preflight.call_args.args[1])
+        self.assertIsNone(build_preflight.call_args.kwargs["configuration_validation"])
+        self.assertIn("project_paths", build_preflight.call_args.kwargs)
         build_platform.assert_called_once_with(
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             live_consent=services.workflows.run.live_consent,

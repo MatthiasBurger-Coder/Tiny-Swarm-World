@@ -8,15 +8,16 @@ from tiny_swarm_world.application.ports.repositories.port_desired_inventory_repo
     PortDesiredInventoryRepository,
 )
 from tiny_swarm_world.domain.inventory import DesiredInventory
-from tiny_swarm_world.infrastructure.project_paths import config_root
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 
 DEFAULT_DESIRED_INVENTORY_PATH = Path("inventory") / "desired_inventory.yaml"
 
 
 class DesiredInventoryYamlRepository(PortDesiredInventoryRepository):
-    def __init__(self, path: Path | None = None):
-        self.path = path or (config_root() / DEFAULT_DESIRED_INVENTORY_PATH)
+    def __init__(self, path: Path | None = None, project_paths: ProjectPaths | None = None):
+        paths = project_paths or default_project_paths()
+        self.path = path or (paths.config_root / DEFAULT_DESIRED_INVENTORY_PATH)
         self.yaml = YAML(typ="safe")
 
     def load(self) -> DesiredInventory:

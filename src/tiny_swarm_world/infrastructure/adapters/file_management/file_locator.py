@@ -3,7 +3,7 @@ from pathlib import Path
 from tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer import PathNormalizer
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_annotations import inject
-from tiny_swarm_world.infrastructure.project_paths import config_root
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 
 class FileLocator:
@@ -12,11 +12,16 @@ class FileLocator:
     """
 
     @inject
-    def __init__(self, filename: str, path_factory: PathFactory):
+    def __init__(
+        self,
+        filename: str,
+        path_factory: PathFactory,
+        project_paths: ProjectPaths | None = None,
+    ):
         self.path_factory = path_factory
         self.filename = filename
 
-        base_config_path = config_root()
+        base_config_path = (project_paths or default_project_paths()).config_root
 
         self.search_paths = [
             PathNormalizer(path).normalize()

@@ -41,7 +41,7 @@ from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.adapters.clients.nexus_http_client import NexusHttpClient
 from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import PortainerHttpClient
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
-from tiny_swarm_world.infrastructure.project_paths import infra_root
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 
 REPLICA_PATTERN = re.compile(r"^(?P<current>\d+)/\s*(?P<desired>\d+)$")
@@ -63,6 +63,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         manager_node: str = "swarm-manager",
         remote_stack_root: str = "/var/lib/tiny-swarm-world/stacks",
         timeout_seconds: int = 900,
+        project_paths: ProjectPaths | None = None,
     ):
         if timeout_seconds <= 0:
             raise ValueError("Swarm runtime timeout must be positive.")
@@ -70,6 +71,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         self.manager_node = manager_node
         self.remote_stack_root = remote_stack_root.rstrip("/")
         self.timeout_seconds = timeout_seconds
+        self.project_paths = project_paths or default_project_paths()
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def prepare_stack_assets(self, stack_name: str) -> None:
@@ -236,7 +238,14 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
 
     def _transfer_stack_assets(self, stack_name: str, remote_dir: str) -> None:
         if stack_name == "traefik":
-            tls_config = infra_root() / "config" / "compose" / "traefik" / "dynamic" / "tls.yml"
+            tls_config = (
+                self.project_paths.infra_root
+                / "config"
+                / "compose"
+                / "traefik"
+                / "dynamic"
+                / "tls.yml"
+            )
             script = (
                 f"set -e; mkdir -p {_quote_remote_path(remote_dir + '/dynamic')}; "
                 f"cat > {_quote_remote_path(remote_dir + '/dynamic/tls.yml')}"
@@ -245,8 +254,22 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             return
         if stack_name != "swagger":
             return
-        openapi_file = infra_root() / "config" / "compose" / "swagger" / "swagger" / "openapi.json"
-        nginx_config = infra_root() / "config" / "compose" / "swagger" / "nginx" / "default.conf"
+        openapi_file = (
+            self.project_paths.infra_root
+            / "config"
+            / "compose"
+            / "swagger"
+            / "swagger"
+            / "openapi.json"
+        )
+        nginx_config = (
+            self.project_paths.infra_root
+            / "config"
+            / "compose"
+            / "swagger"
+            / "nginx"
+            / "default.conf"
+        )
         script = (
             f"set -e; mkdir -p {_quote_remote_path(remote_dir + '/swagger')}; "
             f"cat > {_quote_remote_path(remote_dir + '/swagger/openapi.json')}"
@@ -676,6 +699,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         manager_node: str = "swarm-manager",
         remote_image_root: str = "$PWD/.tiny-swarm-world/images",
         timeout_seconds: int = 1800,
+        project_paths: ProjectPaths | None = None,
     ):
         if timeout_seconds <= 0:
             raise ValueError("Image publisher timeout must be positive.")
@@ -685,6 +709,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         self.manager_node = manager_node
         self.remote_image_root = remote_image_root.rstrip("/")
         self.timeout_seconds = timeout_seconds
+        self.project_paths = project_paths or default_project_paths()
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def publish_image(self, contract: ContainerImageContract) -> None:
@@ -779,9 +804,9 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
 
     def _context_path(self, contract: ContainerImageContract) -> Path:
         contexts = {
-            "jenkins": infra_root() / "config" / "compose" / "jenkins" / "image",
-            "service-access-dashboard": infra_root() / "config" / "compose" / "service-access" / "dashboard",
-            "service-access-nginx": infra_root() / "config" / "compose" / "service-access" / "nginx",
+            "jenkins": self.project_paths.infra_root / "config" / "compose" / "jenkins" / "image",
+            "service-access-dashboard": self.project_paths.infra_root / "config" / "compose" / "service-access" / "dashboard",
+            "service-access-nginx": self.project_paths.infra_root / "config" / "compose" / "service-access" / "nginx",
         }
         try:
             return contexts[contract.build_context]

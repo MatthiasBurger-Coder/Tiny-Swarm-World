@@ -10,7 +10,7 @@ from tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer im
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_annotations import inject
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
-from tiny_swarm_world.infrastructure.project_paths import config_root
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 
 class FileManager(PortFileManager):
@@ -19,15 +19,20 @@ class FileManager(PortFileManager):
     """
 
     @inject
-    def __init__(self,path_factory: PathFactory):
+    def __init__(
+        self,
+        path_factory: PathFactory,
+        project_paths: ProjectPaths | None = None,
+    ):
         """
         Initializes the FileManager with locator, loader, saver, and creator instances.
         """
         self.logger = LoggerFactory.get_logger(self.__class__)
         self.path_factory = path_factory
+        paths = project_paths or default_project_paths()
         # Use lambdas to defer instantiation with required dependencies
         self.locator = lambda filename: FileLocator(
-            PathNormalizer(config_root()).normalize()
+            PathNormalizer(paths.config_root).normalize()
         )
         self.loader = FileLoader
         self.saver = FileSaver

@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from tiny_swarm_world.infrastructure.project_paths import logs_root
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 class LoggerFactory:
     """
@@ -11,7 +11,12 @@ class LoggerFactory:
     """
 
     @staticmethod
-    def get_logger(cls, log_dir: str | Path | None = None, level: int = logging.INFO):
+    def get_logger(
+        cls,
+        log_dir: str | Path | None = None,
+        level: int = logging.INFO,
+        project_paths: ProjectPaths | None = None,
+    ):
         """
         Creates or returns a logger for the given class.
 
@@ -20,7 +25,8 @@ class LoggerFactory:
         :param level: Logging level.
         :return: Configured logger.
         """
-        log_path = Path(log_dir) if log_dir is not None else logs_root()
+        paths = project_paths or default_project_paths()
+        log_path = Path(log_dir) if log_dir is not None else paths.logs_root
         class_name = cls.__name__ if isinstance(cls, type) else str(cls)
         log_file = log_path / f"{class_name}.log"
 

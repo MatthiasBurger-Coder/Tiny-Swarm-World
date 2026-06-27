@@ -20,7 +20,7 @@ from tiny_swarm_world.domain.preflight import (
     HostEnvironmentReport,
     SetupPath,
 )
-from tiny_swarm_world.infrastructure.project_paths import repository_root
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 
 SECRET_TOKEN_PATTERN = re.compile(r"\w[\w-]{2,}", re.ASCII)
@@ -61,8 +61,9 @@ class HostPreflightProbe(PortHostPreflightProbe):
         executable_fallback_directories: Sequence[Path] | None = None,
         *,
         os_root: Path | None = None,
+        project_paths: ProjectPaths | None = None,
     ):
-        self.root = root or repository_root()
+        self.root = root or (project_paths or default_project_paths()).repository_root
         self.os_root = os_root or Path("/")
         self.executable_fallback_directories = tuple(
             COMMON_LINUX_EXECUTABLE_DIRECTORIES
