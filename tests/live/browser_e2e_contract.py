@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 import os
+import json
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import urlparse
+
+try:
+    from selenium import webdriver  # type: ignore[import-not-found]
+    from selenium.webdriver.common.by import By  # type: ignore[import-not-found]
+except ModuleNotFoundError:
+    webdriver = None
+    By = None
 
 from tests.integration.routing_contract import ROUTE_EXPECTATIONS, RouteExpectation
 
@@ -31,11 +39,13 @@ class BrowserRouteResult:
     result: str
     redacted_reason: str = ""
 
-    def to_evidence(self) -> dict[str, str]:
+    def to_evidence(self) -> dict[str, object]:
         return {
+            "evidence_kind": "routed_browser_e2e_result",
             "redacted_reason": self.redacted_reason,
             "result": self.result,
             "route_name": self.route_name,
+            "status": self.result,
             "url": self.url,
         }
 
@@ -53,11 +63,8 @@ def approved_credential_available(route_name: str) -> bool:
 
 
 def selenium_driver():
-    try:
-        from selenium import webdriver  # type: ignore[import-not-found]
-        from selenium.webdriver.common.by import By  # type: ignore[import-not-found]
-    except ModuleNotFoundError as exc:
-        raise unittest.SkipTest("selenium is not installed in the active test environment") from exc
+    if webdriver is None or By is None:
+        raise unittest.SkipTest("selenium is not installed in the active test environment")
     return webdriver, By
 
 
@@ -78,11 +85,22 @@ class BrowserRouteE2EContract:
     def test_live_routed_link_opens_with_selenium(self) -> None:
         testcase = cast(unittest.TestCase, self)
         expectation = route_expectation_for_browser(self.route_name)
-        webdriver, by = selenium_driver()
-        options = webdriver.FirefoxOptions()
+        try:
+            selenium_webdriver, by = selenium_driver()
+        except unittest.SkipTest:
+            _record_route_result(
+                BrowserRouteResult(
+                    self.route_name,
+                    expectation.dashboard_url,
+                    "skipped",
+                    "blocked_selenium_unavailable",
+                )
+            )
+            raise
+        options = selenium_webdriver.FirefoxOptions()
         options.add_argument("-headless")
 
-        driver = webdriver.Firefox(options=options)
+        driver = selenium_webdriver.Firefox(options=options)
         try:
             driver.set_page_load_timeout(
                 float(os.environ.get("TSW_BROWSER_E2E_TIMEOUT_SECONDS", "45"))
@@ -93,6 +111,14 @@ class BrowserRouteE2EContract:
             if self.route_name in LOGIN_REQUIRED_ROUTES:
                 credential = _approved_credential(self.route_name)
                 if credential is None:
+                    _record_route_result(
+                        BrowserRouteResult(
+                            self.route_name,
+                            expectation.dashboard_url,
+                            "skipped",
+                            "blocked_missing_credential_source",
+                        )
+                    )
                     testcase.skipTest(
                         "approved credential source unavailable for required login flow"
                     )
@@ -102,6 +128,25 @@ class BrowserRouteE2EContract:
                     _post_login_success(self.route_name, body.text, driver.title),
                     "expected stable authenticated landing state after login",
                 )
+            _record_route_result(
+                BrowserRouteResult(
+                    self.route_name,
+                    expectation.dashboard_url,
+                    "passed",
+                )
+            )
+        except unittest.SkipTest:
+            raise
+        except Exception as exc:
+            _record_route_result(
+                BrowserRouteResult(
+                    self.route_name,
+                    expectation.dashboard_url,
+                    "failed",
+                    _redacted_failure_reason(exc),
+                )
+            )
+            raise
         finally:
             driver.quit()
 
@@ -128,6 +173,27 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
         self.assertNotIn("secret", repr(evidence).casefold())
         self.assertNotIn("token", repr(evidence).casefold())
 
+    def test_browser_result_writer_creates_route_and_suite_evidence(self) -> None:
+        result = BrowserRouteResult(
+            route_name="service-access",
+            url="https://service-access.tsw.local",
+            result="skipped",
+            redacted_reason="blocked_missing_credential_source",
+        )
+
+        route_path = _record_route_result(result)
+
+        self.assertEqual(
+            E2E_EVIDENCE_ROOT / "service-access.json",
+            route_path,
+        )
+        route_evidence = json.loads(route_path.read_text(encoding="utf-8"))
+        suite_evidence = json.loads(
+            (E2E_EVIDENCE_ROOT / "suite-summary.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual("skipped", route_evidence["status"])
+        self.assertIn("service-access", suite_evidence["status_matrix"]["skipped"])
+
 
 def _assert_routed_https_url(testcase: Any, url: str) -> None:
     parsed = urlparse(url)
@@ -145,6 +211,53 @@ def _assert_evidence_target(testcase: Any) -> None:
         ".tiny-swarm-world/evidence/solid-typed-evidence/e2e",
         E2E_EVIDENCE_ROOT.as_posix(),
     )
+
+
+def _record_route_result(result: BrowserRouteResult) -> Path:
+    E2E_EVIDENCE_ROOT.mkdir(parents=True, exist_ok=True)
+    route_path = E2E_EVIDENCE_ROOT / f"{result.route_name}.json"
+    route_path.write_text(
+        json.dumps(result.to_evidence(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    _write_suite_summary()
+    return route_path
+
+
+def _write_suite_summary() -> None:
+    status_matrix: dict[str, list[str]] = {"passed": [], "failed": [], "skipped": []}
+    route_results: list[dict[str, object]] = []
+    for route_path in sorted(E2E_EVIDENCE_ROOT.glob("*.json")):
+        if route_path.name == "suite-summary.json":
+            continue
+        evidence = json.loads(route_path.read_text(encoding="utf-8"))
+        status = str(evidence.get("status", "failed"))
+        route_name = str(evidence.get("route_name", route_path.stem))
+        if status not in status_matrix:
+            status = "failed"
+        status_matrix[status].append(route_name)
+        route_results.append(evidence)
+    suite_summary = {
+        "evidence_kind": "routed_browser_e2e_suite_summary",
+        "result": "failed" if status_matrix["failed"] else "skipped" if status_matrix["skipped"] else "passed",
+        "route_results": route_results,
+        "status_matrix": status_matrix,
+    }
+    (E2E_EVIDENCE_ROOT / "suite-summary.json").write_text(
+        json.dumps(suite_summary, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _redacted_failure_reason(exc: Exception) -> str:
+    reason = exc.__class__.__name__
+    message = str(exc).strip().splitlines()[0] if str(exc).strip() else ""
+    if message:
+        reason = f"{reason}: {message[:160]}"
+    for fragment in ("password", "secret", "token"):
+        reason = reason.replace(fragment, "[redacted]")
+        reason = reason.replace(fragment.upper(), "[redacted]")
+    return reason
 
 
 def _approved_credential(route_name: str) -> tuple[str, str] | None:

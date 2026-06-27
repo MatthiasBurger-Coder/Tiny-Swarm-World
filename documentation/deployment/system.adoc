@@ -206,8 +206,9 @@ Implemented repository behavior:
 * `infra/config/compose/service-access/docker-compose.yml` defines the
   dashboard and service-access NGINX stack.
 * `infra/config/compose/service-access/dashboard/**` and
-  `infra/config/compose/service-access/nginx/**` provide image-packaged static
-  assets for the Portainer-managed path.
+  `infra/config/compose/service-access/nginx/**` provide image-packaged
+  assets for the Portainer-managed path. The dashboard asset is rendered from
+  the effective service-access model and committed for image packaging.
 * The setup CLI uses `ServiceStackProfile.SERVICE_ACCESS` by default so the
   selected setup profile includes the service-access landing page contract.
   Operators can use `--service-profile default` to run only the older base
@@ -261,10 +262,10 @@ For a Portainer-managed service-access stack, dashboard and NGINX assets are
 image-packaged. Do not rely on bind-mounted repository files unless a later
 slice adds a tested asset-preparation boundary.
 
-The static dashboard is a management table with `Server`, `URL`, `user` and
-`pwd` columns. Service entries use central route paths and Infisical item
-references. Password values remain visible only through the configured
-secret-management surface.
+The dashboard is a generated management table with `Service`, `URL`, `User`
+and `Password` columns. Service entries use central route paths and Infisical
+item references from the effective access model. Password values remain
+visible only through the configured secret-management surface.
 
 Current live verification note:
 

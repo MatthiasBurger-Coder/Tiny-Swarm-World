@@ -33,7 +33,7 @@ The system follows a hexagonal architecture and provides async Python automation
   - SonarQube (static code analysis)
   - Swagger + NGINX (API documentation)
 - Service-access management assets:
-  - static landing page content for server links and credential references
+  - model-rendered landing page content for server links and credential references
   - Infisical and service-access NGINX stack configuration
   - password-value visibility restricted to Infisical's authenticated UI
 - Modular infrastructure assets in `infra/config`, driven by the Python setup workflow.
@@ -348,7 +348,8 @@ definitions live under `infra/config/compose`; image build contexts live under
 `infra/config/compose`.
 
 The full guided setup selects the `service-access` management stack profile by
-default. The static dashboard and NGINX compose definition lives under
+default. The service-access dashboard is rendered from the effective access
+model and committed as an image-packaged asset. Its NGINX compose definition lives under
 `infra/config/compose/service-access/docker-compose.yml`, and its dashboard
 and NGINX assets are image-packaged under `infra/config/compose/service-access/**`.
 Infisical is deployed as a separate stack from

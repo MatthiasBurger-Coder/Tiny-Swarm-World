@@ -275,8 +275,8 @@ Implemented repository assets:
 
 * `infra/config/compose/service-access/docker-compose.yml` defines the
   service-access dashboard and service-access NGINX services.
-* `infra/config/compose/service-access/dashboard/**` contains a static dashboard
-  image asset.
+* `infra/config/compose/service-access/dashboard/**` contains the committed
+  dashboard image asset rendered from the effective service-access model.
 * `infra/config/compose/service-access/nginx/**` contains the image-packaged NGINX
   route configuration.
 
@@ -285,10 +285,11 @@ dashboard route is available through the direct local compatibility port
 `10000`. Traefik owns the public local ingress ports `80` and `443`, and the
 service-access NGINX compose service also publishes `8086` as the local
 Infisical compatibility route.
-The dashboard is a static management table with `Server`, `URL`, `user` and
-`pwd` columns. It links to the allocated local service ports: Jenkins `11080`,
-Nexus `13081`, Portainer `10001`, Pulsar Manager `14081`, Pulsar Admin API
-`14080`, SonarQube `12000`, Swagger `16080`, and Infisical `17080`.
+The dashboard is a generated management table with `Service`, `URL`, `User`
+and `Password` columns. It links to the preferred Traefik-routed service
+access URLs from the effective model, such as Jenkins, Nexus, Portainer,
+Pulsar Manager, Pulsar Admin API, SonarQube, Swagger, Infisical and Service
+Access.
 It does not show password values.
 
 Authorized operators reveal or copy password values only through the

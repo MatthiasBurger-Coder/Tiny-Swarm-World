@@ -1,5 +1,6 @@
 import re
 from collections.abc import Mapping
+from html import escape
 from io import StringIO
 from pathlib import Path
 from typing import Any, cast
@@ -11,6 +12,7 @@ from tiny_swarm_world.domain.deployment.stack_definition import (
     ComposeServiceDefinition,
     StackDefinition,
 )
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.ingress import DesiredHttpsRoute, desired_https_ingress_for_profile
 from tiny_swarm_world.domain.network import PortRegistry, ServicePortMapping
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
@@ -30,14 +32,18 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
         base_directories: list[Path] | None = None,
         port_registry: PortRegistry | None = None,
         project_paths: ProjectPaths | None = None,
+        service_profile: ServiceStackProfile | str = ServiceStackProfile.SERVICE_ACCESS,
     ):
         paths = project_paths or default_project_paths()
+        self.project_paths = paths
         self.base_directories = base_directories or [
             paths.infra_root / "config" / "compose",
         ]
         self.port_registry = port_registry or PortRegistryYamlRepository(
             project_paths=paths
         ).load()
+        self.service_profile = ServiceStackProfile(service_profile)
+        self.enabled_service_names = _enabled_service_names(paths.config_root / "services.yml")
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def get_compose_of(self, stack_name: str) -> StackDefinition:
@@ -56,7 +62,14 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
                 compose_content = _resolve_traefik_route_labels(
                     stack_name,
                     compose_content,
-                    desired_https_ingress_for_profile().routes,
+                    desired_https_ingress_for_profile(
+                        self.service_profile,
+                        conditional_service_names=_conditional_route_names(
+                            self.port_registry,
+                            self.enabled_service_names,
+                        ),
+                        port_registry=self.port_registry,
+                    ).routes,
                 )
                 self.logger.info("Loaded compose file for stack '%s'.", stack_name)
                 return StackDefinition(
@@ -97,6 +110,17 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
             for compose_path in base_directory.rglob("docker-compose.yml")
             if compose_path.parent.name == stack_name
         )
+
+    def render_service_access_dashboard(self) -> str:
+        desired_ingress = desired_https_ingress_for_profile(
+            self.service_profile,
+            conditional_service_names=_conditional_route_names(
+                self.port_registry,
+                self.enabled_service_names,
+            ),
+            port_registry=self.port_registry,
+        )
+        return render_service_access_dashboard_html(desired_ingress.to_dict())
 
 
 def _published_ports_from_service(service_payload: Mapping[object, object]) -> tuple[int, ...]:
@@ -272,6 +296,153 @@ def _traefik_labels_for_route(route: DesiredHttpsRoute, router_name: str) -> lis
 
 def _router_name_for(route: DesiredHttpsRoute) -> str:
     return route.hostname.split(".", maxsplit=1)[0]
+
+
+def _enabled_service_names(services_path: Path) -> frozenset[str]:
+    if not services_path.is_file():
+        return frozenset()
+    payload = _YAML.load(services_path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, Mapping):
+        return frozenset()
+    services = payload.get("services", {})
+    if not isinstance(services, Mapping):
+        return frozenset()
+    return frozenset(
+        service_name
+        for service_name, service_payload in services.items()
+        if isinstance(service_name, str)
+        and isinstance(service_payload, Mapping)
+        and service_payload.get("enabled") is True
+    )
+
+
+def _conditional_route_names(
+    port_registry: PortRegistry,
+    enabled_service_names: frozenset[str],
+) -> tuple[str, ...]:
+    route_names: list[str] = []
+    for mapping in port_registry.mappings:
+        if not mapping.route_host:
+            continue
+        route_name = _route_name_for_port_mapping(mapping)
+        if route_name in {"api", "app", "grafana", "prometheus"} and (
+            route_name in enabled_service_names or mapping.service_id in enabled_service_names
+        ):
+            route_names.append(route_name)
+    return tuple(dict.fromkeys(route_names))
+
+
+def _route_name_for_port_mapping(mapping: ServicePortMapping) -> str:
+    if mapping.port_id == "tiny-swarm-frontend":
+        return "app"
+    if mapping.port_id == "tiny-swarm-backend":
+        return "api"
+    if mapping.port_id.endswith("-http"):
+        return mapping.port_id.removesuffix("-http")
+    return mapping.port_id
+
+
+def render_service_access_dashboard_html(effective_access_model: Mapping[str, object]) -> str:
+    links = cast(list[Mapping[str, object]], effective_access_model.get("service_access_links", []))
+    rows = "\n".join(_dashboard_row(link) for link in links)
+    service_count = len(links)
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Tiny Swarm World Service Access</title>
+  <style>
+    :root {{ color-scheme: light; --bg: #f5f7fa; --panel: #ffffff; --line: #d7dde6; --ink: #172033; --muted: #657386; --accent: #146b7f; --accent-soft: #e8f6f8; --warn: #7a5200; --warn-bg: #fff8e8; }}
+    * {{ box-sizing: border-box; }}
+    body {{ margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
+    main {{ width: min(1180px, calc(100vw - 32px)); margin: 0 auto; padding: 28px 0; }}
+    header {{ display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 18px; }}
+    h1 {{ margin: 0 0 6px; font-size: 2rem; line-height: 1.1; font-weight: 760; letter-spacing: 0; }}
+    p {{ margin: 0; color: var(--muted); line-height: 1.5; }}
+    a {{ color: var(--accent); font-weight: 650; text-decoration: none; }}
+    a:hover {{ text-decoration: underline; }}
+    .vault-link {{ display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent-soft); color: #0d5364; white-space: nowrap; }}
+    .toolbar {{ display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }}
+    .chip {{ display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--muted); font-size: 0.86rem; font-weight: 650; }}
+    .table-wrap {{ overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }}
+    table {{ width: 100%; min-width: 820px; border-collapse: collapse; }}
+    th, td {{ padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; line-height: 1.45; }}
+    th {{ color: var(--muted); font-size: 0.78rem; text-transform: uppercase; font-weight: 760; }}
+    tbody tr:last-child th, tbody tr:last-child td {{ border-bottom: 0; }}
+    tbody th {{ width: 170px; color: var(--ink); font-size: 0.98rem; text-transform: none; }}
+    code {{ padding: 2px 5px; border-radius: 4px; background: #eef1f5; color: #1e293b; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 0.9em; }}
+    .pwd {{ display: grid; gap: 4px; }}
+    .pwd small {{ color: var(--muted); font-size: 0.82rem; }}
+    .note {{ margin-top: 14px; padding: 14px 16px; border-left: 4px solid var(--warn); background: var(--warn-bg); color: #3c2d12; border-radius: 4px; }}
+    @media (max-width: 720px) {{ main {{ width: min(100vw - 20px, 1180px); padding: 20px 0; }} header {{ align-items: flex-start; }} }}
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Service Access</h1>
+        <p>Management table for local Tiny Swarm World services and Infisical secret entries.</p>
+      </div>
+      <a class="vault-link" href="https://infisical.tsw.local" target="_blank" rel="noopener noreferrer">Open Infisical</a>
+    </header>
+    <div class="toolbar" aria-label="Access summary">
+      <span class="chip">{service_count} services</span>
+      <span class="chip">Passwords are visible through Infisical</span>
+      <span class="chip">Traefik routed access</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Service</th><th scope="col">URL</th><th scope="col">User</th><th scope="col">Password</th></tr></thead>
+        <tbody>
+{rows}
+        </tbody>
+      </table>
+    </div>
+    <p class="note">This page does not store plaintext passwords. The <strong>Password</strong> column shows the Infisical entry or marks services that do not require a login. Password values are only viewed and copied in Infisical.</p>
+  </main>
+</body>
+</html>
+"""
+
+
+def _dashboard_row(link: Mapping[str, object]) -> str:
+    service = str(link["service"])
+    url = str(link["url"])
+    user, password_html = _dashboard_credentials_for(service)
+    return (
+        f'          <tr><th scope="row">{escape(service)}</th>'
+        f'<td><a href="{escape(url, quote=True)}" target="_blank" rel="noopener noreferrer">{escape(url)}</a></td>'
+        f"<td><code>{escape(user)}</code></td><td>{password_html}</td></tr>"
+    )
+
+
+def _dashboard_credentials_for(service: str) -> tuple[str, str]:
+    secret_items = {
+        "infisical": ("admin", "platform/infisical", "View secret in Infisical"),
+        "jenkins": ("admin", "platform/jenkins", "View secret in Infisical"),
+        "nexus": ("admin", "platform/nexus", "View secret in Infisical"),
+        "portainer": ("admin", "platform/portainer", "View secret in Infisical"),
+        "pulsar-admin-api": ("admin", "platform/pulsar", "Admin API token stored in Infisical"),
+        "pulsar-manager": ("admin", "platform/pulsar-manager", "View Pulsar Manager password in Infisical"),
+        "sonarqube": ("admin", "platform/sonarqube", "View secret in Infisical"),
+    }
+    if service not in secret_items:
+        note = "Dashboard does not require a login" if service == "service-access" else "Swagger/NGINX does not require a login"
+        return (
+            "none",
+            f'<span class="pwd"><code>not required</code><small>{escape(note)}</small></span>',
+        )
+    user, item, note = secret_items[service]
+    return (
+        user,
+        (
+            '<span class="pwd"><a href="https://infisical.tsw.local" target="_blank" '
+            f'rel="noopener noreferrer"><code>{escape(item)}</code></a><small>{escape(note)}</small></span>'
+        ),
+    )
 
 
 def _apply_direct_published_ports(

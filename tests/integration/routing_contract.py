@@ -12,6 +12,9 @@ from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
     ComposeFileRepositoryYaml,
 )
+from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
+    PortRegistryYamlRepository,
+)
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -137,7 +140,9 @@ def route_expectation(route_name: str) -> RouteExpectation:
 
 
 def desired_route_by_name(route_name: str) -> dict[str, Any]:
-    desired = desired_https_ingress_for_profile()
+    desired = desired_https_ingress_for_profile(
+        port_registry=PortRegistryYamlRepository().load()
+    )
     routes = {route.service_name: route.to_dict() for route in desired.routes}
     return routes[route_name]
 
@@ -164,7 +169,9 @@ def traefik_labels(expectation: RouteExpectation) -> set[str]:
 
 
 def route_evidence(route_names: tuple[str, ...] = tuple(ROUTE_EXPECTATIONS)) -> dict[str, Any]:
-    desired = desired_https_ingress_for_profile().to_dict()
+    desired = desired_https_ingress_for_profile(
+        port_registry=PortRegistryYamlRepository().load()
+    ).to_dict()
     selected = set(route_names)
     routes = cast(list[dict[str, Any]], desired["routes"])
     desired["routes"] = [route for route in routes if route["service_name"] in selected]

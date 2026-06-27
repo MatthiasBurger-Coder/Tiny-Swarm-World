@@ -177,6 +177,7 @@ ports:
     exposure: diagnostic
     range_id: messaging
     protocol: tcp
+    route_host: pulsar.tsw.local
     required_for_preflight: false
   - id: prometheus-http
     service_id: prometheus

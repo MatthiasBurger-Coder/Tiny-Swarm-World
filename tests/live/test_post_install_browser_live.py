@@ -44,12 +44,13 @@ DEFAULT_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/post_install_browser_li
 SERVICE_ACCESS_DASHBOARD = Path("infra/config/compose/service-access/dashboard/index.html")
 INFISICAL_SECRET_MANIFEST = Path("infra/config/secrets/infisical-secrets.yaml")
 EXPECTED_INFISICAL_ITEMS = (
-    "platform/jenkins",
-    "platform/nexus",
     "platform/portainer",
-    "platform/pulsar-manager",
+    "platform/nexus",
+    "platform/jenkins",
     "platform/pulsar",
+    "platform/pulsar-manager",
     "platform/sonarqube",
+    "platform/infisical",
 )
 EXPECTED_INFISICAL_ITEM_KEYS = {
     "platform/jenkins": "TSW_JENKINS_ADMIN_PASSWORD",
@@ -58,6 +59,7 @@ EXPECTED_INFISICAL_ITEM_KEYS = {
     "platform/pulsar": "TSW_PULSAR_ADMIN_TOKEN",
     "platform/pulsar-manager": "TSW_PULSAR_MANAGER_ADMIN_PASSWORD",
     "platform/sonarqube": "TSW_SONARQUBE_ADMIN_PASSWORD",
+    "platform/infisical": "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD",
 }
 NO_LOGIN_SERVICES = ("service-access", "swagger")
 SERVICE_ALLOWED_STATUSES = {

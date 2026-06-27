@@ -8,6 +8,7 @@ from tiny_swarm_world.domain.deployment import (
     service_stack_contracts_for_profile,
 )
 from tiny_swarm_world.domain.ingress.discovery import validate_ingress_summary_text
+from tiny_swarm_world.domain.network import PortExposureClass, PortRegistry, ServicePortMapping
 
 _SERVICE_IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _HOSTNAME_PATTERN = re.compile(
@@ -46,29 +47,9 @@ _ROUTE_OVERRIDES = {
 _ROUTED_HEALTH_PATHS = {
     "pulsar-admin-api": "/admin/v2/clusters",
 }
-
-_DIAGNOSTIC_FALLBACK_PORTS = (
-    ("api-gateway-http", "api-gateway", 10080, "diagnostic"),
-    ("api-gateway-https", "api-gateway", 10443, "diagnostic"),
-    ("service-access-http", "service-access", 10000, "diagnostic"),
-    ("portainer-http", "portainer", 10001, "compatibility"),
-    ("jenkins-http", "jenkins", 11080, "diagnostic"),
-    ("jenkins-agent", "jenkins", 11050, "diagnostic"),
-    ("sonarqube-http", "sonarqube", 12000, "diagnostic"),
-    ("nexus-http", "nexus", 13081, "diagnostic"),
-    ("nexus-docker-http", "nexus", 13500, "diagnostic"),
-    ("nexus-docker-https", "nexus", 13501, "diagnostic"),
-    ("pulsar-broker", "pulsar", 14001, "diagnostic"),
-    ("pulsar-admin-api", "pulsar", 14080, "diagnostic"),
-    ("pulsar-manager-gui", "pulsar", 14081, "diagnostic"),
-    ("prometheus-http", "prometheus", 15090, "diagnostic"),
-    ("grafana-http", "grafana", 15300, "diagnostic"),
-    ("swagger-ui", "swagger", 16080, "diagnostic"),
-    ("openapi-aggregator", "swagger", 16081, "diagnostic"),
-    ("infisical-http", "infisical", 17080, "diagnostic"),
-    ("tiny-swarm-frontend", "tiny-swarm", 18080, "diagnostic"),
-    ("tiny-swarm-backend", "tiny-swarm", 18081, "diagnostic"),
-)
+_SERVICE_ACCESS_PATHS = {
+    "pulsar-admin-api": "/admin/v2/clusters",
+}
 
 _ROUTE_CANDIDATES = frozenset(
     {
@@ -114,9 +95,12 @@ class DesiredHttpsRoute:
             raise ValueError("upstream port must be in the valid TCP port range")
 
     def to_dict(self) -> dict[str, object]:
-        service_access_url = self.service_access_url or f"https://{self.hostname}"
+        base_url = f"https://{self.hostname}"
+        service_access_url = self.service_access_url or (
+            f"{base_url}{_SERVICE_ACCESS_PATHS.get(self.service_name, '')}"
+        )
         health_check_url = self.health_check_url or (
-            service_access_url + _ROUTED_HEALTH_PATHS.get(self.service_name, "")
+            base_url + _ROUTED_HEALTH_PATHS.get(self.service_name, "")
         )
         return {
             "health_check_url": health_check_url,
@@ -231,7 +215,9 @@ def desired_https_ingress_for_profile(
     *,
     base_domain: str = "tsw.local",
     conditional_service_names: tuple[str, ...] = (),
+    port_registry: PortRegistry | None = None,
 ) -> DesiredHttpsIngress:
+    route_registry = _route_registry(port_registry)
     selected_services = set(_DEFAULT_HTTPS_ROUTE_SERVICES)
     selected_services.update(conditional_service_names)
     routes: list[DesiredHttpsRoute] = []
@@ -245,6 +231,7 @@ def desired_https_ingress_for_profile(
                 endpoint.name,
                 contract.required_services[0],
                 _endpoint_port(endpoint.url),
+                route_registry,
             )
             routes.append(
                 DesiredHttpsRoute(
@@ -255,13 +242,14 @@ def desired_https_ingress_for_profile(
                 )
             )
     for service_name in conditional_service_names:
-        if service_name in _ROUTE_OVERRIDES and not any(
+        if service_name in _ROUTE_CANDIDATES and not any(
             route.service_name == service_name for route in routes
         ):
             hostname_service, upstream_service, upstream_port = _route_values_for(
                 service_name,
                 service_name,
                 443,
+                route_registry,
             )
             routes.append(
                 DesiredHttpsRoute(
@@ -275,15 +263,7 @@ def desired_https_ingress_for_profile(
     skipped_routes = _skipped_routes(selected_services, profile_endpoint_names)
     return DesiredHttpsIngress(
         routes=tuple(routes),
-        diagnostic_fallback_ports=tuple(
-            DiagnosticFallbackPort(
-                port_id=port_id,
-                service_name=service_name,
-                port=port,
-                classification=classification,
-            )
-            for port_id, service_name, port, classification in _DIAGNOSTIC_FALLBACK_PORTS
-        ),
+        diagnostic_fallback_ports=_diagnostic_fallback_ports(port_registry),
         skipped_routes=skipped_routes,
     )
 
@@ -292,7 +272,15 @@ def _route_values_for(
     endpoint_name: str,
     default_upstream_service: str,
     default_upstream_port: int,
+    route_registry: dict[str, ServicePortMapping],
 ) -> tuple[str, str, int]:
+    mapping = route_registry.get(endpoint_name)
+    if mapping is not None and mapping.route_host is not None:
+        return (
+            mapping.route_host.split(".", maxsplit=1)[0],
+            _ROUTE_OVERRIDES.get(endpoint_name, (endpoint_name, default_upstream_service, default_upstream_port))[1],
+            mapping.internal_port,
+        )
     return _ROUTE_OVERRIDES.get(
         endpoint_name,
         (endpoint_name, default_upstream_service, default_upstream_port),
@@ -317,3 +305,50 @@ def _skipped_routes(
         if service_name not in _DEFAULT_HTTPS_ROUTE_SERVICES:
             skipped.append(SkippedRoute(service_name, "service_not_in_active_profile"))
     return tuple(skipped)
+
+
+def _route_registry(port_registry: PortRegistry | None) -> dict[str, ServicePortMapping]:
+    if port_registry is None:
+        return {}
+    routes: dict[str, ServicePortMapping] = {}
+    for mapping in port_registry.mappings:
+        route_name = _route_name_for_mapping(mapping)
+        if route_name is not None and route_name in _ROUTE_CANDIDATES and mapping.route_host:
+            routes[route_name] = mapping
+    return routes
+
+
+def _route_name_for_mapping(mapping: ServicePortMapping) -> str | None:
+    if mapping.route_host is None:
+        return None
+    if mapping.port_id == "pulsar-manager-gui":
+        return "pulsar-manager"
+    if mapping.port_id in {"tiny-swarm-frontend", "tiny-swarm-backend"}:
+        return {"tiny-swarm-frontend": "app", "tiny-swarm-backend": "api"}[mapping.port_id]
+    if mapping.port_id.endswith("-http"):
+        return mapping.port_id.removesuffix("-http")
+    if mapping.port_id == "openapi-aggregator":
+        return "swagger"
+    return mapping.port_id
+
+
+def _diagnostic_fallback_ports(
+    port_registry: PortRegistry | None,
+) -> tuple[DiagnosticFallbackPort, ...]:
+    if port_registry is None:
+        return ()
+    fallback_exposures = {
+        PortExposureClass.COMPATIBILITY,
+        PortExposureClass.DIAGNOSTIC,
+        PortExposureClass.DIRECT,
+    }
+    return tuple(
+        DiagnosticFallbackPort(
+            port_id=mapping.port_id,
+            service_name=mapping.service_id,
+            port=mapping.external_port,
+            classification=mapping.exposure.value,
+        )
+        for mapping in port_registry.mappings
+        if mapping.external_port is not None and mapping.exposure in fallback_exposures
+    )

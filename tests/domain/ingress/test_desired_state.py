@@ -6,6 +6,7 @@ from tiny_swarm_world.domain.ingress import (
     DesiredHttpsRoute,
     desired_https_ingress_for_profile,
 )
+from tiny_swarm_world.domain.network import PortExposureClass, PortRegistry, ServicePortMapping
 
 
 class TestDesiredHttpsIngress(unittest.TestCase):
@@ -63,7 +64,10 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         self.assertEqual(9090, routes["prometheus"].upstream_port)
 
     def test_effective_access_model_exports_links_health_fallbacks_and_skips(self):
-        desired = desired_https_ingress_for_profile(ServiceStackProfile.SERVICE_ACCESS)
+        desired = desired_https_ingress_for_profile(
+            ServiceStackProfile.SERVICE_ACCESS,
+            port_registry=_sample_port_registry(),
+        )
         evidence = desired.to_dict()
 
         self.assertEqual([80, 443], evidence["gateway_public_ingress_ports"])
@@ -100,6 +104,25 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         self.assertIn(
             {"reason": "service_not_enabled", "service": "prometheus"},
             evidence["skipped_routes"],
+        )
+
+    def test_route_hosts_and_diagnostic_fallbacks_can_come_from_port_registry(self):
+        desired = desired_https_ingress_for_profile(
+            ServiceStackProfile.SERVICE_ACCESS,
+            port_registry=_sample_port_registry(),
+        )
+        routes = {route.service_name: route for route in desired.routes}
+
+        self.assertEqual("jenkins.tsw.local", routes["jenkins"].hostname)
+        self.assertEqual(8080, routes["jenkins"].upstream_port)
+        self.assertIn(
+            {
+                "classification": "diagnostic",
+                "port": 10080,
+                "port_id": "api-gateway-http",
+                "service": "api-gateway",
+            },
+            [fallback.to_dict() for fallback in desired.diagnostic_fallback_ports],
         )
 
     def test_rejects_forbidden_ingress_policy(self):
@@ -149,6 +172,30 @@ class TestDesiredHttpsIngress(unittest.TestCase):
                 upstream_service="jenkins",
                 upstream_port=8080,
             )
+
+
+def _sample_port_registry() -> PortRegistry:
+    return PortRegistry(
+        ranges=(),
+        mappings=(
+            ServicePortMapping(
+                service_id="api-gateway",
+                port_id="api-gateway-http",
+                internal_port=80,
+                external_port=10080,
+                exposure=PortExposureClass.DIAGNOSTIC,
+                route_host="gateway.tsw.local",
+            ),
+            ServicePortMapping(
+                service_id="jenkins",
+                port_id="jenkins-http",
+                internal_port=8080,
+                external_port=11080,
+                exposure=PortExposureClass.DIAGNOSTIC,
+                route_host="jenkins.tsw.local",
+            ),
+        ),
+    )
 
 
 if __name__ == "__main__":

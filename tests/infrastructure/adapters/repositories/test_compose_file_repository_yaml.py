@@ -920,6 +920,12 @@ services:
             with self.subTest(label=label):
                 self.assertIn(f">{label}<", dashboard)
 
+    def test_service_access_dashboard_is_rendered_from_effective_access_model(self):
+        dashboard = _service_access_dashboard_html()
+        rendered = ComposeFileRepositoryYaml().render_service_access_dashboard()
+
+        self.assertEqual(rendered, dashboard)
+
     def test_service_access_dashboard_visible_text_is_english(self):
         dashboard = _service_access_dashboard_html()
 
