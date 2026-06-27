@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
+from logging import Logger
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
@@ -17,6 +18,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeCommandResult,
     LxcNodeCommandRunner,
 )
+from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 DEFAULT_LXC_PROXY_DEVICE_TIMEOUT_SECONDS = 30.0
@@ -45,6 +47,7 @@ class LxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
         runner: LxcNodeCommandRunner,
         timeout_seconds: float = DEFAULT_LXC_PROXY_DEVICE_TIMEOUT_SECONDS,
         allow_live_mutation: bool = False,
+        logger: Logger | None = None,
     ) -> None:
         if timeout_seconds <= 0:
             raise ValueError("LXC proxy device timeout must be positive.")
@@ -52,6 +55,7 @@ class LxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
         self.runner = runner
         self.timeout_seconds = timeout_seconds
         self.allow_live_mutation = allow_live_mutation
+        self.logger = logger or LoggerFactory.get_logger(self.__class__.__name__)
 
     async def inspect_proxy_device(
         self,
@@ -62,6 +66,7 @@ class LxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
             _device_get_args(self.backend, profile_name, plan, "listen"),
             self.timeout_seconds,
         )
+        self._log_command_result("inspect_listen", profile_name, plan, listen)
         if _command_missing_device(listen):
             return LxcProxyDeviceState.MISSING
         if _command_failed(listen):
@@ -71,6 +76,7 @@ class LxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
             _device_get_args(self.backend, profile_name, plan, "connect"),
             self.timeout_seconds,
         )
+        self._log_command_result("inspect_connect", profile_name, plan, connect)
         if _command_missing_device(connect):
             return LxcProxyDeviceState.DRIFTED
         if _command_failed(connect):
@@ -88,11 +94,17 @@ class LxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
         plan: LxcProxyDevicePlan,
     ) -> bool:
         if not self.allow_live_mutation:
+            self.logger.warning(
+                "lxc_proxy_runtime mutation_refused action=create profile=%s device=%s",
+                profile_name,
+                plan.device_name,
+            )
             return False
         result = await self.runner.run(
             _device_add_args(self.backend, profile_name, plan),
             self.timeout_seconds,
         )
+        self._log_command_result("create", profile_name, plan, result)
         return not _command_failed(result)
 
     async def update_proxy_device(
@@ -101,17 +113,24 @@ class LxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
         plan: LxcProxyDevicePlan,
     ) -> bool:
         if not self.allow_live_mutation:
+            self.logger.warning(
+                "lxc_proxy_runtime mutation_refused action=update profile=%s device=%s",
+                profile_name,
+                plan.device_name,
+            )
             return False
         listen_result = await self.runner.run(
             _device_set_args(self.backend, profile_name, plan, "listen", plan.listen_endpoint),
             self.timeout_seconds,
         )
+        self._log_command_result("update_listen", profile_name, plan, listen_result)
         if _command_failed(listen_result):
             return False
         connect_result = await self.runner.run(
             _device_set_args(self.backend, profile_name, plan, "connect", plan.target_endpoint),
             self.timeout_seconds,
         )
+        self._log_command_result("update_connect", profile_name, plan, connect_result)
         return not _command_failed(connect_result)
 
     async def repair_stale_proxy_devices(
@@ -130,6 +149,7 @@ class LxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
             _instance_device_show_args(self.backend, gateway_node),
             self.timeout_seconds,
         )
+        self._log_command_result("repair_show_instance_devices", profile_name, None, show_result)
         if _command_failed(show_result):
             return LxcProxyDriftRepairOutcome(
                 expected_profile_device_count=len(plans),
@@ -162,6 +182,12 @@ class LxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
                     _instance_device_remove_args(self.backend, gateway_node, device_name),
                     self.timeout_seconds,
                 )
+                self._log_command_result(
+                    "repair_remove_instance_device",
+                    profile_name,
+                    plan,
+                    remove_result,
+                )
                 if _command_failed(remove_result):
                     remove_failure_count += 1
                     failed_devices.append(device_name)
@@ -182,6 +208,29 @@ class LxcProxyDeviceRuntime(PortLxcProxyDeviceRuntime):
             removed_devices=tuple(removed_devices),
             refused_devices=tuple(refused_devices),
             failed_devices=tuple(failed_devices),
+        )
+
+    def _log_command_result(
+        self,
+        action: str,
+        profile_name: str,
+        plan: LxcProxyDevicePlan | None,
+        result: LxcNodeCommandResult,
+    ) -> None:
+        device_name = plan.device_name if plan is not None else ""
+        listen_port = str(plan.listen_port) if plan is not None else ""
+        log = self.logger.warning if _command_failed(result) else self.logger.info
+        log(
+            "lxc_proxy_runtime action=%s backend=%s profile=%s device=%s port=%s returncode=%s timed_out=%s stdout=%s stderr=%s",
+            action,
+            self.backend.value,
+            profile_name,
+            device_name,
+            listen_port,
+            result.returncode,
+            str(result.timed_out).lower(),
+            _safe_log_text(result.stdout),
+            _safe_log_text(result.stderr),
         )
 
 
@@ -317,3 +366,10 @@ def _command_missing_device(result: LxcNodeCommandResult) -> bool:
 
 def _combined_output(result: LxcNodeCommandResult) -> str:
     return f"{result.stdout}\n{result.stderr}".lower()
+
+
+def _safe_log_text(value: str, limit: int = 400) -> str:
+    collapsed = " ".join(value.split())
+    if len(collapsed) <= limit:
+        return collapsed
+    return f"{collapsed[:limit]}..."

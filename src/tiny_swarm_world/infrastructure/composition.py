@@ -652,6 +652,7 @@ def build_platform_services(
         manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
         setup_manifest=default_setup_manifest(service_profile=service_profile),
         listen_address=_lxc_proxy_listen_address(),
+        logger=LoggerFactory.get_logger("LxcServiceExposureService"),
     )
     lxc_service_exposure_verify = LxcServiceExposureService(
         _ProviderSelectedLxcProxyDeviceRuntime(
@@ -665,6 +666,7 @@ def build_platform_services(
         manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
         setup_manifest=default_setup_manifest(service_profile=service_profile),
         listen_address=_lxc_proxy_listen_address(),
+        logger=LoggerFactory.get_logger("LxcServiceExposureVerifyService"),
     )
     lxc_proxy_drift_repair = LxcProxyDriftRepairService(
         lxc_proxy_runtime,

@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from urllib.parse import urlparse
 from collections.abc import Sequence
+from logging import Logger
 
 from tiny_swarm_world.application.ports.node_provider import PortContainerDockerRuntime
 from tiny_swarm_world.domain.node_provider import (
@@ -18,6 +19,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeCommandResult,
     LxcNodeCommandRunner,
 )
+from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 DEFAULT_DOCKER_INSPECT_TIMEOUT_SECONDS = 30.0
@@ -82,6 +84,7 @@ class LxcContainerDockerRuntime(PortContainerDockerRuntime):
         install_timeout_seconds: float = DEFAULT_DOCKER_INSTALL_TIMEOUT_SECONDS,
         allow_live_mutation: bool = False,
         registry_mirror: DockerRegistryMirrorConfiguration | None = None,
+        logger: Logger | None = None,
     ) -> None:
         if inspect_timeout_seconds <= 0:
             raise ValueError("Docker inspect timeout must be positive.")
@@ -93,26 +96,39 @@ class LxcContainerDockerRuntime(PortContainerDockerRuntime):
         self.install_timeout_seconds = install_timeout_seconds
         self.allow_live_mutation = allow_live_mutation
         self.registry_mirror = registry_mirror
+        self.logger = logger or LoggerFactory.get_logger(self.__class__.__name__)
 
     async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
         result = await self.runner.run(
             _docker_info_args(self.backend, node),
             self.inspect_timeout_seconds,
         )
+        self._log_command_result("inspect_docker", node, result)
         return _readiness_from_result(node, result)
 
     async def install_docker(self, node: NodeSpec) -> ContainerDockerInstallOutcome:
         if not self.allow_live_mutation:
+            self.logger.warning(
+                "lxc_container_docker_runtime mutation_refused action=install node=%s",
+                node.name,
+            )
             return ContainerDockerInstallOutcome(
                 node=node,
                 state=DockerInstallState.FAILED,
                 verified=False,
             )
 
+        self.logger.info(
+            "lxc_container_docker_runtime install_start backend=%s node=%s mirror=%s",
+            self.backend.value,
+            node.name,
+            self.registry_mirror.registry_authority if self.registry_mirror else "",
+        )
         result = await self.runner.run(
             _docker_install_args(self.backend, node, self.registry_mirror),
             self.install_timeout_seconds,
         )
+        self._log_command_result("install_docker", node, result)
         if _command_failed(result):
             return ContainerDockerInstallOutcome(
                 node=node,
@@ -129,6 +145,24 @@ class LxcContainerDockerRuntime(PortContainerDockerRuntime):
 
     async def verify_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
         return await self.inspect_docker(node)
+
+    def _log_command_result(
+        self,
+        action: str,
+        node: NodeSpec,
+        result: LxcNodeCommandResult,
+    ) -> None:
+        log = self.logger.warning if _command_failed(result) else self.logger.info
+        log(
+            "lxc_container_docker_runtime action=%s backend=%s node=%s returncode=%s timed_out=%s stdout=%s stderr=%s",
+            action,
+            self.backend.value,
+            node.name,
+            result.returncode,
+            str(result.timed_out).lower(),
+            _safe_log_text(result.stdout),
+            _safe_log_text(result.stderr),
+        )
 
 
 def _docker_info_args(
@@ -221,6 +255,13 @@ def _combined_output(result: LxcNodeCommandResult) -> str:
 
 def _command_failed(result: LxcNodeCommandResult) -> bool:
     return result.timed_out or result.returncode != 0
+
+
+def _safe_log_text(value: str, limit: int = 400) -> str:
+    collapsed = " ".join(value.split())
+    if len(collapsed) <= limit:
+        return collapsed
+    return f"{collapsed[:limit]}..."
 
 
 def redact_argv_for_test(args: Sequence[str]) -> tuple[str, ...]:
