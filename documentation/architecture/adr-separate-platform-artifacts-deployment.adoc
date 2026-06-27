@@ -37,7 +37,8 @@ environment on Linux/WSL. The repository currently combines multiple concerns:
 * Dockerfile generation, image build/tag/push, Nexus Docker registry setup,
   Nexus Maven repository setup, and artifact publication.
 * Compose stack definitions, Portainer stack upload, and deployment of services
-  such as Portainer, Nexus, Jenkins, RabbitMQ, SonarQube, and Swagger/NGINX.
+  such as Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, and
+  Swagger/NGINX.
 * Shared command execution, YAML handling, file/path handling, logging, and
   dependency wiring.
 
@@ -121,8 +122,8 @@ steps. Empty marker directories are not required for the current state.
 * Compose stack definitions
 * Compose file repository behavior
 * Portainer stack create/update/upload
-* Service stack lifecycle for Portainer, Nexus, Jenkins, RabbitMQ, SonarQube,
-  Swagger/NGINX, and future stacks
+* Service stack lifecycle for Portainer, Nexus, Jenkins, Apache Pulsar,
+  SonarQube, Swagger/NGINX, and future stacks
 
 `shared` owns reusable infrastructure:
 

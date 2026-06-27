@@ -336,7 +336,20 @@ services:
         selected_stacks = expected_stacks
         self.assertEqual(set(), set(service_entries) - set(expected_stacks))
         self.assertEqual(set(selected_stacks), set(contract_by_stack))
-        self.assertNotIn("rabbitmq", service_entries)
+        self.assertEqual(
+            {
+                "infisical",
+                "jenkins",
+                "nexus",
+                "portainer",
+                "pulsar",
+                "service-access",
+                "sonarqube",
+                "swagger",
+                "traefik",
+            },
+            set(service_entries),
+        )
 
         for stack_name in selected_stacks:
             entry = service_entries[stack_name]

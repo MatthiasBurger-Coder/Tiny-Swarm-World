@@ -112,12 +112,23 @@ class TestDesiredHttpsIngress(unittest.TestCase):
             evidence["health_check_targets"],
         )
         self.assertIn(
-            {"reason": "service_not_supported", "service": "rabbitmq"},
-            evidence["skipped_routes"],
-        )
-        self.assertIn(
             {"reason": "service_not_enabled", "service": "prometheus"},
             evidence["skipped_routes"],
+        )
+
+    def test_unsupported_route_metadata_is_reported_without_route_generation(self):
+        desired = desired_https_ingress_for_profile(
+            ServiceStackProfile.SERVICE_ACCESS,
+            port_registry=PortRegistry(
+                ranges=_committed_port_registry().ranges,
+                mappings=_committed_port_registry().mappings,
+                metadata={"unsupported_routes": "legacy-broker"},
+            ),
+        )
+
+        self.assertIn(
+            {"reason": "service_not_supported", "service": "legacy-broker"},
+            desired.to_dict()["skipped_routes"],
         )
 
     def test_route_hosts_and_diagnostic_fallbacks_can_come_from_port_registry(self):

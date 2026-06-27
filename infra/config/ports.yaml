@@ -3,7 +3,6 @@ metadata:
   ingress_baseline: "traefik"
   public_ingress_policy: "Traefik owns public ingress ports 80 and 443."
   direct_port_policy: "High-numbered ports are direct, diagnostic, compatibility, or preflight allocations unless a later ADR changes public ingress."
-  unsupported_routes: "rabbitmq"
 ranges:
   - id: public-ingress
     start: 80

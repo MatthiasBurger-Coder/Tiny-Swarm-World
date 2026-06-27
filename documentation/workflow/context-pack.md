@@ -34,7 +34,6 @@ the active workflow remain authoritative.
 
 - Live LXC, Incus, LXD, Docker, Swarm, Traefik, DNS, hosts-file or browser
   mutation without explicit live opt-in.
-- RabbitMQ metadata or routes.
 - Kubernetes-first behavior.
 - React frontend implementation.
 - Committed `.tiny-swarm-world/evidence/**` runtime evidence.

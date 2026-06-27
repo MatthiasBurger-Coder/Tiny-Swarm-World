@@ -53,10 +53,6 @@ class TestServiceAccessRouting(unittest.TestCase):
             evidence["diagnostic_fallback_ports"],
         )
         self.assertEqual("traefik_host_route", evidence["service_access_preferred_url_source"])
-        self.assertIn(
-            {"reason": "service_not_supported", "service": "rabbitmq"},
-            evidence["skipped_routes"],
-        )
         assert_evidence_safe(self, evidence)
 
 

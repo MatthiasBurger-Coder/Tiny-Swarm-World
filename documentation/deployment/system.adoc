@@ -96,8 +96,7 @@ documentation. Runtime stack selection still comes from
 installation phase, service-stack contract, readiness target, port-registry
 IDs, and any compatibility published ports. Portainer remains outside the
 Portainer-managed deployment plan to avoid a bootstrap cycle. Apache Pulsar
-remains the selected messaging stack; RabbitMQ is not part of the selected
-baseline.
+remains the selected messaging stack.
 
 Setup preflight is idempotent for an already running Tiny Swarm World
 environment. Required ports pass when they are either free or already serve the

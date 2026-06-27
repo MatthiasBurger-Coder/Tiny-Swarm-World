@@ -20,7 +20,7 @@
   ],
   "forbidden_areas": [
     "live-infrastructure-without-explicit-opt-in",
-    "rabbitmq",
+    "unsupported-legacy-messaging-routes",
     "kubernetes-first-behavior",
     "react-frontend",
     "committed-runtime-evidence",

@@ -61,8 +61,8 @@ Remaining debt:
 * Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, and Swagger/NGINX service
   readiness must not be claimed until verified through tests or explicit live
   smoke evidence;
-* Apache Pulsar has a higher local resource footprint than RabbitMQ and may
-  require tighter memory/CPU guidance after live smoke validation;
+* Apache Pulsar may require tighter memory/CPU guidance after live smoke
+  validation;
 * Pulsar standalone mode is sufficient for local greenpath validation, but it
   is not equivalent to a production Pulsar cluster;
 * Pulsar Admin API uses internal port `8080`, so host exposure must continue to
