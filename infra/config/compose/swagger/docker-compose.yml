@@ -53,10 +53,21 @@ services:
       swagger_link:
         aliases:
           - local.swagger.api
+      traefik_ingress:
     deploy:
       replicas: 1
       placement:
         constraints:
           - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=traefik_ingress
+        - traefik.http.routers.swagger.rule=Host(`swagger.tsw.local`)
+        - traefik.http.routers.swagger.entrypoints=websecure
+        - traefik.http.routers.swagger.tls=true
+        - traefik.http.services.swagger.loadbalancer.server.port=8084
 networks:
   swagger_link:
+  traefik_ingress:
+    name: traefik_ingress
+    external: true

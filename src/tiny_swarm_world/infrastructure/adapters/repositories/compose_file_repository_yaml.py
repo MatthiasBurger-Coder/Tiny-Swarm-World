@@ -253,6 +253,6 @@ _DIRECT_PUBLISHED_PORT_IDS: dict[tuple[str, str, int], str] = {
     ("sonarqube", "sonarqube", 9000): "sonarqube-http",
     ("swagger", "swagger-ui", 8080): "swagger-ui",
     ("swagger", "swagger-nginx", 8084): "openapi-aggregator",
-    ("traefik", "traefik", 80): "api-gateway-http",
-    ("traefik", "traefik", 443): "api-gateway-https",
+    ("traefik", "traefik", 80): "traefik-http",
+    ("traefik", "traefik", 443): "traefik-https",
 }

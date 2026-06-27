@@ -202,7 +202,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             with self.subTest(service=service):
                 self.assertIn(service, references.no_login_services)
 
-    def test_live_service_checks_are_safe_localhost_urls(self) -> None:
+    def test_live_service_checks_are_safe_routed_urls(self) -> None:
         checks = _service_checks("http://localhost")
 
         self.assertGreaterEqual(len(checks), 8)
@@ -210,29 +210,29 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             with self.subTest(service=check.name):
                 parsed = urlparse(check.url)
                 self.assertIn(parsed.scheme, {"http", "https"})
-                self.assertEqual("localhost", parsed.hostname)
+                self.assertIn(parsed.hostname, {"localhost"} | _routed_hostnames())
                 self.assertFalse(parsed.username)
                 self.assertFalse(parsed.password)
                 self.assertFalse(parsed.query)
-                if check.name == "service-access-route:pulsar":
-                    self.assertEqual("/environments", parsed.fragment)
-                else:
-                    self.assertFalse(parsed.fragment)
+                self.assertFalse(parsed.fragment)
 
-    def test_live_service_checks_use_allocated_dashboard_ports(self) -> None:
+    def test_live_service_checks_use_preferred_routed_ports(self) -> None:
         checks = _service_checks("http://localhost")
         ports_by_name = {check.name: urlparse(check.url).port for check in checks}
 
         self.assertIsNone(ports_by_name["service-access"])
-        self.assertEqual(10000, ports_by_name["service-access-route:service-access"])
-        self.assertEqual(10001, ports_by_name["service-access-route:portainer"])
-        self.assertEqual(11080, ports_by_name["service-access-route:jenkins"])
-        self.assertEqual(12000, ports_by_name["service-access-route:sonarqube"])
-        self.assertEqual(13081, ports_by_name["service-access-route:nexus"])
-        self.assertEqual(14080, ports_by_name["service-access-route:pulsar-admin-api"])
-        self.assertEqual(14081, ports_by_name["service-access-route:pulsar"])
-        self.assertEqual(16080, ports_by_name["service-access-route:swagger"])
-        self.assertEqual(17080, ports_by_name["service-access-route:infisical"])
+        for route_name in (
+            "service-access",
+            "portainer",
+            "jenkins",
+            "sonarqube",
+            "nexus",
+            "pulsar-admin-api",
+            "pulsar",
+            "swagger",
+            "infisical",
+        ):
+            self.assertIsNone(ports_by_name[f"service-access-route:{route_name}"])
 
     def test_live_service_checks_use_explicit_browser_status_allowlists(self) -> None:
         checks = _service_checks("http://localhost")
@@ -253,8 +253,12 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
                 "portainer.tsw.local",
                 "nexus.tsw.local",
                 "jenkins.tsw.local",
+                "pulsar-api.tsw.local",
+                "pulsar.tsw.local",
                 "sonarqube.tsw.local",
+                "swagger.tsw.local",
                 "infisical.tsw.local",
+                "service-access.tsw.local",
             ),
             tuple(urlparse(check.url).hostname for check in checks),
         )
@@ -262,7 +266,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             with self.subTest(service=check.name):
                 parsed = urlparse(check.url)
                 self.assertEqual("https", parsed.scheme)
-                self.assertEqual(10443, parsed.port)
+                self.assertIsNone(parsed.port)
                 self.assertIsNotNone(parsed.hostname)
                 self.assertTrue(parsed.hostname and parsed.hostname.endswith(".tsw.local"))
                 self.assertFalse(parsed.username)
@@ -699,11 +703,9 @@ def _service_checks(dashboard_url: str) -> tuple[ServiceCheck, ...]:
         checks.append(
             ServiceCheck(
                 f"service-access-route:{route_name}",
-                _validated_local_url(
-                    route_path
-                    if urlparse(route_path).scheme in {"http", "https"}
-                    else urljoin(safe_dashboard_url, route_path),
-                    "dashboard",
+                _validated_service_route_url(
+                    route_path if urlparse(route_path).scheme in {"http", "https"}
+                    else urljoin(safe_dashboard_url, route_path)
                 ),
                 follow_redirects=False,
                 allowed_statuses=allowed_statuses,
@@ -712,16 +714,39 @@ def _service_checks(dashboard_url: str) -> tuple[ServiceCheck, ...]:
     return tuple(checks)
 
 
+def _routed_hostnames() -> set[str]:
+    return {
+        route.hostname
+        for route in desired_https_ingress_for_profile(ServiceStackProfile.SERVICE_ACCESS).routes
+    }
+
+
+def _validated_service_route_url(raw_url: str) -> str:
+    parsed = urlparse(raw_url)
+    if parsed.hostname == "localhost":
+        return _validated_local_url(raw_url, "dashboard")
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname not in _routed_hostnames()
+        or parsed.port is not None
+        or parsed.username
+        or parsed.password
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise AssertionError("post_install_browser_setup_blocker: invalid_service_route_url")
+    return raw_url
+
+
 def _https_route_checks(base_domain: str) -> tuple[ServiceCheck, ...]:
     desired_ingress = desired_https_ingress_for_profile(
         ServiceStackProfile.SERVICE_ACCESS,
         base_domain=_validated_ingress_base_domain(base_domain),
     )
-    https_port = desired_ingress.public_ports[1]
     return tuple(
         ServiceCheck(
             route.service_name,
-            f"https://{route.hostname}:{https_port}/",
+            f"https://{route.hostname}/",
             allowed_statuses=SERVICE_ALLOWED_STATUSES.get(route.service_name, (200,)),
         )
         for route in desired_ingress.routes
@@ -1581,7 +1606,10 @@ class _DashboardReferenceParser(HTMLParser):
                 self.routes.append((name, href))
                 return
             parsed = urlparse(href)
-            if parsed.scheme in {"http", "https"} and parsed.hostname == "localhost":
+            if parsed.scheme in {"http", "https"} and (
+                parsed.hostname == "localhost"
+                or parsed.hostname in _routed_hostnames()
+            ):
                 name = _dashboard_route_name(parsed)
                 self.routes.append((name, href))
 
@@ -1614,6 +1642,19 @@ def _dashboard_references(path: Path) -> _DashboardReferences:
 
 
 def _dashboard_route_name(parsed_url) -> str:
+    hostname_routes = {
+        "service-access.tsw.local": "service-access",
+        "portainer.tsw.local": "portainer",
+        "jenkins.tsw.local": "jenkins",
+        "sonarqube.tsw.local": "sonarqube",
+        "nexus.tsw.local": "nexus",
+        "pulsar-api.tsw.local": "pulsar-admin-api",
+        "pulsar.tsw.local": "pulsar",
+        "swagger.tsw.local": "swagger",
+        "infisical.tsw.local": "infisical",
+    }
+    if parsed_url.hostname in hostname_routes:
+        return hostname_routes[parsed_url.hostname]
     port = parsed_url.port
     path = parsed_url.path.rstrip("/")
     if port == 10000:

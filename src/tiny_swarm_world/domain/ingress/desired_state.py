@@ -14,8 +14,25 @@ _HOSTNAME_PATTERN = re.compile(
     r"^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$"
 )
 _DEFAULT_HTTPS_ROUTE_SERVICES = frozenset(
-    {"infisical", "jenkins", "nexus", "portainer", "sonarqube"}
+    {
+        "infisical",
+        "jenkins",
+        "nexus",
+        "portainer",
+        "pulsar-admin-api",
+        "pulsar-manager",
+        "service-access",
+        "sonarqube",
+        "swagger",
+    }
 )
+
+_ROUTE_OVERRIDES = {
+    "pulsar-admin-api": ("pulsar-api", "pulsar", 8080),
+    "pulsar-manager": ("pulsar", "pulsar-manager", 9527),
+    "service-access": ("service-access", "service-access-dashboard", 80),
+    "swagger": ("swagger", "swagger-nginx", 8084),
+}
 
 
 @dataclass(frozen=True)
@@ -51,7 +68,7 @@ class DesiredHttpsRoute:
 @dataclass(frozen=True)
 class DesiredHttpsIngress:
     routes: tuple[DesiredHttpsRoute, ...]
-    public_ports: tuple[int, ...] = (10080, 10443)
+    public_ports: tuple[int, ...] = (80, 443)
     http_redirect_to_https: bool = True
     exposed_by_default: bool = False
     api_insecure: bool = False
@@ -63,8 +80,8 @@ class DesiredHttpsIngress:
         hostnames = tuple(route.hostname for route in routes)
         if len(set(hostnames)) != len(hostnames):
             raise ValueError("desired HTTPS ingress hostnames must be unique")
-        if tuple(self.public_ports) != (10080, 10443):
-            raise ValueError("desired HTTPS ingress public ports must be exactly 10080 and 10443")
+        if tuple(self.public_ports) != (80, 443):
+            raise ValueError("desired HTTPS ingress public ports must be exactly 80 and 443")
         if not self.http_redirect_to_https:
             raise ValueError("desired HTTPS ingress must redirect HTTP to HTTPS")
         if self.exposed_by_default:
@@ -101,12 +118,17 @@ def desired_https_ingress_for_profile(
         for endpoint in contract.endpoints:
             if endpoint.name not in selected_services:
                 continue
+            hostname_service, upstream_service, upstream_port = _route_values_for(
+                endpoint.name,
+                contract.required_services[0],
+                _endpoint_port(endpoint.url),
+            )
             routes.append(
                 DesiredHttpsRoute(
                     service_name=endpoint.name,
-                    hostname=f"{endpoint.name}.{base_domain}",
-                    upstream_service=contract.required_services[0],
-                    upstream_port=_endpoint_port(endpoint.url),
+                    hostname=f"{hostname_service}.{base_domain}",
+                    upstream_service=upstream_service,
+                    upstream_port=upstream_port,
                 )
             )
     for service_name in conditional_service_names:
@@ -122,6 +144,17 @@ def desired_https_ingress_for_profile(
                 )
             )
     return DesiredHttpsIngress(routes=tuple(routes))
+
+
+def _route_values_for(
+    endpoint_name: str,
+    default_upstream_service: str,
+    default_upstream_port: int,
+) -> tuple[str, str, int]:
+    return _ROUTE_OVERRIDES.get(
+        endpoint_name,
+        (endpoint_name, default_upstream_service, default_upstream_port),
+    )
 
 
 def _endpoint_port(url: str) -> int:

@@ -310,7 +310,7 @@ services:
         self.assertEqual((17080,), metadata["infisical"]["infisical"])
         self.assertEqual((13081, 13500, 13501), metadata["nexus"]["nexus"])
         self.assertEqual((10000, 8086), metadata["service-access"]["service-access-nginx"])
-        self.assertEqual((10080, 10443), metadata["traefik"]["traefik"])
+        self.assertEqual((80, 443), metadata["traefik"]["traefik"])
 
     def test_committed_service_registry_aligns_selected_stacks_with_phase_and_ports(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -522,10 +522,14 @@ services:
         self.assertIn("healthcheck", pulsar)
         self.assertIn("http://localhost:8080/admin/v2/clusters", pulsar["healthcheck"]["test"][-1])
         self.assertIn("TSW_PULSAR_ADMIN_TOKEN", pulsar["healthcheck"]["test"][-1])
-        self.assertEqual(["service_access_link"], pulsar["networks"])
+        self.assertEqual(["service_access_link", "traefik_ingress"], pulsar["networks"])
         self.assertEqual(
             {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
+        )
+        self.assertEqual(
+            {"name": "traefik_ingress", "external": True},
+            compose_data["networks"]["traefik_ingress"],
         )
         self.assertEqual(
             ["node.role == manager"],
@@ -547,7 +551,7 @@ services:
             ],
             pulsar_manager["ports"],
         )
-        self.assertEqual(["service_access_link"], pulsar_manager["networks"])
+        self.assertEqual(["service_access_link", "traefik_ingress"], pulsar_manager["networks"])
 
         bootstrap = compose_data["services"]["pulsar-manager-bootstrap"]
         self.assertEqual(
@@ -744,8 +748,8 @@ services:
         self.assertNotIn("--api.insecure=true", compose_content)
         self.assertEqual(
             [
-                {"target": 80, "published": 10080, "protocol": "tcp", "mode": "host"},
-                {"target": 443, "published": 10443, "protocol": "tcp", "mode": "host"},
+                {"target": 80, "published": 80, "protocol": "tcp", "mode": "host"},
+                {"target": 443, "published": 443, "protocol": "tcp", "mode": "host"},
             ],
             traefik["ports"],
         )
@@ -795,7 +799,9 @@ services:
             "jenkins": ("jenkins", "jenkins.tsw.local", "8080"),
             "nexus": ("nexus", "nexus.tsw.local", "8081"),
             "portainer": ("portainer", "portainer.tsw.local", "9000"),
+            "service-access": ("service-access-dashboard", "service-access.tsw.local", "80"),
             "sonarqube": ("sonarqube", "sonarqube.tsw.local", "9000"),
+            "swagger": ("swagger-nginx", "swagger.tsw.local", "8084"),
         }
         repository_root = Path(__file__).resolve().parents[4]
 
@@ -820,6 +826,7 @@ services:
                 )
                 self.assertIn("traefik.enable=true", labels)
                 self.assertIn("traefik.swarm.network=traefik_ingress", labels)
+                router_name = service_name.removesuffix("-dashboard").removesuffix("-nginx")
                 if service_name == "infisical":
                     self.assertIn(
                         "traefik.http.routers.infisical.rule="
@@ -828,17 +835,17 @@ services:
                     )
                 else:
                     self.assertIn(
-                        f"traefik.http.routers.{service_name}.rule=Host(`{hostname}`)",
+                        f"traefik.http.routers.{router_name}.rule=Host(`{hostname}`)",
                         labels,
                     )
                 self.assertIn(
-                    f"traefik.http.routers.{service_name}.entrypoints=websecure",
+                    f"traefik.http.routers.{router_name}.entrypoints=websecure",
                     labels,
                 )
-                self.assertIn(f"traefik.http.routers.{service_name}.tls=true", labels)
+                self.assertIn(f"traefik.http.routers.{router_name}.tls=true", labels)
                 self.assertIn(
                     (
-                        f"traefik.http.services.{service_name}"
+                        f"traefik.http.services.{router_name}"
                         f".loadbalancer.server.port={upstream_port}"
                     ),
                     labels,
@@ -933,7 +940,7 @@ services:
             "Management table for local Tiny Swarm World services and Infisical secret entries.",
             "Open Infisical",
             "Passwords are visible through Infisical",
-            "Local Swarm setup",
+            "Traefik routed access",
             "View secret in Infisical",
             "Dashboard does not require a login",
             "Swagger/NGINX does not require a login",
@@ -962,15 +969,15 @@ services:
         self.assertTrue(links)
         self.assertEqual(
             {
-                "http://localhost:10000",
-                "http://localhost:10001",
-                "http://localhost:11080",
-                "http://localhost:12000",
-                "http://localhost:13081",
-                "http://localhost:14080/admin/v2/clusters",
-                "http://localhost:14081/#/environments",
-                "http://localhost:16080",
-                "http://localhost:17080",
+                "https://service-access.tsw.local",
+                "https://portainer.tsw.local",
+                "https://jenkins.tsw.local",
+                "https://sonarqube.tsw.local",
+                "https://nexus.tsw.local",
+                "https://pulsar-api.tsw.local/admin/v2/clusters",
+                "https://pulsar.tsw.local",
+                "https://swagger.tsw.local",
+                "https://infisical.tsw.local",
             },
             set(links),
         )
@@ -979,10 +986,7 @@ services:
             self.assertFalse(parsed.username)
             self.assertFalse(parsed.password)
             self.assertEqual("", parsed.query)
-            if link == "http://localhost:14081/#/environments":
-                self.assertEqual("/environments", parsed.fragment)
-            else:
-                self.assertEqual("", parsed.fragment)
+            self.assertEqual("", parsed.fragment)
         for forbidden_link in (
             "http://localhost:8085",
             "http://localhost:10000/jenkins",
@@ -999,15 +1003,15 @@ services:
         dashboard = _service_access_dashboard_html()
 
         for expected in (
-            "http://localhost:10000",
-            "http://localhost:10001",
-            "http://localhost:11080",
-            "http://localhost:12000",
-            "http://localhost:13081",
-            "http://localhost:14080/admin/v2/clusters",
-            "http://localhost:14081",
-            "http://localhost:16080",
-            "http://localhost:17080",
+            "https://service-access.tsw.local",
+            "https://portainer.tsw.local",
+            "https://jenkins.tsw.local",
+            "https://sonarqube.tsw.local",
+            "https://nexus.tsw.local",
+            "https://pulsar-api.tsw.local/admin/v2/clusters",
+            "https://pulsar.tsw.local",
+            "https://swagger.tsw.local",
+            "https://infisical.tsw.local",
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, dashboard)

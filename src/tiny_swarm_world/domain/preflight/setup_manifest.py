@@ -212,8 +212,8 @@ def default_setup_manifest(
             SetupServiceRequirement(
                 name="Traefik Ingress",
                 ports=(
-                    SetupPortRequirement(10080, "Traefik HTTP ingress"),
-                    SetupPortRequirement(10443, "Traefik HTTPS ingress"),
+                    SetupPortRequirement(80, "Traefik HTTP ingress"),
+                    SetupPortRequirement(443, "Traefik HTTPS ingress"),
                 ),
             )
         )

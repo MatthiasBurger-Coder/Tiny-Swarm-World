@@ -498,8 +498,8 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         result = await PreflightService(
             _fake_probe(
-                port_availability={10080: False},
-                expected_service_ports={10080: False},
+                port_availability={80: False},
+                expected_service_ports={80: False},
             ),
             configuration,
         ).run()
@@ -507,93 +507,85 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         failed_by_id = {check.check_id: check for check in result.failed_checks}
 
         self.assertFalse(result.passed)
-        self.assertIn("PORT-10080", failed_by_id)
-        self.assertIn("Traefik HTTP ingress", failed_by_id["PORT-10080"].message)
-        self.assertIn("stale localhost listener", failed_by_id["PORT-10080"].remediation)
+        self.assertIn("PORT-80", failed_by_id)
+        self.assertIn("Traefik HTTP ingress", failed_by_id["PORT-80"].message)
+        self.assertIn("stale localhost listener", failed_by_id["PORT-80"].remediation)
 
-    async def test_service_access_profile_allows_swagger_to_be_reassigned_from_localhost_root(self):
+    async def test_service_access_profile_blocks_swagger_on_public_http_ingress(self):
         configuration = default_preflight_configuration(
             service_profile=ServiceStackProfile.SERVICE_ACCESS
         )
 
         result = await PreflightService(
             _fake_probe(
-                port_availability={10080: False},
-                expected_service_ports={10080: False},
-                service_matches={(10080, "Swagger/NGINX"): True},
+                port_availability={80: False},
+                expected_service_ports={80: False},
+                service_matches={(80, "Swagger/NGINX"): True},
             ),
             configuration,
         ).run()
 
-        checks_by_id = {check.check_id: check for check in result.checks}
-        port_check = checks_by_id["PORT-10080"]
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
 
-        self.assertTrue(result.passed)
-        self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
-        self.assertEqual("Swagger/NGINX", port_check.evidence["current_service"])
+        self.assertFalse(result.passed)
+        self.assertIn("PORT-80", failed_by_id)
 
-    async def test_service_access_profile_allows_infisical_https_to_be_reassigned(self):
+    async def test_service_access_profile_blocks_infisical_on_public_https_ingress(self):
         configuration = default_preflight_configuration(
             service_profile=ServiceStackProfile.SERVICE_ACCESS
         )
 
         result = await PreflightService(
             _fake_probe(
-                port_availability={10443: False},
-                expected_service_ports={10443: False},
-                service_matches={(10443, "Infisical HTTPS"): True},
+                port_availability={443: False},
+                expected_service_ports={443: False},
+                service_matches={(443, "Infisical HTTPS"): True},
             ),
             configuration,
         ).run()
 
-        checks_by_id = {check.check_id: check for check in result.checks}
-        port_check = checks_by_id["PORT-10443"]
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
 
-        self.assertTrue(result.passed)
-        self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
-        self.assertEqual("Infisical HTTPS", port_check.evidence["current_service"])
+        self.assertFalse(result.passed)
+        self.assertIn("PORT-443", failed_by_id)
 
-    async def test_service_access_profile_allows_existing_service_access_http_listener(self):
+    async def test_service_access_profile_blocks_existing_service_access_http_listener(self):
         configuration = default_preflight_configuration(
             service_profile=ServiceStackProfile.SERVICE_ACCESS
         )
 
         result = await PreflightService(
             _fake_probe(
-                port_availability={10080: False},
-                expected_service_ports={10080: False},
-                service_matches={(10080, "Service Access"): True},
+                port_availability={80: False},
+                expected_service_ports={80: False},
+                service_matches={(80, "Service Access"): True},
             ),
             configuration,
         ).run()
 
-        checks_by_id = {check.check_id: check for check in result.checks}
-        port_check = checks_by_id["PORT-10080"]
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
 
-        self.assertTrue(result.passed)
-        self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
-        self.assertEqual("Service Access", port_check.evidence["current_service"])
+        self.assertFalse(result.passed)
+        self.assertIn("PORT-80", failed_by_id)
 
-    async def test_service_access_profile_allows_existing_service_access_https_listener(self):
+    async def test_service_access_profile_blocks_existing_service_access_https_listener(self):
         configuration = default_preflight_configuration(
             service_profile=ServiceStackProfile.SERVICE_ACCESS
         )
 
         result = await PreflightService(
             _fake_probe(
-                port_availability={10443: False},
-                expected_service_ports={10443: False},
-                service_matches={(10443, "Service Access"): True},
+                port_availability={443: False},
+                expected_service_ports={443: False},
+                service_matches={(443, "Service Access"): True},
             ),
             configuration,
         ).run()
 
-        checks_by_id = {check.check_id: check for check in result.checks}
-        port_check = checks_by_id["PORT-10443"]
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
 
-        self.assertTrue(result.passed)
-        self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
-        self.assertEqual("Service Access", port_check.evidence["current_service"])
+        self.assertFalse(result.passed)
+        self.assertIn("PORT-443", failed_by_id)
 
     async def test_swagger_port_allows_old_swagger_api_listener_to_be_reassigned(self):
         result = await PreflightService(

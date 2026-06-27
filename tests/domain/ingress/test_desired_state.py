@@ -12,7 +12,7 @@ class TestDesiredHttpsIngress(unittest.TestCase):
     def test_service_access_profile_routes_required_https_hosts(self):
         desired = desired_https_ingress_for_profile(ServiceStackProfile.SERVICE_ACCESS)
 
-        self.assertEqual((10080, 10443), desired.public_ports)
+        self.assertEqual((80, 443), desired.public_ports)
         self.assertTrue(desired.http_redirect_to_https)
         self.assertFalse(desired.exposed_by_default)
         self.assertFalse(desired.api_insecure)
@@ -21,8 +21,12 @@ class TestDesiredHttpsIngress(unittest.TestCase):
                 "portainer.tsw.local",
                 "nexus.tsw.local",
                 "jenkins.tsw.local",
+                "pulsar-api.tsw.local",
+                "pulsar.tsw.local",
                 "sonarqube.tsw.local",
+                "swagger.tsw.local",
                 "infisical.tsw.local",
+                "service-access.tsw.local",
             ),
             desired.hostnames,
         )
@@ -50,7 +54,7 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         )
 
         for kwargs in (
-            {"public_ports": (80, 443)},
+            {"public_ports": (10080, 10443)},
             {"http_redirect_to_https": False},
             {"exposed_by_default": True},
             {"api_insecure": True},
@@ -58,6 +62,19 @@ class TestDesiredHttpsIngress(unittest.TestCase):
             with self.subTest(kwargs=kwargs):
                 with self.assertRaises(ValueError):
                     DesiredHttpsIngress(routes=(route,), **kwargs)
+
+    def test_routes_use_internal_service_targets(self):
+        desired = desired_https_ingress_for_profile(ServiceStackProfile.SERVICE_ACCESS)
+        routes = {route.service_name: route for route in desired.routes}
+
+        self.assertEqual("service-access-dashboard", routes["service-access"].upstream_service)
+        self.assertEqual(80, routes["service-access"].upstream_port)
+        self.assertEqual("pulsar", routes["pulsar-admin-api"].upstream_service)
+        self.assertEqual(8080, routes["pulsar-admin-api"].upstream_port)
+        self.assertEqual("pulsar-manager", routes["pulsar-manager"].upstream_service)
+        self.assertEqual(9527, routes["pulsar-manager"].upstream_port)
+        self.assertEqual("swagger-nginx", routes["swagger"].upstream_service)
+        self.assertEqual(8084, routes["swagger"].upstream_port)
 
     def test_route_rejects_local_topology_and_invalid_hostnames(self):
         with self.assertRaises(ValueError):

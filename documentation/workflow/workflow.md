@@ -5,7 +5,7 @@ Workflow ID: `workflow-traefik-service-routing-20260627`
 Created: `2026-06-27`
 Issue: `https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/157`
 Branch: `feature/workflow-traefik-service-routing-20260627`
-Status: `CREATED_READY_FOR_EXECUTION`
+Status: `EXECUTED_WITH_EVIDENCE`
 Evidence Root: `.codex/evidence/workflow-traefik-service-routing-20260627/`
 
 ## Executive Summary
@@ -724,9 +724,27 @@ Run `workflow execute` only after confirming:
 
 - active branch:
   `feature/workflow-traefik-service-routing-20260627`
-- workflow status: `CREATED_READY_FOR_EXECUTION`
+- workflow status before execution: `CREATED_READY_FOR_EXECUTION`
+- workflow status after execution: `EXECUTED_WITH_EVIDENCE`
 - context pack hashes are current
 - no unrelated working-tree changes exist
+
+## Execution Outcome
+
+- Slice 01 established the baseline routing-contract evidence and confirmed
+  existing tests were the correct regression surface.
+- Slice 02 reconciled Traefik public ingress authority to `80/443` across the
+  domain ingress model, setup manifest, service registry, Traefik compose,
+  compose rendering and platform preflight behavior.
+- Slice 03 changed Service Access preferred links to Traefik host routes,
+  added/verified Traefik route labels for Service Access, Swagger, Pulsar
+  Manager and Pulsar Admin API, and added route/link/evidence integration
+  tests. Pulsar broker TCP remains direct protocol access.
+- Slice 04 synchronized README, deployment docs, arc42 decision index and
+  deployment view. Documentation does not claim live browser success.
+- Full quality gate passed with `python3 tools/quality_gate.py quality`.
+- Live Selenium/browser validation was not run because no explicit live
+  infrastructure opt-in was requested for this execution.
 
 ## arc42 Check Status
 

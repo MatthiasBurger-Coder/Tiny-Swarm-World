@@ -56,8 +56,12 @@ class TestCertificateSummary(unittest.TestCase):
             (
                 "portainer.tsw.local",
                 "nexus.tsw.local",
+                "pulsar-api.tsw.local",
+                "pulsar.tsw.local",
                 "sonarqube.tsw.local",
+                "swagger.tsw.local",
                 "infisical.tsw.local",
+                "service-access.tsw.local",
             ),
             result.missing_san_dns_names,
         )

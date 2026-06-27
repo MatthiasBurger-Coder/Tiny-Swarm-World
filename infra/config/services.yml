@@ -146,5 +146,5 @@ services:
       - traefik-https
     readiness_target: deployment:traefik-service-readiness
     ingress_published_ports:
-      - 10080
-      - 10443
+      - 80
+      - 443

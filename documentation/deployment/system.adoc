@@ -221,9 +221,17 @@ The accepted routing direction is Traefik-backed local ingress:
 
 * Traefik owns published ports `80` and `443` for the service-access setup
   profile.
-* Service Access remains the dashboard stack and serves the local management
-  overview through `http://localhost:10000` after verified deployment.
-* Swagger/NGINX uses published port `8084`.
+* Service Access remains the dashboard stack and serves the preferred local
+  management overview through `https://service-access.tsw.local` when route
+  hostnames resolve in the operator environment.
+* Service HTTP links prefer routed hostnames such as
+  `https://jenkins.tsw.local`, `https://nexus.tsw.local`,
+  `https://portainer.tsw.local`, `https://pulsar.tsw.local`,
+  `https://pulsar-api.tsw.local`, `https://sonarqube.tsw.local`,
+  `https://swagger.tsw.local`, and `https://infisical.tsw.local`.
+* Direct published ports such as service-access `10000`, Infisical `17080`,
+  and the historical gateway `10080/10443` values are compatibility,
+  diagnostic, fallback, rollback, or transitional access only.
 * The service-access NGINX compose service still publishes `8086` as a local
   compatibility route.
 * Wider-than-local exposure and public certificate automation require later
@@ -260,9 +268,10 @@ secret-management surface.
 
 Current live verification note:
 
-* The direct `http://localhost:10000` dashboard route requires a fresh
-  provider-specific service-access stack deployment before it is claimed as
-  live-verified.
+* The routed `https://service-access.tsw.local` dashboard route requires a
+  fresh provider-specific service-access stack deployment, hostname
+  resolution, certificate trust, and explicit live browser evidence before it
+  is claimed as live-verified.
 
 == Verification
 

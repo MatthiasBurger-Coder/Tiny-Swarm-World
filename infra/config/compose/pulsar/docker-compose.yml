@@ -37,6 +37,7 @@ services:
       - pulsar-data:/pulsar/data
     networks:
       - service_access_link
+      - traefik_ingress
     healthcheck:
       test:
         - CMD-SHELL
@@ -56,6 +57,13 @@ services:
       placement:
         constraints:
           - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=traefik_ingress
+        - traefik.http.routers.pulsar-api.rule=Host(`pulsar-api.tsw.local`)
+        - traefik.http.routers.pulsar-api.entrypoints=websecure
+        - traefik.http.routers.pulsar-api.tls=true
+        - traefik.http.services.pulsar-api.loadbalancer.server.port=8080
 
   pulsar-manager:
     image: ${TSW_PULSAR_MANAGER_IMAGE:-apachepulsar/pulsar-manager:latest}
@@ -70,11 +78,19 @@ services:
       - pulsar-manager-data:/pulsar-manager/pulsar-manager/dbdata
     networks:
       - service_access_link
+      - traefik_ingress
     deploy:
       replicas: 1
       placement:
         constraints:
           - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=traefik_ingress
+        - traefik.http.routers.pulsar.rule=Host(`pulsar.tsw.local`)
+        - traefik.http.routers.pulsar.entrypoints=websecure
+        - traefik.http.routers.pulsar.tls=true
+        - traefik.http.services.pulsar.loadbalancer.server.port=9527
 
   pulsar-manager-bootstrap:
     image: ${TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE:-python:3.12-alpine}
@@ -192,4 +208,7 @@ volumes:
 networks:
   service_access_link:
     name: service_access_link
+    external: true
+  traefik_ingress:
+    name: traefik_ingress
     external: true
