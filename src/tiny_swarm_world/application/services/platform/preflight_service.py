@@ -599,11 +599,7 @@ def _port_remediation(service: str) -> str:
 
 def _planned_replaced_services(port: int, service: str) -> tuple[str, ...]:
     replacements: list[str]
-    if port == 10080 and service == "Traefik HTTP ingress":
-        replacements = ["Swagger/NGINX", "Service Access"]
-    elif port == 10443 and service == "Traefik HTTPS ingress":
-        replacements = ["Infisical HTTPS", "Service Access"]
-    elif port == 16081 and service == "Swagger/NGINX":
+    if port == 16081 and service == "Swagger/NGINX":
         replacements = ["Swagger API"]
     else:
         replacements = []

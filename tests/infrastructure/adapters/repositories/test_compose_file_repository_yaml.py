@@ -310,7 +310,7 @@ services:
         self.assertEqual((17080,), metadata["infisical"]["infisical"])
         self.assertEqual((13081, 13500, 13501), metadata["nexus"]["nexus"])
         self.assertEqual((10000, 8086), metadata["service-access"]["service-access-nginx"])
-        self.assertEqual((10080, 10443), metadata["traefik"]["traefik"])
+        self.assertEqual((80, 443), metadata["traefik"]["traefik"])
 
     def test_committed_service_registry_aligns_selected_stacks_with_phase_and_ports(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -522,10 +522,14 @@ services:
         self.assertIn("healthcheck", pulsar)
         self.assertIn("http://localhost:8080/admin/v2/clusters", pulsar["healthcheck"]["test"][-1])
         self.assertIn("TSW_PULSAR_ADMIN_TOKEN", pulsar["healthcheck"]["test"][-1])
-        self.assertEqual(["service_access_link"], pulsar["networks"])
+        self.assertEqual(["service_access_link", "traefik_ingress"], pulsar["networks"])
         self.assertEqual(
             {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
+        )
+        self.assertEqual(
+            {"name": "traefik_ingress", "external": True},
+            compose_data["networks"]["traefik_ingress"],
         )
         self.assertEqual(
             ["node.role == manager"],
@@ -547,7 +551,7 @@ services:
             ],
             pulsar_manager["ports"],
         )
-        self.assertEqual(["service_access_link"], pulsar_manager["networks"])
+        self.assertEqual(["service_access_link", "traefik_ingress"], pulsar_manager["networks"])
 
         bootstrap = compose_data["services"]["pulsar-manager-bootstrap"]
         self.assertEqual(
@@ -665,7 +669,22 @@ services:
         )
         self.assertNotIn("secrets", compose_data)
         self.assertNotIn("volumes", compose_data)
-        self.assertNotIn("${TSW_REMOTE_STACK_ROOT", compose_content)
+        self.assertEqual(
+            [
+                {
+                    "source": "service_access_dashboard_index",
+                    "target": "/usr/share/nginx/html/index.html",
+                }
+            ],
+            services["service-access-dashboard"]["configs"],
+        )
+        self.assertEqual(
+            (
+                "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}"
+                "/service-access/dashboard/index.html"
+            ),
+            compose_data["configs"]["service_access_dashboard_index"]["file"],
+        )
         self.assertEqual(
             {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
@@ -744,8 +763,8 @@ services:
         self.assertNotIn("--api.insecure=true", compose_content)
         self.assertEqual(
             [
-                {"target": 80, "published": 10080, "protocol": "tcp", "mode": "host"},
-                {"target": 443, "published": 10443, "protocol": "tcp", "mode": "host"},
+                {"target": 80, "published": 80, "protocol": "tcp", "mode": "host"},
+                {"target": 443, "published": 443, "protocol": "tcp", "mode": "host"},
             ],
             traefik["ports"],
         )
@@ -795,21 +814,16 @@ services:
             "jenkins": ("jenkins", "jenkins.tsw.local", "8080"),
             "nexus": ("nexus", "nexus.tsw.local", "8081"),
             "portainer": ("portainer", "portainer.tsw.local", "9000"),
+            "service-access": ("service-access-dashboard", "service-access.tsw.local", "80"),
             "sonarqube": ("sonarqube", "sonarqube.tsw.local", "9000"),
+            "swagger": ("swagger-nginx", "swagger.tsw.local", "8084"),
         }
-        repository_root = Path(__file__).resolve().parents[4]
+        repository = ComposeFileRepositoryYaml()
 
         for stack_name, (service_name, hostname, upstream_port) in expected.items():
             with self.subTest(stack_name=stack_name):
-                compose_path = (
-                    repository_root
-                    / "infra"
-                    / "config"
-                    / "compose"
-                    / stack_name
-                    / "docker-compose.yml"
-                )
-                compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
+                stack_definition = repository.get_compose_of(stack_name)
+                compose_data = YAML(typ="safe").load(stack_definition.compose_content)
                 service = compose_data["services"][service_name]
                 labels = set(service["deploy"]["labels"])
 
@@ -820,25 +834,20 @@ services:
                 )
                 self.assertIn("traefik.enable=true", labels)
                 self.assertIn("traefik.swarm.network=traefik_ingress", labels)
-                if service_name == "infisical":
-                    self.assertIn(
-                        "traefik.http.routers.infisical.rule="
-                        "Host(`infisical.tsw.local`) || Host(`localhost`)",
-                        labels,
-                    )
-                else:
-                    self.assertIn(
-                        f"traefik.http.routers.{service_name}.rule=Host(`{hostname}`)",
-                        labels,
-                    )
+                router_name = service_name.removesuffix("-dashboard").removesuffix("-nginx")
                 self.assertIn(
-                    f"traefik.http.routers.{service_name}.entrypoints=websecure",
+                    f"traefik.http.routers.{router_name}.rule=Host(`{hostname}`)",
                     labels,
                 )
-                self.assertIn(f"traefik.http.routers.{service_name}.tls=true", labels)
+                self.assertNotIn("Host(`localhost`)", repr(labels))
+                self.assertIn(
+                    f"traefik.http.routers.{router_name}.entrypoints=websecure",
+                    labels,
+                )
+                self.assertIn(f"traefik.http.routers.{router_name}.tls=true", labels)
                 self.assertIn(
                     (
-                        f"traefik.http.services.{service_name}"
+                        f"traefik.http.services.{router_name}"
                         f".loadbalancer.server.port={upstream_port}"
                     ),
                     labels,
@@ -882,7 +891,25 @@ services:
                 self.assertIn("image", service)
                 self.assertNotIn("build", service)
                 self.assertNotIn("volumes", service)
-                self.assertNotIn("configs", service)
+                if service_name == "service-access-dashboard":
+                    self.assertEqual(
+                        [
+                            {
+                                "source": "service_access_dashboard_index",
+                                "target": "/usr/share/nginx/html/index.html",
+                            }
+                        ],
+                        service["configs"],
+                    )
+                    self.assertEqual(
+                        (
+                            "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}"
+                            "/service-access/dashboard/index.html"
+                        ),
+                        compose_data["configs"]["service_access_dashboard_index"]["file"],
+                    )
+                else:
+                    self.assertNotIn("configs", service)
                 self.assertNotIn("secrets", service)
                 self.assertTrue(dockerfile_path.is_file())
                 dockerfile = dockerfile_path.read_text(encoding="utf-8")
@@ -926,6 +953,12 @@ services:
             with self.subTest(label=label):
                 self.assertIn(f">{label}<", dashboard)
 
+    def test_service_access_dashboard_is_rendered_from_effective_access_model(self):
+        dashboard = _service_access_dashboard_html()
+        rendered = ComposeFileRepositoryYaml().render_service_access_dashboard()
+
+        self.assertEqual(rendered, dashboard)
+
     def test_service_access_dashboard_visible_text_is_english(self):
         dashboard = _service_access_dashboard_html()
 
@@ -933,8 +966,8 @@ services:
             "Management table for local Tiny Swarm World services and Infisical secret entries.",
             "Open Infisical",
             "Passwords are visible through Infisical",
-            "Local Swarm setup",
-            "View secret in Infisical",
+            "Traefik routed access",
+            "Open Infisical item",
             "Dashboard does not require a login",
             "Swagger/NGINX does not require a login",
             "This page does not store plaintext passwords.",
@@ -962,15 +995,15 @@ services:
         self.assertTrue(links)
         self.assertEqual(
             {
-                "http://localhost:10000",
-                "http://localhost:10001",
-                "http://localhost:11080",
-                "http://localhost:12000",
-                "http://localhost:13081",
-                "http://localhost:14080/admin/v2/clusters",
-                "http://localhost:14081/#/environments",
-                "http://localhost:16080",
-                "http://localhost:17080",
+                "https://service-access.tsw.local",
+                "https://portainer.tsw.local",
+                "https://jenkins.tsw.local",
+                "https://sonarqube.tsw.local",
+                "https://nexus.tsw.local",
+                "https://pulsar-api.tsw.local/admin/v2/clusters",
+                "https://pulsar.tsw.local",
+                "https://swagger.tsw.local",
+                "https://infisical.tsw.local",
             },
             set(links),
         )
@@ -979,10 +1012,7 @@ services:
             self.assertFalse(parsed.username)
             self.assertFalse(parsed.password)
             self.assertEqual("", parsed.query)
-            if link == "http://localhost:14081/#/environments":
-                self.assertEqual("/environments", parsed.fragment)
-            else:
-                self.assertEqual("", parsed.fragment)
+            self.assertEqual("", parsed.fragment)
         for forbidden_link in (
             "http://localhost:8085",
             "http://localhost:10000/jenkins",
@@ -999,15 +1029,15 @@ services:
         dashboard = _service_access_dashboard_html()
 
         for expected in (
-            "http://localhost:10000",
-            "http://localhost:10001",
-            "http://localhost:11080",
-            "http://localhost:12000",
-            "http://localhost:13081",
-            "http://localhost:14080/admin/v2/clusters",
-            "http://localhost:14081",
-            "http://localhost:16080",
-            "http://localhost:17080",
+            "https://service-access.tsw.local",
+            "https://portainer.tsw.local",
+            "https://jenkins.tsw.local",
+            "https://sonarqube.tsw.local",
+            "https://nexus.tsw.local",
+            "https://pulsar-api.tsw.local/admin/v2/clusters",
+            "https://pulsar.tsw.local",
+            "https://swagger.tsw.local",
+            "https://infisical.tsw.local",
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, dashboard)
@@ -1045,6 +1075,7 @@ services:
             "platform/pulsar",
             "platform/pulsar-manager",
             "platform/sonarqube",
+            "platform/infisical",
         )
 
         for item in expected_items:

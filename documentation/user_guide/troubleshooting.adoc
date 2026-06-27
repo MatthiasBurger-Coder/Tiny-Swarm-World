@@ -238,10 +238,10 @@ dashboard and NGINX assets are committed repository inputs and are packaged
 into their respective images by the artifact workflow; live reachability still
 requires explicit deployment evidence.
 
-The committed dashboard is static catalog data. It intentionally renders
-service reachability as unknown until observed evidence exists. Password
-values are not present in the dashboard; use the listed secret item reference
-only through the configured secret-management surface.
+The committed dashboard is generated from the effective service-access model.
+It intentionally does not claim service reachability until observed evidence
+exists. Password values are not present in the dashboard; use the listed
+secret item reference only through the configured secret-management surface.
 
 Check the non-secret prerequisites before a live run:
 

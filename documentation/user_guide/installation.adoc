@@ -436,9 +436,10 @@ Jenkins, Apache Pulsar, SonarQube, and Swagger/NGINX environment is intentional.
 == Service Access Management Prerequisites
 
 The full guided setup includes the service-access management stack with a
-static landing page and service-access NGINX assets. The setup CLI selects
-this profile by default. Operators who intentionally want only the older base
-service set can pass `--service-profile default`.
+dashboard asset rendered from the effective service-access model and
+service-access NGINX assets. The setup CLI selects this profile by default.
+Operators who intentionally want only the older base service set can pass
+`--service-profile default`.
 
 The service-access setup profile exposes Traefik ingress ports `80` and `443`
 through the LXC/WSL exposure workflow. The service-access NGINX compose
@@ -449,8 +450,9 @@ configuration hints, not service-health evidence. If localhost forwarding is
 stale, use the current Swarm node IP only for manual diagnosis until the
 forwarding issue is repaired.
 
-The service-access dashboard is a static management table. It lists service
-links, users and Infisical item references; password values are visible only
-through the configured secret-management surface. The dashboard source is
+The service-access dashboard is a generated management table. It lists
+service links, users and Infisical item references from the effective access
+model; password values are visible only through the configured
+secret-management surface. The committed rendered asset is
 `infra/config/compose/service-access/dashboard/index.html`, and the dashboard
 Dockerfile packages that file into the default `service-access` setup path.

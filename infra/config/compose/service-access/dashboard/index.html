@@ -6,182 +6,29 @@
   <meta name="robots" content="noindex,nofollow">
   <title>Tiny Swarm World Service Access</title>
   <style>
-    :root {
-      color-scheme: light;
-      --bg: #f5f7fa;
-      --panel: #ffffff;
-      --line: #d7dde6;
-      --ink: #172033;
-      --muted: #657386;
-      --accent: #146b7f;
-      --accent-soft: #e8f6f8;
-      --warn: #7a5200;
-      --warn-bg: #fff8e8;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--bg);
-      color: var(--ink);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    main {
-      width: min(1180px, calc(100vw - 32px));
-      margin: 0 auto;
-      padding: 28px 0;
-    }
-
-    header {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 18px;
-    }
-
-    h1 {
-      margin: 0 0 6px;
-      font-size: 2rem;
-      line-height: 1.1;
-      font-weight: 760;
-      letter-spacing: 0;
-    }
-
-    p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    a {
-      color: var(--accent);
-      font-weight: 650;
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    .vault-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 40px;
-      padding: 0 14px;
-      border: 1px solid var(--accent);
-      border-radius: 6px;
-      background: var(--accent-soft);
-      color: #0d5364;
-      white-space: nowrap;
-    }
-
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      padding: 0 10px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: var(--panel);
-      color: var(--muted);
-      font-size: 0.86rem;
-      font-weight: 650;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-    }
-
-    table {
-      width: 100%;
-      min-width: 820px;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      padding: 13px 14px;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
-      vertical-align: top;
-      line-height: 1.45;
-    }
-
-    th {
-      color: var(--muted);
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      font-weight: 760;
-    }
-
-    tbody tr:last-child th,
-    tbody tr:last-child td {
-      border-bottom: 0;
-    }
-
-    tbody th {
-      width: 170px;
-      color: var(--ink);
-      font-size: 0.98rem;
-      text-transform: none;
-    }
-
-    code {
-      padding: 2px 5px;
-      border-radius: 4px;
-      background: #eef1f5;
-      color: #1e293b;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size: 0.9em;
-    }
-
-    .pwd {
-      display: grid;
-      gap: 4px;
-    }
-
-    .pwd small {
-      color: var(--muted);
-      font-size: 0.82rem;
-    }
-
-    .note {
-      margin-top: 14px;
-      padding: 14px 16px;
-      border-left: 4px solid var(--warn);
-      background: var(--warn-bg);
-      color: #3c2d12;
-      border-radius: 4px;
-    }
-
-    @media (max-width: 720px) {
-      main {
-        width: min(100vw - 20px, 1180px);
-        padding: 20px 0;
-      }
-
-      header {
-        align-items: flex-start;
-      }
-    }
+    :root { color-scheme: light; --bg: #f5f7fa; --panel: #ffffff; --line: #d7dde6; --ink: #172033; --muted: #657386; --accent: #146b7f; --accent-soft: #e8f6f8; --warn: #7a5200; --warn-bg: #fff8e8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { width: min(1180px, calc(100vw - 32px)); margin: 0 auto; padding: 28px 0; }
+    header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+    h1 { margin: 0 0 6px; font-size: 2rem; line-height: 1.1; font-weight: 760; letter-spacing: 0; }
+    p { margin: 0; color: var(--muted); line-height: 1.5; }
+    a { color: var(--accent); font-weight: 650; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .vault-link { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent-soft); color: #0d5364; white-space: nowrap; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+    .chip { display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--muted); font-size: 0.86rem; font-weight: 650; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+    table { width: 100%; min-width: 820px; border-collapse: collapse; }
+    th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; line-height: 1.45; }
+    th { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; font-weight: 760; }
+    tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
+    tbody th { width: 170px; color: var(--ink); font-size: 0.98rem; text-transform: none; }
+    code { padding: 2px 5px; border-radius: 4px; background: #eef1f5; color: #1e293b; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 0.9em; }
+    .pwd { display: grid; gap: 4px; }
+    .pwd small { color: var(--muted); font-size: 0.82rem; }
+    .note { margin-top: 14px; padding: 14px 16px; border-left: 4px solid var(--warn); background: var(--warn-bg); color: #3c2d12; border-radius: 4px; }
+    @media (max-width: 720px) { main { width: min(100vw - 20px, 1180px); padding: 20px 0; } header { align-items: flex-start; } }
   </style>
 </head>
 <body>
@@ -191,83 +38,30 @@
         <h1>Service Access</h1>
         <p>Management table for local Tiny Swarm World services and Infisical secret entries.</p>
       </div>
-      <a class="vault-link" href="http://localhost:17080" target="_blank" rel="noopener noreferrer">Open Infisical</a>
+      <a class="vault-link" href="https://infisical.tsw.local" target="_blank" rel="noopener noreferrer">Open Infisical</a>
     </header>
-
     <div class="toolbar" aria-label="Access summary">
-      <span class="chip">8 services</span>
+      <span class="chip">9 services</span>
       <span class="chip">Passwords are visible through Infisical</span>
-      <span class="chip">Local Swarm setup</span>
+      <span class="chip">Traefik routed access</span>
     </div>
-
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th scope="col">Service</th>
-            <th scope="col">URL</th>
-            <th scope="col">User</th>
-            <th scope="col">Password</th>
-          </tr>
-        </thead>
+        <thead><tr><th scope="col">Service</th><th scope="col">URL</th><th scope="col">User</th><th scope="col">Password</th></tr></thead>
         <tbody>
-          <tr>
-            <th scope="row">jenkins</th>
-            <td><a href="http://localhost:11080" target="_blank" rel="noopener noreferrer">http://localhost:11080</a></td>
-            <td><code>admin</code></td>
-            <td><span class="pwd"><a href="http://localhost:17080" target="_blank" rel="noopener noreferrer"><code>platform/jenkins</code></a><small>View secret in Infisical</small></span></td>
-          </tr>
-          <tr>
-            <th scope="row">nexus</th>
-            <td><a href="http://localhost:13081" target="_blank" rel="noopener noreferrer">http://localhost:13081</a></td>
-            <td><code>admin</code></td>
-            <td><span class="pwd"><a href="http://localhost:17080" target="_blank" rel="noopener noreferrer"><code>platform/nexus</code></a><small>View secret in Infisical</small></span></td>
-          </tr>
-          <tr>
-            <th scope="row">portainer</th>
-            <td><a href="http://localhost:10001" target="_blank" rel="noopener noreferrer">http://localhost:10001</a></td>
-            <td><code>admin</code></td>
-            <td><span class="pwd"><a href="http://localhost:17080" target="_blank" rel="noopener noreferrer"><code>platform/portainer</code></a><small>View secret in Infisical</small></span></td>
-          </tr>
-          <tr>
-            <th scope="row">pulsar</th>
-            <td><a href="http://localhost:14081/#/environments" target="_blank" rel="noopener noreferrer">http://localhost:14081/#/environments</a></td>
-            <td><code>admin</code></td>
-            <td><span class="pwd"><a href="http://localhost:17080" target="_blank" rel="noopener noreferrer"><code>platform/pulsar-manager</code></a><small>View Pulsar Manager password in Infisical</small></span></td>
-          </tr>
-          <tr>
-            <th scope="row">pulsar admin api</th>
-            <td><a href="http://localhost:14080/admin/v2/clusters" target="_blank" rel="noopener noreferrer">http://localhost:14080/admin/v2/clusters</a></td>
-            <td><code>admin</code></td>
-            <td><span class="pwd"><a href="http://localhost:17080" target="_blank" rel="noopener noreferrer"><code>platform/pulsar</code></a><small>Admin API token stored in Infisical</small></span></td>
-          </tr>
-          <tr>
-            <th scope="row">service-access</th>
-            <td><a href="http://localhost:10000" target="_blank" rel="noopener noreferrer">http://localhost:10000</a></td>
-            <td><code>none</code></td>
-            <td><span class="pwd"><code>not required</code><small>Dashboard does not require a login</small></span></td>
-          </tr>
-          <tr>
-            <th scope="row">sonarqube</th>
-            <td><a href="http://localhost:12000" target="_blank" rel="noopener noreferrer">http://localhost:12000</a></td>
-            <td><code>admin</code></td>
-            <td><span class="pwd"><a href="http://localhost:17080" target="_blank" rel="noopener noreferrer"><code>platform/sonarqube</code></a><small>View secret in Infisical</small></span></td>
-          </tr>
-          <tr>
-            <th scope="row">swagger</th>
-            <td><a href="http://localhost:16080" target="_blank" rel="noopener noreferrer">http://localhost:16080</a></td>
-            <td><code>none</code></td>
-            <td><span class="pwd"><code>not required</code><small>Swagger/NGINX does not require a login</small></span></td>
-          </tr>
+          <tr><th scope="row">portainer</th><td><a href="https://portainer.tsw.local" target="_blank" rel="noopener noreferrer">https://portainer.tsw.local</a></td><td><code>admin</code></td><td><span class="pwd"><a href="https://infisical.tsw.local" target="_blank" rel="noopener noreferrer"><code>platform/portainer</code></a><small>Open Infisical item</small></span></td></tr>
+          <tr><th scope="row">nexus</th><td><a href="https://nexus.tsw.local" target="_blank" rel="noopener noreferrer">https://nexus.tsw.local</a></td><td><code>admin</code></td><td><span class="pwd"><a href="https://infisical.tsw.local" target="_blank" rel="noopener noreferrer"><code>platform/nexus</code></a><small>Open Infisical item</small></span></td></tr>
+          <tr><th scope="row">jenkins</th><td><a href="https://jenkins.tsw.local" target="_blank" rel="noopener noreferrer">https://jenkins.tsw.local</a></td><td><code>admin</code></td><td><span class="pwd"><a href="https://infisical.tsw.local" target="_blank" rel="noopener noreferrer"><code>platform/jenkins</code></a><small>Open Infisical item</small></span></td></tr>
+          <tr><th scope="row">pulsar-admin-api</th><td><a href="https://pulsar-api.tsw.local/admin/v2/clusters" target="_blank" rel="noopener noreferrer">https://pulsar-api.tsw.local/admin/v2/clusters</a></td><td><code>admin</code></td><td><span class="pwd"><a href="https://infisical.tsw.local" target="_blank" rel="noopener noreferrer"><code>platform/pulsar</code></a><small>Open Infisical item</small></span></td></tr>
+          <tr><th scope="row">pulsar-manager</th><td><a href="https://pulsar.tsw.local" target="_blank" rel="noopener noreferrer">https://pulsar.tsw.local</a></td><td><code>admin</code></td><td><span class="pwd"><a href="https://infisical.tsw.local" target="_blank" rel="noopener noreferrer"><code>platform/pulsar-manager</code></a><small>Open Infisical item</small></span></td></tr>
+          <tr><th scope="row">sonarqube</th><td><a href="https://sonarqube.tsw.local" target="_blank" rel="noopener noreferrer">https://sonarqube.tsw.local</a></td><td><code>admin</code></td><td><span class="pwd"><a href="https://infisical.tsw.local" target="_blank" rel="noopener noreferrer"><code>platform/sonarqube</code></a><small>Open Infisical item</small></span></td></tr>
+          <tr><th scope="row">swagger</th><td><a href="https://swagger.tsw.local" target="_blank" rel="noopener noreferrer">https://swagger.tsw.local</a></td><td><code>none</code></td><td><span class="pwd"><code>not required</code><small>Swagger/NGINX does not require a login</small></span></td></tr>
+          <tr><th scope="row">infisical</th><td><a href="https://infisical.tsw.local" target="_blank" rel="noopener noreferrer">https://infisical.tsw.local</a></td><td><code>admin</code></td><td><span class="pwd"><a href="https://infisical.tsw.local" target="_blank" rel="noopener noreferrer"><code>platform/infisical</code></a><small>Open Infisical item</small></span></td></tr>
+          <tr><th scope="row">service-access</th><td><a href="https://service-access.tsw.local" target="_blank" rel="noopener noreferrer">https://service-access.tsw.local</a></td><td><code>none</code></td><td><span class="pwd"><code>not required</code><small>Dashboard does not require a login</small></span></td></tr>
         </tbody>
       </table>
     </div>
-
-    <p class="note">
-      This page does not store plaintext passwords. The <strong>Password</strong>
-      column shows the Infisical entry or marks services that do not require a login.
-      Password values are only viewed and copied in Infisical.
-    </p>
+    <p class="note">This page does not store plaintext passwords. The <strong>Password</strong> column shows the Infisical entry or marks services that do not require a login. Password values are only viewed and copied in Infisical.</p>
   </main>
 </body>
 </html>

@@ -1,0 +1,382 @@
+from __future__ import annotations
+
+import os
+import json
+import re
+import unittest
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, cast
+from urllib.parse import urlparse
+
+try:
+    from selenium import webdriver  # type: ignore[import-not-found]
+    from selenium.webdriver.common.by import By  # type: ignore[import-not-found]
+except ModuleNotFoundError:
+    webdriver = None
+    By = None
+
+from tests.integration.routing_contract import ROUTE_EXPECTATIONS, RouteExpectation
+
+
+RUN_LIVE_ENV = "TSW_RUN_POST_INSTALL_BROWSER_LIVE"
+E2E_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/solid-typed-evidence/e2e")
+LOGIN_REQUIRED_ROUTES = frozenset(
+    {
+        "infisical",
+        "jenkins",
+        "nexus",
+        "portainer",
+        "pulsar-manager",
+        "sonarqube",
+    }
+)
+
+
+@dataclass(frozen=True)
+class BrowserRouteResult:
+    route_name: str
+    url: str
+    result: str
+    redacted_reason: str = ""
+
+    def to_evidence(self) -> dict[str, object]:
+        return {
+            "evidence_kind": "routed_browser_e2e_result",
+            "redacted_reason": self.redacted_reason,
+            "result": self.result,
+            "route_name": self.route_name,
+            "status": self.result,
+            "url": self.url,
+        }
+
+
+def route_expectation_for_browser(route_name: str) -> RouteExpectation:
+    return ROUTE_EXPECTATIONS[route_name]
+
+
+def live_e2e_enabled() -> bool:
+    return os.environ.get(RUN_LIVE_ENV) == "1"
+
+
+def approved_credential_available(route_name: str) -> bool:
+    return _approved_credential(route_name) is not None
+
+
+def selenium_driver():
+    if webdriver is None or By is None:
+        raise unittest.SkipTest("selenium is not installed in the active test environment")
+    return webdriver, By
+
+
+class BrowserRouteE2EContract:
+    route_name: str = ""
+    expected_title_fragment: str = ""
+
+    def test_route_contract_uses_routed_https_url(self) -> None:
+        _assert_routed_https_url(self, route_expectation_for_browser(self.route_name).dashboard_url)
+
+    def test_live_e2e_evidence_target_is_local_and_ignored(self) -> None:
+        _assert_evidence_target(self)
+
+    def test_live_routed_link_opens_with_selenium(self) -> None:
+        testcase = cast(unittest.TestCase, self)
+        expectation = route_expectation_for_browser(self.route_name)
+        if not live_e2e_enabled():
+            _record_route_result(
+                BrowserRouteResult(
+                    self.route_name,
+                    expectation.dashboard_url,
+                    "skipped",
+                    "blocked_live_consent_missing",
+                )
+            )
+            testcase.skipTest(f"set {RUN_LIVE_ENV}=1 to run routed Selenium browser E2E checks")
+        try:
+            selenium_webdriver, by = selenium_driver()
+        except unittest.SkipTest:
+            _record_route_result(
+                BrowserRouteResult(
+                    self.route_name,
+                    expectation.dashboard_url,
+                    "skipped",
+                    "blocked_selenium_unavailable",
+                )
+            )
+            raise
+        options = selenium_webdriver.FirefoxOptions()
+        options.add_argument("-headless")
+
+        driver = selenium_webdriver.Firefox(options=options)
+        try:
+            driver.set_page_load_timeout(
+                float(os.environ.get("TSW_BROWSER_E2E_TIMEOUT_SECONDS", "45"))
+            )
+            driver.get(expectation.dashboard_url)
+            body = driver.find_element(by.TAG_NAME, "body")
+            testcase.assertTrue(body.text or driver.title)
+            if self.route_name in LOGIN_REQUIRED_ROUTES:
+                credential = _approved_credential(self.route_name)
+                if credential is None:
+                    _record_route_result(
+                        BrowserRouteResult(
+                            self.route_name,
+                            expectation.dashboard_url,
+                            "skipped",
+                            "blocked_missing_credential_source",
+                        )
+                    )
+                    testcase.skipTest(
+                        "approved credential source unavailable for required login flow"
+                    )
+                _perform_login_flow(driver, by, self.route_name, credential)
+                body = driver.find_element(by.TAG_NAME, "body")
+                testcase.assertTrue(
+                    _post_login_success(self.route_name, body.text, driver.title),
+                    "expected stable authenticated landing state after login",
+                )
+            _record_route_result(
+                BrowserRouteResult(
+                    self.route_name,
+                    expectation.dashboard_url,
+                    "passed",
+                )
+            )
+        except unittest.SkipTest:
+            raise
+        except Exception as exc:
+            _record_route_result(
+                BrowserRouteResult(
+                    self.route_name,
+                    expectation.dashboard_url,
+                    "failed",
+                    _redacted_failure_reason(exc),
+                )
+            )
+            raise
+        finally:
+            driver.quit()
+
+
+class BrowserRouteE2EContractStaticTest(unittest.TestCase):
+    def test_all_browser_route_urls_use_routed_https_hosts(self) -> None:
+        for expectation in ROUTE_EXPECTATIONS.values():
+            with self.subTest(route=expectation.route_name):
+                _assert_routed_https_url(self, expectation.dashboard_url)
+
+    def test_live_e2e_evidence_target_is_local_and_ignored(self) -> None:
+        _assert_evidence_target(self)
+
+    def test_browser_result_evidence_is_redacted(self) -> None:
+        evidence = BrowserRouteResult(
+            route_name="service-access",
+            url="https://service-access.tsw.local",
+            result="blocked",
+            redacted_reason="live_consent_missing",
+        ).to_evidence()
+
+        self.assertEqual("service-access", evidence["route_name"])
+        self.assertNotIn("password", repr(evidence).casefold())
+        self.assertNotIn("secret", repr(evidence).casefold())
+        self.assertNotIn("token", repr(evidence).casefold())
+
+    def test_browser_result_writer_creates_route_and_suite_evidence(self) -> None:
+        result = BrowserRouteResult(
+            route_name="service-access",
+            url="https://service-access.tsw.local",
+            result="skipped",
+            redacted_reason="blocked_missing_credential_source",
+        )
+
+        route_path = _record_route_result(result)
+
+        self.assertEqual(
+            E2E_EVIDENCE_ROOT / "service-access.json",
+            route_path,
+        )
+        route_evidence = json.loads(route_path.read_text(encoding="utf-8"))
+        suite_evidence = json.loads(
+            (E2E_EVIDENCE_ROOT / "suite-summary.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual("skipped", route_evidence["status"])
+        self.assertIn("service-access", suite_evidence["status_matrix"]["skipped"])
+
+
+def _assert_routed_https_url(testcase: Any, url: str) -> None:
+    parsed = urlparse(url)
+    testcase.assertEqual("https", parsed.scheme)
+    testcase.assertTrue(parsed.hostname and parsed.hostname.endswith(".tsw.local"))
+    testcase.assertIsNone(parsed.port)
+    testcase.assertFalse(parsed.username)
+    testcase.assertFalse(parsed.password)
+    testcase.assertFalse(parsed.query)
+    testcase.assertFalse(parsed.fragment)
+
+
+def _assert_evidence_target(testcase: Any) -> None:
+    testcase.assertEqual(
+        ".tiny-swarm-world/evidence/solid-typed-evidence/e2e",
+        E2E_EVIDENCE_ROOT.as_posix(),
+    )
+
+
+def _record_route_result(result: BrowserRouteResult) -> Path:
+    E2E_EVIDENCE_ROOT.mkdir(parents=True, exist_ok=True)
+    route_path = E2E_EVIDENCE_ROOT / f"{result.route_name}.json"
+    route_path.write_text(
+        json.dumps(result.to_evidence(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    _write_suite_summary()
+    return route_path
+
+
+def _write_suite_summary() -> None:
+    status_matrix: dict[str, list[str]] = {
+        "passed": [],
+        "failed": [],
+        "skipped": [],
+        "missing": [],
+    }
+    route_results: list[dict[str, object]] = []
+    seen_routes: set[str] = set()
+    for route_path in sorted(E2E_EVIDENCE_ROOT.glob("*.json")):
+        if route_path.name == "suite-summary.json":
+            continue
+        evidence = json.loads(route_path.read_text(encoding="utf-8"))
+        status = str(evidence.get("status", "failed"))
+        route_name = str(evidence.get("route_name", route_path.stem))
+        if status not in status_matrix:
+            status = "failed"
+        status_matrix[status].append(route_name)
+        seen_routes.add(route_name)
+        route_results.append(evidence)
+    for route_name, expectation in ROUTE_EXPECTATIONS.items():
+        if route_name in seen_routes:
+            continue
+        status_matrix["missing"].append(route_name)
+        route_results.append(
+            BrowserRouteResult(
+                route_name,
+                expectation.dashboard_url,
+                "skipped",
+                "missing_route_evidence",
+            ).to_evidence()
+        )
+    suite_summary = {
+        "evidence_kind": "routed_browser_e2e_suite_summary",
+        "result": "failed" if status_matrix["failed"] else "skipped" if (
+            status_matrix["skipped"] or status_matrix["missing"]
+        ) else "passed",
+        "route_results": route_results,
+        "status_matrix": status_matrix,
+    }
+    (E2E_EVIDENCE_ROOT / "suite-summary.json").write_text(
+        json.dumps(suite_summary, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _redacted_failure_reason(exc: Exception) -> str:
+    reason = exc.__class__.__name__
+    message = str(exc).strip().splitlines()[0] if str(exc).strip() else ""
+    if message:
+        reason = f"{reason}: {message[:160]}"
+    redacted = re.sub(
+        r"(?i)(password|secret|token|bearer|basic)[^,\s;)]*",
+        "[redacted]",
+        reason,
+    )
+    redacted = re.sub(r"https?://[^\s]+", "[redacted-url]", redacted)
+    redacted = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", "[redacted-ip]", redacted)
+    redacted = re.sub(r"(?i)(?:/[a-z0-9_.-]+){2,}", "[redacted-path]", redacted)
+    redacted = re.sub(r"(?i)[a-z]:\\[^\s]+", "[redacted-path]", redacted)
+    return redacted[:180]
+
+
+def _approved_credential(route_name: str) -> tuple[str, str] | None:
+    credentials = {
+        "infisical": (
+            os.environ.get("TSW_INFISICAL_LOGIN_EMAIL", ""),
+            os.environ.get("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD", ""),
+        ),
+        "jenkins": ("admin", os.environ.get("TSW_JENKINS_ADMIN_PASSWORD", "")),
+        "nexus": ("admin", os.environ.get("TSW_NEXUS_ADMIN_PASSWORD", "")),
+        "portainer": ("admin", os.environ.get("TSW_PORTAINER_ADMIN_PASSWORD", "")),
+        "pulsar-manager": (
+            "admin",
+            os.environ.get("TSW_PULSAR_MANAGER_ADMIN_PASSWORD", ""),
+        ),
+        "sonarqube": ("admin", os.environ.get("TSW_SONARQUBE_ADMIN_PASSWORD", "")),
+    }
+    username, password = credentials.get(route_name, ("", ""))
+    if username and password:
+        return username, password
+    return None
+
+
+def _perform_login_flow(driver: Any, by: Any, route_name: str, credential: tuple[str, str]) -> None:
+    username, password = credential
+    body = driver.find_element(by.TAG_NAME, "body")
+    if _post_login_success(route_name, body.text, driver.title):
+        return
+    username_field = _first_present(
+        driver,
+        by,
+        (
+            "input[name='username']",
+            "input[name='user']",
+            "input[name='j_username']",
+            "input[name='email']",
+            "input[type='email']",
+            "input[id*='user']",
+        ),
+    )
+    password_field = _first_present(
+        driver,
+        by,
+        (
+            "input[name='password']",
+            "input[name='j_password']",
+            "input[type='password']",
+            "input[id*='password']",
+        ),
+    )
+    username_field.clear()
+    username_field.send_keys(username)
+    password_field.clear()
+    password_field.send_keys(password)
+    submit = _first_present(
+        driver,
+        by,
+        (
+            "button[type='submit']",
+            "input[type='submit']",
+            "button[name='Submit']",
+            "button",
+        ),
+    )
+    submit.click()
+
+
+def _first_present(driver: Any, by: Any, selectors: tuple[str, ...]) -> Any:
+    last_error: Exception | None = None
+    for selector in selectors:
+        try:
+            return driver.find_element(by.CSS_SELECTOR, selector)
+        except Exception as exc:
+            last_error = exc
+    raise AssertionError(f"expected one selector to be present: {selectors}") from last_error
+
+
+def _post_login_success(route_name: str, body_text: str, title: str) -> bool:
+    text = f"{title}\n{body_text}".casefold()
+    markers = {
+        "infisical": ("projects", "secrets", "infisical"),
+        "jenkins": ("dashboard", "jenkins", "new item"),
+        "nexus": ("browse", "repositories", "nexus"),
+        "portainer": ("home", "dashboard", "portainer"),
+        "pulsar-manager": ("tenant", "namespace", "pulsar"),
+        "sonarqube": ("projects", "quality", "sonarqube"),
+    }
+    return any(marker in text for marker in markers.get(route_name, (route_name,)))

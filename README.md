@@ -33,7 +33,7 @@ The system follows a hexagonal architecture and provides async Python automation
   - SonarQube (static code analysis)
   - Swagger + NGINX (API documentation)
 - Service-access management assets:
-  - static landing page content for server links and credential references
+  - model-rendered landing page content for server links and credential references
   - Infisical and service-access NGINX stack configuration
   - password-value visibility restricted to Infisical's authenticated UI
 - Modular infrastructure assets in `infra/config`, driven by the Python setup workflow.
@@ -348,19 +348,22 @@ definitions live under `infra/config/compose`; image build contexts live under
 `infra/config/compose`.
 
 The full guided setup selects the `service-access` management stack profile by
-default. The static dashboard and NGINX compose definition lives under
+default. The service-access dashboard is rendered from the effective access
+model and committed as an image-packaged asset. Its NGINX compose definition lives under
 `infra/config/compose/service-access/docker-compose.yml`, and its dashboard
 and NGINX assets are image-packaged under `infra/config/compose/service-access/**`.
 Infisical is deployed as a separate stack from
 `infra/config/compose/infisical/docker-compose.yml`.
 After a verified provider-specific live deployment, the dashboard is intended
-to be the management landing page at `http://localhost:10000`. It links to
-the allocated local service ports for Jenkins `11080`, Nexus `13081`,
-Portainer `10001`, Pulsar Manager `14081`, Pulsar Admin API `14080`,
-SonarQube `12000`, Swagger `16080`, and Infisical `17080`. The table shows
-users and Infisical item references; password values are visible only in
-Infisical's authenticated UI. Operators who intentionally want the older base
-service set can pass
+to be the management landing page at `https://service-access.tsw.local` when
+Traefik host routing and local hostname resolution are enabled. It links to
+preferred Traefik-routed URLs for Jenkins, Nexus, Portainer, Pulsar Manager,
+Pulsar Admin API, SonarQube, Swagger, and Infisical. Direct localhost ports
+such as `10000`, `10001`, `11080`, `12000`, `13081`, `14080`, `14081`,
+`16080`, and `17080` remain compatibility or diagnostic access, not preferred
+HTTP service links. The table shows users and Infisical item references;
+password values are visible only in Infisical's authenticated UI. Operators
+who intentionally want the older base service set can pass
 `--service-profile default`.
 
 Service metadata is declared in `infra/config/services.yml` as a static

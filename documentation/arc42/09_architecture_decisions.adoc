@@ -158,8 +158,10 @@ Consequences:
 * the full guided setup includes service-access through
   `ServiceStackProfile.SERVICE_ACCESS`; the older base service set remains
   available through `--service-profile default`;
-* NGINX is the baseline routing direction, with Service Access owning
-  `http://localhost` and Vaultwarden HTTPS on `443`, with `8086` retained as a local HTTP compatibility route;
+* Traefik is the preferred HTTP/HTTPS ingress direction for current routed
+  HTTP services, while Service Access remains the dashboard capability and
+  NGINX remains a compatibility/runtime component where still present;
+  direct localhost ports are compatibility or diagnostic access only;
 * Traefik now has separate migration-direction coverage in
   `documentation/architecture/adr-traefik-https-ingress-existing-ca.adoc`;
   implementation and live success still require the active workflow slices;
@@ -167,8 +169,9 @@ Consequences:
   scope;
 * Portainer may manage post-bootstrap stack create/update only after
   Portainer is reachable and must not become its own bootstrap dependency;
-* the central `http://localhost` route requires a fresh live deployment before
-  it is claimed as verified; Vaultwarden operational hardening remains
+* the routed `https://service-access.tsw.local` route requires fresh live
+  deployment, hostname resolution, certificate trust and browser evidence
+  before it is claimed as verified; Vaultwarden operational hardening remains
   follow-up work.
 
 === Traefik HTTPS Ingress With Existing CA

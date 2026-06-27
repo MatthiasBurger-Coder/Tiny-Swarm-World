@@ -213,8 +213,8 @@ class TestPreflightResult(unittest.TestCase):
                 (12000, "SonarQube"),
                 (16080, "Swagger UI"),
                 (16081, "Swagger/NGINX"),
-                (10080, "Traefik HTTP ingress"),
-                (10443, "Traefik HTTPS ingress"),
+                (80, "Traefik HTTP ingress"),
+                (443, "Traefik HTTPS ingress"),
                 (10000, "Service Access"),
                 (8086, "Infisical legacy route"),
                 (17080, "Infisical"),
@@ -222,7 +222,7 @@ class TestPreflightResult(unittest.TestCase):
             tuple((port.port, port.service) for port in manifest.required_ports),
         )
         self.assertEqual(
-            (10080, 10443),
+            (80, 443),
             tuple(port.port for port in configuration.required_ports),
         )
         self.assertTrue(
@@ -266,8 +266,8 @@ class TestPreflightResult(unittest.TestCase):
         )
         self.assertEqual(
             [
-                {"host_preflight_required": True, "port": 10080, "service": "Traefik HTTP ingress"},
-                {"host_preflight_required": True, "port": 10443, "service": "Traefik HTTPS ingress"},
+                {"host_preflight_required": True, "port": 80, "service": "Traefik HTTP ingress"},
+                {"host_preflight_required": True, "port": 443, "service": "Traefik HTTPS ingress"},
             ],
             traefik_payload["ports"],
         )

@@ -124,15 +124,19 @@ The repository now includes static Traefik Swarm ingress configuration under
 `infra/config/compose/traefik/docker-compose.yml` plus the dynamic TLS summary
 configuration under `infra/config/compose/traefik/dynamic/tls.yml`. The Traefik stack
 uses Swarm discovery with `exposedByDefault=false`, `web` on `:80`,
-`websecure` on `:443`, HTTP-to-HTTPS redirect, external certificate secrets,
-and no insecure API flag.
+`websecure` on `:443`, published public ingress ports `80` and `443`,
+HTTP-to-HTTPS redirect, external certificate secrets, and no insecure API
+flag.
 
-The Jenkins, Nexus, Portainer, SonarQube, and Infisical stack definitions now
-carry Traefik Swarm route labels and join the external `traefik_ingress`
-network. This is committed desired runtime configuration, not live deployment
-evidence. Live route success, LXC public port convergence, hostname
-resolution, and browser-visible HTTPS behavior remain pending the later
-workflow slices.
+The Jenkins, Nexus, Portainer, SonarQube, Swagger, Pulsar Manager, Pulsar
+Admin API, Service Access, and Infisical stack definitions now carry Traefik
+Swarm route labels and join the external `traefik_ingress` network where an
+HTTP route is configured. The Service Access dashboard links prefer
+Traefik-routed hostnames. Direct localhost ports remain compatibility,
+diagnostic, fallback, rollback, or transitional access. This is committed
+desired runtime configuration, not live deployment evidence. Live route
+success, LXC public port convergence, hostname resolution, and browser-visible
+HTTPS behavior remain opt-in validation concerns.
 
 For the service-access setup profile, the setup manifest and LXC exposure
 workflow now treat Traefik ports `80` and `443` as the complete public manager

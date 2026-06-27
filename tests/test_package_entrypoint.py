@@ -120,7 +120,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Provider readiness: checked before platform mutation", plan)
         self.assertIn("Service profile: service-access", plan)
         self.assertIn("Traefik Ingress: stack traefik", plan)
-        self.assertIn("compose service(s) traefik, published port(s) 10080, 10443", plan)
+        self.assertIn("compose service(s) traefik, published port(s) 80, 443", plan)
         self.assertIn("Service Access: stack service-access", plan)
         self.assertIn(
             "compose service(s) service-access-dashboard, service-access-nginx, "
