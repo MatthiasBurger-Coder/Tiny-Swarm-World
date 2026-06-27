@@ -6,6 +6,7 @@ Branch: `feature/workflow-traefik-service-routing-20260627`
 Issue: `https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/157`
 Process Strand: `workflow create -> workflow execute`
 Execution Profile: `FULL_PATH`
+Status: `PARTIAL_EXECUTION_REQUIRES_ISSUE_157_COMPLETION`
 
 ## Orientation
 
@@ -22,6 +23,10 @@ the active workflow remain authoritative.
 - Compose stack rendering.
 - Setup/preflight required port classification.
 - Static integration and opt-in live browser tests.
+- Effective access evidence and routed health-check expectations.
+- Service-oriented integration tests for every enabled or explicitly skipped
+  route.
+- Opt-in Selenium browser E2E with redacted local evidence.
 - README, deployment docs and arc42 deployment view.
 
 ## Forbidden Areas
@@ -54,12 +59,18 @@ Targeted:
 - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml`
 - `PYTHONPATH=src python3 -m unittest tests.integration.test_service_access_routing`
 - `PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live`
+- `PYTHONPATH=src python3 -m unittest discover -s tests/integration -t .`
+- `PYTHONPATH=src python3 -m unittest discover -s tests/live -t .`
 - `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint`
 - `git diff --check`
 
 Required final:
 
 - `python3 tools/quality_gate.py quality`
+
+Live opt-in only:
+
+- `TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest discover -s tests/live -t .`
 
 ## Governing Inputs
 

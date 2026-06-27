@@ -12,7 +12,11 @@
     "compose-rendering",
     "setup-preflight-ports",
     "static-and-live-tests",
-    "documentation"
+    "documentation",
+    "effective-access-evidence",
+    "routed-health-check-model",
+    "service-oriented-integration-routes",
+    "opt-in-selenium-browser-e2e"
   ],
   "forbidden_areas": [
     "live-infrastructure-without-explicit-opt-in",
@@ -39,10 +43,15 @@
       "PYTHONPATH=src python3 -m unittest tests.integration.test_service_access_routing",
       "PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live",
       "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint",
-      "git diff --check"
+      "git diff --check",
+      "PYTHONPATH=src python3 -m unittest discover -s tests/integration -t .",
+      "PYTHONPATH=src python3 -m unittest discover -s tests/live -t ."
     ],
     "required": [
       "python3 tools/quality_gate.py quality"
+    ],
+    "live_opt_in": [
+      "TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest discover -s tests/live -t ."
     ]
   },
   "hashes": {
@@ -60,6 +69,8 @@
     "infra/config/ports.yaml": "daf8df7eff872e42ed03d67a9bfa829f29efd3cd8f92666bc75025c5b75c7b83",
     "infra/config/services.yml": "b3f19a685b76aac23fa3f520a348fccc197d7fe49b583f02571c446c64674534",
     "infra/config/compose/traefik/docker-compose.yml": "78bf075bd19f11384c83bffe1c420ad3c449c7d4ed071ddce7ecdbb4bd03cf2e",
-    "documentation/workflow/workflow.md": "4f690b7ea309858f9c4f3b3b357d0511ec0b07957597b59d703186978fc5ac9a"
-  }
+    "documentation/workflow/workflow.md": "090b677c660adaae87d069467b5dff4e111f0110b74c161d367a2e339bcebf0f",
+    "documentation/workflow/context-pack.md": "9ad2cc792f13dd9f71429e3463c10a95bb76ba955cc7d29ae1434691bda1cfce"
+  },
+  "status": "PARTIAL_EXECUTION_REQUIRES_ISSUE_157_COMPLETION"
 }

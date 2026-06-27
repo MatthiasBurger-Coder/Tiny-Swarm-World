@@ -5,7 +5,7 @@ Workflow ID: `workflow-traefik-service-routing-20260627`
 Created: `2026-06-27`
 Issue: `https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/157`
 Branch: `feature/workflow-traefik-service-routing-20260627`
-Status: `EXECUTED_WITH_EVIDENCE`
+Status: `PARTIAL_EXECUTION_REQUIRES_ISSUE_157_COMPLETION`
 Evidence Root: `.codex/evidence/workflow-traefik-service-routing-20260627/`
 
 ## Executive Summary
@@ -20,6 +20,19 @@ The workflow keeps default verification static or mocked. Live Docker, Swarm,
 LXC, Traefik, DNS, hosts-file, browser and Selenium validation remains opt-in
 only and writes redacted local evidence under ignored `.tiny-swarm-world/**`
 paths.
+
+Revision note:
+
+- The first execution implemented and verified the static/backend routing
+  migration, but it did not fully cover Issue #157.
+- The missing scope is now explicit in this workflow: service-oriented
+  integration coverage for the full route/evidence matrix and an opt-in
+  Selenium browser E2E suite that uses routed Service Access links, performs
+  approved login flows where credentials are available, records stable
+  per-service success conditions, and writes redacted local evidence.
+- This workflow must not be considered complete for Issue #157 until the
+  additional slices in this revision are executed or explicitly stopped with
+  classified blockers.
 
 ## Requirement Clarification Gate
 
@@ -160,6 +173,70 @@ Senior Tester:
   rendering, Service Access preferred URLs, route evidence, skipped live
   behavior and password-value safety. Live Selenium remains default-skipped.
 
+## Issue #157 Acceptance Traceability
+
+Implemented and verified by the first execution:
+
+- Central gateway/public ingress policy is consistent for `80/443` across
+  domain desired state, service registry, Traefik compose, compose rendering,
+  setup/preflight expectations, README and arc42.
+- Retained `10080/10443` gateway values are no longer preferred ingress and
+  are classified as diagnostic/fallback/compatibility where referenced.
+- Preferred Service Access links do not use diagnostic gateway suffixes and
+  use routed host URLs such as `https://service-access.tsw.local`.
+- Traefik internal entrypoints remain `web :80` and `websecure :443`.
+- Traefik Swarm discovery keeps `exposedByDefault=false`.
+- `--api.insecure=true` is not present.
+- Representative HTTP routes use internal service target ports behind Traefik:
+  Portainer, Jenkins, SonarQube, Nexus, Swagger, Infisical, Service Access,
+  Pulsar Manager GUI and optional Pulsar Admin/API.
+- Pulsar broker TCP is not modelled as a normal HTTP route.
+- RabbitMQ routes and metadata are not generated.
+- Service Access keeps credential display safety; password values are not
+  rendered or committed.
+- Default quality gate passes without live infrastructure.
+
+Still required for full Issue #157 completion:
+
+- Service-oriented integration tests must be expanded so every enabled routed
+  service can be understood and run independently, even if the repository keeps
+  shared helpers or grouped files for maintainability.
+- The effective access model must expose a structured evidence payload that
+  includes gateway/public ports, diagnostic fallback ports, route map, internal
+  target ports, Service Access preferred URL source, fallback classification,
+  skipped-route reasons and placeholders for per-service live E2E status.
+- HTTP health-check expectations must consume the effective Traefik access
+  model where routing is enabled, while keeping direct checks explicit
+  fallback/debug validation.
+- An opt-in Selenium browser E2E suite must exist under `tests/live`, use:
+
+```python
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+```
+
+- When live validation is explicitly enabled, Selenium must open every
+  generated routed Service Access link for the active profile.
+- For enabled routed services that require authentication and have approved
+  credentials available, Selenium must complete login and verify a stable
+  success condition.
+- The live suite must record redacted per-service evidence under
+  `.tiny-swarm-world/evidence/solid-typed-evidence/e2e/` and produce a summary
+  of passed, failed and skipped links.
+- Skipped live E2E is allowed only for explicit reasons: missing consent,
+  disabled service, intentionally unconfigured route, unavailable approved
+  credential source, or no login flow.
+- Prometheus, Grafana, Tiny Swarm frontend and Tiny Swarm API routes must be
+  tested as skipped/not generated unless an active profile/configured route
+  enables them.
+
+Acceptance decision:
+
+- Current execution status is `PARTIAL`.
+- Static/backend behavior is accepted.
+- Full Issue #157 acceptance remains blocked until the follow-up slices below
+  are executed and verified.
+
 ## Target Picture
 
 Verified baseline:
@@ -258,6 +335,8 @@ Targeted checks during execution:
 - `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint`
 - `PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live`
 - `PYTHONPATH=src python3 -m unittest tests.integration.test_service_access_routing`
+- `PYTHONPATH=src python3 -m unittest discover -s tests/integration -t .`
+- `PYTHONPATH=src python3 -m unittest discover -s tests/live -t .`
 - `git diff --check`
 
 Required final verification:
@@ -269,6 +348,12 @@ Live Selenium/browser validation:
 - Default skipped unless explicit live prerequisites and operator consent are
   present.
 - Must not be reported as passed when skipped.
+- Required opt-in command after Selenium suite implementation and live
+  readiness:
+  `TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest discover -s tests/live -t .`
+- Live evidence must be written under
+  `.tiny-swarm-world/evidence/solid-typed-evidence/e2e/` and must not be
+  committed.
 
 ## Resilience Requirements
 
@@ -563,6 +648,302 @@ Done criteria:
 - Targeted backend and user-facing static checks pass.
 - Full quality gate passes or any blocker is classified.
 
+### Slice 05 - Effective Access Evidence And Health-Check Model
+
+Purpose:
+
+- Promote the current routed-link and route-contract behavior into an explicit
+  effective access/evidence model that covers the complete Issue #157 evidence
+  payload and can drive routed HTTP health-check expectations.
+
+Prerequisites:
+
+- Slices 01 through 04 completed.
+- Current implementation branch remains
+  `feature/workflow-traefik-service-routing-20260627`.
+
+```yaml
+slice_id: "05"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers:
+  - "Senior System Architect"
+  - "Senior Tester"
+  - "Senior DevOps Engineer"
+affected_files:
+  - "src/tiny_swarm_world/domain/ingress/**"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
+  - "tests/domain/ingress/**"
+  - "tests/integration/test_service_access_routing.py"
+  - "documentation/workflow/workflow.md"
+  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-05-distribution.md"
+  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-05-consolidation.md"
+affected_modules:
+  - "tiny_swarm_world.domain.ingress"
+  - "tiny_swarm_world.application.services.platform"
+  - "tiny_swarm_world.infrastructure.adapters.repositories"
+  - "tests.integration"
+affected_contracts:
+  - "Effective access model"
+  - "Route evidence payload"
+  - "Routed HTTP health-check expectations"
+dependencies:
+  - "04"
+parallel_group: "serial-traefik-routing"
+file_locks:
+  - "src/tiny_swarm_world/domain/ingress/**"
+  - "src/tiny_swarm_world/application/services/platform/**"
+  - "tests/integration/**"
+  - ".codex/evidence/workflow-traefik-service-routing-20260627/**"
+contract_locks:
+  - "Evidence includes route map, public ports, fallback ports and skipped-route reasons"
+  - "Health checks may use routed Traefik URLs but do not silently downgrade to diagnostic ports"
+architecture_locks:
+  - "Domain model remains infrastructure-free"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state tests.integration.test_service_access_routing"
+  required: []
+documentation:
+  arc42: "Update only if the effective evidence model changes architecture claims."
+  adr: "No ADR rewrite; align with accepted Traefik ADR."
+stop_conditions:
+  - "Stop if evidence would include secrets, local IP addresses, host-specific paths, raw command payloads or certificate material."
+  - "Stop if health-check fallback ports become the preferred route."
+  - "Stop if a new gateway policy is needed."
+```
+
+Done criteria:
+
+- Effective access evidence includes gateway/public ingress ports, diagnostic
+  fallback ports, route map, internal target ports, Service Access preferred
+  URL source, fallback classification and skipped-route reasons.
+- Routed health-check expectations are represented without running live
+  infrastructure by default.
+
+### Slice 06 - Service-Oriented Integration Route Coverage
+
+Purpose:
+
+- Expand integration tests so Issue #157 route/link/evidence behavior is
+  service-oriented and covers enabled routes plus explicit skipped/not-generated
+  routes.
+
+Prerequisites:
+
+- Slice 05 completed.
+
+```yaml
+slice_id: "06"
+profile: "FULL_PATH"
+owner: "Senior Tester"
+secondary_reviewers:
+  - "Senior Requirement Engineer"
+  - "Senior Python Automation Developer"
+  - "Senior System Architect"
+affected_files:
+  - "tests/integration/test_service_access_routing.py"
+  - "tests/integration/test_portainer_routing.py"
+  - "tests/integration/test_jenkins_routing.py"
+  - "tests/integration/test_sonarqube_routing.py"
+  - "tests/integration/test_nexus_routing.py"
+  - "tests/integration/test_swagger_routing.py"
+  - "tests/integration/test_infisical_routing.py"
+  - "tests/integration/test_pulsar_routing.py"
+  - "tests/integration/test_observability_routing.py"
+  - "tests/integration/test_tiny_swarm_app_routing.py"
+  - "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py"
+  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-06-distribution.md"
+  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-06-consolidation.md"
+affected_modules:
+  - "tests.integration"
+  - "tests.infrastructure.adapters.repositories"
+affected_contracts:
+  - "Service-oriented integration route suite"
+  - "Representative Traefik label rendering"
+  - "Non-generated route skip semantics"
+dependencies:
+  - "05"
+parallel_group: "serial-traefik-routing"
+file_locks:
+  - "tests/integration/**"
+  - "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py"
+contract_locks:
+  - "Every enabled routed HTTP service has independent route/link/evidence assertions"
+  - "Prometheus, Grafana, app and api routes are generated only when enabled/configured"
+architecture_locks:
+  - "Integration tests stay static and do not call live Docker, DNS, browser or network dependencies"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest discover -s tests/integration -t ."
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml"
+  required: []
+documentation:
+  arc42: "No documentation change unless route support changes."
+  adr: "No ADR change expected."
+stop_conditions:
+  - "Stop if tests require live infrastructure by default."
+  - "Stop if RabbitMQ route metadata appears."
+  - "Stop if Pulsar broker TCP is treated as HTTP."
+```
+
+Done criteria:
+
+- Integration tests are service-oriented, independently runnable, and cover
+  Portainer, Jenkins, SonarQube, Nexus, Swagger, Infisical, Service Access,
+  Pulsar Manager, Pulsar Admin/API, skipped observability routes and skipped
+  Tiny Swarm app/API routes.
+
+### Slice 07 - Opt-In Selenium Browser E2E Suite
+
+Purpose:
+
+- Add the explicit opt-in Selenium browser E2E suite required by Issue #157
+  without making live validation part of the default quality gate.
+
+Prerequisites:
+
+- Slice 06 completed.
+- Live infrastructure commands remain forbidden unless the operator explicitly
+  opts into a live validation run.
+
+```yaml
+slice_id: "07"
+profile: "FULL_PATH"
+owner: "Senior Tester"
+secondary_reviewers:
+  - "Senior DevOps Engineer"
+  - "Senior Python Automation Developer"
+  - "Senior System Architect"
+affected_files:
+  - "tests/live/test_service_access_browser_e2e.py"
+  - "tests/live/test_portainer_browser_e2e.py"
+  - "tests/live/test_jenkins_browser_e2e.py"
+  - "tests/live/test_sonarqube_browser_e2e.py"
+  - "tests/live/test_nexus_browser_e2e.py"
+  - "tests/live/test_swagger_browser_e2e.py"
+  - "tests/live/test_infisical_browser_e2e.py"
+  - "tests/live/test_pulsar_browser_e2e.py"
+  - "tests/live/test_observability_browser_e2e.py"
+  - "tests/live/test_tiny_swarm_app_browser_e2e.py"
+  - "tests/live/test_post_install_browser_live.py"
+  - "tests/live/support/**"
+  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-07-distribution.md"
+  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-07-consolidation.md"
+affected_modules:
+  - "tests.live"
+affected_contracts:
+  - "Opt-in Selenium E2E route validation"
+  - "Per-service browser success predicates"
+  - "Redacted local E2E evidence"
+dependencies:
+  - "06"
+parallel_group: "serial-traefik-routing"
+file_locks:
+  - "tests/live/**"
+  - ".codex/evidence/workflow-traefik-service-routing-20260627/**"
+contract_locks:
+  - "Selenium imports are exactly `from selenium import webdriver` and `from selenium.webdriver.common.by import By`"
+  - "Live E2E opens routed Service Access links, not diagnostic fallback links"
+  - "Live E2E writes only ignored redacted evidence under `.tiny-swarm-world/evidence/solid-typed-evidence/e2e/`"
+architecture_locks:
+  - "Browser tooling stays in tests/live and is not product runtime code"
+quality_gates:
+  targeted:
+    - "PYTHONPATH=src python3 -m unittest discover -s tests/live -t ."
+  required: []
+documentation:
+  arc42: "No architecture claim of live success unless a live run is explicitly executed."
+  adr: "No ADR change expected."
+stop_conditions:
+  - "Stop if Selenium would run by default without `TSW_RUN_POST_INSTALL_BROWSER_LIVE=1` or equivalent explicit consent."
+  - "Stop if screenshots, raw passwords, tokens, private keys, local IP addresses or raw command payloads would be persisted."
+  - "Stop if live evidence would be committed."
+  - "Stop if approved credential source is unclear."
+```
+
+Done criteria:
+
+- Live Selenium files exist and are service-oriented.
+- Default run skips live browser execution without reporting success.
+- Static tests prove live command gating, routed URL selection, per-service
+  success predicates, explicit skip reasons and evidence redaction.
+
+### Slice 08 - Live E2E Execution Gate And Final Issue Acceptance
+
+Purpose:
+
+- Define and, only with explicit operator consent and live prerequisites,
+  execute the live Selenium gate for every generated routed Service Access
+  link in the active profile.
+
+Prerequisites:
+
+- Slice 07 completed.
+- Operator explicitly approves live validation.
+- Required live prerequisites are available: deployed stack, Traefik route
+  resolution for `*.tsw.local`, TLS trust or CA bundle, approved credential
+  source and ignored evidence path.
+
+```yaml
+slice_id: "08"
+profile: "FULL_PATH_LIVE_OPT_IN"
+owner: "Senior DevOps Engineer"
+secondary_reviewers:
+  - "Senior Tester"
+  - "Senior Python Automation Developer"
+  - "Senior System Architect"
+affected_files:
+  - "tests/live/**"
+  - "documentation/workflow/workflow.md"
+  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-08-distribution.md"
+  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-08-consolidation.md"
+affected_modules:
+  - "tests.live"
+  - "documentation.workflow"
+affected_contracts:
+  - "Explicit live Selenium acceptance evidence"
+  - "Per-service live pass/fail/skip summary"
+dependencies:
+  - "07"
+parallel_group: "serial-live-validation"
+file_locks:
+  - "tests/live/**"
+  - "documentation/workflow/**"
+  - ".codex/evidence/workflow-traefik-service-routing-20260627/**"
+contract_locks:
+  - "Live success is claimed only with explicit live evidence"
+  - "Environment blockers do not downgrade product model from `80/443` to `10080/10443`"
+architecture_locks:
+  - "No host resolver, DNS, Docker, Swarm, LXC or Traefik mutation without separate explicit approval"
+quality_gates:
+  targeted:
+    - "TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest discover -s tests/live -t ."
+  required:
+    - "python3 tools/quality_gate.py quality"
+documentation:
+  arc42: "Update only to report verified live evidence status if the live gate actually runs."
+  adr: "No ADR change expected."
+stop_conditions:
+  - "Stop if live validation consent is missing."
+  - "Stop if route hostnames do not resolve."
+  - "Stop if TLS trust material is unavailable and HTTPS verification would be weakened."
+  - "Stop if approved credentials are unavailable for a required login and no explicit skip reason can be recorded."
+  - "Stop if generated routed links fail to open."
+```
+
+Done criteria:
+
+- If live consent is absent, Slice 08 records an explicit skipped-live blocker
+  and the workflow remains not fully accepted for Issue #157.
+- If live consent is present, every generated routed Service Access link is
+  opened with Selenium and recorded as passed, failed or explicitly skipped.
+- Required login flows pass where approved credentials are available.
+- Redacted local E2E summary exists under ignored `.tiny-swarm-world/**` and
+  is not committed.
+- Full quality gate passes after any live-suite code changes.
+
 ## Slice Dependency Graph
 
 ```text
@@ -570,6 +951,10 @@ Done criteria:
   -> 02 Gateway Port Authority And Route Model
     -> 03 Service Access Links, Evidence And Live Suite Structure
       -> 04 Documentation Sync And Final Verification
+        -> 05 Effective Access Evidence And Health-Check Model
+          -> 06 Service-Oriented Integration Route Coverage
+            -> 07 Opt-In Selenium Browser E2E Suite
+              -> 08 Live E2E Execution Gate And Final Issue Acceptance
 ```
 
 ## Parallel Execution
@@ -577,14 +962,17 @@ Done criteria:
 - Can this workflow run in parallel? No write-capable parallel execution.
 - Conflicting workflows: any workflow touching Traefik ingress, service-access
   dashboard, compose stack publication, setup manifest ports, ingress domain
-  objects, live browser tests or deployment documentation.
+  objects, effective access/evidence model, live browser tests or deployment
+  documentation.
 - Shared files: `infra/config/services.yml`, Traefik and Service Access compose
-  files, `src/tiny_swarm_world/domain/ingress/**`, tests and docs.
+  files, `src/tiny_swarm_world/domain/ingress/**`, `tests/integration/**`,
+  `tests/live/**` and docs.
 - Shared infrastructure: Docker Swarm, LXC, Traefik and local DNS/hosts state;
   no live shared infrastructure may be used by default.
 - Requires isolated worktree: yes for any concurrent workflow execution.
-- Requires serialized live validation: yes; live validation is opt-in only.
-- Merge-order constraints: execute slices in order 01, 02, 03, 04.
+- Requires serialized live validation: yes; live validation is opt-in only and
+  belongs to Slice 08.
+- Merge-order constraints: execute slices in order 01 through 08.
 
 ## Automatic Work Distribution Policy
 
@@ -603,13 +991,15 @@ Required evidence after implemented slices:
 
 Stream map:
 
-- Backend/Python: Slices 01, 02 and 03.
+- Backend/Python: Slices 01, 02, 03 and 05.
 - Frontend/React: not applicable.
 - Console/status UI: not affected.
-- Tests: all slices.
-- Runtime/DevOps: Slices 02 and 03, static configuration only.
-- Documentation: Slice 04.
-- Quality: Slice 04.
+- Tests: all slices; Slice 07 owns Selenium test structure and Slice 08 owns
+  explicit live execution.
+- Runtime/DevOps: Slices 02 and 03 for static configuration; Slice 08 for
+  explicit live validation only.
+- Documentation: Slices 04 and 08 when live status is known.
+- Quality: Slices 04, 07 and 08.
 - Architecture: all slices.
 - Security: secret redaction, credential display safety and local evidence
   path safety.
@@ -715,8 +1105,24 @@ Stop and report if:
 - Implementation aligns with Issue #157 and the accepted Traefik ADR.
 - Backend/domain/static checks pass.
 - User-facing Service Access route/link behavior is verified statically.
-- Live validation is either explicitly run with evidence or clearly reported
-  as skipped/not run.
+- Effective access evidence covers gateway ports, route map, fallback
+  classification, internal target ports, Service Access URL source and
+  skipped-route reasons.
+- Service-oriented integration tests cover every enabled routed HTTP service
+  and explicit skipped/not-generated routes for disabled or unconfigured
+  services.
+- Opt-in Selenium browser E2E files exist, import Selenium exactly as required
+  by Issue #157, and are skipped by default without reporting success.
+- Full Issue #157 acceptance requires one of these outcomes:
+  - live consent is granted, Slice 08 runs, every generated routed Service
+    Access link is opened with Selenium, required approved login flows pass,
+    and redacted local evidence records pass/fail/skip status;
+  - live consent or prerequisites are missing, Slice 08 records a classified
+    blocker and the workflow remains `PARTIAL_EXECUTION_REQUIRES_ISSUE_157_COMPLETION`.
+- Documentation distinguishes accepted architecture direction, committed
+  desired configuration, default static verification and opt-in live
+  verification results.
+- Full quality gate passes after all code/test/documentation changes.
 
 ## Handoff To Workflow Execute
 
@@ -724,12 +1130,22 @@ Run `workflow execute` only after confirming:
 
 - active branch:
   `feature/workflow-traefik-service-routing-20260627`
-- workflow status before execution: `CREATED_READY_FOR_EXECUTION`
-- workflow status after execution: `EXECUTED_WITH_EVIDENCE`
+- current workflow status:
+  `PARTIAL_EXECUTION_REQUIRES_ISSUE_157_COMPLETION`
+- next execution starts at Slice 05 unless a prior slice is deliberately
+  reopened with a documented reason
 - context pack hashes are current
 - no unrelated working-tree changes exist
+- live Slice 08 must not run without explicit operator consent and verified
+  prerequisites
 
 ## Execution Outcome
+
+Current status:
+
+- Partial execution only. Slices 01 through 04 are complete for static/backend
+  routing behavior. Slices 05 through 08 remain required for full Issue #157
+  acceptance.
 
 - Slice 01 established the baseline routing-contract evidence and confirmed
   existing tests were the correct regression surface.
@@ -745,6 +1161,8 @@ Run `workflow execute` only after confirming:
 - Full quality gate passed with `python3 tools/quality_gate.py quality`.
 - Live Selenium/browser validation was not run because no explicit live
   infrastructure opt-in was requested for this execution.
+- The absence of Selenium browser E2E implementation and execution is now a
+  remaining workflow requirement, not an accepted final state.
 
 ## arc42 Check Status
 
