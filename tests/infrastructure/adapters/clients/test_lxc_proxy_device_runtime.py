@@ -1,3 +1,4 @@
+import logging
 import unittest
 
 from tests.support.async_helpers import async_checkpoint
@@ -316,6 +317,33 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(outcome.mutation_allowed)
         self.assertEqual(1, outcome.expected_profile_device_count)
         self.assertEqual([], runner.calls)
+
+    async def test_command_logging_bounds_failed_output(self):
+        runner = _RecordingRunner(
+            results=(
+                LxcNodeCommandResult(
+                    returncode=2,
+                    stdout=("ready\n" * 120),
+                    stderr=("daemon down\n" * 120),
+                ),
+            )
+        )
+        runtime = LxcProxyDeviceRuntime(
+            backend=ManagedLxcBackend.INCUS,
+            runner=runner,
+            logger=logging.getLogger("test.lxc_proxy_device_runtime"),
+        )
+
+        with self.assertLogs("test.lxc_proxy_device_runtime", level="WARNING") as captured:
+            state = await runtime.inspect_proxy_device(_manager_profile(), _plan())
+
+        self.assertEqual(LxcProxyDeviceState.UNKNOWN, state)
+        logged = "\n".join(captured.output)
+        self.assertIn("action=inspect_listen", logged)
+        self.assertIn("returncode=2", logged)
+        self.assertIn("ready ready", logged)
+        self.assertIn("daemon down", logged)
+        self.assertIn("...", logged)
 
 
 class _RecordingRunner:

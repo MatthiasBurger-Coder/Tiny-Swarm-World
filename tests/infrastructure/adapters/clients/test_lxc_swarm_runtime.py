@@ -1,3 +1,4 @@
+import logging
 import subprocess
 import unittest
 from unittest.mock import patch
@@ -52,6 +53,29 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
 
         self.assertEqual("/var/lib/tiny-swarm-world/stacks", runtime.remote_stack_root)
+
+    def test_manager_shell_logging_bounds_script_and_failed_output(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
+            return_value=subprocess.CompletedProcess(
+                [],
+                1,
+                stdout=("ready\n" * 140),
+                stderr=("failed\n" * 140),
+            ),
+        ):
+            with self.assertLogs("LxcSwarmRuntime", level=logging.INFO) as captured:
+                result = runtime._run_manager_shell("echo ready && " * 80, check=False)
+
+        self.assertEqual(1, result.returncode)
+        logged = "\n".join(captured.output)
+        self.assertIn("Running LXC manager shell operation", logged)
+        self.assertIn("manager_shell_result returncode=1", logged)
+        self.assertIn("ready ready", logged)
+        self.assertIn("failed failed", logged)
+        self.assertIn("...", logged)
 
     def test_prepare_stack_assets_transfers_swagger_assets_to_remote_root(self):
         runtime = LxcSwarmRuntime(

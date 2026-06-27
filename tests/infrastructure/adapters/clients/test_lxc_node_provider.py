@@ -1,3 +1,4 @@
+import logging
 import unittest
 from typing import cast
 
@@ -162,6 +163,32 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
             runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_command_logging_bounds_failed_output(self):
+        provider = LxcNodeProvider(
+            config_repository=_FakeConfigRepository(_config()),
+            runner=_FakeRunner(),
+            logger=logging.getLogger("test.lxc_node_provider"),
+        )
+
+        with self.assertLogs("test.lxc_node_provider", level="WARNING") as captured:
+            provider._log_command_result(
+                "launch",
+                _node_spec(),
+                ManagedLxcBackend.INCUS,
+                LxcNodeCommandResult(
+                    returncode=1,
+                    stdout=("ready\n" * 120),
+                    stderr=("launch failed\n" * 120),
+                ),
+            )
+
+        logged = "\n".join(captured.output)
+        self.assertIn("action=launch", logged)
+        self.assertIn("returncode=1", logged)
+        self.assertIn("ready ready", logged)
+        self.assertIn("launch failed", logged)
+        self.assertIn("...", logged)
 
     async def test_missing_manager_profile_is_created_before_launch(self):
         runner = _FakeRunner(
