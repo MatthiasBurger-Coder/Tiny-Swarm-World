@@ -4,22 +4,13 @@ from typing import Any, cast
 
 from tiny_swarm_world.domain.command.command_entity import CommandCatalogValidationError
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
-from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.adapters.repositories.command_repository_yaml import (
     PortCommandRepositoryYaml,
-)
-from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import (
-    infra_core_container,
 )
 from tiny_swarm_world.infrastructure.project_paths import config_root
 
 
 class TestCommandRepositoryYamlContract(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        infra_core_container.register(PathFactory)
-        infra_core_container.register(FileManager)
-
     def test_repository_rejects_missing_command_id_from_synthetic_yaml(self):
         yaml_content = _catalog_yaml(
             """

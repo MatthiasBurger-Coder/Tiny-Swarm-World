@@ -181,7 +181,6 @@ artifact, or deployment decisions.
 - `src/tiny_swarm_world/infrastructure/adapters/yaml`
 - `src/tiny_swarm_world/infrastructure/adapters/ui`
 - `src/tiny_swarm_world/infrastructure/adapters/repositories/command_multipass_init_repository_yaml.py`
-- `src/tiny_swarm_world/infrastructure/dependency_injection`
 - `src/tiny_swarm_world/infrastructure/logging`
 - `src/tiny_swarm_world/infrastructure/project_paths.py`
   now owns the immutable `ProjectPaths` value object, environment-backed

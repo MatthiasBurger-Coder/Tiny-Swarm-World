@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Any
 
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
-from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_annotations import inject
 
 
 class PathNormalizer:
@@ -10,7 +9,6 @@ class PathNormalizer:
     Handles path normalization and directory management using a factory-based approach.
     """
 
-    @inject
     def __init__(self, input_path: Any, path_factory: Any = None):
         if hasattr(input_path, "get_strategy") and path_factory is not None:
             input_path, path_factory = path_factory, input_path
