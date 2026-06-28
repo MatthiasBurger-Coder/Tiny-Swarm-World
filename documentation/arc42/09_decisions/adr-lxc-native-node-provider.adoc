@@ -1,9 +1,11 @@
 = ADR: LXC Native Node Provider
 
-Status: Accepted as provider direction; partially implemented; superseded for
-Multipass compatibility by `adr-retire-multipass-legacy-provider.adoc`
-
-Date: 2026-05-26
+*Date:* 2026-05-26
+*Status:* Accepted as LXD/Incus provider direction; partially implemented;
+superseded for Multipass compatibility by
+`adr-retire-multipass-legacy-provider.adoc`
+*Decision makers:* Tiny Swarm World architecture governance; original named
+decision makers were not recorded in this ADR.
 
 == Implementation Status
 
@@ -15,7 +17,7 @@ adapters into setup/platform init, installs or verifies Docker Engine inside
 the managed LXC nodes through provider-selected adapters, bootstraps or
 verifies the Docker Swarm manager and workers. Multipass compatibility was
 removed by the later accepted decision in
-`documentation/architecture/adr-retire-multipass-legacy-provider.adoc`.
+`documentation/arc42/09_decisions/adr-retire-multipass-legacy-provider.adoc`.
 
 This ADR does not claim full live success. Docker Swarm inside LXD/Incus
 containers and WSL2 remain unverified until target-specific live smoke
@@ -91,15 +93,27 @@ The provider migration must preserve the hexagonal architecture:
   wiring root;
 * `src/tiny_swarm_world/__main__.py` remains a thin entry point.
 
-== Rejected Alternatives
+== Considered Options
 
 === Continue repairing Multipass as the primary path
+
+*Pros:*
+
+* would preserve the earlier provider model.
+
+*Cons:*
 
 Rejected because the accepted product direction changes the provider target to
 managed LXC through LXD or Incus. Multipass compatibility has since been
 retired by `adr-retire-multipass-legacy-provider.adoc`.
 
 === Raw LXC-only default provider
+
+*Pros:*
+
+* would avoid depending on the Incus management layer.
+
+*Cons:*
 
 Rejected for the first implementation because raw low-level LXC commands would
 expose container lifecycle, profile, and host isolation details directly to the
@@ -108,11 +122,23 @@ for a safer first provider implementation.
 
 === Silent fallback to Multipass
 
+*Pros:*
+
+* would hide some provider-readiness failures from operators.
+
+*Cons:*
+
 Rejected because it would hide LXD/Incus readiness failures and could make the
 operator believe the default provider succeeded when a legacy path was used
 instead.
 
 === Automatic host repair or package installation
+
+*Pros:*
+
+* would reduce manual remediation for missing host prerequisites.
+
+*Cons:*
 
 Rejected for this ADR. Installing packages, repairing daemons, changing
 permissions, altering bridges or firewall state, and changing provider
@@ -120,6 +146,12 @@ profiles are host mutations that need explicit operator control and may need
 later ADR coverage.
 
 === Privileged container profile as a silent default
+
+*Pros:*
+
+* could make Docker-in-container setup easier on some hosts.
+
+*Cons:*
 
 Rejected because Docker-in-container choices are security-sensitive. Any
 privileged or broad host-access profile must be explicit, risk-labeled, and
@@ -176,3 +208,15 @@ Future ADRs are required before changing these areas:
 * privileged container profiles as defaults;
 * host bridge, firewall, or broad mount mutation as default behavior;
 * reintroducing any alternate node provider compatibility path.
+
+== References
+
+* Affects: `documentation/arc42/02_constraints.adoc`
+* Affects: `documentation/arc42/04_context_and_scope.adoc`
+* Affects: `documentation/arc42/06_runtime_view.adoc`
+* Affects: `documentation/arc42/07_deployment_view.adoc`
+* Affects: `documentation/arc42/08_concepts.adoc`
+* Related concept: managed LXC through Incus.
+* Related code: `src/tiny_swarm_world/domain`
+* Related code: `src/tiny_swarm_world/application/services/platform`
+* Related code: `src/tiny_swarm_world/infrastructure/adapters`

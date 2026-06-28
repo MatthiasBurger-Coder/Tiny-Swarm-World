@@ -7,7 +7,7 @@ INFRA_ROOT = REPOSITORY_ROOT / "infra"
 LIVE_SURFACE_CATALOG = (
     REPOSITORY_ROOT / "documentation" / "system" / "live-operation-surfaces.adoc"
 )
-DEPLOYMENT_DOC = REPOSITORY_ROOT / "documentation" / "deployment" / "system.adoc"
+DEPLOYMENT_DOC = REPOSITORY_ROOT / "documentation" / "arc42" / "07_deployment" / "system.adoc"
 
 
 class TestLegacySurfaceDocumentation(unittest.TestCase):
@@ -222,7 +222,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         catalog_path = "documentation/system/live-operation-surfaces.adoc"
         docs = [
             REPOSITORY_ROOT / "README.md",
-            REPOSITORY_ROOT / "documentation" / "deployment" / "system.adoc",
+            DEPLOYMENT_DOC,
             REPOSITORY_ROOT / "documentation" / "user_guide" / "usage.adoc",
             REPOSITORY_ROOT / "documentation" / "user_guide" / "installation.adoc",
         ]

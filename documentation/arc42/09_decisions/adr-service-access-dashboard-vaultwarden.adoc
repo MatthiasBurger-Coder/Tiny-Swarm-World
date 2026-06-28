@@ -1,8 +1,10 @@
 = ADR: Service Access Dashboard And Vaultwarden Baseline
 
-Status: Accepted as requirement and security baseline; repository assets and contracts implemented, live provider runtime unverified
-
-Date: 2026-05-25
+*Date:* 2026-05-25
+*Status:* Accepted as requirement and security baseline; repository assets and
+contracts implemented, live provider runtime unverified
+*Decision makers:* Tiny Swarm World architecture governance; original named
+decision makers were not recorded in this ADR.
 
 == Implementation Status
 
@@ -118,9 +120,15 @@ The baseline rules are:
   bind-mounted repository files unless a later slice adds a tested
   asset-preparation port or adapter and documents when it runs.
 
-== Rejected Alternatives
+== Considered Options
 
 === Dashboard Displays Password Values Directly
+
+*Pros:*
+
+* would expose credentials in the same surface as service links.
+
+*Cons:*
 
 Rejected. Duplicating password values in the dashboard would create another
 secret-handling surface and increase the risk of leaks through browser cache,
@@ -129,16 +137,34 @@ password-visible surface.
 
 === Store Required Passwords In Compose Defaults
 
+*Pros:*
+
+* would make initial deployment simpler.
+
+*Cons:*
+
 Rejected. Static secret defaults in committed compose files would contradict
 the repository credential and evidence safety model.
 
 === Traefik As Immediate Router
+
+*Pros:*
+
+* would move directly to the preferred ingress direction.
+
+*Cons:*
 
 Rejected for this baseline because no Traefik provider, label, dashboard,
 network, TLS or test surface exists in the repository. Traefik remains possible
 only through a later ADR and tests.
 
 === Repository React Frontend
+
+*Pros:*
+
+* would allow a richer browser UI implementation.
+
+*Cons:*
 
 Rejected for this workflow. The requested GUI is an infrastructure service
 surface. The repository remains a Python automation project without React,
@@ -187,3 +213,15 @@ Open follow-up items:
   insufficient;
 * add live or mocked observed-state checks before documenting service-access
   reachability as verified.
+
+== References
+
+* Affects: `documentation/arc42/04_context_and_scope.adoc`
+* Affects: `documentation/arc42/06_runtime_view.adoc`
+* Affects: `documentation/arc42/07_deployment_view.adoc`
+* Affects: `documentation/arc42/08_concepts.adoc`
+* Related concept: service-access management landing page and credential
+  display safety.
+* Related code: `infra/config/compose/service-access`
+* Related code: `src/tiny_swarm_world/domain/deployment`
+* Related code: `src/tiny_swarm_world/application/services/deployment`

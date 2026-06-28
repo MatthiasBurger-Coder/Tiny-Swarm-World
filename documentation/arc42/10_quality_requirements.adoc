@@ -109,7 +109,7 @@ observability paths:
 * cross-cutting method trace logging for the covered installation runtime path,
   including method entry, normal exit, and exception exit.
 
-ADR `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
+ADR `documentation/arc42/09_decisions/adr-cross-cutting-method-trace-logging.adoc`
 governs the method trace direction. The trace implementation must not spread
 concrete terminal UI or logger configuration dependencies through setup,
 platform, domain, or application services.

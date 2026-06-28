@@ -82,7 +82,7 @@ Live opt-in only:
 - `.agents/skills/workflow-executor/SKILL.md`
 - `.agents/skills/three-amigos-requirement-gatekeeper/SKILL.md`
 - `.agents/skills/s3d-execution-orchestrator/SKILL.md`
-- `documentation/architecture/adr-traefik-https-ingress-existing-ca.adoc`
+- `documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc`
 - `documentation/arc42/07_deployment_view.adoc`
 - `documentation/arc42/09_architecture_decisions.adoc`
 - `infra/config/ports.yaml`

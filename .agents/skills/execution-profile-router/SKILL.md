@@ -96,7 +96,7 @@ stopConditions=<profile-specific blockers>
 - Consult Senior Tester or quality-gate skills before classifying a quality
   gate as not applicable.
 - Consult Skill Registry Conflict Auditor when `.agents/**`, `.codex/**`,
-  `documentation/skill-audit/**`, legacy `documentation/agents/**` references,
+  `documentation/process/skills/audit/**`, legacy `documentation/agents/**` references,
   or routing rules change.
 
 ## Forbidden

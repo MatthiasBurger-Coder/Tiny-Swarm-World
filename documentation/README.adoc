@@ -10,7 +10,7 @@ reader entry points are:
   decision references.
 * xref:user-handbook.adoc[User Handbook] for operator-facing installation,
   operation, credential access, verification, and troubleshooting steps.
-* xref:configuration/operator-configuration-contract.md[Operator Configuration
+* xref:arc42/08_configuration/operator-configuration-contract.md[Operator Configuration
   Contract] for supported environment variables and secret lifecycle rules.
 * xref:system/live-operation-surfaces.adoc[Live Operation Surfaces] for commands
   and assets that can mutate local infrastructure.
@@ -21,17 +21,19 @@ reader entry points are:
 |===
 | Path | Role
 | `arc42.adoc` | Canonical architecture book assembled from `documentation/arc42`.
-| `arc42/` | Maintained arc42 section sources.
+| `arc42/` | Maintained arc42 section sources, introduction requirement baselines under `arc42/01_introduction/`, deployment system references under `arc42/07_deployment/`, architecture decision records under `arc42/09_decisions/`, architecture analyses under `arc42/05_analysis/`, configuration contracts under `arc42/08_configuration/`, deployment configuration notes under `arc42/08_deployment_configuration/`, and migration plans under `arc42/11_migration/`.
 | `user-handbook.adoc` | Canonical operator handbook with step-by-step use cases.
 | `user_guide/` | Detailed user-guide source pages used by the handbook.
 | `system/` | Runtime, LXC-native, networking, and live-operation reference pages.
-| `deployment/` | Deployment and Infisical setup reference pages.
-| `configuration/` | Operator configuration and secret contract references.
-| `architecture/` | ADRs and architecture analysis records. ADRs are historical decision records and are not rewritten during documentation consolidation.
-| `epics/` | Requirement and epic context.
+| `deployment/` | Legacy deployment workspace. Current deployment system references live under `arc42/07_deployment/`; Infisical setup configuration lives under `arc42/08_deployment_configuration/`.
+| `configuration/` | Legacy configuration workspace. Current operator configuration contracts live under `arc42/08_configuration/`.
+| `architecture/` | Legacy architecture workspace. Current ADRs, analyses, and migration plans live under `arc42/`; process execution plans live under `process/`.
+| `epics/` | Legacy EPIC workspace. Current introduction and requirement baselines live under `arc42/01_introduction/`.
 | `process/` | Repository process, workflow, and skill/agent documentation.
+| `process/agent-plans/` | Agent-oriented work split plans.
+| `process/agent-tasks/` | Import-ready agent task lists.
 | `workflow/` | Active and issue-scoped workflow records. These are execution artifacts, not the primary user handbook.
-| `skill-audit/` | Skill registry and ownership audit artifacts.
+| `process/skills/audit/` | Skill registry and ownership audit artifacts.
 |===
 
 == Consolidation Rules

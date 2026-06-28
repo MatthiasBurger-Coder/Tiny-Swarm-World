@@ -63,7 +63,7 @@
     ".agents/skills/workflow-executor/SKILL.md": "d5511837eab5d20884845094e740bc9e7d1766b2a8c283f45d2f9ef5a10f7a84",
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "23de7d9aac9d2694eae26fac2765d65f369c101ac348dac24d5f3bbe9e2d3ba4",
     ".agents/skills/s3d-execution-orchestrator/SKILL.md": "54c687a580225c85aa3bca2445782064bff914f593458a63006b0793dc8233bc",
-    "documentation/architecture/adr-traefik-https-ingress-existing-ca.adoc": "ae4caa86703f60ea799da9e3c1a8cc54b7868794904aec6da694065e89cd6a82",
+    "documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc": "ae4caa86703f60ea799da9e3c1a8cc54b7868794904aec6da694065e89cd6a82",
     "documentation/arc42/07_deployment_view.adoc": "d4d5730641974d473ae8770a80c723b54bb556cee080a455b14dc4da3d35a674",
     "documentation/arc42/09_architecture_decisions.adoc": "9339d7d9e3025a0194059682fb8adee30ae9d9fb2e3ed44677e6cfaa70fc772d",
     "infra/config/ports.yaml": "daf8df7eff872e42ed03d67a9bfa829f29efd3cd8f92666bc75025c5b75c7b83",

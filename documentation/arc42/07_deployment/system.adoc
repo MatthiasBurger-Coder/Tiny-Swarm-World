@@ -151,7 +151,7 @@ are wired and verified.
 Important environment variables:
 
 The validated operator contract and placeholder template are maintained in
-`documentation/configuration/operator-configuration-contract.md` and
+`documentation/arc42/08_configuration/operator-configuration-contract.md` and
 `.env.example`. Secret values have no committed defaults; keep them in the
 ignored local env file or the process environment.
 

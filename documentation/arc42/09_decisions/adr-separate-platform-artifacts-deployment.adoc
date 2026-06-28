@@ -1,9 +1,10 @@
 = ADR: Separate Platform, Artifacts, Deployment, and Shared Responsibilities
 
-Status: Accepted as responsibility direction; partially implemented; Multipass
+*Date:* 2026-05-02
+*Status:* Accepted as responsibility direction; partially implemented; Multipass
 provider ownership superseded by `adr-retire-multipass-legacy-provider.adoc`
-
-Date: 2026-05-02
+*Decision makers:* Tiny Swarm World architecture governance; original named
+decision makers were not recorded in this ADR.
 
 == Implementation Status
 
@@ -136,9 +137,15 @@ steps. Empty marker directories are not required for the current state.
 * composition root
 * quality tooling
 
-== Rejected Alternatives
+== Considered Options
 
 === Option 2: provisioning / registry / stacks / shared
+
+*Pros:*
+
+* uses names that are close to existing implementation technologies.
+
+*Cons:*
 
 Rejected because the names are too implementation-specific. `registry` is too
 narrow for Maven repositories and future artifact publication. `stacks` is too
@@ -147,6 +154,12 @@ metadata, or Portainer endpoint handling.
 
 === Option 3: control-plane / artifact-plane / deployment-plane / shared
 
+*Pros:*
+
+* separates broad responsibility planes.
+
+*Cons:*
+
 Rejected because the names are too abstract for the current project. They make
 the repository harder to navigate for contributors who need to find Multipass,
 Nexus, or compose behavior quickly.
@@ -154,6 +167,12 @@ Nexus, or compose behavior quickly.
 === Technology-based directories
 
 Examples: `multipass`, `docker`, `nexus`, `portainer`, `compose`.
+
+*Pros:*
+
+* makes technology-specific files easy to find.
+
+*Cons:*
 
 Rejected as the primary organization because these names mix business
 responsibility with implementation technology. Technology names can still exist
@@ -283,3 +302,16 @@ The first implementation slice should be documentation and structure only. Code
 moves should happen later in small, test-backed slices with compatibility
 imports where needed. No public workflow should change until a replacement path
 is documented and tested.
+
+== References
+
+* Affects: `documentation/arc42/05_building_blocks.adoc`
+* Affects: `documentation/arc42/06_runtime_view.adoc`
+* Affects: `documentation/arc42/07_deployment_view.adoc`
+* Affects: `documentation/arc42/08_concepts.adoc`
+* Related concept: platform, artifacts, deployment, and shared responsibility
+  boundaries.
+* Related code: `src/tiny_swarm_world/domain`
+* Related code: `src/tiny_swarm_world/application`
+* Related code: `src/tiny_swarm_world/infrastructure`
+* Related code: `src/tiny_swarm_world/infrastructure/composition.py`

@@ -18,10 +18,10 @@ Required flow:
 2. Load QUALITY.md.
 3. Load documentation/process/skills-update.md.
 4. Load documentation/process/skill-agent-creation.md.
-5. Load documentation/skill-audit/skill-registry.md.
-6. Load documentation/skill-audit/skill-registry.json.
-7. Load documentation/skill-audit/organigramm.md.
-8. Load documentation/skill-audit/owner-map.md.
+5. Load documentation/process/skills/audit/skill-registry.md.
+6. Load documentation/process/skills/audit/skill-registry.json.
+7. Load documentation/process/skills/audit/organigramm.md.
+8. Load documentation/process/skills/audit/owner-map.md.
 9. Inspect current skills, roles, prompts and Codex agents.
 10. Run integrity, linkage, conflict, organigramm, registry and documentation checks.
 11. Apply only skills, agents, process-governance, or governance-only workflow

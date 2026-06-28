@@ -1,8 +1,9 @@
 = ADR: Retire Multipass Legacy Provider
 
-Status: Accepted
-
-Date: 2026-06-02
+*Date:* 2026-06-02
+*Status:* Accepted
+*Decision makers:* Tiny Swarm World architecture governance; original named
+decision makers were not recorded in this ADR.
 
 == Context
 
@@ -45,14 +46,26 @@ compatibility as completed scope reduction, not as an available fallback.
 Reintroducing Multipass, or adding another alternate provider compatibility
 path, requires a new explicit product-scope decision and architecture review.
 
-== Rejected Alternatives
+== Considered Options
 
 === Keep explicit Multipass fallback
+
+*Pros:*
+
+* would preserve compatibility for operators who still know the old path.
+
+*Cons:*
 
 Rejected because the product scope now removes the legacy/fallback surface
 instead of carrying it as operator-selectable behavior.
 
 === Silently map Multipass selection to LXC-native
+
+*Pros:*
+
+* would avoid a hard error for stale configuration.
+
+*Cons:*
 
 Rejected because it would hide unsupported configuration and could make
 automation appear to honor an operator-selected provider that is no longer
@@ -60,6 +73,21 @@ implemented.
 
 === Remove all historical Multipass references
 
+*Pros:*
+
+* would reduce visible legacy terminology.
+
+*Cons:*
+
 Rejected because migration and audit documents still need to preserve past
 evidence and rationale. Those references are allowed only when they are
 archival rather than current guidance.
+
+== References
+
+* Affects: `documentation/arc42/02_constraints.adoc`
+* Affects: `documentation/arc42/04_context_and_scope.adoc`
+* Affects: `documentation/arc42/07_deployment_view.adoc`
+* Related concept: LXC-native provider direction.
+* Related code: `src/tiny_swarm_world/infrastructure/composition.py`
+* Related code: `infra/config`

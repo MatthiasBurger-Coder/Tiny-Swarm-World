@@ -1,7 +1,7 @@
 # Import-Ready Agent Tasks
 
 Status: archival planning baseline. Multipass path references are superseded by
-`documentation/architecture/adr-retire-multipass-legacy-provider.adoc` and must
+`documentation/arc42/09_decisions/adr-retire-multipass-legacy-provider.adoc` and must
 not be imported as current implementation tasks.
 
 This file follows the repository's existing Markdown issue-import style and
@@ -19,8 +19,8 @@ Analyze and maintain the documented split between Platform, Artifacts,
 Deployment, and Shared responsibilities.
 
 ### Evidence
-- `documentation/architecture/responsibility-separation-analysis.md`
-- `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+- `documentation/arc42/05_analysis/responsibility-separation-analysis.md`
+- `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
 
 ### Recommended remediation
 Keep responsibility classification and mixed-boundary findings current while
@@ -209,7 +209,10 @@ responsibility boundaries.
 - `documentation/system`
 - `documentation/deployment`
 - `documentation/user_guide`
-- `documentation/architecture`
+- `documentation/arc42/05_analysis`
+- `documentation/arc42/11_migration`
+- `documentation/process/agent-plans`
+- `documentation/process/agent-tasks`
 
 ### Recommended remediation
 Update docs to describe workflows by responsibility and mark live operations
