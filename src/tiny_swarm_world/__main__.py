@@ -9,10 +9,14 @@ from enum import Enum
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
 from tiny_swarm_world.application.services.setup import SetupWorkflowResult
-from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
-    PLATFORM_WORKFLOW_TAXONOMY,
-    PlatformWorkflowKind,
+from tiny_swarm_world.application.services.platform.workflow.results import (
     PlatformWorkflowResult,
+)
+from tiny_swarm_world.application.services.platform.workflow.semantics import (
+    PLATFORM_WORKFLOW_TAXONOMY,
+)
+from tiny_swarm_world.application.services.platform.workflow.types import (
+    PlatformWorkflowKind,
     PlatformWorkflowStatus,
 )
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (

@@ -1,7 +1,7 @@
 import unittest
 from tests.support.async_helpers import async_checkpoint
 
-from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
+from tiny_swarm_world.application.services.platform.incus.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapService,
     LxcSwarmBootstrapStep,
 )
