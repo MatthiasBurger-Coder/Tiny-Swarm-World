@@ -11,7 +11,6 @@ from tiny_swarm_world.domain.command.command_entity import (
     CommandEntity,
 )
 from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
-from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
@@ -26,7 +25,7 @@ class PortCommandRepositoryYaml(PortCommandRepository):
         """
         self.filename = filename
         self.logger = LoggerFactory.get_logger(self.__class__)
-        self.file_manager = file_manager or infra_core_container.resolve(FileManager)
+        self.file_manager = file_manager or FileManager()
         self.yaml = YAML()
         self.data = self.yaml.load(self.file_manager.load(path=Path(filename))) or {}
 

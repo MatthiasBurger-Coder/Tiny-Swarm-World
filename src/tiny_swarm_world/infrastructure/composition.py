@@ -160,8 +160,6 @@ from tiny_swarm_world.infrastructure.adapters.configuration import (
     EnvironmentConfigurationSource,
     ShellEnvFileConfigurationSource,
 )
-from tiny_swarm_world.infrastructure.adapters.file_management.file_manager import FileManager
-from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
 from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
     TerminalMethodTrace,
     TerminalWorkflowProgress,
@@ -182,7 +180,6 @@ from tiny_swarm_world.infrastructure.os_types import OsTypes
 from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
     VerificationEvidenceLocalRepository,
 )
-from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_container import infra_core_container
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
     CompositeMethodTrace,
@@ -434,11 +431,6 @@ class _WslSocatExposeStep:
         )
 
 
-def configure_infrastructure_container() -> None:
-    infra_core_container.register(PathFactory)
-    infra_core_container.register(FileManager)
-
-
 def build_application_logger():
     return LoggerFactory.get_logger("application")
 
@@ -573,7 +565,6 @@ def build_platform_services(
     ui: PortUI | None = None,
     trace_correlation_id: str | None = None,
 ) -> PlatformServices:
-    configure_infrastructure_container()
     project_paths = default_project_paths()
     node_provider_config_repository = NodeProviderConfigYamlRepository(
         project_paths=project_paths
