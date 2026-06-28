@@ -33,7 +33,7 @@ Required checks:
 ### GOVERNANCE_METADATA
 
 Use when changed files affect workflow, process, skill, role, routing,
-skill-audit, arc42 or ADR governance but do not affect product source, tests,
+skill audit, arc42 or ADR governance but do not affect product source, tests,
 build logic, contracts, runtime behavior or `QUALITY.md`.
 
 Required checks:

@@ -14,7 +14,7 @@ sources:
 - user request: create a workflow with subagents to check system completeness
   and unify the system;
 - accepted responsibility direction in
-  `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`;
+  `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`;
 - current arc42 architecture documentation;
 - active workflow `documentation/workflow/workflow.md`.
 
@@ -24,7 +24,7 @@ No prior `documentation/epics/` source existed at baseline creation time.
 
 The autonomous runnable setup baseline extends this EPIC:
 
-- `documentation/epics/autonomous-runnable-setup.md`
+- `documentation/arc42/01_introduction/autonomous-runnable-setup.md`
 
 The extension defines what "runnable setup" must mean before implementation
 slices wire live Platform, Artifacts, and Deployment behavior. It does not
@@ -33,7 +33,7 @@ is already implemented.
 
 The LXC-native node provider migration also extends this EPIC:
 
-- `documentation/architecture/adr-lxc-native-node-provider.adoc`
+- `documentation/arc42/09_decisions/adr-lxc-native-node-provider.adoc`
 - active workflow `documentation/workflow/workflow.md`, version
   `lxc-native-node-provider-v1.0.0`
 
@@ -45,7 +45,7 @@ provider-native artifact, deployment, and live validation gaps.
 
 The service-access dashboard and Vaultwarden baseline also extends this EPIC:
 
-- `documentation/epics/service-access-dashboard-vaultwarden.md`
+- `documentation/arc42/01_introduction/service-access-dashboard-vaultwarden.md`
 
 That extension defines a Deployment-owned service stack capability for
 operator service access and credential visibility. Repository assets and

@@ -1,7 +1,7 @@
 # Migration Plan
 
 Status: archival planning baseline. Multipass path references are superseded by
-`documentation/architecture/adr-retire-multipass-legacy-provider.adoc` and must
+`documentation/arc42/09_decisions/adr-retire-multipass-legacy-provider.adoc` and must
 not be used as current routing or implementation targets.
 
 This plan separates Platform, Artifacts, Deployment, and Shared responsibilities
@@ -33,7 +33,10 @@ Goal:
 
 Affected files/directories:
 
-- `documentation/architecture`
+- `documentation/arc42/05_analysis`
+- `documentation/arc42/11_migration`
+- `documentation/process/agent-plans`
+- `documentation/process/agent-tasks`
 
 Files explicitly forbidden:
 
@@ -62,7 +65,8 @@ Quality gate command:
 
 Rollback strategy:
 
-- Remove the newly added `documentation/architecture` files.
+- Remove the newly added analysis, migration, agent-plan, and agent-task files
+  from their current documentation folders.
 
 Acceptance criteria:
 
@@ -82,7 +86,7 @@ Affected files/directories:
 
 - `tests/architecture`
 - `.importlinter` only if needed and justified
-- `documentation/architecture` if findings need updates
+- `documentation/arc42/05_analysis` if findings need updates
 
 Files explicitly forbidden:
 
@@ -138,7 +142,7 @@ Affected files/directories:
 - `src/tiny_swarm_world/application/services/vm`
 - platform-related ports and adapters
 - platform-related tests
-- platform sections in `documentation/architecture`
+- platform sections in `documentation/arc42/05_analysis`
 
 Files explicitly forbidden:
 

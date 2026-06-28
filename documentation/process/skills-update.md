@@ -7,10 +7,10 @@ or workflow governance.
 
 1. Read `AGENTS.md`, `QUALITY.md`, and
    `documentation/process/issue-completion-discipline.md`.
-2. Read `documentation/skill-audit/skill-registry.md`,
-   `documentation/skill-audit/skill-registry.json`,
-   `documentation/skill-audit/organigramm.md`, and
-   `documentation/skill-audit/owner-map.md` when they exist.
+2. Read `documentation/process/skills/audit/skill-registry.md`,
+   `documentation/process/skills/audit/skill-registry.json`,
+   `documentation/process/skills/audit/organigramm.md`, and
+   `documentation/process/skills/audit/owner-map.md` when they exist.
 3. Identify the affected skills, roles, prompts, or routing rules.
 4. Keep root project rules authoritative over reusable templates.
 5. Preserve Python automation as the primary architecture for Tiny Swarm World.

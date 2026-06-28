@@ -205,7 +205,7 @@ Important variables:
 * `TSW_NEXUS_WAIT_SECONDS`
 
 The current validated setup contract is documented in
-`documentation/configuration/operator-configuration-contract.md`; `.env.example`
+`documentation/arc42/08_configuration/operator-configuration-contract.md`; `.env.example`
 contains placeholders for every contract key. Preflight reports only key names,
 scopes, value kinds and source classification, not secret values.
 

@@ -8,7 +8,7 @@ ACTIVE_BASELINE_EXTENSION
 
 ## Requirement Source
 
-This EPIC extends `documentation/epics/system-unification.md` from these
+This EPIC extends `documentation/arc42/01_introduction/system-unification.md` from these
 repository-visible sources:
 
 - user request: create a setup so the system can install itself into a
@@ -18,7 +18,7 @@ repository-visible sources:
 - active provider migration workflow `documentation/workflow/workflow.md`,
   version `lxc-native-node-provider-v1.0.0`;
 - accepted provider direction in
-  `documentation/architecture/adr-lxc-native-node-provider.adoc`;
+  `documentation/arc42/09_decisions/adr-lxc-native-node-provider.adoc`;
 - root `AGENTS.md` Linux/WSL-only, Docker Swarm-first, Python automation
   identity;
 - root `QUALITY.md` quality-gate authority;
@@ -61,7 +61,7 @@ failed or blocked verification result when validation is evaluated.
 
 The service-access dashboard and Vaultwarden baseline extends this EPIC:
 
-- `documentation/epics/service-access-dashboard-vaultwarden.md`
+- `documentation/arc42/01_introduction/service-access-dashboard-vaultwarden.md`
 
 The extension defines the service-access and credential visibility capability
 for selected runnable profiles. Repository assets and setup contracts exist,

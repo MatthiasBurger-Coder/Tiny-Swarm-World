@@ -1,0 +1,88 @@
+= Decision Record: Command Runner Responsibility
+
+*Date:* Not recorded in original decision record
+*Status:* Accepted as current command-runner responsibility policy
+*Decision makers:* Tiny Swarm World architecture governance; original named
+decision makers were not recorded in this decision record.
+
+== Context
+
+Tiny Swarm World is LXC-native Python automation. Its current node-provider
+path is managed LXC through Incus, not Ansible.
+
+The active command-runner surface must stay narrow because command execution is
+a live infrastructure boundary. Placeholder or partially implemented runner
+types could otherwise report success without doing real work or expose
+unsupported execution models as current behavior.
+
+== Decision
+
+`async` is the only selectable runner type for current production workflows.
+REST and Ansible runner behavior remains disabled compatibility surface until a
+future explicit workflow provides real implementation, tests, documentation,
+and quality-gate coverage.
+
+== Consequences
+
+* `rest` and `ansible` are legacy compatibility enum values only.
+* REST and Ansible runner adapters must not be selected by
+  `CommandRunnerFactory` for active workflows or exposed as operator-selectable
+  node-provider backends.
+* Legacy placeholder adapters must fail closed if instantiated directly.
+* Placeholder adapters must not report success without performing real work.
+* The generic command-runner path remains bounded to infrastructure adapters.
+* Application services depend on the command-runner port and must not construct
+  concrete command-runner adapters directly.
+* REST command execution is disabled rather than partially implemented.
+* Current workflows therefore do not define REST command HTTP methods, URLs,
+  headers, bodies, timeouts, response validation, retry behavior, or
+  non-success response mapping.
+* Reintroducing REST or Ansible as a supported runner requires an explicit
+  future workflow with real implementation, tests for success and failure
+  behavior, documentation, and quality-gate coverage.
+
+== Considered Options
+
+=== Async command runner as the only selectable runner
+
+*Pros:*
+
+* matches the current LXC-native setup path;
+* keeps unsupported runner behavior out of active workflows;
+* preserves the application-to-port dependency direction.
+
+*Cons:*
+
+* does not provide remote REST command execution;
+* does not provide Ansible orchestration.
+
+=== Keep REST command execution selectable
+
+*Pros:*
+
+* would leave a future remote execution direction visible.
+
+*Cons:*
+
+* no current REST command HTTP semantics are defined;
+* partial behavior could report misleading success or failure states.
+
+=== Keep Ansible command execution selectable
+
+*Pros:*
+
+* would align with a common infrastructure automation tool.
+
+*Cons:*
+
+* contradicts the current LXC-native Python automation direction;
+* would introduce an unsupported operator-selectable backend.
+
+== References
+
+* Affects: `documentation/arc42/05_building_blocks.adoc`
+* Affects: `documentation/arc42/06_runtime_view.adoc`
+* Affects: `documentation/arc42/08_concepts.adoc`
+* Related concept: command execution as infrastructure adapter responsibility.
+* Related code: `src/tiny_swarm_world/application/ports/commands`
+* Related code: `src/tiny_swarm_world/infrastructure/adapters/command_runner`

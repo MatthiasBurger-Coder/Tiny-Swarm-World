@@ -2,7 +2,7 @@
 
 Status: analysis and planning only; pre-removal Multipass path references are
 archival and superseded by
-`documentation/architecture/adr-retire-multipass-legacy-provider.adoc`.
+`documentation/arc42/09_decisions/adr-retire-multipass-legacy-provider.adoc`.
 
 This document records the current responsibility boundaries in Tiny Swarm World
 and identifies the files that should be owned by future bounded areas. No live
@@ -125,7 +125,7 @@ Nexus repository behavior, and future Maven or Docker registry workflows.
 ### Tests and Documentation
 
 - Nexus-specific parts of `tests/application/services/nexus`
-- Nexus setup sections in `documentation/deployment/system.adoc`
+- Nexus setup sections in `documentation/arc42/07_deployment/system.adoc`
 - Nexus setup sections in `documentation/user_guide/usage.adoc`
 
 ## C. Stack / Service Deployment
@@ -160,7 +160,7 @@ Portainer stack APIs, and service lifecycle through Portainer or Docker Swarm.
 
 - `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
 - Portainer/stack related tests that may be added later
-- deployment sections in `documentation/deployment/system.adoc`
+- deployment sections in `documentation/arc42/07_deployment/system.adoc`
 - service deployment sections in `documentation/user_guide/usage.adoc`
 
 ## D. Shared Kernel / Cross-Cutting Infrastructure

@@ -1,8 +1,10 @@
 = ADR: Traefik HTTPS Ingress With Existing CA
 
-Status: Accepted as migration direction; implementation pending workflow execution
-
-Date: 2026-06-09
+*Date:* 2026-06-09
+*Status:* Accepted as migration direction; implementation pending workflow
+execution
+*Decision makers:* Tiny Swarm World architecture governance; original named
+decision makers were not recorded in this ADR.
 
 == Implementation Status
 
@@ -63,9 +65,15 @@ for the active migration workflow, subject to these rules:
 * Live verification remains opt-in and must write only redacted evidence under
   ignored `.tiny-swarm-world/evidence/**` paths.
 
-== Rejected Alternatives
+== Considered Options
 
 === Keep Service Access NGINX As The Only Router
+
+*Pros:*
+
+* preserves the existing service-access routing baseline.
+
+*Cons:*
 
 Rejected for this workflow because the requested target is centralized HTTPS
 ingress through Traefik. The current NGINX baseline remains the rollback and
@@ -73,15 +81,33 @@ comparison point until migration slices verify Traefik.
 
 === Enable Traefik Insecure Dashboard
 
+*Pros:*
+
+* would make the Traefik dashboard immediately reachable.
+
+*Cons:*
+
 Rejected. `--api.insecure=true` would create an unnecessary administrative
 exposure and is explicitly forbidden by the workflow.
 
 === Generate Or Commit CA Material
 
+*Pros:*
+
+* would reduce operator setup for certificate material.
+
+*Cons:*
+
 Rejected. CA and private key material are operator-owned secrets and must not
 be generated silently or committed to the repository.
 
 === ACME Or Public Internet Exposure
+
+*Pros:*
+
+* would align with common public TLS automation patterns.
+
+*Cons:*
 
 Rejected for this workflow. The accepted scope is local HTTPS ingress using an
 existing CA.
@@ -123,3 +149,13 @@ The active workflow must provide:
 * opt-in live browser/TLS evidence;
 * a final report with verified facts, blockers, rollback references, and
   residual risks.
+
+== References
+
+* Affects: `documentation/arc42/04_context_and_scope.adoc`
+* Affects: `documentation/arc42/06_runtime_view.adoc`
+* Affects: `documentation/arc42/07_deployment_view.adoc`
+* Affects: `documentation/arc42/08_concepts.adoc`
+* Related concept: centralized local HTTPS ingress.
+* Related code: `infra/config/compose`
+* Related code: `src/tiny_swarm_world/application/services/deployment`

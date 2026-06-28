@@ -293,10 +293,10 @@ In scope:
 - `tests/infrastructure/**`
 - `tests/integration/**`
 - `tests/live/**`
-- `documentation/architecture/adr-traefik-https-ingress-existing-ca.adoc`
+- `documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc`
 - `documentation/arc42/07_deployment_view.adoc`
 - `documentation/arc42/09_architecture_decisions.adoc`
-- `documentation/deployment/system.adoc`
+- `documentation/arc42/07_deployment/system.adoc`
 - `README.md`
 - `documentation/workflow/**`
 - `.codex/evidence/workflow-traefik-service-routing-20260627/**`
@@ -609,7 +609,7 @@ secondary_reviewers:
   - "Senior Tester"
 affected_files:
   - "README.md"
-  - "documentation/deployment/system.adoc"
+  - "documentation/arc42/07_deployment/system.adoc"
   - "documentation/arc42/07_deployment_view.adoc"
   - "documentation/arc42/09_architecture_decisions.adoc"
   - "documentation/workflow/workflow.md"
@@ -627,7 +627,7 @@ dependencies:
 parallel_group: "serial-traefik-routing"
 file_locks:
   - "README.md"
-  - "documentation/deployment/system.adoc"
+  - "documentation/arc42/07_deployment/system.adoc"
   - "documentation/arc42/**"
   - "documentation/workflow/**"
   - ".codex/evidence/workflow-traefik-service-routing-20260627/**"

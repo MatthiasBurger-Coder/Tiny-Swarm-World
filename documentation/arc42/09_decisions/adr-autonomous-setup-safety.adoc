@@ -1,13 +1,14 @@
 = ADR: Autonomous Setup Safety Contract
 
-Status: Accepted as setup-safety contract; fail-closed orchestration implemented
-
-Date: 2026-05-24
+*Date:* 2026-05-24
+*Status:* Accepted as setup-safety contract; fail-closed orchestration implemented
+*Decision makers:* Tiny Swarm World architecture governance; original named
+decision makers were not recorded in this ADR.
 
 == Implementation Status
 
 Slice 01 of the autonomous runnable setup workflow established the requirement
-baseline in `documentation/epics/autonomous-runnable-setup.md`.
+baseline in `documentation/arc42/01_introduction/autonomous-runnable-setup.md`.
 
 This ADR accepts the safety contract that implementation slices must preserve.
 Slice 09 implemented the canonical `setup run` command as a fail-closed,
@@ -86,9 +87,15 @@ The canonical setup path must preserve these rules:
 * Optional live smoke validation remains a separate explicit operator action,
   not part of the default quality gate.
 
-== Rejected Alternatives
+== Considered Options
 
 === Silent host mutation
+
+*Pros:*
+
+* would reduce setup interaction.
+
+*Cons:*
 
 Rejected because Tiny Swarm World setup can change local infrastructure,
 networking, credentials, and service state. Silent mutation would contradict
@@ -96,17 +103,35 @@ the current live-operation safety model.
 
 === Non-interactive consent by default
 
+*Pros:*
+
+* would support unattended setup runs.
+
+*Cons:*
+
 Rejected for this workflow. Non-interactive execution needs a separate
 architecture decision that defines the trust boundary, credentials source,
 operator approval semantics, and audit evidence.
 
 === Automatic host package installation
 
+*Pros:*
+
+* would make missing host prerequisites easier to remediate.
+
+*Cons:*
+
 Rejected for this workflow. Installing host packages changes the operator's
 machine outside the repository and needs a separate decision covering
 permissions, rollback, and supported distributions.
 
 === Direct scripts as canonical installer
+
+*Pros:*
+
+* would reuse a familiar script-based setup style.
+
+*Cons:*
 
 Rejected because direct scripts bypass the hexagonal ports/adapters,
 verification, redaction, and CLI consent contracts that the Python automation
@@ -153,3 +178,13 @@ Future ADRs are required before changing these areas:
 * direct script promotion or removal as canonical setup behavior;
 * a material change to evidence semantics or credential storage;
 * a material change to the default service set or full-run resource contract.
+
+== References
+
+* Affects: `documentation/arc42/04_context_and_scope.adoc`
+* Affects: `documentation/arc42/05_building_blocks.adoc`
+* Affects: `documentation/arc42/06_runtime_view.adoc`
+* Affects: `documentation/arc42/07_deployment_view.adoc`
+* Affects: `documentation/arc42/08_concepts.adoc`
+* Related code: `src/tiny_swarm_world/application/services/setup`
+* Related code: `src/tiny_swarm_world/infrastructure/composition.py`

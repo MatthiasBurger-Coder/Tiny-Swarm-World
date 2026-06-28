@@ -883,16 +883,16 @@ AGENTS.md
 QUALITY.md
 .agents/
 .codex/
-documentation/skill-audit/
+documentation/process/skills/audit/
 ```
 
 Canonical governance navigation:
 
 ```text
-documentation/skill-audit/skill-registry.md
-documentation/skill-audit/skill-registry.json
-documentation/skill-audit/organigramm.md
-documentation/skill-audit/owner-map.md
+documentation/process/skills/audit/skill-registry.md
+documentation/process/skills/audit/skill-registry.json
+documentation/process/skills/audit/organigramm.md
+documentation/process/skills/audit/owner-map.md
 ```
 
 Project-specific skills live as discoverable files:

@@ -8,8 +8,8 @@ ACTIVE_BASELINE_EXTENSION
 
 ## Requirement Source
 
-This EPIC extends `documentation/epics/system-unification.md` and
-`documentation/epics/autonomous-runnable-setup.md` from these
+This EPIC extends `documentation/arc42/01_introduction/system-unification.md` and
+`documentation/arc42/01_introduction/autonomous-runnable-setup.md` from these
 repository-visible sources:
 
 - user request: create another container using the same technique as existing
@@ -23,9 +23,9 @@ repository-visible sources:
   identity;
 - root `QUALITY.md` quality-gate authority;
 - current Deployment responsibility direction in
-  `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`;
+  `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`;
 - autonomous setup safety contract in
-  `documentation/architecture/adr-autonomous-setup-safety.adoc`.
+  `documentation/arc42/09_decisions/adr-autonomous-setup-safety.adoc`.
 
 This EPIC is the requirement baseline for service access and credential
 visibility. Repository-level compose assets, dashboard/NGINX image assets,

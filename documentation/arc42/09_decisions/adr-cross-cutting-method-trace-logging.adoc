@@ -1,8 +1,9 @@
 = ADR: Cross-Cutting Method Trace Logging
 
-Status: Accepted and implemented for current installation runtime trace scope
-
-Date: 2026-05-31
+*Date:* 2026-05-31
+*Status:* Accepted and implemented for current installation runtime trace scope
+*Decision makers:* Tiny Swarm World architecture governance; original named
+decision makers were not recorded in this ADR.
 
 == Implementation Status
 
@@ -94,9 +95,15 @@ must connect progress events and method trace events through correlation data
 so an operator can follow both high-level installation status and detailed
 method execution order.
 
-== Rejected Alternatives
+== Considered Options
 
 === Manual logger calls in every method
+
+*Pros:*
+
+* would be simple to add locally in individual methods.
+
+*Cons:*
 
 Rejected as the primary mechanism. Manual logging in each method would be
 error-prone, difficult to verify for no-skip coverage, and likely to drift
@@ -106,17 +113,35 @@ cross-cutting trace module.
 
 === Inject concrete `PortUI` or `LoggerFactory` everywhere
 
+*Pros:*
+
+* would make concrete logging or UI behavior directly available.
+
+*Cons:*
+
 Rejected because it would break the hexagonal architecture. Concrete terminal
 UI and logger configuration remain infrastructure concerns. Application code
 must use ports or be traced through composition-root wrapping.
 
 === Log raw arguments, return values, command output, or tracebacks
 
+*Pros:*
+
+* would maximize low-level diagnostic detail.
+
+*Cons:*
+
 Rejected because runtime payloads can contain credentials, tokens, host data,
 paths, network addresses, or command output that must not be logged,
 displayed, or committed as evidence.
 
 === Treat phase-level progress as sufficient
+
+*Pros:*
+
+* would keep observability limited to the existing high-level progress path.
+
+*Cons:*
 
 Rejected by the clarified requirement. Phase and step progress is necessary
 for operator UX, but it is not sufficient for gapless program-flow tracing.
@@ -166,3 +191,12 @@ Future ADR coverage is required before:
 * exporting trace data to external systems;
 * expanding this terminal observability contract into a browser UI or remote
   telemetry backend.
+
+== References
+
+* Affects: `documentation/arc42/06_runtime_view.adoc`
+* Affects: `documentation/arc42/08_concepts.adoc`
+* Related concept: installation observability and safe trace metadata.
+* Related code: `src/tiny_swarm_world/application/ports`
+* Related code: `src/tiny_swarm_world/infrastructure/logging`
+* Related code: `tests/architecture/test_installation_method_trace_coverage.py`

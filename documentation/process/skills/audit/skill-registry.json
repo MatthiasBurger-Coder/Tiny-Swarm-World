@@ -1,10 +1,10 @@
 {
   "status": "CURRENT_WITH_ISSUE_COMPLETION_GATES",
   "canonical_paths": {
-    "skill_registry_markdown": "documentation/skill-audit/skill-registry.md",
-    "skill_registry_json": "documentation/skill-audit/skill-registry.json",
-    "organigramm": "documentation/skill-audit/organigramm.md",
-    "owner_map": "documentation/skill-audit/owner-map.md"
+    "skill_registry_markdown": "documentation/process/skills/audit/skill-registry.md",
+    "skill_registry_json": "documentation/process/skills/audit/skill-registry.json",
+    "organigramm": "documentation/process/skills/audit/organigramm.md",
+    "owner_map": "documentation/process/skills/audit/owner-map.md"
   },
   "skill_format": ".agents/skills/<skill-name>/SKILL.md",
   "counts": {
@@ -19,9 +19,9 @@
     "README.md": "75565CD5F73BD223C30FFB62ACF7950E9F4DB438B7C124F22F7CE0D43970C931",
     "documentation/arc42/08_concepts.adoc": "E5BCC7B971A63935F8D5AFD2703693C9624215708BADD291D4BA4450100323BC",
     "documentation/process/issue-completion-discipline.md": "81876F6DCA479A1D63A80F765BAF949A951EFF2E0EEAFDE6BAC72AD750508904",
-    "documentation/skill-audit/skill-registry.md": "C75C670AD4FBC1D623A5174D2E3973630676A77076F9B0791D781DE316A1A965",
-    "documentation/skill-audit/organigramm.md": "87C9E8FDF29AAE7038B283EDA39B15B7FDE1FB02CD74E8B7C80A0F18E38E338B",
-    "documentation/skill-audit/owner-map.md": "6E20656042FE3F0651AC96E3527CB37A4CC4E24A82C3EFB3CFD9E5CDE198B335"
+    "documentation/process/skills/audit/skill-registry.md": "C75C670AD4FBC1D623A5174D2E3973630676A77076F9B0791D781DE316A1A965",
+    "documentation/process/skills/audit/organigramm.md": "87C9E8FDF29AAE7038B283EDA39B15B7FDE1FB02CD74E8B7C80A0F18E38E338B",
+    "documentation/process/skills/audit/owner-map.md": "6E20656042FE3F0651AC96E3527CB37A4CC4E24A82C3EFB3CFD9E5CDE198B335"
   },
   "required_tiny_swarm_world_skills": [
     "tdd-expert",

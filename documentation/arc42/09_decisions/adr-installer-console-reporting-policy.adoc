@@ -1,8 +1,9 @@
 = ADR: Human-Readable Installer Console Reporting
 
-Status: Accepted
-
-Date: 2026-06-21
+*Date:* 2026-06-21
+*Status:* Accepted
+*Decision makers:* Tiny Swarm World architecture governance; original named
+decision makers were not recorded in this ADR.
 
 == Context
 
@@ -45,3 +46,47 @@ during normal installer operation.
 
 Tests must guard against raw JSON event payloads, raw Python dictionaries, YAML
 payload markers, and internal event object representations in console output.
+
+== Considered Options
+
+=== Human-readable console output with report files
+
+*Pros:*
+
+* keeps the live installer readable for operators;
+* preserves machine-readable output in generated files;
+* reduces the chance that raw structured payloads leak to stdout or stderr.
+
+*Cons:*
+
+* requires separate report-file handling and tests.
+
+=== Print structured events directly to stdout or stderr
+
+*Pros:*
+
+* would make automation parsing simpler.
+
+*Cons:*
+
+* makes normal installer output harder to read;
+* risks exposing internal event structures or sensitive state.
+
+=== Full-screen or menu-driven console UI
+
+*Pros:*
+
+* could provide a richer interactive experience.
+
+*Cons:*
+
+* would couple installation behavior to UI control flow;
+* is outside the accepted terminal reporting scope.
+
+== References
+
+* Affects: `documentation/arc42/06_runtime_view.adoc`
+* Affects: `documentation/arc42/08_concepts.adoc`
+* Related concept: installer progress and reporting.
+* Related code: `src/tiny_swarm_world/infrastructure/adapters/ui`
+* Related code: `src/tiny_swarm_world/application/ports/ui`

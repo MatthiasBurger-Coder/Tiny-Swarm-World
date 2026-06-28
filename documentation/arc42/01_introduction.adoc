@@ -25,3 +25,16 @@ The current architecture goals are:
 * keep live Incus, LXC container lifecycle, Docker
   Swarm, netplan, socat, compose, and service bootstrap commands out of the
   default quality gate.
+
+=== Requirement Baselines
+
+The following introduction baselines define the current product intent,
+required capability boundaries, and explicit out-of-scope areas. They are
+included here so the arc42 book keeps goals and requirement context together
+with the system introduction.
+
+include::01_introduction/system-unification.md[leveloffset=+2]
+
+include::01_introduction/autonomous-runnable-setup.md[leveloffset=+2]
+
+include::01_introduction/service-access-dashboard-vaultwarden.md[leveloffset=+2]

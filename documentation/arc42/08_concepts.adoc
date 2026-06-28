@@ -165,7 +165,7 @@ architecture boundaries, safety rules and workflow stop conditions. Root
 
 Project-specific skills are discoverable as
 `.agents/skills/<skill-name>/SKILL.md`. The canonical audit and navigation
-artifacts live under `documentation/skill-audit/`:
+artifacts live under `documentation/process/skills/audit/`:
 
 * `skill-registry.md`
 * `skill-registry.json`

@@ -66,7 +66,7 @@ gates. Unclear impact defaults to `FULL_PATH`.
 - Protobuf contracts, streaming RPC design, request validation or gRPC compatibility route to `roles/senior-grpc-proto-specialist.md`.
 - Repository checkout, workspace lifecycle, source-root preparation or large Git repositories route to `roles/senior-git-workspace-specialist.md`.
 - Plugin producer handoff, plugin-side request construction or plugin-to-server communication routes to `roles/senior-plugin-integration-developer.md`.
-- Documentation, skill-audit material, existing workflow updates or ADR alignment notes route to `roles/senior-documentation-engineer.md`.
+- Documentation, skill audit material, existing workflow updates or ADR alignment notes route to `roles/senior-documentation-engineer.md`.
 - Untrusted repository handling, sandboxing, safe Git operations or secret leakage risks route to `roles/senior-security-sandbox-engineer.md`.
 - Performance budgets, large repository metrics, timeouts, quotas or scalability testing route to `roles/senior-performance-engineer.md`.
 - Analysis-session storage, raw ingestion storage, artifact storage or projection boundaries route to `roles/senior-analysis-storage-architect.md`.

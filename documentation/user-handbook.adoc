@@ -106,7 +106,7 @@ kept in ignored local files instead of being printed.
 
 The required values are defined by
 `infra/config/secrets/infisical-secrets.yaml` and summarized in
-`documentation/configuration/operator-configuration-contract.md`. The important
+`documentation/arc42/08_configuration/operator-configuration-contract.md`. The important
 operator groups are:
 
 * service administrator passwords for Portainer, Nexus, Jenkins, and SonarQube;
@@ -381,9 +381,9 @@ Detailed reference material remains in:
 * `documentation/user_guide/installation.adoc`;
 * `documentation/user_guide/usage.adoc`;
 * `documentation/user_guide/troubleshooting.adoc`;
-* `documentation/deployment/infisical-silent-setup.adoc`;
-* `documentation/deployment/system.adoc`;
+* `documentation/arc42/08_deployment_configuration/infisical-silent-setup.adoc`;
+* `documentation/arc42/07_deployment/system.adoc`;
 * `documentation/system/lxc-native-setup.adoc`;
 * `documentation/system/network.adoc`;
 * `documentation/system/live-operation-surfaces.adoc`;
-* `documentation/configuration/operator-configuration-contract.md`.
+* `documentation/arc42/08_configuration/operator-configuration-contract.md`.

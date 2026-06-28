@@ -29,6 +29,7 @@ from tiny_swarm_world.domain.node_provider import (
     WorkerJoinState,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime import (
+    DockerAptMirrorConfiguration,
     DockerRegistryMirrorConfiguration,
     LxcContainerDockerRuntime,
 )
@@ -57,6 +58,11 @@ class ProviderSelectedLxcDockerRuntime(PortContainerDockerRuntime):
             DockerRegistryMirrorConfiguration | None,
         ]
         | None = None,
+        apt_mirror_configuration: Callable[
+            [],
+            DockerAptMirrorConfiguration | None,
+        ]
+        | None = None,
         docker_runtime_factory: type[LxcContainerDockerRuntime] = LxcContainerDockerRuntime,
     ) -> None:
         self.provider_selection = provider_selection
@@ -65,6 +71,7 @@ class ProviderSelectedLxcDockerRuntime(PortContainerDockerRuntime):
         self.allow_live_mutation = allow_live_mutation
         self.allow_live_inspection = allow_live_inspection
         self.registry_mirror_configuration = registry_mirror_configuration
+        self.apt_mirror_configuration = apt_mirror_configuration
         self.docker_runtime_factory = docker_runtime_factory
 
     async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
@@ -127,11 +134,17 @@ class ProviderSelectedLxcDockerRuntime(PortContainerDockerRuntime):
             if self.registry_mirror_configuration is not None
             else None
         )
+        apt_mirror = (
+            self.apt_mirror_configuration()
+            if self.apt_mirror_configuration is not None
+            else None
+        )
         return self.docker_runtime_factory(
             backend=backend,
             runner=self.runner,
             allow_live_mutation=self.allow_live_mutation,
             registry_mirror=registry_mirror,
+            apt_mirror=apt_mirror,
         )
 
 

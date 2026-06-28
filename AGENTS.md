@@ -188,10 +188,10 @@ tiny-swarm-world-lead-architect
 
 Canonical audit and navigation paths:
 
-- `documentation/skill-audit/skill-registry.md`
-- `documentation/skill-audit/skill-registry.json`
-- `documentation/skill-audit/organigramm.md`
-- `documentation/skill-audit/owner-map.md`
+- `documentation/process/skills/audit/skill-registry.md`
+- `documentation/process/skills/audit/skill-registry.json`
+- `documentation/process/skills/audit/organigramm.md`
+- `documentation/process/skills/audit/owner-map.md`
 
 Repository files remain authoritative. The registry and organigramm are audit,
 navigation, and coordination artifacts.

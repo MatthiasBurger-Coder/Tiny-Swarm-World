@@ -91,7 +91,7 @@ a tested asset-preparation port or adapter and documents when it runs.
 == Planned Traefik HTTPS Ingress Migration
 
 The accepted migration direction in
-`documentation/architecture/adr-traefik-https-ingress-existing-ca.adoc` is to
+`documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc` is to
 move toward centralized local HTTPS ingress through Traefik using an existing
 operator-provided CA. This is accepted as workflow direction, not yet verified
 live runtime behavior.

@@ -17,8 +17,8 @@ remain the source of truth; this registry is an audit and navigation artifact.
   `documentation/process/issue-completion-discipline.md`.
 - Project-specific skills: `.agents/skills/<skill-name>/SKILL.md`.
 - Reusable Codex skills: `.codex/skills/<skill-name>/SKILL.md`.
-- Owner map: `documentation/skill-audit/owner-map.md`.
-- Organigramm: `documentation/skill-audit/organigramm.md`.
+- Owner map: `documentation/process/skills/audit/owner-map.md`.
+- Organigramm: `documentation/process/skills/audit/organigramm.md`.
 
 ## Current Registry Decision
 
@@ -69,5 +69,5 @@ collaboration partners.
 ## Verification
 
 Refresh this registry after `.agents/**`, `.codex/**`, `AGENTS.md`,
-`QUALITY.md`, `documentation/workflow/**`, `documentation/skill-audit/**` or
+`QUALITY.md`, `documentation/workflow/**`, `documentation/process/skills/audit/**` or
 process documentation changes.

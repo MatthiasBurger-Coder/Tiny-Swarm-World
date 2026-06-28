@@ -1550,6 +1550,42 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsNone(mirror)
 
+    def test_lxc_docker_apt_mirror_configuration_uses_operator_environment(self):
+        host = ipv4_address(10, 0, 3, 1)
+        with patch.dict(
+            os.environ,
+            {
+                "TSW_LXC_UBUNTU_APT_MIRROR": sample_http_url(host, 8081)
+                + "/repository/ubuntu-apt-proxy",
+                "TSW_LXC_UBUNTU_SECURITY_APT_MIRROR": sample_http_url(host, 8081)
+                + "/repository/ubuntu-security-apt-proxy",
+                "TSW_LXC_DOCKER_APT_MIRROR": sample_http_url(host, 8081)
+                + "/repository/docker-apt-proxy",
+                "TSW_LXC_DOCKER_APT_GPG_URL": sample_http_url(host, 8081)
+                + "/repository/docker-apt-proxy/gpg",
+            },
+            clear=True,
+        ):
+            mirror = composition._lxc_docker_apt_mirror_configuration()
+
+        self.assertIsNotNone(mirror)
+        assert mirror is not None
+        self.assertEqual(
+            sample_http_url(host, 8081) + "/repository/ubuntu-apt-proxy",
+            mirror.ubuntu_archive_url,
+        )
+        self.assertEqual(
+            sample_http_url(host, 8081) + "/repository/docker-apt-proxy",
+            mirror.docker_apt_url,
+        )
+        self.assertTrue(mirror.configured)
+
+    def test_lxc_docker_apt_mirror_configuration_returns_none_without_environment(self):
+        with patch.dict(os.environ, {}, clear=True):
+            mirror = composition._lxc_docker_apt_mirror_configuration()
+
+        self.assertIsNone(mirror)
+
     def test_lxc_backend_for_provider_request_honors_candidate_order(self):
         def which(name: str):
             return f"/usr/bin/{name}" if name == "incus" else None

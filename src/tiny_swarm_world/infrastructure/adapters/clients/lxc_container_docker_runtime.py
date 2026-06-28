@@ -37,11 +37,11 @@ apt-get update
 apt-get install -y ca-certificates curl
 install -m 0755 -d /etc/apt/keyrings
 if [ ! -f /etc/apt/keyrings/docker.asc ]; then
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  curl -fsSL "${TSW_DOCKER_APT_GPG_URL:-https://download.docker.com/linux/ubuntu/gpg}" -o /etc/apt/keyrings/docker.asc
 fi
 chmod a+r /etc/apt/keyrings/docker.asc
 . /etc/os-release
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] ${TSW_DOCKER_APT_URL:-https://download.docker.com/linux/ubuntu} ${VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list
 apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 systemctl enable --now docker || service docker start || true
@@ -74,6 +74,35 @@ class DockerRegistryMirrorConfiguration:
         return f"{parsed_url.hostname}:{parsed_url.port}"
 
 
+@dataclass(frozen=True)
+class DockerAptMirrorConfiguration:
+    ubuntu_archive_url: str | None = None
+    ubuntu_security_url: str | None = None
+    docker_apt_url: str | None = None
+    docker_gpg_url: str | None = None
+
+    def __post_init__(self) -> None:
+        for label, value in (
+            ("Ubuntu archive APT mirror", self.ubuntu_archive_url),
+            ("Ubuntu security APT mirror", self.ubuntu_security_url),
+            ("Docker APT mirror", self.docker_apt_url),
+            ("Docker APT GPG URL", self.docker_gpg_url),
+        ):
+            if value is not None:
+                _validate_lxc_reachable_url(label, value)
+
+    @property
+    def configured(self) -> bool:
+        return any(
+            (
+                self.ubuntu_archive_url,
+                self.ubuntu_security_url,
+                self.docker_apt_url,
+                self.docker_gpg_url,
+            )
+        )
+
+
 class LxcContainerDockerRuntime(PortContainerDockerRuntime):
     def __init__(
         self,
@@ -84,6 +113,7 @@ class LxcContainerDockerRuntime(PortContainerDockerRuntime):
         install_timeout_seconds: float = DEFAULT_DOCKER_INSTALL_TIMEOUT_SECONDS,
         allow_live_mutation: bool = False,
         registry_mirror: DockerRegistryMirrorConfiguration | None = None,
+        apt_mirror: DockerAptMirrorConfiguration | None = None,
         logger: Logger | None = None,
     ) -> None:
         if inspect_timeout_seconds <= 0:
@@ -96,6 +126,7 @@ class LxcContainerDockerRuntime(PortContainerDockerRuntime):
         self.install_timeout_seconds = install_timeout_seconds
         self.allow_live_mutation = allow_live_mutation
         self.registry_mirror = registry_mirror
+        self.apt_mirror = apt_mirror
         self.logger = logger or LoggerFactory.get_logger(self.__class__.__name__)
 
     async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
@@ -125,7 +156,12 @@ class LxcContainerDockerRuntime(PortContainerDockerRuntime):
             self.registry_mirror.registry_authority if self.registry_mirror else "",
         )
         result = await self.runner.run(
-            _docker_install_args(self.backend, node, self.registry_mirror),
+            _docker_install_args(
+                self.backend,
+                node,
+                self.registry_mirror,
+                self.apt_mirror,
+            ),
             self.install_timeout_seconds,
         )
         self._log_command_result("install_docker", node, result)
@@ -185,6 +221,7 @@ def _docker_install_args(
     backend: ManagedLxcBackend,
     node: NodeSpec,
     registry_mirror: DockerRegistryMirrorConfiguration | None = None,
+    apt_mirror: DockerAptMirrorConfiguration | None = None,
 ) -> tuple[str, ...]:
     return (
         _BACKEND_CLI[backend],
@@ -193,15 +230,17 @@ def _docker_install_args(
         "--",
         "bash",
         "-lc",
-        _docker_install_script(registry_mirror),
+        _docker_install_script(registry_mirror, apt_mirror),
     )
 
 
 def _docker_install_script(
     registry_mirror: DockerRegistryMirrorConfiguration | None,
+    apt_mirror: DockerAptMirrorConfiguration | None = None,
 ) -> str:
+    script_parts = [_apt_mirror_script(apt_mirror), _DOCKER_INSTALL_SCRIPT]
     if registry_mirror is None:
-        return _DOCKER_INSTALL_SCRIPT
+        return "\n".join(part for part in script_parts if part)
 
     daemon_config = json.dumps(
         {
@@ -211,8 +250,8 @@ def _docker_install_script(
         indent=2,
     )
     return "\n".join(
-        (
-            _DOCKER_INSTALL_SCRIPT,
+        tuple(part for part in script_parts if part)
+        + (
             "install -m 0755 -d /etc/docker",
             "cat > /etc/docker/daemon.json <<'TSW_DOCKER_DAEMON_JSON'",
             daemon_config,
@@ -221,6 +260,72 @@ def _docker_install_script(
             "docker info >/dev/null",
         )
     )
+
+
+def _apt_mirror_script(apt_mirror: DockerAptMirrorConfiguration | None) -> str:
+    if apt_mirror is None or not apt_mirror.configured:
+        return ""
+
+    lines = [
+        "install -m 0755 -d /etc/apt/sources.list.d /etc/apt/keyrings",
+    ]
+    if apt_mirror.ubuntu_archive_url:
+        security_url = apt_mirror.ubuntu_security_url or apt_mirror.ubuntu_archive_url
+        lines.extend(
+            (
+                ". /etc/os-release",
+                "if [ -f /etc/apt/sources.list ]; then",
+                "  mv /etc/apt/sources.list /etc/apt/sources.list.tsw-original",
+                "fi",
+                "cat > /etc/apt/sources.list.d/ubuntu.sources <<TSW_UBUNTU_APT_SOURCES",
+                "Types: deb",
+                f"URIs: {apt_mirror.ubuntu_archive_url}",
+                "Suites: ${VERSION_CODENAME} ${VERSION_CODENAME}-updates",
+                "Components: main restricted universe multiverse",
+                "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg",
+                "",
+                "Types: deb",
+                f"URIs: {security_url}",
+                "Suites: ${VERSION_CODENAME}-security",
+                "Components: main restricted universe multiverse",
+                "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg",
+                "TSW_UBUNTU_APT_SOURCES",
+            )
+        )
+    if apt_mirror.docker_gpg_url:
+        lines.extend(
+            (
+                "rm -f /etc/apt/keyrings/docker.asc",
+                f"curl -fsSL {_shell_quote(apt_mirror.docker_gpg_url)} -o /etc/apt/keyrings/docker.asc",
+            )
+        )
+    if apt_mirror.docker_apt_url:
+        lines.extend(
+            (
+                ". /etc/os-release",
+                f"TSW_DOCKER_APT_URL={_shell_quote(apt_mirror.docker_apt_url)}",
+                'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] ${TSW_DOCKER_APT_URL} ${VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list',
+            )
+        )
+    return "\n".join(lines)
+
+
+def _shell_quote(value: str) -> str:
+    return "'" + value.replace("'", "'\"'\"'") + "'"
+
+
+def _validate_lxc_reachable_url(label: str, value: str) -> None:
+    parsed_url = urlparse(value)
+    if parsed_url.scheme not in {"http", "https"}:
+        raise ValueError(f"{label} must use http or https.")
+    if not parsed_url.hostname:
+        raise ValueError(f"{label} must include a host.")
+    if parsed_url.hostname in {"127.0.0.1", "localhost", "::1"}:
+        raise ValueError(f"{label} must be reachable from inside LXC nodes.")
+    if parsed_url.username or parsed_url.password:
+        raise ValueError(f"{label} must not contain credentials.")
+    if parsed_url.query or parsed_url.fragment:
+        raise ValueError(f"{label} must not contain query or fragment parts.")
 
 
 def _readiness_from_result(

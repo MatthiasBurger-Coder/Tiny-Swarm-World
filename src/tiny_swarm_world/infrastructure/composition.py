@@ -129,6 +129,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeProvider,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime import (
+    DockerAptMirrorConfiguration,
     DockerRegistryMirrorConfiguration,
     LxcContainerDockerRuntime,
 )
@@ -240,6 +241,10 @@ LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
 DEFAULT_LXC_PROXY_LISTEN_ADDRESS = "0.0.0.0"
 DEFAULT_NEXUS_CACHE_CONTAINER = "tiny-swarm-nexus-cache"
 DEFAULT_NEXUS_CACHE_PROXY_PORT = "5001"
+LXC_UBUNTU_APT_MIRROR_ENVIRONMENT = "TSW_LXC_UBUNTU_APT_MIRROR"
+LXC_UBUNTU_SECURITY_APT_MIRROR_ENVIRONMENT = "TSW_LXC_UBUNTU_SECURITY_APT_MIRROR"
+LXC_DOCKER_APT_MIRROR_ENVIRONMENT = "TSW_LXC_DOCKER_APT_MIRROR"
+LXC_DOCKER_APT_GPG_URL_ENVIRONMENT = "TSW_LXC_DOCKER_APT_GPG_URL"
 NEXUS_DOCKER_HUB_PROXY_REPOSITORY_ENVIRONMENT = "TSW_NEXUS_DOCKER_HUB_PROXY_REPOSITORY"
 NEXUS_DOCKER_HUB_PROXY_PORT_ENVIRONMENT = "TSW_NEXUS_DOCKER_HUB_PROXY_PORT"
 DEFAULT_NEXUS_DOCKER_HUB_PROXY_REPOSITORY = "docker-hub-proxy"
@@ -609,6 +614,7 @@ def build_platform_services(
         runner=lxc_runner,
         allow_live_mutation=False if live_consent is None else live_consent.accepted,
         registry_mirror_configuration=_lxc_docker_registry_mirror_configuration,
+        apt_mirror_configuration=_lxc_docker_apt_mirror_configuration,
         docker_runtime_factory=LxcContainerDockerRuntime,
     )
     lxc_docker_install = LxcDockerInstallService(lxc_docker_runtime)
@@ -620,6 +626,7 @@ def build_platform_services(
             allow_live_mutation=False,
             allow_live_inspection=True,
             registry_mirror_configuration=_lxc_docker_registry_mirror_configuration,
+            apt_mirror_configuration=_lxc_docker_apt_mirror_configuration,
             docker_runtime_factory=LxcContainerDockerRuntime,
         )
     )
@@ -1647,6 +1654,22 @@ def _lxc_docker_registry_mirror_configuration() -> DockerRegistryMirrorConfigura
     if not mirror_url:
         return None
     return DockerRegistryMirrorConfiguration(mirror_url)
+
+
+def _lxc_docker_apt_mirror_configuration() -> DockerAptMirrorConfiguration | None:
+    configuration = DockerAptMirrorConfiguration(
+        ubuntu_archive_url=os.getenv(LXC_UBUNTU_APT_MIRROR_ENVIRONMENT, "").strip()
+        or None,
+        ubuntu_security_url=os.getenv(LXC_UBUNTU_SECURITY_APT_MIRROR_ENVIRONMENT, "").strip()
+        or None,
+        docker_apt_url=os.getenv(LXC_DOCKER_APT_MIRROR_ENVIRONMENT, "").strip()
+        or None,
+        docker_gpg_url=os.getenv(LXC_DOCKER_APT_GPG_URL_ENVIRONMENT, "").strip()
+        or None,
+    )
+    if not configuration.configured:
+        return None
+    return configuration
 
 
 def _auto_detect_nexus_cache_registry_mirror() -> str:
