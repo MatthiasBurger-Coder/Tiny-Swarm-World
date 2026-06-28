@@ -320,6 +320,41 @@ class TestInstallScript(unittest.TestCase):
             self.assertIn("fake headless command", (evidence_dir / "setup-run.log").read_text())
             self.assertFalse(fixture.recorded_live_confirmations())
 
+    def test_headless_install_can_run_with_fixed_secret_file(self):
+        fixed_secrets = _required_fixed_secret_environment()
+        fixed_value = fixed_secrets["TSW_NEXUS_ADMIN_PASSWORD"]
+        with _install_script_fixture(
+            extra_args=(
+                "--secrets-mode",
+                "fixed",
+                "--headless",
+                "--confirm-reset",
+                "--non-interactive-live-approval",
+            ),
+            fixed_secret_environment=fixed_secrets,
+        ) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(
+                [
+                    (
+                        "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
+                        "--live --approve-live --confirm RESET_TINY_SWARM_PLATFORM "
+                        "--service-profile service-access"
+                    ),
+                    (
+                        "PYTHONPATH=src python3 -m tiny_swarm_world setup run "
+                        "--live --approve-live --service-profile service-access"
+                    ),
+                ],
+                fixture.recorded_commands(),
+            )
+            context = (fixture.single_evidence_dir() / "context.txt").read_text()
+            self.assertIn("secrets_mode=fixed", context)
+            self.assertIn("TSW_NEXUS_ADMIN_PASSWORD", context)
+            self.assertNotIn(fixed_value, context)
+
     def test_install_disables_infisical_item_seed_by_default(self):
         with _install_script_fixture() as fixture:
             result = fixture.run()
@@ -353,9 +388,8 @@ class TestInstallScript(unittest.TestCase):
                 fixture.recorded_commands(),
             )
 
-    def test_wsl_path_does_not_use_native_linux_dependency_bootstrap(self):
+    def test_wsl_path_keeps_python3_when_dependency_bootstrap_is_skipped(self):
         with _install_script_fixture(
-            skip_native_dependency_bootstrap=False,
             extra_environment={
                 "TSW_INSTALL_TEST_HOST_RUNTIME": "wsl2",
                 "WSL_DISTRO_NAME": "Ubuntu",
@@ -406,6 +440,7 @@ class _InstallScriptFixture:
         extra_args: tuple[str, ...] = (),
         reset_confirmation: str = "RESET_TINY_SWARM_PLATFORM",
         secret_environment: dict[str, str] | None = None,
+        fixed_secret_environment: dict[str, str] | None = None,
         generate_secrets: bool = False,
         skip_native_dependency_bootstrap: bool = True,
         extra_environment: dict[str, str] | None = None,
@@ -415,6 +450,7 @@ class _InstallScriptFixture:
         self.extra_args = extra_args
         self.reset_confirmation = reset_confirmation
         self.secret_environment = secret_environment
+        self.fixed_secret_environment = fixed_secret_environment
         self.generate_secrets = generate_secrets
         self.skip_native_dependency_bootstrap = skip_native_dependency_bootstrap
         self.extra_environment = extra_environment or {}
@@ -518,6 +554,9 @@ class _InstallScriptFixture:
         _write_executable(self.fake_bin / "python3", _fake_python3())
         _write_executable(self.fake_bin / "grep", _fake_grep())
         _write_executable(self.fake_bin / "script", _fake_script())
+        if self.fixed_secret_environment is not None:
+            fixed_file = self.root / ".tiny-swarm-world" / "local" / "fixed-secrets.env"
+            _write_env_file(fixed_file, self.fixed_secret_environment)
 
 
 def _install_script_fixture(
@@ -526,6 +565,7 @@ def _install_script_fixture(
     extra_args: tuple[str, ...] = (),
     reset_confirmation: str = "RESET_TINY_SWARM_PLATFORM",
     secret_environment: dict[str, str] | None = None,
+    fixed_secret_environment: dict[str, str] | None = None,
     generate_secrets: bool = False,
     skip_native_dependency_bootstrap: bool = True,
     extra_environment: dict[str, str] | None = None,
@@ -536,6 +576,7 @@ def _install_script_fixture(
         extra_args=extra_args,
         reset_confirmation=reset_confirmation,
         secret_environment=secret_environment,
+        fixed_secret_environment=fixed_secret_environment,
         generate_secrets=generate_secrets,
         skip_native_dependency_bootstrap=skip_native_dependency_bootstrap,
         extra_environment=extra_environment,
@@ -562,6 +603,14 @@ def _required_secret_environment() -> dict[str, str]:
     }
 
 
+def _required_fixed_secret_environment() -> dict[str, str]:
+    return {
+        **_required_secret_environment(),
+        "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "tsw_traefik_tls_cert",
+        "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "tsw_traefik_tls_key",
+    }
+
+
 def _install_secret_environment_names() -> tuple[str, ...]:
     return (
         *tuple(_required_secret_environment()),
@@ -580,6 +629,14 @@ def _wsl_environment_names() -> tuple[str, ...]:
 def _write_executable(path: Path, content: str) -> None:
     path.write_text(content)
     path.chmod(0o755)
+
+
+def _write_env_file(path: Path, values: dict[str, str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(f"export {key}='{value}'\n" for key, value in values.items()),
+        encoding="utf-8",
+    )
 
 
 def _fake_grep() -> str:

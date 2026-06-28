@@ -776,14 +776,17 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         raise RuntimeError("Public container image pull failed.")
 
     def _load_host_cached_image(self, contract: ContainerImageContract) -> bool:
-        inspect_result = subprocess.run(
-            ["docker", "image", "inspect", contract.image_ref],
-            capture_output=True,
-            text=True,
-            check=False,
-            shell=False,
-            timeout=120,
-        )
+        try:
+            inspect_result = subprocess.run(
+                ["docker", "image", "inspect", contract.image_ref],
+                capture_output=True,
+                text=True,
+                check=False,
+                shell=False,
+                timeout=120,
+            )
+        except FileNotFoundError:
+            return False
         if inspect_result.returncode != 0:
             return False
 

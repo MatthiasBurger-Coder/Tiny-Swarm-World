@@ -611,8 +611,19 @@ def _print_setup_installation_summary(result: SetupWorkflowResult) -> None:
     print("Setup phase summary:")
     for phase in result.phase_results:
         print(f"- {phase.name}: {phase.status}")
+        _print_setup_phase_diagnostics(phase.result)
     print(f"Final setup status: {result.status.value}")
     print()
+
+
+def _print_setup_phase_diagnostics(phase_result: object) -> None:
+    if not isinstance(phase_result, PreflightResult) or not phase_result.failed_checks:
+        return
+    print("  Failed preflight checks:")
+    for check in phase_result.failed_checks:
+        print(f"  - {check.check_id}: {check.message}")
+        if check.remediation and check.remediation != "None":
+            print(f"    Action: {check.remediation}")
 
 
 if __name__ == "__main__":

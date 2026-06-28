@@ -6,7 +6,7 @@ services:
       - portainer_data:/data
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - traefik_ingress
+      - tiny_swarm_world_ingress
     ports:
       - target: 9000
         published: 10001
@@ -34,6 +34,6 @@ volumes:
   portainer_data:
 
 networks:
-  traefik_ingress:
-    name: traefik_ingress
+  tiny_swarm_world_ingress:
+    name: tiny_swarm_world_ingress
     external: true

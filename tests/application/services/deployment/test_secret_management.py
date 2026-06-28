@@ -6,7 +6,9 @@ from pathlib import Path
 from tests.support.sonar_safe_literals import operator_credential, sample_text
 
 from tiny_swarm_world.application.services.deployment.secret_management import (
+    FixedEnvSecretSource,
     InfisicalSecretSyncStep,
+    InfisicalSecretStore,
     SecretConsumptionVerifier,
     SecretDiscoveryStep,
     SecretEvidenceWriter,
@@ -14,6 +16,7 @@ from tiny_swarm_world.application.services.deployment.secret_management import (
     SecretManifestEntry,
     SecretManifestRenderer,
     SecretRedactor,
+    SecretSyncUseCase,
 )
 
 _PULSAR_COMPOSE_FIXTURE = Path("infra/config/compose/pulsar/docker-compose.yml")
@@ -181,6 +184,96 @@ class TestSecretManagement(unittest.TestCase):
             self.assertEqual([("tiny-swarm-world", "local")], cli.ensured)
             self.assertIn("TSW_API_SYNC_PASSWORD", cli.values)
 
+    def test_fixed_mode_syncs_complete_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixed_file = Path(directory) / "fixed.env"
+            fixed_file.write_text(
+                "export TSW_FIXED_ONE_PASSWORD='fixed-one'\n"
+                "export TSW_FIXED_TWO_PASSWORD='fixed-two'\n",
+                encoding="utf-8",
+            )
+            cli = _FakeInfisicalCli()
+            sync = InfisicalSecretSyncStep(
+                cli=cli,
+                manifest_entries=(
+                    _entry("TSW_FIXED_ONE_PASSWORD"),
+                    _entry("TSW_FIXED_TWO_PASSWORD"),
+                ),
+                fixed_env_file=fixed_file,
+                mode="fixed",
+            )
+
+            sync.run()
+            result = sync.verify()
+
+        self.assertEqual("fixed-one", cli.values["TSW_FIXED_ONE_PASSWORD"])
+        self.assertEqual("fixed-two", cli.values["TSW_FIXED_TWO_PASSWORD"])
+        self.assertEqual(
+            ("TSW_FIXED_ONE_PASSWORD", "TSW_FIXED_TWO_PASSWORD"),
+            sync.checked_secret_keys,
+        )
+        self.assertEqual("fixed", result.evidence["selected_mode"])
+        self.assertEqual("2", result.evidence["synchronized_entry_count"])
+        self.assertNotIn("fixed-one", str(result.evidence))
+
+    def test_fixed_mode_blocks_missing_key(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixed_file = Path(directory) / "fixed.env"
+            fixed_file.write_text(
+                "export TSW_PRESENT_PASSWORD='fixed-one'\n",
+                encoding="utf-8",
+            )
+            sync = InfisicalSecretSyncStep(
+                cli=_FakeInfisicalCli(),
+                manifest_entries=(
+                    _entry("TSW_PRESENT_PASSWORD"),
+                    _entry("TSW_MISSING_PASSWORD"),
+                ),
+                fixed_env_file=fixed_file,
+                mode="fixed",
+            )
+
+            with self.assertRaisesRegex(SecretManagementBlocker, "TSW_MISSING_PASSWORD"):
+                sync.run()
+
+    def test_fixed_mode_blocks_empty_value(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixed_file = Path(directory) / "fixed.env"
+            fixed_file.write_text(
+                "export TSW_EMPTY_PASSWORD=''\n",
+                encoding="utf-8",
+            )
+            sync = InfisicalSecretSyncStep(
+                cli=_FakeInfisicalCli(),
+                manifest_entries=(_entry("TSW_EMPTY_PASSWORD"),),
+                fixed_env_file=fixed_file,
+                mode="fixed",
+            )
+
+            with self.assertRaisesRegex(SecretManagementBlocker, "TSW_EMPTY_PASSWORD"):
+                sync.run()
+
+    def test_infisical_sync_failure_blocks_without_secret_value(self):
+        fixed_value = operator_credential()
+        with tempfile.TemporaryDirectory() as directory:
+            fixed_file = Path(directory) / "fixed.env"
+            fixed_file.write_text(
+                f"export TSW_FAILING_PASSWORD='{fixed_value}'\n",
+                encoding="utf-8",
+            )
+            sync = SecretSyncUseCase(
+                store=InfisicalSecretStore(_FailingInfisicalCli()),
+                manifest_entries=(_entry("TSW_FAILING_PASSWORD"),),
+                fixed_source=FixedEnvSecretSource(fixed_file),
+                mode="fixed",
+            )
+
+            with self.assertRaises(SecretManagementBlocker) as raised:
+                sync.run()
+
+        self.assertIn("TSW_FAILING_PASSWORD", str(raised.exception))
+        self.assertNotIn(fixed_value, str(raised.exception))
+
     def test_missing_required_external_secret_blocks(self):
         sync = InfisicalSecretSyncStep(
             cli=_FakeInfisicalCli(),
@@ -232,7 +325,10 @@ class TestSecretManagement(unittest.TestCase):
             writer.run()
 
             evidence = json.loads((root / "evidence" / "infisical-sync-result.json").read_text(encoding="utf-8"))
-            self.assertEqual("<redacted>", evidence["results"][0]["value"])
+            self.assertEqual("generated", evidence["mode"])
+            self.assertIn("TSW_POSTGRES_PASSWORD", evidence["checked_secret_keys"])
+            self.assertIn("TSW_POSTGRES_PASSWORD", evidence["synchronized_secret_keys"])
+            self.assertNotIn("value", evidence["results"][0])
             self.assertNotIn(operator_credential(), (root / "evidence" / "secret-consumption-report.md").read_text(encoding="utf-8"))
 
 
@@ -279,6 +375,11 @@ class _FakeInfisicalCli:
     def set_secret(self, key: str, value: str, *, project: str, environment: str) -> None:
         self.values[key] = value
         self.existing.add(key)
+
+
+class _FailingInfisicalCli(_FakeInfisicalCli):
+    def set_secret(self, key: str, value: str, *, project: str, environment: str) -> None:
+        raise RuntimeError(f"sync failed for {key}")
 
 
 if __name__ == "__main__":

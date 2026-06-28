@@ -20,6 +20,7 @@ from tiny_swarm_world.application.services.deployment import (
     DeploymentWorkflowStatus,
 )
 from tiny_swarm_world.application.services.setup import (
+    SetupPhaseResult,
     SetupWorkflowKind,
     SetupWorkflowResult,
     SetupWorkflowStatus,
@@ -34,6 +35,13 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProviderKind
+from tiny_swarm_world.domain.preflight import (
+    PreflightCategory,
+    PreflightCheck,
+    PreflightResult,
+    PreflightSeverity,
+    PreflightStatus,
+)
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ENTRYPOINT_PATH = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "__main__.py"
@@ -573,6 +581,43 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                         await entrypoint.main(["setup", "run", "--live"])
 
         run_setup.assert_awaited_once()
+
+    def test_setup_summary_prints_failed_preflight_checks(self):
+        result = SetupWorkflowResult(
+            kind=SetupWorkflowKind.RUN,
+            status=SetupWorkflowStatus.FAILED,
+            message="setup run stopped during phase 'preflight'.",
+            reason="phase 'preflight' returned failed",
+            executed=True,
+            phase_results=(
+                SetupPhaseResult(
+                    name="preflight",
+                    status="failed",
+                    result=PreflightResult(
+                        (
+                            PreflightCheck(
+                                check_id="DEPENDENCY-docker",
+                                category=PreflightCategory.DEPENDENCY,
+                                status=PreflightStatus.FAILED,
+                                severity=PreflightSeverity.MANDATORY,
+                                message="Dependency 'docker' is missing.",
+                                remediation="Install 'docker' or make it available on PATH.",
+                            ),
+                        )
+                    ),
+                ),
+            ),
+        )
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            entrypoint._print_setup_installation_summary(result)
+
+        rendered = output.getvalue()
+        self.assertIn("- preflight: failed", rendered)
+        self.assertIn("Failed preflight checks:", rendered)
+        self.assertIn("DEPENDENCY-docker: Dependency 'docker' is missing.", rendered)
+        self.assertIn("Action: Install 'docker' or make it available on PATH.", rendered)
 
     async def test_static_preflight_runs_without_live_consent(self):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))

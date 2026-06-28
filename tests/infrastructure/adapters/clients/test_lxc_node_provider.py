@@ -80,7 +80,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
                     (
                         "incus",
                         "launch",
-                        "ubuntu:24.04",
+                        "images:ubuntu/24.04",
                         "swarm-manager",
                         "--profile",
                         "docker-swarm",
@@ -136,7 +136,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
                     (
                         "incus",
                         "launch",
-                        "ubuntu:24.04",
+                        "images:ubuntu/24.04",
                         "swarm-manager",
                         "--profile",
                         "docker-swarm",
@@ -279,7 +279,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
                     (
                         "incus",
                         "launch",
-                        "ubuntu:24.04",
+                        "images:ubuntu/24.04",
                         "swarm-manager",
                         "--profile",
                         "docker-swarm",
@@ -1580,7 +1580,11 @@ def _safe_lifecycle_profile_set(argv: tuple[str, ...]) -> bool:
 def _safe_lifecycle_image_info(argv: tuple[str, ...]) -> bool:
     if argv[:3] not in {("incus", "image", "info"), ("lxc", "image", "info")}:
         return False
-    if len(argv) != 4 or argv[3] != "ubuntu:24.04":
+    expected_image = {
+        "incus": "images:ubuntu/24.04",
+        "lxc": "ubuntu:24.04",
+    }[argv[0]]
+    if len(argv) != 4 or argv[3] != expected_image:
         raise AssertionError(f"unexpected provider image info was called: {argv!r}")
     return True
 

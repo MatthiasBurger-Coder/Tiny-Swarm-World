@@ -1139,6 +1139,26 @@ class TestComposition(unittest.TestCase):
             composition.EnsureSwarmServiceReadiness,
         )
 
+    def test_build_deployment_services_forwards_fixed_secret_mode_to_sync_step(self):
+        env = {
+            **_required_infisical_bootstrap_env(),
+            "TSW_SECRETS_MODE": "fixed",
+            "TSW_FIXED_SECRET_ENV_FILE": ".tiny-swarm-world/local/fixed-secrets.env",
+        }
+        with patch.dict("os.environ", env, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                    service_profile=ServiceStackProfile.SERVICE_ACCESS,
+                )
+
+        sync_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.verification_target_id == "deployment:infisical-sync"
+        )
+        self.assertEqual("fixed", sync_step.mode)
+
     def test_build_deployment_services_uses_configurable_infisical_readiness_window(self):
         env = {
             **_required_infisical_bootstrap_env(),
@@ -1987,6 +2007,20 @@ class TestComposition(unittest.TestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual("not_required", result.evidence["classification"])
+
+    def test_composed_wsl_socat_expose_skips_missing_optional_socat(self):
+        services = composition.build_platform_services(
+            live_consent=LiveConsent(live_flag=True, confirmed=True)
+        )
+        socat_step = services.workflows.expose.steps[1]
+        socat_step.os_type = composition.OsTypes.WSL_LINUX
+
+        with patch.object(composition.shutil, "which", return_value=None):
+            result = asyncio.run(socat_step.run())
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("socat_missing_skipped", result.evidence["classification"])
+        self.assertEqual("18", result.evidence["planned_forward_count"])
 
     def test_composed_lxc_proxy_drift_repair_uses_manager_profile_scope(self):
         services = composition.build_platform_services()

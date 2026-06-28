@@ -7,7 +7,7 @@ services:
     volumes:
       - jenkins_home:/var/lib/jenkins
     networks:
-      - traefik_ingress
+      - tiny_swarm_world_ingress
     ports:
       - target: 8080
         published: 11080
@@ -26,6 +26,6 @@ volumes:
   jenkins_home:
 
 networks:
-  traefik_ingress:
-    name: traefik_ingress
+  tiny_swarm_world_ingress:
+    name: tiny_swarm_world_ingress
     external: true

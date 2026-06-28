@@ -535,14 +535,14 @@ services:
         self.assertIn("healthcheck", pulsar)
         self.assertIn("http://localhost:8080/admin/v2/clusters", pulsar["healthcheck"]["test"][-1])
         self.assertIn("TSW_PULSAR_ADMIN_TOKEN", pulsar["healthcheck"]["test"][-1])
-        self.assertEqual(["service_access_link", "traefik_ingress"], pulsar["networks"])
+        self.assertEqual(["service_access_link", "tiny_swarm_world_ingress"], pulsar["networks"])
         self.assertEqual(
             {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
         )
         self.assertEqual(
-            {"name": "traefik_ingress", "external": True},
-            compose_data["networks"]["traefik_ingress"],
+            {"name": "tiny_swarm_world_ingress", "external": True},
+            compose_data["networks"]["tiny_swarm_world_ingress"],
         )
         self.assertEqual(
             ["node.role == manager"],
@@ -564,7 +564,7 @@ services:
             ],
             pulsar_manager["ports"],
         )
-        self.assertEqual(["service_access_link", "traefik_ingress"], pulsar_manager["networks"])
+        self.assertEqual(["service_access_link", "tiny_swarm_world_ingress"], pulsar_manager["networks"])
 
         bootstrap = compose_data["services"]["pulsar-manager-bootstrap"]
         self.assertEqual(
@@ -771,7 +771,7 @@ services:
         self.assertIn("--entrypoints.web.http.redirections.entrypoint.to=websecure", command)
         self.assertIn("--providers.swarm=true", command)
         self.assertIn("--providers.swarm.exposedByDefault=false", command)
-        self.assertIn("--providers.swarm.network=traefik_ingress", command)
+        self.assertIn("--providers.swarm.network=tiny_swarm_world_ingress", command)
         self.assertIn("--providers.file.filename=/etc/traefik/dynamic/tls.yml", command)
         self.assertNotIn("--api.insecure=true", compose_content)
         self.assertEqual(
@@ -782,8 +782,8 @@ services:
             traefik["ports"],
         )
         self.assertEqual(
-            {"name": "traefik_ingress", "external": True},
-            compose_data["networks"]["traefik_ingress"],
+            {"name": "tiny_swarm_world_ingress", "external": True},
+            compose_data["networks"]["tiny_swarm_world_ingress"],
         )
         self.assertEqual(
             "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/traefik/dynamic/tls.yml",
@@ -840,13 +840,13 @@ services:
                 service = compose_data["services"][service_name]
                 labels = set(service["deploy"]["labels"])
 
-                self.assertIn("traefik_ingress", service["networks"])
+                self.assertIn("tiny_swarm_world_ingress", service["networks"])
                 self.assertEqual(
-                    {"name": "traefik_ingress", "external": True},
-                    compose_data["networks"]["traefik_ingress"],
+                    {"name": "tiny_swarm_world_ingress", "external": True},
+                    compose_data["networks"]["tiny_swarm_world_ingress"],
                 )
                 self.assertIn("traefik.enable=true", labels)
-                self.assertIn("traefik.swarm.network=traefik_ingress", labels)
+                self.assertIn("traefik.swarm.network=tiny_swarm_world_ingress", labels)
                 router_name = service_name.removesuffix("-dashboard").removesuffix("-nginx")
                 self.assertIn(
                     f"traefik.http.routers.{router_name}.rule=Host(`{hostname}`)",

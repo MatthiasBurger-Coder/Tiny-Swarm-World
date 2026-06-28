@@ -36,7 +36,11 @@ from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 DEFAULT_LXC_LAUNCH_TIMEOUT_SECONDS = 300.0
 DEFAULT_LXC_START_TIMEOUT_SECONDS = 60.0
 DEFAULT_LXC_TEARDOWN_TIMEOUT_SECONDS = 300.0
-DEFAULT_LXC_IMAGE_REFERENCES = {"ubuntu-24.04": "ubuntu:24.04"}
+DEFAULT_LXC_IMAGE_REFERENCES = {
+    "incus:ubuntu-24.04": "images:ubuntu/24.04",
+    "lxd:ubuntu-24.04": "ubuntu:24.04",
+    "ubuntu-24.04": "ubuntu:24.04",
+}
 MANAGED_MARKER = "user.tiny_swarm_world.managed"
 NODE_MARKER = "user.tiny_swarm_world.node"
 IMAGE_ALIAS_MARKER = "user.tiny_swarm_world.image_alias"
@@ -308,7 +312,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         result = await self.runner.run(
             _image_info_args(
                 backend,
-                _image_ref(node_config.image_alias, self.image_references),
+                _image_ref(node_config.image_alias, self.image_references, backend),
             ),
             float(config.verification_metadata.readiness_timeout_seconds),
         )
@@ -1271,7 +1275,7 @@ def _launch_args(
     args: list[str] = [
         _BACKEND_CLI[backend],
         "launch",
-        _image_ref(node_config.image_alias, image_references),
+        _image_ref(node_config.image_alias, image_references, backend),
         node_config.spec.name,
     ]
     if provider_resource_resolution is not None:
@@ -1301,7 +1305,15 @@ def _launch_args(
     return tuple(args)
 
 
-def _image_ref(image_alias: str, image_references: Mapping[str, str]) -> str:
+def _image_ref(
+    image_alias: str,
+    image_references: Mapping[str, str],
+    backend: ManagedLxcBackend | None = None,
+) -> str:
+    if backend is not None:
+        backend_key = f"{backend.value}:{image_alias}"
+        if backend_key in image_references:
+            return image_references[backend_key]
     return image_references.get(image_alias, image_alias)
 
 
@@ -1607,7 +1619,7 @@ def _launch_failure_evidence(
     backend: ManagedLxcBackend,
     image_references: Mapping[str, str],
 ) -> dict[str, str]:
-    provider_image_ref = _image_ref(node_config.image_alias, image_references)
+    provider_image_ref = _image_ref(node_config.image_alias, image_references, backend)
     evidence = {
         "failure_reason": _classify_provider_failure(result),
         "operator_action": _operator_action_for_provider_failure(result),

@@ -36,7 +36,9 @@ from tiny_swarm_world.application.services.deployment.infisical_silent_install i
     redact_mapping,
 )
 from tiny_swarm_world.application.services.deployment.secret_management import (
+    FixedEnvSecretSource,
     InfisicalBootstrapStep,
+    InfisicalSecretStore,
     InfisicalSecretSyncStep,
     SecretConsumptionVerifier,
     SecretDiscoveryStep,
@@ -44,6 +46,7 @@ from tiny_swarm_world.application.services.deployment.secret_management import (
     SecretManagementBlocker,
     SecretManifestRenderer,
     SecretRedactor,
+    SecretSyncUseCase,
 )
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
     build_default_service_stack_steps,
@@ -84,9 +87,11 @@ __all__ = [
     "EnsureSonarqubeAdminAccess",
     "EnsureSwarmStack",
     "EnsureSwarmServiceReadiness",
+    "FixedEnvSecretSource",
     "InfisicalBootstrapStep",
     "InfisicalInstallBlocker",
     "InfisicalSecretItem",
+    "InfisicalSecretStore",
     "InfisicalSecretSyncStep",
     "InfisicalSilentInstallConfig",
     "SecretConsumptionVerifier",
@@ -95,6 +100,7 @@ __all__ = [
     "SecretManagementBlocker",
     "SecretManifestRenderer",
     "SecretRedactor",
+    "SecretSyncUseCase",
     "VerifyExternalSwarmInput",
     "VerifySwarmServiceReadiness",
     "ValidationPlan",

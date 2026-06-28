@@ -12,19 +12,19 @@ Install these tools before running project automation:
 * Git
 * Incus or LXD for the default `lxc_native` node provider
 * WSL2 with systemd, cgroup, and user-namespace support when running under WSL
-* Docker CLI access from the shell that will run the scripts
 * `socat`, when WSL port forwarding is needed
 
 Optional tools for service preparation:
 
 * `curl`
 * `jq`
+* Docker CLI access, only when using the optional host-side Nexus Docker cache
 
 The default `service-access` profile pulls public base images, including the
-Infisical stack image, through the Docker daemon. On native Linux, repeated
+Infisical stack image, through the managed node Docker daemon. Repeated
 fresh-install runs can hit Docker Hub rate limits. Use Docker Hub
-authentication or start the local host-side Nexus Docker cache before running
-`install.sh`:
+authentication on the managed node path or start the optional local host-side
+Nexus Docker cache before running `install.sh`:
 
 [source,bash]
 ----
@@ -219,7 +219,7 @@ For repeatable Linux or WSL operator runs with local evidence capture, use:
 `install.sh` is intentionally a minimal Linux/WSL bootstrapper. The
 authoritative installer policy is `python3 -m tiny_swarm_world.installer`:
 that Python entry point owns secret handling, host-runtime detection, evidence
-layout, reset/setup sequencing, native Linux dependency bootstrap, and headless
+layout, reset/setup sequencing, dependency bootstrap, and headless
 execution. The shell wrapper only verifies the repository shape and delegates.
 
 For deliberate test-system automation, the wrapper confirmation prompt can be
@@ -275,10 +275,11 @@ copy the needed keys into `.tiny-swarm-world/local/live-installation.env` or
 export them in the process environment. Process environment values override
 the local file, and preflight validates the resulting contract before setup
 continues.
-On native Linux, if the runtime Python dependencies from `requirements.txt`
+On Linux or WSL, if the runtime Python dependencies from `requirements.txt`
 are not importable, `install.sh` creates an ignored local environment at
 `.tiny-swarm-world/install-venv` and uses its Python interpreter for the reset
-and setup commands. WSL keeps the existing `python3` execution path.
+and setup commands. WSL keeps the existing `python3` execution path when the
+required imports are already available.
 If native Linux already lists the current user in the `lxd` group but the
 current shell session has not activated that group yet, `install.sh` runs the
 live reset and setup commands through `sg lxd` so LXD socket access works

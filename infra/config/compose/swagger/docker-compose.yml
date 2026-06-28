@@ -53,7 +53,7 @@ services:
       swagger_link:
         aliases:
           - local.swagger.api
-      traefik_ingress:
+      tiny_swarm_world_ingress:
     deploy:
       replicas: 1
       placement:
@@ -61,6 +61,6 @@ services:
           - node.role == manager
 networks:
   swagger_link:
-  traefik_ingress:
-    name: traefik_ingress
+  tiny_swarm_world_ingress:
+    name: tiny_swarm_world_ingress
     external: true

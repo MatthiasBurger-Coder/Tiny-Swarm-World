@@ -24,6 +24,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_re
 
 
 STACK_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
+TRAEFIK_INGRESS_NETWORK_NAME = "tiny_swarm_world_ingress"
 _YAML = YAML(typ="safe")
 
 
@@ -260,8 +261,8 @@ def _resolve_traefik_route_labels(
         if route is None:
             continue
         networks = service_payload.setdefault("networks", [])
-        if isinstance(networks, list) and "traefik_ingress" not in networks:
-            networks.append("traefik_ingress")
+        if isinstance(networks, list) and TRAEFIK_INGRESS_NETWORK_NAME not in networks:
+            networks.append(TRAEFIK_INGRESS_NETWORK_NAME)
             mutated = True
         deploy = service_payload.setdefault("deploy", {})
         if not isinstance(deploy, dict):
@@ -292,10 +293,13 @@ def _resolve_traefik_route_labels(
     if not mutated:
         return compose_content
     mutable_payload = cast(dict[str, Any], payload)
-    if "traefik_ingress" not in mutable_payload.get("networks", {}):
+    if TRAEFIK_INGRESS_NETWORK_NAME not in mutable_payload.get("networks", {}):
         networks = mutable_payload.setdefault("networks", {})
         if isinstance(networks, dict):
-            networks["traefik_ingress"] = {"name": "traefik_ingress", "external": True}
+            networks[TRAEFIK_INGRESS_NETWORK_NAME] = {
+                "name": TRAEFIK_INGRESS_NETWORK_NAME,
+                "external": True,
+            }
     sink = StringIO()
     yaml = YAML()
     yaml.default_flow_style = False
@@ -346,7 +350,7 @@ def _resolve_service_access_dashboard_config(
 def _traefik_labels_for_route(route: DesiredHttpsRoute, router_name: str) -> list[str]:
     return [
         "traefik.enable=true",
-        "traefik.swarm.network=traefik_ingress",
+        f"traefik.swarm.network={TRAEFIK_INGRESS_NETWORK_NAME}",
         f"traefik.http.routers.{router_name}.rule=Host(`{route.hostname}`)",
         f"traefik.http.routers.{router_name}.entrypoints=websecure",
         f"traefik.http.routers.{router_name}.tls=true",

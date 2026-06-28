@@ -1,4 +1,5 @@
 import stat
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,6 +14,7 @@ class TestInstaller(unittest.TestCase):
 
         self.assertEqual("service-access", options.service_profile)
         self.assertTrue(options.generate_secrets)
+        self.assertEqual("generated", options.secrets_mode)
         self.assertFalse(options.confirm_reset)
         self.assertFalse(options.non_interactive_live_approval)
         self.assertFalse(options.headless)
@@ -23,6 +25,8 @@ class TestInstaller(unittest.TestCase):
                 "--service-profile",
                 "default",
                 "--no-generate-secrets",
+                "--secrets-mode",
+                "fixed",
                 "--confirm-reset",
                 "--non-interactive-live-approval",
                 "--headless",
@@ -31,6 +35,7 @@ class TestInstaller(unittest.TestCase):
 
         self.assertEqual("default", options.service_profile)
         self.assertFalse(options.generate_secrets)
+        self.assertEqual("fixed", options.secrets_mode)
         self.assertTrue(options.confirm_reset)
         self.assertTrue(options.non_interactive_live_approval)
         self.assertTrue(options.headless)
@@ -52,6 +57,60 @@ class TestInstaller(unittest.TestCase):
 
         self.assertEqual("wsl2", runtime.name)
         self.assertEqual("kernel_signal", runtime.detection_source)
+
+    def test_ensure_python_environment_keeps_wsl_python_when_imports_available(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            paths = installer.InstallerPaths(
+                secret_env_file=Path(tempdir) / "local.env",
+                fixed_secret_env_file=Path(tempdir) / "fixed.env",
+                infisical_secret_env_file=Path(tempdir) / "infisical.env",
+                generated_secret_env_file=Path(tempdir) / "generated.env",
+                native_linux_venv=Path(tempdir) / "install-venv",
+            )
+
+            with patch.object(installer, "_python_imports_available", return_value=True):
+                python_bin = installer.ensure_python_environment(
+                    installer.HostRuntime("wsl2", "test"),
+                    paths,
+                    {},
+                )
+
+        self.assertEqual("python3", python_bin)
+
+    def test_ensure_python_environment_bootstraps_wsl_when_imports_are_missing(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            paths = installer.InstallerPaths(
+                secret_env_file=Path(tempdir) / "local.env",
+                fixed_secret_env_file=Path(tempdir) / "fixed.env",
+                infisical_secret_env_file=Path(tempdir) / "infisical.env",
+                generated_secret_env_file=Path(tempdir) / "generated.env",
+                native_linux_venv=Path(tempdir) / "install-venv",
+            )
+            venv_python = paths.native_linux_venv / "bin" / "python"
+
+            def fake_imports_available(python_bin: str, env: object) -> bool:
+                return python_bin == venv_python.as_posix()
+
+            def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+                if command[:3] == ["python3", "-m", "venv"]:
+                    venv_python.parent.mkdir(parents=True)
+                    venv_python.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+                    return subprocess.CompletedProcess(command, 0)
+                if command[:3] == [venv_python.as_posix(), "-m", "pip"]:
+                    return subprocess.CompletedProcess(command, 0)
+                return subprocess.CompletedProcess(command, 99)
+
+            with (
+                patch.object(installer, "_python_imports_available", side_effect=fake_imports_available),
+                patch.object(installer.subprocess, "run", side_effect=fake_run),
+            ):
+                python_bin = installer.ensure_python_environment(
+                    installer.HostRuntime("wsl2", "test"),
+                    paths,
+                    {},
+                )
+
+        self.assertEqual(venv_python.as_posix(), python_bin)
 
     def test_load_export_file_parses_shell_quoted_values(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -144,10 +203,33 @@ class TestInstaller(unittest.TestCase):
             all(entry.source in installer.INSTALLER_REQUIRED_SOURCES for entry in entries)
         )
 
+    def test_required_installer_secret_entries_can_include_external_required_keys(self):
+        entries = installer._required_installer_secret_entries(
+            Path("infra/config/secrets/infisical-secrets.yaml"),
+            sources=None,
+        )
+        keys = {entry.key for entry in entries}
+
+        self.assertIn("TSW_TRAEFIK_TLS_CERT_SECRET_NAME", keys)
+        self.assertIn("TSW_TRAEFIK_TLS_KEY_SECRET_NAME", keys)
+
+    def test_fixed_installer_secret_values_rejects_missing_key(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            fixed_file = Path(tempdir) / "fixed.env"
+            fixed_file.write_text("export TSW_PRESENT_PASSWORD='fixed'\n", encoding="utf-8")
+            entries = (
+                installer.InstallerSecretEntry("TSW_PRESENT_PASSWORD", "generated_local_secret", True),
+                installer.InstallerSecretEntry("TSW_MISSING_PASSWORD", "generated_local_secret", True),
+            )
+
+            with self.assertRaisesRegex(installer.InstallerError, "TSW_MISSING_PASSWORD"):
+                installer._fixed_installer_secret_values(fixed_file, entries)
+
     def test_confirm_reset_reports_missing_noninteractive_input(self):
         options = installer.InstallerOptions(
             service_profile="service-access",
             generate_secrets=False,
+            secrets_mode="generated",
             confirm_reset=False,
             non_interactive_live_approval=False,
             headless=False,

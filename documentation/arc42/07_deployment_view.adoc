@@ -72,7 +72,7 @@ The active routing baseline is Traefik-backed local ingress:
 * Traefik owns the public manager profile proxy set on published ports `80`
   and `443` for the service-access setup profile;
 * service stack routes are declared with Traefik Swarm labels and the external
-  `traefik_ingress` network;
+  `tiny_swarm_world_ingress` network;
 * the service-access stack remains the dashboard stack and may publish its own
   NGINX compatibility ports from compose metadata;
 * the Swagger/NGINX stack uses published port `8084`;
@@ -130,7 +130,7 @@ flag.
 
 The Jenkins, Nexus, Portainer, SonarQube, Swagger, Pulsar Manager, Pulsar
 Admin API, Service Access, and Infisical stack definitions now carry Traefik
-Swarm route labels and join the external `traefik_ingress` network where an
+Swarm route labels and join the external `tiny_swarm_world_ingress` network where an
 HTTP route is configured. The Service Access dashboard links prefer
 Traefik-routed hostnames. Direct localhost ports remain compatibility,
 diagnostic, fallback, rollback, or transitional access. This is committed

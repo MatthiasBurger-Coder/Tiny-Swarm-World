@@ -217,9 +217,13 @@ from tiny_swarm_world.infrastructure.composition_models import (
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
+DEFAULT_FIXED_SECRET_ENV_FILE = Path(".tiny-swarm-world/local/fixed-secrets.env")
 DEFAULT_PORTAINER_API_URL = "http://localhost:10001"
 PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT = "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS"
 DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS = 180
+SECRETS_MODE_ENVIRONMENT = "TSW_SECRETS_MODE"
+FIXED_SECRET_ENV_FILE_ENVIRONMENT = "TSW_FIXED_SECRET_ENV_FILE"
+SECRET_MODES = ("generated", "fixed", "infisical")
 SEED_INFISICAL_ITEMS_ENVIRONMENT = "TSW_SEED_INFISICAL_ITEMS"
 INFISICAL_LOGIN_EMAIL_ENVIRONMENT = "TSW_INFISICAL_LOGIN_EMAIL"
 INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"
@@ -387,13 +391,14 @@ class _WslSocatExposeStep:
         if shutil.which("socat") is None:
             return VerificationResult(
                 target_id=self.verification_target_id,
-                status=VerificationStatus.BLOCKED,
-                message="WSL port exposure requires the configured forwarding executable.",
+                status=VerificationStatus.VERIFIED,
+                message="Optional WSL host port forwarding was skipped.",
                 evidence={
-                    "phase": "pre_apply",
-                    "classification": "socat_missing",
+                    "phase": "verify",
+                    "classification": "socat_missing_skipped",
                     "os_type": str(getattr(os_type, "value", os_type)),
-                    "remediation_hint": "Install the WSL forwarding tool and rerun platform expose.",
+                    "planned_forward_count": str(len(commands)),
+                    "remediation_hint": "Install the optional WSL forwarding tool and rerun platform expose when Windows-side forwarding is required.",
                 },
             )
 
@@ -1034,6 +1039,8 @@ def build_lxc_deployment_services(
     infisical_secret_sync_step = InfisicalSecretSyncStep(
         cli=infisical_cli_client,
         manifest_entries=secret_manifest_entries,
+        fixed_env_file=_fixed_secret_env_file(),
+        mode=_secret_mode(),  # type: ignore[arg-type]
     )
     secret_consumption_step = SecretConsumptionVerifier(
         manifest_entries=secret_manifest_entries,
@@ -1585,6 +1592,22 @@ def _linux_text_file_equals(path: Path, expected: str) -> bool:
 
 def _operator_config_value(name: str, default: str) -> str:
     return os.environ.get(name) or default
+
+
+def _secret_mode() -> str:
+    mode = _operator_config_value(SECRETS_MODE_ENVIRONMENT, "generated").strip()
+    if mode not in SECRET_MODES:
+        raise ValueError("TSW_SECRETS_MODE must be one of generated, fixed, or infisical.")
+    return mode
+
+
+def _fixed_secret_env_file() -> Path:
+    return Path(
+        _operator_config_value(
+            FIXED_SECRET_ENV_FILE_ENVIRONMENT,
+            DEFAULT_FIXED_SECRET_ENV_FILE.as_posix(),
+        )
+    )
 
 
 def _operator_config_int(name: str, default: int, *, minimum: int) -> int:

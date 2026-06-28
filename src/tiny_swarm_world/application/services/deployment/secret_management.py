@@ -23,12 +23,15 @@ SecretClassification = Literal[
     "blocker",
 ]
 SecretPolicy = Literal["keep_existing", "rotate"]
+SecretMode = Literal["generated", "fixed", "infisical"]
 
 REDACTED = "<redacted>"
 DEFAULT_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
+DEFAULT_FIXED_LOCAL_ENV = Path(".tiny-swarm-world/local/fixed-secrets.env")
 DEFAULT_BOOTSTRAP_LOCAL_ENV = Path(".tiny-swarm/secrets/bootstrap.local.env")
 DEFAULT_GENERATED_LOCAL_ENV = Path(".tiny-swarm/secrets/generated.local.env")
 DEFAULT_EVIDENCE_DIR = Path(".tiny-swarm/evidence/secrets")
+SECRET_MODES: tuple[SecretMode, ...] = ("generated", "fixed", "infisical")
 SECRET_KEY_PATTERN = re.compile(r"\b[A-Z][A-Z0-9_]*(?:PASSWORD|TOKEN|SECRET|API_KEY|CREDENTIAL|HTPASSWD|KEY)[A-Z0-9_]*\b")
 SECRET_ASSIGNMENT_PATTERN = re.compile(
     r"(?P<key>[a-z_][a-z0-9_-]*)\s*[:=]\s*(?P<value>[^\n#]+)",
@@ -100,6 +103,42 @@ class SecretManagementBlocker(RuntimeError):
     def __init__(self, classification: str, message: str):
         super().__init__(message)
         self.classification = classification
+
+
+class FixedEnvSecretSource:
+    def __init__(self, env_file: Path = DEFAULT_FIXED_LOCAL_ENV) -> None:
+        self.env_file = env_file
+
+    def values_for(self, manifest_entries: tuple[SecretManifestEntry, ...]) -> dict[str, str]:
+        if not self.env_file.exists():
+            raise SecretManagementBlocker(
+                "fixed_secret_file_missing",
+                f"Fixed secret file is missing: {self.env_file.as_posix()}",
+            )
+        values = _read_env_file(self.env_file)
+        entries_by_key = {entry.key: entry for entry in manifest_entries}
+        required_keys = tuple(entry.key for entry in manifest_entries if entry.required)
+        missing = [key for key in required_keys if key not in values]
+        if missing:
+            raise SecretManagementBlocker("fixed_secret_key_missing", f"Fixed secret key is missing: {missing[0]}")
+        empty = [key for key, value in values.items() if key in entries_by_key and not value.strip()]
+        if empty:
+            raise SecretManagementBlocker("fixed_secret_value_empty", f"Fixed secret value is empty: {empty[0]}")
+        return {key: value for key, value in values.items() if key in entries_by_key}
+
+
+class InfisicalSecretStore:
+    def __init__(self, cli: PortInfisicalCli) -> None:
+        self.cli = cli
+
+    def ensure_scope(self, project: str, environment: str) -> None:
+        self.cli.ensure_project_environment(project, environment)
+
+    def secret_exists(self, key: str, *, project: str, environment: str) -> bool:
+        return self.cli.secret_exists(key, project=project, environment=environment)
+
+    def set_secret(self, key: str, value: str, *, project: str, environment: str) -> None:
+        self.cli.set_secret(key, value, project=project, environment=environment)
 
 
 class SecretRedactor:
@@ -206,25 +245,74 @@ class InfisicalSecretSyncStep:
         cli: PortInfisicalCli,
         manifest_entries: tuple[SecretManifestEntry, ...],
         generated_local_env: Path = DEFAULT_GENERATED_LOCAL_ENV,
+        fixed_env_file: Path = DEFAULT_FIXED_LOCAL_ENV,
+        mode: SecretMode = "generated",
         project: str = "tiny-swarm-world",
         environment: str = "local",
     ) -> None:
-        self.cli = cli
+        self.use_case = SecretSyncUseCase(
+            store=InfisicalSecretStore(cli),
+            manifest_entries=manifest_entries,
+            generated_local_env=generated_local_env,
+            fixed_source=FixedEnvSecretSource(fixed_env_file),
+            mode=mode,
+            project=project,
+            environment=environment,
+        )
+        self.results: list[dict[str, str]] = []
+        self.mode = mode
+        self.checked_secret_keys: tuple[str, ...] = ()
+        self.synchronized_secret_keys: tuple[str, ...] = ()
+
+    def run(self) -> None:
+        self.use_case.run()
+        self.results = self.use_case.results
+        self.checked_secret_keys = self.use_case.checked_secret_keys
+        self.synchronized_secret_keys = self.use_case.synchronized_secret_keys
+
+    def verify(self) -> VerificationResult:
+        return self.use_case.verify()
+
+
+class SecretSyncUseCase:
+    def __init__(
+        self,
+        *,
+        store: InfisicalSecretStore,
+        manifest_entries: tuple[SecretManifestEntry, ...],
+        generated_local_env: Path = DEFAULT_GENERATED_LOCAL_ENV,
+        fixed_source: FixedEnvSecretSource | None = None,
+        mode: SecretMode = "generated",
+        project: str = "tiny-swarm-world",
+        environment: str = "local",
+    ) -> None:
+        if mode not in SECRET_MODES:
+            raise ValueError(f"Unsupported secret mode: {mode}")
+        self.store = store
         self.manifest_entries = manifest_entries
         self.generated_local_env = generated_local_env
+        self.fixed_source = fixed_source or FixedEnvSecretSource()
+        self.mode = mode
         self.project = project
         self.environment = environment
         self.results: list[dict[str, str]] = []
+        self.checked_secret_keys: tuple[str, ...] = ()
+        self.synchronized_secret_keys: tuple[str, ...] = ()
 
     def run(self) -> None:
-        self.cli.ensure_project_environment(self.project, self.environment)
-        generated_values = _read_env_file(self.generated_local_env)
-        for entry in self.manifest_entries:
-            value = self._entry_value(entry, generated_values)
-            if entry.required and not value:
-                raise SecretManagementBlocker("blocker", f"Required secret value is missing: {entry.key}")
-            self._sync_entry(entry, value, generated_values)
-        _write_env_file(self.generated_local_env, generated_values)
+        try:
+            self.store.ensure_scope(self.project, self.environment)
+        except Exception as exc:
+            raise SecretManagementBlocker(
+                "infisical_sync_failed",
+                "Infisical secret sync failed while preparing scope.",
+            ) from exc
+        if self.mode == "fixed":
+            self._run_fixed()
+        elif self.mode == "infisical":
+            self._run_infisical_only()
+        else:
+            self._run_generated()
 
     def _entry_value(self, entry: SecretManifestEntry, generated_values: dict[str, str]) -> str:
         value = os.environ.get(entry.key) or generated_values.get(entry.key, "")
@@ -235,6 +323,51 @@ class InfisicalSecretSyncStep:
             generated_values.setdefault(entry.key, value)
         return value
 
+    def _run_generated(self) -> None:
+        generated_values = _read_env_file(self.generated_local_env)
+        self.checked_secret_keys = tuple(entry.key for entry in self.manifest_entries if entry.required)
+        for entry in self.manifest_entries:
+            value = self._entry_value(entry, generated_values)
+            if entry.required and not value:
+                raise SecretManagementBlocker("blocker", f"Required secret value is missing: {entry.key}")
+            self._sync_entry(entry, value, generated_values)
+        _write_env_file(self.generated_local_env, generated_values)
+        self.synchronized_secret_keys = tuple(
+            result["key"]
+            for result in self.results
+            if result["sync_status"] in {"created", "updated", "kept_existing"}
+        )
+
+    def _run_fixed(self) -> None:
+        fixed_values = self.fixed_source.values_for(self.manifest_entries)
+        self.checked_secret_keys = tuple(entry.key for entry in self.manifest_entries if entry.required)
+        for entry in self.manifest_entries:
+            value = fixed_values.get(entry.key, "")
+            if not value:
+                self.results.append(_sync_result(entry, "skipped_missing_optional"))
+                continue
+            self._set_entry(entry, value, status_if_existing="updated")
+        self.synchronized_secret_keys = tuple(
+            result["key"]
+            for result in self.results
+            if result["sync_status"] in {"created", "updated"}
+        )
+
+    def _run_infisical_only(self) -> None:
+        checked: list[str] = []
+        for entry in self.manifest_entries:
+            if not entry.required:
+                continue
+            checked.append(entry.key)
+            if not self._secret_exists(entry):
+                raise SecretManagementBlocker(
+                    "infisical_secret_missing",
+                    f"Required Infisical secret is missing: {entry.key}",
+                )
+            self.results.append(_sync_result(entry, "verified_existing"))
+        self.checked_secret_keys = tuple(checked)
+        self.synchronized_secret_keys = ()
+
     def _sync_entry(
         self,
         entry: SecretManifestEntry,
@@ -244,25 +377,51 @@ class InfisicalSecretSyncStep:
         if not value:
             self.results.append(_sync_result(entry, "skipped_missing_optional"))
             return
-        exists = self.cli.secret_exists(entry.key, project=self.project, environment=self.environment)
+        exists = self._secret_exists(entry)
         if exists and entry.policy == "keep_existing":
             self.results.append(_sync_result(entry, "kept_existing"))
             return
         if exists and entry.policy == "rotate":
             value = _generate_secret(entry.key)
             generated_values[entry.key] = value
-        self.cli.set_secret(entry.key, value, project=self.project, environment=self.environment)
-        self.results.append(_sync_result(entry, "updated" if exists else "created"))
+        self._set_entry(entry, value, status_if_existing="updated" if exists else "created")
+
+    def _secret_exists(self, entry: SecretManifestEntry) -> bool:
+        try:
+            return self.store.secret_exists(entry.key, project=self.project, environment=self.environment)
+        except Exception as exc:
+            raise SecretManagementBlocker(
+                "infisical_sync_failed",
+                f"Infisical secret sync failed while checking key: {entry.key}",
+            ) from exc
+
+    def _set_entry(self, entry: SecretManifestEntry, value: str, *, status_if_existing: str) -> None:
+        try:
+            exists = self.store.secret_exists(entry.key, project=self.project, environment=self.environment)
+            self.store.set_secret(entry.key, value, project=self.project, environment=self.environment)
+        except Exception as exc:
+            raise SecretManagementBlocker(
+                "infisical_sync_failed",
+                f"Infisical secret sync failed while writing key: {entry.key}",
+            ) from exc
+        self.results.append(_sync_result(entry, status_if_existing if exists else "created"))
 
     def verify(self) -> VerificationResult:
-        synced = [result for result in self.results if result["sync_status"] in {"created", "updated", "kept_existing"}]
+        synced = [
+            result
+            for result in self.results
+            if result["sync_status"] in {"created", "updated", "kept_existing", "verified_existing"}
+        ]
         missing = [result for result in self.results if result["sync_status"] == "skipped_missing_optional"]
         return VerificationResult(
-            target_id=self.verification_target_id,
+            target_id=InfisicalSecretSyncStep.verification_target_id,
             status=VerificationStatus.VERIFIED,
             message="Infisical managed entries were synchronized idempotently.",
             evidence={
                 "phase": "verify",
+                "selected_mode": self.mode,
+                "checked_entry_count": str(len(self.checked_secret_keys)),
+                "synchronized_entry_count": str(len(self.synchronized_secret_keys)),
                 "synced_entry_count": str(len(synced)),
                 "optional_missing_count": str(len(missing)),
                 "project": self.project,
@@ -329,7 +488,13 @@ class SecretEvidenceWriter:
             "generated_at": now,
             "findings": [finding.__dict__ for finding in self.discovery.findings],
         }
-        sync_result = {"generated_at": now, "results": self.sync.results}
+        sync_result = {
+            "checked_secret_keys": list(self.sync.checked_secret_keys),
+            "generated_at": now,
+            "mode": self.sync.mode,
+            "results": self.sync.results,
+            "synchronized_secret_keys": list(self.sync.synchronized_secret_keys),
+        }
         consumption_lines = ["# Secret Consumption Report", ""]
         for item in self.consumption.report:
             consumption_lines.append(f"- {item['key']} ({item['service']}): {item['consumer_status']}")
@@ -535,5 +700,4 @@ def _sync_result(entry: SecretManifestEntry, status: str) -> dict[str, str]:
         "service": entry.service,
         "source_type": entry.source,
         "sync_status": status,
-        "value": REDACTED,
     }

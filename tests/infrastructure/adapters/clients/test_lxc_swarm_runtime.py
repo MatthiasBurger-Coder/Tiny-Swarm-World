@@ -501,6 +501,36 @@ networks:
             timeout_seconds=1800,
         )
 
+    def test_image_publisher_treats_missing_host_docker_cache_as_cache_miss(self):
+        publisher = LxcContainerImagePublisher(
+            backend=ManagedLxcBackend.LXD,
+            registry_username="admin",
+            registry_password=operator_credential(),
+        )
+        contract = ContainerImageContract(
+            "infisical/infisical",
+            "v0.159.1",
+            "infisical",
+            source="pull",
+        )
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
+            side_effect=FileNotFoundError,
+        ):
+            with patch.object(
+                publisher,
+                "_run_manager_shell",
+                return_value=subprocess.CompletedProcess([], 0),
+            ) as run_manager_shell:
+                publisher.publish_image(contract)
+
+        run_manager_shell.assert_called_once_with(
+            "docker pull infisical/infisical:v0.159.1",
+            check=False,
+            timeout_seconds=1800,
+        )
+
     def test_image_publisher_reports_public_image_rate_limit_without_payload(self):
         publisher = LxcContainerImagePublisher(
             backend=ManagedLxcBackend.LXD,

@@ -11,7 +11,7 @@ services:
       - --providers.swarm=true
       - --providers.swarm.endpoint=unix:///var/run/docker.sock
       - --providers.swarm.exposedByDefault=false
-      - --providers.swarm.network=traefik_ingress
+      - --providers.swarm.network=tiny_swarm_world_ingress
       - --providers.file.filename=/etc/traefik/dynamic/tls.yml
       - --providers.file.watch=true
     ports:
@@ -34,7 +34,7 @@ services:
       - source: tsw_traefik_tls_key
         target: tsw_traefik_tls_key
     networks:
-      - traefik_ingress
+      - tiny_swarm_world_ingress
     deploy:
       replicas: 1
       placement:
@@ -52,6 +52,6 @@ secrets:
     external: true
 
 networks:
-  traefik_ingress:
-    name: traefik_ingress
+  tiny_swarm_world_ingress:
+    name: tiny_swarm_world_ingress
     external: true

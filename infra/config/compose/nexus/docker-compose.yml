@@ -4,7 +4,7 @@ services:
     volumes:
       - nexus-data:/nexus-data
     networks:
-      - traefik_ingress
+      - tiny_swarm_world_ingress
     ports:
       - target: 8081
         published: 13081
@@ -27,6 +27,6 @@ volumes:
   nexus-data:
 
 networks:
-  traefik_ingress:
-    name: traefik_ingress
+  tiny_swarm_world_ingress:
+    name: tiny_swarm_world_ingress
     external: true

@@ -198,9 +198,9 @@ def assert_route_contract(testcase, route_name: str) -> None:
     testcase.assertEqual(expectation.hostname, route["hostname"])
     testcase.assertEqual(expectation.upstream_service, route["upstream_service"])
     testcase.assertEqual(expectation.upstream_port, route["upstream_port"])
-    testcase.assertIn("traefik_ingress", service["networks"])
+    testcase.assertIn("tiny_swarm_world_ingress", service["networks"])
     testcase.assertIn("traefik.enable=true", labels)
-    testcase.assertIn("traefik.swarm.network=traefik_ingress", labels)
+    testcase.assertIn("traefik.swarm.network=tiny_swarm_world_ingress", labels)
     rule_prefix = f"traefik.http.routers.{expectation.router_name}.rule="
     rule_labels = [label for label in labels if label.startswith(rule_prefix)]
     testcase.assertTrue(rule_labels, f"missing Traefik rule label for {expectation.router_name}")

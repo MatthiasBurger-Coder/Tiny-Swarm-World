@@ -44,11 +44,19 @@ environment files:
 * `TSW_INFISICAL_POSTGRES_PASSWORD`
 * `TSW_INFISICAL_REDIS_PASSWORD`
 
+For reproducible fixed-password installs, set `TSW_SECRETS_MODE=fixed` or pass
+`./install.sh --secrets-mode fixed` and provide every required key from
+`infra/config/secrets/infisical-secrets.yaml` in
+`.tiny-swarm-world/local/fixed-secrets.env` or `TSW_FIXED_SECRET_ENV_FILE`.
+Missing files, missing keys, empty values, and Infisical write failures abort
+the run before deployment can continue.
+
 == Generated Local Files
 
 Infisical secrets are written only to ignored local files:
 
 * `.tiny-swarm-world/local/live-installation.env`
+* `.tiny-swarm-world/local/fixed-secrets.env`
 * `.tiny-swarm/secrets/bootstrap.local.env`
 
 The Infisical bootstrap file contains local `TSW_INFISICAL_*` values and

@@ -56,8 +56,8 @@ Use a Linux or WSL2 shell from the repository root. Prepare:
 * Python 3.12;
 * Git;
 * LXD or Incus initialized and usable from the same shell;
-* Docker CLI access for diagnostics;
 * `socat` when WSL localhost forwarding is required.
+* Optional Docker CLI access for host-side diagnostics and cache helpers.
 
 Install the Python package in editable mode:
 
