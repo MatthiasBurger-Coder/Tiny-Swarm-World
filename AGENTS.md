@@ -72,6 +72,7 @@ explicit task changes the product scope.
   effects.
 - Prefer typed value objects and small domain classes for command,
   node-provider, VM legacy, network, deployment, and Nexus concepts.
+- run python only in wsl or linux environments
 
 ## Configuration And YAML
 
