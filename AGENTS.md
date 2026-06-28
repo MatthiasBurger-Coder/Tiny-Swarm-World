@@ -15,6 +15,12 @@ explicit task changes the product scope.
 ## Operating Assumptions
 
 - Treat the runtime as WSL or Linux only.
+- When the host shell is Windows or PowerShell, execute project Python,
+  tests, and quality gates through WSL, for example
+  `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World_2 && python3 tools/quality_gate.py typecheck'`.
+- Do not run project Python commands through Windows Python, Windows virtual
+  environments, or PowerShell path invocation such as
+  `& 'D:\Projects\Tiny-Swarm-World_2\.venv\bin\python' ...`.
 - Use POSIX paths and shell commands in examples, scripts, tests, and docs.
 - Do not add new Windows-specific behavior, PowerShell commands, or backslash
   path examples unless explicitly requested for legacy documentation cleanup.
@@ -72,7 +78,6 @@ explicit task changes the product scope.
   effects.
 - Prefer typed value objects and small domain classes for command,
   node-provider, VM legacy, network, deployment, and Nexus concepts.
-- run python only in wsl or linux environments
 
 ## Configuration And YAML
 
@@ -104,6 +109,8 @@ inspection.
 
 ## Testing
 
+- Run tests and quality gates inside WSL/Linux. From a Windows host shell,
+  wrap commands with `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World_2 && ...'`.
 - Preferred quality gate from the repository root:
   `python3 tools/quality_gate.py quality`
 - During development, run the nearest relevant sub-gate first:
