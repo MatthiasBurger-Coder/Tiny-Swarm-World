@@ -3,18 +3,22 @@ from typing import Any, Optional
 
 from tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer import PathNormalizer
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
-from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_annotations import inject
 
 
 class FileCreator:
     """Handles the creation of new YAML files."""
 
-    @inject
-    def __init__(self, file_path: Path , path_factory: PathFactory):
+    def __init__(
+        self,
+        file_path: Path | None = None,
+        path_factory: PathFactory | None = None,
+    ):
         """Initializes the YAML file creator."""
-        self.path_factory = path_factory
+        self.path_factory = path_factory or PathFactory()
         self._path: Optional[Path] = Path(file_path) if file_path else None
-        self.path_normalizer = PathNormalizer(self._path, self.path_factory)
+        self.path_normalizer = (
+            PathNormalizer(self._path, self.path_factory) if self._path else None
+        )
 
     @property
     def path(self) -> Optional[Path]:
@@ -30,7 +34,7 @@ class FileCreator:
     def path(self, file_path: Path) -> None:
         """Sets the file path."""
         self._path = file_path
-        self.path_normalizer = PathNormalizer(self._path,self.path_factory)
+        self.path_normalizer = PathNormalizer(self._path, self.path_factory)
 
     def create(self, path: Path, data: Any) -> Path:
         """Creates a YAML file at the specified path.
@@ -43,10 +47,11 @@ class FileCreator:
             Path: The path of the created file.
         """
         self._path = path
-        self.path_normalizer = PathNormalizer(self._path,self.path_factory)
+        path_normalizer = PathNormalizer(self._path, self.path_factory)
+        self.path_normalizer = path_normalizer
 
         # Normalize and ensure directory exists
-        normalized_path = self.path_normalizer.ensure_directory()
+        normalized_path = path_normalizer.ensure_directory()
         final_file_path = Path(normalized_path) / self._path.name
 
         # Write data to file

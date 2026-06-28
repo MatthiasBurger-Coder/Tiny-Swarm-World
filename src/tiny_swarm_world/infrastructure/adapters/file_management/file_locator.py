@@ -2,7 +2,6 @@ from pathlib import Path
 
 from tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer import PathNormalizer
 from tiny_swarm_world.infrastructure.adapters.file_management.path_strategies.path_factory import PathFactory
-from tiny_swarm_world.infrastructure.dependency_injection.infra_core_di_annotations import inject
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 
@@ -11,25 +10,24 @@ class FileLocator:
     Adapter for locating and ensuring YAML files and directories exist in standard locations.
     """
 
-    @inject
     def __init__(
         self,
         filename: str,
-        path_factory: PathFactory,
+        path_factory: PathFactory | None = None,
         project_paths: ProjectPaths | None = None,
     ):
-        self.path_factory = path_factory
+        self.path_factory = path_factory or PathFactory()
         self.filename = filename
 
         base_config_path = (project_paths or default_project_paths()).config_root
 
         self.search_paths = [
-            PathNormalizer(path).normalize()
+            PathNormalizer(path, self.path_factory).normalize()
             for path in [base_config_path] + list(Path(base_config_path).rglob("*"))
             if Path(path).is_dir()
         ]
 
-        self.search_paths.append(PathNormalizer(Path.cwd()).normalize())
+        self.search_paths.append(PathNormalizer(Path.cwd(), self.path_factory).normalize())
 
     def get_existing_file_path(self) -> str:
         """
