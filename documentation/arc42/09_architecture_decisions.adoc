@@ -1,271 +1,69 @@
 == Architectural Decisions
 
-This section indexes active architecture decisions and implementation decisions
-from the safety-first workflow. Standalone ADR files keep their own history and
-status; arc42 summarizes the current consequences.
+This section includes the active ADRs from `documentation/arc42/09_decisions/` in
+the assembled arc42 book. Standalone ADR files keep their own history and
+status; this chapter groups and includes them without renumbering or rewriting
+ADR history.
+
+In the assembled `documentation/arc42.adoc` book this section is rendered as
+chapter 10 because the book starts with a generated system overview chapter
+before the maintained arc42 section files.
 
 === ADR Location Convention
 
-Standalone ADR files currently live under `documentation/architecture/` with
-the naming pattern `adr-<decision-slug>.adoc`.
+Standalone ADR files currently live under `documentation/arc42/09_decisions/`
+with the naming pattern `adr-<decision-slug>.adoc`.
 
-`documentation/arc42/09_architecture_decisions.adoc` is the active index for
-those decisions. Existing ADR files must not be silently moved, renumbered or
-renamed as part of workflow execution.
+`documentation/arc42/09_architecture_decisions.adoc` is the active arc42 entry
+point for those decisions. Existing ADR files must not be silently renumbered
+or renamed as part of documentation consolidation or workflow execution.
 
 The repository does not currently use `documentation/adr/**`. Introducing that
 path requires a separate convention decision, including
 `documentation/adr/README.md`, reference migration, and history-preserving
 links from existing ADR files.
 
-=== Platform, Artifacts, Deployment, And Shared Responsibilities
+=== Infrastructure & Architecture Decisions
 
-ADR: `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+Examples: cloud or local provider choices, monolith versus microservices,
+runtime topology, ingress, workflow safety, and responsibility ownership.
 
-Status: accepted and implemented as guarded workflow responsibility direction.
+include::09_decisions/adr-separate-platform-artifacts-deployment.adoc[leveloffset=+3]
 
-Consequences:
+include::09_decisions/adr-lxc-native-node-provider.adoc[leveloffset=+3]
 
-* `ApplicationServices` aggregates `PlatformServices`, `ArtifactServices`, and
-  `DeploymentServices`;
-* Platform workflows own LXD/Incus provider readiness and node lifecycle,
-  netplan legacy behavior, Docker install, Swarm, preflight, and node or
-  VM/IP behavior;
-* the Deployment namespace owns `EnsureNexusStack`, `EnsureServiceStack`,
-  Portainer stack contracts, service-access external inputs, and readiness
-  verification;
-* Artifacts owns guarded workflow contracts for Nexus repository readiness,
-  registry readiness, and image publication;
-* these bundles are not independently deployable microservices.
+include::09_decisions/adr-retire-multipass-legacy-provider.adoc[leveloffset=+3]
 
-=== Autonomous Setup Safety Contract
+include::09_decisions/adr-traefik-https-ingress-existing-ca.adoc[leveloffset=+3]
 
-ADR: `documentation/architecture/adr-autonomous-setup-safety.adoc`
+=== Technology & Framework Decisions
 
-Status: accepted as setup-safety contract, implemented for the canonical
-fail-closed setup CLI orchestration contract.
+Examples: language and runtime direction, runner technology, UI framework
+boundaries, command catalog format, and observability implementation style.
 
-Consequences:
+include::09_decisions/adr-installer-console-reporting-policy.adoc[leveloffset=+3]
 
-* autonomous setup is a consent-gated orchestration over existing in-process
-  Platform, Artifacts, Deployment, Shared, and Console/status UI boundaries;
-* mutating setup must preserve `--live` and the short interactive
-  live-infrastructure confirmation until a later ADR changes that contract;
-* `setup run` passes accepted live consent into setup preflight, sequences only
-  non-destructive phases, and stops later phases after refused, blocked,
-  resource-gated, failed-to-apply, or failed-to-verify outcomes;
-* missing consent, missing verification, resource-gated outcomes, and failed
-  phases must be reported explicitly and fail closed;
-* automatic host package installation and non-interactive live setup remain out
-  of scope until separate ADRs accept those contracts;
-* direct scripts are not the canonical setup path unless later wrapped behind
-  ports, adapters, tests, verification, and consent controls;
-* setup evidence remains redacted local state and must not persist raw command
-  payloads, secrets, Swarm tokens, host-specific addresses, or environment
-  payloads.
+include::09_decisions/adr-cross-cutting-method-trace-logging.adoc[leveloffset=+3]
 
-=== Cross-Cutting Method Trace Logging
+=== Data & Persistence Decisions
 
-ADR: `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
+Examples: desired-state configuration, observed-state storage, local evidence,
+report files, secrets, and credential persistence boundaries.
 
-Status: accepted and implemented for the current installation runtime trace
-scope.
+include::09_decisions/adr-service-access-dashboard-vaultwarden.adoc[leveloffset=+3]
 
-Consequences:
+=== Functional & Product Decisions
 
-* installation observability requires method-level tracing for the runtime
-  installation path, not only setup phase or platform step progress;
-* covered runtime methods must emit entry, normal exit, and exception exit
-  trace events through a cross-cutting Shared observability module;
-* concrete terminal UI, logger configuration, and log sinks remain
-  infrastructure concerns;
-* application services must not import `PortUI`, `FactoryUI`,
-  `LoggerFactory`, curses, or infrastructure logging modules to satisfy trace
-  coverage;
-* method trace events must carry safe structural metadata such as workflow,
-  module, class, method, status, correlation identifier, and sanitized
-  exception type, not raw arguments, return payloads, command output,
-  credentials, tokens, host-specific paths, or local IP addresses;
-* the existing workflow progress port remains the high-level status path and
-  is paired with method trace events through composition correlation and
-  infrastructure adapters;
-* `setup run` terminal lifecycle is composition-owned and starts only after
-  accepted live consent.
+Examples: setup behavior, operator-facing service access, safety prompts,
+management landing pages, and current product capability boundaries.
 
-=== LXC Native Node Provider Direction
-
-ADR: `documentation/architecture/adr-lxc-native-node-provider.adoc`
-
-Status: accepted as provider direction; partially implemented; Multipass
-compatibility superseded by
-`documentation/architecture/adr-retire-multipass-legacy-provider.adoc`.
-
-Consequences:
-
-* `lxc_native` through LXD or Incus is the default provider direction;
-* raw low-level LXC lifecycle commands are not the first default provider
-  surface;
-* provider-neutral domain contracts, application ports, readiness checks,
-  configuration, node lifecycle adapters, setup integration, and fail-closed
-  removed-provider rejection are implemented for default selection and platform
-  init;
-* default platform reconcile is a live-consent-gated LXC-native managed-node
-  convergence workflow after init;
-* default platform expose configures manager-gateway LXC proxy devices for
-  published setup-manifest ports;
-* artifact/deployment live success, Docker Swarm-in-container health, and WSL2
-  live success still require explicit operator evidence;
-* removed provider selections fail closed rather than becoming silent
-  fallbacks;
-* WSL2 LXD/Incus behavior is capability-gated and requires target-specific
-  live evidence before it can be claimed as working;
-* Docker-in-container profile requirements, privileged profile choices, host
-  package installation, daemon repair, group changes, bridge/firewall changes,
-  and non-interactive live consent remain explicit follow-up decisions rather
-  than silent defaults.
-
-=== Retired Multipass Legacy Provider
-
-ADR: `documentation/architecture/adr-retire-multipass-legacy-provider.adoc`
-
-Status: accepted and implemented for current source, CLI, configuration, tests,
-and operator documentation.
-
-Consequences:
-
-* Multipass is not a supported node-provider path;
-* `--node-provider multipass_legacy` is rejected rather than remapped;
-* source, command configuration, composition, and preflight must not construct
-  or probe Multipass adapters;
-* historical Multipass references may remain only when clearly archival or
-  migration-audit evidence.
-
-=== Service Access Dashboard And Vaultwarden Baseline
-
-ADR: `documentation/architecture/adr-service-access-dashboard-vaultwarden.adoc`
-
-Status: accepted as requirement and security baseline; implemented as the full
-guided setup service-access profile with residual operational hardening.
-
-Consequences:
-
-* the service-access capability belongs to the Deployment responsibility
-  boundary as a Docker Swarm service stack;
-* Vaultwarden is the only approved password reveal and copy surface;
-* the service-access dashboard may show service names, access routes,
-  reachability states, credential labels and Vaultwarden item references, but
-  must not display, cache, export, log or persist password values;
-* the full guided setup includes service-access through
-  `ServiceStackProfile.SERVICE_ACCESS`; the older base service set remains
-  available through `--service-profile default`;
-* Traefik is the preferred HTTP/HTTPS ingress direction for current routed
-  HTTP services, while Service Access remains the dashboard capability and
-  NGINX remains a compatibility/runtime component where still present;
-  direct localhost ports are compatibility or diagnostic access only;
-* Traefik now has separate migration-direction coverage in
-  `documentation/architecture/adr-traefik-https-ingress-existing-ca.adoc`;
-  implementation and live success still require the active workflow slices;
-* public certificate automation and wider-than-local exposure remain out of
-  scope;
-* Portainer may manage post-bootstrap stack create/update only after
-  Portainer is reachable and must not become its own bootstrap dependency;
-* the routed `https://service-access.tsw.local` route requires fresh live
-  deployment, hostname resolution, certificate trust and browser evidence
-  before it is claimed as verified; Vaultwarden operational hardening remains
-  follow-up work.
-
-=== Traefik HTTPS Ingress With Existing CA
-
-ADR: `documentation/architecture/adr-traefik-https-ingress-existing-ca.adoc`
-
-Status: accepted as migration direction; implementation pending workflow
-execution.
-
-Consequences:
-
-* Traefik is the accepted target for centralized local HTTPS ingress in the
-  active migration workflow;
-* Traefik belongs to the Deployment responsibility boundary and does not create
-  a new product microservice or frontend project;
-* public LXC ingress exposure is limited to ports `80` and `443`;
-* `web :80`, `websecure :443`, HTTP-to-HTTPS redirect and
-  `exposedByDefault=false` are required;
-* `--api.insecure=true` is forbidden;
-* existing CA material remains operator-owned secret material and must not be
-  committed or written to evidence;
-* certificate validation records summary fields only and must not persist raw
-  PEM payloads, private keys, local host paths, or local IP addresses;
-* DNS or hosts fallback requires explicit verification, and host mutation
-  requires consent and rollback;
-* live Traefik, TLS and browser success must not be claimed until the active
-  workflow records opt-in live evidence.
-
-=== Workflow Taxonomy And Destructive Operation Policy
-
-Decision status: implemented in the safety-first workflow.
-
-`init`, `reconcile`, `verify`, `reset`, and `destroy` are explicit platform
-workflow semantics. Normal `init` and `reconcile` are non-destructive.
-`reset` and `destroy` require exact confirmation and are wired only for
-configured managed LXC-native nodes whose Tiny Swarm World ownership evidence
-is verified before mutation. Broad provider cleanup remains outside the
-supported policy.
-
-=== Workflow-Level CLI
-
-Decision status: implemented for platform workflows, guarded artifact and
-deployment contracts, and the fail-closed `setup run` orchestration contract.
-
-The Python entry point lists workflow-level commands, refuses unsupported
-workflow names, and applies live-consent checks before constructing services
-for mutating workflows. Artifact and deployment workflow names dispatch to
-guarded workflow contracts that report blocked or failed phase evidence when
-required live prerequisites are missing. `setup run` is mutating and
-non-destructive; it is listed by the CLI, refuses missing live consent before
-setup service construction, and delegates phase sequencing to
-`tiny_swarm_world.application.services.setup`.
-
-=== Typed Command Catalog
-
-Decision status: implemented for existing command YAML files.
-
-Command YAML under `infra/config/**/command_*.yaml` is product configuration.
-Entries include command identity, intent, execution mode, safety class, scope,
-allowed workflows, parameters, effects, and verification specification.
-Application command building receives the active workflow identifier and
-rejects commands outside their allow-list.
-
-=== Inventory State Storage Ownership
-
-Decision status: implemented in Slice 04.
-
-Tiny Swarm World separates committed desired inventory from ignored local
-observed inventory and verification evidence.
-
-Consequences:
-
-* desired inventory remains a product configuration concern and may live under
-  `infra/config`;
-* observed inventory and verification evidence live only under
-  `.tiny-swarm-world/`;
-* the domain owns typed state and evidence concepts without filesystem, YAML,
-  HTTP, command-runner, Docker, logging, or infrastructure imports;
-* infrastructure adapters own YAML/JSON parsing, local path resolution, and
-  persistence hardening;
-* local evidence stores summaries and rejects raw command payload fields.
-
-=== Verify After Apply
-
-Decision status: implemented for mutating platform workflows.
-
-Mutating workflow continuation requires apply success and verified evidence.
-Apply failures return `failed_to_apply`, verification failures return
-`failed_to_verify`, and missing verification paths or missing evidence return
-`blocked`.
+include::09_decisions/adr-autonomous-setup-safety.adoc[leveloffset=+3]
 
 === ADR Backlog
 
 The typed command catalog, inventory/evidence ownership, workflow-level CLI,
-and verify-after-apply decisions are currently recorded in this arc42 index and
-the active workflow. Dedicated standalone ADRs can be added later if the
-project decides these policies need separate long-lived records.
+workflow taxonomy, verify-after-apply, evidence/report redaction, and command
+runner responsibility decisions are currently recorded in this arc42 index,
+active workflow records, or non-ADR decision records. Dedicated standalone ADRs
+can be added later if the project decides these policies need separate
+long-lived records.

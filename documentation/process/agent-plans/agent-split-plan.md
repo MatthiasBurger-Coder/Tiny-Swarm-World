@@ -1,7 +1,7 @@
 # Agent Split Plan
 
 Status: archival planning baseline. Multipass path references are superseded by
-`documentation/architecture/adr-retire-multipass-legacy-provider.adoc` and must
+`documentation/arc42/09_decisions/adr-retire-multipass-legacy-provider.adoc` and must
 not be used as current routing or implementation targets.
 
 This plan breaks the follow-up work into specialized Codex agents. Each task is
@@ -40,8 +40,10 @@ Scope:
 
 Allowed files:
 
-- `documentation/architecture`
-- `documentation/arc42` only for cross references after approval
+- `documentation/arc42/05_analysis`
+- `documentation/arc42/11_migration`
+- `documentation/process/agent-plans`
+- `documentation/process/agent-tasks`
 
 Forbidden files:
 
@@ -58,8 +60,8 @@ Required reading:
 - `.importlinter`
 - `README.md`
 - `tools/quality_gate.py`
-- `documentation/architecture/responsibility-separation-analysis.md`
-- `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+- `documentation/arc42/05_analysis/responsibility-separation-analysis.md`
+- `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
 
 Exact task steps:
 
@@ -136,8 +138,8 @@ Forbidden files:
 Required reading:
 
 - all general required files
-- `documentation/architecture/responsibility-separation-analysis.md`
-- `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+- `documentation/arc42/05_analysis/responsibility-separation-analysis.md`
+- `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
 - platform-related tests under `tests/application/services/multipass`,
   `tests/application/services/network`, and `tests/domain/network`
 
@@ -213,8 +215,8 @@ Forbidden files:
 Required reading:
 
 - all general required files
-- `documentation/architecture/responsibility-separation-analysis.md`
-- `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+- `documentation/arc42/05_analysis/responsibility-separation-analysis.md`
+- `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
 - `tests/application/services/nexus/test_bootstrap_nexus.py`
 
 Exact task steps:
@@ -294,8 +296,8 @@ Forbidden files:
 Required reading:
 
 - all general required files
-- `documentation/architecture/responsibility-separation-analysis.md`
-- `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+- `documentation/arc42/05_analysis/responsibility-separation-analysis.md`
+- `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
 - `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
 
 Exact task steps:
@@ -363,7 +365,7 @@ Forbidden files:
 Required reading:
 
 - all general required files
-- `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+- `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
 - current `src/tiny_swarm_world/infrastructure/composition.py`
 - current `src/tiny_swarm_world/__main__.py`
 
@@ -421,7 +423,8 @@ Allowed files:
 - `.importlinter`
 - `tools/quality_gate.py` only if needed and justified
 - quality gate documentation
-- `documentation/architecture`
+- `documentation/arc42/05_analysis`
+- `documentation/arc42/11_migration`
 
 Forbidden files:
 
@@ -433,7 +436,7 @@ Required reading:
 
 - all general required files
 - `tests/architecture/test_hexagonal_imports.py`
-- `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+- `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
 - `documentation/user_guide/troubleshooting.adoc`
 
 Exact task steps:
@@ -492,7 +495,10 @@ Allowed files:
 - `documentation/system`
 - `documentation/deployment`
 - `documentation/user_guide`
-- `documentation/architecture`
+- `documentation/arc42/05_analysis`
+- `documentation/arc42/11_migration`
+- `documentation/process/agent-plans`
+- `documentation/process/agent-tasks`
 - new architecture decision records
 
 Forbidden files:
@@ -505,8 +511,8 @@ Forbidden files:
 Required reading:
 
 - all general required files
-- `documentation/architecture/responsibility-separation-analysis.md`
-- `documentation/architecture/adr-separate-platform-artifacts-deployment.adoc`
+- `documentation/arc42/05_analysis/responsibility-separation-analysis.md`
+- `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
 - current arc42 files
 - current user guide files
 

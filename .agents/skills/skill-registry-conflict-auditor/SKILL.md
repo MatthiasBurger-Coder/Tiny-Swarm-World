@@ -14,7 +14,7 @@ This skill is a governance reviewer. It does not implement product code, write b
 ## Responsibilities
 
 - Inventory `.agents/skills`, `.agents/roles`, `.codex/skills`, `.codex/agents`, workflow files and related governance docs.
-- Maintain `documentation/skill-audit/skill-registry.md` and `documentation/skill-audit/skill-registry.json` as a persistent, hash-invalidated registry cache.
+- Maintain `documentation/process/skills/audit/skill-registry.md` and `documentation/process/skills/audit/skill-registry.json` as a persistent, hash-invalidated registry cache.
 - Identify duplicated ownership, missing owners, incompatible STOP rules and conflicting quality or architecture expectations.
 - Classify conflicts as `BLOCKING` or `NON_BLOCKING`.
 - Verify that every new skill defines mission, responsibilities, forbidden scope, inputs, outputs, collaboration rules and STOP rules.
@@ -54,9 +54,9 @@ The Skill Registry & Conflict Auditor may:
 - Active `documentation/workflow/**`
 - Existing `docs/workplan/**` when referenced by migration or historical context
 - `documentation/adr/**`
-- `documentation/skill-audit/**`
-- `documentation/skill-audit/skill-registry.md`
-- `documentation/skill-audit/skill-registry.json`
+- `documentation/process/skills/audit/**`
+- `documentation/process/skills/audit/skill-registry.md`
+- `documentation/process/skills/audit/skill-registry.json`
 - `.agents/skills/**`
 - `.agents/roles/**`
 - `.agents/orchestrator/**`
@@ -99,7 +99,7 @@ Stop and report when:
 - a skill permits commit or push without required quality gates;
 - several skills own the same output but apply incompatible rules;
 - a workflow references a skill, role, prompt or agent that cannot be verified;
-- a cached registry is reused after `.agents/**`, `.codex/**`, `AGENTS.md`, `QUALITY.md`, `documentation/workflow/**`, `documentation/skill-audit/**`, legacy `documentation/agents/**` references, `documentation/process/**` or `documentation/governance/**` changed;
+- a cached registry is reused after `.agents/**`, `.codex/**`, `AGENTS.md`, `QUALITY.md`, `documentation/workflow/**`, `documentation/process/skills/audit/**`, legacy `documentation/agents/**` references, `documentation/process/**` or `documentation/governance/**` changed;
 - the persistent registry marks an unresolved owner or STOP-rule conflict as ready;
 - the persistent registry is treated as the source of truth instead of repository files;
 - a governance decision would require guessing ownership, quality authority, architecture authority or source of truth;

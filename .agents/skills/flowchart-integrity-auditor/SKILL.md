@@ -17,7 +17,7 @@ consistent, explicit and safe for `skills update`, `workflow create`,
 - Audit `documentation/governance/workflow/level-1-overview.md`.
 - Audit `documentation/governance/workflow/level-2-subgraphs.md`.
 - Compare diagrams with `AGENTS.md`, `documentation/process/**`,
-  `documentation/workflow/**`, `documentation/skill-audit/**`, legacy
+  `documentation/workflow/**`, `documentation/process/skills/audit/**`, legacy
   `documentation/agents/**` references when present, `documentation/arc42/**`
   and ADRs.
 - Verify that every decision node has explicit labeled outcomes, such as
@@ -56,7 +56,7 @@ consistent, explicit and safe for `skills update`, `workflow create`,
 - `documentation/governance/workflow/level-1-overview.md`
 - `documentation/governance/workflow/level-2-subgraphs.md`
 - `documentation/process/**`
-- `documentation/skill-audit/**`
+- `documentation/process/skills/audit/**`
 - legacy `documentation/agents/**` references when present
 - `documentation/adr/**`
 - `documentation/arc42/**`

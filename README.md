@@ -436,14 +436,14 @@ Explore documentation for deeper architecture details:
 
 Tiny Swarm World agent and skill work is governed by root `AGENTS.md`,
 `QUALITY.md`, `.agents/`, `.codex/`, and the audit artifacts under
-`documentation/skill-audit/`.
+`documentation/process/skills/audit/`.
 
 Canonical governance navigation:
 
-- `documentation/skill-audit/skill-registry.md`
-- `documentation/skill-audit/skill-registry.json`
-- `documentation/skill-audit/organigramm.md`
-- `documentation/skill-audit/owner-map.md`
+- `documentation/process/skills/audit/skill-registry.md`
+- `documentation/process/skills/audit/skill-registry.json`
+- `documentation/process/skills/audit/organigramm.md`
+- `documentation/process/skills/audit/owner-map.md`
 
 Project-specific skills live as discoverable
 `.agents/skills/<skill-name>/SKILL.md` files. Grouped `.md` files are not

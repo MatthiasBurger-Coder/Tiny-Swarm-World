@@ -201,7 +201,7 @@ shared terminal status vocabulary, structured workflow progress, and
 cross-cutting method trace events are wired through ports and infrastructure
 adapters.
 
-ADR `documentation/architecture/adr-cross-cutting-method-trace-logging.adoc`
+ADR `documentation/arc42/09_decisions/adr-cross-cutting-method-trace-logging.adoc`
 records that logging is a cross-cutting Shared observability module. Covered
 installation runtime methods emit method entry, normal exit, and exception
 exit trace events through the application trace port. Composition wires the

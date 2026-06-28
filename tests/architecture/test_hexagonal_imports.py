@@ -9,7 +9,7 @@ DOMAIN_ROOT = SOURCE_ROOT / "domain"
 APPLICATION_ROOT = SOURCE_ROOT / "application"
 APPLICATION_PORTS_ROOT = APPLICATION_ROOT / "ports"
 APPLICATION_SERVICES_ROOT = APPLICATION_ROOT / "services"
-ARCHITECTURE_DOCUMENTATION_ROOT = REPOSITORY_ROOT / "documentation" / "architecture"
+DOCUMENTATION_ROOT = REPOSITORY_ROOT / "documentation"
 PACKAGE_NAME = "tiny_swarm_world"
 TARGET_RESPONSIBILITY_BOUNDARIES = ("platform", "artifacts", "deployment", "shared")
 PLATFORM_APPLICATION_SERVICE_ROOTS = (
@@ -32,12 +32,16 @@ ALLOWED_APPLICATION_SERVICE_DIRECTORIES = {
     "setup",
     *TARGET_RESPONSIBILITY_BOUNDARIES,
 }
-REQUIRED_ARCHITECTURE_DOCUMENTS = (
-    "responsibility-separation-analysis.md",
-    "adr-separate-platform-artifacts-deployment.adoc",
-    "migration-plan.md",
-    "agent-split-plan.md",
-)
+REQUIRED_ARCHITECTURE_DOCUMENTS = {
+    "responsibility-separation-analysis.md": (
+        DOCUMENTATION_ROOT / "arc42" / "05_analysis" / "responsibility-separation-analysis.md"
+    ),
+    "adr-separate-platform-artifacts-deployment.adoc": (
+        DOCUMENTATION_ROOT / "arc42" / "09_decisions" / "adr-separate-platform-artifacts-deployment.adoc"
+    ),
+    "migration-plan.md": DOCUMENTATION_ROOT / "arc42" / "11_migration" / "migration-plan.md",
+    "agent-split-plan.md": DOCUMENTATION_ROOT / "process" / "agent-plans" / "agent-split-plan.md",
+}
 KNOWN_MIXED_BOUNDARY_FILES = (
     "src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py",
     "src/tiny_swarm_world/infrastructure/composition.py",
@@ -83,8 +87,8 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
     def test_required_architecture_documents_exist(self):
         missing_documents = [
             document_name
-            for document_name in REQUIRED_ARCHITECTURE_DOCUMENTS
-            if not (ARCHITECTURE_DOCUMENTATION_ROOT / document_name).is_file()
+            for document_name, document_path in REQUIRED_ARCHITECTURE_DOCUMENTS.items()
+            if not document_path.is_file()
         ]
 
         self.assertEqual([], missing_documents)
@@ -345,4 +349,4 @@ def _is_application_service_directory(path: Path) -> bool:
 
 
 def _architecture_document(document_name: str) -> str:
-    return (ARCHITECTURE_DOCUMENTATION_ROOT / document_name).read_text(encoding="utf-8")
+    return REQUIRED_ARCHITECTURE_DOCUMENTS[document_name].read_text(encoding="utf-8")

@@ -15,7 +15,7 @@ Use for `skills update` before changing skills, agents, roles, prompts, Codex ag
 - `.codex/skills/**`
 - `.codex/agents/**`
 - `documentation/adr/**`
-- `documentation/skill-audit/**`
+- `documentation/process/skills/audit/**`
 
 ## Required Output
 
