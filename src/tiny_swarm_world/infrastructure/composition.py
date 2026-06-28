@@ -245,7 +245,6 @@ DEFAULT_NEXUS_CACHE_CONTAINER = "tiny-swarm-nexus-cache"
 DEFAULT_NEXUS_CACHE_PROXY_PORT = "5001"
 NEXUS_DOCKER_HUB_PROXY_REPOSITORY_ENVIRONMENT = "TSW_NEXUS_DOCKER_HUB_PROXY_REPOSITORY"
 NEXUS_DOCKER_HUB_PROXY_PORT_ENVIRONMENT = "TSW_NEXUS_DOCKER_HUB_PROXY_PORT"
-NEXUS_DOCKER_HUB_PROXY_REMOTE_URL_ENVIRONMENT = "TSW_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL"
 DEFAULT_NEXUS_DOCKER_HUB_PROXY_REPOSITORY = "docker-hub-proxy"
 DEFAULT_NEXUS_DOCKER_HUB_PROXY_PORT = 5001
 DEFAULT_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL = "https://registry-1.docker.io"
@@ -270,10 +269,9 @@ DEFAULT_LXC_PLATFORM_NODES = (
 LXC_BACKEND_REQUIRED_REASON = "lxc_backend_required"
 _LXC_BACKEND_CLI = {
     ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
 }
 LXC_BACKEND_REQUIRED_MESSAGE = (
-    "LXC-native workflows require an available or explicitly selected Incus or LXD backend."
+    "LXC-native workflows require an available or explicitly selected Incus backend."
 )
 _BlockedArtifactWorkflow = BlockedArtifactWorkflow
 _BlockedDeploymentWorkflow = BlockedDeploymentWorkflow
@@ -877,7 +875,7 @@ def build_lxc_artifact_services(
             configuration=NexusDockerProxyRepositoryConfiguration(
                 repository_name=_nexus_docker_hub_proxy_repository_name(),
                 http_port=_nexus_docker_hub_proxy_port(),
-                remote_url=_nexus_docker_hub_proxy_remote_url(),
+                remote_url=_nexus_docker_proxy_remote_url(),
                 admin_username="admin",
                 admin_password=nexus_admin_password,
             ),
@@ -921,7 +919,8 @@ def build_deployment_services_for_provider(
 ) -> DeploymentServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
-    if backend is not None:
+    backend_cli = None if backend is None else _LXC_BACKEND_CLI.get(backend)
+    if backend is not None and backend_cli is not None and shutil.which(backend_cli):
         return build_lxc_deployment_services(
             service_profile=service_profile,
             backend=backend,
@@ -1298,9 +1297,12 @@ def _lxc_backend_for_provider_request(
     if provider_request.requested_provider != NodeProviderKind.LXC_NATIVE:
         return None
     if provider_request.preferred_backend is not None:
-        return provider_request.preferred_backend
+        if provider_request.preferred_backend in _LXC_BACKEND_CLI:
+            return provider_request.preferred_backend
+        return None
     for backend in provider_request.backend_candidates:
-        if shutil.which(_LXC_BACKEND_CLI[backend]):
+        cli = _LXC_BACKEND_CLI.get(backend)
+        if cli is not None and shutil.which(cli):
             return backend
     return None
 
@@ -1694,7 +1696,7 @@ def _local_docker_container_running(container_name: str) -> bool:
 
 
 def _lxc_reachable_host_ip() -> str:
-    for interface_name in ("lxdbr0", "incusbr0"):
+    for interface_name in ("incusbr0",):
         address = _host_ipv4_for_interface(interface_name)
         if address:
             return address
@@ -1884,13 +1886,15 @@ def _nexus_docker_hub_proxy_port() -> int:
     return port
 
 
-def _nexus_docker_hub_proxy_remote_url() -> str:
-    remote_url = _operator_config_value(
-        NEXUS_DOCKER_HUB_PROXY_REMOTE_URL_ENVIRONMENT,
-        DEFAULT_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL,
-    ).strip()
+def _nexus_docker_proxy_remote_url() -> str:
+    mirror_configuration = _lxc_docker_registry_mirror_configuration()
+    remote_url = (
+        mirror_configuration.mirror_url
+        if mirror_configuration is not None
+        else DEFAULT_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL
+    )
     if not _is_http_url(remote_url):
-        raise ValueError("Nexus Docker Hub proxy remote URL must be HTTP or HTTPS.")
+        raise ValueError("Nexus Docker proxy remote URL must be HTTP or HTTPS.")
     return remote_url
 
 

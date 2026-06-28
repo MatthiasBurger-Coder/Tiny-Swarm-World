@@ -16,5 +16,5 @@ Additional scope for `src/tiny_swarm_world/`:
 - Put standard runtime wiring in `infrastructure/composition.py` and keep
   `__main__.py` as a thin entry point.
 - Keep command, VM, network, deployment, and service-stack behavior testable
-  without running LXD, Incus, LXC, Docker Swarm, netplan, or live service bootstrap
+  without running Incus, LXC, Docker Swarm, netplan, or live service bootstrap
   commands.

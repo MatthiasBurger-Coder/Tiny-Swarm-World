@@ -1,7 +1,8 @@
 = ADR: LXC Native Node Provider
 
-Status: Accepted as provider direction; partially implemented; superseded for
-Multipass compatibility by `adr-retire-multipass-legacy-provider.adoc`
+Status: Accepted as Incus provider direction; partially implemented;
+superseded for Multipass compatibility by
+`adr-retire-multipass-legacy-provider.adoc`
 
 Date: 2026-05-26
 
@@ -9,7 +10,7 @@ Date: 2026-05-26
 
 This ADR records the provider direction for the LXC-native node provider
 migration workflow. The implementation now selects `lxc_native` by default,
-uses managed LXC through LXD or Incus, models provider configuration and
+uses managed LXC through Incus, models provider configuration and
 profile requirements, checks provider readiness, wires LXC-native lifecycle
 adapters into setup/platform init, installs or verifies Docker Engine inside
 the managed LXC nodes through provider-selected adapters, bootstraps or
@@ -17,7 +18,7 @@ verifies the Docker Swarm manager and workers. Multipass compatibility was
 removed by the later accepted decision in
 `documentation/architecture/adr-retire-multipass-legacy-provider.adoc`.
 
-This ADR does not claim full live success. Docker Swarm inside LXD/Incus
+This ADR does not claim full live success. Docker Swarm inside Incus
 containers and WSL2 remain unverified until target-specific live smoke
 evidence exists. Provider-native artifact publication, provider-native
 deployment, and end-to-end service readiness remain incomplete or blocked.
@@ -30,14 +31,14 @@ wired around Multipass virtual machines.
 
 The accepted product direction changes the default node provider target:
 
-* LXC-native through LXD or Incus is the default provider path.
+* LXC-native through Incus is the default provider path.
 * Raw low-level LXC command automation is not the first implementation path.
 * Multipass stops being a supported node provider.
 
-The external source baseline for WSL, LXD, Incus, Docker-in-container, and LXC
+The external source baseline for WSL, Incus, Docker-in-container, and LXC
 security assumptions is recorded in
 `documentation/workflow/reports/03-external-wsl-provider-sources.md`. That
-report is planning evidence only; it is not live proof that WSL2, LXD, Incus,
+report is planning evidence only; it is not live proof that WSL2, Incus,
 Docker-in-container, or Docker Swarm-in-container works in this repository.
 
 The existing autonomous setup safety contract remains active. Mutating setup
@@ -48,7 +49,7 @@ verification contracts are absent.
 == Decision
 
 Tiny Swarm World accepts `lxc_native` as the default provider family.
-The first LXC-native implementation must use managed LXC through LXD or Incus.
+The first LXC-native implementation must use managed LXC through Incus.
 It must not automate raw `lxc-*` lifecycle commands as the default provider
 surface.
 
@@ -63,7 +64,7 @@ Provider selection must follow these target rules:
 * failure of the LXC-native path must not silently fall back to another
   provider.
 
-The default static and mocked quality gates must not run live LXD, Incus,
+The default static and mocked quality gates must not run live Incus,
 Multipass, Docker Swarm, compose, netplan, `socat`, bridge, firewall, or
 service bootstrap commands.
 
@@ -74,7 +75,7 @@ environment and must not be inferred from native Linux, sandbox, static tests,
 or external documentation.
 
 Docker Swarm remains the runtime target. Docker-in-container profile
-requirements for LXD or Incus containers must be explicit, validated before
+requirements for Incus containers must be explicit, validated before
 node creation where possible, and risk-labeled. Privileged containers, broad
 host mounts, daemon repairs, package installation, group membership changes,
 bridge changes, firewall changes, or non-interactive live consent must not
@@ -85,7 +86,7 @@ The provider migration must preserve the hexagonal architecture:
 
 * domain code owns provider-neutral concepts and imports no infrastructure;
 * application services orchestrate ports and domain objects;
-* LXD, Incus, Docker, socket, filesystem, subprocess, profile, and
+* Incus, Docker, socket, filesystem, subprocess, profile, and
   host-network details remain in infrastructure adapters;
 * `src/tiny_swarm_world/infrastructure/composition.py` remains the concrete
   wiring root;
@@ -96,19 +97,19 @@ The provider migration must preserve the hexagonal architecture:
 === Continue repairing Multipass as the primary path
 
 Rejected because the accepted product direction changes the provider target to
-managed LXC through LXD or Incus. Multipass compatibility has since been
+managed LXC through Incus. Multipass compatibility has since been
 retired by `adr-retire-multipass-legacy-provider.adoc`.
 
 === Raw LXC-only default provider
 
 Rejected for the first implementation because raw low-level LXC commands would
 expose container lifecycle, profile, and host isolation details directly to the
-automation surface. LXD or Incus provides the managed control layer required
+automation surface. Incus provides the managed control layer required
 for a safer first provider implementation.
 
 === Silent fallback to Multipass
 
-Rejected because it would hide LXD/Incus readiness failures and could make the
+Rejected because it would hide Incus readiness failures and could make the
 operator believe the default provider succeeded when a legacy path was used
 instead.
 
@@ -128,13 +129,13 @@ approved before use.
 == Consequences
 
 Completed implementation slices have introduced provider-neutral node and
-readiness concepts, LXD/Incus readiness checks, provider configuration,
+readiness concepts, Incus readiness checks, provider configuration,
 provider lifecycle adapters, setup/platform init wiring, provider-selected
 Docker Engine setup and Swarm bootstrap inside managed LXC nodes, and
 fail-closed rejection for removed provider selections.
 
 The ADR, EPIC, and arc42 documentation may describe LXC-native through
-LXD/Incus as the implemented default selection and setup/platform init
+Incus as the implemented default selection and setup/platform init
 direction. They must continue to describe artifact publication, deployment,
 Docker Swarm-in-container live health, and WSL2 live success as blocked or
 unverified until later slices provide evidence.
@@ -158,7 +159,7 @@ Evidence from one target must not be reported as proof for another target.
 
 == Risks And Follow-Up
 
-Docker Swarm inside LXD or Incus containers can require nesting, cgroup,
+Docker Swarm inside Incus containers can require nesting, cgroup,
 AppArmor, seccomp, capability, and profile choices that need security and
 DevOps review before mutating setup can use them.
 

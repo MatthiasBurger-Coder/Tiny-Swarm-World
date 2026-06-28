@@ -28,7 +28,7 @@ rectangle "Linux or WSL shell" as Shell
 component "Tiny Swarm World\nPython CLI" as CLI
 component "Configuration\ninfra/config" as Config
 database "Ignored local state\n.tiny-swarm-world\n.tiny-swarm" as LocalState
-cloud "LXD or Incus" as Provider
+cloud "Incus" as Provider
 node "Managed LXC nodes" as Nodes {
   component "Docker Engine" as Docker
   component "Docker Swarm" as Swarm
@@ -137,7 +137,7 @@ node "Linux/WSL host" {
   database "local env and evidence\nignored by Git" as Evidence
 }
 
-cloud "LXD or Incus" {
+cloud "Incus" {
   node "swarm-manager" {
     component "Docker Engine" as MgrDocker
     component "Swarm manager" as Manager

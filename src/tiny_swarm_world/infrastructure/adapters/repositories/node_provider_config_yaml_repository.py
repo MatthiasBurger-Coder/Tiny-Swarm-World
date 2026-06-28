@@ -215,8 +215,12 @@ def _config_from_mapping(data: Mapping[str, Any]) -> NodeProviderConfig:
     backend_candidates = _backend_tuple(
         _required_sequence(backend_selection, "candidates", "backend_selection")
     )
-    if set(backend_candidates) != {ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD}:
-        raise NodeProviderConfigError("backend candidates must include incus and lxd")
+    if not backend_candidates:
+        raise NodeProviderConfigError("backend candidates must not be empty")
+    if len(set(backend_candidates)) != len(backend_candidates):
+        raise NodeProviderConfigError("backend candidates must be unique")
+    if preferred_backend is not None and preferred_backend not in backend_candidates:
+        raise NodeProviderConfigError("preferred backend must be included in backend candidates")
 
     profiles_mapping = _required_mapping(data, "profiles", "root")
     profiles = tuple(
@@ -241,6 +245,7 @@ def _config_from_mapping(data: Mapping[str, Any]) -> NodeProviderConfig:
     provider_resource_resolution = _provider_resource_resolution(data, verification_metadata)
     _validate_provider_resource_resolution(
         nodes,
+        backend_candidates,
         provider_resource_resolution,
         verification_metadata,
     )
@@ -463,6 +468,7 @@ def _provider_backend_resource_resolution(
 
 def _validate_provider_resource_resolution(
     nodes: tuple[NodeProviderNodeConfig, ...],
+    backend_candidates: tuple[ManagedLxcBackend, ...],
     provider_resource_resolution: ProviderResourceResolution | None,
     verification_metadata: ProviderVerificationMetadata,
 ) -> None:
@@ -471,7 +477,9 @@ def _validate_provider_resource_resolution(
     if provider_resource_resolution is None:
         raise NodeProviderConfigError("provider resource resolution is required")
 
-    required_backends = {ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD}
+    required_backends = set(backend_candidates) | {
+        node.spec.backend for node in nodes if node.spec.backend is not None
+    }
     configured_backends = set(provider_resource_resolution.backends)
     missing_backends = sorted(backend.value for backend in required_backends - configured_backends)
     if missing_backends:

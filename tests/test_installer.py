@@ -242,13 +242,13 @@ class TestInstaller(unittest.TestCase):
     def test_suggested_checks_for_phase_returns_phase_specific_commands(self):
         self.assertEqual(
             (
-                "lxc exec swarm-manager -- docker node ls",
-                "lxc exec swarm-manager -- docker service ls",
+                "incus exec swarm-manager -- docker node ls",
+                "incus exec swarm-manager -- docker service ls",
             ),
             installer._suggested_checks_for_phase("setup platform"),
         )
         self.assertEqual(
-            ("lxc list", "docker context ls"),
+            ("incus list", "docker context ls"),
             installer._suggested_checks_for_phase("reset platform"),
         )
         self.assertEqual((), installer._suggested_checks_for_phase("preflight"))

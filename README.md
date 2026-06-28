@@ -2,12 +2,14 @@
 
 Tiny Swarm World is a local development and test infrastructure for simulating a production-like Docker Swarm microservices environment on a developer machine.
 
-The default node-provider direction is **managed LXC through LXD or Incus**. Tiny Swarm World provisions Docker Swarm nodes as managed LXC instances and then bootstraps Docker Engine, Swarm, and the selected service stacks behind guarded workflow boundaries.
+The default node-provider direction is **managed LXC through Incus**. Tiny Swarm World provisions Docker Swarm nodes as managed LXC instances and then bootstraps Docker Engine, Swarm, and the selected service stacks behind guarded workflow boundaries.
+
+The live-operation surface catalog is maintained in `documentation/system/live-operation-surfaces.adoc`.
 
 This README gives you a practical operator entry point:
 
 1. Prepare WSL2 or Linux.
-2. Install and initialize LXD or Incus.
+2. Install and initialize Incus.
 3. Prepare the Python runtime.
 4. Run the guarded Tiny Swarm World installer.
 5. Diagnose common local setup problems.
@@ -30,7 +32,7 @@ The system follows a hexagonal architecture and provides Python automation for p
 
 ## Features
 
-- LXC-native node-provider selection through LXD or Incus.
+- LXC-native node-provider selection through Incus.
 - LXC-native Docker Engine setup inside managed LXC nodes.
 - Docker Swarm bootstrap for manager and worker nodes.
 - Fail-closed workflow boundaries for provider-native platform, artifact, and deployment behavior.
@@ -63,13 +65,11 @@ The default provider is:
 lxc_native
 ```
 
-The preferred backend is usually:
+The preferred backend is:
 
 ```text
-lxd
+incus
 ```
-
-Incus can also be used where configured and supported.
 
 ---
 
@@ -82,8 +82,8 @@ Required:
 - systemd enabled when running under WSL2
 - Python 3.14
 - Git
-- LXD or Incus installed and initialized
-- `lxc` client access for the current user
+- Incus installed and initialized
+- `incus` client access for the current user
 - Enough disk space for LXC images, Docker images, and service data
 
 Recommended:
@@ -100,19 +100,18 @@ Recommended:
 
 This section describes the host preparation expected before running the Tiny Swarm World installer.
 
-> In this project context, “LXC installation” usually means installing **LXD** or **Incus** and using the `lxc` CLI to create managed Linux containers.
+> In this project context, “LXC installation” means installing **Incus** and using the `incus` CLI to create managed Linux containers.
 
 ---
 
-## 1. Windows and WSL2 Preparation
+## 1. WSL2 Preparation
 
-Run these commands in **PowerShell as Administrator**.
+Run setup commands from inside the Linux/WSL shell. Verify the runtime from the
+distribution itself:
 
-### 1.1 Check WSL status
-
-```powershell
-wsl --status
-wsl -l -v
+```bash
+uname -a
+ps -p 1 -o comm=
 ```
 
 Expected:
@@ -121,31 +120,19 @@ Expected:
 VERSION 2
 ```
 
-If the Ubuntu distribution is not WSL2:
-
-```powershell
-wsl --set-version Ubuntu 2
-wsl --set-default-version 2
-```
-
-### 1.2 Update WSL
-
-```powershell
-wsl --update
-wsl --shutdown
-```
+If the distribution is not WSL2, convert or recreate it as WSL2 outside this
+repository workflow, then return to the Linux shell.
 
 Restart Ubuntu:
 
-```powershell
-wsl -d Ubuntu
-```
+Restart the WSL distribution from your normal host workflow, then continue in
+the Linux shell.
 
 ---
 
 ## 2. Enable systemd in WSL2
 
-LXD, Snap, Docker, and several service workflows expect a systemd-based environment.
+Incus, Docker, and several service workflows expect a systemd-based environment.
 
 Inside Ubuntu/WSL:
 
@@ -162,12 +149,7 @@ Exit Ubuntu:
 exit
 ```
 
-Restart WSL from PowerShell:
-
-```powershell
-wsl --shutdown
-wsl -d Ubuntu
-```
+Restart the WSL distribution so systemd is enabled for the next Linux shell.
 
 Verify:
 
@@ -181,7 +163,7 @@ Expected:
 systemd
 ```
 
-If this does not show `systemd`, do not continue with LXD setup yet.
+If this does not show `systemd`, do not continue with Incus setup yet.
 
 ---
 
@@ -224,157 +206,39 @@ source ~/.bashrc
 
 ---
 
-## 4. Install LXD
+## 4. Install And Initialize Incus
 
-The recommended installation path for LXD on Ubuntu/Linux is the Snap package.
+Install Incus using the package source recommended for your Linux distribution,
+then initialize the local daemon before running Tiny Swarm World. For a WSL2
+developer setup, use a simple `dir` storage backend first.
 
-```bash
-sudo snap install lxd
-```
-
-Verify:
+Verify the selected backend from the same shell that will run setup:
 
 ```bash
-snap list lxd
-lxd --version
-lxc version
+incus version
+incus info
 ```
 
-Add the current user to the `lxd` group:
-
-```bash
-sudo usermod -aG lxd "$USER"
-```
-
-Restart the shell so group membership is applied.
-
-For WSL:
-
-```bash
-exit
-```
-
-PowerShell:
-
-```powershell
-wsl --shutdown
-wsl -d Ubuntu
-```
-
-Then verify:
-
-```bash
-groups
-```
-
-Expected: the group list contains `lxd`.
-
-If needed for the current shell only:
-
-```bash
-newgrp lxd
-```
-
----
-
-## 5. Initialize LXD for Tiny Swarm World
-
-For WSL2, use a simple `dir` storage backend first. It is less fragile than ZFS inside WSL.
-
-Start initialization:
-
-```bash
-lxd init
-```
-
-Recommended answers for WSL2:
+Expected project defaults:
 
 ```text
-Would you like to use LXD clustering? no
-Do you want to configure a new storage pool? yes
-Name of the new storage pool: default
-Name of the storage backend: dir
-Would you like to connect to a MAAS server? no
-Would you like to create a new local network bridge? yes
-What should the new bridge be called? lxdbr0
-What IPv4 address should be used? auto
-What IPv6 address should be used? none
-Would you like the LXD server to be available over the network? no
-Would you like stale cached images to be updated automatically? yes
-Would you like a YAML "lxd init" preseed to be printed? no
-```
-
-For native Linux, `dir` is still fine for a developer setup. ZFS can be used later when the host is intentionally prepared for it.
-
----
-
-## 6. Optional Non-Interactive LXD Init
-
-Use this only when you want a repeatable local setup.
-
-```bash
-cat > /tmp/lxd-preseed.yaml <<'EOF'
-config: {}
-networks:
-  - name: lxdbr0
-    type: bridge
-    config:
-      ipv4.address: auto
-      ipv4.nat: "true"
-      ipv6.address: none
-storage_pools:
-  - name: default
-    driver: dir
-profiles:
-  - name: default
-    config: {}
-    description: Default LXD profile
-    devices:
-      eth0:
-        name: eth0
-        network: lxdbr0
-        type: nic
-      root:
-        path: /
-        pool: default
-        type: disk
-projects: []
-cluster: null
-EOF
-
-lxd init --preseed < /tmp/lxd-preseed.yaml
+bridge: incusbr0
+storage pool: default
 ```
 
 ---
 
-## 7. Verify LXD Profile and Storage
+## 5. Verify Incus Profile And Storage
 
 Run:
 
 ```bash
-lxc storage list
-lxc network list
-lxc profile show default
+incus storage list
+incus network list
+incus profile show default
 ```
 
-Expected default profile shape:
-
-```yaml
-config: {}
-description: Default LXD profile
-devices:
-  eth0:
-    name: eth0
-    network: lxdbr0
-    type: nic
-  root:
-    path: /
-    pool: default
-    type: disk
-name: default
-```
-
-The important parts are:
+The important default profile parts are:
 
 ```yaml
 root:
@@ -388,13 +252,13 @@ and:
 ```yaml
 eth0:
   name: eth0
-  network: lxdbr0
+  network: incusbr0
   type: nic
 ```
 
 ---
 
-## 8. Fix Missing LXD Root Device
+## 6. Fix Missing Incus Root Device
 
 If this error appears:
 
@@ -409,43 +273,43 @@ then the default profile has no root disk device.
 Check:
 
 ```bash
-lxc storage list
-lxc profile show default
+incus storage list
+incus profile show default
 ```
 
 If the storage pool `default` exists, add the root disk:
 
 ```bash
-lxc profile device add default root disk path=/ pool=default
+incus profile device add default root disk path=/ pool=default
 ```
 
 If the network device is missing, add it:
 
 ```bash
-lxc profile device add default eth0 nic name=eth0 network=lxdbr0
+incus profile device add default eth0 nic name=eth0 network=incusbr0
 ```
 
 Verify again:
 
 ```bash
-lxc profile show default
+incus profile show default
 ```
 
 ---
 
-## 9. Test LXD Container Creation
+## 7. Test Incus Container Creation
 
 Create a temporary test container:
 
 ```bash
-lxc launch ubuntu:24.04 test-lxc
-lxc list
+incus launch images:ubuntu/24.04 test-incus
+incus list
 ```
 
 Open a shell inside the container:
 
 ```bash
-lxc exec test-lxc -- bash
+incus exec test-incus -- bash
 ```
 
 Inside the container:
@@ -458,14 +322,14 @@ exit
 Delete the test container:
 
 ```bash
-lxc delete test-lxc --force
+incus delete test-incus --force
 ```
 
-If this succeeds, the LXD baseline is ready.
+If this succeeds, the Incus baseline is ready.
 
 ---
 
-## 10. Host Kernel and Bridge Settings
+## 8. Host Kernel and Bridge Settings
 
 For LXC, Docker, and Swarm networking, enable forwarding and bridge netfilter settings where available.
 
@@ -499,7 +363,7 @@ If bridge sysctls are unavailable in WSL, document the host evidence and continu
 
 ---
 
-## 11. Optional Docker CLI on Host
+## 9. Optional Docker CLI on Host
 
 The default `lxc_native` path installs and verifies Docker Engine inside managed LXC nodes after live consent. Host Docker is still useful for diagnostics.
 
@@ -684,7 +548,7 @@ This file must not be committed.
 
 # Live Consent and Safety Model
 
-Mutating workflows can call LXD, Incus, LXC, Docker, networking, Portainer, Nexus, Jenkins, Pulsar, SonarQube, Swagger/NGINX, Infisical, image build, image push, and stack deployment commands.
+Mutating workflows can call Incus, Docker, networking, Portainer, Nexus, Jenkins, Pulsar, SonarQube, Swagger/NGINX, Infisical, image build, image push, and stack deployment commands.
 
 Normal mutating workflows require live consent before application services are constructed.
 
@@ -732,12 +596,6 @@ Backend selection order:
 1. Explicit `--lxc-backend`
 2. `backend_selection.preferred_backend`
 3. Ordered `backend_selection.candidates` from `infra/config/node-providers/provider_config.yaml`
-
-Explicit LXD:
-
-```bash
-tiny-swarm-world --lxc-backend lxd setup run --live
-```
 
 Explicit Incus:
 
@@ -803,18 +661,15 @@ set -e
 echo "[1] systemd"
 test "$(ps -p 1 -o comm=)" = "systemd"
 
-echo "[2] snapd"
-systemctl is-active --quiet snapd
-
-echo "[3] lxd/lxc"
-lxc version >/dev/null
-lxc storage list >/dev/null
-lxc profile show default | grep -q "root:"
+echo "[2] incus"
+incus version >/dev/null
+incus storage list >/dev/null
+incus profile show default | grep -q "root:"
 
 echo "[4] test container"
-lxc launch ubuntu:24.04 tsw-smoke-test
-lxc exec tsw-smoke-test -- true
-lxc delete tsw-smoke-test --force
+incus launch images:ubuntu/24.04 tsw-smoke-test
+incus exec tsw-smoke-test -- true
+incus delete tsw-smoke-test --force
 
 echo "[5] python"
 source .venv/bin/activate
@@ -827,30 +682,21 @@ echo "Preinstall OK"
 
 # Diagnostics
 
-## WSL
-
-```powershell
-wsl --status
-wsl -l -v
-wsl --update
-```
-
 ## systemd
 
 ```bash
 ps -p 1 -o comm=
-systemctl status snapd --no-pager
 ```
 
-## LXD
+## Incus
 
 ```bash
-lxc version
-lxc info
-lxc storage list
-lxc network list
-lxc profile show default
-lxc list
+incus version
+incus info
+incus storage list
+incus network list
+incus profile show default
+incus list
 ```
 
 ## Docker
@@ -921,18 +767,18 @@ python -m pip install -e .
 
 ## `Failed getting root disk: No root device could be found`
 
-Cause: the LXD default profile has no root disk.
+Cause: the Incus default profile has no root disk.
 
 Fix:
 
 ```bash
-lxc profile device add default root disk path=/ pool=default
+incus profile device add default root disk path=/ pool=default
 ```
 
 If network is missing:
 
 ```bash
-lxc profile device add default eth0 nic name=eth0 network=lxdbr0
+incus profile device add default eth0 nic name=eth0 network=incusbr0
 ```
 
 ## `snap: command not found`
@@ -954,11 +800,8 @@ Fix `/etc/wsl.conf`:
 systemd=true
 ```
 
-Then restart WSL:
-
-```powershell
-wsl --shutdown
-```
+Then restart the WSL distribution outside this repository workflow and rerun
+the Linux shell checks.
 
 ## Docker permission denied
 
@@ -974,14 +817,8 @@ Then restart the shell or WSL.
 
 Do not continue with installer operations. Back up important data first.
 
-PowerShell:
-
-```powershell
-wsl --shutdown
-wsl --update
-```
-
-If the distribution still starts read-only, export or back up the distribution before repair or deletion.
+If the distribution still starts read-only, back it up before repair or
+deletion and rerun the checks from a fresh Linux/WSL shell.
 
 ---
 
@@ -1033,7 +870,7 @@ python tools/quality_gate.py typecheck
 python tools/quality_gate.py test
 ```
 
-Do not run live LXD, Incus, LXC lifecycle, Docker Swarm, netplan, image build, image push, or service bootstrap commands as part of the development quality gate.
+Do not run live Incus lifecycle, Docker Swarm, image build, image push, or service bootstrap commands as part of the development quality gate.
 
 ---
 
@@ -1079,7 +916,6 @@ It must not be reclassified as forensic analytics, a Spring Boot application, or
 
 # Links
 
-- LXD documentation: https://documentation.ubuntu.com/lxd/
 - Incus: https://linuxcontainers.org/incus/
 - LXC: https://linuxcontainers.org/lxc/
 - Docker Swarm: https://docs.docker.com/engine/swarm/

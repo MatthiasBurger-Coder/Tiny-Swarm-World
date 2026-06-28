@@ -52,12 +52,12 @@ The canonical setup path must preserve these rules:
   later ADR changes that contract:
 ** `--live`
 ** `y` at the short interactive live-infrastructure confirmation prompt
-* Missing live consent must be refused before LXD, Incus, LXC container
+* Missing live consent must be refused before Incus, LXC container
   lifecycle, Docker Swarm, netplan, socat, compose, Portainer, Nexus, Jenkins,
   Apache Pulsar, SonarQube, Swagger/NGINX, image build, image push, stack
   upload, service bootstrap, or removed-provider commands can run.
 * After live consent is accepted, host-runtime readiness checks may run
-  non-mutating probes. LXD/Incus readiness must distinguish executable
+  non-mutating probes. Incus readiness must distinguish executable
   presence from daemon, socket, permission, backend selection, and profile
   usability before mutating setup phases start. Removed provider selections
   such as `multipass_legacy` must fail closed instead of probing a legacy
@@ -119,7 +119,7 @@ is present and must fail closed when required verification contracts are
 missing.
 
 Live preflight may use read-only runtime probes after consent. These probes are
-allowed to classify LXD/Incus host prerequisites, but they must not repair the
+allowed to classify Incus host prerequisites, but they must not repair the
 host, change drivers, start services, create nodes, probe removed providers, or
 persist raw command payloads.
 

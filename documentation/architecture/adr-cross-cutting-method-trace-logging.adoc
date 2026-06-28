@@ -41,7 +41,7 @@ The repository also has active constraints that remain in force:
   infrastructure adapters;
 * terminal UI, curses behavior, logger configuration, and concrete log sinks
   remain infrastructure concerns;
-* default quality gates must not run live LXD, Incus, LXC, Docker, Docker
+* default quality gates must not run live Incus, LXC, Docker, Docker
   Swarm, compose, service bootstrap, netplan, or `socat` commands;
 * logs, UI output, and persisted evidence must not expose raw command strings,
   stdout, stderr, environment payloads, tokens, passwords, Swarm join tokens,

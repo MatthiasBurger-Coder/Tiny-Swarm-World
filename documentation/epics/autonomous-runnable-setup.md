@@ -36,7 +36,7 @@ runnable system is installed successfully.
 
 The provider baseline has moved to `lxc_native` as the supported node-provider
 selection. The implementation now includes provider-neutral contracts,
-LXD/Incus readiness checks, node-provider configuration, LXC-native lifecycle
+Incus readiness checks, node-provider configuration, LXC-native lifecycle
 adapters, setup/platform integration, and fail-closed rejection for removed
 provider selections such as `multipass_legacy`. Provider-native platform
 reconcile, artifact publication, deployment, Docker Swarm-in-container live
@@ -106,7 +106,7 @@ The accepted LXC-native provider direction is requirement drift that is now
 tracked by ADR and implemented for default provider selection, readiness
 checks, node lifecycle adapters, Docker Engine setup, Swarm bootstrap, and
 setup/platform init wiring. The implementation does not yet prove Docker
-Swarm inside LXD/Incus containers on a live target, and keeps default
+Swarm inside Incus containers on a live target, and keeps default
 artifact/deployment workflows blocked until native contracts are wired.
 
 ## Intent
@@ -122,7 +122,7 @@ The setup path must:
 - preserve existing live-consent controls;
 - prepare or reconcile the selected provider's platform state only through
   governed Platform contracts;
-- use LXC-native through LXD or Incus as the supported provider path;
+- use LXC-native through Incus as the supported provider path;
 - reject removed provider selections such as `multipass_legacy` instead of
   selecting a legacy/fallback provider;
 - prepare artifact registry behavior through Artifacts contracts;
@@ -140,7 +140,7 @@ through test-backed contracts or explicitly approved live smoke evidence:
 - host prerequisites are satisfied for Linux or WSL;
 - Python 3.12 runtime and project dependencies are available;
 - the selected node provider prerequisites are satisfied and verified:
-  LXD/Incus readiness, backend selection, WSL2 capability gates where
+  Incus readiness, backend selection, WSL2 capability gates where
   applicable, and Docker-in-container profile requirements for the supported
   `lxc_native` path;
 - Docker CLI or Engine access required by the setup profile is available;
@@ -190,7 +190,7 @@ changes it:
 - answer `y` at the short live-infrastructure confirmation prompt.
 
 Missing consent must return `REFUSED_LIVE_CONSENT_MISSING` before any
-Multipass, LXD, Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
+Multipass, Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
 compose, stack, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube,
 Swagger/NGINX, image build, image push, or bootstrap command runs.
 
@@ -256,12 +256,12 @@ smoke validation is a separate operator action and requires:
   evidence.
 - The validation plan fails closed when required observed evidence is missing,
   blocked, failed, or only static stack-registration evidence.
-- LXC-native through LXD or Incus is the default provider direction, while
+- LXC-native through Incus is the default provider direction, while
   provider-native Platform init now covers Docker Engine setup and Swarm
   bootstrap. Remaining artifact, deployment, service-readiness, and live
   validation gaps remain explicit.
 - Removed provider selections such as `multipass_legacy` must fail closed and
-  must not hide a failed LXD/Incus readiness check.
+  must not hide a failed Incus readiness check.
 - Direct scripts remain transitional, deprecated, or legacy until a later
   slice migrates behavior behind ports, adapters, tests, and consent controls.
 - Documentation examples use POSIX paths and Linux/WSL command forms.
@@ -280,7 +280,7 @@ smoke validation is a separate operator action and requires:
 ## Out Of Scope
 
 - Live setup execution during default development quality gates.
-- Live LXD, Incus, LXC container, Docker-in-container, or Docker
+- Live Incus, LXC container, Docker-in-container, or Docker
   Swarm-in-container validation during default development quality gates.
 - Automatic host package installation.
 - Non-interactive live consent.

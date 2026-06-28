@@ -154,7 +154,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     )
     parser.add_argument(
         "--lxc-backend",
-        choices=[backend.value for backend in ManagedLxcBackend],
+        choices=[ManagedLxcBackend.INCUS.value],
         help="Preferred managed LXC backend when --node-provider lxc_native is selected.",
     )
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
@@ -528,7 +528,7 @@ def _print_setup_installation_plan(
     print("Target: local Linux/WSL LXC-native Docker Swarm")
     print(f"Default node provider: {provider_request.requested_provider.value}")
     if provider_request.preferred_backend is None:
-        print("Managed backend: auto-detect Incus or LXD")
+        print("Managed backend: Incus")
     else:
         print(f"Managed backend: {provider_request.preferred_backend.value}")
     print("Provider readiness: checked before platform mutation")

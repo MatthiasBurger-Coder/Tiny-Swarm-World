@@ -28,7 +28,6 @@ class NodeProviderSelectionRequest:
     preferred_backend: ManagedLxcBackend | None = None
     backend_candidates: tuple[ManagedLxcBackend, ...] = (
         ManagedLxcBackend.INCUS,
-        ManagedLxcBackend.LXD,
     )
 
 

@@ -78,7 +78,7 @@ The default contract requires these keys before setup execution:
 | `TSW_SEED_INFISICAL_ITEMS` | `0` | boolean flag | Enables optional legacy Infisical item seeding. |
 | `TSW_SECRETS_MODE` | `generated` | enum | Selects `generated`, `fixed`, or `infisical` secret handling. |
 | `TSW_FIXED_SECRET_ENV_FILE` | `.tiny-swarm-world/local/fixed-secrets.env` | local path | Fixed-mode local secret source; ignored by Git. |
-| `TSW_LXC_DOCKER_REGISTRY_MIRROR` | unset | URL | Docker registry mirror reachable from managed LXC nodes. |
+| `TSW_LXC_DOCKER_REGISTRY_MIRROR` | unset | URL | External Docker registry or Nexus proxy reachable from managed LXC nodes; used for Docker daemon mirrors and as the internal Tiny Swarm World Nexus Docker proxy upstream. |
 | `TSW_PULSAR_ADMIN_URL` | unset | URL | Internal Pulsar Admin API URL for local standalone mode. |
 | `TSW_PULSAR_PUBLIC_ADMIN_URL` | unset | URL | Host-accessible Pulsar Admin API URL for browser/live checks. |
 | `TSW_PULSAR_TOKEN_SECRET_KEY` | generated | secret value | Base64 encoded signing key for local Pulsar Admin API tokens. |
@@ -86,6 +86,15 @@ The default contract requires these keys before setup execution:
 | `TSW_PULSAR_MANAGER_ADMIN_PASSWORD` | generated | secret value | Pulsar Manager UI admin password. |
 | `TSW_TRAEFIK_TLS_CERT_SECRET_NAME` | `tsw_traefik_tls_cert` | secret name | External Docker secret name for Traefik TLS certificate material. |
 | `TSW_TRAEFIK_TLS_KEY_SECRET_NAME` | `tsw_traefik_tls_key` | secret name | External Docker secret name for Traefik TLS private key material. |
+
+## Registry Bootstrap Model
+
+Docker Swarm setup uses `TSW_LXC_DOCKER_REGISTRY_MIRROR` when an external local
+Nexus or Docker registry proxy is reachable from the managed LXC nodes. After
+Swarm is available, the Tiny Swarm World Nexus stack is deployed inside the
+Swarm. Its Docker proxy repository uses the same reachable external mirror as
+its upstream. Subsequent Tiny Swarm World image references use the internal
+Swarm registry endpoint, configured by `TSW_SWARM_REGISTRY_ENDPOINT`.
 
 Pulsar runs in local standalone mode with token authentication enabled. The
 Admin API credential is a generated bearer token stored as `platform/pulsar`.

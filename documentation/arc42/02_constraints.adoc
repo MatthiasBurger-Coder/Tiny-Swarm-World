@@ -20,7 +20,7 @@ rules.
 * Fresh-install reset scope is limited to Tiny Swarm World managed local
   resources. LXC-native reset may target configured provider nodes or
   marker-verified instances with `user.tiny_swarm_world.managed=true`; broad
-  host/provider commands that delete every LXD or Incus container are
+  host/provider commands that delete every Incus container are
   forbidden.
 * Mutating workflows require live-infrastructure consent before services are
   constructed.
@@ -34,10 +34,10 @@ rules.
   returns `verified` evidence.
 * The default quality gate must not create provider nodes or VMs, mutate
   networking, initialize Docker Swarm, deploy stacks, or bootstrap services.
-* LXC-native through LXD or Incus is the supported provider direction.
+* LXC-native through Incus is the supported provider direction.
 * Raw low-level LXC command automation is not an accepted first default
   provider path.
-* A failed LXD/Incus readiness check must not silently fall back to another
+* A failed Incus readiness check must not silently fall back to another
   provider.
 * WSL2 is capability-gated for managed LXC provider behavior. WSL1 is not a
   supported provider target.

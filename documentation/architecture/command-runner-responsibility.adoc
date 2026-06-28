@@ -1,7 +1,7 @@
 = Command Runner Responsibility
 
 Tiny Swarm World is LXC-native Python automation. Its current node-provider
-path is managed LXC through LXD or Incus, not Ansible. The active command
+path is managed LXC through Incus, not Ansible. The active command
 runner surface is intentionally narrow:
 
 * `async` is the only selectable runner type for current production workflows.

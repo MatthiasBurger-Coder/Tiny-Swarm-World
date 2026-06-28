@@ -1,10 +1,9 @@
 schema_version: "1"
 default_provider: lxc_native
 backend_selection:
-  preferred_backend: null
+  preferred_backend: incus
   candidates:
     - incus
-    - lxd
 nodes:
   - name: swarm-manager
     role: manager
@@ -48,7 +47,6 @@ profiles:
   docker-swarm:
     backend_support:
       - incus
-      - lxd
     risk_labels:
       - docker_in_container_requires_nesting
       - docker_in_container_syscall_interception
@@ -71,7 +69,6 @@ profiles:
   docker-swarm-manager:
     backend_support:
       - incus
-      - lxd
     risk_labels:
       - manager_proxy_profile_requires_profile_reconciliation
       - worker_profile_forbidden
@@ -94,10 +91,6 @@ provider_resource_resolution:
     incus:
       network_mappings:
         control: incusbr0
-      storage_pool: default
-    lxd:
-      network_mappings:
-        control: lxdbr0
       storage_pool: default
 verification_metadata:
   readiness_timeout_seconds: 5

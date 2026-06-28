@@ -6,7 +6,7 @@ The implementation strategy is:
 
 * route operator intent through workflow-level CLI commands instead of
   low-level service dispatch;
-* select `lxc_native` through LXD or Incus as the supported node provider;
+* select `lxc_native` through Incus as the supported node provider;
 * model platform operations as `init`, `reconcile`, `verify`, `reset`, and
   `destroy` workflows with explicit mutating/destructive semantics;
 * keep destructive behavior isolated to reset/destroy command catalogs and

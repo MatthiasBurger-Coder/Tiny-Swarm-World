@@ -61,7 +61,7 @@ microservices.
 
 LXC-native provider::
 The default node-provider family for Tiny Swarm World. It uses managed LXC
-through LXD or Incus and fails closed when backend readiness or profile
+through Incus and fails closed when backend readiness or profile
 requirements are not satisfied.
 
 Legacy quarantine::

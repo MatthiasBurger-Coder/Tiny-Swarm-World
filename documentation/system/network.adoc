@@ -1,7 +1,7 @@
 = Networking
 
 Tiny Swarm World uses Docker Swarm networking on provider nodes. The default
-provider nodes are managed LXC containers through LXD or Incus.
+provider nodes are managed LXC containers through Incus.
 
 Local access can still depend on WSL forwarding state, published Docker ports,
 provider bridge configuration, or optional `socat` forwarding. Do not
@@ -16,19 +16,12 @@ For Incus:
 incus list swarm-manager --format json
 ----
 
-For LXD:
-
-[source,bash]
-----
-lxc list swarm-manager --format json
-----
-
 Use current provider output only for manual diagnosis. Do not commit
 host-specific IP addresses, gateway values, or forwarded port state.
 
 == Provider Network Changes
 
-LXD and Incus network, storage, and profile changes are live infrastructure
+Incus network, storage, and profile changes are live infrastructure
 mutations. They are not part of the default quality gate and must be performed
 only when the operator intentionally approves provider changes.
 

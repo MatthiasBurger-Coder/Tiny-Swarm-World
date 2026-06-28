@@ -83,7 +83,7 @@ Explicit Requirements:
 Implicit Requirements:
 
 - Preserve Linux/WSL-only and Docker Swarm-first project direction.
-- Preserve the managed LXC through LXD/Incus default provider direction.
+- Preserve the managed LXC through Incus default provider direction.
 - Keep Service Access as a dashboard capability.
 - Keep secret and credential display safety unchanged.
 - Use existing YAML adapters and domain value objects rather than ad hoc
@@ -303,7 +303,7 @@ In scope:
 
 Out of scope:
 
-- Live LXC, Incus, LXD, Docker, Swarm, Traefik, DNS, hosts-file, browser or
+- Live LXC, Incus, Docker, Swarm, Traefik, DNS, hosts-file, browser or
   Selenium execution without explicit operator opt-in.
 - Service extraction or microservice boundary changes.
 - Browser React frontend implementation.

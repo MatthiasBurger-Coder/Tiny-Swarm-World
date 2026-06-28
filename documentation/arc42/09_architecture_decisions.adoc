@@ -28,7 +28,7 @@ Consequences:
 
 * `ApplicationServices` aggregates `PlatformServices`, `ArtifactServices`, and
   `DeploymentServices`;
-* Platform workflows own LXD/Incus provider readiness and node lifecycle,
+* Platform workflows own Incus provider readiness and node lifecycle,
   netplan legacy behavior, Docker install, Swarm, preflight, and node or
   VM/IP behavior;
 * the Deployment namespace owns `EnsureNexusStack`, `EnsureServiceStack`,
@@ -102,7 +102,7 @@ compatibility superseded by
 
 Consequences:
 
-* `lxc_native` through LXD or Incus is the default provider direction;
+* `lxc_native` through Incus is the default provider direction;
 * raw low-level LXC lifecycle commands are not the first default provider
   surface;
 * provider-neutral domain contracts, application ports, readiness checks,
@@ -117,7 +117,7 @@ Consequences:
   live success still require explicit operator evidence;
 * removed provider selections fail closed rather than becoming silent
   fallbacks;
-* WSL2 LXD/Incus behavior is capability-gated and requires target-specific
+* WSL2 Incus behavior is capability-gated and requires target-specific
   live evidence before it can be claimed as working;
 * Docker-in-container profile requirements, privileged profile choices, host
   package installation, daemon repair, group changes, bridge/firewall changes,

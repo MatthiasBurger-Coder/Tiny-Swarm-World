@@ -618,9 +618,13 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
 
     def test_build_artifact_services_wires_artifact_contracts_without_running_clients(self):
-        services = composition.build_lxc_artifact_services(
-            backend=composition.ManagedLxcBackend.INCUS,
-        )
+        with patch(
+            "tiny_swarm_world.infrastructure.composition._auto_detect_nexus_cache_registry_mirror",
+            return_value="",
+        ):
+            services = composition.build_lxc_artifact_services(
+                backend=composition.ManagedLxcBackend.INCUS,
+            )
 
         self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.ArtifactVerifyWorkflow)
@@ -647,6 +651,61 @@ class TestComposition(unittest.TestCase):
             ),
             tuple(step.verification_target_id for step in services.workflows.prepare.steps),
         )
+
+    def test_nexus_docker_proxy_remote_url_uses_lxc_registry_mirror(self):
+        with patch.dict(
+            os.environ,
+            {
+                "TSW_LXC_DOCKER_REGISTRY_MIRROR": sample_http_url(
+                    ipv4_address(10, 0, 3, 1),
+                    5001,
+                )
+            },
+            clear=True,
+        ):
+            remote_url = composition._nexus_docker_proxy_remote_url()
+
+        self.assertEqual(
+            sample_http_url(ipv4_address(10, 0, 3, 1), 5001),
+            remote_url,
+        )
+
+    def test_build_artifact_services_sets_internal_nexus_proxy_to_lxc_registry_mirror(self):
+        with patch.dict(
+            os.environ,
+            {
+                "TSW_LXC_DOCKER_REGISTRY_MIRROR": sample_http_url(
+                    ipv4_address(10, 0, 3, 1),
+                    5001,
+                )
+            },
+            clear=True,
+        ):
+            services = composition.build_lxc_artifact_services(
+                backend=composition.ManagedLxcBackend.INCUS,
+            )
+
+        proxy_step = services.workflows.prepare.steps[3]
+        proxy_configuration = getattr(proxy_step, "configuration")
+
+        self.assertEqual(
+            "artifacts:nexus-docker-hub-proxy-repository",
+            getattr(proxy_step, "verification_target_id"),
+        )
+        self.assertEqual(
+            sample_http_url(ipv4_address(10, 0, 3, 1), 5001),
+            proxy_configuration.remote_url,
+        )
+
+    def test_nexus_docker_proxy_remote_url_falls_back_to_docker_hub_without_mirror(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with patch(
+                "tiny_swarm_world.infrastructure.composition._auto_detect_nexus_cache_registry_mirror",
+                return_value="",
+            ):
+                remote_url = composition._nexus_docker_proxy_remote_url()
+
+        self.assertEqual("https://registry-1.docker.io", remote_url)
 
     def test_build_artifact_services_uses_infisical_image_overrides(self):
         with patch.dict(
@@ -822,7 +881,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(18, len(services.workflows.prepare.steps))
 
     def test_default_provider_deployment_services_use_lxc_clients_when_backend_is_available(self):
-        with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
+        with patch.object(composition.shutil, "which", return_value="/usr/bin/incus"):
             services = composition.build_deployment_services_for_provider()
 
         self.assertIsInstance(services.workflows.bootstrap, composition.DeploymentApplyWorkflow)
@@ -1493,13 +1552,10 @@ class TestComposition(unittest.TestCase):
 
     def test_lxc_backend_for_provider_request_honors_candidate_order(self):
         def which(name: str):
-            return f"/usr/bin/{name}" if name in {"incus", "lxc"} else None
+            return f"/usr/bin/{name}" if name == "incus" else None
 
         request = composition.NodeProviderSelectionRequest(
-            backend_candidates=(
-                composition.ManagedLxcBackend.INCUS,
-                composition.ManagedLxcBackend.LXD,
-            )
+            backend_candidates=(composition.ManagedLxcBackend.INCUS,)
         )
 
         with patch.object(composition.shutil, "which", side_effect=which):
@@ -1507,9 +1563,9 @@ class TestComposition(unittest.TestCase):
 
         self.assertEqual(composition.ManagedLxcBackend.INCUS, backend)
 
-    def test_lxc_backend_for_provider_request_supports_lxd_first_order(self):
+    def test_lxc_backend_for_provider_request_ignores_removed_lxd_candidate(self):
         def which(name: str):
-            return f"/usr/bin/{name}" if name in {"incus", "lxc"} else None
+            return f"/usr/bin/{name}" if name == "incus" else None
 
         request = composition.NodeProviderSelectionRequest(
             backend_candidates=(
@@ -1521,7 +1577,7 @@ class TestComposition(unittest.TestCase):
         with patch.object(composition.shutil, "which", side_effect=which):
             backend = composition._lxc_backend_for_provider_request(request)
 
-        self.assertEqual(composition.ManagedLxcBackend.LXD, backend)
+        self.assertEqual(composition.ManagedLxcBackend.INCUS, backend)
 
     def test_preflight_configuration_for_incus_requires_incus_cli(self):
         request = composition.NodeProviderSelectionRequest(
@@ -1543,25 +1599,6 @@ class TestComposition(unittest.TestCase):
             configuration.provider_metadata.network_checks,
         )
 
-    def test_preflight_configuration_for_lxd_requires_lxc_cli(self):
-        request = composition.NodeProviderSelectionRequest(
-            preferred_backend=composition.ManagedLxcBackend.LXD,
-        )
-
-        configuration = composition._preflight_configuration_for_provider(
-            composition.ServiceStackProfile.SERVICE_ACCESS,
-            request,
-        )
-
-        dependency_names = {item.name for item in configuration.required_dependencies}
-        self.assertIn("lxc", dependency_names)
-        self.assertNotIn("incus", dependency_names)
-        self.assertEqual("lxd", configuration.provider_metadata.backend)
-        self.assertEqual(
-            ("backend-cli:lxc",),
-            configuration.provider_metadata.provider_checks,
-        )
-
     def test_infisical_readiness_steps_are_empty_for_default_profile(self):
         steps = composition._infisical_apply_readiness_steps(
             composition.ServiceStackProfile.DEFAULT,
@@ -1573,11 +1610,10 @@ class TestComposition(unittest.TestCase):
 
     def test_preflight_configuration_honors_backend_candidate_order(self):
         def which(name: str):
-            return f"/usr/bin/{name}" if name in {"incus", "lxc"} else None
+            return f"/usr/bin/{name}" if name == "incus" else None
 
         request = composition.NodeProviderSelectionRequest(
             backend_candidates=(
-                composition.ManagedLxcBackend.LXD,
                 composition.ManagedLxcBackend.INCUS,
             )
         )
@@ -1589,9 +1625,9 @@ class TestComposition(unittest.TestCase):
             )
 
         dependency_names = {item.name for item in configuration.required_dependencies}
-        self.assertIn("lxc", dependency_names)
-        self.assertNotIn("incus", dependency_names)
-        self.assertEqual("lxd", configuration.provider_metadata.backend)
+        self.assertIn("incus", dependency_names)
+        self.assertNotIn("lxc", dependency_names)
+        self.assertEqual("incus", configuration.provider_metadata.backend)
 
     def test_preflight_configuration_blocks_missing_lxc_backend_candidates(self):
         request = composition.NodeProviderSelectionRequest(backend_candidates=())
@@ -1606,12 +1642,9 @@ class TestComposition(unittest.TestCase):
     def test_default_node_provider_request_uses_committed_candidate_order(self):
         request = composition._default_node_provider_request()
 
-        self.assertIsNone(request.preferred_backend)
+        self.assertEqual(composition.ManagedLxcBackend.INCUS, request.preferred_backend)
         self.assertEqual(
-            (
-                composition.ManagedLxcBackend.INCUS,
-                composition.ManagedLxcBackend.LXD,
-            ),
+            (composition.ManagedLxcBackend.INCUS,),
             request.backend_candidates,
         )
 

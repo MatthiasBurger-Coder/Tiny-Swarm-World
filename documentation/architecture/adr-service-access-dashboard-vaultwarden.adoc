@@ -34,7 +34,7 @@ Not implemented or not verified:
 
 * the central `http://localhost` service-access route requires a fresh live
   provider-specific redeployment before it is claimed as live-verified;
-* provider-native deployment, observed service readiness, and live LXD/Incus
+* provider-native deployment, observed service readiness, and live Incus
   evidence remain incomplete;
 * Vaultwarden backup, restore, admin-token rotation and rollback remain
   future work.

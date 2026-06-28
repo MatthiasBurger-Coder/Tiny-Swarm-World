@@ -3,7 +3,7 @@
 Tiny Swarm World contains two different kinds of workflows:
 
 * development workflows that are safe to run during normal coding
-* live infrastructure workflows that change LXD/Incus/LXC provider state,
+* live infrastructure workflows that change Incus/LXC provider state,
   Docker, Portainer, Nexus, networking, or service stacks
 
 Use a Linux or WSL shell from the repository root unless a command explicitly
@@ -93,15 +93,13 @@ The setup sequence includes `platform expose`, which configures the
 LXC-native manager gateway for published Swarm service ports after platform
 init/reconcile and before deployment bootstrap.
 
-Backend selection first honors an explicit `--lxc-backend` override, then
-`backend_selection.preferred_backend`, then the ordered
-`backend_selection.candidates` list in
-`infra/config/node-providers/provider_config.yaml`. Select a managed LXC
-backend explicitly when the configured default should be overridden:
+Backend selection first honors an explicit `--lxc-backend incus` override,
+then `backend_selection.preferred_backend` in
+`infra/config/node-providers/provider_config.yaml`. Select the managed LXC
+backend explicitly when the configured default should be made visible:
 
 [source,bash]
 ----
-tiny-swarm-world --lxc-backend lxd setup run --live
 tiny-swarm-world --lxc-backend incus setup run --live
 ----
 
@@ -138,7 +136,7 @@ observed-state prerequisites are unavailable.
 
 Optional live smoke validation is a separate operator action, not part of
 `python3 tools/quality_gate.py quality`. Run `setup run --live` only on a
-disposable or recoverable local environment and only when LXD/Incus/LXC or
+disposable or recoverable local environment and only when Incus/LXC or
 provider state, Docker Swarm, networking, Portainer,
 Nexus, Jenkins, Apache Pulsar, SonarQube, Swagger/NGINX, image, and stack changes
 are intentional.
@@ -147,7 +145,7 @@ are intentional.
 
 The workflow safety behavior is verified through unit tests, architecture
 checks, import-linter contracts, type checks, and static command catalog
-validation. The default quality gate does not run live LXD, Incus, LXC
+validation. The default quality gate does not run live Incus, LXC
 container lifecycle, Docker Swarm, compose, netplan, socat,
 Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, or Swagger/NGINX commands.
 

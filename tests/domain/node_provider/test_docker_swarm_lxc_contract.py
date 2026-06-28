@@ -29,7 +29,7 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
         self.assertTrue(profile.valid_for_node_creation)
         self.assertEqual("docker-swarm", profile.profile_name)
         self.assertEqual(
-            {ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD},
+            {ManagedLxcBackend.INCUS},
             set(profile.backend_support),
         )
         self.assertTrue(profile.nesting_required)

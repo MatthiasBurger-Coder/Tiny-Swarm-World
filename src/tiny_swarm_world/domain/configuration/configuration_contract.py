@@ -205,7 +205,10 @@ def default_configuration_contract() -> ConfigurationContract:
                 scope="platform",
                 value_kind=ConfigurationValueKind.URL,
                 required=False,
-                description="Docker registry mirror URL reachable from managed LXC nodes.",
+                description=(
+                    "External Docker registry or Nexus proxy URL reachable from managed "
+                    "LXC nodes and used as the internal Nexus Docker proxy upstream."
+                ),
             ),
             ConfigurationRequirement(
                 key="TSW_PULSAR_ADMIN_URL",

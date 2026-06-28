@@ -24,11 +24,11 @@ executing live infrastructure commands.
 | `PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows` | Supported | Lists workflow contracts without building application services.
 | `PYTHONPATH=src python3 -m tiny_swarm_world --preflight` | Supported | Runs static preflight checks for the default `lxc_native` provider without live infrastructure execution.
 | `PYTHONPATH=src python3 -m tiny_swarm_world platform verify` | Supported | Non-mutating workflow-level verification path. It runs post-install preflight and read-only checks for managed LXC nodes, Docker Engine readiness, Swarm membership, profile-level proxy devices, and the Portainer local endpoint.
-| `platform init` | Supported | Mutating workflow name is supported and live-consent gated. The default path selects `lxc_native` through LXD or Incus using the explicit CLI backend, configured preferred backend, or ordered backend candidate list, ensures provider nodes, then runs Docker Engine setup and Swarm bootstrap inside the managed LXC nodes. It blocks before mutation when provider readiness, WSL2 capability, or profile requirements are not satisfied.
+| `platform init` | Supported | Mutating workflow name is supported and live-consent gated. The default path selects `lxc_native` through Incus using the explicit CLI backend or configured preferred backend, ensures provider nodes, then runs Docker Engine setup and Swarm bootstrap inside the managed LXC nodes. It blocks before mutation when provider readiness, WSL2 capability, or profile requirements are not satisfied.
 | `platform reconcile` | Supported | Canonical reconcile definition: a mutating, non-destructive, live-consent-gated workflow that inspects configured managed LXC-native node state and applies only the node lifecycle changes required to converge that state. Existing matching nodes report a verified no-op. Missing or stopped managed nodes may be created or started only after live consent and provider readiness pass. Missing consent, blocked provider selection, unmanaged mismatches, or unsafe evidence return blocked before mutation. CLI JSON reports mutation result as `no_op`, `converged`, `blocked`, `failed_to_apply`, or `failed_to_verify`, and reports verification as `verified`, `blocked`, or the terminal failure state.
 | `platform expose` | Supported | Mutating workflow name is supported and live-consent gated. The default `lxc_native` path ensures profile-level LXC proxy devices in the manager-specific `docker-swarm-manager` profile for the setup-manifest published ports, connecting host-side listeners to `127.0.0.1:<port>` inside the manager so Swarm ingress owns service routing. It does not create direct instance-level `tsw-proxy-*` devices.
 | `platform repair-lxc-proxy-drift` | Supported | Mutating workflow name is supported and live-consent gated. It is an explicit repair path for stale direct instance-level `tsw-proxy-*` devices on the manager. It removes only project-named direct proxy devices whose equivalent manager-profile device is already verified; unrelated, unknown, or non-equivalent devices are refused.
-| `platform reset` and `platform destroy` | Supported | Confirmation-gated destructive workflows are wired for configured managed LXC-native nodes through LXD or Incus. They verify exact configured node names, Tiny Swarm World ownership markers, backend/profile/image evidence, and absence after deletion. Already absent managed nodes are successful reset/destroy evidence. Missing or mismatched ownership evidence blocks before mutation. Broad host cleanup such as deleting every LXD or Incus container is not a supported operation.
+| `platform reset` and `platform destroy` | Supported | Confirmation-gated destructive workflows are wired for configured managed LXC-native nodes through Incus. They verify exact configured node names, Tiny Swarm World ownership markers, backend/profile/image evidence, and absence after deletion. Already absent managed nodes are successful reset/destroy evidence. Missing or mismatched ownership evidence blocks before mutation. Broad host cleanup such as deleting every Incus container is not a supported operation.
 | `deployment bootstrap` | Supported | Workflow name is supported and live-consent gated. It starts Portainer, initializes admin access, ensures the Portainer local Docker endpoint exists, and prepares Nexus before Portainer-managed application stack apply runs.
 | `artifacts prepare`, `artifacts verify`, `deployment apply`, `deployment verify` | Supported | Workflow names are supported and live-consent gated. The default `lxc_native` path uses configured artifact, image-publication, stack deployment, external-input, and readiness contracts, and still reports blocked or failed phase evidence when a live prerequisite is not observable.
 | `PYTHONPATH=src python3 -m tiny_swarm_world setup run` | Supported | Safe refusal/probe command. It refuses missing live consent before setup service construction.
@@ -61,7 +61,7 @@ executing live infrastructure commands.
 | `infra/config/compose/swagger/docker-compose.yml` | Supported Asset | Defines Swagger/API documentation stack runtime state. It uses official Swagger Docker Hub images so the LXC Docker daemon mirror can route pulls through the local Nexus cache, sets `SWAGGER_JSON=/openapi.json`, and mounts the OpenAPI file read-only. Its NGINX route uses the official `nginx:mainline-alpine` image with a mounted config instead of a custom image or wait script. | Deploy only through reviewed stack deployment paths.
 | `infra/config/compose/swagger/nginx/default.conf` | Supported Asset | Configures the official NGINX container for the Swagger API proxy. It resolves the Swagger API service through Docker's embedded DNS at request time, avoiding `depends_on` startup ordering and image-internal wait helpers. | Static review by default; deploy only through the setup workflow during explicit live runs.
 | `infra/config/compose/service-access/docker-compose.yml` | Supported Asset | Defines the service-access dashboard and service-access NGINX stack included by the full guided setup. Its NGINX service publishes compose ports `10000` and `8086`; the service-access setup profile exposes Traefik ingress ports `80` and `443` as the public manager proxy set. | Static review by default. Deploy only through reviewed stack deployment paths after the required image contracts are prepared.
-| `infra/config/node-providers/provider_config.yaml` | Supported Asset | Declares `lxc_native` as the default node provider, the ordered Incus/LXD backend candidates used for automatic backend selection, the common Docker Swarm profile, and the manager-only `docker-swarm-manager` profile used for LXC proxy devices. | Static review by default. Provider daemon, profile, storage, network, profile-device, and container lifecycle mutation still requires explicit live consent.
+| `infra/config/node-providers/provider_config.yaml` | Supported Asset | Declares `lxc_native` as the default node provider, Incus as the managed LXC backend, the common Docker Swarm profile, and the manager-only `docker-swarm-manager` profile used for LXC proxy devices. | Static review by default. Provider daemon, profile, storage, network, profile-device, and container lifecycle mutation still requires explicit live consent.
 | `infra/config/compose/service-access/dashboard/**` | Supported Asset | Provides the image-packaged dashboard assets rendered from the effective service-access model for service routes and Infisical credential item references. The dashboard does not contain password values and does not run host-side build, push or deployment commands. | Static review by default; build only through the artifact workflow during explicit live runs.
 | `infra/config/compose/service-access/nginx/**` | Supported Asset | Provides the image-packaged NGINX routing configuration for the service-access dashboard and compatibility routes. The configuration disables NGINX access logging for these routes and resolves internal services through Docker embedded DNS. | Static review by default; build only through the artifact workflow during explicit live runs.
 |===
@@ -79,7 +79,7 @@ Rules for future slices:
 * do not print tokens, passwords, or raw API credentials in scripts or logs;
 * do not commit host-specific IP addresses, gateways, usernames, tokens, or
   passwords to new configuration;
-* keep live Portainer, Nexus, Docker, LXD, Incus, LXC container lifecycle,
+* keep live Portainer, Nexus, Docker, Incus, LXC container lifecycle,
   netplan, socat, and stack deployment checks out of the default
   quality gate.
 
@@ -94,7 +94,7 @@ python3 tools/quality_gate.py arch-tests
 python3 tools/quality_gate.py test
 ----
 
-Do not run `incus`, `lxc`, LXD or Incus daemon/profile/storage/network
+Do not run `incus`, Incus daemon/profile/storage/network
 changes, Docker Swarm, compose deployments, netplan, socat,
 Portainer, Nexus, Jenkins, Pulsar, SonarQube, Swagger/NGINX bootstrap,
 image build, image push, or stack upload commands unless the user explicitly
@@ -111,7 +111,7 @@ and only on a disposable or recoverable local environment.
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-When prompted, answer `y` only after confirming that LXD/Incus/LXC provider
+When prompted, answer `y` only after confirming that Incus/LXC provider
 state, Docker Swarm, networking, Portainer, Nexus,
 Jenkins, Pulsar, SonarQube, Swagger/NGINX, image, and stack changes are
 intentional.

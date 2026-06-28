@@ -20,7 +20,7 @@ from tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight i
 
 
 class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
-    async def test_missing_lxd_and_incus_executables_returns_backend_missing_without_probe(self):
+    async def test_missing_incus_executable_returns_backend_missing_without_probe(self):
         runner = _FakeRunner()
 
         readiness = await _probe(available=(), runner=runner).provider_readiness(
@@ -32,7 +32,6 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(readiness.blocks_mutation)
         self.assertEqual([], runner.calls)
         self.assertEqual("absent", readiness.backend_selection.evidence["incus_cli"])
-        self.assertEqual("absent", readiness.backend_selection.evidence["lxd_cli"])
 
     async def test_ready_incus_backend_uses_version_and_info_with_timeout(self):
         runner = _FakeRunner(_ok(), _ok())
@@ -52,23 +51,15 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEvidenceIsSummaryOnly(readiness)
 
-    async def test_ready_lxd_backend_uses_version_and_info_with_timeout(self):
-        runner = _FakeRunner(_ok(), _ok())
+    async def test_lxc_cli_without_incus_is_not_selected_by_default(self):
+        runner = _FakeRunner()
 
         readiness = await _probe(available=("lxc",), runner=runner).provider_readiness(
             NodeProviderKind.LXC_NATIVE
         )
 
-        self.assertEqual(ProviderReadinessStatus.READY, readiness.status)
-        self.assertEqual(ManagedLxcBackend.LXD, readiness.backend_selection.backend)
-        self.assertEqual(
-            [
-                (("lxc", "version"), 5.0),
-                (("lxc", "info"), 5.0),
-            ],
-            runner.calls,
-        )
-        self.assertEvidenceIsSummaryOnly(readiness)
+        self.assertEqual(ProviderReadinessStatus.BACKEND_MISSING, readiness.status)
+        self.assertEqual([], runner.calls)
 
     async def test_timeout_maps_to_timeout_without_raw_output(self):
         runner = _FakeRunner(
@@ -93,16 +84,16 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
             _ok(),
             LxcProviderProbeResult(
                 returncode=2,
-                stderr="cannot connect to unix socket /var/snap/lxd/common/lxd/unix.socket",
+                stderr="cannot connect to unix socket /var/lib/incus/unix.socket",
             ),
         )
 
-        readiness = await _probe(available=("lxc",), runner=runner).provider_readiness(
+        readiness = await _probe(available=("incus",), runner=runner).provider_readiness(
             NodeProviderKind.LXC_NATIVE
         )
 
         self.assertEqual(ProviderReadinessStatus.DAEMON_UNAVAILABLE, readiness.status)
-        self.assertEqual(ManagedLxcBackend.LXD, readiness.backend_selection.backend)
+        self.assertEqual(ManagedLxcBackend.INCUS, readiness.backend_selection.backend)
         self.assertEvidenceIsSummaryOnly(readiness)
 
     async def test_info_permission_denied_maps_to_permission_denied(self):

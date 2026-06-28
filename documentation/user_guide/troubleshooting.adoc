@@ -35,7 +35,7 @@ Run the gate from the repository root, not from a source or test subdirectory.
 
 == LXC Native Provider Is Not Ready
 
-The default node provider is `lxc_native` through LXD or Incus. Check the
+The default node provider is `lxc_native` through Incus. Check the
 selected backend from the same Linux/WSL shell that will run Tiny Swarm World.
 
 For Incus:
@@ -46,21 +46,11 @@ incus version
 incus info
 ----
 
-For LXD:
-
-[source,bash]
-----
-lxc version
-lxc info
-----
-
-If the configured backend order should not be used for this run, select one
-explicitly:
+If the configured backend should be selected explicitly for this run:
 
 [source,bash]
 ----
 PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd --preflight
 ----
 
 In WSL, verify that the distribution is WSL2 and that systemd, cgroup, and
@@ -74,14 +64,13 @@ provider networking.
 == Unsupported Node Provider Selection
 
 The supported node provider is `lxc_native`. If an old command line uses a
-removed provider value, rerun with the default provider or select an LXD/Incus
+removed provider value, rerun with the default provider or select the Incus
 backend explicitly:
 
 [source,bash]
 ----
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd setup run --live
 ----
 
 == IntelliJ Run Configuration Cannot Start Live Setup
@@ -328,7 +317,7 @@ After confirmation, reset and destroy act only on configured managed
 LXC-native nodes whose Tiny Swarm World ownership evidence is verified before
 mutation. Already absent managed nodes are valid reset/destroy evidence.
 Missing, mismatched, or unmanaged ownership evidence blocks before deletion.
-Do not use these commands as broad LXD/Incus cleanup, and do not treat a
+Do not use these commands as broad Incus cleanup, and do not treat a
 confirmation phrase as permission to delete unrelated containers.
 
 If reset reports `managed_nodes_reset_blocked` with

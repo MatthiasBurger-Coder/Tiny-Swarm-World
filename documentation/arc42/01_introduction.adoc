@@ -2,7 +2,7 @@
 
 Tiny Swarm World is a Linux/WSL-only Python automation project for operating a
 production-like local Docker Swarm environment on managed provider nodes. The
-provider path is `lxc_native` through LXD or Incus. Multipass is not a
+provider path is `lxc_native` through Incus. Multipass is not a
 supported node provider. The project provides workflow-level
 commands for platform preparation and verification, plus infrastructure assets
 for Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, and Swagger/NGINX.
@@ -22,6 +22,6 @@ The current architecture goals are:
 * store observed runtime state and verification evidence only under the
   ignored `.tiny-swarm-world/` local state root;
 * require verify-after-apply behavior for mutating workflow steps;
-* keep live LXD, Incus, LXC container lifecycle, Docker
+* keep live Incus, LXC container lifecycle, Docker
   Swarm, netplan, socat, compose, and service bootstrap commands out of the
   default quality gate.

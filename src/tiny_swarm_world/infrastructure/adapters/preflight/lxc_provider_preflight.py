@@ -224,7 +224,7 @@ def _host_gate(
             return _host_blocked_readiness(
                 ProviderReadinessStatus.SYSTEMD_UNAVAILABLE,
                 host_environment,
-                "Enable systemd in WSL2 before running LXD or Incus daemon checks.",
+                "Enable systemd in WSL2 before running Incus daemon checks.",
                 {"systemd": "absent", "wsl_generation": "2"},
             )
         if not wsl_lxc_capability_available():
@@ -277,10 +277,10 @@ def _backend_missing_readiness(
         provider=NodeProviderKind.LXC_NATIVE,
         status=ProviderReadinessStatus.BACKEND_MISSING,
         backend_selection=ManagedLxcBackendSelection.missing(
-            remediation=("Install Incus or LXD and make the selected CLI available.",),
+            remediation=("Install Incus and make the selected CLI available.",),
             evidence=_backend_presence_evidence(host_environment, backend_candidates, ()),
         ),
-        remediation=("Install Incus or LXD and make the selected CLI available.",),
+        remediation=("Install Incus and make the selected CLI available.",),
         evidence={"host_kind": host_environment.environment.value},
     )
 
@@ -395,7 +395,7 @@ def _normalized_backend_candidates(
     candidates: tuple[ManagedLxcBackend, ...],
 ) -> tuple[ManagedLxcBackend, ...]:
     if not candidates:
-        return (ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD)
+        return (ManagedLxcBackend.INCUS,)
     seen: list[ManagedLxcBackend] = []
     for backend in candidates:
         if backend not in seen:

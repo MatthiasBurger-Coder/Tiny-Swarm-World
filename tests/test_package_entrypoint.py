@@ -124,7 +124,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         plan = output.getvalue()
         self.assertIn("Default node provider: lxc_native", plan)
-        self.assertIn("Managed backend: auto-detect Incus or LXD", plan)
+        self.assertIn("Managed backend: Incus", plan)
         self.assertIn("Provider readiness: checked before platform mutation", plan)
         self.assertIn("Service profile: service-access", plan)
         self.assertIn("Traefik Ingress: stack traefik", plan)
@@ -319,20 +319,25 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Workflow: platform verify", output.getvalue())
         self.assertNotIn('{\n', output.getvalue())
 
+    def test_lxd_backend_option_is_rejected(self):
+        with redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                entrypoint.parse_args(["--lxc-backend", "lxd"])
+
     async def test_explicit_lxc_backend_override_builds_provider_request(self):
         services, workflows = _application_services_with_platform_workflows()
         output = io.StringIO()
 
         with patch.object(entrypoint, "build_application_services", return_value=services) as build_services:
             with redirect_stdout(output):
-                await entrypoint.main(["--lxc-backend", "lxd", "platform", "verify"])
+                await entrypoint.main(["--lxc-backend", "incus", "platform", "verify"])
 
         build_services.assert_called_once()
         request = build_services.call_args.kwargs["node_provider_request"]
         self.assertEqual(
             entrypoint.NodeProviderSelectionRequest(
                 requested_provider=entrypoint.NodeProviderKind.LXC_NATIVE,
-                preferred_backend=entrypoint.ManagedLxcBackend.LXD,
+                preferred_backend=entrypoint.ManagedLxcBackend.INCUS,
             ),
             request,
         )

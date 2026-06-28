@@ -770,18 +770,7 @@ def _write_infisical_secret_file(path: Path, env: Mapping[str, str]) -> None:
 
 
 def _configure_native_linux_command_group(host_runtime: HostRuntime, env: dict[str, str]) -> None:
-    if host_runtime.name == "wsl2" or env.get("TSW_INSTALL_SKIP_NATIVE_GROUP_SWITCH") == "1":
-        return
-    if not shutil.which("sg") or not shutil.which("lxc"):
-        return
-    current_groups = subprocess.run(["id", "-nG"], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
-    if "lxd" in current_groups.stdout.split():
-        return
-    user = subprocess.run(["id", "-un"], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False).stdout.strip()
-    group = subprocess.run(["getent", "group", "lxd"], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
-    if group.returncode == 0 and user and user in group.stdout.partition(":")[2].split(":")[-1].split(","):
-        env["TSW_INSTALL_COMMAND_GROUP"] = "lxd"
-        print("Native Linux LXD group membership exists but is not active; running live commands through sg lxd.", file=sys.stderr)
+    return
 
 
 def _confirm_reset(options: InstallerOptions) -> None:
@@ -890,12 +879,12 @@ def _suggested_checks_for_phase(name: str) -> tuple[str, ...]:
     commands: list[str]
     if "setup" in normalized:
         commands = [
-            "lxc exec swarm-manager -- docker node ls",
-            "lxc exec swarm-manager -- docker service ls",
+            "incus exec swarm-manager -- docker node ls",
+            "incus exec swarm-manager -- docker service ls",
         ]
     elif "reset" in normalized:
         commands = [
-            "lxc list",
+            "incus list",
             "docker context ls",
         ]
     else:

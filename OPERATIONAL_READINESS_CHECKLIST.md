@@ -3,10 +3,8 @@
 ## Host environment readiness
 - [ ] Host OS and version documented.
 - [ ] Python version meets project requirement.
-- [ ] LXD or Incus installed, initialized, and accessible for the default
+- [ ] Incus installed, initialized, and accessible for the default
       `lxc_native` provider.
-- [ ] Multipass installed and accessible only when validating explicit
-      `--node-provider multipass_legacy`.
 - [ ] Docker CLI/Engine installed on the host only when needed for local
       diagnostics or explicit legacy/service checks.
 - [ ] WSL2 status verified when on Windows.
@@ -21,15 +19,9 @@
       default quality gate.
 
 ## LXC-native provider readiness
-- [ ] Backend selection is unambiguous or explicitly set with `--lxc-backend`.
-- [ ] `lxc info` or `incus info` works from the same shell that runs setup.
+- [ ] Backend selection is `incus`.
+- [ ] `incus info` works from the same shell that runs setup.
 - [ ] Docker-in-container profile requirements are verified before mutation.
-
-## Multipass legacy readiness
-- [ ] VM definitions validated against config schema when
-      `--node-provider multipass_legacy` is selected.
-- [ ] Provisioning is idempotent (no implicit destructive reset).
-- [ ] VM state checks and recovery logic documented.
 
 ## Provider node readiness
 - [ ] Manager and worker creation verified.
@@ -38,8 +30,7 @@
 - [ ] Re-run behavior verified.
 
 ## Network readiness
-- [ ] Netplan file generation path deterministic.
-- [ ] Netplan transfer/apply checks pass.
+- [ ] Incus bridge `incusbr0` exists and is usable by managed nodes.
 - [ ] WSL2 forwarding procedure verified and reversible.
 
 ## Docker readiness
