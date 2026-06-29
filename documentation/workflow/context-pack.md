@@ -1,44 +1,40 @@
 # Workflow Context Pack
 
-Workflow ID: `workflow-traefik-service-routing-20260627`
-Version: `workflow-traefik-service-routing-v1.0.0`
-Branch: `feature/workflow-traefik-service-routing-20260627`
-Issue: `https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/157`
+Workflow ID: `workflow-service-access-dashboard-html-20260629`
+Version: `workflow-service-access-dashboard-html-v1.0.0`
+Branch: `fix/workflow-service-access-dashboard-html-20260629`
+Issue: `local-high-service-access-dashboard-html-deployment-sync`
 Process Strand: `workflow create -> workflow execute`
-Execution Profile: `FULL_PATH`
-Status: `PARTIAL_EXECUTION_LIVE_E2E_REQUIRES_OPT_IN`
+Execution Profile: `NORMAL_PATH`
+Status: `READY_FOR_WORKFLOW_EXECUTE_LOCAL_ONLY_REMOTE_PUBLICATION_BLOCKED`
 
 ## Orientation
 
-This context pack supports the Traefik service-routing workflow. It is a
-navigation aid only; source files, `AGENTS.md`, `QUALITY.md`, ADRs, arc42 and
-the active workflow remain authoritative.
+This context pack supports the Service Access dashboard HTML deployment asset
+synchronization workflow. It is a navigation aid only; source files,
+`AGENTS.md`, `QUALITY.md`, ADRs, arc42 and the active workflow remain
+authoritative.
 
 ## Affected Areas
 
-- Traefik preferred public ingress ports `80/443`.
-- Direct fallback/diagnostic ports including `10080/10443`.
-- Service Access preferred routed links.
-- Central effective access model with routes, fallback classifications,
-  Service Access links, routed health targets and skipped-route reasons.
-- Compose stack rendering from the effective access model.
-- Setup/preflight required port classification.
-- Static integration and opt-in live browser tests.
-- Effective access evidence and routed health-check expectations.
-- Service-oriented integration tests for every enabled or explicitly skipped
-  route.
-- Opt-in Selenium browser E2E with redacted local evidence.
-- README, deployment docs and arc42 deployment view.
+- Service Access dashboard HTML generation.
+- Service Access compose config file path under `TSW_REMOTE_STACK_ROOT`.
+- LXC Swarm stack asset transfer before `docker stack deploy`.
+- Deployment workflow pre-apply sequencing and composition visibility.
+- Static tests for stale dashboard asset protection.
+- Deployment documentation that distinguishes generated remote assets from
+  live reachability evidence.
 
 ## Forbidden Areas
 
-- Live LXC, Incus, Docker, Swarm, Traefik, DNS, hosts-file or browser
-  mutation without explicit live opt-in.
+- Live Incus, LXC, Docker, Swarm, Portainer, DNS, hosts-file, service or
+  network mutation without explicit operator opt-in.
+- Reading or committing `.tiny-swarm/secrets/generated.local.env`.
 - Kubernetes-first behavior.
 - React frontend implementation.
-- Committed `.tiny-swarm-world/evidence/**` runtime evidence.
-- Raw secrets, certificate material, local IP addresses or host-specific paths
-  in committed evidence.
+- Java, Maven or Spring Boot project structure.
+- Raw secrets, password values, tokens, certificate material, local IP
+  addresses or host-specific paths in committed files or evidence.
 
 ## Required Roles
 
@@ -49,46 +45,63 @@ the active workflow remain authoritative.
 - Senior Tester
 - Senior DevOps Engineer
 - Senior Documentation Engineer
+- Issue Completion Auditor before final DONE
 
 ## Quality Commands
 
 Targeted:
 
-- `PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state`
-- `PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result`
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_swarm_runtime`
 - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml`
-- `PYTHONPATH=src python3 -m unittest tests.integration.test_service_access_routing`
-- `PYTHONPATH=src python3 -m unittest discover -s tests/live -t .`
-- `PYTHONPATH=src python3 -m unittest discover -s tests/integration -t .`
-- `PYTHONPATH=src python3 -m unittest discover -s tests/live -t .`
-- `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint`
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition`
+- `PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_deployment_workflows`
 - `git diff --check`
 
 Required final:
 
 - `python3 tools/quality_gate.py quality`
 
-Live opt-in only:
+Windows host wrapper:
 
-- `TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest discover -s tests/live -t .`
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World_2 && <command>'`
+
+Live opt-in:
+
+- None for this workflow. Live deployment validation is out of scope unless a
+  later user request explicitly authorizes it.
 
 ## Governing Inputs
 
 - `AGENTS.md`
 - `QUALITY.md`
-- `.agents/orchestrator/routing-rules.md`
-- `.agents/orchestrator/swarm-orchestrator.md`
+- `documentation/process/issue-completion-discipline.md`
 - `.agents/skills/workflow-authoring/SKILL.md`
-- `.agents/skills/workflow-executor/SKILL.md`
-- `.agents/skills/three-amigos-requirement-gatekeeper/SKILL.md`
-- `.agents/skills/s3d-execution-orchestrator/SKILL.md`
-- `documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc`
+- `.agents/roles/senior-workflow-architect/SKILL.md`
+- `.agents/roles/senior-requirement-engineer/SKILL.md`
+- `.agents/roles/senior-system-architect.md`
+- `.agents/roles/senior-python-automation-developer.md`
+- `.agents/roles/senior-tester.md`
+- `.agents/roles/senior-devops.md`
+- `.agents/roles/senior-documentation-engineer.md`
+- `.agents/roles/senior-react-frontend.md`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py`
+- `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py`
+- `infra/config/compose/service-access/docker-compose.yml`
+- `infra/config/compose/service-access/dashboard/index.html`
+- `documentation/arc42/07_deployment/system.adoc`
 - `documentation/arc42/07_deployment_view.adoc`
-- `documentation/arc42/09_architecture_decisions.adoc`
-- `infra/config/ports.yaml`
-- `infra/config/services.yml`
-- `infra/config/compose/traefik/docker-compose.yml`
+- `documentation/arc42/09_decisions/adr-service-access-dashboard-vaultwarden.adoc`
 
 ## Hash Provenance
 
 Recorded in `context-pack.json`.
+
+## Publication Note
+
+Workflow authoring is local on
+`fix/workflow-service-access-dashboard-html-20260629`. Remote publication to
+`origin` is blocked because GitHub SSH authentication failed with
+`Permission denied (publickey)`. The workflow remains locally authored until
+credentials are fixed and the branch is pushed.

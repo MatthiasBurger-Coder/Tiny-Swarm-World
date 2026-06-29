@@ -1,131 +1,130 @@
-# Workflow: Traefik Service Routing Through Central Access Configuration
+# Workflow: Service Access Dashboard HTML Deployment Asset Synchronization
 
-Version: `workflow-traefik-service-routing-v1.0.0`
-Workflow ID: `workflow-traefik-service-routing-20260627`
-Created: `2026-06-27`
-Issue: `https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/157`
-Branch: `feature/workflow-traefik-service-routing-20260627`
-Status: `PARTIAL_EXECUTION_LIVE_E2E_REQUIRES_OPT_IN`
-Evidence Root: `.codex/evidence/workflow-traefik-service-routing-20260627/`
+Version: `workflow-service-access-dashboard-html-v1.0.0`
+Workflow ID: `workflow-service-access-dashboard-html-20260629`
+Created: `2026-06-29`
+Issue: `local-high-service-access-dashboard-html-deployment-sync`
+Branch: `fix/workflow-service-access-dashboard-html-20260629`
+Status: `READY_FOR_WORKFLOW_EXECUTE_LOCAL_ONLY_REMOTE_PUBLICATION_BLOCKED`
+Evidence Root: `.codex/evidence/workflow-service-access-dashboard-html-20260629/`
 
 ## Executive Summary
 
-Make Traefik the preferred HTTP/HTTPS entrypoint for routed Tiny Swarm World
-HTTP services through the central port and access configuration. Reconcile the
-current mismatch where `ports.yaml` already assigns Traefik public ingress to
-`80/443`, while `services.yml`, rendered Traefik compose and ingress tests still
-prefer `10080/10443`.
+Fix the high-priority deployment gap where
+`ComposeFileRepositoryYaml.render_service_access_dashboard()` generates the
+Service Access dashboard HTML, but the rendered service-access compose file
+expects Docker Swarm to read
+`${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` during stack
+deployment.
 
-The workflow keeps default verification static or mocked. Live Docker, Swarm,
-LXC, Traefik, DNS, hosts-file, browser and Selenium validation remains opt-in
-only and writes redacted local evidence under ignored `.tiny-swarm-world/**`
-paths.
+The workflow makes that generated HTML an explicit deployment asset. Before the
+service-access stack is deployed, the same freshly rendered dashboard content
+must be written to the configured remote stack root path. Static repository
+dashboard files may remain packaging or review assets, but they must not be
+the hidden source of truth for live deployment.
 
-Revision note:
-
-- The first execution implemented and verified the static/backend routing
-  migration, but it did not fully cover Issue #157.
-- The missing scope is now explicit in this workflow: service-oriented
-  integration coverage for the full route/evidence matrix and an opt-in
-  Selenium browser E2E suite that uses routed Service Access links, performs
-  approved login flows where credentials are available, records stable
-  per-service success conditions, and writes redacted local evidence.
-- This workflow must not be considered complete for Issue #157 until the
-  additional slices in this revision are executed or explicitly stopped with
-  classified blockers.
+Default verification is static and mocked. This workflow must not run Incus,
+LXC, Docker Swarm, Portainer, stack deployment, `socat`, or service bootstrap
+commands without a later explicit live-infrastructure request.
 
 ## Requirement Clarification Gate
 
 Original Request:
 
-- Setze Issue #157 um.
-- Create a dedicated branch.
-- Run `workflow create`.
-- After successful workflow creation, run `workflow execute`.
-- Verify the system from backend and user perspectives after successful
-  execution.
+- "Hoch"
+- Dashboard HTML is still not visibly written as a deployment file.
+- `render_service_access_dashboard()` generates HTML.
+- The Compose renderer expects
+  `${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html`.
+- A clear step is missing that writes or synchronizes the generated HTML to
+  exactly that path before deployment.
+- The user referenced `.tiny-swarm/secrets/generated.local.env` context.
 
 Interpreted Intent:
 
-- Implement the issue's Traefik-centered routing migration in a guarded,
-  slice-based workflow and verify static/backend behavior plus user-facing
-  access-link behavior without running live infrastructure unless explicitly
-  enabled.
+- Create a guarded workflow that makes Service Access dashboard HTML
+  generation and remote deployment-file synchronization an explicit,
+  test-backed deployment behavior.
 
 Change Type:
 
-- Runtime/deployment configuration, domain access model, tests, live-test
-  structure and documentation synchronization.
+- Deployment asset synchronization, infrastructure adapter behavior,
+  composition sequencing, tests and documentation synchronization.
 
 Affected Process Strand:
 
-- `workflow create`, then `workflow execute`.
+- `workflow create`; later `workflow execute`.
 
 Affected Architecture Area:
 
-- `domain.ingress`, port registry, service registry, compose rendering,
-  setup/preflight manifest, Service Access dashboard links, route/evidence
-  tests and deployment documentation.
+- Infrastructure compose rendering, LXC Swarm stack asset transfer,
+  deployment workflow pre-apply sequencing, Service Access deployment
+  documentation and static tests.
 
 Explicit Requirements:
 
-- Traefik owns preferred public ingress ports `80` and `443`.
-- Retained `10080/10443` ports must be diagnostic, compatibility, fallback,
-  rollback or transitional only.
-- Service Access links must prefer Traefik-routed host URLs when routing is
-  enabled.
-- Host-based routes must use service internal target ports behind Traefik.
-- `exposedByDefault=false` is required and `--api.insecure=true` is forbidden.
-- Pulsar broker TCP must not become an HTTP route.
-- Default tests must stay static or mocked.
-- Live Selenium/browser validation must be opt-in and redacted.
+- Generate Service Access dashboard HTML from the effective access model.
+- Write or synchronize the generated HTML to
+  `${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` before the
+  service-access stack deployment consumes the compose config.
+- Keep the rendered compose config file path and the remote asset transfer
+  path aligned for the configured `remote_stack_root`.
+- Make the deployment write step visible in implementation and tests.
+- Preserve mocked/static verification by default.
 
 Implicit Requirements:
 
-- Preserve Linux/WSL-only and Docker Swarm-first project direction.
-- Preserve the managed LXC through Incus default provider direction.
-- Keep Service Access as a dashboard capability.
-- Keep secret and credential display safety unchanged.
-- Use existing YAML adapters and domain value objects rather than ad hoc
-  string manipulation.
-- Update tests because configuration, routing, service links and evidence
-  behavior change.
+- Preserve Linux/WSL-only behavior and POSIX paths.
+- Preserve Docker Swarm-first and managed LXC through Incus direction.
+- Preserve hexagonal boundaries: domain stays independent; infrastructure owns
+  file transfer, shell commands and compose/YAML details.
+- Do not read, parse, copy or commit `.tiny-swarm/secrets/generated.local.env`.
+- Do not expose password values in dashboard HTML, logs, tests or evidence.
+- Keep Portainer, Nexus, Jenkins, Pulsar, SonarQube, Swagger and Infisical
+  live operations behind explicit consent.
+- Update tests because deployment asset behavior changes.
 
 Assumptions:
 
-- Issue #156 direct published-port baseline is already represented locally by
-  `infra/config/ports.yaml`, compose rendering tests and setup manifest tests.
-- Existing Traefik labels in service compose files are the starting point and
-  should be completed rather than replaced by a new gateway policy.
-- Route generation may remain static/configuration-driven in this workflow;
-  live route success is claimed only when the opt-in live suite is run.
-- Selenium test files may be grouped by existing repository conventions if the
-  suite remains service-oriented and default-skipped.
+- The current compose renderer already points the Swarm config to
+  `${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/service-access/dashboard/index.html`.
+- `LxcSwarmRuntime` is the currently relevant provider-native path for writing
+  files under the remote stack root before `docker stack deploy`.
+- The existing committed dashboard file can remain a static packaging/review
+  asset if runtime deployment uses freshly rendered content.
+- The referenced `generated.local.env` file is secret/local state and is not
+  needed for workflow authoring.
 
 Non-Goals:
 
-- No LXC/Incus installation change.
-- No Docker installation or Swarm bootstrap behavior change.
-- No Kubernetes support.
-- No automatic Windows hosts-file management.
-- No Linux `/etc/hosts` or DNS resolver mutation.
-- No automatic TLS or CA lifecycle implementation.
-- No committed live evidence under `.tiny-swarm-world/evidence/**`.
+- No live infrastructure execution.
+- No Incus daemon, LXC profile, Docker, Swarm, Portainer, service or network
+  mutation.
+- No React frontend implementation.
+- No new Java, Maven or Spring surface.
+- No Kubernetes-first behavior.
+- No redesign of Service Access links, Traefik routing or Infisical credential
+  ownership beyond the dashboard deployment-file synchronization.
+- No committed secret recovery file or generated local evidence.
 
 Risks:
 
-- Existing tests and documentation still encode `10080/10443` as preferred
-  HTTPS ingress.
-- Service Access NGINX currently exposes direct dashboard routes and could
-  continue to present legacy direct ports as preferred links.
-- Traefik label coverage may be uneven across service compose files.
-- Live browser success can be confused with static readiness unless evidence
-  wording is strict.
+- The static `infra/config/compose/service-access/dashboard/index.html` file
+  can mask a missing runtime synchronization step when it happens to match the
+  generated renderer output.
+- A test that only compares the committed static file to the renderer would
+  not catch deployment drift.
+- Adding file-transfer behavior in the wrong layer could couple application
+  services to infrastructure details.
+- Documentation may already describe the dashboard as rendered; execution must
+  distinguish committed static assets from the generated deployment file.
 
 Open Questions:
 
-- None blocking. Live validation is explicitly outside default execution and
-  must report skipped/not-run rather than success without consent.
+- None blocking. If execution discovers that a Portainer-managed path consumes
+  the same `${TSW_REMOTE_STACK_ROOT}` config file without an asset-preparation
+  seam, Slice 03 must extend the same synchronization contract there or report
+  the missing adapter boundary as a blocker.
 
 Blocking Questions:
 
@@ -133,7 +132,7 @@ Blocking Questions:
 
 Confidence Level:
 
-- 92 percent.
+- 94 percent.
 
 Decision:
 
@@ -143,843 +142,468 @@ Decision:
 
 Senior Requirement Engineer:
 
-- The issue has detailed acceptance criteria and identifies ADR-backed
-  architecture authority. Implementation must keep direct port compatibility
-  separate from preferred Traefik route behavior.
+- The requirement is narrow and behavior-oriented: generated dashboard HTML
+  must be materialized at the deployment file path before stack deployment.
+  The selected local secret file is not requirement input and must remain
+  unread.
 
 Senior System Architect:
 
-- The work belongs in domain ingress/access value objects, infrastructure YAML
-  adapters/rendering, and deployment configuration. Domain may model desired
-  routes and redacted evidence but must not import Docker, YAML, HTTP clients
-  or browser tooling.
+- This belongs to infrastructure adapters and deployment composition. Domain
+  may continue to model the effective access data only. Application services
+  must not gain shell, remote filesystem or Docker implementation details.
 
 Senior Python Automation Developer:
 
-- Reuse `PortRegistry`, `DesiredHttpsIngress`, compose repository rendering and
-  setup manifest seams. Avoid a broad deployment rewrite; migrate the
-  conflicting port authority and add tests around route semantics.
+- Prefer an injected or explicitly wired dashboard asset renderer over hidden
+  global lookups. The LXC manager transfer should use the existing quoted
+  remote path and `input_text` flow.
 
 Senior React Frontend Developer:
 
-- No React/browser frontend module is present. User-facing scope is the static
-  Service Access dashboard and live browser test structure.
+- No React frontend exists. The affected user-facing surface is a generated
+  static HTML deployment asset only.
 
 Senior Tester:
 
-- Add or update deterministic tests for gateway port authority, Traefik compose
-  rendering, Service Access preferred URLs, route evidence, skipped live
-  behavior and password-value safety. Live Selenium remains default-skipped.
+- The regression must fail against stale static files. Use a temporary
+  project path with a deliberately stale dashboard asset and assert that the
+  remote transfer receives freshly rendered HTML.
 
-## Issue #157 Acceptance Traceability
+## Requirement Matrix
 
-Implemented and verified by the first execution:
-
-- Central gateway/public ingress policy is consistent for `80/443` across
-  domain desired state, service registry, Traefik compose, compose rendering,
-  setup/preflight expectations, README and arc42.
-- Retained `10080/10443` gateway values are no longer preferred ingress and
-  are classified as diagnostic/fallback/compatibility where referenced.
-- Preferred Service Access links do not use diagnostic gateway suffixes and
-  use routed host URLs such as `https://service-access.tsw.local`.
-- Traefik internal entrypoints remain `web :80` and `websecure :443`.
-- Traefik Swarm discovery keeps `exposedByDefault=false`.
-- `--api.insecure=true` is not present.
-- Representative HTTP routes use internal service target ports behind Traefik:
-  Portainer, Jenkins, SonarQube, Nexus, Swagger, Infisical, Service Access,
-  Pulsar Manager GUI and optional Pulsar Admin/API.
-- Pulsar broker TCP is not modelled as a normal HTTP route.
-- Service Access keeps credential display safety; password values are not
-  rendered or committed.
-- Default quality gate passes without live infrastructure.
-
-Implemented by the remediation execution for static/backend Issue #157 coverage:
-
-- Service-oriented integration tests must be expanded so every enabled routed
-  service can be understood and run independently, even if the repository keeps
-  shared helpers or grouped files for maintainability.
-- The effective access model must expose a structured evidence payload that
-  includes gateway/public ports, diagnostic fallback ports, route map, internal
-  target ports, Service Access preferred URL source, fallback classification,
-  skipped-route reasons and placeholders for per-service live E2E status.
-- HTTP health-check expectations must consume the effective Traefik access
-  model where routing is enabled, while keeping direct checks explicit
-  fallback/debug validation.
-- An opt-in Selenium browser E2E suite must exist under `tests/live`, use:
-
-```python
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-```
-
-- When live validation is explicitly enabled, Selenium must open every
-  generated routed Service Access link for the active profile.
-- For enabled routed services that require authentication and have approved
-  credentials available, Selenium must complete login and verify a stable
-  success condition.
-- The live suite must record redacted per-service evidence under
-  `.tiny-swarm-world/evidence/solid-typed-evidence/e2e/` and produce a summary
-  of passed, failed and skipped links.
-- Skipped live E2E is allowed only for explicit reasons: missing consent,
-  disabled service, intentionally unconfigured route, unavailable approved
-  credential source, or no login flow.
-- Prometheus, Grafana, Tiny Swarm frontend and Tiny Swarm API routes must be
-  tested as skipped/not generated unless an active profile/configured route
-  enables them.
-
-Still required for full live Issue #157 completion:
-
-- Explicit operator opt-in for live infrastructure, DNS/hosts resolution, TLS
-  trust material and approved credentials.
-- Execution of the opt-in Selenium suite against the running stack, with
-  redacted pass/fail/skip evidence under
-  `.tiny-swarm-world/evidence/solid-typed-evidence/e2e/`.
-
-Acceptance decision:
-
-- Current execution status is
-  `PARTIAL_EXECUTION_LIVE_E2E_REQUIRES_OPT_IN`.
-- Static/backend model, renderer, Service Access link, evidence, skip-route,
-  routed health-target and Selenium-contract behavior is accepted by targeted
-  tests.
-- Full live Issue #157 acceptance remains blocked until Slice 08 is run with
-  explicit operator opt-in and verified prerequisites.
+| ID | Requirement | Type | Likely files | Implementation evidence | Verification evidence | Status |
+|----|-------------|------|--------------|-------------------------|-----------------------|--------|
+| REQ-001 | Service Access dashboard deployment content is generated from `render_service_access_dashboard()` or the same effective access model renderer. | Functional | `compose_file_repository_yaml.py`, `lxc_swarm_runtime.py` | Renderer or injected asset provider wired into stack asset transfer. | Unit test compares transferred `input_text` to generated dashboard HTML. | Planned |
+| REQ-002 | Generated HTML is written to `${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` before service-access stack deployment consumes the compose config. | Functional | `lxc_swarm_runtime.py`, `composition.py` | Asset transfer runs before `docker stack deploy` and uses configured `remote_stack_root`. | Unit test verifies call order and exact remote path. | Planned |
+| REQ-003 | Static committed dashboard HTML is not the hidden deployment source of truth. | Regression | `tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py` | Runtime transfer uses generated content even when a temporary static file is stale. | Regression fixture with stale static file. | Planned |
+| REQ-004 | The service-access deployment workflow makes the asset preparation step visible. | Process | `composition.py`, `composition_lxc_runtimes.py`, tests | Service-access stack asset pre-apply or deploy-time preparation is explicit and named. | Composition test checks `deployment:service-access-stack-assets` where applicable. | Planned |
+| REQ-005 | No secret file or password value is read, written, logged or committed for this synchronization. | Security | tests, docs, runtime adapter | No dependency on `.tiny-swarm/secrets/generated.local.env`; dashboard remains password-value free. | Static tests and diff review. | Planned |
+| REQ-006 | Documentation describes the generated remote deployment asset and keeps live verification separate. | Documentation | `documentation/arc42/**`, `documentation/system/**`, `documentation/user_guide/**` | Documentation update, if execution changes documented behavior. | `git diff --check`; review of doc wording. | Planned |
 
 ## Target Picture
 
 Verified baseline:
 
-- Branch is `feature/workflow-traefik-service-routing-20260627`.
-- `infra/config/ports.yaml` assigns `traefik-http` to external `80` and
-  `traefik-https` to external `443`.
-- `infra/config/services.yml` still lists Traefik ingress published ports
-  `10080` and `10443`.
-- `infra/config/compose/traefik/docker-compose.yml` publishes `10080 -> 80`
-  and `10443 -> 443`.
-- `domain.ingress.DesiredHttpsIngress` still requires public ports
-  `(10080, 10443)`.
-- Existing live browser tests are opt-in and currently include direct
-  localhost routes.
+- Active branch is `fix/workflow-service-access-dashboard-html-20260629`.
+- `ComposeFileRepositoryYaml.get_compose_of("service-access")` injects a
+  config file path under
+  `${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/service-access/dashboard/index.html`
+  and a SHA-256 environment marker derived from generated dashboard HTML.
+- `ComposeFileRepositoryYaml.render_service_access_dashboard()` returns the
+  generated dashboard HTML from the effective access model.
+- `LxcSwarmRuntime._transfer_stack_assets("service-access", ...)` currently
+  reads `infra/config/compose/service-access/dashboard/index.html`, which can
+  hide stale deployment content.
+- `build_lxc_deployment_services(...).workflows.apply.pre_apply_steps`
+  currently prepares `traefik` and `swagger` assets explicitly, but not
+  `service-access`.
 
 Target outcome:
 
-- `80/443` are the single preferred public Traefik ingress authority across
-  domain model, registry, service registry, compose rendering, setup/preflight
-  expectations, tests and docs.
-- `10080/10443`, if retained in any artifact, are classified as diagnostic,
-  compatibility, fallback, rollback or transitional and are not preferred
-  Service Access links.
-- Service Access preferred links use host-based Traefik URLs such as
-  `https://service-access.tsw.local` and `https://jenkins.tsw.local` when
-  routing is enabled.
-- Route evidence is structured and redacted, including skipped-route reasons.
-- Default verification is static/mocked. Opt-in live Selenium opens routed
-  URLs only when explicit live prerequisites are present.
+- The generated Service Access dashboard HTML is the deployment source for
+  `${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html`.
+- The remote file is written before `docker stack deploy` for the
+  service-access stack.
+- The compose config path, configured `remote_stack_root`, deployment
+  environment `TSW_REMOTE_STACK_ROOT`, and transfer target path are aligned.
+- Tests prove the runtime does not silently use a stale static dashboard file.
+- The deployment workflow exposes service-access asset preparation clearly.
+- Documentation distinguishes generated remote deployment assets from
+  committed static/package assets and from live verification evidence.
 
 ## Scope
 
 In scope:
 
-- `infra/config/ports.yaml`
-- `infra/config/services.yml`
-- `infra/config/compose/**/docker-compose.yml`
-- `infra/config/compose/service-access/dashboard/index.html`
-- `src/tiny_swarm_world/domain/ingress/**`
-- `src/tiny_swarm_world/domain/network/**`
-- `src/tiny_swarm_world/domain/preflight/**`
-- `src/tiny_swarm_world/infrastructure/adapters/repositories/**`
-- `src/tiny_swarm_world/__main__.py`
-- `tests/domain/**`
-- `tests/infrastructure/**`
-- `tests/integration/**`
-- `tests/live/**`
-- `documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc`
-- `documentation/arc42/07_deployment_view.adoc`
-- `documentation/arc42/09_architecture_decisions.adoc`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py`
+- `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py`
+- `tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py`
+- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- `tests/infrastructure/test_composition.py`
+- `tests/application/services/deployment/test_deployment_workflows.py`
 - `documentation/arc42/07_deployment/system.adoc`
-- `README.md`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/08_configuration/config-contract-inventory.md`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/user_guide/installation.adoc`
+- `documentation/user_guide/usage.adoc`
 - `documentation/workflow/**`
-- `.codex/evidence/workflow-traefik-service-routing-20260627/**`
+- `.codex/evidence/workflow-service-access-dashboard-html-20260629/**`
 
 Out of scope:
 
-- Live LXC, Incus, Docker, Swarm, Traefik, DNS, hosts-file, browser or
-  Selenium execution without explicit operator opt-in.
-- Service extraction or microservice boundary changes.
-- Browser React frontend implementation.
-- Automatic certificate lifecycle.
-- Direct Docker published-port redo from #156 beyond compatibility
-  classification needed for #157.
+- Live provider execution and observed service readiness.
+- Service route redesign.
+- Infisical secret sync changes.
+- Docker image build or registry publication changes, unless execution proves
+  they are the only safe place to materialize the generated asset.
+- Browser, Selenium or Playwright live checks.
 
 Architecture constraints:
 
 - Preserve hexagonal dependency direction.
-- Domain can model desired access, routes and redacted evidence only.
-- Application services orchestrate domain objects through ports.
-- Infrastructure owns YAML, compose rendering, Docker/Swarm details, HTTP,
-  browser and evidence-file adapters.
-- Entry point remains thin.
+- Domain modules must not import infrastructure adapters, YAML, command
+  runners, Docker or filesystem code.
+- Application services may depend on ports only.
+- Infrastructure adapters own generated asset transfer, quoted remote paths,
+  compose/YAML behavior and manager-shell calls.
+- Standard wiring remains in `src/tiny_swarm_world/infrastructure/composition.py`.
+- Constructors must not execute external commands or write deployment files.
 
 ## Python Automation Assessment
 
-This is Python automation and configuration work. The implementation should
-prefer small domain value objects and existing YAML repositories over broad
-deployment rewrites. Tests must prove that central configuration drives route
-and link behavior.
+This is Python infrastructure automation. The implementation should be small:
+add an explicit dashboard asset rendering seam, use it from LXC stack asset
+transfer, and wire that seam in composition. Avoid broad deployment rewrites.
 
 ## Frontend Assessment
 
-No React frontend exists. The user-facing behavior is the static Service
-Access dashboard and browser-visible routed URLs. Keep the dashboard static and
-credential-safe.
+No browser frontend or React project exists. The dashboard is generated static
+HTML served by the service-access stack. Keep HTML content credential-safe and
+English-language.
 
 ## Test Strategy
 
 Targeted checks during execution:
 
-- `PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state`
-- `PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result`
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_swarm_runtime`
 - `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml`
-- `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint`
-- `PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live`
-- `PYTHONPATH=src python3 -m unittest tests.integration.test_service_access_routing`
-- `PYTHONPATH=src python3 -m unittest discover -s tests/integration -t .`
-- `PYTHONPATH=src python3 -m unittest discover -s tests/live -t .`
+- `PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition`
+- `PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_deployment_workflows`
 - `git diff --check`
 
 Required final verification:
 
 - `python3 tools/quality_gate.py quality`
 
-Live Selenium/browser validation:
+All commands must run inside WSL/Linux. From this Windows host, wrap project
+Python commands as:
 
-- Default skipped unless explicit live prerequisites and operator consent are
-  present.
-- Must not be reported as passed when skipped.
-- Required opt-in command after Selenium suite implementation and live
-  readiness:
-  `TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest discover -s tests/live -t .`
-- Live evidence must be written under
-  `.tiny-swarm-world/evidence/solid-typed-evidence/e2e/` and must not be
-  committed.
+```bash
+wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World_2 && <command>'
+```
+
+No live infrastructure command is part of the default verification.
 
 ## Resilience Requirements
 
-- Static route generation is deterministic and rerunnable.
-- Evidence must be redacted and free of raw secrets, certificates, local IPs,
-  host-specific absolute paths and credential URLs.
-- If local `80/443` is unavailable in a live environment, live validation must
-  report an environment blocker instead of downgrading to `10080/10443`.
-- Direct fallback ports remain explicit, not silent preferred behavior.
+- Dashboard generation and transfer are deterministic and rerunnable.
+- The remote directory creation and file write are idempotent.
+- The file write must use quoted POSIX paths and existing safe command input
+  plumbing.
+- If dashboard rendering fails, deployment must fail before `docker stack
+  deploy` rather than deploying stale or missing content.
+- Secret-like values must remain redacted from logs and evidence.
 
 ## Ordered Slices
 
-### Slice 01 - Baseline Routing Contract Tests
+### Slice 01 - Regression Contract For Generated Dashboard Deployment Asset
 
 Purpose:
 
-- Add or update deterministic tests that expose the current gateway-port and
-  preferred-route mismatch before implementation changes.
+- Add failing deterministic tests that expose the missing generated-dashboard
+  synchronization step without live infrastructure.
 
 Prerequisites:
 
-- Active branch is `feature/workflow-traefik-service-routing-20260627`.
+- Active branch is `fix/workflow-service-access-dashboard-html-20260629`.
 - Working tree changes are task-scoped.
 
 ```yaml
 slice_id: "01"
-profile: "FULL_PATH"
+profile: "NORMAL_PATH"
 owner: "Senior Tester"
 secondary_reviewers:
   - "Senior Requirement Engineer"
   - "Senior System Architect"
   - "Senior Python Automation Developer"
 affected_files:
-  - "tests/domain/ingress/test_desired_state.py"
-  - "tests/domain/preflight/test_preflight_result.py"
+  - "tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py"
   - "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py"
-  - "tests/live/test_post_install_browser_live.py"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-01-distribution.md"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-01-consolidation.md"
+  - "tests/infrastructure/test_composition.py"
+  - ".codex/evidence/workflow-service-access-dashboard-html-20260629/slice-01-distribution.md"
+  - ".codex/evidence/workflow-service-access-dashboard-html-20260629/slice-01-consolidation.md"
 affected_modules:
-  - "tiny_swarm_world.domain.ingress"
-  - "tiny_swarm_world.domain.preflight"
+  - "tiny_swarm_world.infrastructure.adapters.clients"
   - "tiny_swarm_world.infrastructure.adapters.repositories"
+  - "tiny_swarm_world.infrastructure.composition"
 affected_contracts:
-  - "Traefik preferred ingress ports"
-  - "Service Access preferred routed links"
+  - "Service Access generated dashboard deployment asset"
+  - "TSW_REMOTE_STACK_ROOT service-access dashboard path"
 dependencies: []
-parallel_group: "serial-traefik-routing"
+parallel_group: "serial-dashboard-asset-sync"
 file_locks:
-  - "tests/domain/ingress/test_desired_state.py"
-  - "tests/domain/preflight/test_preflight_result.py"
+  - "tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py"
   - "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py"
-  - "tests/live/test_post_install_browser_live.py"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/**"
+  - "tests/infrastructure/test_composition.py"
 contract_locks:
-  - "80/443 are preferred public ingress"
-  - "10080/10443 are not preferred Service Access links"
+  - "Generated dashboard HTML must be written before deployment"
+  - "Committed static dashboard file must not mask stale deployment content"
 architecture_locks:
-  - "Static and live verification remain separate"
+  - "Tests remain static and mocked"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state"
-    - "PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_swarm_runtime"
     - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml"
-    - "PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition"
   required: []
 documentation:
   arc42: "Checked; no edit in Slice 01."
-  adr: "Checked; no edit in Slice 01."
+  adr: "Checked; no ADR edit expected."
 stop_conditions:
-  - "Stop if tests require live infrastructure by default."
-  - "Stop if acceptance criteria require guessing route ownership."
-  - "Stop if a test would expose secrets or host-specific local topology."
+  - "Stop if a regression test requires live Incus, LXC, Docker, Swarm or Portainer."
+  - "Stop if the only possible assertion reads `.tiny-swarm/secrets/generated.local.env`."
+  - "Stop if the expected asset source is ambiguous."
 ```
 
 Done criteria:
 
-- Tests encode preferred Traefik `80/443` authority and direct-port fallback
-  classification without running live infrastructure.
+- Tests fail against a stale static dashboard file and require the generated
+  dashboard HTML to be transferred to the remote service-access dashboard
+  path.
+- Tests verify the target path includes the configured `remote_stack_root` and
+  `/service-access/dashboard/index.html`.
 
-### Slice 02 - Gateway Port Authority And Route Model
+### Slice 02 - Generated Dashboard Asset Transfer In LXC Swarm Runtime
 
 Purpose:
 
-- Reconcile Traefik public ingress ports across domain ingress, service
-  registry, compose rendering and setup/preflight expectations.
+- Implement the deployment asset synchronization so the LXC stack runtime
+  writes freshly generated dashboard HTML before service-access stack deploy.
 
 Prerequisites:
 
-- Slice 01 tests exist and identify the target behavior.
+- Slice 01 tests exist and fail for the current behavior.
 
 ```yaml
 slice_id: "02"
-profile: "FULL_PATH"
+profile: "NORMAL_PATH"
 owner: "Senior Python Automation Developer"
 secondary_reviewers:
   - "Senior System Architect"
   - "Senior Tester"
   - "Senior DevOps Engineer"
 affected_files:
-  - "infra/config/services.yml"
-  - "infra/config/compose/traefik/docker-compose.yml"
-  - "src/tiny_swarm_world/domain/ingress/desired_state.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py"
   - "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py"
-  - "src/tiny_swarm_world/domain/preflight/setup_manifest.py"
-  - "tests/domain/ingress/test_desired_state.py"
-  - "tests/domain/preflight/test_preflight_result.py"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py"
   - "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-02-distribution.md"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-02-consolidation.md"
+  - ".codex/evidence/workflow-service-access-dashboard-html-20260629/slice-02-distribution.md"
+  - ".codex/evidence/workflow-service-access-dashboard-html-20260629/slice-02-consolidation.md"
 affected_modules:
-  - "tiny_swarm_world.domain.ingress"
-  - "tiny_swarm_world.domain.preflight"
-  - "tiny_swarm_world.infrastructure.adapters.repositories"
+  - "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime"
+  - "tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml"
+  - "tiny_swarm_world.infrastructure.composition"
 affected_contracts:
-  - "Traefik public ingress ports"
-  - "Compose published-port rendering"
-  - "Setup manifest required port classification"
+  - "Generated Service Access dashboard asset"
+  - "LXC remote stack root asset transfer"
 dependencies:
   - "01"
-parallel_group: "serial-traefik-routing"
+parallel_group: "serial-dashboard-asset-sync"
 file_locks:
-  - "infra/config/services.yml"
-  - "infra/config/compose/traefik/docker-compose.yml"
-  - "src/tiny_swarm_world/domain/ingress/desired_state.py"
-  - "src/tiny_swarm_world/domain/preflight/**"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py"
   - "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py"
-  - "tests/domain/**"
-  - "tests/infrastructure/adapters/repositories/**"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py"
+  - "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py"
 contract_locks:
-  - "Traefik `web` maps to public HTTP 80"
-  - "Traefik `websecure` maps to public HTTPS 443"
+  - "Remote dashboard file content equals rendered dashboard HTML"
+  - "Remote dashboard file path matches compose config path semantics"
 architecture_locks:
-  - "Domain route model stays infrastructure-free"
+  - "No infrastructure dependency is introduced into domain or application services"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state"
-    - "PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_swarm_runtime"
     - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml"
   required: []
 documentation:
-  arc42: "Update later in Slice 04 if implemented behavior changes deployment view."
-  adr: "No ADR change expected; implementation aligns with accepted ADR."
+  arc42: "No documentation edit unless implementation changes the documented deployment contract."
+  adr: "No ADR change expected; existing service-access ADR allows a tested asset-preparation boundary."
 stop_conditions:
-  - "Stop if `80/443` cannot be represented without weakening compatibility classifications."
-  - "Stop if Traefik insecure API mode appears."
-  - "Stop if the Pulsar broker is treated as HTTP."
+  - "Stop if generated dashboard content cannot be obtained without hidden global lookups or constructor side effects."
+  - "Stop if the fix would deploy stale committed dashboard HTML."
+  - "Stop if remote paths would become host-specific, Windows-specific or unquoted."
+  - "Stop if password values could be rendered, logged or persisted."
 ```
 
 Done criteria:
 
-- Domain, registry, compose rendering and setup/preflight tests agree that
-  Traefik preferred public ingress is `80/443`.
+- `prepare_stack_assets("service-access")` writes generated dashboard HTML to
+  `<remote_stack_root>/service-access/dashboard/index.html`.
+- `deploy_stack(StackDefinition(name="service-access", ...))` writes the
+  generated dashboard before invoking `docker stack deploy`.
+- Existing Swagger and Traefik asset transfer behavior remains unchanged.
 
-### Slice 03 - Service Access Links, Evidence And Live Suite Structure
+### Slice 03 - Deployment Composition Visibility And Pre-Apply Sequencing
 
 Purpose:
 
-- Make Service Access preferred URLs and route evidence reflect the Traefik
-  host-based model while keeping direct ports as explicit fallback and live
-  checks opt-in.
+- Make service-access dashboard asset preparation visible in deployment
+  composition and guard it with tests.
 
 Prerequisites:
 
-- Slice 02 completed.
+- Slice 02 generated asset transfer exists.
 
 ```yaml
 slice_id: "03"
-profile: "FULL_PATH"
-owner: "Senior Python Automation Developer"
+profile: "NORMAL_PATH"
+owner: "Senior DevOps Engineer"
 secondary_reviewers:
+  - "Senior Python Automation Developer"
   - "Senior Tester"
-  - "Senior DevOps Engineer"
   - "Senior System Architect"
 affected_files:
-  - "infra/config/compose/service-access/dashboard/index.html"
-  - "infra/config/compose/**/docker-compose.yml"
-  - "tests/integration/test_service_access_routing.py"
-  - "tests/live/test_post_install_browser_live.py"
-  - "src/tiny_swarm_world/domain/ingress/desired_state.py"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-03-distribution.md"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-03-consolidation.md"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py"
+  - "tests/infrastructure/test_composition.py"
+  - "tests/application/services/deployment/test_deployment_workflows.py"
+  - ".codex/evidence/workflow-service-access-dashboard-html-20260629/slice-03-distribution.md"
+  - ".codex/evidence/workflow-service-access-dashboard-html-20260629/slice-03-consolidation.md"
 affected_modules:
-  - "service-access dashboard"
-  - "tiny_swarm_world.domain.ingress"
-  - "tests.integration"
-  - "tests.live"
+  - "tiny_swarm_world.infrastructure.composition"
+  - "tiny_swarm_world.infrastructure.composition_lxc_runtimes"
+  - "tiny_swarm_world.application.services.deployment.workflows"
 affected_contracts:
-  - "Service Access preferred URL source"
-  - "Route evidence redaction"
-  - "Opt-in live browser validation"
+  - "Deployment pre-apply stack asset preparation"
+  - "Service Access setup profile deployment sequence"
 dependencies:
   - "02"
-parallel_group: "serial-traefik-routing"
+parallel_group: "serial-dashboard-asset-sync"
 file_locks:
-  - "infra/config/compose/service-access/**"
-  - "infra/config/compose/**/docker-compose.yml"
-  - "tests/integration/**"
-  - "tests/live/**"
-  - "src/tiny_swarm_world/domain/ingress/**"
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py"
+  - "tests/infrastructure/test_composition.py"
+  - "tests/application/services/deployment/test_deployment_workflows.py"
 contract_locks:
-  - "Preferred Service Access URLs use Traefik hostnames"
-  - "Direct ports remain fallback/diagnostic only"
-  - "Live evidence stays under `.tiny-swarm-world/evidence/**`"
+  - "Service-access dashboard asset preparation is explicit before stack apply"
+  - "Default/static verification does not run live deployment commands"
 architecture_locks:
-  - "Browser tooling stays in tests/live, not product runtime"
+  - "Composition remains the concrete wiring root"
 quality_gates:
   targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.integration.test_service_access_routing"
-    - "PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live"
+    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition"
+    - "PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_deployment_workflows"
   required: []
 documentation:
-  arc42: "Update later in Slice 04."
+  arc42: "Check deployment docs for wording drift after composition changes."
   adr: "No ADR change expected."
 stop_conditions:
-  - "Stop if preferred links need hosts-file or DNS mutation."
-  - "Stop if dashboard changes expose password values."
-  - "Stop if live Selenium would run by default."
+  - "Stop if adding service-access pre-apply would duplicate unsafe live writes in a default non-live gate."
+  - "Stop if service-access asset preparation order relative to Infisical readiness becomes ambiguous."
+  - "Stop if Portainer-managed deployment path is found to consume the same remote file without a tested preparation seam."
 ```
 
 Done criteria:
 
-- Service Access preferred links use routed host URLs.
-- Fallback/direct URLs are explicitly classified.
-- Static tests prove redacted route evidence and opt-in live behavior.
+- The service-access setup profile exposes a named
+  `deployment:service-access-stack-assets` preparation step where the
+  deployment workflow requires it, or execution documents why deploy-time
+  preparation alone is the verified single source of truth.
+- Tests verify the step order and that no pre-apply step runs outside an
+  explicitly invoked live deployment workflow.
 
-### Slice 04 - Documentation Sync And Final Verification
+### Slice 04 - Documentation, Evidence And Quality Gate
 
 Purpose:
 
-- Synchronize documentation and run final backend plus user-facing static
-  verification.
+- Synchronize documentation and complete verification evidence for the
+  dashboard deployment asset fix.
 
 Prerequisites:
 
-- Slices 01 through 03 completed or stopped with evidence.
+- Slices 01 through 03 completed.
 
 ```yaml
 slice_id: "04"
-profile: "FULL_PATH"
+profile: "NORMAL_PATH"
 owner: "Senior Documentation Engineer"
 secondary_reviewers:
   - "Senior Requirement Engineer"
-  - "Senior System Architect"
   - "Senior Tester"
+  - "Senior System Architect"
 affected_files:
-  - "README.md"
   - "documentation/arc42/07_deployment/system.adoc"
   - "documentation/arc42/07_deployment_view.adoc"
-  - "documentation/arc42/09_architecture_decisions.adoc"
+  - "documentation/arc42/08_configuration/config-contract-inventory.md"
+  - "documentation/system/live-operation-surfaces.adoc"
+  - "documentation/user_guide/installation.adoc"
+  - "documentation/user_guide/usage.adoc"
   - "documentation/workflow/workflow.md"
   - "documentation/workflow/context-pack.md"
   - "documentation/workflow/context-pack.json"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-04-distribution.md"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-04-consolidation.md"
+  - ".codex/evidence/workflow-service-access-dashboard-html-20260629/slice-04-distribution.md"
+  - ".codex/evidence/workflow-service-access-dashboard-html-20260629/slice-04-consolidation.md"
 affected_modules:
   - "documentation"
+  - "documentation.workflow"
 affected_contracts:
-  - "ADR-backed Traefik routing documentation"
-  - "Default static verification versus opt-in live verification"
+  - "Generated Service Access dashboard deployment asset documentation"
+  - "Issue completion evidence package"
 dependencies:
   - "03"
-parallel_group: "serial-traefik-routing"
+parallel_group: "serial-dashboard-asset-sync"
 file_locks:
-  - "README.md"
-  - "documentation/arc42/07_deployment/system.adoc"
   - "documentation/arc42/**"
+  - "documentation/system/live-operation-surfaces.adoc"
+  - "documentation/user_guide/**"
   - "documentation/workflow/**"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/**"
+  - ".codex/evidence/workflow-service-access-dashboard-html-20260629/**"
 contract_locks:
-  - "Documentation must distinguish implemented static behavior and live evidence"
+  - "Documentation must not claim live Service Access reachability without live evidence"
 architecture_locks:
-  - "ADR remains accepted authority; no second gateway policy"
+  - "ADR history remains intact"
 quality_gates:
   targeted:
     - "git diff --check"
-    - "PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state tests.domain.preflight.test_preflight_result tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml tests.integration.test_service_access_routing tests.live.test_post_install_browser_live tests.test_package_entrypoint"
   required:
     - "python3 tools/quality_gate.py quality"
 documentation:
-  arc42: "Update deployment view and architecture decision index when source behavior changes."
-  adr: "Do not rewrite ADR history; update implementation status only if needed."
+  arc42: "Update if implemented behavior changes the deployment asset contract."
+  adr: "No ADR edit expected unless execution discovers an asset-boundary decision gap."
 stop_conditions:
-  - "Stop if documentation would claim live browser success without opt-in evidence."
-  - "Stop if final quality gate fails and cannot be classified safely."
-  - "Stop if an ADR is needed before continuing."
+  - "Stop if documentation would describe planned behavior as implemented behavior."
+  - "Stop if full quality gate cannot be run or failures cannot be classified."
+  - "Stop if issue-completion evidence is missing or inconsistent."
 ```
 
 Done criteria:
 
-- Documentation reflects implemented behavior only.
-- Targeted backend and user-facing static checks pass.
-- Full quality gate passes or any blocker is classified.
-
-### Slice 05 - Effective Access Evidence And Health-Check Model
-
-Purpose:
-
-- Promote the current routed-link and route-contract behavior into an explicit
-  effective access/evidence model that covers the complete Issue #157 evidence
-  payload and can drive routed HTTP health-check expectations.
-
-Prerequisites:
-
-- Slices 01 through 04 completed.
-- Current implementation branch remains
-  `feature/workflow-traefik-service-routing-20260627`.
-
-```yaml
-slice_id: "05"
-profile: "FULL_PATH"
-owner: "Senior Python Automation Developer"
-secondary_reviewers:
-  - "Senior System Architect"
-  - "Senior Tester"
-  - "Senior DevOps Engineer"
-affected_files:
-  - "src/tiny_swarm_world/domain/ingress/**"
-  - "src/tiny_swarm_world/application/services/platform/**"
-  - "src/tiny_swarm_world/infrastructure/adapters/repositories/**"
-  - "tests/domain/ingress/**"
-  - "tests/integration/test_service_access_routing.py"
-  - "documentation/workflow/workflow.md"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-05-distribution.md"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-05-consolidation.md"
-affected_modules:
-  - "tiny_swarm_world.domain.ingress"
-  - "tiny_swarm_world.application.services.platform"
-  - "tiny_swarm_world.infrastructure.adapters.repositories"
-  - "tests.integration"
-affected_contracts:
-  - "Effective access model"
-  - "Route evidence payload"
-  - "Routed HTTP health-check expectations"
-dependencies:
-  - "04"
-parallel_group: "serial-traefik-routing"
-file_locks:
-  - "src/tiny_swarm_world/domain/ingress/**"
-  - "src/tiny_swarm_world/application/services/platform/**"
-  - "tests/integration/**"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/**"
-contract_locks:
-  - "Evidence includes route map, public ports, fallback ports and skipped-route reasons"
-  - "Health checks may use routed Traefik URLs but do not silently downgrade to diagnostic ports"
-architecture_locks:
-  - "Domain model remains infrastructure-free"
-quality_gates:
-  targeted:
-    - "PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state tests.integration.test_service_access_routing"
-  required: []
-documentation:
-  arc42: "Update only if the effective evidence model changes architecture claims."
-  adr: "No ADR rewrite; align with accepted Traefik ADR."
-stop_conditions:
-  - "Stop if evidence would include secrets, local IP addresses, host-specific paths, raw command payloads or certificate material."
-  - "Stop if health-check fallback ports become the preferred route."
-  - "Stop if a new gateway policy is needed."
-```
-
-Done criteria:
-
-- Effective access evidence includes gateway/public ingress ports, diagnostic
-  fallback ports, route map, internal target ports, Service Access preferred
-  URL source, fallback classification and skipped-route reasons.
-- Routed health-check expectations are represented without running live
-  infrastructure by default.
-
-### Slice 06 - Service-Oriented Integration Route Coverage
-
-Purpose:
-
-- Expand integration tests so Issue #157 route/link/evidence behavior is
-  service-oriented and covers enabled routes plus explicit skipped/not-generated
-  routes.
-
-Prerequisites:
-
-- Slice 05 completed.
-
-```yaml
-slice_id: "06"
-profile: "FULL_PATH"
-owner: "Senior Tester"
-secondary_reviewers:
-  - "Senior Requirement Engineer"
-  - "Senior Python Automation Developer"
-  - "Senior System Architect"
-affected_files:
-  - "tests/integration/test_service_access_routing.py"
-  - "tests/integration/test_portainer_routing.py"
-  - "tests/integration/test_jenkins_routing.py"
-  - "tests/integration/test_sonarqube_routing.py"
-  - "tests/integration/test_nexus_routing.py"
-  - "tests/integration/test_swagger_routing.py"
-  - "tests/integration/test_infisical_routing.py"
-  - "tests/integration/test_pulsar_routing.py"
-  - "tests/integration/test_observability_routing.py"
-  - "tests/integration/test_tiny_swarm_app_routing.py"
-  - "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-06-distribution.md"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-06-consolidation.md"
-affected_modules:
-  - "tests.integration"
-  - "tests.infrastructure.adapters.repositories"
-affected_contracts:
-  - "Service-oriented integration route suite"
-  - "Representative Traefik label rendering"
-  - "Non-generated route skip semantics"
-dependencies:
-  - "05"
-parallel_group: "serial-traefik-routing"
-file_locks:
-  - "tests/integration/**"
-  - "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py"
-contract_locks:
-  - "Every enabled routed HTTP service has independent route/link/evidence assertions"
-  - "Prometheus, Grafana, app and api routes are generated only when enabled/configured"
-architecture_locks:
-  - "Integration tests stay static and do not call live Docker, DNS, browser or network dependencies"
-quality_gates:
-  targeted:
-    - "PYTHONPATH=src python3 -m unittest discover -s tests/integration -t ."
-    - "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml"
-  required: []
-documentation:
-  arc42: "No documentation change unless route support changes."
-  adr: "No ADR change expected."
-stop_conditions:
-  - "Stop if tests require live infrastructure by default."
-  - "Stop if Pulsar broker TCP is treated as HTTP."
-```
-
-Done criteria:
-
-- Integration tests are service-oriented, independently runnable, and cover
-  Portainer, Jenkins, SonarQube, Nexus, Swagger, Infisical, Service Access,
-  Pulsar Manager, Pulsar Admin/API, skipped observability routes and skipped
-  Tiny Swarm app/API routes.
-
-### Slice 07 - Opt-In Selenium Browser E2E Suite
-
-Purpose:
-
-- Add the explicit opt-in Selenium browser E2E suite required by Issue #157
-  without making live validation part of the default quality gate.
-
-Prerequisites:
-
-- Slice 06 completed.
-- Live infrastructure commands remain forbidden unless the operator explicitly
-  opts into a live validation run.
-
-```yaml
-slice_id: "07"
-profile: "FULL_PATH"
-owner: "Senior Tester"
-secondary_reviewers:
-  - "Senior DevOps Engineer"
-  - "Senior Python Automation Developer"
-  - "Senior System Architect"
-affected_files:
-  - "tests/live/test_service_access_browser_e2e.py"
-  - "tests/live/test_portainer_browser_e2e.py"
-  - "tests/live/test_jenkins_browser_e2e.py"
-  - "tests/live/test_sonarqube_browser_e2e.py"
-  - "tests/live/test_nexus_browser_e2e.py"
-  - "tests/live/test_swagger_browser_e2e.py"
-  - "tests/live/test_infisical_browser_e2e.py"
-  - "tests/live/test_pulsar_browser_e2e.py"
-  - "tests/live/test_observability_browser_e2e.py"
-  - "tests/live/test_tiny_swarm_app_browser_e2e.py"
-  - "tests/live/test_post_install_browser_live.py"
-  - "tests/live/support/**"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-07-distribution.md"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-07-consolidation.md"
-affected_modules:
-  - "tests.live"
-affected_contracts:
-  - "Opt-in Selenium E2E route validation"
-  - "Per-service browser success predicates"
-  - "Redacted local E2E evidence"
-dependencies:
-  - "06"
-parallel_group: "serial-traefik-routing"
-file_locks:
-  - "tests/live/**"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/**"
-contract_locks:
-  - "Selenium imports are exactly `from selenium import webdriver` and `from selenium.webdriver.common.by import By`"
-  - "Live E2E opens routed Service Access links, not diagnostic fallback links"
-  - "Live E2E writes only ignored redacted evidence under `.tiny-swarm-world/evidence/solid-typed-evidence/e2e/`"
-architecture_locks:
-  - "Browser tooling stays in tests/live and is not product runtime code"
-quality_gates:
-  targeted:
-    - "PYTHONPATH=src python3 -m unittest discover -s tests/live -t ."
-  required: []
-documentation:
-  arc42: "No architecture claim of live success unless a live run is explicitly executed."
-  adr: "No ADR change expected."
-stop_conditions:
-  - "Stop if Selenium would run by default without `TSW_RUN_POST_INSTALL_BROWSER_LIVE=1` or equivalent explicit consent."
-  - "Stop if screenshots, raw passwords, tokens, private keys, local IP addresses or raw command payloads would be persisted."
-  - "Stop if live evidence would be committed."
-  - "Stop if approved credential source is unclear."
-```
-
-Done criteria:
-
-- Live Selenium files exist and are service-oriented.
-- Default run skips live browser execution without reporting success.
-- Static tests prove live command gating, routed URL selection, per-service
-  success predicates, explicit skip reasons and evidence redaction.
-
-### Slice 08 - Live E2E Execution Gate And Final Issue Acceptance
-
-Purpose:
-
-- Define and, only with explicit operator consent and live prerequisites,
-  execute the live Selenium gate for every generated routed Service Access
-  link in the active profile.
-
-Prerequisites:
-
-- Slice 07 completed.
-- Operator explicitly approves live validation.
-- Required live prerequisites are available: deployed stack, Traefik route
-  resolution for `*.tsw.local`, TLS trust or CA bundle, approved credential
-  source and ignored evidence path.
-
-```yaml
-slice_id: "08"
-profile: "FULL_PATH_LIVE_OPT_IN"
-owner: "Senior DevOps Engineer"
-secondary_reviewers:
-  - "Senior Tester"
-  - "Senior Python Automation Developer"
-  - "Senior System Architect"
-affected_files:
-  - "tests/live/**"
-  - "documentation/workflow/workflow.md"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-08-distribution.md"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/slice-08-consolidation.md"
-affected_modules:
-  - "tests.live"
-  - "documentation.workflow"
-affected_contracts:
-  - "Explicit live Selenium acceptance evidence"
-  - "Per-service live pass/fail/skip summary"
-dependencies:
-  - "07"
-parallel_group: "serial-live-validation"
-file_locks:
-  - "tests/live/**"
-  - "documentation/workflow/**"
-  - ".codex/evidence/workflow-traefik-service-routing-20260627/**"
-contract_locks:
-  - "Live success is claimed only with explicit live evidence"
-  - "Environment blockers do not downgrade product model from `80/443` to `10080/10443`"
-architecture_locks:
-  - "No host resolver, DNS, Docker, Swarm, LXC or Traefik mutation without separate explicit approval"
-quality_gates:
-  targeted:
-    - "TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest discover -s tests/live -t ."
-  required:
-    - "python3 tools/quality_gate.py quality"
-documentation:
-  arc42: "Update only to report verified live evidence status if the live gate actually runs."
-  adr: "No ADR change expected."
-stop_conditions:
-  - "Stop if live validation consent is missing."
-  - "Stop if route hostnames do not resolve."
-  - "Stop if TLS trust material is unavailable and HTTPS verification would be weakened."
-  - "Stop if approved credentials are unavailable for a required login and no explicit skip reason can be recorded."
-  - "Stop if generated routed links fail to open."
-```
-
-Done criteria:
-
-- If live consent is absent, Slice 08 records an explicit skipped-live blocker
-  and the workflow remains not fully accepted for Issue #157.
-- If live consent is present, every generated routed Service Access link is
-  opened with Selenium and recorded as passed, failed or explicitly skipped.
-- Required login flows pass where approved credentials are available.
-- Redacted local E2E summary exists under ignored `.tiny-swarm-world/**` and
-  is not committed.
-- Full quality gate passes after any live-suite code changes.
+- Documentation states that generated dashboard HTML is synchronized to the
+  remote service-access dashboard config file before stack deployment.
+- Evidence files exist for requirements, implementation, changed files, test
+  results, risks and acceptance checklist.
+- `git diff --check` and `python3 tools/quality_gate.py quality` pass, or any
+  failure is classified with exact blockers.
 
 ## Slice Dependency Graph
 
 ```text
-01 Baseline Routing Contract Tests
-  -> 02 Gateway Port Authority And Route Model
-    -> 03 Service Access Links, Evidence And Live Suite Structure
-      -> 04 Documentation Sync And Final Verification
-        -> 05 Effective Access Evidence And Health-Check Model
-          -> 06 Service-Oriented Integration Route Coverage
-            -> 07 Opt-In Selenium Browser E2E Suite
-              -> 08 Live E2E Execution Gate And Final Issue Acceptance
+01 Regression Contract For Generated Dashboard Deployment Asset
+  -> 02 Generated Dashboard Asset Transfer In LXC Swarm Runtime
+    -> 03 Deployment Composition Visibility And Pre-Apply Sequencing
+      -> 04 Documentation, Evidence And Quality Gate
 ```
 
 ## Parallel Execution
 
 - Can this workflow run in parallel? No write-capable parallel execution.
-- Conflicting workflows: any workflow touching Traefik ingress, service-access
-  dashboard, compose stack publication, setup manifest ports, ingress domain
-  objects, effective access/evidence model, live browser tests or deployment
-  documentation.
-- Shared files: `infra/config/services.yml`, Traefik and Service Access compose
-  files, `src/tiny_swarm_world/domain/ingress/**`, `tests/integration/**`,
-  `tests/live/**` and docs.
-- Shared infrastructure: Docker Swarm, LXC, Traefik and local DNS/hosts state;
-  no live shared infrastructure may be used by default.
-- Requires isolated worktree: yes for any concurrent workflow execution.
-- Requires serialized live validation: yes; live validation is opt-in only and
-  belongs to Slice 08.
-- Merge-order constraints: execute slices in order 01 through 08.
+- Conflicting workflows: any workflow touching Service Access dashboard
+  rendering, service-access compose configs, LXC stack asset transfer,
+  deployment composition, setup/deployment apply ordering, or deployment docs.
+- Shared files: `lxc_swarm_runtime.py`, `compose_file_repository_yaml.py`,
+  `composition.py`, `tests/infrastructure/test_composition.py`,
+  Service Access deployment docs and `documentation/workflow/**`.
+- Shared infrastructure: Docker Swarm, LXC, Portainer and remote stack root;
+  no shared live infrastructure is used by default.
+- Requires isolated worktree: yes for any concurrent execution.
+- Requires serialized live validation: yes; live validation is out of scope
+  unless explicitly requested later.
+- Merge-order constraints: execute slices in order 01 through 04.
 
 ## Automatic Work Distribution Policy
 
@@ -990,34 +614,30 @@ fallback in the main thread and record that fallback in evidence.
 
 Required evidence before implementation:
 
-- `.codex/evidence/workflow-traefik-service-routing-20260627/slice-<number>-distribution.md`
+- `.codex/evidence/workflow-service-access-dashboard-html-20260629/slice-<number>-distribution.md`
 
 Required evidence after implemented slices:
 
-- `.codex/evidence/workflow-traefik-service-routing-20260627/slice-<number>-consolidation.md`
+- `.codex/evidence/workflow-service-access-dashboard-html-20260629/slice-<number>-consolidation.md`
 
 Stream map:
 
-- Backend/Python: Slices 01, 02, 03 and 05.
+- Backend/Python: Slices 01, 02 and 03.
 - Frontend/React: not applicable.
 - Console/status UI: not affected.
-- Tests: all slices; Slice 07 owns Selenium test structure and Slice 08 owns
-  explicit live execution.
-- Runtime/DevOps: Slices 02 and 03 for static configuration; Slice 08 for
-  explicit live validation only.
-- Documentation: Slices 04 and 08 when live status is known.
-- Quality: Slices 04, 07 and 08.
+- Tests: all slices, led by Slice 01.
+- Runtime/DevOps: Slices 02 and 03.
+- Documentation: Slice 04.
+- Quality: Slice 04.
 - Architecture: all slices.
-- Security: secret redaction, credential display safety and local evidence
-  path safety.
+- Security: secret-file avoidance and password-value redaction.
 
 Non-parallelization rules:
 
 - Do not parallelize overlapping file edits.
 - Do not parallelize unclear architecture ownership.
 - Do not parallelize contradictory requirements.
-- Do not parallelize mandatory ordered migration from tests to implementation
-  to documentation.
+- Do not parallelize mandatory ordered test-then-implementation work.
 - Do not parallelize generated-file conflict resolution.
 - Do not parallelize if Three Amigos marks the slice not safely
   parallelizable.
@@ -1029,7 +649,7 @@ PR readiness and merge readiness.
 ## Git Worktree Execution Rule
 
 Execute this workflow only from branch
-`feature/workflow-traefik-service-routing-20260627` or from an isolated
+`fix/workflow-service-access-dashboard-html-20260629` or from an isolated
 worktree branch explicitly derived for this workflow. Subagents or stream
 workers must verify the active branch before writing files and must not merge
 directly. Codex consolidates accepted changes after evidence and tests pass.
@@ -1038,13 +658,33 @@ directly. Codex consolidates accepted changes after evidence and tests pass.
 
 - Senior Workflow Architect: workflow structure, dependencies and execution
   policy.
-- Senior Requirement Engineer: Issue #157 and ADR alignment.
-- Senior System Architect: hexagonal boundaries and gateway policy alignment.
-- Senior Python Automation Developer: domain/config/rendering implementation.
-- Senior Documentation Engineer: README, deployment and arc42 sync.
-- Senior Tester: static, integration and live-skipped regression tests.
+- Senior Requirement Engineer: requirement matrix and drift checks.
+- Senior System Architect: hexagonal boundaries and deployment boundary fit.
+- Senior Python Automation Developer: generated asset rendering and runtime
+  transfer implementation.
+- Senior DevOps Engineer: stack asset preparation order and deployment safety.
+- Senior Documentation Engineer: arc42, user-guide and workflow sync.
+- Senior Tester: regression tests, targeted checks and quality evidence.
 - Senior React Frontend Developer: N/A impact check; no React module exists.
-- Senior DevOps Engineer: Docker/Swarm compose and live-validation safety.
+
+## Issue Completion Discipline
+
+- Requirement matrix path:
+  `.tiny-swarm/evidence/workflow-service-access-dashboard-html-20260629/requirement_matrix.md`
+- Required evidence path:
+  `.tiny-swarm/evidence/workflow-service-access-dashboard-html-20260629/`
+- Required evidence files:
+  `requirement_matrix.md`, `implementation_summary.md`, `changed_files.md`,
+  `test_results.md`, `remaining_risks.md`, `acceptance_checklist.md`
+- Requirement Lead review: Senior Requirement Engineer must confirm REQ-001
+  through REQ-006 are captured and mapped.
+- System Architect Reviewer review: Senior System Architect must confirm the
+  solution keeps file transfer and command execution in infrastructure.
+- Test / Evidence Reviewer review: Senior Tester must confirm every
+  requirement has test or static evidence.
+- Issue Completion Auditor review: required before final `DONE`.
+- DONE blocking rule: any open or unverified requirement forces `INCOMPLETE`,
+  `BLOCKED` or `FAILED`; the implementer cannot mark the issue done alone.
 
 ## Quality-Gate Expectations
 
@@ -1059,16 +699,20 @@ From `QUALITY.md`:
   - `python3 tools/quality_gate.py test`
   - `git diff --check`
 
-The full gate is required for final readiness because this workflow changes
-domain behavior, YAML/compose configuration, tests and documentation.
+The full gate is required for final readiness because the workflow changes
+Python infrastructure adapter behavior, deployment composition, tests and
+documentation.
 
 ## Documentation Synchronization Points
 
-- Update README and deployment docs for `80/443` preferred ingress.
-- Update arc42 deployment view and architecture-decision index if implemented
-  behavior changes from pending to repository-supported static routing.
-- Keep ADR history intact.
-- Explicitly mark live Selenium verification as opt-in and not run by default.
+- Update deployment docs if execution changes the documented Service Access
+  asset contract.
+- Keep ADR history intact. If execution discovers that an ADR is needed for a
+  new asset-preparation boundary, stop and escalate rather than silently
+  updating the ADR.
+- Do not claim live dashboard reachability or service readiness without an
+  explicit live run and redacted evidence.
+- Keep paths POSIX-style in examples and documentation.
 
 ## Stop Conditions
 
@@ -1076,19 +720,22 @@ Stop and report if:
 
 - Git repository context or active branch cannot be verified.
 - Unrelated uncommitted changes appear.
-- Traefik `80/443` cannot be made authoritative without a new ADR.
-- `--api.insecure=true` appears.
-- Service Access would expose password values.
-- Live browser or infrastructure checks would run by default.
-- DNS or hosts-file mutation would be required.
-- Pulsar broker TCP is treated as HTTP.
-- Documentation would claim live success without opt-in evidence.
-- Any quality failure cannot be safely classified.
+- Generated dashboard HTML cannot be obtained without reading local secret
+  files or adding constructor side effects.
+- The implementation would keep stale committed dashboard HTML as the
+  deployment source of truth.
+- Remote file paths become host-specific, Windows-specific or unquoted.
+- Any fix requires live Incus, LXC, Docker, Swarm, Portainer or service
+  mutation without explicit approval.
+- Password values, tokens, private keys, local IP addresses or host-specific
+  paths would be committed, logged or added to evidence.
+- Documentation would claim live success without live evidence.
+- A quality failure cannot be safely classified.
 
 ## Uncertainty Escalation Rules
 
-- Route gateway-policy ambiguity to Senior System Architect and ADR Steward.
-- Route deployment/runtime ambiguity to Senior DevOps.
+- Route asset-boundary ambiguity to Senior System Architect and ADR Steward.
+- Route deployment-order ambiguity to Senior DevOps.
 - Route secret or evidence leakage risk to security review.
 - Route failing or flaky tests to Senior Tester and Typed Error Router before
   retries.
@@ -1096,10 +743,13 @@ Stop and report if:
 ## Commit And Push Plan
 
 - Workflow creation publication is authorized as a guarded branch commit and
-  push to `origin/feature/workflow-traefik-service-routing-20260627`.
-- Slice execution commits are authorized one slice at a time after targeted
-  checks pass.
-- Slice checkpoint push is not `push auto` and must not create or merge a PR.
+  push to `origin/fix/workflow-service-access-dashboard-html-20260629`.
+- Stage only `documentation/workflow/**` for workflow creation unless a
+  directly required governance file is changed.
+- Do not create, merge or clean up a pull request during workflow creation.
+- Do not force-push and do not push to `main`.
+- If remote SSH access is unavailable, keep the local workflow commit and
+  report publication blocked with the exact Git error.
 
 ## Definition Of Done
 
@@ -1108,95 +758,37 @@ Stop and report if:
   `documentation/workflow/context-pack.md`, and
   `documentation/workflow/context-pack.json` describe this workflow.
 - Slices contain machine-readable metadata.
-- Implementation aligns with Issue #157 and the accepted Traefik ADR.
-- Backend/domain/static checks pass.
-- User-facing Service Access route/link behavior is verified statically.
-- Effective access evidence covers gateway ports, route map, fallback
-  classification, internal target ports, Service Access URL source and
-  skipped-route reasons.
-- Service-oriented integration tests cover every enabled routed HTTP service
-  and explicit skipped/not-generated routes for disabled or unconfigured
-  services.
-- Opt-in Selenium browser E2E files exist, import Selenium exactly as required
-  by Issue #157, and are skipped by default without reporting success.
-- Full Issue #157 acceptance requires one of these outcomes:
-  - live consent is granted, Slice 08 runs, every generated routed Service
-    Access link is opened with Selenium, required approved login flows pass,
-    and redacted local evidence records pass/fail/skip status;
-  - live consent or prerequisites are missing, Slice 08 records a classified
-    blocker and the workflow remains `PARTIAL_EXECUTION_REQUIRES_ISSUE_157_COMPLETION`.
-- Documentation distinguishes accepted architecture direction, committed
-  desired configuration, default static verification and opt-in live
-  verification results.
-- Full quality gate passes after all code/test/documentation changes.
+- Requirement matrix maps REQ-001 through REQ-006 to implementation and
+  verification evidence.
+- Service Access generated dashboard HTML is written to the remote stack root
+  dashboard path before service-access stack deployment.
+- Tests prove stale static dashboard files do not become the deployment source
+  of truth.
+- Documentation distinguishes generated deployment asset behavior from live
+  reachability evidence.
+- Full quality gate passes after implementation, or blockers are reported.
 
 ## Handoff To Workflow Execute
 
 Run `workflow execute` only after confirming:
 
 - active branch:
-  `feature/workflow-traefik-service-routing-20260627`
+  `fix/workflow-service-access-dashboard-html-20260629`
 - current workflow status:
-  `PARTIAL_EXECUTION_REQUIRES_ISSUE_157_COMPLETION`
-- next execution starts at Slice 05 unless a prior slice is deliberately
-  reopened with a documented reason
+  `READY_FOR_WORKFLOW_EXECUTE_LOCAL_ONLY_REMOTE_PUBLICATION_BLOCKED`
 - context pack hashes are current
 - no unrelated working-tree changes exist
-- live Slice 08 must not run without explicit operator consent and verified
-  prerequisites
-
-## Execution Outcome
-
-Current status:
-
-- Partial execution only. Slices 01 through 04 are complete for static/backend
-  routing behavior. Slices 05 through 08 remain required for full Issue #157
-  acceptance.
-
-- Slice 01 established the baseline routing-contract evidence and confirmed
-  existing tests were the correct regression surface.
-- Slice 02 reconciled Traefik public ingress authority to `80/443` across the
-  domain ingress model, setup manifest, service registry, Traefik compose,
-  compose rendering and platform preflight behavior.
-- Slice 03 changed Service Access preferred links to Traefik host routes,
-  added/verified Traefik route labels for Service Access, Swagger, Pulsar
-  Manager and Pulsar Admin API, and added route/link/evidence integration
-  tests. Pulsar broker TCP remains direct protocol access.
-- Slice 04 synchronized README, deployment docs, arc42 decision index and
-  deployment view. Documentation does not claim live browser success.
-- Full quality gate passed with `python3 tools/quality_gate.py quality`.
-- Live Selenium/browser validation was not run because no explicit live
-  infrastructure opt-in was requested for this execution.
-- The absence of Selenium browser E2E implementation and execution is now a
-  remaining workflow requirement, not an accepted final state.
-- Follow-up execution added Slices 05 through 07 artifacts: service-oriented
-  integration route tests, opt-in Selenium browser E2E test files, and the
-  domain ingress correction that makes Traefik load-balancer target ports use
-  internal service ports.
-- Full quality gate after follow-up changes passed with 1052 tests and 52
-  skipped.
-- Remediation execution added the central effective access model fields for
-  diagnostic/compatibility fallback ports, skipped-route reasons, generated
-  Service Access links, routed health targets and redacted evidence export.
-- Remediation execution changed Compose repository rendering so Traefik labels
-  are rendered from `DesiredHttpsIngress` instead of being trusted as static
-  source-of-truth labels in stack compose files.
-- Remediation execution expanded service-oriented routing coverage across
-  Service Access, Portainer, Jenkins, SonarQube, Nexus, Swagger, Infisical,
-  Pulsar Manager and Pulsar Admin API, including negative `localhost` route
-  checks.
-- Remediation execution updated the opt-in Selenium contract to use routed
-  URLs, perform approved credential login flows when credentials are present,
-  verify post-login success markers, and keep the live evidence path under
-  `.tiny-swarm-world/evidence/solid-typed-evidence/e2e/`.
-- Slice 08 remains open because live Selenium execution still requires
-  explicit live infrastructure opt-in.
+- no live infrastructure commands are run without explicit operator consent
+- Slice 01 starts with regression tests before implementation
 
 ## arc42 Check Status
 
+- `documentation/arc42/07_deployment/system.adoc` checked because it documents
+  Service Access deployment assets and warns against relying on bind-mounted
+  repository files without a tested asset-preparation boundary.
 - `documentation/arc42/07_deployment_view.adoc` checked because it documents
-  Traefik ingress and service access deployment.
-- `documentation/arc42/09_architecture_decisions.adoc` checked because it
-  references the accepted Traefik ADR.
-- Execution must update arc42 only for implemented repository behavior and must
-  not claim live success without opt-in evidence.
+  Service Access and Traefik deployment direction.
+- `documentation/arc42/09_decisions/adr-service-access-dashboard-vaultwarden.adoc`
+  checked because it authorizes Service Access dashboard assets and requires a
+  tested asset-preparation boundary before relying on repository files.
+- No ADR update is required during workflow authoring.
