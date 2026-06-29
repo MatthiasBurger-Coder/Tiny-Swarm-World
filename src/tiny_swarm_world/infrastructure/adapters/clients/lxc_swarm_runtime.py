@@ -7,7 +7,7 @@ import shlex
 import subprocess
 import tarfile
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 import requests
@@ -69,6 +69,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         timeout_seconds: int = 900,
         service_list_timeout_seconds: int = 30,
         project_paths: ProjectPaths | None = None,
+        service_access_dashboard_renderer: Callable[[], str] | None = None,
     ):
         if timeout_seconds <= 0:
             raise ValueError("Swarm runtime timeout must be positive.")
@@ -80,6 +81,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         self.timeout_seconds = timeout_seconds
         self.service_list_timeout_seconds = service_list_timeout_seconds
         self.project_paths = project_paths or default_project_paths()
+        self.service_access_dashboard_renderer = service_access_dashboard_renderer
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def prepare_stack_assets(self, stack_name: str) -> None:
@@ -267,19 +269,11 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             self._run_manager_shell(script, input_text=tls_config.read_text(encoding="utf-8"))
             return
         if stack_name == "service-access":
-            dashboard_file = (
-                self.project_paths.infra_root
-                / "config"
-                / "compose"
-                / "service-access"
-                / "dashboard"
-                / "index.html"
-            )
             script = (
                 f"set -e; mkdir -p {_quote_remote_path(remote_dir + '/dashboard')}; "
                 f"cat > {_quote_remote_path(remote_dir + '/dashboard/index.html')}"
             )
-            self._run_manager_shell(script, input_text=dashboard_file.read_text(encoding="utf-8"))
+            self._run_manager_shell(script, input_text=self._render_service_access_dashboard())
             return
         if stack_name != "swagger":
             return
@@ -309,6 +303,17 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             f"cat > {_quote_remote_path(remote_dir + '/nginx/default.conf')}"
         )
         self._run_manager_shell(script, input_text=nginx_config.read_text(encoding="utf-8"))
+
+    def _render_service_access_dashboard(self) -> str:
+        if self.service_access_dashboard_renderer is not None:
+            return self.service_access_dashboard_renderer()
+        from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
+            ComposeFileRepositoryYaml,
+        )
+
+        return ComposeFileRepositoryYaml(
+            project_paths=self.project_paths,
+        ).render_service_access_dashboard()
 
     def _run_manager_shell(
         self,
