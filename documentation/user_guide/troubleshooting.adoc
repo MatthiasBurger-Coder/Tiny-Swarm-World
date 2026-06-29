@@ -228,9 +228,13 @@ into their respective images by the artifact workflow; live reachability still
 requires explicit deployment evidence.
 
 The committed dashboard is generated from the effective service-access model.
-It intentionally does not claim service reachability until observed evidence
-exists. Password values are not present in the dashboard; use the listed
-secret item reference only through the configured secret-management surface.
+For LXC stack deployment, the runtime renders the dashboard again and writes
+the generated HTML to
+`${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` before the
+service-access stack is deployed. The dashboard intentionally does not claim
+service reachability until observed evidence exists. Password values are not
+present in the dashboard; use the listed secret item reference only through
+the configured secret-management surface.
 
 Check the non-secret prerequisites before a live run:
 
@@ -240,6 +244,8 @@ Check the non-secret prerequisites before a live run:
   and `8086` for the Infisical compatibility route as stack metadata;
 * the service-access dashboard and NGINX images are available to the Swarm
   registry;
+* the service-access dashboard stack asset preparation step has synchronized
+  the generated `dashboard/index.html` under the remote stack root;
 * the service-access stack has been deployed intentionally through a reviewed
   live path.
 

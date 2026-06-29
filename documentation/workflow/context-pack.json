@@ -1,30 +1,26 @@
 {
-  "workflow_id": "workflow-traefik-service-routing-20260627",
-  "version": "workflow-traefik-service-routing-v1.0.0",
-  "branch": "feature/workflow-traefik-service-routing-20260627",
-  "issue": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/157",
+  "workflow_id": "workflow-service-access-dashboard-html-20260629",
+  "version": "workflow-service-access-dashboard-html-v1.0.0",
+  "branch": "fix/workflow-service-access-dashboard-html-20260629",
+  "issue": "local-high-service-access-dashboard-html-deployment-sync",
   "process_strand": "workflow create -> workflow execute",
-  "execution_profile": "FULL_PATH",
+  "execution_profile": "NORMAL_PATH",
+  "status": "EXECUTED_LOCAL_QUALITY_PASSED_REMOTE_PUBLICATION_BLOCKED",
   "affected_areas": [
-    "traefik-public-ingress",
-    "service-access-links",
-    "central-effective-access-model",
-    "compose-rendering-from-effective-access-model",
-    "setup-preflight-ports",
-    "static-and-live-tests",
-    "documentation",
-    "effective-access-evidence",
-    "routed-health-check-model",
-    "service-oriented-integration-routes",
-    "opt-in-selenium-browser-e2e"
+    "service-access-dashboard-html-generation",
+    "service-access-compose-config-file-path",
+    "lxc-swarm-stack-asset-transfer",
+    "deployment-pre-apply-sequencing",
+    "static-regression-tests",
+    "deployment-documentation"
   ],
   "forbidden_areas": [
     "live-infrastructure-without-explicit-opt-in",
-    "unsupported-legacy-messaging-routes",
+    "generated-local-secret-file",
     "kubernetes-first-behavior",
     "react-frontend",
-    "committed-runtime-evidence",
-    "secrets-or-local-topology-in-evidence"
+    "java-maven-spring-surface",
+    "raw-secrets-or-local-topology-in-evidence"
   ],
   "required_roles": [
     "Senior Requirement Engineer",
@@ -33,44 +29,59 @@
     "Senior React Frontend Developer",
     "Senior Tester",
     "Senior DevOps Engineer",
-    "Senior Documentation Engineer"
+    "Senior Documentation Engineer",
+    "Issue Completion Auditor"
   ],
   "quality_commands": {
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state",
-      "PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_preflight_result",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_swarm_runtime",
       "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml",
-      "PYTHONPATH=src python3 -m unittest tests.integration.test_service_access_routing",
-      "PYTHONPATH=src python3 -m unittest discover -s tests/live -t .",
-      "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint",
-      "git diff --check",
-      "PYTHONPATH=src python3 -m unittest discover -s tests/integration -t .",
-      "PYTHONPATH=src python3 -m unittest discover -s tests/live -t ."
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition",
+      "PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_deployment_workflows",
+      "git diff --check"
     ],
     "required": [
       "python3 tools/quality_gate.py quality"
     ],
-    "live_opt_in": [
-      "TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest discover -s tests/live -t ."
-    ]
+    "windows_host_wrapper": [
+      "wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World_2 && <command>'"
+    ],
+    "live_opt_in": []
+  },
+  "publication": {
+    "local_branch_verified": true,
+    "remote_target": "origin/fix/workflow-service-access-dashboard-html-20260629",
+    "remote_publication_status": "blocked",
+    "known_remote_check_issue": "origin SSH access failed during authoring with Permission denied (publickey)",
+    "last_push_error": "git@github.com: Permission denied (publickey). fatal: Could not read from remote repository."
   },
   "hashes": {
-    "AGENTS.md": "51a6c32198698b51098a70ec763077a7a7a03b5bc49898e5e6cd6c5ab1b1b9c7",
+    "AGENTS.md": "bba7ddf6214a1aaad6c2bfacbae2c9ac2bbd05653c03df9ba0daff3cf1b93210",
     "QUALITY.md": "458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6",
-    ".agents/orchestrator/routing-rules.md": "ba3563181db98df3f6a1872d676006cf57cc1603c1b0b74d4c41cd3db02a60a5",
-    ".agents/orchestrator/swarm-orchestrator.md": "59ad93b9cb78bcd94cff6162ff67a7264e32d9c511cb6a1ef899b6cd6bba8de1",
-    ".agents/skills/workflow-authoring/SKILL.md": "921e1153ff24fb83719220123782916c6e2055aa2600c268349064978205e23e",
-    ".agents/skills/workflow-executor/SKILL.md": "d5511837eab5d20884845094e740bc9e7d1766b2a8c283f45d2f9ef5a10f7a84",
-    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "23de7d9aac9d2694eae26fac2765d65f369c101ac348dac24d5f3bbe9e2d3ba4",
-    ".agents/skills/s3d-execution-orchestrator/SKILL.md": "54c687a580225c85aa3bca2445782064bff914f593458a63006b0793dc8233bc",
-    "documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc": "ae4caa86703f60ea799da9e3c1a8cc54b7868794904aec6da694065e89cd6a82",
-    "documentation/arc42/07_deployment_view.adoc": "d4d5730641974d473ae8770a80c723b54bb556cee080a455b14dc4da3d35a674",
-    "documentation/arc42/09_architecture_decisions.adoc": "9339d7d9e3025a0194059682fb8adee30ae9d9fb2e3ed44677e6cfaa70fc772d",
-    "infra/config/ports.yaml": "daf8df7eff872e42ed03d67a9bfa829f29efd3cd8f92666bc75025c5b75c7b83",
-    "infra/config/services.yml": "b3f19a685b76aac23fa3f520a348fccc197d7fe49b583f02571c446c64674534",
-    "infra/config/compose/traefik/docker-compose.yml": "78bf075bd19f11384c83bffe1c420ad3c449c7d4ed071ddce7ecdbb4bd03cf2e",
-    "documentation/workflow/workflow.md": "e5057a4cab25ac7cedf2dc1400d763525b9d6662f8ef45ca897a322f330266fb",
-    "documentation/workflow/context-pack.md": "9ad2cc792f13dd9f71429e3463c10a95bb76ba955cc7d29ae1434691bda1cfce"
-  },
-  "status": "PARTIAL_EXECUTION_LIVE_E2E_REQUIRES_OPT_IN"
+    "documentation/process/issue-completion-discipline.md": "81876f6dca479a1d63a80f765baf949a951eff2e0eeafde6bac72ad750508904",
+    ".agents/skills/workflow-authoring/SKILL.md": "8c622893ec2c5b271179f668d6225df476cb69044c6607fbdd0dce72dcb4a0a1",
+    ".agents/roles/senior-workflow-architect/SKILL.md": "4b1acc3e27105b7216b3992c468c6bc8cde8a5d6722323ff0cfff047a739175c",
+    ".agents/roles/senior-requirement-engineer/SKILL.md": "425160e925ccf0edb8983133d95e0fe17bad80ddcc78b8f51d0908ea59ecd1c0",
+    ".agents/roles/senior-system-architect.md": "234a2024e989253d1da22057883bf2928a129e843608c66fc67ee352af187f47",
+    ".agents/roles/senior-python-automation-developer.md": "7174fa24bec72f0ecc4babdf27c304b7111a5a7d9f1a08d27b86057d70245ebf",
+    ".agents/roles/senior-tester.md": "e2e245c58dd6d142901755d6ea97c255145f051bc1c129802fcb4fab5f61d79d",
+    ".agents/roles/senior-devops.md": "91fd2c58fa6d6f83f5e3c94850cd37bcf8f9a6bc7793d24f5eccf83dfd6b41ad",
+    ".agents/roles/senior-documentation-engineer.md": "95de0bdb5d550452f082e18952906b2d669febc5237385f8f9f0360a60ca83b1",
+    ".agents/roles/senior-react-frontend.md": "3b29296f298194e82c80af3a42c2181cd3f340471454da9be3ba662c746b4e0d",
+    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py": "8af2fc40f28923db33032ab531a1dc145c5ea7b00760d517d7ecef408f86376d",
+    "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py": "e5b7081dbd7d3f30b1afed58788acffb773e40bc3247f515e4128fded931c7c8",
+    "src/tiny_swarm_world/infrastructure/composition.py": "2f8f9eae88923954b3b15134c6b8af707ea7d6eb3afd47c703af3f730d3733f8",
+    "src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py": "ffdf110dc8ecff18d05c74c053958643f5e4c8e38f573a6fa0085ddaf7345e72",
+    "infra/config/compose/service-access/docker-compose.yml": "38d5e223c2c999ec1da5913888d679407e452836ca3cf68331ce471cd6464cc8",
+    "infra/config/compose/service-access/dashboard/index.html": "f440c4823e5a32488d4bdbb8106f0a93dba501eb07ccd255c9b5e34af777cc6c",
+    "documentation/arc42/07_deployment/system.adoc": "f20ac917814e504e166cd76b24f77917c13d2605f8a9c250f53602da267b7cbb",
+    "documentation/arc42/07_deployment_view.adoc": "7b82a21876bb640474b5321cc6378793810c762b6ea91e18079cc62b28bc527a",
+    "documentation/arc42/08_configuration/config-contract-inventory.md": "f0a70deea56a773fc1e4423174eac87e6940d8989d0eede7af962a3fc2706f4d",
+    "documentation/arc42/09_decisions/adr-service-access-dashboard-vaultwarden.adoc": "c4533683dfbd70052564ef079bd653189586392ab4afa81e1d0cc960d57e639f",
+    "documentation/system/live-operation-surfaces.adoc": "49afc854e30ad722296110af274c4b425c2cf63cb2056e9d14c678b725d4b098",
+    "documentation/user_guide/usage.adoc": "54d92952aee3805a4f3530c13cd456cea218ff39c8bae058ef9ce15f0412c4eb",
+    "documentation/user_guide/troubleshooting.adoc": "00f901a4454f8d9adafe9da533d5b1573bbf3ef78f8a24c9ff2758a24dbf1f33",
+    "documentation/workflow/workflow.md": "bb3986756694095e79d90cb70725525bb496b0e0fa09eefefd1aaa6a12df7f28",
+    "documentation/workflow/context-pack.md": "73260d3b099412643f892973727031c723db893a15f55e881b3a321d69469c55"
+  }
 }

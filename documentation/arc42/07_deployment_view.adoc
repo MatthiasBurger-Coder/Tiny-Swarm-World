@@ -63,9 +63,10 @@ completed port migration.
 The service-access dashboard capability is implemented as repository assets
 and setup-selected service contracts. The repository now contains the
 service-access compose stack, image-packaged dashboard and NGINX assets,
-service-stack contracts, setup-manifest requirements and static tests. The
-current local ingress route requires a fresh provider-specific deployment
-before it is claimed as live-verified.
+service-stack contracts, setup-manifest requirements, generated remote
+dashboard asset synchronization, and static tests. The current local ingress
+route requires a fresh provider-specific deployment before it is claimed as
+live-verified.
 
 The active routing baseline is Traefik-backed local ingress:
 
@@ -87,6 +88,11 @@ For the Portainer-managed path, service-access dashboard and NGINX assets are
 image-packaged under `infra/config/compose/service-access/**`. Bind-mounted
 repository files are not an accepted Portainer path unless a later slice adds
 a tested asset-preparation port or adapter and documents when it runs.
+
+For the LXC Swarm runtime path, stack asset preparation renders the Service
+Access dashboard and writes
+`${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` before the
+service-access compose config is consumed by `docker stack deploy`.
 
 == Planned Traefik HTTPS Ingress Migration
 

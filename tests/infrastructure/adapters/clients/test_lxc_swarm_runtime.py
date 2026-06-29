@@ -1,4 +1,6 @@
 import subprocess
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
@@ -29,6 +31,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
     _safe_log_text,
 )
 from tiny_swarm_world.domain.artifacts import ContainerImageContract
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
 
 
 class TestLxcSwarmRuntime(unittest.TestCase):
@@ -89,6 +92,65 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertIn("cat > /custom/stacks/traefik/dynamic/tls.yml", script)
         self.assertIn("/run/secrets/tsw_traefik_tls_cert", input_text)
         self.assertIn("/run/secrets/tsw_traefik_tls_key", input_text)
+
+    def test_prepare_stack_assets_transfers_generated_service_access_dashboard_to_remote_root(self):
+        with TemporaryDirectory() as temporary_directory:
+            repository_root = Path(temporary_directory)
+            dashboard_file = (
+                repository_root
+                / "infra"
+                / "config"
+                / "compose"
+                / "service-access"
+                / "dashboard"
+                / "index.html"
+            )
+            dashboard_file.parent.mkdir(parents=True)
+            dashboard_file.write_text("<html>stale-dashboard</html>", encoding="utf-8")
+            project_paths = ProjectPaths.from_roots(repository_root)
+            generated_dashboard = "<!doctype html>\n<html><body>generated-dashboard</body></html>\n"
+            runtime = LxcSwarmRuntime(
+                backend=ManagedLxcBackend.LXD,
+                remote_stack_root="/custom/stacks",
+                project_paths=project_paths,
+            )
+            setattr(
+                runtime,
+                "service_access_dashboard_renderer",
+                lambda: generated_dashboard,
+            )
+
+            with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+                runtime.prepare_stack_assets("service-access")
+
+        script = run_manager_shell.call_args.args[0]
+        input_text = run_manager_shell.call_args.kwargs["input_text"]
+        self.assertIn("mkdir -p /custom/stacks/service-access/dashboard", script)
+        self.assertIn("cat > /custom/stacks/service-access/dashboard/index.html", script)
+        self.assertEqual(generated_dashboard, input_text)
+        self.assertNotIn("stale-dashboard", input_text)
+
+    def test_render_service_access_dashboard_falls_back_to_compose_repository(self):
+        with TemporaryDirectory() as temporary_directory:
+            project_paths = ProjectPaths.from_roots(Path(temporary_directory))
+            runtime = LxcSwarmRuntime(
+                backend=ManagedLxcBackend.LXD,
+                project_paths=project_paths,
+            )
+
+            with patch(
+                "tiny_swarm_world.infrastructure.adapters.repositories."
+                "compose_file_repository_yaml.ComposeFileRepositoryYaml"
+            ) as compose_repository:
+                compose_repository.return_value.render_service_access_dashboard.return_value = (
+                    "<html>generated-dashboard</html>"
+                )
+
+                dashboard_html = runtime._render_service_access_dashboard()
+
+        self.assertEqual("<html>generated-dashboard</html>", dashboard_html)
+        compose_repository.assert_called_once_with(project_paths=project_paths)
+        compose_repository.return_value.render_service_access_dashboard.assert_called_once_with()
 
     def test_traefik_tls_secret_generation_covers_local_ingress_hostnames(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)

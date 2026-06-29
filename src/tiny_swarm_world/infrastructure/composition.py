@@ -1052,10 +1052,14 @@ def build_lxc_deployment_services(
     project_paths = default_project_paths()
     selected_service_profile = ServiceStackProfile(service_profile)
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
-    swarm_runtime = LxcSwarmRuntime(backend=backend, project_paths=project_paths)
+    compose_repository = ComposeFileRepositoryYaml(project_paths=project_paths)
+    swarm_runtime = LxcSwarmRuntime(
+        backend=backend,
+        project_paths=project_paths,
+        service_access_dashboard_renderer=compose_repository.render_service_access_dashboard,
+    )
     stack_environment = _deployment_stack_environment(selected_service_profile)
     secret_manifest_entries = SecretManifestRenderer().run()
-    compose_repository = ComposeFileRepositoryYaml(project_paths=project_paths)
     portainer_admin_client = LxcPortainerAdminClient(backend=backend)
     portainer_client = LxcPortainerHttpClient(
         backend=backend,
@@ -1144,6 +1148,13 @@ def build_lxc_deployment_services(
         )
         for contract in service_stack_contracts
     )
+    pre_apply_steps = [
+        _PrepareLxcStackAssets(swarm_runtime, "traefik"),
+        _PrepareLxcStackAssets(swarm_runtime, "swagger"),
+    ]
+    if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS:
+        pre_apply_steps.append(_PrepareLxcStackAssets(swarm_runtime, "service-access"))
+
     return DeploymentServices(
         workflows=DeploymentWorkflows(
             bootstrap=DeploymentApplyWorkflow(
@@ -1162,10 +1173,7 @@ def build_lxc_deployment_services(
                         ),
                     ),
                 ),
-                pre_apply_steps=(
-                    _PrepareLxcStackAssets(swarm_runtime, "traefik"),
-                    _PrepareLxcStackAssets(swarm_runtime, "swagger"),
-                ),
+                pre_apply_steps=tuple(pre_apply_steps),
             ),
             verify=DeploymentVerifyWorkflow(readiness_checks),
         )

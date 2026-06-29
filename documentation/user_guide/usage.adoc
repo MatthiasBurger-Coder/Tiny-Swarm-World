@@ -278,6 +278,13 @@ Implemented repository assets:
 * `infra/config/compose/service-access/nginx/**` contains the image-packaged NGINX
   route configuration.
 
+During LXC stack deployment, the dashboard HTML is rendered again from the
+effective service-access model and synchronized to
+`${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` before the
+service-access stack consumes its compose config. The committed dashboard file
+is not the hidden deployment source of truth for that remote Swarm config
+file.
+
 When the default full profile is deployed by an operator workflow, the
 dashboard route is available through the direct local compatibility port
 `10000`. Traefik owns the public local ingress ports `80` and `443`, and the
