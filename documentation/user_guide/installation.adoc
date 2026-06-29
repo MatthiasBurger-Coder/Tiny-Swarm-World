@@ -132,6 +132,323 @@ PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
 See `documentation/system/lxc-native-setup.adoc` for the full WSL2 and
 Incus setup notes and official references.
 
+== Runtime Environment Green Path
+
+Use this checklist when preparing a new developer workstation for the default
+local runtime environment. Run project commands from a Linux or WSL shell in
+the repository root. The browser can run on the host operating system, but the
+automation commands remain Linux/WSL commands.
+
+=== 1. Verify The Host Shell
+
+Confirm that the shell is Linux or WSL2 and that the repository is reachable
+through the Linux path:
+
+[source,bash]
+----
+pwd
+uname -a
+python3 --version
+git status --short --branch
+----
+
+When using WSL, verify that systemd is available:
+
+[source,bash]
+----
+systemctl is-system-running || true
+cat /proc/sys/kernel/unprivileged_userns_clone 2>/dev/null || true
+----
+
+`unprivileged_userns_clone` should be `1` when the file exists. If group
+membership was changed for Incus access, close and reopen the shell before
+continuing.
+
+=== 2. Prepare Python Dependencies
+
+Create the local development environment once per checkout:
+
+[source,bash]
+----
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+python3 -m pip install -e .
+python3 -m pip install ruff mypy import-linter types-PyYAML types-requests
+----
+
+Then run the local quality gate before live infrastructure work:
+
+[source,bash]
+----
+.venv/bin/python tools/quality_gate.py quality
+----
+
+=== 3. Verify Incus Baseline
+
+The default provider is Incus-backed `lxc_native`. Verify the daemon and create
+one temporary container before running Tiny Swarm World automation:
+
+[source,bash]
+----
+incus version
+incus info
+incus launch images:ubuntu/24.04 test-incus
+incus exec test-incus -- cat /etc/os-release
+incus delete test-incus --force
+----
+
+The normal project setup creates and owns the managed nodes. Do not manually
+create `swarm-manager`, `swarm-worker-1`, or `swarm-worker-2` unless a
+documented recovery step tells you to do so.
+
+=== 4. Prepare Kernel And Bridge Networking
+
+Enable bridge netfilter and IPv4 forwarding on hosts that expose these
+controls:
+
+[source,bash]
+----
+sudo modprobe br_netfilter 2>/dev/null || true
+sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
+sudo sysctl -w net.bridge.bridge-nf-call-ip6tables=1
+sudo sysctl -w net.ipv4.ip_forward=1
+----
+
+Persist the settings when the host supports them:
+
+[source,bash]
+----
+sudo tee /etc/sysctl.d/99-tiny-swarm-world.conf >/dev/null <<'EOF'
+net.bridge.bridge-nf-call-iptables=1
+net.bridge.bridge-nf-call-ip6tables=1
+net.ipv4.ip_forward=1
+EOF
+sudo sysctl --system
+----
+
+Verify the effective values:
+
+[source,bash]
+----
+sysctl net.ipv4.ip_forward
+sysctl net.bridge.bridge-nf-call-iptables
+sysctl net.bridge.bridge-nf-call-ip6tables
+----
+
+Docker Swarm overlay networking uses VXLAN. On WSL, `lsmod` may not show a
+separate `vxlan` module even when VXLAN links can be created. Use a temporary
+link test instead:
+
+[source,bash]
+----
+DEFAULT_IFACE="$(ip route show default | awk '{print $5; exit}')"
+sudo ip link add vxlan-test type vxlan id 42 dev "$DEFAULT_IFACE" dstport 4789
+echo "vxlan_create=$?"
+ip link show vxlan-test
+sudo ip link delete vxlan-test
+----
+
+`vxlan_create=0` confirms that the kernel path is usable for the local Swarm
+overlay test. Remove the test link immediately as shown above.
+
+On native Linux hosts with a restrictive firewall, allow bridge-internal
+traffic on the Incus control bridge before rerunning setup:
+
+[source,bash]
+----
+sudo iptables -I FORWARD 1 -i <backend-bridge> -o <backend-bridge> -j ACCEPT
+----
+
+Replace `<backend-bridge>` with the bridge resolved from
+`provider_resource_resolution.backends.<backend>.network_mappings.control`.
+
+=== 5. Configure Local Secrets Without Printing Values
+
+Local runtime secret files are ignored by Git and must stay local. Start from
+the tracked placeholder file:
+
+[source,bash]
+----
+mkdir -p .tiny-swarm-world/local
+cp .env.example .tiny-swarm-world/local/live-installation.env
+chmod 600 .tiny-swarm-world/local/live-installation.env
+----
+
+Edit `.tiny-swarm-world/local/live-installation.env` and replace placeholder
+values. The installer may also write generated bootstrap values to the same
+local secret file and recovery values to
+`.tiny-swarm/secrets/generated.local.env`. Do not paste values from either
+file into logs, issues, chat, commits, or documentation.
+
+Important login-related keys include:
+
+* `TSW_PORTAINER_USERNAME`
+* `TSW_PORTAINER_ADMIN_PASSWORD`
+* `TSW_PULSAR_ADMIN_TOKEN`
+* `TSW_PULSAR_MANAGER_ADMIN_PASSWORD`
+
+The setup and service-access dashboard show secret item references, not secret
+values. Use the local secret file or the configured secret-management surface
+to retrieve values when logging into a service.
+
+=== 6. Configure Local Route Names
+
+Traefik owns local HTTP and HTTPS ingress on ports `80` and `443`. Hostname
+resolution must map the routed names to the local machine; DNS does not route
+traffic by itself. It only makes the browser send the correct host name to
+Traefik.
+
+For WSL/Linux shell checks, add the routed names to `/etc/hosts`. If a
+matching `tsw.local` line already exists, update that line instead of adding
+duplicates:
+
+[source,bash]
+----
+sudo tee -a /etc/hosts >/dev/null <<'EOF'
+127.0.0.1 service-access.tsw.local portainer.tsw.local nexus.tsw.local jenkins.tsw.local pulsar.tsw.local pulsar-api.tsw.local sonarqube.tsw.local swagger.tsw.local infisical.tsw.local
+EOF
+----
+
+When opening the services from a Windows browser against a WSL-hosted runtime,
+add the same hostnames to the Windows host resolver with Administrator rights,
+or configure a local DNS server that resolves `*.tsw.local` to `127.0.0.1`.
+Use a wildcard DNS entry only for name resolution; Traefik still needs the
+service-access stack and the published `80` and `443` ingress ports.
+
+=== 7. Run The Fresh Install
+
+Use the default `service-access` profile for the full local runtime. The
+current LXC Swarm ingress path requires an explicit privileged-ingress opt-in
+when the managed Incus profile needs privileged Swarm settings:
+
+[source,bash]
+----
+export TSW_LXC_ALLOW_PRIVILEGED_SWARM_INGRESS=1
+./install.sh --headless --confirm-reset --non-interactive-live-approval
+----
+
+Without `--headless`, the installer uses the interactive terminal recorder.
+Without `--confirm-reset`, it asks for the exact reset phrase before the
+fresh-install reset. Without `--non-interactive-live-approval`, it asks the
+normal live-infrastructure confirmation prompt.
+
+The wrapper first runs:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+----
+
+Only after reset succeeds does it run:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --service-profile service-access
+----
+
+The run writes evidence under
+`.tiny-swarm-world/evidence/installation-tests/<host-runtime>/<UTC timestamp>/`.
+Use `reset-run.exit`, `setup-run.exit`, and the matching logs to diagnose a
+failed or blocked run.
+
+=== 8. Verify The Runtime
+
+After installation, verify the managed nodes and Swarm state:
+
+[source,bash]
+----
+incus list --format compact
+incus exec swarm-manager -- docker node ls
+incus exec swarm-manager -- docker stack ls
+incus exec swarm-manager -- docker service ls
+----
+
+Then verify the routed service surfaces from the same environment where the
+browser will run:
+
+[source,bash]
+----
+curl -k -sS -o /dev/null -w 'service-access %{http_code}\n' https://service-access.tsw.local/
+curl -k -sS -o /dev/null -w 'portainer %{http_code}\n' https://portainer.tsw.local/
+curl -k -sS -o /dev/null -w 'nexus %{http_code}\n' https://nexus.tsw.local/
+curl -k -sS -o /dev/null -w 'jenkins %{http_code}\n' https://jenkins.tsw.local/login
+curl -k -sS -o /dev/null -w 'pulsar-manager %{http_code}\n' https://pulsar.tsw.local/
+curl -k -sS -o /dev/null -w 'pulsar-api %{http_code}\n' https://pulsar-api.tsw.local/admin/v2/clusters
+curl -k -sS -o /dev/null -w 'sonarqube %{http_code}\n' https://sonarqube.tsw.local/api/system/status
+curl -k -sS -o /dev/null -w 'swagger %{http_code}\n' https://swagger.tsw.local/
+curl -k -sS -o /dev/null -w 'infisical %{http_code}\n' https://infisical.tsw.local/
+----
+
+For authentication-protected endpoints, `401`, `403`, or a login page can be
+valid reachability evidence. For the Pulsar Admin API, a request without the
+bearer token should be treated as a route/authentication check, not as a
+service failure. A token-authenticated check can be run without printing the
+token:
+
+[source,bash]
+----
+set -a
+. .tiny-swarm-world/local/live-installation.env
+set +a
+curl -k -sS -H "Authorization: Bearer ${TSW_PULSAR_ADMIN_TOKEN}" \
+  https://pulsar-api.tsw.local/admin/v2/clusters
+----
+
+The local standalone Pulsar green path returns a cluster list that includes
+`standalone`.
+
+=== 9. Login Targets
+
+Use routed HTTPS URLs for browser access:
+
+* Service Access: `https://service-access.tsw.local`
+* Portainer: `https://portainer.tsw.local`
+* Nexus: `https://nexus.tsw.local`
+* Jenkins: `https://jenkins.tsw.local`
+* Pulsar Manager: `https://pulsar.tsw.local`
+* Pulsar Admin API: `https://pulsar-api.tsw.local/admin/v2/clusters`
+* SonarQube: `https://sonarqube.tsw.local`
+* Swagger/NGINX: `https://swagger.tsw.local`
+* Infisical: `https://infisical.tsw.local`
+
+Use `TSW_PORTAINER_USERNAME` and `TSW_PORTAINER_ADMIN_PASSWORD` for
+Portainer. Use the Pulsar Manager admin user and
+`TSW_PULSAR_MANAGER_ADMIN_PASSWORD` for Pulsar Manager. Do not use copied
+password values from chat history or logs; read them from the local secret
+source for the current installation.
+
+=== 10. Re-run And Recovery Rules
+
+The setup path is designed to be rerunnable. Prefer rerunning the same
+installer command after fixing host prerequisites:
+
+[source,bash]
+----
+export TSW_LXC_ALLOW_PRIVILEGED_SWARM_INGRESS=1
+./install.sh --headless --confirm-reset --non-interactive-live-approval
+----
+
+If a developer intentionally needs to discard the managed local environment,
+use the governed reset path rather than deleting arbitrary Incus resources:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+----
+
+If direct `tsw-proxy-*` instance devices block reset or expose operations,
+repair only the reviewed Tiny Swarm World proxy drift:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+----
+
+Do not commit `.tiny-swarm-world/`, `.tiny-swarm/`, `.venv/`, coverage files,
+or any generated local secret file.
+
 == Repository Runtime Model
 
 Python source code lives under `src/tiny_swarm_world` and uses package imports
