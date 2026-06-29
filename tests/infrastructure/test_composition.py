@@ -2282,7 +2282,7 @@ class _FakeEndpointSession:
     def __init__(self, responses: tuple[object, ...]):
         self.responses = list(responses)
 
-    def get(self, url: str, *, timeout: int, verify: bool):
+    def get(self, url: str, *, timeout: int):
         response = self.responses.pop(0)
         if isinstance(response, Exception):
             raise response

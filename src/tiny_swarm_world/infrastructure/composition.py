@@ -6,7 +6,6 @@ import re
 import shutil
 import subprocess
 import time
-import warnings
 from dataclasses import replace
 from pathlib import Path
 from typing import cast
@@ -1654,9 +1653,7 @@ def _endpoint_status(
     timeout_seconds: int,
 ) -> str:
     try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            response = session.get(url, timeout=timeout_seconds, verify=False)
+        response = session.get(url, timeout=timeout_seconds)
     except requests.Timeout:
         return "timeout"
     except requests.RequestException:

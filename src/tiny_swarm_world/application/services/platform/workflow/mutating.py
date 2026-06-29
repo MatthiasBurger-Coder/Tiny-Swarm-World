@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import ClassVar
 
 from tiny_swarm_world.application.ports.method_trace import (
     NullMethodTrace,
@@ -22,6 +23,7 @@ from tiny_swarm_world.application.services.platform.workflow.runtime import (
 )
 from tiny_swarm_world.application.services.platform.workflow.semantics import (
     PLATFORM_WORKFLOW_TAXONOMY,
+    PlatformWorkflowSemantics,
 )
 from tiny_swarm_world.application.services.platform.workflow.steps import AsyncWorkflowStep
 from tiny_swarm_world.application.services.platform.workflow.types import (
@@ -29,87 +31,42 @@ from tiny_swarm_world.application.services.platform.workflow.types import (
 )
 
 
-class PlatformReconcileWorkflow:
+class _MutatingPlatformWorkflow:
+    semantics: ClassVar[PlatformWorkflowSemantics]
+
+    def __init__(
+        self,
+        steps: Sequence[AsyncWorkflowStep],
+        verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
+        progress: PortWorkflowProgress | None = None,
+        method_trace: PortMethodTrace | None = None,
+        trace_correlation_id: str | None = None,
+    ):
+        self.steps = tuple(steps)
+        self.verification_evidence_repository = verification_evidence_repository
+        self.progress = progress or NullWorkflowProgress()
+        self.method_trace = method_trace or NullMethodTrace()
+        self.trace_correlation_id = trace_correlation_id
+
+    async def run(self) -> PlatformWorkflowResult:
+        return await _trace_platform_run(self, self._run)
+
+    async def _run(self) -> PlatformWorkflowResult:
+        return await _run_mutating_steps(
+            self.steps,
+            self.semantics,
+            self.verification_evidence_repository,
+            self.progress,
+        )
+
+
+class PlatformReconcileWorkflow(_MutatingPlatformWorkflow):
     semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.RECONCILE]
 
-    def __init__(
-        self,
-        steps: Sequence[AsyncWorkflowStep],
-        verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
-        progress: PortWorkflowProgress | None = None,
-        method_trace: PortMethodTrace | None = None,
-        trace_correlation_id: str | None = None,
-    ):
-        self.steps = tuple(steps)
-        self.verification_evidence_repository = verification_evidence_repository
-        self.progress = progress or NullWorkflowProgress()
-        self.method_trace = method_trace or NullMethodTrace()
-        self.trace_correlation_id = trace_correlation_id
 
-    async def run(self) -> PlatformWorkflowResult:
-        return await _trace_platform_run(self, self._run)
-
-    async def _run(self) -> PlatformWorkflowResult:
-        return await _run_mutating_steps(
-            self.steps,
-            self.semantics,
-            self.verification_evidence_repository,
-            self.progress,
-        )
-
-class PlatformExposeWorkflow:
+class PlatformExposeWorkflow(_MutatingPlatformWorkflow):
     semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.EXPOSE]
 
-    def __init__(
-        self,
-        steps: Sequence[AsyncWorkflowStep],
-        verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
-        progress: PortWorkflowProgress | None = None,
-        method_trace: PortMethodTrace | None = None,
-        trace_correlation_id: str | None = None,
-    ):
-        self.steps = tuple(steps)
-        self.verification_evidence_repository = verification_evidence_repository
-        self.progress = progress or NullWorkflowProgress()
-        self.method_trace = method_trace or NullMethodTrace()
-        self.trace_correlation_id = trace_correlation_id
 
-    async def run(self) -> PlatformWorkflowResult:
-        return await _trace_platform_run(self, self._run)
-
-    async def _run(self) -> PlatformWorkflowResult:
-        return await _run_mutating_steps(
-            self.steps,
-            self.semantics,
-            self.verification_evidence_repository,
-            self.progress,
-        )
-
-
-class PlatformRepairLxcProxyDriftWorkflow:
+class PlatformRepairLxcProxyDriftWorkflow(_MutatingPlatformWorkflow):
     semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.REPAIR_LXC_PROXY_DRIFT]
-
-    def __init__(
-        self,
-        steps: Sequence[AsyncWorkflowStep],
-        verification_evidence_repository: PortVerificationEvidenceRepository | None = None,
-        progress: PortWorkflowProgress | None = None,
-        method_trace: PortMethodTrace | None = None,
-        trace_correlation_id: str | None = None,
-    ):
-        self.steps = tuple(steps)
-        self.verification_evidence_repository = verification_evidence_repository
-        self.progress = progress or NullWorkflowProgress()
-        self.method_trace = method_trace or NullMethodTrace()
-        self.trace_correlation_id = trace_correlation_id
-
-    async def run(self) -> PlatformWorkflowResult:
-        return await _trace_platform_run(self, self._run)
-
-    async def _run(self) -> PlatformWorkflowResult:
-        return await _run_mutating_steps(
-            self.steps,
-            self.semantics,
-            self.verification_evidence_repository,
-            self.progress,
-        )

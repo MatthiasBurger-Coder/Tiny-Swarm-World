@@ -87,7 +87,7 @@ class TestServiceStackContract(unittest.TestCase):
         }
 
         self.assertEqual(("http://localhost:10001",), _endpoint_urls(endpoints_by_stack["portainer"]))
-        self.assertEqual(("https://localhost",), _endpoint_urls(endpoints_by_stack["traefik"]))
+        self.assertEqual(("http://localhost",), _endpoint_urls(endpoints_by_stack["traefik"]))
         self.assertEqual(
             ("http://localhost:13081", "http://localhost:13500"),
             _endpoint_urls(endpoints_by_stack["nexus"]),
