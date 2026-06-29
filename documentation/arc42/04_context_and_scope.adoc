@@ -9,7 +9,7 @@ approved, with live local infrastructure.
 The following systems are outside the Python process and are treated as live
 infrastructure:
 
-* LXD or Incus and managed LXC provider nodes;
+* Incus and managed LXC provider nodes;
 * Docker Engine and Docker Swarm inside or outside the provider nodes;
 * provider networking, netplan, and host/VM networking;
 * socat and WSL port-forwarding helpers;

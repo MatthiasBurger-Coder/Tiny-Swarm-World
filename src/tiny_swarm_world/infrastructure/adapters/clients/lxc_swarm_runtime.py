@@ -6,6 +6,7 @@ import re
 import shlex
 import subprocess
 import tarfile
+import time
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -53,6 +54,9 @@ _BACKEND_CLI = {
     ManagedLxcBackend.INCUS: "incus",
     ManagedLxcBackend.LXD: "lxc",
 }
+_MANAGER_SHELL_MAX_ATTEMPTS = 3
+_MANAGER_SHELL_RETRY_DELAYS_SECONDS = (0.5, 1.0)
+_INCUS_CHILD_PID_FAILURE = "Failed to retrieve PID of executing child process"
 
 
 class LxcSwarmRuntime(PortSwarmStackRuntime):
@@ -63,14 +67,18 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         manager_node: str = "swarm-manager",
         remote_stack_root: str = "/var/lib/tiny-swarm-world/stacks",
         timeout_seconds: int = 900,
+        service_list_timeout_seconds: int = 30,
         project_paths: ProjectPaths | None = None,
     ):
         if timeout_seconds <= 0:
             raise ValueError("Swarm runtime timeout must be positive.")
+        if service_list_timeout_seconds <= 0:
+            raise ValueError("Swarm service list timeout must be positive.")
         self.backend = backend
         self.manager_node = manager_node
         self.remote_stack_root = remote_stack_root.rstrip("/")
         self.timeout_seconds = timeout_seconds
+        self.service_list_timeout_seconds = service_list_timeout_seconds
         self.project_paths = project_paths or default_project_paths()
         self.logger = LoggerFactory.get_logger(self.__class__)
 
@@ -99,10 +107,10 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         self._run_manager_shell(
             f"{_stack_environment_prefix(environment)} "
             f"docker stack deploy --detach=true --resolve-image never "
+            "--with-registry-auth "
             f"-c {_quote_remote_path(compose_path)} "
             f"{shlex.quote(stack_definition.name)}"
         )
-        self._reconcile_host_published_ports(stack_definition)
 
     def stack_exists(self, stack_name: str) -> bool:
         result = self._run_manager_shell(
@@ -114,9 +122,14 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         return stack_name in {line.strip() for line in result.stdout.splitlines()}
 
     def list_stack_services(self, stack_name: str) -> tuple[SwarmServiceStatus, ...]:
+        remote_timeout = shlex.quote(f"{self.service_list_timeout_seconds}s")
+        stack_filter = shlex.quote(f"label=com.docker.stack.namespace={stack_name}")
         result = self._run_manager_shell(
-            f"docker stack services --format '{{{{.Name}}}}|{{{{.Replicas}}}}' {shlex.quote(stack_name)}",
+            "timeout --kill-after=5s "
+            f"{remote_timeout} docker service ls --filter {stack_filter} "
+            "--format '{{.Name}}|{{.Replicas}}'",
             check=False,
+            timeout_seconds=self.service_list_timeout_seconds + 10,
         )
         if result.returncode != 0:
             return ()
@@ -147,12 +160,13 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             "db_container=$(docker ps --filter name=infisical-db "
             "--format '{{.Names}}' | head -n 1); "
             "test -n \"$db_container\"; "
-            "docker exec \"$db_container\" psql -U infisical -d infisical -tAc "
-            "\"select to_regclass('public.infisical_migrations_lock')\" "
-            "| grep -q infisical_migrations_lock; "
+            "for lock_table in infisical_migrations_lock infisical_migrations_startup_lock; do "
+            "if docker exec \"$db_container\" psql -U infisical -d infisical -tAc "
+            "\"select to_regclass('public.' || '$lock_table')\" | grep -q \"$lock_table\"; then "
             "docker exec \"$db_container\" psql -U infisical -d infisical -c "
-            "\"update infisical_migrations_lock set is_locked=0 where is_locked<>0\" "
-            ">/dev/null"
+            "\"update $lock_table set is_locked=0 where is_locked<>0\" >/dev/null; "
+            "fi; "
+            "done"
         )
         result = self._run_manager_shell(script, check=False)
         return result.returncode == 0
@@ -252,6 +266,21 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             )
             self._run_manager_shell(script, input_text=tls_config.read_text(encoding="utf-8"))
             return
+        if stack_name == "service-access":
+            dashboard_file = (
+                self.project_paths.infra_root
+                / "config"
+                / "compose"
+                / "service-access"
+                / "dashboard"
+                / "index.html"
+            )
+            script = (
+                f"set -e; mkdir -p {_quote_remote_path(remote_dir + '/dashboard')}; "
+                f"cat > {_quote_remote_path(remote_dir + '/dashboard/index.html')}"
+            )
+            self._run_manager_shell(script, input_text=dashboard_file.read_text(encoding="utf-8"))
+            return
         if stack_name != "swagger":
             return
         openapi_file = (
@@ -287,27 +316,48 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         *,
         check: bool = True,
         input_text: str | None = None,
+        timeout_seconds: int | None = None,
     ) -> subprocess.CompletedProcess[str]:
         self.logger.info("Running LXC manager shell operation script=%s", _safe_log_text(script))
-        try:
-            result = subprocess.run(
-                [_BACKEND_CLI[self.backend], "exec", self.manager_node, "--", "sh", "-lc", script],
-                input=input_text,
-                capture_output=True,
-                text=True,
-                check=False,
-                shell=False,
-                timeout=self.timeout_seconds,
+        timeout = timeout_seconds or self.timeout_seconds
+        result: subprocess.CompletedProcess[str] | None = None
+        for attempt in range(1, _MANAGER_SHELL_MAX_ATTEMPTS + 1):
+            try:
+                result = subprocess.run(
+                    [_BACKEND_CLI[self.backend], "exec", self.manager_node, "--", "sh", "-lc", script],
+                    input=input_text,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    shell=False,
+                    timeout=timeout,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise RuntimeError("LXC manager Swarm operation timed out.") from exc
+            log = self.logger.warning if result.returncode != 0 else self.logger.info
+            log(
+                "lxc_swarm_runtime manager_shell_result returncode=%s stdout=%s stderr=%s",
+                result.returncode,
+                _safe_log_text(result.stdout),
+                _safe_log_text(result.stderr),
             )
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError("LXC manager Swarm operation timed out.") from exc
-        log = self.logger.warning if result.returncode != 0 else self.logger.info
-        log(
-            "lxc_swarm_runtime manager_shell_result returncode=%s stdout=%s stderr=%s",
-            result.returncode,
-            _safe_log_text(result.stdout),
-            _safe_log_text(result.stderr),
-        )
+            if not _is_transient_manager_shell_failure(result):
+                break
+            if attempt >= _MANAGER_SHELL_MAX_ATTEMPTS:
+                break
+            delay_seconds = _MANAGER_SHELL_RETRY_DELAYS_SECONDS[
+                min(attempt - 1, len(_MANAGER_SHELL_RETRY_DELAYS_SECONDS) - 1)
+            ]
+            self.logger.warning(
+                "Retrying transient LXC manager shell operation after Incus child PID failure "
+                "attempt=%s next_attempt=%s delay_seconds=%s",
+                attempt,
+                attempt + 1,
+                delay_seconds,
+            )
+            time.sleep(delay_seconds)
+        if result is None:
+            raise RuntimeError("LXC manager Swarm operation did not execute.")
         if check and result.returncode != 0:
             raise RuntimeError(
                 f"LXC manager Swarm operation failed with exit code {result.returncode}."
@@ -321,28 +371,56 @@ class LxcContainerRuntime(PortContainerRuntime):
         *,
         backend: ManagedLxcBackend,
         manager_node: str = "swarm-manager",
+        node_names: tuple[str, ...] = ("swarm-manager",),
         timeout_seconds: int = 120,
     ):
         if timeout_seconds <= 0:
             raise ValueError("Container runtime timeout must be positive.")
+        if not node_names:
+            raise ValueError("Container runtime node list must not be empty.")
         self.backend = backend
         self.manager_node = manager_node
+        self.node_names = tuple(dict.fromkeys(node_names))
         self.timeout_seconds = timeout_seconds
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def find_container_names(self, name_filter: str) -> list[str]:
-        result = self._run_docker(
-            ["ps", "--filter", f"name={name_filter}", "--format", "{{.Names}}"],
-            check=False,
-        )
-        return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+        container_names: list[str] = []
+        for node_name in self.node_names:
+            result = self._run_docker(
+                ["ps", "--filter", f"name={name_filter}", "--format", "{{.Names}}"],
+                check=False,
+                node_name=node_name,
+            )
+            container_names.extend(
+                _lxc_container_ref(node_name, line.strip())
+                for line in result.stdout.splitlines()
+                if line.strip()
+            )
+        return container_names
 
     def file_exists(self, container_name: str, file_path: str) -> bool:
-        result = self._run_docker(["exec", container_name, "test", "-f", file_path], check=False)
+        node_name, resolved_container_name = _split_lxc_container_ref(
+            container_name,
+            self.manager_node,
+        )
+        result = self._run_docker(
+            ["exec", resolved_container_name, "test", "-f", file_path],
+            check=False,
+            node_name=node_name,
+        )
         return result.returncode == 0
 
     def read_file(self, container_name: str, file_path: str) -> str:
-        result = self._run_docker(["exec", container_name, "cat", file_path], check=True)
+        node_name, resolved_container_name = _split_lxc_container_ref(
+            container_name,
+            self.manager_node,
+        )
+        result = self._run_docker(
+            ["exec", resolved_container_name, "cat", file_path],
+            check=True,
+            node_name=node_name,
+        )
         return result.stdout
 
     def _run_docker(
@@ -350,12 +428,14 @@ class LxcContainerRuntime(PortContainerRuntime):
         docker_args: list[str],
         *,
         check: bool,
+        node_name: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
         operation = docker_args[0] if docker_args else "operation"
-        self.logger.info("Running LXC manager Docker operation '%s'.", operation)
+        target_node = node_name or self.manager_node
+        self.logger.info("Running LXC Docker operation '%s' on node '%s'.", operation, target_node)
         try:
             result = subprocess.run(
-                [_BACKEND_CLI[self.backend], "exec", self.manager_node, "--", "docker", *docker_args],
+                [_BACKEND_CLI[self.backend], "exec", target_node, "--", "docker", *docker_args],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -369,6 +449,17 @@ class LxcContainerRuntime(PortContainerRuntime):
                 f"LXC manager Docker runtime operation failed with exit code {result.returncode}."
             )
         return result
+
+
+def _lxc_container_ref(node_name: str, container_name: str) -> str:
+    return f"{node_name}::{container_name}"
+
+
+def _split_lxc_container_ref(container_ref: str, default_node: str) -> tuple[str, str]:
+    node_name, separator, container_name = container_ref.partition("::")
+    if not separator:
+        return default_node, container_ref
+    return node_name, container_name
 
 
 class LxcPortainerAdminClient(PortPortainerAdminClient):
@@ -719,13 +810,19 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         context_path = self._context_path(contract)
         remote_context_path = f"{self.remote_image_root}/{contract.build_context}"
         self._transfer_context(context_path, remote_context_path)
+        build_script = (
+            f"docker build -t {shlex.quote(contract.image_ref)} "
+            f"{_quote_remote_path(remote_context_path)}"
+        )
         self._run_manager_shell(
-            f"docker build -t {shlex.quote(contract.image_ref)} {_quote_remote_path(remote_context_path)}",
+            build_script,
+            operation="build_image",
             timeout_seconds=self.timeout_seconds,
         )
         self._docker_login()
         self._run_manager_shell(
             f"docker push {shlex.quote(contract.image_ref)}",
+            operation="push_image",
             timeout_seconds=self.timeout_seconds,
         )
 
@@ -737,6 +834,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         result = self._run_manager_shell(
             f"docker pull {shlex.quote(contract.image_ref)}",
             check=False,
+            operation="verify_image_pull",
             timeout_seconds=self.timeout_seconds,
         )
         if result.returncode != 0 and _docker_hub_rate_limited(result):
@@ -758,6 +856,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         result = self._run_manager_shell(
             f"docker pull {shlex.quote(contract.image_ref)}",
             check=False,
+            operation="pull_public_image",
             timeout_seconds=self.timeout_seconds,
         )
         if result.returncode == 0:
@@ -776,14 +875,17 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         raise RuntimeError("Public container image pull failed.")
 
     def _load_host_cached_image(self, contract: ContainerImageContract) -> bool:
-        inspect_result = subprocess.run(
-            ["docker", "image", "inspect", contract.image_ref],
-            capture_output=True,
-            text=True,
-            check=False,
-            shell=False,
-            timeout=120,
-        )
+        try:
+            inspect_result = subprocess.run(
+                ["docker", "image", "inspect", contract.image_ref],
+                capture_output=True,
+                text=True,
+                check=False,
+                shell=False,
+                timeout=120,
+            )
+        except FileNotFoundError:
+            return False
         if inspect_result.returncode != 0:
             return False
 
@@ -828,9 +930,14 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         )
 
     def _docker_login(self) -> None:
+        login_script = (
+            f"docker login -u {shlex.quote(self.registry_username)} "
+            "--password-stdin 127.0.0.1:13500"
+        )
         self._run_manager_shell(
-            f"docker login -u {shlex.quote(self.registry_username)} --password-stdin 127.0.0.1:13500",
+            login_script,
             input_text=f"{self.registry_password}\n",
+            operation="registry_login",
             timeout_seconds=120,
         )
 
@@ -840,6 +947,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         *,
         check: bool = True,
         input_text: str | None = None,
+        operation: str = "manager_image_operation",
         timeout_seconds: int,
     ) -> subprocess.CompletedProcess[str]:
         self.logger.info("Running LXC manager image operation.")
@@ -854,10 +962,19 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
                 timeout=timeout_seconds,
             )
         except subprocess.TimeoutExpired as exc:
-            raise RuntimeError("LXC manager image operation timed out.") from exc
+            raise ImagePublisherOperationRejected(
+                operation=operation,
+                diagnostic="operation_timeout",
+                operator_action=(
+                    "Inspect the manager node Docker daemon and retry the artifact prepare phase."
+                ),
+            ) from exc
         if check and result.returncode != 0:
-            raise RuntimeError(
-                f"LXC manager image operation failed with exit code {result.returncode}."
+            raise ImagePublisherOperationRejected(
+                operation=operation,
+                diagnostic=_image_operation_failure_diagnostic(operation, result),
+                operator_action=_image_operation_operator_action(operation, result),
+                exit_code=result.returncode,
             )
         return result
 
@@ -894,9 +1011,84 @@ class PublicImagePullRejected(RuntimeError):
         self.operator_action = operator_action
 
 
+class ImagePublisherOperationRejected(RuntimeError):
+    def __init__(
+        self,
+        *,
+        operation: str,
+        diagnostic: str,
+        operator_action: str,
+        exit_code: int | None = None,
+    ):
+        message = f"Container image publisher operation failed: {operation}."
+        if exit_code is not None:
+            message = f"{message} Exit code: {exit_code}."
+        super().__init__(message)
+        self.operation = operation
+        self.diagnostic = diagnostic
+        self.operator_action = operator_action
+        self.exit_code = exit_code
+
+
 def _docker_hub_rate_limited(result: subprocess.CompletedProcess[str]) -> bool:
     output = f"{result.stdout}\n{result.stderr}".lower()
     return "pull rate limit" in output or "too many requests" in output
+
+
+def _image_operation_failure_diagnostic(
+    operation: str,
+    result: subprocess.CompletedProcess[str],
+) -> str:
+    output = f"{result.stdout}\n{result.stderr}".lower()
+    if _docker_hub_rate_limited(result):
+        return "registry_rate_limited"
+    if "connection refused" in output or "no route to host" in output:
+        if operation in {"registry_login", "push_image"}:
+            return "registry_unreachable"
+        return "network_unreachable"
+    if "unauthorized" in output or "authentication required" in output:
+        return "registry_authentication_failed"
+    if "no space left on device" in output:
+        return "manager_storage_exhausted"
+    if operation == "build_image":
+        return "image_build_failed"
+    if operation == "push_image":
+        return "registry_push_failed"
+    if operation == "registry_login":
+        return "registry_login_failed"
+    return "manager_image_operation_failed"
+
+
+def _image_operation_operator_action(
+    operation: str,
+    result: subprocess.CompletedProcess[str],
+) -> str:
+    diagnostic = _image_operation_failure_diagnostic(operation, result)
+    if diagnostic == "registry_rate_limited":
+        return (
+            "Configure Docker Hub authentication, an approved registry mirror, "
+            "or a provider-managed image cache."
+        )
+    if diagnostic == "registry_unreachable":
+        return (
+            "Verify that the Nexus Docker hosted registry is reachable from the "
+            "manager node at 127.0.0.1:13500."
+        )
+    if diagnostic == "registry_authentication_failed":
+        return "Verify TSW_NEXUS_ADMIN_PASSWORD and Nexus Docker hosted repository access."
+    if diagnostic == "manager_storage_exhausted":
+        return "Free storage on the manager node before rerunning artifacts prepare."
+    if operation == "build_image":
+        return (
+            "Inspect the manager node Docker build prerequisites and the transferred "
+            "image context."
+        )
+    if operation == "push_image":
+        return (
+            "Verify the local registry service, repository port, and manager-node "
+            "registry trust."
+        )
+    return "Inspect the manager node Docker daemon and rerun artifacts prepare."
 
 
 def _lxc_manager_ip(
@@ -904,25 +1096,37 @@ def _lxc_manager_ip(
     manager_node: str,
     timeout_seconds: int,
 ) -> str:
-    try:
-        result = subprocess.run(
-            [
-                _BACKEND_CLI[backend],
-                "exec",
-                manager_node,
-                "--",
-                "sh",
-                "-lc",
-                "ip -4 -o addr show dev eth0 | awk '{print $4}' | cut -d/ -f1",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-            shell=False,
-            timeout=timeout_seconds,
-        )
-    except subprocess.TimeoutExpired as exc:
-        raise RuntimeError("LXC manager IP lookup timed out.") from exc
+    result: subprocess.CompletedProcess[str] | None = None
+    for attempt in range(1, _MANAGER_SHELL_MAX_ATTEMPTS + 1):
+        try:
+            result = subprocess.run(
+                [
+                    _BACKEND_CLI[backend],
+                    "exec",
+                    manager_node,
+                    "--",
+                    "sh",
+                    "-lc",
+                    "ip -4 -o addr show dev eth0 | awk '{print $4}' | cut -d/ -f1",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+                shell=False,
+                timeout=timeout_seconds,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("LXC manager IP lookup timed out.") from exc
+        if not _is_transient_manager_shell_failure(result):
+            break
+        if attempt >= _MANAGER_SHELL_MAX_ATTEMPTS:
+            break
+        delay_seconds = _MANAGER_SHELL_RETRY_DELAYS_SECONDS[
+            min(attempt - 1, len(_MANAGER_SHELL_RETRY_DELAYS_SECONDS) - 1)
+        ]
+        time.sleep(delay_seconds)
+    if result is None:
+        raise RuntimeError("LXC manager IP lookup did not execute.")
     if result.returncode != 0:
         raise RuntimeError("LXC manager IP lookup failed.")
     addresses = [part for part in result.stdout.split() if "." in part]
@@ -1110,8 +1314,30 @@ def _quote_remote_path(path: str) -> str:
     return shlex.quote(path)
 
 
+_SENSITIVE_LOG_ASSIGNMENT_PATTERN = re.compile(
+    r"\b([A-Za-z0-9_]*(?:PASSWORD|TOKEN|SECRET|KEY)[A-Za-z0-9_]*)="
+    r"(?:'[^']*'|\"[^\"]*\"|\S+)",
+    re.IGNORECASE,
+)
+_SENSITIVE_BEARER_PATTERN = re.compile(
+    r"(authorization:\s*bearer\s+)\S+",
+    re.IGNORECASE,
+)
+_SENSITIVE_TOKEN_PARAMETER_PATTERN = re.compile(
+    r"\b(token:)[^\s'\"]+",
+    re.IGNORECASE,
+)
+
+
+def _is_transient_manager_shell_failure(result: subprocess.CompletedProcess[str]) -> bool:
+    return result.returncode == 255 and _INCUS_CHILD_PID_FAILURE in result.stderr
+
+
 def _safe_log_text(value: str, limit: int = 500) -> str:
     collapsed = " ".join(value.split())
+    collapsed = _SENSITIVE_LOG_ASSIGNMENT_PATTERN.sub(r"\1=***", collapsed)
+    collapsed = _SENSITIVE_BEARER_PATTERN.sub(r"\1***", collapsed)
+    collapsed = _SENSITIVE_TOKEN_PARAMETER_PATTERN.sub(r"\1***", collapsed)
     if len(collapsed) <= limit:
         return collapsed
     return f"{collapsed[:limit]}..."

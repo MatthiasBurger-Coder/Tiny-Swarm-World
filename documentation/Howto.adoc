@@ -39,7 +39,7 @@ The guided setup path is the Python workflow-level command:
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
-When prompted, answer `y` only if changing the local LXD/Incus/LXC, Docker Swarm,
+When prompted, answer `y` only if changing the local Incus/LXC, Docker Swarm,
 networking, service bootstrap, image, and stack state is intentional. Former
 direct Portainer and Nexus preparation scripts have been
 retired.
@@ -50,17 +50,20 @@ Stack deployment is handled by the workflow-level setup command. Compose files
 under `infra/config/compose` are source assets, not direct
 operator scripts.
 
-== Service Ports
+== Service Routes
 
-Common local ports after stack deployment:
+Preferred local service access after stack deployment uses Traefik host routes:
 
-* Portainer: `http://localhost:9000`
-* Nexus: `http://localhost:8081`
-* Swagger editor/UI/API proxy: `http://localhost:8082`, `http://localhost:8083`,
-  `http://localhost:8084`
-* SonarQube: `http://localhost:9001`
-* Pulsar Admin API: `http://localhost:8087/admin/v2/clusters`
-* Service Access landing page and route overview: `http://localhost`
-* Vaultwarden: `https://localhost` for clients after trusting the local self-signed certificate; `http://localhost:8086` remains a local browser compatibility route
+* Service Access landing page and route overview: `https://service-access.tsw.local`
+* Portainer: `https://portainer.tsw.local`
+* Nexus: `https://nexus.tsw.local`
+* Jenkins: `https://jenkins.tsw.local`
+* SonarQube: `https://sonarqube.tsw.local`
+* Swagger/NGINX: `https://swagger.tsw.local`
+* Infisical: `https://infisical.tsw.local`
+* Pulsar Manager: `https://pulsar.tsw.local`
+* Pulsar Admin API: `https://pulsar-api.tsw.local/admin/v2/clusters`
 
-Published ports depend on the active compose files and local forwarding setup.
+Traefik owns local ingress ports `80` and `443`. Direct localhost ports are
+diagnostic or compatibility access and depend on the active compose files and
+local forwarding setup.

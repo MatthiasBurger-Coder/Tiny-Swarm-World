@@ -26,9 +26,9 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
 
         self.assertEqual("1", config.schema_version)
         self.assertEqual(NodeProviderKind.LXC_NATIVE, config.default_provider)
-        self.assertIsNone(config.preferred_backend)
+        self.assertEqual(ManagedLxcBackend.INCUS, config.preferred_backend)
         self.assertEqual(
-            (ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD),
+            (ManagedLxcBackend.INCUS,),
             config.backend_candidates,
         )
         self.assertEqual(
@@ -56,24 +56,14 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            {"control": "lxdbr0"},
-            dict(
-                config.provider_resource_resolution.backends[
-                    ManagedLxcBackend.LXD
-                ].network_mappings
-            ),
-        )
-        self.assertEqual(
             "default",
             config.provider_resource_resolution.backends[
                 ManagedLxcBackend.INCUS
             ].storage_pool,
         )
-        self.assertEqual(
-            "default",
-            config.provider_resource_resolution.backends[
-                ManagedLxcBackend.LXD
-            ].storage_pool,
+        self.assertNotIn(
+            ManagedLxcBackend.LXD,
+            config.provider_resource_resolution.backends,
         )
 
     def test_committed_provider_config_matches_desired_inventory_nodes(self):
@@ -85,13 +75,13 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
             tuple(node.spec.name for node in config.nodes),
         )
 
-    def test_committed_config_declares_incus_and_lxd_profiles(self):
+    def test_committed_config_declares_incus_profiles(self):
         config = NodeProviderConfigYamlRepository().load()
         profile = config.profiles[0]
         manager_profile = config.profiles[1]
 
         self.assertEqual("docker-swarm", profile.name)
-        self.assertEqual((ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD), profile.backend_support)
+        self.assertEqual((ManagedLxcBackend.INCUS,), profile.backend_support)
         self.assertFalse(profile.privileged_default)
         self.assertTrue(profile.nesting_required)
         self.assertTrue(profile.syscall_interception_required)
@@ -316,8 +306,8 @@ def _valid_config() -> dict[str, Any]:
         "schema_version": "1",
         "default_provider": "lxc_native",
         "backend_selection": {
-            "preferred_backend": None,
-            "candidates": ["incus", "lxd"],
+            "preferred_backend": "incus",
+            "candidates": ["incus"],
         },
         "nodes": [
             {
@@ -345,7 +335,7 @@ def _valid_config() -> dict[str, Any]:
         ],
         "profiles": {
             "docker-swarm": {
-                "backend_support": ["incus", "lxd"],
+                "backend_support": ["incus"],
                 "risk_labels": [
                     "docker_in_container_requires_nesting",
                     "provider_profile_mutation_requires_live_consent",
@@ -364,7 +354,7 @@ def _valid_config() -> dict[str, Any]:
                 "blocks_mutation_when_missing": True,
             },
             "docker-swarm-manager": {
-                "backend_support": ["incus", "lxd"],
+                "backend_support": ["incus"],
                 "risk_labels": [
                     "manager_proxy_profile_requires_profile_reconciliation",
                     "worker_profile_forbidden",
@@ -403,7 +393,8 @@ def _with_default_provider(provider: str) -> dict[str, Any]:
 
 def _with_backend_candidate(backend: str) -> dict[str, Any]:
     data = _valid_config()
-    data["backend_selection"]["candidates"] = [backend, "lxd"]
+    data["backend_selection"]["preferred_backend"] = backend
+    data["backend_selection"]["candidates"] = [backend]
     return data
 
 
@@ -414,12 +405,6 @@ def _valid_config_with_resource_resolution() -> dict[str, Any]:
             "incus": {
                 "network_mappings": {
                     "control": "incusbr0",
-                },
-                "storage_pool": "default",
-            },
-            "lxd": {
-                "network_mappings": {
-                    "control": "lxdbr0",
                 },
                 "storage_pool": "default",
             },

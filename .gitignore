@@ -83,4 +83,6 @@ pydevd_attach_to_process/
 .env.local
 
 .tiny-swarm/secrets/
+/.tiny-swarm/secrets/*.env
+/.tiny-swarm-world/local/*.env
 *.local.env

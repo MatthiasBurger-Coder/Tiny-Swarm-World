@@ -148,13 +148,11 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             INFRA_ROOT / "config" / "compose" / "service-access" / "nginx" / "default.conf"
         ).read_text(encoding="utf-8")
 
-        self.assertEqual(3, nginx_config.count("access_log off;"))
+        self.assertEqual(2, nginx_config.count("access_log off;"))
         self.assertIn("listen 80;", nginx_config)
         self.assertIn("listen 8086;", nginx_config)
-        self.assertIn("listen 443 ssl;", nginx_config)
-        self.assertIn("ssl_certificate /etc/nginx/tls/infisical.crt;", nginx_config)
-        self.assertIn("ssl_certificate_key /etc/nginx/tls/infisical.key;", nginx_config)
-        self.assertIn("proxy_set_header X-Forwarded-Proto https;", nginx_config)
+        self.assertNotIn("listen 443 ssl;", nginx_config)
+        self.assertNotIn("ssl_certificate", nginx_config)
         self.assertIn("resolver 127.0.0.11", nginx_config)
         self.assertIn(
             "set $dashboard_upstream http://tasks.service-access-dashboard:80;",

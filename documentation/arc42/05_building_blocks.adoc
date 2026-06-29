@@ -47,7 +47,7 @@ automation process; they are not independently deployable services or
 microservices:
 
 * `PlatformServices` contains the current platform automation for default
-  LXC-native provider selection, LXD/Incus readiness, managed node lifecycle,
+  LXC-native provider selection, Incus readiness, managed node lifecycle,
   network setup, Docker installation, Swarm initialization, preflight checks,
   node discovery, socat management, and workflow objects for platform `init`,
   `reconcile`, `verify`, `reset`, and `destroy` commands.
@@ -124,7 +124,7 @@ frontend.
 The setup boundary coordinates Platform, Artifacts, Deployment, Shared, and
 Console/status UI contracts:
 
-* Platform owns host preflight, LXD/Incus provider readiness, node lifecycle,
+* Platform owns host preflight, Incus provider readiness, node lifecycle,
   Docker installation, Docker Swarm, network, retained legacy command-template
   naming, and resource readiness behavior.
 * Artifacts owns Nexus, registry, image publication, and repository readiness

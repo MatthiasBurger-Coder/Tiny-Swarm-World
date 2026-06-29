@@ -26,7 +26,7 @@ passes the active workflow identifier through the command port and validates
 catalog entries before runner-specific executable commands are created.
 
 Current active workflows may select only the `async` shell command runner.
-Tiny Swarm World's current node-provider path is managed LXC through LXD or
+Tiny Swarm World's current node-provider path is managed LXC through
 Incus, not Ansible.
 `rest` and `ansible` remain legacy compatibility enum values, but
 `CommandRunnerFactory` rejects them for active Tiny Swarm World workflows.
@@ -39,7 +39,7 @@ define REST HTTP method, URL, header/body, timeout, response-validation, or
 error-mapping semantics.
 
 Tests and quality gates parse and validate command YAML without running live
-LXD, Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
+Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
 compose, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, or Swagger/NGINX
 commands.
 

@@ -17,7 +17,7 @@ from tiny_swarm_world.application.ports.progress import (
 )
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
-from tiny_swarm_world.application.services.platform.workflow_taxonomy import PlatformWorkflowResult
+from tiny_swarm_world.application.services.platform.workflow.results import PlatformWorkflowResult
 from tiny_swarm_world.application.services.shared import MethodTraceWrapper
 from tiny_swarm_world.domain.preflight import InstallationPlan, LiveConsent, PreflightResult
 

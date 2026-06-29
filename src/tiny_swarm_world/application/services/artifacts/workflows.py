@@ -297,8 +297,18 @@ def _prepare_failure_evidence(exc: Exception) -> dict[str, str]:
         evidence["diagnostic"] = str(diagnostic)
     operator_action = getattr(exc, "operator_action", None)
     if operator_action:
-        evidence["operator_action"] = str(operator_action)
+        evidence["operator_action_code"] = _safe_operator_action_code(exc)
     status_code = getattr(exc, "status_code", None)
     if status_code is not None:
         evidence["http_status"] = str(status_code)
     return evidence
+
+
+def _safe_operator_action_code(exc: Exception) -> str:
+    operation = getattr(exc, "operation", "")
+    diagnostic = getattr(exc, "diagnostic", "")
+    if operation:
+        return f"{operation}_recovery"
+    if diagnostic:
+        return f"{diagnostic}_recovery"
+    return "operator_recovery"

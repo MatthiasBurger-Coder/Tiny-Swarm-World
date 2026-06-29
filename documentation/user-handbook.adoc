@@ -15,7 +15,7 @@ must intentionally provide or recover local secrets.
 == Operating Model
 
 Tiny Swarm World prepares a local Docker Swarm target environment on managed
-LXC nodes through LXD or Incus. The supported operator surface is the
+LXC nodes through Incus. The supported operator surface is the
 `tiny-swarm-world` CLI and the Linux/WSL `install.sh` wrapper. Multipass and
 Windows-native execution are not supported node-provider paths.
 
@@ -29,7 +29,7 @@ actor Operator
 component "Linux/WSL shell" as Shell
 component "install.sh" as Installer
 component "tiny-swarm-world CLI" as CLI
-component "LXD or Incus" as Provider
+component "Incus" as Provider
 node "Managed Docker Swarm" as Swarm
 component "Service Access\nlanding page" as Access
 component "Infisical" as Infisical
@@ -55,9 +55,9 @@ Use a Linux or WSL2 shell from the repository root. Prepare:
 
 * Python 3.12;
 * Git;
-* LXD or Incus initialized and usable from the same shell;
-* Docker CLI access for diagnostics;
+* Incus initialized and usable from the same shell;
 * `socat` when WSL localhost forwarding is required.
+* Optional Docker CLI access for host-side diagnostics and cache helpers.
 
 Install the Python package in editable mode:
 
@@ -136,7 +136,7 @@ default `service-access` profile. The CLI live prompt is separate:
 Live setup can change local infrastructure. Continue? [y/N]:
 ----
 
-Answer `y` only when changing local LXD/Incus/LXC state, Docker Swarm,
+Answer `y` only when changing local Incus/LXC state, Docker Swarm,
 networking, Portainer, Nexus, service stacks, images, and credentials is
 intentional.
 
@@ -179,7 +179,6 @@ Run a non-mutating preflight:
 [source,bash]
 ----
 tiny-swarm-world --preflight
-tiny-swarm-world --lxc-backend lxd --preflight
 tiny-swarm-world --lxc-backend incus --preflight
 ----
 
@@ -188,7 +187,6 @@ Run the canonical live setup directly:
 [source,bash]
 ----
 tiny-swarm-world setup run --live
-tiny-swarm-world --lxc-backend lxd setup run --live
 tiny-swarm-world --lxc-backend incus setup run --live
 ----
 
@@ -214,29 +212,32 @@ deployment, use the Service Access landing page as the operator start page:
 
 [source,text]
 ----
-http://localhost:10000
+https://service-access.tsw.local
 ----
 
-Common local service routes and ports are:
+Common preferred local service routes are:
 
 [options="header"]
 |===
-| Service | Default route or port | Notes
-| Service Access | `http://localhost:10000` | Static management table with service links and Infisical item references.
-| Infisical | `http://localhost:17080` | Secret-management UI for authorized operators.
-| Portainer | `http://localhost:10001` | Deployment gateway after bootstrap.
-| Nexus | `http://localhost:13081` | Repository service and Docker proxy behavior.
-| Jenkins | `http://localhost:11080` | CI service.
-| Pulsar | `http://localhost:14081` | Pulsar Manager UI; use the `platform/pulsar-manager` Infisical item for the UI password.
-| Pulsar Admin API | `http://localhost:14080/admin/v2/clusters` | Token-authenticated Admin API for local standalone broker; use the `platform/pulsar` Infisical item for the bearer token.
-| SonarQube | `http://localhost:12000` | Static analysis service.
-| Swagger/NGINX | `http://localhost:16080` | API documentation surface.
+| Service | Preferred route | Notes
+| Service Access | `https://service-access.tsw.local` | Generated management table with service links and Infisical item references.
+| Infisical | `https://infisical.tsw.local` | Secret-management UI for authorized operators.
+| Portainer | `https://portainer.tsw.local` | Deployment gateway after bootstrap.
+| Nexus | `https://nexus.tsw.local` | Repository service and Docker proxy behavior.
+| Jenkins | `https://jenkins.tsw.local` | CI service.
+| Pulsar | `https://pulsar.tsw.local` | Pulsar Manager UI; use the `platform/pulsar-manager` Infisical item for the UI password.
+| Pulsar Admin API | `https://pulsar-api.tsw.local/admin/v2/clusters` | Token-authenticated Admin API for local standalone broker; use the `platform/pulsar` Infisical item for the bearer token.
+| SonarQube | `https://sonarqube.tsw.local` | Static analysis service.
+| Swagger/NGINX | `https://swagger.tsw.local` | API documentation surface.
 | Traefik | ports `80` and `443` | Ingress owner for the service-access setup profile.
 |===
 
-Localhost reachability depends on the selected provider, LXC profile proxy
-state, WSL forwarding, and verified stack deployment. Treat route defaults as
-operator targets, not proof that a service is healthy.
+Direct localhost ports such as `10000`, `10001`, `11080`, `12000`, `13081`,
+`14080`, `14081`, `16081`, and `17080` are diagnostic or compatibility access.
+They are not the preferred Service Access links. Localhost reachability depends
+on the selected provider, LXC profile proxy state, WSL forwarding, and verified
+stack deployment. Treat route defaults as operator targets, not proof that a
+service is healthy.
 
 == Get Infisical Credentials
 
@@ -268,8 +269,11 @@ the configured Infisical route. The default external URL is:
 
 [source,text]
 ----
-http://localhost:8086
+https://infisical.tsw.local
 ----
+
+The direct `http://localhost:17080` URL remains a diagnostic compatibility
+target when provider forwarding exposes it.
 
 The installer also writes Infisical runtime bootstrap material to:
 
@@ -328,8 +332,6 @@ incus exec swarm-manager -- docker node ls
 incus exec swarm-manager -- docker stack ls
 incus exec swarm-manager -- docker service ls
 ----
-
-For LXD, replace `incus` with `lxc`.
 
 == Troubleshooting Checklist
 

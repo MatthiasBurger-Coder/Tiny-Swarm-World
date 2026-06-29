@@ -3,10 +3,10 @@
 ## Project Identity
 
 Tiny Swarm World is a Linux/WSL-only local infrastructure automation project.
-Its default node-provider direction is managed LXC through LXD or Incus for a
-Docker Swarm target environment. It ships guarded workflow boundaries and
-service-stack configuration for Portainer, Nexus, Jenkins, Apache Pulsar,
-SonarQube, and Swagger/NGINX. Multipass is not a supported node provider.
+Its default node-provider direction is managed LXC through Incus for a Docker
+Swarm target environment. It ships guarded workflow boundaries and service-stack
+configuration for Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, and
+Swagger/NGINX. Multipass is not a supported node provider.
 
 The project is a Python automation codebase using a hexagonal architecture.
 Do not reintroduce Java, Maven, or Spring Boot project structure unless a later
@@ -15,6 +15,12 @@ explicit task changes the product scope.
 ## Operating Assumptions
 
 - Treat the runtime as WSL or Linux only.
+- When the host shell is Windows or PowerShell, execute project Python,
+  tests, and quality gates through WSL, for example
+  `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World_2 && python3 tools/quality_gate.py typecheck'`.
+- Do not run project Python commands through Windows Python, Windows virtual
+  environments, or PowerShell path invocation such as
+  `& 'D:\Projects\Tiny-Swarm-World_2\.venv\bin\python' ...`.
 - Use POSIX paths and shell commands in examples, scripts, tests, and docs.
 - Do not add new Windows-specific behavior, PowerShell commands, or backslash
   path examples unless explicitly requested for legacy documentation cleanup.
@@ -91,8 +97,7 @@ Docker, or deploy stacks. Do not run these unless the user explicitly asks for
 live infrastructure changes:
 
 - `incus`
-- `lxc`
-- LXD or Incus daemon initialization, profile, storage, or network changes
+- Incus daemon initialization, profile, storage, or network changes
 - `docker swarm`
 - compose deployments
 - netplan changes
@@ -104,6 +109,8 @@ inspection.
 
 ## Testing
 
+- Run tests and quality gates inside WSL/Linux. From a Windows host shell,
+  wrap commands with `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World_2 && ...'`.
 - Preferred quality gate from the repository root:
   `python3 tools/quality_gate.py quality`
 - During development, run the nearest relevant sub-gate first:

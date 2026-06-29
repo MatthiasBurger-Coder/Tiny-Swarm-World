@@ -5,11 +5,14 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from dataclasses import replace
 from pathlib import Path
 from typing import cast
 from urllib.parse import urlparse
 from uuid import uuid4
+
+import requests
 
 from tiny_swarm_world.application.ports.method_trace import PortMethodTrace
 from tiny_swarm_world.application.services.artifacts import (
@@ -37,10 +40,7 @@ from tiny_swarm_world.application.services.deployment import (
     InfisicalSilentInstallConfig,
     EnsurePortainerEndpoint,
     EnsurePortainerAdminAccess,
-    EnsureSonarqubeAdminAccess,
     EnsureSwarmStack,
-    EnsureSwarmServiceReadiness,
-    VerifySwarmServiceReadiness,
     InfisicalSecretItem,
     InfisicalSecretSyncStep,
     SecretConsumptionVerifier,
@@ -129,6 +129,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeProvider,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime import (
+    DockerAptMirrorConfiguration,
     DockerRegistryMirrorConfiguration,
     LxcContainerDockerRuntime,
 )
@@ -151,9 +152,6 @@ from tiny_swarm_world.infrastructure.adapters.clients.infisical_cli_client impor
 )
 from tiny_swarm_world.infrastructure.adapters.clients.infisical_bootstrap_http_client import (
     InfisicalBootstrapHttpClient,
-)
-from tiny_swarm_world.infrastructure.adapters.clients.sonarqube_http_client import (
-    SonarqubeHttpClient,
 )
 from tiny_swarm_world.infrastructure.adapters.configuration import (
     CombinedConfigurationSource,
@@ -214,9 +212,13 @@ from tiny_swarm_world.infrastructure.composition_models import (
 
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
+DEFAULT_FIXED_SECRET_ENV_FILE = Path(".tiny-swarm-world/local/fixed-secrets.env")
 DEFAULT_PORTAINER_API_URL = "http://localhost:10001"
 PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT = "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS"
 DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS = 180
+SECRETS_MODE_ENVIRONMENT = "TSW_SECRETS_MODE"
+FIXED_SECRET_ENV_FILE_ENVIRONMENT = "TSW_FIXED_SECRET_ENV_FILE"
+SECRET_MODES = ("generated", "fixed", "infisical")
 SEED_INFISICAL_ITEMS_ENVIRONMENT = "TSW_SEED_INFISICAL_ITEMS"
 INFISICAL_LOGIN_EMAIL_ENVIRONMENT = "TSW_INFISICAL_LOGIN_EMAIL"
 INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"
@@ -236,9 +238,12 @@ LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
 DEFAULT_LXC_PROXY_LISTEN_ADDRESS = "0.0.0.0"
 DEFAULT_NEXUS_CACHE_CONTAINER = "tiny-swarm-nexus-cache"
 DEFAULT_NEXUS_CACHE_PROXY_PORT = "5001"
+LXC_UBUNTU_APT_MIRROR_ENVIRONMENT = "TSW_LXC_UBUNTU_APT_MIRROR"
+LXC_UBUNTU_SECURITY_APT_MIRROR_ENVIRONMENT = "TSW_LXC_UBUNTU_SECURITY_APT_MIRROR"
+LXC_DOCKER_APT_MIRROR_ENVIRONMENT = "TSW_LXC_DOCKER_APT_MIRROR"
+LXC_DOCKER_APT_GPG_URL_ENVIRONMENT = "TSW_LXC_DOCKER_APT_GPG_URL"
 NEXUS_DOCKER_HUB_PROXY_REPOSITORY_ENVIRONMENT = "TSW_NEXUS_DOCKER_HUB_PROXY_REPOSITORY"
 NEXUS_DOCKER_HUB_PROXY_PORT_ENVIRONMENT = "TSW_NEXUS_DOCKER_HUB_PROXY_PORT"
-NEXUS_DOCKER_HUB_PROXY_REMOTE_URL_ENVIRONMENT = "TSW_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL"
 DEFAULT_NEXUS_DOCKER_HUB_PROXY_REPOSITORY = "docker-hub-proxy"
 DEFAULT_NEXUS_DOCKER_HUB_PROXY_PORT = 5001
 DEFAULT_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL = "https://registry-1.docker.io"
@@ -247,6 +252,10 @@ NEXUS_IMAGE_ENVIRONMENT = "TSW_NEXUS_IMAGE"
 JENKINS_IMAGE_ENVIRONMENT = "TSW_JENKINS_IMAGE"
 SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"
 SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_NGINX_IMAGE"
+PULSAR_IMAGE_ENVIRONMENT = "TSW_PULSAR_IMAGE"
+PULSAR_MANAGER_IMAGE_ENVIRONMENT = "TSW_PULSAR_MANAGER_IMAGE"
+DEFAULT_PULSAR_IMAGE = "apachepulsar/pulsar:3.0.17"
+DEFAULT_PULSAR_MANAGER_IMAGE = "apachepulsar/pulsar-manager:v0.4.0"
 INFISICAL_IMAGE_ENVIRONMENT = "TSW_INFISICAL_IMAGE"
 INFISICAL_POSTGRES_IMAGE_ENVIRONMENT = "TSW_INFISICAL_POSTGRES_IMAGE"
 INFISICAL_REDIS_IMAGE_ENVIRONMENT = "TSW_INFISICAL_REDIS_IMAGE"
@@ -263,10 +272,9 @@ DEFAULT_LXC_PLATFORM_NODES = (
 LXC_BACKEND_REQUIRED_REASON = "lxc_backend_required"
 _LXC_BACKEND_CLI = {
     ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
 }
 LXC_BACKEND_REQUIRED_MESSAGE = (
-    "LXC-native workflows require an available or explicitly selected Incus or LXD backend."
+    "LXC-native workflows require an available or explicitly selected Incus backend."
 )
 _BlockedArtifactWorkflow = BlockedArtifactWorkflow
 _BlockedDeploymentWorkflow = BlockedDeploymentWorkflow
@@ -337,6 +345,94 @@ class _VerifiedPlatformProviderStep:
         )
 
 
+class EndpointReadinessCheck:
+    def __init__(
+        self,
+        service_stack: ServiceStackContract,
+        *,
+        verification_target_id: str | None = None,
+        max_attempts: int = 60,
+        wait_seconds: int = 5,
+        timeout_seconds: int = 5,
+        session: requests.Session | None = None,
+    ) -> None:
+        if max_attempts <= 0:
+            raise ValueError("Endpoint readiness attempts must be positive.")
+        if wait_seconds < 0:
+            raise ValueError("Endpoint readiness wait seconds must not be negative.")
+        if timeout_seconds <= 0:
+            raise ValueError("Endpoint readiness timeout must be positive.")
+        self.service_stack = service_stack
+        self.verification_target_id = verification_target_id or service_stack.service_readiness_target_id
+        self.deployment_target_id = self.verification_target_id
+        self.max_attempts = max_attempts
+        self.wait_seconds = wait_seconds
+        self.timeout_seconds = timeout_seconds
+        self.session = session or requests.Session()
+        self._verification = VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.BLOCKED,
+            message="Endpoint readiness has not run yet.",
+            evidence={
+                "phase": "apply",
+                "reason": "readiness_not_run",
+                "stack_name": service_stack.stack_name,
+            },
+        )
+
+    def run(self) -> None:
+        self._verification = self._probe_until_ready(phase="apply")
+
+    def verify(self) -> VerificationResult:
+        if self._verification.status is not VerificationStatus.BLOCKED:
+            return self._verification
+        return self._probe_until_ready(phase="verify")
+
+    def _probe_until_ready(self, *, phase: str) -> VerificationResult:
+        if not self.service_stack.endpoints:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.BLOCKED,
+                message="Endpoint readiness has no configured endpoints.",
+                evidence=_endpoint_readiness_evidence(self.service_stack, {}, phase=phase, attempt=0),
+            )
+        last_statuses: dict[str, str] = {}
+        for attempt in range(1, self.max_attempts + 1):
+            last_statuses = {
+                endpoint.name: _endpoint_status(
+                    self.session,
+                    endpoint.url,
+                    timeout_seconds=self.timeout_seconds,
+                )
+                for endpoint in self.service_stack.endpoints
+            }
+            if all(_endpoint_status_ready(status) for status in last_statuses.values()):
+                return VerificationResult(
+                    target_id=self.verification_target_id,
+                    status=VerificationStatus.VERIFIED,
+                    message="Service endpoints are reachable.",
+                    evidence=_endpoint_readiness_evidence(
+                        self.service_stack,
+                        last_statuses,
+                        phase=phase,
+                        attempt=attempt,
+                    ),
+                )
+            if attempt < self.max_attempts:
+                time.sleep(self.wait_seconds)
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.FAILED_TO_VERIFY,
+            message="Service endpoints did not become reachable in time.",
+            evidence=_endpoint_readiness_evidence(
+                self.service_stack,
+                last_statuses,
+                phase=phase,
+                attempt=self.max_attempts,
+            ),
+        )
+
+
 class _WslSocatExposeStep:
     returns_verification_result = True
     verification_target_id = "platform:expose:wsl-socat"
@@ -384,13 +480,14 @@ class _WslSocatExposeStep:
         if shutil.which("socat") is None:
             return VerificationResult(
                 target_id=self.verification_target_id,
-                status=VerificationStatus.BLOCKED,
-                message="WSL port exposure requires the configured forwarding executable.",
+                status=VerificationStatus.VERIFIED,
+                message="Optional WSL host port forwarding was skipped.",
                 evidence={
-                    "phase": "pre_apply",
-                    "classification": "socat_missing",
+                    "phase": "verify",
+                    "classification": "socat_missing_skipped",
                     "os_type": str(getattr(os_type, "value", os_type)),
-                    "remediation_hint": "Install the WSL forwarding tool and rerun platform expose.",
+                    "planned_forward_count": str(len(commands)),
+                    "remediation_hint": "Install the optional WSL forwarding tool and rerun platform expose when Windows-side forwarding is required.",
                 },
             )
 
@@ -606,6 +703,7 @@ def build_platform_services(
         runner=lxc_runner,
         allow_live_mutation=False if live_consent is None else live_consent.accepted,
         registry_mirror_configuration=_lxc_docker_registry_mirror_configuration,
+        apt_mirror_configuration=_lxc_docker_apt_mirror_configuration,
         docker_runtime_factory=LxcContainerDockerRuntime,
     )
     lxc_docker_install = LxcDockerInstallService(lxc_docker_runtime)
@@ -617,6 +715,7 @@ def build_platform_services(
             allow_live_mutation=False,
             allow_live_inspection=True,
             registry_mirror_configuration=_lxc_docker_registry_mirror_configuration,
+            apt_mirror_configuration=_lxc_docker_apt_mirror_configuration,
             docker_runtime_factory=LxcContainerDockerRuntime,
         )
     )
@@ -825,7 +924,10 @@ def build_lxc_artifact_services(
     project_paths = default_project_paths()
     nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD")
     nexus_client = LxcNexusHttpClient(backend=backend)
-    container_runtime = LxcContainerRuntime(backend=backend)
+    container_runtime = LxcContainerRuntime(
+        backend=backend,
+        node_names=tuple(node.name for node in DEFAULT_LXC_PLATFORM_NODES),
+    )
     image_publisher = LxcContainerImagePublisher(
         backend=backend,
         registry_username="admin",
@@ -863,7 +965,7 @@ def build_lxc_artifact_services(
             configuration=NexusDockerProxyRepositoryConfiguration(
                 repository_name=_nexus_docker_hub_proxy_repository_name(),
                 http_port=_nexus_docker_hub_proxy_port(),
-                remote_url=_nexus_docker_hub_proxy_remote_url(),
+                remote_url=_nexus_docker_proxy_remote_url(),
                 admin_username="admin",
                 admin_password=nexus_admin_password,
             ),
@@ -907,7 +1009,8 @@ def build_deployment_services_for_provider(
 ) -> DeploymentServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
-    if backend is not None:
+    backend_cli = None if backend is None else _LXC_BACKEND_CLI.get(backend)
+    if backend is not None and backend_cli is not None and shutil.which(backend_cli):
         return build_lxc_deployment_services(
             service_profile=service_profile,
             backend=backend,
@@ -995,25 +1098,13 @@ def build_lxc_deployment_services(
         if contract.stack_name not in {"portainer", "nexus", "traefik"}
     )
     if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS:
-        application_steps = (stack_steps["traefik"], *application_steps)
-    application_steps = _with_post_stack_steps(
-        application_steps,
-        "sonarqube",
-        (
-            EnsureSonarqubeAdminAccess(
-                sonarqube_client=SonarqubeHttpClient("http://localhost:12000"),
-                username=_operator_config_value("TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
-                password=lambda: _required_operator_secret_value("TSW_SONARQUBE_ADMIN_PASSWORD"),
-                max_attempts=120,
-                wait_seconds=5,
-            ),
-        ),
-    )
+        application_steps = _prioritize_infisical_apply_steps(
+            (stack_steps["traefik"], *application_steps)
+        )
     infisical_cli_client = InfisicalCliClient()
     service_stack_by_name = {contract.stack_name: contract for contract in service_stack_contracts}
     infisical_apply_readiness_steps = _infisical_apply_readiness_steps(
         selected_service_profile,
-        swarm_runtime=swarm_runtime,
         service_stack_by_name=service_stack_by_name,
     )
     infisical_bootstrap_steps = _infisical_bootstrap_steps(
@@ -1025,6 +1116,8 @@ def build_lxc_deployment_services(
     infisical_secret_sync_step = InfisicalSecretSyncStep(
         cli=infisical_cli_client,
         manifest_entries=secret_manifest_entries,
+        fixed_env_file=_fixed_secret_env_file(),
+        mode=_secret_mode(),  # type: ignore[arg-type]
     )
     secret_consumption_step = SecretConsumptionVerifier(
         manifest_entries=secret_manifest_entries,
@@ -1044,11 +1137,10 @@ def build_lxc_deployment_services(
     )
     infisical_seed_steps = _infisical_secret_seed_steps(selected_service_profile)
     readiness_checks = tuple(
-        VerifySwarmServiceReadiness(
-            swarm_runtime=swarm_runtime,
+        EndpointReadinessCheck(
             service_stack=contract,
             max_attempts=60,
-            wait_seconds=10,
+            wait_seconds=5,
         )
         for contract in service_stack_contracts
     )
@@ -1282,9 +1374,12 @@ def _lxc_backend_for_provider_request(
     if provider_request.requested_provider != NodeProviderKind.LXC_NATIVE:
         return None
     if provider_request.preferred_backend is not None:
-        return provider_request.preferred_backend
+        if provider_request.preferred_backend in _LXC_BACKEND_CLI:
+            return provider_request.preferred_backend
+        return None
     for backend in provider_request.backend_candidates:
-        if shutil.which(_LXC_BACKEND_CLI[backend]):
+        cli = _LXC_BACKEND_CLI.get(backend)
+        if cli is not None and shutil.which(cli):
             return backend
     return None
 
@@ -1551,6 +1646,49 @@ def _operator_secret_value(name: str) -> str:
     return os.environ.get(name) or f"<operator-supplied:{name}>"
 
 
+def _endpoint_status(
+    session: requests.Session,
+    url: str,
+    *,
+    timeout_seconds: int,
+) -> str:
+    try:
+        response = session.get(url, timeout=timeout_seconds)
+    except requests.Timeout:
+        return "timeout"
+    except requests.RequestException:
+        return "connection_error"
+    return f"http_{response.status_code}"
+
+
+def _endpoint_status_ready(status: str) -> bool:
+    if not status.startswith("http_"):
+        return False
+    try:
+        status_code = int(status.removeprefix("http_"))
+    except ValueError:
+        return False
+    return 100 <= status_code < 500
+
+
+def _endpoint_readiness_evidence(
+    service_stack: ServiceStackContract,
+    statuses: dict[str, str],
+    *,
+    phase: str,
+    attempt: int,
+) -> dict[str, str]:
+    return {
+        "attempt": str(attempt),
+        "endpoint_statuses": ",".join(
+            f"{name}={status}" for name, status in sorted(statuses.items())
+        ),
+        "evidence_kind": "service_endpoint_http",
+        "phase": phase,
+        "stack_name": service_stack.stack_name,
+    }
+
+
 def _wsl_lxc_lifecycle_capability_available() -> bool:
     return (
         _wsl_unprivileged_userns_clone_available()
@@ -1576,6 +1714,22 @@ def _linux_text_file_equals(path: Path, expected: str) -> bool:
 
 def _operator_config_value(name: str, default: str) -> str:
     return os.environ.get(name) or default
+
+
+def _secret_mode() -> str:
+    mode = _operator_config_value(SECRETS_MODE_ENVIRONMENT, "generated").strip()
+    if mode not in SECRET_MODES:
+        raise ValueError("TSW_SECRETS_MODE must be one of generated, fixed, or infisical.")
+    return mode
+
+
+def _fixed_secret_env_file() -> Path:
+    return Path(
+        _operator_config_value(
+            FIXED_SECRET_ENV_FILE_ENVIRONMENT,
+            DEFAULT_FIXED_SECRET_ENV_FILE.as_posix(),
+        )
+    )
 
 
 def _operator_config_int(name: str, default: int, *, minimum: int) -> int:
@@ -1624,6 +1778,22 @@ def _lxc_docker_registry_mirror_configuration() -> DockerRegistryMirrorConfigura
     return DockerRegistryMirrorConfiguration(mirror_url)
 
 
+def _lxc_docker_apt_mirror_configuration() -> DockerAptMirrorConfiguration | None:
+    configuration = DockerAptMirrorConfiguration(
+        ubuntu_archive_url=os.getenv(LXC_UBUNTU_APT_MIRROR_ENVIRONMENT, "").strip()
+        or None,
+        ubuntu_security_url=os.getenv(LXC_UBUNTU_SECURITY_APT_MIRROR_ENVIRONMENT, "").strip()
+        or None,
+        docker_apt_url=os.getenv(LXC_DOCKER_APT_MIRROR_ENVIRONMENT, "").strip()
+        or None,
+        docker_gpg_url=os.getenv(LXC_DOCKER_APT_GPG_URL_ENVIRONMENT, "").strip()
+        or None,
+    )
+    if not configuration.configured:
+        return None
+    return configuration
+
+
 def _auto_detect_nexus_cache_registry_mirror() -> str:
     container_name = os.getenv("TSW_NEXUS_CACHE_CONTAINER", DEFAULT_NEXUS_CACHE_CONTAINER).strip()
     proxy_port = os.getenv("TSW_NEXUS_CACHE_DOCKER_PROXY_PORT", DEFAULT_NEXUS_CACHE_PROXY_PORT).strip()
@@ -1662,7 +1832,7 @@ def _local_docker_container_running(container_name: str) -> bool:
 
 
 def _lxc_reachable_host_ip() -> str:
-    for interface_name in ("lxdbr0", "incusbr0"):
+    for interface_name in ("incusbr0",):
         address = _host_ipv4_for_interface(interface_name)
         if address:
             return address
@@ -1736,6 +1906,14 @@ def _deployment_stack_environment(
             "TSW_JENKINS_ADMIN_PASSWORD": _operator_secret_value("TSW_JENKINS_ADMIN_PASSWORD"),
         },
         "pulsar": {
+            PULSAR_IMAGE_ENVIRONMENT: _operator_config_value(
+                PULSAR_IMAGE_ENVIRONMENT,
+                DEFAULT_PULSAR_IMAGE,
+            ),
+            PULSAR_MANAGER_IMAGE_ENVIRONMENT: _operator_config_value(
+                PULSAR_MANAGER_IMAGE_ENVIRONMENT,
+                DEFAULT_PULSAR_MANAGER_IMAGE,
+            ),
             "TSW_PULSAR_TOKEN_SECRET_KEY": _operator_secret_value("TSW_PULSAR_TOKEN_SECRET_KEY"),
             "TSW_PULSAR_ADMIN_TOKEN": _operator_secret_value("TSW_PULSAR_ADMIN_TOKEN"),
             "TSW_PULSAR_MANAGER_ADMIN_PASSWORD": _operator_secret_value("TSW_PULSAR_MANAGER_ADMIN_PASSWORD"),
@@ -1806,6 +1984,8 @@ def _container_image_contracts_from_environment() -> tuple[ContainerImageContrac
         "infisical": INFISICAL_IMAGE_ENVIRONMENT,
         "infisical-postgres": INFISICAL_POSTGRES_IMAGE_ENVIRONMENT,
         "infisical-redis": INFISICAL_REDIS_IMAGE_ENVIRONMENT,
+        "pulsar": PULSAR_IMAGE_ENVIRONMENT,
+        "pulsar-manager": PULSAR_MANAGER_IMAGE_ENVIRONMENT,
     }
     contracts = []
     for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS:
@@ -1852,13 +2032,15 @@ def _nexus_docker_hub_proxy_port() -> int:
     return port
 
 
-def _nexus_docker_hub_proxy_remote_url() -> str:
-    remote_url = _operator_config_value(
-        NEXUS_DOCKER_HUB_PROXY_REMOTE_URL_ENVIRONMENT,
-        DEFAULT_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL,
-    ).strip()
+def _nexus_docker_proxy_remote_url() -> str:
+    mirror_configuration = _lxc_docker_registry_mirror_configuration()
+    remote_url = (
+        mirror_configuration.mirror_url
+        if mirror_configuration is not None
+        else DEFAULT_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL
+    )
     if not _is_http_url(remote_url):
-        raise ValueError("Nexus Docker Hub proxy remote URL must be HTTP or HTTPS.")
+        raise ValueError("Nexus Docker proxy remote URL must be HTTP or HTTPS.")
     return remote_url
 
 
@@ -1909,11 +2091,10 @@ def _infisical_secret_seed_steps(
 def _infisical_apply_readiness_steps(
     service_profile: ServiceStackProfile,
     *,
-    swarm_runtime: LxcSwarmRuntime,
     service_stack_by_name: dict[str, ServiceStackContract],
-) -> tuple[EnsureSwarmServiceReadiness, ...]:
+) -> tuple[EndpointReadinessCheck, ...]:
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
-        readiness_steps: list[EnsureSwarmServiceReadiness] = []
+        readiness_steps: list[EndpointReadinessCheck] = []
         return tuple(readiness_steps)
     attempts = _operator_config_int(
         INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT,
@@ -1926,15 +2107,13 @@ def _infisical_apply_readiness_steps(
         minimum=0,
     )
     readiness_steps = [
-        EnsureSwarmServiceReadiness(
-            swarm_runtime,
+        EndpointReadinessCheck(
             service_stack_by_name["infisical"],
             verification_target_id="deployment:infisical-bootstrap-service-readiness",
             max_attempts=attempts,
             wait_seconds=int(interval),
         ),
-        EnsureSwarmServiceReadiness(
-            swarm_runtime,
+        EndpointReadinessCheck(
             service_stack_by_name["service-access"],
             verification_target_id="deployment:infisical-bootstrap-access-readiness",
             max_attempts=attempts,
@@ -2036,6 +2215,22 @@ def _with_infisical_post_apply_steps(
     if not inserted:
         ordered_steps.extend(post_steps)
     return tuple(ordered_steps)
+
+
+def _prioritize_infisical_apply_steps(
+    application_steps: tuple[object, ...],
+) -> tuple[object, ...]:
+    priority_stack_names = ("traefik", "infisical", "service-access")
+    prioritized: list[object] = []
+    remaining = list(application_steps)
+    for stack_name in priority_stack_names:
+        for index, step in enumerate(remaining):
+            service_stack = getattr(step, "service_stack", None)
+            if getattr(service_stack, "stack_name", "") == stack_name:
+                prioritized.append(step)
+                del remaining[index]
+                break
+    return (*prioritized, *remaining)
 
 
 def _with_post_stack_steps(

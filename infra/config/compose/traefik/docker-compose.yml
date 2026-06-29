@@ -9,11 +9,12 @@ services:
       - --entrypoints.websecure.address=:443
       - --entrypoints.websecure.http.tls=true
       - --providers.swarm=true
-      - --providers.swarm.endpoint=unix:///var/run/docker.sock
       - --providers.swarm.exposedByDefault=false
-      - --providers.swarm.network=traefik_ingress
+      - --providers.swarm.network=service_access_link
       - --providers.file.filename=/etc/traefik/dynamic/tls.yml
       - --providers.file.watch=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
       - target: 80
         published: 80
@@ -23,8 +24,6 @@ services:
         published: 443
         protocol: tcp
         mode: host
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     configs:
       - source: traefik_tls_dynamic_config
         target: /etc/traefik/dynamic/tls.yml
@@ -34,9 +33,10 @@ services:
       - source: tsw_traefik_tls_key
         target: tsw_traefik_tls_key
     networks:
-      - traefik_ingress
+      - service_access_link
     deploy:
       replicas: 1
+      endpoint_mode: dnsrr
       placement:
         constraints:
           - node.role == manager
@@ -52,6 +52,6 @@ secrets:
     external: true
 
 networks:
-  traefik_ingress:
-    name: traefik_ingress
+  service_access_link:
+    name: service_access_link
     external: true

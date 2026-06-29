@@ -37,7 +37,7 @@ The LXC-native node provider migration also extends this EPIC:
 - active workflow `documentation/workflow/workflow.md`, version
   `lxc-native-node-provider-v1.0.0`
 
-That extension accepts `lxc_native` through LXD or Incus as the supported
+That extension accepts `lxc_native` through Incus as the supported
 provider direction. The implementation rejects removed provider selections such
 as `multipass_legacy`, wires provider-native Platform init through Docker
 Engine setup and Swarm bootstrap, and fails closed for remaining
@@ -113,7 +113,7 @@ Planned or incomplete:
   verification, artifact publication, registry checks, first-time stack
   bootstrap, and service readiness evidence are wired.
 - The LXC-native provider direction is implemented for supported provider
-  selection, provider-neutral contracts, LXD/Incus readiness, node lifecycle
+  selection, provider-neutral contracts, Incus readiness, node lifecycle
   adapters, Docker Engine setup inside managed LXC nodes, Docker Swarm
   bootstrap inside those nodes, setup/platform init integration, LXC-native
   managed-node reconcile completion, and fail-closed rejection of removed provider
@@ -143,7 +143,7 @@ In scope:
 Out of scope:
 
 - Live Multipass, Docker Swarm, compose, netplan, socat, Portainer, Nexus,
-  Jenkins, Apache Pulsar, SonarQube, Swagger/NGINX, LXD, Incus, LXC container, or
+  Jenkins, Apache Pulsar, SonarQube, Swagger/NGINX, Incus, LXC container, or
   Docker-in-container execution.
 - Kubernetes-first architecture.
 - Browser React frontend work.
@@ -174,7 +174,7 @@ Out of scope:
   proves it.
 - Provider migration requirements preserve the Platform responsibility
   boundary and hexagonal architecture. Documentation may describe LXC-native
-  through LXD/Incus as the implemented default selection and setup/platform
+  through Incus as the implemented default selection and setup/platform
   init direction, including provider-native Docker Engine setup and Swarm
   bootstrap contracts, but must not present artifact/deployment behavior,
   Docker Swarm-in-container live health, or WSL2 live success as complete until

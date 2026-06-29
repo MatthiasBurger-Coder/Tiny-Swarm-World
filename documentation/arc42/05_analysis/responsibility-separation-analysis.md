@@ -82,9 +82,6 @@ cluster substrate.
 
 ### Infrastructure Assets
 
-- `infra/config/cloud-init-manager.yaml`
-  retained as archival legacy Netplan/cloud-init configuration data; not an
-  active generated repository surface
 - former `infra/config/multipass` (superseded)
 - `infra/config/docker/command_multipass_docker_install_yaml.yaml`
 - `infra/config/docker/command_multipass_docker_prepare_repository_yaml.yaml`

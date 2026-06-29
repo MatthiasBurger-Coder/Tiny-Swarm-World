@@ -50,12 +50,12 @@ infrastructure side effects by default.
 Quality scenarios:
 
 * mutating setup without all required live-consent signals is refused before
-  LXD, Incus, LXC container lifecycle, Docker Swarm, netplan,
+  Incus, LXC container lifecycle, Docker Swarm, netplan,
   socat, compose, Portainer, Nexus, service bootstrap, image build, image
   push, or stack upload commands can run;
 * preflight reports missing host prerequisites, resource limits, credentials,
   port conflicts, or configuration blockers before mutation;
-* accepted live preflight distinguishes LXD/Incus executable presence, daemon
+* accepted live preflight distinguishes Incus executable presence, daemon
   access, backend candidate selection, WSL2 capability, and Docker-in-container
   profile requirements before LXC-native node mutation;
 * direct `platform init --live` and setup-driven platform init both stop before
@@ -141,7 +141,7 @@ Quality scenarios:
 * tests or static checks fail when a covered installation runtime method lacks
   entry, returned, or raised trace coverage;
 * default tests and quality gates use mocks or static inspection and do not
-  execute live LXD, Incus, LXC, Docker Swarm, compose, Portainer,
+  execute live Incus, LXC, Docker Swarm, compose, Portainer,
   Nexus, Jenkins, Apache Pulsar, SonarQube or service bootstrap commands.
 
 === Service Access And Credential Display Safety
@@ -222,6 +222,6 @@ Quality scenarios:
   exception when the requested credentials cannot authenticate;
 * HTTP rejection after successful authentication is treated as already usable
   admin access and does not raise the typed rejection;
-* tests use mocked clients or request sessions and do not execute live LXD,
+* tests use mocked clients or request sessions and do not execute live
   Incus, LXC, Docker Swarm, compose, Portainer, Nexus, Jenkins,
   Apache Pulsar, SonarQube or service bootstrap commands.

@@ -8,19 +8,19 @@ the platform namespace during the incremental migration.
 from tiny_swarm_world.application.services.platform.docker_swarm_lxc_contract import (
     DockerSwarmInLxcContractService,
 )
-from tiny_swarm_world.application.services.platform.lxc_docker_install import (
+from tiny_swarm_world.application.services.platform.incus.lxc_docker_install import (
     LxcDockerInstallService,
     LxcDockerInstallStep,
     LxcDockerVerifyStep,
 )
-from tiny_swarm_world.application.services.platform.lxc_service_exposure import (
+from tiny_swarm_world.application.services.platform.incus.lxc_service_exposure import (
     LxcProxyDriftRepairService,
     LxcProxyDriftRepairStep,
     LxcServiceExposureService,
     LxcServiceExposureStep,
     LxcServiceExposureVerifyStep,
 )
-from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
+from tiny_swarm_world.application.services.platform.incus.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapService,
     LxcSwarmBootstrapStep,
     LxcSwarmVerifyStep,
@@ -37,16 +37,22 @@ from tiny_swarm_world.application.services.platform.node_provider_selection impo
     NodeProviderSelectionService,
     NodeProviderVerifyNodeStep,
 )
-from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
+from tiny_swarm_world.application.services.platform.workflow.constants import (
     DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
-    PLATFORM_WORKFLOW_TAXONOMY,
     RESET_TINY_SWARM_PLATFORM_CONFIRMATION,
-    PlatformWorkflowKind,
+)
+from tiny_swarm_world.application.services.platform.workflow.results import (
     PlatformWorkflowResult,
+)
+from tiny_swarm_world.application.services.platform.workflow.semantics import (
+    PLATFORM_WORKFLOW_TAXONOMY,
     PlatformWorkflowSemantics,
+)
+from tiny_swarm_world.application.services.platform.workflow.types import (
+    PlatformWorkflowKind,
     PlatformWorkflowStatus,
 )
-from tiny_swarm_world.application.services.platform.workflows import (
+from tiny_swarm_world.application.services.platform.workflow.workflows import (
     AsyncWorkflowStep,
     PlatformDestroyWorkflow,
     PlatformExposeWorkflow,

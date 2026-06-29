@@ -48,6 +48,45 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertIn("nexus=0/1", verification.evidence["replicas"])
 
+    async def test_retries_transient_runtime_failures_before_verifying(self):
+        runtime = _SequenceSwarmRuntime(
+            (
+                RuntimeError("docker api unavailable"),
+                (SwarmServiceStatus("pulsar_pulsar", 1, 1),),
+            )
+        )
+        service = VerifySwarmServiceReadiness(
+            runtime,
+            ServiceStackContract("pulsar", ("pulsar",)),
+            max_attempts=2,
+            wait_seconds=0,
+        )
+
+        verification = await service.verify()
+
+        self.assertEqual(VerificationStatus.VERIFIED, verification.status)
+        self.assertEqual(2, runtime.calls)
+
+    async def test_reports_last_runtime_failure_after_retry_budget_is_exhausted(self):
+        runtime = _SequenceSwarmRuntime(
+            (
+                RuntimeError("docker api unavailable"),
+                RuntimeError("docker api unavailable"),
+            )
+        )
+        service = VerifySwarmServiceReadiness(
+            runtime,
+            ServiceStackContract("pulsar", ("pulsar",)),
+            max_attempts=2,
+            wait_seconds=0,
+        )
+
+        verification = await service.verify()
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
+        self.assertEqual("RuntimeError", verification.evidence["last_exception"])
+        self.assertEqual("2", verification.evidence["attempt"])
+
     async def test_verifies_service_access_when_all_required_services_are_ready(self):
         runtime = _FakeSwarmRuntime(
             (
@@ -184,3 +223,17 @@ class _FakeSwarmRuntime:
 
     def ensure_external_secret(self, name: str, value: str) -> None:
         raise AssertionError("readiness verification must not create secrets")
+
+
+class _SequenceSwarmRuntime(_FakeSwarmRuntime):
+    def __init__(self, outcomes: tuple[BaseException | tuple[SwarmServiceStatus, ...], ...]):
+        super().__init__(())
+        self.outcomes = outcomes
+        self.calls = 0
+
+    def list_stack_services(self, stack_name: str) -> tuple[SwarmServiceStatus, ...]:
+        outcome = self.outcomes[self.calls]
+        self.calls += 1
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome

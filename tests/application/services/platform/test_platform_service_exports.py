@@ -19,22 +19,22 @@ from tiny_swarm_world.application.services.platform import (
     PreflightService,
     SocatManager,
 )
-from tiny_swarm_world.application.services.platform.lxc_docker_install import (
+from tiny_swarm_world.application.services.platform.incus.lxc_docker_install import (
     LxcDockerInstallService as ExistingLxcDockerInstallService,
 )
-from tiny_swarm_world.application.services.platform.lxc_docker_install import (
+from tiny_swarm_world.application.services.platform.incus.lxc_docker_install import (
     LxcDockerInstallStep as ExistingLxcDockerInstallStep,
 )
-from tiny_swarm_world.application.services.platform.lxc_service_exposure import (
+from tiny_swarm_world.application.services.platform.incus.lxc_service_exposure import (
     LxcServiceExposureService as ExistingLxcServiceExposureService,
 )
-from tiny_swarm_world.application.services.platform.lxc_service_exposure import (
+from tiny_swarm_world.application.services.platform.incus.lxc_service_exposure import (
     LxcServiceExposureStep as ExistingLxcServiceExposureStep,
 )
-from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
+from tiny_swarm_world.application.services.platform.incus.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapService as ExistingLxcSwarmBootstrapService,
 )
-from tiny_swarm_world.application.services.platform.lxc_swarm_bootstrap import (
+from tiny_swarm_world.application.services.platform.incus.lxc_swarm_bootstrap import (
     LxcSwarmBootstrapStep as ExistingLxcSwarmBootstrapStep,
 )
 from tiny_swarm_world.application.services.platform.workflows import (

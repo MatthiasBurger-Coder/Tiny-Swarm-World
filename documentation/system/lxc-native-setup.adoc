@@ -1,11 +1,11 @@
-= LXC Native Setup Through LXD Or Incus
+= LXC Native Setup Through Incus
 
 Tiny Swarm World uses `lxc_native` as the default node provider. The provider
-is managed through LXD or Incus, not through raw low-level LXC lifecycle
-commands. Multipass is not a supported node-provider path.
+is managed through Incus, not through raw low-level LXC lifecycle commands.
+Multipass is not a supported node-provider path.
 
 This page documents host preparation and safe checks. It is not live proof
-that a particular Windows/WSL2, LXD, Incus, Docker-in-container, or Docker
+that a particular WSL2, Incus, Docker-in-container, or Docker
 Swarm-in-container installation works.
 
 == WSL2 Host Baseline
@@ -29,46 +29,11 @@ The project preflight checks these capabilities before provider mutation. A
 failed WSL2 capability check blocks the default provider path; it does not
 silently fall back to another provider.
 
-== LXD Installation
-
-Ubuntu documents the LXD snap as the recommended install path where Snap is
-available. Install and grant the current user access to the LXD daemon:
-
-[source,bash]
-----
-sudo snap install lxd
-getent group lxd | grep -qwF "$USER" || sudo usermod -aG lxd "$USER"
-newgrp lxd
-----
-
-Initialize LXD before creating instances:
-
-[source,bash]
-----
-lxd init
-----
-
-Use `sudo lxd init` only when the local host policy requires root instead of
-daemon access through the `lxd` group.
-
-For a minimal local setup, use `lxd init --minimal` only when that option is
-available on the installed LXD version and matches the operator's local
-storage/network choice.
-
-Verify daemon access from the same shell that runs Tiny Swarm World:
-
-[source,bash]
-----
-lxc version
-lxc info
-----
-
 == Incus Installation
 
-Incus is the other supported managed LXC backend. Install it by following the
-official Incus installation guide for the host distribution, then ensure the
-operator can access the local daemon. Incus local administration commonly uses
-the `incus-admin` group.
+Install Incus by following the official Incus installation guide for the host
+distribution, then ensure the operator can access the local daemon. Incus local
+administration commonly uses the `incus-admin` group.
 
 Verify daemon access from the same shell that runs Tiny Swarm World:
 
@@ -78,15 +43,12 @@ incus version
 incus info
 ----
 
-For `lxc_native`, backend selection first honors an explicit
-`--lxc-backend` override, then `backend_selection.preferred_backend`, then the
-ordered `backend_selection.candidates` list in
-`infra/config/node-providers/provider_config.yaml`. Operators may still select
-a managed LXC backend explicitly:
+For `lxc_native`, the committed provider configuration selects Incus through
+`backend_selection.preferred_backend` and the single Incus candidate in
+`infra/config/node-providers/provider_config.yaml`:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd --preflight
 PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
 ----
 
@@ -99,15 +61,15 @@ The committed provider configuration lives at:
 It declares:
 
 * `default_provider: lxc_native`;
-* ordered candidate backends `incus` and `lxd`;
-* backend-specific `provider_resource_resolution.backends.<backend>` network
-  and storage mappings, for example `incus` resolving `control` to `incusbr0`
-  and `lxd` resolving `control` to `lxdbr0`;
+* preferred backend `incus`;
+* ordered candidate backend `incus`;
+* backend-specific `provider_resource_resolution.backends.incus` network and
+  storage mappings, resolving `control` to `incusbr0`;
 * node names `swarm-manager`, `swarm-worker-1`, and `swarm-worker-2`;
 * the `docker-swarm` profile requirements.
 
 Operators can override local network or storage names by editing the matching
-backend section in `infra/config/node-providers/provider_config.yaml` before a
+Incus section in `infra/config/node-providers/provider_config.yaml` before a
 live run. The old global
 `provider_resource_resolution.network_mappings/storage_pool` shape is no
 longer accepted; missing selected-backend mappings block before mutation.
@@ -117,16 +79,14 @@ Run the non-mutating project preflight before a live run:
 [source,bash]
 ----
 PYTHONPATH=src python3 -m tiny_swarm_world --preflight
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd --preflight
 PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
 ----
 
 Preflight selection is provider-aware. Generic host, Python, Docker CLI,
 resource, port, secret, and ignore-policy checks remain shared. The selected
 managed LXC backend contributes provider-specific checks: `incus` requires the
-`incus` CLI, and `lxd` requires the `lxc` CLI. If no backend is explicitly
-selected, Tiny Swarm World honors the configured backend candidate order and
-the executable available on `PATH` without running daemon-mutating commands.
+`incus` CLI. Tiny Swarm World honors the configured Incus backend without
+running daemon-mutating commands during preflight.
 Provider preflight metadata records the selected backend plus the daemon,
 network, storage, and Docker Swarm profile expectations that later read-only
 provider checks must verify. A missing backend candidate definition blocks
@@ -164,9 +124,9 @@ uses the selected managed backend to:
 * join or verify workers from inside `swarm-worker-1` and `swarm-worker-2`.
 
 The implementation is test-backed with fake command runners and composition
-tests. It is not, by itself, live proof that a specific WSL2/LXD, WSL2/Incus,
-native-Linux/LXD, or native-Linux/Incus target has succeeded. Store any
-approved live-smoke result separately under the ignored local evidence tree.
+tests. It is not, by itself, live proof that a specific WSL2/Incus or
+native-Linux/Incus target has succeeded. Store any approved live-smoke result
+separately under the ignored local evidence tree.
 
 Default `platform reconcile` is the canonical managed-node convergence path
 for `lxc_native` after Platform init. It verifies configured managed nodes and
@@ -203,10 +163,9 @@ operation and needs explicit operator consent.
 
 Common failure modes to check manually before rerunning live setup:
 
-* backend readiness failure: verify the selected or ordered LXD/Incus backend,
-  or select `--lxc-backend lxd` or `--lxc-backend incus` when an explicit
-  override is required;
-* daemon access denied: repair local LXD/Incus group or socket access outside
+* backend readiness failure: verify the selected Incus backend, or select
+  `--lxc-backend incus` when an explicit override is required;
+* daemon access denied: repair local Incus group or socket access outside
   Tiny Swarm World, then reopen the shell;
 * profile or nesting issue: inspect the provider profile and confirm nesting
   plus syscall interception are available;
@@ -218,24 +177,14 @@ Common failure modes to check manually before rerunning live setup:
 The following commands are optional operator checks and create a temporary
 container. They are not part of the repository quality gate.
 
-LXD:
-
-[source,bash]
-----
-lxc launch ubuntu:24.04 test-lxc
-lxc list
-lxc exec test-lxc -- bash -lc "cat /etc/os-release && getent hosts archive.ubuntu.com"
-lxc delete test-lxc --force
-----
-
 Incus:
 
 [source,bash]
 ----
-incus launch images:ubuntu/24.04 test-lxc
+incus launch images:ubuntu/24.04 test-incus
 incus list
-incus exec test-lxc -- bash -lc "cat /etc/os-release && getent hosts archive.ubuntu.com"
-incus delete test-lxc --force
+incus exec test-incus -- bash -lc "cat /etc/os-release && getent hosts archive.ubuntu.com"
+incus delete test-incus --force
 ----
 
 Passing this smoke check proves only the local provider/container/DNS path for
@@ -259,9 +208,7 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 When prompted, answer `y` only for an intentional local run. Classify the
 target before interpreting the result:
 
-* native Linux with LXD;
 * native Linux with Incus;
-* WSL2 with LXD;
 * WSL2 with Incus.
 
 Evidence checklist:
@@ -283,8 +230,5 @@ Official references used for this setup baseline:
 
 * Microsoft WSL systemd documentation: `https://learn.microsoft.com/en-us/windows/wsl/systemd`
 * Ubuntu WSL documentation: `https://documentation.ubuntu.com/wsl/stable/`
-* Ubuntu LXD installation documentation: `https://documentation.ubuntu.com/lxd/default/installing/`
-* Ubuntu LXD initialization documentation: `https://documentation.ubuntu.com/lxd/latest/howto/initialize/`
-* Ubuntu Docker inside LXD tutorial: `https://ubuntu.com/tutorials/how-to-run-docker-inside-lxd-containers`
 * Incus installation documentation: `https://linuxcontainers.org/incus/docs/main/installing/`
 * LXC security documentation: `https://linuxcontainers.org/lxc/security/`

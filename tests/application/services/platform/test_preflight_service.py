@@ -371,7 +371,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
     async def test_missing_dependency_and_secret_are_actionable_failures(self):
         configuration = replace(default_preflight_configuration(), static_secret_defaults=())
         probe = _fake_probe(
-            executable_availability={"docker": False},
+            executable_availability={"python3": False},
             secret_availability={"TSW_NEXUS_ADMIN_PASSWORD": False},
         )
 
@@ -379,9 +379,9 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         failed_by_id = {check.check_id: check for check in result.failed_checks}
         self.assertFalse(result.passed)
-        self.assertIn("DEPENDENCY-docker", failed_by_id)
+        self.assertIn("DEPENDENCY-python3", failed_by_id)
         self.assertIn("SECRET-TSW_NEXUS_ADMIN_PASSWORD", failed_by_id)
-        self.assertIn("Install 'docker'", failed_by_id["DEPENDENCY-docker"].remediation)
+        self.assertIn("Install 'python3'", failed_by_id["DEPENDENCY-python3"].remediation)
         self.assertIn(
             "Provide the secret",
             failed_by_id["SECRET-TSW_NEXUS_ADMIN_PASSWORD"].remediation,
@@ -622,7 +622,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
     async def test_mandatory_failure_keeps_resource_failures_from_resource_gated_status(self):
         result = await PreflightService(
             _fake_probe(
-                executable_availability={"docker": False},
+                executable_availability={"python3": False},
                 cpu_count_value=2,
                 memory_bytes_value=8,
                 disk_free_bytes_value=8,
@@ -631,7 +631,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         failed_by_id = {check.check_id: check for check in result.failed_checks}
         self.assertEqual("FAILED", result.status)
-        self.assertIn("DEPENDENCY-docker", failed_by_id)
+        self.assertIn("DEPENDENCY-python3", failed_by_id)
         self.assertIn("RESOURCE-CPU", failed_by_id)
 
     async def test_forbidden_secret_fingerprint_failures_report_ids_only(self):

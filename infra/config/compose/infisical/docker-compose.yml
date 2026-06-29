@@ -18,22 +18,13 @@ services:
       - target: 8080
         published: 17080
         protocol: tcp
-        mode: host
     networks:
       - service_access_link
-      - traefik_ingress
     deploy:
       replicas: 1
-      labels:
-        - traefik.enable=true
-        - traefik.swarm.network=traefik_ingress
-        - traefik.http.routers.infisical.rule=Host(`infisical.tsw.local`) || Host(`localhost`)
-        - traefik.http.routers.infisical.entrypoints=websecure
-        - traefik.http.routers.infisical.tls=true
-        - traefik.http.services.infisical.loadbalancer.server.port=8080
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == swarm-worker-1
 
   infisical-db:
     image: ${TSW_INFISICAL_POSTGRES_IMAGE:-postgres:14-alpine}
@@ -49,7 +40,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == swarm-worker-1
 
   infisical-redis:
     image: ${TSW_INFISICAL_REDIS_IMAGE:-redis:7-alpine}
@@ -62,7 +53,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == swarm-worker-1
 
 volumes:
   infisical_pg_data:
@@ -72,7 +63,4 @@ volumes:
 networks:
   service_access_link:
     name: service_access_link
-    external: true
-  traefik_ingress:
-    name: traefik_ingress
     external: true

@@ -6,7 +6,7 @@
 == Purpose
 
 Tiny Swarm World deploys local infrastructure services into a Docker Swarm
-environment whose default node provider is managed LXC through LXD or Incus.
+environment whose default node provider is managed LXC through Incus.
 The deployment documentation is intentionally limited to the workflows that
 exist in this repository today.
 
@@ -32,7 +32,7 @@ live consent before service construction. Reset and destroy also require exact
 confirmation and currently block after confirmation until retention and
 teardown semantics are implemented. Default platform init uses
 the `lxc_native` provider selection path and blocks before mutation when
-LXD/Incus readiness or profile requirements are not satisfied. Default
+Incus readiness or profile requirements are not satisfied. Default
 platform expose creates or updates profile-level LXC proxy devices in the
 manager-specific `docker-swarm-manager` profile for published setup-manifest
 ports. The `swarm-manager` node receives that profile in addition to the common
@@ -115,7 +115,7 @@ python3 tools/quality_gate.py quality
 When a virtual environment is active, `python` can be used instead of `python3`.
 
 The quality gate covers linting, import architecture checks, architecture
-tests, type checks, and unittest discovery. It does not start LXD/Incus/LXC
+tests, type checks, and unittest discovery. It does not start Incus/LXC
 containers, initialize Docker Swarm, or deploy live services.
 
 == Service preparation
@@ -280,13 +280,12 @@ Useful checks after deployment:
 [source,bash]
 ----
 incus list swarm-manager --format json
-lxc list swarm-manager --format json
 docker node ls
 docker stack ls
 docker service ls
 ----
 
-Use either the `incus` or `lxc` command according to the selected backend.
+Use `incus` commands for provider-node diagnostics.
 
 Service-specific web interfaces depend on the published stack ports. Typical local defaults are documented in `documentation/Howto.adoc`.
 
@@ -299,7 +298,7 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
 When prompted, answer `y` only if the operator intentionally accepts local
-LXD/Incus/LXC provider state, Docker Swarm,
+Incus/LXC provider state, Docker Swarm,
 networking, service bootstrap, image, and stack changes. A live smoke result
 is evidence for that local run only and must not be treated as the default
 repository quality gate.

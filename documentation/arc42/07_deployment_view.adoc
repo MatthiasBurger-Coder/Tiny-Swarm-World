@@ -72,7 +72,7 @@ The active routing baseline is Traefik-backed local ingress:
 * Traefik owns the public manager profile proxy set on published ports `80`
   and `443` for the service-access setup profile;
 * service stack routes are declared with Traefik Swarm labels and the external
-  `traefik_ingress` network;
+  `tiny_swarm_world_ingress` network;
 * the service-access stack remains the dashboard stack and may publish its own
   NGINX compatibility ports from compose metadata;
 * the Swagger/NGINX stack uses published port `8084`;
@@ -130,7 +130,7 @@ flag.
 
 The Jenkins, Nexus, Portainer, SonarQube, Swagger, Pulsar Manager, Pulsar
 Admin API, Service Access, and Infisical stack definitions now carry Traefik
-Swarm route labels and join the external `traefik_ingress` network where an
+Swarm route labels and join the external `tiny_swarm_world_ingress` network where an
 HTTP route is configured. The Service Access dashboard links prefer
 Traefik-routed hostnames. Direct localhost ports remain compatibility,
 diagnostic, fallback, rollback, or transitional access. This is committed
@@ -165,22 +165,22 @@ The platform init workflow also owns the live-readiness pre-apply guard. Direct
 `platform init --live` and setup-driven `platform init` therefore use the same
 application workflow boundary before provider node creation, Docker
 installation, or Swarm initialization can begin. The default guard is
-read-only and classifies LXD/Incus runtime readiness, WSL2 capability,
+read-only and classifies Incus runtime readiness, WSL2 capability,
 backend candidate selection, and provider profile requirements; it does not repair host
 services, install packages, change groups, create profiles, or create nodes
 without accepted live consent.
 
-The provider deployment target is now `lxc_native` through LXD or Incus by
+The provider deployment target is now `lxc_native` through Incus by
 default. The committed provider configuration in
 `infra/config/node-providers/provider_config.yaml` declares the ordered
-Incus/LXD backend candidates, Docker Swarm node names, Docker-in-container
+Incus backend candidate, Docker Swarm node names, Docker-in-container
 profile risk labels, the common `docker-swarm` profile, the manager-only
 `docker-swarm-manager` proxy profile, and verification metadata. The manager
 node expects both profiles. Worker nodes expect only worker-safe profiles and
 must not receive the manager proxy profile. Deployment evidence must keep
-native Linux LXD/Incus and WSL2 LXD/Incus results separate.
+native Linux Incus and WSL2 Incus results separate.
 
-For the LXC-native target, deployment must block before mutation when LXD or
+For the LXC-native target, deployment must block before mutation when Incus or
 Incus readiness is absent for the selected or ordered backend candidate, WSL2
 capability is missing, or Docker-in-container profile requirements are not
 satisfied. Host

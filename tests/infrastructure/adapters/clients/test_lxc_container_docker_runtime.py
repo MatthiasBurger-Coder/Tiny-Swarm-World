@@ -12,6 +12,7 @@ from tiny_swarm_world.domain.node_provider import (
     NodeSpec,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime import (
+    DockerAptMirrorConfiguration,
     DockerRegistryMirrorConfiguration,
     LxcContainerDockerRuntime,
     redact_argv_for_test,
@@ -74,12 +75,61 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         await runtime.install_docker(_node())
 
         script = runner.calls[0][0][-1]
+        self.assertIn(
+            'TSW_DOCKER_ENGINE_PACKAGE_VERSION="${TSW_DOCKER_ENGINE_PACKAGE_VERSION:-5:28.5.2-1~ubuntu.24.04~noble}"',
+            script,
+        )
+        self.assertIn(
+            'TSW_CONTAINERD_PACKAGE_VERSION="${TSW_CONTAINERD_PACKAGE_VERSION:-1.7.29-1~ubuntu.24.04~noble}"',
+            script,
+        )
+        self.assertIn('"docker-ce=${TSW_DOCKER_ENGINE_PACKAGE_VERSION}"', script)
+        self.assertIn('"containerd.io=${TSW_CONTAINERD_PACKAGE_VERSION}"', script)
+        self.assertIn("apt-mark hold docker-ce docker-ce-cli containerd.io", script)
+        self.assertIn('"containerd-snapshotter": false', script)
+        self.assertIn('"storage-driver": "overlay2"', script)
         self.assertIn('"registry-mirrors": [', script)
         self.assertIn(f'"{sample_http_url(ipv4_address(10, 0, 3, 1), 5001)}"', script)
         self.assertIn('"insecure-registries": [', script)
         self.assertIn('"10.0.3.1:5001"', script)
+        self.assertIn('"127.0.0.1:13500"', script)
         self.assertIn("cat > /etc/docker/daemon.json", script)
         self.assertIn("systemctl restart docker || service docker restart || true", script)
+
+    async def test_install_writes_lxc_reachable_apt_mirrors_when_configured(self):
+        runner = _FakeRunner(
+            LxcNodeCommandResult(returncode=0),
+            LxcNodeCommandResult(returncode=0, stdout="24.0.0"),
+        )
+        runtime = _runtime(
+            runner,
+            apt_mirror=DockerAptMirrorConfiguration(
+                ubuntu_archive_url=sample_http_url(ipv4_address(10, 0, 3, 1), 8081)
+                + "/repository/ubuntu-apt-proxy",
+                ubuntu_security_url=sample_http_url(ipv4_address(10, 0, 3, 1), 8081)
+                + "/repository/ubuntu-security-apt-proxy",
+                docker_apt_url=sample_http_url(ipv4_address(10, 0, 3, 1), 8081)
+                + "/repository/docker-apt-proxy",
+                docker_gpg_url=sample_http_url(ipv4_address(10, 0, 3, 1), 8081)
+                + "/repository/docker-apt-proxy/gpg",
+            ),
+        )
+
+        await runtime.install_docker(_node())
+
+        script = runner.calls[0][0][-1]
+        self.assertIn("cat > /etc/apt/sources.list.d/ubuntu.sources", script)
+        self.assertIn("repository/ubuntu-apt-proxy", script)
+        self.assertIn("repository/ubuntu-security-apt-proxy", script)
+        self.assertIn("TSW_DOCKER_APT_URL='http://10.0.3.1:8081/repository/docker-apt-proxy'", script)
+        self.assertIn("repository/docker-apt-proxy/gpg", script)
+        self.assertIn("${TSW_DOCKER_APT_URL:-https://download.docker.com/linux/ubuntu}", script)
+
+    def test_rejects_localhost_apt_mirror_for_lxc_nodes(self):
+        with self.assertRaises(ValueError):
+            DockerAptMirrorConfiguration(
+                ubuntu_archive_url=sample_http_url("localhost", 8081)
+            )
 
     def test_rejects_localhost_registry_mirror_for_lxc_nodes(self):
         with self.assertRaises(ValueError):
@@ -137,12 +187,14 @@ def _runtime(
     backend: ManagedLxcBackend = ManagedLxcBackend.INCUS,
     allow_live_mutation: bool = True,
     registry_mirror: DockerRegistryMirrorConfiguration | None = None,
+    apt_mirror: DockerAptMirrorConfiguration | None = None,
 ) -> LxcContainerDockerRuntime:
     return LxcContainerDockerRuntime(
         backend=backend,
         runner=runner,
         allow_live_mutation=allow_live_mutation,
         registry_mirror=registry_mirror,
+        apt_mirror=apt_mirror,
     )
 
 

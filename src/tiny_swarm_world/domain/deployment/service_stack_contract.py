@@ -118,7 +118,7 @@ DEFAULT_SERVICE_STACK_CONTRACTS = (
         ("traefik",),
         phase_id="network-routing",
         port_ids=("traefik-http", "traefik-https"),
-        endpoints=(ServiceEndpoint("traefik", "https://localhost"),),
+        endpoints=(ServiceEndpoint("traefik", "http://localhost"),),
     ),
     ServiceStackContract(
         "nexus",

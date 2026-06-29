@@ -43,7 +43,7 @@ DEFAULT_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
 MISSING_TEST_ENV_FILE = ".tiny-swarm-world/local/missing-live-installation.env"
 MISSING_TEST_CA_BUNDLE = ".tiny-swarm-world/local/missing-ca-bundle.pem"
 TEST_CA_BUNDLE = "/etc/ssl/certs/tiny-swarm-world-ca.pem"
-DEFAULT_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/post_install_browser_live")
+DEFAULT_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/solid-typed-evidence/e2e")
 SERVICE_ACCESS_DASHBOARD = Path("infra/config/compose/service-access/dashboard/index.html")
 INFISICAL_SECRET_MANIFEST = Path("infra/config/secrets/infisical-secrets.yaml")
 EXPECTED_INFISICAL_ITEMS = (
@@ -297,6 +297,12 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         self.assertEqual("jenkins.tsw.local", evidence["hostname"])
         self.assertEqual("blocked_hostname_resolution", evidence["tls_status"])
         self.assertNotIn("url", evidence)
+
+    def test_live_evidence_root_uses_issue_157_target(self) -> None:
+        self.assertEqual(
+            ".tiny-swarm-world/evidence/solid-typed-evidence/e2e",
+            DEFAULT_EVIDENCE_ROOT.as_posix(),
+        )
 
     def test_live_config_rejects_non_local_operator_urls(self) -> None:
         with patch.dict(

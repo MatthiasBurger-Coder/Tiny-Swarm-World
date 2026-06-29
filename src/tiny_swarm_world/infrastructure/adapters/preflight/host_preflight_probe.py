@@ -103,7 +103,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
         return HostEnvironmentReport(
             environment=HostEnvironmentKind.NATIVE_LINUX,
             setup_path=SetupPath.NATIVE_LINUX,
-            remediation=("Verify LXD or Incus readiness before live setup.",),
+            remediation=("Verify Incus readiness before live setup.",),
             evidence={
                 "classification": "native_linux",
                 "kernel_family": "linux",
@@ -297,7 +297,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
             return HostEnvironmentReport(
                 environment=HostEnvironmentKind.WSL2,
                 setup_path=SetupPath.WSL2,
-                remediation=("Verify WSL2 LXD or Incus readiness before live setup.",),
+                remediation=("Verify WSL2 Incus readiness before live setup.",),
                 evidence={
                     "classification": "wsl2",
                     "kernel_family": "linux",

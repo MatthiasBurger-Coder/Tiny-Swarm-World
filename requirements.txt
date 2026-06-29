@@ -3,7 +3,7 @@
 # Development quality tools are installed separately:
 #   python -m pip install ruff mypy import-linter types-PyYAML types-requests
 
-pydantic==2.10.6
-PyYAML==6.0.1
-requests==2.34.2
-ruamel.yaml==0.17.21
+pydantic>=2.12,<3
+PyYAML>=6.0.3,<7
+requests>=2.34.2,<3
+ruamel.yaml>=0.18.16,<0.19

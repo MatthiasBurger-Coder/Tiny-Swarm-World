@@ -77,7 +77,7 @@ Remaining debt:
 === LXC Native Provider Migration Risks
 
 The LXC-native provider direction is accepted and partially implemented.
-Default provider selection, LXD/Incus readiness, node lifecycle adapters,
+Default provider selection, Incus readiness, node lifecycle adapters,
 Docker Engine setup inside managed LXC nodes, Swarm bootstrap, setup/platform
 init integration, LXC-native managed-node reconcile completion, and unsupported
 provider rejection are implemented and test-backed.
@@ -92,11 +92,11 @@ Remaining risks and debt:
   block reset or setup until the operator runs the explicit
   `platform repair-lxc-proxy-drift` workflow or manually resolves the named
   provider state;
-* Docker Swarm inside LXD/Incus containers has not been live-validated by this
+* Docker Swarm inside Incus containers has not been live-validated by this
   repository workflow;
 * WSL2 success could be overclaimed if documentation, static tests, or native
   Linux evidence are treated as WSL2 live evidence;
-* Docker Swarm inside LXD/Incus containers may require nesting, cgroup,
+* Docker Swarm inside Incus containers may require nesting, cgroup,
   AppArmor, seccomp, capability, privileged-profile, or host-mount decisions
   that need security and DevOps review;
 * automatic provider installation, daemon repair, group membership changes,

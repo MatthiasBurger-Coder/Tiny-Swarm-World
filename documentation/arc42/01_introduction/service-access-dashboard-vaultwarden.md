@@ -79,7 +79,7 @@ service-access compose stack, image-packaged dashboard and NGINX assets,
 service-stack contracts, setup-manifest requirements, and static tests. The
 default `lxc_native` path still blocks before provider-native image
 publication, stack deployment, and service-readiness verification are
-complete. Provider-specific evidence is required before default LXD/Incus
+complete. Provider-specific evidence is required before default Incus
 runtime success can be claimed.
 
 ## Intent

@@ -35,7 +35,7 @@ Run the gate from the repository root, not from a source or test subdirectory.
 
 == LXC Native Provider Is Not Ready
 
-The default node provider is `lxc_native` through LXD or Incus. Check the
+The default node provider is `lxc_native` through Incus. Check the
 selected backend from the same Linux/WSL shell that will run Tiny Swarm World.
 
 For Incus:
@@ -46,21 +46,11 @@ incus version
 incus info
 ----
 
-For LXD:
-
-[source,bash]
-----
-lxc version
-lxc info
-----
-
-If the configured backend order should not be used for this run, select one
-explicitly:
+If the configured backend should be selected explicitly for this run:
 
 [source,bash]
 ----
 PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd --preflight
 ----
 
 In WSL, verify that the distribution is WSL2 and that systemd, cgroup, and
@@ -74,14 +64,13 @@ provider networking.
 == Unsupported Node Provider Selection
 
 The supported node provider is `lxc_native`. If an old command line uses a
-removed provider value, rerun with the default provider or select an LXD/Incus
+removed provider value, rerun with the default provider or select the Incus
 backend explicitly:
 
 [source,bash]
 ----
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend lxd setup run --live
 ----
 
 == IntelliJ Run Configuration Cannot Start Live Setup
@@ -111,7 +100,7 @@ Check Portainer manually before running stack upload or Nexus bootstrap:
 
 [source,bash]
 ----
-curl -s http://localhost:9000
+curl -k -s https://portainer.tsw.local
 ----
 
 == Portainer Admin Initialization Returns HTTP 409
@@ -201,12 +190,12 @@ service from the same WSL shell:
 
 [source,bash]
 ----
-curl -s http://localhost:9000/api/status
-curl -s http://localhost:8081/service/rest/v1/status
-curl -s http://localhost:5000/v2/
-curl -s http://localhost:8080/login
-curl -s http://localhost:8087/admin/v2/clusters
-curl -s http://localhost:9001/api/system/status
+curl -k -s https://portainer.tsw.local/api/status
+curl -k -s https://nexus.tsw.local/service/rest/v1/status
+curl -s http://localhost:13500/v2/
+curl -k -s https://jenkins.tsw.local/login
+curl -k -s https://pulsar-api.tsw.local/admin/v2/clusters
+curl -k -s https://sonarqube.tsw.local/api/system/status
 ----
 
 == Nexus Bootstrap Cannot Authenticate
@@ -260,6 +249,10 @@ The service-access setup profile treats an unexpected local listener on those
 ports as a mandatory preflight blocker. If `http://localhost:10000` returns an
 unexpected page, clear the stale local listener or redeploy the updated
 service-access stack.
+
+Preferred HTTP access uses Traefik host routes such as
+`https://service-access.tsw.local`; direct localhost ports are diagnostic or
+compatibility surfaces.
 
 Endpoint configuration does not prove service health. Treat local route
 defaults as operator targets only; use deployment verification or explicit live
@@ -324,7 +317,7 @@ After confirmation, reset and destroy act only on configured managed
 LXC-native nodes whose Tiny Swarm World ownership evidence is verified before
 mutation. Already absent managed nodes are valid reset/destroy evidence.
 Missing, mismatched, or unmanaged ownership evidence blocks before deletion.
-Do not use these commands as broad LXD/Incus cleanup, and do not treat a
+Do not use these commands as broad Incus cleanup, and do not treat a
 confirmation phrase as permission to delete unrelated containers.
 
 If reset reports `managed_nodes_reset_blocked` with

@@ -88,7 +88,6 @@ class PreflightConfiguration:
             provider="generic",
             generic_checks=(
                 "python",
-                "docker-cli",
                 "host-environment",
                 "service-ports",
                 "required-secrets",
@@ -108,7 +107,6 @@ def default_preflight_configuration(
         setup_manifest=setup_manifest,
         required_dependencies=(
             RequiredDependency("python3"),
-            RequiredDependency("docker"),
         ),
         required_runtime_readiness=(),
         required_ports=tuple(

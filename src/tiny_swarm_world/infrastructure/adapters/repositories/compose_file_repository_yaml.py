@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from ruamel.yaml import YAML
+from ruamel.yaml.scalarstring import LiteralScalarString
 
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import PortComposeFileRepository
 from tiny_swarm_world.domain.deployment.stack_definition import (
@@ -24,6 +25,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_re
 
 
 STACK_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
+TRAEFIK_INGRESS_NETWORK_NAME = "service_access_link"
 _YAML = YAML(typ="safe")
 
 
@@ -232,11 +234,7 @@ def _resolve_direct_published_ports(
     if not mutated:
         return compose_content
 
-    sink = StringIO()
-    yaml = YAML()
-    yaml.default_flow_style = False
-    yaml.dump(payload, sink)
-    return sink.getvalue()
+    return _dump_yaml_payload(payload)
 
 
 def _resolve_traefik_route_labels(
@@ -260,8 +258,8 @@ def _resolve_traefik_route_labels(
         if route is None:
             continue
         networks = service_payload.setdefault("networks", [])
-        if isinstance(networks, list) and "traefik_ingress" not in networks:
-            networks.append("traefik_ingress")
+        if isinstance(networks, list) and TRAEFIK_INGRESS_NETWORK_NAME not in networks:
+            networks.append(TRAEFIK_INGRESS_NETWORK_NAME)
             mutated = True
         deploy = service_payload.setdefault("deploy", {})
         if not isinstance(deploy, dict):
@@ -292,15 +290,14 @@ def _resolve_traefik_route_labels(
     if not mutated:
         return compose_content
     mutable_payload = cast(dict[str, Any], payload)
-    if "traefik_ingress" not in mutable_payload.get("networks", {}):
+    if TRAEFIK_INGRESS_NETWORK_NAME not in mutable_payload.get("networks", {}):
         networks = mutable_payload.setdefault("networks", {})
         if isinstance(networks, dict):
-            networks["traefik_ingress"] = {"name": "traefik_ingress", "external": True}
-    sink = StringIO()
-    yaml = YAML()
-    yaml.default_flow_style = False
-    yaml.dump(payload, sink)
-    return sink.getvalue()
+            networks[TRAEFIK_INGRESS_NETWORK_NAME] = {
+                "name": TRAEFIK_INGRESS_NETWORK_NAME,
+                "external": True,
+            }
+    return _dump_yaml_payload(payload)
 
 
 def _resolve_service_access_dashboard_config(
@@ -336,17 +333,39 @@ def _resolve_service_access_dashboard_config(
         "TSW_SERVICE_ACCESS_DASHBOARD_SHA256"
     ] = hashlib.sha256(dashboard_html.encode("utf-8")).hexdigest()
 
+    return _dump_yaml_payload(payload)
+
+
+def _dump_yaml_payload(payload: object) -> str:
+    _preserve_multiline_strings(payload)
     sink = StringIO()
     yaml = YAML()
     yaml.default_flow_style = False
+    yaml.width = 4096
     yaml.dump(payload, sink)
     return sink.getvalue()
+
+
+def _preserve_multiline_strings(value: object) -> None:
+    if isinstance(value, dict):
+        for key, item in list(value.items()):
+            if isinstance(item, str) and "\n" in item:
+                value[key] = LiteralScalarString(item)
+            else:
+                _preserve_multiline_strings(item)
+        return
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            if isinstance(item, str) and "\n" in item:
+                value[index] = LiteralScalarString(item)
+            else:
+                _preserve_multiline_strings(item)
 
 
 def _traefik_labels_for_route(route: DesiredHttpsRoute, router_name: str) -> list[str]:
     return [
         "traefik.enable=true",
-        "traefik.swarm.network=traefik_ingress",
+        f"traefik.swarm.network={TRAEFIK_INGRESS_NETWORK_NAME}",
         f"traefik.http.routers.{router_name}.rule=Host(`{route.hostname}`)",
         f"traefik.http.routers.{router_name}.entrypoints=websecure",
         f"traefik.http.routers.{router_name}.tls=true",

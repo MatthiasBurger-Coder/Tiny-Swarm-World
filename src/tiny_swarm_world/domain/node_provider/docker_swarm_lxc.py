@@ -77,7 +77,6 @@ class DockerSwarmInLxcProfileContract:
     profile_name: str = "docker-swarm"
     backend_support: tuple[ManagedLxcBackend, ...] = (
         ManagedLxcBackend.INCUS,
-        ManagedLxcBackend.LXD,
     )
     nesting_required: bool = True
     syscall_interception_required: bool = True
@@ -118,7 +117,7 @@ class DockerSwarmInLxcProfileContract:
 
     def validation_errors(self) -> tuple[str, ...]:
         errors: list[str] = []
-        if set(self.backend_support) != {ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD}:
+        if set(self.backend_support) != {ManagedLxcBackend.INCUS}:
             errors.append("managed_backend_support_incomplete")
         if not self.nesting_required:
             errors.append("nesting_not_required")

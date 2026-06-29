@@ -32,7 +32,7 @@ the active workflow remain authoritative.
 
 ## Forbidden Areas
 
-- Live LXC, Incus, LXD, Docker, Swarm, Traefik, DNS, hosts-file or browser
+- Live LXC, Incus, Docker, Swarm, Traefik, DNS, hosts-file or browser
   mutation without explicit live opt-in.
 - Kubernetes-first behavior.
 - React frontend implementation.

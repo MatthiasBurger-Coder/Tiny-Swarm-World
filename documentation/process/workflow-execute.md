@@ -85,7 +85,7 @@ evidence, PR and merge readiness.
 | backend | Java/Python backend, domain logic, ports, adapters, service code |
 | frontend | UI, UX, frontend components, frontend tests |
 | tests | unit, component, integration, acceptance tests, fixtures |
-| runtime | Docker, LXD/LXC, install.sh, deployment, CI/CD, platform scripts |
+| runtime | Docker, Incus/LXC, install.sh, deployment, CI/CD, platform scripts |
 | documentation | arc42, README, workflow.md, ADR, evidence, process documentation |
 | quality | SonarQube, linting, coverage, static analysis, quality gate repair |
 | architecture | boundaries, module structure, hexagonal architecture, SCA/SCAP constraints |

@@ -33,8 +33,8 @@ environment on Linux/WSL. The repository currently combines multiple concerns:
 
 * Historical platform provisioning coupled Multipass VM lifecycle, VM IP
   discovery, netplan, socat, Docker daemon installation, and Docker Swarm
-  initialization. Current provider ownership is LXC-native through LXD or
-  Incus; Multipass is not supported.
+  initialization. Current provider ownership is LXC-native through Incus;
+  Multipass is not supported.
 * Dockerfile generation, image build/tag/push, Nexus Docker registry setup,
   Nexus Maven repository setup, and artifact publication.
 * Compose stack definitions, Portainer stack upload, and deployment of services
@@ -102,7 +102,7 @@ steps. Empty marker directories are not required for the current state.
 
 `platform` owns the local cluster substrate:
 
-* LXD/Incus managed node creation, restart, deletion, and discovery
+* Incus managed node creation, restart, deletion, and discovery
 * WSL/Linux network setup
 * network planning and guarded legacy netplan handling
 * socat forwarding
@@ -263,12 +263,12 @@ should protect responsibility ownership:
 
 * application platform services must not import artifact or deployment adapters.
 * artifact services must not deploy stacks directly after the deployment split.
-* deployment services must not own LXD/Incus provider lifecycle, network, or
+* deployment services must not own Incus provider lifecycle, network, or
   guarded legacy netplan behavior.
 * shell scripts should be inspected by static tests for known live command
   usage, not executed by default quality gates.
 
-No test should run live LXD, Incus, LXC lifecycle, Docker Swarm, netplan,
+No test should run live Incus, LXC lifecycle, Docker Swarm, netplan,
 socat, Portainer, Nexus, or removed-provider commands unless explicitly marked
 as an integration test and invoked manually.
 

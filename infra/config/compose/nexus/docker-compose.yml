@@ -4,36 +4,26 @@ services:
     volumes:
       - nexus-data:/nexus-data
     networks:
-      - traefik_ingress
+      - service_access_link
     ports:
       - target: 8081
         published: 13081
         protocol: tcp
-        mode: host
       - target: 5000
         published: 13500
         protocol: tcp
-        mode: host
       - target: 5001
         published: 13501
         protocol: tcp
-        mode: host
     deploy:
       replicas: 1
-      labels:
-        - traefik.enable=true
-        - traefik.swarm.network=traefik_ingress
-        - traefik.http.routers.nexus.rule=Host(`nexus.tsw.local`)
-        - traefik.http.routers.nexus.entrypoints=websecure
-        - traefik.http.routers.nexus.tls=true
-        - traefik.http.services.nexus.loadbalancer.server.port=8081
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == swarm-worker-1
 volumes:
   nexus-data:
 
 networks:
-  traefik_ingress:
-    name: traefik_ingress
+  service_access_link:
+    name: service_access_link
     external: true

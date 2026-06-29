@@ -9,10 +9,14 @@ from enum import Enum
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
 from tiny_swarm_world.application.services.setup import SetupWorkflowResult
-from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
-    PLATFORM_WORKFLOW_TAXONOMY,
-    PlatformWorkflowKind,
+from tiny_swarm_world.application.services.platform.workflow.results import (
     PlatformWorkflowResult,
+)
+from tiny_swarm_world.application.services.platform.workflow.semantics import (
+    PLATFORM_WORKFLOW_TAXONOMY,
+)
+from tiny_swarm_world.application.services.platform.workflow.types import (
+    PlatformWorkflowKind,
     PlatformWorkflowStatus,
 )
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
@@ -154,7 +158,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     )
     parser.add_argument(
         "--lxc-backend",
-        choices=[backend.value for backend in ManagedLxcBackend],
+        choices=[ManagedLxcBackend.INCUS.value],
         help="Preferred managed LXC backend when --node-provider lxc_native is selected.",
     )
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
@@ -528,7 +532,7 @@ def _print_setup_installation_plan(
     print("Target: local Linux/WSL LXC-native Docker Swarm")
     print(f"Default node provider: {provider_request.requested_provider.value}")
     if provider_request.preferred_backend is None:
-        print("Managed backend: auto-detect Incus or LXD")
+        print("Managed backend: Incus")
     else:
         print(f"Managed backend: {provider_request.preferred_backend.value}")
     print("Provider readiness: checked before platform mutation")
@@ -611,8 +615,19 @@ def _print_setup_installation_summary(result: SetupWorkflowResult) -> None:
     print("Setup phase summary:")
     for phase in result.phase_results:
         print(f"- {phase.name}: {phase.status}")
+        _print_setup_phase_diagnostics(phase.result)
     print(f"Final setup status: {result.status.value}")
     print()
+
+
+def _print_setup_phase_diagnostics(phase_result: object) -> None:
+    if not isinstance(phase_result, PreflightResult) or not phase_result.failed_checks:
+        return
+    print("  Failed preflight checks:")
+    for check in phase_result.failed_checks:
+        print(f"  - {check.check_id}: {check.message}")
+        if check.remediation and check.remediation != "None":
+            print(f"    Action: {check.remediation}")
 
 
 if __name__ == "__main__":

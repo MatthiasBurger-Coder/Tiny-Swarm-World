@@ -8,12 +8,12 @@ decision makers were not recorded in this ADR.
 == Context
 
 Tiny Swarm World previously kept Multipass as an explicit legacy or fallback
-provider while the default provider direction moved to managed LXC through LXD
-or Incus.
+provider while the default provider direction moved to managed LXC through
+Incus.
 
 The later product decision removes that compatibility surface completely. The
-project remains Linux/WSL-only, Docker Swarm first, and LXC-native through LXD
-or Incus. Multipass is no longer a supported node-provider path, including the
+project remains Linux/WSL-only, Docker Swarm first, and LXC-native through
+Incus. Multipass is no longer a supported node-provider path, including the
 explicit `--node-provider multipass_legacy` mode.
 
 == Decision
@@ -29,13 +29,13 @@ Historical audit and migration documents may retain Multipass references only
 when they are clearly archival or describe past coupling, rejected behavior, or
 static migration evidence.
 
-The default static and mocked quality gates must still not run live LXD, Incus,
+The default static and mocked quality gates must still not run live Incus,
 Docker Swarm, compose, netplan, `socat`, bridge, firewall, service bootstrap,
 or Multipass commands.
 
 == Consequences
 
-`lxc_native` through LXD or Incus is the only supported node-provider direction.
+`lxc_native` through Incus is the only supported node-provider direction.
 Provider selection, preflight, composition, and command configuration must not
 construct or probe Multipass adapters.
 

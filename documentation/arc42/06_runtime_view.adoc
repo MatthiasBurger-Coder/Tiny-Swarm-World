@@ -27,16 +27,16 @@ construction.
 The composition root builds `ApplicationServices` as an aggregate of three
 service bundles:
 
-* `platform` for LXC-native provider selection, LXD/Incus readiness, managed
+* `platform` for LXC-native provider selection, Incus readiness, managed
   node lifecycle, network, Docker, Swarm, preflight, node address, and socat
   automation.
 * `artifacts` for artifact registry and publishing workflow contracts.
 * `deployment` for stack lifecycle behavior, starting with Nexus stack
   create/update ownership in the application service namespace.
 
-Provider migration status: LXC-native through LXD or Incus is the implemented
+Provider migration status: LXC-native through Incus is the implemented
 default selection and setup/platform init direction. The runtime now has
-provider-neutral contracts, LXD/Incus readiness checks, node lifecycle
+provider-neutral contracts, Incus readiness checks, node lifecycle
 adapters, Docker Engine setup and Swarm bootstrap adapters, setup integration,
 LXC proxy exposure, explicit stale proxy drift repair, and fail-closed
 unsupported-provider behavior. Default platform reconcile now uses the
@@ -227,7 +227,7 @@ targets under `infra/config`. Verification evidence stores typed summaries
 through `VerificationResult`; raw command strings, stdout, stderr, environment
 payloads, and keys that imply secrets are rejected before persistence.
 
-No live LXD, Incus, LXC container lifecycle, Docker Swarm, netplan,
+No live Incus, LXC container lifecycle, Docker Swarm, netplan,
 socat, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, compose, or stack
 deployment command is required to create or round-trip these inventory
 artifacts in tests.
@@ -241,7 +241,7 @@ and does not apply the step.
 
 The gate itself is implemented as fail-closed workflow behavior. Default
 `platform init` now uses LXC-native node-provider steps with verification
-target IDs and LXD/Incus provider readiness guards, then continues to
+target IDs and Incus provider readiness guards, then continues to
 container Docker setup and Swarm bootstrap when live consent and provider
 contracts allow mutation. It blocks before mutation when readiness, backend
 selection, WSL2 capability, or provider profile requirements are not
@@ -298,7 +298,7 @@ verification evidence instead of reporting a completed verify workflow.
 Static preflight does not claim live provider readiness. The default
 `lxc_native` verify path then performs read-only managed-node, Docker Engine,
 Swarm membership, LXC proxy-device, and Portainer endpoint checks. The default
-`lxc_native` init path evaluates LXD/Incus readiness, WSL2 capability, backend
+`lxc_native` init path evaluates Incus readiness, WSL2 capability, backend
 candidate selection, and Docker-in-container profile requirements through the
 platform init provider guard before mutation.
 
@@ -343,16 +343,16 @@ available through their own workflow commands.
 Repository-level wiring and static/mocked evidence cover the fresh-install
 sequence and service-access assets, but the repository still does not claim a
 verified end-to-end live installation of all runnable services. Live
-LXD/Incus, Docker Swarm, registry, Portainer, Nexus, service-access, and
+Incus, Docker Swarm, registry, Portainer, Nexus, service-access, and
 Vaultwarden evidence must be collected during an explicit operator live run
 before live success is claimed.
 
-The provider selected by setup defaults to `lxc_native` through LXD or Incus.
+The provider selected by setup defaults to `lxc_native` through Incus.
 Backend selection first honors an explicit `--lxc-backend` override, then
 `backend_selection.preferred_backend`, then the ordered
 `backend_selection.candidates` list in
 `infra/config/node-providers/provider_config.yaml`. Unsupported provider values
-fail closed and are not used as silent fallbacks after LXD/Incus readiness
+fail closed and are not used as silent fallbacks after Incus readiness
 fails.
 
 Optional live smoke validation remains a separate operator action and is not

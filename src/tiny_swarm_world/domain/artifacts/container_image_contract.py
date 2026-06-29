@@ -113,6 +113,18 @@ DEFAULT_CONTAINER_IMAGE_CONTRACTS = (
         source="pull",
     ),
     ContainerImageContract(
+        image_name="apachepulsar/pulsar",
+        tag="3.0.17",
+        build_context="pulsar",
+        source="pull",
+    ),
+    ContainerImageContract(
+        image_name="apachepulsar/pulsar-manager",
+        tag="v0.4.0",
+        build_context="pulsar-manager",
+        source="pull",
+    ),
+    ContainerImageContract(
         image_name="python",
         tag="3.12-alpine",
         build_context="pulsar-manager-bootstrap",
