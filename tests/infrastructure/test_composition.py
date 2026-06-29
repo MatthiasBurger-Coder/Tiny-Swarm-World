@@ -899,9 +899,26 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual((), services.workflows.apply.pre_apply_checks)
         self.assertEqual(
-            ("deployment:traefik-stack-assets", "deployment:swagger-stack-assets"),
+            (
+                "deployment:traefik-stack-assets",
+                "deployment:swagger-stack-assets",
+                "deployment:service-access-stack-assets",
+            ),
             tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
         )
+
+    def test_build_deployment_services_wires_service_access_dashboard_renderer_to_swarm_runtime(self):
+        with patch.object(composition, "ComposeFileRepositoryYaml") as compose_repository:
+            with patch.object(composition, "LxcSwarmRuntime") as swarm_runtime:
+                composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
+
+        self.assertIs(
+            compose_repository.return_value.render_service_access_dashboard,
+            swarm_runtime.call_args.kwargs["service_access_dashboard_renderer"],
+        )
+        compose_repository.return_value.render_service_access_dashboard.assert_not_called()
 
     def test_build_deployment_services_does_not_call_runtime_during_construction(self):
         with patch.object(composition, "ComposeFileRepositoryYaml") as compose_repository:
@@ -1062,7 +1079,11 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual((), services.workflows.apply.pre_apply_checks)
         self.assertEqual(
-            ("deployment:traefik-stack-assets", "deployment:swagger-stack-assets"),
+            (
+                "deployment:traefik-stack-assets",
+                "deployment:swagger-stack-assets",
+                "deployment:service-access-stack-assets",
+            ),
             tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
         )
 
