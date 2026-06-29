@@ -24,6 +24,9 @@ from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 DEFAULT_DOCKER_INSPECT_TIMEOUT_SECONDS = 30.0
 DEFAULT_DOCKER_INSTALL_TIMEOUT_SECONDS = 600.0
+DEFAULT_DOCKER_ENGINE_PACKAGE_VERSION = "5:28.5.2-1~ubuntu.24.04~noble"
+DEFAULT_CONTAINERD_PACKAGE_VERSION = "1.7.29-1~ubuntu.24.04~noble"
+DEFAULT_SWARM_REGISTRY_AUTHORITY = "127.0.0.1:13500"
 
 _BACKEND_CLI = {
     ManagedLxcBackend.INCUS: "incus",
@@ -43,7 +46,15 @@ chmod a+r /etc/apt/keyrings/docker.asc
 . /etc/os-release
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] ${TSW_DOCKER_APT_URL:-https://download.docker.com/linux/ubuntu} ${VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list
 apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+TSW_DOCKER_ENGINE_PACKAGE_VERSION="${TSW_DOCKER_ENGINE_PACKAGE_VERSION:-5:28.5.2-1~ubuntu.24.04~noble}"
+TSW_CONTAINERD_PACKAGE_VERSION="${TSW_CONTAINERD_PACKAGE_VERSION:-1.7.29-1~ubuntu.24.04~noble}"
+apt-get install -y \
+  "docker-ce=${TSW_DOCKER_ENGINE_PACKAGE_VERSION}" \
+  "docker-ce-cli=${TSW_DOCKER_ENGINE_PACKAGE_VERSION}" \
+  "containerd.io=${TSW_CONTAINERD_PACKAGE_VERSION}" \
+  docker-buildx-plugin \
+  docker-compose-plugin
+apt-mark hold docker-ce docker-ce-cli containerd.io
 systemctl enable --now docker || service docker start || true
 docker info >/dev/null
 """.strip()
@@ -238,17 +249,19 @@ def _docker_install_script(
     registry_mirror: DockerRegistryMirrorConfiguration | None,
     apt_mirror: DockerAptMirrorConfiguration | None = None,
 ) -> str:
+    daemon_config_payload: dict[str, object] = {
+        "features": {"containerd-snapshotter": False},
+        "storage-driver": "overlay2",
+    }
+    if registry_mirror is not None:
+        daemon_config_payload.update(
+            {
+                "registry-mirrors": [registry_mirror.mirror_url],
+                "insecure-registries": _docker_insecure_registries(registry_mirror),
+            }
+        )
+    daemon_config = json.dumps(daemon_config_payload, indent=2, sort_keys=True)
     script_parts = [_apt_mirror_script(apt_mirror), _DOCKER_INSTALL_SCRIPT]
-    if registry_mirror is None:
-        return "\n".join(part for part in script_parts if part)
-
-    daemon_config = json.dumps(
-        {
-            "registry-mirrors": [registry_mirror.mirror_url],
-            "insecure-registries": [registry_mirror.registry_authority],
-        },
-        indent=2,
-    )
     return "\n".join(
         tuple(part for part in script_parts if part)
         + (
@@ -258,6 +271,19 @@ def _docker_install_script(
             "TSW_DOCKER_DAEMON_JSON",
             "systemctl restart docker || service docker restart || true",
             "docker info >/dev/null",
+        )
+    )
+
+
+def _docker_insecure_registries(
+    registry_mirror: DockerRegistryMirrorConfiguration,
+) -> list[str]:
+    return list(
+        dict.fromkeys(
+            (
+                registry_mirror.registry_authority,
+                DEFAULT_SWARM_REGISTRY_AUTHORITY,
+            )
         )
     )
 
@@ -370,4 +396,8 @@ def _safe_log_text(value: str, limit: int = 400) -> str:
 
 
 def redact_argv_for_test(args: Sequence[str]) -> tuple[str, ...]:
-    return tuple("<script>" if item == _DOCKER_INSTALL_SCRIPT else item for item in args)
+    return tuple("<script>" if _is_docker_install_script_arg(item) else item for item in args)
+
+
+def _is_docker_install_script_arg(value: str) -> bool:
+    return value == _DOCKER_INSTALL_SCRIPT or value.startswith(_DOCKER_INSTALL_SCRIPT + "\n")

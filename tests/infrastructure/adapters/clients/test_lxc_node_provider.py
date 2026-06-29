@@ -1,5 +1,6 @@
 import unittest
 from typing import cast
+from unittest.mock import patch
 
 from tests.support.async_helpers import async_checkpoint
 
@@ -468,6 +469,55 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
             runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_privileged_swarm_ingress_flag_allows_privileged_provider_profile(self):
+        runner = _FakeRunner(
+            _profile(
+                config={
+                    "security.privileged": "true",
+                    "security.nesting": "true",
+                    "security.syscalls.intercept.mknod": "true",
+                    "security.syscalls.intercept.setxattr": "true",
+                }
+            ),
+            _list(_node("swarm-manager", "Running", config={"security.privileged": "true"})),
+        )
+        provider = _provider(runner)
+
+        with patch.dict(
+            "os.environ",
+            {"TSW_LXC_ALLOW_PRIVILEGED_SWARM_INGRESS": "1"},
+        ):
+            result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual("already_present", result.evidence["lifecycle_outcome"])
+
+    async def test_privileged_swarm_ingress_flag_reconciles_profile_setting(self):
+        runner = _FakeRunner(
+            _profile(config=_docker_swarm_profile_config()),
+            _ok(),
+            _profile(
+                config={
+                    **_docker_swarm_profile_config(),
+                    "security.privileged": "true",
+                }
+            ),
+            _list(_node("swarm-manager", "Running", config={"security.privileged": "true"})),
+        )
+        provider = _provider(runner)
+
+        with patch.dict(
+            "os.environ",
+            {"TSW_LXC_ALLOW_PRIVILEGED_SWARM_INGRESS": "1"},
+        ):
+            result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertIn(
+            (("incus", "profile", "set", "docker-swarm", "security.privileged", "true"), 5.0),
+            runner.calls,
+        )
 
     async def test_passthrough_provider_profile_device_blocks_before_node_lookup(self):
         runner = _FakeRunner(
@@ -1569,6 +1619,7 @@ def _safe_lifecycle_profile_set(argv: tuple[str, ...]) -> bool:
         return False
     allowed_settings = {
         "security.nesting": "true",
+        "security.privileged": "true",
         "security.syscalls.intercept.mknod": "true",
         "security.syscalls.intercept.setxattr": "true",
     }

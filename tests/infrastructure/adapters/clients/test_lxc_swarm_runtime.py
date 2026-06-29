@@ -16,6 +16,7 @@ from tiny_swarm_world.application.ports.clients.port_portainer_admin_client impo
 from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
+    ImagePublisherOperationRejected,
     LxcContainerRuntime,
     LxcContainerImagePublisher,
     LxcNexusHttpClient,
@@ -25,6 +26,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
     _external_overlay_network_names,
     _lxc_manager_ip,
     _published_ports_from_json,
+    _safe_log_text,
 )
 from tiny_swarm_world.domain.artifacts import ContainerImageContract
 
@@ -46,7 +48,11 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         deploy_script = run_manager_shell.call_args_list[-1].args[0]
         self.assertIn("TSW_REMOTE_STACK_ROOT=/custom/stacks docker stack deploy", deploy_script)
         self.assertIn("--resolve-image never", deploy_script)
+        self.assertIn("--with-registry-auth", deploy_script)
         self.assertIn("-c /custom/stacks/swagger/docker-compose.yml swagger", deploy_script)
+        scripts = [call.args[0] for call in run_manager_shell.call_args_list]
+        self.assertFalse(any(script.startswith("docker service inspect") for script in scripts))
+        self.assertFalse(any(script.startswith("docker service update") for script in scripts))
 
     def test_default_remote_stack_root_matches_committed_compose_fallback(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
@@ -96,7 +102,7 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertIn("DNS:*.tsw.local", script)
         self.assertIn("DNS:localhost", script)
 
-    def test_deploy_stack_adds_missing_unconstrained_published_ports_as_ingress(self):
+    def test_reconcile_published_ports_adds_missing_unconstrained_ports_as_ingress(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
         compose = """
 services:
@@ -113,14 +119,11 @@ services:
             runtime,
             "_run_manager_shell",
             side_effect=(
-                subprocess.CompletedProcess([], 0),
-                subprocess.CompletedProcess([], 0),
                 subprocess.CompletedProcess([], 0, stdout="[]"),
                 subprocess.CompletedProcess([], 0),
             ),
         ) as run_manager_shell:
-            with patch.object(runtime, "_transfer_stack_assets"):
-                runtime.deploy_stack(StackDefinition(name="nexus", compose_content=compose))
+            runtime._reconcile_host_published_ports(StackDefinition(name="nexus", compose_content=compose))
 
         scripts = [call.args[0] for call in run_manager_shell.call_args_list]
         self.assertIn(
@@ -128,7 +131,7 @@ services:
             scripts,
         )
 
-    def test_deploy_stack_reconciles_existing_published_port_mode_in_single_update(self):
+    def test_reconcile_published_ports_reconciles_existing_port_mode_in_single_update(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
         compose = """
 services:
@@ -145,8 +148,6 @@ services:
             runtime,
             "_run_manager_shell",
             side_effect=(
-                subprocess.CompletedProcess([], 0),
-                subprocess.CompletedProcess([], 0),
                 subprocess.CompletedProcess(
                     [],
                     0,
@@ -158,8 +159,7 @@ services:
                 subprocess.CompletedProcess([], 0),
             ),
         ) as run_manager_shell:
-            with patch.object(runtime, "_transfer_stack_assets"):
-                runtime.deploy_stack(StackDefinition(name="nexus", compose_content=compose))
+            runtime._reconcile_host_published_ports(StackDefinition(name="nexus", compose_content=compose))
 
         update_scripts = [
             call.args[0]
@@ -176,7 +176,7 @@ services:
             update_scripts[0],
         )
 
-    def test_deploy_stack_keeps_manager_constrained_published_ports_in_host_mode(self):
+    def test_reconcile_published_ports_keeps_manager_constrained_ports_in_host_mode(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
         compose = """
 services:
@@ -197,14 +197,13 @@ services:
             runtime,
             "_run_manager_shell",
             side_effect=(
-                subprocess.CompletedProcess([], 0),
-                subprocess.CompletedProcess([], 0),
                 subprocess.CompletedProcess([], 0, stdout="[]"),
                 subprocess.CompletedProcess([], 0),
             ),
         ) as run_manager_shell:
-            with patch.object(runtime, "_transfer_stack_assets"):
-                runtime.deploy_stack(StackDefinition(name="portainer", compose_content=compose))
+            runtime._reconcile_host_published_ports(
+                StackDefinition(name="portainer", compose_content=compose)
+            )
 
         scripts = [call.args[0] for call in run_manager_shell.call_args_list]
         self.assertIn(
@@ -212,7 +211,7 @@ services:
             scripts,
         )
 
-    def test_deploy_stack_adds_only_missing_manager_constrained_published_ports(self):
+    def test_reconcile_published_ports_adds_only_missing_manager_constrained_ports(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
         compose = """
 services:
@@ -237,8 +236,6 @@ services:
             runtime,
             "_run_manager_shell",
             side_effect=(
-                subprocess.CompletedProcess([], 0),
-                subprocess.CompletedProcess([], 0),
                 subprocess.CompletedProcess(
                     [],
                     0,
@@ -250,10 +247,9 @@ services:
                 subprocess.CompletedProcess([], 0),
             ),
         ) as run_manager_shell:
-            with patch.object(runtime, "_transfer_stack_assets"):
-                runtime.deploy_stack(
-                    StackDefinition(name="service-access", compose_content=compose)
-                )
+            runtime._reconcile_host_published_ports(
+                StackDefinition(name="service-access", compose_content=compose)
+            )
 
         scripts = [call.args[0] for call in run_manager_shell.call_args_list]
         update_scripts = [script for script in scripts if script.startswith("docker service update")]
@@ -356,8 +352,10 @@ networks:
 
         script = run_manager_shell.call_args.args[0]
         self.assertIn("--filter name=infisical-db", script)
-        self.assertIn("to_regclass('public.infisical_migrations_lock')", script)
-        self.assertIn("update infisical_migrations_lock set is_locked=0", script)
+        self.assertIn("for lock_table in infisical_migrations_lock", script)
+        self.assertIn("to_regclass('public.' || '$lock_table')", script)
+        self.assertIn("infisical_migrations_startup_lock", script)
+        self.assertIn("update $lock_table set is_locked=0", script)
         self.assertIn("where is_locked<>0", script)
         run_manager_shell.assert_called_once_with(script, check=False)
 
@@ -372,7 +370,7 @@ networks:
                 0,
                 stdout="service-access_vaultwarden|1/1\nservice-access_nginx|0/1\n",
             ),
-        ):
+        ) as run_manager_shell:
             services = runtime.list_stack_services("service-access")
 
         self.assertEqual(
@@ -381,6 +379,78 @@ networks:
         )
         self.assertEqual((1, 0), tuple(service.current_replicas for service in services))
         self.assertEqual((1, 1), tuple(service.desired_replicas for service in services))
+        run_manager_shell.assert_called_once_with(
+            "timeout --kill-after=5s 30s docker service ls "
+            "--filter label=com.docker.stack.namespace=service-access "
+            "--format '{{.Name}}|{{.Replicas}}'",
+            check=False,
+            timeout_seconds=runtime.service_list_timeout_seconds + 10,
+        )
+
+    def test_list_stack_services_filters_by_stack_namespace_label(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+
+        with patch.object(
+            runtime,
+            "_run_manager_shell",
+            return_value=subprocess.CompletedProcess(
+                [],
+                0,
+                stdout="pulsar_pulsar|1/1\npulsar_pulsar-manager|0/1\n",
+            ),
+        ) as run_manager_shell:
+            services = runtime.list_stack_services("pulsar")
+
+        self.assertEqual(
+            ("pulsar_pulsar", "pulsar_pulsar-manager"),
+            tuple(service.service_name for service in services),
+        )
+        self.assertEqual((1, 0), tuple(service.current_replicas for service in services))
+        self.assertEqual((1, 1), tuple(service.desired_replicas for service in services))
+        run_manager_shell.assert_called_once_with(
+            "timeout --kill-after=5s 30s docker service ls "
+            "--filter label=com.docker.stack.namespace=pulsar "
+            "--format '{{.Name}}|{{.Replicas}}'",
+            check=False,
+            timeout_seconds=runtime.service_list_timeout_seconds + 10,
+        )
+
+    def test_safe_log_text_redacts_secret_like_assignments(self):
+        text = _safe_log_text(
+            "TSW_PULSAR_ADMIN_TOKEN=header.payload.signature "
+            "TSW_NEXUS_ADMIN_PASSWORD='operator-value' "
+            "authParams=token:header.payload.signature "
+            "Authorization: Bearer header.payload.signature"
+        )
+
+        self.assertNotIn("header.payload.signature", text)
+        self.assertNotIn("operator-value", text)
+        self.assertIn("TSW_PULSAR_ADMIN_TOKEN=***", text)
+        self.assertIn("TSW_NEXUS_ADMIN_PASSWORD=***", text)
+        self.assertIn("authParams=token:***", text)
+
+    def test_run_manager_shell_retries_transient_incus_child_pid_failure(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.INCUS)
+        transient_failure = subprocess.CompletedProcess(
+            [],
+            255,
+            stdout="",
+            stderr="Error: Failed to retrieve PID of executing child process",
+        )
+        success = subprocess.CompletedProcess([], 0, stdout="ok", stderr="")
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.time.sleep"
+        ) as sleep:
+            with patch(
+                "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
+                side_effect=(transient_failure, success),
+            ) as run:
+                result = runtime._run_manager_shell("docker stack deploy test")
+
+        self.assertEqual(success, result)
+        self.assertEqual(2, run.call_count)
+        sleep.assert_called_once_with(0.5)
 
     def test_external_secret_exists_inspects_secret_with_option_boundary(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
@@ -437,12 +507,40 @@ networks:
             "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
             return_value=subprocess.CompletedProcess([], 0, stdout="nexus.1.abc\n"),
         ) as run:
-            self.assertEqual(["nexus.1.abc"], runtime.find_container_names("nexus"))
+            self.assertEqual(["swarm-manager::nexus.1.abc"], runtime.find_container_names("nexus"))
 
         run.assert_called_once()
         self.assertEqual(
             ["lxc", "exec", "swarm-manager", "--", "docker"],
             run.call_args.args[0][:5],
+        )
+
+    def test_container_runtime_finds_and_reads_containers_on_configured_lxc_nodes(self):
+        runtime = LxcContainerRuntime(
+            backend=ManagedLxcBackend.LXD,
+            node_names=("swarm-manager", "swarm-worker-1"),
+        )
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
+            side_effect=[
+                subprocess.CompletedProcess([], 0, stdout=""),
+                subprocess.CompletedProcess([], 0, stdout="nexus_nexus.1.abc\n"),
+                subprocess.CompletedProcess([], 0, stdout=""),
+                subprocess.CompletedProcess([], 0, stdout="initial-password\n"),
+            ],
+        ) as run:
+            container_names = runtime.find_container_names("nexus")
+            self.assertTrue(runtime.file_exists(container_names[0], "/nexus-data/admin.password"))
+            self.assertEqual(
+                "initial-password\n",
+                runtime.read_file(container_names[0], "/nexus-data/admin.password"),
+            )
+
+        self.assertEqual(["swarm-worker-1::nexus_nexus.1.abc"], container_names)
+        self.assertEqual(
+            ["lxc", "exec", "swarm-worker-1", "--", "docker", "exec", "nexus_nexus.1.abc"],
+            run.call_args_list[-1].args[0][:7],
         )
 
     def test_manager_ip_reads_lxc_eth0_not_docker_bridge_address(self):
@@ -472,6 +570,31 @@ networks:
             run.call_args.args[0],
         )
 
+    def test_manager_ip_retries_transient_incus_child_pid_failure(self):
+        transient = subprocess.CompletedProcess(
+            [],
+            255,
+            stdout="",
+            stderr="Error: Failed to retrieve PID of executing child process",
+        )
+        recovered = subprocess.CompletedProcess(
+            [],
+            0,
+            stdout=f"{ipv4_address(10, 156, 143, 201)}\n",
+        )
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
+            side_effect=(transient, recovered),
+        ) as run:
+            with patch("tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.time.sleep"):
+                self.assertEqual(
+                    ipv4_address(10, 156, 143, 201),
+                    _lxc_manager_ip(ManagedLxcBackend.LXD, "swarm-manager", 30),
+                )
+
+        self.assertEqual(2, run.call_count)
+
     def test_image_publisher_pulls_public_image_without_local_registry_login(self):
         publisher = LxcContainerImagePublisher(
             backend=ManagedLxcBackend.LXD,
@@ -498,6 +621,7 @@ networks:
         run_manager_shell.assert_called_once_with(
             "docker pull postgres:14-alpine",
             check=False,
+            operation="pull_public_image",
             timeout_seconds=1800,
         )
 
@@ -528,6 +652,7 @@ networks:
         run_manager_shell.assert_called_once_with(
             "docker pull infisical/infisical:v0.159.1",
             check=False,
+            operation="pull_public_image",
             timeout_seconds=1800,
         )
 
@@ -558,6 +683,35 @@ networks:
         self.assertEqual("registry_rate_limited", raised.exception.diagnostic)
         self.assertIn("registry mirror", raised.exception.operator_action)
         self.assertNotIn("toomanyrequests", str(raised.exception).lower())
+
+    def test_image_publisher_reports_local_image_build_failure_without_raw_payload(self):
+        publisher = LxcContainerImagePublisher(
+            backend=ManagedLxcBackend.LXD,
+            registry_username="admin",
+            registry_password=operator_credential(),
+        )
+        result = subprocess.CompletedProcess(
+            [],
+            1,
+            stdout="",
+            stderr=sensitive_assignment(),
+        )
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
+            return_value=result,
+        ):
+            with self.assertRaises(ImagePublisherOperationRejected) as raised:
+                publisher._run_manager_shell(
+                    "docker build -t 127.0.0.1:13500/service-access-dashboard:latest /tmp/context",
+                    operation="build_image",
+                    timeout_seconds=1800,
+                )
+
+        self.assertEqual("build_image", raised.exception.operation)
+        self.assertEqual("image_build_failed", raised.exception.diagnostic)
+        self.assertIn("image context", raised.exception.operator_action)
+        self.assertNotIn(sensitive_assignment(), str(raised.exception))
 
     def test_image_publisher_uses_host_cached_image_when_public_pull_is_rate_limited(self):
         publisher = LxcContainerImagePublisher(

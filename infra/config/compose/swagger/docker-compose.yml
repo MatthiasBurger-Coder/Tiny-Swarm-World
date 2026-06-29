@@ -1,8 +1,11 @@
 services:
   swagger-editor:
     image: swaggerapi/swagger-editor:v5.6.2-unprivileged
+    networks:
+      - service_access_link
     deploy:
       replicas: 1
+      endpoint_mode: dnsrr
       placement:
         constraints:
           - node.role == manager
@@ -19,8 +22,11 @@ services:
     environment:
       SWAGGER_JSON: /openapi.json
       # API_URL: ""
+    networks:
+      - service_access_link
     deploy:
       replicas: 1
+      endpoint_mode: dnsrr
       placement:
         constraints:
           - node.role == manager
@@ -31,11 +37,12 @@ services:
       - ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro
     command: /openapi.json
     networks:
-      swagger_link:
+      service_access_link:
         aliases:
           - local.swagger.apisprout
     deploy:
       replicas: 1
+      endpoint_mode: dnsrr
       placement:
         constraints:
           - node.role == manager
@@ -50,17 +57,16 @@ services:
     volumes:
       - ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
-      swagger_link:
+      service_access_link:
         aliases:
           - local.swagger.api
-      tiny_swarm_world_ingress:
     deploy:
       replicas: 1
+      endpoint_mode: dnsrr
       placement:
         constraints:
           - node.role == manager
 networks:
-  swagger_link:
-  tiny_swarm_world_ingress:
-    name: tiny_swarm_world_ingress
+  service_access_link:
+    name: service_access_link
     external: true

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
@@ -44,6 +45,7 @@ DEFAULT_LXC_IMAGE_REFERENCES = {
 MANAGED_MARKER = "user.tiny_swarm_world.managed"
 NODE_MARKER = "user.tiny_swarm_world.node"
 IMAGE_ALIAS_MARKER = "user.tiny_swarm_world.image_alias"
+ALLOW_PRIVILEGED_SWARM_INGRESS_ENVIRONMENT = "TSW_LXC_ALLOW_PRIVILEGED_SWARM_INGRESS"
 
 _BACKEND_CLI = {
     ManagedLxcBackend.INCUS: "incus",
@@ -1384,7 +1386,8 @@ def _device_mapping(value: object) -> Mapping[str, Mapping[str, str]]:
 
 
 def _has_unsafe_instance_config(config: Mapping[str, str]) -> bool:
-    return config.get("security.privileged", "").casefold() == "true" or any(
+    privileged_enabled = config.get("security.privileged", "").casefold() == "true"
+    return (privileged_enabled and not _allow_privileged_swarm_ingress()) or any(
         key.startswith("raw.") for key in config
     )
 
@@ -1522,12 +1525,23 @@ def _required_profile_settings(
     profile: NodeProviderProfileRequirement,
 ) -> Mapping[str, str]:
     settings: dict[str, str] = {}
+    if _allow_privileged_swarm_ingress() and profile.nesting_required:
+        settings["security.privileged"] = "true"
     if profile.nesting_required:
         settings["security.nesting"] = "true"
     if profile.syscall_interception_required:
         settings["security.syscalls.intercept.mknod"] = "true"
         settings["security.syscalls.intercept.setxattr"] = "true"
     return settings
+
+
+def _allow_privileged_swarm_ingress() -> bool:
+    return os.getenv(ALLOW_PRIVILEGED_SWARM_INGRESS_ENVIRONMENT, "").strip().casefold() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def _profile_evidence(

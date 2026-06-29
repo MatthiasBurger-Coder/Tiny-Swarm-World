@@ -51,6 +51,7 @@ FALSE_POSITIVE_ASSIGNMENTS = (
     "SECRET_FILE",
     "SECRET_MODE",
     "SECRET_NAME",
+    "CREDENTIAL_NOTE",
     "SECRETS",
     "SECRETS_GENERATED_COUNT",
 )
@@ -630,6 +631,8 @@ def _classify_secret_assignment(
         return "placeholder_only"
     if key.upper() in FALSE_POSITIVE_ASSIGNMENTS:
         return "false_positive"
+    if _is_secret_reference_assignment_key(key):
+        return "placeholder_only"
     if any(marker in value.lower() for marker in SOURCE_MARKERS + PLACEHOLDER_MARKERS):
         return "placeholder_only"
     if relative.startswith("tests/") and ("assert" in line or "operator_credential" in line):
@@ -648,6 +651,12 @@ def _is_secretish_name(key: str) -> bool:
     if any(part in normalized for part in ("PASSWORD", "TOKEN", "SECRET", "API_KEY", "CREDENTIAL", "HTPASSWD")):
         return True
     return normalized.endswith("_KEY") and not normalized.endswith(("BY_KEY", "_KEYS"))
+
+
+def _is_secret_reference_assignment_key(key: str) -> bool:
+    normalized = key.lower().replace("-", "_")
+    return normalized.endswith("_item_ref")
+
 
 def _is_sensitive_key_or_assignment(value: str) -> bool:
     return bool(SECRET_ASSIGNMENT_PATTERN.search(value) or SECRET_KEY_PATTERN.search(value))

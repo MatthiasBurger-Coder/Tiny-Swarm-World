@@ -26,15 +26,25 @@ class VerifySwarmServiceReadiness:
 
     async def verify(self) -> VerificationResult:
         last_services: tuple[SwarmServiceStatus, ...] = ()
+        last_exception_name = ""
         for attempt in range(1, self.max_attempts + 1):
             try:
                 last_services = self.swarm_runtime.list_stack_services(self.service_stack.stack_name)
             except Exception as exc:
+                last_exception_name = exc.__class__.__name__
+                if attempt < self.max_attempts:
+                    await asyncio.sleep(self.wait_seconds)
+                    continue
                 return VerificationResult(
                     target_id=self.verification_target_id,
                     status=VerificationStatus.FAILED_TO_VERIFY,
-                    message=f"Swarm service readiness verification failed: {exc.__class__.__name__}",
-                    evidence=_readiness_evidence(self.service_stack, last_services, attempt=attempt),
+                    message=f"Swarm service readiness verification failed: {last_exception_name}",
+                    evidence=_readiness_evidence(
+                        self.service_stack,
+                        last_services,
+                        attempt=attempt,
+                        last_exception=last_exception_name,
+                    ),
                 )
 
             if _all_required_services_ready(self.service_stack, last_services):
@@ -56,6 +66,7 @@ class VerifySwarmServiceReadiness:
                 self.service_stack,
                 last_services,
                 attempt=self.max_attempts,
+                last_exception=last_exception_name,
             ),
         )
 
@@ -136,6 +147,7 @@ def _readiness_evidence(
     services: tuple[SwarmServiceStatus, ...],
     *,
     attempt: int,
+    last_exception: str = "",
 ) -> dict[str, str]:
     by_name = _service_status_by_short_name(service_stack.stack_name, services)
     replica_summary = {
@@ -150,6 +162,7 @@ def _readiness_evidence(
     return {
         "attempt": str(attempt),
         "evidence_kind": "swarm_service_replicas",
+        "last_exception": last_exception,
         "missing_services": ",".join(missing),
         "phase": "verify",
         "replicas": ",".join(f"{name}={replicas}" for name, replicas in sorted(replica_summary.items())),

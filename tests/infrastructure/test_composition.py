@@ -24,7 +24,7 @@ from tiny_swarm_world.application.services.setup import (
     SetupWorkflowStatus,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
-from tiny_swarm_world.domain.deployment import ServiceStackProfile
+from tiny_swarm_world.domain.deployment import ServiceEndpoint, ServiceStackContract, ServiceStackProfile
 from tiny_swarm_world.domain.network import PortRegistry
 from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_ENVIRONMENT_VALUE,
@@ -107,6 +107,45 @@ class TestComposition(unittest.TestCase):
         build_deployment_services.assert_called_once_with(
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             node_provider_request=None,
+        )
+
+    def test_endpoint_readiness_treats_authenticated_http_response_as_reachable(self):
+        contract = ServiceStackContract(
+            "pulsar",
+            ("pulsar",),
+            endpoints=(ServiceEndpoint("pulsar-admin-api", "http://localhost:14080"),),
+        )
+        check = composition.EndpointReadinessCheck(
+            contract,
+            max_attempts=1,
+            wait_seconds=0,
+            session=_FakeEndpointSession((401,)),
+        )
+
+        verification = check.verify()
+
+        self.assertEqual(VerificationStatus.VERIFIED, verification.status)
+        self.assertEqual("pulsar-admin-api=http_401", verification.evidence["endpoint_statuses"])
+
+    def test_endpoint_readiness_fails_after_connection_errors(self):
+        contract = ServiceStackContract(
+            "pulsar",
+            ("pulsar",),
+            endpoints=(ServiceEndpoint("pulsar-admin-api", "http://localhost:14080"),),
+        )
+        check = composition.EndpointReadinessCheck(
+            contract,
+            max_attempts=1,
+            wait_seconds=0,
+            session=_FakeEndpointSession((composition.requests.ConnectionError(),)),
+        )
+
+        verification = check.verify()
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
+        self.assertEqual(
+            "pulsar-admin-api=connection_error",
+            verification.evidence["endpoint_statuses"],
         )
 
     def test_platform_services_contains_preflight_service(self):
@@ -646,6 +685,8 @@ class TestComposition(unittest.TestCase):
                 "artifacts:sonarqube-postgres-image",
                 "artifacts:swagger-editor-image",
                 "artifacts:swagger-ui-image",
+                "artifacts:pulsar-image",
+                "artifacts:pulsar-manager-image",
                 "artifacts:pulsar-manager-bootstrap-image",
                 "artifacts:swagger-nginx-image",
             ),
@@ -763,6 +804,8 @@ class TestComposition(unittest.TestCase):
         self.assertEqual("postgres:13", image_refs["sonarqube-postgres"])
         self.assertEqual("swaggerapi/swagger-editor:v5.6.2-unprivileged", image_refs["swagger-editor"])
         self.assertEqual("swaggerapi/swagger-ui:v5.32.6", image_refs["swagger-ui"])
+        self.assertEqual("apachepulsar/pulsar:3.0.17", image_refs["pulsar"])
+        self.assertEqual("apachepulsar/pulsar-manager:v0.4.0", image_refs["pulsar-manager"])
         self.assertEqual("python:3.12-alpine", image_refs["pulsar-manager-bootstrap"])
         self.assertEqual("nginx:mainline-alpine", image_refs["swagger-nginx"])
 
@@ -771,8 +814,8 @@ class TestComposition(unittest.TestCase):
             backend=composition.ManagedLxcBackend.INCUS,
         )
 
-        self.assertEqual(18, len(services.workflows.prepare.steps))
-        self.assertEqual(18, len(services.workflows.verify.checks))
+        self.assertEqual(20, len(services.workflows.prepare.steps))
+        self.assertEqual(20, len(services.workflows.verify.checks))
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
         with patch.dict("os.environ", _required_infisical_bootstrap_env(), clear=True):
@@ -796,11 +839,6 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             (
                 "deployment:traefik-stack",
-                "deployment:jenkins-stack",
-                "deployment:pulsar-stack",
-                "deployment:sonarqube-stack",
-                "deployment:sonarqube-admin-access",
-                "deployment:swagger-stack",
                 "deployment:infisical-stack",
                 "deployment:service-access-stack",
                 "deployment:infisical-bootstrap-service-readiness",
@@ -810,6 +848,10 @@ class TestComposition(unittest.TestCase):
                 "deployment:infisical-sync",
                 "deployment:managed-config-consumption",
                 "deployment:managed-config-evidence",
+                "deployment:jenkins-stack",
+                "deployment:pulsar-stack",
+                "deployment:sonarqube-stack",
+                "deployment:swagger-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
@@ -823,7 +865,7 @@ class TestComposition(unittest.TestCase):
         jenkins_step = next(
             step
             for step in services.workflows.apply.steps
-            if step.service_stack.stack_name == "jenkins"
+            if hasattr(step, "service_stack") and step.service_stack.stack_name == "jenkins"
         )
         nexus_step = next(
             step
@@ -870,7 +912,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(1, compose_repository.call_count)
         self.assertIn("project_paths", compose_repository.call_args.kwargs)
         self.assertEqual(4, len(services.workflows.bootstrap.steps))
-        self.assertEqual(15, len(services.workflows.apply.steps))
+        self.assertEqual(14, len(services.workflows.apply.steps))
         self.assertEqual(9, len(services.workflows.verify.checks))
 
     def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
@@ -878,7 +920,7 @@ class TestComposition(unittest.TestCase):
             services = composition.build_artifact_services_for_provider()
 
         self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
-        self.assertEqual(18, len(services.workflows.prepare.steps))
+        self.assertEqual(20, len(services.workflows.prepare.steps))
 
     def test_default_provider_deployment_services_use_lxc_clients_when_backend_is_available(self):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/incus"):
@@ -928,11 +970,6 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             (
                 "deployment:traefik-stack",
-                "deployment:jenkins-stack",
-                "deployment:pulsar-stack",
-                "deployment:sonarqube-stack",
-                "deployment:sonarqube-admin-access",
-                "deployment:swagger-stack",
                 "deployment:infisical-stack",
                 "deployment:service-access-stack",
                 "deployment:infisical-bootstrap-service-readiness",
@@ -942,6 +979,10 @@ class TestComposition(unittest.TestCase):
                 "deployment:infisical-sync",
                 "deployment:managed-config-consumption",
                 "deployment:managed-config-evidence",
+                "deployment:jenkins-stack",
+                "deployment:pulsar-stack",
+                "deployment:sonarqube-stack",
+                "deployment:swagger-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
@@ -1042,7 +1083,7 @@ class TestComposition(unittest.TestCase):
         environments = {
             step.service_stack.stack_name: step.stack_environment
             for step in services.workflows.apply.steps
-            if hasattr(step, "service_stack")
+            if hasattr(step, "service_stack") and hasattr(step, "stack_environment")
         }
 
         self.assertEqual(
@@ -1195,7 +1236,7 @@ class TestComposition(unittest.TestCase):
         self.assertLess(access_guard_index, bootstrap_index)
         self.assertIsInstance(
             services.workflows.apply.steps[service_guard_index],
-            composition.EnsureSwarmServiceReadiness,
+            composition.EndpointReadinessCheck,
         )
 
     def test_build_deployment_services_forwards_fixed_secret_mode_to_sync_step(self):
@@ -1638,7 +1679,6 @@ class TestComposition(unittest.TestCase):
     def test_infisical_readiness_steps_are_empty_for_default_profile(self):
         steps = composition._infisical_apply_readiness_steps(
             composition.ServiceStackProfile.DEFAULT,
-            swarm_runtime=cast(object, None),
             service_stack_by_name={},
         )
 
@@ -2231,6 +2271,22 @@ def _artifact_phase_bundle():
 
 def _deployment_phase_bundle():
     return _workflow_bundle("bootstrap", "apply", "verify")
+
+
+class _FakeEndpointResponse:
+    def __init__(self, status_code: int):
+        self.status_code = status_code
+
+
+class _FakeEndpointSession:
+    def __init__(self, responses: tuple[object, ...]):
+        self.responses = list(responses)
+
+    def get(self, url: str, *, timeout: int, verify: bool):
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return _FakeEndpointResponse(cast(int, response))
 
 
 def _setup_lifecycle_bundle(

@@ -6,9 +6,9 @@ services:
         target: /usr/share/nginx/html/index.html
     networks:
       - service_access_link
-      - tiny_swarm_world_ingress
     deploy:
       replicas: 1
+      endpoint_mode: dnsrr
       placement:
         constraints:
           - node.role == manager
@@ -28,6 +28,7 @@ services:
       - service_access_link
     deploy:
       replicas: 1
+      endpoint_mode: dnsrr
       placement:
         constraints:
           - node.role == manager
@@ -35,9 +36,6 @@ services:
 networks:
   service_access_link:
     name: service_access_link
-    external: true
-  tiny_swarm_world_ingress:
-    name: tiny_swarm_world_ingress
     external: true
 
 configs:

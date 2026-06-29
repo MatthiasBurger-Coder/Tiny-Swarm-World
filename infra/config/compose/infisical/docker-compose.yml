@@ -18,15 +18,13 @@ services:
       - target: 8080
         published: 17080
         protocol: tcp
-        mode: host
     networks:
       - service_access_link
-      - tiny_swarm_world_ingress
     deploy:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == swarm-worker-1
 
   infisical-db:
     image: ${TSW_INFISICAL_POSTGRES_IMAGE:-postgres:14-alpine}
@@ -42,7 +40,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == swarm-worker-1
 
   infisical-redis:
     image: ${TSW_INFISICAL_REDIS_IMAGE:-redis:7-alpine}
@@ -55,7 +53,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == swarm-worker-1
 
 volumes:
   infisical_pg_data:
@@ -65,7 +63,4 @@ volumes:
 networks:
   service_access_link:
     name: service_access_link
-    external: true
-  tiny_swarm_world_ingress:
-    name: tiny_swarm_world_ingress
     external: true

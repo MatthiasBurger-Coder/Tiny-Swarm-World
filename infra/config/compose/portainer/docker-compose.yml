@@ -6,7 +6,7 @@ services:
       - portainer_data:/data
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - tiny_swarm_world_ingress
+      - service_access_link
     ports:
       - target: 9000
         published: 10001
@@ -15,6 +15,7 @@ services:
     deploy:
       mode: replicated # Nur den Portainer-Service als Replikat bereitstellen
       replicas: 1
+      endpoint_mode: dnsrr
       placement:
         constraints:
           - node.role == manager
@@ -25,8 +26,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - service_access_link
     deploy:
       mode: global # Agent auf allen Nodes ausrollen
+      endpoint_mode: dnsrr
       placement:
         constraints:
           - node.platform.os == linux
@@ -34,6 +38,6 @@ volumes:
   portainer_data:
 
 networks:
-  tiny_swarm_world_ingress:
-    name: tiny_swarm_world_ingress
+  service_access_link:
+    name: service_access_link
     external: true

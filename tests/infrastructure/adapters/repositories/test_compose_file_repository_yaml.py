@@ -473,7 +473,7 @@ services:
             compose_data["services"]["jenkins"]["image"],
         )
         self.assertEqual(
-            ["node.role == manager"],
+            ["node.hostname == swarm-worker-2"],
             compose_data["services"]["jenkins"]["deploy"]["placement"]["constraints"],
         )
         self.assertEqual(
@@ -495,17 +495,31 @@ services:
         pulsar = compose_data["services"]["pulsar"]
 
         self.assertEqual(
-            "${TSW_PULSAR_IMAGE:-apachepulsar/pulsar:latest}",
+            "${TSW_PULSAR_IMAGE:-apachepulsar/pulsar:3.0.17}",
             pulsar["image"],
         )
         self.assertEqual(["sh", "-lc"], pulsar["command"][:2])
         self.assertIn("bin/apply-config-from-env.py conf/standalone.conf", pulsar["command"][-1])
+        self.assertNotIn("bin/apply-config-from-env.py conf/bookkeeper.conf", pulsar["command"][-1])
         self.assertIn("exec bin/pulsar standalone", pulsar["command"][-1])
-        self.assertIn("--advertised-address pulsar", pulsar["command"][-1])
+        self.assertIn("--advertised-address 127.0.0.1", pulsar["command"][-1])
         self.assertIn("--bookkeeper-port 3181", pulsar["command"][-1])
         self.assertIn("--no-functions-worker", pulsar["command"][-1])
+        self.assertIn("--no-stream-storage", pulsar["command"][-1])
         self.assertEqual("true", pulsar["environment"]["PULSAR_PREFIX_authenticationEnabled"])
-        self.assertEqual("pulsar", pulsar["environment"]["PULSAR_PREFIX_advertisedAddress"])
+        self.assertEqual("127.0.0.1", pulsar["environment"]["PULSAR_PREFIX_advertisedAddress"])
+        self.assertEqual(
+            "org.apache.bookkeeper.bookie.InterleavedLedgerStorage",
+            pulsar["environment"]["PULSAR_PREFIX_ledgerStorageClass"],
+        )
+        self.assertNotIn("PULSAR_PREFIX_zookeeperServers", pulsar["environment"])
+        self.assertNotIn("PULSAR_PREFIX_zkServers", pulsar["environment"])
+        self.assertNotIn("PULSAR_PREFIX_configurationStoreServers", pulsar["environment"])
+        self.assertNotIn("PULSAR_PREFIX_metadataStoreUrl", pulsar["environment"])
+        self.assertNotIn("PULSAR_PREFIX_configurationMetadataStoreUrl", pulsar["environment"])
+        self.assertNotIn("PULSAR_PREFIX_metadataServiceUri", pulsar["environment"])
+        self.assertNotIn("PULSAR_PREFIX_zooKeeperOperationTimeoutSeconds", pulsar["environment"])
+        self.assertNotIn("PULSAR_PREFIX_zooKeeperSessionTimeoutMillis", pulsar["environment"])
         self.assertIn(
             "AuthenticationProviderToken",
             pulsar["environment"]["PULSAR_PREFIX_authenticationProviders"],
@@ -519,39 +533,44 @@ services:
             "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m",
             pulsar["environment"]["PULSAR_MEM"],
         )
+        self.assertEqual(
+            "-XX:+UseG1GC -XX:+PerfDisableSharedMem",
+            pulsar["environment"]["PULSAR_GC"],
+        )
+        self.assertEqual("", pulsar["environment"]["PULSAR_GC_LOG"])
+        self.assertEqual(
+            "-Djava.security.egd=file:/dev/./urandom -XX:TieredStopAtLevel=1 -XX:CICompilerCount=2",
+            pulsar["environment"]["PULSAR_EXTRA_OPTS"],
+        )
         self.assertEqual("${TSW_PULSAR_ADMIN_TOKEN}", pulsar["environment"]["TSW_PULSAR_ADMIN_TOKEN"])
         self.assertEqual(
             [
-                {"target": 6650, "published": 14001, "protocol": "tcp", "mode": "host"},
-                {"target": 8080, "published": 14080, "protocol": "tcp", "mode": "host"},
+                {"target": 6650, "published": 14001, "protocol": "tcp"},
+                {"target": 8080, "published": 14080, "protocol": "tcp"},
             ],
             pulsar["ports"],
         )
         self.assertNotIn(
-            {"target": 8080, "published": 8080, "protocol": "tcp", "mode": "host"},
+            {"target": 8080, "published": 8080, "protocol": "tcp"},
             pulsar["ports"],
         )
         self.assertEqual(["pulsar-data:/pulsar/data"], pulsar["volumes"])
         self.assertIn("healthcheck", pulsar)
         self.assertIn("http://localhost:8080/admin/v2/clusters", pulsar["healthcheck"]["test"][-1])
         self.assertIn("TSW_PULSAR_ADMIN_TOKEN", pulsar["healthcheck"]["test"][-1])
-        self.assertEqual(["service_access_link", "tiny_swarm_world_ingress"], pulsar["networks"])
+        self.assertEqual(["service_access_link"], pulsar["networks"])
         self.assertEqual(
             {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
         )
         self.assertEqual(
-            {"name": "tiny_swarm_world_ingress", "external": True},
-            compose_data["networks"]["tiny_swarm_world_ingress"],
-        )
-        self.assertEqual(
-            ["node.role == manager"],
+            ["node.hostname == swarm-worker-1"],
             pulsar["deploy"]["placement"]["constraints"],
         )
 
         pulsar_manager = compose_data["services"]["pulsar-manager"]
         self.assertEqual(
-            "${TSW_PULSAR_MANAGER_IMAGE:-apachepulsar/pulsar-manager:latest}",
+            "${TSW_PULSAR_MANAGER_IMAGE:-apachepulsar/pulsar-manager:v0.4.0}",
             pulsar_manager["image"],
         )
         self.assertEqual(
@@ -560,11 +579,12 @@ services:
         )
         self.assertEqual(
             [
-                {"target": 9527, "published": 14081, "protocol": "tcp", "mode": "host"},
+                {"target": 9527, "published": 14081, "protocol": "tcp"},
             ],
             pulsar_manager["ports"],
         )
-        self.assertEqual(["service_access_link", "tiny_swarm_world_ingress"], pulsar_manager["networks"])
+        self.assertEqual(["7750"], pulsar_manager["expose"])
+        self.assertEqual(["service_access_link"], pulsar_manager["networks"])
 
         bootstrap = compose_data["services"]["pulsar-manager-bootstrap"]
         self.assertEqual(
@@ -580,7 +600,11 @@ services:
         self.assertIn("pulsar-manager/login", bootstrap["command"][-1])
         self.assertIn('"username": "admin"', bootstrap["command"][-1])
         self.assertIn('"Host": backend_host_header', bootstrap["command"][-1])
-        self.assertIn("backend_host_header = \"localhost:9527\"", bootstrap["command"][-1])
+        self.assertEqual(
+            "http://tasks.pulsar-manager:7750",
+            bootstrap["environment"]["TSW_PULSAR_MANAGER_BACKEND_URL"],
+        )
+        self.assertIn("backend_host_header = \"localhost:7750\"", bootstrap["command"][-1])
         self.assertIn("api_rejected_superuser", bootstrap["command"][-1])
         self.assertIn("exc.code != 400", bootstrap["command"][-1])
         self.assertIn('response.get("login") == "success"', bootstrap["command"][-1])
@@ -633,11 +657,11 @@ services:
         )
         self.assertIn("/dev/tcp/tasks.sonar_db/5432", command[0])
         self.assertIn("/opt/sonarqube/docker/entrypoint.sh", command[0])
-        self.assertIn("sonarqube_internal", compose_data["services"]["sonarqube"]["networks"])
-        self.assertIn("sonarqube_internal", compose_data["services"]["sonar_db"]["networks"])
+        self.assertIn("service_access_link", compose_data["services"]["sonarqube"]["networks"])
+        self.assertIn("service_access_link", compose_data["services"]["sonar_db"]["networks"])
         self.assertEqual(
-            {"driver": "overlay"},
-            compose_data["networks"]["sonarqube_internal"],
+            {"name": "service_access_link", "external": True},
+            compose_data["networks"]["service_access_link"],
         )
 
     def test_committed_sonarqube_compose_uses_available_community_image(self):
@@ -745,7 +769,7 @@ services:
             services["infisical"]["environment"]["INITIAL_BOOTSTRAP_ADMIN_LAST_NAME"],
         )
         self.assertEqual(
-            [{"target": 8080, "published": 17080, "protocol": "tcp", "mode": "host"}],
+            [{"target": 8080, "published": 17080, "protocol": "tcp"}],
             services["infisical"]["ports"],
         )
         self.assertNotIn("secrets", compose_data)
@@ -771,7 +795,7 @@ services:
         self.assertIn("--entrypoints.web.http.redirections.entrypoint.to=websecure", command)
         self.assertIn("--providers.swarm=true", command)
         self.assertIn("--providers.swarm.exposedByDefault=false", command)
-        self.assertIn("--providers.swarm.network=tiny_swarm_world_ingress", command)
+        self.assertIn("--providers.swarm.network=service_access_link", command)
         self.assertIn("--providers.file.filename=/etc/traefik/dynamic/tls.yml", command)
         self.assertNotIn("--api.insecure=true", compose_content)
         self.assertEqual(
@@ -782,8 +806,8 @@ services:
             traefik["ports"],
         )
         self.assertEqual(
-            {"name": "tiny_swarm_world_ingress", "external": True},
-            compose_data["networks"]["tiny_swarm_world_ingress"],
+            {"name": "service_access_link", "external": True},
+            compose_data["networks"]["service_access_link"],
         )
         self.assertEqual(
             "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/traefik/dynamic/tls.yml",
@@ -840,13 +864,13 @@ services:
                 service = compose_data["services"][service_name]
                 labels = set(service["deploy"]["labels"])
 
-                self.assertIn("tiny_swarm_world_ingress", service["networks"])
+                self.assertIn("service_access_link", service["networks"])
                 self.assertEqual(
-                    {"name": "tiny_swarm_world_ingress", "external": True},
-                    compose_data["networks"]["tiny_swarm_world_ingress"],
+                    {"name": "service_access_link", "external": True},
+                    compose_data["networks"]["service_access_link"],
                 )
                 self.assertIn("traefik.enable=true", labels)
-                self.assertIn("traefik.swarm.network=tiny_swarm_world_ingress", labels)
+                self.assertIn("traefik.swarm.network=service_access_link", labels)
                 router_name = service_name.removesuffix("-dashboard").removesuffix("-nginx")
                 self.assertIn(
                     f"traefik.http.routers.{router_name}.rule=Host(`{hostname}`)",
@@ -865,6 +889,18 @@ services:
                     ),
                     labels,
                 )
+
+    def test_rendered_pulsar_bootstrap_command_remains_valid_python(self):
+        stack_definition = ComposeFileRepositoryYaml().get_compose_of("pulsar")
+        compose_data = YAML(typ="safe").load(stack_definition.compose_content)
+        script = compose_data["services"]["pulsar-manager-bootstrap"]["command"][2]
+
+        self.assertIn("traefik.http.routers.pulsar.rule=Host(`pulsar.tsw.local`)", stack_definition.compose_content)
+        self.assertTrue(script.startswith("python - <<'PY'\n"))
+        python_source = script.removeprefix("python - <<'PY'\n").rsplit("\nPY", maxsplit=1)[0]
+        compile(python_source, "pulsar-manager-bootstrap", "exec")
+        self.assertNotIn("\n import urllib.error", script)
+        self.assertNotIn("\n for _ in range(180):", script)
 
     def test_committed_service_stack_route_labels_are_renderer_owned(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -943,12 +979,11 @@ services:
                 dockerfile = dockerfile_path.read_text(encoding="utf-8")
                 self.assertIn(base_image_line, dockerfile)
                 self.assertIn(copy_line, dockerfile)
-                self.assertIn("USER nginx", dockerfile)
                 self.assertIn("pid /tmp/nginx.pid", dockerfile)
-                self.assertIn("setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx", dockerfile)
+                self.assertNotIn("apk add", dockerfile)
+                self.assertNotIn("setcap", dockerfile)
                 if service_name == "service-access-nginx":
-                    self.assertIn("apk add --no-cache libcap openssl", dockerfile)
-                    self.assertIn("generate-self-signed-cert.sh", dockerfile)
+                    self.assertNotIn("generate-self-signed-cert.sh", dockerfile)
 
     def test_service_access_image_publisher_packages_dashboard_and_nginx_assets(self):
         publisher = _CapturingImagePublisher()

@@ -86,6 +86,10 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
                 "init",
                 "--advertise-addr",
                 ipv4_address(10, 10, 0, 5),
+                "--default-addr-pool",
+                "10.240.0.0/16",
+                "--default-addr-pool-mask-length",
+                "24",
             ),
             runner.calls[0][0],
         )

@@ -1,16 +1,20 @@
 services:
   pulsar:
-    image: ${TSW_PULSAR_IMAGE:-apachepulsar/pulsar:latest}
+    image: ${TSW_PULSAR_IMAGE:-apachepulsar/pulsar:3.0.17}
     hostname: pulsar
     environment:
       PULSAR_PREFIX_authenticationEnabled: "true"
       PULSAR_PREFIX_authenticationProviders: org.apache.pulsar.broker.authentication.AuthenticationProviderToken
-      PULSAR_PREFIX_advertisedAddress: pulsar
+      PULSAR_PREFIX_advertisedAddress: 127.0.0.1
+      PULSAR_PREFIX_ledgerStorageClass: org.apache.bookkeeper.bookie.InterleavedLedgerStorage
       PULSAR_PREFIX_superUserRoles: admin
       PULSAR_PREFIX_tokenSecretKey: data:;base64,${TSW_PULSAR_TOKEN_SECRET_KEY}
       PULSAR_PREFIX_brokerClientAuthenticationPlugin: org.apache.pulsar.client.impl.auth.AuthenticationToken
       PULSAR_PREFIX_brokerClientAuthenticationParameters: token:${TSW_PULSAR_ADMIN_TOKEN}
       PULSAR_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m"
+      PULSAR_GC: "-XX:+UseG1GC -XX:+PerfDisableSharedMem"
+      PULSAR_GC_LOG: ""
+      PULSAR_EXTRA_OPTS: "-Djava.security.egd=file:/dev/./urandom -XX:TieredStopAtLevel=1 -XX:CICompilerCount=2"
       TSW_PULSAR_ADMIN_TOKEN: ${TSW_PULSAR_ADMIN_TOKEN}
     command:
       - sh
@@ -23,21 +27,18 @@ services:
           "authPlugin=org.apache.pulsar.client.impl.auth.AuthenticationToken" \
           "authParams=token:$${TSW_PULSAR_ADMIN_TOKEN}" \
           > conf/client.conf
-        exec bin/pulsar standalone --advertised-address pulsar --bookkeeper-port 3181 --no-functions-worker
+        exec bin/pulsar standalone --advertised-address 127.0.0.1 --bookkeeper-port 3181 --no-functions-worker --no-stream-storage
     ports:
       - target: 6650
         published: 14001
         protocol: tcp
-        mode: host
       - target: 8080
         published: 14080
         protocol: tcp
-        mode: host
     volumes:
       - pulsar-data:/pulsar/data
     networks:
       - service_access_link
-      - tiny_swarm_world_ingress
     healthcheck:
       test:
         - CMD-SHELL
@@ -56,33 +57,33 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == swarm-worker-1
 
   pulsar-manager:
-    image: ${TSW_PULSAR_MANAGER_IMAGE:-apachepulsar/pulsar-manager:latest}
+    image: ${TSW_PULSAR_MANAGER_IMAGE:-apachepulsar/pulsar-manager:v0.4.0}
     environment:
       SPRING_CONFIGURATION_FILE: /pulsar-manager/pulsar-manager/application.properties
     ports:
       - target: 9527
         published: 14081
         protocol: tcp
-        mode: host
+    expose:
+      - "7750"
     volumes:
       - pulsar-manager-data:/pulsar-manager/pulsar-manager/dbdata
     networks:
       - service_access_link
-      - tiny_swarm_world_ingress
     deploy:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == swarm-worker-1
 
   pulsar-manager-bootstrap:
     image: ${TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE:-python:3.12-alpine}
     environment:
       TSW_PULSAR_MANAGER_ADMIN_PASSWORD: ${TSW_PULSAR_MANAGER_ADMIN_PASSWORD}
-      TSW_PULSAR_MANAGER_BACKEND_URL: http://tasks.pulsar-manager:9527
+      TSW_PULSAR_MANAGER_BACKEND_URL: http://tasks.pulsar-manager:7750
     command:
       - sh
       - -ec
@@ -111,7 +112,7 @@ services:
                 "password": admin_value,
             }
         ).encode("utf-8")
-        backend_host_header = "localhost:9527"
+        backend_host_header = "localhost:7750"
         last_error = "not_attempted"
         for _ in range(180):
             try:
@@ -185,7 +186,7 @@ services:
         condition: none
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == swarm-worker-1
 
 volumes:
   pulsar-data:
@@ -194,7 +195,4 @@ volumes:
 networks:
   service_access_link:
     name: service_access_link
-    external: true
-  tiny_swarm_world_ingress:
-    name: tiny_swarm_world_ingress
     external: true

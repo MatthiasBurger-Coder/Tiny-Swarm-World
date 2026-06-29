@@ -38,8 +38,8 @@ nodes:
     profile: docker-swarm
     image_alias: ubuntu-24.04
     resources:
-      cpu: "1"
-      memory: 2GiB
+      cpu: "4"
+      memory: 8GiB
       disk: 10GiB
     networks:
       - control

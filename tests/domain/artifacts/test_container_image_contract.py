@@ -23,6 +23,8 @@ class TestContainerImageContract(unittest.TestCase):
                 "sonarqube-postgres",
                 "swagger-editor",
                 "swagger-ui",
+                "pulsar",
+                "pulsar-manager",
                 "pulsar-manager-bootstrap",
                 "swagger-nginx",
             ),
@@ -64,6 +66,11 @@ class TestContainerImageContract(unittest.TestCase):
         self.assertEqual(
             "swaggerapi/swagger-ui:v5.32.6",
             contracts_by_context["swagger-ui"].image_ref,
+        )
+        self.assertEqual("apachepulsar/pulsar:3.0.17", contracts_by_context["pulsar"].image_ref)
+        self.assertEqual(
+            "apachepulsar/pulsar-manager:v0.4.0",
+            contracts_by_context["pulsar-manager"].image_ref,
         )
         self.assertEqual(
             "python:3.12-alpine",

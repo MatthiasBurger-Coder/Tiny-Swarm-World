@@ -140,6 +140,24 @@ class TestSecretManagement(unittest.TestCase):
             self.assertIn("generated_secret", classifications)
             self.assertIn("blocker", classifications)
 
+    def test_secret_discovery_treats_credential_item_refs_as_references(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _write_repo_fixture(
+                root,
+                "ports.yaml",
+                "credential_item_ref: platform/portainer\n"
+                'credential_note: "Open Infisical item"\n',
+            )
+            discovery = SecretDiscoveryStep(repo_root=root)
+
+            findings = discovery.run()
+
+        classifications = {finding.key: finding.classification for finding in findings}
+        self.assertEqual("placeholder_only", classifications["credential_item_ref"])
+        self.assertEqual("false_positive", classifications["credential_note"])
+        self.assertNotIn("blocker", set(classifications.values()))
+
     def test_redactor_redacts_values_and_assignments(self):
         redactor = SecretRedactor((operator_credential(),))
         key = sample_text("PASS", "WORD")

@@ -5,11 +5,15 @@ import os
 import re
 import shutil
 import subprocess
+import time
+import warnings
 from dataclasses import replace
 from pathlib import Path
 from typing import cast
 from urllib.parse import urlparse
 from uuid import uuid4
+
+import requests
 
 from tiny_swarm_world.application.ports.method_trace import PortMethodTrace
 from tiny_swarm_world.application.services.artifacts import (
@@ -37,10 +41,7 @@ from tiny_swarm_world.application.services.deployment import (
     InfisicalSilentInstallConfig,
     EnsurePortainerEndpoint,
     EnsurePortainerAdminAccess,
-    EnsureSonarqubeAdminAccess,
     EnsureSwarmStack,
-    EnsureSwarmServiceReadiness,
-    VerifySwarmServiceReadiness,
     InfisicalSecretItem,
     InfisicalSecretSyncStep,
     SecretConsumptionVerifier,
@@ -153,9 +154,6 @@ from tiny_swarm_world.infrastructure.adapters.clients.infisical_cli_client impor
 from tiny_swarm_world.infrastructure.adapters.clients.infisical_bootstrap_http_client import (
     InfisicalBootstrapHttpClient,
 )
-from tiny_swarm_world.infrastructure.adapters.clients.sonarqube_http_client import (
-    SonarqubeHttpClient,
-)
 from tiny_swarm_world.infrastructure.adapters.configuration import (
     CombinedConfigurationSource,
     EnvironmentConfigurationSource,
@@ -255,6 +253,10 @@ NEXUS_IMAGE_ENVIRONMENT = "TSW_NEXUS_IMAGE"
 JENKINS_IMAGE_ENVIRONMENT = "TSW_JENKINS_IMAGE"
 SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"
 SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_NGINX_IMAGE"
+PULSAR_IMAGE_ENVIRONMENT = "TSW_PULSAR_IMAGE"
+PULSAR_MANAGER_IMAGE_ENVIRONMENT = "TSW_PULSAR_MANAGER_IMAGE"
+DEFAULT_PULSAR_IMAGE = "apachepulsar/pulsar:3.0.17"
+DEFAULT_PULSAR_MANAGER_IMAGE = "apachepulsar/pulsar-manager:v0.4.0"
 INFISICAL_IMAGE_ENVIRONMENT = "TSW_INFISICAL_IMAGE"
 INFISICAL_POSTGRES_IMAGE_ENVIRONMENT = "TSW_INFISICAL_POSTGRES_IMAGE"
 INFISICAL_REDIS_IMAGE_ENVIRONMENT = "TSW_INFISICAL_REDIS_IMAGE"
@@ -341,6 +343,94 @@ class _VerifiedPlatformProviderStep:
                 "reason": self.reason,
                 "requested_provider": self.provider_request.requested_provider.value,
             },
+        )
+
+
+class EndpointReadinessCheck:
+    def __init__(
+        self,
+        service_stack: ServiceStackContract,
+        *,
+        verification_target_id: str | None = None,
+        max_attempts: int = 60,
+        wait_seconds: int = 5,
+        timeout_seconds: int = 5,
+        session: requests.Session | None = None,
+    ) -> None:
+        if max_attempts <= 0:
+            raise ValueError("Endpoint readiness attempts must be positive.")
+        if wait_seconds < 0:
+            raise ValueError("Endpoint readiness wait seconds must not be negative.")
+        if timeout_seconds <= 0:
+            raise ValueError("Endpoint readiness timeout must be positive.")
+        self.service_stack = service_stack
+        self.verification_target_id = verification_target_id or service_stack.service_readiness_target_id
+        self.deployment_target_id = self.verification_target_id
+        self.max_attempts = max_attempts
+        self.wait_seconds = wait_seconds
+        self.timeout_seconds = timeout_seconds
+        self.session = session or requests.Session()
+        self._verification = VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.BLOCKED,
+            message="Endpoint readiness has not run yet.",
+            evidence={
+                "phase": "apply",
+                "reason": "readiness_not_run",
+                "stack_name": service_stack.stack_name,
+            },
+        )
+
+    def run(self) -> None:
+        self._verification = self._probe_until_ready(phase="apply")
+
+    def verify(self) -> VerificationResult:
+        if self._verification.status is not VerificationStatus.BLOCKED:
+            return self._verification
+        return self._probe_until_ready(phase="verify")
+
+    def _probe_until_ready(self, *, phase: str) -> VerificationResult:
+        if not self.service_stack.endpoints:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.BLOCKED,
+                message="Endpoint readiness has no configured endpoints.",
+                evidence=_endpoint_readiness_evidence(self.service_stack, {}, phase=phase, attempt=0),
+            )
+        last_statuses: dict[str, str] = {}
+        for attempt in range(1, self.max_attempts + 1):
+            last_statuses = {
+                endpoint.name: _endpoint_status(
+                    self.session,
+                    endpoint.url,
+                    timeout_seconds=self.timeout_seconds,
+                )
+                for endpoint in self.service_stack.endpoints
+            }
+            if all(_endpoint_status_ready(status) for status in last_statuses.values()):
+                return VerificationResult(
+                    target_id=self.verification_target_id,
+                    status=VerificationStatus.VERIFIED,
+                    message="Service endpoints are reachable.",
+                    evidence=_endpoint_readiness_evidence(
+                        self.service_stack,
+                        last_statuses,
+                        phase=phase,
+                        attempt=attempt,
+                    ),
+                )
+            if attempt < self.max_attempts:
+                time.sleep(self.wait_seconds)
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.FAILED_TO_VERIFY,
+            message="Service endpoints did not become reachable in time.",
+            evidence=_endpoint_readiness_evidence(
+                self.service_stack,
+                last_statuses,
+                phase=phase,
+                attempt=self.max_attempts,
+            ),
         )
 
 
@@ -835,7 +925,10 @@ def build_lxc_artifact_services(
     project_paths = default_project_paths()
     nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD")
     nexus_client = LxcNexusHttpClient(backend=backend)
-    container_runtime = LxcContainerRuntime(backend=backend)
+    container_runtime = LxcContainerRuntime(
+        backend=backend,
+        node_names=tuple(node.name for node in DEFAULT_LXC_PLATFORM_NODES),
+    )
     image_publisher = LxcContainerImagePublisher(
         backend=backend,
         registry_username="admin",
@@ -1006,25 +1099,13 @@ def build_lxc_deployment_services(
         if contract.stack_name not in {"portainer", "nexus", "traefik"}
     )
     if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS:
-        application_steps = (stack_steps["traefik"], *application_steps)
-    application_steps = _with_post_stack_steps(
-        application_steps,
-        "sonarqube",
-        (
-            EnsureSonarqubeAdminAccess(
-                sonarqube_client=SonarqubeHttpClient("http://localhost:12000"),
-                username=_operator_config_value("TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
-                password=lambda: _required_operator_secret_value("TSW_SONARQUBE_ADMIN_PASSWORD"),
-                max_attempts=120,
-                wait_seconds=5,
-            ),
-        ),
-    )
+        application_steps = _prioritize_infisical_apply_steps(
+            (stack_steps["traefik"], *application_steps)
+        )
     infisical_cli_client = InfisicalCliClient()
     service_stack_by_name = {contract.stack_name: contract for contract in service_stack_contracts}
     infisical_apply_readiness_steps = _infisical_apply_readiness_steps(
         selected_service_profile,
-        swarm_runtime=swarm_runtime,
         service_stack_by_name=service_stack_by_name,
     )
     infisical_bootstrap_steps = _infisical_bootstrap_steps(
@@ -1057,11 +1138,10 @@ def build_lxc_deployment_services(
     )
     infisical_seed_steps = _infisical_secret_seed_steps(selected_service_profile)
     readiness_checks = tuple(
-        VerifySwarmServiceReadiness(
-            swarm_runtime=swarm_runtime,
+        EndpointReadinessCheck(
             service_stack=contract,
             max_attempts=60,
-            wait_seconds=10,
+            wait_seconds=5,
         )
         for contract in service_stack_contracts
     )
@@ -1567,6 +1647,51 @@ def _operator_secret_value(name: str) -> str:
     return os.environ.get(name) or f"<operator-supplied:{name}>"
 
 
+def _endpoint_status(
+    session: requests.Session,
+    url: str,
+    *,
+    timeout_seconds: int,
+) -> str:
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            response = session.get(url, timeout=timeout_seconds, verify=False)
+    except requests.Timeout:
+        return "timeout"
+    except requests.RequestException:
+        return "connection_error"
+    return f"http_{response.status_code}"
+
+
+def _endpoint_status_ready(status: str) -> bool:
+    if not status.startswith("http_"):
+        return False
+    try:
+        status_code = int(status.removeprefix("http_"))
+    except ValueError:
+        return False
+    return 100 <= status_code < 500
+
+
+def _endpoint_readiness_evidence(
+    service_stack: ServiceStackContract,
+    statuses: dict[str, str],
+    *,
+    phase: str,
+    attempt: int,
+) -> dict[str, str]:
+    return {
+        "attempt": str(attempt),
+        "endpoint_statuses": ",".join(
+            f"{name}={status}" for name, status in sorted(statuses.items())
+        ),
+        "evidence_kind": "service_endpoint_http",
+        "phase": phase,
+        "stack_name": service_stack.stack_name,
+    }
+
+
 def _wsl_lxc_lifecycle_capability_available() -> bool:
     return (
         _wsl_unprivileged_userns_clone_available()
@@ -1784,6 +1909,14 @@ def _deployment_stack_environment(
             "TSW_JENKINS_ADMIN_PASSWORD": _operator_secret_value("TSW_JENKINS_ADMIN_PASSWORD"),
         },
         "pulsar": {
+            PULSAR_IMAGE_ENVIRONMENT: _operator_config_value(
+                PULSAR_IMAGE_ENVIRONMENT,
+                DEFAULT_PULSAR_IMAGE,
+            ),
+            PULSAR_MANAGER_IMAGE_ENVIRONMENT: _operator_config_value(
+                PULSAR_MANAGER_IMAGE_ENVIRONMENT,
+                DEFAULT_PULSAR_MANAGER_IMAGE,
+            ),
             "TSW_PULSAR_TOKEN_SECRET_KEY": _operator_secret_value("TSW_PULSAR_TOKEN_SECRET_KEY"),
             "TSW_PULSAR_ADMIN_TOKEN": _operator_secret_value("TSW_PULSAR_ADMIN_TOKEN"),
             "TSW_PULSAR_MANAGER_ADMIN_PASSWORD": _operator_secret_value("TSW_PULSAR_MANAGER_ADMIN_PASSWORD"),
@@ -1854,6 +1987,8 @@ def _container_image_contracts_from_environment() -> tuple[ContainerImageContrac
         "infisical": INFISICAL_IMAGE_ENVIRONMENT,
         "infisical-postgres": INFISICAL_POSTGRES_IMAGE_ENVIRONMENT,
         "infisical-redis": INFISICAL_REDIS_IMAGE_ENVIRONMENT,
+        "pulsar": PULSAR_IMAGE_ENVIRONMENT,
+        "pulsar-manager": PULSAR_MANAGER_IMAGE_ENVIRONMENT,
     }
     contracts = []
     for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS:
@@ -1959,11 +2094,10 @@ def _infisical_secret_seed_steps(
 def _infisical_apply_readiness_steps(
     service_profile: ServiceStackProfile,
     *,
-    swarm_runtime: LxcSwarmRuntime,
     service_stack_by_name: dict[str, ServiceStackContract],
-) -> tuple[EnsureSwarmServiceReadiness, ...]:
+) -> tuple[EndpointReadinessCheck, ...]:
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
-        readiness_steps: list[EnsureSwarmServiceReadiness] = []
+        readiness_steps: list[EndpointReadinessCheck] = []
         return tuple(readiness_steps)
     attempts = _operator_config_int(
         INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT,
@@ -1976,15 +2110,13 @@ def _infisical_apply_readiness_steps(
         minimum=0,
     )
     readiness_steps = [
-        EnsureSwarmServiceReadiness(
-            swarm_runtime,
+        EndpointReadinessCheck(
             service_stack_by_name["infisical"],
             verification_target_id="deployment:infisical-bootstrap-service-readiness",
             max_attempts=attempts,
             wait_seconds=int(interval),
         ),
-        EnsureSwarmServiceReadiness(
-            swarm_runtime,
+        EndpointReadinessCheck(
             service_stack_by_name["service-access"],
             verification_target_id="deployment:infisical-bootstrap-access-readiness",
             max_attempts=attempts,
@@ -2086,6 +2218,22 @@ def _with_infisical_post_apply_steps(
     if not inserted:
         ordered_steps.extend(post_steps)
     return tuple(ordered_steps)
+
+
+def _prioritize_infisical_apply_steps(
+    application_steps: tuple[object, ...],
+) -> tuple[object, ...]:
+    priority_stack_names = ("traefik", "infisical", "service-access")
+    prioritized: list[object] = []
+    remaining = list(application_steps)
+    for stack_name in priority_stack_names:
+        for index, step in enumerate(remaining):
+            service_stack = getattr(step, "service_stack", None)
+            if getattr(service_stack, "stack_name", "") == stack_name:
+                prioritized.append(step)
+                del remaining[index]
+                break
+    return (*prioritized, *remaining)
 
 
 def _with_post_stack_steps(

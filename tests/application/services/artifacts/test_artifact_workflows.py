@@ -83,7 +83,10 @@ class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
             "NexusAdminAccessRecoveryBlocked",
             result.verification_results[0].evidence["failure_class"],
         )
-        self.assertIn("reset existing Nexus state", result.verification_results[0].evidence["operator_action"])
+        self.assertEqual(
+            "initial_admin_value_unavailable_recovery",
+            result.verification_results[0].evidence["operator_action_code"],
+        )
 
     async def test_prepare_workflow_reports_failed_verification(self):
         step = _FailedVerificationPrepareStep()
