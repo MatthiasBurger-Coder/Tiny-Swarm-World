@@ -1148,6 +1148,13 @@ def build_lxc_deployment_services(
         )
         for contract in service_stack_contracts
     )
+    pre_apply_steps = [
+        _PrepareLxcStackAssets(swarm_runtime, "traefik"),
+        _PrepareLxcStackAssets(swarm_runtime, "swagger"),
+    ]
+    if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS:
+        pre_apply_steps.append(_PrepareLxcStackAssets(swarm_runtime, "service-access"))
+
     return DeploymentServices(
         workflows=DeploymentWorkflows(
             bootstrap=DeploymentApplyWorkflow(
@@ -1166,10 +1173,7 @@ def build_lxc_deployment_services(
                         ),
                     ),
                 ),
-                pre_apply_steps=(
-                    _PrepareLxcStackAssets(swarm_runtime, "traefik"),
-                    _PrepareLxcStackAssets(swarm_runtime, "swagger"),
-                ),
+                pre_apply_steps=tuple(pre_apply_steps),
             ),
             verify=DeploymentVerifyWorkflow(readiness_checks),
         )
