@@ -208,6 +208,10 @@ Implemented repository behavior:
   `infra/config/compose/service-access/nginx/**` provide image-packaged
   assets for the Portainer-managed path. The dashboard asset is rendered from
   the effective service-access model and committed for image packaging.
+* The LXC Swarm runtime renders the dashboard from the same effective model
+  during stack asset preparation and writes it to
+  `${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` before the
+  service-access stack deployment consumes the compose config.
 * The setup CLI uses `ServiceStackProfile.SERVICE_ACCESS` by default so the
   selected setup profile includes the service-access landing page contract.
   Operators can use `--service-profile default` to run only the older base
@@ -260,6 +264,11 @@ stack upload.
 For a Portainer-managed service-access stack, dashboard and NGINX assets are
 image-packaged. Do not rely on bind-mounted repository files unless a later
 slice adds a tested asset-preparation boundary.
+
+For the LXC Swarm runtime path, the tested asset-preparation boundary is the
+`deployment:service-access-stack-assets` step. It writes freshly generated
+dashboard HTML to the remote stack root path used by the compose config; the
+committed static dashboard remains package and review material.
 
 The dashboard is a generated management table with `Service`, `URL`, `User`
 and `Password` columns. Service entries use central route paths and Infisical

@@ -147,7 +147,7 @@ distinguish service images, secret values, secret names, paths, and defaults.
 | `TSW_INFISICAL_SITE_URL` | `http://localhost:17080` | URL | Infisical compose |
 | `TSW_INFISICAL_POSTGRES_USER` | `infisical` | identifier | Infisical compose |
 | `TSW_INFISICAL_POSTGRES_DB` | `infisical` | identifier | Infisical compose |
-| `TSW_REMOTE_STACK_ROOT` | `/var/lib/tiny-swarm-world/stacks` | POSIX path inside managed node | Swagger and Traefik compose, LXC swarm runtime |
+| `TSW_REMOTE_STACK_ROOT` | `/var/lib/tiny-swarm-world/stacks` | POSIX path inside managed node | Swagger, Traefik, and Service Access dashboard compose configs; LXC swarm runtime |
 | `TSW_TRAEFIK_IMAGE` | `traefik:v3.7.4` | image reference | Traefik compose |
 | `TSW_TRAEFIK_TLS_CERT_SECRET_NAME` | `tsw_traefik_tls_cert` | external secret name | Traefik compose, installer |
 | `TSW_TRAEFIK_TLS_KEY_SECRET_NAME` | `tsw_traefik_tls_key` | external secret name | Traefik compose, installer |

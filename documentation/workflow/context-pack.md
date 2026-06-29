@@ -6,7 +6,7 @@ Branch: `fix/workflow-service-access-dashboard-html-20260629`
 Issue: `local-high-service-access-dashboard-html-deployment-sync`
 Process Strand: `workflow create -> workflow execute`
 Execution Profile: `NORMAL_PATH`
-Status: `READY_FOR_WORKFLOW_EXECUTE_LOCAL_ONLY_REMOTE_PUBLICATION_BLOCKED`
+Status: `EXECUTED_LOCAL_QUALITY_PASSED_REMOTE_PUBLICATION_BLOCKED`
 
 ## Orientation
 
@@ -92,7 +92,11 @@ Live opt-in:
 - `infra/config/compose/service-access/dashboard/index.html`
 - `documentation/arc42/07_deployment/system.adoc`
 - `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/08_configuration/config-contract-inventory.md`
 - `documentation/arc42/09_decisions/adr-service-access-dashboard-vaultwarden.adoc`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/user_guide/usage.adoc`
+- `documentation/user_guide/troubleshooting.adoc`
 
 ## Hash Provenance
 
@@ -105,3 +109,9 @@ Workflow authoring is local on
 `origin` is blocked because GitHub SSH authentication failed with
 `Permission denied (publickey)`. The workflow remains locally authored until
 credentials are fixed and the branch is pushed.
+
+## Execution Note
+
+Local workflow execution completed with targeted tests, `git diff --check`,
+and the repository quality gate passing through the WSL `.venv`. Remote branch
+publication remains blocked by GitHub SSH authentication.

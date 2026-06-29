@@ -5,7 +5,7 @@ Workflow ID: `workflow-service-access-dashboard-html-20260629`
 Created: `2026-06-29`
 Issue: `local-high-service-access-dashboard-html-deployment-sync`
 Branch: `fix/workflow-service-access-dashboard-html-20260629`
-Status: `READY_FOR_WORKFLOW_EXECUTE_LOCAL_ONLY_REMOTE_PUBLICATION_BLOCKED`
+Status: `EXECUTED_LOCAL_QUALITY_PASSED_REMOTE_PUBLICATION_BLOCKED`
 Evidence Root: `.codex/evidence/workflow-service-access-dashboard-html-20260629/`
 
 ## Executive Summary
@@ -174,12 +174,12 @@ Senior Tester:
 
 | ID | Requirement | Type | Likely files | Implementation evidence | Verification evidence | Status |
 |----|-------------|------|--------------|-------------------------|-----------------------|--------|
-| REQ-001 | Service Access dashboard deployment content is generated from `render_service_access_dashboard()` or the same effective access model renderer. | Functional | `compose_file_repository_yaml.py`, `lxc_swarm_runtime.py` | Renderer or injected asset provider wired into stack asset transfer. | Unit test compares transferred `input_text` to generated dashboard HTML. | Planned |
-| REQ-002 | Generated HTML is written to `${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` before service-access stack deployment consumes the compose config. | Functional | `lxc_swarm_runtime.py`, `composition.py` | Asset transfer runs before `docker stack deploy` and uses configured `remote_stack_root`. | Unit test verifies call order and exact remote path. | Planned |
-| REQ-003 | Static committed dashboard HTML is not the hidden deployment source of truth. | Regression | `tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py` | Runtime transfer uses generated content even when a temporary static file is stale. | Regression fixture with stale static file. | Planned |
-| REQ-004 | The service-access deployment workflow makes the asset preparation step visible. | Process | `composition.py`, `composition_lxc_runtimes.py`, tests | Service-access stack asset pre-apply or deploy-time preparation is explicit and named. | Composition test checks `deployment:service-access-stack-assets` where applicable. | Planned |
-| REQ-005 | No secret file or password value is read, written, logged or committed for this synchronization. | Security | tests, docs, runtime adapter | No dependency on `.tiny-swarm/secrets/generated.local.env`; dashboard remains password-value free. | Static tests and diff review. | Planned |
-| REQ-006 | Documentation describes the generated remote deployment asset and keeps live verification separate. | Documentation | `documentation/arc42/**`, `documentation/system/**`, `documentation/user_guide/**` | Documentation update, if execution changes documented behavior. | `git diff --check`; review of doc wording. | Planned |
+| REQ-001 | Service Access dashboard deployment content is generated from `render_service_access_dashboard()` or the same effective access model renderer. | Functional | `compose_file_repository_yaml.py`, `lxc_swarm_runtime.py` | `LxcSwarmRuntime` accepts and uses the injected compose repository dashboard renderer for Service Access asset transfer. | Runtime unit test compares transferred `input_text` to generated dashboard HTML. | Verified |
+| REQ-002 | Generated HTML is written to `${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` before service-access stack deployment consumes the compose config. | Functional | `lxc_swarm_runtime.py`, `composition.py` | `prepare_stack_assets("service-access")` writes `dashboard/index.html`; service-access pre-apply step is exposed before stack apply. | Runtime and composition tests verify path and step metadata. | Verified |
+| REQ-003 | Static committed dashboard HTML is not the hidden deployment source of truth. | Regression | `tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py` | Runtime transfer uses generated content even when a temporary static file is stale. | Regression fixture with stale static file passed after Slice 02. | Verified |
+| REQ-004 | The service-access deployment workflow makes the asset preparation step visible. | Process | `composition.py`, `composition_lxc_runtimes.py`, tests | `deployment:service-access-stack-assets` is present for `ServiceStackProfile.SERVICE_ACCESS`. | Composition tests verify pre-apply target IDs. | Verified |
+| REQ-005 | No secret file or password value is read, written, logged or committed for this synchronization. | Security | tests, docs, runtime adapter | No dependency on `.tiny-swarm/secrets/generated.local.env`; dashboard transfer uses non-secret generated HTML. | Diff review and evidence confirm the local generated secret file was not read. | Verified |
+| REQ-006 | Documentation describes the generated remote deployment asset and keeps live verification separate. | Documentation | `documentation/arc42/**`, `documentation/system/**`, `documentation/user_guide/**` | Deployment, operation-surface, config-contract and user-guide docs now describe generated remote asset sync. | `git diff --check` passed and full quality gate passed. | Verified |
 
 ## Target Picture
 
@@ -533,6 +533,7 @@ affected_files:
   - "documentation/system/live-operation-surfaces.adoc"
   - "documentation/user_guide/installation.adoc"
   - "documentation/user_guide/usage.adoc"
+  - "documentation/user_guide/troubleshooting.adoc"
   - "documentation/workflow/workflow.md"
   - "documentation/workflow/context-pack.md"
   - "documentation/workflow/context-pack.json"
@@ -768,6 +769,22 @@ Stop and report if:
   reachability evidence.
 - Full quality gate passes after implementation, or blockers are reported.
 
+## Execution Result
+
+Local execution completed on 2026-06-29.
+
+- Slices 01 through 04 were executed serially on
+  `fix/workflow-service-access-dashboard-html-20260629`.
+- Targeted workflow tests passed.
+- `git diff --check` passed.
+- `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World_2 && .venv/bin/python tools/quality_gate.py quality'`
+  passed: lint, arch-lint, arch-tests, typecheck and 1232 unit tests.
+- A first full-gate attempt with WSL system `python3` failed before code
+  checks because `ruff` was not installed there. The repository WSL `.venv`
+  contains the required quality tools and was used for the successful gate.
+- Remote publication remains blocked by SSH authentication:
+  `Permission denied (publickey)`.
+
 ## Handoff To Workflow Execute
 
 Run `workflow execute` only after confirming:
@@ -775,7 +792,7 @@ Run `workflow execute` only after confirming:
 - active branch:
   `fix/workflow-service-access-dashboard-html-20260629`
 - current workflow status:
-  `READY_FOR_WORKFLOW_EXECUTE_LOCAL_ONLY_REMOTE_PUBLICATION_BLOCKED`
+  `EXECUTED_LOCAL_QUALITY_PASSED_REMOTE_PUBLICATION_BLOCKED`
 - context pack hashes are current
 - no unrelated working-tree changes exist
 - no live infrastructure commands are run without explicit operator consent

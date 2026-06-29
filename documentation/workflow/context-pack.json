@@ -5,7 +5,7 @@
   "issue": "local-high-service-access-dashboard-html-deployment-sync",
   "process_strand": "workflow create -> workflow execute",
   "execution_profile": "NORMAL_PATH",
-  "status": "READY_FOR_WORKFLOW_EXECUTE_LOCAL_ONLY_REMOTE_PUBLICATION_BLOCKED",
+  "status": "EXECUTED_LOCAL_QUALITY_PASSED_REMOTE_PUBLICATION_BLOCKED",
   "affected_areas": [
     "service-access-dashboard-html-generation",
     "service-access-compose-config-file-path",
@@ -68,16 +68,20 @@
     ".agents/roles/senior-devops.md": "91fd2c58fa6d6f83f5e3c94850cd37bcf8f9a6bc7793d24f5eccf83dfd6b41ad",
     ".agents/roles/senior-documentation-engineer.md": "95de0bdb5d550452f082e18952906b2d669febc5237385f8f9f0360a60ca83b1",
     ".agents/roles/senior-react-frontend.md": "3b29296f298194e82c80af3a42c2181cd3f340471454da9be3ba662c746b4e0d",
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py": "60463caa13ee1c3ffc66688f93085fce3cea754a3bb92e3c12b808827784283d",
+    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py": "8af2fc40f28923db33032ab531a1dc145c5ea7b00760d517d7ecef408f86376d",
     "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py": "e5b7081dbd7d3f30b1afed58788acffb773e40bc3247f515e4128fded931c7c8",
-    "src/tiny_swarm_world/infrastructure/composition.py": "8f511fa0310c09f66eccc577ff53540e63893fd7fbc4697c8f2cc5a14e125161",
+    "src/tiny_swarm_world/infrastructure/composition.py": "2f8f9eae88923954b3b15134c6b8af707ea7d6eb3afd47c703af3f730d3733f8",
     "src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py": "ffdf110dc8ecff18d05c74c053958643f5e4c8e38f573a6fa0085ddaf7345e72",
     "infra/config/compose/service-access/docker-compose.yml": "38d5e223c2c999ec1da5913888d679407e452836ca3cf68331ce471cd6464cc8",
     "infra/config/compose/service-access/dashboard/index.html": "f440c4823e5a32488d4bdbb8106f0a93dba501eb07ccd255c9b5e34af777cc6c",
-    "documentation/arc42/07_deployment/system.adoc": "fd24c442b3620e9224394f4d42c0633a68239ee6a2e707c43d3b92d6d374e678",
-    "documentation/arc42/07_deployment_view.adoc": "23fc2597b85165b7d00a79192ca4170fd01eb64f8c7340ee611c1109b5f5b025",
+    "documentation/arc42/07_deployment/system.adoc": "f20ac917814e504e166cd76b24f77917c13d2605f8a9c250f53602da267b7cbb",
+    "documentation/arc42/07_deployment_view.adoc": "7b82a21876bb640474b5321cc6378793810c762b6ea91e18079cc62b28bc527a",
+    "documentation/arc42/08_configuration/config-contract-inventory.md": "f0a70deea56a773fc1e4423174eac87e6940d8989d0eede7af962a3fc2706f4d",
     "documentation/arc42/09_decisions/adr-service-access-dashboard-vaultwarden.adoc": "c4533683dfbd70052564ef079bd653189586392ab4afa81e1d0cc960d57e639f",
-    "documentation/workflow/workflow.md": "204323a8c642e32166dbc3528a747ff0181c37712909dbecb56b5b836bcde75e",
-    "documentation/workflow/context-pack.md": "d520ad309307909e9793da1004c7011794259452f1dc116a46fdb8c6a6bf928e"
+    "documentation/system/live-operation-surfaces.adoc": "49afc854e30ad722296110af274c4b425c2cf63cb2056e9d14c678b725d4b098",
+    "documentation/user_guide/usage.adoc": "54d92952aee3805a4f3530c13cd456cea218ff39c8bae058ef9ce15f0412c4eb",
+    "documentation/user_guide/troubleshooting.adoc": "00f901a4454f8d9adafe9da533d5b1573bbf3ef78f8a24c9ff2758a24dbf1f33",
+    "documentation/workflow/workflow.md": "bb3986756694095e79d90cb70725525bb496b0e0fa09eefefd1aaa6a12df7f28",
+    "documentation/workflow/context-pack.md": "73260d3b099412643f892973727031c723db893a15f55e881b3a321d69469c55"
   }
 }
