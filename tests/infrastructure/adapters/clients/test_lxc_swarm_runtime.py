@@ -130,6 +130,28 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertEqual(generated_dashboard, input_text)
         self.assertNotIn("stale-dashboard", input_text)
 
+    def test_render_service_access_dashboard_falls_back_to_compose_repository(self):
+        with TemporaryDirectory() as temporary_directory:
+            project_paths = ProjectPaths.from_roots(Path(temporary_directory))
+            runtime = LxcSwarmRuntime(
+                backend=ManagedLxcBackend.LXD,
+                project_paths=project_paths,
+            )
+
+            with patch(
+                "tiny_swarm_world.infrastructure.adapters.repositories."
+                "compose_file_repository_yaml.ComposeFileRepositoryYaml"
+            ) as compose_repository:
+                compose_repository.return_value.render_service_access_dashboard.return_value = (
+                    "<html>generated-dashboard</html>"
+                )
+
+                dashboard_html = runtime._render_service_access_dashboard()
+
+        self.assertEqual("<html>generated-dashboard</html>", dashboard_html)
+        compose_repository.assert_called_once_with(project_paths=project_paths)
+        compose_repository.return_value.render_service_access_dashboard.assert_called_once_with()
+
     def test_traefik_tls_secret_generation_covers_local_ingress_hostnames(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
 
