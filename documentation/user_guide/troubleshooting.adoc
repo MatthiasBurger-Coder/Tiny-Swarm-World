@@ -328,12 +328,54 @@ confirmation phrase as permission to delete unrelated containers.
 
 If reset reports `managed_nodes_reset_blocked` with
 `first_failure_classification=reset_existing_node_not_managed`, a configured
-node name already exists but does not carry the expected Tiny Swarm World
-ownership markers. Inspect the reset evidence for `first_failure_node` and
-`first_failure_mismatch_reasons`. Resolve that named container manually before
-rerunning the installer: keep it if it is unrelated, rename/remove it only if
-you intentionally own that local resource, or recreate it through the guarded
-setup workflow so the managed markers are written by automation.
+node name already exists but does not fully match the expected Tiny Swarm
+World ownership, profile, config, or device safety evidence. The marker
+fields may still report `matches` when another safety check blocks mutation.
+Inspect the reset evidence for `first_failure_node`,
+`first_failure_mismatch_reasons`, and
+`first_failure_unsafe_instance_settings` when present. A mismatch reason of
+`unsafe_instance_config` means the existing instance has guarded Incus/LXC
+config such as `security.privileged=true` without the explicit privileged
+ingress override, or a `raw.*` config key. Resolve that named container
+manually before rerunning the installer: keep it if it is unrelated,
+rename/remove it only if you intentionally own that local resource, or
+recreate it through the guarded setup workflow so the managed markers and
+expected config are written by automation.
+
+For `first_failure_unsafe_instance_settings: security.privileged`, inspect
+both the configured instances and the shared profile. Profile-level
+`security.privileged=true` can make every configured node fail the reset
+preflight even when each node's ownership markers match:
+
+[source,bash]
+----
+for node in swarm-manager swarm-worker-1 swarm-worker-2; do
+  printf '\n== %s ==\n' "$node"
+  incus config get "$node" user.tiny_swarm_world.managed
+  incus config get "$node" user.tiny_swarm_world.node
+  incus config get "$node" user.tiny_swarm_world.image_alias
+  incus config get "$node" security.privileged
+done
+incus profile get docker-swarm security.privileged
+----
+
+Only after confirming the nodes are disposable Tiny Swarm World state, remove
+the privileged setting from the location that reports `true`, then rerun the
+installer:
+
+[source,bash]
+----
+incus profile unset docker-swarm security.privileged
+incus config unset swarm-manager security.privileged
+incus config unset swarm-worker-1 security.privileged
+incus config unset swarm-worker-2 security.privileged
+
+./install.sh --headless --confirm-reset --non-interactive-live-approval
+----
+
+If `raw.*` appears, inspect the exact raw setting on the named instance or
+profile and remove only the setting that belongs to disposable Tiny Swarm
+World state. Do not use wildcard cleanup for raw Incus/LXC settings.
 Direct instance-level `tsw-proxy-<port>` devices are drift. Current
 `platform expose` manages equivalent proxy devices in the manager-specific
 profile instead of creating direct manager instance devices. If reset reports
@@ -348,6 +390,59 @@ PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --liv
 The repair refuses devices whose equivalent manager-profile state is missing
 or drifted. Any remaining `unsafe_instance_devices` evidence points to direct
 runtime state that must be inspected and resolved intentionally.
+
+== Docker Installation Fails During Platform Init
+
+If live setup stops at `platform init: failed_to_apply`, inspect the setup
+evidence for `platform:init:lxc-container-runtime`. When the evidence includes
+`first_failure_reason: apt_repository_unreachable`, Tiny Swarm World created
+the managed LXC nodes, but Docker Engine installation inside those nodes could
+not reach Ubuntu or Docker APT repositories.
+
+Typical evidence:
+
+[source,text]
+----
+- platform:init:lxc-container-runtime: failed_to_apply
+  Evidence:
+  - classification: container_runtime_not_verified
+  - failed_apply_count: 3
+  - failed_nodes: swarm-manager,swarm-worker-1,swarm-worker-2
+  - first_failure_classification: docker_install_failed
+  - first_failure_node: swarm-manager
+  - first_failure_reason: apt_repository_unreachable
+----
+
+The Docker registry mirror and the Ubuntu/Docker APT mirrors are separate.
+`TSW_LXC_DOCKER_REGISTRY_MIRROR` does not replace `archive.ubuntu.com` or the
+Docker APT repository used during Docker Engine installation.
+
+First verify that containers can reach the network and resolve names from the
+same Incus backend:
+
+[source,bash]
+----
+incus exec swarm-manager -- getent hosts archive.ubuntu.com
+incus exec swarm-manager -- getent hosts security.ubuntu.com
+incus exec swarm-manager -- sh -lc 'apt-get update'
+----
+
+If outbound internet is intentionally blocked or unreliable, configure
+APT mirrors that are reachable from inside the Incus containers, then rerun
+the installer:
+
+[source,bash]
+----
+export TSW_LXC_UBUNTU_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/ubuntu-apt-proxy
+export TSW_LXC_UBUNTU_SECURITY_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/ubuntu-security-apt-proxy
+export TSW_LXC_DOCKER_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/docker-apt-proxy
+export TSW_LXC_DOCKER_APT_GPG_URL=http://<lxc-reachable-host>:8081/repository/docker-apt-proxy/gpg
+
+./install.sh --headless --confirm-reset --non-interactive-live-approval
+----
+
+Use an address reachable from inside the LXC nodes. Do not use `localhost`,
+`127.0.0.1`, or a Windows-only address for these mirror URLs.
 
 == Git Shows Line Ending Only Changes
 

@@ -112,35 +112,59 @@ def _aggregate_install_results(
         if status == VerificationStatus.VERIFIED
         else "container_runtime_not_verified"
     )
+    failed_nodes = _node_names_for_statuses(
+        results,
+        (
+            VerificationStatus.BLOCKED,
+            VerificationStatus.FAILED_TO_APPLY,
+            VerificationStatus.FAILED_TO_VERIFY,
+        ),
+    )
+    first_failure = next(
+        (result for result in results if result.status != VerificationStatus.VERIFIED),
+        None,
+    )
+    evidence = {
+        "phase": "verify",
+        "classification": classification,
+        "result_count": str(len(results)),
+        "verified_count": str(
+            sum(1 for result in results if result.status == VerificationStatus.VERIFIED)
+        ),
+        "blocked_count": str(
+            sum(1 for result in results if result.status == VerificationStatus.BLOCKED)
+        ),
+        "failed_apply_count": str(
+            sum(
+                1
+                for result in results
+                if result.status == VerificationStatus.FAILED_TO_APPLY
+            )
+        ),
+        "failed_verify_count": str(
+            sum(
+                1
+                for result in results
+                if result.status == VerificationStatus.FAILED_TO_VERIFY
+            )
+        ),
+        "failed_nodes": ",".join(failed_nodes),
+    }
+    if first_failure is not None:
+        first_classification = first_failure.evidence.get("classification")
+        first_node = first_failure.evidence.get("node")
+        first_reason = first_failure.evidence.get("failure_reason")
+        if first_classification is not None:
+            evidence["first_failure_classification"] = first_classification
+        if first_node is not None:
+            evidence["first_failure_node"] = first_node
+        if first_reason is not None:
+            evidence["first_failure_reason"] = first_reason
     return VerificationResult(
         target_id=LxcDockerInstallStep.verification_target_id,
         status=status,
         message="Container runtime phase reached a terminal state.",
-        evidence={
-            "phase": "verify",
-            "classification": classification,
-            "result_count": str(len(results)),
-            "verified_count": str(
-                sum(1 for result in results if result.status == VerificationStatus.VERIFIED)
-            ),
-            "blocked_count": str(
-                sum(1 for result in results if result.status == VerificationStatus.BLOCKED)
-            ),
-            "failed_apply_count": str(
-                sum(
-                    1
-                    for result in results
-                    if result.status == VerificationStatus.FAILED_TO_APPLY
-                )
-            ),
-            "failed_verify_count": str(
-                sum(
-                    1
-                    for result in results
-                    if result.status == VerificationStatus.FAILED_TO_VERIFY
-                )
-            ),
-        },
+        evidence=evidence,
     )
 
 

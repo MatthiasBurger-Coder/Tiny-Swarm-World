@@ -132,11 +132,13 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
                 node=_manager_node(),
                 state=DockerInstallState.FAILED,
                 verified=False,
+                failure_reason="apt_repository_unreachable",
             )
         )
 
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
         self.assertEqual("docker_install_failed", result.evidence["classification"])
+        self.assertEqual("apt_repository_unreachable", result.evidence["failure_reason"])
         self.assertEvidenceIsSummaryOnly(result)
 
     def test_swarm_manager_and_worker_outcomes_map_to_summary_verification(self):

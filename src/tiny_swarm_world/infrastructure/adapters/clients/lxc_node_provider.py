@@ -1386,10 +1386,17 @@ def _device_mapping(value: object) -> Mapping[str, Mapping[str, str]]:
 
 
 def _has_unsafe_instance_config(config: Mapping[str, str]) -> bool:
+    return bool(_unsafe_instance_config_keys(config))
+
+
+def _unsafe_instance_config_keys(config: Mapping[str, str]) -> tuple[str, ...]:
+    keys: list[str] = []
     privileged_enabled = config.get("security.privileged", "").casefold() == "true"
-    return (privileged_enabled and not _allow_privileged_swarm_ingress()) or any(
-        key.startswith("raw.") for key in config
-    )
+    if privileged_enabled and not _allow_privileged_swarm_ingress():
+        keys.append("security.privileged")
+    if any(key.startswith("raw.") for key in config):
+        keys.append("raw.*")
+    return tuple(keys)
 
 
 def _has_unsafe_instance_devices(
@@ -2080,6 +2087,7 @@ _FIRST_FAILURE_SAFE_EVIDENCE_KEYS = (
     "observed_node_marker",
     "repair_action",
     "stale_project_proxy_devices",
+    "unsafe_instance_settings",
 )
 
 
@@ -2109,6 +2117,9 @@ def _managed_node_mismatch_evidence(
     if stale_project_proxy_devices:
         evidence["repair_action"] = "explicit_lxc_proxy_drift_repair_required"
         evidence["stale_project_proxy_devices"] = ",".join(stale_project_proxy_devices)
+    unsafe_config_keys = _unsafe_instance_config_keys(observed_node.config)
+    if unsafe_config_keys:
+        evidence["unsafe_instance_settings"] = ",".join(unsafe_config_keys)
     return evidence
 
 

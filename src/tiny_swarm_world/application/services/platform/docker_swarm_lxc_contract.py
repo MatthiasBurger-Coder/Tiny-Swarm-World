@@ -138,17 +138,20 @@ class DockerSwarmInLxcContractService:
             if errors[0] == "docker_install_failed"
             else VerificationStatus.FAILED_TO_VERIFY
         )
+        evidence = {
+            "phase": "verify",
+            "classification": errors[0],
+            "node": outcome.node.name,
+            "role": outcome.node.role.value,
+            "install_state": outcome.state.value,
+        }
+        if outcome.failure_reason is not None:
+            evidence["failure_reason"] = outcome.failure_reason
         return VerificationResult(
             target_id=f"platform:container-docker-install:{outcome.node.name}",
             status=status,
             message="Container runtime setup is not verified.",
-            evidence={
-                "phase": "verify",
-                "classification": errors[0],
-                "node": outcome.node.name,
-                "role": outcome.node.role.value,
-                "install_state": outcome.state.value,
-            },
+            evidence=evidence,
         )
 
     def verify_swarm_manager_bootstrap(

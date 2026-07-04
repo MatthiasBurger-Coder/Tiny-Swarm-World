@@ -1001,6 +1001,46 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEvidenceIsSummaryOnly(result)
 
+    async def test_reset_managed_nodes_reports_unsafe_instance_settings(self):
+        runner = _FakeTeardownRunner(
+            _list(
+                _node(
+                    "swarm-manager",
+                    "Running",
+                    config={
+                        "security.privileged": "true",
+                        "raw.lxc": "lxc.apparmor.profile=unconfined",
+                    },
+                )
+            ),
+        )
+        provider = _provider(runner)
+
+        with patch.dict(
+            "os.environ",
+            {"TSW_LXC_ALLOW_PRIVILEGED_SWARM_INGRESS": ""},
+        ):
+            result = await provider.reset_nodes(
+                (_node_spec(),),
+                _selection(ManagedLxcBackend.LXD),
+            )
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual("managed_nodes_reset_blocked", result.evidence["classification"])
+        self.assertEqual(
+            "unsafe_instance_config",
+            result.evidence["first_failure_mismatch_reasons"],
+        )
+        self.assertEqual(
+            "security.privileged,raw.*",
+            result.evidence["first_failure_unsafe_instance_settings"],
+        )
+        self.assertEqual(
+            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
+            runner.calls,
+        )
+        self.assertEvidenceIsSummaryOnly(result)
+
     async def test_reset_managed_nodes_blocks_non_project_proxy_devices(self):
         runner = _FakeTeardownRunner(
             _list(

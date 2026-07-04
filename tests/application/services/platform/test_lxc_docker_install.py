@@ -78,6 +78,7 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
                 node=_node(),
                 state=DockerInstallState.FAILED,
                 verified=False,
+                failure_reason="apt_repository_unreachable",
             ),
         )
 
@@ -87,6 +88,7 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(1, len(results))
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, results[0].status)
+        self.assertEqual("apt_repository_unreachable", results[0].evidence["failure_reason"])
         self.assertEqual(0, runtime.verify_calls)
 
     async def test_unobserved_runtime_state_blocks_before_install(self):
@@ -126,6 +128,39 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             "container_runtime_verified",
             result.verification_results[0].evidence["classification"],
+        )
+
+    async def test_install_step_reports_first_failed_node_and_reason(self):
+        runtime = _DockerRuntime(
+            initial=ContainerDockerReadiness(
+                node=_node(),
+                observed=True,
+                engine_state=DockerEngineState.MISSING,
+            ),
+            install=ContainerDockerInstallOutcome(
+                node=_node(),
+                state=DockerInstallState.FAILED,
+                verified=False,
+                failure_reason="apt_repository_unreachable",
+            ),
+        )
+        step = LxcDockerInstallStep(
+            LxcDockerInstallService(runtime),
+            (_node(),),
+        )
+
+        result = await step.run()
+
+        self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual("swarm-manager", result.evidence["failed_nodes"])
+        self.assertEqual("swarm-manager", result.evidence["first_failure_node"])
+        self.assertEqual(
+            "docker_install_failed",
+            result.evidence["first_failure_classification"],
+        )
+        self.assertEqual(
+            "apt_repository_unreachable",
+            result.evidence["first_failure_reason"],
         )
 
 

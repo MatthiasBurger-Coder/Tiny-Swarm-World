@@ -161,6 +161,25 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("token=secret", repr(readiness))
         self.assertNotIn("/home/alice", repr(readiness))
 
+    async def test_failed_install_classifies_apt_repository_reachability(self):
+        runner = _FakeRunner(
+            LxcNodeCommandResult(
+                returncode=28,
+                stderr=(
+                    "W: Failed to fetch http://archive.ubuntu.com/ubuntu "
+                    "Could not connect to archive.ubuntu.com:80 "
+                    "(101: Network is unreachable)"
+                ),
+            )
+        )
+        runtime = _runtime(runner, allow_live_mutation=True)
+
+        outcome = await runtime.install_docker(_node())
+
+        self.assertEqual(DockerInstallState.FAILED, outcome.state)
+        self.assertEqual("apt_repository_unreachable", outcome.failure_reason)
+        self.assertNotIn("archive.ubuntu.com", repr(outcome))
+
 
 class _FakeRunner:
     def __init__(self, *results: LxcNodeCommandResult) -> None:

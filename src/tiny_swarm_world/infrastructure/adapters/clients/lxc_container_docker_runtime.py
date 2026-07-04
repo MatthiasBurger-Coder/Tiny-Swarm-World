@@ -181,6 +181,7 @@ class LxcContainerDockerRuntime(PortContainerDockerRuntime):
                 node=node,
                 state=DockerInstallState.FAILED,
                 verified=False,
+                failure_reason=_docker_install_failure_reason(result),
             )
 
         readiness = await self.verify_docker(node)
@@ -378,6 +379,25 @@ def _failure_state(result: LxcNodeCommandResult) -> DockerEngineState:
     if "not found" in output or "no such file" in output:
         return DockerEngineState.MISSING
     return DockerEngineState.ERROR
+
+
+def _docker_install_failure_reason(result: LxcNodeCommandResult) -> str:
+    output = _combined_output(result)
+    if result.timed_out:
+        return "docker_install_timed_out"
+    if (
+        "failed to fetch" in output
+        or "could not connect to archive.ubuntu.com" in output
+        or "could not connect to security.ubuntu.com" in output
+        or "network is unreachable" in output
+        or "connection timed out" in output
+    ):
+        return "apt_repository_unreachable"
+    if "could not resolve" in output or "temporary failure resolving" in output:
+        return "apt_dns_resolution_failed"
+    if "no route to host" in output:
+        return "apt_no_route_to_host"
+    return "docker_install_command_failed"
 
 
 def _combined_output(result: LxcNodeCommandResult) -> str:

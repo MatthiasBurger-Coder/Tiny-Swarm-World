@@ -174,9 +174,16 @@ class ContainerDockerInstallOutcome:
     node: NodeSpec
     state: DockerInstallState
     verified: bool
+    failure_reason: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "state", _docker_install_state(self.state))
+        if self.failure_reason is not None:
+            object.__setattr__(
+                self,
+                "failure_reason",
+                str(self.failure_reason).strip() or None,
+            )
 
     @property
     def successful(self) -> bool:

@@ -367,6 +367,7 @@ def run(
             },
         )
         _print_tail(evidence_dir / "reset-run.log", "Last reset log lines")
+        _print_reset_failure_guidance(evidence_dir / "reset-run.log")
         return reset_exit
 
     setup_exit = _run_phase(
@@ -413,6 +414,7 @@ def run(
         print(f"Installation failed with exit code {setup_exit}.", file=sys.stderr)
         print(f"Evidence directory: {evidence_dir.as_posix()}", file=sys.stderr)
         _print_tail(evidence_dir / "setup-run.log", "Last log lines")
+        _print_setup_failure_guidance(evidence_dir / "setup-run.log")
     return setup_exit
 
 
@@ -866,7 +868,10 @@ def _run_phase(
                 name,
                 reason=f"{name} exited with code {exit_code}.",
                 evidence_path=log_file,
-                suggested_commands=_suggested_checks_for_phase(name),
+                suggested_commands=_suggested_checks_for_phase(
+                    name,
+                    log_text=_read_text(log_file),
+                ),
                 sequence=sequence,
                 total=total,
             )
@@ -874,14 +879,21 @@ def _run_phase(
     return exit_code
 
 
-def _suggested_checks_for_phase(name: str) -> tuple[str, ...]:
+def _suggested_checks_for_phase(name: str, *, log_text: str = "") -> tuple[str, ...]:
     normalized = name.casefold()
     commands: list[str]
     if "setup" in normalized:
-        commands = [
-            "incus exec swarm-manager -- docker node ls",
-            "incus exec swarm-manager -- docker service ls",
-        ]
+        if "apt_repository_unreachable" in log_text:
+            commands = [
+                "incus exec swarm-manager -- getent hosts archive.ubuntu.com",
+                "incus exec swarm-manager -- getent hosts security.ubuntu.com",
+                "incus exec swarm-manager -- sh -lc 'apt-get update'",
+            ]
+        else:
+            commands = [
+                "incus exec swarm-manager -- docker node ls",
+                "incus exec swarm-manager -- docker service ls",
+            ]
     elif "reset" in normalized:
         commands = [
             "incus list",
@@ -1004,6 +1016,74 @@ def _print_tail(path: Path, title: str) -> None:
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-80:]
     for line in lines:
         print(line, file=sys.stderr)
+
+
+def _print_reset_failure_guidance(path: Path) -> None:
+    if not path.exists():
+        return
+    lines = _reset_failure_guidance_lines(
+        path.read_text(encoding="utf-8", errors="replace")
+    )
+    if not lines:
+        return
+    print(file=sys.stderr)
+    for line in lines:
+        print(line, file=sys.stderr)
+
+
+def _reset_failure_guidance_lines(log_text: str) -> tuple[str, ...]:
+    if not _reset_log_mentions(
+        log_text,
+        "managed_nodes_reset_blocked",
+        "unsafe_instance_config",
+        "first_failure_unsafe_instance_settings: security.privileged",
+    ):
+        return ()
+    return (
+        "Reset recovery hint:",
+        "  Existing configured LXC nodes are blocked by security.privileged.",
+        "  Inspect instance and profile state from the same WSL/Linux shell:",
+        "    for node in swarm-manager swarm-worker-1 swarm-worker-2; do",
+        "      incus config get \"$node\" security.privileged",
+        "    done",
+        "    incus profile get docker-swarm security.privileged",
+        "  If these are disposable Tiny Swarm World nodes, unset only the",
+        "  setting that reports true, then rerun install.sh.",
+        "  Details: documentation/user-handbook.adoc#_troubleshooting_checklist",
+    )
+
+
+def _reset_log_mentions(log_text: str, *needles: str) -> bool:
+    return all(needle in log_text for needle in needles)
+
+
+def _print_setup_failure_guidance(path: Path) -> None:
+    if not path.exists():
+        return
+    lines = _setup_failure_guidance_lines(
+        path.read_text(encoding="utf-8", errors="replace")
+    )
+    if not lines:
+        return
+    print(file=sys.stderr)
+    for line in lines:
+        print(line, file=sys.stderr)
+
+
+def _setup_failure_guidance_lines(log_text: str) -> tuple[str, ...]:
+    if "apt_repository_unreachable" not in log_text:
+        return ()
+    return (
+        "Setup recovery hint:",
+        "  Docker Engine installation inside the LXC nodes cannot reach APT repositories.",
+        "  Verify container DNS and egress, or configure LXC-reachable APT mirrors:",
+        "    TSW_LXC_UBUNTU_APT_MIRROR",
+        "    TSW_LXC_UBUNTU_SECURITY_APT_MIRROR",
+        "    TSW_LXC_DOCKER_APT_MIRROR",
+        "    TSW_LXC_DOCKER_APT_GPG_URL",
+        "  Use an address reachable from inside Incus containers, not localhost.",
+        "  Details: documentation/user-handbook.adoc#_troubleshooting_checklist",
+    )
 
 
 def _append_exports(path: Path, label: str, values: Mapping[str, str]) -> None:

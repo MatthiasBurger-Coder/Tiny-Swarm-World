@@ -621,13 +621,43 @@ def _print_setup_installation_summary(result: SetupWorkflowResult) -> None:
 
 
 def _print_setup_phase_diagnostics(phase_result: object) -> None:
-    if not isinstance(phase_result, PreflightResult) or not phase_result.failed_checks:
+    if isinstance(phase_result, PreflightResult):
+        if not phase_result.failed_checks:
+            return
+        print("  Failed preflight checks:")
+        for check in phase_result.failed_checks:
+            print(f"  - {check.check_id}: {check.message}")
+            if check.remediation and check.remediation != "None":
+                print(f"    Action: {check.remediation}")
         return
-    print("  Failed preflight checks:")
-    for check in phase_result.failed_checks:
-        print(f"  - {check.check_id}: {check.message}")
-        if check.remediation and check.remediation != "None":
-            print(f"    Action: {check.remediation}")
+    if isinstance(
+        phase_result,
+        PlatformWorkflowResult | ArtifactWorkflowResult | DeploymentWorkflowResult,
+    ):
+        if _workflow_status_value(phase_result) in {"completed", "passed", "verified"}:
+            return
+        _print_setup_nested_workflow_diagnostics(phase_result)
+
+
+def _print_setup_nested_workflow_diagnostics(result: WorkflowResult) -> None:
+    print(f"  Workflow: {_workflow_name(result)}")
+    message = getattr(result, "message", "")
+    if message:
+        print(f"  Message: {message}")
+    reason = getattr(result, "reason", "")
+    if reason:
+        print(f"  Reason: {reason}")
+    verification_results = getattr(result, "verification_results", ())
+    if not verification_results:
+        return
+    print("  Verification summary:")
+    for verification in verification_results:
+        print(f"  - {verification.target_id}: {verification.status.value}")
+        evidence = getattr(verification, "evidence", {})
+        if evidence:
+            print("    Evidence:")
+            for key, value in sorted(evidence.items()):
+                print(f"    - {key}: {value}")
 
 
 if __name__ == "__main__":

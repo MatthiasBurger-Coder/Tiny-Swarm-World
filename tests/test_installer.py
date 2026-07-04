@@ -248,6 +248,17 @@ class TestInstaller(unittest.TestCase):
             installer._suggested_checks_for_phase("setup platform"),
         )
         self.assertEqual(
+            (
+                "incus exec swarm-manager -- getent hosts archive.ubuntu.com",
+                "incus exec swarm-manager -- getent hosts security.ubuntu.com",
+                "incus exec swarm-manager -- sh -lc 'apt-get update'",
+            ),
+            installer._suggested_checks_for_phase(
+                "setup platform",
+                log_text="first_failure_reason: apt_repository_unreachable",
+            ),
+        )
+        self.assertEqual(
             ("incus list", "docker context ls"),
             installer._suggested_checks_for_phase("reset platform"),
         )
@@ -292,6 +303,47 @@ class TestInstaller(unittest.TestCase):
         )
         self.assertEqual(("  OK      done",), installer._render_fallback_install_event(succeeded))
         self.assertEqual(("  SKIPPED host",), installer._render_fallback_install_event(unknown))
+
+    def test_reset_failure_guidance_explains_privileged_lxc_block(self):
+        log_text = "\n".join(
+            (
+                "classification: managed_nodes_reset_blocked",
+                "first_failure_mismatch_reasons: unsafe_instance_config",
+                "first_failure_unsafe_instance_settings: security.privileged",
+            )
+        )
+
+        lines = installer._reset_failure_guidance_lines(log_text)
+
+        rendered = "\n".join(lines)
+        self.assertIn("security.privileged", rendered)
+        self.assertIn("incus profile get docker-swarm security.privileged", rendered)
+        self.assertIn("disposable Tiny Swarm World nodes", rendered)
+
+    def test_reset_failure_guidance_stays_silent_for_other_reset_blocks(self):
+        lines = installer._reset_failure_guidance_lines(
+            "\n".join(
+                (
+                    "classification: managed_nodes_reset_blocked",
+                    "first_failure_mismatch_reasons: unsafe_instance_devices",
+                )
+            )
+        )
+
+        self.assertEqual((), lines)
+
+    def test_setup_failure_guidance_explains_apt_repository_reachability(self):
+        lines = installer._setup_failure_guidance_lines(
+            "first_failure_reason: apt_repository_unreachable"
+        )
+
+        rendered = "\n".join(lines)
+        self.assertIn("APT repositories", rendered)
+        self.assertIn("TSW_LXC_UBUNTU_APT_MIRROR", rendered)
+        self.assertIn("not localhost", rendered)
+
+    def test_setup_failure_guidance_stays_silent_for_other_setup_blocks(self):
+        self.assertEqual((), installer._setup_failure_guidance_lines("failed_to_apply"))
 
 
 if __name__ == "__main__":

@@ -624,6 +624,51 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("DEPENDENCY-docker: Dependency 'docker' is missing.", rendered)
         self.assertIn("Action: Install 'docker' or make it available on PATH.", rendered)
 
+    def test_setup_summary_prints_failed_platform_phase_verification(self):
+        result = SetupWorkflowResult(
+            kind=SetupWorkflowKind.RUN,
+            status=SetupWorkflowStatus.FAILED_TO_APPLY,
+            message="setup run stopped during phase 'platform init'.",
+            reason="phase 'platform init' returned failed_to_apply",
+            executed=True,
+            phase_results=(
+                SetupPhaseResult(
+                    name="platform init",
+                    status="failed_to_apply",
+                    result=PlatformWorkflowResult(
+                        kind=PlatformWorkflowKind.INIT,
+                        status=PlatformWorkflowStatus.FAILED_TO_APPLY,
+                        message="init workflow stopped.",
+                        executed=True,
+                        verification_results=(
+                            VerificationResult(
+                                target_id="platform:init:lxc-container-runtime",
+                                status=VerificationStatus.FAILED_TO_APPLY,
+                                message="Container runtime phase reached a terminal state.",
+                                evidence={
+                                    "phase": "verify",
+                                    "classification": "container_runtime_not_verified",
+                                    "first_failure_node": "swarm-manager",
+                                    "first_failure_reason": "apt_repository_unreachable",
+                                },
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            entrypoint._print_setup_installation_summary(result)
+
+        rendered = output.getvalue()
+        self.assertIn("- platform init: failed_to_apply", rendered)
+        self.assertIn("Workflow: platform init", rendered)
+        self.assertIn("platform:init:lxc-container-runtime: failed_to_apply", rendered)
+        self.assertIn("- first_failure_node: swarm-manager", rendered)
+        self.assertIn("- first_failure_reason: apt_repository_unreachable", rendered)
+
     async def test_static_preflight_runs_without_live_consent(self):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))
         output = io.StringIO()

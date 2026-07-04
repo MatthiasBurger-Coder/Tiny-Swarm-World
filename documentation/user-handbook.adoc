@@ -338,6 +338,56 @@ incus exec swarm-manager -- docker service ls
 If `setup run` prints `REFUSED_LIVE_CONSENT_MISSING`, rerun with `--live` and
 answer the confirmation prompt only when mutation is intentional.
 
+If `install.sh` stops during fresh-install reset with
+`managed_nodes_reset_blocked`, inspect the newest `reset-run.log` for
+`first_failure_node`, `first_failure_mismatch_reasons`, and
+`first_failure_unsafe_instance_settings` when present. A mismatch reason of
+`unsafe_instance_config` means the named Incus/LXC instance has guarded config
+such as `security.privileged=true` or `raw.*`; reset will not delete it just
+because the marker fields match. Keep the instance if it is unrelated, or
+rename/remove/recreate it only after you intentionally confirm that the local
+resource is yours.
+
+For `first_failure_unsafe_instance_settings: security.privileged`, inspect
+both the node instance and the shared profile because profile settings can be
+visible on every configured node:
+
+[source,bash]
+----
+for node in swarm-manager swarm-worker-1 swarm-worker-2; do
+  printf '\n== %s ==\n' "$node"
+  incus config get "$node" user.tiny_swarm_world.managed
+  incus config get "$node" user.tiny_swarm_world.node
+  incus config get "$node" user.tiny_swarm_world.image_alias
+  incus config get "$node" security.privileged
+done
+incus profile get docker-swarm security.privileged
+----
+
+If the nodes are disposable Tiny Swarm World state and the profile or
+instances report `true`, remove only that privileged setting before rerunning
+the installer. Do not remove unrelated Incus containers.
+
+If `install.sh` stops during live setup with `platform init:
+failed_to_apply` and the setup evidence reports
+`first_failure_reason: apt_repository_unreachable`, the managed LXC nodes were
+created but Docker Engine installation could not reach the Ubuntu or Docker
+APT repositories from inside the containers. The registry mirror value is not
+an APT mirror. Verify container egress or configure LXC-reachable APT mirrors
+with:
+
+[source,bash]
+----
+export TSW_LXC_UBUNTU_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/ubuntu-apt-proxy
+export TSW_LXC_UBUNTU_SECURITY_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/ubuntu-security-apt-proxy
+export TSW_LXC_DOCKER_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/docker-apt-proxy
+export TSW_LXC_DOCKER_APT_GPG_URL=http://<lxc-reachable-host>:8081/repository/docker-apt-proxy/gpg
+./install.sh --headless --confirm-reset --non-interactive-live-approval
+----
+
+Use an address reachable from inside the Incus containers, not `localhost` or
+`127.0.0.1`.
+
 If the LXC backend is not ready, verify from the same shell:
 
 [source,bash]
