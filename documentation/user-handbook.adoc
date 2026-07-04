@@ -215,6 +215,20 @@ deployment, use the Service Access landing page as the operator start page:
 https://service-access.tsw.local
 ----
 
+During `service-access` deployment, the LXC stack runtime renders the Service
+Access dashboard from the effective access model before applying the stack. It
+writes that generated HTML to the remote stack root path consumed by the
+compose config:
+
+[source,text]
+----
+${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/service-access/dashboard/index.html
+----
+
+That file is the `service_access_dashboard_index` config source for the
+deployed dashboard, so the live stack consumes the freshly generated dashboard
+content rather than a stale checkout file.
+
 Common preferred local service routes are:
 
 [options="header"]
