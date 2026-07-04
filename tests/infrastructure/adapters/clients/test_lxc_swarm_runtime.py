@@ -57,6 +57,32 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertFalse(any(script.startswith("docker service inspect") for script in scripts))
         self.assertFalse(any(script.startswith("docker service update") for script in scripts))
 
+    def test_deploy_stack_writes_generated_service_access_dashboard_before_stack_deploy(self):
+        generated_dashboard = "<!doctype html>\n<html><body>generated-dashboard</body></html>\n"
+        runtime = LxcSwarmRuntime(
+            backend=ManagedLxcBackend.LXD,
+            remote_stack_root="/custom/stacks",
+            service_access_dashboard_renderer=lambda: generated_dashboard,
+        )
+
+        with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+            runtime.deploy_stack(
+                StackDefinition(name="service-access", compose_content="services: {}")
+            )
+
+        scripts = [call.args[0] for call in run_manager_shell.call_args_list]
+        self.assertEqual(3, len(scripts))
+        self.assertIn("cat > /custom/stacks/service-access/docker-compose.yml", scripts[0])
+        self.assertIn(
+            "cat > /custom/stacks/service-access/dashboard/index.html",
+            scripts[1],
+        )
+        self.assertIn("docker stack deploy", scripts[2])
+        self.assertEqual(
+            generated_dashboard,
+            run_manager_shell.call_args_list[1].kwargs["input_text"],
+        )
+
     def test_default_remote_stack_root_matches_committed_compose_fallback(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
 
