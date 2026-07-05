@@ -424,6 +424,30 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("tools/windows/tws-wsl-bridge.ps1 -Action install", bridge_check.remediation)
         self.assertEqual("80,10000", bridge_check.evidence["missing_ports"])
 
+    async def test_wsl2_live_preflight_reports_stale_bridge_refresh_guidance(self):
+        result = await PreflightService(
+            _fake_probe(
+                host_environment=_wsl2_environment(),
+                windows_bridge_status=WindowsWslBridgeStatus(
+                    prepared=False,
+                    reason="wsl_ip_changed",
+                    state_path="tools/windows/.tws-wsl-bridge.state.json",
+                    current_wsl_ip="172.21.0.9",
+                    state_wsl_ip="172.20.0.2",
+                    expected_ports=(80,),
+                    mapped_ports=(80,),
+                    state_age_seconds=42,
+                ),
+            ),
+            port_registry=_bridge_port_registry(),
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        bridge_check = {check.check_id: check for check in result.failed_checks}["WINDOWS-WSL-BRIDGE"]
+
+        self.assertFalse(result.passed)
+        self.assertEqual("42", bridge_check.evidence["state_age_seconds"])
+        self.assertIn("Start-ScheduledTask", bridge_check.remediation)
+
     async def test_wsl2_live_preflight_passes_when_windows_bridge_state_is_prepared(self):
         result = await PreflightService(
             _fake_probe(host_environment=_wsl2_environment()),
@@ -436,6 +460,15 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.passed)
         self.assertEqual(PreflightStatus.PASSED, bridge_check.status)
         self.assertEqual("80,10000", bridge_check.evidence["expected_ports"])
+
+    async def test_windows_bridge_expected_ports_falls_back_to_required_ports_without_registry(self):
+        configuration = default_preflight_configuration()
+        service = PreflightService(_fake_probe(), configuration)
+
+        self.assertEqual(
+            tuple(required.port for required in configuration.required_ports),
+            service._windows_bridge_expected_ports(),
+        )
 
     async def test_native_linux_live_preflight_does_not_require_windows_bridge(self):
         result = await PreflightService(
@@ -486,6 +519,14 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("native_linux", host_check.evidence["environment"])
         self.assertEqual("legacy_boolean_compatible", host_check.evidence["classification"])
         self.assertFalse(any(check_id.startswith("RUNTIME-") for check_id in checks_by_id))
+
+    def test_legacy_boolean_probe_uses_default_windows_bridge_status(self):
+        status = _LegacyBooleanProbe().windows_wsl_bridge_status((10000, 80))
+
+        self.assertFalse(status.prepared)
+        self.assertEqual("unsupported_probe", status.reason)
+        self.assertEqual((80, 10000), status.expected_ports)
+        self.assertEqual((80, 10000), status.missing_ports)
 
     async def test_static_local_password_defaults_do_not_satisfy_missing_secret_values(self):
         result = await PreflightService(

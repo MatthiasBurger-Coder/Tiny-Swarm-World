@@ -10,6 +10,7 @@ from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state
     current_wsl_ipv4,
     windows_wsl_bridge_status,
 )
+from tiny_swarm_world.domain.preflight import WindowsWslBridgeStatus
 
 
 class TestWindowsWslBridgeState(unittest.TestCase):
@@ -29,6 +30,20 @@ class TestWindowsWslBridgeState(unittest.TestCase):
         self.assertFalse(status.prepared)
         self.assertEqual("state_invalid", status.reason)
         self.assertEqual((80,), status.missing_ports)
+
+    def test_reports_non_mapping_state_as_invalid(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            _write_state(root, ["not", "a", "mapping"])
+
+            status = windows_wsl_bridge_status(
+                root,
+                (80,),
+                current_wsl_ipv4=lambda: "172.20.0.2",
+            )
+
+        self.assertFalse(status.prepared)
+        self.assertEqual("state_invalid", status.reason)
 
     def test_reports_missing_generated_timestamp(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -88,6 +103,26 @@ class TestWindowsWslBridgeState(unittest.TestCase):
         self.assertEqual("state_stale_by_age", status.reason)
         self.assertIsNotNone(status.state_age_seconds)
 
+    def test_accepts_naive_generated_timestamp_as_utc(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            _write_state(
+                root,
+                {
+                    "generatedAt": datetime.now(UTC).replace(tzinfo=None).isoformat(),
+                    "wslIp": "172.20.0.2",
+                    "mappings": [_mapping(80)],
+                },
+            )
+
+            status = windows_wsl_bridge_status(
+                root,
+                (80,),
+                current_wsl_ipv4=lambda: "172.20.0.2",
+            )
+
+        self.assertTrue(status.prepared)
+
     def test_reports_unavailable_current_wsl_ip(self):
         with tempfile.TemporaryDirectory() as tempdir:
             root = Path(tempdir)
@@ -108,6 +143,28 @@ class TestWindowsWslBridgeState(unittest.TestCase):
 
         self.assertFalse(status.prepared)
         self.assertEqual("wsl_ip_unavailable", status.reason)
+
+    def test_reports_missing_ports_when_mappings_are_not_a_list(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            _write_state(
+                root,
+                {
+                    "generatedAt": datetime.now(UTC).isoformat(),
+                    "wslIp": "172.20.0.2",
+                    "mappings": "not-a-list",
+                },
+            )
+
+            status = windows_wsl_bridge_status(
+                root,
+                (80,),
+                current_wsl_ipv4=lambda: "172.20.0.2",
+            )
+
+        self.assertFalse(status.prepared)
+        self.assertEqual("missing_ports", status.reason)
+        self.assertEqual((), status.mapped_ports)
 
     def test_ignores_invalid_mapping_entries(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -151,12 +208,49 @@ class TestWindowsWslBridgeState(unittest.TestCase):
         ):
             self.assertEqual("172.20.0.2", current_wsl_ipv4())
 
+    def test_current_wsl_ipv4_returns_empty_on_nonzero_exit(self):
+        completed = subprocess.CompletedProcess(
+            ["hostname", "-I"],
+            1,
+            stdout="172.20.0.2\n",
+            stderr="failed",
+        )
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state.subprocess.run",
+            return_value=completed,
+        ):
+            self.assertEqual("", current_wsl_ipv4())
+
+    def test_current_wsl_ipv4_returns_empty_without_ipv4_output(self):
+        completed = subprocess.CompletedProcess(
+            ["hostname", "-I"],
+            0,
+            stdout="fe80::1\n",
+            stderr="",
+        )
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state.subprocess.run",
+            return_value=completed,
+        ):
+            self.assertEqual("", current_wsl_ipv4())
+
     def test_current_wsl_ipv4_returns_empty_on_timeout(self):
         with patch(
             "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state.subprocess.run",
             side_effect=subprocess.TimeoutExpired(["hostname", "-I"], 5),
         ):
             self.assertEqual("", current_wsl_ipv4())
+
+    def test_windows_wsl_bridge_status_stale_property_marks_repair_reasons(self):
+        status = WindowsWslBridgeStatus(
+            prepared=False,
+            reason="generated_at_missing",
+            state_path="tools/windows/.tws-wsl-bridge.state.json",
+        )
+
+        self.assertTrue(status.stale)
 
 
 def _state_path(root: Path) -> Path:
