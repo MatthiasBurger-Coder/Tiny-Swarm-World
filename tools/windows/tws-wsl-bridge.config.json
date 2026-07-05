@@ -1,0 +1,21 @@
+{
+  "distro": "auto",
+  "listenAddress": "0.0.0.0",
+  "hostsAddress": "127.0.0.1",
+  "firewallRulePrefix": "Tiny Swarm World",
+  "hostNames": [
+    "tws.local",
+    "gateway.tws.local",
+    "service-access.tws.local",
+    "portainer.tws.local",
+    "jenkins.tws.local",
+    "sonarqube.tws.local",
+    "nexus.tws.local",
+    "nexus-docker.tws.local",
+    "pulsar.tws.local",
+    "pulsar-manager.tws.local",
+    "swagger.tws.local",
+    "infisical.tws.local",
+    "tiny-swarm.tws.local"
+  ]
+}

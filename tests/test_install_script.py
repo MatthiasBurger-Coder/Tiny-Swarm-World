@@ -392,6 +392,7 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture(
             extra_environment={
                 "TSW_INSTALL_TEST_HOST_RUNTIME": "wsl2",
+                "TSW_WINDOWS_EXPOSURE": "disabled",
                 "WSL_DISTRO_NAME": "Ubuntu",
             },
         ) as fixture:
@@ -404,6 +405,7 @@ class TestInstallScript(unittest.TestCase):
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("host_runtime_type=wsl2", context)
             self.assertIn("host_runtime_detection_source=test_override", context)
+            self.assertIn("windows_wsl_bridge_reason=windows_exposure_disabled", context)
 
     def test_native_linux_and_wsl2_use_distinct_evidence_directories(self):
         with _install_script_fixture() as native_fixture:
@@ -419,6 +421,7 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture(
             extra_environment={
                 "TSW_INSTALL_TEST_HOST_RUNTIME": "wsl2",
+                "TSW_WINDOWS_EXPOSURE": "disabled",
                 "WSL_DISTRO_NAME": "Ubuntu",
             },
         ) as wsl_fixture:
@@ -430,6 +433,26 @@ class TestInstallScript(unittest.TestCase):
                 ".tiny-swarm-world/evidence/installation-tests/wsl2/",
                 wsl_evidence_dir.as_posix(),
             )
+
+    def test_wsl_install_aborts_before_reset_when_windows_bridge_is_missing(self):
+        with _install_script_fixture(
+            extra_environment={
+                "TSW_INSTALL_TEST_HOST_RUNTIME": "wsl2",
+                "WSL_DISTRO_NAME": "Ubuntu",
+            },
+        ) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(1, result.returncode)
+            self.assertEqual([], fixture.recorded_commands())
+            evidence_dir = fixture.single_evidence_dir("wsl2")
+            context = (evidence_dir / "context.txt").read_text()
+            self.assertIn("windows_wsl_bridge_passed=no", context)
+            self.assertIn("windows_wsl_bridge_reason=state_missing", context)
+            self.assertIn("reset_skipped_due_to_windows_wsl_bridge=yes", context)
+            self.assertFalse((evidence_dir / "reset-run.exit").exists())
+            self.assertFalse((evidence_dir / "setup-run.exit").exists())
+            self.assertIn("Windows <-> WSL bridge is not prepared", result.stderr)
 
 
 class _InstallScriptFixture:

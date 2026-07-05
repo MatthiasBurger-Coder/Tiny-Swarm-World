@@ -6,15 +6,17 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import shlex
 import shutil
 import subprocess
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping, Protocol, Sequence
+from typing import Any, Protocol
 
 
 RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
@@ -26,6 +28,9 @@ DEFAULT_INFISICAL_SECRET_ENV_FILE = ".tiny-swarm/secrets/bootstrap.local.env"
 DEFAULT_GENERATED_SECRET_ENV_FILE = ".tiny-swarm/secrets/generated.local.env"
 DEFAULT_NATIVE_LINUX_VENV = ".tiny-swarm-world/install-venv"
 DEFAULT_SECRET_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
+WINDOWS_WSL_BRIDGE_STATE_PATH = Path("tools/windows/.tws-wsl-bridge.state.json")
+WINDOWS_WSL_BRIDGE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+WINDOWS_EXPOSURE_ENVIRONMENT = "TSW_WINDOWS_EXPOSURE"
 INSTALLER_REQUIRED_SOURCES = frozenset({"generated_local_secret", "placeholder_only"})
 SECRET_MODES = ("generated", "fixed", "infisical")
 DEFAULT_LOCAL_SERVICE_URL_EXPORTS = {
@@ -71,6 +76,18 @@ class InstallerSecretEntry:
     key: str
     source: str
     required: bool
+
+
+@dataclass(frozen=True)
+class WindowsWslBridgeGuardResult:
+    passed: bool
+    reason: str
+    state_path: Path
+    current_wsl_ip: str = ""
+    state_wsl_ip: str = ""
+    expected_ports: tuple[int, ...] = ()
+    mapped_ports: tuple[int, ...] = ()
+    missing_ports: tuple[int, ...] = ()
 
 
 class InstallReporter(Protocol):
@@ -323,6 +340,33 @@ def run(
         },
     )
 
+    bridge_guard = _windows_wsl_bridge_guard(host_runtime, install_env, cwd)
+    _append_context(
+        evidence_dir,
+        _windows_wsl_bridge_context(bridge_guard),
+    )
+    if not bridge_guard.passed:
+        install_reporter.report(
+            _phase_event(
+                "INSTALL_FINISHED",
+                "FAILED",
+                "windows-wsl-bridge",
+                reason="Windows <-> WSL bridge is not prepared.",
+                evidence_path=evidence_dir,
+                suggested_commands=_windows_wsl_bridge_suggested_commands(bridge_guard.reason),
+            )
+        )
+        _print_windows_wsl_bridge_failure(bridge_guard, evidence_dir)
+        _append_context(
+            evidence_dir,
+            {
+                "reset_skipped_due_to_windows_wsl_bridge": "yes",
+                "setup_skipped_due_to_windows_wsl_bridge": "yes",
+                "finished_utc": _utc_timestamp(),
+            },
+        )
+        return 1
+
     reset_command = _workflow_command(
         python_bin,
         "platform reset",
@@ -503,6 +547,193 @@ def detect_host_runtime(env: Mapping[str, str]) -> HostRuntime:
     if "microsoft" in kernel_text or "wsl" in kernel_text or "microsoft" in version_text or "wsl" in version_text:
         return HostRuntime("wsl2", "kernel_signal")
     return HostRuntime("native_linux", "uname_linux_without_wsl_signal")
+
+
+def _windows_wsl_bridge_guard(
+    host_runtime: HostRuntime,
+    env: Mapping[str, str],
+    cwd: Path,
+) -> WindowsWslBridgeGuardResult:
+    state_path = cwd / WINDOWS_WSL_BRIDGE_STATE_PATH
+    expected_ports = _windows_wsl_bridge_expected_ports(cwd)
+    if host_runtime.name != "wsl2":
+        return WindowsWslBridgeGuardResult(True, "not_wsl2", state_path, expected_ports=expected_ports)
+    if not _windows_exposure_required(env):
+        return WindowsWslBridgeGuardResult(
+            True,
+            "windows_exposure_disabled",
+            state_path,
+            expected_ports=expected_ports,
+        )
+    if not state_path.exists():
+        return WindowsWslBridgeGuardResult(
+            False,
+            "state_missing",
+            state_path,
+            expected_ports=expected_ports,
+            missing_ports=expected_ports,
+        )
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return WindowsWslBridgeGuardResult(
+            False,
+            "state_invalid",
+            state_path,
+            expected_ports=expected_ports,
+            missing_ports=expected_ports,
+        )
+    if not isinstance(state, Mapping):
+        return WindowsWslBridgeGuardResult(
+            False,
+            "state_invalid",
+            state_path,
+            expected_ports=expected_ports,
+            missing_ports=expected_ports,
+        )
+
+    mapped_ports = _windows_wsl_bridge_mapped_ports(state)
+    missing_ports = tuple(sorted(set(expected_ports) - set(mapped_ports)))
+    current_wsl_ip = _current_wsl_ipv4()
+    state_wsl_ip = str(state.get("wslIp", ""))
+    generated_at = str(state.get("generatedAt", ""))
+    state_age_seconds = _bridge_state_age_seconds(generated_at)
+
+    def result(passed: bool, reason: str) -> WindowsWslBridgeGuardResult:
+        return WindowsWslBridgeGuardResult(
+            passed,
+            reason,
+            state_path,
+            current_wsl_ip=current_wsl_ip,
+            state_wsl_ip=state_wsl_ip,
+            expected_ports=expected_ports,
+            mapped_ports=mapped_ports,
+            missing_ports=missing_ports,
+        )
+
+    if state_age_seconds is None:
+        return result(False, "generated_at_invalid")
+    if state_age_seconds > WINDOWS_WSL_BRIDGE_MAX_AGE_SECONDS:
+        return result(False, "state_stale_by_age")
+    if not current_wsl_ip:
+        return result(False, "wsl_ip_unavailable")
+    if state_wsl_ip != current_wsl_ip:
+        return result(False, "wsl_ip_changed")
+    if missing_ports:
+        return result(False, "missing_ports")
+    return result(True, "prepared")
+
+
+def _windows_exposure_required(env: Mapping[str, str]) -> bool:
+    value = env.get(WINDOWS_EXPOSURE_ENVIRONMENT, "").strip().casefold()
+    return value not in {"0", "false", "no", "off", "disabled"}
+
+
+def _windows_wsl_bridge_expected_ports(cwd: Path) -> tuple[int, ...]:
+    registry_path = cwd / "infra" / "config" / "ports.yaml"
+    ports: set[int] = set()
+    current: dict[str, str] | None = None
+    in_ports = False
+
+    def commit_current() -> None:
+        if current is None or "external_port" not in current:
+            return
+        protocol = current.get("protocol", "tcp").casefold()
+        if protocol != "tcp":
+            return
+        ports.add(int(current["external_port"]))
+
+    for line in _read_text(registry_path).splitlines():
+        if re.match(r"^ports:\s*$", line):
+            in_ports = True
+            continue
+        if not in_ports:
+            continue
+        if re.match(r"^\S", line) and not re.match(r"^ports:\s*$", line):
+            break
+        match = re.match(r"^\s*-\s+id:\s*(.+?)\s*$", line)
+        if match:
+            commit_current()
+            current = {"id": _clean_yaml_scalar(match.group(1))}
+            continue
+        if current is None:
+            continue
+        match = re.match(r"^\s+external_port:\s*(\d+)\s*$", line)
+        if match:
+            current["external_port"] = match.group(1)
+            continue
+        match = re.match(r"^\s+protocol:\s*(\S+)\s*$", line)
+        if match:
+            current["protocol"] = _clean_yaml_scalar(match.group(1))
+            continue
+
+    commit_current()
+    return tuple(sorted(ports))
+
+
+def _windows_wsl_bridge_mapped_ports(state: Mapping[object, object]) -> tuple[int, ...]:
+    mappings = state.get("mappings", ())
+    if not isinstance(mappings, Sequence) or isinstance(mappings, str):
+        return ()
+    ports: set[int] = set()
+    for mapping in mappings:
+        if not isinstance(mapping, Mapping):
+            continue
+        try:
+            port = int(mapping.get("listenPort", 0))
+        except (TypeError, ValueError):
+            continue
+        if port > 0:
+            ports.add(port)
+    return tuple(sorted(ports))
+
+
+def _current_wsl_ipv4() -> str:
+    try:
+        completed = subprocess.run(
+            ["hostname", "-I"],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    if completed.returncode != 0:
+        return ""
+    for value in completed.stdout.split():
+        if re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", value):
+            return value
+    return ""
+
+
+def _bridge_state_age_seconds(generated_at: str) -> int | None:
+    parsed = _parse_bridge_timestamp(generated_at)
+    if parsed is None:
+        return None
+    return max(0, int((datetime.now(UTC) - parsed).total_seconds()))
+
+
+def _parse_bridge_timestamp(value: str) -> datetime | None:
+    if not value:
+        return None
+    normalized = value.strip()
+    if normalized.endswith("Z"):
+        normalized = f"{normalized[:-1]}+00:00"
+    normalized = re.sub(r"(\.\d{6})\d+([+-]\d{2}:\d{2})$", r"\1\2", normalized)
+    normalized = re.sub(r"(\.\d{6})\d+$", r"\1", normalized)
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
+def _clean_yaml_scalar(value: str) -> str:
+    return value.strip().strip('"').strip("'")
 
 
 def ensure_python_environment(
@@ -981,6 +1212,68 @@ def _append_context(evidence_dir: Path, values: Mapping[str, str], *, replace: b
     with (evidence_dir / "context.txt").open(mode, encoding="utf-8") as context:
         for key, value in values.items():
             context.write(f"{key}={value}\n")
+
+
+def _windows_wsl_bridge_context(
+    guard: WindowsWslBridgeGuardResult,
+) -> dict[str, str]:
+    return {
+        "windows_wsl_bridge_passed": "yes" if guard.passed else "no",
+        "windows_wsl_bridge_reason": guard.reason,
+        "windows_wsl_bridge_state_path": _relative_display_path(guard.state_path),
+        "windows_wsl_bridge_current_wsl_ip": guard.current_wsl_ip,
+        "windows_wsl_bridge_state_wsl_ip": guard.state_wsl_ip,
+        "windows_wsl_bridge_expected_ports": _format_ints(guard.expected_ports),
+        "windows_wsl_bridge_mapped_ports": _format_ints(guard.mapped_ports),
+        "windows_wsl_bridge_missing_ports": _format_ints(guard.missing_ports),
+    }
+
+
+def _windows_wsl_bridge_suggested_commands(reason: str) -> tuple[str, ...]:
+    if reason in {"wsl_ip_changed", "state_stale_by_age"}:
+        return (
+            'powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge"',
+            "powershell.exe -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action install",
+        )
+    return (
+        "powershell.exe -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action install",
+    )
+
+
+def _print_windows_wsl_bridge_failure(
+    guard: WindowsWslBridgeGuardResult,
+    evidence_dir: Path,
+) -> None:
+    print("[FAIL] Windows <-> WSL bridge is not prepared.", file=sys.stderr)
+    print(f"Reason: {guard.reason}", file=sys.stderr)
+    print(f"State file: {_relative_display_path(guard.state_path)}", file=sys.stderr)
+    if guard.current_wsl_ip or guard.state_wsl_ip:
+        print(f"Current WSL IP: {guard.current_wsl_ip or 'unknown'}", file=sys.stderr)
+        print(f"State WSL IP: {guard.state_wsl_ip or 'unknown'}", file=sys.stderr)
+    if guard.missing_ports:
+        print(f"Missing bridge ports: {_format_ints(guard.missing_ports)}", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("Run PowerShell as Administrator:", file=sys.stderr)
+    print("  tools/windows/tws-wsl-bridge.ps1 -Action install", file=sys.stderr)
+    if guard.reason in {"wsl_ip_changed", "state_stale_by_age"}:
+        print("", file=sys.stderr)
+        print("Or refresh the existing scheduled task:", file=sys.stderr)
+        print("  Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("To run WSL2 without Windows localhost exposure, set:", file=sys.stderr)
+    print("  TSW_WINDOWS_EXPOSURE=disabled", file=sys.stderr)
+    print(f"Evidence directory: {evidence_dir.as_posix()}", file=sys.stderr)
+
+
+def _relative_display_path(path: Path) -> str:
+    try:
+        return path.relative_to(Path.cwd()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _format_ints(values: Sequence[int]) -> str:
+    return ",".join(str(value) for value in values)
 
 
 def _print_install_plan(cwd: Path, options: InstallerOptions, evidence_dir: Path, secret_env_file: Path) -> None:

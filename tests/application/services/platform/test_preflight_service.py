@@ -34,6 +34,7 @@ from tiny_swarm_world.domain.preflight import (
     SetupProfile,
     SetupSecretRequirement,
     SetupServiceRequirement,
+    WindowsWslBridgeStatus,
     default_preflight_configuration,
 )
 
@@ -399,6 +400,78 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.passed)
         self.assertFalse(any(check_id.startswith("RUNTIME-") for check_id in checks_by_id))
 
+    async def test_wsl2_live_preflight_blocks_when_windows_bridge_state_is_missing(self):
+        result = await PreflightService(
+            _fake_probe(
+                host_environment=_wsl2_environment(),
+                windows_bridge_status=WindowsWslBridgeStatus(
+                    prepared=False,
+                    reason="state_missing",
+                    state_path="tools/windows/.tws-wsl-bridge.state.json",
+                    expected_ports=(80, 10000),
+                    missing_ports=(80, 10000),
+                ),
+            ),
+            port_registry=_bridge_port_registry(),
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        failed_by_id = {check.check_id: check for check in result.failed_checks}
+        bridge_check = failed_by_id["WINDOWS-WSL-BRIDGE"]
+
+        self.assertFalse(result.passed)
+        self.assertEqual("WINDOWS_EXPOSURE", bridge_check.category.value)
+        self.assertIn("Windows <-> WSL bridge is not prepared", bridge_check.message)
+        self.assertIn("tools/windows/tws-wsl-bridge.ps1 -Action install", bridge_check.remediation)
+        self.assertEqual("80,10000", bridge_check.evidence["missing_ports"])
+
+    async def test_wsl2_live_preflight_passes_when_windows_bridge_state_is_prepared(self):
+        result = await PreflightService(
+            _fake_probe(host_environment=_wsl2_environment()),
+            port_registry=_bridge_port_registry(),
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        bridge_check = checks_by_id["WINDOWS-WSL-BRIDGE"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual(PreflightStatus.PASSED, bridge_check.status)
+        self.assertEqual("80,10000", bridge_check.evidence["expected_ports"])
+
+    async def test_native_linux_live_preflight_does_not_require_windows_bridge(self):
+        result = await PreflightService(
+            _fake_probe(),
+            port_registry=_bridge_port_registry(),
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        self.assertTrue(result.passed)
+        self.assertNotIn("WINDOWS-WSL-BRIDGE", {check.check_id for check in result.checks})
+
+    async def test_wsl2_live_preflight_allows_explicitly_disabled_windows_exposure(self):
+        configuration = replace(
+            default_preflight_configuration(),
+            windows_wsl_bridge_required=False,
+        )
+
+        result = await PreflightService(
+            _fake_probe(
+                host_environment=_wsl2_environment(),
+                windows_bridge_status=WindowsWslBridgeStatus(
+                    prepared=False,
+                    reason="state_missing",
+                    state_path="tools/windows/.tws-wsl-bridge.state.json",
+                ),
+            ),
+            configuration,
+            port_registry=_bridge_port_registry(),
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        checks_by_id = {check.check_id: check for check in result.checks}
+        bridge_check = checks_by_id["WINDOWS-WSL-BRIDGE"]
+
+        self.assertTrue(result.passed)
+        self.assertEqual(PreflightStatus.PASSED, bridge_check.status)
+        self.assertEqual("false", bridge_check.evidence["required"])
+
     async def test_legacy_boolean_host_probe_still_runs_live_preflight(self):
         probe = _LegacyBooleanProbe()
 
@@ -666,6 +739,7 @@ class _FakeProbeOptions:
     disk_free_bytes_value: int = 120 * 1024**3
     python_version_value: str = "3.12.3"
     host_environment: HostEnvironmentReport | None = None
+    windows_bridge_status: WindowsWslBridgeStatus | None = None
 
 
 def _fake_probe(**overrides: Any) -> "_FakeProbe":
@@ -693,6 +767,7 @@ class _FakeProbe(PortHostPreflightProbe):
             remediation=("Verify runtime readiness before live setup.",),
             evidence={"classification": "native_linux"},
         )
+        self.windows_bridge_status = selected.windows_bridge_status
 
     def is_linux_or_wsl(self) -> bool:
         return self.host_compatible
@@ -741,6 +816,24 @@ class _FakeProbe(PortHostPreflightProbe):
         fingerprints: Mapping[str, str],
     ) -> Sequence[str]:
         return self.forbidden_fingerprints
+
+    def windows_wsl_bridge_status(
+        self,
+        expected_ports: Sequence[int],
+    ) -> WindowsWslBridgeStatus:
+        if self.windows_bridge_status is not None:
+            return self.windows_bridge_status
+        return WindowsWslBridgeStatus(
+            prepared=True,
+            reason="prepared",
+            state_path="tools/windows/.tws-wsl-bridge.state.json",
+            current_wsl_ip="172.20.0.2",
+            state_wsl_ip="172.20.0.2",
+            generated_at="2026-07-05T09:00:00+00:00",
+            listen_address="0.0.0.0",
+            expected_ports=tuple(expected_ports),
+            mapped_ports=tuple(expected_ports),
+        )
 
 
 class _LegacyBooleanProbe(PortHostPreflightProbe):
@@ -795,3 +888,44 @@ class _RaisingConfigurationValidation:
 
     def validate(self) -> ConfigurationValidationResult:
         raise self.error
+
+
+def _wsl2_environment() -> HostEnvironmentReport:
+    return HostEnvironmentReport(
+        environment=HostEnvironmentKind.WSL2,
+        setup_path=SetupPath.WSL2,
+        remediation=("Verify WSL2 Incus readiness before live setup.",),
+        evidence={"classification": "wsl2"},
+    )
+
+
+def _bridge_port_registry() -> PortRegistry:
+    return PortRegistry(
+        ranges=(),
+        mappings=(
+            ServicePortMapping(
+                service_id="traefik",
+                port_id="traefik-http",
+                internal_port=80,
+                external_port=80,
+                exposure=PortExposureClass.PUBLIC_INGRESS,
+                protocol="tcp",
+            ),
+            ServicePortMapping(
+                service_id="service-access",
+                port_id="service-access-http",
+                internal_port=80,
+                external_port=10000,
+                exposure=PortExposureClass.DIAGNOSTIC,
+                protocol="tcp",
+            ),
+            ServicePortMapping(
+                service_id="dns-test",
+                port_id="dns-test",
+                internal_port=53,
+                external_port=1053,
+                exposure=PortExposureClass.DIAGNOSTIC,
+                protocol="udp",
+            ),
+        ),
+    )

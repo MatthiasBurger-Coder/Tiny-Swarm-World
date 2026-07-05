@@ -68,34 +68,61 @@ raw provider command output.
 
 == WSL2 NAT Portproxy
 
-For WSL2, Tiny Swarm World uses controlled Windows localhost forwarding:
+For WSL2, Tiny Swarm World uses a Windows-side bridge prepared before live
+installation:
 
 [source,text]
 ----
 Windows Browser
--> http://127.0.0.1:<service-port>
+-> http://127.0.0.1:<service-port> or http://*.tws.local
 -> Windows portproxy
 -> current WSL eth0 IPv4
 -> Incus/LXC/Docker/Services
 ----
 
-Windows portproxy and firewall changes are not made by `install.sh` and are
-not made implicitly from Linux. Diagnose them from elevated PowerShell:
+Windows portproxy, Firewall and hosts-file changes are not made by
+`install.sh` and are not made implicitly from Linux. Prepare them from
+elevated PowerShell before starting a WSL2 live installation:
+
+[source,powershell]
+----
+Set-ExecutionPolicy -Scope Process Bypass
+.\tools\windows\tws-wsl-bridge.ps1 -Action install
+----
+
+The bridge writes `tools/windows/.tws-wsl-bridge.state.json`. The file is
+local runtime state and ignored by Git. During WSL2 live preflight,
+Tiny Swarm World requires this state to be present, recent, matched to the
+current WSL IP, and to contain every external TCP port from
+`infra/config/ports.yaml`. If the state is missing or stale, setup stops
+before platform mutation with a `WINDOWS-WSL-BRIDGE` preflight failure.
+
+After `wsl --shutdown` or another WSL restart, refresh the bridge from Windows
+or WSL:
+
+[source,powershell]
+----
+Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge
+----
+
+[source,bash]
+----
+powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge"
+----
+
+The bridge reads TCP ports and route hostnames from `infra/config/ports.yaml`.
+`tools/windows/tws-wsl-bridge.config.json` is limited to Windows-side
+settings such as distro selection, listen address, hosts address, and
+additional hostname aliases. Do not maintain a separate Windows port list.
+
+Use the older portproxy scripts only for focused Windows-side diagnosis or
+manual repair:
 
 [source,powershell]
 ----
 powershell.exe -ExecutionPolicy Bypass -File .\tools\windows\doctor-portproxy.ps1
-----
-
-Repair them only through the explicit elevated script:
-
-[source,powershell]
-----
 powershell.exe -ExecutionPolicy Bypass -File .\tools\windows\repair-wsl-portproxy.ps1
 ----
-
-Both scripts read `infra/config/ports.yaml`; do not maintain a separate
-Windows port list.
 
 == Targeted Network Repair
 

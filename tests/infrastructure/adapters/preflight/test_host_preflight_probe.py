@@ -1,5 +1,6 @@
 import hashlib
 import io
+import json
 import os
 import socket
 import ssl
@@ -7,6 +8,7 @@ import subprocess
 import tempfile
 import urllib.error
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -371,6 +373,67 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual("unknown_unsupported", report.evidence["classification"])
         self.assertEqual("darwin", report.evidence["kernel_family"])
 
+    def test_windows_wsl_bridge_status_reports_missing_state_file(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            probe = HostPreflightProbe(Path(temporary_directory))
+
+            status = probe.windows_wsl_bridge_status((80, 10000))
+
+        self.assertFalse(status.prepared)
+        self.assertEqual("state_missing", status.reason)
+        self.assertEqual((80, 10000), status.missing_ports)
+        self.assertEqual("tools/windows/.tws-wsl-bridge.state.json", status.state_path)
+
+    def test_windows_wsl_bridge_status_accepts_current_ip_and_all_expected_ports(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            _write_bridge_state(root, wsl_ip="172.20.0.2", ports=(80, 10000))
+            probe = HostPreflightProbe(root)
+
+            with patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe._current_wsl_ipv4",
+                return_value="172.20.0.2",
+            ):
+                status = probe.windows_wsl_bridge_status((80, 10000))
+
+        self.assertTrue(status.prepared)
+        self.assertEqual("prepared", status.reason)
+        self.assertEqual((80, 10000), status.mapped_ports)
+        self.assertEqual((), status.missing_ports)
+
+    def test_windows_wsl_bridge_status_detects_changed_wsl_ip(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            _write_bridge_state(root, wsl_ip="172.20.0.2", ports=(80,))
+            probe = HostPreflightProbe(root)
+
+            with patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe._current_wsl_ipv4",
+                return_value="172.21.0.9",
+            ):
+                status = probe.windows_wsl_bridge_status((80,))
+
+        self.assertFalse(status.prepared)
+        self.assertEqual("wsl_ip_changed", status.reason)
+        self.assertEqual("172.20.0.2", status.state_wsl_ip)
+        self.assertEqual("172.21.0.9", status.current_wsl_ip)
+
+    def test_windows_wsl_bridge_status_detects_missing_expected_ports(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            _write_bridge_state(root, wsl_ip="172.20.0.2", ports=(80,))
+            probe = HostPreflightProbe(root)
+
+            with patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe._current_wsl_ipv4",
+                return_value="172.20.0.2",
+            ):
+                status = probe.windows_wsl_bridge_status((80, 10000))
+
+        self.assertFalse(status.prepared)
+        self.assertEqual("missing_ports", status.reason)
+        self.assertEqual((10000,), status.missing_ports)
+
     def test_secret_available_uses_environment_without_reading_values(self):
         probe = HostPreflightProbe(Path.cwd())
 
@@ -696,3 +759,19 @@ def _write_os_signal(root: Path, *parts: str, text: str) -> None:
     target = root.joinpath(*parts)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(text, encoding="utf-8")
+
+
+def _write_bridge_state(root: Path, *, wsl_ip: str, ports: tuple[int, ...]) -> None:
+    target = root / "tools" / "windows" / ".tws-wsl-bridge.state.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    state = {
+        "generatedAt": datetime.now(UTC).isoformat(),
+        "action": "install",
+        "wslIp": wsl_ip,
+        "listenAddress": "0.0.0.0",
+        "mappings": [
+            {"name": f"port-{port}", "listenPort": port, "connectPort": port}
+            for port in ports
+        ],
+    }
+    target.write_text(json.dumps(state), encoding="utf-8")

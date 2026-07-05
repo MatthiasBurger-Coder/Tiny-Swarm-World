@@ -174,6 +174,42 @@ This repair mode is intentionally limited to the installer execute bit and the
 local secret-file mode. Ownership mismatches are reported with a review command
 instead of being changed automatically.
 
+== WSL2 Setup Stops At WINDOWS-WSL-BRIDGE
+
+When WSL2 live setup requires Windows browser access, Tiny Swarm World checks
+the Windows-side bridge before platform mutation. A failed
+`WINDOWS-WSL-BRIDGE` preflight check means the Windows portproxy, Firewall,
+hosts-file and Scheduled Task bridge has not been prepared, is stale, or no
+longer matches the current WSL IP.
+
+Prepare or repair it from elevated Windows PowerShell:
+
+[source,powershell]
+----
+cd D:\Projects\Tiny-Swarm-World
+Set-ExecutionPolicy -Scope Process Bypass
+.\tools\windows\tws-wsl-bridge.ps1 -Action install
+----
+
+After `wsl --shutdown`, refresh the existing bridge:
+
+[source,powershell]
+----
+Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge
+----
+
+From WSL, the same refresh can be triggered without changing Linux network
+state:
+
+[source,bash]
+----
+powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge"
+----
+
+The installer does not set Windows portproxy, Firewall, hosts-file or
+Scheduled Task state by itself. To run WSL2 without Windows localhost
+exposure, set `TSW_WINDOWS_EXPOSURE=disabled` explicitly before setup.
+
 == Setup Preflight Reports Occupied Ports
 
 `setup run --live` is intentionally re-runnable. During preflight, an occupied

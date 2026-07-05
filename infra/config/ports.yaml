@@ -99,6 +99,15 @@ ports:
       route_enabled_by_default: "true"
       upstream_service: service-access-dashboard
       no_login_note: "Dashboard does not require a login"
+  - id: service-access-legacy-http
+    service_id: service-access
+    internal_port: 8086
+    external_port: 8086
+    exposure: compatibility
+    protocol: tcp
+    required_for_preflight: false
+    metadata:
+      route_name: none
   - id: api-gateway-http
     service_id: api-gateway
     internal_port: 80

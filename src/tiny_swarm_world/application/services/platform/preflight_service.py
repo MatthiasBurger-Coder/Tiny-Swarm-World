@@ -10,6 +10,7 @@ from tiny_swarm_world.domain.configuration import ConfigurationFinding
 from tiny_swarm_world.domain.network import PortRegistry
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentReport,
+    HostEnvironmentKind,
     LiveConsent,
     PreflightCategory,
     PreflightCheck,
@@ -53,6 +54,7 @@ class PreflightService:
             and host_environment.allows_live_setup
         ):
             checks.extend(self._runtime_checks())
+            checks.extend(self._windows_wsl_bridge_checks(host_environment))
         secret_checks = (
             self._secret_checks()
             if self.configuration_validation is None
@@ -221,6 +223,56 @@ class PreflightService:
             )
         return tuple(checks)
 
+    def _windows_wsl_bridge_checks(
+        self,
+        host_environment: HostEnvironmentReport,
+    ) -> tuple[PreflightCheck, ...]:
+        if host_environment.environment is not HostEnvironmentKind.WSL2:
+            return ()
+        if not self.configuration.windows_wsl_bridge_required:
+            return (
+                _passed(
+                    "WINDOWS-WSL-BRIDGE",
+                    PreflightCategory.WINDOWS_EXPOSURE,
+                    "Windows exposure is disabled by operator configuration.",
+                    {"required": "false"},
+                ),
+            )
+
+        expected_ports = self._windows_bridge_expected_ports()
+        status = self.host_probe.windows_wsl_bridge_status(expected_ports)
+        evidence = {
+            "state_path": status.state_path,
+            "reason": status.reason,
+            "current_wsl_ip": status.current_wsl_ip,
+            "state_wsl_ip": status.state_wsl_ip,
+            "generated_at": status.generated_at,
+            "listen_address": status.listen_address,
+            "expected_ports": _csv_ints(status.expected_ports),
+            "mapped_ports": _csv_ints(status.mapped_ports),
+            "missing_ports": _csv_ints(status.missing_ports),
+        }
+        if status.state_age_seconds is not None:
+            evidence["state_age_seconds"] = str(status.state_age_seconds)
+        if status.prepared:
+            return (
+                _passed(
+                    "WINDOWS-WSL-BRIDGE",
+                    PreflightCategory.WINDOWS_EXPOSURE,
+                    "Windows <-> WSL bridge is prepared.",
+                    evidence,
+                ),
+            )
+        return (
+            _failed(
+                "WINDOWS-WSL-BRIDGE",
+                PreflightCategory.WINDOWS_EXPOSURE,
+                "Windows <-> WSL bridge is not prepared.",
+                _windows_wsl_bridge_remediation(status.reason),
+                evidence,
+            ),
+        )
+
     def _cpu_check(self) -> PreflightCheck:
         actual = self.host_probe.cpu_count()
         expected = self.configuration.resources.minimum_cpu_count
@@ -366,6 +418,19 @@ class PreflightService:
             RequiredPort(mapping.external_port, mapping.port_id)
             for mapping in self.port_registry.preflight_ports
             if mapping.external_port is not None
+        )
+
+    def _windows_bridge_expected_ports(self) -> tuple[int, ...]:
+        if self.port_registry is None:
+            return tuple(required_port.port for required_port in self.configuration.required_ports)
+        return tuple(
+            sorted(
+                {
+                    mapping.external_port
+                    for mapping in self.port_registry.mappings
+                    if mapping.external_port is not None and mapping.protocol == "tcp"
+                }
+            )
         )
 
     def _secret_checks(self) -> tuple[PreflightCheck, ...]:
@@ -581,10 +646,29 @@ def _bool_text(value: bool) -> str:
     return "true" if value else "false"
 
 
+def _csv_ints(values: tuple[int, ...]) -> str:
+    return ",".join(str(value) for value in values)
+
+
 def _host_environment_remediation(host_environment: HostEnvironmentReport) -> str:
     if host_environment.remediation:
         return " ".join(host_environment.remediation)
     return "Run Tiny Swarm World from supported native Linux or WSL2."
+
+
+def _windows_wsl_bridge_remediation(reason: str) -> str:
+    install = (
+        "Run PowerShell as Administrator: "
+        "tools/windows/tws-wsl-bridge.ps1 -Action install."
+    )
+    refresh = (
+        "After WSL IP changes, run: "
+        "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge."
+    )
+    disable = "Set TSW_WINDOWS_EXPOSURE=disabled only when Windows localhost exposure is not required."
+    if reason in {"wsl_ip_changed", "state_stale_by_age"}:
+        return f"{refresh} If the task is missing, {install} {disable}"
+    return f"{install} {disable}"
 
 
 def _port_remediation(service: str) -> str:

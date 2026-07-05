@@ -7,6 +7,7 @@ from tiny_swarm_world.domain.preflight import (
     HostEnvironmentKind,
     HostEnvironmentReport,
     SetupPath,
+    WindowsWslBridgeStatus,
 )
 
 
@@ -28,6 +29,18 @@ class PortHostPreflightProbe(ABC):
             setup_path=SetupPath.UNSUPPORTED,
             remediation=("Run Tiny Swarm World from Linux or WSL2.",),
             evidence={"classification": "legacy_boolean_unsupported"},
+        )
+
+    def windows_wsl_bridge_status(
+        self,
+        expected_ports: Sequence[int],
+    ) -> WindowsWslBridgeStatus:
+        return WindowsWslBridgeStatus(
+            prepared=False,
+            reason="unsupported_probe",
+            state_path="tools/windows/.tws-wsl-bridge.state.json",
+            expected_ports=tuple(expected_ports),
+            missing_ports=tuple(expected_ports),
         )
 
     @abstractmethod

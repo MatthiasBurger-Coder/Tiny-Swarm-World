@@ -1,7 +1,9 @@
+import json
 import stat
 import subprocess
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -239,6 +241,59 @@ class TestInstaller(unittest.TestCase):
             with self.assertRaisesRegex(installer.InstallerError, "was not provided"):
                 installer._confirm_reset(options)
 
+    def test_windows_wsl_bridge_guard_passes_for_native_linux_without_state(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            guard = installer._windows_wsl_bridge_guard(
+                installer.HostRuntime("native_linux", "test"),
+                {},
+                Path(tempdir),
+            )
+
+        self.assertTrue(guard.passed)
+        self.assertEqual("not_wsl2", guard.reason)
+
+    def test_windows_wsl_bridge_guard_blocks_wsl_without_state(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            _write_ports_registry(root, (80, 10000))
+
+            guard = installer._windows_wsl_bridge_guard(
+                installer.HostRuntime("wsl2", "test"),
+                {},
+                root,
+            )
+
+        self.assertFalse(guard.passed)
+        self.assertEqual("state_missing", guard.reason)
+        self.assertEqual((80, 10000), guard.missing_ports)
+
+    def test_windows_wsl_bridge_guard_accepts_current_state(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            _write_ports_registry(root, (80, 10000))
+            _write_windows_bridge_state(root, "172.20.0.2", (80, 10000))
+
+            with patch.object(installer, "_current_wsl_ipv4", return_value="172.20.0.2"):
+                guard = installer._windows_wsl_bridge_guard(
+                    installer.HostRuntime("wsl2", "test"),
+                    {},
+                    root,
+                )
+
+        self.assertTrue(guard.passed)
+        self.assertEqual("prepared", guard.reason)
+
+    def test_windows_wsl_bridge_guard_can_be_disabled(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            guard = installer._windows_wsl_bridge_guard(
+                installer.HostRuntime("wsl2", "test"),
+                {"TSW_WINDOWS_EXPOSURE": "disabled"},
+                Path(tempdir),
+            )
+
+        self.assertTrue(guard.passed)
+        self.assertEqual("windows_exposure_disabled", guard.reason)
+
     def test_suggested_checks_for_phase_returns_phase_specific_commands(self):
         self.assertEqual(
             (
@@ -345,6 +400,44 @@ class TestInstaller(unittest.TestCase):
 
     def test_setup_failure_guidance_stays_silent_for_other_setup_blocks(self):
         self.assertEqual((), installer._setup_failure_guidance_lines("failed_to_apply"))
+
+
+def _write_ports_registry(root: Path, ports: tuple[int, ...]) -> None:
+    registry = root / "infra" / "config" / "ports.yaml"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "ports:",
+    ]
+    for index, port in enumerate(ports):
+        lines.extend(
+            (
+                f"  - id: port-{index}",
+                f"    service_id: service-{index}",
+                f"    internal_port: {port}",
+                f"    external_port: {port}",
+                "    exposure: diagnostic",
+                "    protocol: tcp",
+            )
+        )
+    registry.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _write_windows_bridge_state(root: Path, wsl_ip: str, ports: tuple[int, ...]) -> None:
+    state_path = root / "tools" / "windows" / ".tws-wsl-bridge.state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state = {
+        "generatedAt": datetime.now(UTC).isoformat(),
+        "wslIp": wsl_ip,
+        "mappings": [
+            {
+                "name": f"port-{port}",
+                "listenPort": port,
+                "connectPort": port,
+            }
+            for port in ports
+        ],
+    }
+    state_path.write_text(json.dumps(state), encoding="utf-8")
 
 
 if __name__ == "__main__":

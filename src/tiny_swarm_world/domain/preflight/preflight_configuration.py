@@ -83,6 +83,7 @@ class PreflightConfiguration:
     required_ignored_paths: tuple[str, ...]
     resources: ResourceThresholds
     minimum_python_version: tuple[int, int]
+    windows_wsl_bridge_required: bool = True
     provider_metadata: ProviderPreflightMetadata = field(
         default_factory=lambda: ProviderPreflightMetadata(
             provider="generic",
