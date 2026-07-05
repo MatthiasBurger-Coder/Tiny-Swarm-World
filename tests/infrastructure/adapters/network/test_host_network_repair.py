@@ -1,7 +1,11 @@
 import unittest
 from pathlib import Path
 
+from tiny_swarm_world.application.ports.network import CommandObservation
 from tiny_swarm_world.infrastructure.adapters.network import host_network_repair
+from tiny_swarm_world.infrastructure.adapters.network.host_network_repair import (
+    SubprocessNetworkRepair,
+)
 
 
 class TestHostNetworkRepair(unittest.TestCase):
@@ -41,6 +45,65 @@ class TestHostNetworkRepair(unittest.TestCase):
             )
         )
 
+    def test_wslconfig_path_guard_reconstructs_only_windows_user_profile_path(self):
+        self.assertEqual(
+            Path("/mnt/c/Users/micro/.wslconfig"),
+            host_network_repair._wslconfig_path_from_mapped_profile("/mnt/c/Users/micro"),
+        )
+        self.assertIsNone(host_network_repair._wslconfig_path_from_mapped_profile("/tmp/user"))
+        self.assertIsNone(
+            host_network_repair._wslconfig_path_from_mapped_profile(
+                "/mnt/c/Users/micro/../../Windows"
+            )
+        )
+
+    def test_wsl_nat_repair_blocks_untrusted_mapped_profile_path(self):
+        executor = _SequenceExecutor(
+            (
+                _ok(
+                    "powershell.exe -NoProfile -Command",
+                    "C:\\Users\\micro",
+                ),
+                _ok("wslpath -u", "/tmp/micro"),
+            )
+        )
+        repair = SubprocessNetworkRepair(executor=executor)
+
+        result = repair._apply_wsl2_nat_runtime()
+
+        self.assertFalse(result.success)
+        self.assertIn("Refused to update .wslconfig", result.message)
+
+    def test_incus_repair_restarts_without_stale_pid_file(self):
+        executor = _MappingExecutor(
+            {
+                "test -e /var/lib/incus/networks/incusbr0/dnsmasq.pid": _failed(
+                    "test -e /var/lib/incus/networks/incusbr0/dnsmasq.pid"
+                ),
+                "systemctl restart incus": _ok("systemctl restart incus"),
+                "incus network list": _ok("incus network list", "incusbr0"),
+                "incus network info incusbr0": _ok("incus network info incusbr0", "State: up"),
+            }
+        )
+        repair = SubprocessNetworkRepair(executor=executor)
+
+        result = repair._apply_incus_repair()
+
+        self.assertTrue(result.success)
+        self.assertIn("No stale Incus dnsmasq.pid file was present.", result.details)
+
+    def test_linux_forwarding_repair_installs_service_and_verifies_node_egress(self):
+        executor = _DefaultOkExecutor()
+        repair = SubprocessNetworkRepair(executor=executor)
+
+        result = repair._apply_linux_forwarding("incusbr0", "swarm-manager")
+
+        self.assertTrue(result.success)
+        commands = tuple(command.command for command in result.commands)
+        self.assertTrue(any("install -m 0755" in command for command in commands))
+        self.assertTrue(any("systemctl enable --now tsw-incus-forwarding.service" in command for command in commands))
+        self.assertTrue(any("incus exec swarm-manager -- curl" in command for command in commands))
+
     def test_windows_scripts_read_ports_from_registry(self):
         root = Path(__file__).resolve().parents[4]
         repair_script = root / "tools" / "windows" / "repair-wsl-portproxy.ps1"
@@ -51,6 +114,49 @@ class TestHostNetworkRepair(unittest.TestCase):
             self.assertIn("infra\\config\\ports.yaml", text)
             self.assertIn("Get-TswBridgePorts", text)
             self.assertNotIn("$ports = @(", text)
+
+
+class _SequenceExecutor:
+    def __init__(self, observations: tuple[CommandObservation, ...]) -> None:
+        self.observations = list(observations)
+
+    def __call__(self, command: str, _timeout: int) -> CommandObservation:
+        observation = self.observations.pop(0)
+        return CommandObservation(
+            command=command,
+            return_code=observation.return_code,
+            stdout=observation.stdout,
+            stderr=observation.stderr,
+        )
+
+
+class _MappingExecutor:
+    def __init__(self, observations: dict[str, CommandObservation]) -> None:
+        self.observations = observations
+
+    def __call__(self, command: str, _timeout: int) -> CommandObservation:
+        for expected, observation in self.observations.items():
+            if expected in command:
+                return CommandObservation(
+                    command=command,
+                    return_code=observation.return_code,
+                    stdout=observation.stdout,
+                    stderr=observation.stderr,
+                )
+        return _failed(command, "unexpected command")
+
+
+class _DefaultOkExecutor:
+    def __call__(self, command: str, _timeout: int) -> CommandObservation:
+        return _ok(command, "HTTP/1.1 200 OK" if "curl" in command else "")
+
+
+def _ok(command: str, stdout: str = "") -> CommandObservation:
+    return CommandObservation(command=command, return_code=0, stdout=stdout)
+
+
+def _failed(command: str, stderr: str = "failed") -> CommandObservation:
+    return CommandObservation(command=command, return_code=1, stderr=stderr)
 
 
 if __name__ == "__main__":

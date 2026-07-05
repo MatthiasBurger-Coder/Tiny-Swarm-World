@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import os
+import re
 import shlex
 import subprocess
 import tempfile
@@ -20,6 +22,7 @@ INCUS_DNSMASQ_PID = Path("/var/lib/incus/networks/incusbr0/dnsmasq.pid")
 INCUS_NETWORK_DIR = Path("/var/lib/incus/networks/incusbr0")
 FORWARDING_SCRIPT_PATH = Path("/usr/local/bin/tsw-apply-incus-forwarding.sh")
 FORWARDING_SERVICE_PATH = Path("/etc/systemd/system/tsw-incus-forwarding.service")
+WINDOWS_USER_PROFILE_PATTERN = re.compile(r"^[A-Za-z0-9._ -]+$")
 
 
 class SubprocessNetworkRepair:
@@ -27,6 +30,9 @@ class SubprocessNetworkRepair:
         self.executor = executor or _run_shell_command
 
     async def apply_wsl2_nat_runtime(self) -> NetworkRepairMutationResult:
+        return await asyncio.to_thread(self._apply_wsl2_nat_runtime)
+
+    def _apply_wsl2_nat_runtime(self) -> NetworkRepairMutationResult:
         profile = self.executor(
             "powershell.exe -NoProfile -Command \"[Environment]::GetFolderPath('UserProfile')\"",
             10,
@@ -50,7 +56,15 @@ class SubprocessNetworkRepair:
             )
 
         windows_profile = profile.stdout.strip()
-        config_path = Path(wsl_path.stdout.strip()) / ".wslconfig"
+        config_path = _wslconfig_path_from_mapped_profile(wsl_path.stdout)
+        if config_path is None:
+            return NetworkRepairMutationResult(
+                target="runtime",
+                applied=False,
+                success=False,
+                message="Refused to update .wslconfig because the mapped profile path is outside /mnt/<drive>/Users.",
+                commands=(profile, wsl_path),
+            )
         backup_path: Path | None = None
         if config_path.exists():
             timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
@@ -87,6 +101,9 @@ class SubprocessNetworkRepair:
         )
 
     async def apply_incus_repair(self) -> NetworkRepairMutationResult:
+        return await asyncio.to_thread(self._apply_incus_repair)
+
+    def _apply_incus_repair(self) -> NetworkRepairMutationResult:
         commands: list[CommandObservation] = []
         details: list[str] = []
 
@@ -149,6 +166,9 @@ class SubprocessNetworkRepair:
         )
 
     async def apply_linux_forwarding(self, bridge: str, node_name: str) -> NetworkRepairMutationResult:
+        return await asyncio.to_thread(self._apply_linux_forwarding, bridge, node_name)
+
+    def _apply_linux_forwarding(self, bridge: str, node_name: str) -> NetworkRepairMutationResult:
         commands: list[CommandObservation] = []
         details = [
             f"Installing {FORWARDING_SCRIPT_PATH.as_posix()}",
@@ -256,36 +276,68 @@ def _run_shell_command(command: str, timeout: int) -> CommandObservation:
     )
 
 
+def _wslconfig_path_from_mapped_profile(mapped_profile: str) -> Path | None:
+    candidate = Path(mapped_profile.strip())
+    parts = candidate.parts
+    if not candidate.is_absolute() or len(parts) != 5:
+        return None
+    root, mount, drive, users, username = parts
+    if root != "/" or mount != "mnt" or users != "Users":
+        return None
+    if not re.fullmatch(r"[a-z]", drive) or not WINDOWS_USER_PROFILE_PATTERN.fullmatch(username):
+        return None
+    return Path("/mnt") / drive / "Users" / username / ".wslconfig"
+
+
 def _set_wsl_networking_mode(content: str, mode: str) -> str:
-    lines = content.splitlines()
+    output, saw_wsl2, in_wsl2, wrote_mode = _rewrite_wsl2_lines(content.splitlines(), mode)
+    if in_wsl2 and not wrote_mode:
+        output.append(f"networkingMode={mode}")
+    if not saw_wsl2:
+        _append_wsl2_section(output, mode)
+    return "\n".join(output).rstrip() + "\n"
+
+
+def _rewrite_wsl2_lines(lines: list[str], mode: str) -> tuple[list[str], bool, bool, bool]:
     output: list[str] = []
     in_wsl2 = False
     saw_wsl2 = False
     wrote_mode = False
 
     for line in lines:
-        stripped = line.strip()
-        if stripped.startswith("[") and stripped.endswith("]"):
+        section = _section_name(line)
+        if section is not None:
             if in_wsl2 and not wrote_mode:
                 output.append(f"networkingMode={mode}")
                 wrote_mode = True
-            in_wsl2 = stripped.casefold() == "[wsl2]"
+            in_wsl2 = section == "wsl2"
             saw_wsl2 = saw_wsl2 or in_wsl2
+            wrote_mode = False if in_wsl2 else wrote_mode
             output.append(line)
             continue
-        if in_wsl2 and stripped.casefold().startswith("networkingmode"):
+        if in_wsl2 and _is_networking_mode_line(line):
             output.append(f"networkingMode={mode}")
             wrote_mode = True
             continue
         output.append(line)
+    return output, saw_wsl2, in_wsl2, wrote_mode
 
-    if in_wsl2 and not wrote_mode:
-        output.append(f"networkingMode={mode}")
-    if not saw_wsl2:
-        if output and output[-1].strip():
-            output.append("")
-        output.extend(("[wsl2]", f"networkingMode={mode}"))
-    return "\n".join(output).rstrip() + "\n"
+
+def _section_name(line: str) -> str | None:
+    stripped = line.strip()
+    if stripped.startswith("[") and stripped.endswith("]"):
+        return stripped[1:-1].strip().casefold()
+    return None
+
+
+def _is_networking_mode_line(line: str) -> bool:
+    return line.strip().casefold().startswith("networkingmode")
+
+
+def _append_wsl2_section(output: list[str], mode: str) -> None:
+    if output and output[-1].strip():
+        output.append("")
+    output.extend(("[wsl2]", f"networkingMode={mode}"))
 
 
 def _forwarding_script() -> str:

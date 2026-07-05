@@ -188,39 +188,48 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     parser.add_argument("workflow_action", nargs="?", help="Workflow action.")
     args = parser.parse_args(argv)
 
+    _validate_provider_args(parser, args)
+    _assign_network_command(parser, args)
+    _assign_workflow(parser, args)
+    return args
+
+
+def _validate_provider_args(parser: ArgumentParser, args: Namespace) -> None:
     if args.lxc_backend is not None and args.node_provider != NodeProviderKind.LXC_NATIVE.value:
         parser.error("--lxc-backend requires --node-provider lxc_native")
 
+
+def _assign_network_command(parser: ArgumentParser, args: Namespace) -> None:
     if (args.workflow_namespace is None) != (args.workflow_action is None):
         parser.error("workflow command requires both namespace and action")
 
-    args.network_command = None
-    if args.workflow_namespace == "doctor" and args.workflow_action == "network":
-        args.network_command = "doctor_network"
-    elif args.workflow_namespace == "network" and args.workflow_action == "repair":
-        args.network_command = "network_repair"
-
-    network_options_present = bool(
-        args.runtime or args.linux_forwarding or args.incus or args.apply
-    )
+    args.network_command = _network_command(args.workflow_namespace, args.workflow_action)
+    network_options_present = bool(args.runtime or args.linux_forwarding or args.incus or args.apply)
     if args.network_command != "network_repair" and network_options_present:
         parser.error("network repair options require command: network repair")
-    if args.network_command == "network_repair" and not (
-        args.runtime or args.linux_forwarding or args.incus
-    ):
+    if args.network_command == "network_repair" and not _has_network_repair_target(args):
         parser.error("network repair requires --runtime, --linux-forwarding, or --incus")
 
-    args.workflow = None
-    if args.workflow_namespace is not None and args.workflow_action is not None:
-        if args.network_command is not None:
-            return args
-        args.workflow = CLI_WORKFLOWS_BY_KEY.get(
-            (args.workflow_namespace, args.workflow_action)
-        )
-        if args.workflow is None:
-            parser.error(f"unsupported workflow command: {args.workflow_namespace} {args.workflow_action}")
 
-    return args
+def _network_command(namespace: str | None, action: str | None) -> str | None:
+    if namespace == "doctor" and action == "network":
+        return "doctor_network"
+    if namespace == "network" and action == "repair":
+        return "network_repair"
+    return None
+
+
+def _has_network_repair_target(args: Namespace) -> bool:
+    return bool(args.runtime or args.linux_forwarding or args.incus)
+
+
+def _assign_workflow(parser: ArgumentParser, args: Namespace) -> None:
+    args.workflow = None
+    if args.workflow_namespace is None or args.workflow_action is None or args.network_command is not None:
+        return
+    args.workflow = CLI_WORKFLOWS_BY_KEY.get((args.workflow_namespace, args.workflow_action))
+    if args.workflow is None:
+        parser.error(f"unsupported workflow command: {args.workflow_namespace} {args.workflow_action}")
 
 
 async def main(argv: Sequence[str] | None = None) -> None:

@@ -24,11 +24,11 @@ class SubprocessNetworkProbe:
         self.executor = executor or _run_shell_command
 
     async def runtime(self) -> RuntimeObservation:
-        version = await self._run("grep -Eqi '(microsoft|wsl)' /proc/version", timeout=3)
-        hostname = await self._run("hostname -I 2>/dev/null || true", timeout=3)
+        version = await self._run("grep -Eqi '(microsoft|wsl)' /proc/version", timeout_seconds=3)
+        hostname = await self._run("hostname -I 2>/dev/null || true", timeout_seconds=3)
         if version.ok:
-            networking_mode = await self._run("wslinfo --networking-mode 2>/dev/null || true", timeout=3)
-            eth0 = await self._run("ip -4 -o addr show dev eth0 scope global 2>/dev/null || true", timeout=3)
+            networking_mode = await self._run("wslinfo --networking-mode 2>/dev/null || true", timeout_seconds=3)
+            eth0 = await self._run("ip -4 -o addr show dev eth0 scope global 2>/dev/null || true", timeout_seconds=3)
             mode = _networking_mode(networking_mode.stdout)
             return RuntimeObservation(
                 runtime="wsl2",
@@ -37,7 +37,7 @@ class SubprocessNetworkProbe:
                 host_ipv4="",
                 commands=(version, networking_mode, hostname, eth0),
             )
-        route = await self._run("ip route 2>/dev/null || true", timeout=3)
+        route = await self._run("ip route 2>/dev/null || true", timeout_seconds=3)
         return RuntimeObservation(
             runtime="native-linux",
             networking_mode="not-applicable",
@@ -48,12 +48,12 @@ class SubprocessNetworkProbe:
 
     async def wsl_host(self) -> WslHostObservation:
         ip_addr, ip_route, resolv_conf, ping_egress, dns_lookup, http_probe = await asyncio.gather(
-            self._run("ip addr", timeout=5),
-            self._run("ip route", timeout=5),
-            self._run("cat /etc/resolv.conf", timeout=5),
-            self._run("ping -c1 -W2 1.1.1.1", timeout=5),
-            self._run("getent hosts archive.ubuntu.com", timeout=5),
-            self._run("curl -4 -I --connect-timeout 5 http://archive.ubuntu.com", timeout=8),
+            self._run("ip addr", timeout_seconds=5),
+            self._run("ip route", timeout_seconds=5),
+            self._run("cat /etc/resolv.conf", timeout_seconds=5),
+            self._run("ping -c1 -W2 1.1.1.1", timeout_seconds=5),
+            self._run("getent hosts archive.ubuntu.com", timeout_seconds=5),
+            self._run("curl -4 -I --connect-timeout 5 http://archive.ubuntu.com", timeout_seconds=8),
         )
         return WslHostObservation(
             ip_addr=ip_addr,
@@ -65,7 +65,7 @@ class SubprocessNetworkProbe:
         )
 
     async def incus(self) -> IncusObservation:
-        version = await self._run("incus version", timeout=8)
+        version = await self._run("incus version", timeout_seconds=8)
         if not version.ok:
             empty = _skipped("Incus command skipped because incus version failed.")
             return IncusObservation(
@@ -79,12 +79,12 @@ class SubprocessNetworkProbe:
             )
 
         network_list, network_show, network_info, bridge_addr, journal, dnsmasq_log = await asyncio.gather(
-            self._run("incus network list", timeout=10),
-            self._run("incus network show incusbr0", timeout=10),
-            self._run("incus network info incusbr0", timeout=10),
-            self._run("ip addr show incusbr0", timeout=5),
-            self._run("journalctl -u incus -n 100 --no-pager", timeout=12),
-            self._run("cat /var/log/incus/dnsmasq.incusbr0.log 2>/dev/null || true", timeout=5),
+            self._run("incus network list", timeout_seconds=10),
+            self._run("incus network show incusbr0", timeout_seconds=10),
+            self._run("incus network info incusbr0", timeout_seconds=10),
+            self._run("ip addr show incusbr0", timeout_seconds=5),
+            self._run("journalctl -u incus -n 100 --no-pager", timeout_seconds=12),
+            self._run("cat /var/log/incus/dnsmasq.incusbr0.log 2>/dev/null || true", timeout_seconds=5),
         )
         return IncusObservation(
             version=version,
@@ -104,16 +104,16 @@ class SubprocessNetworkProbe:
             else "printf 'incusbr0 gateway unknown' >&2; exit 1"
         )
         incus_list, ip_addr, ip_route, resolv_conf, ping_gateway, ping_egress, dns_lookup, http_probe = await asyncio.gather(
-            self._run("incus list", timeout=10),
-            self._run(f"incus exec {node_name} -- ip addr", timeout=10),
-            self._run(f"incus exec {node_name} -- ip route", timeout=10),
-            self._run(f"incus exec {node_name} -- cat /etc/resolv.conf", timeout=10),
-            self._run(ping_gateway_command, timeout=8),
-            self._run(f"incus exec {node_name} -- ping -c1 -W2 1.1.1.1", timeout=8),
-            self._run(f"incus exec {node_name} -- getent hosts archive.ubuntu.com", timeout=8),
+            self._run("incus list", timeout_seconds=10),
+            self._run(f"incus exec {node_name} -- ip addr", timeout_seconds=10),
+            self._run(f"incus exec {node_name} -- ip route", timeout_seconds=10),
+            self._run(f"incus exec {node_name} -- cat /etc/resolv.conf", timeout_seconds=10),
+            self._run(ping_gateway_command, timeout_seconds=8),
+            self._run(f"incus exec {node_name} -- ping -c1 -W2 1.1.1.1", timeout_seconds=8),
+            self._run(f"incus exec {node_name} -- getent hosts archive.ubuntu.com", timeout_seconds=8),
             self._run(
                 f"incus exec {node_name} -- curl -4 -I --connect-timeout 8 http://archive.ubuntu.com",
-                timeout=12,
+                timeout_seconds=12,
             ),
         )
         return LxcNodeObservation(
@@ -130,13 +130,13 @@ class SubprocessNetworkProbe:
 
     async def forwarding(self) -> ForwardingObservation:
         ip_forward, iptables_forward, iptables_nat, nft_rules = await asyncio.gather(
-            self._run("sysctl net.ipv4.ip_forward", timeout=5),
-            self._run("iptables -S FORWARD 2>/dev/null || true", timeout=8),
-            self._run("iptables -t nat -S 2>/dev/null || true", timeout=8),
+            self._run("sysctl net.ipv4.ip_forward", timeout_seconds=5),
+            self._run("iptables -S FORWARD 2>/dev/null || true", timeout_seconds=8),
+            self._run("iptables -t nat -S 2>/dev/null || true", timeout_seconds=8),
             self._run(
                 "nft list ruleset 2>/dev/null | "
                 "grep -Ei 'incus|docker|masquerade|forward' -C 3 || true",
-                timeout=10,
+                timeout_seconds=10,
             ),
         )
         return ForwardingObservation(
@@ -148,11 +148,11 @@ class SubprocessNetworkProbe:
 
     async def service_ports(self) -> ServicePortObservation:
         return ServicePortObservation(
-            listeners=await self._run("ss -ltnH 2>/dev/null || true", timeout=5)
+            listeners=await self._run("ss -ltnH 2>/dev/null || true", timeout_seconds=5)
         )
 
-    async def _run(self, command: str, *, timeout: int) -> CommandObservation:
-        return await asyncio.to_thread(self.executor, command, timeout)
+    async def _run(self, command: str, *, timeout_seconds: int) -> CommandObservation:
+        return await asyncio.to_thread(self.executor, command, timeout_seconds)
 
 
 def _run_shell_command(command: str, timeout: int) -> CommandObservation:
