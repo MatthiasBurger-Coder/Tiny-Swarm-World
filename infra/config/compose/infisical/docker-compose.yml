@@ -18,13 +18,14 @@ services:
       - target: 8080
         published: 17080
         protocol: tcp
+        mode: host
     networks:
       - service_access_link
     deploy:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == swarm-worker-1
+          - node.role == manager
 
   infisical-db:
     image: ${TSW_INFISICAL_POSTGRES_IMAGE:-postgres:14-alpine}

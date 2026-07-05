@@ -43,6 +43,9 @@ from tiny_swarm_world.infrastructure.composition import (
     build_artifact_services_for_provider,
     build_compose_file_repository,
     build_deployment_services_for_provider,
+    build_network_doctor_service,
+    build_network_repair_options,
+    build_network_repair_service,
     build_preflight_service,
     build_application_logger,
     run_setup_with_terminal_status,
@@ -161,6 +164,26 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
         choices=[ManagedLxcBackend.INCUS.value],
         help="Preferred managed LXC backend when --node-provider lxc_native is selected.",
     )
+    parser.add_argument(
+        "--runtime",
+        choices=["wsl2-nat"],
+        help="Runtime target for 'network repair'.",
+    )
+    parser.add_argument(
+        "--linux-forwarding",
+        action="store_true",
+        help="Plan or apply Incus bridge forwarding repair for 'network repair'.",
+    )
+    parser.add_argument(
+        "--incus",
+        action="store_true",
+        help="Plan or apply guarded Incus bridge repair for 'network repair'.",
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply the selected 'network repair' target; omitted means dry-run.",
+    )
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
     parser.add_argument("workflow_action", nargs="?", help="Workflow action.")
     args = parser.parse_args(argv)
@@ -171,9 +194,29 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     if (args.workflow_namespace is None) != (args.workflow_action is None):
         parser.error("workflow command requires both namespace and action")
 
+    args.network_command = None
+    if args.workflow_namespace == "doctor" and args.workflow_action == "network":
+        args.network_command = "doctor_network"
+    elif args.workflow_namespace == "network" and args.workflow_action == "repair":
+        args.network_command = "network_repair"
+
+    network_options_present = bool(
+        args.runtime or args.linux_forwarding or args.incus or args.apply
+    )
+    if args.network_command != "network_repair" and network_options_present:
+        parser.error("network repair options require command: network repair")
+    if args.network_command == "network_repair" and not (
+        args.runtime or args.linux_forwarding or args.incus
+    ):
+        parser.error("network repair requires --runtime, --linux-forwarding, or --incus")
+
     args.workflow = None
     if args.workflow_namespace is not None and args.workflow_action is not None:
-        args.workflow = CLI_WORKFLOWS_BY_KEY.get((args.workflow_namespace, args.workflow_action))
+        if args.network_command is not None:
+            return args
+        args.workflow = CLI_WORKFLOWS_BY_KEY.get(
+            (args.workflow_namespace, args.workflow_action)
+        )
         if args.workflow is None:
             parser.error(f"unsupported workflow command: {args.workflow_namespace} {args.workflow_action}")
 
@@ -189,6 +232,14 @@ async def main(argv: Sequence[str] | None = None) -> None:
 
     if args.list_workflows:
         _print_workflow_list()
+        return
+
+    if args.network_command == "doctor_network":
+        await _run_network_doctor_command(args)
+        return
+
+    if args.network_command == "network_repair":
+        await _run_network_repair_command(args)
         return
 
     if args.preflight:
@@ -246,6 +297,32 @@ async def _run_preflight_command(args: Namespace) -> None:
     else:
         _print_preflight_summary(result, live=args.live)
     if not result.passed:
+        raise SystemExit(1)
+
+
+async def _run_network_doctor_command(args: Namespace) -> None:
+    report = await build_network_doctor_service().run()
+    if _should_emit_json(args):
+        _emit_json_payload(report.to_dict())
+    else:
+        print(report.render())
+    if not report.passed:
+        raise SystemExit(1)
+
+
+async def _run_network_repair_command(args: Namespace) -> None:
+    options = build_network_repair_options(
+        runtime=args.runtime,
+        linux_forwarding=bool(args.linux_forwarding),
+        incus=bool(args.incus),
+        apply=bool(args.apply),
+    )
+    report = await build_network_repair_service().run(options)
+    if _should_emit_json(args):
+        _emit_json_payload(report.to_dict())
+    else:
+        print(report.render())
+    if not report.succeeded:
         raise SystemExit(1)
 
 

@@ -20,6 +20,7 @@ services:
       - target: 9000
         published: 12000
         protocol: tcp
+        mode: host
     volumes:
       - sonarqube_conf:/opt/sonarqube/conf
       - sonarqube_data:/opt/sonarqube/data
@@ -32,7 +33,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == swarm-worker-2
+          - node.role == manager
 
   sonar_db:
     image: postgres:13

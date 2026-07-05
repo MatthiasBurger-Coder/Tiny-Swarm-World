@@ -710,6 +710,68 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(1, raised.exception.code)
 
+    async def test_doctor_network_dispatches_without_building_workflow_services(self):
+        doctor = SimpleNamespace(run=AsyncMock(return_value=_FakeNetworkDoctorReport(True)))
+        output = io.StringIO()
+
+        with patch.object(entrypoint, "build_network_doctor_service", return_value=doctor):
+            with patch.object(entrypoint, "build_application_services") as build_services:
+                with redirect_stdout(output):
+                    await entrypoint.main(["doctor", "network"])
+
+        build_services.assert_not_called()
+        doctor.run.assert_awaited_once_with()
+        self.assertIn("[Runtime]", output.getvalue())
+
+    async def test_failed_doctor_network_exits_nonzero(self):
+        doctor = SimpleNamespace(run=AsyncMock(return_value=_FakeNetworkDoctorReport(False)))
+
+        with patch.object(entrypoint, "build_network_doctor_service", return_value=doctor):
+            with redirect_stdout(io.StringIO()):
+                with self.assertRaises(SystemExit) as raised:
+                    await entrypoint.main(["doctor", "network"])
+
+        self.assertEqual(1, raised.exception.code)
+
+    async def test_network_repair_dispatches_dry_run_options_without_live_consent(self):
+        repair = SimpleNamespace(run=AsyncMock(return_value=_FakeNetworkRepairReport(True)))
+        output = io.StringIO()
+
+        with patch.object(entrypoint, "build_network_repair_service", return_value=repair):
+            with patch.object(entrypoint, "build_application_services") as build_services:
+                with redirect_stdout(output):
+                    await entrypoint.main(["network", "repair", "--runtime", "wsl2-nat"])
+
+        build_services.assert_not_called()
+        options = repair.run.call_args.args[0]
+        self.assertEqual("wsl2-nat", options.runtime)
+        self.assertFalse(options.apply)
+        self.assertIn("[Network Repair]", output.getvalue())
+
+    async def test_network_repair_apply_dispatches_selected_targets(self):
+        repair = SimpleNamespace(run=AsyncMock(return_value=_FakeNetworkRepairReport(True)))
+
+        with patch.object(entrypoint, "build_network_repair_service", return_value=repair):
+            with redirect_stdout(io.StringIO()):
+                await entrypoint.main(
+                    ["network", "repair", "--linux-forwarding", "--incus", "--apply"]
+                )
+
+        options = repair.run.call_args.args[0]
+        self.assertTrue(options.linux_forwarding)
+        self.assertTrue(options.incus)
+        self.assertTrue(options.apply)
+
+    def test_network_repair_requires_target(self):
+        with redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                entrypoint.parse_args(["network", "repair"])
+
+    def test_network_repair_options_are_rejected_for_other_commands(self):
+        with redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                entrypoint.parse_args(["doctor", "network", "--apply"])
+
     def test_entrypoint_has_no_direct_low_level_infrastructure_imports(self):
         imports = _direct_imports(ENTRYPOINT_PATH)
         forbidden_prefixes = (
@@ -786,6 +848,28 @@ class _FakePreflightResult:
 
     def to_dict(self) -> dict[str, object]:
         return {"status": self.status, "checks": []}
+
+
+class _FakeNetworkDoctorReport:
+    def __init__(self, passed: bool):
+        self.passed = passed
+
+    def render(self) -> str:
+        return "[Runtime]\nRuntime: wsl2"
+
+    def to_dict(self) -> dict[str, object]:
+        return {"passed": self.passed, "sections": []}
+
+
+class _FakeNetworkRepairReport:
+    def __init__(self, succeeded: bool):
+        self.succeeded = succeeded
+
+    def render(self) -> str:
+        return "[Network Repair]\nMode: dry-run"
+
+    def to_dict(self) -> dict[str, object]:
+        return {"succeeded": self.succeeded, "steps": []}
 
 
 def _application_services_with_platform_workflows(

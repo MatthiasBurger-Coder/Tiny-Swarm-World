@@ -91,6 +91,11 @@ from tiny_swarm_world.application.services.platform import (
     PreflightService,
     SocatManager,
 )
+from tiny_swarm_world.application.services.network import (
+    NetworkDoctorService,
+    NetworkRepairOptions,
+    NetworkRepairService,
+)
 from tiny_swarm_world.application.services.configuration import ConfigurationValidationService
 from tiny_swarm_world.application.services.setup import (
     SetupWorkflow,
@@ -164,6 +169,10 @@ from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
 )
 from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe, LxcProviderPreflightProbe
+from tiny_swarm_world.infrastructure.adapters.network import (
+    SubprocessNetworkProbe,
+    SubprocessNetworkRepair,
+)
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
     ComposeFileRepositoryYaml,
 )
@@ -565,6 +574,37 @@ def build_configuration_validation_service(
 
 def build_compose_file_repository() -> PortComposeFileRepository:
     return ComposeFileRepositoryYaml(project_paths=default_project_paths())
+
+
+def build_network_doctor_service() -> NetworkDoctorService:
+    project_paths = default_project_paths()
+    port_registry = PortRegistryYamlRepository(project_paths=project_paths).load()
+    return NetworkDoctorService(
+        SubprocessNetworkProbe(),
+        port_registry,
+    )
+
+
+def build_network_repair_service() -> NetworkRepairService:
+    return NetworkRepairService(
+        SubprocessNetworkProbe(),
+        SubprocessNetworkRepair(),
+    )
+
+
+def build_network_repair_options(
+    *,
+    runtime: str | None,
+    linux_forwarding: bool,
+    incus: bool,
+    apply: bool,
+) -> NetworkRepairOptions:
+    return NetworkRepairOptions(
+        runtime=runtime,
+        linux_forwarding=linux_forwarding,
+        incus=incus,
+        apply=apply,
+    )
 
 
 def build_post_install_preflight_service(

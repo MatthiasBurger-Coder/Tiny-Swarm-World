@@ -417,19 +417,32 @@ The Docker registry mirror and the Ubuntu/Docker APT mirrors are separate.
 `TSW_LXC_DOCKER_REGISTRY_MIRROR` does not replace `archive.ubuntu.com` or the
 Docker APT repository used during Docker Engine installation.
 
-First verify that containers can reach the network and resolve names from the
-same Incus backend:
+First run the read-only network diagnosis from the same WSL/Linux shell:
 
 [source,bash]
 ----
-incus exec swarm-manager -- getent hosts archive.ubuntu.com
-incus exec swarm-manager -- getent hosts security.ubuntu.com
-incus exec swarm-manager -- sh -lc 'apt-get update'
+./tsw doctor network
 ----
 
-If outbound internet is intentionally blocked or unreliable, configure
-APT mirrors that are reachable from inside the Incus containers, then rerun
-the installer:
+If setup reaches `artifacts prepare` and times out waiting for Nexus while
+`docker service ls` reports `nexus_nexus 1/1`, inspect Docker logs on the node
+that runs Nexus. Messages such as `Module ip_vs not found` or `Failed to create
+a new service ... operation not permitted` mean Docker Swarm `ingress`/VIP
+routing is unavailable in the current WSL2/LXC runtime. Tiny Swarm World's
+`wsl2-nat` profile avoids this by publishing external service ports in
+`mode: host` on the manager node instead of relying on the Swarm routing mesh.
+
+If the diagnosis reports Docker blocking Incus bridge forwarding, apply only
+the targeted forwarding repair:
+
+[source,bash]
+----
+./tsw network repair --linux-forwarding --apply
+----
+
+If outbound internet is intentionally blocked or unreliable, configure APT
+mirrors that are reachable from inside the Incus containers, then rerun the
+installer:
 
 [source,bash]
 ----

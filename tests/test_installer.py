@@ -249,9 +249,9 @@ class TestInstaller(unittest.TestCase):
         )
         self.assertEqual(
             (
-                "incus exec swarm-manager -- getent hosts archive.ubuntu.com",
-                "incus exec swarm-manager -- getent hosts security.ubuntu.com",
-                "incus exec swarm-manager -- sh -lc 'apt-get update'",
+                "./tsw doctor network",
+                "./tsw network repair --linux-forwarding --apply",
+                "powershell.exe -ExecutionPolicy Bypass -File .\\tools\\windows\\doctor-portproxy.ps1",
             ),
             installer._suggested_checks_for_phase(
                 "setup platform",
@@ -339,8 +339,9 @@ class TestInstaller(unittest.TestCase):
 
         rendered = "\n".join(lines)
         self.assertIn("APT repositories", rendered)
-        self.assertIn("TSW_LXC_UBUNTU_APT_MIRROR", rendered)
-        self.assertIn("not localhost", rendered)
+        self.assertIn("./tsw doctor network", rendered)
+        self.assertIn("./tsw network repair --linux-forwarding --apply", rendered)
+        self.assertIn("does not change iptables", rendered)
 
     def test_setup_failure_guidance_stays_silent_for_other_setup_blocks(self):
         self.assertEqual((), installer._setup_failure_guidance_lines("failed_to_apply"))
