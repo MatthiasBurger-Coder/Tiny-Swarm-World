@@ -473,8 +473,15 @@ services:
             compose_data["services"]["jenkins"]["image"],
         )
         self.assertEqual(
-            ["node.hostname == swarm-worker-2"],
+            ["node.role == manager"],
             compose_data["services"]["jenkins"]["deploy"]["placement"]["constraints"],
+        )
+        self.assertEqual(
+            [
+                {"target": 8080, "published": 11080, "protocol": "tcp", "mode": "host"},
+                {"target": 50000, "published": 11050, "protocol": "tcp", "mode": "host"},
+            ],
+            compose_data["services"]["jenkins"]["ports"],
         )
         self.assertEqual(
             ["jenkins_home:/var/lib/jenkins"],
@@ -485,6 +492,27 @@ services:
             compose_data["services"]["jenkins"]["environment"],
         )
         self.assertNotIn("secrets", compose_data)
+
+    def test_committed_nexus_compose_publishes_registry_ports_on_manager_host(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        compose_path = (
+            repository_root / "infra" / "config" / "compose" / "nexus" / "docker-compose.yml"
+        )
+        compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
+        nexus = compose_data["services"]["nexus"]
+
+        self.assertEqual(
+            [
+                {"target": 8081, "published": 13081, "protocol": "tcp", "mode": "host"},
+                {"target": 5000, "published": 13500, "protocol": "tcp", "mode": "host"},
+                {"target": 5001, "published": 13501, "protocol": "tcp", "mode": "host"},
+            ],
+            nexus["ports"],
+        )
+        self.assertEqual(
+            ["node.role == manager"],
+            nexus["deploy"]["placement"]["constraints"],
+        )
 
     def test_committed_pulsar_compose_uses_standalone_with_non_conflicting_admin_port(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -545,8 +573,8 @@ services:
         self.assertEqual("${TSW_PULSAR_ADMIN_TOKEN}", pulsar["environment"]["TSW_PULSAR_ADMIN_TOKEN"])
         self.assertEqual(
             [
-                {"target": 6650, "published": 14001, "protocol": "tcp"},
-                {"target": 8080, "published": 14080, "protocol": "tcp"},
+                {"target": 6650, "published": 14001, "protocol": "tcp", "mode": "host"},
+                {"target": 8080, "published": 14080, "protocol": "tcp", "mode": "host"},
             ],
             pulsar["ports"],
         )
@@ -564,7 +592,7 @@ services:
             compose_data["networks"]["service_access_link"],
         )
         self.assertEqual(
-            ["node.hostname == swarm-worker-1"],
+            ["node.role == manager"],
             pulsar["deploy"]["placement"]["constraints"],
         )
 
@@ -579,12 +607,16 @@ services:
         )
         self.assertEqual(
             [
-                {"target": 9527, "published": 14081, "protocol": "tcp"},
+                {"target": 9527, "published": 14081, "protocol": "tcp", "mode": "host"},
             ],
             pulsar_manager["ports"],
         )
         self.assertEqual(["7750"], pulsar_manager["expose"])
         self.assertEqual(["service_access_link"], pulsar_manager["networks"])
+        self.assertEqual(
+            ["node.role == manager"],
+            pulsar_manager["deploy"]["placement"]["constraints"],
+        )
 
         bootstrap = compose_data["services"]["pulsar-manager-bootstrap"]
         self.assertEqual(
@@ -659,6 +691,14 @@ services:
         self.assertIn("/opt/sonarqube/docker/entrypoint.sh", command[0])
         self.assertIn("service_access_link", compose_data["services"]["sonarqube"]["networks"])
         self.assertIn("service_access_link", compose_data["services"]["sonar_db"]["networks"])
+        self.assertEqual(
+            [{"target": 9000, "published": 12000, "protocol": "tcp", "mode": "host"}],
+            compose_data["services"]["sonarqube"]["ports"],
+        )
+        self.assertEqual(
+            ["node.role == manager"],
+            compose_data["services"]["sonarqube"]["deploy"]["placement"]["constraints"],
+        )
         self.assertEqual(
             {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
@@ -769,8 +809,12 @@ services:
             services["infisical"]["environment"]["INITIAL_BOOTSTRAP_ADMIN_LAST_NAME"],
         )
         self.assertEqual(
-            [{"target": 8080, "published": 17080, "protocol": "tcp"}],
+            [{"target": 8080, "published": 17080, "protocol": "tcp", "mode": "host"}],
             services["infisical"]["ports"],
+        )
+        self.assertEqual(
+            ["node.role == manager"],
+            services["infisical"]["deploy"]["placement"]["constraints"],
         )
         self.assertNotIn("secrets", compose_data)
         self.assertEqual(["infisical_pg_data:/var/lib/postgresql/data"], services["infisical-db"]["volumes"])

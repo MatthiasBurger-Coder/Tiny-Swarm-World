@@ -3,9 +3,17 @@
 Tiny Swarm World uses Docker Swarm networking on provider nodes. The default
 provider nodes are managed LXC containers through Incus.
 
-Local access can still depend on WSL forwarding state, published Docker ports,
-provider bridge configuration, or optional `socat` forwarding. Do not
-hard-code addresses from examples.
+The supported host runtime profiles are `native-linux` and `wsl2-nat`.
+Treat WSL2 as its own runtime profile, not as normal native Linux. Local access
+can depend on WSL NAT state, Windows portproxy rules, published Docker ports,
+or provider bridge configuration. Do not hard-code addresses from examples.
+
+Run the read-only network diagnosis before applying repairs:
+
+[source,bash]
+----
+./tsw doctor network
+----
 
 == Inspect Provider Node Addresses
 
@@ -36,6 +44,13 @@ manager-specific `docker-swarm-manager` profile. The manager node receives
 that profile in addition to the common Docker Swarm profile. Worker nodes keep
 only worker-safe profiles and must not receive manager proxy devices.
 
+Under `wsl2-nat`, published service ports must not depend on Docker Swarm
+`ingress`/VIP routing. WSL2 kernels can lack usable `ip_vs` module support
+inside managed LXC nodes, which leaves Docker's Swarm routing mesh unable to
+program the published-port load balancer. Externally published Tiny Swarm
+World services therefore use `mode: host` on manager-constrained services so
+the LXC proxy and Windows portproxy layers have a deterministic target.
+
 Direct instance-level `tsw-proxy-*` devices on `swarm-manager` are classified
 as drift. Normal `platform init`, `platform reconcile`, `platform expose`,
 `platform reset`, `install.sh`, and `setup run` do not silently remove them.
@@ -51,25 +66,53 @@ PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --liv
 Repair evidence records summary counts and device names. It does not record
 raw provider command output.
 
-== WSL Port Forwarding
+== WSL2 NAT Portproxy
 
-Install `socat` only when forwarding is required:
+For WSL2, Tiny Swarm World uses controlled Windows localhost forwarding:
+
+[source,text]
+----
+Windows Browser
+-> http://127.0.0.1:<service-port>
+-> Windows portproxy
+-> current WSL eth0 IPv4
+-> Incus/LXC/Docker/Services
+----
+
+Windows portproxy and firewall changes are not made by `install.sh` and are
+not made implicitly from Linux. Diagnose them from elevated PowerShell:
+
+[source,powershell]
+----
+powershell.exe -ExecutionPolicy Bypass -File .\tools\windows\doctor-portproxy.ps1
+----
+
+Repair them only through the explicit elevated script:
+
+[source,powershell]
+----
+powershell.exe -ExecutionPolicy Bypass -File .\tools\windows\repair-wsl-portproxy.ps1
+----
+
+Both scripts read `infra/config/ports.yaml`; do not maintain a separate
+Windows port list.
+
+== Targeted Network Repair
+
+`install.sh` must not change WSL mode, Incus runtime files, iptables/nftables,
+Windows portproxy, or Windows Firewall. Use the explicit repair command and
+review the dry-run first:
 
 [source,bash]
 ----
-sudo apt update
-sudo apt install -y socat
+./tsw network repair --runtime wsl2-nat
+./tsw network repair --runtime wsl2-nat --apply
+./tsw network repair --linux-forwarding --apply
+./tsw network repair --incus --apply
 ----
 
-Example pattern:
-
-[source,bash]
-----
-socat TCP-LISTEN:<local-port>,fork TCP:<node-ip>:<target-port>
-----
-
-Replace `<node-ip>` and ports with values from the active provider and Docker
-state. Avoid committing host-specific IP addresses.
+The Linux forwarding repair is scoped to the Incus bridge and persists through
+`tsw-incus-forwarding.service`.
 
 == Verification
 

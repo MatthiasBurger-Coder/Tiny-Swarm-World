@@ -190,7 +190,7 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertIn("DNS:*.tsw.local", script)
         self.assertIn("DNS:localhost", script)
 
-    def test_reconcile_published_ports_adds_missing_unconstrained_ports_as_ingress(self):
+    def test_reconcile_published_ports_preserves_declared_host_mode(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
         compose = """
 services:
@@ -215,11 +215,11 @@ services:
 
         scripts = [call.args[0] for call in run_manager_shell.call_args_list]
         self.assertIn(
-            "docker service update --publish-add published=8081,target=8081,protocol=tcp,mode=ingress nexus_nexus",
+            "docker service update --publish-add published=8081,target=8081,protocol=tcp,mode=host nexus_nexus",
             scripts,
         )
 
-    def test_reconcile_published_ports_reconciles_existing_port_mode_in_single_update(self):
+    def test_reconcile_published_ports_reconciles_ingress_back_to_host_mode(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
         compose = """
 services:
@@ -241,7 +241,7 @@ services:
                     0,
                     stdout=(
                         '[{"Protocol":"tcp","TargetPort":8081,'
-                        '"PublishedPort":8081,"PublishMode":"host"}]'
+                        '"PublishedPort":8081,"PublishMode":"ingress"}]'
                     ),
                 ),
                 subprocess.CompletedProcess([], 0),
@@ -256,11 +256,11 @@ services:
         ]
         self.assertEqual(1, len(update_scripts))
         self.assertIn(
-            "--publish-rm published=8081,target=8081,protocol=tcp,mode=host",
+            "--publish-rm published=8081,target=8081,protocol=tcp,mode=ingress",
             update_scripts[0],
         )
         self.assertIn(
-            "--publish-add published=8081,target=8081,protocol=tcp,mode=ingress",
+            "--publish-add published=8081,target=8081,protocol=tcp,mode=host",
             update_scripts[0],
         )
 

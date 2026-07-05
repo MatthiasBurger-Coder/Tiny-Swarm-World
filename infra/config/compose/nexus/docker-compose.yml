@@ -9,17 +9,20 @@ services:
       - target: 8081
         published: 13081
         protocol: tcp
+        mode: host
       - target: 5000
         published: 13500
         protocol: tcp
+        mode: host
       - target: 5001
         published: 13501
         protocol: tcp
+        mode: host
     deploy:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == swarm-worker-1
+          - node.role == manager
 volumes:
   nexus-data:
 

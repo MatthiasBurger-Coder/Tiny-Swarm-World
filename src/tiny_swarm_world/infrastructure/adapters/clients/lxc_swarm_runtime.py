@@ -1171,11 +1171,10 @@ def _host_published_ports_by_service(
         ports = service_payload.get("ports", ())
         if not isinstance(ports, list):
             continue
-        manager_only = _service_is_manager_constrained(service_payload)
         host_ports = tuple(
             {
                 **dict(port),
-                "resolved_mode": "host" if manager_only else "ingress",
+                "resolved_mode": "host",
             }
             for port in ports
             if (

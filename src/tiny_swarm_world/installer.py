@@ -885,9 +885,9 @@ def _suggested_checks_for_phase(name: str, *, log_text: str = "") -> tuple[str, 
     if "setup" in normalized:
         if "apt_repository_unreachable" in log_text:
             commands = [
-                "incus exec swarm-manager -- getent hosts archive.ubuntu.com",
-                "incus exec swarm-manager -- getent hosts security.ubuntu.com",
-                "incus exec swarm-manager -- sh -lc 'apt-get update'",
+                "./tsw doctor network",
+                "./tsw network repair --linux-forwarding --apply",
+                "powershell.exe -ExecutionPolicy Bypass -File .\\tools\\windows\\doctor-portproxy.ps1",
             ]
         else:
             commands = [
@@ -1076,13 +1076,14 @@ def _setup_failure_guidance_lines(log_text: str) -> tuple[str, ...]:
     return (
         "Setup recovery hint:",
         "  Docker Engine installation inside the LXC nodes cannot reach APT repositories.",
-        "  Verify container DNS and egress, or configure LXC-reachable APT mirrors:",
-        "    TSW_LXC_UBUNTU_APT_MIRROR",
-        "    TSW_LXC_UBUNTU_SECURITY_APT_MIRROR",
-        "    TSW_LXC_DOCKER_APT_MIRROR",
-        "    TSW_LXC_DOCKER_APT_GPG_URL",
-        "  Use an address reachable from inside Incus containers, not localhost.",
-        "  Details: documentation/user-handbook.adoc#_troubleshooting_checklist",
+        "  Run the read-only network diagnosis first:",
+        "    ./tsw doctor network",
+        "  If the diagnosis reports Docker blocking incusbr0 forwarding, apply only",
+        "  the targeted forwarding repair:",
+        "    ./tsw network repair --linux-forwarding --apply",
+        "  If DNS or HTTP egress is blocked for another reason, fix that domain before",
+        "  rerunning install.sh. The installer does not change iptables, Incus runtime",
+        "  files, WSL mode, Windows portproxy, or Windows Firewall automatically.",
     )
 
 

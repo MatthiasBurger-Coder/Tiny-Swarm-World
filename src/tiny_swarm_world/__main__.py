@@ -43,6 +43,9 @@ from tiny_swarm_world.infrastructure.composition import (
     build_artifact_services_for_provider,
     build_compose_file_repository,
     build_deployment_services_for_provider,
+    build_network_doctor_service,
+    build_network_repair_options,
+    build_network_repair_service,
     build_preflight_service,
     build_application_logger,
     run_setup_with_terminal_status,
@@ -161,23 +164,72 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
         choices=[ManagedLxcBackend.INCUS.value],
         help="Preferred managed LXC backend when --node-provider lxc_native is selected.",
     )
+    parser.add_argument(
+        "--runtime",
+        choices=["wsl2-nat"],
+        help="Runtime target for 'network repair'.",
+    )
+    parser.add_argument(
+        "--linux-forwarding",
+        action="store_true",
+        help="Plan or apply Incus bridge forwarding repair for 'network repair'.",
+    )
+    parser.add_argument(
+        "--incus",
+        action="store_true",
+        help="Plan or apply guarded Incus bridge repair for 'network repair'.",
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply the selected 'network repair' target; omitted means dry-run.",
+    )
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
     parser.add_argument("workflow_action", nargs="?", help="Workflow action.")
     args = parser.parse_args(argv)
 
+    _validate_provider_args(parser, args)
+    _assign_network_command(parser, args)
+    _assign_workflow(parser, args)
+    return args
+
+
+def _validate_provider_args(parser: ArgumentParser, args: Namespace) -> None:
     if args.lxc_backend is not None and args.node_provider != NodeProviderKind.LXC_NATIVE.value:
         parser.error("--lxc-backend requires --node-provider lxc_native")
 
+
+def _assign_network_command(parser: ArgumentParser, args: Namespace) -> None:
     if (args.workflow_namespace is None) != (args.workflow_action is None):
         parser.error("workflow command requires both namespace and action")
 
-    args.workflow = None
-    if args.workflow_namespace is not None and args.workflow_action is not None:
-        args.workflow = CLI_WORKFLOWS_BY_KEY.get((args.workflow_namespace, args.workflow_action))
-        if args.workflow is None:
-            parser.error(f"unsupported workflow command: {args.workflow_namespace} {args.workflow_action}")
+    args.network_command = _network_command(args.workflow_namespace, args.workflow_action)
+    network_options_present = bool(args.runtime or args.linux_forwarding or args.incus or args.apply)
+    if args.network_command != "network_repair" and network_options_present:
+        parser.error("network repair options require command: network repair")
+    if args.network_command == "network_repair" and not _has_network_repair_target(args):
+        parser.error("network repair requires --runtime, --linux-forwarding, or --incus")
 
-    return args
+
+def _network_command(namespace: str | None, action: str | None) -> str | None:
+    if namespace == "doctor" and action == "network":
+        return "doctor_network"
+    if namespace == "network" and action == "repair":
+        return "network_repair"
+    return None
+
+
+def _has_network_repair_target(args: Namespace) -> bool:
+    return bool(args.runtime or args.linux_forwarding or args.incus)
+
+
+def _assign_workflow(parser: ArgumentParser, args: Namespace) -> None:
+    args.workflow = None
+    if args.workflow_namespace is None or args.workflow_action is None or args.network_command is not None:
+        return
+    args.workflow = CLI_WORKFLOWS_BY_KEY.get((args.workflow_namespace, args.workflow_action))
+    if args.workflow is None:
+        parser.error(f"unsupported workflow command: {args.workflow_namespace} {args.workflow_action}")
 
 
 async def main(argv: Sequence[str] | None = None) -> None:
@@ -189,6 +241,14 @@ async def main(argv: Sequence[str] | None = None) -> None:
 
     if args.list_workflows:
         _print_workflow_list()
+        return
+
+    if args.network_command == "doctor_network":
+        await _run_network_doctor_command(args)
+        return
+
+    if args.network_command == "network_repair":
+        await _run_network_repair_command(args)
         return
 
     if args.preflight:
@@ -246,6 +306,32 @@ async def _run_preflight_command(args: Namespace) -> None:
     else:
         _print_preflight_summary(result, live=args.live)
     if not result.passed:
+        raise SystemExit(1)
+
+
+async def _run_network_doctor_command(args: Namespace) -> None:
+    report = await build_network_doctor_service().run()
+    if _should_emit_json(args):
+        _emit_json_payload(report.to_dict())
+    else:
+        print(report.render())
+    if not report.passed:
+        raise SystemExit(1)
+
+
+async def _run_network_repair_command(args: Namespace) -> None:
+    options = build_network_repair_options(
+        runtime=args.runtime,
+        linux_forwarding=bool(args.linux_forwarding),
+        incus=bool(args.incus),
+        apply=bool(args.apply),
+    )
+    report = await build_network_repair_service().run(options)
+    if _should_emit_json(args):
+        _emit_json_payload(report.to_dict())
+    else:
+        print(report.render())
+    if not report.succeeded:
         raise SystemExit(1)
 
 
