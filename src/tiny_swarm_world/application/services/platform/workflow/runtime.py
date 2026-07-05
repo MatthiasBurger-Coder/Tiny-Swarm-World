@@ -164,6 +164,13 @@ def _pre_apply_guard_verification(result: object) -> VerificationResult | None:
                     if check.category.value == "RUNTIME"
                 )
             ),
+            "windows_exposure_failure_count": str(
+                sum(
+                    1
+                    for check in result.failed_checks
+                    if check.category.value == "WINDOWS_EXPOSURE"
+                )
+            ),
         },
     )
 

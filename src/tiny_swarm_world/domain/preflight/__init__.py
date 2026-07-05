@@ -15,6 +15,7 @@ from tiny_swarm_world.domain.preflight.host_environment import (
     HostEnvironmentReport,
     SetupPath,
 )
+from tiny_swarm_world.domain.preflight.windows_wsl_bridge import WindowsWslBridgeStatus
 from tiny_swarm_world.domain.preflight.preflight_check import (
     PreflightCategory,
     PreflightCheck,
@@ -81,6 +82,7 @@ __all__ = [
     "SetupProfile",
     "SetupSecretRequirement",
     "SetupServiceRequirement",
+    "WindowsWslBridgeStatus",
     "default_preflight_configuration",
     "default_installation_plan",
     "default_setup_manifest",

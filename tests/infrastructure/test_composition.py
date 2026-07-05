@@ -196,6 +196,14 @@ class TestComposition(unittest.TestCase):
         self.assertIn("project_paths", repository_class.call_args.kwargs)
         repository_class.return_value.load.assert_called_once_with()
 
+    def test_windows_wsl_bridge_required_by_default(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertTrue(composition._windows_wsl_bridge_required())
+
+    def test_windows_wsl_bridge_can_be_disabled_by_operator_environment(self):
+        with patch.dict(os.environ, {"TSW_WINDOWS_EXPOSURE": "disabled"}, clear=True):
+            self.assertFalse(composition._windows_wsl_bridge_required())
+
     def test_build_configuration_validation_service_uses_env_file_and_process_environment(self):
         with TemporaryDirectory() as temporary_directory:
             env_file = Path(temporary_directory) / "operator.env"

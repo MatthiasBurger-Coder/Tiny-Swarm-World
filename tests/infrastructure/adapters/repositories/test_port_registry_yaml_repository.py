@@ -13,11 +13,15 @@ class TestPortRegistryYamlRepository(unittest.TestCase):
         registry = PortRegistryYamlRepository().load()
 
         self.assertEqual(11, len(registry.ranges))
-        self.assertEqual(23, len(registry.mappings))
+        self.assertEqual(24, len(registry.mappings))
         self.assertEqual((80, 443), tuple(port.external_port for port in registry.preflight_ports))
         self.assertEqual(
             PortExposureClass.PUBLIC_INGRESS,
             registry.mapping_for_port_id("traefik-http").exposure,
+        )
+        self.assertEqual(
+            8086,
+            registry.mapping_for_port_id("service-access-legacy-http").external_port,
         )
 
     def test_missing_port_registry_defaults_to_empty_registry(self):

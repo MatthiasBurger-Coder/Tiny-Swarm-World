@@ -243,6 +243,7 @@ DEFAULT_INFISICAL_READINESS_ATTEMPTS = 720
 DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS = 5.0
 SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
 DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:13500"
+WINDOWS_EXPOSURE_ENVIRONMENT = "TSW_WINDOWS_EXPOSURE"
 LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
 DEFAULT_LXC_PROXY_LISTEN_ADDRESS = "0.0.0.0"
 DEFAULT_NEXUS_CACHE_CONTAINER = "tiny-swarm-nexus-cache"
@@ -1453,7 +1454,10 @@ def _preflight_configuration_for_provider(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
 ) -> PreflightConfiguration:
-    configuration = default_preflight_configuration(service_profile=service_profile)
+    configuration = replace(
+        default_preflight_configuration(service_profile=service_profile),
+        windows_wsl_bridge_required=_windows_wsl_bridge_required(),
+    )
     provider_request = node_provider_request or _default_node_provider_request()
     if provider_request.requested_provider is not NodeProviderKind.LXC_NATIVE:
         return replace(
@@ -1505,6 +1509,11 @@ def _preflight_configuration_for_provider(
             ),
         ),
     )
+
+
+def _windows_wsl_bridge_required() -> bool:
+    value = os.environ.get(WINDOWS_EXPOSURE_ENVIRONMENT, "").strip().casefold()
+    return value not in {"0", "false", "no", "off", "disabled"}
 
 
 def _platform_init_steps(

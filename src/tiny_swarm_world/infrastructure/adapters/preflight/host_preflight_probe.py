@@ -19,6 +19,12 @@ from tiny_swarm_world.domain.preflight import (
     HostEnvironmentKind,
     HostEnvironmentReport,
     SetupPath,
+    WindowsWslBridgeStatus,
+)
+from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state import (
+    DEFAULT_WINDOWS_WSL_BRIDGE_STATE_MAX_AGE_SECONDS,
+    current_wsl_ipv4,
+    windows_wsl_bridge_status,
 )
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
@@ -62,6 +68,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
         *,
         os_root: Path | None = None,
         project_paths: ProjectPaths | None = None,
+        windows_wsl_bridge_state_max_age_seconds: int = DEFAULT_WINDOWS_WSL_BRIDGE_STATE_MAX_AGE_SECONDS,
     ):
         self.root = root or (project_paths or default_project_paths()).repository_root
         self.os_root = os_root or Path("/")
@@ -70,6 +77,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
             if executable_fallback_directories is None
             else executable_fallback_directories
         )
+        self.windows_wsl_bridge_state_max_age_seconds = windows_wsl_bridge_state_max_age_seconds
 
     def is_linux_or_wsl(self) -> bool:
         return platform.system().lower() == "linux"
@@ -223,6 +231,17 @@ class HostPreflightProbe(PortHostPreflightProbe):
                 if fingerprint in text_fingerprints:
                     found.add(identifier)
         return tuple(sorted(found))
+
+    def windows_wsl_bridge_status(
+        self,
+        expected_ports: Sequence[int],
+    ) -> WindowsWslBridgeStatus:
+        return windows_wsl_bridge_status(
+            self.root,
+            expected_ports,
+            max_age_seconds=self.windows_wsl_bridge_state_max_age_seconds,
+            current_wsl_ipv4=current_wsl_ipv4,
+        )
 
     def _tracked_text_files(self) -> tuple[Path, ...]:
         suffixes = {".py", ".sh", ".yaml", ".yml", ".json", ".md", ".adoc"}

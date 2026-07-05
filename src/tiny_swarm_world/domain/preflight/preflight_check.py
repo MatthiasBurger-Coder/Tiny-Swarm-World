@@ -21,6 +21,7 @@ class PreflightCategory(str, Enum):
     LIVE_CONSENT = "LIVE_CONSENT"
     IGNORE_POLICY = "IGNORE_POLICY"
     CONFIGURATION = "CONFIGURATION"
+    WINDOWS_EXPOSURE = "WINDOWS_EXPOSURE"
 
 
 class PreflightSeverity(str, Enum):
