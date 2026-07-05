@@ -416,6 +416,25 @@ If a service port is occupied, the preflight accepts it only when the listener
 matches the expected Tiny Swarm World service. Unknown listeners must be
 stopped or remapped before live setup.
 
+On WSL hosts, stale Windows `netsh interface portproxy` rules can occupy
+`127.0.0.1:80` and `127.0.0.1:443` before the fresh install reaches platform
+exposure. When the failed preflight reports `PORT-80` or `PORT-443` for
+Traefik, clear only those stale Windows host forwarding rules from an
+Administrator PowerShell before rerunning `./install.sh`:
+
+[source,powershell]
+----
+Set-ExecutionPolicy -Scope Process Bypass
+.\tools\live\clear-wsl-traefik-portproxy.ps1
+----
+
+To inspect without deleting rules:
+
+[source,powershell]
+----
+.\tools\live\clear-wsl-traefik-portproxy.ps1 -ShowOnly
+----
+
 If Portainer initialization returns HTTP 409, check whether the configured
 Portainer username and password authenticate. A rejected initialization is
 accepted only when those same requested credentials work immediately
