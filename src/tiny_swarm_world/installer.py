@@ -18,7 +18,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
-
 RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
 DEFAULT_SERVICE_PROFILE = "service-access"
 DEFAULT_INFISICAL_LOGIN_EMAIL = "admin@tiny-swarm-world.local"
@@ -573,55 +572,27 @@ def _windows_wsl_bridge_guard(
             expected_ports=expected_ports,
             missing_ports=expected_ports,
         )
-    try:
-        state = json.loads(state_path.read_text(encoding="utf-8-sig"))
-    except (OSError, json.JSONDecodeError):
-        return WindowsWslBridgeGuardResult(
-            False,
-            "state_invalid",
-            state_path,
-            expected_ports=expected_ports,
-            missing_ports=expected_ports,
-        )
-    if not isinstance(state, Mapping):
-        return WindowsWslBridgeGuardResult(
-            False,
-            "state_invalid",
-            state_path,
-            expected_ports=expected_ports,
-            missing_ports=expected_ports,
-        )
+    from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state import (
+        current_wsl_ipv4,
+        windows_wsl_bridge_status,
+    )
 
-    mapped_ports = _windows_wsl_bridge_mapped_ports(state)
-    missing_ports = tuple(sorted(set(expected_ports) - set(mapped_ports)))
-    current_wsl_ip = _current_wsl_ipv4()
-    state_wsl_ip = str(state.get("wslIp", ""))
-    generated_at = str(state.get("generatedAt", ""))
-    state_age_seconds = _bridge_state_age_seconds(generated_at)
-
-    def result(passed: bool, reason: str) -> WindowsWslBridgeGuardResult:
-        return WindowsWslBridgeGuardResult(
-            passed,
-            reason,
-            state_path,
-            current_wsl_ip=current_wsl_ip,
-            state_wsl_ip=state_wsl_ip,
-            expected_ports=expected_ports,
-            mapped_ports=mapped_ports,
-            missing_ports=missing_ports,
-        )
-
-    if state_age_seconds is None:
-        return result(False, "generated_at_invalid")
-    if state_age_seconds > WINDOWS_WSL_BRIDGE_MAX_AGE_SECONDS:
-        return result(False, "state_stale_by_age")
-    if not current_wsl_ip:
-        return result(False, "wsl_ip_unavailable")
-    if state_wsl_ip != current_wsl_ip:
-        return result(False, "wsl_ip_changed")
-    if missing_ports:
-        return result(False, "missing_ports")
-    return result(True, "prepared")
+    status = windows_wsl_bridge_status(
+        cwd,
+        expected_ports,
+        max_age_seconds=WINDOWS_WSL_BRIDGE_MAX_AGE_SECONDS,
+        current_wsl_ipv4=current_wsl_ipv4,
+    )
+    return WindowsWslBridgeGuardResult(
+        status.prepared,
+        status.reason,
+        state_path,
+        current_wsl_ip=status.current_wsl_ip,
+        state_wsl_ip=status.state_wsl_ip,
+        expected_ports=status.expected_ports,
+        mapped_ports=status.mapped_ports,
+        missing_ports=status.missing_ports,
+    )
 
 
 def _windows_exposure_required(env: Mapping[str, str]) -> bool:
@@ -669,67 +640,6 @@ def _windows_wsl_bridge_expected_ports(cwd: Path) -> tuple[int, ...]:
 
     commit_current()
     return tuple(sorted(ports))
-
-
-def _windows_wsl_bridge_mapped_ports(state: Mapping[object, object]) -> tuple[int, ...]:
-    mappings = state.get("mappings", ())
-    if not isinstance(mappings, Sequence) or isinstance(mappings, str):
-        return ()
-    ports: set[int] = set()
-    for mapping in mappings:
-        if not isinstance(mapping, Mapping):
-            continue
-        try:
-            port = int(mapping.get("listenPort", 0))
-        except (TypeError, ValueError):
-            continue
-        if port > 0:
-            ports.add(port)
-    return tuple(sorted(ports))
-
-
-def _current_wsl_ipv4() -> str:
-    try:
-        completed = subprocess.run(
-            ["hostname", "-I"],
-            check=False,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            timeout=5,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return ""
-    if completed.returncode != 0:
-        return ""
-    for value in completed.stdout.split():
-        if re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", value):
-            return value
-    return ""
-
-
-def _bridge_state_age_seconds(generated_at: str) -> int | None:
-    parsed = _parse_bridge_timestamp(generated_at)
-    if parsed is None:
-        return None
-    return max(0, int((datetime.now(UTC) - parsed).total_seconds()))
-
-
-def _parse_bridge_timestamp(value: str) -> datetime | None:
-    if not value:
-        return None
-    normalized = value.strip()
-    if normalized.endswith("Z"):
-        normalized = f"{normalized[:-1]}+00:00"
-    normalized = re.sub(r"(\.\d{6})\d+([+-]\d{2}:\d{2})$", r"\1\2", normalized)
-    normalized = re.sub(r"(\.\d{6})\d+$", r"\1", normalized)
-    try:
-        parsed = datetime.fromisoformat(normalized)
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=UTC)
-    return parsed.astimezone(UTC)
 
 
 def _clean_yaml_scalar(value: str) -> str:

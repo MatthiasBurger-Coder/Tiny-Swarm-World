@@ -273,7 +273,10 @@ class TestInstaller(unittest.TestCase):
             _write_ports_registry(root, (80, 10000))
             _write_windows_bridge_state(root, "172.20.0.2", (80, 10000))
 
-            with patch.object(installer, "_current_wsl_ipv4", return_value="172.20.0.2"):
+            with patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state.current_wsl_ipv4",
+                return_value="172.20.0.2",
+            ):
                 guard = installer._windows_wsl_bridge_guard(
                     installer.HostRuntime("wsl2", "test"),
                     {},

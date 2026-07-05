@@ -391,7 +391,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             probe = HostPreflightProbe(root)
 
             with patch(
-                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe._current_wsl_ipv4",
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.current_wsl_ipv4",
                 return_value="172.20.0.2",
             ):
                 status = probe.windows_wsl_bridge_status((80, 10000))
@@ -408,7 +408,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             probe = HostPreflightProbe(root)
 
             with patch(
-                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe._current_wsl_ipv4",
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.current_wsl_ipv4",
                 return_value="172.21.0.9",
             ):
                 status = probe.windows_wsl_bridge_status((80,))
@@ -425,7 +425,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             probe = HostPreflightProbe(root)
 
             with patch(
-                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe._current_wsl_ipv4",
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.current_wsl_ipv4",
                 return_value="172.20.0.2",
             ):
                 status = probe.windows_wsl_bridge_status((80, 10000))
