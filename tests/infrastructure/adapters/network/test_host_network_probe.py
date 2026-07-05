@@ -41,6 +41,45 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(incus.version.ok)
         self.assertEqual("skipped", incus.network_list.command)
 
+    async def test_runtime_detects_native_linux_and_host_address(self):
+        probe = SubprocessNetworkProbe(
+            executor=_MappingExecutor(
+                {
+                    "grep -Eqi": _failed("grep"),
+                    "hostname -I": _ok("hostname", "192.168.1.25 10.0.0.2"),
+                    "ip route": _ok("ip route", "default via 192.168.1.1"),
+                }
+            )
+        )
+
+        runtime = await probe.runtime()
+
+        self.assertEqual("native-linux", runtime.runtime)
+        self.assertEqual("192.168.1.25", runtime.host_ipv4)
+
+    async def test_incus_success_parses_gateway_from_network_show(self):
+        probe = SubprocessNetworkProbe(
+            executor=_MappingExecutor(
+                {
+                    "incus version": _ok("incus version", "6.0"),
+                    "incus network list": _ok("incus network list", "incusbr0"),
+                    "incus network show incusbr0": _ok(
+                        "incus network show",
+                        "config:\n  ipv4.address: 10.85.194.1/24",
+                    ),
+                    "incus network info incusbr0": _ok("incus network info", "State: up"),
+                    "ip addr show incusbr0": _ok("ip addr", "inet 10.85.194.1/24"),
+                    "journalctl -u incus": _ok("journalctl"),
+                    "cat /var/log/incus/dnsmasq.incusbr0.log": _ok("cat"),
+                }
+            )
+        )
+
+        incus = await probe.incus()
+
+        self.assertTrue(incus.version.ok)
+        self.assertEqual("10.85.194.1", incus.gateway_ipv4)
+
     async def test_lxc_node_uses_gateway_probe_when_gateway_is_known(self):
         probe = SubprocessNetworkProbe(executor=_DefaultOkExecutor())
 
@@ -49,6 +88,22 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("swarm-manager", node.node_name)
         self.assertTrue(node.ping_gateway.ok)
         self.assertIn("10.85.194.1", node.ping_gateway.command)
+
+    async def test_lxc_node_reports_unknown_gateway_without_ping_command(self):
+        probe = SubprocessNetworkProbe(executor=_DefaultOkExecutor())
+
+        node = await probe.lxc_node("swarm-manager", "")
+
+        self.assertFalse(node.ping_gateway.ok)
+        self.assertIn("incusbr0 gateway unknown", node.ping_gateway.command)
+
+    async def test_forwarding_collects_kernel_and_firewall_state(self):
+        probe = SubprocessNetworkProbe(executor=_DefaultOkExecutor())
+
+        forwarding = await probe.forwarding()
+
+        self.assertTrue(forwarding.ip_forward.ok)
+        self.assertIn("sysctl", forwarding.ip_forward.command)
 
     async def test_service_ports_reads_listening_tcp_sockets(self):
         probe = SubprocessNetworkProbe(
@@ -71,6 +126,33 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("out", result.stdout)
         self.assertEqual("err", result.stderr)
 
+    def test_shell_command_reports_os_error_without_raising(self):
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.network.host_network_probe.subprocess.run",
+            side_effect=OSError("missing bash"),
+        ):
+            result = _run_shell_command("echo ok", 5)
+
+        self.assertEqual(127, result.return_code)
+        self.assertIn("missing bash", result.stderr)
+
+    def test_shell_command_strips_successful_stdout_and_stderr(self):
+        completed = subprocess.CompletedProcess(
+            ["bash"],
+            0,
+            stdout=" out \n",
+            stderr=" err \n",
+        )
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.network.host_network_probe.subprocess.run",
+            return_value=completed,
+        ):
+            result = _run_shell_command("echo ok", 5)
+
+        self.assertTrue(result.ok)
+        self.assertEqual("out", result.stdout)
+        self.assertEqual("err", result.stderr)
+
 
 class _MappingExecutor:
     def __init__(self, observations: dict[str, CommandObservation]) -> None:
@@ -90,6 +172,8 @@ class _MappingExecutor:
 
 class _DefaultOkExecutor:
     def __call__(self, command: str, _timeout: int) -> CommandObservation:
+        if "incusbr0 gateway unknown" in command:
+            return _failed(command, "incusbr0 gateway unknown")
         return _ok(command)
 
 

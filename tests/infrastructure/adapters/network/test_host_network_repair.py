@@ -92,6 +92,70 @@ class TestHostNetworkRepair(unittest.TestCase):
         self.assertTrue(result.success)
         self.assertIn("No stale Incus dnsmasq.pid file was present.", result.details)
 
+    def test_incus_repair_removes_stale_pid_file_after_guard_checks(self):
+        executor = _MappingExecutor(
+            {
+                "test -e /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok("test -e"),
+                "realpath -m -- /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok(
+                    "realpath",
+                    "/var/lib/incus/networks/incusbr0/dnsmasq.pid",
+                ),
+                "cat /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok("cat", "12345"),
+                "pgrep -x dnsmasq": _failed("pgrep"),
+                "ps -p 12345": _failed("ps"),
+                "rm -f -- /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok("rm"),
+                "systemctl restart incus": _ok("systemctl restart incus"),
+                "incus network list": _ok("incus network list", "incusbr0"),
+                "incus network info incusbr0": _ok("incus network info incusbr0", "State: up"),
+            }
+        )
+        repair = SubprocessNetworkRepair(executor=executor)
+
+        result = repair._apply_incus_repair()
+
+        self.assertTrue(result.success)
+        self.assertIn("About to remove stale Incus runtime file:", result.details)
+
+    def test_incus_repair_refuses_when_dnsmasq_process_is_running(self):
+        executor = _MappingExecutor(
+            {
+                "test -e /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok("test -e"),
+                "realpath -m -- /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok(
+                    "realpath",
+                    "/var/lib/incus/networks/incusbr0/dnsmasq.pid",
+                ),
+                "cat /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok("cat", "12345"),
+                "pgrep -x dnsmasq": _ok("pgrep"),
+                "ps -p 12345": _failed("ps"),
+            }
+        )
+        repair = SubprocessNetworkRepair(executor=executor)
+
+        result = repair._apply_incus_repair()
+
+        self.assertFalse(result.success)
+        self.assertIn("dnsmasq process is running", result.message)
+
+    def test_incus_repair_refuses_when_pid_path_is_outside_incus_network_dir(self):
+        executor = _MappingExecutor(
+            {
+                "test -e /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok("test -e"),
+                "realpath -m -- /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok(
+                    "realpath",
+                    "/tmp/dnsmasq.pid",
+                ),
+                "cat /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok("cat", "12345"),
+                "pgrep -x dnsmasq": _failed("pgrep"),
+                "ps -p 12345": _failed("ps"),
+            }
+        )
+        repair = SubprocessNetworkRepair(executor=executor)
+
+        result = repair._apply_incus_repair()
+
+        self.assertFalse(result.success)
+        self.assertIn("outside the incusbr0 directory", result.message)
+
     def test_linux_forwarding_repair_installs_service_and_verifies_node_egress(self):
         executor = _DefaultOkExecutor()
         repair = SubprocessNetworkRepair(executor=executor)
@@ -103,6 +167,20 @@ class TestHostNetworkRepair(unittest.TestCase):
         self.assertTrue(any("install -m 0755" in command for command in commands))
         self.assertTrue(any("systemctl enable --now tsw-incus-forwarding.service" in command for command in commands))
         self.assertTrue(any("incus exec swarm-manager -- curl" in command for command in commands))
+
+    def test_linux_forwarding_repair_reports_failed_install(self):
+        executor = _MappingExecutor(
+            {
+                "install -m 0755": _failed("install script"),
+                "install -m 0644": _ok("install service"),
+            }
+        )
+        repair = SubprocessNetworkRepair(executor=executor)
+
+        result = repair._apply_linux_forwarding("incusbr0", "swarm-manager")
+
+        self.assertFalse(result.success)
+        self.assertEqual("Failed to install forwarding persistence files.", result.message)
 
     def test_windows_scripts_read_ports_from_registry(self):
         root = Path(__file__).resolve().parents[4]
