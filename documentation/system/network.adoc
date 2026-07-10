@@ -87,8 +87,15 @@ elevated PowerShell before starting a WSL2 live installation:
 [source,powershell]
 ----
 Set-ExecutionPolicy -Scope Process Bypass
+.\tools\windows\tws-wsl-bridge.ps1 -Action prerequisites
 .\tools\windows\tws-wsl-bridge.ps1 -Action install
 ----
+
+The prerequisite action is read-only and requires Windows 10 or 11, a running
+WSL 2 distribution with systemd as PID 1, elevated PowerShell, a running IP
+Helper service, and the Windows Firewall and Scheduled Task cmdlets. The
+dedicated reproducible setup and repair guide is
+`tools/windows/README.windows-wsl-bridge.md`.
 
 The bridge writes `tools/windows/.tws-wsl-bridge.state.json`. The file is
 local runtime state and ignored by Git. During WSL2 live preflight,

@@ -300,6 +300,23 @@ resolution must map the routed names to the local machine; DNS does not route
 traffic by itself. It only makes the browser send the correct host name to
 Traefik.
 
+When the services must be reachable from a Windows browser, first prepare the
+Windows side from elevated PowerShell. The prerequisite action is read-only;
+the install action creates the managed portproxy, Firewall, hosts-file,
+Scheduled Task, and local bridge-state contract:
+
+[source,powershell]
+----
+Set-ExecutionPolicy -Scope Process Bypass
+.\tools\windows\tws-wsl-bridge.ps1 -Action prerequisites
+.\tools\windows\tws-wsl-bridge.ps1 -Action install
+----
+
+See `tools/windows/README.windows-wsl-bridge.md` for WSL 2, systemd, IP Helper,
+repair, status, and verification instructions. `install.sh` stops before any
+platform mutation when this Windows bridge state is required but missing or
+stale.
+
 For WSL/Linux shell checks, add the routed names to `/etc/hosts`. If a
 matching `tsw.local` line already exists, update that line instead of adding
 duplicates:
