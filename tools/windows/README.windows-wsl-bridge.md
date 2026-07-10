@@ -22,6 +22,76 @@ TCP ports and route hostnames are read from `infra/config/ports.yaml`.
 WSL distro, listen address, hosts address, firewall prefix and extra hostname
 aliases.
 
+## Prerequisites
+
+The supported bridge path requires:
+
+1. Windows 10 or Windows 11 with WSL 2 installed
+2. A running WSL 2 distribution; the default distribution is used unless
+   `distro` is set in `tws-wsl-bridge.config.json`
+3. `systemd` as PID 1 inside that distribution
+4. Windows PowerShell 5.1 or newer, opened as Administrator
+5. The Windows IP Helper service (`iphlpsvc`) running
+6. Windows Firewall and Scheduled Task cmdlets
+7. The tracked bridge config and `infra/config/ports.yaml`
+
+Check all prerequisites without changing portproxy, Firewall, hosts, task, or
+state-file data:
+
+```powershell
+cd D:\Projects\Tiny-Swarm-World
+Set-ExecutionPolicy -Scope Process Bypass
+.\tools\windows\tws-wsl-bridge.ps1 -Action prerequisites
+```
+
+The check is ready only when every line reports `PREREQUISITE OK`. A normal,
+non-elevated PowerShell deliberately reports `administrator` as failed because
+the subsequent install needs elevation.
+
+### Reach the prerequisite state
+
+Install or update WSL and make WSL 2 the default from elevated PowerShell:
+
+```powershell
+wsl --install
+wsl --update
+wsl --set-default-version 2
+wsl --list --verbose
+```
+
+If the selected distribution is still version 1, convert it explicitly:
+
+```powershell
+wsl --set-version <DistributionName> 2
+```
+
+Enable systemd inside the selected WSL distribution by adding this content to
+`/etc/wsl.conf`:
+
+```ini
+[boot]
+systemd=true
+```
+
+Then restart WSL from Windows and verify PID 1:
+
+```powershell
+wsl --shutdown
+wsl -d <DistributionName> --exec sh -lc "ps -p 1 -o comm="
+```
+
+The result must be `systemd`. If IP Helper is stopped, start it from elevated
+PowerShell:
+
+```powershell
+Start-Service iphlpsvc
+Set-Service iphlpsvc -StartupType Automatic
+```
+
+Re-run `-Action prerequisites` after each repair. Installing WSL or converting
+a distribution can require a reboot; the bridge script does not hide that
+host-level lifecycle.
+
 ## One-time install
 
 Open **PowerShell as Administrator**:
@@ -33,6 +103,10 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 .\tools\windows\tws-wsl-bridge.ps1 -Action install
 ```
+
+`install` repeats the prerequisite gate before making changes. It then
+reconciles only Tiny Swarm World's registry-defined TCP mappings and managed
+Windows artifacts. Re-running it is the supported repair path.
 
 If your WSL distro is not the default distro, edit:
 
@@ -79,7 +153,35 @@ From Windows PowerShell:
 .\tools\windows\tws-wsl-bridge.ps1 -Action verify
 ```
 
-`verify` may fail before Tiny Swarm services are actually running. That is expected. The bridge can exist before the services listen.
+Use the actions for different evidence:
+
+- `prerequisites` proves that Windows and WSL can support the bridge.
+- `status` shows configured ports, the current WSL IP, portproxy state, the
+  Scheduled Task, and the managed hosts block.
+- `verify` performs live TCP connections to every registry-defined Windows
+  localhost port.
+
+`verify` may fail before Tiny Swarm services are actually running. That is
+expected and does not invalidate a successful prerequisite or bridge install.
+After the Tiny Swarm installation, all ports belonging to deployed services
+must be checked again as live service evidence.
+
+## Prepared-state contract
+
+The Windows/WSL bridge is prepared for `install.sh` when:
+
+- `prerequisites` passes;
+- the managed portproxy rules target the current WSL IPv4 address;
+- matching Tiny Swarm World Firewall rules exist;
+- the managed `*.tsw.local` hosts block exists;
+- `TinySwarmWorld-WslBridge` is registered for refresh after logon;
+- `tools/windows/.tws-wsl-bridge.state.json` exists, is recent, records the
+  current WSL IP, and contains every external TCP port from
+  `infra/config/ports.yaml`.
+
+Run `-Action install` to create this complete state. Run `-Action refresh`
+after a WSL address change. The generated state file is ignored by Git and
+must not be committed.
 
 ## Tiny Swarm installer preflight
 
