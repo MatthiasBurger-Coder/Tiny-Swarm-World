@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-CURRENT_WITH_ISSUE_COMPLETION_GATES
+CURRENT_WITH_VALIDATED_DISCOVERY_AND_ISSUE_COMPLETION_GATES
 ```
 
 This is the canonical Tiny Swarm World skill registry path. Repository files
@@ -36,6 +36,7 @@ remain the source of truth; this registry is an audit and navigation artifact.
 ## Current Counts
 
 - Project-specific discoverable skills: 132.
+- Project skill entrypoints with valid name and description frontmatter: 132.
 - Reusable `.codex` skills: 6.
 - Canonical required Tiny Swarm World skills: 48.
 - Removed stale microservice-specific artifacts: 4.
@@ -65,6 +66,12 @@ security, branch/CI governance, documentation audiences, and release baselines.
 Conflict decision: no equivalent project skill with the same narrow ownership
 was found in the current registry. Existing broader skills remain escalation and
 collaboration partners.
+
+Routing validation: workflow authoring uses Requirement, System Architecture,
+Python Automation, and Test as mandatory review roles. Console/status UI review
+is conditional on terminal UX impact. Browser React, forensic analysis storage,
+Joern, and Code Property Graph routing remain outside the project unless a later
+explicit workflow changes the root project scope.
 
 ## Verification
 

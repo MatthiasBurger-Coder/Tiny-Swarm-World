@@ -791,7 +791,7 @@ networks:
         ):
             with self.assertRaises(ImagePublisherOperationRejected) as raised:
                 publisher._run_manager_shell(
-                    "docker build -t 127.0.0.1:13500/service-access-dashboard:latest /tmp/context",
+                    "docker build -t 127.0.0.1:13500/service-access-dashboard:0.2.0 /tmp/context",
                     operation="build_image",
                     timeout_seconds=1800,
                 )

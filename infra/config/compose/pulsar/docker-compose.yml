@@ -83,7 +83,7 @@ services:
           - node.role == manager
 
   pulsar-manager-bootstrap:
-    image: ${TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE:-python:3.12-alpine}
+    image: ${TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE:-python:3.12.13-alpine3.23}
     environment:
       TSW_PULSAR_MANAGER_ADMIN_PASSWORD: ${TSW_PULSAR_MANAGER_ADMIN_PASSWORD}
       TSW_PULSAR_MANAGER_BACKEND_URL: http://tasks.pulsar-manager:7750

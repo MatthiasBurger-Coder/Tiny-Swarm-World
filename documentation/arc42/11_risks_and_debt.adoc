@@ -70,9 +70,10 @@ Remaining debt:
 * direct preparation scripts and host-side orchestration scripts have been
   removed, and legacy helper reintroduction still needs
   migration or clear legacy retirement;
-* automatic host package installation, non-interactive live consent, and direct
-  script promotion need future ADRs before they can change the accepted safety
-  model.
+* automatic host package installation and direct script promotion need future
+  ADRs before they can change the accepted safety model; explicit
+  non-interactive live consent is governed separately by
+  `adr-explicit-non-interactive-live-consent.adoc`.
 
 === LXC Native Provider Migration Risks
 
@@ -100,9 +101,10 @@ Remaining risks and debt:
   AppArmor, seccomp, capability, privileged-profile, or host-mount decisions
   that need security and DevOps review;
 * automatic provider installation, daemon repair, group membership changes,
-  bridge/firewall mutation, and non-interactive live consent remain outside
-  the accepted default behavior until later ADRs or explicit operator approval
-  cover them.
+  and bridge/firewall mutation remain outside the accepted default behavior;
+  non-interactive live consent is supported only through the explicit,
+  per-invocation contract in
+  `adr-explicit-non-interactive-live-consent.adoc`.
 
 === Service Access Dashboard And Vaultwarden Baseline Risks
 

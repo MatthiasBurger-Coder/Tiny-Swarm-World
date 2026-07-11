@@ -1,3 +1,8 @@
+---
+name: owasp-asvs-local-infrastructure-expert
+description: Use to map OWASP ASVS controls to Tiny Swarm World's local infrastructure and administrative surfaces.
+---
+
 # OWASP ASVS Local Infrastructure Expert
 
 ## Purpose
@@ -33,6 +38,14 @@ evidence.
 ## Handoff rules
 Escalate risk treatment to `isms-light-security-governance-expert` and ingress
 or service exposure changes to architecture and DevOps owners.
+
++## Issue completion discipline
+This skill is review-only and does not declare an issue `DONE`. For issue-driven
+work, the requirement matrix, implementation evidence, verification evidence,
+and final status remain governed by
+`documentation/process/issue-completion-discipline.md` and
+`issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
+its findings and evidence remain required inputs to the completion audit.
 
 ## Related workflows
 Supports #126 and security review portions of #120-#130.

@@ -21,7 +21,7 @@ Before assigning specialist roles, route every `workflow create` and
 The selected execution profile decides which gates are mandatory, which role
 reviews are full reviews, and which reviews may be reduced to N/A impact
 checks. Profile routing must not bypass root `AGENTS.md`, `QUALITY.md`, ADRs,
-active workflow STOP rules, Five-Role Three Amigos participation, S3/S3D
+active workflow STOP rules, Four-Role Three Amigos participation, S3/S3D
 preflight, Typed Error Router ownership, branch rules or required quality
 gates. Unclear impact defaults to `FULL_PATH`.
 
@@ -69,8 +69,9 @@ gates. Unclear impact defaults to `FULL_PATH`.
 - Documentation, skill audit material, existing workflow updates or ADR alignment notes route to `roles/senior-documentation-engineer.md`.
 - Untrusted repository handling, sandboxing, safe Git operations or secret leakage risks route to `roles/senior-security-sandbox-engineer.md`.
 - Performance budgets, large repository metrics, timeouts, quotas or scalability testing route to `roles/senior-performance-engineer.md`.
-- Analysis-session storage, raw ingestion storage, artifact storage or projection boundaries route to `roles/senior-analysis-storage-architect.md`.
-- Joern, Code Property Graph, semantic artifact handling or CPG large-project planning route to `roles/senior-joern-cpg-specialist.md`.
+- Forensic-analysis storage, Joern, Code Property Graph, semantic-analysis
+  artifact or scanner requests stop as outside Tiny Swarm World scope unless a
+  later explicit workflow changes the project identity in root `AGENTS.md`.
 - Root Architect escalation routes through the documented Root Architect
   decision path and `roles/senior-system-architect.md` until a dedicated
   Root Architect role file exists.

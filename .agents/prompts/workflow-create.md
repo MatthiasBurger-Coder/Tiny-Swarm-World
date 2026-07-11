@@ -29,7 +29,12 @@ Ask focused clarification questions when blocking questions remain. Do not creat
 
 Track clarification attempts. Automatic clarification loops are capped at `maxRetries = 3`; after the third unresolved attempt, stop and escalate to the Root Architect with the unresolved blockers and inspected files.
 
-`workflow create` must use five mandatory roles: Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior React Frontend Developer and Senior Tester.
+`workflow create` must use four mandatory roles: Senior Requirement Engineer,
+Senior System Architect, Senior Python Automation Developer and Senior Tester.
+Add the terminal-oriented Console/status UI reviewer only when the requirement
+affects terminal presentation, interaction, accessibility or progress output.
+Browser React review is forbidden unless a separate workflow first verifies a
+real frontend module, package tooling and quality gates.
 
 ## Required Branch-First Flow
 

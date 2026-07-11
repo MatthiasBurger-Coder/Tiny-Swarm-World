@@ -1,3 +1,8 @@
+---
+name: release-baseline-governance-expert
+description: Use for release baselines, changelog policy, release evidence, and readiness governance without publishing releases.
+---
+
 # Release Baseline Governance Expert
 
 ## Purpose
@@ -34,6 +39,14 @@ Escalate quality evidence to `qms-light-governance-expert`, security evidence
 to `isms-light-security-governance-expert`, live evidence to
 `live-evidence-validation-expert`, and branch/CI state to
 `branch-ci-governance-expert`.
+
++## Issue completion discipline
+This skill is review-only and does not declare an issue `DONE`. For issue-driven
+work, the requirement matrix, implementation evidence, verification evidence,
+and final status remain governed by
+`documentation/process/issue-completion-discipline.md` and
+`issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
+its findings and evidence remain required inputs to the completion audit.
 
 ## Related workflows
 Supports #130 and release portions of #120-#129.

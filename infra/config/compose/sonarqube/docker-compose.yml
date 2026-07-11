@@ -36,7 +36,7 @@ services:
           - node.role == manager
 
   sonar_db:
-    image: postgres:13
+    image: postgres:13.23
     environment:
       POSTGRES_USER: sonar
       POSTGRES_PASSWORD: ${TSW_SONARQUBE_POSTGRES_PASSWORD:-${TSW_POSTGRES_PASSWORD}}

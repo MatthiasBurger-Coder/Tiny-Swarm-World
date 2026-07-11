@@ -10,6 +10,9 @@ from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client 
     PortInfisicalBootstrapClient,
 )
 from tiny_swarm_world.application.ports.clients.port_infisical_cli import PortInfisicalCli
+from tiny_swarm_world.application.ports.file_management.port_local_file_storage import (
+    PortLocalFileStorage,
+)
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
@@ -75,6 +78,7 @@ class EnsureInfisicalSilentInstall:
         self,
         *,
         cli: PortInfisicalCli,
+        storage: PortLocalFileStorage,
         config: InfisicalSilentInstallConfig,
         bootstrap_client: PortInfisicalBootstrapClient | None = None,
         service_running: bool = True,
@@ -82,6 +86,7 @@ class EnsureInfisicalSilentInstall:
         setup_screen_required: bool = False,
     ) -> None:
         self.cli = cli
+        self.storage = storage
         self.config = config
         self.bootstrap_client = bootstrap_client
         self.service_running = service_running
@@ -127,8 +132,8 @@ class EnsureInfisicalSilentInstall:
 
     def run(self) -> None:
         self.config.validate()
-        self.config.evidence_dir.mkdir(parents=True, exist_ok=True)
-        self.config.secret_file.parent.mkdir(parents=True, exist_ok=True)
+        self.storage.ensure_directory(self.config.evidence_dir, private=True)
+        self.storage.ensure_directory(self.config.secret_file.parent, private=True)
         if not self.service_running or not self.http_ready:
             self._status = "blocked"
             self._classification = "infisical_readiness_timeout"
@@ -222,11 +227,13 @@ class EnsureInfisicalSilentInstall:
         }
         if self._bootstrap_diagnostic:
             payload["diagnostic"] = self._bootstrap_diagnostic
-        (self.config.evidence_dir / "bootstrap-result.json").write_text(
+        self.storage.write_text(
+            self.config.evidence_dir / "bootstrap-result.json",
             json.dumps(payload, indent=2, sort_keys=True),
-            encoding="utf-8",
+            private=True,
         )
-        (self.config.evidence_dir / "healthcheck.log").write_text(
+        self.storage.write_text(
+            self.config.evidence_dir / "healthcheck.log",
             "\n".join(
                 (
                     f"{now} service_running={str(self.service_running).lower()}",
@@ -235,9 +242,10 @@ class EnsureInfisicalSilentInstall:
                 )
             )
             + "\n",
-            encoding="utf-8",
+            private=True,
         )
-        (self.config.evidence_dir / "install-summary.md").write_text(
+        self.storage.write_text(
+            self.config.evidence_dir / "install-summary.md",
             "\n".join(
                 (
                     "# Infisical Silent Bootstrap",
@@ -250,7 +258,7 @@ class EnsureInfisicalSilentInstall:
                 )
             )
             + "\n",
-            encoding="utf-8",
+            private=True,
         )
 
 

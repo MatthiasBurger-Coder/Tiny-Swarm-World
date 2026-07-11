@@ -25,7 +25,7 @@ class InfisicalBootstrapHttpClient(PortInfisicalBootstrapClient):
         base_url: str = "https://localhost",
         session: requests.Session | None = None,
         timeout_seconds: float = 30.0,
-        verify_tls: bool = False,
+        verify_tls: bool = True,
         readiness_attempts: int = 60,
         readiness_interval_seconds: float = 5.0,
         readiness_recovery: Callable[[], bool] | None = None,

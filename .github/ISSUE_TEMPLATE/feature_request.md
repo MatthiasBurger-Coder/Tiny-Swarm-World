@@ -7,14 +7,22 @@ assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**Problem and operator outcome**
+Describe the Linux/WSL infrastructure problem and the verified outcome needed.
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+**Affected workflow and boundary**
+Identify Platform, Artifacts, Deployment, Shared, or Console/status UI impact.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**Acceptance criteria**
+List observable behavior, failure states, tests, and evidence required for done.
+
+**Safety and recovery**
+Describe live mutations, ownership checks, secrets, rollback, and whether an
+ADR is needed.
+
+**Non-goals and alternatives**
+State what must not change and alternatives already considered.
 
 **Additional context**
-Add any other context or screenshots about the feature request here.
+Do not include credentials, raw local logs, private paths, or host-specific
+addresses.

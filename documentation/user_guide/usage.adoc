@@ -219,26 +219,14 @@ and uses it for the Infisical pull images by default. The default proxy endpoint
 inside the Swarm manager is `127.0.0.1:5001`, while the hosted local registry
 for project-built images remains `127.0.0.1:5000`.
 
-For an implementation-independent local Docker Hub proxy cache outside the
-managed stack, the repository also contains a transitional WSL/Linux operator
-helper:
+The former standalone Nexus cache helper was removed because it bypassed the
+Python consent boundary, enabled anonymous access, rewrote the host Docker
+daemon configuration, and restarted Docker. Use the managed Nexus proxy or an
+operator-managed external cache instead.
 
-[source,bash]
-----
-NEXUS_ADMIN_PASSWORD='<local-password>' tools/live/nexus-docker-cache.sh
-----
-
-This helper is separate from the Python setup workflow. It starts a standalone
-Nexus container, creates a Docker proxy repository, writes the local Docker
-daemon mirror configuration, restarts Docker, and optionally pre-pulls images
-from `images-to-cache.txt`. Use it only when those host mutations are
-intentional and the managed Nexus stack is not the intended cache.
-
-When managed LXC nodes should also use this cache during installation, the
-setup detects a running `tiny-swarm-nexus-cache` container automatically and
-writes the LXC bridge address into the node-side Docker mirror configuration.
-Do not use `127.0.0.1` for the node-side mirror. To override auto-detection,
-provide a Nexus address that is reachable from inside the LXC nodes:
+When managed LXC nodes should use an operator-managed external cache during
+installation, provide a Nexus address that is reachable from inside the LXC
+nodes. Do not use `127.0.0.1`, because that would point at the node itself:
 
 [source,bash]
 ----

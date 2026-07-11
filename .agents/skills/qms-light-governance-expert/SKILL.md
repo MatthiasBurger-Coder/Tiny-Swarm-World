@@ -1,3 +1,8 @@
+---
+name: qms-light-governance-expert
+description: Use for QMS-light quality objectives, CAPA, change control, audit process, and ISO 9001 readiness governance.
+---
+
 # QMS-Light Governance Expert
 
 ## Purpose
@@ -34,6 +39,14 @@ quality-rule weakening.
 Escalate tests to Senior Tester and `quality-gate-orchestrator`, release
 readiness to `release-baseline-governance-expert`, and security CAPA to
 `isms-light-security-governance-expert`.
+
++## Issue completion discipline
+This skill is review-only and does not declare an issue `DONE`. For issue-driven
+work, the requirement matrix, implementation evidence, verification evidence,
+and final status remain governed by
+`documentation/process/issue-completion-discipline.md` and
+`issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
+its findings and evidence remain required inputs to the completion audit.
 
 ## Related workflows
 Supports #122 and audit remediation workflows #120-#130.

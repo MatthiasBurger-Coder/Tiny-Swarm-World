@@ -28,7 +28,7 @@ services:
           - node.role == manager
 
   infisical-db:
-    image: ${TSW_INFISICAL_POSTGRES_IMAGE:-postgres:14-alpine}
+    image: ${TSW_INFISICAL_POSTGRES_IMAGE:-postgres:14.23-alpine3.23}
     environment:
       POSTGRES_USER: ${TSW_INFISICAL_POSTGRES_USER:-infisical}
       POSTGRES_PASSWORD: ${TSW_INFISICAL_POSTGRES_PASSWORD}
@@ -44,7 +44,7 @@ services:
           - node.hostname == swarm-worker-1
 
   infisical-redis:
-    image: ${TSW_INFISICAL_REDIS_IMAGE:-redis:7-alpine}
+    image: ${TSW_INFISICAL_REDIS_IMAGE:-redis:7.4.9-alpine3.21}
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - infisical_redis_data:/data

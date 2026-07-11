@@ -18,28 +18,14 @@ Optional tools for service preparation:
 
 * `curl`
 * `jq`
-* Docker CLI access, only when using the optional host-side Nexus Docker cache
 
 The default `service-access` profile pulls public base images, including the
 Infisical stack image, through the managed node Docker daemon. Repeated
-fresh-install runs can hit Docker Hub rate limits. Use Docker Hub
-authentication on the managed node path or start the optional local host-side
-Nexus Docker cache before running `install.sh`:
-
-[source,bash]
-----
-docker login
-NEXUS_ADMIN_PASSWORD='<local-cache-password>' \
-NEXUS_WEB_PORT=18081 \
-NEXUS_DOCKER_PROXY_PORT=5001 \
-bash tools/live/nexus-docker-cache.sh
-----
-
-When the local cache container `tiny-swarm-nexus-cache` is running, the
-installer detects it and writes the LXC-reachable cache URL into each managed
-node's Docker daemon mirror configuration. The image references stay as normal
-Docker Hub names, for example `infisical/infisical:v0.159.1`; Docker redirects
-those pulls through the configured mirror.
+fresh-install runs can hit Docker Hub rate limits. Use authenticated pulls on
+the managed node path or provide a reviewed, operator-managed external cache
+through `TSW_LXC_DOCKER_REGISTRY_MIRROR`. The former repository helper that
+rewrote the host Docker daemon configuration was removed because it bypassed
+the governed Python workflow.
 
 The managed Swarm Nexus stack still prepares its own Docker proxy repository
 for repository service behavior. Its defaults are:
@@ -58,9 +44,9 @@ point the image variables at an approved reachable cache before running
 [source,bash]
 ----
 export TSW_NEXUS_IMAGE=registry.local:5000/sonatype/nexus3:3.75.1
-export TSW_INFISICAL_IMAGE=registry.local:5000/infisical:latest
-export TSW_INFISICAL_POSTGRES_IMAGE=registry.local:5000/postgres:14-alpine
-export TSW_INFISICAL_REDIS_IMAGE=registry.local:5000/redis:7-alpine
+export TSW_INFISICAL_IMAGE=registry.local:5000/infisical:v0.159.1
+export TSW_INFISICAL_POSTGRES_IMAGE=registry.local:5000/postgres:14.23-alpine3.23
+export TSW_INFISICAL_REDIS_IMAGE=registry.local:5000/redis:7.4.9-alpine3.21
 ----
 
 == Python Environment
@@ -72,10 +58,14 @@ From the repository root:
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-python3 -m pip install -e .
-python3 -m pip install ruff mypy import-linter types-requests
+python3 -m pip install --require-hashes -r requirements.lock
+python3 -m pip install --no-deps -e .
+python3 -m pip install -r requirements-dev.txt
 ----
+
+`requirements.lock` is the audited Python 3.12 runtime set used by CI. The
+editable project install deliberately uses `--no-deps` so pip does not resolve
+a second runtime dependency set.
 
 Use the active virtual environment or the system `python3` interpreter for the
 project quality gate.
@@ -173,9 +163,9 @@ Create the local development environment once per checkout:
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-python3 -m pip install -e .
-python3 -m pip install ruff mypy import-linter types-PyYAML types-requests
+python3 -m pip install --require-hashes -r requirements.lock
+python3 -m pip install --no-deps -e .
+python3 -m pip install -r requirements-dev.txt
 ----
 
 Then run the local quality gate before live infrastructure work:
@@ -299,6 +289,23 @@ Traefik owns local HTTP and HTTPS ingress on ports `80` and `443`. Hostname
 resolution must map the routed names to the local machine; DNS does not route
 traffic by itself. It only makes the browser send the correct host name to
 Traefik.
+
+When the services must be reachable from a Windows browser, first prepare the
+Windows side from elevated PowerShell. The prerequisite action is read-only;
+the install action creates the managed portproxy, Firewall, hosts-file,
+Scheduled Task, and local bridge-state contract:
+
+[source,powershell]
+----
+Set-ExecutionPolicy -Scope Process Bypass
+.\tools\windows\tws-wsl-bridge.ps1 -Action prerequisites
+.\tools\windows\tws-wsl-bridge.ps1 -Action install
+----
+
+See `tools/windows/README.windows-wsl-bridge.md` for WSL 2, systemd, IP Helper,
+repair, status, and verification instructions. `install.sh` stops before any
+platform mutation when this Windows bridge state is required but missing or
+stale.
 
 For WSL/Linux shell checks, add the routed names to `/etc/hosts`. If a
 matching `tsw.local` line already exists, update that line instead of adding
@@ -461,7 +468,7 @@ Example:
 
 [source,bash]
 ----
-python3 -m pip install -e .
+python3 -m pip install --no-deps -e .
 tiny-swarm-world
 ----
 
@@ -576,11 +583,13 @@ copy the needed keys into `.tiny-swarm-world/local/live-installation.env` or
 export them in the process environment. Process environment values override
 the local file, and preflight validates the resulting contract before setup
 continues.
-On Linux or WSL, if the runtime Python dependencies from `requirements.txt`
+On Linux or WSL, if the runtime Python dependencies from `requirements.lock`
 are not importable, `install.sh` creates an ignored local environment at
 `.tiny-swarm-world/install-venv` and uses its Python interpreter for the reset
-and setup commands. WSL keeps the existing `python3` execution path when the
-required imports are already available.
+and setup commands. That bootstrap installs the lock with hash verification,
+then installs the editable project without resolving dependencies again. WSL
+keeps the existing `python3` execution path when the required imports are
+already available.
 Ensure the current shell can access the Incus daemon before running
 `install.sh`; reopen the shell after group membership changes when required by
 the host distribution.

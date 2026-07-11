@@ -80,7 +80,7 @@ Required:
 - Windows with WSL2, or native Linux
 - Ubuntu-based shell recommended
 - systemd enabled when running under WSL2
-- Python 3.14
+- Python 3.12 or newer
 - Git
 - Incus installed and initialized
 - `incus` client access for the current user
@@ -398,9 +398,11 @@ The current user must be in the `docker` group.
 
 # Python Runtime Setup
 
-Tiny Swarm World currently targets Python 3.14.
+Tiny Swarm World supports Python 3.12 or newer. CI validates the minimum
+supported version, while newer Linux/WSL runtimes remain supported through the
+declared dependency ranges.
 
-The runtime dependencies should use Python-3.14-compatible ranges:
+The runtime dependencies use Python-3.12+-compatible ranges:
 
 ```txt
 pydantic>=2.12,<3
@@ -412,17 +414,17 @@ ruamel.yaml>=0.18.16,<0.19
 Create a clean virtual environment:
 
 ```bash
-cd /mnt/d/Projects/Tiny-Swarm-World_2
+cd /mnt/d/Projects/Tiny-Swarm-World
 
 deactivate 2>/dev/null || true
 rm -rf .venv
 
-python3.14 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install -r requirements.txt
-python -m pip install -e .
+python -m pip install --require-hashes -r requirements.lock
+python -m pip install --no-deps -e .
 ```
 
 Verify imports:
@@ -458,7 +460,7 @@ cd Tiny-Swarm-World
 ## 2. Create and activate the virtual environment
 
 ```bash
-python3.14 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 ```
 
@@ -466,14 +468,14 @@ source .venv/bin/activate
 
 ```bash
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install -r requirements.txt
-python -m pip install -e .
+python -m pip install --require-hashes -r requirements.lock
+python -m pip install --no-deps -e .
 ```
 
 ## 4. Install development tools
 
 ```bash
-python -m pip install pytest ruff mypy import-linter types-PyYAML types-requests
+python -m pip install -r requirements-dev.txt
 ```
 
 ## 5. Run the quality gate
@@ -727,10 +729,10 @@ Cause: the installer is not using the project `.venv`, or dependencies are not i
 Fix:
 
 ```bash
-cd /mnt/d/Projects/Tiny-Swarm-World_2
+cd /mnt/d/Projects/Tiny-Swarm-World
 source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m pip install -e .
+python -m pip install --require-hashes -r requirements.lock
+python -m pip install --no-deps -e .
 ```
 
 Run installer with venv and source path forced:
@@ -741,11 +743,11 @@ PYTHONPATH="$PWD/src" \
 ./install.sh --headless --confirm-reset --non-interactive-live-approval
 ```
 
-## `pydantic-core` build fails on Python 3.14
+## `pydantic-core` build fails on a supported Python version
 
 Cause: an old Pydantic line is pinned.
 
-Use Python-3.14-compatible dependencies:
+Use the declared Python-3.12+-compatible dependencies:
 
 ```txt
 pydantic>=2.12,<3
@@ -758,11 +760,11 @@ Then rebuild the venv:
 
 ```bash
 rm -rf .venv
-python3.14 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install -r requirements.txt
-python -m pip install -e .
+python -m pip install --require-hashes -r requirements.lock
+python -m pip install --no-deps -e .
 ```
 
 ## `Failed getting root disk: No root device could be found`
@@ -846,12 +848,12 @@ The architecture follows a domain/application/infrastructure split.
 Prepare environment:
 
 ```bash
-python3.14 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install -r requirements.txt
-python -m pip install -e .
-python -m pip install pytest ruff mypy import-linter types-PyYAML types-requests
+python -m pip install --require-hashes -r requirements.lock
+python -m pip install --no-deps -e .
+python -m pip install -r requirements-dev.txt
 ```
 
 Run full gate:
@@ -869,6 +871,18 @@ python tools/quality_gate.py arch-tests
 python tools/quality_gate.py typecheck
 python tools/quality_gate.py test
 ```
+
+Run explicit local supply-chain checks separately from the default quality
+gate:
+
+```bash
+python tools/security_gate.py dependencies
+python tools/security_gate.py sbom
+python tools/security_gate.py container-config  # requires explicit Trivy installation
+```
+
+Dependency and SBOM policy lives under `documentation/security/`. Scanner
+absence or missing image evidence is reported as missing, never as a pass.
 
 Do not run live Incus lifecycle, Docker Swarm, image build, image push, or service bootstrap commands as part of the development quality gate.
 

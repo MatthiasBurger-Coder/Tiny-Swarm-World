@@ -38,15 +38,21 @@ Blocking questions prevent final workflow authoring and release for `workflow ex
 
 Automatic clarification loops are capped at `maxRetries = 3`. After the third unresolved attempt, stop workflow authoring, keep the decision at `REQUIRES_REFINEMENT`, and escalate to the Root Architect with the unresolved blockers.
 
-`workflow create` must use five mandatory roles:
+`workflow create` must use four mandatory roles:
 
 - Senior Requirement Engineer
 - Senior System Architect
 - Senior Python Automation Developer
-- Senior React Frontend Developer
 - Senior Tester
 
-Classic labels such as Requirement Analyst, Architecture Validator and Quality Validator are optional perspectives. They do not replace the five mandatory roles.
+Add a Console/status UI reviewer only when the verified scope affects terminal
+presentation, interaction, accessibility or progress output. Browser React
+review is forbidden unless a separate workflow first verifies a real frontend
+module, package tooling and quality gates.
+
+Classic labels such as Requirement Analyst, Architecture Validator and Quality
+Validator are optional perspectives. They do not replace the four mandatory
+roles.
 
 ## Mandatory Branch-First Rule
 

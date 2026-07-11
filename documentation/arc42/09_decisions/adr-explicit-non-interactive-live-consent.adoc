@@ -1,0 +1,108 @@
+= ADR: Explicit Non-Interactive Live Consent
+
+*Date:* 2026-07-10
+*Status:* Accepted; implemented by the governed CLI and installer
+*Decision makers:* Tiny Swarm World architecture governance; records the
+implemented operator contract introduced by issue 68 and pull request 100.
+
+== Context
+
+The autonomous setup safety ADR deliberately deferred non-interactive live
+consent until a separate decision defined its trust boundary, approval
+semantics, and evidence. The governed CLI and installer later introduced an
+explicit automation path:
+
+* `--live --approve-live` for the Python CLI;
+* `--non-interactive-live-approval` for the installer, which passes
+  `--approve-live` to live CLI phases.
+
+The implementation remains fail-closed: the approval flag is not sufficient
+without `--live`, missing approval is refused before application services are
+constructed, and destructive reset confirmation is a separate control.
+
+This ADR records and governs that implemented contract. It supersedes only the
+earlier decision to keep non-interactive live consent out of scope. It does not
+weaken the remaining autonomous setup safety rules.
+
+== Decision
+
+Tiny Swarm World accepts explicit, opt-in non-interactive live consent for
+deliberate local automation.
+
+Two public consent paths are supported:
+
+* Interactive: pass `--live` and answer the live-infrastructure prompt with an
+  accepted affirmative value.
+* Non-interactive: pass both `--live` and `--approve-live` in the same CLI
+  invocation. The installer flag `--non-interactive-live-approval` is an
+  explicit operator choice that maps to this pair for its live phases.
+
+The following constraints apply:
+
+* No configuration file, detected CI environment, terminal mode, or default
+  installer option may imply `--approve-live`.
+* `--approve-live` without `--live` must not authorize mutation.
+* Headless execution does not imply approval. It requires the same explicit
+  non-interactive approval flag.
+* Reset and destroy confirmations remain independent. Live approval must not
+  satisfy an exact destructive confirmation phrase.
+* Consent is scoped to the current process invocation and is not cached for a
+  later run.
+* The public CLI recognizes the interactive prompt and explicit CLI flags as
+  its supported consent sources. Internal legacy consent fields are not a
+  documented automation interface.
+* The installer records `live_execution_mode`, `live_approval_source`, and
+  `terminal_recording_mode` in ignored local run context without recording
+  secret values.
+* Default development tests and quality gates remain non-mutating and never
+  add live approval automatically.
+
+The operator or automation caller is responsible for ensuring that the target
+is disposable or recoverable and that the invoking identity is authorized to
+change the local Incus, Docker, Swarm, networking, and service state.
+
+== Consequences
+
+Repeatable headless installation can use the governed Python workflow without
+feeding an interactive prompt. Automation must make the risk-bearing choice
+visible at the command boundary.
+
+Commands that omit either required flag still fail closed. Existing preflight,
+provider-readiness, ownership, verification, redaction, and rollback controls
+remain mandatory after consent is accepted.
+
+Documentation may describe the explicit non-interactive path as implemented,
+but must not describe it as the default or as proof that a live installation
+succeeded.
+
+== Considered Options
+
+=== Infer approval from headless or CI execution
+
+Rejected because execution context is not operator consent and could turn a
+diagnostic or quality job into infrastructure mutation.
+
+=== Persist approval between runs
+
+Rejected because stale approval would make the authorization boundary
+invisible and difficult to revoke.
+
+=== Reuse reset confirmation as live approval
+
+Rejected because destructive-scope confirmation and authorization for general
+live mutation protect different risks.
+
+=== Keep all non-interactive execution unsupported
+
+Rejected because explicit per-invocation approval supports deliberate local
+automation without weakening the fail-closed boundary.
+
+== References
+
+* Amends: `documentation/arc42/09_decisions/adr-autonomous-setup-safety.adoc`
+* Requirement baseline:
+  `documentation/arc42/01_introduction/autonomous-runnable-setup.md`
+* Operator guide: `documentation/user_guide/installation.adoc`
+* Related code: `src/tiny_swarm_world/__main__.py`
+* Related code: `src/tiny_swarm_world/installer.py`
+* Implementation history: commit `89ee3f3` (`Separate installer live approval modes`)

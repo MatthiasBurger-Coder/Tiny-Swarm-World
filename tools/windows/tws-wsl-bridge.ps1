@@ -11,6 +11,9 @@
     - Windows hosts-file entries for known tws.local names
     - Optional Scheduled Task for refresh after logon / WSL IP changes
 
+  Check Windows and WSL prerequisites without changing state:
+    .\tools\windows\tws-wsl-bridge.ps1 -Action prerequisites
+
   Run from an elevated PowerShell once:
     .\tools\windows\tws-wsl-bridge.ps1 -Action install
 
@@ -20,7 +23,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet("install", "refresh", "verify", "status", "uninstall")]
+    [ValidateSet("prerequisites", "install", "refresh", "verify", "status", "uninstall")]
     [string]$Action = "refresh",
 
     [string]$ConfigPath = (Join-Path $PSScriptRoot "tws-wsl-bridge.config.json"),
@@ -51,6 +54,164 @@ function Test-IsAdministrator {
 function Assert-Administrator {
     if (-not (Test-IsAdministrator)) {
         throw "This action needs an elevated PowerShell. Start PowerShell as Administrator and run the command again."
+    }
+}
+
+function Get-ConfiguredDistro {
+    param($Config)
+
+    if ($Config.PSObject.Properties.Name -contains "distro") {
+        return [string]$Config.distro
+    }
+    return "auto"
+}
+
+function Invoke-WslShellText {
+    param(
+        $Config,
+        [string]$Command
+    )
+
+    $distro = Get-ConfiguredDistro $Config
+    if ([string]::IsNullOrWhiteSpace($distro) -or $distro -eq "auto") {
+        $raw = & wsl.exe sh -lc $Command 2>$null
+    } else {
+        $raw = & wsl.exe -d $distro -e sh -lc $Command 2>$null
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "WSL command failed for configured distro '$distro': $Command"
+    }
+
+    return ($raw -join "`n").Trim()
+}
+
+function New-BridgePrerequisiteResult {
+    param(
+        [string]$Name,
+        [bool]$Passed,
+        [string]$Message
+    )
+
+    return [pscustomobject]@{
+        Name    = $Name
+        Passed  = $Passed
+        Message = $Message
+    }
+}
+
+function Get-BridgePrerequisiteResults {
+    param($Config)
+
+    $results = [System.Collections.ArrayList]::new()
+    $windowsDetected = [Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT
+    [void]$results.Add((New-BridgePrerequisiteResult `
+        -Name "windows" `
+        -Passed $windowsDetected `
+        -Message $(if ($windowsDetected) { "Windows host detected." } else { "Run this script from Windows PowerShell." })))
+
+    $isAdministrator = Test-IsAdministrator
+    [void]$results.Add((New-BridgePrerequisiteResult `
+        -Name "administrator" `
+        -Passed $isAdministrator `
+        -Message $(if ($isAdministrator) { "PowerShell is elevated." } else { "Open PowerShell as Administrator." })))
+
+    $wslAvailable = $null -ne (Get-Command wsl.exe -ErrorAction SilentlyContinue)
+    [void]$results.Add((New-BridgePrerequisiteResult `
+        -Name "wsl-command" `
+        -Passed $wslAvailable `
+        -Message $(if ($wslAvailable) { "wsl.exe is available." } else { "Install WSL 2 before preparing the bridge." })))
+
+    $netshAvailable = $null -ne (Get-Command netsh.exe -ErrorAction SilentlyContinue)
+    [void]$results.Add((New-BridgePrerequisiteResult `
+        -Name "netsh-command" `
+        -Passed $netshAvailable `
+        -Message $(if ($netshAvailable) { "netsh.exe is available." } else { "netsh.exe is required for Windows portproxy rules." })))
+
+    $firewallAvailable = $null -ne (Get-Command New-NetFirewallRule -ErrorAction SilentlyContinue)
+    [void]$results.Add((New-BridgePrerequisiteResult `
+        -Name "firewall-cmdlet" `
+        -Passed $firewallAvailable `
+        -Message $(if ($firewallAvailable) { "Windows Firewall cmdlets are available." } else { "New-NetFirewallRule is unavailable." })))
+
+    $taskAvailable = $null -ne (Get-Command Register-ScheduledTask -ErrorAction SilentlyContinue)
+    [void]$results.Add((New-BridgePrerequisiteResult `
+        -Name "task-cmdlet" `
+        -Passed $taskAvailable `
+        -Message $(if ($taskAvailable) { "Scheduled Task cmdlets are available." } else { "Register-ScheduledTask is unavailable." })))
+
+    $ipHelper = Get-Service -Name iphlpsvc -ErrorAction SilentlyContinue
+    $ipHelperRunning = $null -ne $ipHelper -and $ipHelper.Status -eq "Running"
+    [void]$results.Add((New-BridgePrerequisiteResult `
+        -Name "ip-helper" `
+        -Passed $ipHelperRunning `
+        -Message $(if ($ipHelperRunning) { "IP Helper is running." } else { "Start the Windows IP Helper service (iphlpsvc)." })))
+
+    if ($wslAvailable) {
+        try {
+            $kernelRelease = Invoke-WslShellText -Config $Config -Command "uname -r"
+            $isWsl2 = $kernelRelease -match "(?i)(microsoft-standard-wsl2|wsl2)"
+            [void]$results.Add((New-BridgePrerequisiteResult `
+                -Name "wsl2-runtime" `
+                -Passed $isWsl2 `
+                -Message $(if ($isWsl2) { "Configured distro is running under WSL 2." } else { "Configured distro is not running under WSL 2." })))
+        } catch {
+            [void]$results.Add((New-BridgePrerequisiteResult `
+                -Name "wsl2-runtime" `
+                -Passed $false `
+                -Message $_.Exception.Message))
+        }
+
+        try {
+            $pidOne = Invoke-WslShellText -Config $Config -Command "ps -p 1 -o comm="
+            $systemdRunning = $pidOne.Trim() -eq "systemd"
+            [void]$results.Add((New-BridgePrerequisiteResult `
+                -Name "wsl-systemd" `
+                -Passed $systemdRunning `
+                -Message $(if ($systemdRunning) { "systemd is PID 1 in the configured distro." } else { "Enable systemd in the configured WSL distro." })))
+        } catch {
+            [void]$results.Add((New-BridgePrerequisiteResult `
+                -Name "wsl-systemd" `
+                -Passed $false `
+                -Message $_.Exception.Message))
+        }
+
+        try {
+            $wslIp = Get-WslIp $Config
+            [void]$results.Add((New-BridgePrerequisiteResult `
+                -Name "wsl-ipv4" `
+                -Passed $true `
+                -Message "Current WSL IPv4 address resolved: $wslIp"))
+        } catch {
+            [void]$results.Add((New-BridgePrerequisiteResult `
+                -Name "wsl-ipv4" `
+                -Passed $false `
+                -Message $_.Exception.Message))
+        }
+    }
+
+    return @($results)
+}
+
+function Write-BridgePrerequisiteResults {
+    param($Results)
+
+    foreach ($result in $Results) {
+        $status = if ($result.Passed) { "OK" } else { "FAIL" }
+        $color = if ($result.Passed) { "Green" } else { "Yellow" }
+        Write-Host ("PREREQUISITE {0,-4} {1}: {2}" -f $status, $result.Name, $result.Message) -ForegroundColor $color
+    }
+}
+
+function Assert-BridgePrerequisites {
+    param($Config)
+
+    $results = @(Get-BridgePrerequisiteResults -Config $Config)
+    Write-BridgePrerequisiteResults -Results $results
+    $failed = @($results | Where-Object { -not $_.Passed })
+    if ($failed.Count -gt 0) {
+        $failedNames = $failed.Name -join ", "
+        throw "Windows/WSL bridge prerequisites failed: $failedNames"
     }
 }
 
@@ -600,8 +761,13 @@ $mappings = @(Get-PortMappings $config $registry.Mappings)
 $hostNames = @(Get-BridgeHostNames $config $registry.HostNames)
 
 switch ($Action) {
+    "prerequisites" {
+        Assert-BridgePrerequisites -Config $config
+        Write-Host "Windows/WSL bridge prerequisites are ready. No bridge state was changed."
+    }
+
     "install" {
-        Assert-Administrator
+        Assert-BridgePrerequisites -Config $config
         $resolvedConfig = (Resolve-Path -LiteralPath $ConfigPath).Path
         $wslIp = Get-WslIp $config
         Reconcile-PortProxy -Config $config -WslIp $wslIp -Mappings $mappings
@@ -615,7 +781,7 @@ switch ($Action) {
     }
 
     "refresh" {
-        Assert-Administrator
+        Assert-BridgePrerequisites -Config $config
         $wslIp = Get-WslIp $config
         Reconcile-PortProxy -Config $config -WslIp $wslIp -Mappings $mappings
         Reconcile-FirewallRules -Config $config -Mappings $mappings

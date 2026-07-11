@@ -13,7 +13,7 @@ services:
         protocol: tcp
         mode: host
     deploy:
-      mode: replicated # Nur den Portainer-Service als Replikat bereitstellen
+      mode: replicated # Run only the Portainer service as a replica.
       replicas: 1
       endpoint_mode: dnsrr
       placement:
@@ -22,14 +22,14 @@ services:
   agent:
     image: portainer/agent:2.39.2
     environment:
-      AGENT_CLUSTER_ADDR: tasks.agent # Swarm Communication
+      AGENT_CLUSTER_ADDR: tasks.agent # Swarm communication.
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/lib/docker/volumes:/var/lib/docker/volumes
     networks:
       - service_access_link
     deploy:
-      mode: global # Agent auf allen Nodes ausrollen
+      mode: global # Run the agent on every Linux node.
       endpoint_mode: dnsrr
       placement:
         constraints:

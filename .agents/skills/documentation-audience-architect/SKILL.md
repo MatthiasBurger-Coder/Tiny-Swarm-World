@@ -1,3 +1,8 @@
+---
+name: documentation-audience-architect
+description: Use for documentation audience separation, navigation, and reader-specific structure in Tiny Swarm World.
+---
+
 # Documentation Audience Architect
 
 ## Purpose
@@ -33,6 +38,14 @@ audience mixing that hides safety rules, and unverified implementation claims.
 Escalate architecture docs to `arc42-architecture-governance`, release docs to
 `release-baseline-governance-expert`, and security docs to
 `isms-light-security-governance-expert`.
+
++## Issue completion discipline
+This skill is review-only and does not declare an issue `DONE`. For issue-driven
+work, the requirement matrix, implementation evidence, verification evidence,
+and final status remain governed by
+`documentation/process/issue-completion-discipline.md` and
+`issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
+its findings and evidence remain required inputs to the completion audit.
 
 ## Related workflows
 Supports #129 and documentation portions of #120-#130.

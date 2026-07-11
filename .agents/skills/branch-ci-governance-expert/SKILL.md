@@ -1,3 +1,8 @@
+---
+name: branch-ci-governance-expert
+description: Use for branch protection expectations, CI quality policy, pull-request evidence, and merge governance review.
+---
+
 # Branch CI Governance Expert
 
 ## Purpose
@@ -33,6 +38,14 @@ SonarQube status when configured as required.
 ## Handoff rules
 Escalate release readiness to `release-baseline-governance-expert` and quality
 failures to `quality-gate-orchestrator`.
+
++## Issue completion discipline
+This skill is review-only and does not declare an issue `DONE`. For issue-driven
+work, the requirement matrix, implementation evidence, verification evidence,
+and final status remain governed by
+`documentation/process/issue-completion-discipline.md` and
+`issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
+its findings and evidence remain required inputs to the completion audit.
 
 ## Related workflows
 Supports #128 and push/release governance.

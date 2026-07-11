@@ -68,7 +68,7 @@ class FileManager(PortFileManager):
             path (Path): The file path.
             data (Any): The data to be saved.
         """
-        self.logger.info(f"Save to {path} with : {data}")
+        self.logger.info("Saving file: %s", path)
         file_saver = self.saver(path)
         file_saver.save(data)
 

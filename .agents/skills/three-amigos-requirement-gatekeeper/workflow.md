@@ -47,15 +47,19 @@ Ask focused clarification questions when blocking questions remain. Do not creat
 
 Automatic clarification attempts are capped at `maxRetries = 3`. After the third unresolved attempt, return `REQUIRES_REFINEMENT`, stop the loop and escalate to the Root Architect.
 
-## Phase 3 - Five-Role Three Amigos Review
+## Phase 3 - Four-Role Three Amigos Review
 
 Participants:
 
 - Senior Requirement Engineer
 - Senior System Architect
 - Senior Python Automation Developer
-- Senior React Frontend Developer
 - Senior Tester
+
+Add a Console/status UI reviewer only for verified terminal presentation,
+interaction, accessibility or progress-output impact. Do not route browser
+React review unless a separate workflow has verified a frontend module and its
+tooling.
 
 Validate:
 

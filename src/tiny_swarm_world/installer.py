@@ -685,7 +685,20 @@ def ensure_python_environment(
         check=True,
     )
     subprocess.run(
-        [venv_python.as_posix(), "-m", "pip", "install", "-r", "requirements.txt"],
+        [
+            venv_python.as_posix(),
+            "-m",
+            "pip",
+            "install",
+            "--require-hashes",
+            "-r",
+            "requirements.lock",
+        ],
+        env=dict(env),
+        check=True,
+    )
+    subprocess.run(
+        [venv_python.as_posix(), "-m", "pip", "install", "--no-deps", "-e", "."],
         env=dict(env),
         check=True,
     )

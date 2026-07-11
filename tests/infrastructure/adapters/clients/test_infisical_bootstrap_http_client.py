@@ -73,7 +73,7 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
             },
             session.post_calls[0]["json"],
         )
-        self.assertFalse(session.post_calls[0]["verify"])
+        self.assertTrue(session.post_calls[0]["verify"])
         self.assertEqual("https://localhost/api/status", session.get_calls[0]["url"])
 
     def test_waits_for_infisical_api_before_bootstrap(self):
@@ -185,6 +185,24 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
             InfisicalBootstrapHttpClient(
                 base_url=sample_url("https", "admin:secret", "localhost")
             )
+
+    def test_explicit_insecure_mode_is_forwarded_without_changing_default(self):
+        session = _FakeSession(_FakeResponse(409, {}))
+        client = InfisicalBootstrapHttpClient(
+            base_url="https://localhost",
+            session=session,
+            verify_tls=False,
+            readiness_interval_seconds=0,
+        )
+
+        client.bootstrap_instance(
+            email="admin@tiny-swarm-world.local",
+            password="infisical-password",
+            organization="Tiny Swarm World",
+        )
+
+        self.assertFalse(session.get_calls[0]["verify"])
+        self.assertFalse(session.post_calls[0]["verify"])
 
     def test_suppresses_local_self_signed_tls_warning_when_tls_verify_is_disabled(self):
         with warnings.catch_warnings(record=True) as recorded:

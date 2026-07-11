@@ -66,8 +66,8 @@ Install the Python package in editable mode:
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-python3 -m pip install -e .
+python3 -m pip install --require-hashes -r requirements.lock
+python3 -m pip install --no-deps -e .
 ----
 
 Verify development readiness without live infrastructure mutation:
