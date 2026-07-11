@@ -288,6 +288,30 @@ It does not show password values.
 Authorized operators reveal or copy password values only through the
 configured secret-management surface.
 
+Prometheus, Grafana, app, and API links are configuration-dependent. An
+optional link is rendered only when its service is enabled; disabled services
+remain documented in the effective model as `service_not_enabled`. Preferred
+links use routed HTTPS URLs and do not use diagnostic ports `10080` or `10443`.
+
+== Effective Access Model Evidence
+
+The deployment pre-apply step writes
+`.tiny-swarm-world/evidence/solid-typed-evidence/routing/effective-access-model.json`
+from the same model used for Traefik labels, dashboard links, and health
+targets. The file is atomically replaced and contains no credential values:
+only credential labels and Infisical item references are permitted. A failed
+write blocks stack apply. `result: generated` means that the configured model
+was serialized; it is not live reachability evidence.
+
+== Routed Browser Evidence
+
+The browser suite derives its expected routes from current
+`service_access_links`. Each expected route is recorded as `passed`, `failed`,
+`skipped`, or `missing`; missing evidence makes the suite fail. Disabled and
+non-profile routes are not expected. Live Selenium remains opt-in, and absent
+consent, Selenium, or approved credentials is retained as explicit redacted
+skip evidence rather than blocking static quality gates.
+
 The direct dashboard route is `http://localhost:10000`. Localhost reachability
 still requires provider-specific exposure and verified deployment evidence.
 

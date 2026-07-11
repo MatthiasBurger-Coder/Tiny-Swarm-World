@@ -133,6 +133,9 @@ Remaining risks and debt:
 * service reachability could be falsely presented as healthy without fresh
   observed-state or HTTP evidence; current dashboard assets render catalog
   reachability as unknown unless evidence is collected separately;
+* generated effective-access-model JSON and static browser matrices could be
+  overclaimed as live proof; they record configured routes and test evidence,
+  not DNS, TLS, HTTP, Swarm-readiness, or authenticated-login observations;
 * the central `http://localhost` service-access route and local `https://localhost` Vaultwarden route are implemented in
   repository assets but still needs a fresh live redeployment and browser smoke
   test before it can be claimed as verified;
@@ -155,5 +158,15 @@ Resolved or narrowed risks:
   Portainer-managed stack path instead of bind-mounted from the repository;
 * static tests reject React/Vite project files, live orchestration helpers,
   credential-bearing dashboard links, and raw password rendering.
+* one effective-model port now supplies Traefik labels, dashboard links,
+  health targets, productive routing evidence and browser expectations;
+* shared-upstream app/API labels coexist, and active conditional routes are no
+  longer also reported as skipped;
+* routing evidence uses a fixed credential-value-free projection and atomic
+  local replacement before stack apply;
+* renderer output is the dashboard-test authority with an explicit committed
+  fallback drift test;
+* browser suite membership is dynamic, and missing evidence is an explicit
+  non-success state.
 * service-access live evidence must be collected separately for the default
   `lxc_native` provider baseline.

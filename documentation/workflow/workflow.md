@@ -8,7 +8,7 @@ Issue URL: <https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/157>
 Baseline Branch: `main`
 Baseline Commit: `3e0d28db0e59fc3f38929c4b91cac0566ed39fb6`
 Branch: `fix/issue-157-final-gaps-20260711`
-Status: `AUTHORED_PUBLISHED_PENDING_EXECUTION`
+Status: `SLICE_05_AUDIT_PASS_CHECKPOINT_PENDING`
 Execution Profile: `FULL_PATH`
 Workflow Evidence Root: `.codex/evidence/workflow-issue-157-final-gaps-20260711/`
 Issue Evidence Root: `.tiny-swarm/evidence/issue-157-final-gaps-20260711/`
@@ -28,8 +28,10 @@ case; proves enabled Prometheus, Grafana, app and API routes with isolated YAML
 fixtures; derives browser expectations and suite completion from the effective
 model; and makes renderer output the dashboard-test source of truth.
 
-This authoring run does not implement product behavior and does not run live
-Incus, LXC, Docker, Swarm, DNS, Traefik, browser or service operations.
+Slices 01 through 04 now implement and statically verify those product and test
+contracts. Slice 05 synchronizes documentation and completion evidence before
+the individually required final quality commands and independent audit. No live
+Incus, LXC, Docker, Swarm, DNS, Traefik, browser, or service operation has run.
 
 ## Verified Baseline
 
@@ -66,18 +68,40 @@ PYTHONPATH=src python3 -m unittest \
 
 Baseline result: `PASS`, 77 tests, no live infrastructure.
 
-Verified open gaps:
+## Execution Checkpoint
 
-1. `DesiredHttpsIngress.to_dict()` produces the model, but no productive use
-   case persists `effective-access-model.json`.
-2. The compose renderer maps one route per upstream service. Enabled `app` and
-   `api` both target `tiny-swarm`, so simultaneous labels currently collide.
-3. Enabled conditional routes are rendered but can also be reported as
-   `service_not_in_active_profile`, producing contradictory skip semantics.
-4. Browser suite completion is based on static `ROUTE_EXPECTATIONS` and turns
-   missing route evidence into a skipped route result.
-5. Several dashboard and post-install static tests still parse the committed
-   HTML instead of renderer output or the effective model.
+- Slice 01: complete at
+  `578f5e57d28cc5c6536781d88e88bd6cc7b69cea`.
+- Slice 02: complete at
+  `b08e1e266dc5abffdfff6ba0725c8948ec5bd549`.
+- Slice 03: complete at
+  `54725a0ff3cc9005459c2277d487e9722e093b3d`.
+- Slice 04: complete at
+  `183ccac6143f5f58a904e891fd92abe7d8959ce6`.
+- Integrated G2 quality: `PASS`; Ruff passed, 3 Import Linter contracts were
+  kept with none broken, 18 architecture tests passed, Mypy reported no issues
+  in 471 source files, and unittest ran 1,361 tests with 1,333 passed and 28
+  skipped.
+- Slice 05 local gates, Three-Amigos completion review, and independent
+  pre-publication audit: `PASS`.
+- The Slice 05 checkpoint commit, PR, CI/SonarCloud, and review closure remain
+  pending.
+- Live Selenium: `NOT_RUN`; current consent and an approved prerequisite set
+  were not supplied. The referenced ignored environment file was not read.
+
+Authoring-time gaps, now closed by Slices 01 through 04:
+
+1. Productive `effective-access-model.json` persistence was absent; Slice 02
+   added the application use case, port/adapter, and pre-apply integration.
+2. App and API labels collided on the shared `tiny-swarm` upstream; Slice 01
+   grouped routes and bound distinct routers to distinct Traefik services.
+3. Enabled conditional routes could also appear as skipped; Slice 01 corrected
+   active-route skip semantics.
+4. Browser membership was static and missing evidence became skipped; Slice 04
+   derives membership from current links and records missing as non-success.
+5. Dashboard/post-install tests parsed committed HTML; Slices 03 and 04 now use
+   renderer output and the effective model, with one explicit fallback drift
+   test.
 
 ## Execution Profile
 
@@ -268,6 +292,11 @@ Gate evidence:
 `.codex/evidence/workflow-issue-157-final-gaps-20260711/three-amigos-gate.md`.
 
 ## Requirement Matrix
+
+This table preserves the workflow-authoring baseline in its `Initial status`
+column. Current implementation and verification status is authoritative in the
+ignored issue requirement matrix and this workflow's slice consolidation
+evidence; the OPEN cells below are historical, not the current execution state.
 
 | ID | Requirement | Type | Likely implementation | Verification | Initial status |
 |---|---|---|---|---|---|
@@ -1186,8 +1215,9 @@ The committed workflow evidence root must contain:
 - Pull request
 - Merge status
 
-During authoring, non-applicable execution fields are explicitly `PENDING` or
-`NOT_RUN`. Slice 05/06 must replace them with evidence-backed results.
+Execution fields are evidence-backed through the current slice. Slice 05 local
+gates and pre-publication audit pass; Slice 06 keeps PR, CI/SonarCloud, review,
+and merge status pending until they are observed.
 
 ## Quality-Gate Expectations
 

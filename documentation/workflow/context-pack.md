@@ -7,7 +7,7 @@ Branch: `fix/issue-157-final-gaps-20260711`
 Baseline: `main@3e0d28db0e59fc3f38929c4b91cac0566ed39fb6`
 Process Strand: `workflow create -> workflow execute -> completion audit -> PR readiness`
 Execution Profile: `FULL_PATH`
-Status: `AUTHORED_PUBLISHED_PENDING_EXECUTION`
+Status: `SLICE_05_AUDIT_PASS_CHECKPOINT_PENDING`
 
 ## Orientation
 
@@ -17,6 +17,22 @@ and `documentation/workflow/workflow.md` remain authoritative.
 
 The previous dashboard asset workflow was already locally executed and is
 replaced by this issue-specific workflow.
+
+## Execution Checkpoint
+
+- Slice 01: `578f5e57d28cc5c6536781d88e88bd6cc7b69cea`.
+- Slice 02: `b08e1e266dc5abffdfff6ba0725c8948ec5bd549`.
+- Slice 03: `54725a0ff3cc9005459c2277d487e9722e093b3d`.
+- Slice 04: `183ccac6143f5f58a904e891fd92abe7d8959ce6`.
+- Integrated G2 quality: `PASS`; Ruff, Import Linter, 18 architecture tests,
+  Mypy across 471 source files, and 1,361 unittests (1,333 passed, 28 skipped)
+  are green.
+- All six individual Slice 05 quality commands and the Requirement,
+  Architecture, and Test/Evidence completion perspectives pass.
+- Independent Slice 05 pre-publication audit: `PASS`; checkpoint pending.
+- All Slice 06 publication/check results remain pending.
+- Live Selenium is `NOT_RUN`; no current consent or approved prerequisite set
+  was supplied, and the referenced ignored environment file was not read.
 
 ## Verified Baseline
 

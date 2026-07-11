@@ -1,66 +1,80 @@
 # Final Status
 
-Status: `WORKFLOW_AUTHORED_PUBLISHED_PENDING_EXECUTION`
+Status: `SLICE_05_AUDIT_PASS_CHECKPOINT_PENDING`
 
-Issue:
+## Issue
 
 - #157 Gateway: Route HTTP services through Traefik using central access
   configuration
 
-Branch:
+## Branch
 
 - `fix/issue-157-final-gaps-20260711`
 
-Commits:
+## Commits
 
-- Workflow-authoring content commit:
-  `9202bf1e5dfe7d379f383346e234b84c21cabc35`
-- Publication-status commit:
-  `f3a46f8e95186f4ad9be5435eb2d35f36da9d99c`
-- Evidence-count correction commit: this follow-up commit; its immutable SHA
-  is recorded in the handoff after commit creation
-- Implementation commits: `PENDING`
+- Workflow authoring: `9202bf1e5dfe7d379f383346e234b84c21cabc35`
+- Authoring publication status: `f3a46f8e95186f4ad9be5435eb2d35f36da9d99c`
+- Authoring test-total correction: `740d284`
+- Slice 01: `578f5e57d28cc5c6536781d88e88bd6cc7b69cea`
+- Slice 02: `b08e1e266dc5abffdfff6ba0725c8948ec5bd549`
+- Slice 03: `54725a0ff3cc9005459c2277d487e9722e093b3d`
+- Slice 04: `183ccac6143f5f58a904e891fd92abe7d8959ce6`
+- Slice 05: `AUDIT_PASS_CHECKPOINT_COMMIT_PENDING`
 
-Changed files:
+## Changed Files
 
-- Workflow authoring files only; see `changed-files.md`.
+- Product, test, documentation, and evidence files are classified in
+  `changed-files.md`.
+- No committed service/port YAML, compose configuration, dashboard fallback,
+  ADR, CI file, or live environment file was changed.
 
-Implemented requirements:
+## Implemented Requirements
 
-- None in this authoring run.
+- Productive, redacted, deterministic, atomic effective-access-model evidence
+  is wired as the first deployment pre-apply step.
+- Positive and negative Prometheus, Grafana, app, and API route behavior is
+  covered with isolated fixtures, including shared app/API upstream labels.
+- Browser expectations and suite summaries derive from current model links;
+  optional routes are automatic and missing evidence is non-success.
+- Dashboard verification uses renderer output, proves optionals and secret
+  safety, excludes preferred high ports, and guards committed default drift.
+- Existing central-model, Traefik, dashboard transfer, live-consent, skip
+  evidence, and scope boundaries are preserved.
 
-Deferred requirements:
+## Deferred Requirements
 
 - None accepted as deferred.
-- All OPEN matrix requirements are pending `workflow execute`.
+- Slice 06 publication, CI/SonarCloud, and review work is pending execution,
+  not deferred.
 
-Quality gate results:
+## Quality Gate Results
 
-- Baseline targeted static suite: `PASS`, 77 tests.
-- Authoring `git diff --check`: `PASS`.
-- Workflow structure/dependency validator: `PASS`.
-- Authoring full `python3 tools/quality_gate.py quality`: `PASS`
-  (1,336 tests run; 1,308 passed and 28 skipped).
-- Implementation gates: `NOT_RUN`.
+- Slice-targeted tests: `PASS`; see `test-results.md`.
+- Integrated G2 `quality`: `PASS`, 1,361 run / 1,333 passed / 28 skipped.
+- Six individually requested final Slice 05 commands: `PASS`.
+- Final local result: Ruff pass; Import Linter 3 kept/0 broken over 290
+  files/657 dependencies; 18 architecture tests; Mypy 471 files; 1,361 tests
+  run, 1,333 passed, 28 skipped.
+- Independent completion audit: `PASS` for Slice 05 pre-publication scope.
 
-Live E2E result:
+## Live E2E Result
 
 - `NOT_RUN`
-- Reason: workflow creation does not authorize live execution.
+- Reason: current operator consent and an approved live prerequisite set were
+  not supplied. Static skip behavior is verified and no live-pass claim is
+  made.
 
-Known limitations:
+## Known Limitations
 
-- Product gaps are planned, not yet implemented.
-- Product implementation and implementation PR checks remain pending.
+- Generated routing JSON is configured-model evidence, not observed DNS, TLS,
+  HTTP, Swarm readiness, or login evidence.
+- PR checks, SonarCloud, and review closure remain open.
 
-Pull request:
+## Pull Request
 
-- Workflow branch published; implementation PR remains `PENDING` and is
-  created only after implementation Slice 05 passes.
+- `PENDING_SLICE_06`
 
-Merge status:
+## Merge Status
 
 - `not merged`
-
-Slice 05 and Slice 06 must replace every pending field with evidence-backed
-results or a real blocker.

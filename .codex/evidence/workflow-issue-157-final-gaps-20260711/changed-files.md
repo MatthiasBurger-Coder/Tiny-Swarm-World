@@ -1,18 +1,61 @@
 # Changed Files
 
-Status: `WORKFLOW_AUTHORING_ONLY`
+Status: `COMPLETE_THROUGH_SLICE_05_LOCAL_GATES`
 
-Current authoring scope:
+## Product And Architecture
 
-- `documentation/workflow/workflow.md`: regenerated executable Issue #157
-  workflow.
-- `documentation/workflow/context-pack.md`: regenerated navigation pack.
-- `documentation/workflow/context-pack.json`: regenerated metadata and hash
-  provenance.
-- `.codex/evidence/workflow-issue-157-final-gaps-20260711/**`: initialized
-  authoring and execution evidence.
+- `src/tiny_swarm_world/domain/ingress/desired_state.py`
+- `src/tiny_swarm_world/application/ports/repositories/port_effective_access_model_repository.py`
+- `src/tiny_swarm_world/application/ports/repositories/port_routing_evidence_repository.py`
+- `src/tiny_swarm_world/application/services/deployment/__init__.py`
+- `src/tiny_swarm_world/application/services/deployment/write_effective_access_model_evidence.py`
+- `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+- `src/tiny_swarm_world/infrastructure/adapters/repositories/routing_evidence_local_repository.py`
+- `src/tiny_swarm_world/infrastructure/composition.py`
 
-Product implementation files changed: none.
+## Tests And Fixtures
 
-Slice 05 must replace this file with the complete implementation diff
-classification. Slice 06 must append final commit and PR remediation changes.
+- `tests/application/services/deployment/test_write_effective_access_model_evidence.py`
+- `tests/domain/ingress/test_desired_state.py`
+- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- `tests/infrastructure/adapters/repositories/test_routing_evidence_local_repository.py`
+- `tests/infrastructure/test_composition.py`
+- `tests/integration/routing_contract.py`
+- `tests/integration/test_optional_service_routing.py`
+- `tests/live/browser_e2e_contract.py`
+- `tests/live/test_observability_browser_e2e.py`
+- `tests/live/test_post_install_browser_live.py`
+- `tests/live/test_tiny_swarm_app_browser_e2e.py`
+- `tests/support/effective_access_model_fixture.py`
+
+## Documentation
+
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/07_deployment_view.adoc`
+- `documentation/arc42/10_quality_requirements.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/user_guide/installation.adoc`
+- `documentation/user_guide/usage.adoc`
+- `documentation/user_guide/troubleshooting.adoc`
+- `documentation/workflow/workflow.md`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/context-pack.json`
+
+## Evidence
+
+- `.codex/evidence/workflow-issue-157-final-gaps-20260711/**`
+- `.tiny-swarm/evidence/issue-157-final-gaps-20260711/**` (ignored local
+  issue-completion package)
+
+## Deliberately Unchanged
+
+- Committed `services.yml`, `ports.yaml`, compose configuration, and the
+  default dashboard HTML.
+- ADRs, provider/Swarm setup, direct port publication, DNS/TLS lifecycle,
+  messaging, Infisical bootstrap, Kubernetes, and CI configuration.
+- `.tiny-swarm-world/local/live-installation.env` was neither read nor changed.
+
+Slice 06 must append only actual publication, remediation, or final evidence
+changes.

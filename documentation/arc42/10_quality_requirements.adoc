@@ -175,6 +175,38 @@ Quality scenarios:
   Docker build script, Portainer upload script, token, password, API key, or
   credential-bearing URL is introduced in service-access assets.
 
+Effective routing-model evidence must satisfy these additional scenarios:
+
+* one public effective-model port feeds compose labels, dashboard links,
+  health targets, routing evidence and browser expectation consumers;
+* the evidence document has the fixed required top-level schema and contains
+  only credential labels plus Infisical item references;
+* route, health, link, fallback and skip collections plus JSON keys are
+  deterministic around an injected UTC timestamp;
+* unsafe routed URLs, arbitrary mappings, environment credential payloads and
+  exception payloads are not serialized;
+* parent creation and owner-only local permissions are applied where supported;
+* replacement is same-directory and atomic, preserves a previous complete
+  target on failure, and cleans temporary files;
+* evidence failure stops deployment before stack apply without changing setup
+  phase order;
+* `result: generated` never satisfies live service readiness.
+
+Dashboard and browser verification must satisfy these scenarios:
+
+* renderer output, not committed HTML alone, is the primary dashboard test
+  source;
+* optional links appear only for enabled services, row count equals current
+  `service_access_links`, preferred links contain no `10080` or `10443`, and
+  one explicit default drift test owns the committed fallback comparison;
+* browser membership comes only from current effective-model links;
+* disabled, non-profile and stale routes cannot become expected failures;
+* every expected route is exactly `passed`, `failed`, `skipped`, or `missing`;
+* missing evidence is explicit and forces a failed suite result;
+* live consent, Selenium and credential prerequisites retain redacted skip
+  evidence, while standard gates remain browser-, DNS-, Traefik- and
+  Docker-independent.
+
 Service-access readiness must remain unknown or failed-to-verify until
 observed Swarm service state or a later HTTP evidence source verifies the
 selected service stack.

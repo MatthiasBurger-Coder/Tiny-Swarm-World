@@ -87,6 +87,36 @@ service-access setup manifest exposes Traefik ingress ports `80` and `443`;
 the service-access compose stack itself publishes service-access NGINX ports
 `10000` and `8086`.
 
+==== Effective Access Model And Routing Evidence
+
+`DesiredHttpsIngress` is the I/O-free effective access model for Traefik
+routes, internal upstream ports, preferred Service Access links, health-check
+targets, diagnostic fallback ports, and skipped-route reasons.
+`PortEffectiveAccessModelRepository` exposes that model to application
+consumers, and `ComposeFileRepositoryYaml` implements the port from the
+selected service profile plus `services.yml` and `ports.yaml`.
+
+The compose adapter uses the same model for Traefik labels and dashboard
+rendering. Routes are grouped by upstream service so the `app` and `api`
+routers can coexist on the shared `tiny-swarm` service while retaining their
+own internal target ports. Enabled conditional routes are not also emitted as
+skipped; disabled routes remain explicit as `service_not_enabled`.
+
+Productive model evidence crosses a separate hexagonal boundary:
+
+* `WriteEffectiveAccessModelEvidence` is the application use case;
+* `PortRoutingEvidenceRepository` is the persistence port;
+* `RoutingEvidenceLocalRepository` owns JSON, local paths, permissions,
+  temporary files, `fsync`, and atomic replacement.
+
+The adapter writes the fixed allowlisted document to
+`.tiny-swarm-world/evidence/solid-typed-evidence/routing/effective-access-model.json`.
+Credential projections contain only `username_label` and Infisical
+`item_reference`; credential values, notes, process-environment payloads and
+private material are not serialized. The document's `result: generated`
+records successful model serialization only and is not service-readiness or
+live-reachability evidence.
+
 `infra/config/health-checks.yaml` and `infra/config/validation-plan.yaml`
 belong to the deployment boundary as static desired-state declarations. They
 are aligned by tests, not runtime-loaded by deployment verification yet. The
@@ -100,6 +130,9 @@ The service-access dashboard and NGINX assets are image-packaged under
 that the dashboard exposes a management table with central route links and
 Infisical item references, does not render password values, and does not
 introduce React/Vite files.
+Renderer output is the primary test source. The committed default HTML remains
+an image/fallback asset and is guarded by an explicit byte-for-byte drift test
+against the default-profile renderer output.
 
 The default Artifacts and Deployment workflow bundles are intentional
 fail-closed building blocks. They create stable composition boundaries for

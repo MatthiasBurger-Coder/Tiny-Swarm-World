@@ -1,23 +1,43 @@
 # Browser E2E Verification
 
-Static contract status: `NOT_RUN_FOR_IMPLEMENTATION`
+Static contract status: `VERIFIED`
+
 Live E2E status: `NOT_RUN`
-Live reason: `workflow_create_does_not_authorize_live_execution`
 
-Required static verification:
+Live reason: `current_operator_consent_and_approved_prerequisites_not_supplied`
 
-- expectations derive from effective-model `service_access_links`;
-- enabled optionals enter the matrix;
-- disabled/non-applicable/stale routes do not become false failures;
-- every expected route is passed, failed, skipped or missing;
-- missing evidence remains `missing` and forces non-success;
-- suite ordering and result are deterministic;
-- live consent, Selenium and credentials retain explicit skip evidence;
-- static gates need no live browser or infrastructure.
+## Static Verification
 
-Live Selenium remains conditional. The referenced ignored
-`live-installation.env` file was not read during authoring and does not itself
-grant consent.
+- Browser expectations derive from current effective-model
+  `service_access_links`, not static `ROUTE_EXPECTATIONS` membership.
+- Enabled Prometheus, Grafana, app, and API routes enter the matrix
+  automatically.
+- Disabled, non-profile, and stale route files do not define expected
+  membership.
+- Every expected route receives exactly one deterministic status:
+  `passed`, `failed`, `skipped`, or `missing`.
+- Missing route evidence remains `missing`, forces suite result `failed`, and
+  cannot be reported as success.
+- Existing service-specific login/response metadata is retained without
+  becoming route authority.
+- Post-install HTTP and HTTPS checks reuse the dynamic expectation builder.
+- Missing live consent, Selenium, and credential sources retain explicit
+  redacted skip reasons.
 
-Slice 04 records static results. Slice 06 records a redacted live result or an
-explicit prerequisite skip.
+## Test Evidence
+
+```text
+browser contract: PASS - 9 tests
+static post-install browser suite: PASS - 17 tests
+optional-route browser modules: PASS - 4 tests
+integrated G2 quality: PASS - 1,361 run; 1,333 passed; 28 skipped
+final Slice 05 quality: PASS - 1,361 run; 1,333 passed; 28 skipped
+```
+
+## Live Boundary
+
+No live browser, DNS, Traefik, Docker, or credential access was attempted. The
+referenced ignored `live-installation.env` file was not read and does not grant
+consent. Slice 06 may record a redacted live result only if all documented
+prerequisites and explicit current operator consent are present; otherwise
+`NOT_RUN` remains the correct result.

@@ -1,44 +1,44 @@
 # Quality Results
 
-Status: `AUTHORING_VERIFIED_IMPLEMENTATION_NOT_RUN`
+Status: `ALL_REQUIRED_LOCAL_GATES_PASS`
 
-Baseline targeted tests passed. Product implementation quality gates have not
-run because this is `workflow create`, not `workflow execute`.
+## Latest Integrated Product Gate
 
-Authoring verification:
+After Slices 02, 03, and 04 were consolidated on the workflow branch:
 
-- `git diff --check`: `PASS`
-- workflow metadata/dependency/evidence validator: `PASS`
-- six slice metadata blocks found
-- dependency graph acyclic
-- G2 parallel file locks disjoint
-- required workflow evidence files present
-
-Authoring full quality command:
-
-```bash
+```text
 python3 tools/quality_gate.py quality
+PASS
+- Ruff: pass
+- Import Linter: 3 contracts kept, 0 broken
+- Import analysis: 290 files, 657 dependencies
+- Architecture tests: 18 passed
+- Mypy: no issues in 471 source files
+- Unittest: 1,361 run; 1,333 passed; 28 skipped
 ```
 
-Result: `PASS`
+No live browser, DNS, Traefik, Docker, Swarm, or Incus dependency was used.
 
-- ruff: pass
-- import-linter: 3 contracts kept, 0 broken
-- architecture tests: pass
-- mypy: no issues in 463 source files
-- unittest: 1,336 tests run; 1,308 passed and 28 skipped
-- `python3` resolved to the existing WSL virtual-environment toolchain; the
-  host-specific absolute interpreter path is omitted by evidence policy
+## Required Slice 05 Commands
 
-Required during Slice 05:
+Every requested command ran independently in WSL on 2026-07-11 against the
+integrated branch:
 
-- `python3 tools/quality_gate.py lint`
-- `python3 tools/quality_gate.py arch-lint`
-- `python3 tools/quality_gate.py arch-tests`
-- `python3 tools/quality_gate.py typecheck`
-- `python3 tools/quality_gate.py test`
-- `python3 tools/quality_gate.py quality`
-- `git diff --check`
+| Command | Result |
+|---|---|
+| `git diff --check` | `PASS` after final audit and context-hash edits |
+| `python3 tools/quality_gate.py lint` | `PASS`; Ruff all checks passed |
+| `python3 tools/quality_gate.py arch-lint` | `PASS`; 290 files, 657 dependencies, 3 contracts kept, 0 broken |
+| `python3 tools/quality_gate.py arch-tests` | `PASS`; 18 tests |
+| `python3 tools/quality_gate.py typecheck` | `PASS`; no issues in 471 source files |
+| `python3 tools/quality_gate.py test` | `PASS`; 1,361 run, 1,333 passed, 28 skipped |
+| `python3 tools/quality_gate.py quality` | `PASS`; all sub-gates green, 1,361 run, 1,333 passed, 28 skipped |
 
-These commands must run again after product implementation. The authoring pass
-does not satisfy Slice 05 implementation verification.
+The 28 skipped tests are existing opt-in/platform prerequisite paths; no live
+browser or infrastructure dependency was introduced into the static gate.
+
+## External Checks
+
+- PR required checks: `PENDING_SLICE_06`.
+- SonarCloud/SonarQube PR result: `PENDING_SLICE_06`.
+- Review-comment closure: `PENDING_SLICE_06`.
