@@ -263,9 +263,10 @@ def desired_https_ingress_for_profile(
                 )
             )
     unsupported_routes = _unsupported_routes(port_registry)
+    active_route_names = {route.service_name for route in routes}
     skipped_routes = _skipped_routes(
         selected_services,
-        profile_endpoint_names,
+        active_route_names,
         set(route_registry),
         unsupported_routes,
     )
@@ -287,7 +288,7 @@ def _url_for_path(route_definition: RouteDefinition, base_domain: str, path_kind
 
 def _skipped_routes(
     selected_services: set[str],
-    profile_endpoint_names: set[str],
+    active_route_names: set[str],
     route_candidates: set[str],
     unsupported_routes: tuple[str, ...],
 ) -> tuple[SkippedRoute, ...]:
@@ -297,7 +298,9 @@ def _skipped_routes(
     ]
     for service_name in sorted(route_candidates - selected_services):
         skipped.append(SkippedRoute(service_name, "service_not_enabled"))
-    for service_name in sorted(selected_services - profile_endpoint_names):
+    for service_name in sorted(
+        (selected_services & route_candidates) - active_route_names
+    ):
         skipped.append(SkippedRoute(service_name, "service_not_in_active_profile"))
     return tuple(skipped)
 

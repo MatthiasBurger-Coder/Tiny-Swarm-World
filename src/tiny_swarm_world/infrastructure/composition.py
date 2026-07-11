@@ -47,8 +47,12 @@ from tiny_swarm_world.application.services.deployment import (
     SecretDiscoveryStep,
     SecretEvidenceWriter,
     SecretManifestRenderer,
+    WriteEffectiveAccessModelEvidence,
 )
-from tiny_swarm_world.application.services.deployment.workflows import DeploymentApplyStep
+from tiny_swarm_world.application.services.deployment.workflows import (
+    DeploymentApplyStep,
+    DeploymentPreApplyStep,
+)
 from tiny_swarm_world.application.services.deployment.service_stack_plan import (
     DEFAULT_PORTAINER_ENDPOINT_NAME,
 )
@@ -185,6 +189,9 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
     PortRegistryYamlRepository,
+)
+from tiny_swarm_world.infrastructure.adapters.repositories.routing_evidence_local_repository import (
+    RoutingEvidenceLocalRepository,
 )
 from tiny_swarm_world.infrastructure.os_types import OsTypes
 from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
@@ -1095,7 +1102,17 @@ def build_lxc_deployment_services(
     local_file_storage = LocalFileStorage()
     selected_service_profile = ServiceStackProfile(service_profile)
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
-    compose_repository = ComposeFileRepositoryYaml(project_paths=project_paths)
+    compose_repository = ComposeFileRepositoryYaml(
+        project_paths=project_paths,
+        service_profile=selected_service_profile,
+    )
+    routing_evidence_step = WriteEffectiveAccessModelEvidence(
+        effective_access_model_repository=compose_repository,
+        routing_evidence_repository=RoutingEvidenceLocalRepository(
+            project_paths=project_paths,
+        ),
+        service_profile=selected_service_profile,
+    )
     swarm_runtime = LxcSwarmRuntime(
         backend=backend,
         project_paths=project_paths,
@@ -1197,7 +1214,8 @@ def build_lxc_deployment_services(
         )
         for contract in service_stack_contracts
     )
-    pre_apply_steps = [
+    pre_apply_steps: list[DeploymentPreApplyStep] = [
+        routing_evidence_step,
         _PrepareLxcStackAssets(swarm_runtime, "traefik"),
         _PrepareLxcStackAssets(swarm_runtime, "swagger"),
     ]

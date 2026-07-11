@@ -70,6 +70,27 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         self.assertEqual("prometheus.tsw.local", routes["prometheus"].hostname)
         self.assertEqual("prometheus", routes["prometheus"].upstream_service)
         self.assertEqual(9090, routes["prometheus"].upstream_port)
+        self.assertFalse(
+            {"api", "app", "grafana", "prometheus"}
+            & {skipped.service_name for skipped in desired.skipped_routes}
+        )
+
+    def test_default_profile_reports_default_enabled_routes_outside_profile(self):
+        desired = desired_https_ingress_for_profile(
+            ServiceStackProfile.DEFAULT,
+            port_registry=_committed_port_registry(),
+        )
+
+        self.assertLessEqual(
+            {
+                ("infisical", "service_not_in_active_profile"),
+                ("service-access", "service_not_in_active_profile"),
+            },
+            {
+                (skipped.service_name, skipped.reason)
+                for skipped in desired.skipped_routes
+            },
+        )
 
     def test_effective_access_model_exports_links_health_fallbacks_and_skips(self):
         desired = desired_https_ingress_for_profile(

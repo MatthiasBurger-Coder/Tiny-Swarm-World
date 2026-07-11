@@ -901,6 +901,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual((), services.workflows.apply.pre_apply_checks)
         self.assertEqual(
             (
+                "deployment:effective-access-model-evidence",
                 "deployment:traefik-stack-assets",
                 "deployment:swagger-stack-assets",
                 "deployment:service-access-stack-assets",
@@ -929,7 +930,11 @@ class TestComposition(unittest.TestCase):
             )
 
         self.assertEqual(
-            ("deployment:traefik-stack-assets", "deployment:swagger-stack-assets"),
+            (
+                "deployment:effective-access-model-evidence",
+                "deployment:traefik-stack-assets",
+                "deployment:swagger-stack-assets",
+            ),
             tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
         )
 
@@ -941,6 +946,10 @@ class TestComposition(unittest.TestCase):
 
         self.assertEqual(1, compose_repository.call_count)
         self.assertIn("project_paths", compose_repository.call_args.kwargs)
+        self.assertEqual(
+            ServiceStackProfile.SERVICE_ACCESS,
+            compose_repository.call_args.kwargs["service_profile"],
+        )
         self.assertEqual(4, len(services.workflows.bootstrap.steps))
         self.assertEqual(14, len(services.workflows.apply.steps))
         self.assertEqual(9, len(services.workflows.verify.checks))
@@ -1093,12 +1102,71 @@ class TestComposition(unittest.TestCase):
         self.assertEqual((), services.workflows.apply.pre_apply_checks)
         self.assertEqual(
             (
+                "deployment:effective-access-model-evidence",
                 "deployment:traefik-stack-assets",
                 "deployment:swagger-stack-assets",
                 "deployment:service-access-stack-assets",
             ),
             tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
         )
+
+    def test_build_deployment_services_wires_routing_evidence_from_selected_model_profile(self):
+        with patch.object(composition, "ComposeFileRepositoryYaml") as compose_repository:
+            with patch.object(
+                composition,
+                "RoutingEvidenceLocalRepository",
+            ) as evidence_repository:
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                    service_profile=ServiceStackProfile.DEFAULT,
+                )
+
+        compose_repository.assert_called_once()
+        self.assertEqual(
+            ServiceStackProfile.DEFAULT,
+            compose_repository.call_args.kwargs["service_profile"],
+        )
+        evidence_repository.assert_called_once_with(
+            project_paths=compose_repository.call_args.kwargs["project_paths"]
+        )
+        evidence_step = services.workflows.apply.pre_apply_steps[0]
+        self.assertIsInstance(
+            evidence_step,
+            composition.WriteEffectiveAccessModelEvidence,
+        )
+        self.assertIs(
+            compose_repository.return_value,
+            evidence_step.effective_access_model_repository,
+        )
+        self.assertIs(
+            evidence_repository.return_value,
+            evidence_step.routing_evidence_repository,
+        )
+        self.assertEqual(ServiceStackProfile.DEFAULT, evidence_step.service_profile)
+        self.assertEqual(
+            "deployment:effective-access-model-evidence",
+            evidence_step.deployment_target_id,
+        )
+
+    def test_routing_evidence_failure_stops_apply_before_any_stack_step(self):
+        with patch.object(composition, "ComposeFileRepositoryYaml"):
+            services = composition.build_lxc_deployment_services(
+                backend=composition.ManagedLxcBackend.INCUS,
+            )
+        evidence_step = services.workflows.apply.pre_apply_steps[0]
+        first_stack_step = services.workflows.apply.steps[0]
+
+        with patch.object(
+            evidence_step,
+            "run",
+            side_effect=OSError("evidence write failed"),
+        ) as write_evidence:
+            with patch.object(first_stack_step, "run") as run_stack:
+                result = asyncio.run(services.workflows.apply.run())
+
+        self.assertEqual("failed_to_prepare", result.status.value)
+        write_evidence.assert_called_once_with()
+        run_stack.assert_not_called()
 
     def test_build_deployment_services_uses_operator_swarm_registry_endpoint_for_local_images(self):
         with patch.dict(

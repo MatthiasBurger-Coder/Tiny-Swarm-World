@@ -66,6 +66,27 @@ executing live infrastructure commands.
 | `infra/config/compose/service-access/nginx/**` | Supported Asset | Provides the image-packaged NGINX routing configuration for the service-access dashboard and compatibility routes. The configuration disables NGINX access logging for these routes and resolves internal services through Docker embedded DNS. | Static review by default; build only through the artifact workflow during explicit live runs.
 |===
 
+== Generated Routing And Browser Evidence
+
+`deployment apply` first writes the selected profile's effective access model
+to
+`.tiny-swarm-world/evidence/solid-typed-evidence/routing/effective-access-model.json`.
+The document contains only a fixed, redacted projection: public and diagnostic
+ports, routes, health targets, preferred links, skipped-route reasons,
+credential labels, and Infisical item references. A write or atomic-replacement
+failure stops the deployment before stack apply; an existing complete target is
+preserved. `result: generated` confirms serialization, not DNS, TLS, HTTP,
+login, or service readiness.
+
+Browser evidence is derived from the current model's
+`service_access_links`. Every expected route is summarized as `passed`,
+`failed`, `skipped`, or `missing`; `missing` is explicit and cannot produce a
+successful suite. Optional routes enter the matrix only when enabled. Live
+Selenium remains opt-in and requires current operator consent plus approved
+browser and credential prerequisites. Standard quality gates use static and
+mocked checks and do not read live credential environment files or require
+Docker, Traefik, DNS, or a browser.
+
 == Credential And Host-Specific Data Rules
 
 Some transitional files retain local compatibility defaults for

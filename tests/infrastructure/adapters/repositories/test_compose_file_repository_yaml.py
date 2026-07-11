@@ -1,9 +1,11 @@
 import tempfile
 import tarfile
 import unittest
-from io import BytesIO
 from html.parser import HTMLParser
+from io import BytesIO
 from pathlib import Path
+from typing import Any, cast
+from unittest.mock import patch
 from urllib.parse import urlparse
 
 from ruamel.yaml import YAML
@@ -24,6 +26,11 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import ComposeFileRepositoryYaml
 from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
     PortRegistryYamlRepository,
+)
+from tests.support.effective_access_model_fixture import (
+    CORE_ROUTE_EXPECTATIONS,
+    OPTIONAL_ROUTE_EXPECTATIONS,
+    effective_access_model_fixture,
 )
 
 
@@ -1055,20 +1062,89 @@ services:
                     )
 
     def test_service_access_dashboard_exposes_management_table_columns(self):
-        dashboard = _service_access_dashboard_html()
+        dashboard = _rendered_service_access_dashboard_html()
 
         for label in ("Service", "URL", "User", "Password"):
             with self.subTest(label=label):
                 self.assertIn(f">{label}<", dashboard)
 
-    def test_service_access_dashboard_is_rendered_from_effective_access_model(self):
-        dashboard = _service_access_dashboard_html()
-        rendered = ComposeFileRepositoryYaml().render_service_access_dashboard()
+    def test_default_service_access_dashboard_matches_effective_access_model(self):
+        repository = ComposeFileRepositoryYaml()
 
-        self.assertEqual(rendered, dashboard)
+        dashboard, links = _assert_dashboard_matches_effective_access_model(
+            self,
+            repository,
+        )
+        rendered_services = {str(link["service"]) for link in links}
+
+        self.assertEqual(set(CORE_ROUTE_EXPECTATIONS), rendered_services)
+        for route_name in OPTIONAL_ROUTE_EXPECTATIONS:
+            with self.subTest(route_name=route_name):
+                self.assertNotIn(f"https://{OPTIONAL_ROUTE_EXPECTATIONS[route_name][1]}", dashboard)
+
+    def test_enabled_optional_dashboard_links_follow_isolated_effective_model(self):
+        optional_names = set(OPTIONAL_ROUTE_EXPECTATIONS)
+        optional_urls = {
+            route_name: f"https://{route_contract[1]}"
+            for route_name, route_contract in OPTIONAL_ROUTE_EXPECTATIONS.items()
+        }
+
+        for enabled_route in OPTIONAL_ROUTE_EXPECTATIONS:
+            with self.subTest(enabled_route=enabled_route):
+                with effective_access_model_fixture(
+                    enabled_services=(enabled_route,),
+                ) as fixture:
+                    dashboard, links = _assert_dashboard_matches_effective_access_model(
+                        self,
+                        fixture.repository,
+                    )
+                rendered_services = {str(link["service"]) for link in links}
+
+                self.assertEqual({enabled_route}, rendered_services & optional_names)
+                self.assertIn(optional_urls[enabled_route], dashboard)
+                for disabled_route in optional_names - {enabled_route}:
+                    self.assertNotIn(optional_urls[disabled_route], dashboard)
+
+    def test_all_enabled_optionals_preserve_default_core_dashboard_links(self):
+        default_repository = ComposeFileRepositoryYaml()
+        _, default_links = _assert_dashboard_matches_effective_access_model(
+            self,
+            default_repository,
+        )
+        default_urls = {
+            str(link["service"]): str(link["url"])
+            for link in default_links
+        }
+
+        with effective_access_model_fixture(
+            enabled_services=tuple(OPTIONAL_ROUTE_EXPECTATIONS),
+        ) as fixture:
+            dashboard, enabled_links = _assert_dashboard_matches_effective_access_model(
+                self,
+                fixture.repository,
+            )
+        enabled_urls = {
+            str(link["service"]): str(link["url"])
+            for link in enabled_links
+        }
+
+        self.assertEqual(set(OPTIONAL_ROUTE_EXPECTATIONS), set(enabled_urls) - set(default_urls))
+        for route_name in CORE_ROUTE_EXPECTATIONS:
+            with self.subTest(route_name=route_name):
+                self.assertEqual(default_urls[route_name], enabled_urls[route_name])
+        for route_name, route_contract in OPTIONAL_ROUTE_EXPECTATIONS.items():
+            with self.subTest(route_name=route_name):
+                self.assertEqual(f"https://{route_contract[1]}", enabled_urls[route_name])
+                self.assertIn(enabled_urls[route_name], dashboard)
+
+    def test_committed_service_access_dashboard_fallback_matches_default_renderer(self):
+        committed_fallback = _committed_service_access_dashboard_html()
+        rendered = _rendered_service_access_dashboard_html()
+
+        self.assertEqual(rendered, committed_fallback)
 
     def test_service_access_dashboard_visible_text_is_english(self):
-        dashboard = _service_access_dashboard_html()
+        dashboard = _rendered_service_access_dashboard_html()
 
         for expected in (
             "Management table for local Tiny Swarm World services and Infisical secret entries.",
@@ -1097,28 +1173,18 @@ services:
                 self.assertNotIn(forbidden, dashboard)
 
     def test_service_access_dashboard_links_to_allocated_ports_without_credentials(self):
-        dashboard = _service_access_dashboard_html()
+        repository = ComposeFileRepositoryYaml()
+        dashboard = repository.render_service_access_dashboard()
+        model_links = _effective_service_access_links(repository)
         links = _extract_links(dashboard)
 
         self.assertTrue(links)
-        self.assertEqual(
-            {
-                "https://service-access.tsw.local",
-                "https://portainer.tsw.local",
-                "https://jenkins.tsw.local",
-                "https://sonarqube.tsw.local",
-                "https://nexus.tsw.local",
-                "https://pulsar-api.tsw.local/admin/v2/clusters",
-                "https://pulsar.tsw.local",
-                "https://swagger.tsw.local",
-                "https://infisical.tsw.local",
-            },
-            set(links),
-        )
+        self.assertEqual({str(link["url"]) for link in model_links}, set(links))
         for link in links:
             parsed = urlparse(link)
             self.assertFalse(parsed.username)
             self.assertFalse(parsed.password)
+            self.assertNotIn(parsed.port, {10080, 10443})
             self.assertEqual("", parsed.query)
             self.assertEqual("", parsed.fragment)
         for forbidden_link in (
@@ -1134,7 +1200,7 @@ services:
             self.assertNotIn(forbidden_link, dashboard)
 
     def test_service_access_dashboard_displays_allocated_service_ports(self):
-        dashboard = _service_access_dashboard_html()
+        dashboard = _rendered_service_access_dashboard_html()
 
         for expected in (
             "https://service-access.tsw.local",
@@ -1162,7 +1228,7 @@ services:
                 self.assertNotIn(stale_url, dashboard)
 
     def test_service_access_dashboard_links_open_new_tabs_safely(self):
-        dashboard = _service_access_dashboard_html()
+        dashboard = _rendered_service_access_dashboard_html()
         collector = _LinkCollector()
         collector.feed(dashboard)
 
@@ -1175,7 +1241,9 @@ services:
                 self.assertIn("noreferrer", rel_values)
 
     def test_service_access_dashboard_lists_credential_references_without_values(self):
-        dashboard = _service_access_dashboard_html()
+        repository = ComposeFileRepositoryYaml()
+        dashboard = repository.render_service_access_dashboard()
+        links = _effective_service_access_links(repository)
         expected_items = (
             "platform/portainer",
             "platform/nexus",
@@ -1189,6 +1257,13 @@ services:
         for item in expected_items:
             with self.subTest(item=item):
                 self.assertIn(f"<code>{item}</code>", dashboard)
+        for link in links:
+            credential = link.get("credential")
+            if not isinstance(credential, dict):
+                continue
+            with self.subTest(service=link["service"]):
+                self.assertIn(f'<code>{credential["username_label"]}</code>', dashboard)
+                self.assertIn(f'<code>{credential["item_reference"]}</code>', dashboard)
         for forbidden in (
             "password=",
             "token=",
@@ -1203,14 +1278,51 @@ services:
         ):
             self.assertNotIn(forbidden, dashboard)
 
+    def test_service_access_dashboard_ignores_non_allowlisted_secret_values(self):
+        repository = ComposeFileRepositoryYaml()
+        model = repository.get_effective_access_model().to_dict()
+        links = cast(list[dict[str, Any]], model["service_access_links"])
+        sentinel_values = (
+            "slice-03-password-value",
+            "slice-03-token-value",
+            "-----BEGIN PRIVATE KEY-----slice-03-private-key-value",
+        )
+        for link in links:
+            credential = link.get("credential")
+            if isinstance(credential, dict):
+                credential.update(
+                    {
+                        "password": sentinel_values[0],
+                        "token": sentinel_values[1],
+                        "private_key": sentinel_values[2],
+                    }
+                )
+
+        with patch.object(repository, "get_effective_access_model") as get_model:
+            get_model.return_value.to_dict.return_value = model
+            dashboard = repository.render_service_access_dashboard()
+
+        for sentinel_value in sentinel_values:
+            self.assertNotIn(sentinel_value, dashboard)
+
 
 class _LinkCollector(HTMLParser):
     def __init__(self):
         super().__init__()
         self.links: list[str] = []
         self.link_attributes: list[dict[str, str]] = []
+        self.row_count = 0
+        self.row_links: list[str] = []
+        self._in_table_body = False
+        self._row_link_captured = False
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "tbody":
+            self._in_table_body = True
+            return
+        if tag == "tr" and self._in_table_body:
+            self.row_count += 1
+            self._row_link_captured = False
         if tag != "a":
             return
         attributes = {key: value or "" for key, value in attrs}
@@ -1218,12 +1330,52 @@ class _LinkCollector(HTMLParser):
         if href:
             self.links.append(href)
             self.link_attributes.append(attributes)
+            if self._in_table_body and not self._row_link_captured:
+                self.row_links.append(href)
+                self._row_link_captured = True
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "tbody":
+            self._in_table_body = False
 
 
 def _extract_links(html: str) -> list[str]:
     collector = _LinkCollector()
     collector.feed(html)
     return collector.links
+
+
+def _effective_service_access_links(
+    repository: ComposeFileRepositoryYaml,
+) -> tuple[dict[str, Any], ...]:
+    model = repository.get_effective_access_model().to_dict()
+    return tuple(cast(list[dict[str, Any]], model["service_access_links"]))
+
+
+def _assert_dashboard_matches_effective_access_model(
+    testcase: unittest.TestCase,
+    repository: ComposeFileRepositoryYaml,
+) -> tuple[str, tuple[dict[str, Any], ...]]:
+    dashboard = repository.render_service_access_dashboard()
+    links = _effective_service_access_links(repository)
+    collector = _LinkCollector()
+    collector.feed(dashboard)
+
+    testcase.assertEqual(len(links), collector.row_count)
+    testcase.assertEqual(
+        tuple(str(link["url"]) for link in links),
+        tuple(collector.row_links),
+    )
+    for url in collector.row_links:
+        parsed = urlparse(url)
+        testcase.assertEqual("https", parsed.scheme)
+        testcase.assertNotIn(parsed.port, {10080, 10443})
+
+    return dashboard, links
+
+
+def _rendered_service_access_dashboard_html() -> str:
+    return ComposeFileRepositoryYaml().render_service_access_dashboard()
 
 
 class _CapturingImagePublisher(LxcContainerImagePublisher):
@@ -1246,7 +1398,7 @@ class _CapturingImagePublisher(LxcContainerImagePublisher):
             self.archived_files.append(set(archive.getnames()))
 
 
-def _service_access_dashboard_html() -> str:
+def _committed_service_access_dashboard_html() -> str:
     repository_root = Path(__file__).resolve().parents[4]
     return (
         repository_root

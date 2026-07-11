@@ -58,6 +58,9 @@ from tiny_swarm_world.application.services.deployment.verify_swarm_service_readi
     EnsureSwarmServiceReadiness,
     VerifySwarmServiceReadiness,
 )
+from tiny_swarm_world.application.services.deployment.write_effective_access_model_evidence import (
+    WriteEffectiveAccessModelEvidence,
+)
 from tiny_swarm_world.application.services.deployment.workflows import (
     DeploymentApplyWorkflow,
     DeploymentVerifyCheck,
@@ -103,6 +106,7 @@ __all__ = [
     "SecretSyncUseCase",
     "VerifyExternalSwarmInput",
     "VerifySwarmServiceReadiness",
+    "WriteEffectiveAccessModelEvidence",
     "ValidationPlan",
     "build_default_service_stack_steps",
     "redact_mapping",

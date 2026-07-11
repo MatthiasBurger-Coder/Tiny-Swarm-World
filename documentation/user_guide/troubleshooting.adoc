@@ -300,6 +300,21 @@ Endpoint configuration does not prove service health. Treat local route
 defaults as operator targets only; use deployment verification or explicit live
 smoke evidence before claiming a service is reachable.
 
+If deployment apply reports `failed_to_prepare`, inspect the routing-evidence
+write before investigating Docker. The target is
+`.tiny-swarm-world/evidence/solid-typed-evidence/routing/effective-access-model.json`.
+Directory, permission, serialization, flush, or atomic-replacement failures
+stop before stack apply and preserve a previous complete file where one
+exists. Do not interpret `result: generated` as evidence that DNS, TLS, HTTP,
+Swarm readiness, or login succeeded.
+
+For browser verification, compare the suite summary with the current
+`service_access_links`. A missing expected route is reported as `missing` and
+fails the suite; disabled optional services are not expected and remain
+`service_not_enabled` in routing evidence. Live Selenium is opt-in. Missing
+consent, Selenium, or approved credentials should appear as redacted skip
+evidence, not as a static-gate failure.
+
 == Git Shows Generated Python Files
 
 Generated files such as `__pycache__/`, `.ruff_cache/`, `.mypy_cache/`, and

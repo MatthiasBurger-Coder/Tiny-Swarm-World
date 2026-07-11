@@ -140,6 +140,30 @@ of exhausting readiness retries. This keeps operator-visible failures prompt
 while preserving retries for genuine transient readiness errors and avoiding a
 false success for wrong credentials.
 
+=== Effective Access Evidence Pre-Apply Flow
+
+The deployment apply workflow writes generated routing-model evidence through
+the normal pre-apply contract:
+
+. composition selects one `ServiceStackProfile` for the compose repository and
+  evidence use case;
+. the use case requests the effective model through
+  `PortEffectiveAccessModelRepository`;
+. the use case builds a UTC-timestamped, deterministically sorted, fixed
+  allowlisted projection;
+. the local routing-evidence adapter creates the parent directory, writes an
+  owner-only same-directory temporary file, and atomically replaces
+  `effective-access-model.json`;
+. only after that succeeds do stack-asset preparation and stack apply continue.
+
+A validation, serialization, permission, write, flush, or replacement failure
+returns the existing deployment `failed_to_prepare` outcome before the first
+stack step runs. Failed replacement preserves an existing complete target and
+removes its temporary file. This adds a pre-apply input step; it does not add,
+remove, or reorder setup workflow phases. The generated artifact describes the
+selected access model and must not be interpreted as observed Swarm state,
+HTTP reachability, DNS resolution, TLS validation, or login success.
+
 === Console Status Runtime Flow
 
 Console/status UI remains terminal-only. The application UI port now owns the
@@ -231,6 +255,26 @@ No live Incus, LXC container lifecycle, Docker Swarm, netplan,
 socat, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, compose, or stack
 deployment command is required to create or round-trip these inventory
 artifacts in tests.
+
+=== Dynamic Browser Evidence Matrix
+
+The opt-in browser contract obtains suite membership from the current effective
+model's `service_access_links`. Disabled, non-profile, or stale route files do
+not define membership; enabled Prometheus, Grafana, app, and API links enter the
+matrix without a second route registry. Static login and response metadata may
+guide service-specific checks but is not membership authority.
+
+For every expected route, the deterministic suite summary records exactly one
+of `passed`, `failed`, `skipped`, or `missing`. Missing route evidence remains
+`missing` and makes the suite result `failed`; failed or missing takes
+precedence, an all-skipped suite is `skipped`, and every other complete
+non-failing matrix is `passed`. The post-install HTTP and HTTPS matrices use
+the same expectation builder.
+
+Live Selenium remains opt-in. Missing current consent, Selenium, or an approved
+credential source retains explicit redacted skip classifications. Static
+quality gates require none of those prerequisites and do not establish live
+reachability.
 
 === Verify After Apply Runtime Gate
 

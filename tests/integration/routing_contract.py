@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from pathlib import Path
 from typing import Any, cast
 from urllib.parse import urlparse
 
@@ -15,19 +14,6 @@ from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_reposito
 from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
     PortRegistryYamlRepository,
 )
-
-
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-DASHBOARD_PATH = (
-    REPOSITORY_ROOT
-    / "infra"
-    / "config"
-    / "compose"
-    / "service-access"
-    / "dashboard"
-    / "index.html"
-)
-
 
 @dataclass(frozen=True)
 class RouteExpectation:
@@ -149,7 +135,7 @@ def desired_route_by_name(route_name: str) -> dict[str, Any]:
 
 def dashboard_links() -> tuple[str, ...]:
     parser = _LinkCollector()
-    parser.feed(DASHBOARD_PATH.read_text(encoding="utf-8"))
+    parser.feed(ComposeFileRepositoryYaml().render_service_access_dashboard())
     return tuple(dict.fromkeys(parser.links))
 
 

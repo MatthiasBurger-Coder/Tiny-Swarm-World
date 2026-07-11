@@ -290,6 +290,10 @@ resolution must map the routed names to the local machine; DNS does not route
 traffic by itself. It only makes the browser send the correct host name to
 Traefik.
 
+Prometheus, Grafana, app, and API host routes are conditional. They appear in
+the generated access model, dashboard, health targets, and browser matrix only
+when the corresponding service is enabled by the selected configuration.
+
 When the services must be reachable from a Windows browser, first prepare the
 Windows side from elevated PowerShell. The prerequisite action is read-only;
 the install action creates the managed portproxy, Firewall, hosts-file,
@@ -359,6 +363,13 @@ The run writes evidence under
 `.tiny-swarm-world/evidence/installation-tests/<host-runtime>/<UTC timestamp>/`.
 Use `reset-run.exit`, `setup-run.exit`, and the matching logs to diagnose a
 failed or blocked run.
+
+Before stack apply, the deployment workflow also writes the selected effective
+access model to
+`.tiny-swarm-world/evidence/solid-typed-evidence/routing/effective-access-model.json`.
+This redacted file contains configured routing evidence and only credential
+labels plus Infisical item references. Its `result: generated` value does not
+prove that a route is deployed or reachable.
 
 === 8. Verify The Runtime
 
@@ -763,6 +774,8 @@ forwarding issue is repaired.
 The service-access dashboard is a generated management table. It lists
 service links, users and Infisical item references from the effective access
 model; password values are visible only through the configured
-secret-management surface. The committed rendered asset is
-`infra/config/compose/service-access/dashboard/index.html`, and the dashboard
-Dockerfile packages that file into the default `service-access` setup path.
+secret-management surface. Preferred links use routed HTTPS URLs without the
+diagnostic ports `10080` or `10443`. Runtime renderer output is authoritative;
+the committed `infra/config/compose/service-access/dashboard/index.html` is a
+default-profile fallback/image asset guarded by a renderer drift test, and the
+dashboard Dockerfile packages it into the default `service-access` setup path.

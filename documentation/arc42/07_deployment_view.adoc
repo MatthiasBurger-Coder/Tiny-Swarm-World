@@ -14,6 +14,14 @@ the repository root. That directory is not a deployment input, is not part of
 the default quality gate outputs, and must not be committed or moved under
 `infra/config`.
 
+The productive effective-access-model projection is stored at
+`.tiny-swarm-world/evidence/solid-typed-evidence/routing/effective-access-model.json`.
+It is generated as the first deployment pre-apply input from the selected
+service profile and central access model. Parent creation, private local mode,
+same-directory temporary writing and atomic replacement are adapter concerns.
+This JSON is generated configuration evidence, not observed deployment or
+service-readiness evidence.
+
 == Deployment Contracts
 
 The in-process CLI now has explicit artifact and deployment workflow contracts.
@@ -74,6 +82,9 @@ The active routing baseline is Traefik-backed local ingress:
   and `443` for the service-access setup profile;
 * service stack routes are declared with Traefik Swarm labels and the external
   `tiny_swarm_world_ingress` network;
+* optional Prometheus, Grafana, app and API routes are added only when enabled
+  by the effective configuration; app and API retain separate routers and
+  target ports while sharing the `tiny-swarm` upstream service;
 * the service-access stack remains the dashboard stack and may publish its own
   NGINX compatibility ports from compose metadata;
 * the Swagger/NGINX stack uses published port `8084`;
@@ -93,16 +104,20 @@ For the LXC Swarm runtime path, stack asset preparation renders the Service
 Access dashboard and writes
 `${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` before the
 service-access compose config is consumed by `docker stack deploy`.
+The committed dashboard file remains an image/fallback asset. Static tests use
+renderer output as their primary source and require the committed default file
+to equal the default renderer output.
 
-== Planned Traefik HTTPS Ingress Migration
+== Traefik HTTPS Ingress Architecture And Live Boundary
 
 The accepted migration direction in
 `documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc` is to
-move toward centralized local HTTPS ingress through Traefik using an existing
-operator-provided CA. This is accepted as workflow direction, not yet verified
-live runtime behavior.
+use centralized local HTTPS ingress through Traefik with an existing
+operator-provided CA. The repository desired state, route labels, effective
+model, dashboard links and static tests implement that direction. This does
+not by itself verify a live deployment.
 
-The planned ingress deployment keeps Tiny Swarm World Docker Swarm-first and
+The ingress deployment keeps Tiny Swarm World Docker Swarm-first and
 LXC-native. Traefik belongs to the Deployment responsibility boundary. It is
 not a new product microservice, not a Kubernetes ingress controller, and not a
 browser frontend project.
