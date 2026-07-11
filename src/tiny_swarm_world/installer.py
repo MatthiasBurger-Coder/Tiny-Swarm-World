@@ -28,7 +28,7 @@ DEFAULT_GENERATED_SECRET_ENV_FILE = ".tiny-swarm/secrets/generated.local.env"
 DEFAULT_NATIVE_LINUX_VENV = ".tiny-swarm-world/install-venv"
 DEFAULT_SECRET_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
 WINDOWS_WSL_BRIDGE_STATE_PATH = Path("tools/windows/.tws-wsl-bridge.state.json")
-WINDOWS_WSL_BRIDGE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+WINDOWS_WSL_BRIDGE_MAX_AGE_SECONDS = 5 * 60
 WINDOWS_EXPOSURE_ENVIRONMENT = "TSW_WINDOWS_EXPOSURE"
 INSTALLER_REQUIRED_SOURCES = frozenset({"generated_local_secret", "placeholder_only"})
 SECRET_MODES = ("generated", "fixed", "infisical")
@@ -1153,7 +1153,7 @@ def _windows_wsl_bridge_context(
 
 
 def _windows_wsl_bridge_suggested_commands(reason: str) -> tuple[str, ...]:
-    if reason in {"wsl_ip_changed", "state_stale_by_age"}:
+    if reason in {"wsl_ip_changed", "state_stale_by_age", "agent_not_ready"}:
         return (
             'powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge"',
             "powershell.exe -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action install",
@@ -1178,7 +1178,7 @@ def _print_windows_wsl_bridge_failure(
     print("", file=sys.stderr)
     print("Run PowerShell as Administrator:", file=sys.stderr)
     print("  tools/windows/tws-wsl-bridge.ps1 -Action install", file=sys.stderr)
-    if guard.reason in {"wsl_ip_changed", "state_stale_by_age"}:
+    if guard.reason in {"wsl_ip_changed", "state_stale_by_age", "agent_not_ready"}:
         print("", file=sys.stderr)
         print("Or refresh the existing scheduled task:", file=sys.stderr)
         print("  Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge", file=sys.stderr)

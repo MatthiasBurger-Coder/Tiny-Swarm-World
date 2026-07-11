@@ -97,15 +97,19 @@ Helper service, and the Windows Firewall and Scheduled Task cmdlets. The
 dedicated reproducible setup and repair guide is
 `tools/windows/README.windows-wsl-bridge.md`.
 
-The bridge writes `tools/windows/.tws-wsl-bridge.state.json`. The file is
-local runtime state and ignored by Git. During WSL2 live preflight,
-Tiny Swarm World requires this state to be present, recent, matched to the
-current WSL IP, and to contain every external TCP port from
-`infra/config/ports.yaml`. If the state is missing or stale, setup stops
-before platform mutation with a `WINDOWS-WSL-BRIDGE` preflight failure.
+The install action registers a Windows Scheduled Task discovery agent. It runs
+after logon and periodically, discovers the current WSL IP and reconciles only
+drifted portproxy, Firewall and hosts-file resources. The bridge writes
+`tools/windows/.tws-wsl-bridge.state.json`; this ignored local state contains a
+versioned agent contract and heartbeat. During WSL2 live preflight, Tiny Swarm
+World requires the agent to report `ready`, a heartbeat no older than five
+minutes, the current WSL IP, and every external TCP port from
+`infra/config/ports.yaml`. If the state is missing or stale, setup stops before
+platform mutation with a `WINDOWS-WSL-BRIDGE` preflight failure.
 
-After `wsl --shutdown` or another WSL restart, refresh the bridge from Windows
-or WSL:
+After `wsl --shutdown` or another WSL restart, the agent repairs the changed
+address automatically. To request immediate reconciliation from Windows or
+WSL:
 
 [source,powershell]
 ----
@@ -119,8 +123,9 @@ powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName TinySwarmWorld
 
 The bridge reads TCP ports and route hostnames from `infra/config/ports.yaml`.
 `tools/windows/tws-wsl-bridge.config.json` is limited to Windows-side
-settings such as distro selection, listen address, hosts address, and
-additional hostname aliases. Do not maintain a separate Windows port list.
+settings such as distro selection, listen address, hosts address, discovery
+interval, and additional hostname aliases. Do not maintain a separate Windows
+port list.
 
 Use the older portproxy scripts only for focused Windows-side diagnosis or
 manual repair:

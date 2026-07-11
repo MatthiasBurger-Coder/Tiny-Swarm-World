@@ -11,7 +11,9 @@ from tiny_swarm_world.domain.preflight import WindowsWslBridgeStatus
 
 
 WINDOWS_WSL_BRIDGE_STATE = Path("tools/windows/.tws-wsl-bridge.state.json")
-DEFAULT_WINDOWS_WSL_BRIDGE_STATE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+WINDOWS_WSL_BRIDGE_CONTRACT_VERSION = 2
+WINDOWS_WSL_BRIDGE_AGENT_MODE = "scheduled-discovery"
+DEFAULT_WINDOWS_WSL_BRIDGE_STATE_MAX_AGE_SECONDS = 5 * 60
 
 
 def windows_wsl_bridge_status(
@@ -58,6 +60,9 @@ def windows_wsl_bridge_status(
     generated_at = str(raw_state.get("generatedAt", ""))
     listen_address = str(raw_state.get("listenAddress", ""))
     state_wsl_ip = str(raw_state.get("wslIp", ""))
+    contract_version = raw_state.get("contractVersion")
+    agent_mode = str(raw_state.get("agentMode", ""))
+    agent_status = str(raw_state.get("agentStatus", ""))
     current_wsl_ip = current_wsl_ipv4()
     state_age_seconds = _state_age_seconds(generated_at)
 
@@ -88,6 +93,10 @@ def windows_wsl_bridge_status(
         return bridge_status(False, "wsl_ip_changed")
     if missing_ports:
         return bridge_status(False, "missing_ports")
+    if contract_version != WINDOWS_WSL_BRIDGE_CONTRACT_VERSION or agent_mode != WINDOWS_WSL_BRIDGE_AGENT_MODE:
+        return bridge_status(False, "agent_contract_missing")
+    if agent_status != "ready":
+        return bridge_status(False, "agent_not_ready")
     return bridge_status(True, "prepared")
 
 

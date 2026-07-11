@@ -30,6 +30,8 @@ class WindowsWslBridgeStatus:
             "missing_ports",
             "generated_at_missing",
             "generated_at_invalid",
+            "agent_contract_missing",
+            "agent_not_ready",
         }
 
 

@@ -456,6 +456,9 @@ def _write_windows_bridge_state(root: Path, wsl_ip: str, ports: tuple[int, ...])
     state_path = root / "tools" / "windows" / ".tws-wsl-bridge.state.json"
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state = {
+        "contractVersion": 2,
+        "agentMode": "scheduled-discovery",
+        "agentStatus": "ready",
         "generatedAt": datetime.now(UTC).isoformat(),
         "wslIp": wsl_ip,
         "mappings": [

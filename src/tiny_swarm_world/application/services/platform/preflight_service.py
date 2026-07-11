@@ -662,11 +662,11 @@ def _windows_wsl_bridge_remediation(reason: str) -> str:
         "tools/windows/tws-wsl-bridge.ps1 -Action install."
     )
     refresh = (
-        "After WSL IP changes, run: "
+        "Request immediate discovery/reconcile: "
         "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge."
     )
     disable = "Set TSW_WINDOWS_EXPOSURE=disabled only when Windows localhost exposure is not required."
-    if reason in {"wsl_ip_changed", "state_stale_by_age"}:
+    if reason in {"wsl_ip_changed", "state_stale_by_age", "agent_not_ready"}:
         return f"{refresh} If the task is missing, {install} {disable}"
     return f"{install} {disable}"
 

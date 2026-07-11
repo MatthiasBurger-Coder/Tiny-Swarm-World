@@ -208,6 +208,53 @@ class TestWindowsWslBridgeState(unittest.TestCase):
         ):
             self.assertEqual("172.20.0.2", current_wsl_ipv4())
 
+    def test_reports_legacy_state_without_discovery_agent_contract(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            state_path = _state_path(root)
+            state_path.parent.mkdir(parents=True)
+            state_path.write_text(
+                json.dumps(
+                    {
+                        "generatedAt": datetime.now(UTC).isoformat(),
+                        "wslIp": "172.20.0.2",
+                        "mappings": [_mapping(80)],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            status = windows_wsl_bridge_status(
+                root,
+                (80,),
+                current_wsl_ipv4=lambda: "172.20.0.2",
+            )
+
+        self.assertFalse(status.prepared)
+        self.assertEqual("agent_contract_missing", status.reason)
+
+    def test_reports_degraded_discovery_agent(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            _write_state(
+                root,
+                {
+                    "generatedAt": datetime.now(UTC).isoformat(),
+                    "wslIp": "172.20.0.2",
+                    "mappings": [_mapping(80)],
+                    "agentStatus": "degraded",
+                },
+            )
+
+            status = windows_wsl_bridge_status(
+                root,
+                (80,),
+                current_wsl_ipv4=lambda: "172.20.0.2",
+            )
+
+        self.assertFalse(status.prepared)
+        self.assertEqual("agent_not_ready", status.reason)
+
     def test_current_wsl_ipv4_returns_empty_on_nonzero_exit(self):
         completed = subprocess.CompletedProcess(
             ["hostname", "-I"],
@@ -260,6 +307,10 @@ def _state_path(root: Path) -> Path:
 def _write_state(root: Path, state: object) -> None:
     state_path = _state_path(root)
     state_path.parent.mkdir(parents=True, exist_ok=True)
+    if isinstance(state, dict):
+        state.setdefault("contractVersion", 2)
+        state.setdefault("agentMode", "scheduled-discovery")
+        state.setdefault("agentStatus", "ready")
     state_path.write_text(json.dumps(state), encoding="utf-8")
 
 
