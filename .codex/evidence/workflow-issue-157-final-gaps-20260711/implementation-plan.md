@@ -1,6 +1,6 @@
 # Implementation Plan
 
-Status: `AUTHORED_PENDING_EXECUTION`
+Status: `AUTHORED_PUBLISHED_PENDING_EXECUTION`
 Workflow: `documentation/workflow/workflow.md`
 
 ## Outcome

@@ -17,7 +17,7 @@
   "worktree": "isolated_worktree_for_declared_branch_path_not_persisted",
   "process_strand": "workflow create -> workflow execute -> issue completion audit -> PR readiness",
   "execution_profile": "FULL_PATH",
-  "status": "AUTHORED_PENDING_EXECUTION",
+  "status": "AUTHORED_PUBLISHED_PENDING_EXECUTION",
   "gate": {
     "decision": "READY_FOR_WORKFLOW",
     "confidence_percent": 97,
@@ -128,8 +128,8 @@
     "remote_target": "origin/fix/issue-157-final-gaps-20260711",
     "local_collision": false,
     "public_remote_collision": false,
-    "origin_ssh_probe": "blocked_permission_denied_publickey",
-    "workflow_create_push_status": "pending_guarded_attempt",
+    "origin_ssh_probe": "powershell_probe_blocked_but_wsl_git_authenticated",
+    "workflow_create_push_status": "published",
     "workflow_create_pr_allowed": false,
     "implementation_pr_allowed_after_slice": "05",
     "automatic_merge_requested": false
@@ -178,7 +178,7 @@
     "documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc": "e0a455b4ad79f59ce99f881d07c7fcaee46cea41f8c44ff50fc59a2e7b5e5476",
     ".github/workflows/sonar_check.yml": "1aded6cb496e644776eaf438b8b000777b09b056b94ab1e8f298fba31498b011",
     "tools/quality_gate.py": "2c931cad72f002cffb09da90e1c138a5a87e99d30caa8b25fb416bcfaf2adefb",
-    "documentation/workflow/workflow.md": "2b3956f4f996d1759435187d312d39a5d51ce2609e4b1fa6220f54d5db8dca30",
-    "documentation/workflow/context-pack.md": "7ae83c0fee4d44813f96c2a7e6e860ef81b1f774b56af7844f2f08fba262e927"
+    "documentation/workflow/workflow.md": "958137097d4b7f9d2a07139b2ac33387fce312fb8795b1c403261a9e66d9c07f",
+    "documentation/workflow/context-pack.md": "ab6fa28fde970c77624d5fe4ae433bd2bae50e83bc5a1b40027041d0f467debd"
   }
 }

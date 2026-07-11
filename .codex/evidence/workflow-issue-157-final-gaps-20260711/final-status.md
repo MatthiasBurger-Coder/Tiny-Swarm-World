@@ -1,6 +1,6 @@
 # Final Status
 
-Status: `WORKFLOW_AUTHORED_PENDING_EXECUTION`
+Status: `WORKFLOW_AUTHORED_PUBLISHED_PENDING_EXECUTION`
 
 Issue:
 
@@ -13,8 +13,10 @@ Branch:
 
 Commits:
 
-- Workflow-authoring commit: this workflow-authoring commit; its immutable SHA
-  is recorded in the handoff after commit creation
+- Workflow-authoring content commit:
+  `9202bf1e5dfe7d379f383346e234b84c21cabc35`
+- Publication-status commit: this follow-up commit; its immutable SHA is
+  recorded in the handoff after commit creation
 - Implementation commits: `PENDING`
 
 Changed files:
@@ -47,12 +49,12 @@ Live E2E result:
 Known limitations:
 
 - Product gaps are planned, not yet implemented.
-- Origin SSH authentication failed during the read probe and authoring push
-  still requires a guarded attempt.
+- Product implementation and implementation PR checks remain pending.
 
 Pull request:
 
-- `PENDING`; created only after implementation Slice 05 passes.
+- Workflow branch published; implementation PR remains `PENDING` and is
+  created only after implementation Slice 05 passes.
 
 Merge status:
 

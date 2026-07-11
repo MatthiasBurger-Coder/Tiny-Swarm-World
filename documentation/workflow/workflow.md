@@ -8,7 +8,7 @@ Issue URL: <https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/157>
 Baseline Branch: `main`
 Baseline Commit: `3e0d28db0e59fc3f38929c4b91cac0566ed39fb6`
 Branch: `fix/issue-157-final-gaps-20260711`
-Status: `AUTHORED_PENDING_EXECUTION`
+Status: `AUTHORED_PUBLISHED_PENDING_EXECUTION`
 Execution Profile: `FULL_PATH`
 Workflow Evidence Root: `.codex/evidence/workflow-issue-157-final-gaps-20260711/`
 Issue Evidence Root: `.tiny-swarm/evidence/issue-157-final-gaps-20260711/`
@@ -1300,6 +1300,13 @@ The authoring result itself must:
 
 This is guarded workflow publication, not `push auto`. The implementation PR
 is created only by Slice 06 after workflow execution.
+
+Authoring publication result:
+
+- WSL Git pushed the workflow branch successfully to
+  `origin/fix/issue-157-final-gaps-20260711`.
+- No workflow-documentation PR was created.
+- No merge, branch deletion or cleanup was performed.
 
 ## Definition Of Done
 
