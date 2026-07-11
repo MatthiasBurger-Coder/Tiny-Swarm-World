@@ -284,8 +284,12 @@ def _resolve_traefik_route_labels(
                     label.startswith("traefik.enable=")
                     or label.startswith("traefik.swarm.network=")
                     or any(
-                        label.startswith(f"traefik.http.routers.{router_name}.")
-                        or label.startswith(f"traefik.http.services.{router_name}.")
+                        label.startswith(
+                            (
+                                f"traefik.http.routers.{router_name}.",
+                                f"traefik.http.services.{router_name}.",
+                            )
+                        )
                         for router_name in router_names
                     )
                 )
