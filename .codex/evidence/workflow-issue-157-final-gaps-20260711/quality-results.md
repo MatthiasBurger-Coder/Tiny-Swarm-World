@@ -26,7 +26,7 @@ Result: `PASS`
 - import-linter: 3 contracts kept, 0 broken
 - architecture tests: pass
 - mypy: no issues in 463 source files
-- unittest: 1,336 passed, 28 skipped
+- unittest: 1,336 tests run; 1,308 passed and 28 skipped
 - `python3` resolved to the existing WSL virtual-environment toolchain; the
   host-specific absolute interpreter path is omitted by evidence policy
 

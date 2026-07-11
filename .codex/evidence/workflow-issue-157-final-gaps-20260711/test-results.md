@@ -43,7 +43,7 @@ Result: `PASS`
 - arch-lint: 3 contracts kept
 - arch-tests: pass
 - typecheck: no issues in 463 source files
-- test: 1,336 tests passed, 28 skipped
+- test: 1,336 tests run; 1,308 passed and 28 skipped
 - no live infrastructure was invoked
 - `python3` used the existing WSL virtual-environment toolchain; its
   host-specific absolute path is intentionally omitted

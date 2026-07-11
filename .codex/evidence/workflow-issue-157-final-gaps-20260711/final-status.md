@@ -15,8 +15,10 @@ Commits:
 
 - Workflow-authoring content commit:
   `9202bf1e5dfe7d379f383346e234b84c21cabc35`
-- Publication-status commit: this follow-up commit; its immutable SHA is
-  recorded in the handoff after commit creation
+- Publication-status commit:
+  `f3a46f8e95186f4ad9be5435eb2d35f36da9d99c`
+- Evidence-count correction commit: this follow-up commit; its immutable SHA
+  is recorded in the handoff after commit creation
 - Implementation commits: `PENDING`
 
 Changed files:
@@ -38,7 +40,7 @@ Quality gate results:
 - Authoring `git diff --check`: `PASS`.
 - Workflow structure/dependency validator: `PASS`.
 - Authoring full `python3 tools/quality_gate.py quality`: `PASS`
-  (1,336 tests passed, 28 skipped).
+  (1,336 tests run; 1,308 passed and 28 skipped).
 - Implementation gates: `NOT_RUN`.
 
 Live E2E result:
