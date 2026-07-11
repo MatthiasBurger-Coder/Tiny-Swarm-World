@@ -10,12 +10,19 @@ from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import LiteralScalarString
 
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import PortComposeFileRepository
+from tiny_swarm_world.application.ports.repositories.port_effective_access_model_repository import (
+    PortEffectiveAccessModelRepository,
+)
 from tiny_swarm_world.domain.deployment.stack_definition import (
     ComposeServiceDefinition,
     StackDefinition,
 )
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
-from tiny_swarm_world.domain.ingress import DesiredHttpsRoute, desired_https_ingress_for_profile
+from tiny_swarm_world.domain.ingress import (
+    DesiredHttpsIngress,
+    DesiredHttpsRoute,
+    desired_https_ingress_for_profile,
+)
 from tiny_swarm_world.domain.network import PortRegistry, ServicePortMapping
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
@@ -29,7 +36,10 @@ TRAEFIK_INGRESS_NETWORK_NAME = "service_access_link"
 _YAML = YAML(typ="safe")
 
 
-class ComposeFileRepositoryYaml(PortComposeFileRepository):
+class ComposeFileRepositoryYaml(
+    PortComposeFileRepository,
+    PortEffectiveAccessModelRepository,
+):
     def __init__(
         self,
         base_directories: list[Path] | None = None,
@@ -65,11 +75,7 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
                 compose_content = _resolve_traefik_route_labels(
                     stack_name,
                     compose_content,
-                    _desired_routes_for_compose(
-                        self.service_profile,
-                        self.port_registry,
-                        self.enabled_service_names,
-                    ),
+                    self._desired_routes_for_compose(),
                 )
                 compose_content = _resolve_service_access_dashboard_config(
                     stack_name,
@@ -117,7 +123,12 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
         )
 
     def render_service_access_dashboard(self) -> str:
-        desired_ingress = desired_https_ingress_for_profile(
+        return render_service_access_dashboard_html(
+            self.get_effective_access_model().to_dict()
+        )
+
+    def get_effective_access_model(self) -> DesiredHttpsIngress:
+        return desired_https_ingress_for_profile(
             self.service_profile,
             conditional_service_names=_conditional_route_names(
                 self.port_registry,
@@ -125,27 +136,14 @@ class ComposeFileRepositoryYaml(PortComposeFileRepository):
             ),
             port_registry=self.port_registry,
         )
-        return render_service_access_dashboard_html(desired_ingress.to_dict())
 
-
-def _desired_routes_for_compose(
-    service_profile: ServiceStackProfile,
-    port_registry: PortRegistry,
-    enabled_service_names: frozenset[str],
-) -> tuple[DesiredHttpsRoute, ...]:
-    try:
-        return desired_https_ingress_for_profile(
-            service_profile,
-            conditional_service_names=_conditional_route_names(
-                port_registry,
-                enabled_service_names,
-            ),
-            port_registry=port_registry,
-        ).routes
-    except ValueError as exc:
-        if str(exc) == "desired HTTPS ingress requires at least one route":
-            return ()
-        raise
+    def _desired_routes_for_compose(self) -> tuple[DesiredHttpsRoute, ...]:
+        try:
+            return self.get_effective_access_model().routes
+        except ValueError as exc:
+            if str(exc) == "desired HTTPS ingress requires at least one route":
+                return ()
+            raise
 
 
 def _published_ports_from_service(service_payload: Mapping[object, object]) -> tuple[int, ...]:
@@ -249,13 +247,15 @@ def _resolve_traefik_route_labels(
     if not isinstance(services, Mapping):
         return compose_content
 
-    route_by_upstream = {route.upstream_service: route for route in routes}
+    routes_by_upstream: dict[str, list[DesiredHttpsRoute]] = {}
+    for route in routes:
+        routes_by_upstream.setdefault(route.upstream_service, []).append(route)
     mutated = False
     for service_name, service_payload in services.items():
         if not isinstance(service_name, str) or not isinstance(service_payload, dict):
             continue
-        route = route_by_upstream.get(service_name)
-        if route is None:
+        service_routes = routes_by_upstream.get(service_name, [])
+        if not service_routes:
             continue
         networks = service_payload.setdefault("networks", [])
         if isinstance(networks, list) and TRAEFIK_INGRESS_NETWORK_NAME not in networks:
@@ -267,8 +267,14 @@ def _resolve_traefik_route_labels(
         labels = deploy.setdefault("labels", [])
         if not isinstance(labels, list):
             continue
-        router_name = _router_name_for(route)
-        rendered_labels = _traefik_labels_for_route(route, router_name)
+        router_names = tuple(_router_name_for(route) for route in service_routes)
+        rendered_labels = list(
+            dict.fromkeys(
+                label
+                for route, router_name in zip(service_routes, router_names, strict=True)
+                for label in _traefik_labels_for_route(route, router_name)
+            )
+        )
         retained_labels = [
             label
             for label in labels
@@ -277,8 +283,11 @@ def _resolve_traefik_route_labels(
                 and (
                     label.startswith("traefik.enable=")
                     or label.startswith("traefik.swarm.network=")
-                    or label.startswith(f"traefik.http.routers.{router_name}.")
-                    or label.startswith(f"traefik.http.services.{router_name}.")
+                    or any(
+                        label.startswith(f"traefik.http.routers.{router_name}.")
+                        or label.startswith(f"traefik.http.services.{router_name}.")
+                        for router_name in router_names
+                    )
                 )
             )
         ]
@@ -369,6 +378,7 @@ def _traefik_labels_for_route(route: DesiredHttpsRoute, router_name: str) -> lis
         f"traefik.http.routers.{router_name}.rule=Host(`{route.hostname}`)",
         f"traefik.http.routers.{router_name}.entrypoints=websecure",
         f"traefik.http.routers.{router_name}.tls=true",
+        f"traefik.http.routers.{router_name}.service={router_name}",
         (
             f"traefik.http.services.{router_name}"
             f".loadbalancer.server.port={route.upstream_port}"
