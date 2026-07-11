@@ -297,7 +297,7 @@ when the corresponding service is enabled by the selected configuration.
 When the services must be reachable from a Windows browser, first prepare the
 Windows side from elevated PowerShell. The prerequisite action is read-only;
 the install action creates the managed portproxy, Firewall, hosts-file,
-Scheduled Task, and local bridge-state contract:
+Scheduled Task discovery agent, and local bridge-state contract:
 
 [source,powershell]
 ----
@@ -307,9 +307,9 @@ Set-ExecutionPolicy -Scope Process Bypass
 ----
 
 See `tools/windows/README.windows-wsl-bridge.md` for WSL 2, systemd, IP Helper,
-repair, status, and verification instructions. `install.sh` stops before any
-platform mutation when this Windows bridge state is required but missing or
-stale.
+automatic discovery/reconcile, repair, status, and verification instructions.
+`install.sh` stops before any platform mutation when the current discovery
+heartbeat or Windows bridge state is required but missing, degraded, or stale.
 
 For WSL/Linux shell checks, add the routed names to `/etc/hosts`. If a
 matching `tsw.local` line already exists, update that line instead of adding

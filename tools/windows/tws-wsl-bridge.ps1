@@ -9,7 +9,7 @@
     - Windows portproxy rules -> current WSL IP
     - Windows Firewall inbound rules
     - Windows hosts-file entries for known tws.local names
-    - Optional Scheduled Task for refresh after logon / WSL IP changes
+    - Scheduled discovery/reconcile task after logon and at a fixed interval
 
   Check Windows and WSL prerequisites without changing state:
     .\tools\windows\tws-wsl-bridge.ps1 -Action prerequisites
@@ -17,13 +17,13 @@
   Run from an elevated PowerShell once:
     .\tools\windows\tws-wsl-bridge.ps1 -Action install
 
-  Refresh later:
+  Trigger discovery/reconcile manually:
     Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge
 #>
 
 [CmdletBinding()]
 param(
-    [ValidateSet("prerequisites", "install", "refresh", "verify", "status", "uninstall")]
+    [ValidateSet("prerequisites", "discover", "install", "reconcile", "refresh", "verify", "status", "uninstall")]
     [string]$Action = "refresh",
 
     [string]$ConfigPath = (Join-Path $PSScriptRoot "tws-wsl-bridge.config.json"),
@@ -283,6 +283,19 @@ function Get-FirewallRulePrefix {
     return "Tiny Swarm World"
 }
 
+function Get-DiscoveryIntervalMinutes {
+    param($Config)
+
+    $interval = 1
+    if ($Config.PSObject.Properties.Name -contains "discoveryIntervalMinutes") {
+        $interval = [int]$Config.discoveryIntervalMinutes
+    }
+    if ($interval -lt 1 -or $interval -gt 60) {
+        throw "discoveryIntervalMinutes must be between 1 and 60."
+    }
+    return $interval
+}
+
 function Add-TswRegistryPortMapping {
     param(
         [System.Collections.ArrayList] $Mappings,
@@ -480,7 +493,68 @@ function Add-PortProxy {
     }
 }
 
-function Reconcile-PortProxy {
+function Get-PortProxyRecords {
+    $records = [System.Collections.ArrayList]::new()
+    $output = & netsh interface portproxy show v4tov4 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to inspect Windows portproxy state."
+    }
+
+    foreach ($line in $output) {
+        if ($line -match '^\s*(\d{1,3}(?:\.\d{1,3}){3})\s+(\d+)\s+(\d{1,3}(?:\.\d{1,3}){3})\s+(\d+)\s*$') {
+            [void]$records.Add([pscustomobject]@{
+                ListenAddress  = $Matches[1]
+                ListenPort     = [int]$Matches[2]
+                ConnectAddress = $Matches[3]
+                ConnectPort    = [int]$Matches[4]
+            })
+        }
+    }
+    return @($records)
+}
+
+function Get-PreviousBridgeState {
+    if (-not (Test-Path -LiteralPath $StatePath)) {
+        return $null
+    }
+    try {
+        return Get-Content -LiteralPath $StatePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    } catch {
+        return $null
+    }
+}
+
+function Remove-StalePortProxyMappings {
+    param(
+        $Config,
+        $Mappings
+    )
+
+    $previous = Get-PreviousBridgeState
+    if ($null -eq $previous -or -not ($previous.PSObject.Properties.Name -contains "mappings")) {
+        return
+    }
+
+    $listenAddress = Get-ListenAddress $Config
+    $previousListenAddress = $listenAddress
+    if ($previous.PSObject.Properties.Name -contains "listenAddress" -and -not [string]::IsNullOrWhiteSpace([string]$previous.listenAddress)) {
+        $previousListenAddress = [string]$previous.listenAddress
+    }
+    $desiredPorts = [System.Collections.Generic.HashSet[int]]::new()
+    foreach ($mapping in $Mappings) {
+        [void]$desiredPorts.Add([int]$mapping.ListenPort)
+    }
+
+    foreach ($mapping in (Convert-ToArray $previous.mappings)) {
+        $port = [int]$mapping.listenPort
+        if ($previousListenAddress -ne $listenAddress -or -not $desiredPorts.Contains($port)) {
+            Remove-PortProxy -ListenAddress $previousListenAddress -ListenPort $port
+            Write-Host ("PORTPROXY stale mapping removed {0}:{1}" -f $previousListenAddress, $port)
+        }
+    }
+}
+
+function Test-PortProxyMappingsReady {
     param(
         $Config,
         [string]$WslIp,
@@ -488,12 +562,91 @@ function Reconcile-PortProxy {
     )
 
     $listenAddress = Get-ListenAddress $Config
+    $records = @(Get-PortProxyRecords)
+    foreach ($mapping in $Mappings) {
+        $matches = @($records | Where-Object {
+            $_.ListenAddress -eq $listenAddress -and
+            $_.ListenPort -eq [int]$mapping.ListenPort -and
+            $_.ConnectAddress -eq $WslIp -and
+            $_.ConnectPort -eq [int]$mapping.ConnectPort
+        })
+        if ($matches.Count -ne 1) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Reconcile-PortProxy {
+    param(
+        $Config,
+        [string]$WslIp,
+        $Mappings
+    )
+
+    Remove-StalePortProxyMappings -Config $Config -Mappings $Mappings
+    $listenAddress = Get-ListenAddress $Config
+    $records = @(Get-PortProxyRecords)
 
     foreach ($m in $Mappings) {
+        $matches = @($records | Where-Object {
+            $_.ListenAddress -eq $listenAddress -and
+            $_.ListenPort -eq [int]$m.ListenPort -and
+            $_.ConnectAddress -eq $WslIp -and
+            $_.ConnectPort -eq [int]$m.ConnectPort
+        })
+        if ($matches.Count -eq 1) {
+            Write-Host ("PORTPROXY unchanged {0}:{1} -> {2}:{3} ({4})" -f $listenAddress, $m.ListenPort, $WslIp, $m.ConnectPort, $m.Name)
+            continue
+        }
         Remove-PortProxy -ListenAddress $listenAddress -ListenPort $m.ListenPort
         Add-PortProxy -ListenAddress $listenAddress -ListenPort $m.ListenPort -ConnectAddress $WslIp -ConnectPort $m.ConnectPort
         Write-Host ("PORTPROXY {0}:{1} -> {2}:{3} ({4})" -f $listenAddress, $m.ListenPort, $WslIp, $m.ConnectPort, $m.Name)
     }
+}
+
+function Test-FirewallRuleReady {
+    param(
+        $Config,
+        [int]$Port
+    )
+
+    $prefix = Get-FirewallRulePrefix $Config
+    $ruleName = "$prefix TCP $Port"
+    $rules = @(Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq $ruleName })
+    if ($rules.Count -ne 1) {
+        return $false
+    }
+    $rule = $rules[0]
+    if ($rule.Enabled.ToString() -ne "True" -or $rule.Direction.ToString() -ne "Inbound" -or $rule.Action.ToString() -ne "Allow") {
+        return $false
+    }
+    $filters = @($rule | Get-NetFirewallPortFilter -ErrorAction SilentlyContinue)
+    $matchingFilters = @($filters | Where-Object {
+        $_.LocalPort.ToString() -eq $Port.ToString() -and
+        $_.Protocol.ToString() -in @("TCP", "6")
+    })
+    return $matchingFilters.Count -eq 1
+}
+
+function Test-FirewallRulesReady {
+    param(
+        $Config,
+        $Mappings
+    )
+
+    $prefix = Get-FirewallRulePrefix $Config
+    $desiredPorts = @(($Mappings | Select-Object -ExpandProperty ListenPort) | Sort-Object -Unique)
+    $managedRules = @(Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "$prefix TCP *" })
+    if ($managedRules.Count -ne $desiredPorts.Count) {
+        return $false
+    }
+    foreach ($port in $desiredPorts) {
+        if (-not (Test-FirewallRuleReady -Config $Config -Port $port)) {
+            return $false
+        }
+    }
+    return $true
 }
 
 function Reconcile-FirewallRules {
@@ -504,12 +657,25 @@ function Reconcile-FirewallRules {
 
     $prefix = Get-FirewallRulePrefix $Config
 
+    $desiredPorts = @(($Mappings | Select-Object -ExpandProperty ListenPort) | Sort-Object -Unique)
+    $desiredNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($port in $desiredPorts) {
+        [void]$desiredNames.Add("$prefix TCP $port")
+    }
+
     Get-NetFirewallRule -ErrorAction SilentlyContinue |
-        Where-Object { $_.DisplayName -like "$prefix TCP *" } |
+        Where-Object { $_.DisplayName -like "$prefix TCP *" -and -not $desiredNames.Contains($_.DisplayName) } |
         Remove-NetFirewallRule -ErrorAction SilentlyContinue
 
-    foreach ($port in (($Mappings | Select-Object -ExpandProperty ListenPort) | Sort-Object -Unique)) {
+    foreach ($port in $desiredPorts) {
         $ruleName = "$prefix TCP $port"
+        if (Test-FirewallRuleReady -Config $Config -Port $port) {
+            Write-Host ("FIREWALL unchanged TCP {0}" -f $port)
+            continue
+        }
+        Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue |
+            Where-Object { $_.DisplayName -eq $ruleName } |
+            Remove-NetFirewallRule -ErrorAction SilentlyContinue
         New-NetFirewallRule `
             -DisplayName $ruleName `
             -Direction Inbound `
@@ -551,6 +717,45 @@ function Get-BridgeHostNames {
     return @($hostNames | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
 }
 
+function Get-ReconciledHostsContent {
+    param(
+        $Config,
+        $HostNames
+    )
+
+    $hostNames = @(Convert-ToArray $HostNames)
+    $content = Remove-ManagedHostsBlock
+    if ($hostNames.Count -eq 0) {
+        return $content.TrimEnd() + [Environment]::NewLine
+    }
+
+    $hostsAddress = Get-HostsAddress $Config
+    $block = @(
+        $HostsStart,
+        "$hostsAddress`t$($hostNames -join ' ')",
+        $HostsEnd
+    ) -join [Environment]::NewLine
+    $base = $content.TrimEnd()
+    if ([string]::IsNullOrWhiteSpace($base)) {
+        return $block + [Environment]::NewLine
+    }
+    return $base + [Environment]::NewLine + $block + [Environment]::NewLine
+}
+
+function Test-HostsFileReady {
+    param(
+        $Config,
+        $HostNames
+    )
+
+    if (-not (Test-Path -LiteralPath $HostsPath)) {
+        return $false
+    }
+    $current = Get-Content -LiteralPath $HostsPath -Raw -ErrorAction Stop
+    $desired = Get-ReconciledHostsContent -Config $Config -HostNames $HostNames
+    return $current -eq $desired
+}
+
 function Reconcile-HostsFile {
     param(
         $Config,
@@ -563,19 +768,13 @@ function Reconcile-HostsFile {
     }
 
     $hostsAddress = Get-HostsAddress $Config
-    $content = Remove-ManagedHostsBlock
+    $newContent = Get-ReconciledHostsContent -Config $Config -HostNames $hostNames
+    if ((Test-Path -LiteralPath $HostsPath) -and (Test-HostsFileReady -Config $Config -HostNames $hostNames)) {
+        Write-Host ("HOSTS unchanged {0} -> {1}" -f ($hostNames -join ", "), $hostsAddress)
+        return
+    }
 
-    $block = @()
-    $block += $HostsStart
-
-    $line = "$hostsAddress`t$($hostNames -join ' ')"
-    $block += $line
-
-    $block += $HostsEnd
-
-    $newContent = $content.TrimEnd() + [Environment]::NewLine + ($block -join [Environment]::NewLine) + [Environment]::NewLine
-
-    Set-Content -LiteralPath $HostsPath -Value $newContent -Encoding ASCII -Force
+    [System.IO.File]::WriteAllText($HostsPath, $newContent, [System.Text.Encoding]::ASCII)
     Write-Host ("HOSTS {0} -> {1}" -f ($hostNames -join ", "), $hostsAddress)
 }
 
@@ -586,26 +785,50 @@ function Remove-HostsFileBlock {
 }
 
 function Register-BridgeTask {
-    param([string]$ResolvedConfigPath)
+    param(
+        [string]$ResolvedConfigPath,
+        $Config
+    )
 
     $scriptPath = $PSCommandPath
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" -Action refresh -ConfigPath `"$ResolvedConfigPath`""
+    $intervalMinutes = Get-DiscoveryIntervalMinutes $Config
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" -Action reconcile -ConfigPath `"$ResolvedConfigPath`""
 
     $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $arguments
-    $trigger = New-ScheduledTaskTrigger -AtLogOn
+    $logonTrigger = New-ScheduledTaskTrigger -AtLogOn
+    $periodicTrigger = New-ScheduledTaskTrigger `
+        -Once `
+        -At (Get-Date).AddMinutes($intervalMinutes) `
+        -RepetitionInterval (New-TimeSpan -Minutes $intervalMinutes) `
+        -RepetitionDuration (New-TimeSpan -Days 3650)
+    $triggers = @($logonTrigger, $periodicTrigger)
     $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Highest
-    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew
+    $settings = New-ScheduledTaskSettingsSet `
+        -AllowStartIfOnBatteries `
+        -StartWhenAvailable `
+        -MultipleInstances IgnoreNew `
+        -ExecutionTimeLimit (New-TimeSpan -Minutes 5)
 
     Register-ScheduledTask `
         -TaskName $TaskName `
         -Action $action `
-        -Trigger $trigger `
+        -Trigger $triggers `
         -Principal $principal `
         -Settings $settings `
-        -Description "Refresh Tiny Swarm World Windows <-> WSL bridge after WSL IP changes." `
+        -Description "Discover and reconcile the Tiny Swarm World Windows <-> WSL bridge after logon and every $intervalMinutes minute(s)." `
         -Force | Out-Null
 
-    Write-Host "TASK registered: $TaskName"
+    Write-Host "TASK registered: $TaskName (logon + every $intervalMinutes minute(s))"
+}
+
+function Test-BridgeTaskReady {
+    $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+    if ($null -eq $task) {
+        return $false
+    }
+    $arguments = @($task.Actions | ForEach-Object { [string]$_.Arguments }) -join " "
+    $triggers = @($task.Triggers)
+    return $arguments -match '(?i)-Action\s+reconcile' -and $triggers.Count -ge 2
 }
 
 function Unregister-BridgeTask {
@@ -687,19 +910,103 @@ function Verify-Bridge {
     }
 }
 
+function Get-BridgeDiscovery {
+    param(
+        $Config,
+        [string]$WslIp,
+        $Mappings,
+        $HostNames
+    )
+
+    $driftReasons = [System.Collections.ArrayList]::new()
+    if (-not (Test-PortProxyMappingsReady -Config $Config -WslIp $WslIp -Mappings $Mappings)) {
+        [void]$driftReasons.Add("portproxy_drift")
+    }
+    if (-not (Test-FirewallRulesReady -Config $Config -Mappings $Mappings)) {
+        [void]$driftReasons.Add("firewall_drift")
+    }
+    if (-not (Test-HostsFileReady -Config $Config -HostNames $HostNames)) {
+        [void]$driftReasons.Add("hosts_drift")
+    }
+    if (-not (Test-BridgeTaskReady)) {
+        [void]$driftReasons.Add("scheduled_task_drift")
+    }
+
+    return [pscustomobject]@{
+        Ready                    = $driftReasons.Count -eq 0
+        WslIp                    = $WslIp
+        DiscoveryIntervalMinutes = Get-DiscoveryIntervalMinutes $Config
+        DriftReasons             = @($driftReasons)
+    }
+}
+
+function Write-BridgeDiscovery {
+    param($Discovery)
+
+    $status = if ($Discovery.Ready) { "READY" } else { "DEGRADED" }
+    $reasons = if ($Discovery.DriftReasons.Count -eq 0) { "none" } else { $Discovery.DriftReasons -join "," }
+    Write-Host ("DISCOVERY {0} wslIp={1} intervalMinutes={2} drift={3}" -f $status, $Discovery.WslIp, $Discovery.DiscoveryIntervalMinutes, $reasons)
+}
+
+function Invoke-BridgeReconcile {
+    param(
+        $Config,
+        $Mappings,
+        $HostNames,
+        [string]$RegistryPath
+    )
+
+    $wslIp = Get-WslIp $Config
+    $pendingDiscovery = [pscustomobject]@{
+        Ready                    = $false
+        WslIp                    = $wslIp
+        DiscoveryIntervalMinutes = Get-DiscoveryIntervalMinutes $Config
+        DriftReasons             = @("reconcile_in_progress")
+    }
+    Write-StateFile `
+        -Config $Config `
+        -WslIp $wslIp `
+        -Mappings $Mappings `
+        -HostNames $HostNames `
+        -RegistryPath $RegistryPath `
+        -Discovery $pendingDiscovery
+    Reconcile-PortProxy -Config $Config -WslIp $wslIp -Mappings $Mappings
+    Reconcile-FirewallRules -Config $Config -Mappings $Mappings
+    Reconcile-HostsFile -Config $Config -HostNames $HostNames
+    $discovery = Get-BridgeDiscovery -Config $Config -WslIp $wslIp -Mappings $Mappings -HostNames $HostNames
+    Write-StateFile `
+        -Config $Config `
+        -WslIp $wslIp `
+        -Mappings $Mappings `
+        -HostNames $HostNames `
+        -RegistryPath $RegistryPath `
+        -Discovery $discovery
+    Write-BridgeDiscovery -Discovery $discovery
+    if (-not $discovery.Ready) {
+        throw "Windows/WSL bridge reconcile finished with drift: $($discovery.DriftReasons -join ', ')"
+    }
+}
+
 function Write-StateFile {
     param(
         $Config,
         [string]$WslIp,
         $Mappings,
         $HostNames,
-        [string]$RegistryPath
+        [string]$RegistryPath,
+        $Discovery
     )
 
     $state = [ordered]@{
+        contractVersion    = 2
+        agentMode          = "scheduled-discovery"
+        agentStatus        = $(if ($Discovery.Ready) { "ready" } else { "degraded" })
         generatedAt        = (Get-Date).ToString("o")
         action             = $Action
         wslIp              = $WslIp
+        taskName           = $TaskName
+        discoveryIntervalMinutes = $Discovery.DiscoveryIntervalMinutes
+        driftReasons       = @($Discovery.DriftReasons)
         listenAddress      = (Get-ListenAddress $Config)
         hostsAddress       = (Get-HostsAddress $Config)
         configPath         = (Resolve-Path -LiteralPath $ConfigPath).Path
@@ -730,11 +1037,21 @@ function Show-Status {
     Write-Host ("Ports: {0}" -f (($Mappings | Select-Object -ExpandProperty ListenPort) -join ", "))
     Write-Host ("Hosts: {0}" -f ($HostNames -join ", "))
 
+    $wslIp = ""
     try {
         $wslIp = Get-WslIp $Config
         Write-Host ("WSL IP: {0}" -f $wslIp)
     } catch {
         Write-Host ("WSL IP: unavailable - {0}" -f $_.Exception.Message) -ForegroundColor Yellow
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($wslIp)) {
+        try {
+            $discovery = Get-BridgeDiscovery -Config $Config -WslIp $wslIp -Mappings $Mappings -HostNames $HostNames
+            Write-BridgeDiscovery -Discovery $discovery
+        } catch {
+            Write-Host ("DISCOVERY unavailable - {0}" -f $_.Exception.Message) -ForegroundColor Yellow
+        }
     }
 
     Write-Host ""
@@ -766,28 +1083,37 @@ switch ($Action) {
         Write-Host "Windows/WSL bridge prerequisites are ready. No bridge state was changed."
     }
 
+    "discover" {
+        Assert-BridgePrerequisites -Config $config
+        $wslIp = Get-WslIp $config
+        $discovery = Get-BridgeDiscovery -Config $config -WslIp $wslIp -Mappings $mappings -HostNames $hostNames
+        Write-BridgeDiscovery -Discovery $discovery
+        $discovery | ConvertTo-Json -Depth 4
+        if (-not $discovery.Ready) {
+            throw "Windows/WSL bridge discovery found drift: $($discovery.DriftReasons -join ', ')"
+        }
+    }
+
     "install" {
         Assert-BridgePrerequisites -Config $config
         $resolvedConfig = (Resolve-Path -LiteralPath $ConfigPath).Path
-        $wslIp = Get-WslIp $config
-        Reconcile-PortProxy -Config $config -WslIp $wslIp -Mappings $mappings
-        Reconcile-FirewallRules -Config $config -Mappings $mappings
-        Reconcile-HostsFile -Config $config -HostNames $hostNames
-        Register-BridgeTask -ResolvedConfigPath $resolvedConfig
-        Write-StateFile -Config $config -WslIp $wslIp -Mappings $mappings -HostNames $hostNames -RegistryPath $registryPath
+        Register-BridgeTask -ResolvedConfigPath $resolvedConfig -Config $config
+        Invoke-BridgeReconcile -Config $config -Mappings $mappings -HostNames $hostNames -RegistryPath $registryPath
         Write-Host ""
-        Write-Host "Installed. You can refresh later with:"
+        Write-Host "Installed. Discovery/reconcile now runs automatically. Trigger it manually with:"
         Write-Host "  Start-ScheduledTask -TaskName $TaskName"
+    }
+
+    "reconcile" {
+        Assert-BridgePrerequisites -Config $config
+        Invoke-BridgeReconcile -Config $config -Mappings $mappings -HostNames $hostNames -RegistryPath $registryPath
+        Write-Host "Reconcile completed."
     }
 
     "refresh" {
         Assert-BridgePrerequisites -Config $config
-        $wslIp = Get-WslIp $config
-        Reconcile-PortProxy -Config $config -WslIp $wslIp -Mappings $mappings
-        Reconcile-FirewallRules -Config $config -Mappings $mappings
-        Reconcile-HostsFile -Config $config -HostNames $hostNames
-        Write-StateFile -Config $config -WslIp $wslIp -Mappings $mappings -HostNames $hostNames -RegistryPath $registryPath
-        Write-Host "Refresh completed."
+        Invoke-BridgeReconcile -Config $config -Mappings $mappings -HostNames $hostNames -RegistryPath $registryPath
+        Write-Host "Reconcile completed."
     }
 
     "verify" {

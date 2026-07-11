@@ -2,7 +2,9 @@
 
 This directory contains the Windows-side preparation mechanism for Tiny Swarm World when WSL is treated as the guest system.
 
-The bridge is intentionally a **pre-installation step**. It prepares Windows before `./install.sh` runs in WSL.
+The bridge is intentionally a **one-time pre-installation step**. It prepares
+Windows before `./install.sh` runs in WSL and registers a scheduled discovery
+agent that keeps the bridge aligned with the current WSL address afterwards.
 
 ## Why this exists
 
@@ -13,7 +15,8 @@ This bridge reconciles:
 1. Windows `netsh interface portproxy` rules
 2. Windows Firewall inbound rules
 3. Windows `hosts` entries for stable `*.tws.local` names
-4. A Scheduled Task that refreshes the bridge after logon or WSL IP changes
+4. A Scheduled Task that discovers and reconciles drift after logon and every
+   configured interval
 
 No additional Windows software is required for the default mechanism.
 
@@ -104,9 +107,10 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\tools\windows\tws-wsl-bridge.ps1 -Action install
 ```
 
-`install` repeats the prerequisite gate before making changes. It then
-reconciles only Tiny Swarm World's registry-defined TCP mappings and managed
-Windows artifacts. Re-running it is the supported repair path.
+`install` repeats the prerequisite gate before making changes. It registers the
+scheduled discovery agent and then reconciles only Tiny Swarm World's
+registry-defined TCP mappings and managed Windows artifacts. Re-running it is
+the supported repair and agent-upgrade path.
 
 If your WSL distro is not the default distro, edit:
 
@@ -117,6 +121,9 @@ If your WSL distro is not the default distro, edit:
 ```
 
 in `tools/windows/tws-wsl-bridge.config.json`.
+
+`discoveryIntervalMinutes` controls the periodic reconcile interval and must be
+between 1 and 60. The default is one minute.
 
 Examples:
 
@@ -130,9 +137,16 @@ or:
 "distro": "Debian"
 ```
 
-## Refresh after WSL restart
+## Automatic discovery after WSL restart
 
-If WSL was shut down, the WSL IP can change. Refresh the bridge from Windows:
+The scheduled discovery agent runs after Windows logon and once per configured
+interval. It reads the current WSL IPv4 address and the repository port
+registry, compares them with the observed Windows portproxy, Firewall and
+hosts-file state, and changes only drifted resources. An unchanged run is a
+no-op apart from renewing the prepared-state heartbeat.
+
+If immediate recovery is needed before the next interval, trigger the agent
+from Windows:
 
 ```powershell
 Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge
@@ -156,6 +170,8 @@ From Windows PowerShell:
 Use the actions for different evidence:
 
 - `prerequisites` proves that Windows and WSL can support the bridge.
+- `discover` is read-only and reports `READY` or the detected drift reasons.
+- `reconcile` is the idempotent action used by the scheduled discovery agent.
 - `status` shows configured ports, the current WSL IP, portproxy state, the
   Scheduled Task, and the managed hosts block.
 - `verify` performs live TCP connections to every registry-defined Windows
@@ -174,26 +190,36 @@ The Windows/WSL bridge is prepared for `install.sh` when:
 - the managed portproxy rules target the current WSL IPv4 address;
 - matching Tiny Swarm World Firewall rules exist;
 - the managed `*.tsw.local` hosts block exists;
-- `TinySwarmWorld-WslBridge` is registered for refresh after logon;
+- `TinySwarmWorld-WslBridge` is registered for discovery/reconcile after logon
+  and periodically;
 - `tools/windows/.tws-wsl-bridge.state.json` exists, is recent, records the
   current WSL IP, and contains every external TCP port from
-  `infra/config/ports.yaml`.
+  `infra/config/ports.yaml`;
+- the state reports contract version 2, agent mode `scheduled-discovery`, and
+  agent status `ready`.
 
-Run `-Action install` to create this complete state. Run `-Action refresh`
-after a WSL address change. The generated state file is ignored by Git and
-must not be committed.
+Run `-Action install` once to create this complete state and scheduled agent.
+`refresh` remains a compatibility alias for `reconcile`. The generated state
+file is ignored by Git and must not be committed.
 
 ## Tiny Swarm installer preflight
 
 When WSL2 live setup requires Windows exposure, `./install.sh` checks for:
 
 - `tools/windows/.tws-wsl-bridge.state.json`
+- the scheduled-discovery agent contract and `ready` status
+- a discovery heartbeat no older than five minutes
 - a current WSL IP matching the state file
 - all external TCP ports from `infra/config/ports.yaml` in the state file
 
 If this check fails, setup stops before platform mutation with
 `WINDOWS-WSL-BRIDGE`. To run WSL2 without Windows localhost/browser exposure,
 set `TSW_WINDOWS_EXPOSURE=disabled` explicitly before setup.
+
+Consequently, a successful WSL installation with Windows exposure enabled has
+already passed a current automatic-bridge contract. The agent continues to
+repair later WSL address changes without modifying the native Linux install
+path.
 
 ## Run Tiny Swarm installation after bridge preparation
 
@@ -252,5 +278,5 @@ Default recommendation:
 ```text
 Use hosts-file entries for known Tiny Swarm service names.
 Use portproxy for TCP access.
-Use Scheduled Task for automatic refresh.
+Use the Scheduled Task discovery agent for automatic reconcile.
 ```
