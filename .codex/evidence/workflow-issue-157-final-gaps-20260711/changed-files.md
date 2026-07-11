@@ -1,6 +1,6 @@
 # Changed Files
 
-Status: `COMPLETE_THROUGH_SLICE_05_LOCAL_GATES`
+Status: `COMPLETE_THROUGH_SLICE_06_PRE_FINAL_HEAD`
 
 ## Product And Architecture
 
@@ -57,5 +57,15 @@ Status: `COMPLETE_THROUGH_SLICE_05_LOCAL_GATES`
   messaging, Infisical bootstrap, Kubernetes, and CI configuration.
 - `.tiny-swarm-world/local/live-installation.env` was neither read nor changed.
 
-Slice 06 must append only actual publication, remediation, or final evidence
-changes.
+## Slice 06 Publication And Remediation
+
+- `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+  received a behaviorally equivalent tuple-based prefix check for SonarCloud
+  rule `python:S8513`.
+- `.codex/evidence/workflow-issue-157-final-gaps-20260711/slice-06-distribution.md`
+  and `slice-06-consolidation.md` record publication ownership and results.
+- The five required publication-status evidence files record observed PR,
+  quality, SonarCloud, review, and live-E2E state.
+
+No other product, test, configuration, documentation, ADR, CI, or live file
+changed in Slice 06.

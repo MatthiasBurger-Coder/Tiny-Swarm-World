@@ -41,3 +41,10 @@ referenced ignored `live-installation.env` file was not read and does not grant
 consent. Slice 06 may record a redacted live result only if all documented
 prerequisites and explicit current operator consent are present; otherwise
 `NOT_RUN` remains the correct result.
+
+## Slice 06 Result
+
+Live Selenium remains `NOT_RUN`. PR creation and CI/SonarCloud verification do
+not supply current operator consent, live DNS/Traefik/Docker reachability, or
+approved credential sources. Existing redacted skip evidence remains the
+authoritative live-prerequisite result.

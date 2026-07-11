@@ -1,6 +1,6 @@
 # Quality Results
 
-Status: `ALL_REQUIRED_LOCAL_GATES_PASS`
+Status: `LOCAL_AND_PR_REMEDIATION_HEAD_GREEN`
 
 ## Latest Integrated Product Gate
 
@@ -39,6 +39,15 @@ browser or infrastructure dependency was introduced into the static gate.
 
 ## External Checks
 
-- PR required checks: `PENDING_SLICE_06`.
-- SonarCloud/SonarQube PR result: `PENDING_SLICE_06`.
-- Review-comment closure: `PENDING_SLICE_06`.
+- Pull request: `#215`, open, review-ready, mergeable, base `main`.
+- Initial head `f7db32e`: GitHub job and SonarCloud analysis passed; SonarCloud
+  reported one new maintainability issue (`python:S8513`).
+- Remediation head `92c5a0b`: `Python Quality And SonarCloud` passed in run
+  `29149810524`; `SonarCloud Code Analysis` passed.
+- SonarCloud remediation-head measures: quality gate passed, 0 new issues,
+  0 security hotspots, 95.1% new-code coverage, 0.0% new duplication.
+- Review state at remediation head: no human reviews, no review threads, and
+  no actionable conversation comment. The SonarCloud bot result is
+  informational and green.
+- This Slice 06 evidence checkpoint will trigger one final PR-head CI run;
+  its externally observed result is authoritative after the commit.
