@@ -91,6 +91,9 @@ from tiny_swarm_world.application.services.platform import (
     PreflightService,
     SocatManager,
 )
+from tiny_swarm_world.infrastructure.adapters.file_management.local_file_storage import (
+    LocalFileStorage,
+)
 from tiny_swarm_world.application.services.network import (
     NetworkDoctorService,
     NetworkRepairOptions,
@@ -246,8 +249,6 @@ DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:13500"
 WINDOWS_EXPOSURE_ENVIRONMENT = "TSW_WINDOWS_EXPOSURE"
 LXC_PROXY_LISTEN_ADDRESS_ENVIRONMENT = "TSW_LXC_PROXY_LISTEN_ADDRESS"
 DEFAULT_LXC_PROXY_LISTEN_ADDRESS = "0.0.0.0"
-DEFAULT_NEXUS_CACHE_CONTAINER = "tiny-swarm-nexus-cache"
-DEFAULT_NEXUS_CACHE_PROXY_PORT = "5001"
 LXC_UBUNTU_APT_MIRROR_ENVIRONMENT = "TSW_LXC_UBUNTU_APT_MIRROR"
 LXC_UBUNTU_SECURITY_APT_MIRROR_ENVIRONMENT = "TSW_LXC_UBUNTU_SECURITY_APT_MIRROR"
 LXC_DOCKER_APT_MIRROR_ENVIRONMENT = "TSW_LXC_DOCKER_APT_MIRROR"
@@ -1091,6 +1092,7 @@ def build_lxc_deployment_services(
     ui: PortUI | None = None,
 ) -> DeploymentServices:
     project_paths = default_project_paths()
+    local_file_storage = LocalFileStorage()
     selected_service_profile = ServiceStackProfile(service_profile)
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
     compose_repository = ComposeFileRepositoryYaml(project_paths=project_paths)
@@ -1100,7 +1102,7 @@ def build_lxc_deployment_services(
         service_access_dashboard_renderer=compose_repository.render_service_access_dashboard,
     )
     stack_environment = _deployment_stack_environment(selected_service_profile)
-    secret_manifest_entries = SecretManifestRenderer().run()
+    secret_manifest_entries = SecretManifestRenderer(local_file_storage).run()
     portainer_admin_client = LxcPortainerAdminClient(backend=backend)
     portainer_client = LxcPortainerHttpClient(
         backend=backend,
@@ -1157,18 +1159,24 @@ def build_lxc_deployment_services(
         cli=infisical_cli_client,
         swarm_runtime=swarm_runtime,
     )
-    secret_discovery_step = SecretDiscoveryStep(manifest_entries=secret_manifest_entries)
+    secret_discovery_step = SecretDiscoveryStep(
+        storage=local_file_storage,
+        manifest_entries=secret_manifest_entries,
+    )
     infisical_secret_sync_step = InfisicalSecretSyncStep(
         cli=infisical_cli_client,
+        storage=local_file_storage,
         manifest_entries=secret_manifest_entries,
         fixed_env_file=_fixed_secret_env_file(),
         mode=_secret_mode(),  # type: ignore[arg-type]
+        process_environment=os.environ,
     )
     secret_consumption_step = SecretConsumptionVerifier(
         manifest_entries=secret_manifest_entries,
         stack_environment=stack_environment,
     )
     secret_evidence_step = SecretEvidenceWriter(
+        storage=local_file_storage,
         discovery=secret_discovery_step,
         sync=infisical_secret_sync_step,
         consumption=secret_consumption_step,
@@ -1827,9 +1835,6 @@ def _lxc_proxy_listen_address() -> str:
 
 def _lxc_docker_registry_mirror_configuration() -> DockerRegistryMirrorConfiguration | None:
     mirror_url = os.getenv("TSW_LXC_DOCKER_REGISTRY_MIRROR", "").strip()
-    if mirror_url:
-        return DockerRegistryMirrorConfiguration(mirror_url)
-    mirror_url = _auto_detect_nexus_cache_registry_mirror()
     if not mirror_url:
         return None
     return DockerRegistryMirrorConfiguration(mirror_url)
@@ -1849,43 +1854,6 @@ def _lxc_docker_apt_mirror_configuration() -> DockerAptMirrorConfiguration | Non
     if not configuration.configured:
         return None
     return configuration
-
-
-def _auto_detect_nexus_cache_registry_mirror() -> str:
-    container_name = os.getenv("TSW_NEXUS_CACHE_CONTAINER", DEFAULT_NEXUS_CACHE_CONTAINER).strip()
-    proxy_port = os.getenv("TSW_NEXUS_CACHE_DOCKER_PROXY_PORT", DEFAULT_NEXUS_CACHE_PROXY_PORT).strip()
-    if not container_name or not proxy_port:
-        return ""
-    if not _local_docker_container_running(container_name):
-        return ""
-    host_ip = _lxc_reachable_host_ip()
-    if not host_ip:
-        return ""
-    return _local_http_url(host_ip, proxy_port)
-
-
-def _local_docker_container_running(container_name: str) -> bool:
-    try:
-        result = subprocess.run(
-            [
-                "docker",
-                "ps",
-                "--filter",
-                f"name=^/{container_name}$",
-                "--format",
-                "{{.Names}}",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-            shell=False,
-            timeout=10,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return False
-    if result.returncode != 0:
-        return False
-    return container_name in {line.strip() for line in result.stdout.splitlines()}
 
 
 def _lxc_reachable_host_ip() -> str:
@@ -1958,7 +1926,7 @@ def _deployment_stack_environment(
         "jenkins": {
             JENKINS_IMAGE_ENVIRONMENT: _operator_config_value(
                 JENKINS_IMAGE_ENVIRONMENT,
-                f"{registry_endpoint}/jenkins:latest",
+                f"{registry_endpoint}/jenkins:0.2.0",
             ),
             "TSW_JENKINS_ADMIN_PASSWORD": _operator_secret_value("TSW_JENKINS_ADMIN_PASSWORD"),
         },
@@ -1986,11 +1954,11 @@ def _deployment_stack_environment(
     environment["service-access"] = {
         SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT: _operator_config_value(
             SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT,
-            f"{registry_endpoint}/service-access-dashboard:latest",
+            f"{registry_endpoint}/service-access-dashboard:0.2.0",
         ),
         SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT: _operator_config_value(
             SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT,
-            f"{registry_endpoint}/service-access-nginx:latest",
+            f"{registry_endpoint}/service-access-nginx:0.2.0",
         ),
     }
     environment["infisical"] = {
@@ -2191,12 +2159,12 @@ def _infisical_bootstrap_steps(
     return [
         EnsureInfisicalSilentInstall(
             cli=cli or InfisicalCliClient(),
+            storage=LocalFileStorage(),
             bootstrap_client=InfisicalBootstrapHttpClient(
                 base_url=_operator_config_value(
                     INFISICAL_URL_ENVIRONMENT,
                     _local_http_url("localhost", "17080"),
                 ),
-                verify_tls=False,
                 readiness_attempts=_operator_config_int(
                     INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT,
                     DEFAULT_INFISICAL_READINESS_ATTEMPTS,

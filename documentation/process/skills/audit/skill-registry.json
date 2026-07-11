@@ -1,5 +1,5 @@
 {
-  "status": "CURRENT_WITH_ISSUE_COMPLETION_GATES",
+  "status": "CURRENT_WITH_VALIDATED_DISCOVERY_AND_ISSUE_COMPLETION_GATES",
   "canonical_paths": {
     "skill_registry_markdown": "documentation/process/skills/audit/skill-registry.md",
     "skill_registry_json": "documentation/process/skills/audit/skill-registry.json",
@@ -9,17 +9,18 @@
   "skill_format": ".agents/skills/<skill-name>/SKILL.md",
   "counts": {
     "project_skill_entrypoints": 132,
+    "project_skill_entrypoints_with_valid_metadata": 132,
     "codex_skill_entrypoints": 6,
     "required_tiny_swarm_world_skills": 48,
     "removed_stale_microservice_artifacts": 4
   },
   "governing_hashes": {
-    "AGENTS.md": "BC4DB4B3806EB345353DE0A3FA95153378CCDDF8D6B86F16FD45E77B0C1503A8",
+    "AGENTS.md": "BBA7DDF6214A1AAAD6C2BFACBAE2C9AC2BBD05653C03DF9BA0DAFF3CF1B93210",
     "QUALITY.md": "458E5F4D8FBDEDEA1C413E1FF135EC91392A4BB5A5AEA20300DCAC8E209414B6",
-    "README.md": "75565CD5F73BD223C30FFB62ACF7950E9F4DB438B7C124F22F7CE0D43970C931",
-    "documentation/arc42/08_concepts.adoc": "E5BCC7B971A63935F8D5AFD2703693C9624215708BADD291D4BA4450100323BC",
+    "README.md": "28E77B3A8A724758FACEABE72C347F390F021699FA9D2A90A160DB6882A628BF",
+    "documentation/arc42/08_concepts.adoc": "072342065D7C65368DCDC7FECA7C4E5EDB1C42E2C22B2084B110921B9181C05C",
     "documentation/process/issue-completion-discipline.md": "81876F6DCA479A1D63A80F765BAF949A951EFF2E0EEAFDE6BAC72AD750508904",
-    "documentation/process/skills/audit/skill-registry.md": "C75C670AD4FBC1D623A5174D2E3973630676A77076F9B0791D781DE316A1A965",
+    "documentation/process/skills/audit/skill-registry.md": "59BC43EAD7A323BEFE6473D31B1651991D4539636421CCF50B175DA42CE387FF",
     "documentation/process/skills/audit/organigramm.md": "87C9E8FDF29AAE7038B283EDA39B15B7FDE1FB02CD74E8B7C80A0F18E38E338B",
     "documentation/process/skills/audit/owner-map.md": "6E20656042FE3F0651AC96E3527CB37A4CC4E24A82C3EFB3CFD9E5CDE198B335"
   },

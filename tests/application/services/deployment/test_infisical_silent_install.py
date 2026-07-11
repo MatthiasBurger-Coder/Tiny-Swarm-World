@@ -12,6 +12,9 @@ from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client 
     InfisicalBootstrapState,
 )
 from tiny_swarm_world.domain.inventory import VerificationStatus
+from tiny_swarm_world.infrastructure.adapters.file_management.local_file_storage import (
+    LocalFileStorage,
+)
 from tests.support.sonar_safe_literals import operator_credential, sample_http_url, sample_text
 
 
@@ -210,6 +213,7 @@ def _service(
 ) -> Any:
     return EnsureInfisicalSilentInstall(
         cli=cli or _FakeCli(),
+        storage=LocalFileStorage(),
         bootstrap_client=bootstrap_client,
         config=InfisicalSilentInstallConfig(
             external_url=sample_http_url("localhost", 17080),

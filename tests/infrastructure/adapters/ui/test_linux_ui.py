@@ -252,10 +252,10 @@ class TestLinuxUI(unittest.TestCase):
         self.assertTrue(ui.all_instances_terminal())
         self.assertEqual("All instances completed", ui.completion_summary())
 
-    @patch("asyncio.get_running_loop", return_value=asyncio.new_event_loop())
     @patch("threading.Thread")
-    def test_run_in_thread(self, mock_thread, mock_loop):
-        self.ui.start_in_thread()
+    def test_run_in_thread(self, mock_thread):
+        with patch("asyncio.get_running_loop", return_value=self.loop):
+            self.ui.start_in_thread()
         mock_thread.assert_called_once()
 
     @patch("curses.wrapper")

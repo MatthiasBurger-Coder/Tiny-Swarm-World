@@ -169,7 +169,7 @@ ignored local env file or the process environment.
 | `TSW_NEXUS_INITIAL_PASSWORD_PATH` | `/nexus-data/admin.password` | Initial password path inside the Nexus container
 | `TSW_NEXUS_MAX_ATTEMPTS` | `10` | Startup polling attempts
 | `TSW_NEXUS_WAIT_SECONDS` | `5` | Delay between polling attempts
-| `TSW_LXC_DOCKER_REGISTRY_MIRROR` | auto-detect local `tiny-swarm-nexus-cache` when available | Optional Docker registry mirror URL written into managed LXC nodes during Docker installation. Use an address reachable from inside the nodes, for example `http://<lxc-reachable-host-ip>:5001`; localhost values are rejected.
+| `TSW_LXC_DOCKER_REGISTRY_MIRROR` | unset; operator supplied | Optional Docker registry mirror URL written into managed LXC nodes during Docker installation. Use an explicitly reviewed address reachable from inside the nodes, for example `http://<lxc-reachable-host-ip>:5001`; localhost values are rejected. No local container is auto-detected.
 |===
 
 The localhost defaults above are operator targets for the Linux/WSL execution

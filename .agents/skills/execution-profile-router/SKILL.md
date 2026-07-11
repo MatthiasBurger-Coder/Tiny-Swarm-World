@@ -101,7 +101,9 @@ stopConditions=<profile-specific blockers>
 
 ## Forbidden
 
-- Do not mark required Five-Role Three Amigos participation as optional.
+- Do not mark required Four-Role Three Amigos participation as optional, and
+  do not omit the conditional Console/status UI reviewer when verified terminal
+  UI impact exists.
 - Do not convert required full reviews into N/A impact checks when the role's
   area is affected.
 - Do not mark a failed or missing required quality gate as optional.

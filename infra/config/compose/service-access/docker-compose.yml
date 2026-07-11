@@ -1,6 +1,6 @@
 services:
   service-access-dashboard:
-    image: ${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:13500/service-access-dashboard:latest}
+    image: ${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:13500/service-access-dashboard:0.2.0}
     configs:
       - source: service_access_dashboard_index
         target: /usr/share/nginx/html/index.html
@@ -14,7 +14,7 @@ services:
           - node.role == manager
 
   service-access-nginx:
-    image: ${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:13500/service-access-nginx:latest}
+    image: ${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:13500/service-access-nginx:0.2.0}
     ports:
       - target: 80
         published: 10000

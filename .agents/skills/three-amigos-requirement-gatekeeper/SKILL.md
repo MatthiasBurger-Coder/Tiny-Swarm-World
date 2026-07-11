@@ -74,19 +74,24 @@ Load these files only when needed:
 - `templates/requirement-template.md` when normalizing a requirement.
 - `templates/slice-template.md` when drafting slice boundaries.
 - `templates/acceptance-template.md` when acceptance criteria are missing or incomplete.
-- `examples/forensic-analytics-example.md` for a compact example output.
 
-## Five-Role Three Amigos Review
+## Four-Role Three Amigos Review
 
-Run the review through five mandatory roles:
+Run the review through four mandatory roles:
 
 - Senior Requirement Engineer: target, scope, non-goals, acceptance criteria, assumptions, open questions and confidence level.
 - Senior System Architect: architecture boundaries, arc42, service boundaries, automation-vs-runtime boundary, governance risks and planned-vs-implemented status.
 - Senior Python Automation Developer: Python automation impact, ports, adapters, domain, unittest testability, dependency wiring impact and infrastructure-automation consequences.
-- Senior React Frontend Developer: frontend impact, UX flows, React components, state, API adapters and build or test consequences.
 - Senior Tester: testability, regression, quality gates, acceptance criteria and slice acceptance.
 
-Classic labels such as Requirement Analyst, Architecture Validator and Quality Validator may be used as additional perspectives. They do not replace the five mandatory roles.
+Add a Console/status UI reviewer only when the verified scope affects terminal
+presentation, interaction, accessibility or progress output. Browser React
+review is forbidden unless a separate workflow first verifies a real frontend
+module, package tooling and quality gates.
+
+Classic labels such as Requirement Analyst, Architecture Validator and Quality
+Validator may be used as additional perspectives. They do not replace the four
+mandatory roles.
 
 Add a Dependency / Deadlock Validator pass when the request contains multiple slices, services, subagents, shared files, shared APIs, orchestration steps, queues, workers or rollout dependencies.
 

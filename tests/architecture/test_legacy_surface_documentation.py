@@ -31,6 +31,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             "`infra/prepare/nexus/test.sh`": "Retired",
             "Former `create_dockerfiles.sh` helper": "Retired",
             "Former `upload_all_stacks.sh` helper": "Retired",
+            "`tools/live/nexus-docker-cache.sh`": "Retired",
             "`infra/config/compose/portainer/docker-compose.yml`": "Supported Asset",
             "`infra/config/compose/nexus/docker-compose.yml`": "Supported Asset",
             "`infra/config/compose/jenkins/docker-compose.yml`": "Supported Asset",
@@ -88,7 +89,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertFalse(
             (REPOSITORY_ROOT / "infra" / "config" / "compose" / "swagger" / "nginx" / "wait-for-it.sh").exists()
         )
-        self.assertIn("image: nginx:mainline-alpine", compose)
+        self.assertIn("image: nginx:1.29.8-alpine", compose)
         self.assertIn("/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro", compose)
         self.assertIn("resolver 127.0.0.11", nginx_config)
         self.assertIn("set $swagger_api_upstream http://tasks.swagger-api:8000;", nginx_config)

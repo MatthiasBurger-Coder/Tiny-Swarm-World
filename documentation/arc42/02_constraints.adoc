@@ -42,6 +42,10 @@ rules.
 * WSL2 is capability-gated for managed LXC provider behavior. WSL1 is not a
   supported provider target.
 * Host package installation, daemon repair, group membership changes,
-  privileged container profiles, bridge/firewall changes, broad host mounts,
-  and non-interactive live consent require explicit operator approval and may
-  require later ADR coverage before becoming automated defaults.
+  privileged container profiles, bridge/firewall changes, and broad host
+  mounts require explicit operator approval and may require later ADR coverage
+  before becoming automated defaults.
+* Non-interactive live consent is allowed only as explicit per-invocation
+  `--live --approve-live` consent, as governed by
+  `adr-explicit-non-interactive-live-consent.adoc`; headless or CI execution
+  must never imply approval.

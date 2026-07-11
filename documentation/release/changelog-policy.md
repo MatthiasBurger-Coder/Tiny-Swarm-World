@@ -25,9 +25,10 @@ the repository code or configuration actually changed.
 
 ## Versioning
 
-Tiny Swarm World may use semantic versioning or a project-specific release
-identifier once an explicit release workflow adopts one. Until then, release
-notes must identify the Git commit SHA and release candidate branch.
+Tiny Swarm World uses semantic version tags. Package metadata must match the
+latest released tag until an explicit release workflow approves and publishes
+the next version. Release notes also identify the Git commit SHA and release
+candidate branch.
 
 Breaking changes include removed command flags, changed config keys, changed
 secret source semantics, changed live-consent rules, changed service topology,

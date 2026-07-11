@@ -35,6 +35,7 @@ packages from ordinary implementation workflows. A candidate must identify:
 
 - source commit SHA and branch;
 - intended version or project-specific release identifier;
+- package metadata and changelog alignment with that intended version;
 - included issues and pull requests;
 - known limitations and deferred work;
 - evidence paths or redacted summaries.

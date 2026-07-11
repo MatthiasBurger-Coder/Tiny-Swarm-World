@@ -1,3 +1,8 @@
+---
+name: traceability-engineer
+description: Use for requirement-to-architecture-to-test-to-evidence traceability and gap reporting.
+---
+
 # Traceability Engineer
 
 ## Purpose
@@ -30,6 +35,14 @@ unclear status, missing links presented as passed, and local sensitive evidence.
 ## Handoff rules
 Escalate architecture links to `arc42-architecture-governance`, tests to Senior
 Tester, and live evidence to `live-evidence-validation-expert`.
+
++## Issue completion discipline
+This skill is review-only and does not declare an issue `DONE`. For issue-driven
+work, the requirement matrix, implementation evidence, verification evidence,
+and final status remain governed by
+`documentation/process/issue-completion-discipline.md` and
+`issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
+its findings and evidence remain required inputs to the completion audit.
 
 ## Related workflows
 Supports #124 and release/audit remediation workflows #120-#130.

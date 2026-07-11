@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
-
-import yaml
+from typing import Literal, Mapping
 
 from tiny_swarm_world.application.ports.clients.port_infisical_cli import PortInfisicalCli
+from tiny_swarm_world.application.ports.file_management.port_local_file_storage import (
+    PortLocalFileStorage,
+)
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 SecretClassification = Literal[
@@ -107,16 +107,17 @@ class SecretManagementBlocker(RuntimeError):
 
 
 class FixedEnvSecretSource:
-    def __init__(self, env_file: Path = DEFAULT_FIXED_LOCAL_ENV) -> None:
+    def __init__(self, storage: PortLocalFileStorage, env_file: Path = DEFAULT_FIXED_LOCAL_ENV) -> None:
+        self.storage = storage
         self.env_file = env_file
 
     def values_for(self, manifest_entries: tuple[SecretManifestEntry, ...]) -> dict[str, str]:
-        if not self.env_file.exists():
+        if not self.storage.exists(self.env_file):
             raise SecretManagementBlocker(
                 "fixed_secret_file_missing",
                 f"Fixed secret file is missing: {self.env_file.as_posix()}",
             )
-        values = _read_env_file(self.env_file)
+        values = _read_env_file(self.storage, self.env_file)
         entries_by_key = {entry.key: entry for entry in manifest_entries}
         required_keys = tuple(entry.key for entry in manifest_entries if entry.required)
         missing = [key for key in required_keys if key not in values]
@@ -164,11 +165,12 @@ class SecretRedactor:
 
 
 class SecretManifestRenderer:
-    def __init__(self, manifest_path: Path = DEFAULT_MANIFEST_PATH) -> None:
+    def __init__(self, storage: PortLocalFileStorage, manifest_path: Path = DEFAULT_MANIFEST_PATH) -> None:
+        self.storage = storage
         self.manifest_path = manifest_path
 
     def run(self) -> tuple[SecretManifestEntry, ...]:
-        payload = yaml.safe_load(self.manifest_path.read_text(encoding="utf-8"))
+        payload = self.storage.load_yaml(self.manifest_path)
         if not isinstance(payload, dict) or not isinstance(payload.get("secrets"), list):
             raise SecretManagementBlocker("manifest_schema_invalid", "Secret manifest must contain a secrets list.")
         entries = tuple(_manifest_entry(item) for item in payload["secrets"])
@@ -183,7 +185,14 @@ class SecretDiscoveryStep:
     verification_target_id = "deployment:managed-config-inventory"
     deployment_target_id = verification_target_id
 
-    def __init__(self, *, repo_root: Path = Path("."), manifest_entries: tuple[SecretManifestEntry, ...] = ()) -> None:
+    def __init__(
+        self,
+        *,
+        storage: PortLocalFileStorage,
+        repo_root: Path = Path("."),
+        manifest_entries: tuple[SecretManifestEntry, ...] = (),
+    ) -> None:
+        self.storage = storage
         self.repo_root = repo_root
         self.manifest_entries = manifest_entries
         self._findings: tuple[SecretFinding, ...] = ()
@@ -195,10 +204,16 @@ class SecretDiscoveryStep:
     def run(self) -> tuple[SecretFinding, ...]:
         managed_keys = {entry.key: entry for entry in self.manifest_entries}
         findings: list[SecretFinding] = []
-        for path in _candidate_files(self.repo_root):
-            text = path.read_text(encoding="utf-8", errors="ignore")
-            for line_number, line in enumerate(text.splitlines(), start=1):
-                findings.extend(_classify_line(path, self.repo_root, line_number, line, managed_keys))
+        snapshots = self.storage.scan_text_files(
+            self.repo_root,
+            suffixes=frozenset(SCAN_SUFFIXES),
+            skip_parts=frozenset(SKIP_PARTS),
+        )
+        for snapshot in snapshots:
+            for line_number, line in enumerate(snapshot.text.splitlines(), start=1):
+                findings.extend(
+                    _classify_line(snapshot.path, self.repo_root, line_number, line, managed_keys)
+                )
         self._findings = tuple(findings)
         blockers = [finding for finding in self._findings if finding.classification == "blocker"]
         if blockers:
@@ -244,21 +259,25 @@ class InfisicalSecretSyncStep:
         self,
         *,
         cli: PortInfisicalCli,
+        storage: PortLocalFileStorage,
         manifest_entries: tuple[SecretManifestEntry, ...],
         generated_local_env: Path = DEFAULT_GENERATED_LOCAL_ENV,
         fixed_env_file: Path = DEFAULT_FIXED_LOCAL_ENV,
         mode: SecretMode = "generated",
         project: str = "tiny-swarm-world",
         environment: str = "local",
+        process_environment: Mapping[str, str] | None = None,
     ) -> None:
         self.use_case = SecretSyncUseCase(
             store=InfisicalSecretStore(cli),
+            storage=storage,
             manifest_entries=manifest_entries,
             generated_local_env=generated_local_env,
-            fixed_source=FixedEnvSecretSource(fixed_env_file),
+            fixed_source=FixedEnvSecretSource(storage, fixed_env_file),
             mode=mode,
             project=project,
             environment=environment,
+            process_environment=process_environment,
         )
         self.results: list[dict[str, str]] = []
         self.mode = mode
@@ -280,22 +299,26 @@ class SecretSyncUseCase:
         self,
         *,
         store: InfisicalSecretStore,
+        storage: PortLocalFileStorage,
         manifest_entries: tuple[SecretManifestEntry, ...],
         generated_local_env: Path = DEFAULT_GENERATED_LOCAL_ENV,
         fixed_source: FixedEnvSecretSource | None = None,
         mode: SecretMode = "generated",
         project: str = "tiny-swarm-world",
         environment: str = "local",
+        process_environment: Mapping[str, str] | None = None,
     ) -> None:
         if mode not in SECRET_MODES:
             raise ValueError(f"Unsupported secret mode: {mode}")
         self.store = store
+        self.storage = storage
         self.manifest_entries = manifest_entries
         self.generated_local_env = generated_local_env
-        self.fixed_source = fixed_source or FixedEnvSecretSource()
+        self.fixed_source = fixed_source or FixedEnvSecretSource(storage)
         self.mode = mode
         self.project = project
         self.environment = environment
+        self.process_environment = process_environment or {}
         self.results: list[dict[str, str]] = []
         self.checked_secret_keys: tuple[str, ...] = ()
         self.synchronized_secret_keys: tuple[str, ...] = ()
@@ -316,7 +339,7 @@ class SecretSyncUseCase:
             self._run_generated()
 
     def _entry_value(self, entry: SecretManifestEntry, generated_values: dict[str, str]) -> str:
-        value = os.environ.get(entry.key) or generated_values.get(entry.key, "")
+        value = self.process_environment.get(entry.key) or generated_values.get(entry.key, "")
         if not value and entry.source == "generated_local_secret":
             value = _generate_secret(entry.key)
             generated_values[entry.key] = value
@@ -325,14 +348,14 @@ class SecretSyncUseCase:
         return value
 
     def _run_generated(self) -> None:
-        generated_values = _read_env_file(self.generated_local_env)
+        generated_values = _read_env_file(self.storage, self.generated_local_env)
         self.checked_secret_keys = tuple(entry.key for entry in self.manifest_entries if entry.required)
         for entry in self.manifest_entries:
             value = self._entry_value(entry, generated_values)
             if entry.required and not value:
                 raise SecretManagementBlocker("blocker", f"Required secret value is missing: {entry.key}")
             self._sync_entry(entry, value, generated_values)
-        _write_env_file(self.generated_local_env, generated_values)
+        _write_env_file(self.storage, self.generated_local_env, generated_values)
         self.synchronized_secret_keys = tuple(
             result["key"]
             for result in self.results
@@ -453,15 +476,24 @@ class SecretConsumptionVerifier:
 
     def verify(self) -> VerificationResult:
         missing = [item for item in self.report if item["consumer_status"] == "not_observed"]
+        status = VerificationStatus.BLOCKED if missing else VerificationStatus.VERIFIED
+        message = (
+            "Required managed config consumption references are missing."
+            if missing
+            else "Managed config consumption references were verified without exposing values."
+        )
+        evidence = {
+            "phase": "verify",
+            "configured_ref_count": str(len(self.report)),
+            "missing_required_count": str(len(missing)),
+        }
+        if missing:
+            evidence["reason"] = "required_consumer_missing"
         return VerificationResult(
             target_id=self.verification_target_id,
-            status=VerificationStatus.VERIFIED,
-            message="Managed config consumption references were verified without exposing values.",
-            evidence={
-                "phase": "verify",
-                "configured_ref_count": str(len(self.report)),
-                "missing_required_count": str(len(missing)),
-            },
+            status=status,
+            message=message,
+            evidence=evidence,
         )
 
 
@@ -472,18 +504,19 @@ class SecretEvidenceWriter:
     def __init__(
         self,
         *,
+        storage: PortLocalFileStorage,
         evidence_dir: Path = DEFAULT_EVIDENCE_DIR,
         discovery: SecretDiscoveryStep,
         sync: InfisicalSecretSyncStep,
         consumption: SecretConsumptionVerifier,
     ) -> None:
+        self.storage = storage
         self.evidence_dir = evidence_dir
         self.discovery = discovery
         self.sync = sync
         self.consumption = consumption
 
     def run(self) -> None:
-        self.evidence_dir.mkdir(parents=True, exist_ok=True)
         now = datetime.now(UTC).isoformat()
         inventory = {
             "generated_at": now,
@@ -499,13 +532,25 @@ class SecretEvidenceWriter:
         consumption_lines = ["# Secret Consumption Report", ""]
         for item in self.consumption.report:
             consumption_lines.append(f"- {item['key']} ({item['service']}): {item['consumer_status']}")
-        (self.evidence_dir / "secret-inventory.json").write_text(json.dumps(inventory, indent=2, sort_keys=True), encoding="utf-8")
-        (self.evidence_dir / "infisical-sync-result.json").write_text(json.dumps(sync_result, indent=2, sort_keys=True), encoding="utf-8")
-        (self.evidence_dir / "secret-consumption-report.md").write_text("\n".join(consumption_lines) + "\n", encoding="utf-8")
+        self.storage.write_text(
+            self.evidence_dir / "secret-inventory.json",
+            json.dumps(inventory, indent=2, sort_keys=True),
+            private=True,
+        )
+        self.storage.write_text(
+            self.evidence_dir / "infisical-sync-result.json",
+            json.dumps(sync_result, indent=2, sort_keys=True),
+            private=True,
+        )
+        self.storage.write_text(
+            self.evidence_dir / "secret-consumption-report.md",
+            "\n".join(consumption_lines) + "\n",
+            private=True,
+        )
 
     def verify(self) -> VerificationResult:
         paths = ("secret-inventory.json", "infisical-sync-result.json", "secret-consumption-report.md")
-        existing = [name for name in paths if (self.evidence_dir / name).exists()]
+        existing = [name for name in paths if self.storage.exists(self.evidence_dir / name)]
         return VerificationResult(
             target_id=self.verification_target_id,
             status=VerificationStatus.VERIFIED if len(existing) == len(paths) else VerificationStatus.BLOCKED,
@@ -572,16 +617,6 @@ def _manifest_lifecycle(source: str) -> str:
     if source == "placeholder_only":
         return "operator_supplied_and_kept_existing"
     return "unknown"
-
-
-def _candidate_files(repo_root: Path) -> tuple[Path, ...]:
-    files: list[Path] = []
-    for path in repo_root.rglob("*"):
-        if not path.is_file() or any(part in SKIP_PARTS for part in path.parts):
-            continue
-        if path.name.startswith(".env") or path.suffix in SCAN_SUFFIXES or "docker-compose" in path.name:
-            files.append(path)
-    return tuple(files)
 
 
 def _classify_line(path: Path, repo_root: Path, line_number: int, line: str, managed_keys: dict[str, SecretManifestEntry]) -> list[SecretFinding]:
@@ -666,11 +701,12 @@ def _redact_assignment(value: str) -> str:
     return SECRET_ASSIGNMENT_PATTERN.sub(lambda match: f"{match.group('key')}={REDACTED}", value)
 
 
-def _read_env_file(path: Path) -> dict[str, str]:
-    if not path.exists():
+def _read_env_file(storage: PortLocalFileStorage, path: Path) -> dict[str, str]:
+    text = storage.read_text(path)
+    if text is None:
         return {}
     values: dict[str, str] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in text.splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
@@ -683,16 +719,11 @@ def _read_env_file(path: Path) -> dict[str, str]:
     return values
 
 
-def _write_env_file(path: Path, values: dict[str, str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+def _write_env_file(storage: PortLocalFileStorage, path: Path, values: dict[str, str]) -> None:
     lines = ["# Generated by Tiny Swarm World. Do not commit."]
     for key in sorted(values):
         lines.append(f"export {key}='{values[key]}'")
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    try:
-        path.chmod(0o600)
-    except OSError:
-        pass
+    storage.write_text(path, "\n".join(lines) + "\n", private=True)
 
 
 def _generate_secret(key: str) -> str:

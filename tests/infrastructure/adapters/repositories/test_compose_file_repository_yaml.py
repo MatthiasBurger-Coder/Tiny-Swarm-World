@@ -469,7 +469,7 @@ services:
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
 
         self.assertEqual(
-            "${TSW_JENKINS_IMAGE:-127.0.0.1:13500/jenkins:latest}",
+            "${TSW_JENKINS_IMAGE:-127.0.0.1:13500/jenkins:0.2.0}",
             compose_data["services"]["jenkins"]["image"],
         )
         self.assertEqual(
@@ -492,6 +492,7 @@ services:
             compose_data["services"]["jenkins"]["environment"],
         )
         self.assertNotIn("secrets", compose_data)
+        self.assertNotEqual("root", compose_data["services"]["jenkins"].get("user"))
 
     def test_committed_nexus_compose_publishes_registry_ports_on_manager_host(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -620,7 +621,7 @@ services:
 
         bootstrap = compose_data["services"]["pulsar-manager-bootstrap"]
         self.assertEqual(
-            "${TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE:-python:3.12-alpine}",
+            "${TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE:-python:3.12.13-alpine3.23}",
             bootstrap["image"],
         )
         self.assertEqual(
@@ -653,7 +654,7 @@ services:
 
         self.assertIn("image: swaggerapi/swagger-editor:v5.6.2-unprivileged", compose_content)
         self.assertIn("image: swaggerapi/swagger-ui:v5.32.6", compose_content)
-        self.assertIn("image: nginx:mainline-alpine", compose_content)
+        self.assertIn("image: nginx:1.29.8-alpine", compose_content)
         self.assertNotIn("ports", compose_data["services"]["swagger-editor"])
         self.assertNotIn("ports", compose_data["services"]["swagger-api"])
         self.assertEqual(
@@ -730,11 +731,11 @@ services:
         self.assertEqual("service-access", ComposeFileRepositoryYaml().get_compose_of("service-access").name)
         self.assertEqual(set(SERVICE_ACCESS_STACK_CONTRACT.required_services), set(services))
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:13500/service-access-dashboard:latest}",
+            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:13500/service-access-dashboard:0.2.0}",
             services["service-access-dashboard"]["image"],
         )
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:13500/service-access-nginx:latest}",
+            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:13500/service-access-nginx:0.2.0}",
             services["service-access-nginx"]["image"],
         )
         self.assertEqual(
@@ -978,7 +979,7 @@ services:
                 / "dashboard"
                 / "Dockerfile",
                 "COPY --chown=nginx:nginx index.html /usr/share/nginx/html/index.html",
-                "FROM nginx:mainline-alpine",
+                "FROM nginx:1.29.8-alpine",
             ),
             "service-access-nginx": (
                 repository_root
@@ -989,7 +990,7 @@ services:
                 / "nginx"
                 / "Dockerfile",
                 "COPY --chown=nginx:nginx default.conf /etc/nginx/conf.d/default.conf",
-                "FROM nginx:mainline-alpine",
+                "FROM nginx:1.29.8-alpine",
             ),
         }
 

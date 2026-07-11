@@ -665,10 +665,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
 
     def test_build_artifact_services_wires_artifact_contracts_without_running_clients(self):
-        with patch(
-            "tiny_swarm_world.infrastructure.composition._auto_detect_nexus_cache_registry_mirror",
-            return_value="",
-        ):
+        with patch.dict(os.environ, {}, clear=True):
             services = composition.build_lxc_artifact_services(
                 backend=composition.ManagedLxcBackend.INCUS,
             )
@@ -748,11 +745,7 @@ class TestComposition(unittest.TestCase):
 
     def test_nexus_docker_proxy_remote_url_falls_back_to_docker_hub_without_mirror(self):
         with patch.dict(os.environ, {}, clear=True):
-            with patch(
-                "tiny_swarm_world.infrastructure.composition._auto_detect_nexus_cache_registry_mirror",
-                return_value="",
-            ):
-                remote_url = composition._nexus_docker_proxy_remote_url()
+            remote_url = composition._nexus_docker_proxy_remote_url()
 
         self.assertEqual("https://registry-1.docker.io", remote_url)
 
@@ -805,17 +798,17 @@ class TestComposition(unittest.TestCase):
         }
 
         self.assertEqual("infisical/infisical:v0.159.1", image_refs["infisical"])
-        self.assertEqual("postgres:14-alpine", image_refs["infisical-postgres"])
-        self.assertEqual("redis:7-alpine", image_refs["infisical-redis"])
+        self.assertEqual("postgres:14.23-alpine3.23", image_refs["infisical-postgres"])
+        self.assertEqual("redis:7.4.9-alpine3.21", image_refs["infisical-redis"])
         self.assertEqual("traefik:v3.7.4", image_refs["traefik"])
         self.assertEqual("sonarqube:26.6.0.123539-community", image_refs["sonarqube"])
-        self.assertEqual("postgres:13", image_refs["sonarqube-postgres"])
+        self.assertEqual("postgres:13.23", image_refs["sonarqube-postgres"])
         self.assertEqual("swaggerapi/swagger-editor:v5.6.2-unprivileged", image_refs["swagger-editor"])
         self.assertEqual("swaggerapi/swagger-ui:v5.32.6", image_refs["swagger-ui"])
         self.assertEqual("apachepulsar/pulsar:3.0.17", image_refs["pulsar"])
         self.assertEqual("apachepulsar/pulsar-manager:v0.4.0", image_refs["pulsar-manager"])
-        self.assertEqual("python:3.12-alpine", image_refs["pulsar-manager-bootstrap"])
-        self.assertEqual("nginx:mainline-alpine", image_refs["swagger-nginx"])
+        self.assertEqual("python:3.12.13-alpine3.23", image_refs["pulsar-manager-bootstrap"])
+        self.assertEqual("nginx:1.29.8-alpine", image_refs["swagger-nginx"])
 
     def test_build_artifact_services_does_not_call_live_clients_during_construction(self):
         services = composition.build_lxc_artifact_services(
@@ -887,7 +880,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             {
                 "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
-                "TSW_JENKINS_IMAGE": "127.0.0.1:13500/jenkins:latest",
+                "TSW_JENKINS_IMAGE": "127.0.0.1:13500/jenkins:0.2.0",
             },
             jenkins_step.stack_environment,
         )
@@ -1076,10 +1069,10 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             {
                 "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE": (
-                    "127.0.0.1:13500/service-access-dashboard:latest"
+                    "127.0.0.1:13500/service-access-dashboard:0.2.0"
                 ),
                 "TSW_SERVICE_ACCESS_NGINX_IMAGE": (
-                    "127.0.0.1:13500/service-access-nginx:latest"
+                    "127.0.0.1:13500/service-access-nginx:0.2.0"
                 ),
             },
             service_access_step.stack_environment,
@@ -1128,15 +1121,15 @@ class TestComposition(unittest.TestCase):
         }
 
         self.assertEqual(
-            "registry.local:5000/jenkins:latest",
+            "registry.local:5000/jenkins:0.2.0",
             environments["jenkins"]["TSW_JENKINS_IMAGE"],
         )
         self.assertEqual(
-            "registry.local:5000/service-access-dashboard:latest",
+            "registry.local:5000/service-access-dashboard:0.2.0",
             environments["service-access"]["TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"],
         )
         self.assertEqual(
-            "registry.local:5000/service-access-nginx:latest",
+            "registry.local:5000/service-access-nginx:0.2.0",
             environments["service-access"]["TSW_SERVICE_ACCESS_NGINX_IMAGE"],
         )
 
@@ -1345,6 +1338,7 @@ class TestComposition(unittest.TestCase):
             composition.DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS,
             bootstrap_step.bootstrap_client.readiness_interval_seconds,
         )
+        self.assertTrue(bootstrap_step.bootstrap_client.verify_tls)
 
     def test_build_deployment_services_rejects_invalid_infisical_readiness_window(self):
         env = {
@@ -1583,17 +1577,17 @@ class TestComposition(unittest.TestCase):
             {"TSW_LXC_DOCKER_REGISTRY_MIRROR": sample_http_url(ipv4_address(10, 0, 3, 1), 5001)},
             clear=True,
         ):
-            with patch(
-                "tiny_swarm_world.infrastructure.composition._auto_detect_nexus_cache_registry_mirror",
-                return_value=sample_http_url(ipv4_address(10, 0, 3, 99), 5001),
-            ) as auto_detect:
+            with patch.object(
+                composition.subprocess,
+                "run",
+                side_effect=AssertionError("explicit mirror configuration must not probe Docker"),
+            ):
                 mirror = composition._lxc_docker_registry_mirror_configuration()
 
         self.assertIsNotNone(mirror)
         assert mirror is not None
         self.assertEqual(sample_http_url(ipv4_address(10, 0, 3, 1), 5001), mirror.mirror_url)
         self.assertEqual(f"{ipv4_address(10, 0, 3, 1)}:5001", mirror.registry_authority)
-        auto_detect.assert_not_called()
 
     def test_lxc_docker_registry_mirror_rejects_localhost_operator_value(self):
         with patch.dict(
@@ -1604,29 +1598,12 @@ class TestComposition(unittest.TestCase):
             with self.assertRaises(ValueError):
                 composition._lxc_docker_registry_mirror_configuration()
 
-    def test_lxc_docker_registry_mirror_auto_detects_local_nexus_cache(self):
+    def test_lxc_docker_registry_mirror_does_not_probe_without_operator_environment(self):
         with patch.dict(os.environ, {}, clear=True):
-            with patch(
-                "tiny_swarm_world.infrastructure.composition._local_docker_container_running",
-                return_value=True,
-            ) as container_running:
-                with patch(
-                    "tiny_swarm_world.infrastructure.composition._lxc_reachable_host_ip",
-                    return_value=ipv4_address(10, 0, 3, 1),
-                ) as host_ip:
-                    mirror = composition._lxc_docker_registry_mirror_configuration()
-
-        self.assertIsNotNone(mirror)
-        assert mirror is not None
-        self.assertEqual(sample_http_url(ipv4_address(10, 0, 3, 1), 5001), mirror.mirror_url)
-        container_running.assert_called_once_with("tiny-swarm-nexus-cache")
-        host_ip.assert_called_once()
-
-    def test_lxc_docker_registry_mirror_returns_none_without_local_nexus_cache(self):
-        with patch.dict(os.environ, {}, clear=True):
-            with patch(
-                "tiny_swarm_world.infrastructure.composition._local_docker_container_running",
-                return_value=False,
+            with patch.object(
+                composition.subprocess,
+                "run",
+                side_effect=AssertionError("unset mirror configuration must not probe Docker"),
             ):
                 mirror = composition._lxc_docker_registry_mirror_configuration()
 

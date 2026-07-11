@@ -89,11 +89,13 @@ class TestInstaller(unittest.TestCase):
                 native_linux_venv=Path(tempdir) / "install-venv",
             )
             venv_python = paths.native_linux_venv / "bin" / "python"
+            commands: list[list[str]] = []
 
             def fake_imports_available(python_bin: str, env: object) -> bool:
                 return python_bin == venv_python.as_posix()
 
             def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+                commands.append(command)
                 if command[:3] == ["python3", "-m", "venv"]:
                     venv_python.parent.mkdir(parents=True)
                     venv_python.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
@@ -113,6 +115,31 @@ class TestInstaller(unittest.TestCase):
                 )
 
         self.assertEqual(venv_python.as_posix(), python_bin)
+        self.assertEqual(
+            [
+                ["python3", "-m", "venv", paths.native_linux_venv.as_posix()],
+                [venv_python.as_posix(), "-m", "pip", "install", "--upgrade", "pip"],
+                [
+                    venv_python.as_posix(),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--require-hashes",
+                    "-r",
+                    "requirements.lock",
+                ],
+                [
+                    venv_python.as_posix(),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-deps",
+                    "-e",
+                    ".",
+                ],
+            ],
+            commands,
+        )
 
     def test_load_export_file_parses_shell_quoted_values(self):
         with tempfile.TemporaryDirectory() as tempdir:

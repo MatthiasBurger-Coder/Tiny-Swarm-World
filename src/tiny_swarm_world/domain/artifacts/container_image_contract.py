@@ -51,17 +51,17 @@ class ContainerImageContract:
 DEFAULT_CONTAINER_IMAGE_CONTRACTS = (
     ContainerImageContract(
         image_name="127.0.0.1:13500/jenkins",
-        tag="latest",
+        tag="0.2.0",
         build_context="jenkins",
     ),
     ContainerImageContract(
         image_name="127.0.0.1:13500/service-access-dashboard",
-        tag="latest",
+        tag="0.2.0",
         build_context="service-access-dashboard",
     ),
     ContainerImageContract(
         image_name="127.0.0.1:13500/service-access-nginx",
-        tag="latest",
+        tag="0.2.0",
         build_context="service-access-nginx",
     ),
     ContainerImageContract(
@@ -72,13 +72,13 @@ DEFAULT_CONTAINER_IMAGE_CONTRACTS = (
     ),
     ContainerImageContract(
         image_name="postgres",
-        tag="14-alpine",
+        tag="14.23-alpine3.23",
         build_context="infisical-postgres",
         source="pull",
     ),
     ContainerImageContract(
         image_name="redis",
-        tag="7-alpine",
+        tag="7.4.9-alpine3.21",
         build_context="infisical-redis",
         source="pull",
     ),
@@ -96,7 +96,7 @@ DEFAULT_CONTAINER_IMAGE_CONTRACTS = (
     ),
     ContainerImageContract(
         image_name="postgres",
-        tag="13",
+        tag="13.23",
         build_context="sonarqube-postgres",
         source="pull",
     ),
@@ -126,13 +126,13 @@ DEFAULT_CONTAINER_IMAGE_CONTRACTS = (
     ),
     ContainerImageContract(
         image_name="python",
-        tag="3.12-alpine",
+        tag="3.12.13-alpine3.23",
         build_context="pulsar-manager-bootstrap",
         source="pull",
     ),
     ContainerImageContract(
         image_name="nginx",
-        tag="mainline-alpine",
+        tag="1.29.8-alpine",
         build_context="swagger-nginx",
         source="pull",
     ),

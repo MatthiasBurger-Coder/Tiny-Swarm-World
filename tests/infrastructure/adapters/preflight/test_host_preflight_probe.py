@@ -629,6 +629,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             },
             fp=io.BytesIO(b""),
         )
+        self.addCleanup(error.close)
 
         with patch(
             "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",
@@ -670,6 +671,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             hdrs={"Access-Control-Allow-Origin": "*"},
             fp=io.BytesIO(b""),
         )
+        self.addCleanup(error.close)
 
         with patch(
             "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.urllib.request.urlopen",

@@ -32,7 +32,7 @@ services:
           - node.role == manager
 
   swagger-api:
-    image: danielgtaylor/apisprout
+    image: danielgtaylor/apisprout@sha256:6c07143937e57095d8478efc8ab7eab52b44e67c7673285f8c0a2bf4a7b137ad
     volumes:
       - ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro
     command: /openapi.json
@@ -48,7 +48,7 @@ services:
           - node.role == manager
 
   swagger-nginx:
-    image: nginx:mainline-alpine
+    image: nginx:1.29.8-alpine
     ports:
       - target: 8084
         published: 16081

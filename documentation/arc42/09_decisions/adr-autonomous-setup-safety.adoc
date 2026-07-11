@@ -16,6 +16,10 @@ live-consent-gated orchestration over setup phases. Current Platform,
 Artifacts, and Deployment behavior remains fail-closed where verification,
 bootstrap, publication, registry, or service-readiness contracts are missing.
 This ADR does not claim that full live runnable installation is verified.
+The later
+`documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc`
+amends only the non-interactive consent scope while retaining this ADR's
+fail-closed safety rules.
 
 == Context
 

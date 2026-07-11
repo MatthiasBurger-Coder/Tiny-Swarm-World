@@ -183,19 +183,21 @@ omission is acceptable, and which verification evidence was collected.
 ## Consent Model
 
 Autonomous setup is not silent host mutation. Mutating setup execution must
-preserve the current live-consent contract until a later ADR explicitly
-changes it:
+preserve the live-consent contract defined by the autonomous setup safety ADR
+and the explicit non-interactive live-consent ADR:
 
 - `--live`;
-- answer `y` at the short live-infrastructure confirmation prompt.
+- either answer `y` at the short live-infrastructure confirmation prompt or
+  pass the explicit `--approve-live` flag in the same invocation.
 
 Missing consent must return `REFUSED_LIVE_CONSENT_MISSING` before any
 Multipass, Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
 compose, stack, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube,
 Swagger/NGINX, image build, image push, or bootstrap command runs.
 
-Non-interactive live execution is out of scope until a later workflow and ADR
-define a separate consent contract.
+The installer exposes the same deliberate automation choice through
+`--non-interactive-live-approval`. Headless execution does not imply consent,
+and destructive reset or destroy confirmations remain separate controls.
 
 ## Credential And Configuration Model
 
@@ -283,7 +285,7 @@ smoke validation is a separate operator action and requires:
 - Live Incus, LXC container, Docker-in-container, or Docker
   Swarm-in-container validation during default development quality gates.
 - Automatic host package installation.
-- Non-interactive live consent.
+- Implicit, cached, or environment-inferred live consent.
 - Kubernetes-first deployment.
 - Browser React frontend work.
 - Java-driven setup architecture.
@@ -299,7 +301,7 @@ Stop execution when:
 - minimum target profile is unclear;
 - setup would require committed credentials or host-specific values;
 - autonomous setup is redefined as silent host mutation;
-- host package installation or non-interactive consent is introduced without
+- host package installation or a new live-consent source is introduced without
   ADR approval;
 - direct scripts would bypass CLI consent controls;
 - service health would be claimed without verification evidence;

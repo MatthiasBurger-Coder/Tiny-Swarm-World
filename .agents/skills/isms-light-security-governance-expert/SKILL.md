@@ -1,3 +1,8 @@
+---
+name: isms-light-security-governance-expert
+description: Use for ISMS-light scope, security risks, controls, incident response, and secret-handling governance.
+---
+
 # ISMS-Light Security Governance Expert
 
 ## Purpose
@@ -37,6 +42,14 @@ content, and certification overclaims.
 Escalate ASVS mapping to `owasp-asvs-local-infrastructure-expert`,
 supply-chain concerns to `supply-chain-security-expert`, and live evidence to
 `live-evidence-validation-expert`.
+
++## Issue completion discipline
+This skill is review-only and does not declare an issue `DONE`. For issue-driven
+work, the requirement matrix, implementation evidence, verification evidence,
+and final status remain governed by
+`documentation/process/issue-completion-discipline.md` and
+`issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
+its findings and evidence remain required inputs to the completion audit.
 
 ## Related workflows
 Supports #123 and security portions of #120-#130.

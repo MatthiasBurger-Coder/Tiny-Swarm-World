@@ -7,7 +7,7 @@ from tiny_swarm_world.domain.network.ip_value import IpValue
 
 
 class IpExtractorSwarmManager(ExtractionStrategy):
-    """Strategie zur Extraktion der Swarm-Manager-IP."""
+    """Extract the Swarm manager IP address."""
 
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)

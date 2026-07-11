@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 class ExtractionStrategy(ABC):
-    """Abstrakte Basis für verschiedene Extraktionsstrategien."""
+    """Abstract base for extraction strategies."""
 
     @abstractmethod
     def extract(self, result) -> Any:
-        """Extrahiert eine bestimmte Information aus dem Resultat."""
+        """Extract specific information from a command result."""
         pass

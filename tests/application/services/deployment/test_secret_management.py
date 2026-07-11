@@ -18,8 +18,12 @@ from tiny_swarm_world.application.services.deployment.secret_management import (
     SecretRedactor,
     SecretSyncUseCase,
 )
+from tiny_swarm_world.infrastructure.adapters.file_management.local_file_storage import (
+    LocalFileStorage,
+)
 
 _PULSAR_COMPOSE_FIXTURE = Path("infra/config/compose/pulsar/docker-compose.yml")
+_STORAGE = LocalFileStorage()
 
 
 class TestSecretManagement(unittest.TestCase):
@@ -38,13 +42,16 @@ class TestSecretManagement(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            entries = SecretManifestRenderer(manifest).run()
+            entries = SecretManifestRenderer(_STORAGE, manifest).run()
 
             self.assertEqual("TSW_POSTGRES_PASSWORD", entries[0].key)
             self.assertEqual("keep_existing", entries[0].policy)
 
     def test_committed_manifest_tracks_traefik_tls_secret_names_without_values(self):
-        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
+        entries = SecretManifestRenderer(
+            _STORAGE,
+            Path("infra/config/secrets/infisical-secrets.yaml"),
+        ).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         for key in (
@@ -61,7 +68,10 @@ class TestSecretManagement(unittest.TestCase):
                 self.assertNotIn("REDACTED", entry.description)
 
     def test_committed_manifest_keeps_infisical_bootstrap_token_optional(self):
-        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
+        entries = SecretManifestRenderer(
+            _STORAGE,
+            Path("infra/config/secrets/infisical-secrets.yaml"),
+        ).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         entry = entries_by_key["TSW_INFISICAL_BOOTSTRAP_TOKEN"]
@@ -70,7 +80,10 @@ class TestSecretManagement(unittest.TestCase):
         self.assertFalse(entry.required)
 
     def test_committed_manifest_marks_infisical_redis_password_required(self):
-        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
+        entries = SecretManifestRenderer(
+            _STORAGE,
+            Path("infra/config/secrets/infisical-secrets.yaml"),
+        ).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         entry = entries_by_key["TSW_INFISICAL_REDIS_PASSWORD"]
@@ -81,7 +94,10 @@ class TestSecretManagement(unittest.TestCase):
         self.assertTrue(entry.required)
 
     def test_manifest_entries_expose_ownership_storage_and_lifecycle(self):
-        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
+        entries = SecretManifestRenderer(
+            _STORAGE,
+            Path("infra/config/secrets/infisical-secrets.yaml"),
+        ).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         generated = entries_by_key["TSW_NEXUS_ADMIN_PASSWORD"]
@@ -99,7 +115,10 @@ class TestSecretManagement(unittest.TestCase):
         self.assertEqual("created_during_infisical_sync_and_reused", bootstrap.lifecycle)
 
     def test_committed_manifest_tracks_required_infisical_login_identity(self):
-        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
+        entries = SecretManifestRenderer(
+            _STORAGE,
+            Path("infra/config/secrets/infisical-secrets.yaml"),
+        ).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         entry = entries_by_key["TSW_INFISICAL_LOGIN_EMAIL"]
@@ -110,11 +129,18 @@ class TestSecretManagement(unittest.TestCase):
         self.assertTrue(entry.required)
 
     def test_pulsar_compose_bootstrap_does_not_create_secret_inventory_blocker(self):
-        entries = SecretManifestRenderer(Path("infra/config/secrets/infisical-secrets.yaml")).run()
+        entries = SecretManifestRenderer(
+            _STORAGE,
+            Path("infra/config/secrets/infisical-secrets.yaml"),
+        ).run()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             _write_repo_fixture(root, "docker-compose.yml", _PULSAR_COMPOSE_FIXTURE.read_text(encoding="utf-8"))
-            discovery = SecretDiscoveryStep(repo_root=root, manifest_entries=entries)
+            discovery = SecretDiscoveryStep(
+                storage=_STORAGE,
+                repo_root=root,
+                manifest_entries=entries,
+            )
 
             findings = discovery.run()
 
@@ -129,6 +155,7 @@ class TestSecretManagement(unittest.TestCase):
                 encoding="utf-8",
             )
             discovery = SecretDiscoveryStep(
+                storage=_STORAGE,
                 repo_root=root,
                 manifest_entries=(_entry("TSW_POSTGRES_PASSWORD"),),
             )
@@ -149,7 +176,7 @@ class TestSecretManagement(unittest.TestCase):
                 "credential_item_ref: platform/portainer\n"
                 'credential_note: "Open Infisical item"\n',
             )
-            discovery = SecretDiscoveryStep(repo_root=root)
+            discovery = SecretDiscoveryStep(storage=_STORAGE, repo_root=root)
 
             findings = discovery.run()
 
@@ -173,6 +200,7 @@ class TestSecretManagement(unittest.TestCase):
             cli = _FakeInfisicalCli(existing={"TSW_EXISTING_PASSWORD"})
             sync = InfisicalSecretSyncStep(
                 cli=cli,
+                storage=_STORAGE,
                 manifest_entries=(
                     _entry("TSW_NEW_PASSWORD"),
                     _entry("TSW_EXISTING_PASSWORD"),
@@ -193,6 +221,7 @@ class TestSecretManagement(unittest.TestCase):
             cli = _FakeInfisicalCli(available=False)
             sync = InfisicalSecretSyncStep(
                 cli=cli,
+                storage=_STORAGE,
                 manifest_entries=(_entry("TSW_API_SYNC_PASSWORD"),),
                 generated_local_env=env_file,
             )
@@ -213,6 +242,7 @@ class TestSecretManagement(unittest.TestCase):
             cli = _FakeInfisicalCli()
             sync = InfisicalSecretSyncStep(
                 cli=cli,
+                storage=_STORAGE,
                 manifest_entries=(
                     _entry("TSW_FIXED_ONE_PASSWORD"),
                     _entry("TSW_FIXED_TWO_PASSWORD"),
@@ -243,6 +273,7 @@ class TestSecretManagement(unittest.TestCase):
             )
             sync = InfisicalSecretSyncStep(
                 cli=_FakeInfisicalCli(),
+                storage=_STORAGE,
                 manifest_entries=(
                     _entry("TSW_PRESENT_PASSWORD"),
                     _entry("TSW_MISSING_PASSWORD"),
@@ -263,6 +294,7 @@ class TestSecretManagement(unittest.TestCase):
             )
             sync = InfisicalSecretSyncStep(
                 cli=_FakeInfisicalCli(),
+                storage=_STORAGE,
                 manifest_entries=(_entry("TSW_EMPTY_PASSWORD"),),
                 fixed_env_file=fixed_file,
                 mode="fixed",
@@ -281,8 +313,9 @@ class TestSecretManagement(unittest.TestCase):
             )
             sync = SecretSyncUseCase(
                 store=InfisicalSecretStore(_FailingInfisicalCli()),
+                storage=_STORAGE,
                 manifest_entries=(_entry("TSW_FAILING_PASSWORD"),),
-                fixed_source=FixedEnvSecretSource(fixed_file),
+                fixed_source=FixedEnvSecretSource(_STORAGE, fixed_file),
                 mode="fixed",
             )
 
@@ -295,6 +328,7 @@ class TestSecretManagement(unittest.TestCase):
     def test_missing_required_external_secret_blocks(self):
         sync = InfisicalSecretSyncStep(
             cli=_FakeInfisicalCli(),
+            storage=_STORAGE,
             manifest_entries=(
                 SecretManifestEntry(
                     key="TSW_EXTERNAL_API_KEY",
@@ -315,10 +349,20 @@ class TestSecretManagement(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             env_file = Path(directory) / "generated.local.env"
             cli = _FakeInfisicalCli()
-            sync = InfisicalSecretSyncStep(cli=cli, manifest_entries=(_entry("TSW_STABLE_PASSWORD"),), generated_local_env=env_file)
+            sync = InfisicalSecretSyncStep(
+                cli=cli,
+                storage=_STORAGE,
+                manifest_entries=(_entry("TSW_STABLE_PASSWORD"),),
+                generated_local_env=env_file,
+            )
             sync.run()
             first = env_file.read_text(encoding="utf-8")
-            sync_again = InfisicalSecretSyncStep(cli=_FakeInfisicalCli(), manifest_entries=(_entry("TSW_STABLE_PASSWORD"),), generated_local_env=env_file)
+            sync_again = InfisicalSecretSyncStep(
+                cli=_FakeInfisicalCli(),
+                storage=_STORAGE,
+                manifest_entries=(_entry("TSW_STABLE_PASSWORD"),),
+                generated_local_env=env_file,
+            )
             sync_again.run()
 
             self.assertEqual(first, env_file.read_text(encoding="utf-8"))
@@ -329,16 +373,44 @@ class TestSecretManagement(unittest.TestCase):
         self.assertIn("/.tiny-swarm/", gitignore)
         self.assertIn("*.local.env", gitignore)
 
+    def test_secret_consumption_blocks_when_required_reference_is_missing(self):
+        consumption = SecretConsumptionVerifier(
+            manifest_entries=(_entry("TSW_REQUIRED_PASSWORD"),),
+            stack_environment={},
+        )
+
+        consumption.run()
+        result = consumption.verify()
+
+        self.assertEqual("blocked", result.status.value)
+        self.assertEqual("1", result.evidence["missing_required_count"])
+        self.assertEqual("required_consumer_missing", result.evidence["reason"])
+
     def test_evidence_redaction(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            discovery = SecretDiscoveryStep(repo_root=root, manifest_entries=(_entry("TSW_POSTGRES_PASSWORD"),))
+            discovery = SecretDiscoveryStep(
+                storage=_STORAGE,
+                repo_root=root,
+                manifest_entries=(_entry("TSW_POSTGRES_PASSWORD"),),
+            )
             discovery.run()
-            sync = InfisicalSecretSyncStep(cli=_FakeInfisicalCli(), manifest_entries=(_entry("TSW_POSTGRES_PASSWORD"),), generated_local_env=root / "generated.local.env")
+            sync = InfisicalSecretSyncStep(
+                cli=_FakeInfisicalCli(),
+                storage=_STORAGE,
+                manifest_entries=(_entry("TSW_POSTGRES_PASSWORD"),),
+                generated_local_env=root / "generated.local.env",
+            )
             sync.run()
             consumption = SecretConsumptionVerifier(manifest_entries=(_entry("TSW_POSTGRES_PASSWORD"),), stack_environment={"postgres": {"TSW_POSTGRES_PASSWORD": operator_credential()}})
             consumption.run()
-            writer = SecretEvidenceWriter(evidence_dir=root / "evidence", discovery=discovery, sync=sync, consumption=consumption)
+            writer = SecretEvidenceWriter(
+                storage=_STORAGE,
+                evidence_dir=root / "evidence",
+                discovery=discovery,
+                sync=sync,
+                consumption=consumption,
+            )
 
             writer.run()
 

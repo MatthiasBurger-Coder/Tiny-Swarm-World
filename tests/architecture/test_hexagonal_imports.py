@@ -47,6 +47,19 @@ KNOWN_MIXED_BOUNDARY_FILES = (
     "src/tiny_swarm_world/infrastructure/composition.py",
     "src/tiny_swarm_world/__main__.py",
 )
+FORBIDDEN_APPLICATION_TECHNOLOGY_IMPORTS = ("os", "yaml")
+DIRECT_FILESYSTEM_METHODS = {
+    "chmod",
+    "exists",
+    "glob",
+    "is_file",
+    "iterdir",
+    "mkdir",
+    "read_text",
+    "rglob",
+    "unlink",
+    "write_text",
+}
 
 
 class TestHexagonalImports(unittest.TestCase):
@@ -81,6 +94,20 @@ class TestHexagonalImports(unittest.TestCase):
         )
 
         self.assertEqual([], violations)
+
+    def test_application_services_access_local_state_only_through_ports(self):
+        technology_imports = [
+            violation
+            for forbidden_prefix in FORBIDDEN_APPLICATION_TECHNOLOGY_IMPORTS
+            for violation in _find_forbidden_imports(
+                root=APPLICATION_SERVICES_ROOT,
+                forbidden_prefix=forbidden_prefix,
+            )
+        ]
+        filesystem_calls = _find_direct_filesystem_calls(APPLICATION_SERVICES_ROOT)
+
+        self.assertEqual([], technology_imports)
+        self.assertEqual([], filesystem_calls)
 
 
 class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
@@ -346,6 +373,27 @@ def _is_application_service_directory(path: Path) -> bool:
         source_file.is_file() and "__pycache__" not in source_file.parts
         for source_file in path.rglob("*.py")
     )
+
+
+def _find_direct_filesystem_calls(root: Path) -> list[tuple[str, str, int]]:
+    violations: list[tuple[str, str, int]] = []
+    for source_file in sorted(root.rglob("*.py")):
+        tree = ast.parse(source_file.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                continue
+            if node.func.attr not in DIRECT_FILESYSTEM_METHODS:
+                continue
+            if _is_storage_port_call(node.func.value):
+                continue
+            violations.append((_module_name(source_file), node.func.attr, node.lineno))
+    return violations
+
+
+def _is_storage_port_call(receiver: ast.expr) -> bool:
+    if isinstance(receiver, ast.Name):
+        return receiver.id == "storage"
+    return isinstance(receiver, ast.Attribute) and receiver.attr == "storage"
 
 
 def _architecture_document(document_name: str) -> str:

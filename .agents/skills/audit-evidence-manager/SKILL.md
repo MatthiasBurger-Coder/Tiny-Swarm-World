@@ -1,3 +1,8 @@
+---
+name: audit-evidence-manager
+description: Use for audit evidence structure, findings registers, remediation evidence, and evidence status discipline in Tiny Swarm World.
+---
+
 # Audit Evidence Manager
 
 ## Purpose
@@ -36,6 +41,14 @@ Escalate quality objectives to `qms-light-governance-expert`, security controls
 to `isms-light-security-governance-expert`, live run evidence to
 `live-evidence-validation-expert`, and release baselines to
 `release-baseline-governance-expert`.
+
++## Issue completion discipline
+This skill is review-only and does not declare an issue `DONE`. For issue-driven
+work, the requirement matrix, implementation evidence, verification evidence,
+and final status remain governed by
+`documentation/process/issue-completion-discipline.md` and
+`issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
+its findings and evidence remain required inputs to the completion audit.
 
 ## Related workflows
 Supports #121 and the remediation program #120-#130.

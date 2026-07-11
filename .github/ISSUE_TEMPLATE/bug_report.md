@@ -7,32 +7,31 @@ assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**Describe the infrastructure automation bug**
+A concise description of the failed workflow or incorrect state.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**Workflow and command**
+Provide the workflow name and POSIX command. Redact passwords, tokens, local
+addresses, user names, and private paths.
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+**Environment**
+- Runtime: native Linux or WSL2
+- Distribution and version:
+- Python version:
+- Incus version and backend:
+- Tiny Swarm World commit:
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Observed result**
+Include the status (`refused`, `blocked`, `failed_to_apply`, or
+`failed_to_verify`) and a redacted evidence summary. Do not attach `.env`
+files or raw secret-bearing logs.
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+**Expected result**
+Describe the verified state you expected.
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+**Live mutation**
+State whether live infrastructure commands were run and whether the target is
+disposable or recoverable.
 
 **Additional context**
-Add any other context about the problem here.
+List relevant configuration keys by name only and any safe recovery attempted.
