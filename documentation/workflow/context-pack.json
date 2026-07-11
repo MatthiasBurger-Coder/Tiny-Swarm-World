@@ -1,87 +1,184 @@
 {
-  "workflow_id": "workflow-service-access-dashboard-html-20260629",
-  "version": "workflow-service-access-dashboard-html-v1.0.0",
-  "branch": "fix/workflow-service-access-dashboard-html-20260629",
-  "issue": "local-high-service-access-dashboard-html-deployment-sync",
-  "process_strand": "workflow create -> workflow execute",
-  "execution_profile": "NORMAL_PATH",
-  "status": "EXECUTED_LOCAL_QUALITY_PASSED_REMOTE_PUBLICATION_BLOCKED",
+  "workflow_id": "workflow-issue-157-final-gaps-20260711",
+  "version": "workflow-issue-157-final-gaps-v1.0.0",
+  "issue": {
+    "number": 157,
+    "title": "Gateway: Route HTTP services through Traefik using central access configuration",
+    "url": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/157",
+    "retrieved_on": "2026-07-11",
+    "epic_source": "No documentation/epics directory; issue plus explicit user refinement is authoritative"
+  },
+  "branch": "fix/issue-157-final-gaps-20260711",
+  "baseline": {
+    "branch": "main",
+    "commit": "3e0d28db0e59fc3f38929c4b91cac0566ed39fb6",
+    "public_main_verified": true
+  },
+  "worktree": "isolated_worktree_for_declared_branch_path_not_persisted",
+  "process_strand": "workflow create -> workflow execute -> issue completion audit -> PR readiness",
+  "execution_profile": "FULL_PATH",
+  "status": "AUTHORED_PENDING_EXECUTION",
+  "gate": {
+    "decision": "READY_FOR_WORKFLOW",
+    "confidence_percent": 97,
+    "blocking_questions": []
+  },
   "affected_areas": [
-    "service-access-dashboard-html-generation",
-    "service-access-compose-config-file-path",
-    "lxc-swarm-stack-asset-transfer",
-    "deployment-pre-apply-sequencing",
-    "static-regression-tests",
-    "deployment-documentation"
+    "effective-access-model-port",
+    "conditional-route-activation",
+    "shared-upstream-traefik-label-rendering",
+    "productive-routing-evidence",
+    "atomic-local-evidence-persistence",
+    "deployment-pre-apply-composition",
+    "optional-route-integration-fixtures",
+    "dynamic-browser-expectations",
+    "browser-suite-summary",
+    "renderer-centric-dashboard-tests",
+    "issue-completion-evidence",
+    "pr-ci-sonar-review-readiness"
   ],
   "forbidden_areas": [
-    "live-infrastructure-without-explicit-opt-in",
-    "generated-local-secret-file",
-    "kubernetes-first-behavior",
-    "react-frontend",
-    "java-maven-spring-surface",
-    "raw-secrets-or-local-topology-in-evidence"
+    "incus-lxc-installation",
+    "docker-installation",
+    "docker-swarm-bootstrap",
+    "setup-phase-reordering",
+    "issue-156-direct-port-redesign",
+    "dns-hosts-resolver-mutation",
+    "certificate-lifecycle",
+    "rabbitmq-or-messaging-redesign",
+    "infisical-bootstrap",
+    "kubernetes-implementation",
+    "react-browser-frontend",
+    "raw-local-env-or-secret-values",
+    "global-repository-config-mutation-by-tests",
+    "opportunistic-refactoring"
   ],
   "required_roles": [
+    "Senior Workflow Architect",
     "Senior Requirement Engineer",
     "Senior System Architect",
     "Senior Python Automation Developer",
-    "Senior React Frontend Developer",
     "Senior Tester",
     "Senior DevOps Engineer",
     "Senior Documentation Engineer",
+    "Security / Evidence Reviewer",
+    "Live Evidence Validation Reviewer",
+    "Git Commit Reviewer / Operator",
     "Issue Completion Auditor"
   ],
+  "conditional_roles": {
+    "console_status_ui": "not_applicable",
+    "react_frontend": "forbidden_not_applicable"
+  },
+  "execution_groups": [
+    {
+      "group": "G1",
+      "slices": ["01"],
+      "mode": "serial"
+    },
+    {
+      "group": "G2",
+      "slices": ["02", "03", "04"],
+      "mode": "parallel_isolated_worktrees"
+    },
+    {
+      "group": "G3",
+      "slices": ["05"],
+      "mode": "serial"
+    },
+    {
+      "group": "G4",
+      "slices": ["06"],
+      "mode": "serialized_external_validation"
+    }
+  ],
+  "evidence_roots": {
+    "workflow": ".codex/evidence/workflow-issue-157-final-gaps-20260711",
+    "issue": ".tiny-swarm/evidence/issue-157-final-gaps-20260711",
+    "routing": ".tiny-swarm-world/evidence/solid-typed-evidence/routing",
+    "browser_e2e": ".tiny-swarm-world/evidence/solid-typed-evidence/e2e"
+  },
   "quality_commands": {
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_swarm_runtime",
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml",
+      "PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state",
+      "PYTHONPATH=src python3 -m unittest tests.integration.test_optional_service_routing",
+      "PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_write_effective_access_model_evidence",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_routing_evidence_local_repository",
       "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition",
-      "PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_deployment_workflows",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml",
+      "PYTHONPATH=src python3 -m unittest tests.integration.test_service_access_routing",
+      "PYTHONPATH=src python3 -m unittest tests.live.browser_e2e_contract",
+      "PYTHONPATH=src python3 -m unittest tests.live.test_post_install_browser_live.StaticPostInstallLiveSuiteTest",
       "git diff --check"
     ],
     "required": [
+      "python3 tools/quality_gate.py lint",
+      "python3 tools/quality_gate.py arch-lint",
+      "python3 tools/quality_gate.py arch-tests",
+      "python3 tools/quality_gate.py typecheck",
+      "python3 tools/quality_gate.py test",
       "python3 tools/quality_gate.py quality"
     ],
-    "windows_host_wrapper": [
-      "wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World_2 && <command>'"
-    ],
-    "live_opt_in": []
+    "windows_host_wrapper": "Run through WSL with the verified workflow worktree as cwd; do not persist its host-specific absolute path",
+    "live_opt_in": "TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 only with explicit current consent and verified prerequisites"
   },
   "publication": {
     "local_branch_verified": true,
-    "remote_target": "origin/fix/workflow-service-access-dashboard-html-20260629",
-    "remote_publication_status": "blocked",
-    "known_remote_check_issue": "origin SSH access failed during authoring with Permission denied (publickey)",
-    "last_push_error": "git@github.com: Permission denied (publickey). fatal: Could not read from remote repository."
+    "local_branch_ref_verified": true,
+    "remote_target": "origin/fix/issue-157-final-gaps-20260711",
+    "local_collision": false,
+    "public_remote_collision": false,
+    "origin_ssh_probe": "blocked_permission_denied_publickey",
+    "workflow_create_push_status": "pending_guarded_attempt",
+    "workflow_create_pr_allowed": false,
+    "implementation_pr_allowed_after_slice": "05",
+    "automatic_merge_requested": false
   },
   "hashes": {
     "AGENTS.md": "bba7ddf6214a1aaad6c2bfacbae2c9ac2bbd05653c03df9ba0daff3cf1b93210",
     "QUALITY.md": "458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6",
     "documentation/process/issue-completion-discipline.md": "81876f6dca479a1d63a80f765baf949a951eff2e0eeafde6bac72ad750508904",
-    ".agents/skills/workflow-authoring/SKILL.md": "8c622893ec2c5b271179f668d6225df476cb69044c6607fbdd0dce72dcb4a0a1",
+    "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
+    ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
+    ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
+    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
+    ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
+    ".agents/skills/workflow-slice/SKILL.md": "bae552d4860614879871413918870df6940b95af185f6c1077a023caa88e3ddb",
+    ".agents/skills/engineering-governance/SKILL.md": "923c23fa4328d0c2365bfdb52a577c7316101f5e0964cea879d61bb06ee27634",
+    ".agents/skills/arc42-architecture-governance/SKILL.md": "c30bd90b970f224b9b3816cacb8848a4280b871df151fc45bce8ae58e8e4c796",
+    ".agents/skills/architecture-hexagonal/SKILL.md": "3c106565c06c40866fe77c91fb0840aff226495ccd077f8db803b38b3d8355ff",
+    ".agents/skills/quality-testing-strategy/SKILL.md": "6343a0b0e706facecaa1b373ac524d576f29ffa51451b75bb0f6367e2aeb16ba",
+    ".agents/skills/quality-gate-governance/SKILL.md": "bf9e9b402d481a670b742ac9f3b9a9a41482ce3b523bf8edf876aae71d31d95d",
+    ".agents/skills/s3d-execution-orchestrator/SKILL.md": "54c687a580225c85aa3bca2445782064bff914f593458a63006b0793dc8233bc",
+    ".agents/skills/issue-completion-auditor/SKILL.md": "6de0eb7ff298f25ee0255695c4a0057d502039c786f87ab4dc7aa1991e1f15c5",
     ".agents/roles/senior-workflow-architect/SKILL.md": "4b1acc3e27105b7216b3992c468c6bc8cde8a5d6722323ff0cfff047a739175c",
     ".agents/roles/senior-requirement-engineer/SKILL.md": "425160e925ccf0edb8983133d95e0fe17bad80ddcc78b8f51d0908ea59ecd1c0",
     ".agents/roles/senior-system-architect.md": "234a2024e989253d1da22057883bf2928a129e843608c66fc67ee352af187f47",
     ".agents/roles/senior-python-automation-developer.md": "7174fa24bec72f0ecc4babdf27c304b7111a5a7d9f1a08d27b86057d70245ebf",
     ".agents/roles/senior-tester.md": "e2e245c58dd6d142901755d6ea97c255145f051bc1c129802fcb4fab5f61d79d",
-    ".agents/roles/senior-devops.md": "91fd2c58fa6d6f83f5e3c94850cd37bcf8f9a6bc7793d24f5eccf83dfd6b41ad",
-    ".agents/roles/senior-documentation-engineer.md": "95de0bdb5d550452f082e18952906b2d669febc5237385f8f9f0360a60ca83b1",
-    ".agents/roles/senior-react-frontend.md": "3b29296f298194e82c80af3a42c2181cd3f340471454da9be3ba662c746b4e0d",
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py": "8af2fc40f28923db33032ab531a1dc145c5ea7b00760d517d7ecef408f86376d",
+    "src/tiny_swarm_world/domain/ingress/desired_state.py": "e152fd32fd5b92fb840bff2069af05b7e6e571c2d5a8c9ff4cef834e6c5fef4e",
     "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py": "e5b7081dbd7d3f30b1afed58788acffb773e40bc3247f515e4128fded931c7c8",
-    "src/tiny_swarm_world/infrastructure/composition.py": "2f8f9eae88923954b3b15134c6b8af707ea7d6eb3afd47c703af3f730d3733f8",
-    "src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py": "ffdf110dc8ecff18d05c74c053958643f5e4c8e38f573a6fa0085ddaf7345e72",
-    "infra/config/compose/service-access/docker-compose.yml": "38d5e223c2c999ec1da5913888d679407e452836ca3cf68331ce471cd6464cc8",
-    "infra/config/compose/service-access/dashboard/index.html": "f440c4823e5a32488d4bdbb8106f0a93dba501eb07ccd255c9b5e34af777cc6c",
-    "documentation/arc42/07_deployment/system.adoc": "f20ac917814e504e166cd76b24f77917c13d2605f8a9c250f53602da267b7cbb",
+    "src/tiny_swarm_world/infrastructure/composition.py": "32ba930c0419cb91ebf6519ad99905be93ed3350b951125af3c983214ac1b3d8",
+    "infra/config/services.yml": "b3f19a685b76aac23fa3f520a348fccc197d7fe49b583f02571c446c64674534",
+    "infra/config/ports.yaml": "aa88412a1afe42ad90f950d2371ac9348f388e98ce11889bf52a9fea2e7162d2",
+    "tests/domain/ingress/test_desired_state.py": "9e573dc77b23bfa43f0b49b9570ae73ece760a9c9392d6b3802fdea930ebab0b",
+    "tests/integration/routing_contract.py": "875218bad9cb7026f6439aba017a3e3716116ab8ed8ec527130d32e989ac05b1",
+    "tests/live/browser_e2e_contract.py": "54f40127a56ee9b797efbad12199a02ed5a255f265ea77c8710dd1b3578e7af9",
+    "tests/live/test_post_install_browser_live.py": "f9aa2ff545b32a38b61849489543a6ada4119406c767db596100c2bf58f2cc2c",
+    "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py": "c1914baf2fb64f72378951d59c7b14acb1dc72d1c201abacc7335f255261e9d0",
+    "documentation/reviews/issue-157-traefik-access-review-20260627.md": "b7a1ca2e083d7217bbbc7506840c7edab016b1867904694df9e614036fbea2ec",
+    "documentation/arc42/05_building_blocks.adoc": "5e4b4e7839152ef751c3b5885d1d41b5a5d7b28ed85220f13df80dd282d10acd",
+    "documentation/arc42/06_runtime_view.adoc": "871a7370e97aea2eb5f529bc0c27c112b503f531ab5715753dcbd6724e97629f",
     "documentation/arc42/07_deployment_view.adoc": "7b82a21876bb640474b5321cc6378793810c762b6ea91e18079cc62b28bc527a",
-    "documentation/arc42/08_configuration/config-contract-inventory.md": "f0a70deea56a773fc1e4423174eac87e6940d8989d0eede7af962a3fc2706f4d",
+    "documentation/arc42/10_quality_requirements.adoc": "29eed2917036feaa9177cf1239329a1f1b71556da7b6a7d534d756f46e772b61",
+    "documentation/arc42/11_risks_and_debt.adoc": "21e244075ca2c4398be2477d5d13d29eda5c69adeac31a145570774ff0c79661",
+    "documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc": "7ea1ee6da01c9a48134567c5221e5fa5d3f5c388a187cb4497a1e59a007eb1a5",
     "documentation/arc42/09_decisions/adr-service-access-dashboard-vaultwarden.adoc": "c4533683dfbd70052564ef079bd653189586392ab4afa81e1d0cc960d57e639f",
-    "documentation/system/live-operation-surfaces.adoc": "49afc854e30ad722296110af274c4b425c2cf63cb2056e9d14c678b725d4b098",
-    "documentation/user_guide/usage.adoc": "54d92952aee3805a4f3530c13cd456cea218ff39c8bae058ef9ce15f0412c4eb",
-    "documentation/user_guide/troubleshooting.adoc": "00f901a4454f8d9adafe9da533d5b1573bbf3ef78f8a24c9ff2758a24dbf1f33",
-    "documentation/workflow/workflow.md": "bb3986756694095e79d90cb70725525bb496b0e0fa09eefefd1aaa6a12df7f28",
-    "documentation/workflow/context-pack.md": "73260d3b099412643f892973727031c723db893a15f55e881b3a321d69469c55"
+    "documentation/arc42/09_decisions/adr-autonomous-setup-safety.adoc": "bd8f00ac582c47c94e041a372d0ad1aef78b1b0304a1d2de9b444bc924ac8eeb",
+    "documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc": "e0a455b4ad79f59ce99f881d07c7fcaee46cea41f8c44ff50fc59a2e7b5e5476",
+    ".github/workflows/sonar_check.yml": "1aded6cb496e644776eaf438b8b000777b09b056b94ab1e8f298fba31498b011",
+    "tools/quality_gate.py": "2c931cad72f002cffb09da90e1c138a5a87e99d30caa8b25fb416bcfaf2adefb",
+    "documentation/workflow/workflow.md": "2b3956f4f996d1759435187d312d39a5d51ce2609e4b1fa6220f54d5db8dca30",
+    "documentation/workflow/context-pack.md": "7ae83c0fee4d44813f96c2a7e6e860ef81b1f774b56af7844f2f08fba262e927"
   }
 }
