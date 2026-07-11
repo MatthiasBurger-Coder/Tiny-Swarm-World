@@ -1,8 +1,10 @@
+import io
 import json
 import stat
 import subprocess
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -323,6 +325,31 @@ class TestInstaller(unittest.TestCase):
 
         self.assertTrue(guard.passed)
         self.assertEqual("windows_exposure_disabled", guard.reason)
+
+    def test_windows_wsl_bridge_agent_not_ready_suggests_task_refresh(self):
+        self.assertEqual(
+            (
+                'powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge"',
+                "powershell.exe -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action install",
+            ),
+            installer._windows_wsl_bridge_suggested_commands("agent_not_ready"),
+        )
+
+    def test_print_windows_wsl_bridge_failure_for_agent_not_ready_mentions_refresh(self):
+        guard = installer.WindowsWslBridgeGuardResult(
+            passed=False,
+            reason="agent_not_ready",
+            state_path=Path("tools/windows/.tws-wsl-bridge.state.json"),
+        )
+        stderr = io.StringIO()
+
+        with redirect_stderr(stderr):
+            installer._print_windows_wsl_bridge_failure(guard, Path(".tiny-swarm-world/evidence/test"))
+
+        rendered = stderr.getvalue()
+        self.assertIn("Reason: agent_not_ready", rendered)
+        self.assertIn("Or refresh the existing scheduled task:", rendered)
+        self.assertIn("Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge", rendered)
 
     def test_suggested_checks_for_phase_returns_phase_specific_commands(self):
         self.assertEqual(
