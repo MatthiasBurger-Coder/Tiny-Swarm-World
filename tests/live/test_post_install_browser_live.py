@@ -28,6 +28,9 @@ from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_ope
 
 from ruamel.yaml import YAML
 
+from tiny_swarm_world.application.ports.repositories.port_effective_access_model_repository import (
+    PortEffectiveAccessModelRepository,
+)
 from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
 )
@@ -35,6 +38,8 @@ from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
 from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
     PortRegistryYamlRepository,
 )
+from tests.live.browser_e2e_contract import browser_route_expectations
+from tests.support.effective_access_model_fixture import effective_access_model_fixture
 from tests.support.sonar_safe_literals import sample_text, sample_url
 
 
@@ -209,8 +214,9 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
 
     def test_live_service_checks_are_safe_routed_urls(self) -> None:
         checks = _service_checks("http://localhost")
+        expectations = browser_route_expectations()
 
-        self.assertGreaterEqual(len(checks), 8)
+        self.assertEqual(len(expectations) + 1, len(checks))
         for check in checks:
             with self.subTest(service=check.name):
                 parsed = urlparse(check.url)
@@ -226,18 +232,10 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         ports_by_name = {check.name: urlparse(check.url).port for check in checks}
 
         self.assertIsNone(ports_by_name["service-access"])
-        for route_name in (
-            "service-access",
-            "portainer",
-            "jenkins",
-            "sonarqube",
-            "nexus",
-            "pulsar-admin-api",
-            "pulsar",
-            "swagger",
-            "infisical",
-        ):
-            self.assertIsNone(ports_by_name[f"service-access-route:{route_name}"])
+        for expectation in browser_route_expectations():
+            self.assertIsNone(
+                ports_by_name[f"service-access-route:{expectation.route_name}"]
+            )
 
     def test_live_service_checks_use_explicit_browser_status_allowlists(self) -> None:
         checks = _service_checks("http://localhost")
@@ -252,20 +250,15 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
 
     def test_https_route_checks_use_tsw_local_https_hostnames(self) -> None:
         checks = _https_route_checks("tsw.local")
+        expectations = browser_route_expectations()
 
         self.assertEqual(
-            (
-                "portainer.tsw.local",
-                "nexus.tsw.local",
-                "jenkins.tsw.local",
-                "pulsar-api.tsw.local",
-                "pulsar.tsw.local",
-                "sonarqube.tsw.local",
-                "swagger.tsw.local",
-                "infisical.tsw.local",
-                "service-access.tsw.local",
-            ),
-            tuple(urlparse(check.url).hostname for check in checks),
+            tuple(expectation.route_name for expectation in expectations),
+            tuple(check.name for check in checks),
+        )
+        self.assertEqual(
+            tuple(expectation.dashboard_url for expectation in expectations),
+            tuple(check.url for check in checks),
         )
         for check in checks:
             with self.subTest(service=check.name):
@@ -278,6 +271,26 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
                 self.assertFalse(parsed.password)
                 self.assertFalse(parsed.query)
                 self.assertFalse(parsed.fragment)
+
+    def test_enabled_optional_routes_enter_post_install_check_matrix(self) -> None:
+        with effective_access_model_fixture(
+            enabled_services=("prometheus", "grafana", "tiny-swarm")
+        ) as fixture:
+            checks = _service_checks(
+                "http://localhost",
+                model_repository=fixture.repository,
+            )
+            https_checks = _https_route_checks(
+                "tsw.local",
+                model_repository=fixture.repository,
+            )
+
+        service_check_names = {check.name for check in checks}
+        https_check_names = {check.name for check in https_checks}
+        for route_name in ("prometheus", "grafana", "app", "api"):
+            with self.subTest(route=route_name):
+                self.assertIn(f"service-access-route:{route_name}", service_check_names)
+                self.assertIn(route_name, https_check_names)
 
     def test_https_route_matrix_evidence_is_redacted_and_actionable(self) -> None:
         result = HttpsRouteProbeResult(
@@ -699,13 +712,24 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
             )
 
 
-def _service_checks(dashboard_url: str) -> tuple[ServiceCheck, ...]:
+def _service_checks(
+    dashboard_url: str,
+    *,
+    model_repository: PortEffectiveAccessModelRepository | None = None,
+) -> tuple[ServiceCheck, ...]:
     safe_dashboard_url = _validated_local_url(dashboard_url, "dashboard")
     checks: list[ServiceCheck] = [
         ServiceCheck("service-access", safe_dashboard_url),
     ]
+    expectations = browser_route_expectations(model_repository)
+    routed_hostnames = {
+        hostname
+        for expectation in expectations
+        if (hostname := urlparse(expectation.dashboard_url).hostname) is not None
+    }
 
-    for route_name, route_path in _dashboard_references(SERVICE_ACCESS_DASHBOARD).routes:
+    for expectation in expectations:
+        route_name = expectation.route_name
         allowed_statuses = (
             (200,)
             if route_name == "service-access"
@@ -715,8 +739,8 @@ def _service_checks(dashboard_url: str) -> tuple[ServiceCheck, ...]:
             ServiceCheck(
                 f"service-access-route:{route_name}",
                 _validated_service_route_url(
-                    route_path if urlparse(route_path).scheme in {"http", "https"}
-                    else urljoin(safe_dashboard_url, route_path)
+                    expectation.dashboard_url,
+                    routed_hostnames=routed_hostnames,
                 ),
                 follow_redirects=False,
                 allowed_statuses=allowed_statuses,
@@ -725,20 +749,28 @@ def _service_checks(dashboard_url: str) -> tuple[ServiceCheck, ...]:
     return tuple(checks)
 
 
-def _routed_hostnames() -> set[str]:
+def _routed_hostnames(
+    model_repository: PortEffectiveAccessModelRepository | None = None,
+) -> set[str]:
     return {
-        route.hostname
-        for route in _desired_service_access_ingress().routes
+        hostname
+        for expectation in browser_route_expectations(model_repository)
+        if (hostname := urlparse(expectation.dashboard_url).hostname) is not None
     }
 
 
-def _validated_service_route_url(raw_url: str) -> str:
+def _validated_service_route_url(
+    raw_url: str,
+    *,
+    routed_hostnames: set[str] | None = None,
+) -> str:
     parsed = urlparse(raw_url)
     if parsed.hostname == "localhost":
         return _validated_local_url(raw_url, "dashboard")
+    allowed_hostnames = routed_hostnames if routed_hostnames is not None else _routed_hostnames()
     if (
         parsed.scheme != "https"
-        or parsed.hostname not in _routed_hostnames()
+        or parsed.hostname not in allowed_hostnames
         or parsed.port is not None
         or parsed.username
         or parsed.password
@@ -749,20 +781,31 @@ def _validated_service_route_url(raw_url: str) -> str:
     return raw_url
 
 
-def _https_route_checks(base_domain: str) -> tuple[ServiceCheck, ...]:
-    desired_ingress = desired_https_ingress_for_profile(
-        ServiceStackProfile.SERVICE_ACCESS,
-        base_domain=_validated_ingress_base_domain(base_domain),
-        port_registry=PortRegistryYamlRepository().load(),
-    )
+def _https_route_checks(
+    base_domain: str,
+    *,
+    model_repository: PortEffectiveAccessModelRepository | None = None,
+) -> tuple[ServiceCheck, ...]:
+    validated_base_domain = _validated_ingress_base_domain(base_domain)
     return tuple(
         ServiceCheck(
-            route.service_name,
-            f"https://{route.hostname}/",
-            allowed_statuses=SERVICE_ALLOWED_STATUSES.get(route.service_name, (200,)),
+            expectation.route_name,
+            _url_for_base_domain(expectation.dashboard_url, validated_base_domain),
+            allowed_statuses=SERVICE_ALLOWED_STATUSES.get(
+                expectation.route_name,
+                (200,),
+            ),
         )
-        for route in desired_ingress.routes
+        for expectation in browser_route_expectations(model_repository)
     )
+
+
+def _url_for_base_domain(url: str, base_domain: str) -> str:
+    parsed = urlparse(url)
+    if parsed.hostname is None:
+        raise AssertionError("post_install_browser_setup_blocker: missing_route_hostname")
+    hostname_prefix = parsed.hostname.split(".", maxsplit=1)[0]
+    return parsed._replace(netloc=f"{hostname_prefix}.{base_domain}").geturl()
 
 
 def _hostname_for_check(check: ServiceCheck) -> str:
@@ -1536,13 +1579,6 @@ def _validated_ingress_base_domain(raw_domain: str) -> str:
     return domain
 
 
-def _desired_service_access_ingress():
-    return desired_https_ingress_for_profile(
-        ServiceStackProfile.SERVICE_ACCESS,
-        port_registry=PortRegistryYamlRepository().load(),
-    )
-
-
 def _validated_tls_ca_bundle(raw_path: str | None) -> str | None:
     if not raw_path:
         return None
@@ -1598,7 +1634,6 @@ class _NoRedirectHandler(HTTPRedirectHandler):
 
 @dataclass(frozen=True)
 class _DashboardReferences:
-    routes: tuple[tuple[str, str], ...]
     credential_items: tuple[str, ...]
     no_login_services: tuple[str, ...]
 
@@ -1606,32 +1641,18 @@ class _DashboardReferences:
 class _DashboardReferenceParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
-        self.routes: list[tuple[str, str]] = []
         self.credential_items: list[str] = []
         self.no_login_services: list[str] = []
         self._current_row_header = ""
         self._in_header = False
         self._in_code = False
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        attributes = dict(attrs)
+    def handle_starttag(self, tag: str, _attrs: list[tuple[str, str | None]]) -> None:
         if tag == "th":
             self._in_header = True
             self._current_row_header = ""
         if tag == "code":
             self._in_code = True
-        if tag == "a" and (href := attributes.get("href")):
-            if href.startswith("/"):
-                name = href.strip("/") or "service-access"
-                self.routes.append((name, href))
-                return
-            parsed = urlparse(href)
-            if parsed.scheme in {"http", "https"} and (
-                parsed.hostname == "localhost"
-                or parsed.hostname in _routed_hostnames()
-            ):
-                name = _dashboard_route_name(parsed)
-                self.routes.append((name, href))
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "th":
@@ -1655,47 +1676,9 @@ def _dashboard_references(path: Path) -> _DashboardReferences:
     parser = _DashboardReferenceParser()
     parser.feed(path.read_text(encoding="utf-8"))
     return _DashboardReferences(
-        routes=tuple(dict.fromkeys(parser.routes)),
         credential_items=tuple(dict.fromkeys(parser.credential_items)),
         no_login_services=tuple(dict.fromkeys(parser.no_login_services)),
     )
-
-
-def _dashboard_route_name(parsed_url) -> str:
-    hostname_routes = {
-        "service-access.tsw.local": "service-access",
-        "portainer.tsw.local": "portainer",
-        "jenkins.tsw.local": "jenkins",
-        "sonarqube.tsw.local": "sonarqube",
-        "nexus.tsw.local": "nexus",
-        "pulsar-api.tsw.local": "pulsar-admin-api",
-        "pulsar.tsw.local": "pulsar",
-        "swagger.tsw.local": "swagger",
-        "infisical.tsw.local": "infisical",
-    }
-    if parsed_url.hostname in hostname_routes:
-        return hostname_routes[parsed_url.hostname]
-    port = parsed_url.port
-    path = parsed_url.path.rstrip("/")
-    if port == 10000:
-        return "service-access"
-    if port == 10001:
-        return "portainer"
-    if port == 11080:
-        return "jenkins"
-    if port == 12000:
-        return "sonarqube"
-    if port == 13081:
-        return "nexus"
-    if port == 14080 and path.startswith("/admin/v2/clusters"):
-        return "pulsar-admin-api"
-    if port == 14081:
-        return "pulsar"
-    if port == 16080:
-        return "swagger"
-    if port == 17080:
-        return "infisical"
-    return f"localhost-{port or parsed_url.scheme}"
 
 
 class _EvidenceRecorder:
