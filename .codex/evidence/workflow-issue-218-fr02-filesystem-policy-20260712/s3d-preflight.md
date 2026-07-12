@@ -3,7 +3,7 @@
 Date: `2026-07-12`
 Workflow: `workflow-issue-218-fr02-filesystem-policy-20260712`
 Slice: `01`
-Decision: `READY_FOR_GUARDED_WORKFLOW_PUBLICATION`
+Decision: `READY_FOR_WORKFLOW_EXECUTE_AFTER_PUBLICATION_METADATA_PUSH`
 
 ## Baseline and lifecycle
 
@@ -36,10 +36,10 @@ Decision: `READY_FOR_GUARDED_WORKFLOW_PUBLICATION`
 
 Product implementation remains blocked until:
 
-1. workflow authoring review passes;
-2. authoring commit is pushed normally;
-3. publication metadata commit is pushed normally;
-4. the remote branch resolves to the publication head;
-5. the active workflow says execution pending.
+1. workflow authoring review passes — `PASS`;
+2. authoring commit is pushed normally — `PASS`, `2af8ae7`;
+3. publication metadata commit is pushed normally — pending this commit;
+4. the remote branch resolves to the publication head — pending this commit;
+5. the active workflow says execution pending — `PASS`.
 
 No PR or merge is allowed during workflow creation.

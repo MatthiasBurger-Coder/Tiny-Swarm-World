@@ -6,6 +6,9 @@
 - Baseline: `main@81ca7efab062347a87c32e5305427236b048d741`
 - Process: `workflow create -> workflow execute -> PR/CI/Sonar -> merge`
 - Profile: `FULL_PATH`
+- Authoring publication: commit
+  `2af8ae7f98029c7d6efa916853cf2da85fe32167` verified at
+  `origin/feature/workflow-issue-218-fr02-filesystem-policy-20260712`
 - Gate: `READY_FOR_WORKFLOW`, 96 percent confidence
 - Slice: one serial filesystem-policy slice; no parallel write streams
 - Direct requirements: FR-002, AC-002 path portion, AC-003, UT-006..009,
@@ -28,6 +31,8 @@
 - Evidence roots:
   `.codex/evidence/workflow-issue-218-fr02-filesystem-policy-20260712/` and
   ignored `.tiny-swarm/evidence/issue-218-fr02/`
+- Next action: exact `workflow execute` after publication metadata remote-head
+  verification; workflow create must not be called backwards
 
 This navigation aid does not replace `AGENTS.md`, `QUALITY.md`, the issue
 discipline, accepted ADRs, routing rules, skills, the complete requirement
