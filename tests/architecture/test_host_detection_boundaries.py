@@ -9,9 +9,7 @@ SOURCE_ROOT = REPOSITORY_ROOT / "src" / "tiny_swarm_world"
 
 class TestHostDetectionBoundaries(unittest.TestCase):
     def test_domain_host_model_has_no_host_io_or_outward_imports(self):
-        imports = _imports(
-            SOURCE_ROOT / "domain" / "preflight" / "host_environment.py"
-        )
+        imports = _imports(SOURCE_ROOT / "domain" / "host_environment.py")
 
         forbidden = {
             "os",

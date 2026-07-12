@@ -24,10 +24,12 @@ from tiny_swarm_world.application.ports.repositories.port_compose_file_repositor
 )
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.deployment.stack_definition import ComposeServiceDefinition
-from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProviderKind
-from tiny_swarm_world.domain.preflight import (
+from tiny_swarm_world.domain.host_environment import (
     HostEnvironmentKind,
     HostEnvironmentReport,
+)
+from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProviderKind
+from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_PROMPT,
     LIVE_CONSENT_YES_VALUES,
     LiveConsent,

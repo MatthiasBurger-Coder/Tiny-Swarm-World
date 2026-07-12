@@ -48,6 +48,10 @@ service. `HostEnvironmentSignals`, the pure classifier, and
 `HostEnvironmentReport` live in the domain. The report carries host type,
 distribution, kernel release, Windows interop availability, setup path,
 support decision, remediation, and sanitized classification evidence.
+The host model and its evidence sanitizer are standard-library-only domain
+modules outside the eager preflight package so the installer can classify the
+host before third-party dependency bootstrap. Preflight re-exports the same
+types for compatibility; it does not define a second classifier.
 
 `PortHostEnvironmentDetector` is the inward-facing application port and
 `DetectHostEnvironment` delegates to it without host I/O. The infrastructure

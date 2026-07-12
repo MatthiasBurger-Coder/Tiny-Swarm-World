@@ -70,7 +70,7 @@ Implementation may start only for the FR released by the active workflow.
 | IT-001 | Add a deterministic native_linux integration path. | Test | FR-1/14/15 | `tests/integration/test_host_platform_paths.py` native composed path | `test_native_linux_simulated_detector_preflight_and_cli_path` | VERIFIED |
 | IT-002 | Add a deterministic wsl2_simulated integration path. | Test | FR-1/15 | `tests/integration/test_host_platform_paths.py` WSL2 composed path | `test_wsl2_simulated_detector_preflight_and_cli_path` | VERIFIED |
 | IT-003 | Add optional real WSL live test marked `wsl_live`, excluded from normal suite and never claimed when not run. | Test / live | FR-15 | pending | marker/config evidence | OPEN |
-| RT-001 | Existing native Linux preflight continues to work. | Regression | FR-1/14/15 | typed detector wired into legacy preflight path | targeted preflight suites and full 1,454-test gate | VERIFIED |
+| RT-001 | Existing native Linux preflight continues to work. | Regression | FR-1/14/15 | typed detector wired into legacy preflight path | expanded targeted preflight/installer suites and full 1,456-test gate | VERIFIED |
 | RT-002 | Existing Incus provider continues to work. | Regression | FR-5/15 | pending | provider tests | OPEN |
 | RT-003 | Existing LXC node lifecycle continues to work. | Regression | FR-5/15 | pending | node lifecycle tests | OPEN |
 | RT-004 | Existing Docker Swarm bootstrap continues to work. | Regression | FR-5/15 | pending | bootstrap tests | OPEN |
@@ -116,7 +116,7 @@ Implementation may start only for the FR released by the active workflow.
 | DOD-009 | Long workflows have outer timeouts. | Done | FR-11/15 | pending | timeout tests | OPEN |
 | DOD-010 | Deployment verify and platform verify are separate. | Done | FR-10/15 | pending | sequencing tests | OPEN |
 | DOD-011 | Verify performs no infrastructure mutation. | Done | FR-7/10/14/15 | pending | non-mutation tests | OPEN |
-| DOD-012 | Unit, adapter, integration, and regression tests pass. | Done / quality | every FR/FR-15 | FR-1 adds all four layers of tests | 321 targeted and full 1,454-test gate pass; later FR gates pending | IN_PROGRESS |
+| DOD-012 | Unit, adapter, integration, and regression tests pass. | Done / quality | every FR/FR-15 | FR-1 adds all four layers plus bootstrap compatibility tests | 345 targeted and full 1,456-test gate pass; later FR gates pending | IN_PROGRESS |
 | DOD-013 | Installation evidence is extended. | Done / evidence | FR-15 | pending | evidence audit | OPEN |
 | DOD-014 | Documentation is updated. | Done / docs | incremental/FR-15 | FR-1 ADR/arc42/usage synchronized | FR-1 independent doc review; later FR docs pending | IN_PROGRESS |
 | DOD-015 | Initial and final Three Amigos gates pass. | Done / governance | FR-1/FR-15 | initial gate evidence | final gate pending | IN_PROGRESS |

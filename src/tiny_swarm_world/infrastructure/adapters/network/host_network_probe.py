@@ -15,7 +15,7 @@ from tiny_swarm_world.application.ports.network import (
     ServicePortObservation,
     WslHostObservation,
 )
-from tiny_swarm_world.domain.preflight import HostEnvironmentKind
+from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
 from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector
 
 

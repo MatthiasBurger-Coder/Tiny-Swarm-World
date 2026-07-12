@@ -46,7 +46,9 @@ exit `1`. A confirmed WSL2 kernel plus distribution remains WSL2 when Windows
 interop is unavailable; the typed interop field is `false` and later Windows
 readiness remains a separate check.
 
-The installer maps only supported typed native Linux or WSL2 reports and stops
+The installer imports the same detector through a standard-library-only host
+model boundary, so detection remains available before third-party dependency
+bootstrap. It maps only supported typed native Linux or WSL2 reports and stops
 before Python bootstrap, secret-file preparation, subprocesses, or other live
 work for every unsupported report. Network diagnostics also stop before Incus
 or network probes when the typed host is unsupported. This command reports host

@@ -17,8 +17,9 @@
 - `S3_CLASSIFY`: backend + runtime + documentation + quality + architecture;
   terminal presentation is reviewed as Console/status UI, not browser frontend.
 - Context hashes: PASS for all recorded governing and baseline source files.
-- S3D metadata: PASS; one concrete slice, no dependencies/cycle, serial group,
-  46 allowed path entries, 4 file locks, 2 contract locks, and 2 architecture locks.
+- Initial S3D metadata: PASS; one concrete slice, no dependencies/cycle, serial
+  group, 46 allowed path entries, 4 file locks, 2 contract locks, and 2
+  architecture locks.
 - Scope amendment checkpoint: PASS before the existing setup-safety ADR was
   edited. The required narrow amendment path was added, uniqueness and metadata
   were revalidated, and the result was
@@ -32,6 +33,11 @@
 - Final pre-product-write revalidation:
   `S3D_PRE_IMPLEMENTATION=PASS changed=7 affected_files=46 locks=4/2/2`;
   `git diff --check` also passed.
+- After GitHub exposed the pre-bootstrap import closure, the approved CI
+  remediation amendment produced
+  `S3D_CI_REMEDIATION_SCOPE=PASS affected_files=50 locks=4/2/2`. The added
+  paths are limited to the standard-library domain relocation, legacy shims,
+  and the existing install-script fixture.
 
 ## Stream decision
 
@@ -54,7 +60,8 @@ integration owner for this slice.
 ## Expected touched files
 
 - dedicated host-boundary ADR, arc42 sections, and user CLI usage;
-- `domain/preflight/host_environment.py`;
+- the standard-library-only `domain/host_environment.py` boundary, re-exported
+  through preflight for compatibility;
 - new `application/ports/host` and `application/services/platform/host` code;
 - new `infrastructure/adapters/host` signal readers/detector;
 - preflight, installer, OS-type, network-runtime, composition, and CLI consumers;

@@ -7,7 +7,7 @@ Issue: `#218 Treat WSL2 as a Dedicated Host Platform and Decouple Installation f
 Baseline Branch: `main`
 Baseline Commit: `d778fce69bd8f87195ad9b975a1036e3cd1a8819`
 Branch: `feature/workflow-issue-218-fr01-host-detection-20260712`
-Status: `SLICE_01_CHECKPOINT_COMMITTED_PUBLICATION_PENDING`
+Status: `SLICE_01_CI_REMEDIATION_AUDIT_PASS_COMMIT_PENDING`
 Execution Profile: `FULL_PATH`
 
 ## Executive Summary
@@ -172,6 +172,7 @@ PYTHONPATH=src python3 -m unittest \
   tests.architecture.test_host_detection_boundaries \
   tests.integration.test_host_platform_paths \
   tests.test_installer \
+  tests.test_install_script \
   tests.test_package_entrypoint
 python3 tools/quality_gate.py arch-lint
 python3 tools/quality_gate.py arch-tests
@@ -224,6 +225,9 @@ affected_files:
   - documentation/arc42/10_quality_requirements.adoc
   - documentation/user_guide/usage.adoc
   - src/tiny_swarm_world/domain/preflight/host_environment.py
+  - src/tiny_swarm_world/domain/preflight/sanitized_evidence.py
+  - src/tiny_swarm_world/domain/host_environment.py
+  - src/tiny_swarm_world/domain/sanitized_evidence.py
   - src/tiny_swarm_world/domain/preflight/__init__.py
   - src/tiny_swarm_world/application/ports/host/**
   - src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py
@@ -250,6 +254,7 @@ affected_files:
   - tests/architecture/**
   - tests/integration/test_host_platform_paths.py
   - tests/test_installer.py
+  - tests/test_install_script.py
   - tests/test_package_entrypoint.py
   - .codex/evidence/issue-218/**
   - .codex/evidence/workflow-issue-218-fr01-host-detection-20260712/**
@@ -258,6 +263,8 @@ affected_files:
   - .tiny-swarm/evidence/issue-218-fr01/**
 affected_modules:
   - domain.preflight
+  - domain.host_environment
+  - domain.sanitized_evidence
   - application.ports.host
   - application.services.platform.host
   - infrastructure.adapters.host
@@ -271,7 +278,7 @@ dependencies: []
 parallel_group: serial-fr01
 file_locks:
   - documentation/arc42/09_decisions
-  - src/tiny_swarm_world/domain/preflight/host_environment.py
+  - src/tiny_swarm_world/domain/host_environment.py
   - src/tiny_swarm_world/infrastructure/composition.py
   - src/tiny_swarm_world/__main__.py
 contract_locks:
@@ -282,7 +289,7 @@ architecture_locks:
   - dedicated-wsl2-platform
 quality_gates:
   targeted:
-    - PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_host_environment tests.application.services.platform.host.test_detect_host_environment tests.application.services.platform.test_preflight_service tests.application.services.network.test_host_integration tests.infrastructure.adapters.host.test_host_environment_detector tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.network.test_host_network_probe tests.infrastructure.test_os_types tests.infrastructure.test_composition tests.architecture.test_host_detection_boundaries tests.integration.test_host_platform_paths tests.test_installer tests.test_package_entrypoint
+    - PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_host_environment tests.application.services.platform.host.test_detect_host_environment tests.application.services.platform.test_preflight_service tests.application.services.network.test_host_integration tests.infrastructure.adapters.host.test_host_environment_detector tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.network.test_host_network_probe tests.infrastructure.test_os_types tests.infrastructure.test_composition tests.architecture.test_host_detection_boundaries tests.integration.test_host_platform_paths tests.test_installer tests.test_install_script tests.test_package_entrypoint
     - python3 tools/quality_gate.py arch-lint
     - python3 tools/quality_gate.py arch-tests
     - git diff --check
@@ -463,13 +470,22 @@ execute` must not regenerate this plan.
 ## Execution checkpoint
 
 Slice 01 was implemented sequentially in the declared isolated worktree. The
-focused 321-test suite, Ruff, all three import-linter contracts, 18 hexagonal
-architecture tests, Mypy across 486 source files, the full 1,454-test suite
+expanded 345-test suite, Ruff, all three import-linter contracts, 18 hexagonal
+architecture tests, Mypy across 488 source files, the full 1,456-test suite
 with 28 documented skips, and `git diff --check` pass. Real WSL2 classification
 was also exercised read-only in human and JSON modes; live infrastructure
 validation remains `NOT_RUN`. Consolidation, independent completion audit, the
-single Slice-01 checkpoint commit all pass; push, PR checks, merge, cleanup,
-and green merged-main verification remain release gates.
+single Slice-01 checkpoint commit all pass. The checkpoint was pushed and PR
+`#220` opened; CI/Sonar, merge, cleanup, and green merged-main verification
+remain release gates.
+
+The first PR quality run exposed a pre-dependency-bootstrap import of
+`pydantic` through the eager preflight package. The typed-error remediation
+moved the standard-library-only host model/sanitizer to the direct domain
+boundary, retained compatible preflight exports, and made the install-script
+fixture copy the exact bootstrap import closure. The install-script suite,
+expanded 345-test focus suite, `CI=1` focus suite, and full 1,456-test quality
+gate pass locally after the correction. GitHub CI/Sonar rerun remains required.
 
 ## arc42 Check Status
 

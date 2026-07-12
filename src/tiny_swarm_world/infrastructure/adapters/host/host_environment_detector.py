@@ -5,7 +5,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 
 from tiny_swarm_world.application.ports.host import PortHostEnvironmentDetector
-from tiny_swarm_world.domain.preflight.host_environment import (
+from tiny_swarm_world.domain.host_environment import (
     HostEnvironmentReport,
     HostEnvironmentSignals,
     classify_host_environment,

@@ -12,6 +12,23 @@ from tiny_swarm_world.domain.preflight import (
 
 
 class TestHostEnvironmentReport(unittest.TestCase):
+    def test_legacy_preflight_modules_reexport_identical_host_types_and_sanitizer(self):
+        from tiny_swarm_world.domain.host_environment import (
+            HostEnvironmentReport as DirectHostEnvironmentReport,
+        )
+        from tiny_swarm_world.domain.preflight.host_environment import (
+            HostEnvironmentReport as LegacyHostEnvironmentReport,
+        )
+        from tiny_swarm_world.domain.preflight.sanitized_evidence import (
+            sanitized_evidence as legacy_sanitized_evidence,
+        )
+        from tiny_swarm_world.domain.sanitized_evidence import (
+            sanitized_evidence as direct_sanitized_evidence,
+        )
+
+        self.assertIs(DirectHostEnvironmentReport, LegacyHostEnvironmentReport)
+        self.assertIs(direct_sanitized_evidence, legacy_sanitized_evidence)
+
     def test_environment_kind_values_match_workflow_contract(self):
         self.assertEqual("native_linux", HostEnvironmentKind.NATIVE_LINUX.value)
         self.assertEqual("wsl2", HostEnvironmentKind.WSL2.value)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tiny_swarm_world.application.ports.host import PortHostEnvironmentDetector
-from tiny_swarm_world.domain.preflight.host_environment import HostEnvironmentReport
+from tiny_swarm_world.domain.host_environment import HostEnvironmentReport
 
 
 class DetectHostEnvironment:

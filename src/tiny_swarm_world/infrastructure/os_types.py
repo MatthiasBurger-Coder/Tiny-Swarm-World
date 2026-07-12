@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 
 from tiny_swarm_world.application.ports.host import PortHostEnvironmentDetector
-from tiny_swarm_world.domain.preflight import HostEnvironmentKind
+from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
 from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector
 
 

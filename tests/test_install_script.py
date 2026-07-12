@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import textwrap
 import unittest
@@ -9,9 +10,47 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 INSTALL_SCRIPT = REPOSITORY_ROOT / "install.sh"
+INSTALLER_BOOTSTRAP_SOURCE_FILES = (
+    Path("__init__.py"),
+    Path("installer.py"),
+    Path("domain/__init__.py"),
+    Path("domain/host_environment.py"),
+    Path("domain/sanitized_evidence.py"),
+    Path("application/__init__.py"),
+    Path("application/ports/__init__.py"),
+    Path("application/ports/host/__init__.py"),
+    Path("application/ports/host/port_host_environment_detector.py"),
+    Path("infrastructure/__init__.py"),
+    Path("infrastructure/adapters/__init__.py"),
+    Path("infrastructure/adapters/host/__init__.py"),
+    Path("infrastructure/adapters/host/host_environment_detector.py"),
+    Path("infrastructure/adapters/host/linux_host_signal_reader.py"),
+    Path("infrastructure/adapters/host/wsl_host_signal_reader.py"),
+)
 
 
 class TestInstallScript(unittest.TestCase):
+    def test_installer_imports_without_third_party_site_packages(self):
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-S",
+                "-c",
+                (
+                    "import sys; import tiny_swarm_world.installer; "
+                    "assert 'pydantic' not in sys.modules"
+                ),
+            ],
+            cwd=REPOSITORY_ROOT,
+            env={**os.environ, "PYTHONPATH": "src"},
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+
+        self.assertEqual(0, completed.returncode, completed.stderr)
+
     def test_install_runs_reset_before_setup_and_records_evidence(self):
         with _install_script_fixture() as fixture:
             result = fixture.run()
@@ -565,12 +604,12 @@ class _InstallScriptFixture:
 
     def _prepare(self) -> None:
         shutil.copy2(INSTALL_SCRIPT, self.root / "install.sh")
-        (self.root / "src" / "tiny_swarm_world").mkdir(parents=True)
-        (self.root / "src" / "tiny_swarm_world" / "__init__.py").write_text("")
-        shutil.copy2(
-            REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "installer.py",
-            self.root / "src" / "tiny_swarm_world" / "installer.py",
-        )
+        package_source = REPOSITORY_ROOT / "src" / "tiny_swarm_world"
+        package_target = self.root / "src" / "tiny_swarm_world"
+        for relative_path in INSTALLER_BOOTSTRAP_SOURCE_FILES:
+            target = package_target / relative_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(package_source / relative_path, target)
         (self.root / "infra" / "config" / "secrets").mkdir(parents=True)
         shutil.copy2(
             REPOSITORY_ROOT / "infra" / "config" / "secrets" / "infisical-secrets.yaml",

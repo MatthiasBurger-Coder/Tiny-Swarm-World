@@ -16,7 +16,8 @@ from pathlib import Path
 
 from tiny_swarm_world.application.ports.host import PortHostEnvironmentDetector
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
-from tiny_swarm_world.domain.preflight import HostEnvironmentReport, WindowsWslBridgeStatus
+from tiny_swarm_world.domain.host_environment import HostEnvironmentReport
+from tiny_swarm_world.domain.preflight import WindowsWslBridgeStatus
 from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector
 from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state import (
     DEFAULT_WINDOWS_WSL_BRIDGE_STATE_MAX_AGE_SECONDS,

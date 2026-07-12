@@ -5,7 +5,7 @@
 - Integration owner: Codex / Tiny Swarm World lead architect
 - Execution mode: sequential in the declared isolated worktree
 - Live infrastructure: `NOT_RUN`
-- Current decision: locally verified and ready for independent completion audit;
+- Current decision: post-remediation audit passed; remediation commit/push and
   PR/CI/Sonar/merge remain external release gates
 
 ## Consolidated implementation
@@ -52,21 +52,39 @@ no product behavior and passed `git diff --check`.
 
 - Regression-first red: 3 initial import errors; expanded 288-test checkpoint
   with 5 failures and 28 errors.
-- Final focused suite: `PASS`, 321 tests.
-- CI-marker simulation (`CI=1`): `PASS`, 321 tests after isolating the
-  non-Linux fixture environment.
-- Ruff: `PASS`.
-- Import Linter: `PASS`, 3 contracts, 298 files/683 dependencies.
-- Hexagonal architecture tests: `PASS`, 18 tests.
-- Mypy: `PASS`, 486 source files.
-- Full unittest discovery: `PASS`, 1,454 tests, 28 skips.
-- Final full `quality` gate: `PASS`, 131.0 seconds; 1,454 tests in 97.968
+- Pre-publication focused suite: `PASS`, 321 tests.
+- Pre-publication CI-marker simulation (`CI=1`): `PASS`, 321 tests after
+  isolating the non-Linux fixture environment.
+- Pre-publication Ruff: `PASS`.
+- Pre-publication Import Linter: `PASS`, 3 contracts, 298 files/683 dependencies.
+- Pre-publication hexagonal architecture tests: `PASS`, 18 tests.
+- Pre-publication Mypy: `PASS`, 486 source files.
+- Pre-publication full unittest discovery: `PASS`, 1,454 tests, 28 skips.
+- Pre-publication full `quality` gate: `PASS`, 131.0 seconds; 1,454 tests in 97.968
   seconds with 28 expected skips.
 - `git diff --check`: `PASS`.
 - Actual WSL2 human/JSON classification: `PASS`, read-only; application log
   timestamp and size unchanged.
 - Console/status UI independent review: `PASS`.
 - System Architect independent review: `PASS`.
+
+### GitHub CI remediation verification
+
+- Installer import with site-packages disabled: `PASS`; `pydantic` was not
+  loaded.
+- Legacy preflight module paths re-export the identical host types/sanitizer:
+  `PASS`.
+- Install-script suite: `PASS`, 23 tests.
+- Final expanded focused suite: `PASS`, 345 tests in 15.390 seconds.
+- Final expanded `CI=1` suite: `PASS`, 345 tests in 15.214 seconds.
+- Ruff: `PASS`.
+- Import Linter: `PASS`, 3 contracts, 300 files/687 dependencies.
+- Hexagonal architecture tests: `PASS`, 18 tests.
+- Mypy: `PASS`, 488 source files.
+- Final full quality gate: `PASS`, 1,456 tests in 94.715 seconds with 28
+  expected skips; total gate time 128.2 seconds.
+- Independent post-remediation completion audit:
+  `PASS_FOR_CI_RERUN_PENDING_RELEASE`; no open local FR-1 findings.
 
 ## Documentation consolidation
 
@@ -78,8 +96,9 @@ explicitly unverified until later gates.
 ## Integration decision
 
 The implementation is coherent, in scope, fail-closed, and locally green. It
-passed final requirement/test evidence re-review and the independent Issue
-Completion Auditor returned `PASS_FOR_PUBLICATION_PENDING_RELEASE`. The slice
-must not be marked `DONE` until the single
-implementation commit, PR checks including Python 3.12/Sonar, merge, cleanup,
-and green merged-main verification complete.
+passed final requirement/test evidence re-review. The initial completion audit
+returned `PASS_FOR_PUBLICATION_PENDING_RELEASE`, and the independent
+post-remediation audit returned `PASS_FOR_CI_RERUN_PENDING_RELEASE`. The slice
+must not be marked `DONE` until the implementation checkpoint plus focused CI
+remediation commit, PR checks including Python 3.12/Sonar, merge, cleanup, and
+green merged-main verification complete.

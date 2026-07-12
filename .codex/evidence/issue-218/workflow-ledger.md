@@ -6,7 +6,7 @@ green.
 
 | Order | Workflow | Branch suffix | Status | Dependency |
 |---|---|---|---|---|
-| 01 | FR-1 Host detection | `fr01-host-detection-20260712` | SLICE_COMMITTED / PUSH_PR_PENDING | baseline main |
+| 01 | FR-1 Host detection | `fr01-host-detection-20260712` | CI_REMEDIATION_AUDIT_PASS / COMMIT_PENDING | baseline main |
 | 02 | FR-2 Filesystem policy | `fr02-filesystem-policy-20260712` | PENDING | FR-1 merged |
 | 03 | FR-3 Host resources | `fr03-host-resources-20260712` | PENDING | FR-2 merged |
 | 04 | FR-4 Service resource profile | `fr04-resource-profile-20260712` | PENDING | FR-3 merged |

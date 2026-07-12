@@ -10,7 +10,7 @@ from tiny_swarm_world.domain.preflight.host_runtime_readiness import (
     HostRuntimeReadiness,
     HostRuntimeReadinessStatus,
 )
-from tiny_swarm_world.domain.preflight.host_environment import (
+from tiny_swarm_world.domain.host_environment import (
     HostEnvironmentKind,
     HostEnvironmentReport,
     HostEnvironmentSignals,
