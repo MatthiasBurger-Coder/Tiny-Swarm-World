@@ -179,8 +179,8 @@ instead of being changed automatically.
 When WSL2 live setup requires Windows browser access, Tiny Swarm World checks
 the Windows-side bridge before platform mutation. A failed
 `WINDOWS-WSL-BRIDGE` preflight check means the Windows portproxy, Firewall,
-hosts-file and Scheduled Task bridge has not been prepared, is stale, or no
-longer matches the current WSL IP. A legacy bridge without the scheduled
+hosts-file and Windows service bridge has not been prepared, is stale, or no
+longer matches the current WSL IP. A legacy bridge without a supported
 discovery-agent contract is also rejected.
 
 Prepare or repair it from elevated Windows PowerShell:
@@ -192,13 +192,13 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\tools\windows\tws-wsl-bridge.ps1 -Action install
 ----
 
-After `wsl --shutdown`, the scheduled discovery agent normally repairs the
+After `wsl --shutdown`, the Windows service discovery agent normally repairs the
 changed address within the configured interval. Trigger immediate reconcile
 with:
 
 [source,powershell]
 ----
-Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge
+Restart-Service -Name TinySwarmWorldWslBridge
 ----
 
 From WSL, the same refresh can be triggered without changing Linux network
@@ -206,11 +206,11 @@ state:
 
 [source,bash]
 ----
-powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge"
+powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"
 ----
 
-The installer does not set Windows portproxy, Firewall, hosts-file or Scheduled
-Task state by itself. It requires the registered agent to have written a
+The installer does not set Windows portproxy, Firewall, hosts-file or Windows
+service state by itself. It requires the registered agent to have written a
 `ready` heartbeat within the last five minutes. To run WSL2 without Windows
 localhost exposure, set `TSW_WINDOWS_EXPOSURE=disabled` explicitly before
 setup.

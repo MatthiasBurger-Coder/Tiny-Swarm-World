@@ -446,7 +446,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(result.passed)
         self.assertEqual("42", bridge_check.evidence["state_age_seconds"])
-        self.assertIn("Start-ScheduledTask", bridge_check.remediation)
+        self.assertIn("Restart-Service", bridge_check.remediation)
 
     async def test_wsl2_live_preflight_passes_when_windows_bridge_state_is_prepared(self):
         result = await PreflightService(

@@ -23,6 +23,7 @@ from tiny_swarm_world.domain.preflight import (
 )
 from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state import (
     DEFAULT_WINDOWS_WSL_BRIDGE_STATE_MAX_AGE_SECONDS,
+    WINDOWS_WSL_BRIDGE_STATE,
     current_wsl_ipv4,
     windows_wsl_bridge_status,
 )
@@ -69,6 +70,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
         os_root: Path | None = None,
         project_paths: ProjectPaths | None = None,
         windows_wsl_bridge_state_max_age_seconds: int = DEFAULT_WINDOWS_WSL_BRIDGE_STATE_MAX_AGE_SECONDS,
+        windows_wsl_bridge_state_path: Path = WINDOWS_WSL_BRIDGE_STATE,
     ):
         self.root = root or (project_paths or default_project_paths()).repository_root
         self.os_root = os_root or Path("/")
@@ -78,6 +80,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
             else executable_fallback_directories
         )
         self.windows_wsl_bridge_state_max_age_seconds = windows_wsl_bridge_state_max_age_seconds
+        self.windows_wsl_bridge_state_path = windows_wsl_bridge_state_path
 
     def is_linux_or_wsl(self) -> bool:
         return platform.system().lower() == "linux"
@@ -239,6 +242,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
         return windows_wsl_bridge_status(
             self.root,
             expected_ports,
+            state_path=self.windows_wsl_bridge_state_path,
             max_age_seconds=self.windows_wsl_bridge_state_max_age_seconds,
             current_wsl_ipv4=current_wsl_ipv4,
         )

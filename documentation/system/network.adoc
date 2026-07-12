@@ -74,7 +74,7 @@ installation:
 [source,text]
 ----
 Windows Browser
--> http://127.0.0.1:<service-port> or http://*.tws.local
+-> http://127.0.0.1:<service-port> or https://*.tsw.local
 -> Windows portproxy
 -> current WSL eth0 IPv4
 -> Incus/LXC/Docker/Services
@@ -93,17 +93,19 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 The prerequisite action is read-only and requires Windows 10 or 11, a running
 WSL 2 distribution with systemd as PID 1, elevated PowerShell, a running IP
-Helper service, and the Windows Firewall and Scheduled Task cmdlets. The
+Helper service, and the Windows Firewall and Service cmdlets. The
 dedicated reproducible setup and repair guide is
 `tools/windows/README.windows-wsl-bridge.md`.
 
-The install action registers a Windows Scheduled Task discovery agent. It runs
-after logon and periodically, discovers the current WSL IP and reconciles only
-drifted portproxy, Firewall and hosts-file resources. The bridge writes
-`tools/windows/.tws-wsl-bridge.state.json`; this ignored local state contains a
-versioned agent contract and heartbeat. During WSL2 live preflight, Tiny Swarm
-World requires the agent to report `ready`, a heartbeat no older than five
-minutes, the current WSL IP, and every external TCP port from
+The install action registers an automatic Windows service discovery agent. It
+runs periodically, discovers the current WSL IP and reconciles only
+drifted portproxy, Firewall and hosts-file resources. The bridge writes only
+`%ProgramData%\TinySwarmWorld\WslBridge\bridge-state.json`; WSL reads it through
+`/mnt/c/ProgramData/TinySwarmWorld/WslBridge/bridge-state.json`. This protected
+state contains a versioned owned-agent contract, bundle identity, and heartbeat.
+Privileged code does not mirror state into the checkout. During WSL2 live
+preflight, Tiny Swarm World requires the agent to report `ready`, a heartbeat no
+older than five minutes, the current WSL IP, and every external TCP port from
 `infra/config/ports.yaml`. If the state is missing or stale, setup stops before
 platform mutation with a `WINDOWS-WSL-BRIDGE` preflight failure.
 
@@ -113,12 +115,12 @@ WSL:
 
 [source,powershell]
 ----
-Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge
+Restart-Service -Name TinySwarmWorldWslBridge
 ----
 
 [source,bash]
 ----
-powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge"
+powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"
 ----
 
 The bridge reads TCP ports and route hostnames from `infra/config/ports.yaml`.

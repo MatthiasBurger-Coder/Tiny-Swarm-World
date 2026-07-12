@@ -1,0 +1,140 @@
+= ADR: Windows Service Agent for WSL Bridge Reconciliation
+
+*Date:* 2026-07-11
+*Status:* Accepted; live migration and recovery verified on 2026-07-12 by the
+follow-up workflow
+*Decision makers:* Tiny Swarm World architecture governance, with requirement,
+security, test, and operations review for the live-install recovery follow-up
+
+== Context
+
+Tiny Swarm World runs from WSL or Linux, while routed service access from a
+Windows browser depends on Windows hosts entries, Firewall rules, and
+`portproxy` mappings that target the current WSL address. The WSL address can
+change after restart. A one-shot setup command or a Scheduled Task with mutable
+checkout inputs does not provide a sufficiently durable or explicit owner for
+that reconciliation.
+
+The bridge therefore needs a Windows-side agent. That agent changes privileged
+host state and uses a third-party service wrapper, a Windows account credential,
+and the `SeServiceLogonRight` assignment. Promoting the bridge script to that
+role is an architecture and supply-chain decision, not merely a launcher
+implementation detail.
+
+This decision is deliberately limited to the Windows-to-WSL bridge. It does not
+authorize general Windows automation, DNS-server mutation, certificate trust
+changes, or installation of platform services outside WSL.
+
+== Decision
+
+Tiny Swarm World uses an automatic Windows Service named
+`TinySwarmWorldWslBridge` as the only supported continuous bridge agent.
+
+The following safety contract applies:
+
+* The service executes PowerShell, configuration, and port-registry inputs only
+  from `%ProgramData%\TinySwarmWorld\WslBridge`.
+* The service wrapper is WinSW 2.12.0 from the official release asset, pinned to
+  SHA-256
+  `B5066B7BBDFBA1293E5D15CDA3CAAEA88FBEAB35BD5B38C41C913D492AADFC4F`.
+  A hash mismatch fails before activation.
+* Service XML, state, logs, and evidence never contain a password. The required
+  Windows credential is obtained through the Windows credential dialog and is
+  passed only to service registration.
+* The authoritative runtime state is
+  `%ProgramData%\TinySwarmWorld\WslBridge\bridge-state.json`. Privileged code
+  neither reads nor writes a checkout state mirror.
+* WSL preflight reads that state through the infrastructure adapter at the
+  default WSL automount path
+  `/mnt/c/ProgramData/TinySwarmWorld/WslBridge/bridge-state.json`. A missing or
+  inaccessible default automount fails closed.
+* Service registration is classified as `absent`, `owned`, or `collision`.
+  A collision is never stopped, deleted, repaired, or supplied with credentials
+  automatically. During the explicit install action only, an exact SCM path and
+  account-SID match may enter a bounded ACL-migration state. The canonical
+  namespace is then hardened under the reconciliation mutex without reading
+  mutable payload files, followed by the complete wrapper, XML, manifest, hash,
+  and ACL ownership validation. Every other action remains fail-closed.
+* ProgramData state, bundle, staging, rollback, and manifest paths must remain
+  below the canonical ProgramData root and must not traverse reparse points or
+  hard-linked files. Namespace, directory, and file ACLs are applied through
+  no-follow Windows handles as one owner-and-protected-DACL operation. The same
+  handle contract verifies exact ACEs and file identity; traversal and
+  fingerprinting proceed top-down without recursive link following. Direct
+  WinSW log files are the sole non-authoritative exception: they may retain the
+  safe inherited DACL, but must be regular, non-hard-linked files below the
+  exactly protected `logs` directory.
+* Upgrades stage and validate the complete payload before stopping an owned
+  service. Bundle, wrapper, XML, and installation manifest are switched under a
+  durable per-item transaction journal. Fingerprints distinguish candidate,
+  previous, and unrecognized files during rollback and crash recovery.
+* A candidate is committed only after the service publishes a fresh `ready`
+  heartbeat with the expected bundle identity, protected config path, and
+  protected port-registry path. A failed candidate restores the previous
+  payload and, when previously running, the previous service heartbeat.
+* Install, upgrade, uninstall, and reconcile operations use bounded global
+  mutexes. A timeout fails visibly instead of allowing concurrent mutation.
+* Uninstall derives a complete cleanup plan only from protected ProgramData
+  state. It removes only exact portproxy tuples and exact Firewall rule names,
+  and retains cleanup authority until all cleanup steps succeed.
+* The installer records whether `SeServiceLogonRight` pre-existed or was added
+  by Tiny Swarm World. Rollback or uninstall removes it only with matching
+  protected provenance and only when no other Windows service uses that account.
+  Missing or inconsistent provenance is preserved and reported rather than
+  guessed.
+
+The legacy Scheduled Task is not a fallback agent. Installation may remove the
+known legacy task after the Windows Service is verified.
+
+== Consequences
+
+The bridge survives WSL address changes without a visible PowerShell window and
+has one explicit runtime owner. Checkout edits cannot become privileged service
+inputs or destructive cleanup authority.
+
+Installation requires one deliberate elevated invocation and, for a new
+service registration, one Windows credential prompt. The service runs under the
+Windows account that owns the WSL distribution; credentials are managed by the
+Windows Service Control Manager and are not persisted by Tiny Swarm World.
+
+The protected state and manifests are readable from WSL through the conventional
+`/mnt/c` automount. Hosts with a different Windows system drive or automount root
+must expose the canonical ProgramData location before live setup; the preflight
+does not search writable checkout paths as a fallback.
+
+The transaction code and Windows-specific security behavior require
+PowerShell/Pester fault-injection tests in addition to Linux-compatible Python
+asset and preflight tests. Standard quality gates remain non-mutating and skip
+the Pester execution when Windows PowerShell is unavailable.
+
+== Considered Options
+
+=== Keep a Scheduled Task as the primary agent
+
+Rejected because the earlier task path depended on mutable checkout references,
+had weaker ownership evidence, and did not provide a service recovery contract.
+
+=== Run the service directly from the repository checkout
+
+Rejected because a privileged long-running agent must not execute or trust
+user-writable checkout inputs.
+
+=== Mirror privileged state back into the checkout
+
+Rejected because a privileged write to a user-writable tree crosses a reparse
+and symlink trust boundary. WSL reads the protected ProgramData state directly.
+
+=== Replace Windows hosts handling with automatic DNS mutation
+
+Rejected as outside this decision and outside the live-install recovery scope.
+
+== References
+
+* Complements:
+  `documentation/arc42/09_decisions/adr-autonomous-setup-safety.adoc`
+* Related ingress decision:
+  `documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc`
+* Operator guide: `tools/windows/README.windows-wsl-bridge.md`
+* Implementation: `tools/windows/tws-wsl-bridge.ps1`
+* Service runner: `tools/windows/tws-wsl-bridge-service.ps1`
+* Behavior tests: `tests/windows/tws-wsl-bridge.Tests.ps1`

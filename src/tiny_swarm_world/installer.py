@@ -27,9 +27,14 @@ DEFAULT_INFISICAL_SECRET_ENV_FILE = ".tiny-swarm/secrets/bootstrap.local.env"
 DEFAULT_GENERATED_SECRET_ENV_FILE = ".tiny-swarm/secrets/generated.local.env"
 DEFAULT_NATIVE_LINUX_VENV = ".tiny-swarm-world/install-venv"
 DEFAULT_SECRET_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
-WINDOWS_WSL_BRIDGE_STATE_PATH = Path("tools/windows/.tws-wsl-bridge.state.json")
+WINDOWS_WSL_BRIDGE_STATE_PATH = Path(
+    "/mnt/c/ProgramData/TinySwarmWorld/WslBridge/bridge-state.json"
+)
 WINDOWS_WSL_BRIDGE_MAX_AGE_SECONDS = 5 * 60
 WINDOWS_EXPOSURE_ENVIRONMENT = "TSW_WINDOWS_EXPOSURE"
+WINDOWS_WSL_BRIDGE_TEST_STATE_ENVIRONMENT = (
+    "TSW_INSTALL_TEST_WINDOWS_WSL_BRIDGE_STATE_PATH"
+)
 INSTALLER_REQUIRED_SOURCES = frozenset({"generated_local_secret", "placeholder_only"})
 SECRET_MODES = ("generated", "fixed", "infisical")
 DEFAULT_LOCAL_SERVICE_URL_EXPORTS = {
@@ -553,7 +558,15 @@ def _windows_wsl_bridge_guard(
     env: Mapping[str, str],
     cwd: Path,
 ) -> WindowsWslBridgeGuardResult:
-    state_path = cwd / WINDOWS_WSL_BRIDGE_STATE_PATH
+    configured_state_path = WINDOWS_WSL_BRIDGE_STATE_PATH
+    test_state_path = env.get(WINDOWS_WSL_BRIDGE_TEST_STATE_ENVIRONMENT, "").strip()
+    if env.get("TSW_INSTALL_TEST_MODE") == "1" and test_state_path:
+        configured_state_path = Path(test_state_path)
+    state_path = (
+        configured_state_path
+        if configured_state_path.is_absolute()
+        else cwd / configured_state_path
+    )
     expected_ports = _windows_wsl_bridge_expected_ports(cwd)
     if host_runtime.name != "wsl2":
         return WindowsWslBridgeGuardResult(True, "not_wsl2", state_path, expected_ports=expected_ports)
@@ -580,6 +593,7 @@ def _windows_wsl_bridge_guard(
     status = windows_wsl_bridge_status(
         cwd,
         expected_ports,
+        state_path=configured_state_path,
         max_age_seconds=WINDOWS_WSL_BRIDGE_MAX_AGE_SECONDS,
         current_wsl_ipv4=current_wsl_ipv4,
     )
@@ -1155,7 +1169,7 @@ def _windows_wsl_bridge_context(
 def _windows_wsl_bridge_suggested_commands(reason: str) -> tuple[str, ...]:
     if reason in {"wsl_ip_changed", "state_stale_by_age", "agent_not_ready"}:
         return (
-            'powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge"',
+            'powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"',
             "powershell.exe -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action install",
         )
     return (
@@ -1180,8 +1194,8 @@ def _print_windows_wsl_bridge_failure(
     print("  tools/windows/tws-wsl-bridge.ps1 -Action install", file=sys.stderr)
     if guard.reason in {"wsl_ip_changed", "state_stale_by_age", "agent_not_ready"}:
         print("", file=sys.stderr)
-        print("Or refresh the existing scheduled task:", file=sys.stderr)
-        print("  Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge", file=sys.stderr)
+        print("Or restart the existing Windows bridge service:", file=sys.stderr)
+        print("  Restart-Service -Name TinySwarmWorldWslBridge", file=sys.stderr)
     print("", file=sys.stderr)
     print("To run WSL2 without Windows localhost exposure, set:", file=sys.stderr)
     print("  TSW_WINDOWS_EXPOSURE=disabled", file=sys.stderr)

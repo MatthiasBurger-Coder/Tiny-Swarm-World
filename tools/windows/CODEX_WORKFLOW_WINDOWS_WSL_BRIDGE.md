@@ -77,33 +77,49 @@ The script must add a managed block to the Windows hosts file:
 
 ```text
 # >>> Tiny Swarm World WSL Bridge >>>
-127.0.0.1 tws.local gateway.tws.local service-access.tws.local ...
+127.0.0.1 tsw.local
+127.0.0.1 gateway.tsw.local
+127.0.0.1 service-access.tsw.local
+...
 # <<< Tiny Swarm World WSL Bridge <<<
 ```
 
 It must preserve all unrelated hosts-file entries.
 
-### 6. Scheduled Task
+### 6. Windows service
 
-The install action must register a Scheduled Task named:
+The install action must register an automatic Windows service named:
 
 ```text
-TinySwarmWorld-WslBridge
+TinySwarmWorldWslBridge
 ```
 
-The task must run:
+The service must run an installed, ACL-protected copy of the periodic bridge
+runner from `%ProgramData%\TinySwarmWorld\WslBridge\bundle`:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action refresh
+powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\ProgramData\TinySwarmWorld\WslBridge\bundle\tws-wsl-bridge-service.ps1
 ```
 
-It must run with highest privileges and be triggerable manually.
+It must run under the Windows account that owns the WSL distribution, remain
+non-interactive, and be restartable through the Service Control Manager. It
+must not execute mutable checkout files after installation; checkout changes
+are published only by another explicit elevated install action.
+
+The ProgramData namespace and payload tree must be protected and verified with
+no-follow Windows handles. Owner and DACL changes are one handle-bound update;
+reparse points, hard links, unexpected ACEs, and path-identity changes are
+rejected. An existing legacy ACL may be migrated only inside the explicit
+install path after exact SCM path/account validation and must pass full
+ownership revalidation before payload staging.
 
 ### 7. Installer integration
 
 Before live infrastructure installation, `install.sh` must verify that the Windows bridge has either:
 
-- a recent `.tws-wsl-bridge.state.json`, or
+- a recent
+  `/mnt/c/ProgramData/TinySwarmWorld/WslBridge/bridge-state.json` produced by
+  the verified Windows service agent, or
 - the platform is not WSL, or
 - Windows exposure was explicitly disabled.
 
@@ -131,14 +147,14 @@ A Windows exposure failure must not be reported as a Docker Swarm deployment fai
    - portproxy rules
    - firewall rules
    - hosts-file managed block
-   - scheduled task
-   - `.tws-wsl-bridge.state.json`
+   - automatic Windows service
+   - protected ProgramData `bridge-state.json`
 
 2. Running the bridge repeatedly is idempotent.
 
 3. `uninstall` removes only Tiny Swarm managed entries.
 
-4. After WSL IP changes, `Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge` refreshes the portproxy connect address.
+4. After WSL IP changes, `Restart-Service -Name TinySwarmWorldWslBridge` requests immediate reconciliation.
 
 5. Tiny Swarm installation fails early if WSL is used and the bridge is missing.
 
@@ -154,11 +170,11 @@ Codex must provide evidence files or command output for:
 netsh interface portproxy show v4tov4
 Get-NetFirewallRule | Where-Object DisplayName -like "Tiny Swarm World TCP *"
 Get-Content C:\Windows\System32\drivers\etc\hosts
-Get-ScheduledTask -TaskName TinySwarmWorld-WslBridge
+Get-Service -Name TinySwarmWorldWslBridge
 ```
 
 and from WSL:
 
 ```bash
-powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge"
+powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"
 ```

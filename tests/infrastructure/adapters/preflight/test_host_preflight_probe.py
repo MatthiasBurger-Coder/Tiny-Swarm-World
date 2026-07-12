@@ -23,6 +23,8 @@ from tiny_swarm_world.infrastructure.adapters.preflight import (
     ensure_common_executable_paths,
 )
 
+TEST_BRIDGE_STATE_PATH = Path("tools/windows/.tws-wsl-bridge.state.json")
+
 
 class TestHostPreflightProbe(unittest.TestCase):
     def test_executable_available_uses_existing_path_entries(self):
@@ -375,7 +377,10 @@ class TestHostPreflightProbe(unittest.TestCase):
 
     def test_windows_wsl_bridge_status_reports_missing_state_file(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
-            probe = HostPreflightProbe(Path(temporary_directory))
+            probe = HostPreflightProbe(
+                Path(temporary_directory),
+                windows_wsl_bridge_state_path=TEST_BRIDGE_STATE_PATH,
+            )
 
             status = probe.windows_wsl_bridge_status((80, 10000))
 
@@ -388,7 +393,10 @@ class TestHostPreflightProbe(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
             _write_bridge_state(root, wsl_ip="172.20.0.2", ports=(80, 10000))
-            probe = HostPreflightProbe(root)
+            probe = HostPreflightProbe(
+                root,
+                windows_wsl_bridge_state_path=TEST_BRIDGE_STATE_PATH,
+            )
 
             with patch(
                 "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.current_wsl_ipv4",
@@ -405,7 +413,10 @@ class TestHostPreflightProbe(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
             _write_bridge_state(root, wsl_ip="172.20.0.2", ports=(80,))
-            probe = HostPreflightProbe(root)
+            probe = HostPreflightProbe(
+                root,
+                windows_wsl_bridge_state_path=TEST_BRIDGE_STATE_PATH,
+            )
 
             with patch(
                 "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.current_wsl_ipv4",
@@ -422,7 +433,10 @@ class TestHostPreflightProbe(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
             _write_bridge_state(root, wsl_ip="172.20.0.2", ports=(80,))
-            probe = HostPreflightProbe(root)
+            probe = HostPreflightProbe(
+                root,
+                windows_wsl_bridge_state_path=TEST_BRIDGE_STATE_PATH,
+            )
 
             with patch(
                 "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.current_wsl_ipv4",
@@ -768,8 +782,16 @@ def _write_bridge_state(root: Path, *, wsl_ip: str, ports: tuple[int, ...]) -> N
     target.parent.mkdir(parents=True, exist_ok=True)
     state = {
         "contractVersion": 2,
-        "agentMode": "scheduled-discovery",
+        "agentMode": "windows-service",
         "agentStatus": "ready",
+        "serviceName": "TinySwarmWorldWslBridge",
+        "bundleId": "B" * 64,
+        "bundleHashes": {
+            "ports.yaml": "A" * 64,
+            "tws-wsl-bridge-service.ps1": "A" * 64,
+            "tws-wsl-bridge.config.json": "A" * 64,
+            "tws-wsl-bridge.ps1": "A" * 64,
+        },
         "generatedAt": datetime.now(UTC).isoformat(),
         "action": "install",
         "wslIp": wsl_ip,

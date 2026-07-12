@@ -661,13 +661,13 @@ def _windows_wsl_bridge_remediation(reason: str) -> str:
         "Run PowerShell as Administrator: "
         "tools/windows/tws-wsl-bridge.ps1 -Action install."
     )
-    refresh = (
+    restart = (
         "Request immediate discovery/reconcile: "
-        "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge."
+        "Restart-Service -Name TinySwarmWorldWslBridge."
     )
     disable = "Set TSW_WINDOWS_EXPOSURE=disabled only when Windows localhost exposure is not required."
     if reason in {"wsl_ip_changed", "state_stale_by_age", "agent_not_ready"}:
-        return f"{refresh} If the task is missing, {install} {disable}"
+        return f"{restart} If the service is missing, {install} {disable}"
     return f"{install} {disable}"
 
 

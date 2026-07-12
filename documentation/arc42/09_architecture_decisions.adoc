@@ -36,6 +36,8 @@ include::09_decisions/adr-retire-multipass-legacy-provider.adoc[leveloffset=+3]
 
 include::09_decisions/adr-traefik-https-ingress-existing-ca.adoc[leveloffset=+3]
 
+include::09_decisions/adr-windows-wsl-bridge-service-agent.adoc[leveloffset=+3]
+
 === Technology & Framework Decisions
 
 Examples: language and runtime direction, runner technology, UI framework

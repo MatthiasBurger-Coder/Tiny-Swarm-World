@@ -1,8 +1,9 @@
 = Installation
 
 Tiny Swarm World is developed and operated from a Linux or WSL shell.
-Host-specific Windows commands are legacy notes and are not the supported
-default path.
+Windows-native product execution is not supported. The elevated Windows bridge
+prework documented for default WSL2 browser exposure is a supported host setup
+step; project automation itself continues to run from Linux or WSL.
 
 == Prerequisites
 
@@ -297,7 +298,7 @@ when the corresponding service is enabled by the selected configuration.
 When the services must be reachable from a Windows browser, first prepare the
 Windows side from elevated PowerShell. The prerequisite action is read-only;
 the install action creates the managed portproxy, Firewall, hosts-file,
-Scheduled Task discovery agent, and local bridge-state contract:
+Windows service discovery agent, and local bridge-state contract:
 
 [source,powershell]
 ----
