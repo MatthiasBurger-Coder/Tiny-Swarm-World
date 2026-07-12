@@ -239,6 +239,38 @@ curl -k -s https://pulsar-api.tsw.local/admin/v2/clusters
 curl -k -s https://sonarqube.tsw.local/api/system/status
 ----
 
+== SonarQube Admin Access Cannot Be Reconciled
+
+After the SonarQube stack becomes available, deployment verifies the configured
+`TSW_SONARQUBE_ADMIN_PASSWORD`. If that credential is already active, no
+password change is made. Otherwise the post-stack step verifies the initial
+local `admin` credential, rotates it to the configured value, and verifies the
+new login without writing either value to logs or evidence.
+
+Deployment fails closed when neither the configured nor initial credential can
+be verified. In that case, inspect SonarQube readiness and use the current
+ignored local secret source; do not paste password values into terminal logs,
+issues, or evidence. A manually changed administrator credential must first be
+reconciled with the approved local secret source before rerunning deployment.
+
+== Infisical Remains Unavailable After An Interrupted Migration
+
+If all normal Infisical readiness attempts are exhausted, the live deployment
+adapter may attempt one constrained migration-lock recovery before checking
+readiness again. It discovers the active `infisical_infisical-db` Swarm task,
+requires exactly one task node and one matching container, and touches only the
+known `infisical_migrations_lock` and
+`infisical_migrations_startup_lock` tables when those tables exist. Any
+ambiguous placement, container count, database command, or update fails closed
+and preserves the original readiness failure.
+
+This is a high-impact recovery action even though its table allowlist is
+fixed. Before manual database intervention, retain or snapshot the owned
+Infisical database volume and inspect redacted service/task diagnostics. The
+rollback for an incorrect manual database change is restoration from that
+owned volume backup; do not broaden the automated table list or run arbitrary
+SQL through the recovery path.
+
 == Nexus Bootstrap Cannot Authenticate
 
 Use the canonical setup workflow and provide explicit credentials through

@@ -650,7 +650,9 @@ services:
         self.assertIn('response.get("login") == "success"', bootstrap["command"][-1])
         self.assertIn("json.dumps", bootstrap["command"][-1])
         self.assertEqual("continue", bootstrap["deploy"]["update_config"]["failure_action"])
-        self.assertEqual("none", bootstrap["deploy"]["restart_policy"]["condition"])
+        self.assertEqual("on-failure", bootstrap["deploy"]["restart_policy"]["condition"])
+        self.assertEqual("5s", bootstrap["deploy"]["restart_policy"]["delay"])
+        self.assertEqual(3, bootstrap["deploy"]["restart_policy"]["max_attempts"])
 
     def test_committed_swagger_compose_uses_official_images_and_remote_openapi_bind(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -866,21 +868,29 @@ services:
             compose_data["configs"]["traefik_tls_dynamic_config"]["file"],
         )
         self.assertEqual(
-            {"external": True},
-            compose_data["secrets"]["tsw_traefik_tls_cert"],
+            {
+                "name": "${TSW_TRAEFIK_TLS_CERT_SECRET_NAME:-tsw_traefik_tls_cert}",
+                "external": True,
+            },
+            compose_data["secrets"]["traefik_tls_cert"],
         )
         self.assertEqual(
-            {"external": True},
-            compose_data["secrets"]["tsw_traefik_tls_key"],
+            {
+                "name": "${TSW_TRAEFIK_TLS_KEY_SECRET_NAME:-tsw_traefik_tls_key}",
+                "external": True,
+            },
+            compose_data["secrets"]["traefik_tls_key"],
         )
         self.assertEqual(
-            "tsw_traefik_tls_cert",
+            "traefik_tls_cert",
             traefik["secrets"][0]["source"],
         )
+        self.assertEqual("tsw_traefik_tls_cert", traefik["secrets"][0]["target"])
         self.assertEqual(
-            "tsw_traefik_tls_key",
+            "traefik_tls_key",
             traefik["secrets"][1]["source"],
         )
+        self.assertEqual("tsw_traefik_tls_key", traefik["secrets"][1]["target"])
 
     def test_committed_traefik_dynamic_tls_config_references_secret_mounts_only(self):
         repository_root = Path(__file__).resolve().parents[4]

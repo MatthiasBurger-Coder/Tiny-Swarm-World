@@ -386,6 +386,32 @@ class TestSecretManagement(unittest.TestCase):
         self.assertEqual("1", result.evidence["missing_required_count"])
         self.assertEqual("required_consumer_missing", result.evidence["reason"])
 
+    def test_secret_consumption_accepts_explicit_non_stack_consumer_reference(self):
+        consumption = SecretConsumptionVerifier(
+            manifest_entries=(_entry("TSW_REQUIRED_PASSWORD"),),
+            stack_environment={},
+            non_stack_consumer_refs={
+                "TSW_REQUIRED_PASSWORD": "deployment:test-consumer",
+            },
+        )
+
+        consumption.run()
+        result = consumption.verify()
+
+        self.assertEqual("verified", result.status.value)
+        self.assertEqual("0", result.evidence["missing_required_count"])
+        self.assertEqual("configured", consumption.report[0]["consumer_status"])
+        self.assertEqual("deployment:test-consumer", consumption.report[0]["consumer_ref"])
+
+    def test_secret_consumption_rejects_unknown_non_stack_consumer_reference(self):
+        with self.assertRaisesRegex(ValueError, "Unknown managed config consumer key"):
+            SecretConsumptionVerifier(
+                manifest_entries=(_entry("TSW_REQUIRED_PASSWORD"),),
+                non_stack_consumer_refs={
+                    "TSW_UNKNOWN_PASSWORD": "deployment:test-consumer",
+                },
+            )
+
     def test_evidence_redaction(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

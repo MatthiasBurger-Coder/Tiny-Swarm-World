@@ -186,7 +186,9 @@ services:
       update_config:
         failure_action: continue
       restart_policy:
-        condition: none
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
       placement:
         constraints:
           - node.hostname == swarm-worker-1

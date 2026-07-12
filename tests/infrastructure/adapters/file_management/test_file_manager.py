@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from tests.support.sonar_safe_literals import operator_credential
 
@@ -36,6 +36,39 @@ class TestFileManager(unittest.TestCase):
             self.assertEqual(0o600, path.stat().st_mode & 0o777)
             self.assertEqual(0o700, path.parent.stat().st_mode & 0o777)
             self.assertEqual([], list(path.parent.glob(f".{path.name}.*")))
+
+    def test_local_storage_prunes_skipped_trees_before_scanning(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source_root = root / "src"
+            source_root.mkdir()
+            expected_path = source_root / "settings.yaml"
+            expected_path.write_text("value: placeholder\n", encoding="utf-8")
+            observed_directories: list[tuple[str, ...]] = []
+
+            def controlled_walk(path, *, topdown):
+                self.assertEqual(root, path)
+                self.assertTrue(topdown)
+                directory_names = ["src", ".tiny-swarm-world", ".git"]
+                yield str(root), directory_names, []
+                observed_directories.append(tuple(directory_names))
+                if "src" in directory_names:
+                    yield str(source_root), [], [expected_path.name]
+                if ".tiny-swarm-world" in directory_names or ".git" in directory_names:
+                    self.fail("scanner descended into an excluded local-state tree")
+
+            with patch(
+                "tiny_swarm_world.infrastructure.adapters.file_management.local_file_storage.os.walk",
+                side_effect=controlled_walk,
+            ):
+                snapshots = LocalFileStorage().scan_text_files(
+                    root,
+                    suffixes=frozenset({".yaml"}),
+                    skip_parts=frozenset({".git", ".tiny-swarm-world"}),
+                )
+
+            self.assertEqual([("src",)], observed_directories)
+            self.assertEqual((expected_path,), tuple(item.path for item in snapshots))
 
 
 if __name__ == "__main__":

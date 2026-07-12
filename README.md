@@ -89,7 +89,7 @@ Required:
 Recommended:
 
 - At least 20 GiB free disk space
-- 8 GiB RAM or more
+- 16 GiB RAM or more for the full service-access profile
 - `socat` when WSL2 host port-forwarding is required
 - Docker CLI for local diagnostics
 - PyCharm or IntelliJ IDEA

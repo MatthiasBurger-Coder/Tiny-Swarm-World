@@ -50,6 +50,7 @@ def _required_infisical_bootstrap_env() -> dict[str, str]:
         "TSW_PULSAR_MANAGER_ADMIN_PASSWORD": sample_text("pulsar-manager", "-value"),
         "TSW_POSTGRES_PASSWORD": sample_text("postgres", "-value"),
         "TSW_SONARQUBE_POSTGRES_PASSWORD": sample_text("sonar-pg", "-value"),
+        "TSW_SONARQUBE_ADMIN_PASSWORD": sample_text("sonar-admin", "-value!"),
     }
 
 
@@ -126,6 +127,27 @@ class TestComposition(unittest.TestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
         self.assertEqual("pulsar-admin-api=http_401", verification.evidence["endpoint_statuses"])
+
+    def test_endpoint_readiness_does_not_follow_https_redirects(self):
+        endpoint_url = "http://localhost"
+        session = _FakeEndpointSession((301,))
+        contract = ServiceStackContract(
+            "traefik",
+            ("traefik",),
+            endpoints=(ServiceEndpoint("traefik", endpoint_url),),
+        )
+        check = composition.EndpointReadinessCheck(
+            contract,
+            max_attempts=1,
+            wait_seconds=0,
+            session=session,
+        )
+
+        verification = check.verify()
+
+        self.assertEqual(VerificationStatus.VERIFIED, verification.status)
+        self.assertEqual("traefik=http_301", verification.evidence["endpoint_statuses"])
+        self.assertEqual([(endpoint_url, 5, False)], session.requests)
 
     def test_endpoint_readiness_fails_after_connection_errors(self):
         contract = ServiceStackContract(
@@ -852,6 +874,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:jenkins-stack",
                 "deployment:pulsar-stack",
                 "deployment:sonarqube-stack",
+                "deployment:sonarqube-admin-access",
                 "deployment:swagger-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
@@ -883,6 +906,41 @@ class TestComposition(unittest.TestCase):
                 "TSW_JENKINS_IMAGE": "127.0.0.1:13500/jenkins:0.2.0",
             },
             jenkins_step.stack_environment,
+        )
+        traefik_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if hasattr(step, "service_stack") and step.service_stack.stack_name == "traefik"
+        )
+        self.assertEqual(
+            {
+                "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "tsw_traefik_tls_cert",
+                "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "tsw_traefik_tls_key",
+            },
+            traefik_step.stack_environment,
+        )
+        sonarqube_admin_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.verification_target_id == "deployment:sonarqube-admin-access"
+        )
+        self.assertEqual(
+            sample_text("sonar-admin", "-value!"),
+            sonarqube_admin_step.password,
+        )
+        self.assertEqual("http://localhost:12000", sonarqube_admin_step.sonarqube_client.base_url)
+        consumption_step = next(
+            step
+            for step in services.workflows.apply.steps
+            if step.verification_target_id == "deployment:managed-config-consumption"
+        )
+        self.assertEqual(
+            {
+                "TSW_NEXUS_ADMIN_PASSWORD": "artifacts:nexus-admin-access",
+                "TSW_PORTAINER_ADMIN_PASSWORD": "deployment:portainer-admin-access",
+                "TSW_SONARQUBE_ADMIN_PASSWORD": "deployment:sonarqube-admin-access",
+            },
+            consumption_step.non_stack_consumer_refs,
         )
         self.assertEqual(
             (
@@ -951,7 +1009,7 @@ class TestComposition(unittest.TestCase):
             compose_repository.call_args.kwargs["service_profile"],
         )
         self.assertEqual(4, len(services.workflows.bootstrap.steps))
-        self.assertEqual(14, len(services.workflows.apply.steps))
+        self.assertEqual(15, len(services.workflows.apply.steps))
         self.assertEqual(9, len(services.workflows.verify.checks))
 
     def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
@@ -1021,6 +1079,7 @@ class TestComposition(unittest.TestCase):
                 "deployment:jenkins-stack",
                 "deployment:pulsar-stack",
                 "deployment:sonarqube-stack",
+                "deployment:sonarqube-admin-access",
                 "deployment:swagger-stack",
             ),
             tuple(step.verification_target_id for step in services.workflows.apply.steps),
@@ -2367,8 +2426,10 @@ class _FakeEndpointResponse:
 class _FakeEndpointSession:
     def __init__(self, responses: tuple[object, ...]):
         self.responses = list(responses)
+        self.requests: list[tuple[str, int, bool]] = []
 
-    def get(self, url: str, *, timeout: int):
+    def get(self, url: str, *, timeout: int, allow_redirects: bool):
+        self.requests.append((url, timeout, allow_redirects))
         response = self.responses.pop(0)
         if isinstance(response, Exception):
             raise response

@@ -75,6 +75,15 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
             tuple(node.spec.name for node in config.nodes),
         )
 
+    def test_committed_manager_memory_covers_the_full_service_profile(self):
+        config = NodeProviderConfigYamlRepository().load()
+        desired_inventory = DesiredInventoryYamlRepository().load()
+        manager_config = next(node for node in config.nodes if node.spec.name == "swarm-manager")
+        manager_inventory = next(vm for vm in desired_inventory.vms if vm.name == "swarm-manager")
+
+        self.assertEqual("10GiB", manager_config.resources["memory"])
+        self.assertEqual("10G", manager_inventory.memory)
+
     def test_committed_config_declares_incus_profiles(self):
         config = NodeProviderConfigYamlRepository().load()
         profile = config.profiles[0]
