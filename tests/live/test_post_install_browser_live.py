@@ -18,10 +18,11 @@ import subprocess
 import unittest
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from email.message import Message
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, ClassVar
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.error import HTTPError
 from urllib.parse import urljoin, urlparse
 from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_opener
@@ -248,6 +249,18 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
                     all(100 <= status <= 499 for status in check.allowed_statuses)
                 )
 
+    def test_routed_service_checks_accept_safe_redirects_without_following_them(self) -> None:
+        checks = _service_checks("http://localhost")
+
+        for check in checks:
+            if not check.name.startswith("service-access-route:"):
+                continue
+            with self.subTest(service=check.name):
+                self.assertFalse(check.follow_redirects)
+                self.assertTrue(
+                    set(DASHBOARD_REDIRECT_STATUSES).issubset(check.allowed_statuses)
+                )
+
     def test_https_route_checks_use_tsw_local_https_hostnames(self) -> None:
         checks = _https_route_checks("tsw.local")
         expectations = browser_route_expectations()
@@ -392,6 +405,66 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             ):
                 LivePostInstallConfig.from_environment()
 
+    def test_http_probe_passes_operator_ca_bundle_to_https_request(self) -> None:
+        check = ServiceCheck("service-access", "https://service-access.tsw.local/")
+
+        with patch(
+            f"{__name__}._http_head_or_get",
+            return_value=(200, "text/html"),
+        ) as request:
+            result = _probe_http(
+                check,
+                5.0,
+                tls_ca_bundle=TEST_CA_BUNDLE,
+            )
+
+        self.assertTrue(result.reachable)
+        request.assert_called_once_with(
+            check.url,
+            5.0,
+            follow_redirects=True,
+            tls_ca_bundle=TEST_CA_BUNDLE,
+        )
+
+    def test_http_probe_retries_get_when_head_is_not_browser_relevant(self) -> None:
+        class _Response:
+            status = 200
+            headers = {"content-type": "text/html"}
+
+            def __enter__(self) -> "_Response":
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+        opener = Mock()
+        headers = Message()
+        headers["content-type"] = "text/html"
+        opener.open.side_effect = (
+            HTTPError(
+                "https://swagger.tsw.local/",
+                404,
+                "not found",
+                headers,
+                None,
+            ),
+            _Response(),
+        )
+
+        with patch(f"{__name__}.build_opener", return_value=opener):
+            status_code, content_type = _http_head_or_get(
+                "https://swagger.tsw.local/",
+                5.0,
+                follow_redirects=True,
+            )
+
+        self.assertEqual(200, status_code)
+        self.assertEqual("text/html", content_type)
+        self.assertEqual(
+            ["HEAD", "GET"],
+            [call.args[0].get_method() for call in opener.open.call_args_list],
+        )
+
     def test_redacted_evidence_rejects_secret_like_keys_and_values(self) -> None:
         unsafe = {
             "service": "jenkins",
@@ -456,7 +529,11 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
         failures: list[HttpProbeResult] = []
         for check in _service_checks(self.config.dashboard_url):
             with self.subTest(service=check.name):
-                result = _probe_http(check, self.config.timeout_seconds)
+                result = _probe_http(
+                    check,
+                    self.config.timeout_seconds,
+                    tls_ca_bundle=self.config.tls_ca_bundle,
+                )
                 self.evidence.record("service", result.to_evidence())
                 if not result.reachable:
                     failures.append(result)
@@ -730,10 +807,13 @@ def _service_checks(
 
     for expectation in expectations:
         route_name = expectation.route_name
-        allowed_statuses = (
+        browser_statuses = (
             (200,)
             if route_name == "service-access"
             else SERVICE_ALLOWED_STATUSES.get(route_name, (200,))
+        )
+        allowed_statuses = tuple(
+            dict.fromkeys((*browser_statuses, *DASHBOARD_REDIRECT_STATUSES))
         )
         checks.append(
             ServiceCheck(
@@ -836,12 +916,18 @@ def _hostname_resolution_evidence(
     }
 
 
-def _probe_http(check: ServiceCheck, timeout_seconds: float) -> HttpProbeResult:
+def _probe_http(
+    check: ServiceCheck,
+    timeout_seconds: float,
+    *,
+    tls_ca_bundle: str | None = None,
+) -> HttpProbeResult:
     try:
         status_code, content_type = _http_head_or_get(
             check.url,
             timeout_seconds,
             follow_redirects=check.follow_redirects,
+            tls_ca_bundle=tls_ca_bundle,
         )
     except OSError as exc:
         return HttpProbeResult(
@@ -931,17 +1017,32 @@ def _http_head_or_get(
     try:
         response_context = opener.open(request, timeout=timeout_seconds)
     except HTTPError as exc:
-        if exc.code < 500:
-            return exc.code, exc.headers.get("content-type", "")
-        raise
-    except OSError:
-        request = Request(url, method="GET")
-        try:
-            response_context = opener.open(request, timeout=timeout_seconds)
-        except HTTPError as exc:
-            if exc.code < 500:
-                return exc.code, exc.headers.get("content-type", "")
+        if exc.code < 400:
+            status_code = exc.code
+            content_type = exc.headers.get("content-type", "")
+            exc.close()
+            return status_code, content_type
+        if exc.code >= 500:
+            exc.close()
             raise
+        exc.close()
+    except OSError:
+        pass
+    else:
+        with response_context as response:
+            return int(response.status), response.headers.get("content-type", "")
+
+    request = Request(url, method="GET")
+    try:
+        response_context = opener.open(request, timeout=timeout_seconds)
+    except HTTPError as exc:
+        if exc.code < 500:
+            status_code = exc.code
+            content_type = exc.headers.get("content-type", "")
+            exc.close()
+            return status_code, content_type
+        exc.close()
+        raise
 
     with response_context as response:
         return int(response.status), response.headers.get("content-type", "")
