@@ -1,8 +1,10 @@
+from __future__ import annotations
 
-import os
-import platform
 from enum import Enum
-from pathlib import Path
+
+from tiny_swarm_world.application.ports.host import PortHostEnvironmentDetector
+from tiny_swarm_world.domain.preflight import HostEnvironmentKind
+from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector
 
 
 class OsTypes(str, Enum):
@@ -21,25 +23,24 @@ class OsTypes(str, Enum):
         raise ValueError(f"Value '{value}' does not match any OsType.")
 
     @staticmethod
-    def detect_current() -> "OsTypes":
-        system = platform.system().lower()
-        if system == "windows":
-            return OsTypes.WINDOWS
-        if system == "linux":
-            if _has_wsl_signal():
-                return OsTypes.WSL_LINUX
+    def detect_current(
+        detector: PortHostEnvironmentDetector | None = None,
+    ) -> "OsTypes":
+        report = (detector or HostEnvironmentDetector()).detect()
+        if report.environment is HostEnvironmentKind.WSL2:
+            return OsTypes.WSL_LINUX
+        if report.environment is HostEnvironmentKind.NATIVE_LINUX:
             return OsTypes.LINUX
-        return OsTypes.get_enum_from_value(system)
-
-
-def _has_wsl_signal() -> bool:
-    if os.environ.get("WSL_INTEROP") or os.environ.get("WSL_DISTRO_NAME"):
-        return True
-    try:
-        kernel_release = Path("/proc/sys/kernel/osrelease").read_text(
-            encoding="utf-8",
-            errors="ignore",
+        raise ValueError(
+            f"Unsupported host environment: {report.environment.value}"
         )
-    except OSError:
-        return False
-    return "microsoft" in kernel_release.lower() or "wsl" in kernel_release.lower()
+
+
+def _has_wsl_signal(
+    detector: PortHostEnvironmentDetector | None = None,
+) -> bool:
+    report = (detector or HostEnvironmentDetector()).detect()
+    return report.environment in {
+        HostEnvironmentKind.WSL2,
+        HostEnvironmentKind.WSL1_UNSUPPORTED,
+    }

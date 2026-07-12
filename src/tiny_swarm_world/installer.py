@@ -12,11 +12,17 @@ import shlex
 import shutil
 import subprocess
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
+
+from tiny_swarm_world.domain.preflight.host_environment import (
+    HostEnvironmentKind,
+    HostEnvironmentReport,
+)
+from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector
 
 RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
 DEFAULT_SERVICE_PROFILE = "service-access"
@@ -73,6 +79,7 @@ class InstallerPaths:
 class HostRuntime:
     name: str
     detection_source: str
+    environment_report: HostEnvironmentReport | None = None
 
 
 @dataclass(frozen=True)
@@ -540,17 +547,33 @@ def _fixed_installer_secret_values(path: Path, required_entries: Sequence[Instal
     return {key: values[key] for key in required_keys}
 
 
-def detect_host_runtime(env: Mapping[str, str]) -> HostRuntime:
+def detect_host_runtime(
+    env: Mapping[str, str],
+    *,
+    os_root: Path = Path("/"),
+    platform_system: Callable[[], str] | None = None,
+) -> HostRuntime:
     test_runtime = env.get("TSW_INSTALL_TEST_HOST_RUNTIME")
     if env.get("TSW_INSTALL_TEST_MODE") == "1" and test_runtime in {"wsl2", "native_linux"}:
         return HostRuntime(test_runtime, "test_override")
-    if env.get("WSL_DISTRO_NAME") or env.get("WSL_INTEROP"):
-        return HostRuntime("wsl2", "wsl_environment")
-    kernel_text = _read_text(Path("/proc/sys/kernel/osrelease")).casefold()
-    version_text = _read_text(Path("/proc/version")).casefold()
-    if "microsoft" in kernel_text or "wsl" in kernel_text or "microsoft" in version_text or "wsl" in version_text:
-        return HostRuntime("wsl2", "kernel_signal")
-    return HostRuntime("native_linux", "uname_linux_without_wsl_signal")
+    report = HostEnvironmentDetector(
+        os_root=os_root,
+        environment=env,
+        platform_system=platform_system,
+    ).detect()
+    if report.environment in {
+        HostEnvironmentKind.NATIVE_LINUX,
+        HostEnvironmentKind.WSL2,
+    }:
+        return HostRuntime(
+            report.environment.value,
+            str(report.evidence.get("classification", report.environment.value)),
+            report,
+        )
+    remediation = " ".join(report.remediation) or "Use native Linux or WSL2."
+    raise InstallerError(
+        f"Unsupported host environment '{report.environment.value}'. {remediation}"
+    )
 
 
 def _windows_wsl_bridge_guard(

@@ -49,6 +49,18 @@ infrastructure side effects by default.
 
 Quality scenarios:
 
+* native Linux, WSL1, WSL2, non-Linux, missing, contradictory, container, and
+  CI signal tables are classified deterministically by pure domain tests;
+* confirmed WSL2 without Windows interop remains typed as WSL2 with
+  `windows_interop_available=false`, while a WSL kernel hint without an
+  independent distribution/interop signal remains unsupported;
+* preflight, installer, `OsTypes`, and network diagnostics delegate to the
+  detector and never downgrade WSL1, ambiguous, or sandbox reports to native
+  Linux;
+* `host detect --json` emits exactly one parseable deterministic document;
+  unsupported results include remediation and exit `1` after emission;
+* detector construction and execution run no subprocess and write no state;
+  simulated native Linux and WSL2 integration paths use only temporary facts;
 * mutating setup without all required live-consent signals is refused before
   Incus, LXC container lifecycle, Docker Swarm, netplan,
   socat, compose, Portainer, Nexus, service bootstrap, image build, image

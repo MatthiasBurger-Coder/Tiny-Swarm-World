@@ -3,6 +3,11 @@ import unittest
 from unittest.mock import patch
 
 from tiny_swarm_world.application.ports.network import CommandObservation
+from tiny_swarm_world.domain.preflight import (
+    HostEnvironmentKind,
+    HostEnvironmentReport,
+    SetupPath,
+)
 from tiny_swarm_world.infrastructure.adapters.network.host_network_probe import (
     SubprocessNetworkProbe,
     _run_shell_command,
@@ -14,7 +19,6 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
         probe = SubprocessNetworkProbe(
             executor=_MappingExecutor(
                 {
-                    "grep -Eqi": _ok("grep"),
                     "hostname -I": _ok("hostname", "172.22.1.20"),
                     "wslinfo --networking-mode": _ok("wslinfo", "nat"),
                     "ip -4 -o addr show dev eth0": _ok(
@@ -22,7 +26,10 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
                         "2: eth0 inet 172.22.1.20/20 brd 172.22.15.255 scope global eth0",
                     ),
                 }
-            )
+            ),
+            host_environment_detector=_Detector(
+                _host_report(HostEnvironmentKind.WSL2, SetupPath.WSL2)
+            ),
         )
 
         runtime = await probe.runtime()
@@ -42,20 +49,53 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("skipped", incus.network_list.command)
 
     async def test_runtime_detects_native_linux_and_host_address(self):
-        probe = SubprocessNetworkProbe(
-            executor=_MappingExecutor(
+        executor = _MappingExecutor(
                 {
-                    "grep -Eqi": _failed("grep"),
                     "hostname -I": _ok("hostname", "192.168.1.25 10.0.0.2"),
                     "ip route": _ok("ip route", "default via 192.168.1.1"),
                 }
             )
+        probe = SubprocessNetworkProbe(
+            executor=executor,
+            host_environment_detector=_Detector(
+                _host_report(
+                    HostEnvironmentKind.NATIVE_LINUX,
+                    SetupPath.NATIVE_LINUX,
+                )
+            ),
         )
 
         runtime = await probe.runtime()
 
         self.assertEqual("native-linux", runtime.runtime)
         self.assertEqual("192.168.1.25", runtime.host_ipv4)
+        self.assertFalse(any("wslinfo" in command for command in executor.commands))
+        self.assertFalse(any("eth0" in command for command in executor.commands))
+        self.assertFalse(any("grep -Eqi" in command for command in executor.commands))
+
+    async def test_runtime_never_reports_wsl1_or_ambiguous_as_wsl2(self):
+        for report in (
+            _host_report(
+                HostEnvironmentKind.WSL1_UNSUPPORTED,
+                SetupPath.UNSUPPORTED,
+            ),
+            _host_report(
+                HostEnvironmentKind.UNKNOWN_UNSUPPORTED,
+                SetupPath.UNSUPPORTED,
+            ),
+        ):
+            with self.subTest(environment=report.environment.value):
+                executor = _MappingExecutor({})
+                probe = SubprocessNetworkProbe(
+                    executor=executor,
+                    host_environment_detector=_Detector(report),
+                )
+
+                runtime = await probe.runtime()
+
+                self.assertEqual(report.environment.value, runtime.runtime)
+                self.assertFalse(runtime.is_wsl2)
+                self.assertEqual([], executor.commands)
 
     async def test_incus_success_parses_gateway_from_network_show(self):
         probe = SubprocessNetworkProbe(
@@ -157,8 +197,10 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
 class _MappingExecutor:
     def __init__(self, observations: dict[str, CommandObservation]) -> None:
         self.observations = observations
+        self.commands: list[str] = []
 
     def __call__(self, command: str, _timeout: int) -> CommandObservation:
+        self.commands.append(command)
         for expected, observation in self.observations.items():
             if expected in command:
                 return CommandObservation(
@@ -183,3 +225,23 @@ def _ok(command: str, stdout: str = "") -> CommandObservation:
 
 def _failed(command: str, stderr: str = "failed") -> CommandObservation:
     return CommandObservation(command=command, return_code=1, stderr=stderr)
+
+
+class _Detector:
+    def __init__(self, report: HostEnvironmentReport) -> None:
+        self.report = report
+
+    def detect(self) -> HostEnvironmentReport:
+        return self.report
+
+
+def _host_report(
+    environment: HostEnvironmentKind,
+    setup_path: SetupPath,
+) -> HostEnvironmentReport:
+    return HostEnvironmentReport(
+        environment=environment,
+        setup_path=setup_path,
+        remediation=("Inspect the host classification.",),
+        evidence={"classification": environment.value},
+    )

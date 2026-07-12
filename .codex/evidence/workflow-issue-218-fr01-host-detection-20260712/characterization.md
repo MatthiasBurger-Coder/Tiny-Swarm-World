@@ -9,7 +9,7 @@ changes.
 Command:
 
 ```bash
-PYTHONPATH=src /mnt/d/Projects/Tiny-Swarm-World/.venv/bin/python -m unittest \
+PYTHONPATH=src "$TSW_QUALITY_PYTHON" -m unittest \
   tests.domain.preflight.test_host_environment \
   tests.infrastructure.adapters.preflight.test_host_preflight_probe \
   tests.infrastructure.adapters.network.test_host_network_probe \
@@ -18,6 +18,10 @@ PYTHONPATH=src /mnt/d/Projects/Tiny-Swarm-World/.venv/bin/python -m unittest \
   tests.test_installer \
   tests.test_package_entrypoint
 ```
+
+`TSW_QUALITY_PYTHON` resolved to the pre-existing shared WSL virtual
+environment interpreter. Its host-specific absolute location is deliberately
+not persisted in general workflow evidence.
 
 Result: `PASS` — 222 tests ran in 6.622 seconds.
 

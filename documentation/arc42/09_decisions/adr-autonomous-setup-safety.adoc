@@ -20,6 +20,11 @@ The later
 `documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc`
 amends only the non-interactive consent scope while retaining this ADR's
 fail-closed safety rules.
+The later
+`documentation/arc42/09_decisions/adr-dedicated-wsl2-host-platform-boundary.adoc`
+adds one narrowly protected local-installation-evidence exception for the
+resolved project path and its filesystem decision; all other path and evidence
+restrictions below remain active.
 
 == Context
 
@@ -84,7 +89,11 @@ The canonical setup path must preserve these rules:
   under ignored local state such as `.tiny-swarm-world/evidence/...`.
 * Raw command strings, stdout, stderr, environment payloads, tokens, passwords,
   Swarm join tokens, local IP addresses, gateways, user names, and host-specific
-  absolute paths must not be persisted in committed files or evidence bundles.
+  absolute paths must not be persisted in committed files or general evidence
+  bundles. The sole exception is the normalized resolved `project_path` plus
+  filesystem classification and explicit override decision in the allowlisted,
+  ignored, atomically written, owner-only installation-evidence document
+  governed by the dedicated WSL2 host-platform ADR.
 * Full runnable success and resource-gated success must remain distinct.
   Hosts below the approved full-run resource contract must not be reported as a
   full pass.

@@ -24,6 +24,36 @@ they do not change CLI behavior, do not move adapter construction into
 application services, and do not execute live commands during service bundle
 construction.
 
+=== Read-only Host Detection Flow
+
+`host detect` is an early, non-mutating CLI path. It builds only
+`DetectHostEnvironment` and its detector port through the composition root; it
+does not build `ApplicationServices`, network preparation, Windows bridge, or
+live provider adapters. The infrastructure detector reads Linux and WSL signal
+files plus boolean/presence environment facts, then delegates classification
+to the pure domain function.
+
+The human result is line-oriented. `--json` emits one deterministic document
+with `environment`, `platform_family`, `distribution`, `kernel_release`,
+`windows_interop_available`, setup/support fields, remediation, and sanitized
+evidence. The public payload also sets `live_readiness_verified` to `false`;
+`allows_live_setup` means only that the host-classification gate permits the
+later gates to run. The human result states the same readiness limitation and
+reports Windows interop as not applicable on native Linux. Supported native
+Linux and WSL2 results exit successfully. WSL1,
+unknown/contradictory hosts, and sandbox-unverified results emit the result and
+exit `1`. A confirmed WSL2 kernel plus distribution remains WSL2 when Windows
+interop is unavailable; the typed interop field is `false` and later Windows
+readiness remains a separate check.
+
+The installer maps only supported typed native Linux or WSL2 reports and stops
+before Python bootstrap, secret-file preparation, subprocesses, or other live
+work for every unsupported report. Network diagnostics also stop before Incus
+or network probes when the typed host is unsupported. This command reports host
+classification only; it does not prove Incus, networking, resource, or service
+readiness. Its early dispatch also avoids executable-path environment changes
+and application-log creation.
+
 The composition root builds `ApplicationServices` as an aggregate of three
 service bundles:
 

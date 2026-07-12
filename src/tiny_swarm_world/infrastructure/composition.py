@@ -14,6 +14,7 @@ from uuid import uuid4
 
 import requests
 
+from tiny_swarm_world.application.ports.host import PortHostEnvironmentDetector
 from tiny_swarm_world.application.ports.method_trace import PortMethodTrace
 from tiny_swarm_world.application.services.artifacts import (
     ArtifactPrepareStep,
@@ -96,9 +97,11 @@ from tiny_swarm_world.application.services.platform import (
     PreflightService,
     SocatManager,
 )
+from tiny_swarm_world.application.services.platform.host import DetectHostEnvironment
 from tiny_swarm_world.infrastructure.adapters.file_management.local_file_storage import (
     LocalFileStorage,
 )
+from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector
 from tiny_swarm_world.application.services.network import (
     NetworkDoctorService,
     NetworkRepairOptions,
@@ -558,6 +561,16 @@ def build_application_logger():
     return LoggerFactory.get_logger("application")
 
 
+def build_host_environment_detector() -> HostEnvironmentDetector:
+    return HostEnvironmentDetector()
+
+
+def build_host_detection_service(
+    detector: PortHostEnvironmentDetector | None = None,
+) -> DetectHostEnvironment:
+    return DetectHostEnvironment(detector or build_host_environment_detector())
+
+
 def build_preflight_service(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
@@ -566,7 +579,10 @@ def build_preflight_service(
     project_paths = default_project_paths()
     port_registry = PortRegistryYamlRepository(project_paths=project_paths).load()
     return PreflightService(
-        HostPreflightProbe(project_paths=project_paths),
+        HostPreflightProbe(
+            project_paths=project_paths,
+            host_environment_detector=build_host_environment_detector(),
+        ),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
         configuration_validation=configuration_validation,
         port_registry=port_registry,
@@ -597,14 +613,18 @@ def build_network_doctor_service() -> NetworkDoctorService:
     project_paths = default_project_paths()
     port_registry = PortRegistryYamlRepository(project_paths=project_paths).load()
     return NetworkDoctorService(
-        SubprocessNetworkProbe(),
+        SubprocessNetworkProbe(
+            host_environment_detector=build_host_environment_detector()
+        ),
         port_registry,
     )
 
 
 def build_network_repair_service() -> NetworkRepairService:
     return NetworkRepairService(
-        SubprocessNetworkProbe(),
+        SubprocessNetworkProbe(
+            host_environment_detector=build_host_environment_detector()
+        ),
         SubprocessNetworkRepair(),
     )
 
@@ -632,7 +652,10 @@ def build_post_install_preflight_service(
     project_paths = default_project_paths()
     configuration = _preflight_configuration_for_provider(service_profile, node_provider_request)
     return PreflightService(
-        HostPreflightProbe(project_paths=project_paths),
+        HostPreflightProbe(
+            project_paths=project_paths,
+            host_environment_detector=build_host_environment_detector(),
+        ),
         replace(configuration, required_ports=()),
         configuration_validation=configuration_validation,
     )
@@ -1459,7 +1482,10 @@ def _build_preflight_service_for_request(
         node_provider_request = None
     port_registry = PortRegistryYamlRepository(project_paths=paths).load()
     return PreflightService(
-        HostPreflightProbe(project_paths=paths),
+        HostPreflightProbe(
+            project_paths=paths,
+            host_environment_detector=build_host_environment_detector(),
+        ),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
         configuration_validation=configuration_validation,
         port_registry=port_registry,
@@ -1475,7 +1501,10 @@ def _build_post_install_preflight_service_for_request(
     paths = project_paths or default_project_paths()
     configuration = _preflight_configuration_for_provider(service_profile, node_provider_request)
     return PreflightService(
-        HostPreflightProbe(project_paths=paths),
+        HostPreflightProbe(
+            project_paths=paths,
+            host_environment_detector=build_host_environment_detector(),
+        ),
         replace(configuration, required_ports=()),
         configuration_validation=configuration_validation,
     )

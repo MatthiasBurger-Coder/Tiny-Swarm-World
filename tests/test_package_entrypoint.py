@@ -36,11 +36,14 @@ from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProviderKind
 from tiny_swarm_world.domain.preflight import (
+    HostEnvironmentKind,
+    HostEnvironmentReport,
     PreflightCategory,
     PreflightCheck,
     PreflightResult,
     PreflightSeverity,
     PreflightStatus,
+    SetupPath,
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -59,12 +62,12 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("No workflow selected", output.getvalue())
         self.assertIn("--list-workflows", output.getvalue())
 
-    async def test_entrypoint_normalizes_common_linux_executable_paths(self):
+    async def test_default_entrypoint_normalizes_common_linux_executable_paths(self):
         output = io.StringIO()
 
         with patch.object(entrypoint, "ensure_common_executable_paths") as normalize_paths:
             with redirect_stdout(output):
-                await entrypoint.main(["--list-workflows"])
+                await entrypoint.main([])
 
         normalize_paths.assert_called_once_with()
 
@@ -84,8 +87,182 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("deployment bootstrap", output.getvalue())
         self.assertIn("deployment apply", output.getvalue())
         self.assertIn("setup run", output.getvalue())
+        self.assertIn("host detect", output.getvalue())
         self.assertNotIn("vm-ip-list", output.getvalue())
         self.assertNotIn("multipass-init-vms", output.getvalue())
+
+    def test_parse_args_accepts_host_detect_as_read_only(self):
+        args = entrypoint.parse_args(["host", "detect"])
+
+        self.assertEqual("host detect", args.workflow.name)
+        self.assertFalse(args.workflow.mutating)
+        self.assertTrue(args.workflow.implemented)
+
+    async def test_host_detect_human_output_is_complete_and_read_only(self):
+        output = io.StringIO()
+        report = _host_report(HostEnvironmentKind.WSL2, SetupPath.WSL2)
+        service = _HostDetectionService(report)
+
+        with (
+            patch.object(
+                entrypoint,
+                "build_host_detection_service",
+                return_value=service,
+            ),
+            patch.object(
+                entrypoint,
+                "ensure_common_executable_paths",
+            ) as ensure_paths,
+            patch.object(entrypoint, "build_application_logger") as build_logger,
+            patch.object(entrypoint, "build_application_services") as build_services,
+            redirect_stdout(output),
+        ):
+            await entrypoint.main(["host", "detect"])
+
+        rendered = output.getvalue()
+        self.assertIn("Host environment", rendered)
+        self.assertIn("Type: wsl2", rendered)
+        self.assertIn("Distribution: Ubuntu-24.04", rendered)
+        self.assertIn("Kernel release: 6.1.21.2-microsoft-standard-WSL2", rendered)
+        self.assertIn("Windows interop: unavailable", rendered)
+        self.assertIn("Supported: yes", rendered)
+        self.assertIn("Setup path: wsl2", rendered)
+        self.assertEqual(1, service.calls)
+        ensure_paths.assert_not_called()
+        build_logger.assert_not_called()
+        build_services.assert_not_called()
+
+    async def test_host_detect_json_stdout_is_exact_and_repeatable(self):
+        report = _host_report(HostEnvironmentKind.WSL2, SetupPath.WSL2)
+        rendered: list[str] = []
+
+        for _ in range(2):
+            output = io.StringIO()
+            with (
+                patch.object(
+                    entrypoint,
+                    "build_host_detection_service",
+                    return_value=_HostDetectionService(report),
+                ),
+                redirect_stdout(output),
+            ):
+                await entrypoint.main(["--json", "host", "detect"])
+            rendered.append(output.getvalue())
+
+        payload = json.loads(rendered[0])
+        self.assertEqual(
+            {**report.to_dict(), "live_readiness_verified": False},
+            payload,
+        )
+        self.assertEqual(rendered[0], rendered[1])
+        _, end_index = json.JSONDecoder().raw_decode(rendered[0])
+        self.assertEqual("", rendered[0][end_index:].strip())
+
+    async def test_unsupported_host_detect_emits_remediation_and_exits_one(self):
+        output = io.StringIO()
+        report = _host_report(
+            HostEnvironmentKind.WSL1_UNSUPPORTED,
+            SetupPath.UNSUPPORTED,
+        )
+
+        with (
+            patch.object(
+                entrypoint,
+                "build_host_detection_service",
+                return_value=_HostDetectionService(report),
+            ),
+            redirect_stdout(output),
+        ):
+            with self.assertRaises(SystemExit) as raised:
+                await entrypoint.main(["host", "detect"])
+
+        self.assertEqual(1, raised.exception.code)
+        self.assertIn("Supported: no", output.getvalue())
+        self.assertIn("Upgrade to WSL2", output.getvalue())
+
+    async def test_unsupported_host_detect_json_remains_parseable_before_exit(self):
+        output = io.StringIO()
+        report = _host_report(
+            HostEnvironmentKind.UNKNOWN_UNSUPPORTED,
+            SetupPath.UNSUPPORTED,
+        )
+
+        with (
+            patch.object(
+                entrypoint,
+                "build_host_detection_service",
+                return_value=_HostDetectionService(report),
+            ),
+            redirect_stdout(output),
+        ):
+            with self.assertRaises(SystemExit) as raised:
+                await entrypoint.main(["--json", "host", "detect"])
+
+        self.assertEqual(1, raised.exception.code)
+        self.assertEqual(
+            {**report.to_dict(), "live_readiness_verified": False},
+            json.loads(output.getvalue()),
+        )
+
+    async def test_host_detect_runs_no_process_or_file_mutation(self):
+        report = _host_report(HostEnvironmentKind.NATIVE_LINUX, SetupPath.NATIVE_LINUX)
+
+        with (
+            patch.object(
+                entrypoint,
+                "build_host_detection_service",
+                return_value=_HostDetectionService(report),
+            ),
+            patch.object(
+                entrypoint,
+                "ensure_common_executable_paths",
+            ) as ensure_paths,
+            patch.object(entrypoint, "build_application_logger") as build_logger,
+            patch.object(Path, "mkdir") as mkdir,
+            patch(
+                "subprocess.run",
+                side_effect=AssertionError("host detect must not run a process"),
+            ),
+            patch(
+                "asyncio.create_subprocess_exec",
+                side_effect=AssertionError("host detect must not run an async process"),
+            ),
+            patch(
+                "asyncio.create_subprocess_shell",
+                side_effect=AssertionError("host detect must not run an async shell"),
+            ),
+            patch.object(
+                Path,
+                "write_text",
+                side_effect=AssertionError("host detect must not write files"),
+            ),
+            redirect_stdout(io.StringIO()),
+        ):
+            await entrypoint.main(["host", "detect"])
+
+        ensure_paths.assert_not_called()
+        build_logger.assert_not_called()
+        mkdir.assert_not_called()
+
+    async def test_native_host_reports_windows_interop_as_not_applicable(self):
+        output = io.StringIO()
+        report = _host_report(
+            HostEnvironmentKind.NATIVE_LINUX,
+            SetupPath.NATIVE_LINUX,
+        )
+
+        with (
+            patch.object(
+                entrypoint,
+                "build_host_detection_service",
+                return_value=_HostDetectionService(report),
+            ),
+            redirect_stdout(output),
+        ):
+            await entrypoint.main(["host", "detect"])
+
+        self.assertIn("Windows interop: not applicable", output.getvalue())
+        self.assertIn("Live readiness verified: no", output.getvalue())
 
     def test_legacy_run_option_is_rejected(self):
         with redirect_stderr(io.StringIO()):
@@ -1009,3 +1186,34 @@ def _boundary_service_bundles():
 
 def _json_payload_from_output(text: str) -> dict[str, object]:
     return json.loads(text[text.index("{") :])
+
+
+class _HostDetectionService:
+    def __init__(self, report: HostEnvironmentReport) -> None:
+        self.report = report
+        self.calls = 0
+
+    def run(self) -> HostEnvironmentReport:
+        self.calls += 1
+        return self.report
+
+
+def _host_report(
+    environment: HostEnvironmentKind,
+    setup_path: SetupPath,
+) -> HostEnvironmentReport:
+    remediation = (
+        ("Upgrade to WSL2 or use native Linux.",)
+        if environment is HostEnvironmentKind.WSL1_UNSUPPORTED
+        else ("Verify the host classification.",)
+    )
+    return HostEnvironmentReport(
+        environment=environment,
+        setup_path=setup_path,
+        distribution="Ubuntu-24.04",
+        kernel_release="6.1.21.2-microsoft-standard-WSL2",
+        windows_interop_available=False,
+        platform_family="linux",
+        remediation=remediation,
+        evidence={"classification": environment.value},
+    )

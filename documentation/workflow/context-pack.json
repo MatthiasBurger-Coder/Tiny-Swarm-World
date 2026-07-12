@@ -56,7 +56,7 @@
   },
   "quality_commands": {
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_host_environment tests.application.services.platform.host.test_detect_host_environment tests.infrastructure.adapters.host.test_host_environment_detector tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.network.test_host_network_probe tests.infrastructure.test_os_types tests.infrastructure.test_composition tests.integration.test_host_platform_paths tests.test_installer tests.test_package_entrypoint",
+      "PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_host_environment tests.application.services.platform.host.test_detect_host_environment tests.application.services.platform.test_preflight_service tests.application.services.network.test_host_integration tests.infrastructure.adapters.host.test_host_environment_detector tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.network.test_host_network_probe tests.infrastructure.test_os_types tests.infrastructure.test_composition tests.architecture.test_host_detection_boundaries tests.integration.test_host_platform_paths tests.test_installer tests.test_package_entrypoint",
       "python3 tools/quality_gate.py arch-lint",
       "python3 tools/quality_gate.py arch-tests",
       "git diff --check"
@@ -83,8 +83,8 @@
     ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
     ".agents/skills/s3d-execution-orchestrator/SKILL.md": "54c687a580225c85aa3bca2445782064bff914f593458a63006b0793dc8233bc",
     ".agents/skills/issue-completion-auditor/SKILL.md": "6de0eb7ff298f25ee0255695c4a0057d502039c786f87ab4dc7aa1991e1f15c5",
-    "src/tiny_swarm_world/domain/preflight/host_environment.py": "3c6a2c6456effc9612709b61029fcfeb4a59e6ba650b9335c6640572b788026a",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py": "c1c68a4ae4dfe239da0f27c18e123f8e46a8bc9761f1cc207e9628878c5e6fec",
-    "src/tiny_swarm_world/__main__.py": "a38f602621e83e9577950424d69326692e9a7881c6df370eea1fde451ff17a76"
+    "src/tiny_swarm_world/domain/preflight/host_environment.py": "0fd580e9f81a12ef9d1d759107fc4a874e0c6331924844ce3ceb795c6237401a",
+    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py": "bec254d2214be9059e5353d71c695a6c96d174f4c1815f58db9f327ec666f545",
+    "src/tiny_swarm_world/__main__.py": "abc287cfeb09fb09592877c2a74b22fd1da08bba53083dbaefa7cb3803dfc465"
   }
 }

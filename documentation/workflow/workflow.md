@@ -7,7 +7,7 @@ Issue: `#218 Treat WSL2 as a Dedicated Host Platform and Decouple Installation f
 Baseline Branch: `main`
 Baseline Commit: `d778fce69bd8f87195ad9b975a1036e3cd1a8819`
 Branch: `feature/workflow-issue-218-fr01-host-detection-20260712`
-Status: `AUTHORING_PUBLISHED_EXECUTION_PENDING`
+Status: `SLICE_01_CHECKPOINT_COMMITTED_PUBLICATION_PENDING`
 Execution Profile: `FULL_PATH`
 
 ## Executive Summary
@@ -162,11 +162,14 @@ Targeted commands:
 PYTHONPATH=src python3 -m unittest \
   tests.domain.preflight.test_host_environment \
   tests.application.services.platform.host.test_detect_host_environment \
+  tests.application.services.platform.test_preflight_service \
+  tests.application.services.network.test_host_integration \
   tests.infrastructure.adapters.host.test_host_environment_detector \
   tests.infrastructure.adapters.preflight.test_host_preflight_probe \
   tests.infrastructure.adapters.network.test_host_network_probe \
   tests.infrastructure.test_os_types \
   tests.infrastructure.test_composition \
+  tests.architecture.test_host_detection_boundaries \
   tests.integration.test_host_platform_paths \
   tests.test_installer \
   tests.test_package_entrypoint
@@ -212,6 +215,7 @@ affected_files:
   - documentation/workflow/context-pack.json
   - documentation/workflow/publication-handoff.md
   - documentation/arc42/09_decisions/adr-dedicated-wsl2-host-platform-boundary.adoc
+  - documentation/arc42/09_decisions/adr-autonomous-setup-safety.adoc
   - documentation/arc42/09_architecture_decisions.adoc
   - documentation/arc42/02_constraints.adoc
   - documentation/arc42/05_building_blocks.adoc
@@ -220,8 +224,13 @@ affected_files:
   - documentation/arc42/10_quality_requirements.adoc
   - documentation/user_guide/usage.adoc
   - src/tiny_swarm_world/domain/preflight/host_environment.py
+  - src/tiny_swarm_world/domain/preflight/__init__.py
   - src/tiny_swarm_world/application/ports/host/**
+  - src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py
+  - src/tiny_swarm_world/application/ports/network/port_network_probe.py
   - src/tiny_swarm_world/application/services/platform/host/**
+  - src/tiny_swarm_world/application/services/platform/preflight_service.py
+  - src/tiny_swarm_world/application/services/network/host_integration.py
   - src/tiny_swarm_world/infrastructure/adapters/host/**
   - src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py
   - src/tiny_swarm_world/infrastructure/adapters/network/host_network_probe.py
@@ -231,6 +240,8 @@ affected_files:
   - src/tiny_swarm_world/__main__.py
   - tests/domain/preflight/**
   - tests/application/services/platform/host/**
+  - tests/application/services/platform/test_preflight_service.py
+  - tests/application/services/network/test_host_integration.py
   - tests/infrastructure/adapters/host/**
   - tests/infrastructure/adapters/preflight/test_host_preflight_probe.py
   - tests/infrastructure/adapters/network/test_host_network_probe.py
@@ -271,7 +282,7 @@ architecture_locks:
   - dedicated-wsl2-platform
 quality_gates:
   targeted:
-    - PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_host_environment tests.application.services.platform.host.test_detect_host_environment tests.infrastructure.adapters.host.test_host_environment_detector tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.network.test_host_network_probe tests.infrastructure.test_os_types tests.infrastructure.test_composition tests.integration.test_host_platform_paths tests.test_installer tests.test_package_entrypoint
+    - PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_host_environment tests.application.services.platform.host.test_detect_host_environment tests.application.services.platform.test_preflight_service tests.application.services.network.test_host_integration tests.infrastructure.adapters.host.test_host_environment_detector tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.network.test_host_network_probe tests.infrastructure.test_os_types tests.infrastructure.test_composition tests.architecture.test_host_detection_boundaries tests.integration.test_host_platform_paths tests.test_installer tests.test_package_entrypoint
     - python3 tools/quality_gate.py arch-lint
     - python3 tools/quality_gate.py arch-tests
     - git diff --check
@@ -449,10 +460,21 @@ Requirement Engineer, System Architect, Tester/DevOps, Documentation Engineer,
 and Issue Completion Auditor as independent read-only reviewers. `workflow
 execute` must not regenerate this plan.
 
+## Execution checkpoint
+
+Slice 01 was implemented sequentially in the declared isolated worktree. The
+focused 321-test suite, Ruff, all three import-linter contracts, 18 hexagonal
+architecture tests, Mypy across 486 source files, the full 1,454-test suite
+with 28 documented skips, and `git diff --check` pass. Real WSL2 classification
+was also exercised read-only in human and JSON modes; live infrastructure
+validation remains `NOT_RUN`. Consolidation, independent completion audit, the
+single Slice-01 checkpoint commit all pass; push, PR checks, merge, cleanup,
+and green merged-main verification remain release gates.
+
 ## arc42 Check Status
 
 Reviewed: constraints, strategy, context, building blocks, runtime, deployment,
 cross-cutting concepts, quality requirements, risks, the Windows Service Agent
 ADR, installer reporting ADR, command-runner decision, and setup-safety ADR.
-The implementation slice must add the dedicated host-boundary ADR and update
-the listed active arc42 consequences before completion.
+The implementation slice added the dedicated host-boundary ADR and updated the
+listed active arc42 consequences.

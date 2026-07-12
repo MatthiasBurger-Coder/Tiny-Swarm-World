@@ -5,6 +5,7 @@ import re
 import subprocess
 from collections.abc import Callable
 
+from tiny_swarm_world.application.ports.host import PortHostEnvironmentDetector
 from tiny_swarm_world.application.ports.network import (
     CommandObservation,
     ForwardingObservation,
@@ -14,19 +15,37 @@ from tiny_swarm_world.application.ports.network import (
     ServicePortObservation,
     WslHostObservation,
 )
+from tiny_swarm_world.domain.preflight import HostEnvironmentKind
+from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector
 
 
 CommandExecutor = Callable[[str, int], CommandObservation]
 
 
 class SubprocessNetworkProbe:
-    def __init__(self, executor: CommandExecutor | None = None) -> None:
+    def __init__(
+        self,
+        executor: CommandExecutor | None = None,
+        *,
+        host_environment_detector: PortHostEnvironmentDetector | None = None,
+    ) -> None:
         self.executor = executor or _run_shell_command
+        self.host_environment_detector = (
+            host_environment_detector or HostEnvironmentDetector()
+        )
 
     async def runtime(self) -> RuntimeObservation:
-        version = await self._run("grep -Eqi '(microsoft|wsl)' /proc/version", timeout_seconds=3)
+        host_environment = self.host_environment_detector.detect()
+        if not host_environment.supported:
+            return RuntimeObservation(
+                runtime=host_environment.environment.value,
+                networking_mode="not-applicable",
+                wsl_ipv4="",
+                host_ipv4="",
+                remediation=host_environment.remediation,
+            )
         hostname = await self._run("hostname -I 2>/dev/null || true", timeout_seconds=3)
-        if version.ok:
+        if host_environment.environment is HostEnvironmentKind.WSL2:
             networking_mode = await self._run("wslinfo --networking-mode 2>/dev/null || true", timeout_seconds=3)
             eth0 = await self._run("ip -4 -o addr show dev eth0 scope global 2>/dev/null || true", timeout_seconds=3)
             mode = _networking_mode(networking_mode.stdout)
@@ -35,7 +54,7 @@ class SubprocessNetworkProbe:
                 networking_mode=mode,
                 wsl_ipv4=_first_ipv4(eth0.stdout) or _first_ipv4(hostname.stdout),
                 host_ipv4="",
-                commands=(version, networking_mode, hostname, eth0),
+                commands=(networking_mode, hostname, eth0),
             )
         route = await self._run("ip route 2>/dev/null || true", timeout_seconds=3)
         return RuntimeObservation(
@@ -43,7 +62,7 @@ class SubprocessNetworkProbe:
             networking_mode="not-applicable",
             wsl_ipv4="",
             host_ipv4=_first_ipv4(hostname.stdout),
-            commands=(version, hostname, route),
+            commands=(hostname, route),
         )
 
     async def wsl_host(self) -> WslHostObservation:

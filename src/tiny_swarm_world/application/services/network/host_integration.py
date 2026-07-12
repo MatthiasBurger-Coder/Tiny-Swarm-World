@@ -159,6 +159,11 @@ class NetworkDoctorService:
     async def run(self) -> NetworkDoctorReport:
         runtime = await self.probe.runtime()
         sections: list[NetworkDiagnosticSection] = [_runtime_section(runtime)]
+        if not runtime.supported_host:
+            sections.append(
+                _final_diagnosis_section(tuple(sections), (), runtime)
+            )
+            return NetworkDoctorReport(tuple(sections))
 
         wsl_diagnostics: tuple[NetworkDiagnostic, ...] = ()
         if runtime.is_wsl2:
@@ -254,6 +259,13 @@ class NetworkRepairService:
                 ("Supported runtime repair target: wsl2-nat.",),
             )
         if not observed.is_wsl2:
+            if not observed.supported_host:
+                return NetworkRepairStep(
+                    "runtime",
+                    "blocked",
+                    "Runtime repair requires a supported native Linux or WSL2 host.",
+                    (f"Observed runtime: {observed.runtime}", *observed.remediation),
+                )
             return NetworkRepairStep(
                 "runtime",
                 "skipped",
@@ -336,14 +348,30 @@ def _runtime_section(runtime: RuntimeObservation) -> NetworkDiagnosticSection:
         )
         return NetworkDiagnosticSection("Runtime", lines, diagnostics)
 
+    if runtime.runtime == "native-linux":
+        lines = (
+            "Runtime: native-linux",
+            f"Host IPv4: {runtime.host_ipv4 or 'unknown'}",
+        )
+        return NetworkDiagnosticSection(
+            "Runtime",
+            lines,
+            (_ok("RUNTIME_NATIVE_LINUX", "Native Linux runtime detected."),),
+        )
+
     lines = (
-        "Runtime: native-linux",
-        f"Host IPv4: {runtime.host_ipv4 or 'unknown'}",
+        f"Runtime: {runtime.runtime}",
+        *(f"Remediation: {item}" for item in runtime.remediation),
     )
     return NetworkDiagnosticSection(
         "Runtime",
         lines,
-        (_ok("RUNTIME_NATIVE_LINUX", "Native Linux runtime detected."),),
+        (
+            _fail(
+                "RUNTIME_HOST_UNSUPPORTED",
+                "Host classification does not allow network diagnostics.",
+            ),
+        ),
     )
 
 

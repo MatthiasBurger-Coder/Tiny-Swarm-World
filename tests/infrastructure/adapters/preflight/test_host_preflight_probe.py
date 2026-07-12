@@ -16,6 +16,7 @@ from tests.support.sonar_safe_literals import sample_text
 
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentKind,
+    HostEnvironmentReport,
     SetupPath,
 )
 from tiny_swarm_world.infrastructure.adapters.preflight import (
@@ -107,6 +108,8 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertFalse(report.static_validation_only)
         self.assertEqual("native_linux", report.evidence["classification"])
         self.assertEqual("present", report.evidence["kernel_signal"])
+        self.assertEqual("6.8.0-generic", report.kernel_release)
+        self.assertFalse(report.windows_interop_available)
 
     def test_host_environment_report_classifies_container_marker_as_sandbox(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -276,6 +279,12 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual("wsl2", report.evidence["classification"])
         self.assertEqual("2", report.evidence["wsl_generation"])
         self.assertEqual("present", report.evidence["wsl_independent_signal"])
+        self.assertEqual("Ubuntu", report.distribution)
+        self.assertEqual(
+            "5.15.90.1-microsoft-standard-WSL2",
+            report.kernel_release,
+        )
+        self.assertFalse(report.windows_interop_available)
 
     def test_host_environment_report_classifies_wsl1_as_unsupported(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -362,9 +371,12 @@ class TestHostPreflightProbe(unittest.TestCase):
     def test_host_environment_report_fails_closed_for_non_linux_platform(self):
         probe = HostPreflightProbe(Path.cwd())
 
-        with patch(
-            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
-            return_value="Darwin",
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.platform.system",
+                return_value="Darwin",
+            ),
+            patch.dict(os.environ, {}, clear=True),
         ):
             report = probe.host_environment_report()
 
@@ -374,6 +386,27 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertFalse(report.static_validation_only)
         self.assertEqual("unknown_unsupported", report.evidence["classification"])
         self.assertEqual("darwin", report.evidence["kernel_family"])
+
+    def test_host_environment_report_delegates_to_injected_detector(self):
+        expected = HostEnvironmentReport(
+            environment=HostEnvironmentKind.WSL2,
+            setup_path=SetupPath.WSL2,
+            distribution="Ubuntu",
+            kernel_release="6.1.0-microsoft-standard-WSL2",
+            windows_interop_available=True,
+            remediation=("Verify WSL2 readiness.",),
+            evidence={"classification": "wsl2"},
+        )
+        detector = _StubHostEnvironmentDetector(expected)
+        probe = HostPreflightProbe(
+            Path.cwd(),
+            host_environment_detector=detector,
+        )
+
+        actual = probe.host_environment_report()
+
+        self.assertIs(expected, actual)
+        self.assertEqual(1, detector.calls)
 
     def test_windows_wsl_bridge_status_reports_missing_state_file(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -769,6 +802,16 @@ class TestHostPreflightProbe(unittest.TestCase):
             outside_file.unlink()
 
         self.assertEqual((), tuple(found))
+
+
+class _StubHostEnvironmentDetector:
+    def __init__(self, report: HostEnvironmentReport) -> None:
+        self.report = report
+        self.calls = 0
+
+    def detect(self) -> HostEnvironmentReport:
+        self.calls += 1
+        return self.report
 
 
 def _write_os_signal(root: Path, *parts: str, text: str) -> None:
