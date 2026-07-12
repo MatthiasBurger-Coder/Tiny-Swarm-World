@@ -6,6 +6,9 @@
 - Baseline: `main@d778fce69bd8f87195ad9b975a1036e3cd1a8819`
 - Process strand: `workflow create -> workflow execute -> PR/CI/Sonar -> merge`
 - Execution profile: `FULL_PATH`
+- Authoring publication: commit
+  `d161915f630241ba9bdcc6a8f339b84f4bddd137` verified at
+  `origin/feature/workflow-issue-218-fr01-host-detection-20260712`
 - Gate: `READY_FOR_WORKFLOW` at 97 percent confidence
 - Affected areas: host detection, preflight, composition, CLI, tests, arc42/ADR
 - Forbidden areas: live infrastructure, network mutation, resources, filesystem

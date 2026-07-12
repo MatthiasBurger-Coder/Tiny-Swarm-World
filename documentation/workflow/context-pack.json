@@ -10,6 +10,11 @@
   },
   "process_strand": "workflow create -> workflow execute -> PR/CI/Sonar -> merge",
   "execution_profile": "FULL_PATH",
+  "authoring_publication": {
+    "commit": "d161915f630241ba9bdcc6a8f339b84f4bddd137",
+    "push_target": "origin/feature/workflow-issue-218-fr01-host-detection-20260712",
+    "remote_ref_verified": true
+  },
   "gate": {
     "decision": "READY_FOR_WORKFLOW",
     "confidence_percent": 97,

@@ -7,7 +7,7 @@ Issue: `#218 Treat WSL2 as a Dedicated Host Platform and Decouple Installation f
 Baseline Branch: `main`
 Baseline Commit: `d778fce69bd8f87195ad9b975a1036e3cd1a8819`
 Branch: `feature/workflow-issue-218-fr01-host-detection-20260712`
-Status: `AUTHORING_READY_FOR_PUBLICATION`
+Status: `AUTHORING_PUBLISHED_EXECUTION_PENDING`
 Execution Profile: `FULL_PATH`
 
 ## Executive Summary
