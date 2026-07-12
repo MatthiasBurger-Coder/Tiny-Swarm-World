@@ -179,7 +179,11 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         compose_repository.return_value.render_service_access_dashboard.assert_called_once_with()
 
     def test_traefik_tls_secret_generation_covers_local_ingress_hostnames(self):
-        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+        runtime = LxcSwarmRuntime(
+            backend=ManagedLxcBackend.LXD,
+            traefik_tls_cert_secret_name="custom_tls_cert",
+            traefik_tls_key_secret_name="custom_tls_key",
+        )
 
         with patch.object(runtime, "external_secret_exists", return_value=False):
             with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
@@ -189,6 +193,8 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertIn("-subj '/CN=tsw.local'", script)
         self.assertIn("DNS:*.tsw.local", script)
         self.assertIn("DNS:localhost", script)
+        self.assertIn("custom_tls_cert", script)
+        self.assertIn("custom_tls_key", script)
 
     def test_reconcile_published_ports_preserves_declared_host_mode(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
@@ -431,21 +437,108 @@ networks:
     def test_infisical_migration_lock_recovery_unlocks_only_known_lock_table(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
 
-        with patch.object(
-            runtime,
-            "_run_manager_shell",
-            return_value=subprocess.CompletedProcess([], 0),
-        ) as run_manager_shell:
+        with (
+            patch.object(
+                runtime,
+                "_run_manager_shell",
+                return_value=subprocess.CompletedProcess(
+                    [],
+                    0,
+                    stdout="swarm-worker-1\n",
+                ),
+            ) as run_manager_shell,
+            patch.object(
+                runtime,
+                "_run_node_shell",
+                return_value=subprocess.CompletedProcess([], 0),
+            ) as run_node_shell,
+        ):
             self.assertTrue(runtime.recover_infisical_migration_lock())
 
-        script = run_manager_shell.call_args.args[0]
-        self.assertIn("--filter name=infisical-db", script)
+        script = run_node_shell.call_args.args[1]
+        self.assertIn(
+            "--filter label=com.docker.swarm.service.name=infisical_infisical-db",
+            script,
+        )
+        self.assertIn("wc -l", script)
         self.assertIn("for lock_table in infisical_migrations_lock", script)
         self.assertIn("to_regclass('public.' || '$lock_table')", script)
         self.assertIn("infisical_migrations_startup_lock", script)
         self.assertIn("update $lock_table set is_locked=0", script)
         self.assertIn("where is_locked<>0", script)
-        run_manager_shell.assert_called_once_with(script, check=False)
+        run_manager_shell.assert_called_once_with(
+            "docker service ps --filter desired-state=running "
+            "--format '{{.Node}}' infisical_infisical-db",
+            check=False,
+        )
+
+    def test_infisical_migration_lock_recovery_runs_on_the_db_task_node(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+
+        with (
+            patch.object(
+                runtime,
+                "_run_manager_shell",
+                return_value=subprocess.CompletedProcess(
+                    [],
+                    0,
+                    stdout="swarm-worker-1\n",
+                ),
+            ) as run_manager_shell,
+            patch.object(
+                runtime,
+                "_run_node_shell",
+                return_value=subprocess.CompletedProcess([], 0),
+            ) as run_node_shell,
+        ):
+            self.assertTrue(runtime.recover_infisical_migration_lock())
+
+        placement_script = run_manager_shell.call_args.args[0]
+        self.assertIn("docker service ps", placement_script)
+        self.assertIn("infisical_infisical-db", placement_script)
+        recovery_script = run_node_shell.call_args.args[1]
+        self.assertIn(
+            "--filter label=com.docker.swarm.service.name=infisical_infisical-db",
+            recovery_script,
+        )
+        self.assertIn("for lock_table in infisical_migrations_lock", recovery_script)
+        run_node_shell.assert_called_once_with(
+            "swarm-worker-1",
+            recovery_script,
+            check=False,
+        )
+
+    def test_infisical_migration_lock_recovery_rejects_ambiguous_task_placement(self):
+        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+
+        with (
+            patch.object(
+                runtime,
+                "_run_manager_shell",
+                return_value=subprocess.CompletedProcess(
+                    [],
+                    0,
+                    stdout="swarm-worker-1\nswarm-worker-2\n",
+                ),
+            ),
+            patch.object(runtime, "_run_node_shell") as run_node_shell,
+        ):
+            self.assertFalse(runtime.recover_infisical_migration_lock())
+
+        run_node_shell.assert_not_called()
+
+    def test_node_shell_timeout_identifies_the_target_worker(self):
+        runtime = LxcSwarmRuntime(
+            backend=ManagedLxcBackend.INCUS,
+            timeout_seconds=1,
+        )
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
+            side_effect=subprocess.TimeoutExpired(["incus", "exec"], 1),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "swarm-worker-1"):
+                runtime._run_node_shell("swarm-worker-1", "true")
 
     def test_list_stack_services_parses_replica_counts(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)

@@ -3,21 +3,15 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 import unittest
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, cast
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.parse import urlparse
-
-try:
-    from selenium import webdriver  # type: ignore[import-not-found]
-    from selenium.webdriver.common.by import By  # type: ignore[import-not-found]
-except ModuleNotFoundError:
-    webdriver = None
-    By = None
 
 from tiny_swarm_world.application.ports.repositories.port_effective_access_model_repository import (
     PortEffectiveAccessModelRepository,
@@ -26,6 +20,18 @@ from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_reposito
     ComposeFileRepositoryYaml,
 )
 from tests.support.effective_access_model_fixture import effective_access_model_fixture
+
+webdriver: Any
+By: Any
+try:
+    from selenium import webdriver as imported_webdriver  # type: ignore[import-not-found]
+    from selenium.webdriver.common.by import By as imported_by  # type: ignore[import-not-found]
+except ModuleNotFoundError:
+    webdriver = None
+    By = None
+else:
+    webdriver = imported_webdriver
+    By = imported_by
 
 
 RUN_LIVE_ENV = "TSW_RUN_POST_INSTALL_BROWSER_LIVE"
@@ -165,8 +171,13 @@ class BrowserRouteE2EContract:
                 float(os.environ.get("TSW_BROWSER_E2E_TIMEOUT_SECONDS", "45"))
             )
             driver.get(expectation.dashboard_url)
-            body = driver.find_element(by.TAG_NAME, "body")
-            testcase.assertTrue(body.text or driver.title)
+            testcase.assertTrue(
+                _browser_navigation_reached_expected_host(
+                    driver.current_url,
+                    expectation.dashboard_url,
+                ),
+                "expected browser navigation to reach the routed HTTPS host",
+            )
             if self.route_name in LOGIN_REQUIRED_ROUTES:
                 credential = _approved_credential(self.route_name)
                 if credential is None:
@@ -182,9 +193,13 @@ class BrowserRouteE2EContract:
                         "approved credential source unavailable for required login flow"
                     )
                 _perform_login_flow(driver, by, self.route_name, credential)
-                body = driver.find_element(by.TAG_NAME, "body")
+                body_text, title = _wait_for_post_login_success(
+                    driver,
+                    by,
+                    self.route_name,
+                )
                 testcase.assertTrue(
-                    _post_login_success(self.route_name, body.text, driver.title),
+                    _post_login_success(self.route_name, body_text, title),
                     "expected stable authenticated landing state after login",
                 )
             _record_route_result(
@@ -211,6 +226,79 @@ class BrowserRouteE2EContract:
 
 
 class BrowserRouteE2EContractStaticTest(unittest.TestCase):
+    def test_first_present_waits_for_delayed_spa_selector(self) -> None:
+        expected_element = Mock()
+        driver = Mock()
+        driver.find_element.side_effect = [LookupError("not rendered"), expected_element]
+        sleep_calls: list[float] = []
+
+        actual = _first_present(
+            driver,
+            Mock(CSS_SELECTOR="css selector"),
+            ("input[name='username']",),
+            attempts=2,
+            retry_interval_seconds=0.25,
+            sleep=sleep_calls.append,
+        )
+
+        self.assertIs(expected_element, actual)
+        self.assertEqual([0.25], sleep_calls)
+
+    def test_page_text_retries_after_stale_spa_body(self) -> None:
+        body = Mock(text="Projects")
+        driver = Mock(title="SonarQube")
+        driver.find_element.side_effect = [LookupError("stale body"), body]
+        sleep_calls: list[float] = []
+
+        actual = _page_text_and_title(
+            driver,
+            Mock(TAG_NAME="tag name"),
+            attempts=2,
+            retry_interval_seconds=0.25,
+            sleep=sleep_calls.append,
+        )
+
+        self.assertEqual(("Projects", "SonarQube"), actual)
+        self.assertEqual([0.25], sleep_calls)
+
+    def test_post_login_wait_rechecks_spa_landing_state(self) -> None:
+        sleep_calls: list[float] = []
+        with patch(
+            "tests.live.browser_e2e_contract._page_text_and_title",
+            side_effect=[("Sign in", "SonarQube"), ("Projects", "SonarQube")],
+        ):
+            actual = _wait_for_post_login_success(
+                Mock(),
+                Mock(),
+                "sonarqube",
+                attempts=2,
+                retry_interval_seconds=0.25,
+                sleep=sleep_calls.append,
+            )
+
+        self.assertEqual(("Projects", "SonarQube"), actual)
+        self.assertEqual([0.25], sleep_calls)
+
+    def test_product_brand_alone_is_not_an_authenticated_landing_state(self) -> None:
+        for route_name in sorted(LOGIN_REQUIRED_ROUTES):
+            with self.subTest(route_name=route_name):
+                self.assertFalse(
+                    _post_login_success(
+                        route_name,
+                        f"Sign in to {route_name}",
+                        route_name,
+                    )
+                )
+
+    def test_pulsar_manager_environment_listing_is_an_authenticated_landing_state(self) -> None:
+        self.assertTrue(
+            _post_login_success(
+                "pulsar-manager",
+                "New Environment",
+                "Pulsar Admin UI",
+            )
+        )
+
     def test_all_browser_route_urls_use_routed_https_hosts(self) -> None:
         for expectation in browser_route_expectations():
             with self.subTest(route=expectation.route_name):
@@ -330,6 +418,22 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
     def test_live_e2e_evidence_target_is_local_and_ignored(self) -> None:
         _assert_evidence_target(self)
 
+    def test_blank_success_page_on_expected_route_is_browser_reachable(self) -> None:
+        self.assertTrue(
+            _browser_navigation_reached_expected_host(
+                "https://swagger.tsw.local/status",
+                "https://swagger.tsw.local",
+            )
+        )
+
+    def test_browser_network_error_page_is_not_reachable(self) -> None:
+        self.assertFalse(
+            _browser_navigation_reached_expected_host(
+                "about:neterror?e=dnsNotFound",
+                "https://pulsar-api.tsw.local/admin/v2/clusters",
+            )
+        )
+
     def test_browser_result_evidence_is_redacted(self) -> None:
         evidence = BrowserRouteResult(
             route_name="service-access",
@@ -368,6 +472,47 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
         self.assertEqual("skipped", route_evidence["status"])
         self.assertIn("service-access", suite_evidence["status_matrix"]["skipped"])
 
+    def test_missing_consent_skip_does_not_replace_existing_live_pass_evidence(self) -> None:
+        expectation = BrowserRouteExpectation(
+            "service-access",
+            "https://service-access.tsw.local",
+        )
+        passed = BrowserRouteResult(
+            route_name="service-access",
+            url=expectation.dashboard_url,
+            result="passed",
+        )
+        missing_consent = BrowserRouteResult(
+            route_name="service-access",
+            url=expectation.dashboard_url,
+            result="skipped",
+            redacted_reason="blocked_live_consent_missing",
+        )
+
+        with TemporaryDirectory() as temporary_directory:
+            evidence_root = Path(temporary_directory)
+            with patch(f"{__name__}.E2E_EVIDENCE_ROOT", evidence_root):
+                live_path = _record_route_result(passed, (expectation,))
+                skip_path = _record_route_result(missing_consent, (expectation,))
+                live_evidence = json.loads(live_path.read_text(encoding="utf-8"))
+                live_summary = json.loads(
+                    (evidence_root / "suite-summary.json").read_text(encoding="utf-8")
+                )
+                skip_summary = json.loads(
+                    (evidence_root / "non-live-consent" / "suite-summary.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+
+        self.assertEqual(evidence_root / "service-access.json", live_path)
+        self.assertEqual(
+            evidence_root / "non-live-consent" / "service-access.json",
+            skip_path,
+        )
+        self.assertEqual("passed", live_evidence["status"])
+        self.assertEqual("passed", live_summary["result"])
+        self.assertEqual("skipped", skip_summary["result"])
+
 
 def _assert_routed_https_url(testcase: Any, url: str) -> None:
     parsed = urlparse(url)
@@ -378,6 +523,16 @@ def _assert_routed_https_url(testcase: Any, url: str) -> None:
     testcase.assertFalse(parsed.password)
     testcase.assertFalse(parsed.query)
     testcase.assertFalse(parsed.fragment)
+
+
+def _browser_navigation_reached_expected_host(current_url: str, expected_url: str) -> bool:
+    current = urlparse(current_url)
+    expected = urlparse(expected_url)
+    return (
+        current.scheme == "https"
+        and current.hostname is not None
+        and current.hostname == expected.hostname
+    )
 
 
 def _assert_evidence_target(testcase: Any) -> None:
@@ -391,13 +546,19 @@ def _record_route_result(
     result: BrowserRouteResult,
     expectations: Sequence[BrowserRouteExpectation] | None = None,
 ) -> Path:
-    E2E_EVIDENCE_ROOT.mkdir(parents=True, exist_ok=True)
-    route_path = E2E_EVIDENCE_ROOT / f"{result.route_name}.json"
+    evidence_root = E2E_EVIDENCE_ROOT
+    if (
+        result.result == "skipped"
+        and result.redacted_reason == "blocked_live_consent_missing"
+    ):
+        evidence_root /= "non-live-consent"
+    evidence_root.mkdir(parents=True, exist_ok=True)
+    route_path = evidence_root / f"{result.route_name}.json"
     route_path.write_text(
         json.dumps(result.to_evidence(), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    _write_suite_summary(expectations)
+    _write_suite_summary(expectations, evidence_root=evidence_root)
     return route_path
 
 
@@ -454,15 +615,21 @@ def build_suite_summary(
 
 def _write_suite_summary(
     expectations: Sequence[BrowserRouteExpectation] | None = None,
+    *,
+    evidence_root: Path | None = None,
 ) -> None:
+    selected_evidence_root = evidence_root or E2E_EVIDENCE_ROOT
     selected_expectations = (
         tuple(expectations)
         if expectations is not None
         else browser_route_expectations()
     )
-    route_evidence = _read_route_evidence(selected_expectations)
+    route_evidence = _read_route_evidence(
+        selected_expectations,
+        evidence_root=selected_evidence_root,
+    )
     suite_summary = build_suite_summary(selected_expectations, route_evidence)
-    (E2E_EVIDENCE_ROOT / "suite-summary.json").write_text(
+    (selected_evidence_root / "suite-summary.json").write_text(
         json.dumps(suite_summary, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
@@ -470,10 +637,13 @@ def _write_suite_summary(
 
 def _read_route_evidence(
     expectations: Sequence[BrowserRouteExpectation],
+    *,
+    evidence_root: Path | None = None,
 ) -> dict[str, Mapping[str, object]]:
+    selected_evidence_root = evidence_root or E2E_EVIDENCE_ROOT
     route_evidence: dict[str, Mapping[str, object]] = {}
     for expectation in expectations:
-        route_path = E2E_EVIDENCE_ROOT / f"{expectation.route_name}.json"
+        route_path = selected_evidence_root / f"{expectation.route_name}.json"
         if not route_path.is_file():
             continue
         try:
@@ -532,13 +702,15 @@ def _approved_credential(route_name: str) -> tuple[str, str] | None:
 
 def _perform_login_flow(driver: Any, by: Any, route_name: str, credential: tuple[str, str]) -> None:
     username, password = credential
-    body = driver.find_element(by.TAG_NAME, "body")
-    if _post_login_success(route_name, body.text, driver.title):
+    body_text, title = _page_text_and_title(driver, by)
+    if _post_login_success(route_name, body_text, title):
         return
     username_field = _first_present(
         driver,
         by,
         (
+            "input[name='login']",
+            "input[id='login-input']",
             "input[name='username']",
             "input[name='user']",
             "input[name='j_username']",
@@ -574,24 +746,77 @@ def _perform_login_flow(driver: Any, by: Any, route_name: str, credential: tuple
     submit.click()
 
 
-def _first_present(driver: Any, by: Any, selectors: tuple[str, ...]) -> Any:
+def _page_text_and_title(
+    driver: Any,
+    by: Any,
+    *,
+    attempts: int = 40,
+    retry_interval_seconds: float = 0.25,
+    sleep: Callable[[float], None] = time.sleep,
+) -> tuple[str, str]:
     last_error: Exception | None = None
-    for selector in selectors:
+    for attempt in range(attempts):
         try:
-            return driver.find_element(by.CSS_SELECTOR, selector)
+            body = driver.find_element(by.TAG_NAME, "body")
+            return str(body.text), str(driver.title)
         except Exception as exc:
             last_error = exc
+        if attempt + 1 < attempts:
+            sleep(retry_interval_seconds)
+    raise AssertionError("expected a stable browser document body") from last_error
+
+
+def _wait_for_post_login_success(
+    driver: Any,
+    by: Any,
+    route_name: str,
+    *,
+    attempts: int = 40,
+    retry_interval_seconds: float = 0.25,
+    sleep: Callable[[float], None] = time.sleep,
+) -> tuple[str, str]:
+    latest = ("", "")
+    for attempt in range(attempts):
+        try:
+            latest = _page_text_and_title(driver, by, attempts=1)
+        except AssertionError:
+            latest = ("", "")
+        if _post_login_success(route_name, *latest):
+            return latest
+        if attempt + 1 < attempts:
+            sleep(retry_interval_seconds)
+    return latest
+
+
+def _first_present(
+    driver: Any,
+    by: Any,
+    selectors: tuple[str, ...],
+    *,
+    attempts: int = 40,
+    retry_interval_seconds: float = 0.25,
+    sleep: Callable[[float], None] = time.sleep,
+) -> Any:
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        for selector in selectors:
+            try:
+                return driver.find_element(by.CSS_SELECTOR, selector)
+            except Exception as exc:
+                last_error = exc
+        if attempt + 1 < attempts:
+            sleep(retry_interval_seconds)
     raise AssertionError(f"expected one selector to be present: {selectors}") from last_error
 
 
 def _post_login_success(route_name: str, body_text: str, title: str) -> bool:
     text = f"{title}\n{body_text}".casefold()
     markers = {
-        "infisical": ("projects", "secrets", "infisical"),
-        "jenkins": ("dashboard", "jenkins", "new item"),
-        "nexus": ("browse", "repositories", "nexus"),
-        "portainer": ("home", "dashboard", "portainer"),
-        "pulsar-manager": ("tenant", "namespace", "pulsar"),
-        "sonarqube": ("projects", "quality", "sonarqube"),
+        "infisical": ("projects",),
+        "jenkins": ("dashboard", "new item", "manage jenkins"),
+        "nexus": ("browse", "repositories"),
+        "portainer": ("home", "dashboard", "environments"),
+        "pulsar-manager": ("environment", "tenant", "namespace"),
+        "sonarqube": ("projects", "issues", "rules", "quality gates"),
     }
     return any(marker in text for marker in markers.get(route_name, (route_name,)))

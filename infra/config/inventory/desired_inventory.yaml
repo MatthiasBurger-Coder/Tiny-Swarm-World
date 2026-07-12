@@ -2,7 +2,7 @@ schema_version: "1"
 vms:
   - name: swarm-manager
     role: manager
-    memory: 4G
+    memory: 10G
     disk: 20G
     networks:
       - control

@@ -272,7 +272,7 @@ class TestInstaller(unittest.TestCase):
 
     def test_windows_wsl_bridge_guard_passes_for_native_linux_without_state(self):
         with tempfile.TemporaryDirectory() as tempdir:
-            guard = installer._windows_wsl_bridge_guard(
+            guard = _test_windows_wsl_bridge_guard(
                 installer.HostRuntime("native_linux", "test"),
                 {},
                 Path(tempdir),
@@ -286,7 +286,7 @@ class TestInstaller(unittest.TestCase):
             root = Path(tempdir)
             _write_ports_registry(root, (80, 10000))
 
-            guard = installer._windows_wsl_bridge_guard(
+            guard = _test_windows_wsl_bridge_guard(
                 installer.HostRuntime("wsl2", "test"),
                 {},
                 root,
@@ -306,7 +306,7 @@ class TestInstaller(unittest.TestCase):
                 "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state.current_wsl_ipv4",
                 return_value="172.20.0.2",
             ):
-                guard = installer._windows_wsl_bridge_guard(
+                guard = _test_windows_wsl_bridge_guard(
                     installer.HostRuntime("wsl2", "test"),
                     {},
                     root,
@@ -315,9 +315,43 @@ class TestInstaller(unittest.TestCase):
         self.assertTrue(guard.passed)
         self.assertEqual("prepared", guard.reason)
 
+    def test_windows_wsl_bridge_guard_waits_for_reconcile_to_finish(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            _write_ports_registry(root, (80, 10000))
+            _write_windows_bridge_state(root, "172.20.0.2", (80, 10000))
+            state_path = root / "tools" / "windows" / ".tws-wsl-bridge.state.json"
+            pending = json.loads(state_path.read_text(encoding="utf-8"))
+            pending["agentStatus"] = "degraded"
+            pending["driftReasons"] = ["reconcile_in_progress"]
+            state_path.write_text(json.dumps(pending), encoding="utf-8")
+
+            def finish_reconcile(_seconds: float) -> None:
+                _write_windows_bridge_state(root, "172.20.0.2", (80, 10000))
+
+            with (
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state.current_wsl_ipv4",
+                    return_value="172.20.0.2",
+                ),
+                patch(
+                    "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state.time.sleep",
+                    side_effect=finish_reconcile,
+                ) as sleep,
+            ):
+                guard = _test_windows_wsl_bridge_guard(
+                    installer.HostRuntime("wsl2", "test"),
+                    {},
+                    root,
+                )
+
+        self.assertTrue(guard.passed)
+        self.assertEqual("prepared", guard.reason)
+        sleep.assert_called_once_with(0.5)
+
     def test_windows_wsl_bridge_guard_can_be_disabled(self):
         with tempfile.TemporaryDirectory() as tempdir:
-            guard = installer._windows_wsl_bridge_guard(
+            guard = _test_windows_wsl_bridge_guard(
                 installer.HostRuntime("wsl2", "test"),
                 {"TSW_WINDOWS_EXPOSURE": "disabled"},
                 Path(tempdir),
@@ -326,16 +360,16 @@ class TestInstaller(unittest.TestCase):
         self.assertTrue(guard.passed)
         self.assertEqual("windows_exposure_disabled", guard.reason)
 
-    def test_windows_wsl_bridge_agent_not_ready_suggests_task_refresh(self):
+    def test_windows_wsl_bridge_agent_not_ready_suggests_service_restart(self):
         self.assertEqual(
             (
-                'powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge"',
+                'powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"',
                 "powershell.exe -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action install",
             ),
             installer._windows_wsl_bridge_suggested_commands("agent_not_ready"),
         )
 
-    def test_print_windows_wsl_bridge_failure_for_agent_not_ready_mentions_refresh(self):
+    def test_print_windows_wsl_bridge_failure_for_agent_not_ready_mentions_service(self):
         guard = installer.WindowsWslBridgeGuardResult(
             passed=False,
             reason="agent_not_ready",
@@ -348,8 +382,8 @@ class TestInstaller(unittest.TestCase):
 
         rendered = stderr.getvalue()
         self.assertIn("Reason: agent_not_ready", rendered)
-        self.assertIn("Or refresh the existing scheduled task:", rendered)
-        self.assertIn("Start-ScheduledTask -TaskName TinySwarmWorld-WslBridge", rendered)
+        self.assertIn("Or restart the existing Windows bridge service:", rendered)
+        self.assertIn("Restart-Service -Name TinySwarmWorldWslBridge", rendered)
 
     def test_suggested_checks_for_phase_returns_phase_specific_commands(self):
         self.assertEqual(
@@ -479,13 +513,34 @@ def _write_ports_registry(root: Path, ports: tuple[int, ...]) -> None:
     registry.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _test_windows_wsl_bridge_guard(
+    host_runtime: installer.HostRuntime,
+    env: dict[str, str],
+    root: Path,
+) -> installer.WindowsWslBridgeGuardResult:
+    with patch.object(
+        installer,
+        "WINDOWS_WSL_BRIDGE_STATE_PATH",
+        Path("tools/windows/.tws-wsl-bridge.state.json"),
+    ):
+        return installer._windows_wsl_bridge_guard(host_runtime, env, root)
+
+
 def _write_windows_bridge_state(root: Path, wsl_ip: str, ports: tuple[int, ...]) -> None:
     state_path = root / "tools" / "windows" / ".tws-wsl-bridge.state.json"
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state = {
         "contractVersion": 2,
-        "agentMode": "scheduled-discovery",
+        "agentMode": "windows-service",
         "agentStatus": "ready",
+        "serviceName": "TinySwarmWorldWslBridge",
+        "bundleId": "B" * 64,
+        "bundleHashes": {
+            "ports.yaml": "A" * 64,
+            "tws-wsl-bridge-service.ps1": "A" * 64,
+            "tws-wsl-bridge.config.json": "A" * 64,
+            "tws-wsl-bridge.ps1": "A" * 64,
+        },
         "generatedAt": datetime.now(UTC).isoformat(),
         "wslIp": wsl_ip,
         "mappings": [

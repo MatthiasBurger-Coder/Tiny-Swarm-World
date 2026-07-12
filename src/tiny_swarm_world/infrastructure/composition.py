@@ -40,6 +40,7 @@ from tiny_swarm_world.application.services.deployment import (
     InfisicalSilentInstallConfig,
     EnsurePortainerEndpoint,
     EnsurePortainerAdminAccess,
+    EnsureSonarqubeAdminAccess,
     EnsureSwarmStack,
     InfisicalSecretItem,
     InfisicalSecretSyncStep,
@@ -165,6 +166,9 @@ from tiny_swarm_world.infrastructure.adapters.clients.infisical_cli_client impor
 from tiny_swarm_world.infrastructure.adapters.clients.infisical_bootstrap_http_client import (
     InfisicalBootstrapHttpClient,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.sonarqube_http_client import (
+    SonarqubeHttpClient,
+)
 from tiny_swarm_world.infrastructure.adapters.configuration import (
     CombinedConfigurationSource,
     EnvironmentConfigurationSource,
@@ -274,6 +278,10 @@ PULSAR_IMAGE_ENVIRONMENT = "TSW_PULSAR_IMAGE"
 PULSAR_MANAGER_IMAGE_ENVIRONMENT = "TSW_PULSAR_MANAGER_IMAGE"
 DEFAULT_PULSAR_IMAGE = "apachepulsar/pulsar:3.0.17"
 DEFAULT_PULSAR_MANAGER_IMAGE = "apachepulsar/pulsar-manager:v0.4.0"
+TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT = "TSW_TRAEFIK_TLS_CERT_SECRET_NAME"
+TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT = "TSW_TRAEFIK_TLS_KEY_SECRET_NAME"
+DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME = "tsw_traefik_tls_cert"
+DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME = "tsw_traefik_tls_key"
 INFISICAL_IMAGE_ENVIRONMENT = "TSW_INFISICAL_IMAGE"
 INFISICAL_POSTGRES_IMAGE_ENVIRONMENT = "TSW_INFISICAL_POSTGRES_IMAGE"
 INFISICAL_REDIS_IMAGE_ENVIRONMENT = "TSW_INFISICAL_REDIS_IMAGE"
@@ -1113,10 +1121,20 @@ def build_lxc_deployment_services(
         ),
         service_profile=selected_service_profile,
     )
+    traefik_tls_cert_secret_name = _operator_config_value(
+        TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT,
+        DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
+    )
+    traefik_tls_key_secret_name = _operator_config_value(
+        TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT,
+        DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
+    )
     swarm_runtime = LxcSwarmRuntime(
         backend=backend,
         project_paths=project_paths,
         service_access_dashboard_renderer=compose_repository.render_service_access_dashboard,
+        traefik_tls_cert_secret_name=traefik_tls_cert_secret_name,
+        traefik_tls_key_secret_name=traefik_tls_key_secret_name,
     )
     stack_environment = _deployment_stack_environment(selected_service_profile)
     secret_manifest_entries = SecretManifestRenderer(local_file_storage).run()
@@ -1165,6 +1183,21 @@ def build_lxc_deployment_services(
         application_steps = _prioritize_infisical_apply_steps(
             (stack_steps["traefik"], *application_steps)
         )
+    sonarqube_admin_step = EnsureSonarqubeAdminAccess(
+        sonarqube_client=SonarqubeHttpClient(
+            _operator_config_value(
+                "TSW_SONARQUBE_URL",
+                _local_http_url("localhost", "12000"),
+            )
+        ),
+        username=_operator_config_value("TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
+        password=_operator_secret_value("TSW_SONARQUBE_ADMIN_PASSWORD"),
+    )
+    application_steps = _with_post_stack_steps(
+        application_steps,
+        "sonarqube",
+        (sonarqube_admin_step,),
+    )
     infisical_cli_client = InfisicalCliClient()
     service_stack_by_name = {contract.stack_name: contract for contract in service_stack_contracts}
     infisical_apply_readiness_steps = _infisical_apply_readiness_steps(
@@ -1191,6 +1224,11 @@ def build_lxc_deployment_services(
     secret_consumption_step = SecretConsumptionVerifier(
         manifest_entries=secret_manifest_entries,
         stack_environment=stack_environment,
+        non_stack_consumer_refs={
+            "TSW_NEXUS_ADMIN_PASSWORD": EnsureNexusAdminAccess.verification_target_id,
+            "TSW_PORTAINER_ADMIN_PASSWORD": EnsurePortainerAdminAccess.verification_target_id,
+            "TSW_SONARQUBE_ADMIN_PASSWORD": EnsureSonarqubeAdminAccess.verification_target_id,
+        },
     )
     secret_evidence_step = SecretEvidenceWriter(
         storage=local_file_storage,
@@ -1736,7 +1774,11 @@ def _endpoint_status(
     timeout_seconds: int,
 ) -> str:
     try:
-        response = session.get(url, timeout=timeout_seconds)
+        response = session.get(
+            url,
+            timeout=timeout_seconds,
+            allow_redirects=False,
+        )
     except requests.Timeout:
         return "timeout"
     except requests.RequestException:
@@ -1935,6 +1977,16 @@ def _deployment_stack_environment(
 ) -> dict[str, dict[str, str]]:
     registry_endpoint = _swarm_registry_endpoint()
     environment = {
+        "traefik": {
+            TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT: _operator_config_value(
+                TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT,
+                DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
+            ),
+            TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT: _operator_config_value(
+                TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT,
+                DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
+            ),
+        },
         "nexus": {
             NEXUS_IMAGE_ENVIRONMENT: _operator_config_value(
                 NEXUS_IMAGE_ENVIRONMENT,

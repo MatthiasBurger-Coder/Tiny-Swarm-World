@@ -59,6 +59,79 @@ Use a Linux or WSL2 shell from the repository root. Prepare:
 * `socat` when WSL localhost forwarding is required.
 * Optional Docker CLI access for host-side diagnostics and cache helpers.
 
+=== Complete The Required Windows Prework For WSL2
+
+When running Tiny Swarm World in WSL2 with the default Windows exposure, prepare
+the Windows side *before* starting `./install.sh`. The installer deliberately
+stops before platform mutation when this bridge is missing, degraded, or stale.
+
+First confirm from Windows PowerShell that the intended WSL2 distribution is
+running and uses `systemd` as PID 1:
+
+[source,powershell]
+----
+wsl --list --verbose
+wsl -d <DistributionName> --exec sh -lc "ps -p 1 -o comm="
+----
+
+The second command must print `systemd`. Then open *PowerShell as
+Administrator* in the Tiny Swarm World repository root. If this is not the
+Windows default WSL distribution, first set its exact name in
+`tools/windows/tws-wsl-bridge.config.json` instead of keeping the automatic
+`"distro": "auto"` selection. Then run:
+
+[source,powershell]
+----
+Set-ExecutionPolicy -Scope Process Bypass
+.\tools\windows\tws-wsl-bridge.ps1 -Action prerequisites
+.\tools\windows\tws-wsl-bridge.ps1 -Action install
+----
+
+The first service installation opens a Windows credential dialog. Use the
+Windows account that owns the WSL distribution and enter its normal Windows
+password, not the Windows Hello PIN. The password is passed to the Windows
+Service Control Manager and is not stored in the repository.
+
+Installation publishes a protected runtime bundle below
+`%ProgramData%\TinySwarmWorld\WslBridge`; the service does not execute mutable
+files directly from the checkout. Re-run the elevated `-Action install` after
+reviewed bridge, configuration, or port-registry changes to upgrade that
+bundle.
+
+The protected heartbeat is stored at
+`%ProgramData%\TinySwarmWorld\WslBridge\bridge-state.json` and read from WSL via
+`/mnt/c/ProgramData/TinySwarmWorld/WslBridge/bridge-state.json`. The service does
+not write a checkout mirror. Hosts with a non-default WSL automount must expose
+the canonical ProgramData location before live setup.
+
+The tracked default uses `"listenAddress": "0.0.0.0"` and managed inbound
+Firewall rules, so its listeners are not limited to Windows loopback. Review
+the bridge configuration and Windows network profile before installation when
+the host is connected to an untrusted network.
+
+Verify the completed prework before returning to the WSL shell:
+
+[source,powershell]
+----
+Get-Service -Name TinySwarmWorldWslBridge
+.\tools\windows\tws-wsl-bridge.ps1 -Action status
+----
+
+The service must report `Running`, and bridge discovery must report `READY`.
+The service then keeps the Windows portproxy, Firewall, `*.tsw.local` hosts
+entries, and current WSL address aligned automatically.
+
+Only when Windows browser and localhost exposure are intentionally not needed,
+disable that contract explicitly in the WSL shell before installation:
+
+[source,bash]
+----
+export TSW_WINDOWS_EXPOSURE=disabled
+----
+
+See `tools/windows/README.windows-wsl-bridge.md` for distro selection, repair,
+status, verification, and uninstall details.
+
 Install the Python package in editable mode:
 
 [source,bash]
@@ -416,24 +489,31 @@ If a service port is occupied, the preflight accepts it only when the listener
 matches the expected Tiny Swarm World service. Unknown listeners must be
 stopped or remapped before live setup.
 
-On WSL hosts, stale Windows `netsh interface portproxy` rules can occupy
-`127.0.0.1:80` and `127.0.0.1:443` before the fresh install reaches platform
-exposure. When the failed preflight reports `PORT-80` or `PORT-443` for
-Traefik, clear only those stale Windows host forwarding rules from an
-Administrator PowerShell before rerunning `./install.sh`:
+On WSL hosts, diagnose Windows forwarding through the managed bridge first.
+When preflight reports `PORT-80`, `PORT-443`, or `WINDOWS-WSL-BRIDGE`, open an
+Administrator PowerShell in the repository root and repair the service-owned
+state before rerunning `./install.sh`:
 
 [source,powershell]
 ----
 Set-ExecutionPolicy -Scope Process Bypass
-.\tools\live\clear-wsl-traefik-portproxy.ps1
+.\tools\windows\tws-wsl-bridge.ps1 -Action status
+.\tools\windows\tws-wsl-bridge.ps1 -Action install
 ----
 
-To inspect without deleting rules:
+Do not delete the managed `0.0.0.0` mappings created from
+`infra/config/ports.yaml`. Only when inspection proves that separate legacy
+rules still occupy `127.0.0.1:80` or `127.0.0.1:443`, inspect those exact rules
+without mutation:
 
 [source,powershell]
 ----
 .\tools\live\clear-wsl-traefik-portproxy.ps1 -ShowOnly
 ----
+
+Use the cleanup action only for those confirmed unmanaged legacy loopback
+rules, then immediately rerun the bridge `install` action so the service state
+and heartbeat are authoritative again.
 
 If Portainer initialization returns HTTP 409, check whether the configured
 Portainer username and password authenticate. A rejected initialization is

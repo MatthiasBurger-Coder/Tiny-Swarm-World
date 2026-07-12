@@ -57,6 +57,9 @@ _BACKEND_CLI = {
 _MANAGER_SHELL_MAX_ATTEMPTS = 3
 _MANAGER_SHELL_RETRY_DELAYS_SECONDS = (0.5, 1.0)
 _INCUS_CHILD_PID_FAILURE = "Failed to retrieve PID of executing child process"
+DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME = "tsw_traefik_tls_cert"
+DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME = "tsw_traefik_tls_key"
+INFISICAL_DATABASE_SERVICE_NAME = "infisical_infisical-db"
 
 
 class LxcSwarmRuntime(PortSwarmStackRuntime):
@@ -70,11 +73,15 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         service_list_timeout_seconds: int = 30,
         project_paths: ProjectPaths | None = None,
         service_access_dashboard_renderer: Callable[[], str] | None = None,
+        traefik_tls_cert_secret_name: str = DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
+        traefik_tls_key_secret_name: str = DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
     ):
         if timeout_seconds <= 0:
             raise ValueError("Swarm runtime timeout must be positive.")
         if service_list_timeout_seconds <= 0:
             raise ValueError("Swarm service list timeout must be positive.")
+        if not traefik_tls_cert_secret_name.strip() or not traefik_tls_key_secret_name.strip():
+            raise ValueError("Traefik TLS secret names must not be empty.")
         self.backend = backend
         self.manager_node = manager_node
         self.remote_stack_root = remote_stack_root.rstrip("/")
@@ -82,6 +89,8 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         self.service_list_timeout_seconds = service_list_timeout_seconds
         self.project_paths = project_paths or default_project_paths()
         self.service_access_dashboard_renderer = service_access_dashboard_renderer
+        self.traefik_tls_cert_secret_name = traefik_tls_cert_secret_name.strip()
+        self.traefik_tls_key_secret_name = traefik_tls_key_secret_name.strip()
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def prepare_stack_assets(self, stack_name: str) -> None:
@@ -157,11 +166,31 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         )
 
     def recover_infisical_migration_lock(self) -> bool:
+        database_service = shlex.quote(INFISICAL_DATABASE_SERVICE_NAME)
+        placement = self._run_manager_shell(
+            "docker service ps --filter desired-state=running "
+            f"--format '{{{{.Node}}}}' {database_service}",
+            check=False,
+        )
+        if placement.returncode != 0:
+            return False
+        task_nodes = tuple(
+            dict.fromkeys(
+                line.strip()
+                for line in (placement.stdout or "").splitlines()
+                if line.strip()
+            )
+        )
+        if len(task_nodes) != 1:
+            return False
         script = (
             "set -e; "
-            "db_container=$(docker ps --filter name=infisical-db "
-            "--format '{{.Names}}' | head -n 1); "
-            "test -n \"$db_container\"; "
+            "db_containers=$(docker ps "
+            "--filter "
+            f"label=com.docker.swarm.service.name={database_service} "
+            "--format '{{.Names}}'); "
+            "test \"$(printf '%s\\n' \"$db_containers\" | sed '/^$/d' | wc -l)\" -eq 1; "
+            "db_container=$(printf '%s\\n' \"$db_containers\" | sed '/^$/d'); "
             "for lock_table in infisical_migrations_lock infisical_migrations_startup_lock; do "
             "if docker exec \"$db_container\" psql -U infisical -d infisical -tAc "
             "\"select to_regclass('public.' || '$lock_table')\" | grep -q \"$lock_table\"; then "
@@ -170,7 +199,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             "fi; "
             "done"
         )
-        result = self._run_manager_shell(script, check=False)
+        result = self._run_node_shell(task_nodes[0], script, check=False)
         return result.returncode == 0
 
     def _ensure_stack_prerequisites(self, stack_name: str, stack_definition: StackDefinition) -> None:
@@ -185,8 +214,8 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         )
 
     def _ensure_traefik_tls_secrets(self) -> None:
-        cert_secret = "tsw_traefik_tls_cert"
-        key_secret = "tsw_traefik_tls_key"
+        cert_secret = self.traefik_tls_cert_secret_name
+        key_secret = self.traefik_tls_key_secret_name
         if self.external_secret_exists(cert_secret) and self.external_secret_exists(key_secret):
             return
         script = (
@@ -323,13 +352,37 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         input_text: str | None = None,
         timeout_seconds: int | None = None,
     ) -> subprocess.CompletedProcess[str]:
-        self.logger.info("Running LXC manager shell operation script=%s", _safe_log_text(script))
+        return self._run_node_shell(
+            self.manager_node,
+            script,
+            check=check,
+            input_text=input_text,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def _run_node_shell(
+        self,
+        node_name: str,
+        script: str,
+        *,
+        check: bool = True,
+        input_text: str | None = None,
+        timeout_seconds: int | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        shell_target = "manager" if node_name == self.manager_node else "node"
+        self.logger.info(
+            "Running LXC %s shell operation node=%s script=%s",
+            shell_target,
+            node_name,
+            _safe_log_text(script),
+        )
         timeout = timeout_seconds or self.timeout_seconds
+        shell_scope = "manager_shell" if node_name == self.manager_node else "node_shell"
         result: subprocess.CompletedProcess[str] | None = None
         for attempt in range(1, _MANAGER_SHELL_MAX_ATTEMPTS + 1):
             try:
                 result = subprocess.run(
-                    [_BACKEND_CLI[self.backend], "exec", self.manager_node, "--", "sh", "-lc", script],
+                    [_BACKEND_CLI[self.backend], "exec", node_name, "--", "sh", "-lc", script],
                     input=input_text,
                     capture_output=True,
                     text=True,
@@ -338,11 +391,15 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
                     timeout=timeout,
                 )
             except subprocess.TimeoutExpired as exc:
-                raise RuntimeError("LXC manager Swarm operation timed out.") from exc
+                raise RuntimeError(
+                    f"LXC Swarm operation timed out on node '{node_name}'."
+                ) from exc
             log = self.logger.warning if result.returncode != 0 else self.logger.info
             log(
-                "lxc_swarm_runtime manager_shell_result returncode=%s stdout=%s stderr=%s",
+                "lxc_swarm_runtime %s_result returncode=%s node=%s stdout=%s stderr=%s",
+                shell_scope,
                 result.returncode,
+                node_name,
                 _safe_log_text(result.stdout),
                 _safe_log_text(result.stderr),
             )
@@ -354,19 +411,18 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
                 min(attempt - 1, len(_MANAGER_SHELL_RETRY_DELAYS_SECONDS) - 1)
             ]
             self.logger.warning(
-                "Retrying transient LXC manager shell operation after Incus child PID failure "
-                "attempt=%s next_attempt=%s delay_seconds=%s",
+                "Retrying transient LXC node shell operation after Incus child PID failure "
+                "node=%s attempt=%s next_attempt=%s delay_seconds=%s",
+                node_name,
                 attempt,
                 attempt + 1,
                 delay_seconds,
             )
             time.sleep(delay_seconds)
         if result is None:
-            raise RuntimeError("LXC manager Swarm operation did not execute.")
+            raise RuntimeError("LXC node Swarm operation did not execute.")
         if check and result.returncode != 0:
-            raise RuntimeError(
-                f"LXC manager Swarm operation failed with exit code {result.returncode}."
-            )
+            raise RuntimeError(f"LXC node Swarm operation failed with exit code {result.returncode}.")
         return result
 
 
@@ -448,10 +504,13 @@ class LxcContainerRuntime(PortContainerRuntime):
                 timeout=self.timeout_seconds,
             )
         except subprocess.TimeoutExpired as exc:
-            raise RuntimeError("LXC manager Docker runtime operation timed out.") from exc
+            raise RuntimeError(
+                f"LXC Docker runtime operation timed out on node '{target_node}'."
+            ) from exc
         if check and result.returncode != 0:
             raise RuntimeError(
-                f"LXC manager Docker runtime operation failed with exit code {result.returncode}."
+                "LXC Docker runtime operation failed on node "
+                f"'{target_node}' with exit code {result.returncode}."
             )
         return result
 

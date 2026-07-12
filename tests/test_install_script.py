@@ -512,6 +512,9 @@ class _InstallScriptFixture:
             "TSW_INSTALL_SKIP_NATIVE_GROUP_SWITCH": "1",
             "TSW_INSTALL_TEST_MODE": "1",
             "TSW_INSTALL_TEST_HOST_RUNTIME": "native_linux",
+            "TSW_INSTALL_TEST_WINDOWS_WSL_BRIDGE_STATE_PATH": (
+                ".tiny-swarm-world/test-windows-wsl-bridge-state.json"
+            ),
             **self.extra_environment,
         }
         return subprocess.run(

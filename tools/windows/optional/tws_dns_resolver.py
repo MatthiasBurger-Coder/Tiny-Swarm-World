@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 r"""
-Optional Tiny Swarm World DNS resolver for tws.local.
+Optional Tiny Swarm World DNS resolver for tsw.local.
 
 This is not the default bridge mechanism. Prefer the PowerShell bridge with
 explicit Windows hosts-file entries.
@@ -9,7 +9,7 @@ Requirements on Windows:
   py -m pip install dnslib
 
 Example:
-  py .\tools\windows\optional\tws_dns_resolver.py --distro Debian --zone tws.local --address 127.0.0.1 --port 53
+  py .\tools\windows\optional\tws_dns_resolver.py --distro Debian --zone tsw.local --address 127.0.0.1 --port 53
 
 Caveats:
   - Port 53 may require Administrator privileges.
@@ -73,7 +73,7 @@ class TwsResolver(BaseResolver):
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--distro", default="auto", help="WSL distro name, e.g. Debian or Ubuntu-24.04. Use auto for default distro.")
-    parser.add_argument("--zone", default="tws.local", help="DNS zone suffix.")
+    parser.add_argument("--zone", default="tsw.local", help="DNS zone suffix.")
     parser.add_argument("--address", default="127.0.0.1", help="Address to bind.")
     parser.add_argument("--port", default=53, type=int, help="DNS port.")
     parser.add_argument("--ttl", default=60, type=int)

@@ -39,6 +39,7 @@ SECRET_ASSIGNMENT_PATTERN = re.compile(
 )
 PLACEHOLDER_MARKERS = ("${", "{{", "<", "redacted", "placeholder", "changeme", "fake", "sample", "-password", "-secret", "-value")
 SOURCE_MARKERS = ("generated_local_secret", "external_user_secret", "managed_secret", "placeholder_only")
+CONSUMER_REF_PATTERN = re.compile(r"^[a-z0-9][a-z0-9:._-]*$")
 FALSE_POSITIVE_KEYS = ("PUBLIC_KEY", "RESOURCE_KEYS", "RAW_EVIDENCE_KEYS")
 FALSE_POSITIVE_ASSIGNMENTS = (
     "GENERATE_SECRETS",
@@ -458,18 +459,49 @@ class SecretConsumptionVerifier:
     verification_target_id = "deployment:managed-config-consumption"
     deployment_target_id = verification_target_id
 
-    def __init__(self, *, manifest_entries: tuple[SecretManifestEntry, ...], stack_environment: dict[str, dict[str, str]] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        manifest_entries: tuple[SecretManifestEntry, ...],
+        stack_environment: Mapping[str, Mapping[str, str]] | None = None,
+        non_stack_consumer_refs: Mapping[str, str] | None = None,
+    ) -> None:
         self.manifest_entries = manifest_entries
-        self.stack_environment = stack_environment or {}
+        self.stack_environment = dict(stack_environment or {})
+        self.non_stack_consumer_refs = dict(sorted((non_stack_consumer_refs or {}).items()))
+        manifest_keys = {entry.key for entry in manifest_entries}
+        unknown_keys = sorted(set(self.non_stack_consumer_refs) - manifest_keys)
+        if unknown_keys:
+            raise ValueError(f"Unknown managed config consumer key: {unknown_keys[0]}")
+        invalid_refs = sorted(
+            key
+            for key, consumer_ref in self.non_stack_consumer_refs.items()
+            if not CONSUMER_REF_PATTERN.fullmatch(consumer_ref)
+        )
+        if invalid_refs:
+            raise ValueError(f"Invalid managed config consumer reference: {invalid_refs[0]}")
         self.report: list[dict[str, str]] = []
 
     def run(self) -> None:
-        consumed_keys = {key for values in self.stack_environment.values() for key in values}
+        consumer_refs = {
+            key: f"deployment:{stack_name}-stack"
+            for stack_name, values in sorted(self.stack_environment.items())
+            for key in sorted(values)
+        }
+        consumer_refs.update(self.non_stack_consumer_refs)
         self.report = [
             {
                 "key": entry.key,
                 "service": entry.service,
-                "consumer_status": "configured" if entry.key in consumed_keys or not entry.required else "not_observed",
+                "consumer_status": (
+                    "configured"
+                    if entry.key in consumer_refs or not entry.required
+                    else "not_observed"
+                ),
+                "consumer_ref": consumer_refs.get(
+                    entry.key,
+                    "not_required" if not entry.required else "not_observed",
+                ),
             }
             for entry in self.manifest_entries
         ]
@@ -531,7 +563,10 @@ class SecretEvidenceWriter:
         }
         consumption_lines = ["# Secret Consumption Report", ""]
         for item in self.consumption.report:
-            consumption_lines.append(f"- {item['key']} ({item['service']}): {item['consumer_status']}")
+            consumption_lines.append(
+                f"- {item['key']} ({item['service']}): "
+                f"{item['consumer_status']} [{item['consumer_ref']}]"
+            )
         self.storage.write_text(
             self.evidence_dir / "secret-inventory.json",
             json.dumps(inventory, indent=2, sort_keys=True),

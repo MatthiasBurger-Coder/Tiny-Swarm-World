@@ -30,15 +30,27 @@ class LocalFileStorage(PortLocalFileStorage):
         suffixes: frozenset[str],
         skip_parts: frozenset[str],
     ) -> tuple[TextFileSnapshot, ...]:
+        if any(part in skip_parts for part in root.parts):
+            return ()
+        candidate_paths: list[Path] = []
+        for current_root, directory_names, file_names in os.walk(root, topdown=True):
+            directory_names[:] = sorted(
+                name for name in directory_names if name not in skip_parts
+            )
+            current_path = Path(current_root)
+            for file_name in sorted(file_names):
+                path = current_path / file_name
+                if not (
+                    path.name.startswith(".env")
+                    or path.suffix in suffixes
+                    or "docker-compose" in path.name
+                ):
+                    continue
+                candidate_paths.append(path)
+
         snapshots: list[TextFileSnapshot] = []
-        for path in sorted(root.rglob("*")):
-            if not path.is_file() or any(part in skip_parts for part in path.parts):
-                continue
-            if not (
-                path.name.startswith(".env")
-                or path.suffix in suffixes
-                or "docker-compose" in path.name
-            ):
+        for path in sorted(candidate_paths):
+            if not path.is_file():
                 continue
             snapshots.append(
                 TextFileSnapshot(
