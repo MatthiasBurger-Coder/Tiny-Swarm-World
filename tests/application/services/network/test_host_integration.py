@@ -80,6 +80,21 @@ class TestNetworkDoctorService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("WINDOWS_WSL_NOT_APPLICABLE", rendered)
         self.assertIn("WINDOWS_PORTPROXY_NOT_APPLICABLE", rendered)
 
+    async def test_unsupported_host_stops_before_network_or_incus_probes(self):
+        probe = _UnsupportedHostProbe()
+
+        report = await NetworkDoctorService(
+            probe,
+            _sample_port_registry(),
+        ).run()
+
+        rendered = report.render()
+        self.assertFalse(report.passed)
+        self.assertIn("Runtime: wsl1_unsupported", rendered)
+        self.assertIn("RUNTIME_HOST_UNSUPPORTED", rendered)
+        self.assertIn("Upgrade to WSL2", rendered)
+        self.assertEqual([], probe.non_runtime_calls)
+
     async def test_wsl_mirrored_runtime_reports_runtime_repair_hint(self):
         report = await NetworkDoctorService(
             _MirroredRuntimeProbe(),
@@ -272,6 +287,36 @@ class _HealthyProbe:
 class _NativeLinuxProbe(_HealthyProbe):
     async def runtime(self) -> RuntimeObservation:
         return RuntimeObservation("native-linux", "not-applicable", "", "192.168.1.20")
+
+
+class _UnsupportedHostProbe(_HealthyProbe):
+    def __init__(self) -> None:
+        self.non_runtime_calls: list[str] = []
+
+    async def runtime(self) -> RuntimeObservation:
+        return RuntimeObservation(
+            "wsl1_unsupported",
+            "not-applicable",
+            "",
+            "",
+            remediation=("Upgrade to WSL2 or use native Linux.",),
+        )
+
+    async def wsl_host(self) -> WslHostObservation:
+        self.non_runtime_calls.append("wsl_host")
+        raise AssertionError("unsupported host must stop before WSL probes")
+
+    async def incus(self) -> IncusObservation:
+        self.non_runtime_calls.append("incus")
+        raise AssertionError("unsupported host must stop before Incus probes")
+
+    async def forwarding(self) -> ForwardingObservation:
+        self.non_runtime_calls.append("forwarding")
+        raise AssertionError("unsupported host must stop before forwarding probes")
+
+    async def service_ports(self) -> ServicePortObservation:
+        self.non_runtime_calls.append("service_ports")
+        raise AssertionError("unsupported host must stop before service probes")
 
 
 class _WslDnsBrokenProbe(_HealthyProbe):

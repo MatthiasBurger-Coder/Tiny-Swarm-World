@@ -198,6 +198,9 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
             host_environment=HostEnvironmentReport(
                 environment=HostEnvironmentKind.WSL2,
                 setup_path=SetupPath.WSL2,
+                distribution="Ubuntu-24.04",
+                kernel_release="6.1.21.2-microsoft-standard-WSL2",
+                windows_interop_available=False,
                 remediation=("Verify runtime readiness before live setup.",),
                 evidence={"classification": "wsl2"},
             )
@@ -215,6 +218,12 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("true", host_check.evidence["supported"])
         self.assertEqual("true", host_check.evidence["allows_live_setup"])
         self.assertEqual("false", host_check.evidence["static_validation_only"])
+        self.assertEqual("Ubuntu-24.04", host_check.evidence["distribution"])
+        self.assertEqual(
+            "6.1.21.2-microsoft-standard-WSL2",
+            host_check.evidence["kernel_release"],
+        )
+        self.assertEqual("false", host_check.evidence["windows_interop_available"])
         self.assertNotIn("RUNTIME-MULTIPASS", checks_by_id)
         self.assertNotIn("qemu", repr(result.to_dict()).casefold())
         self.assertNotIn("runtime is reachable", repr(result.to_dict()).casefold())
@@ -505,7 +514,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(PreflightStatus.PASSED, bridge_check.status)
         self.assertEqual("false", bridge_check.evidence["required"])
 
-    async def test_legacy_boolean_host_probe_still_runs_live_preflight(self):
+    async def test_legacy_boolean_host_probe_fails_closed_as_unverified(self):
         probe = _LegacyBooleanProbe()
 
         result = await PreflightService(probe).run(
@@ -515,9 +524,9 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         checks_by_id = {check.check_id: check for check in result.checks}
         host_check = checks_by_id["HOST"]
 
-        self.assertTrue(result.passed)
-        self.assertEqual("native_linux", host_check.evidence["environment"])
-        self.assertEqual("legacy_boolean_compatible", host_check.evidence["classification"])
+        self.assertFalse(result.passed)
+        self.assertEqual("sandbox_unverified", host_check.evidence["environment"])
+        self.assertEqual("legacy_boolean_unverified", host_check.evidence["classification"])
         self.assertFalse(any(check_id.startswith("RUNTIME-") for check_id in checks_by_id))
 
     def test_legacy_boolean_probe_uses_default_windows_bridge_status(self):

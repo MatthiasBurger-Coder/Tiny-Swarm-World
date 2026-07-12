@@ -146,6 +146,11 @@ class PreflightService:
             "supported": _bool_text(host_environment.supported),
             "allows_live_setup": _bool_text(host_environment.allows_live_setup),
             "static_validation_only": _bool_text(host_environment.static_validation_only),
+            "distribution": host_environment.distribution,
+            "kernel_release": host_environment.kernel_release,
+            "windows_interop_available": _bool_text(
+                host_environment.windows_interop_available
+            ),
             **host_environment.evidence,
         }
         if host_environment.allows_live_setup:

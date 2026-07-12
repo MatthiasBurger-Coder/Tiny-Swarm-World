@@ -1,0 +1,154 @@
+= ADR: Dedicated WSL2 Host Platform Boundary
+
+*Date:* 2026-07-12
+*Status:* Accepted; implementation is incremental through Issue #218 FR-1 to FR-15
+*Decision makers:* Tiny Swarm World architecture governance, with requirement,
+test, operations, evidence, and Console/status UI review
+
+== Implementation Status
+
+This ADR accepts the host-platform boundary required by Issue #218. FR-1 owns
+the structured host detector and dedicated setup-path decision. Filesystem,
+resource, Incus-limit, memory-pressure, network-preparation, workflow-runner,
+native-isolation, and installation-evidence consequences remain assigned to
+their later declared FR workflows until verified. Acceptance of this decision
+does not claim those later behaviors or a successful live installation.
+
+== Context
+
+Tiny Swarm World supports execution from native Linux and WSL2, but these are
+not the same host platform. WSL2 has a Linux kernel and userspace while host
+filesystem placement, effective resource ceilings, and Windows-side service
+access require explicit cross-boundary handling. WSL1 does not provide the
+kernel/runtime contract required by the managed Incus/LXC target.
+
+Host classification was previously repeated in preflight, installer, OS-type,
+and network-diagnostic code. Incomplete WSL signals could therefore be treated
+as WSL2 by one consumer and rejected by another. Windows bridge mutation also
+needs to remain owned by the already accepted service-agent boundary rather
+than migrate into generic Python orchestration.
+
+The existing autonomous setup safety ADR prohibits host-specific absolute paths
+in general evidence. Issue #218 additionally requires the exact resolved
+project path and filesystem decision in local installation evidence. That
+exception needs a narrow storage contract rather than weakening the general
+evidence sanitizer.
+
+== Decision
+
+WSL2 is a dedicated supported Tiny Swarm World host type. Native Linux is a
+separate supported host type. WSL1, non-Linux hosts, contradictory WSL signals,
+and unverifiable host signals fail closed for live setup.
+
+The following boundary contract applies:
+
+* One typed host report distinguishes `native_linux`, `wsl2`,
+  `wsl1_unsupported`, unsupported/ambiguous hosts, and explicitly unverifiable
+  sandboxes. It carries the distribution, kernel release, Windows interop
+  availability, support decision, setup path, remediation, and sanitized
+  classification facts.
+* Signal collection belongs to focused infrastructure adapters behind an
+  application detector port. Classification and acceptability rules stay in
+  the domain/application core. Domain and application code do not read
+  `/proc`, environment variables, filesystems, or execute commands directly.
+* Native Linux and WSL2 use separate adapter bundles. Native Linux must not
+  construct, load, or invoke WSL/Windows preparation behavior, PowerShell,
+  `wsl.exe`, `netsh`, Windows Firewall, Windows hosts-file, or `portproxy`
+  mutation.
+* `TinySwarmWorldWslBridge` remains the sole supported continuous owner of
+  Tiny Swarm World Windows Firewall, portproxy, and Windows hosts-file
+  reconciliation. Python may observe protected agent state or invoke only an
+  explicitly approved service-agent operation through a dedicated WSL port and
+  Windows command-runner adapter. Direct Windows network mutation from generic,
+  domain, or application code is forbidden.
+* Host detection, preflight, host verification, deployment verification,
+  platform verification, and hang diagnosis are read-only. Host preparation,
+  repair, apply, and cleanup are mutating and require the existing explicit
+  consent contract.
+* `infra/config/node-providers/provider_config.yaml` is the authoritative source
+  for CPU, memory, and disk limits actually applied to managed Incus instances.
+  `infra/config/inventory/desired_inventory.yaml` is a synchronized projection
+  using normalized equivalent units and must be protected by an equivalence
+  test.
+* CPU and memory overcommit are disabled by default. Aggregate requested hard
+  limits, existing Tiny Swarm World-managed container limits, configured
+  reserve, and effective host ceilings must be validated before any
+  limit-bearing Incus mutation. A plan that does not fit is `BLOCKED`. A future
+  overcommit mode requires explicit validated configuration and, when it
+  materially changes this contract, another architecture decision; it is not a
+  warning-only or CLI bypass.
+* The setup-safety evidence policy receives exactly one path exception: a
+  normalized, resolved `project_path` plus its filesystem classification and
+  explicit override decision may be stored in a dedicated, ignored, local
+  installation-evidence document. That document must be allowlist-based,
+  atomically written, and owner-only protected. The exception does not apply to
+  general `VerificationResult` evidence, progress events, logs, committed
+  configuration, remote CI artifacts, or other evidence bundles.
+* Network preparation evidence and post-deployment HTTPS reachability evidence
+  are separate states. Prepared Windows/WSL rules do not by themselves prove
+  that `service-access.tsw.local` is reachable over HTTPS.
+
+== Considered Options
+
+=== Treat every Linux kernel as native Linux
+
+Rejected because WSL2 has distinct filesystem, capacity, and Windows service
+access boundaries, while WSL1 is not a valid Incus host contract.
+
+=== Use one general WSL utility for every host responsibility
+
+Rejected because detection, filesystem inspection, resource inspection,
+network preparation, Windows command execution, evidence, and mutation have
+different safety and test contracts. A single utility would erase the
+hexagonal responsibility boundaries.
+
+=== Let Python own Windows Firewall and portproxy directly
+
+Rejected because it would conflict with the accepted protected Windows Service
+Agent, duplicate mutation ownership, and make cleanup provenance ambiguous.
+
+=== Allow resource overcommit implicitly
+
+Rejected because a host could pass preflight while being unable to satisfy the
+hard limits that the provider applies. The default must be deterministic and
+fail closed.
+
+=== Relax the general evidence sanitizer for absolute paths
+
+Rejected because path data could spread into logs, committed artifacts, and
+generic verification results. The required project-path record is confined to
+one protected local installation document.
+
+== Consequences
+
+Host-facing application services gain explicit ports and host-specific
+composition. Repeated detector logic must delegate to the same typed contract
+or be retired without changing legacy public values unnecessarily.
+
+Later Issue #218 workflows must keep the provider configuration and inventory
+projection aligned, centralize service-resource and timeout policy, split
+prepare from verify capabilities, and prove native Linux isolation. Each FR
+must preserve a green non-live quality gate before the next FR begins.
+
+On a WSL2 host whose effective memory is below the aggregate current Incus plan,
+future live setup will correctly block before mutation. Documentation and
+evidence must report that operational consequence; they must not invent an
+overcommit allowance or live success.
+
+Real WSL, Incus, Docker, Windows bridge, or service validation remains a
+separately approved live action. Simulated native and WSL2 paths are the default
+CI-compatible proof.
+
+== References
+
+* Amends narrowly:
+  `documentation/arc42/09_decisions/adr-autonomous-setup-safety.adoc`
+* Complements:
+  `documentation/arc42/09_decisions/adr-windows-wsl-bridge-service-agent.adoc`
+* Provider limits:
+  `infra/config/node-providers/provider_config.yaml`
+* Inventory projection:
+  `infra/config/inventory/desired_inventory.yaml`
+* Implementation root:
+  `src/tiny_swarm_world/infrastructure/composition.py`
+* Issue: GitHub Issue #218

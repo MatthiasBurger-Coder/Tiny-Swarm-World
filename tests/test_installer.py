@@ -44,23 +44,100 @@ class TestInstaller(unittest.TestCase):
         self.assertTrue(options.non_interactive_live_approval)
         self.assertTrue(options.headless)
 
-    def test_detect_host_runtime_prefers_wsl_environment(self):
-        runtime = installer.detect_host_runtime({"WSL_DISTRO_NAME": "Ubuntu"})
+    def test_detect_host_runtime_maps_typed_wsl2(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            _write_host_signal(
+                root,
+                "proc/sys/kernel/osrelease",
+                "6.1.0-microsoft-standard-WSL2\n",
+            )
+
+            runtime = installer.detect_host_runtime(
+                {"WSL_DISTRO_NAME": "Ubuntu"},
+                os_root=root,
+                platform_system=lambda: "Linux",
+            )
 
         self.assertEqual("wsl2", runtime.name)
-        self.assertEqual("wsl_environment", runtime.detection_source)
+        self.assertEqual("wsl2", runtime.detection_source)
 
-    def test_detect_host_runtime_uses_kernel_signal(self):
-        def fake_read_text(path: Path) -> str:
-            if path.as_posix() == "/proc/sys/kernel/osrelease":
-                return "6.1.0-microsoft-standard-WSL2"
-            return ""
+    def test_detect_host_runtime_maps_typed_native_linux(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            _write_host_signal(root, "proc/sys/kernel/osrelease", "6.8.0-generic\n")
 
-        with patch.object(installer, "_read_text", side_effect=fake_read_text):
-            runtime = installer.detect_host_runtime({})
+            runtime = installer.detect_host_runtime(
+                {},
+                os_root=root,
+                platform_system=lambda: "Linux",
+            )
+
+        self.assertEqual("native_linux", runtime.name)
+        self.assertEqual("native_linux", runtime.detection_source)
+
+    def test_detect_host_runtime_rejects_wsl1_and_ambiguous_signals(self):
+        cases = (
+            ("4.4.0-19041-Microsoft", {"WSL_DISTRO_NAME": "Ubuntu"}),
+            ("6.8.0-generic", {"WSL_DISTRO_NAME": "Ubuntu"}),
+            ("6.1.0-microsoft-standard-WSL2", {}),
+        )
+        for kernel_release, environment in cases:
+            with self.subTest(kernel_release=kernel_release, environment=environment):
+                with tempfile.TemporaryDirectory() as temporary_directory:
+                    root = Path(temporary_directory)
+                    _write_host_signal(
+                        root,
+                        "proc/sys/kernel/osrelease",
+                        kernel_release,
+                    )
+
+                    with self.assertRaises(installer.InstallerError):
+                        installer.detect_host_runtime(
+                            environment,
+                            os_root=root,
+                            platform_system=lambda: "Linux",
+                        )
+
+    def test_host_runtime_test_override_requires_explicit_test_mode(self):
+        with self.assertRaises(installer.InstallerError):
+            installer.detect_host_runtime(
+                {"TSW_INSTALL_TEST_HOST_RUNTIME": "wsl2"},
+                os_root=Path("missing-test-root"),
+                platform_system=lambda: "Linux",
+            )
+
+        runtime = installer.detect_host_runtime(
+            {
+                "TSW_INSTALL_TEST_MODE": "1",
+                "TSW_INSTALL_TEST_HOST_RUNTIME": "wsl2",
+            },
+            os_root=Path("missing-test-root"),
+            platform_system=lambda: "Linux",
+        )
 
         self.assertEqual("wsl2", runtime.name)
-        self.assertEqual("kernel_signal", runtime.detection_source)
+        self.assertEqual("test_override", runtime.detection_source)
+
+    def test_installer_stops_unsupported_host_before_bootstrap_or_file_writes(self):
+        with (
+            patch.object(
+                installer,
+                "detect_host_runtime",
+                side_effect=installer.InstallerError("unsupported host"),
+            ),
+            patch.object(installer, "ensure_python_environment") as ensure_python,
+            patch.object(installer, "_ensure_private_file") as ensure_private_file,
+        ):
+            with self.assertRaises(installer.InstallerError):
+                installer.run(
+                    installer.parse_args(("--confirm-reset",)),
+                    env={},
+                    cwd=Path.cwd(),
+                )
+
+        ensure_python.assert_not_called()
+        ensure_private_file.assert_not_called()
 
     def test_ensure_python_environment_keeps_wsl_python_when_imports_available(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -491,6 +568,12 @@ class TestInstaller(unittest.TestCase):
 
     def test_setup_failure_guidance_stays_silent_for_other_setup_blocks(self):
         self.assertEqual((), installer._setup_failure_guidance_lines("failed_to_apply"))
+
+
+def _write_host_signal(root: Path, relative_path: str, text: str) -> None:
+    path = root / relative_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
 
 
 def _write_ports_registry(root: Path, ports: tuple[int, ...]) -> None:

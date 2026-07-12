@@ -3,8 +3,14 @@
 Tiny Swarm World is constrained by the repository safety and architecture
 rules.
 
-* The supported operator shell is Linux or WSL. Documentation and examples use
-  POSIX paths and commands.
+* The supported operator shells are native Linux and WSL2. WSL2 is a dedicated
+  host platform, not ordinary native Linux. WSL1, non-Linux systems, and
+  contradictory or unverifiable WSL signals fail closed for live setup.
+  Documentation and examples use POSIX paths and commands.
+* Host classification uses the single typed detector contract behind
+  `PortHostEnvironmentDetector`. Domain/application code does not read `/proc`,
+  environment variables, or host files directly, and legacy consumers must not
+  independently infer WSL from one signal.
 * Domain code must not import application or infrastructure modules.
 * Application services depend on ports and domain objects, not concrete
   adapters.

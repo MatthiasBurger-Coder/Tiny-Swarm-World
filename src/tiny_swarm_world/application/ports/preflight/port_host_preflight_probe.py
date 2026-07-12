@@ -19,10 +19,11 @@ class PortHostPreflightProbe(ABC):
     def host_environment_report(self) -> HostEnvironmentReport:
         if self.is_linux_or_wsl():
             return HostEnvironmentReport(
-                environment=HostEnvironmentKind.NATIVE_LINUX,
-                setup_path=SetupPath.NATIVE_LINUX,
-                remediation=("Provide a typed host probe for WSL2-specific classification.",),
-                evidence={"classification": "legacy_boolean_compatible"},
+                environment=HostEnvironmentKind.SANDBOX_UNVERIFIED,
+                setup_path=SetupPath.SANDBOX_UNVERIFIED,
+                platform_family="linux",
+                remediation=("Provide a typed host detector before live setup.",),
+                evidence={"classification": "legacy_boolean_unverified"},
             )
         return HostEnvironmentReport(
             environment=HostEnvironmentKind.UNKNOWN_UNSUPPORTED,

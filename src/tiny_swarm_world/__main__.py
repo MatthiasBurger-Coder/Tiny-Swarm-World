@@ -24,6 +24,10 @@ from tiny_swarm_world.application.ports.repositories.port_compose_file_repositor
 )
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.deployment.stack_definition import ComposeServiceDefinition
+from tiny_swarm_world.domain.host_environment import (
+    HostEnvironmentKind,
+    HostEnvironmentReport,
+)
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProviderKind
 from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_PROMPT,
@@ -43,6 +47,7 @@ from tiny_swarm_world.infrastructure.composition import (
     build_artifact_services_for_provider,
     build_compose_file_repository,
     build_deployment_services_for_provider,
+    build_host_detection_service,
     build_network_doctor_service,
     build_network_repair_options,
     build_network_repair_service,
@@ -75,7 +80,12 @@ class CliWorkflow:
 
     @property
     def implemented(self) -> bool:
-        return self.platform_kind is not None or self.namespace in {"artifacts", "deployment", "setup"}
+        return self.platform_kind is not None or self.namespace in {
+            "artifacts",
+            "deployment",
+            "host",
+            "setup",
+        }
 
 
 PLATFORM_WORKFLOW_ORDER = (
@@ -89,6 +99,7 @@ PLATFORM_WORKFLOW_ORDER = (
 )
 
 CLI_WORKFLOWS = (
+    CliWorkflow(namespace="host", action="detect", mutating=False, destructive=False),
     *(
         CliWorkflow(
             namespace="platform",
@@ -233,15 +244,19 @@ def _assign_workflow(parser: ArgumentParser, args: Namespace) -> None:
 
 
 async def main(argv: Sequence[str] | None = None) -> None:
-    ensure_common_executable_paths()
     args = parse_args(argv)
-
-    logger = build_application_logger()
-    logger.info("Starting application")
 
     if args.list_workflows:
         _print_workflow_list()
         return
+
+    if args.workflow is not None and args.workflow.namespace == "host":
+        _run_host_detect_command(args)
+        return
+
+    ensure_common_executable_paths()
+    logger = build_application_logger()
+    logger.info("Starting application")
 
     if args.network_command == "doctor_network":
         await _run_network_doctor_command(args)
@@ -291,6 +306,44 @@ def cli(argv: Sequence[str] | None = None) -> None:
 def _print_workflow_list() -> None:
     for workflow in CLI_WORKFLOWS:
         print(f"{workflow.name}\tmutating={workflow.mutating}\tdestructive={workflow.destructive}")
+
+
+def _run_host_detect_command(args: Namespace) -> None:
+    report = build_host_detection_service().run()
+    if _should_emit_json(args):
+        _emit_json_payload(_host_detection_payload(report))
+    else:
+        _print_host_environment_summary(report)
+    if not report.supported:
+        raise SystemExit(1)
+
+
+def _host_detection_payload(report: HostEnvironmentReport) -> dict[str, object]:
+    return {
+        **report.to_dict(),
+        "live_readiness_verified": False,
+    }
+
+
+def _print_host_environment_summary(report: HostEnvironmentReport) -> None:
+    print("Host environment")
+    print(f"Type: {report.environment.value}")
+    print(f"Distribution: {report.distribution}")
+    print(f"Kernel release: {report.kernel_release}")
+    if report.environment is HostEnvironmentKind.NATIVE_LINUX:
+        windows_interop = "not applicable"
+    else:
+        windows_interop = (
+            "available" if report.windows_interop_available else "unavailable"
+        )
+    print(f"Windows interop: {windows_interop}")
+    print(f"Supported: {'yes' if report.supported else 'no'}")
+    print(f"Setup path: {report.setup_path.value}")
+    print("Live readiness verified: no")
+    if report.remediation:
+        print("Remediation:")
+        for item in report.remediation:
+            print(f"- {item}")
 
 
 async def _run_preflight_command(args: Namespace) -> None:

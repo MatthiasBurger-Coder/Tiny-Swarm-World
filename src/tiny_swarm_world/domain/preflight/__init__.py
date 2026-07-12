@@ -10,10 +10,12 @@ from tiny_swarm_world.domain.preflight.host_runtime_readiness import (
     HostRuntimeReadiness,
     HostRuntimeReadinessStatus,
 )
-from tiny_swarm_world.domain.preflight.host_environment import (
+from tiny_swarm_world.domain.host_environment import (
     HostEnvironmentKind,
     HostEnvironmentReport,
+    HostEnvironmentSignals,
     SetupPath,
+    classify_host_environment,
 )
 from tiny_swarm_world.domain.preflight.windows_wsl_bridge import WindowsWslBridgeStatus
 from tiny_swarm_world.domain.preflight.preflight_check import (
@@ -58,6 +60,7 @@ __all__ = [
     "ForbiddenSecretFingerprint",
     "HostEnvironmentKind",
     "HostEnvironmentReport",
+    "HostEnvironmentSignals",
     "HostRuntimeReadiness",
     "HostRuntimeReadinessStatus",
     "InstallationPhase",
@@ -86,4 +89,5 @@ __all__ = [
     "default_preflight_configuration",
     "default_installation_plan",
     "default_setup_manifest",
+    "classify_host_environment",
 ]

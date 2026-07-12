@@ -1,6 +1,10 @@
 import unittest
-from unittest.mock import patch
 
+from tiny_swarm_world.domain.preflight import (
+    HostEnvironmentKind,
+    HostEnvironmentReport,
+    SetupPath,
+)
 from tiny_swarm_world.infrastructure.os_types import OsTypes, _has_wsl_signal
 
 
@@ -14,34 +18,75 @@ class TestOsTypes(unittest.TestCase):
         self.assertEqual(OsTypes.LINUX, OsTypes.get_enum_from_value("Linux"))
         self.assertEqual(OsTypes.WINDOWS, OsTypes.get_enum_from_value("Windows"))
 
-    def test_detects_windows(self):
-        with patch("platform.system", return_value="Windows"):
-            self.assertEqual(OsTypes.WINDOWS, OsTypes.detect_current())
+    def test_detect_current_rejects_typed_unsupported_windows_platform(self):
+        detector = _Detector(
+            _report(
+                HostEnvironmentKind.UNKNOWN_UNSUPPORTED,
+                SetupPath.UNSUPPORTED,
+                platform_family="windows",
+            )
+        )
 
-    def test_detects_native_linux_without_wsl_signal(self):
-        with patch("platform.system", return_value="Linux"):
-            with patch.dict("os.environ", {}, clear=True):
-                with patch("pathlib.Path.read_text", return_value="6.8.0-generic"):
-                    self.assertEqual(OsTypes.LINUX, OsTypes.detect_current())
+        with self.assertRaises(ValueError):
+            OsTypes.detect_current(detector)
 
-    def test_detects_wsl_linux_from_kernel_release(self):
-        with patch("platform.system", return_value="Linux"):
-            with patch.dict("os.environ", {}, clear=True):
-                with patch(
-                    "pathlib.Path.read_text",
-                    return_value="5.15.167.4-microsoft-standard-WSL2",
-                ):
-                    self.assertEqual(OsTypes.WSL_LINUX, OsTypes.detect_current())
+    def test_detect_current_maps_typed_native_linux(self):
+        detector = _Detector(
+            _report(HostEnvironmentKind.NATIVE_LINUX, SetupPath.NATIVE_LINUX)
+        )
 
-    def test_detects_wsl_linux_from_environment(self):
-        with patch("platform.system", return_value="Linux"):
-            with patch.dict("os.environ", {"WSL_DISTRO_NAME": "Ubuntu"}, clear=True):
-                self.assertEqual(OsTypes.WSL_LINUX, OsTypes.detect_current())
+        self.assertEqual(OsTypes.LINUX, OsTypes.detect_current(detector))
 
-    def test_wsl_signal_fails_closed_when_kernel_release_is_unreadable(self):
-        with patch.dict("os.environ", {}, clear=True):
-            with patch("pathlib.Path.read_text", side_effect=OSError):
-                self.assertFalse(_has_wsl_signal())
+    def test_detect_current_maps_typed_wsl2(self):
+        detector = _Detector(_report(HostEnvironmentKind.WSL2, SetupPath.WSL2))
+
+        self.assertEqual(OsTypes.WSL_LINUX, OsTypes.detect_current(detector))
+        self.assertTrue(_has_wsl_signal(detector))
+
+    def test_detect_current_never_maps_wsl1_or_ambiguous_to_wsl_linux(self):
+        cases = (
+            _report(HostEnvironmentKind.WSL1_UNSUPPORTED, SetupPath.UNSUPPORTED),
+            _report(HostEnvironmentKind.UNKNOWN_UNSUPPORTED, SetupPath.UNSUPPORTED),
+        )
+        for report in cases:
+            with self.subTest(environment=report.environment.value):
+                with self.assertRaises(ValueError):
+                    OsTypes.detect_current(_Detector(report))
+
+    def test_sandbox_fails_closed_without_claiming_native_linux_or_wsl(self):
+        detector = _Detector(
+            _report(
+                HostEnvironmentKind.SANDBOX_UNVERIFIED,
+                SetupPath.SANDBOX_UNVERIFIED,
+            )
+        )
+
+        with self.assertRaises(ValueError):
+            OsTypes.detect_current(detector)
+        self.assertFalse(_has_wsl_signal(detector))
+
+
+class _Detector:
+    def __init__(self, report: HostEnvironmentReport) -> None:
+        self.report = report
+
+    def detect(self) -> HostEnvironmentReport:
+        return self.report
+
+
+def _report(
+    environment: HostEnvironmentKind,
+    setup_path: SetupPath,
+    *,
+    platform_family: str = "linux",
+) -> HostEnvironmentReport:
+    return HostEnvironmentReport(
+        environment=environment,
+        setup_path=setup_path,
+        platform_family=platform_family,
+        remediation=("Inspect host support.",),
+        evidence={"classification": environment.value},
+    )
 
 
 if __name__ == "__main__":

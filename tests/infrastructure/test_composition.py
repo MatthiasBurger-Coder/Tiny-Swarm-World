@@ -32,6 +32,10 @@ from tiny_swarm_world.domain.preflight import (
     LiveConsent,
 )
 from tiny_swarm_world.infrastructure import composition
+from tiny_swarm_world.infrastructure.adapters.host import (
+    LinuxHostSignalReader,
+    WslHostSignalReader,
+)
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
 
 
@@ -217,6 +221,41 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(1, repository_class.call_count)
         self.assertIn("project_paths", repository_class.call_args.kwargs)
         repository_class.return_value.load.assert_called_once_with()
+        self.assertIsInstance(
+            service.host_probe.host_environment_detector,
+            composition.HostEnvironmentDetector,
+        )
+
+    def test_build_host_environment_detector_has_no_constructor_io(self):
+        with (
+            patch(
+                "pathlib.Path.read_text",
+                side_effect=AssertionError("constructor must not read host files"),
+            ),
+            patch(
+                "subprocess.run",
+                side_effect=AssertionError("constructor must not run commands"),
+            ),
+        ):
+            detector = composition.build_host_environment_detector()
+
+        self.assertIsInstance(detector, composition.HostEnvironmentDetector)
+        self.assertIsInstance(
+            detector.linux_signal_reader,
+            LinuxHostSignalReader,
+        )
+        self.assertIsInstance(
+            detector.wsl_signal_reader,
+            WslHostSignalReader,
+        )
+
+    def test_build_host_detection_service_uses_supplied_detector_port(self):
+        detector = composition.build_host_environment_detector()
+
+        service = composition.build_host_detection_service(detector)
+
+        self.assertIsInstance(service, composition.DetectHostEnvironment)
+        self.assertIs(detector, service.detector)
 
     def test_windows_wsl_bridge_required_by_default(self):
         with patch.dict(os.environ, {}, clear=True):

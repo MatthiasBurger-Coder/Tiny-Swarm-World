@@ -54,6 +54,41 @@ workflow-level commands first:
 tiny-swarm-world --list-workflows
 ----
 
+== Detect The Host Platform
+
+Detect the host before preflight or setup:
+
+[source,bash]
+----
+tiny-swarm-world host detect
+----
+
+For automation, request one deterministic JSON document:
+
+[source,bash]
+----
+tiny-swarm-world --json host detect
+----
+
+The read-only result identifies `native_linux`, `wsl2`,
+`wsl1_unsupported`, an unsupported/ambiguous host, or an explicitly
+unverifiable sandbox. It reports the distribution, kernel release, Windows
+interop availability, supported setup path, and remediation. WSL2 is a
+dedicated supported platform; it is not reported as native Linux. A confirmed
+WSL2 host can report Windows interop as unavailable without changing its host
+type. WSL1 and ambiguous signals exit with status `1` after printing the
+structured result and remediation.
+
+The JSON result sets `live_readiness_verified` to `false`. Its
+`allows_live_setup` field represents only the host-classification gate; it does
+not bypass or predict the later filesystem, resource, provider, network,
+deployment, or service-readiness gates. Human output states the same limitation
+explicitly. Windows interop is reported as not applicable on native Linux.
+
+`host detect` does not execute Incus, Docker, Windows, or network commands and
+does not prove resource, filesystem, network, provider, deployment, or service
+readiness. Those checks remain separate preflight/verify stages.
+
 Static preflight remains available without live-infrastructure consent:
 
 [source,bash]

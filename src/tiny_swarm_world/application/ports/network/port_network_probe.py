@@ -28,10 +28,15 @@ class RuntimeObservation:
     wsl_ipv4: str
     host_ipv4: str
     commands: tuple[CommandObservation, ...] = ()
+    remediation: tuple[str, ...] = ()
 
     @property
     def is_wsl2(self) -> bool:
         return self.runtime == "wsl2"
+
+    @property
+    def supported_host(self) -> bool:
+        return self.runtime in {"native-linux", "wsl2"}
 
 
 @dataclass(frozen=True)
