@@ -8,7 +8,7 @@ Requirement authority: `documentation/epics/sonarcloud-remediation.md`
 
 ## Executive Summary
 
-Resolve all 329 currently open SonarCloud findings without a bulk edit. Slice 01 freezes a complete remote baseline and assigns every issue key to exactly one later slice. The remaining 32 slices are rule-specific and bounded: 11 S3415 batches of <=20, 10 S5778 batches of <=10, and 11 batches for every remaining rule family.
+Resolve the authorized 329 SonarCloud finding keys without a bulk edit. Slice 01 validates the frozen 329-key baseline and assigns every authorized key to exactly one later slice. Remote additions, removals, or status changes are recorded as drift and never alter the authorized set. The remaining 32 slices are rule-specific and bounded: 11 S3415 batches of <=20, 10 S5778 batches of <=10, and 11 batches for every remaining rule family.
 
 ## Requirement Clarification Gate
 
@@ -22,7 +22,7 @@ Resolve all 329 currently open SonarCloud findings without a bulk edit. Slice 01
 
 ## Scope and Architecture
 
-Only files named by a frozen batch manifest may change. Product behavior, CI/Sonar configuration, infrastructure, suppressions, and exclusions are forbidden unless a slice is stopped and a successor workflow provides the required design authority. Arc42 is checked per slice; ADRs are required only for durable architecture decisions.
+Only files under `tests/**` that are named by the frozen batch manifest may change. Product source, CI/Sonar configuration, infrastructure, suppressions, exclusions, and every non-test file are forbidden in this workflow. A baseline key located outside `tests/**` is recorded as `BLOCKED_NON_TEST_SCOPE` and requires a successor workflow with explicit architecture review. Arc42 is checked per slice; ADRs are required only for durable architecture decisions.
 
 ## Issue Completion Discipline
 
@@ -63,7 +63,7 @@ documentation: {arc42: "checked", adr: "not required"}
 stop_conditions: ["baseline is incomplete or inconsistent", "a manifest exceeds its batch limit"]
 ```
 
-Creates complete issue-key manifests for every following slice from the current remote baseline; no source edit is allowed.
+Validates the frozen 329 authorized keys against the remote API, records remote drift separately, and creates complete issue-key manifests only for those 329 keys; no source edit is allowed. Every key outside `tests/**` is marked `BLOCKED_NON_TEST_SCOPE`, is not assigned to a repair slice, and blocks the final DONE claim.
 ### Slice 02: S3415 assertion-order batch 1 of 11
 
 Purpose: resolve only the issue keys assigned by the baseline manifest for `python:S3415`, up to 20 issues.
@@ -77,7 +77,7 @@ secondary_reviewers:
   - "Senior System Architect"
   - "Senior Tester"
 affected_files:
-  - "baseline-manifest-listed files only"
+  - "tests/** paths named by the frozen baseline manifest only"
   - ".tiny-swarm/evidence/workflow-sonarcloud-remediation-20260718/**"
   - ".codex/evidence/workflow-sonarcloud-remediation-20260718/**"
 affected_modules: []
@@ -104,7 +104,7 @@ documentation:
   adr: "required only for a durable architecture decision"
 stop_conditions:
   - "issue mapping or safe repair is ambiguous"
-  - "the issue needs a behavior/configuration/architecture change outside the batch"
+  - "the issue is outside tests/** or needs a behavior/configuration/architecture change"
   - "a required gate fails"
 ```
 
