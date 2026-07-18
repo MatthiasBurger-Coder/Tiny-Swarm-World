@@ -20,8 +20,8 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
         verification = step.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("already_configured", verification.evidence["status"])
-        self.assertEqual([], client.changed_passwords)
+        self.assertEqual(verification.evidence["status"], "already_configured")
+        self.assertEqual(client.changed_passwords, [])
 
     def test_rotates_default_admin_password_to_configured_password(self):
         client = _FakeSonarqubeClient(configured_valid=False, initial_valid=True)
@@ -29,7 +29,7 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
 
         step.run()
 
-        self.assertEqual([("admin", "admin", operator_credential())], client.changed_passwords)
+        self.assertEqual(client.changed_passwords, [("admin", "admin", operator_credential())])
 
     def test_blocks_when_neither_configured_nor_default_password_works(self):
         client = _FakeSonarqubeClient(configured_valid=False, initial_valid=False)
@@ -48,7 +48,7 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
 
         step.run()
 
-        self.assertEqual([("admin", "admin", operator_credential())], client.changed_passwords)
+        self.assertEqual(client.changed_passwords, [("admin", "admin", operator_credential())])
 
     def test_retries_default_admin_false_until_sonarqube_auth_is_ready(self):
         client = _FakeSonarqubeClient(
@@ -60,8 +60,8 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
 
         step.run()
 
-        self.assertEqual([("admin", "admin", operator_credential())], client.changed_passwords)
-        self.assertEqual(3, client.password_auth_attempts["admin"])
+        self.assertEqual(client.changed_passwords, [("admin", "admin", operator_credential())])
+        self.assertEqual(client.password_auth_attempts["admin"], 3)
 
 
 def _step(client: "_FakeSonarqubeClient") -> EnsureSonarqubeAdminAccess:

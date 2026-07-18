@@ -24,8 +24,9 @@ class TestCertificateSummary(unittest.TestCase):
         )
 
         self.assertTrue(result.passed)
-        self.assertEqual((), result.problems)
+        self.assertEqual(result.problems, ())
         self.assertEqual(
+            certificate.to_dict(),
             {
                 "chain_verified": True,
                 "common_name": "tsw.local ingress",
@@ -36,7 +37,6 @@ class TestCertificateSummary(unittest.TestCase):
                 "not_before_utc": "2026-06-01T00:00:00+00:00",
                 "san_dns_names": list(desired.hostnames),
             },
-            certificate.to_dict(),
         )
 
     def test_certificate_validation_reports_missing_policy_requirements(self):
@@ -56,6 +56,7 @@ class TestCertificateSummary(unittest.TestCase):
 
         self.assertFalse(result.passed)
         self.assertEqual(
+            result.missing_san_dns_names,
             (
                 "portainer.tsw.local",
                 "nexus.tsw.local",
@@ -66,9 +67,9 @@ class TestCertificateSummary(unittest.TestCase):
                 "infisical.tsw.local",
                 "service-access.tsw.local",
             ),
-            result.missing_san_dns_names,
         )
         self.assertEqual(
+            result.problems,
             (
                 "missing_san_dns_names",
                 "expired",
@@ -76,7 +77,6 @@ class TestCertificateSummary(unittest.TestCase):
                 "extended_key_usage_incomplete",
                 "chain_not_verified",
             ),
-            result.problems,
         )
 
     def test_certificate_summary_rejects_raw_secret_or_path_material(self):

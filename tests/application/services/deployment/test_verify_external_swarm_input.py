@@ -18,11 +18,11 @@ class TestVerifyExternalSwarmInput(unittest.IsolatedAsyncioTestCase):
         verification = await check.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("deployment:service-access-external-input", verification.target_id)
-        self.assertEqual(["tsw_vaultwarden_admin_token"], runtime.requested_names)
-        self.assertEqual("external_swarm_input", verification.evidence["resource_kind"])
-        self.assertEqual("true", verification.evidence["resource_present"])
-        self.assertEqual("default", verification.evidence["source_ref"])
+        self.assertEqual(verification.target_id, "deployment:service-access-external-input")
+        self.assertEqual(runtime.requested_names, ["tsw_vaultwarden_admin_token"])
+        self.assertEqual(verification.evidence["resource_kind"], "external_swarm_input")
+        self.assertEqual(verification.evidence["resource_present"], "true")
+        self.assertEqual(verification.evidence["source_ref"], "default")
 
     async def test_blocks_when_declared_input_is_missing(self):
         verification = await VerifyExternalSwarmInput(
@@ -32,8 +32,8 @@ class TestVerifyExternalSwarmInput(unittest.IsolatedAsyncioTestCase):
         ).verify()
 
         self.assertEqual(VerificationStatus.BLOCKED, verification.status)
-        self.assertEqual("false", verification.evidence["resource_present"])
-        self.assertEqual("operator_env", verification.evidence["source_ref"])
+        self.assertEqual(verification.evidence["resource_present"], "false")
+        self.assertEqual(verification.evidence["source_ref"], "operator_env")
         self.assertNotIn("operator_defined_name", str(verification.to_dict()))
 
     async def test_sanitizes_runtime_failure_without_sensitive_payload(self):

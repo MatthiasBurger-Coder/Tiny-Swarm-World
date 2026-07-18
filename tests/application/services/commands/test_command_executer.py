@@ -70,15 +70,15 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
         ):
             result = await executer.execute({1: command})
 
-        self.assertEqual({1: "ok"}, result)
+        self.assertEqual(result, {1: "ok"})
         self.assertEqual(
+            trace.summary(),
             [
                 ("CommandExecuter", "execute", "entered", "pending", None),
                 ("CommandExecuter", "execute", "returned", "completed", None),
             ],
-            trace.summary(),
         )
-        self.assertEqual({"trace-command"}, {event.correlation_id for event in trace.events})
+        self.assertEqual({event.correlation_id for event in trace.events}, {"trace-command"})
 
     async def test_execute_raises_when_runner_fails(self):
         ui = RecordingUI()
@@ -142,6 +142,7 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
                 await executer.execute({1: command})
 
         self.assertEqual(
+            trace.summary(),
             [
                 ("CommandExecuter", "execute", "entered", "pending", None),
                 (
@@ -152,7 +153,6 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
                     "CommandExecutionFailed",
                 ),
             ],
-            trace.summary(),
         )
         self.assertNotIn("raw vm output", str(trace.events[-1].to_dict()))
         self.assertNotIn("cannot connect", str(trace.events[-1].to_dict()))
@@ -196,7 +196,7 @@ class TestCommandExecuter(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("/home/operator", text)
         self.assertNotIn(ipv4_address(192, 168, 1, 10), text)
         self.assertNotIn("raw runtime failure", text)
-        self.assertEqual("CommandExecutionFailed", trace.events[-1].exception_type)
+        self.assertEqual(trace.events[-1].exception_type, "CommandExecutionFailed")
 
     async def test_execute_wraps_redacted_provider_return_code_failure(self):
         ui = RecordingUI()

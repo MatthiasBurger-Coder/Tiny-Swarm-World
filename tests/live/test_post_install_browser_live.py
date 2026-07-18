@@ -276,7 +276,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         for check in checks:
             with self.subTest(service=check.name):
                 parsed = urlparse(check.url)
-                self.assertEqual("https", parsed.scheme)
+                self.assertEqual(parsed.scheme, "https")
                 self.assertIsNone(parsed.port)
                 self.assertIsNotNone(parsed.hostname)
                 self.assertTrue(parsed.hostname and parsed.hostname.endswith(".tsw.local"))
@@ -319,15 +319,15 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         evidence = result.to_evidence()
 
         self.assertTrue(_evidence_safe(evidence))
-        self.assertEqual("jenkins", evidence["service"])
-        self.assertEqual("jenkins.tsw.local", evidence["hostname"])
-        self.assertEqual("blocked_hostname_resolution", evidence["tls_status"])
+        self.assertEqual(evidence["service"], "jenkins")
+        self.assertEqual(evidence["hostname"], "jenkins.tsw.local")
+        self.assertEqual(evidence["tls_status"], "blocked_hostname_resolution")
         self.assertNotIn("url", evidence)
 
     def test_live_evidence_root_uses_issue_157_target(self) -> None:
         self.assertEqual(
-            ".tiny-swarm-world/evidence/solid-typed-evidence/e2e",
             DEFAULT_EVIDENCE_ROOT.as_posix(),
+            ".tiny-swarm-world/evidence/solid-typed-evidence/e2e",
         )
 
     def test_live_config_rejects_non_local_operator_urls(self) -> None:
@@ -386,7 +386,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         ):
             config = LivePostInstallConfig.from_environment()
 
-        self.assertEqual(TEST_CA_BUNDLE, config.tls_ca_bundle)
+        self.assertEqual(config.tls_ca_bundle, TEST_CA_BUNDLE)
 
     def test_live_config_rejects_missing_operator_ca_bundle(self) -> None:
         with (
@@ -458,11 +458,11 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
                 follow_redirects=True,
             )
 
-        self.assertEqual(200, status_code)
-        self.assertEqual("text/html", content_type)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(content_type, "text/html")
         self.assertEqual(
-            ["HEAD", "GET"],
             [call.args[0].get_method() for call in opener.open.call_args_list],
+            ["HEAD", "GET"],
         )
 
     def test_redacted_evidence_rejects_secret_like_keys_and_values(self) -> None:
@@ -483,7 +483,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         )
 
         self.assertTrue(_evidence_safe(evidence))
-        self.assertEqual("platform/jenkins", evidence["expected_infisical_item"])
+        self.assertEqual(evidence["expected_infisical_item"], "platform/jenkins")
         self.assertNotIn("value", evidence)
 
     def test_infisical_managed_password_manifest_keys_are_discoverable(self) -> None:

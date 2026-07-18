@@ -68,9 +68,10 @@ class TestWriteEffectiveAccessModelEvidence(unittest.TestCase):
             evidence = use_case.run()
 
         self.assertIs(evidence_repository.evidence, evidence)
-        self.assertEqual(1, model_repository.calls)
+        self.assertEqual(model_repository.calls, 1)
         payload = evidence.to_dict()
         self.assertEqual(
+            set(payload),
             {
                 "diagnostic_fallback_ports",
                 "evidence_kind",
@@ -85,22 +86,21 @@ class TestWriteEffectiveAccessModelEvidence(unittest.TestCase):
                 "service_profile",
                 "skipped_routes",
             },
-            set(payload),
         )
-        self.assertEqual("effective_access_model", payload["evidence_kind"])
-        self.assertEqual("2026-07-11T12:30:45Z", payload["generated_at"])
-        self.assertEqual("service-access", payload["service_profile"])
-        self.assertEqual([80, 443], payload["public_ports"])
-        self.assertEqual([80, 443], payload["gateway_public_ingress_ports"])
-        self.assertEqual("traefik_host_route", payload["service_access_preferred_url_source"])
-        self.assertEqual("generated", payload["result"])
+        self.assertEqual(payload["evidence_kind"], "effective_access_model")
+        self.assertEqual(payload["generated_at"], "2026-07-11T12:30:45Z")
+        self.assertEqual(payload["service_profile"], "service-access")
+        self.assertEqual(payload["public_ports"], [80, 443])
+        self.assertEqual(payload["gateway_public_ingress_ports"], [80, 443])
+        self.assertEqual(payload["service_access_preferred_url_source"], "traefik_host_route")
+        self.assertEqual(payload["result"], "generated")
         routes = payload["routes"]
         self.assertIsInstance(routes, list)
         assert isinstance(routes, list)
         credential = routes[1]["credential"]
         self.assertEqual(
-            {"item_reference": "platform/zulu", "username_label": "ops-admin"},
             credential,
+            {"item_reference": "platform/zulu", "username_label": "ops-admin"},
         )
         serialized = json.dumps(payload, sort_keys=True)
         self.assertNotIn(secret_note, serialized)
@@ -108,16 +108,16 @@ class TestWriteEffectiveAccessModelEvidence(unittest.TestCase):
         self.assertNotIn(environment_secret, serialized)
         self.assertNotIn("note", credential)
         self.assertEqual(
-            {"item_reference": "platform/zulu", "username_label": "ops-admin"},
             payload["service_access_links"][1]["credential"],
+            {"item_reference": "platform/zulu", "username_label": "ops-admin"},
         )
         self.assertEqual(
-            ["alpha", "zulu"],
             [target["service"] for target in payload["health_check_targets"]],
+            ["alpha", "zulu"],
         )
         self.assertEqual(
-            ["alpha", "zulu"],
             [link["service"] for link in payload["service_access_links"]],
+            ["alpha", "zulu"],
         )
 
     def test_sorts_every_repeated_evidence_collection_deterministically(self):
@@ -146,16 +146,16 @@ class TestWriteEffectiveAccessModelEvidence(unittest.TestCase):
         )
         payload = forward_repository.evidence.to_dict()
         self.assertEqual(
-            ["alpha", "zulu"],
             [route["service_name"] for route in payload["routes"]],
+            ["alpha", "zulu"],
         )
         self.assertEqual(
-            ["alpha", "zulu"],
             [route["service"] for route in payload["skipped_routes"]],
+            ["alpha", "zulu"],
         )
         self.assertEqual(
-            ["alpha", "zulu"],
             [port["service"] for port in payload["diagnostic_fallback_ports"]],
+            ["alpha", "zulu"],
         )
 
     def test_rejects_credential_bearing_url_without_writing_evidence(self):

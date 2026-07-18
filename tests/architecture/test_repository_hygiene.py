@@ -45,7 +45,7 @@ class TestRepositoryHygiene(unittest.TestCase):
             if path.exists()
         ]
 
-        self.assertEqual([], present_paths)
+        self.assertEqual(present_paths, [])
 
     def test_code_comments_are_english_only(self):
         violations = [
@@ -55,7 +55,7 @@ class TestRepositoryHygiene(unittest.TestCase):
             if GERMAN_COMMENT_MARKERS.search(comment)
         ]
 
-        self.assertEqual([], violations)
+        self.assertEqual(violations, [])
 
     def test_operator_env_example_covers_configuration_contract(self):
         template_path = REPOSITORY_ROOT / ".env.example"
@@ -66,8 +66,8 @@ class TestRepositoryHygiene(unittest.TestCase):
             for requirement in default_configuration_contract().requirements
         }
 
-        self.assertEqual([], sorted(contract_keys - template_keys))
-        self.assertEqual([], sorted(template_keys - contract_keys))
+        self.assertEqual(sorted(contract_keys - template_keys), [])
+        self.assertEqual(sorted(template_keys - contract_keys), [])
         self.assertNotIn("localhost", template_text)
         self.assertNotIn("127.0.0.1", template_text)
         self.assertNotIn("admin@example.com", template_text)

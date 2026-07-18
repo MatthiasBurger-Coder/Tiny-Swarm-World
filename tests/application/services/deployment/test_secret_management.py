@@ -44,8 +44,8 @@ class TestSecretManagement(unittest.TestCase):
 
             entries = SecretManifestRenderer(_STORAGE, manifest).run()
 
-            self.assertEqual("TSW_POSTGRES_PASSWORD", entries[0].key)
-            self.assertEqual("keep_existing", entries[0].policy)
+            self.assertEqual(entries[0].key, "TSW_POSTGRES_PASSWORD")
+            self.assertEqual(entries[0].policy, "keep_existing")
 
     def test_committed_manifest_tracks_traefik_tls_secret_names_without_values(self):
         entries = SecretManifestRenderer(
@@ -60,9 +60,9 @@ class TestSecretManagement(unittest.TestCase):
         ):
             with self.subTest(key=key):
                 entry = entries_by_key[key]
-                self.assertEqual("traefik", entry.service)
-                self.assertEqual("external_user_secret", entry.type)
-                self.assertEqual("external_user_secret", entry.source)
+                self.assertEqual(entry.service, "traefik")
+                self.assertEqual(entry.type, "external_user_secret")
+                self.assertEqual(entry.source, "external_user_secret")
                 self.assertTrue(entry.required)
                 self.assertNotIn("BEGIN", entry.description)
                 self.assertNotIn("REDACTED", entry.description)
@@ -76,7 +76,7 @@ class TestSecretManagement(unittest.TestCase):
 
         entry = entries_by_key["TSW_INFISICAL_BOOTSTRAP_TOKEN"]
 
-        self.assertEqual("infisical_bootstrap_identity", entry.source)
+        self.assertEqual(entry.source, "infisical_bootstrap_identity")
         self.assertFalse(entry.required)
 
     def test_committed_manifest_marks_infisical_redis_password_required(self):
@@ -88,9 +88,9 @@ class TestSecretManagement(unittest.TestCase):
 
         entry = entries_by_key["TSW_INFISICAL_REDIS_PASSWORD"]
 
-        self.assertEqual("infisical", entry.service)
-        self.assertEqual("generated_secret", entry.type)
-        self.assertEqual("generated_local_secret", entry.source)
+        self.assertEqual(entry.service, "infisical")
+        self.assertEqual(entry.type, "generated_secret")
+        self.assertEqual(entry.source, "generated_local_secret")
         self.assertTrue(entry.required)
 
     def test_manifest_entries_expose_ownership_storage_and_lifecycle(self):
@@ -104,15 +104,15 @@ class TestSecretManagement(unittest.TestCase):
         external = entries_by_key["TSW_TRAEFIK_TLS_CERT_SECRET_NAME"]
         bootstrap = entries_by_key["TSW_INFISICAL_BOOTSTRAP_TOKEN"]
 
-        self.assertEqual("python_installer", generated.owner)
-        self.assertEqual(".tiny-swarm-world/local/live-installation.env", generated.storage)
-        self.assertEqual("generated_when_missing_and_kept_existing", generated.lifecycle)
-        self.assertEqual("operator", external.owner)
-        self.assertEqual("external_docker_secret_or_operator_env", external.storage)
-        self.assertEqual("operator_created_and_rotated", external.lifecycle)
-        self.assertEqual("infisical_sync", bootstrap.owner)
-        self.assertEqual(".tiny-swarm/secrets/generated.local.env", bootstrap.storage)
-        self.assertEqual("created_during_infisical_sync_and_reused", bootstrap.lifecycle)
+        self.assertEqual(generated.owner, "python_installer")
+        self.assertEqual(generated.storage, ".tiny-swarm-world/local/live-installation.env")
+        self.assertEqual(generated.lifecycle, "generated_when_missing_and_kept_existing")
+        self.assertEqual(external.owner, "operator")
+        self.assertEqual(external.storage, "external_docker_secret_or_operator_env")
+        self.assertEqual(external.lifecycle, "operator_created_and_rotated")
+        self.assertEqual(bootstrap.owner, "infisical_sync")
+        self.assertEqual(bootstrap.storage, ".tiny-swarm/secrets/generated.local.env")
+        self.assertEqual(bootstrap.lifecycle, "created_during_infisical_sync_and_reused")
 
     def test_committed_manifest_tracks_required_infisical_login_identity(self):
         entries = SecretManifestRenderer(
@@ -123,9 +123,9 @@ class TestSecretManagement(unittest.TestCase):
 
         entry = entries_by_key["TSW_INFISICAL_LOGIN_EMAIL"]
 
-        self.assertEqual("infisical", entry.service)
-        self.assertEqual("placeholder_only", entry.type)
-        self.assertEqual("placeholder_only", entry.source)
+        self.assertEqual(entry.service, "infisical")
+        self.assertEqual(entry.type, "placeholder_only")
+        self.assertEqual(entry.source, "placeholder_only")
         self.assertTrue(entry.required)
 
     def test_pulsar_compose_bootstrap_does_not_create_secret_inventory_blocker(self):
@@ -181,8 +181,8 @@ class TestSecretManagement(unittest.TestCase):
             findings = discovery.run()
 
         classifications = {finding.key: finding.classification for finding in findings}
-        self.assertEqual("placeholder_only", classifications["credential_item_ref"])
-        self.assertEqual("false_positive", classifications["credential_note"])
+        self.assertEqual(classifications["credential_item_ref"], "placeholder_only")
+        self.assertEqual(classifications["credential_note"], "false_positive")
         self.assertNotIn("blocker", set(classifications.values()))
 
     def test_redactor_redacts_values_and_assignments(self):
@@ -191,8 +191,8 @@ class TestSecretManagement(unittest.TestCase):
 
         redacted = redactor.redact({"line": f"{key}={operator_credential()}", "safe": "hello"})
 
-        self.assertEqual(f"{key}=<redacted>", redacted["line"])
-        self.assertEqual("hello", redacted["safe"])
+        self.assertEqual(redacted["line"], f"{key}=<redacted>")
+        self.assertEqual(redacted["safe"], "hello")
 
     def test_infisical_sync_creates_missing_and_keeps_existing(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -211,8 +211,8 @@ class TestSecretManagement(unittest.TestCase):
             sync.run()
 
             statuses = {item["key"]: item["sync_status"] for item in sync.results}
-            self.assertEqual("created", statuses["TSW_NEW_PASSWORD"])
-            self.assertEqual("kept_existing", statuses["TSW_EXISTING_PASSWORD"])
+            self.assertEqual(statuses["TSW_NEW_PASSWORD"], "created")
+            self.assertEqual(statuses["TSW_EXISTING_PASSWORD"], "kept_existing")
             self.assertIn("TSW_NEW_PASSWORD", cli.values)
 
     def test_infisical_sync_uses_api_client_even_when_local_cli_is_missing(self):
@@ -228,7 +228,7 @@ class TestSecretManagement(unittest.TestCase):
 
             sync.run()
 
-            self.assertEqual([("tiny-swarm-world", "local")], cli.ensured)
+            self.assertEqual(cli.ensured, [("tiny-swarm-world", "local")])
             self.assertIn("TSW_API_SYNC_PASSWORD", cli.values)
 
     def test_fixed_mode_syncs_complete_file(self):
@@ -254,14 +254,14 @@ class TestSecretManagement(unittest.TestCase):
             sync.run()
             result = sync.verify()
 
-        self.assertEqual("fixed-one", cli.values["TSW_FIXED_ONE_PASSWORD"])
-        self.assertEqual("fixed-two", cli.values["TSW_FIXED_TWO_PASSWORD"])
+        self.assertEqual(cli.values["TSW_FIXED_ONE_PASSWORD"], "fixed-one")
+        self.assertEqual(cli.values["TSW_FIXED_TWO_PASSWORD"], "fixed-two")
         self.assertEqual(
-            ("TSW_FIXED_ONE_PASSWORD", "TSW_FIXED_TWO_PASSWORD"),
             sync.checked_secret_keys,
+            ("TSW_FIXED_ONE_PASSWORD", "TSW_FIXED_TWO_PASSWORD"),
         )
-        self.assertEqual("fixed", result.evidence["selected_mode"])
-        self.assertEqual("2", result.evidence["synchronized_entry_count"])
+        self.assertEqual(result.evidence["selected_mode"], "fixed")
+        self.assertEqual(result.evidence["synchronized_entry_count"], "2")
         self.assertNotIn("fixed-one", str(result.evidence))
 
     def test_fixed_mode_blocks_missing_key(self):
@@ -382,9 +382,9 @@ class TestSecretManagement(unittest.TestCase):
         consumption.run()
         result = consumption.verify()
 
-        self.assertEqual("blocked", result.status.value)
-        self.assertEqual("1", result.evidence["missing_required_count"])
-        self.assertEqual("required_consumer_missing", result.evidence["reason"])
+        self.assertEqual(result.status.value, "blocked")
+        self.assertEqual(result.evidence["missing_required_count"], "1")
+        self.assertEqual(result.evidence["reason"], "required_consumer_missing")
 
     def test_secret_consumption_accepts_explicit_non_stack_consumer_reference(self):
         consumption = SecretConsumptionVerifier(
@@ -398,10 +398,10 @@ class TestSecretManagement(unittest.TestCase):
         consumption.run()
         result = consumption.verify()
 
-        self.assertEqual("verified", result.status.value)
-        self.assertEqual("0", result.evidence["missing_required_count"])
-        self.assertEqual("configured", consumption.report[0]["consumer_status"])
-        self.assertEqual("deployment:test-consumer", consumption.report[0]["consumer_ref"])
+        self.assertEqual(result.status.value, "verified")
+        self.assertEqual(result.evidence["missing_required_count"], "0")
+        self.assertEqual(consumption.report[0]["consumer_status"], "configured")
+        self.assertEqual(consumption.report[0]["consumer_ref"], "deployment:test-consumer")
 
     def test_secret_consumption_rejects_unknown_non_stack_consumer_reference(self):
         with self.assertRaisesRegex(ValueError, "Unknown managed config consumer key"):
@@ -441,7 +441,7 @@ class TestSecretManagement(unittest.TestCase):
             writer.run()
 
             evidence = json.loads((root / "evidence" / "infisical-sync-result.json").read_text(encoding="utf-8"))
-            self.assertEqual("generated", evidence["mode"])
+            self.assertEqual(evidence["mode"], "generated")
             self.assertIn("TSW_POSTGRES_PASSWORD", evidence["checked_secret_keys"])
             self.assertIn("TSW_POSTGRES_PASSWORD", evidence["synchronized_secret_keys"])
             self.assertNotIn("value", evidence["results"][0])

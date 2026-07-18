@@ -49,7 +49,7 @@ class TestSkillRegistryIntegrity(unittest.TestCase):
                 continue
             names.append(name.group(1).strip())
 
-        self.assertEqual([], invalid)
+        self.assertEqual(invalid, [])
         self.assertEqual(len(names), len(set(names)))
         self.assertEqual(
             len(skill_files),
@@ -68,7 +68,7 @@ class TestSkillRegistryIntegrity(unittest.TestCase):
                     "actual": actual_hash,
                 }
 
-        self.assertEqual({}, mismatches)
+        self.assertEqual(mismatches, {})
 
     def test_routing_respects_tiny_swarm_world_project_identity(self):
         routing = (

@@ -19,9 +19,9 @@ class TestEnsureNexusStack(unittest.TestCase):
         service.run()
 
         compose_repository.get_compose_of.assert_called_once_with("nexus")
-        self.assertEqual(1, len(deployment_gateway.applied_requests))
+        self.assertEqual(len(deployment_gateway.applied_requests), 1)
         request = deployment_gateway.applied_requests[0]
-        self.assertEqual("nexus", request.target_stack)
+        self.assertEqual(request.target_stack, "nexus")
         self.assertEqual(stack_definition, request.stack_definition)
 
     def test_updates_stack_when_present(self):

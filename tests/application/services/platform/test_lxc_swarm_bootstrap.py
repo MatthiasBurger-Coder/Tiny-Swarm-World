@@ -40,12 +40,12 @@ class TestLxcSwarmBootstrapService(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            [VerificationStatus.VERIFIED, VerificationStatus.VERIFIED],
             [result.status for result in results],
+            [VerificationStatus.VERIFIED, VerificationStatus.VERIFIED],
         )
-        self.assertEqual(0, swarm.init_calls)
-        self.assertEqual(0, swarm.join_calls)
-        self.assertEqual(0, swarm.credential_calls)
+        self.assertEqual(swarm.init_calls, 0)
+        self.assertEqual(swarm.join_calls, 0)
+        self.assertEqual(swarm.credential_calls, 0)
 
     async def test_pending_manager_is_initialized_before_workers_join(self):
         swarm = _SwarmBootstrap(
@@ -76,12 +76,12 @@ class TestLxcSwarmBootstrapService(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            [VerificationStatus.VERIFIED, VerificationStatus.VERIFIED],
             [result.status for result in results],
+            [VerificationStatus.VERIFIED, VerificationStatus.VERIFIED],
         )
-        self.assertEqual(1, swarm.init_calls)
-        self.assertEqual(1, swarm.join_calls)
-        self.assertEqual(1, swarm.credential_calls)
+        self.assertEqual(swarm.init_calls, 1)
+        self.assertEqual(swarm.join_calls, 1)
+        self.assertEqual(swarm.credential_calls, 1)
         credential = next(iter(swarm.credentials_seen))
         self.assertNotIn("sensitive-value", repr(credential))
 
@@ -110,7 +110,7 @@ class TestLxcSwarmBootstrapService(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, results[-1].status)
-        self.assertEqual("swarm_join_failed", results[-1].evidence["classification"])
+        self.assertEqual(results[-1].evidence["classification"], "swarm_join_failed")
         self.assertNotIn("sensitive-value", repr([result.to_dict() for result in results]))
 
     async def test_swarm_step_aggregates_node_results_for_platform_workflow(self):
@@ -133,11 +133,11 @@ class TestLxcSwarmBootstrapService(unittest.IsolatedAsyncioTestCase):
 
         result = await PlatformInitWorkflow([step]).run()
 
-        self.assertEqual("completed", result.status.value)
+        self.assertEqual(result.status.value, "completed")
         self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
         self.assertEqual(
-            "swarm_bootstrap_verified",
             result.verification_results[0].evidence["classification"],
+            "swarm_bootstrap_verified",
         )
 
     async def test_swarm_step_fails_when_expected_worker_result_is_missing(self):
@@ -160,12 +160,12 @@ class TestLxcSwarmBootstrapService(unittest.IsolatedAsyncioTestCase):
 
         result = await PlatformInitWorkflow([step]).run()
 
-        self.assertEqual("failed_to_verify", result.status.value)
+        self.assertEqual(result.status.value, "failed_to_verify")
         self.assertEqual(
-            "expected_node_results_missing",
             result.verification_results[0].evidence["classification"],
+            "expected_node_results_missing",
         )
-        self.assertEqual("1", result.verification_results[0].evidence["missing_count"])
+        self.assertEqual(result.verification_results[0].evidence["missing_count"], "1")
 
 
 class _NetworkIdentity:

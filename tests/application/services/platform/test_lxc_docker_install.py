@@ -33,7 +33,7 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.VERIFIED, results[0].status)
-        self.assertEqual([], runtime.installed_nodes)
+        self.assertEqual(runtime.installed_nodes, [])
 
     async def test_missing_docker_installs_and_verifies_node(self):
         runtime = _DockerRuntime(
@@ -59,13 +59,13 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
+            [result.status for result in results],
             [
                 VerificationStatus.VERIFIED,
                 VerificationStatus.VERIFIED,
             ],
-            [result.status for result in results],
         )
-        self.assertEqual(["swarm-manager"], runtime.installed_nodes)
+        self.assertEqual(runtime.installed_nodes, ["swarm-manager"])
 
     async def test_failed_install_stops_before_verify(self):
         runtime = _DockerRuntime(
@@ -86,10 +86,10 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
             (_node(),),
         )
 
-        self.assertEqual(1, len(results))
+        self.assertEqual(len(results), 1)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, results[0].status)
-        self.assertEqual("apt_repository_unreachable", results[0].evidence["failure_reason"])
-        self.assertEqual(0, runtime.verify_calls)
+        self.assertEqual(results[0].evidence["failure_reason"], "apt_repository_unreachable")
+        self.assertEqual(runtime.verify_calls, 0)
 
     async def test_unobserved_runtime_state_blocks_before_install(self):
         runtime = _DockerRuntime(
@@ -104,9 +104,9 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
             (_node(),),
         )
 
-        self.assertEqual(1, len(results))
+        self.assertEqual(len(results), 1)
         self.assertEqual(VerificationStatus.BLOCKED, results[0].status)
-        self.assertEqual([], runtime.installed_nodes)
+        self.assertEqual(runtime.installed_nodes, [])
 
     async def test_install_step_aggregates_node_results_for_platform_workflow(self):
         runtime = _DockerRuntime(
@@ -123,11 +123,11 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
 
         result = await PlatformInitWorkflow([step]).run()
 
-        self.assertEqual("completed", result.status.value)
+        self.assertEqual(result.status.value, "completed")
         self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
         self.assertEqual(
-            "container_runtime_verified",
             result.verification_results[0].evidence["classification"],
+            "container_runtime_verified",
         )
 
     async def test_install_step_reports_first_failed_node_and_reason(self):
@@ -152,15 +152,15 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
         result = await step.run()
 
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
-        self.assertEqual("swarm-manager", result.evidence["failed_nodes"])
-        self.assertEqual("swarm-manager", result.evidence["first_failure_node"])
+        self.assertEqual(result.evidence["failed_nodes"], "swarm-manager")
+        self.assertEqual(result.evidence["first_failure_node"], "swarm-manager")
         self.assertEqual(
-            "docker_install_failed",
             result.evidence["first_failure_classification"],
+            "docker_install_failed",
         )
         self.assertEqual(
-            "apt_repository_unreachable",
             result.evidence["first_failure_reason"],
+            "apt_repository_unreachable",
         )
 
 

@@ -81,7 +81,7 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
         ):
             await service.run()
 
-        self.assertEqual(2, client.initialize_calls)
+        self.assertEqual(client.initialize_calls, 2)
 
     async def test_run_initializes_clean_portainer_after_reset_and_verifies_credentials(self):
         client = _CleanInitializationPortainerAdminClient()
@@ -95,8 +95,8 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
 
         await service.run()
 
-        self.assertEqual(1, client.initialize_calls)
-        self.assertEqual(2, client.can_authenticate_calls)
+        self.assertEqual(client.initialize_calls, 1)
+        self.assertEqual(client.can_authenticate_calls, 2)
 
     async def test_run_fails_fast_when_portainer_rejects_admin_initialization(self):
         client = _RejectedInitializationPortainerAdminClient()
@@ -111,7 +111,7 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(PortainerAdminInitializationRejected):
             await service.run()
 
-        self.assertEqual(1, client.initialize_calls)
+        self.assertEqual(client.initialize_calls, 1)
 
     async def test_run_accepts_rejected_initialization_when_credentials_become_active(self):
         client = _RejectedAfterActivationPortainerAdminClient()
@@ -128,9 +128,9 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
         with self.assertLogs("EnsurePortainerAdminAccess", level="INFO") as captured:
             await service.run()
 
-        self.assertEqual(1, client.initialize_calls)
-        self.assertEqual(2, client.can_authenticate_calls)
-        self.assertEqual([], ui.calls)
+        self.assertEqual(client.initialize_calls, 1)
+        self.assertEqual(client.can_authenticate_calls, 2)
+        self.assertEqual(ui.calls, [])
         self.assertIn("credentials became active", captured.output[0])
         self.assertNotIn(sensitive_assignment(), captured.output[0])
 
@@ -156,8 +156,8 @@ class TestEnsurePortainerAdminAccess(unittest.IsolatedAsyncioTestCase):
         self.assertIn("PortainerAdminInitializationRejected HTTP 409", captured.output[0])
         self.assertNotIn(sensitive_assignment(), captured.output[0])
         self.assertEqual(
-            [("all", "deployment:portainer-admin-access", "Error", "failed_to_apply")],
             ui.calls,
+            [("all", "deployment:portainer-admin-access", "Error", "failed_to_apply")],
         )
 
 

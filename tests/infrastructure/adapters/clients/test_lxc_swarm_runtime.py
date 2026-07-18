@@ -71,7 +71,7 @@ class TestLxcSwarmRuntime(unittest.TestCase):
             )
 
         scripts = [call.args[0] for call in run_manager_shell.call_args_list]
-        self.assertEqual(3, len(scripts))
+        self.assertEqual(len(scripts), 3)
         self.assertIn("cat > /custom/stacks/service-access/docker-compose.yml", scripts[0])
         self.assertIn(
             "cat > /custom/stacks/service-access/dashboard/index.html",
@@ -79,14 +79,14 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         )
         self.assertIn("docker stack deploy", scripts[2])
         self.assertEqual(
-            generated_dashboard,
             run_manager_shell.call_args_list[1].kwargs["input_text"],
+            generated_dashboard,
         )
 
     def test_default_remote_stack_root_matches_committed_compose_fallback(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
 
-        self.assertEqual("/var/lib/tiny-swarm-world/stacks", runtime.remote_stack_root)
+        self.assertEqual(runtime.remote_stack_root, "/var/lib/tiny-swarm-world/stacks")
 
     def test_prepare_stack_assets_transfers_swagger_assets_to_remote_root(self):
         runtime = LxcSwarmRuntime(
@@ -153,7 +153,7 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         input_text = run_manager_shell.call_args.kwargs["input_text"]
         self.assertIn("mkdir -p /custom/stacks/service-access/dashboard", script)
         self.assertIn("cat > /custom/stacks/service-access/dashboard/index.html", script)
-        self.assertEqual(generated_dashboard, input_text)
+        self.assertEqual(input_text, generated_dashboard)
         self.assertNotIn("stale-dashboard", input_text)
 
     def test_render_service_access_dashboard_falls_back_to_compose_repository(self):
@@ -174,7 +174,7 @@ class TestLxcSwarmRuntime(unittest.TestCase):
 
                 dashboard_html = runtime._render_service_access_dashboard()
 
-        self.assertEqual("<html>generated-dashboard</html>", dashboard_html)
+        self.assertEqual(dashboard_html, "<html>generated-dashboard</html>")
         compose_repository.assert_called_once_with(project_paths=project_paths)
         compose_repository.return_value.render_service_access_dashboard.assert_called_once_with()
 
@@ -260,7 +260,7 @@ services:
             for call in run_manager_shell.call_args_list
             if call.args[0].startswith("docker service update")
         ]
-        self.assertEqual(1, len(update_scripts))
+        self.assertEqual(len(update_scripts), 1)
         self.assertIn(
             "--publish-rm published=8081,target=8081,protocol=tcp,mode=ingress",
             update_scripts[0],
@@ -347,7 +347,7 @@ services:
 
         scripts = [call.args[0] for call in run_manager_shell.call_args_list]
         update_scripts = [script for script in scripts if script.startswith("docker service update")]
-        self.assertEqual(1, len(update_scripts))
+        self.assertEqual(len(update_scripts), 1)
         self.assertIn(
             "--publish-add published=8086,target=8086,protocol=tcp,mode=host",
             update_scripts[0],
@@ -400,15 +400,14 @@ networks:
 """
 
         self.assertEqual(
-            ("service_access_link", "alternate"),
             _external_overlay_network_names(
                 StackDefinition(name="service-access", compose_content=compose)
             ),
+            ("service_access_link", "alternate"),
         )
 
     def test_published_ports_from_json_parses_docker_endpoint_ports(self):
         self.assertEqual(
-            {("10000", "80", "tcp", "host"), ("8086", "8086", "tcp", "host")},
             _published_ports_from_json(
                 """
 [
@@ -417,6 +416,7 @@ networks:
 ]
 """
             ),
+            {("10000", "80", "tcp", "host"), ("8086", "8086", "tcp", "host")},
         )
 
     def test_stack_exists_reads_docker_stack_names_through_lxc(self):
@@ -555,11 +555,11 @@ networks:
             services = runtime.list_stack_services("service-access")
 
         self.assertEqual(
-            ("service-access_vaultwarden", "service-access_nginx"),
             tuple(service.service_name for service in services),
+            ("service-access_vaultwarden", "service-access_nginx"),
         )
-        self.assertEqual((1, 0), tuple(service.current_replicas for service in services))
-        self.assertEqual((1, 1), tuple(service.desired_replicas for service in services))
+        self.assertEqual(tuple(service.current_replicas for service in services), (1, 0))
+        self.assertEqual(tuple(service.desired_replicas for service in services), (1, 1))
         run_manager_shell.assert_called_once_with(
             "timeout --kill-after=5s 30s docker service ls "
             "--filter label=com.docker.stack.namespace=service-access "
@@ -583,11 +583,11 @@ networks:
             services = runtime.list_stack_services("pulsar")
 
         self.assertEqual(
-            ("pulsar_pulsar", "pulsar_pulsar-manager"),
             tuple(service.service_name for service in services),
+            ("pulsar_pulsar", "pulsar_pulsar-manager"),
         )
-        self.assertEqual((1, 0), tuple(service.current_replicas for service in services))
-        self.assertEqual((1, 1), tuple(service.desired_replicas for service in services))
+        self.assertEqual(tuple(service.current_replicas for service in services), (1, 0))
+        self.assertEqual(tuple(service.desired_replicas for service in services), (1, 1))
         run_manager_shell.assert_called_once_with(
             "timeout --kill-after=5s 30s docker service ls "
             "--filter label=com.docker.stack.namespace=pulsar "
@@ -630,7 +630,7 @@ networks:
                 result = runtime._run_manager_shell("docker stack deploy test")
 
         self.assertEqual(success, result)
-        self.assertEqual(2, run.call_count)
+        self.assertEqual(run.call_count, 2)
         sleep.assert_called_once_with(0.5)
 
     def test_external_secret_exists_inspects_secret_with_option_boundary(self):
@@ -688,12 +688,12 @@ networks:
             "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
             return_value=subprocess.CompletedProcess([], 0, stdout="nexus.1.abc\n"),
         ) as run:
-            self.assertEqual(["swarm-manager::nexus.1.abc"], runtime.find_container_names("nexus"))
+            self.assertEqual(runtime.find_container_names("nexus"), ["swarm-manager::nexus.1.abc"])
 
         run.assert_called_once()
         self.assertEqual(
-            ["lxc", "exec", "swarm-manager", "--", "docker"],
             run.call_args.args[0][:5],
+            ["lxc", "exec", "swarm-manager", "--", "docker"],
         )
 
     def test_container_runtime_finds_and_reads_containers_on_configured_lxc_nodes(self):
@@ -714,14 +714,14 @@ networks:
             container_names = runtime.find_container_names("nexus")
             self.assertTrue(runtime.file_exists(container_names[0], "/nexus-data/admin.password"))
             self.assertEqual(
-                "initial-password\n",
                 runtime.read_file(container_names[0], "/nexus-data/admin.password"),
+                "initial-password\n",
             )
 
-        self.assertEqual(["swarm-worker-1::nexus_nexus.1.abc"], container_names)
+        self.assertEqual(container_names, ["swarm-worker-1::nexus_nexus.1.abc"])
         self.assertEqual(
-            ["lxc", "exec", "swarm-worker-1", "--", "docker", "exec", "nexus_nexus.1.abc"],
             run.call_args_list[-1].args[0][:7],
+            ["lxc", "exec", "swarm-worker-1", "--", "docker", "exec", "nexus_nexus.1.abc"],
         )
 
     def test_manager_ip_reads_lxc_eth0_not_docker_bridge_address(self):
@@ -739,6 +739,7 @@ networks:
             )
 
         self.assertEqual(
+            run.call_args.args[0],
             [
                 "lxc",
                 "exec",
@@ -748,7 +749,6 @@ networks:
                 "-lc",
                 "ip -4 -o addr show dev eth0 | awk '{print $4}' | cut -d/ -f1",
             ],
-            run.call_args.args[0],
         )
 
     def test_manager_ip_retries_transient_incus_child_pid_failure(self):
@@ -774,7 +774,7 @@ networks:
                     _lxc_manager_ip(ManagedLxcBackend.LXD, "swarm-manager", 30),
                 )
 
-        self.assertEqual(2, run.call_count)
+        self.assertEqual(run.call_count, 2)
 
     def test_image_publisher_pulls_public_image_without_local_registry_login(self):
         publisher = LxcContainerImagePublisher(
@@ -861,7 +861,7 @@ networks:
                 with self.assertRaises(PublicImagePullRejected) as raised:
                     publisher.publish_image(contract)
 
-        self.assertEqual("registry_rate_limited", raised.exception.diagnostic)
+        self.assertEqual(raised.exception.diagnostic, "registry_rate_limited")
         self.assertIn("registry mirror", raised.exception.operator_action)
         self.assertNotIn("toomanyrequests", str(raised.exception).lower())
 
@@ -889,8 +889,8 @@ networks:
                     timeout_seconds=1800,
                 )
 
-        self.assertEqual("build_image", raised.exception.operation)
-        self.assertEqual("image_build_failed", raised.exception.diagnostic)
+        self.assertEqual(raised.exception.operation, "build_image")
+        self.assertEqual(raised.exception.diagnostic, "image_build_failed")
         self.assertIn("image context", raised.exception.operator_action)
         self.assertNotIn(sensitive_assignment(), str(raised.exception))
 
@@ -918,10 +918,10 @@ networks:
                 publisher.publish_image(contract)
 
         self.assertEqual(
-            ["docker", "image", "inspect", "infisical/infisical:v0.159.1"],
             run.call_args_list[0].args[0],
+            ["docker", "image", "inspect", "infisical/infisical:v0.159.1"],
         )
-        self.assertEqual(["bash", "-lc"], run.call_args_list[1].args[0][:2])
+        self.assertEqual(run.call_args_list[1].args[0][:2], ["bash", "-lc"])
         self.assertIn(
             "docker save infisical/infisical:v0.159.1",
             run.call_args_list[1].args[0][2],
@@ -950,7 +950,7 @@ networks:
             )
         )
         self.assertIn("HTTP 409", str(raised.exception))
-        self.assertEqual(409, raised.exception.status_code)
+        self.assertEqual(raised.exception.status_code, 409)
         self.assertNotIn(sensitive_assignment(), str(raised.exception))
 
     def test_nexus_client_uses_direct_centralized_port_by_default(self):
@@ -973,7 +973,7 @@ networks:
             "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
             return_value=ipv4_address(10, 156, 143, 201),
         ):
-            self.assertEqual(f"https://{ipv4_address(10, 156, 143, 201)}:13081", client._base_url())
+            self.assertEqual(client._base_url(), f"https://{ipv4_address(10, 156, 143, 201)}:13081")
 
     def test_nexus_client_rejects_invalid_direct_access_scheme(self):
         with self.assertRaises(ValueError):
@@ -999,8 +999,8 @@ networks:
             with self.assertRaises(PortainerAdminInitializationRejected) as raised:
                 client.initialize_admin_user("admin", operator_credential())
 
-        self.assertEqual(409, raised.exception.status_code)
-        self.assertEqual(2, len(session.post_calls))
+        self.assertEqual(raised.exception.status_code, 409)
+        self.assertEqual(len(session.post_calls), 2)
 
     def test_portainer_admin_client_accepts_failed_init_when_authentication_works(self):
         password = operator_credential()
@@ -1018,12 +1018,12 @@ networks:
         ):
             client.initialize_admin_user("admin", password)
 
-        self.assertEqual(2, len(session.post_calls))
+        self.assertEqual(len(session.post_calls), 2)
         init_call, auth_call = session.post_calls
         self.assertTrue(str(init_call["url"]).endswith("/api/users/admin/init"))
-        self.assertEqual({"username": "admin", "password": password}, init_call["json"])
+        self.assertEqual(init_call["json"], {"username": "admin", "password": password})
         self.assertTrue(str(auth_call["url"]).endswith("/api/auth"))
-        self.assertEqual({"Username": "admin", "Password": password}, auth_call["json"])
+        self.assertEqual(auth_call["json"], {"Username": "admin", "Password": password})
 
     def test_portainer_admin_client_clears_cookies_before_409_auth_probe(self):
         session = _FakeSession(
@@ -1040,7 +1040,7 @@ networks:
         ):
             client.initialize_admin_user("admin", operator_credential())
 
-        self.assertEqual(4, session.cookies.clear_calls)
+        self.assertEqual(session.cookies.clear_calls, 4)
 
     def test_portainer_admin_client_initializes_clean_state_without_followup_auth_probe(self):
         session = _FakeSession([_FakeResponse(200, {"message": "admin initialized"})])
@@ -1052,7 +1052,7 @@ networks:
         ):
             client.initialize_admin_user("admin", operator_credential())
 
-        self.assertEqual(1, len(session.post_calls))
+        self.assertEqual(len(session.post_calls), 1)
         self.assertTrue(str(session.post_calls[0]["url"]).endswith("/api/users/admin/init"))
 
     def test_lxc_portainer_client_creates_external_network_before_stack_create(self):
@@ -1092,13 +1092,13 @@ networks:
 
         scripts = [call.args[0] for call in run_manager_shell.call_args_list]
         self.assertEqual(
+            scripts,
             [
                 "docker network inspect -- service_access_link >/dev/null 2>&1",
                 "docker network create --driver overlay --attachable -- service_access_link >/dev/null",
             ],
-            scripts,
         )
-        self.assertEqual([(stack, 1, {"TSW_EXAMPLE": "value"})], delegate.created_stacks)
+        self.assertEqual(delegate.created_stacks, [(stack, 1, {"TSW_EXAMPLE": "value"})])
 
     def test_lxc_portainer_client_reuses_existing_external_network(self):
         from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
@@ -1176,15 +1176,15 @@ networks:
 
         scripts = [call.args[0] for call in run_manager_shell.call_args_list]
         self.assertEqual(
+            scripts,
             [
                 "docker network inspect -- service_access_link >/dev/null 2>&1",
                 "docker network create --driver overlay --attachable -- service_access_link >/dev/null",
             ],
-            scripts,
         )
-        self.assertEqual(["local"], delegate.requested_endpoints)
-        self.assertEqual(["service-access"], delegate.requested_stacks)
-        self.assertEqual([(stack, 1, {"TSW_EXAMPLE": "value"})], delegate.created_stacks)
+        self.assertEqual(delegate.requested_endpoints, ["local"])
+        self.assertEqual(delegate.requested_stacks, ["service-access"])
+        self.assertEqual(delegate.created_stacks, [(stack, 1, {"TSW_EXAMPLE": "value"})])
 
     def test_lxc_portainer_client_reuses_delegate_for_workflow_lifetime(self):
         from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
@@ -1223,7 +1223,7 @@ networks:
             "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime._lxc_manager_ip",
             return_value="192.0.2.20",
         ):
-            self.assertEqual("https://192.0.2.20:10001", client._client().base_url)
+            self.assertEqual(client._client().base_url, "https://192.0.2.20:10001")
 
     def test_lxc_portainer_client_passes_stack_request_timeout_to_delegate(self):
         from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
@@ -1244,8 +1244,8 @@ networks:
         ):
             delegate = client._client()
 
-        self.assertEqual(17, delegate.request_timeout_seconds)
-        self.assertEqual(181, delegate.stack_request_timeout_seconds)
+        self.assertEqual(delegate.request_timeout_seconds, 17)
+        self.assertEqual(delegate.stack_request_timeout_seconds, 181)
 
 
 class _FakeResponse:

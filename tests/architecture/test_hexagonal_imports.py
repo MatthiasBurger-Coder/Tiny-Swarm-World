@@ -106,8 +106,8 @@ class TestHexagonalImports(unittest.TestCase):
         ]
         filesystem_calls = _find_direct_filesystem_calls(APPLICATION_SERVICES_ROOT)
 
-        self.assertEqual([], technology_imports)
-        self.assertEqual([], filesystem_calls)
+        self.assertEqual(technology_imports, [])
+        self.assertEqual(filesystem_calls, [])
 
 
 class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
@@ -309,7 +309,7 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
             )
         ]
 
-        self.assertEqual([], violations)
+        self.assertEqual(violations, [])
 
     def test_nexus_artifact_repository_contracts_do_not_import_deployment_or_infrastructure(self):
         repository_contract_file = APPLICATION_SERVICES_ROOT / "nexus" / "ensure_nexus_repository.py"

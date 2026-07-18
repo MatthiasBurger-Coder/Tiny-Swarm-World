@@ -90,7 +90,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             stack_definition = repository.get_compose_of("jenkins")
             compose_data = YAML(typ="safe").load(stack_definition.compose_content)
 
-        self.assertEqual(18080, compose_data["services"]["jenkins"]["ports"][0]["published"])
+        self.assertEqual(compose_data["services"]["jenkins"]["ports"][0]["published"], 18080)
 
     def test_extracts_service_names_and_published_ports_from_compose_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -127,12 +127,12 @@ services:
             services = repository.get_services_of("mixed")
 
         self.assertEqual(
+            [(service.name, service.published_ports) for service in services],
             [
                 ("web", (8080, 8443)),
                 ("worker", ()),
                 ("admin", (9090,)),
             ],
-            [(service.name, service.published_ports) for service in services],
         )
 
     def test_recursively_loads_compose_content_from_matching_stack_directory(self):
@@ -269,8 +269,8 @@ services:
         ]
 
         self.assertEqual(
-            ["portainer", "traefik", "nexus", "jenkins", "pulsar", "sonarqube", "swagger"],
             loaded_stack_names,
+            ["portainer", "traefik", "nexus", "jenkins", "pulsar", "sonarqube", "swagger"],
         )
 
     def test_committed_default_service_stack_compose_files_declare_required_services(self):
@@ -313,11 +313,11 @@ services:
             )
         }
 
-        self.assertEqual((11080, 11050), metadata["jenkins"]["jenkins"])
-        self.assertEqual((17080,), metadata["infisical"]["infisical"])
-        self.assertEqual((13081, 13500, 13501), metadata["nexus"]["nexus"])
-        self.assertEqual((10000, 8086), metadata["service-access"]["service-access-nginx"])
-        self.assertEqual((80, 443), metadata["traefik"]["traefik"])
+        self.assertEqual(metadata["jenkins"]["jenkins"], (11080, 11050))
+        self.assertEqual(metadata["infisical"]["infisical"], (17080,))
+        self.assertEqual(metadata["nexus"]["nexus"], (13081, 13500, 13501))
+        self.assertEqual(metadata["service-access"]["service-access-nginx"], (10000, 8086))
+        self.assertEqual(metadata["traefik"]["traefik"], (80, 443))
 
     def test_committed_service_registry_aligns_selected_stacks_with_phase_and_ports(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -344,6 +344,7 @@ services:
         self.assertEqual(set(), set(service_entries) - set(expected_stacks))
         self.assertEqual(set(selected_stacks), set(contract_by_stack))
         self.assertEqual(
+            set(service_entries),
             {
                 "infisical",
                 "jenkins",
@@ -355,7 +356,6 @@ services:
                 "swagger",
                 "traefik",
             },
-            set(service_entries),
         )
 
         for stack_name in selected_stacks:
@@ -371,8 +371,8 @@ services:
                 self.assertEqual(contract.service_readiness_target_id, entry["readiness_target"])
                 self.assertLessEqual(set(entry["port_ids"]), registry_port_ids)
 
-        self.assertEqual("network-routing", service_entries["traefik"]["phase"])
-        self.assertEqual(["traefik"], service_entries["traefik"]["required_services"])
+        self.assertEqual(service_entries["traefik"]["phase"], "network-routing")
+        self.assertEqual(service_entries["traefik"]["required_services"], ["traefik"])
         self.assertLessEqual(set(service_entries["traefik"]["port_ids"]), registry_port_ids)
 
     def test_committed_compose_published_ports_are_registry_ingress_or_compatibility(self):
@@ -438,7 +438,7 @@ services:
             check = checks_by_stack[stack_name]
             with self.subTest(stack_name=stack_name):
                 self.assertFalse(check["live_default"])
-                self.assertEqual("swarm_service_replicas", check["evidence_kind"])
+                self.assertEqual(check["evidence_kind"], "swarm_service_replicas")
                 self.assertEqual(entry["readiness_target"], check["target_id"])
                 self.assertEqual(entry["phase"], check["phase"])
                 self.assertIn(check["phase"], plan_phase_ids)
@@ -466,7 +466,7 @@ services:
         self.assertFalse(validation_plan["live_default"])
         self.assertEqual(len(required_targets), len(set(required_targets)))
         self.assertEqual(health_targets, set(required_targets))
-        self.assertEqual([], validation_plan["optional_targets"])
+        self.assertEqual(validation_plan["optional_targets"], [])
 
     def test_committed_jenkins_compose_uses_overridable_registry_image(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -476,30 +476,30 @@ services:
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
 
         self.assertEqual(
-            "${TSW_JENKINS_IMAGE:-127.0.0.1:13500/jenkins:0.2.0}",
             compose_data["services"]["jenkins"]["image"],
+            "${TSW_JENKINS_IMAGE:-127.0.0.1:13500/jenkins:0.2.0}",
         )
         self.assertEqual(
-            ["node.role == manager"],
             compose_data["services"]["jenkins"]["deploy"]["placement"]["constraints"],
+            ["node.role == manager"],
         )
         self.assertEqual(
+            compose_data["services"]["jenkins"]["ports"],
             [
                 {"target": 8080, "published": 11080, "protocol": "tcp", "mode": "host"},
                 {"target": 50000, "published": 11050, "protocol": "tcp", "mode": "host"},
             ],
-            compose_data["services"]["jenkins"]["ports"],
         )
         self.assertEqual(
-            ["jenkins_home:/var/lib/jenkins"],
             compose_data["services"]["jenkins"]["volumes"],
+            ["jenkins_home:/var/lib/jenkins"],
         )
         self.assertEqual(
-            {"TSW_JENKINS_ADMIN_PASSWORD": "${TSW_JENKINS_ADMIN_PASSWORD}"},
             compose_data["services"]["jenkins"]["environment"],
+            {"TSW_JENKINS_ADMIN_PASSWORD": "${TSW_JENKINS_ADMIN_PASSWORD}"},
         )
         self.assertNotIn("secrets", compose_data)
-        self.assertNotEqual("root", compose_data["services"]["jenkins"].get("user"))
+        self.assertNotEqual(compose_data["services"]["jenkins"].get("user"), "root")
 
     def test_committed_nexus_compose_publishes_registry_ports_on_manager_host(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -510,16 +510,16 @@ services:
         nexus = compose_data["services"]["nexus"]
 
         self.assertEqual(
+            nexus["ports"],
             [
                 {"target": 8081, "published": 13081, "protocol": "tcp", "mode": "host"},
                 {"target": 5000, "published": 13500, "protocol": "tcp", "mode": "host"},
                 {"target": 5001, "published": 13501, "protocol": "tcp", "mode": "host"},
             ],
-            nexus["ports"],
         )
         self.assertEqual(
-            ["node.role == manager"],
             nexus["deploy"]["placement"]["constraints"],
+            ["node.role == manager"],
         )
 
     def test_committed_pulsar_compose_uses_standalone_with_non_conflicting_admin_port(self):
@@ -531,10 +531,10 @@ services:
         pulsar = compose_data["services"]["pulsar"]
 
         self.assertEqual(
-            "${TSW_PULSAR_IMAGE:-apachepulsar/pulsar:3.0.17}",
             pulsar["image"],
+            "${TSW_PULSAR_IMAGE:-apachepulsar/pulsar:3.0.17}",
         )
-        self.assertEqual(["sh", "-lc"], pulsar["command"][:2])
+        self.assertEqual(pulsar["command"][:2], ["sh", "-lc"])
         self.assertIn("bin/apply-config-from-env.py conf/standalone.conf", pulsar["command"][-1])
         self.assertNotIn("bin/apply-config-from-env.py conf/bookkeeper.conf", pulsar["command"][-1])
         self.assertIn("exec bin/pulsar standalone", pulsar["command"][-1])
@@ -542,11 +542,11 @@ services:
         self.assertIn("--bookkeeper-port 3181", pulsar["command"][-1])
         self.assertIn("--no-functions-worker", pulsar["command"][-1])
         self.assertIn("--no-stream-storage", pulsar["command"][-1])
-        self.assertEqual("true", pulsar["environment"]["PULSAR_PREFIX_authenticationEnabled"])
-        self.assertEqual("127.0.0.1", pulsar["environment"]["PULSAR_PREFIX_advertisedAddress"])
+        self.assertEqual(pulsar["environment"]["PULSAR_PREFIX_authenticationEnabled"], "true")
+        self.assertEqual(pulsar["environment"]["PULSAR_PREFIX_advertisedAddress"], "127.0.0.1")
         self.assertEqual(
-            "org.apache.bookkeeper.bookie.InterleavedLedgerStorage",
             pulsar["environment"]["PULSAR_PREFIX_ledgerStorageClass"],
+            "org.apache.bookkeeper.bookie.InterleavedLedgerStorage",
         )
         self.assertNotIn("PULSAR_PREFIX_zookeeperServers", pulsar["environment"])
         self.assertNotIn("PULSAR_PREFIX_zkServers", pulsar["environment"])
@@ -561,79 +561,79 @@ services:
             pulsar["environment"]["PULSAR_PREFIX_authenticationProviders"],
         )
         self.assertEqual(
-            "data:;base64,${TSW_PULSAR_TOKEN_SECRET_KEY}",
             pulsar["environment"]["PULSAR_PREFIX_tokenSecretKey"],
+            "data:;base64,${TSW_PULSAR_TOKEN_SECRET_KEY}",
         )
         self.assertNotIn("PULSAR_PREFIX_bookieId", pulsar["environment"])
         self.assertEqual(
-            "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m",
             pulsar["environment"]["PULSAR_MEM"],
+            "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m",
         )
         self.assertEqual(
-            "-XX:+UseG1GC -XX:+PerfDisableSharedMem",
             pulsar["environment"]["PULSAR_GC"],
+            "-XX:+UseG1GC -XX:+PerfDisableSharedMem",
         )
-        self.assertEqual("", pulsar["environment"]["PULSAR_GC_LOG"])
+        self.assertEqual(pulsar["environment"]["PULSAR_GC_LOG"], "")
         self.assertEqual(
-            "-Djava.security.egd=file:/dev/./urandom -XX:TieredStopAtLevel=1 -XX:CICompilerCount=2",
             pulsar["environment"]["PULSAR_EXTRA_OPTS"],
+            "-Djava.security.egd=file:/dev/./urandom -XX:TieredStopAtLevel=1 -XX:CICompilerCount=2",
         )
-        self.assertEqual("${TSW_PULSAR_ADMIN_TOKEN}", pulsar["environment"]["TSW_PULSAR_ADMIN_TOKEN"])
+        self.assertEqual(pulsar["environment"]["TSW_PULSAR_ADMIN_TOKEN"], "${TSW_PULSAR_ADMIN_TOKEN}")
         self.assertEqual(
+            pulsar["ports"],
             [
                 {"target": 6650, "published": 14001, "protocol": "tcp", "mode": "host"},
                 {"target": 8080, "published": 14080, "protocol": "tcp", "mode": "host"},
             ],
-            pulsar["ports"],
         )
         self.assertNotIn(
             {"target": 8080, "published": 8080, "protocol": "tcp"},
             pulsar["ports"],
         )
-        self.assertEqual(["pulsar-data:/pulsar/data"], pulsar["volumes"])
+        self.assertEqual(pulsar["volumes"], ["pulsar-data:/pulsar/data"])
         self.assertIn("healthcheck", pulsar)
         self.assertIn("http://localhost:8080/admin/v2/clusters", pulsar["healthcheck"]["test"][-1])
         self.assertIn("TSW_PULSAR_ADMIN_TOKEN", pulsar["healthcheck"]["test"][-1])
-        self.assertEqual(["service_access_link"], pulsar["networks"])
+        self.assertEqual(pulsar["networks"], ["service_access_link"])
         self.assertEqual(
-            {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
+            {"name": "service_access_link", "external": True},
         )
         self.assertEqual(
-            ["node.role == manager"],
             pulsar["deploy"]["placement"]["constraints"],
+            ["node.role == manager"],
         )
 
         pulsar_manager = compose_data["services"]["pulsar-manager"]
         self.assertEqual(
-            "${TSW_PULSAR_MANAGER_IMAGE:-apachepulsar/pulsar-manager:v0.4.0}",
             pulsar_manager["image"],
+            "${TSW_PULSAR_MANAGER_IMAGE:-apachepulsar/pulsar-manager:v0.4.0}",
         )
         self.assertEqual(
-            "/pulsar-manager/pulsar-manager/application.properties",
             pulsar_manager["environment"]["SPRING_CONFIGURATION_FILE"],
+            "/pulsar-manager/pulsar-manager/application.properties",
         )
         self.assertEqual(
+            pulsar_manager["ports"],
             [
                 {"target": 9527, "published": 14081, "protocol": "tcp", "mode": "host"},
             ],
-            pulsar_manager["ports"],
         )
-        self.assertEqual(["7750"], pulsar_manager["expose"])
-        self.assertEqual(["service_access_link"], pulsar_manager["networks"])
+        self.assertEqual(pulsar_manager["expose"], ["7750"])
+        self.assertEqual(pulsar_manager["networks"], ["service_access_link"])
         self.assertEqual(
-            ["node.role == manager"],
             pulsar_manager["deploy"]["placement"]["constraints"],
+            ["node.role == manager"],
         )
 
         bootstrap = compose_data["services"]["pulsar-manager-bootstrap"]
         self.assertEqual(
-            "${TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE:-python:3.12.13-alpine3.23}",
             bootstrap["image"],
+            "${TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE:-python:3.12.13-alpine3.23}",
         )
         self.assertEqual(
-            "${TSW_PULSAR_MANAGER_ADMIN_PASSWORD}",
             bootstrap["environment"]["TSW_PULSAR_MANAGER_ADMIN_PASSWORD"],
+            "${TSW_PULSAR_MANAGER_ADMIN_PASSWORD}",
         )
         self.assertIn("users/superuser", bootstrap["command"][-1])
         self.assertIn("admin@example.org", bootstrap["command"][-1])
@@ -641,18 +641,18 @@ services:
         self.assertIn('"username": "admin"', bootstrap["command"][-1])
         self.assertIn('"Host": backend_host_header', bootstrap["command"][-1])
         self.assertEqual(
-            "http://tasks.pulsar-manager:7750",
             bootstrap["environment"]["TSW_PULSAR_MANAGER_BACKEND_URL"],
+            "http://tasks.pulsar-manager:7750",
         )
         self.assertIn("backend_host_header = \"localhost:7750\"", bootstrap["command"][-1])
         self.assertIn("api_rejected_superuser", bootstrap["command"][-1])
         self.assertIn("exc.code != 400", bootstrap["command"][-1])
         self.assertIn('response.get("login") == "success"', bootstrap["command"][-1])
         self.assertIn("json.dumps", bootstrap["command"][-1])
-        self.assertEqual("continue", bootstrap["deploy"]["update_config"]["failure_action"])
-        self.assertEqual("on-failure", bootstrap["deploy"]["restart_policy"]["condition"])
-        self.assertEqual("5s", bootstrap["deploy"]["restart_policy"]["delay"])
-        self.assertEqual(3, bootstrap["deploy"]["restart_policy"]["max_attempts"])
+        self.assertEqual(bootstrap["deploy"]["update_config"]["failure_action"], "continue")
+        self.assertEqual(bootstrap["deploy"]["restart_policy"]["condition"], "on-failure")
+        self.assertEqual(bootstrap["deploy"]["restart_policy"]["delay"], "5s")
+        self.assertEqual(bootstrap["deploy"]["restart_policy"]["max_attempts"], 3)
 
     def test_committed_swagger_compose_uses_official_images_and_remote_openapi_bind(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -667,8 +667,8 @@ services:
         self.assertNotIn("ports", compose_data["services"]["swagger-editor"])
         self.assertNotIn("ports", compose_data["services"]["swagger-api"])
         self.assertEqual(
-            [{"target": 8084, "published": 16081, "protocol": "tcp", "mode": "host"}],
             compose_data["services"]["swagger-nginx"]["ports"],
+            [{"target": 8084, "published": 16081, "protocol": "tcp", "mode": "host"}],
         )
         self.assertIn("SWAGGER_JSON: /openapi.json", compose_content)
         self.assertIn(
@@ -692,26 +692,26 @@ services:
         entrypoint = compose_data["services"]["sonarqube"]["entrypoint"]
         command = compose_data["services"]["sonarqube"]["command"]
 
-        self.assertEqual(("bash", "-lc"), tuple(entrypoint))
+        self.assertEqual(tuple(entrypoint), ("bash", "-lc"))
         self.assertEqual(
-            "jdbc:postgresql://tasks.sonar_db:5432/sonar",
             compose_data["services"]["sonarqube"]["environment"]["SONAR_JDBC_URL"],
+            "jdbc:postgresql://tasks.sonar_db:5432/sonar",
         )
         self.assertIn("/dev/tcp/tasks.sonar_db/5432", command[0])
         self.assertIn("/opt/sonarqube/docker/entrypoint.sh", command[0])
         self.assertIn("service_access_link", compose_data["services"]["sonarqube"]["networks"])
         self.assertIn("service_access_link", compose_data["services"]["sonar_db"]["networks"])
         self.assertEqual(
-            [{"target": 9000, "published": 12000, "protocol": "tcp", "mode": "host"}],
             compose_data["services"]["sonarqube"]["ports"],
+            [{"target": 9000, "published": 12000, "protocol": "tcp", "mode": "host"}],
         )
         self.assertEqual(
-            ["node.role == manager"],
             compose_data["services"]["sonarqube"]["deploy"]["placement"]["constraints"],
+            ["node.role == manager"],
         )
         self.assertEqual(
-            {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
+            {"name": "service_access_link", "external": True},
         )
 
     def test_committed_sonarqube_compose_uses_available_community_image(self):
@@ -722,12 +722,12 @@ services:
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
 
         self.assertEqual(
-            "sonarqube:26.6.0.123539-community",
             compose_data["services"]["sonarqube"]["image"],
+            "sonarqube:26.6.0.123539-community",
         )
         self.assertNotEqual(
-            "sonarqube:lts-community",
             compose_data["services"]["sonarqube"]["image"],
+            "sonarqube:lts-community",
         )
 
     def test_committed_service_access_compose_declares_required_services(self):
@@ -737,44 +737,44 @@ services:
         compose_data = YAML(typ="safe").load(compose_content)
         services = compose_data["services"]
 
-        self.assertEqual("service-access", ComposeFileRepositoryYaml().get_compose_of("service-access").name)
+        self.assertEqual(ComposeFileRepositoryYaml().get_compose_of("service-access").name, "service-access")
         self.assertEqual(set(SERVICE_ACCESS_STACK_CONTRACT.required_services), set(services))
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:13500/service-access-dashboard:0.2.0}",
             services["service-access-dashboard"]["image"],
+            "${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:13500/service-access-dashboard:0.2.0}",
         )
         self.assertEqual(
-            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:13500/service-access-nginx:0.2.0}",
             services["service-access-nginx"]["image"],
+            "${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:13500/service-access-nginx:0.2.0}",
         )
         self.assertEqual(
+            services["service-access-nginx"]["ports"],
             [
                 {"target": 80, "published": 10000, "protocol": "tcp", "mode": "host"},
                 {"target": 8086, "published": 8086, "protocol": "tcp", "mode": "host"},
             ],
-            services["service-access-nginx"]["ports"],
         )
         self.assertNotIn("secrets", compose_data)
         self.assertNotIn("volumes", compose_data)
         self.assertEqual(
+            services["service-access-dashboard"]["configs"],
             [
                 {
                     "source": "service_access_dashboard_index",
                     "target": "/usr/share/nginx/html/index.html",
                 }
             ],
-            services["service-access-dashboard"]["configs"],
         )
         self.assertEqual(
             (
-                "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}"
-                "/service-access/dashboard/index.html"
+                compose_data["configs"]["service_access_dashboard_index"]["file"]
             ),
-            compose_data["configs"]["service_access_dashboard_index"]["file"],
+            "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}"
+                "/service-access/dashboard/index.html",
         )
         self.assertEqual(
-            {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
+            {"name": "service_access_link", "external": True},
         )
 
     def test_committed_infisical_compose_declares_required_services_and_secret_boundary(self):
@@ -784,54 +784,54 @@ services:
         compose_data = YAML(typ="safe").load(compose_content)
         services = compose_data["services"]
 
-        self.assertEqual("infisical", ComposeFileRepositoryYaml().get_compose_of("infisical").name)
-        self.assertEqual({"infisical", "infisical-db", "infisical-redis"}, set(services))
+        self.assertEqual(ComposeFileRepositoryYaml().get_compose_of("infisical").name, "infisical")
+        self.assertEqual(set(services), {"infisical", "infisical-db", "infisical-redis"})
         self.assertEqual(
-            "${TSW_INFISICAL_IMAGE:-infisical/infisical:v0.159.1}",
             services["infisical"]["image"],
+            "${TSW_INFISICAL_IMAGE:-infisical/infisical:v0.159.1}",
         )
         self.assertEqual(
-            "${TSW_INFISICAL_SITE_URL:-http://localhost:17080}",
             services["infisical"]["environment"]["SITE_URL"],
+            "${TSW_INFISICAL_SITE_URL:-http://localhost:17080}",
         )
         self.assertEqual(
-            "${TSW_INFISICAL_ENCRYPTION_KEY}",
             services["infisical"]["environment"]["ENCRYPTION_KEY"],
+            "${TSW_INFISICAL_ENCRYPTION_KEY}",
         )
         self.assertEqual(
-            "${TSW_INFISICAL_AUTH_SECRET}",
             services["infisical"]["environment"]["AUTH_SECRET"],
+            "${TSW_INFISICAL_AUTH_SECRET}",
         )
         self.assertEqual(
-            "${TSW_INFISICAL_LOGIN_EMAIL}",
             services["infisical"]["environment"]["INITIAL_BOOTSTRAP_ADMIN_EMAIL"],
+            "${TSW_INFISICAL_LOGIN_EMAIL}",
         )
         self.assertEqual(
-            "${TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD}",
             services["infisical"]["environment"]["INITIAL_BOOTSTRAP_ADMIN_PASSWORD"],
+            "${TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD}",
         )
         self.assertEqual(
-            "${TSW_INFISICAL_ADMIN_FIRST_NAME:-Tiny}",
             services["infisical"]["environment"]["INITIAL_BOOTSTRAP_ADMIN_FIRST_NAME"],
+            "${TSW_INFISICAL_ADMIN_FIRST_NAME:-Tiny}",
         )
         self.assertEqual(
-            "${TSW_INFISICAL_ADMIN_LAST_NAME:-Admin}",
             services["infisical"]["environment"]["INITIAL_BOOTSTRAP_ADMIN_LAST_NAME"],
+            "${TSW_INFISICAL_ADMIN_LAST_NAME:-Admin}",
         )
         self.assertEqual(
-            [{"target": 8080, "published": 17080, "protocol": "tcp", "mode": "host"}],
             services["infisical"]["ports"],
+            [{"target": 8080, "published": 17080, "protocol": "tcp", "mode": "host"}],
         )
         self.assertEqual(
-            ["node.role == manager"],
             services["infisical"]["deploy"]["placement"]["constraints"],
+            ["node.role == manager"],
         )
         self.assertNotIn("secrets", compose_data)
-        self.assertEqual(["infisical_pg_data:/var/lib/postgresql/data"], services["infisical-db"]["volumes"])
-        self.assertEqual(["infisical_redis_data:/data"], services["infisical-redis"]["volumes"])
+        self.assertEqual(services["infisical-db"]["volumes"], ["infisical_pg_data:/var/lib/postgresql/data"])
+        self.assertEqual(services["infisical-redis"]["volumes"], ["infisical_redis_data:/data"])
         self.assertEqual(
-            {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
+            {"name": "service_access_link", "external": True},
         )
 
     def test_committed_traefik_compose_defines_secure_swarm_ingress(self):
@@ -842,8 +842,8 @@ services:
         traefik = compose_data["services"]["traefik"]
         command = traefik["command"]
 
-        self.assertEqual("traefik", ComposeFileRepositoryYaml().get_compose_of("traefik").name)
-        self.assertEqual("${TSW_TRAEFIK_IMAGE:-traefik:v3.7.4}", traefik["image"])
+        self.assertEqual(ComposeFileRepositoryYaml().get_compose_of("traefik").name, "traefik")
+        self.assertEqual(traefik["image"], "${TSW_TRAEFIK_IMAGE:-traefik:v3.7.4}")
         self.assertIn("--entrypoints.web.address=:80", command)
         self.assertIn("--entrypoints.websecure.address=:443", command)
         self.assertIn("--entrypoints.web.http.redirections.entrypoint.to=websecure", command)
@@ -853,44 +853,44 @@ services:
         self.assertIn("--providers.file.filename=/etc/traefik/dynamic/tls.yml", command)
         self.assertNotIn("--api.insecure=true", compose_content)
         self.assertEqual(
+            traefik["ports"],
             [
                 {"target": 80, "published": 80, "protocol": "tcp", "mode": "host"},
                 {"target": 443, "published": 443, "protocol": "tcp", "mode": "host"},
             ],
-            traefik["ports"],
         )
         self.assertEqual(
-            {"name": "service_access_link", "external": True},
             compose_data["networks"]["service_access_link"],
+            {"name": "service_access_link", "external": True},
         )
         self.assertEqual(
-            "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/traefik/dynamic/tls.yml",
             compose_data["configs"]["traefik_tls_dynamic_config"]["file"],
+            "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/traefik/dynamic/tls.yml",
         )
         self.assertEqual(
+            compose_data["secrets"]["traefik_tls_cert"],
             {
                 "name": "${TSW_TRAEFIK_TLS_CERT_SECRET_NAME:-tsw_traefik_tls_cert}",
                 "external": True,
             },
-            compose_data["secrets"]["traefik_tls_cert"],
         )
         self.assertEqual(
+            compose_data["secrets"]["traefik_tls_key"],
             {
                 "name": "${TSW_TRAEFIK_TLS_KEY_SECRET_NAME:-tsw_traefik_tls_key}",
                 "external": True,
             },
-            compose_data["secrets"]["traefik_tls_key"],
         )
         self.assertEqual(
-            "traefik_tls_cert",
             traefik["secrets"][0]["source"],
+            "traefik_tls_cert",
         )
-        self.assertEqual("tsw_traefik_tls_cert", traefik["secrets"][0]["target"])
+        self.assertEqual(traefik["secrets"][0]["target"], "tsw_traefik_tls_cert")
         self.assertEqual(
-            "traefik_tls_key",
             traefik["secrets"][1]["source"],
+            "traefik_tls_key",
         )
-        self.assertEqual("tsw_traefik_tls_key", traefik["secrets"][1]["target"])
+        self.assertEqual(traefik["secrets"][1]["target"], "tsw_traefik_tls_key")
 
     def test_committed_traefik_dynamic_tls_config_references_secret_mounts_only(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -899,11 +899,11 @@ services:
         tls_data = YAML(typ="safe").load(tls_content)
 
         certificate = tls_data["tls"]["certificates"][0]
-        self.assertEqual("/run/secrets/tsw_traefik_tls_cert", certificate["certFile"])
-        self.assertEqual("/run/secrets/tsw_traefik_tls_key", certificate["keyFile"])
+        self.assertEqual(certificate["certFile"], "/run/secrets/tsw_traefik_tls_cert")
+        self.assertEqual(certificate["keyFile"], "/run/secrets/tsw_traefik_tls_key")
         default_certificate = tls_data["tls"]["stores"]["default"]["defaultCertificate"]
-        self.assertEqual("/run/secrets/tsw_traefik_tls_cert", default_certificate["certFile"])
-        self.assertEqual("/run/secrets/tsw_traefik_tls_key", default_certificate["keyFile"])
+        self.assertEqual(default_certificate["certFile"], "/run/secrets/tsw_traefik_tls_cert")
+        self.assertEqual(default_certificate["keyFile"], "/run/secrets/tsw_traefik_tls_key")
         self.assertNotIn("BEGIN", tls_content)
         self.assertNotIn("PRIVATE KEY", tls_content)
 
@@ -928,8 +928,8 @@ services:
 
                 self.assertIn("service_access_link", service["networks"])
                 self.assertEqual(
-                    {"name": "service_access_link", "external": True},
                     compose_data["networks"]["service_access_link"],
+                    {"name": "service_access_link", "external": True},
                 )
                 self.assertIn("traefik.enable=true", labels)
                 self.assertIn("traefik.swarm.network=service_access_link", labels)
@@ -1019,20 +1019,20 @@ services:
                 self.assertNotIn("volumes", service)
                 if service_name == "service-access-dashboard":
                     self.assertEqual(
+                        service["configs"],
                         [
                             {
                                 "source": "service_access_dashboard_index",
                                 "target": "/usr/share/nginx/html/index.html",
                             }
                         ],
-                        service["configs"],
                     )
                     self.assertEqual(
                         (
-                            "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}"
-                            "/service-access/dashboard/index.html"
+                            compose_data["configs"]["service_access_dashboard_index"]["file"]
                         ),
-                        compose_data["configs"]["service_access_dashboard_index"]["file"],
+                        "${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}"
+                            "/service-access/dashboard/index.html",
                     )
                 else:
                     self.assertNotIn("configs", service)
@@ -1110,7 +1110,7 @@ services:
                     )
                 rendered_services = {str(link["service"]) for link in links}
 
-                self.assertEqual({enabled_route}, rendered_services & optional_names)
+                self.assertEqual(rendered_services & optional_names, {enabled_route})
                 self.assertIn(optional_urls[enabled_route], dashboard)
                 for disabled_route in optional_names - {enabled_route}:
                     self.assertNotIn(optional_urls[disabled_route], dashboard)
@@ -1144,7 +1144,7 @@ services:
                 self.assertEqual(default_urls[route_name], enabled_urls[route_name])
         for route_name, route_contract in OPTIONAL_ROUTE_EXPECTATIONS.items():
             with self.subTest(route_name=route_name):
-                self.assertEqual(f"https://{route_contract[1]}", enabled_urls[route_name])
+                self.assertEqual(enabled_urls[route_name], f"https://{route_contract[1]}")
                 self.assertIn(enabled_urls[route_name], dashboard)
 
     def test_committed_service_access_dashboard_fallback_matches_default_renderer(self):
@@ -1195,8 +1195,8 @@ services:
             self.assertFalse(parsed.username)
             self.assertFalse(parsed.password)
             self.assertNotIn(parsed.port, {10080, 10443})
-            self.assertEqual("", parsed.query)
-            self.assertEqual("", parsed.fragment)
+            self.assertEqual(parsed.query, "")
+            self.assertEqual(parsed.fragment, "")
         for forbidden_link in (
             "http://localhost:8085",
             "http://localhost:10000/jenkins",
@@ -1245,7 +1245,7 @@ services:
         self.assertTrue(collector.link_attributes)
         for attributes in collector.link_attributes:
             with self.subTest(href=attributes.get("href")):
-                self.assertEqual("_blank", attributes.get("target"))
+                self.assertEqual(attributes.get("target"), "_blank")
                 rel_values = set((attributes.get("rel") or "").split())
                 self.assertIn("noopener", rel_values)
                 self.assertIn("noreferrer", rel_values)

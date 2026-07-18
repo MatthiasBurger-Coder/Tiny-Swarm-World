@@ -36,6 +36,7 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(LxcProxyDeviceState.PRESENT, state)
         self.assertEqual(
+            runner.calls,
             [
                 (
                     "lxc",
@@ -56,7 +57,6 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
                     "connect",
                 ),
             ],
-            runner.calls,
         )
 
     async def test_inspect_distinguishes_missing_drifted_and_unknown(self):
@@ -121,6 +121,7 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(created)
         self.assertEqual(
+            runner.calls,
             [
                 (
                     "incus",
@@ -134,7 +135,6 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
                     "connect=tcp:127.0.0.1:8080",
                 )
             ],
-            runner.calls,
         )
 
     async def test_update_sets_listen_and_connect_without_live_output(self):
@@ -150,9 +150,10 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
         updated = await runtime.update_proxy_device(_manager_profile(), _plan())
 
         self.assertTrue(updated)
-        self.assertEqual(2, len(runner.calls))
+        self.assertEqual(len(runner.calls), 2)
         listen_call, connect_call = runner.calls
         self.assertEqual(
+            listen_call,
             (
                 "lxc",
                 "profile",
@@ -163,10 +164,9 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
                 "listen",
                 "tcp:0.0.0.0:8080",
             ),
-            listen_call,
         )
         _, _, _, _, _, _, device_field, *_ = connect_call
-        self.assertEqual("connect", device_field)
+        self.assertEqual(device_field, "connect")
 
     async def test_mutating_methods_refuse_when_live_mutation_is_disabled(self):
         runner = _RecordingRunner(results=(LxcNodeCommandResult(0),))
@@ -178,7 +178,7 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(await runtime.create_proxy_device(_manager_profile(), _plan()))
         self.assertFalse(await runtime.update_proxy_device(_manager_profile(), _plan()))
-        self.assertEqual([], runner.calls)
+        self.assertEqual(runner.calls, [])
 
     async def test_repair_removes_direct_project_proxy_after_profile_equivalent_is_present(
         self,
@@ -213,11 +213,12 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
             (_plan(),),
         )
 
-        self.assertEqual(1, outcome.stale_direct_device_count)
-        self.assertEqual(1, outcome.removed_count)
-        self.assertEqual(("tsw-proxy-8080",), outcome.removed_devices)
-        self.assertEqual(0, outcome.refused_count)
+        self.assertEqual(outcome.stale_direct_device_count, 1)
+        self.assertEqual(outcome.removed_count, 1)
+        self.assertEqual(outcome.removed_devices, ("tsw-proxy-8080",))
+        self.assertEqual(outcome.refused_count, 0)
         self.assertEqual(
+            runner.calls,
             [
                 ("incus", "config", "device", "show", "swarm-manager"),
                 (
@@ -247,7 +248,6 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
                     "tsw-proxy-8080",
                 ),
             ],
-            runner.calls,
         )
 
     async def test_repair_refuses_when_profile_equivalent_is_not_present(self):
@@ -269,10 +269,10 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
             (_plan(),),
         )
 
-        self.assertEqual(1, outcome.stale_direct_device_count)
-        self.assertEqual(0, outcome.removed_count)
-        self.assertEqual(1, outcome.refused_count)
-        self.assertEqual(("tsw-proxy-8080",), outcome.refused_devices)
+        self.assertEqual(outcome.stale_direct_device_count, 1)
+        self.assertEqual(outcome.removed_count, 0)
+        self.assertEqual(outcome.refused_count, 1)
+        self.assertEqual(outcome.refused_devices, ("tsw-proxy-8080",))
         self.assertNotIn("remove", tuple(item for call in runner.calls for item in call))
 
     async def test_repair_refuses_unknown_project_proxy_without_expected_plan(self):
@@ -293,11 +293,11 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
             (_plan(),),
         )
 
-        self.assertEqual(1, outcome.stale_direct_device_count)
-        self.assertEqual(0, outcome.removed_count)
-        self.assertEqual(1, outcome.refused_count)
-        self.assertEqual(("tsw-proxy-9999",), outcome.refused_devices)
-        self.assertEqual([("incus", "config", "device", "show", "swarm-manager")], runner.calls)
+        self.assertEqual(outcome.stale_direct_device_count, 1)
+        self.assertEqual(outcome.removed_count, 0)
+        self.assertEqual(outcome.refused_count, 1)
+        self.assertEqual(outcome.refused_devices, ("tsw-proxy-9999",))
+        self.assertEqual(runner.calls, [("incus", "config", "device", "show", "swarm-manager")])
 
     async def test_repair_refuses_without_live_mutation_before_reading_devices(self):
         runner = _RecordingRunner(results=(LxcNodeCommandResult(0),))
@@ -314,8 +314,8 @@ class TestLxcProxyDeviceRuntime(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertFalse(outcome.mutation_allowed)
-        self.assertEqual(1, outcome.expected_profile_device_count)
-        self.assertEqual([], runner.calls)
+        self.assertEqual(outcome.expected_profile_device_count, 1)
+        self.assertEqual(runner.calls, [])
 
 
 class _RecordingRunner:

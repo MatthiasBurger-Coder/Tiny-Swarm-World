@@ -116,8 +116,8 @@ class TestPreflightResult(unittest.TestCase):
 
         result_payload = PreflightResult((check,)).to_dict()
 
-        self.assertEqual("FAILED", result_payload["status"])
-        self.assertEqual("CONFIGURATION", result_payload["checks"][0]["category"])
+        self.assertEqual(result_payload["status"], "FAILED")
+        self.assertEqual(result_payload["checks"][0]["category"], "CONFIGURATION")
         self.assertNotIn("password_value", repr(result_payload).lower())
 
     def test_default_forbidden_secret_fingerprints_do_not_expose_raw_values(self):
@@ -162,6 +162,7 @@ class TestPreflightResult(unittest.TestCase):
         manifest = default_setup_manifest()
 
         self.assertEqual(
+            manifest.service_names,
             (
                 "Portainer",
                 "Nexus",
@@ -170,13 +171,13 @@ class TestPreflightResult(unittest.TestCase):
                 "SonarQube",
                 "Swagger/NGINX",
             ),
-            manifest.service_names,
         )
         self.assertEqual(
-            (10001, 13081, 13500, 13501, 11080, 11050, 14001, 14080, 14081, 7750, 12000, 16080, 16081),
             tuple(port.port for port in manifest.required_ports),
+            (10001, 13081, 13500, 13501, 11080, 11050, 14001, 14080, 14081, 7750, 12000, 16080, 16081),
         )
         self.assertEqual(
+            tuple(secret.name for secret in manifest.required_secrets),
             (
                 "TSW_PORTAINER_ADMIN_PASSWORD",
                 "TSW_NEXUS_ADMIN_PASSWORD",
@@ -187,7 +188,6 @@ class TestPreflightResult(unittest.TestCase):
                 "TSW_SONARQUBE_ADMIN_PASSWORD",
                 "TSW_POSTGRES_PASSWORD",
             ),
-            tuple(secret.name for secret in manifest.required_secrets),
         )
 
     def test_service_access_setup_manifest_lists_ingress_and_compatibility_ports(self):
@@ -199,6 +199,7 @@ class TestPreflightResult(unittest.TestCase):
         self.assertIn("Service Access", manifest.service_names)
         self.assertIn("Infisical", manifest.service_names)
         self.assertEqual(
+            tuple((port.port, port.service) for port in manifest.required_ports),
             (
                 (10001, "Portainer"),
                 (13081, "Nexus"),
@@ -219,11 +220,10 @@ class TestPreflightResult(unittest.TestCase):
                 (8086, "Infisical legacy route"),
                 (17080, "Infisical"),
             ),
-            tuple((port.port, port.service) for port in manifest.required_ports),
         )
         self.assertEqual(
-            (80, 443),
             tuple(port.port for port in configuration.required_ports),
+            (80, 443),
         )
         self.assertTrue(
             next(
@@ -240,6 +240,7 @@ class TestPreflightResult(unittest.TestCase):
             ).host_preflight_required
         )
         self.assertEqual(
+            tuple(secret.name for secret in manifest.required_secrets[-5:]),
             (
                 "TSW_INFISICAL_LOGIN_EMAIL",
                 "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD",
@@ -247,7 +248,6 @@ class TestPreflightResult(unittest.TestCase):
                 "TSW_INFISICAL_AUTH_SECRET",
                 "TSW_INFISICAL_POSTGRES_PASSWORD",
             ),
-            tuple(secret.name for secret in manifest.required_secrets[-5:]),
         )
         traefik_payload = next(
             service
@@ -265,13 +265,14 @@ class TestPreflightResult(unittest.TestCase):
             if service["name"] == "Infisical"
         )
         self.assertEqual(
+            traefik_payload["ports"],
             [
                 {"host_preflight_required": True, "port": 80, "service": "Traefik HTTP ingress"},
                 {"host_preflight_required": True, "port": 443, "service": "Traefik HTTPS ingress"},
             ],
-            traefik_payload["ports"],
         )
         self.assertEqual(
+            service_access_payload["ports"],
             [
                 {
                     "host_preflight_required": False,
@@ -279,10 +280,10 @@ class TestPreflightResult(unittest.TestCase):
                     "service": "Service Access",
                 },
             ],
-            service_access_payload["ports"],
         )
-        self.assertEqual([], service_access_payload["secrets"])
+        self.assertEqual(service_access_payload["secrets"], [])
         self.assertEqual(
+            infisical_payload["ports"],
             [
                 {
                     "host_preflight_required": False,
@@ -295,9 +296,9 @@ class TestPreflightResult(unittest.TestCase):
                     "service": "Infisical",
                 },
             ],
-            infisical_payload["ports"],
         )
         self.assertEqual(
+            [secret["name"] for secret in infisical_payload["secrets"]],
             [
                 "TSW_INFISICAL_LOGIN_EMAIL",
                 "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD",
@@ -305,11 +306,10 @@ class TestPreflightResult(unittest.TestCase):
                 "TSW_INFISICAL_AUTH_SECRET",
                 "TSW_INFISICAL_POSTGRES_PASSWORD",
             ],
-            [secret["name"] for secret in infisical_payload["secrets"]],
         )
         self.assertEqual(
-            (),
             tuple(default.name for default in configuration.static_secret_defaults),
+            (),
         )
         self.assertNotIn(token_marker(), repr(manifest.to_dict()).lower())
         self.assertNotIn("password_value", repr(manifest.to_dict()).lower())
@@ -349,6 +349,7 @@ class TestInstallationPlan(unittest.TestCase):
         plan = default_installation_plan()
 
         self.assertEqual(
+            tuple(phase.phase_id for phase in plan.ordered_phases()),
             (
                 "preflight",
                 "platform",
@@ -364,9 +365,9 @@ class TestInstallationPlan(unittest.TestCase):
                 "docs",
                 "validation",
             ),
-            tuple(phase.phase_id for phase in plan.ordered_phases()),
         )
         self.assertEqual(
+            plan.ordered_workflow_phase_names(),
             (
                 "preflight",
                 "platform init",
@@ -379,7 +380,6 @@ class TestInstallationPlan(unittest.TestCase):
                 "deployment verify",
                 "platform verify",
             ),
-            plan.ordered_workflow_phase_names(),
         )
 
     def test_installation_plan_sorts_independent_phases_by_order_then_id(self):
@@ -392,8 +392,8 @@ class TestInstallationPlan(unittest.TestCase):
         )
 
         self.assertEqual(
-            ("beta", "alpha", "zeta"),
             tuple(phase.phase_id for phase in plan.ordered_phases()),
+            ("beta", "alpha", "zeta"),
         )
 
     def test_installation_plan_rejects_dependency_cycle(self):

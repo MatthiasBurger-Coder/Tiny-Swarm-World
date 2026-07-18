@@ -24,7 +24,7 @@ class TestPortForwardingPlan(unittest.TestCase):
         self.assertTrue(plan.requires_operator_action)
         self.assertFalse(plan.supported_without_operator_action)
         payload = plan.to_dict()
-        self.assertEqual("wsl2_socat", payload["strategy"])
+        self.assertEqual(payload["strategy"], "wsl2_socat")
         self.assertNotIn("host_ip", payload)
         self.assertNotIn("vm_ip", payload)
 
@@ -77,13 +77,13 @@ class TestPortRegistry(unittest.TestCase):
         registry = _sample_registry()
 
         self.assertEqual(
-            ("public-ingress", "direct-diagnostic"),
             tuple(port_range.range_id for port_range in registry.ranges),
+            ("public-ingress", "direct-diagnostic"),
         )
-        self.assertEqual((80, 443, 18081), registry.external_ports)
+        self.assertEqual(registry.external_ports, (80, 443, 18081))
         self.assertEqual(
-            (80, 443, 8081),
             tuple(mapping.internal_port for mapping in registry.mappings),
+            (80, 443, 8081),
         )
         self.assertEqual(
             PortExposureClass.PUBLIC_INGRESS,
@@ -220,12 +220,12 @@ class TestPortRegistry(unittest.TestCase):
 
         nexus = registry.mapping_for_port_id("nexus-ui")
 
-        self.assertEqual(8081, nexus.internal_port)
-        self.assertEqual(18081, nexus.external_port)
+        self.assertEqual(nexus.internal_port, 8081)
+        self.assertEqual(nexus.external_port, 18081)
         self.assertFalse(nexus.required_for_preflight)
         payload = registry.to_dict()
-        self.assertEqual(8081, payload["ports"][2]["internal_port"])
-        self.assertEqual(18081, payload["ports"][2]["external_port"])
+        self.assertEqual(payload["ports"][2]["internal_port"], 8081)
+        self.assertEqual(payload["ports"][2]["external_port"], 18081)
         self.assertNotEqual(nexus.internal_port, nexus.external_port)
 
 

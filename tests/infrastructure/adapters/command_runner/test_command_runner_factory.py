@@ -51,7 +51,7 @@ class TestCommandRunnerFactory(unittest.TestCase):
             with self.subTest(runner=runner.__class__.__name__):
                 with self.assertRaises(NotImplementedError):
                     asyncio.run(runner.run("echo unsafe"))
-                self.assertEqual("Unsupported", runner.status["result"])
+                self.assertEqual(runner.status["result"], "Unsupported")
 
     def test_rest_placeholder_does_not_return_empty_success(self):
         runner = RestApiPortCommandRunner()
@@ -59,8 +59,8 @@ class TestCommandRunnerFactory(unittest.TestCase):
         with self.assertRaisesRegex(NotImplementedError, "REST command runner is unsupported"):
             asyncio.run(runner.run("GET https://example.invalid/health"))
 
-        self.assertEqual("Unsupported command runner", runner.status["current_step"])
-        self.assertEqual("Unsupported", runner.status["result"])
+        self.assertEqual(runner.status["current_step"], "Unsupported command runner")
+        self.assertEqual(runner.status["result"], "Unsupported")
 
     def test_verify_config_contract_blocks_unsupported_runner_types(self):
         for runner in ("ansible", "rest"):
@@ -78,7 +78,7 @@ class TestCommandRunnerFactory(unittest.TestCase):
                 )
 
                 self.assertEqual(VerificationStatus.BLOCKED, result.status)
-                self.assertEqual("catalog_validation_failed", result.evidence["reason"])
+                self.assertEqual(result.evidence["reason"], "catalog_validation_failed")
 
 
 class _FakeCommandRepository:

@@ -73,6 +73,7 @@ expected_artifact_registries:
             tuple(vm.name for vm in inventory.vms),
         )
         self.assertEqual(
+            inventory.expected_stacks,
             (
                 "portainer",
                 "traefik",
@@ -84,7 +85,6 @@ expected_artifact_registries:
                 "infisical",
                 "service-access",
             ),
-            inventory.expected_stacks,
         )
         self.assertTrue(all("service-access" in vm.stacks for vm in inventory.vms))
         self.assertEqual(("nexus",), inventory.expected_artifact_registries)

@@ -29,13 +29,13 @@ class TestPackageMetadata(unittest.TestCase):
     def test_pyproject_declares_package_metadata_and_cli_entrypoint(self):
         pyproject = tomllib.loads((REPOSITORY_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
-        self.assertEqual("tiny-swarm-world", pyproject["project"]["name"])
-        self.assertEqual(">=3.12", pyproject["project"]["requires-python"])
+        self.assertEqual(pyproject["project"]["name"], "tiny-swarm-world")
+        self.assertEqual(pyproject["project"]["requires-python"], ">=3.12")
         self.assertEqual(
-            "tiny_swarm_world.__main__:cli",
             pyproject["project"]["scripts"]["tiny-swarm-world"],
+            "tiny_swarm_world.__main__:cli",
         )
-        self.assertEqual(["src"], pyproject["tool"]["setuptools"]["packages"]["find"]["where"])
+        self.assertEqual(pyproject["tool"]["setuptools"]["packages"]["find"]["where"], ["src"])
 
     def test_pyproject_dependencies_match_runtime_requirements(self):
         requirements = [
@@ -61,7 +61,7 @@ class TestPackageMetadata(unittest.TestCase):
             for dependency in environment["dependencies"]
             if isinstance(dependency, dict) and "pip" in dependency
         )
-        self.assertEqual(["-r requirements.lock", "-r requirements-dev.txt"], pip_dependencies)
+        self.assertEqual(pip_dependencies, ["-r requirements.lock", "-r requirements-dev.txt"])
 
     def test_hashed_runtime_lock_satisfies_direct_requirements(self):
         lock_text = (REPOSITORY_ROOT / "requirements.lock").read_text(encoding="utf-8")
@@ -111,8 +111,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("entry_points", keyword_values)
         entry_points = ast.literal_eval(keyword_values["entry_points"])
         self.assertEqual(
-            ["tiny-swarm-world=tiny_swarm_world.__main__:cli"],
             entry_points["console_scripts"],
+            ["tiny-swarm-world=tiny_swarm_world.__main__:cli"],
         )
 
 

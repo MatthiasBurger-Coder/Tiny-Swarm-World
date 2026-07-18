@@ -24,8 +24,9 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
 
         steps = build_default_service_stack_steps(compose_repository, deployment_gateway)
 
-        self.assertEqual(6, len(steps))
+        self.assertEqual(len(steps), 6)
         self.assertEqual(
+            [step.verification_target_id for step in steps],
             [
                 "deployment:traefik-stack",
                 "deployment:nexus-stack",
@@ -34,7 +35,6 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
                 "deployment:sonarqube-stack",
                 "deployment:swagger-stack",
             ],
-            [step.verification_target_id for step in steps],
         )
         self.assertTrue(all(step.compose_repository is compose_repository for step in steps))
         self.assertTrue(all(step.deployment_gateway is deployment_gateway for step in steps))
@@ -58,6 +58,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
+            tuple(step.service_stack.stack_name for step in steps),
             (
                 "traefik",
                 "nexus",
@@ -68,12 +69,12 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
                 "infisical",
                 "service-access",
             ),
-            tuple(step.service_stack.stack_name for step in steps),
         )
         self.assertNotIn("portainer", tuple(step.service_stack.stack_name for step in steps))
         self.assertTrue(all(step.compose_repository is compose_repository for step in steps))
         self.assertTrue(all(step.deployment_gateway is deployment_gateway for step in steps))
         self.assertEqual(
+            {step.service_stack.stack_name: step.service_stack.phase_id for step in steps},
             {
                 "traefik": "network-routing",
                 "nexus": "artifacts",
@@ -84,15 +85,14 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
                 "infisical": "secrets",
                 "service-access": "control",
             },
-            {step.service_stack.stack_name: step.service_stack.phase_id for step in steps},
         )
         self.assertEqual(
-            ("pulsar-broker", "pulsar-admin-api", "pulsar-manager-gui"),
             next(
                 step.service_stack.port_ids
                 for step in steps
                 if step.service_stack.stack_name == "pulsar"
             ),
+            ("pulsar-broker", "pulsar-admin-api", "pulsar-manager-gui"),
         )
 
     def test_service_stack_steps_can_exclude_bootstrap_owned_stacks(self):
@@ -104,8 +104,8 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            ("traefik", "jenkins", "pulsar", "sonarqube", "swagger", "infisical", "service-access"),
             tuple(step.service_stack.stack_name for step in steps),
+            ("traefik", "jenkins", "pulsar", "sonarqube", "swagger", "infisical", "service-access"),
         )
 
     def test_service_stack_steps_attach_stack_specific_environment(self):
@@ -127,8 +127,8 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            {"TSW_INFISICAL_AUTH_SECRET": "operator_defined"},
             infisical_step.stack_environment,
+            {"TSW_INFISICAL_AUTH_SECRET": "operator_defined"},
         )
 
     async def test_default_service_stack_steps_verify_stack_registration_without_readiness_claim(self):
@@ -142,6 +142,7 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
         verification_results = [await step.verify() for step in steps]
 
         self.assertEqual(
+            [verification.target_id for verification in verification_results],
             [
                 "deployment:traefik-stack",
                 "deployment:nexus-stack",
@@ -150,7 +151,6 @@ class TestServiceStackPlan(unittest.IsolatedAsyncioTestCase):
                 "deployment:sonarqube-stack",
                 "deployment:swagger-stack",
             ],
-            [verification.target_id for verification in verification_results],
         )
         self.assertTrue(
             all(verification.status == VerificationStatus.VERIFIED for verification in verification_results)

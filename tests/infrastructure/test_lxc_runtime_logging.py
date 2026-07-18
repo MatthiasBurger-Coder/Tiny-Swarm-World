@@ -145,7 +145,7 @@ class TestLxcRuntimeLogging(unittest.IsolatedAsyncioTestCase):
                 (_plan(),),
             )
 
-        self.assertEqual(1, outcome.removed_count)
+        self.assertEqual(outcome.removed_count, 1)
         logged = "\n".join(captured.output)
         self.assertIn("action=create", logged)
         self.assertIn("action=update_listen", logged)
@@ -194,7 +194,7 @@ class TestLxcRuntimeLogging(unittest.IsolatedAsyncioTestCase):
         self.assertIn("ready ready", logged)
         self.assertIn("launch failed", logged)
         self.assertIn("...", logged)
-        self.assertEqual("short", lxc_node_provider._safe_log_text("short"))
+        self.assertEqual(lxc_node_provider._safe_log_text("short"), "short")
 
     async def test_swarm_runtime_logs_bounded_manager_shell_output(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
@@ -211,7 +211,7 @@ class TestLxcRuntimeLogging(unittest.IsolatedAsyncioTestCase):
             with self.assertLogs("LxcSwarmRuntime", level=logging.INFO) as captured:
                 result = runtime._run_manager_shell("echo ready && " * 80, check=False)
 
-        self.assertEqual(1, result.returncode)
+        self.assertEqual(result.returncode, 1)
         logged = "\n".join(captured.output)
         self.assertIn("Running LXC manager shell operation", logged)
         self.assertIn("manager_shell_result returncode=1", logged)

@@ -27,20 +27,20 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
         profile = DockerSwarmInLxcProfileContract.default_docker_swarm()
 
         self.assertTrue(profile.valid_for_node_creation)
-        self.assertEqual("docker-swarm", profile.profile_name)
+        self.assertEqual(profile.profile_name, "docker-swarm")
         self.assertEqual(
-            {ManagedLxcBackend.INCUS},
             set(profile.backend_support),
+            {ManagedLxcBackend.INCUS},
         )
         self.assertTrue(profile.nesting_required)
         self.assertTrue(profile.syscall_interception_required)
         self.assertTrue(profile.intercept_mknod_required)
         self.assertTrue(profile.intercept_setxattr_required)
-        self.assertEqual("v2_required", profile.cgroup_policy)
+        self.assertEqual(profile.cgroup_policy, "v2_required")
         self.assertFalse(profile.privileged_default)
         self.assertFalse(profile.host_network)
-        self.assertEqual((), profile.host_mounts)
-        self.assertEqual((), profile.capability_additions)
+        self.assertEqual(profile.host_mounts, ())
+        self.assertEqual(profile.capability_additions, ())
         self.assertEqual(
             set(REQUIRED_DOCKER_SWARM_LXC_RISK_LABELS),
             set(profile.risk_labels),
@@ -104,7 +104,7 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
         )
 
         self.assertTrue(readiness.ready)
-        self.assertEqual((), readiness.readiness_errors())
+        self.assertEqual(readiness.readiness_errors(), ())
 
     def test_swarm_readiness_does_not_claim_health_without_observed_state(self):
         readiness = SwarmNodeReadinessEvidence(
@@ -116,7 +116,7 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
         )
 
         self.assertFalse(readiness.ready)
-        self.assertEqual(("observed_state_missing",), readiness.readiness_errors())
+        self.assertEqual(readiness.readiness_errors(), ("observed_state_missing",))
 
     def test_swarm_readiness_requires_observed_role(self):
         readiness = SwarmNodeReadinessEvidence(
@@ -146,6 +146,7 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
 
         self.assertFalse(readiness.ready)
         self.assertEqual(
+            readiness.readiness_errors(),
             (
                 "docker_engine_not_ready",
                 "swarm_state_not_active",
@@ -153,7 +154,6 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
                 "manager_quorum_missing",
                 "swarm_node_count_incomplete",
             ),
-            readiness.readiness_errors(),
         )
 
     def test_container_docker_readiness_requires_observed_ready_engine(self):
@@ -164,7 +164,7 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
         )
 
         self.assertTrue(readiness.ready)
-        self.assertEqual((), readiness.readiness_errors())
+        self.assertEqual(readiness.readiness_errors(), ())
 
         missing = ContainerDockerReadiness(
             node=_manager_node(),
@@ -174,8 +174,8 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
 
         self.assertFalse(missing.ready)
         self.assertEqual(
-            ("docker_observed_state_missing",),
             missing.readiness_errors(),
+            ("docker_observed_state_missing",),
         )
 
     def test_container_docker_install_outcome_requires_verified_non_failed_state(self):
@@ -186,7 +186,7 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
         )
 
         self.assertTrue(installed.successful)
-        self.assertEqual((), installed.install_errors())
+        self.assertEqual(installed.install_errors(), ())
 
         failed = ContainerDockerInstallOutcome(
             node=_manager_node(),
@@ -195,7 +195,7 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
         )
 
         self.assertFalse(failed.successful)
-        self.assertEqual(("docker_install_failed",), failed.install_errors())
+        self.assertEqual(failed.install_errors(), ("docker_install_failed",))
 
     def test_swarm_manager_bootstrap_requires_manager_role_and_active_state(self):
         active = SwarmManagerBootstrapOutcome(
@@ -205,7 +205,7 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
         )
 
         self.assertTrue(active.active)
-        self.assertEqual((), active.bootstrap_errors())
+        self.assertEqual(active.bootstrap_errors(), ())
 
         wrong_role = SwarmManagerBootstrapOutcome(
             node=_worker_node(),
@@ -224,7 +224,7 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
         )
 
         self.assertTrue(joined.joined)
-        self.assertEqual((), joined.join_errors())
+        self.assertEqual(joined.join_errors(), ())
 
         failed = SwarmWorkerJoinOutcome(
             node=_manager_node(),
@@ -234,12 +234,12 @@ class TestDockerSwarmLxcContract(unittest.TestCase):
 
         self.assertFalse(failed.joined)
         self.assertEqual(
+            failed.join_errors(),
             (
                 "worker_node_role_required",
                 "worker_join_failed",
                 "worker_join_not_verified",
             ),
-            failed.join_errors(),
         )
 
     def test_worker_join_credential_redacts_repr_and_string(self):

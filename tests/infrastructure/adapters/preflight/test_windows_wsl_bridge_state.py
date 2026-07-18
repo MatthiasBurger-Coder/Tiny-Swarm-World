@@ -44,7 +44,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("state_missing", status.reason)
+        self.assertEqual(status.reason, "state_missing")
 
     def test_reports_invalid_json_state(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -60,8 +60,8 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("state_invalid", status.reason)
-        self.assertEqual((80,), status.missing_ports)
+        self.assertEqual(status.reason, "state_invalid")
+        self.assertEqual(status.missing_ports, (80,))
 
     def test_reports_non_mapping_state_as_invalid(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -75,7 +75,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("state_invalid", status.reason)
+        self.assertEqual(status.reason, "state_invalid")
 
     def test_reports_missing_generated_timestamp(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -89,7 +89,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("generated_at_missing", status.reason)
+        self.assertEqual(status.reason, "generated_at_missing")
 
     def test_reports_invalid_generated_timestamp(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -110,7 +110,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("generated_at_invalid", status.reason)
+        self.assertEqual(status.reason, "generated_at_invalid")
 
     def test_reports_stale_state_by_age(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -132,7 +132,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("state_stale_by_age", status.reason)
+        self.assertEqual(status.reason, "state_stale_by_age")
         self.assertIsNotNone(status.state_age_seconds)
 
     def test_accepts_naive_generated_timestamp_as_utc(self):
@@ -174,7 +174,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("wsl_ip_unavailable", status.reason)
+        self.assertEqual(status.reason, "wsl_ip_unavailable")
 
     def test_reports_missing_ports_when_mappings_are_not_a_list(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -195,8 +195,8 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("missing_ports", status.reason)
-        self.assertEqual((), status.mapped_ports)
+        self.assertEqual(status.reason, "missing_ports")
+        self.assertEqual(status.mapped_ports, ())
 
     def test_ignores_invalid_mapping_entries(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -222,9 +222,9 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("missing_ports", status.reason)
-        self.assertEqual((80,), status.mapped_ports)
-        self.assertEqual((10000,), status.missing_ports)
+        self.assertEqual(status.reason, "missing_ports")
+        self.assertEqual(status.mapped_ports, (80,))
+        self.assertEqual(status.missing_ports, (10000,))
 
     def test_current_wsl_ipv4_reads_first_ipv4_from_hostname_output(self):
         completed = subprocess.CompletedProcess(
@@ -238,7 +238,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state.subprocess.run",
             return_value=completed,
         ):
-            self.assertEqual("172.20.0.2", current_wsl_ipv4())
+            self.assertEqual(current_wsl_ipv4(), "172.20.0.2")
 
     def test_reports_legacy_state_without_discovery_agent_contract(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -263,7 +263,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("agent_contract_missing", status.reason)
+        self.assertEqual(status.reason, "agent_contract_missing")
 
     def test_rejects_state_without_owned_service_and_bundle_identity(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -286,7 +286,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("agent_contract_missing", status.reason)
+        self.assertEqual(status.reason, "agent_contract_missing")
 
     def test_reports_degraded_discovery_agent(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -308,7 +308,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("agent_not_ready", status.reason)
+        self.assertEqual(status.reason, "agent_not_ready")
 
     def test_rejects_legacy_scheduled_discovery_agent_mode(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -330,7 +330,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("agent_contract_missing", status.reason)
+        self.assertEqual(status.reason, "agent_contract_missing")
 
     def test_reconcile_in_progress_retries_until_ready_state_is_observed(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -368,7 +368,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertTrue(status.prepared)
-        self.assertEqual("prepared", status.reason)
+        self.assertEqual(status.reason, "prepared")
 
     def test_reconcile_in_progress_fails_closed_after_bounded_retries(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -395,8 +395,8 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("agent_not_ready", status.reason)
-        self.assertEqual([0.25, 0.25], sleep_calls)
+        self.assertEqual(status.reason, "agent_not_ready")
+        self.assertEqual(sleep_calls, [0.25, 0.25])
 
     def test_reconcile_in_progress_then_persistent_invalid_or_missing_state_fails_closed(self):
         for terminal_reason in ("state_invalid", "state_missing"):
@@ -434,7 +434,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
 
                 self.assertFalse(status.prepared)
                 self.assertEqual(terminal_reason, status.reason)
-                self.assertEqual([0.25, 0.25], sleep_calls)
+                self.assertEqual(sleep_calls, [0.25, 0.25])
 
     def test_reconcile_marker_mixed_with_real_drift_is_not_retried(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -459,7 +459,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             )
 
         self.assertFalse(status.prepared)
-        self.assertEqual("agent_not_ready", status.reason)
+        self.assertEqual(status.reason, "agent_not_ready")
 
     def test_current_wsl_ipv4_returns_empty_on_nonzero_exit(self):
         completed = subprocess.CompletedProcess(
@@ -473,7 +473,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state.subprocess.run",
             return_value=completed,
         ):
-            self.assertEqual("", current_wsl_ipv4())
+            self.assertEqual(current_wsl_ipv4(), "")
 
     def test_current_wsl_ipv4_returns_empty_without_ipv4_output(self):
         completed = subprocess.CompletedProcess(
@@ -487,14 +487,14 @@ class TestWindowsWslBridgeState(unittest.TestCase):
             "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state.subprocess.run",
             return_value=completed,
         ):
-            self.assertEqual("", current_wsl_ipv4())
+            self.assertEqual(current_wsl_ipv4(), "")
 
     def test_current_wsl_ipv4_returns_empty_on_timeout(self):
         with patch(
             "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state.subprocess.run",
             side_effect=subprocess.TimeoutExpired(["hostname", "-I"], 5),
         ):
-            self.assertEqual("", current_wsl_ipv4())
+            self.assertEqual(current_wsl_ipv4(), "")
 
     def test_windows_wsl_bridge_status_stale_property_marks_repair_reasons(self):
         status = WindowsWslBridgeStatus(

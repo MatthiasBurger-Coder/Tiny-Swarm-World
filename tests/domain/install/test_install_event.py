@@ -36,10 +36,10 @@ class TestInstallEvent(unittest.TestCase):
         )
 
         self.assertEqual(InstallStatus.STARTED, event.status)
-        self.assertEqual("Preflight", event.step)
-        self.assertEqual("host", event.target)
-        self.assertEqual(1, event.sequence)
-        self.assertEqual(3, event.total)
+        self.assertEqual(event.step, "Preflight")
+        self.assertEqual(event.target, "host")
+        self.assertEqual(event.sequence, 1)
+        self.assertEqual(event.total, 3)
 
     def test_failed_event_represents_reason_evidence_and_diagnostics(self):
         event = InstallEvent.failed(
@@ -51,9 +51,9 @@ class TestInstallEvent(unittest.TestCase):
         )
 
         self.assertEqual(InstallStatus.FAILED, event.status)
-        self.assertEqual("Docker service did not become healthy.", event.reason)
+        self.assertEqual(event.reason, "Docker service did not become healthy.")
         self.assertEqual(Path(".tiny-swarm/evidence/docker.log"), event.evidence_path)
-        self.assertEqual(("lxc exec swarm-worker-2 -- docker info",), tuple(event.suggested_commands))
+        self.assertEqual(tuple(event.suggested_commands), ("lxc exec swarm-worker-2 -- docker info",))
 
     def test_noop_reporter_accepts_events_without_output(self):
         event = InstallEvent.succeeded("Preflight", message="Python found")
@@ -61,7 +61,7 @@ class TestInstallEvent(unittest.TestCase):
         with patch("sys.stdout", new_callable=io.StringIO) as stdout:
             NoopInstallReporter().report(event)
 
-        self.assertEqual("", stdout.getvalue())
+        self.assertEqual(stdout.getvalue(), "")
 
     def test_plain_reporter_renders_success_without_raw_structures(self):
         output = io.StringIO()
@@ -133,9 +133,9 @@ class TestInstallEvent(unittest.TestCase):
             )
         )
 
-        self.assertEqual("Tiny Swarm World Installer", started[0])
+        self.assertEqual(started[0], "Tiny Swarm World Installer")
         self.assertIn("done", finished[0])
-        self.assertEqual("[1/2] Preflight", step_started[0])
+        self.assertEqual(step_started[0], "[1/2] Preflight")
         self.assertIn(".tiny-swarm/evidence/report.json", evidence[0])
 
 

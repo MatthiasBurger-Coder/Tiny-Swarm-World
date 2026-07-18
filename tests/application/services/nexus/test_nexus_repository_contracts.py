@@ -29,8 +29,8 @@ class TestEnsureNexusDockerHostedRepository(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(
-            [("admin", operator_value, "docker-hosted", 5000)],
             nexus_client.created_docker_repositories,
+            [("admin", operator_value, "docker-hosted", 5000)],
         )
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
         self.assertEqual("docker-hosted", verification.evidence["repository_name"])
@@ -51,8 +51,8 @@ class TestEnsureNexusDockerHostedRepository(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual([], nexus_client.created_docker_repositories)
         self.assertEqual(
-            [("admin", operator_value, "docker-hosted", 5000)],
             nexus_client.updated_docker_repositories,
+            [("admin", operator_value, "docker-hosted", 5000)],
         )
 
     async def test_verification_failure_is_sanitized(self):
@@ -90,6 +90,7 @@ class TestEnsureNexusMavenProxyRepository(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(
+            nexus_client.created_maven_repositories,
             [
                 (
                     "admin",
@@ -98,7 +99,6 @@ class TestEnsureNexusMavenProxyRepository(unittest.IsolatedAsyncioTestCase):
                     "https://repo.maven.apache.org/maven2/",
                 )
             ],
-            nexus_client.created_maven_repositories,
         )
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
         self.assertEqual("maven_proxy", verification.evidence["repository_type"])
@@ -119,7 +119,7 @@ class TestEnsureNexusMavenProxyRepository(unittest.IsolatedAsyncioTestCase):
 
         await service.run()
 
-        self.assertEqual(1, nexus_client.create_maven_attempts)
+        self.assertEqual(nexus_client.create_maven_attempts, 1)
 
     async def test_rejects_missing_operator_supplied_password(self):
         await async_checkpoint()
@@ -159,6 +159,7 @@ class TestEnsureNexusDockerProxyRepository(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(
+            nexus_client.created_docker_proxy_repositories,
             [
                 (
                     "admin",
@@ -168,10 +169,9 @@ class TestEnsureNexusDockerProxyRepository(unittest.IsolatedAsyncioTestCase):
                     "https://registry-1.docker.io",
                 )
             ],
-            nexus_client.created_docker_proxy_repositories,
         )
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("docker_proxy", verification.evidence["repository_type"])
+        self.assertEqual(verification.evidence["repository_type"], "docker_proxy")
         self.assertNotIn(operator_value, str(verification.to_dict()))
 
     async def test_treats_docker_proxy_create_timeout_as_success_when_repository_exists(self):
@@ -191,7 +191,7 @@ class TestEnsureNexusDockerProxyRepository(unittest.IsolatedAsyncioTestCase):
 
         await service.run()
 
-        self.assertEqual(1, nexus_client.create_docker_proxy_attempts)
+        self.assertEqual(nexus_client.create_docker_proxy_attempts, 1)
 
     async def test_rejects_docker_proxy_remote_url_without_network_location(self):
         await async_checkpoint()

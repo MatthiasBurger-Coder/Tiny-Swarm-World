@@ -16,9 +16,9 @@ class TestInstaller(unittest.TestCase):
     def test_parse_args_defaults_to_service_access_and_secret_generation(self):
         options = installer.parse_args(())
 
-        self.assertEqual("service-access", options.service_profile)
+        self.assertEqual(options.service_profile, "service-access")
         self.assertTrue(options.generate_secrets)
-        self.assertEqual("generated", options.secrets_mode)
+        self.assertEqual(options.secrets_mode, "generated")
         self.assertFalse(options.confirm_reset)
         self.assertFalse(options.non_interactive_live_approval)
         self.assertFalse(options.headless)
@@ -39,9 +39,9 @@ class TestInstaller(unittest.TestCase):
             )
         )
 
-        self.assertEqual("default", options.service_profile)
+        self.assertEqual(options.service_profile, "default")
         self.assertFalse(options.generate_secrets)
-        self.assertEqual("fixed", options.secrets_mode)
+        self.assertEqual(options.secrets_mode, "fixed")
         self.assertTrue(options.confirm_reset)
         self.assertTrue(options.non_interactive_live_approval)
         self.assertTrue(options.allow_wsl_windows_filesystem)
@@ -62,8 +62,8 @@ class TestInstaller(unittest.TestCase):
                 platform_system=lambda: "Linux",
             )
 
-        self.assertEqual("wsl2", runtime.name)
-        self.assertEqual("wsl2", runtime.detection_source)
+        self.assertEqual(runtime.name, "wsl2")
+        self.assertEqual(runtime.detection_source, "wsl2")
 
     def test_detect_host_runtime_maps_typed_native_linux(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -76,8 +76,8 @@ class TestInstaller(unittest.TestCase):
                 platform_system=lambda: "Linux",
             )
 
-        self.assertEqual("native_linux", runtime.name)
-        self.assertEqual("native_linux", runtime.detection_source)
+        self.assertEqual(runtime.name, "native_linux")
+        self.assertEqual(runtime.detection_source, "native_linux")
 
     def test_detect_host_runtime_rejects_wsl1_and_ambiguous_signals(self):
         cases = (
@@ -119,8 +119,8 @@ class TestInstaller(unittest.TestCase):
             platform_system=lambda: "Linux",
         )
 
-        self.assertEqual("wsl2", runtime.name)
-        self.assertEqual("test_override", runtime.detection_source)
+        self.assertEqual(runtime.name, "wsl2")
+        self.assertEqual(runtime.detection_source, "test_override")
 
     def test_installer_stops_unsupported_host_before_bootstrap_or_file_writes(self):
         with (
@@ -202,7 +202,7 @@ class TestInstaller(unittest.TestCase):
                     cwd=Path.cwd(),
                 )
 
-        self.assertEqual(["host", "filesystem"], calls)
+        self.assertEqual(calls, ["host", "filesystem"])
 
     def test_ensure_python_environment_keeps_wsl_python_when_imports_available(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -221,7 +221,7 @@ class TestInstaller(unittest.TestCase):
                     {},
                 )
 
-        self.assertEqual("python3", python_bin)
+        self.assertEqual(python_bin, "python3")
 
     def test_ensure_python_environment_bootstraps_wsl_when_imports_are_missing(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -260,6 +260,7 @@ class TestInstaller(unittest.TestCase):
 
         self.assertEqual(venv_python.as_posix(), python_bin)
         self.assertEqual(
+            commands,
             [
                 ["python3", "-m", "venv", paths.native_linux_venv.as_posix()],
                 [venv_python.as_posix(), "-m", "pip", "install", "--upgrade", "pip"],
@@ -282,7 +283,6 @@ class TestInstaller(unittest.TestCase):
                     ".",
                 ],
             ],
-            commands,
         )
 
     def test_load_export_file_parses_shell_quoted_values(self):
@@ -303,11 +303,11 @@ class TestInstaller(unittest.TestCase):
             values = installer._load_export_file(path)
 
         self.assertEqual(
+            values,
             {
                 "TSW_ONE": "quoted value",
                 "TSW_TWO": "plain",
             },
-            values,
         )
 
     def test_load_export_file_rejects_invalid_shell_quoting_without_value_leak(self):
@@ -326,8 +326,8 @@ class TestInstaller(unittest.TestCase):
 
     def test_normalized_email_value_removes_accidental_literal_quote(self):
         self.assertEqual(
-            "admin@tiny-swarm-world.local",
             installer._normalized_email_value("'admin@tiny-swarm-world.local"),
+            "admin@tiny-swarm-world.local",
         )
 
     def test_normalize_export_file_collapses_duplicate_keys(self):
@@ -353,14 +353,14 @@ class TestInstaller(unittest.TestCase):
             mode = stat.S_IMODE(path.stat().st_mode)
 
         self.assertEqual(
+            values,
             {
                 "TSW_EXAMPLE": "second-secret",
                 "TSW_OTHER": "other-secret",
             },
-            values,
         )
-        self.assertEqual(0o600, mode)
-        self.assertEqual(1, content.count("TSW_EXAMPLE="))
+        self.assertEqual(mode, 0o600)
+        self.assertEqual(content.count("TSW_EXAMPLE="), 1)
         self.assertIn("Normalized by install.sh", content)
 
     def test_required_installer_secret_entries_come_from_manifest(self):
@@ -422,7 +422,7 @@ class TestInstaller(unittest.TestCase):
             )
 
         self.assertTrue(guard.passed)
-        self.assertEqual("not_wsl2", guard.reason)
+        self.assertEqual(guard.reason, "not_wsl2")
 
     def test_windows_wsl_bridge_guard_blocks_wsl_without_state(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -436,8 +436,8 @@ class TestInstaller(unittest.TestCase):
             )
 
         self.assertFalse(guard.passed)
-        self.assertEqual("state_missing", guard.reason)
-        self.assertEqual((80, 10000), guard.missing_ports)
+        self.assertEqual(guard.reason, "state_missing")
+        self.assertEqual(guard.missing_ports, (80, 10000))
 
     def test_windows_wsl_bridge_guard_accepts_current_state(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -456,7 +456,7 @@ class TestInstaller(unittest.TestCase):
                 )
 
         self.assertTrue(guard.passed)
-        self.assertEqual("prepared", guard.reason)
+        self.assertEqual(guard.reason, "prepared")
 
     def test_windows_wsl_bridge_guard_waits_for_reconcile_to_finish(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -489,7 +489,7 @@ class TestInstaller(unittest.TestCase):
                 )
 
         self.assertTrue(guard.passed)
-        self.assertEqual("prepared", guard.reason)
+        self.assertEqual(guard.reason, "prepared")
         sleep.assert_called_once_with(0.5)
 
     def test_windows_wsl_bridge_guard_can_be_disabled(self):
@@ -501,15 +501,15 @@ class TestInstaller(unittest.TestCase):
             )
 
         self.assertTrue(guard.passed)
-        self.assertEqual("windows_exposure_disabled", guard.reason)
+        self.assertEqual(guard.reason, "windows_exposure_disabled")
 
     def test_windows_wsl_bridge_agent_not_ready_suggests_service_restart(self):
         self.assertEqual(
+            installer._windows_wsl_bridge_suggested_commands("agent_not_ready"),
             (
                 'powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"',
                 "powershell.exe -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action install",
             ),
-            installer._windows_wsl_bridge_suggested_commands("agent_not_ready"),
         )
 
     def test_print_windows_wsl_bridge_failure_for_agent_not_ready_mentions_service(self):
@@ -530,28 +530,28 @@ class TestInstaller(unittest.TestCase):
 
     def test_suggested_checks_for_phase_returns_phase_specific_commands(self):
         self.assertEqual(
+            installer._suggested_checks_for_phase("setup platform"),
             (
                 "incus exec swarm-manager -- docker node ls",
                 "incus exec swarm-manager -- docker service ls",
             ),
-            installer._suggested_checks_for_phase("setup platform"),
         )
         self.assertEqual(
+            installer._suggested_checks_for_phase(
+                "setup platform",
+                log_text="first_failure_reason: apt_repository_unreachable",
+            ),
             (
                 "./tsw doctor network",
                 "./tsw network repair --linux-forwarding --apply",
                 "powershell.exe -ExecutionPolicy Bypass -File .\\tools\\windows\\doctor-portproxy.ps1",
             ),
-            installer._suggested_checks_for_phase(
-                "setup platform",
-                log_text="first_failure_reason: apt_repository_unreachable",
-            ),
         )
         self.assertEqual(
-            ("incus list", "docker context ls"),
             installer._suggested_checks_for_phase("reset platform"),
+            ("incus list", "docker context ls"),
         )
-        self.assertEqual((), installer._suggested_checks_for_phase("preflight"))
+        self.assertEqual(installer._suggested_checks_for_phase("preflight"), ())
 
     def test_fallback_install_event_renderer_covers_status_branches(self):
         install_started = installer._FallbackInstallEvent(
@@ -583,15 +583,15 @@ class TestInstaller(unittest.TestCase):
         )
 
         self.assertEqual(
-            ("Tiny Swarm World Installer", "  RUNNING starting"),
             installer._render_fallback_install_event(install_started),
+            ("Tiny Swarm World Installer", "  RUNNING starting"),
         )
         self.assertEqual(
-            ("[1/2] Preflight", "  RUNNING checking"),
             installer._render_fallback_install_event(step_started),
+            ("[1/2] Preflight", "  RUNNING checking"),
         )
-        self.assertEqual(("  OK      done",), installer._render_fallback_install_event(succeeded))
-        self.assertEqual(("  SKIPPED host",), installer._render_fallback_install_event(unknown))
+        self.assertEqual(installer._render_fallback_install_event(succeeded), ("  OK      done",))
+        self.assertEqual(installer._render_fallback_install_event(unknown), ("  SKIPPED host",))
 
     def test_reset_failure_guidance_explains_privileged_lxc_block(self):
         log_text = "\n".join(
@@ -619,7 +619,7 @@ class TestInstaller(unittest.TestCase):
             )
         )
 
-        self.assertEqual((), lines)
+        self.assertEqual(lines, ())
 
     def test_setup_failure_guidance_explains_apt_repository_reachability(self):
         lines = installer._setup_failure_guidance_lines(
@@ -633,7 +633,7 @@ class TestInstaller(unittest.TestCase):
         self.assertIn("does not change iptables", rendered)
 
     def test_setup_failure_guidance_stays_silent_for_other_setup_blocks(self):
-        self.assertEqual((), installer._setup_failure_guidance_lines("failed_to_apply"))
+        self.assertEqual(installer._setup_failure_guidance_lines("failed_to_apply"), ())
 
 
 def _write_host_signal(root: Path, relative_path: str, text: str) -> None:

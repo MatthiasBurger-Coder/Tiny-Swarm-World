@@ -89,7 +89,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         check_ids = [check.check_id for check in result.checks]
         host_index = check_ids.index("HOST")
-        self.assertEqual("HOST-FILESYSTEM", check_ids[host_index + 1])
+        self.assertEqual(check_ids[host_index + 1], "HOST-FILESYSTEM")
         self.assertEqual(PreflightStatus.FAILED, result.checks[host_index + 1].status)
         self.assertNotIn("PYTHON", check_ids)
         self.assertFalse(any(check_id.startswith("DEPENDENCY-") for check_id in check_ids))
@@ -116,8 +116,8 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         check = next(item for item in result.checks if item.check_id == "HOST-FILESYSTEM")
         self.assertEqual(PreflightStatus.PASSED, check.status)
-        self.assertEqual("allowed_by_override", check.evidence["decision"])
-        self.assertEqual(1, len(authorizer.calls))
+        self.assertEqual(check.evidence["decision"], "allowed_by_override")
+        self.assertEqual(len(authorizer.calls), 1)
         self.assertNotIn(project_path, str(result.to_dict()))
 
     async def test_static_override_evaluates_without_authorizing_or_writing_evidence(self):
@@ -141,9 +141,9 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         check = next(item for item in result.checks if item.check_id == "HOST-FILESYSTEM")
         self.assertEqual(PreflightStatus.PASSED, check.status)
-        self.assertEqual("allowed_by_override", check.evidence["decision"])
-        self.assertEqual(1, len(evaluator.calls))
-        self.assertEqual([], authorizer.calls)
+        self.assertEqual(check.evidence["decision"], "allowed_by_override")
+        self.assertEqual(len(evaluator.calls), 1)
+        self.assertEqual(authorizer.calls, [])
         self.assertNotIn(project_path, str(result.to_dict()))
 
     async def test_live_override_evidence_failure_blocks_before_runtime_checks(self):
@@ -169,7 +169,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         check_ids = [check.check_id for check in result.checks]
         check = next(item for item in result.checks if item.check_id == "HOST-FILESYSTEM")
         self.assertEqual(PreflightStatus.FAILED, check.status)
-        self.assertEqual("protected_evidence_unavailable", check.evidence["evidence_status"])
+        self.assertEqual(check.evidence["evidence_status"], "protected_evidence_unavailable")
         self.assertFalse(any(check_id.startswith("RUNTIME-") for check_id in check_ids))
 
     async def test_preflight_reports_selected_provider_backend_dependency(self):
@@ -218,9 +218,9 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(result.passed)
         self.assertEqual(PreflightStatus.PASSED, config_check.status)
-        self.assertEqual("CONFIGURATION", config_check.category.value)
-        self.assertEqual("example", config_check.evidence["scope"])
-        self.assertEqual("secret_value", config_check.evidence["value_kind"])
+        self.assertEqual(config_check.category.value, "CONFIGURATION")
+        self.assertEqual(config_check.evidence["scope"], "example")
+        self.assertEqual(config_check.evidence["value_kind"], "secret_value")
 
     async def test_missing_configuration_contract_value_blocks_preflight(self):
         result = await PreflightService(
@@ -247,7 +247,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(result.passed)
         self.assertIn("CONFIG-TSW_REQUIRED_PASSWORD", failed_by_id)
-        self.assertEqual("missing", failed_by_id["CONFIG-TSW_REQUIRED_PASSWORD"].evidence["source"])
+        self.assertEqual(failed_by_id["CONFIG-TSW_REQUIRED_PASSWORD"].evidence["source"], "missing")
 
     async def test_configuration_source_errors_fail_closed_without_value_leak(self):
         result = await PreflightService(
@@ -262,8 +262,8 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.passed)
         self.assertIn("CONFIGURATION-CONTRACT", failed_by_id)
         self.assertEqual(
-            "configuration_source_error",
             failed_by_id["CONFIGURATION-CONTRACT"].evidence["classification"],
+            "configuration_source_error",
         )
         self.assertNotIn("secret-value", repr(result.to_dict()))
 
@@ -282,10 +282,10 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         evidence = failed_by_id["CONFIGURATION-CONTRACT"].evidence
 
         self.assertFalse(result.passed)
-        self.assertEqual("configuration_source_error", evidence["classification"])
+        self.assertEqual(evidence["classification"], "configuration_source_error")
         self.assertEqual(
-            "Duplicate configuration key TSW_EXAMPLE_PASSWORD at lines 1 and 2.",
             evidence["detail"],
+            "Duplicate configuration key TSW_EXAMPLE_PASSWORD at lines 1 and 2.",
         )
         self.assertNotIn("secret-value", repr(result.to_dict()))
 
@@ -320,17 +320,17 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(result.passed)
         self.assertEqual(PreflightStatus.PASSED, host_check.status)
-        self.assertEqual("wsl2", host_check.evidence["environment"])
-        self.assertEqual("wsl2", host_check.evidence["setup_path"])
-        self.assertEqual("true", host_check.evidence["supported"])
-        self.assertEqual("true", host_check.evidence["allows_live_setup"])
-        self.assertEqual("false", host_check.evidence["static_validation_only"])
-        self.assertEqual("Ubuntu-24.04", host_check.evidence["distribution"])
+        self.assertEqual(host_check.evidence["environment"], "wsl2")
+        self.assertEqual(host_check.evidence["setup_path"], "wsl2")
+        self.assertEqual(host_check.evidence["supported"], "true")
+        self.assertEqual(host_check.evidence["allows_live_setup"], "true")
+        self.assertEqual(host_check.evidence["static_validation_only"], "false")
+        self.assertEqual(host_check.evidence["distribution"], "Ubuntu-24.04")
         self.assertEqual(
-            "6.1.21.2-microsoft-standard-WSL2",
             host_check.evidence["kernel_release"],
+            "6.1.21.2-microsoft-standard-WSL2",
         )
-        self.assertEqual("false", host_check.evidence["windows_interop_available"])
+        self.assertEqual(host_check.evidence["windows_interop_available"], "false")
         self.assertNotIn("RUNTIME-MULTIPASS", checks_by_id)
         self.assertNotIn("qemu", repr(result.to_dict()).casefold())
         self.assertNotIn("runtime is reachable", repr(result.to_dict()).casefold())
@@ -376,7 +376,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(PreflightStatus.FAILED, host_check.status)
                 self.assertEqual(environment.value, host_check.evidence["environment"])
                 self.assertEqual(setup_path.value, host_check.evidence["setup_path"])
-                self.assertEqual("false", host_check.evidence["allows_live_setup"])
+                self.assertEqual(host_check.evidence["allows_live_setup"], "false")
                 self.assertIn(remediation, host_check.remediation)
                 self.assertNotIn("RUNTIME-MULTIPASS", checks_by_id)
 
@@ -446,8 +446,8 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         failed_by_id = {check.check_id: check for check in result.failed_checks}
 
         self.assertIn("PORT-80", failed_by_id)
-        self.assertEqual("80", failed_by_id["PORT-80"].evidence["port"])
-        self.assertEqual("traefik-http", failed_by_id["PORT-80"].evidence["service"])
+        self.assertEqual(failed_by_id["PORT-80"].evidence["port"], "80")
+        self.assertEqual(failed_by_id["PORT-80"].evidence["service"], "traefik-http")
 
     async def test_preflight_ignores_non_preflight_registry_ports(self):
         registry = PortRegistry(
@@ -535,10 +535,10 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         bridge_check = failed_by_id["WINDOWS-WSL-BRIDGE"]
 
         self.assertFalse(result.passed)
-        self.assertEqual("WINDOWS_EXPOSURE", bridge_check.category.value)
+        self.assertEqual(bridge_check.category.value, "WINDOWS_EXPOSURE")
         self.assertIn("Windows <-> WSL bridge is not prepared", bridge_check.message)
         self.assertIn("tools/windows/tws-wsl-bridge.ps1 -Action install", bridge_check.remediation)
-        self.assertEqual("80,10000", bridge_check.evidence["missing_ports"])
+        self.assertEqual(bridge_check.evidence["missing_ports"], "80,10000")
 
     async def test_wsl2_live_preflight_reports_stale_bridge_refresh_guidance(self):
         result = await PreflightService(
@@ -561,7 +561,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         bridge_check = {check.check_id: check for check in result.failed_checks}["WINDOWS-WSL-BRIDGE"]
 
         self.assertFalse(result.passed)
-        self.assertEqual("42", bridge_check.evidence["state_age_seconds"])
+        self.assertEqual(bridge_check.evidence["state_age_seconds"], "42")
         self.assertIn("Restart-Service", bridge_check.remediation)
 
     async def test_wsl2_live_preflight_passes_when_windows_bridge_state_is_prepared(self):
@@ -575,7 +575,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(result.passed)
         self.assertEqual(PreflightStatus.PASSED, bridge_check.status)
-        self.assertEqual("80,10000", bridge_check.evidence["expected_ports"])
+        self.assertEqual(bridge_check.evidence["expected_ports"], "80,10000")
 
     async def test_windows_bridge_expected_ports_falls_back_to_required_ports_without_registry(self):
         configuration = default_preflight_configuration()
@@ -619,7 +619,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(result.passed)
         self.assertEqual(PreflightStatus.PASSED, bridge_check.status)
-        self.assertEqual("false", bridge_check.evidence["required"])
+        self.assertEqual(bridge_check.evidence["required"], "false")
 
     async def test_legacy_boolean_host_probe_fails_closed_as_unverified(self):
         probe = _LegacyBooleanProbe()
@@ -632,17 +632,17 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         host_check = checks_by_id["HOST"]
 
         self.assertFalse(result.passed)
-        self.assertEqual("sandbox_unverified", host_check.evidence["environment"])
-        self.assertEqual("legacy_boolean_unverified", host_check.evidence["classification"])
+        self.assertEqual(host_check.evidence["environment"], "sandbox_unverified")
+        self.assertEqual(host_check.evidence["classification"], "legacy_boolean_unverified")
         self.assertFalse(any(check_id.startswith("RUNTIME-") for check_id in checks_by_id))
 
     def test_legacy_boolean_probe_uses_default_windows_bridge_status(self):
         status = _LegacyBooleanProbe().windows_wsl_bridge_status((10000, 80))
 
         self.assertFalse(status.prepared)
-        self.assertEqual("unsupported_probe", status.reason)
-        self.assertEqual((80, 10000), status.expected_ports)
-        self.assertEqual((80, 10000), status.missing_ports)
+        self.assertEqual(status.reason, "unsupported_probe")
+        self.assertEqual(status.expected_ports, (80, 10000))
+        self.assertEqual(status.missing_ports, (80, 10000))
 
     async def test_static_local_password_defaults_do_not_satisfy_missing_secret_values(self):
         result = await PreflightService(
@@ -653,7 +653,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         secret_check = failed_by_id["SECRET-TSW_NEXUS_ADMIN_PASSWORD"]
 
         self.assertFalse(result.passed)
-        self.assertEqual("secret_value", secret_check.evidence["value_kind"])
+        self.assertEqual(secret_check.evidence["value_kind"], "secret_value")
         self.assertNotIn("static_default", secret_check.evidence)
         self.assertIn("Provide the secret", secret_check.remediation)
         self.assertNotIn("password_value", repr(secret_check.to_dict()).lower())
@@ -673,7 +673,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         secret_check = checks_by_id["SECRET-TSW_INFISICAL_ENCRYPTION_KEY"]
 
         self.assertFalse(result.passed)
-        self.assertEqual("secret_value", secret_check.evidence["value_kind"])
+        self.assertEqual(secret_check.evidence["value_kind"], "secret_value")
         self.assertNotIn(token_marker(), repr(secret_check.to_dict()).casefold())
 
     async def test_host_port_and_ignore_policy_failures_are_reported(self):
@@ -704,8 +704,8 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         port_check = checks_by_id["PORT-10001"]
 
         self.assertTrue(result.passed)
-        self.assertEqual("PASSED", port_check.status)
-        self.assertEqual("existing_expected_service", port_check.evidence["source"])
+        self.assertEqual(port_check.status, "PASSED")
+        self.assertEqual(port_check.evidence["source"], "existing_expected_service")
 
     async def test_occupied_unknown_port_still_fails_preflight(self):
         result = await PreflightService(
@@ -830,8 +830,8 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         port_check = checks_by_id["PORT-16081"]
 
         self.assertTrue(result.passed)
-        self.assertEqual("planned_route_reassignment", port_check.evidence["source"])
-        self.assertEqual("Swagger API", port_check.evidence["current_service"])
+        self.assertEqual(port_check.evidence["source"], "planned_route_reassignment")
+        self.assertEqual(port_check.evidence["current_service"], "Swagger API")
 
     async def test_resource_failures_are_resource_gated(self):
         result = await PreflightService(

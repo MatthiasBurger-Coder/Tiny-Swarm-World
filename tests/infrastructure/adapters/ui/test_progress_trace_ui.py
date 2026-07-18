@@ -49,6 +49,7 @@ class TestProgressTraceUi(unittest.TestCase):
         lines = output.getvalue().splitlines()
 
         self.assertEqual(
+            lines,
             [
                 "[setup] preflight                 START",
                 "[setup] preflight                 COMPLETED",
@@ -58,7 +59,6 @@ class TestProgressTraceUi(unittest.TestCase):
                 "[setup] platform expose           COMPLETED",
                 "[setup] deployment apply          START",
             ],
-            lines,
         )
         self.assertTrue(all(line.startswith("[setup]") for line in lines))
         self.assertFalse(any(line.startswith(" ") for line in lines))
@@ -88,19 +88,19 @@ class TestProgressTraceUi(unittest.TestCase):
         )
 
         self.assertEqual(
-            [(AGGREGATE_INSTANCE, "setup run", "platform init:apply", "pending")],
             ui.updates,
+            [(AGGREGATE_INSTANCE, "setup run", "platform init:apply", "pending")],
         )
         self.assertEqual(
-            "Wait for platform init evidence.",
             ui.aggregate_status["recovery_hint"],
+            "Wait for platform init evidence.",
         )
         self.assertEqual(
-            ".tiny-swarm-world/evidence/platform-init.json",
             ui.aggregate_status["evidence_path"],
+            ".tiny-swarm-world/evidence/platform-init.json",
         )
-        self.assertEqual("setup-123", ui.aggregate_status["correlation_id"])
-        self.assertEqual("trace-456", ui.aggregate_status["trace_id"])
+        self.assertEqual(ui.aggregate_status["correlation_id"], "setup-123")
+        self.assertEqual(ui.aggregate_status["trace_id"], "trace-456")
 
     def test_raised_method_trace_updates_aggregate_failure_state(self):
         ui = RecordingUI()
@@ -134,11 +134,11 @@ class TestProgressTraceUi(unittest.TestCase):
 
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
         self.assertEqual(
+            ui.updates,
             [
                 (AGGREGATE_INSTANCE, "SetupWorkflowPhase.run", "raised", "failed"),
                 (AGGREGATE_INSTANCE, "SetupWorkflow.run", "returned", STATUS_ERROR),
             ],
-            ui.updates,
         )
 
 

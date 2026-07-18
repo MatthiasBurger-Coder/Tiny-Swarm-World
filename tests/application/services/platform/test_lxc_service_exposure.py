@@ -39,11 +39,12 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.ensure_service_exposure()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("18", result.evidence["published_port_count"])
-        self.assertEqual("18", result.evidence["existing_count"])
-        self.assertEqual("0", result.evidence["created_count"])
-        self.assertEqual([], runtime.created)
+        self.assertEqual(result.evidence["published_port_count"], "18")
+        self.assertEqual(result.evidence["existing_count"], "18")
+        self.assertEqual(result.evidence["created_count"], "0")
+        self.assertEqual(runtime.created, [])
         self.assertEqual(
+            tuple(plan.listen_port for _profile, plan in runtime.inspected),
             (
                 10001,
                 13081,
@@ -64,11 +65,10 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
                 8086,
                 17080,
             ),
-            tuple(plan.listen_port for _profile, plan in runtime.inspected),
         )
-        self.assertEqual("swarm-manager", result.evidence["gateway_node"])
-        self.assertEqual("docker-swarm-manager", result.evidence["manager_profile"])
-        self.assertEqual("0.0.0.0", result.evidence["listen_address"])
+        self.assertEqual(result.evidence["gateway_node"], "swarm-manager")
+        self.assertEqual(result.evidence["manager_profile"], "docker-swarm-manager")
+        self.assertEqual(result.evidence["listen_address"], "0.0.0.0")
 
     async def test_missing_proxy_devices_are_created_on_manager_gateway(self):
         runtime = _RecordingProxyRuntime(default_state=LxcProxyDeviceState.MISSING)
@@ -83,10 +83,10 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.ensure_service_exposure()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("13", result.evidence["published_port_count"])
-        self.assertEqual("13", result.evidence["created_count"])
-        self.assertEqual("127.0.0.1", result.evidence["listen_address"])
-        self.assertEqual({"docker-swarm-manager"}, {profile for profile, _plan in runtime.created})
+        self.assertEqual(result.evidence["published_port_count"], "13")
+        self.assertEqual(result.evidence["created_count"], "13")
+        self.assertEqual(result.evidence["listen_address"], "127.0.0.1")
+        self.assertEqual({profile for profile, _plan in runtime.created}, {"docker-swarm-manager"})
         self.assertNotIn("swarm-worker", repr(runtime.created))
 
     async def test_drifted_proxy_devices_are_updated(self):
@@ -102,8 +102,8 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.ensure_service_exposure()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("13", result.evidence["updated_count"])
-        self.assertEqual({"docker-swarm-manager"}, {profile for profile, _plan in runtime.updated})
+        self.assertEqual(result.evidence["updated_count"], "13")
+        self.assertEqual({profile for profile, _plan in runtime.updated}, {"docker-swarm-manager"})
 
     async def test_unknown_or_failed_proxy_device_apply_reports_actionable_counts(self):
         runtime = _RecordingProxyRuntime(
@@ -127,10 +127,10 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.ensure_service_exposure()
 
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
-        self.assertEqual("1", result.evidence["lookup_failure_count"])
-        self.assertEqual("1", result.evidence["create_failure_count"])
-        self.assertEqual("1", result.evidence["update_failure_count"])
-        self.assertEqual("3", result.evidence["failed_apply_count"])
+        self.assertEqual(result.evidence["lookup_failure_count"], "1")
+        self.assertEqual(result.evidence["create_failure_count"], "1")
+        self.assertEqual(result.evidence["update_failure_count"], "1")
+        self.assertEqual(result.evidence["failed_apply_count"], "3")
         self.assertIn("published service ports", result.message)
 
     async def test_platform_expose_workflow_uses_direct_verification_result(self):
@@ -147,11 +147,11 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
 
         result = await PlatformExposeWorkflow([step]).run()
 
-        self.assertEqual("platform expose", result.workflow_name)
+        self.assertEqual(result.workflow_name, "platform expose")
         self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
         self.assertEqual(
-            "platform:expose:lxc-proxy-devices",
             result.verification_results[0].target_id,
+            "platform:expose:lxc-proxy-devices",
         )
 
     async def test_repair_reports_removed_stale_direct_proxy_devices(self):
@@ -175,12 +175,12 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.repair_stale_proxy_devices()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("lxc_proxy_drift_repaired", result.evidence["classification"])
-        self.assertEqual("1", result.evidence["removed_count"])
-        self.assertEqual("tsw-proxy-8080", result.evidence["removed_devices"])
-        self.assertEqual("swarm-manager", result.evidence["gateway_node"])
-        self.assertEqual("docker-swarm-manager", result.evidence["manager_profile"])
-        self.assertEqual({"docker-swarm-manager"}, {profile for profile, _node, _plans in runtime.repaired})
+        self.assertEqual(result.evidence["classification"], "lxc_proxy_drift_repaired")
+        self.assertEqual(result.evidence["removed_count"], "1")
+        self.assertEqual(result.evidence["removed_devices"], "tsw-proxy-8080")
+        self.assertEqual(result.evidence["gateway_node"], "swarm-manager")
+        self.assertEqual(result.evidence["manager_profile"], "docker-swarm-manager")
+        self.assertEqual({profile for profile, _node, _plans in runtime.repaired}, {"docker-swarm-manager"})
 
     async def test_repair_blocks_when_profile_equivalent_is_not_verified(self):
         runtime = _RecordingProxyRuntime(
@@ -203,9 +203,9 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
         result = await service.repair_stale_proxy_devices()
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("lxc_proxy_drift_repair_refused", result.evidence["classification"])
-        self.assertEqual("1", result.evidence["refused_count"])
-        self.assertEqual("tsw-proxy-8080", result.evidence["refused_devices"])
+        self.assertEqual(result.evidence["classification"], "lxc_proxy_drift_repair_refused")
+        self.assertEqual(result.evidence["refused_count"], "1")
+        self.assertEqual(result.evidence["refused_devices"], "tsw-proxy-8080")
 
     async def test_repair_workflow_uses_direct_verification_result(self):
         runtime = _RecordingProxyRuntime(
@@ -227,11 +227,11 @@ class TestLxcServiceExposure(unittest.IsolatedAsyncioTestCase):
 
         result = await PlatformRepairLxcProxyDriftWorkflow([step]).run()
 
-        self.assertEqual("platform repair-lxc-proxy-drift", result.workflow_name)
+        self.assertEqual(result.workflow_name, "platform repair-lxc-proxy-drift")
         self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
         self.assertEqual(
-            "platform:repair-lxc-proxy-drift",
             result.verification_results[0].target_id,
+            "platform:repair-lxc-proxy-drift",
         )
 
 

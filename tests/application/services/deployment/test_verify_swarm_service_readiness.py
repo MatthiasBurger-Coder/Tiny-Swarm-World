@@ -31,7 +31,7 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
         self.assertEqual("deployment:sonarqube-service-readiness", verification.target_id)
         self.assertEqual("sonarqube", verification.evidence["stack_name"])
-        self.assertEqual("swarm_service_replicas", verification.evidence["evidence_kind"])
+        self.assertEqual(verification.evidence["evidence_kind"], "swarm_service_replicas")
         self.assertIn("sonarqube=1/1", verification.evidence["replicas"])
 
     async def test_fails_when_required_service_does_not_converge(self):
@@ -65,7 +65,7 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual(2, runtime.calls)
+        self.assertEqual(runtime.calls, 2)
 
     async def test_reports_last_runtime_failure_after_retry_budget_is_exhausted(self):
         runtime = _SequenceSwarmRuntime(
@@ -84,8 +84,8 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
-        self.assertEqual("RuntimeError", verification.evidence["last_exception"])
-        self.assertEqual("2", verification.evidence["attempt"])
+        self.assertEqual(verification.evidence["last_exception"], "RuntimeError")
+        self.assertEqual(verification.evidence["attempt"], "2")
 
     async def test_verifies_service_access_when_all_required_services_are_ready(self):
         runtime = _FakeSwarmRuntime(
@@ -107,7 +107,7 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("deployment:service-access-service-readiness", verification.target_id)
+        self.assertEqual(verification.target_id, "deployment:service-access-service-readiness")
 
     async def test_verifies_infisical_when_all_required_services_are_ready(self):
         runtime = _FakeSwarmRuntime(
@@ -130,7 +130,7 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("deployment:infisical-service-readiness", verification.target_id)
+        self.assertEqual(verification.target_id, "deployment:infisical-service-readiness")
 
     async def test_fails_infisical_when_required_service_is_missing(self):
         runtime = _FakeSwarmRuntime(
@@ -152,8 +152,8 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertEqual(
-            "infisical-db,infisical-redis",
             verification.evidence["missing_services"],
+            "infisical-db,infisical-redis",
         )
 
     async def test_apply_readiness_guard_records_verified_evidence(self):
@@ -179,10 +179,10 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         verification = service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("apply", verification.evidence["phase"])
+        self.assertEqual(verification.evidence["phase"], "apply")
         self.assertEqual(
-            "pre_infisical_bootstrap",
             verification.evidence["readiness_guard"],
+            "pre_infisical_bootstrap",
         )
 
     async def test_apply_readiness_guard_preserves_failed_readiness(self):
@@ -202,7 +202,7 @@ class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
         verification = service.verify()
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
-        self.assertEqual("infisical-db,infisical-redis", verification.evidence["missing_services"])
+        self.assertEqual(verification.evidence["missing_services"], "infisical-db,infisical-redis")
 
 
 class _FakeSwarmRuntime:

@@ -186,7 +186,7 @@ class TestWindowsWslBridgeAssets(unittest.TestCase):
             timeout=60,
         )
 
-        self.assertEqual(0, completed.returncode, completed.stdout)
+        self.assertEqual(completed.returncode, 0, completed.stdout)
 
     def test_service_is_the_only_new_agent_registration_path(self):
         script = BRIDGE_SCRIPT.read_text(encoding="utf-8")
@@ -230,7 +230,7 @@ class TestWindowsWslBridgeAssets(unittest.TestCase):
         guide = BRIDGE_GUIDE.read_text(encoding="utf-8")
         network_guide = NETWORK_GUIDE.read_text(encoding="utf-8")
 
-        self.assertEqual([], json.loads(config_text)["hostNames"])
+        self.assertEqual(json.loads(config_text)["hostNames"], [])
         self.assertIn("Read-TswPortRegistry", script)
         self.assertIn("route_host", script)
         self.assertIn("*.tsw.local", guide)

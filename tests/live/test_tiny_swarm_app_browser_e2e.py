@@ -37,7 +37,7 @@ class TestTinySwarmAppBrowserE2E(unittest.TestCase):
         status_matrix = cast(dict[str, list[str]], summary["status_matrix"])
         self.assertIn("app", status_matrix["missing"])
         self.assertIn("api", status_matrix["missing"])
-        self.assertEqual("failed", summary["result"])
+        self.assertEqual(summary["result"], "failed")
 
 
 if __name__ == "__main__":

@@ -78,14 +78,14 @@ class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(ArtifactWorkflowStatus.FAILED_TO_PREPARE, result.status)
         self.assertIn("initial_admin_value_unavailable", result.reason)
-        self.assertEqual("initial_admin_value_unavailable", result.verification_results[0].evidence["diagnostic"])
+        self.assertEqual(result.verification_results[0].evidence["diagnostic"], "initial_admin_value_unavailable")
         self.assertEqual(
-            "NexusAdminAccessRecoveryBlocked",
             result.verification_results[0].evidence["failure_class"],
+            "NexusAdminAccessRecoveryBlocked",
         )
         self.assertEqual(
-            "initial_admin_value_unavailable_recovery",
             result.verification_results[0].evidence["operator_action_code"],
+            "initial_admin_value_unavailable_recovery",
         )
 
     async def test_prepare_workflow_reports_failed_verification(self):

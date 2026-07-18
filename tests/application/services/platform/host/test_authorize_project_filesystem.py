@@ -34,7 +34,7 @@ class TestAuthorizeProjectFilesystem(unittest.TestCase):
         )
 
         self.assertEqual(ProjectFilesystemDecision.ALLOWED_BY_OVERRIDE, assessment.decision)
-        self.assertEqual([assessment], repository.writes)
+        self.assertEqual(repository.writes, [assessment])
 
     def test_normal_allowed_decision_does_not_write_override_evidence(self):
         repository = _EvidenceRepository()
@@ -49,7 +49,7 @@ class TestAuthorizeProjectFilesystem(unittest.TestCase):
         )
 
         self.assertEqual(ProjectFilesystemDecision.ALLOWED, assessment.decision)
-        self.assertEqual([], repository.writes)
+        self.assertEqual(repository.writes, [])
 
     def test_evidence_failure_turns_applied_override_into_blocked(self):
         repository = _EvidenceRepository(
@@ -68,8 +68,8 @@ class TestAuthorizeProjectFilesystem(unittest.TestCase):
         self.assertEqual(ProjectFilesystemDecision.BLOCKED, assessment.decision)
         self.assertFalse(assessment.override_applied)
         self.assertEqual(
-            "protected_evidence_unavailable",
             assessment.to_safe_dict()["evidence_status"],
+            "protected_evidence_unavailable",
         )
         self.assertNotIn("/mnt/d/project", str(assessment.to_safe_dict()))
 

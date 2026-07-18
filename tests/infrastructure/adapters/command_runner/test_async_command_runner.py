@@ -97,13 +97,13 @@ class TestAsyncCommandRunner(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(CommandExecutionError) as context:
             await self.command_runner.run(command)
 
-        self.assertEqual(2, context.exception.returnCode)
+        self.assertEqual(context.exception.returnCode, 2)
         self.assertIn("return code 2", str(context.exception))
         self.assertNotIn(command, str(context.exception))
         self.assertNotIn(raw_stderr, str(context.exception))
-        self.assertEqual("<redacted>", context.exception.command)
-        self.assertEqual("<redacted>", context.exception.stdout)
-        self.assertEqual("<redacted>", context.exception.stderr)
+        self.assertEqual(context.exception.command, "<redacted>")
+        self.assertEqual(context.exception.stdout, "<redacted>")
+        self.assertEqual(context.exception.stderr, "<redacted>")
 
     @patch("asyncio.create_subprocess_shell")
     async def test_run_unexpected_error(self, mock_subprocess):

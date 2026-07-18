@@ -11,6 +11,7 @@ class TestContainerImageContract(unittest.TestCase):
         }
 
         self.assertEqual(
+            tuple(contracts_by_context),
             (
                 "jenkins",
                 "service-access-dashboard",
@@ -28,55 +29,54 @@ class TestContainerImageContract(unittest.TestCase):
                 "pulsar-manager-bootstrap",
                 "swagger-nginx",
             ),
-            tuple(contracts_by_context),
         )
         self.assertEqual(
-            "127.0.0.1:13500/service-access-dashboard:0.2.0",
             contracts_by_context["service-access-dashboard"].image_ref,
+            "127.0.0.1:13500/service-access-dashboard:0.2.0",
         )
         self.assertEqual(
-            "127.0.0.1:13500/service-access-nginx:0.2.0",
             contracts_by_context["service-access-nginx"].image_ref,
+            "127.0.0.1:13500/service-access-nginx:0.2.0",
         )
-        self.assertEqual("pull", contracts_by_context["infisical"].source)
+        self.assertEqual(contracts_by_context["infisical"].source, "pull")
         self.assertEqual(
-            "infisical/infisical:v0.159.1",
             contracts_by_context["infisical"].image_ref,
+            "infisical/infisical:v0.159.1",
         )
         self.assertEqual(
-            "postgres:14.23-alpine3.23",
             contracts_by_context["infisical-postgres"].image_ref,
+            "postgres:14.23-alpine3.23",
         )
         self.assertEqual(
-            "redis:7.4.9-alpine3.21",
             contracts_by_context["infisical-redis"].image_ref,
+            "redis:7.4.9-alpine3.21",
         )
-        self.assertEqual("pull", contracts_by_context["traefik"].source)
-        self.assertEqual("traefik:v3.7.4", contracts_by_context["traefik"].image_ref)
-        self.assertEqual("pull", contracts_by_context["sonarqube"].source)
+        self.assertEqual(contracts_by_context["traefik"].source, "pull")
+        self.assertEqual(contracts_by_context["traefik"].image_ref, "traefik:v3.7.4")
+        self.assertEqual(contracts_by_context["sonarqube"].source, "pull")
         self.assertEqual(
-            "sonarqube:26.6.0.123539-community",
             contracts_by_context["sonarqube"].image_ref,
+            "sonarqube:26.6.0.123539-community",
         )
-        self.assertEqual("postgres:13.23", contracts_by_context["sonarqube-postgres"].image_ref)
+        self.assertEqual(contracts_by_context["sonarqube-postgres"].image_ref, "postgres:13.23")
         self.assertEqual(
-            "swaggerapi/swagger-editor:v5.6.2-unprivileged",
             contracts_by_context["swagger-editor"].image_ref,
+            "swaggerapi/swagger-editor:v5.6.2-unprivileged",
         )
         self.assertEqual(
-            "swaggerapi/swagger-ui:v5.32.6",
             contracts_by_context["swagger-ui"].image_ref,
+            "swaggerapi/swagger-ui:v5.32.6",
         )
-        self.assertEqual("apachepulsar/pulsar:3.0.17", contracts_by_context["pulsar"].image_ref)
+        self.assertEqual(contracts_by_context["pulsar"].image_ref, "apachepulsar/pulsar:3.0.17")
         self.assertEqual(
-            "apachepulsar/pulsar-manager:v0.4.0",
             contracts_by_context["pulsar-manager"].image_ref,
+            "apachepulsar/pulsar-manager:v0.4.0",
         )
         self.assertEqual(
-            "python:3.12.13-alpine3.23",
             contracts_by_context["pulsar-manager-bootstrap"].image_ref,
+            "python:3.12.13-alpine3.23",
         )
-        self.assertEqual("nginx:1.29.8-alpine", contracts_by_context["swagger-nginx"].image_ref)
+        self.assertEqual(contracts_by_context["swagger-nginx"].image_ref, "nginx:1.29.8-alpine")
 
         self.assertFalse(
             [

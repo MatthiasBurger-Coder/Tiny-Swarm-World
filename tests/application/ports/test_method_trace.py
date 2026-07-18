@@ -25,6 +25,7 @@ class TestMethodTraceEvent(unittest.TestCase):
         )
 
         self.assertEqual(
+            event.to_dict(),
             {
                 "component": "setup",
                 "module": "tiny_swarm_world.application.services.setup.workflow",
@@ -39,7 +40,6 @@ class TestMethodTraceEvent(unittest.TestCase):
                 "recovery_hint": "Resolve blockers and rerun setup.",
                 "exception_type": None,
             },
-            event.to_dict(),
         )
 
     def test_event_cannot_represent_raw_payload_keys(self):
@@ -162,7 +162,7 @@ class TestMethodTraceEvent(unittest.TestCase):
             exception_type="RuntimeError",
         )
 
-        self.assertEqual("RuntimeError", event.exception_type)
+        self.assertEqual(event.exception_type, "RuntimeError")
 
     def test_non_raised_status_rejects_exception_type(self):
         with self.assertRaises(ValueError):

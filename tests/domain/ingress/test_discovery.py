@@ -41,11 +41,11 @@ class TestIngressDiscoveryModels(unittest.TestCase):
 
         self.assertEqual(snapshot, round_tripped)
         self.assertEqual(
-            ("stack",),
             tuple(
                 finding.name
                 for finding in round_tripped.by_category(IngressDiscoveryCategory.TRAEFIK)
             ),
+            ("stack",),
         )
 
     def test_finding_rejects_raw_command_output_and_sensitive_values(self):

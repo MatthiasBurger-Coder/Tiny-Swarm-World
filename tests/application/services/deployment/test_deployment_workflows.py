@@ -97,14 +97,14 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_APPLY, result.status)
         self.assertTrue(result.executed)
         self.assertEqual(
-            "apply failed for deployment:portainer-stack: RuntimeError. Diagnostic payload redacted.",
             result.reason,
+            "apply failed for deployment:portainer-stack: RuntimeError. Diagnostic payload redacted.",
         )
         self.assertNotIn("sensitive response", result.reason)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
         self.assertEqual(
-            "deployment_apply_failed",
             result.verification_results[0].evidence["classification"],
+            "deployment_apply_failed",
         )
         self.assertIn("remediation_hint", result.verification_results[0].evidence)
 
@@ -165,8 +165,8 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(sensitive_assignment(), captured.output[0])
         verification = result.verification_results[0]
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, verification.status)
-        self.assertEqual("http_status_409", verification.evidence["diagnostic"])
-        self.assertEqual("deployment_apply_failed", verification.evidence["classification"])
+        self.assertEqual(verification.evidence["diagnostic"], "http_status_409")
+        self.assertEqual(verification.evidence["classification"], "deployment_apply_failed")
         self.assertIn("Portainer state", verification.evidence["operator_action"])
 
     async def test_apply_workflow_blocks_before_running_steps_when_pre_apply_check_blocks(self):
@@ -182,8 +182,8 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.executed)
         self.assertFalse(step.ran)
         self.assertEqual(
-            "pre-apply verification is blocked for deployment:service-access-external-input",
             result.reason,
+            "pre-apply verification is blocked for deployment:service-access-external-input",
         )
 
     async def test_apply_workflow_reports_failed_pre_apply_verification_without_running_steps(self):
@@ -199,8 +199,8 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.executed)
         self.assertFalse(step.ran)
         self.assertEqual(
-            "pre-apply verification failed for deployment:service-access-external-input",
             result.reason,
+            "pre-apply verification failed for deployment:service-access-external-input",
         )
 
     async def test_apply_workflow_prepares_external_inputs_before_pre_apply_checks(self):
@@ -218,8 +218,8 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(pre_apply_step.ran)
         self.assertTrue(step.ran)
         self.assertEqual(
-            ("deployment:service-access-external-input", "deployment:service-access-stack"),
             tuple(verification.target_id for verification in result.verification_results),
+            ("deployment:service-access-external-input", "deployment:service-access-stack"),
         )
 
     async def test_apply_workflow_reports_pre_apply_prepare_failures_without_raw_payloads(self):
@@ -313,8 +313,8 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_VERIFY, result.status)
         self.assertEqual(
-            "required_evidence_missing",
             result.verification_results[0].evidence["reason"],
+            "required_evidence_missing",
         )
 
     async def test_validation_plan_rejects_verified_static_evidence(self):
@@ -340,8 +340,8 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_VERIFY, result.status)
         self.assertEqual(
-            "observed_evidence_missing",
             result.verification_results[0].evidence["reason"],
+            "observed_evidence_missing",
         )
 
     async def test_validation_plan_completes_with_observed_runtime_evidence(self):

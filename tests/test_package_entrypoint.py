@@ -102,7 +102,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     def test_parse_args_accepts_host_detect_as_read_only(self):
         args = entrypoint.parse_args(["host", "detect"])
 
-        self.assertEqual("host detect", args.workflow.name)
+        self.assertEqual(args.workflow.name, "host detect")
         self.assertFalse(args.workflow.mutating)
         self.assertTrue(args.workflow.implemented)
 
@@ -135,7 +135,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Windows interop: unavailable", rendered)
         self.assertIn("Supported: yes", rendered)
         self.assertIn("Setup path: wsl2", rendered)
-        self.assertEqual(1, service.calls)
+        self.assertEqual(service.calls, 1)
         ensure_paths.assert_not_called()
         build_logger.assert_not_called()
         build_services.assert_not_called()
@@ -159,12 +159,12 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         payload = json.loads(rendered[0])
         self.assertEqual(
-            {**report.to_dict(), "live_readiness_verified": False},
             payload,
+            {**report.to_dict(), "live_readiness_verified": False},
         )
         self.assertEqual(rendered[0], rendered[1])
         _, end_index = json.JSONDecoder().raw_decode(rendered[0])
-        self.assertEqual("", rendered[0][end_index:].strip())
+        self.assertEqual(rendered[0][end_index:].strip(), "")
 
     async def test_unsupported_host_detect_emits_remediation_and_exits_one(self):
         output = io.StringIO()
@@ -184,7 +184,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(SystemExit) as raised:
                 await entrypoint.main(["host", "detect"])
 
-        self.assertEqual(1, raised.exception.code)
+        self.assertEqual(raised.exception.code, 1)
         self.assertIn("Supported: no", output.getvalue())
         self.assertIn("Upgrade to WSL2", output.getvalue())
 
@@ -206,10 +206,10 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(SystemExit) as raised:
                 await entrypoint.main(["--json", "host", "detect"])
 
-        self.assertEqual(1, raised.exception.code)
+        self.assertEqual(raised.exception.code, 1)
         self.assertEqual(
-            {**report.to_dict(), "live_readiness_verified": False},
             json.loads(output.getvalue()),
+            {**report.to_dict(), "live_readiness_verified": False},
         )
 
     async def test_host_detect_runs_no_process_or_file_mutation(self):
@@ -423,7 +423,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["platform", "init", "--live", "--approve-live"])
 
-        self.assertEqual(1, raised.exception.code)
+        self.assertEqual(raised.exception.code, 1)
         workflows.init.run.assert_awaited_once_with()
         rendered = output.getvalue()
         self.assertIn("Verification summary:", rendered)
@@ -464,9 +464,9 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         workflows.reconcile.run.assert_awaited_once_with()
         payload = _json_payload_from_output(output.getvalue())
-        self.assertEqual("platform reconcile", payload["workflow"])
-        self.assertEqual("converged", payload["outcome"]["mutation"]["result"])
-        self.assertEqual("verified", payload["outcome"]["verification"])
+        self.assertEqual(payload["workflow"], "platform reconcile")
+        self.assertEqual(payload["outcome"]["mutation"]["result"], "converged")
+        self.assertEqual(payload["outcome"]["verification"], "verified")
 
     async def test_platform_init_uses_composed_guarded_workflow_result(self):
         services, workflows = _application_services_with_platform_workflows(
@@ -480,16 +480,16 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                     with self.assertRaises(SystemExit) as raised:
                         await entrypoint.main(["platform", "init", "--live", "--json"])
 
-        self.assertEqual(1, raised.exception.code)
+        self.assertEqual(raised.exception.code, 1)
         services.platform.preflight.run.assert_not_awaited()
         workflows.init.run.assert_awaited_once_with()
         payload = _json_payload_from_output(output.getvalue())
-        self.assertEqual("platform init", payload["workflow"])
-        self.assertEqual("blocked", payload["status"])
+        self.assertEqual(payload["workflow"], "platform init")
+        self.assertEqual(payload["status"], "blocked")
         self.assertFalse(payload["executed"])
         self.assertEqual(
-            "1",
             payload["verification_results"][0]["evidence"]["runtime_failure_count"],
+            "1",
         )
 
     async def test_platform_verify_dispatches_without_live_consent(self):
@@ -754,14 +754,14 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         run_setup.assert_awaited_once()
         live_consent = run_setup.call_args.args[0]
         self.assertTrue(live_consent.accepted)
-        self.assertEqual("run", run_setup.call_args.args[1])
+        self.assertEqual(run_setup.call_args.args[1], "run")
         self.assertEqual(
+            run_setup.call_args.kwargs,
             {
                 "service_profile": ServiceStackProfile.SERVICE_ACCESS.value,
                 "node_provider_request": None,
                 "allow_wsl_windows_filesystem": False,
             },
-            run_setup.call_args.kwargs,
         )
         payload = _json_payload_from_output(output.getvalue())
         self.assertEqual("setup run", payload["workflow"])
@@ -922,7 +922,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 await entrypoint.main(["--preflight", "--json"])
 
         payload = _json_payload_from_output(output.getvalue())
-        self.assertEqual("PASSED", payload["status"])
+        self.assertEqual(payload["status"], "PASSED")
 
     async def test_preflight_json_preserves_host_filesystem_order_without_path_leak(self):
         project_path = "/mnt/e/private/project"
@@ -966,8 +966,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(outputs[0], outputs[1])
         payload = _json_payload_from_output(outputs[0])
         self.assertEqual(
-            ["HOST", "HOST-FILESYSTEM"],
             [item["check_id"] for item in payload["checks"]],
+            ["HOST", "HOST-FILESYSTEM"],
         )
         self.assertNotIn(project_path, outputs[0])
 
@@ -1002,7 +1002,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["doctor", "network"])
 
-        self.assertEqual(1, raised.exception.code)
+        self.assertEqual(raised.exception.code, 1)
 
     async def test_network_repair_dispatches_dry_run_options_without_live_consent(self):
         repair = SimpleNamespace(run=AsyncMock(return_value=_FakeNetworkRepairReport(True)))
@@ -1015,7 +1015,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         build_services.assert_not_called()
         options = repair.run.call_args.args[0]
-        self.assertEqual("wsl2-nat", options.runtime)
+        self.assertEqual(options.runtime, "wsl2-nat")
         self.assertFalse(options.apply)
         self.assertIn("[Network Repair]", output.getvalue())
 
@@ -1081,7 +1081,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         violations = sorted(_referenced_identifiers(ENTRYPOINT_PATH) & forbidden_identifiers)
 
-        self.assertEqual([], violations)
+        self.assertEqual(violations, [])
 
 
 def _direct_imports(source_file: Path) -> list[str]:

@@ -29,7 +29,7 @@ class TestConfigurationValidationService(unittest.TestCase):
         result = ConfigurationValidationService(source, contract).validate()
 
         self.assertTrue(result.passed)
-        self.assertEqual("environment", result.findings[0].evidence["source"])
+        self.assertEqual(result.findings[0].evidence["source"], "environment")
 
 
 class _FakeConfigurationSource(PortConfigurationSource):

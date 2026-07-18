@@ -51,11 +51,11 @@ class TestOptionalServiceRouting(unittest.TestCase):
                 model.to_dict()["service_access_links"],
             )
 
-        self.assertEqual({"app", "api"}, set(optional_routes))
-        self.assertEqual(1, labels.count("traefik.enable=true"))
+        self.assertEqual(set(optional_routes), {"app", "api"})
+        self.assertEqual(labels.count("traefik.enable=true"), 1)
         self.assertEqual(
-            1,
             labels.count("traefik.swarm.network=service_access_link"),
+            1,
         )
         for route_name, upstream_port in (("app", 8080), ("api", 8081)):
             with self.subTest(route_name=route_name):
@@ -68,14 +68,14 @@ class TestOptionalServiceRouting(unittest.TestCase):
                     f"{route_name}.loadbalancer.server.port={upstream_port}",
                     labels,
                 )
-        self.assertEqual(1, service["networks"].count("service_access_link"))
+        self.assertEqual(service["networks"].count("service_access_link"), 1)
         self.assertEqual(
-            {"https://app.tsw.local", "https://api.tsw.local"},
             {
                 cast(str, link["url"])
                 for link in service_access_links
                 if link["service"] in {"app", "api"}
             },
+            {"https://app.tsw.local", "https://api.tsw.local"},
         )
         self.assertFalse(
             {skipped.service_name for skipped in model.skipped_routes} & {"app", "api"}
@@ -135,7 +135,7 @@ class TestOptionalServiceRouting(unittest.TestCase):
 
         routes = {route.service_name: route for route in model.routes}
         self.assertEqual(set(CORE_ROUTE_EXPECTATIONS), set(routes))
-        self.assertEqual((80, 443), model.public_ports)
+        self.assertEqual(model.public_ports, (80, 443))
         for route_name, expectation in CORE_ROUTE_EXPECTATIONS.items():
             hostname, upstream_service, upstream_port = expectation
             route = routes[route_name]
@@ -194,8 +194,8 @@ class TestOptionalServiceRouting(unittest.TestCase):
         self.assertEqual(upstream_port, route.upstream_port)
         self.assertIn("service_access_link", service["networks"])
         self.assertEqual(
-            {"name": "service_access_link", "external": True},
             compose["networks"]["service_access_link"],
+            {"name": "service_access_link", "external": True},
         )
         expected_labels = {
             "traefik.enable=true",
@@ -215,15 +215,15 @@ class TestOptionalServiceRouting(unittest.TestCase):
             for link in service_access_links
             if link["service"] == route_name
         )
-        self.assertIs(True, link["preferred"])
-        self.assertEqual(f"https://{hostname}", link["url"])
+        self.assertIs(link["preferred"], True)
+        self.assertEqual(link["url"], f"https://{hostname}")
         self.assertIsNone(urlparse(cast(str, link["url"])).port)
         health_target = next(
             target
             for target in health_check_targets
             if target["service"] == route_name
         )
-        self.assertEqual(f"https://{hostname}", health_target["target"])
+        self.assertEqual(health_target["target"], f"https://{hostname}")
         self.assertEqual(upstream_service, health_target["upstream_service"])
         self.assertEqual(upstream_port, health_target["upstream_port"])
         self.assertNotIn(

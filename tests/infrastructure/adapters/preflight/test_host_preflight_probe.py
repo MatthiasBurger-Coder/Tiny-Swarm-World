@@ -106,9 +106,9 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual(SetupPath.NATIVE_LINUX, report.setup_path)
         self.assertTrue(report.allows_live_setup)
         self.assertFalse(report.static_validation_only)
-        self.assertEqual("native_linux", report.evidence["classification"])
-        self.assertEqual("present", report.evidence["kernel_signal"])
-        self.assertEqual("6.8.0-generic", report.kernel_release)
+        self.assertEqual(report.evidence["classification"], "native_linux")
+        self.assertEqual(report.evidence["kernel_signal"], "present")
+        self.assertEqual(report.kernel_release, "6.8.0-generic")
         self.assertFalse(report.windows_interop_available)
 
     def test_host_environment_report_classifies_container_marker_as_sandbox(self):
@@ -131,7 +131,7 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
         self.assertFalse(report.allows_live_setup)
         self.assertTrue(report.static_validation_only)
-        self.assertEqual("container_marker", report.evidence["sandbox_signal"])
+        self.assertEqual(report.evidence["sandbox_signal"], "container_marker")
 
     def test_host_environment_report_classifies_cgroup_container_as_sandbox(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -157,7 +157,7 @@ class TestHostPreflightProbe(unittest.TestCase):
 
         self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
         self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
-        self.assertEqual("container_marker", report.evidence["sandbox_signal"])
+        self.assertEqual(report.evidence["sandbox_signal"], "container_marker")
 
     def test_host_environment_report_classifies_ci_environment_as_sandbox(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -176,7 +176,7 @@ class TestHostPreflightProbe(unittest.TestCase):
 
         self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
         self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
-        self.assertEqual("ci_marker", report.evidence["sandbox_signal"])
+        self.assertEqual(report.evidence["sandbox_signal"], "ci_marker")
 
     def test_host_environment_report_keeps_container_wsl2_as_sandbox(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -203,7 +203,7 @@ class TestHostPreflightProbe(unittest.TestCase):
 
         self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
         self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
-        self.assertEqual("container_marker", report.evidence["sandbox_signal"])
+        self.assertEqual(report.evidence["sandbox_signal"], "container_marker")
 
     def test_host_environment_report_classifies_missing_kernel_signals_as_sandbox(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -220,7 +220,7 @@ class TestHostPreflightProbe(unittest.TestCase):
 
         self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
         self.assertEqual(SetupPath.SANDBOX_UNVERIFIED, report.setup_path)
-        self.assertEqual("kernel_signal_missing", report.evidence["sandbox_signal"])
+        self.assertEqual(report.evidence["sandbox_signal"], "kernel_signal_missing")
 
     def test_host_environment_report_requires_independent_wsl_signal_for_wsl2(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -247,8 +247,8 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual(HostEnvironmentKind.UNKNOWN_UNSUPPORTED, report.environment)
         self.assertNotEqual(HostEnvironmentKind.WSL2, report.environment)
         self.assertEqual(SetupPath.UNSUPPORTED, report.setup_path)
-        self.assertEqual("unknown", report.evidence["wsl_generation"])
-        self.assertEqual("absent", report.evidence["wsl_independent_signal"])
+        self.assertEqual(report.evidence["wsl_generation"], "unknown")
+        self.assertEqual(report.evidence["wsl_independent_signal"], "absent")
 
     def test_host_environment_report_classifies_verified_wsl2(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -276,13 +276,13 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual(SetupPath.WSL2, report.setup_path)
         self.assertTrue(report.allows_live_setup)
         self.assertFalse(report.static_validation_only)
-        self.assertEqual("wsl2", report.evidence["classification"])
-        self.assertEqual("2", report.evidence["wsl_generation"])
-        self.assertEqual("present", report.evidence["wsl_independent_signal"])
-        self.assertEqual("Ubuntu", report.distribution)
+        self.assertEqual(report.evidence["classification"], "wsl2")
+        self.assertEqual(report.evidence["wsl_generation"], "2")
+        self.assertEqual(report.evidence["wsl_independent_signal"], "present")
+        self.assertEqual(report.distribution, "Ubuntu")
         self.assertEqual(
-            "5.15.90.1-microsoft-standard-WSL2",
             report.kernel_release,
+            "5.15.90.1-microsoft-standard-WSL2",
         )
         self.assertFalse(report.windows_interop_available)
 
@@ -309,8 +309,8 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual(HostEnvironmentKind.WSL1_UNSUPPORTED, report.environment)
         self.assertEqual(SetupPath.UNSUPPORTED, report.setup_path)
         self.assertFalse(report.allows_live_setup)
-        self.assertEqual("wsl1_unsupported", report.evidence["classification"])
-        self.assertEqual("1", report.evidence["wsl_generation"])
+        self.assertEqual(report.evidence["classification"], "wsl1_unsupported")
+        self.assertEqual(report.evidence["wsl_generation"], "1")
 
     def test_host_environment_report_blocks_ambiguous_wsl_signal(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -330,8 +330,8 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual(HostEnvironmentKind.UNKNOWN_UNSUPPORTED, report.environment)
         self.assertEqual(SetupPath.UNSUPPORTED, report.setup_path)
         self.assertFalse(report.allows_live_setup)
-        self.assertEqual("wsl_unknown", report.evidence["classification"])
-        self.assertEqual("unknown", report.evidence["wsl_generation"])
+        self.assertEqual(report.evidence["classification"], "wsl_unknown")
+        self.assertEqual(report.evidence["wsl_generation"], "unknown")
 
     def test_host_environment_report_uses_wsl_interop_marker_as_independent_signal(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -366,7 +366,7 @@ class TestHostPreflightProbe(unittest.TestCase):
 
         self.assertEqual(HostEnvironmentKind.WSL2, report.environment)
         self.assertEqual(SetupPath.WSL2, report.setup_path)
-        self.assertEqual("present", report.evidence["wsl_independent_signal"])
+        self.assertEqual(report.evidence["wsl_independent_signal"], "present")
 
     def test_host_environment_report_fails_closed_for_non_linux_platform(self):
         probe = HostPreflightProbe(Path.cwd())
@@ -384,8 +384,8 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual(SetupPath.UNSUPPORTED, report.setup_path)
         self.assertFalse(report.allows_live_setup)
         self.assertFalse(report.static_validation_only)
-        self.assertEqual("unknown_unsupported", report.evidence["classification"])
-        self.assertEqual("darwin", report.evidence["kernel_family"])
+        self.assertEqual(report.evidence["classification"], "unknown_unsupported")
+        self.assertEqual(report.evidence["kernel_family"], "darwin")
 
     def test_host_environment_report_delegates_to_injected_detector(self):
         expected = HostEnvironmentReport(
@@ -406,7 +406,7 @@ class TestHostPreflightProbe(unittest.TestCase):
         actual = probe.host_environment_report()
 
         self.assertIs(expected, actual)
-        self.assertEqual(1, detector.calls)
+        self.assertEqual(detector.calls, 1)
 
     def test_windows_wsl_bridge_status_reports_missing_state_file(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -418,9 +418,9 @@ class TestHostPreflightProbe(unittest.TestCase):
             status = probe.windows_wsl_bridge_status((80, 10000))
 
         self.assertFalse(status.prepared)
-        self.assertEqual("state_missing", status.reason)
-        self.assertEqual((80, 10000), status.missing_ports)
-        self.assertEqual("tools/windows/.tws-wsl-bridge.state.json", status.state_path)
+        self.assertEqual(status.reason, "state_missing")
+        self.assertEqual(status.missing_ports, (80, 10000))
+        self.assertEqual(status.state_path, "tools/windows/.tws-wsl-bridge.state.json")
 
     def test_windows_wsl_bridge_status_accepts_current_ip_and_all_expected_ports(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -438,9 +438,9 @@ class TestHostPreflightProbe(unittest.TestCase):
                 status = probe.windows_wsl_bridge_status((80, 10000))
 
         self.assertTrue(status.prepared)
-        self.assertEqual("prepared", status.reason)
-        self.assertEqual((80, 10000), status.mapped_ports)
-        self.assertEqual((), status.missing_ports)
+        self.assertEqual(status.reason, "prepared")
+        self.assertEqual(status.mapped_ports, (80, 10000))
+        self.assertEqual(status.missing_ports, ())
 
     def test_windows_wsl_bridge_status_detects_changed_wsl_ip(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -458,9 +458,9 @@ class TestHostPreflightProbe(unittest.TestCase):
                 status = probe.windows_wsl_bridge_status((80,))
 
         self.assertFalse(status.prepared)
-        self.assertEqual("wsl_ip_changed", status.reason)
-        self.assertEqual("172.20.0.2", status.state_wsl_ip)
-        self.assertEqual("172.21.0.9", status.current_wsl_ip)
+        self.assertEqual(status.reason, "wsl_ip_changed")
+        self.assertEqual(status.state_wsl_ip, "172.20.0.2")
+        self.assertEqual(status.current_wsl_ip, "172.21.0.9")
 
     def test_windows_wsl_bridge_status_detects_missing_expected_ports(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -478,8 +478,8 @@ class TestHostPreflightProbe(unittest.TestCase):
                 status = probe.windows_wsl_bridge_status((80, 10000))
 
         self.assertFalse(status.prepared)
-        self.assertEqual("missing_ports", status.reason)
-        self.assertEqual((10000,), status.missing_ports)
+        self.assertEqual(status.reason, "missing_ports")
+        self.assertEqual(status.missing_ports, (10000,))
 
     def test_secret_available_uses_environment_without_reading_values(self):
         probe = HostPreflightProbe(Path.cwd())
@@ -573,7 +573,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             self.assertTrue(probe.port_matches_expected_service(443, "Infisical HTTPS"))
 
         request = urlopen.call_args.args[0]
-        self.assertEqual("https://127.0.0.1:443/", request.full_url)
+        self.assertEqual(request.full_url, "https://127.0.0.1:443/")
         tls_context = urlopen.call_args.kwargs["context"]
         self.assertEqual(ssl.PROTOCOL_TLS_CLIENT, tls_context.protocol)
         self.assertEqual(ssl.TLSVersion.TLSv1_2, tls_context.minimum_version)
@@ -613,7 +613,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             )
 
         request = urlopen.call_args.args[0]
-        self.assertEqual("https://127.0.0.1:443/", request.full_url)
+        self.assertEqual(request.full_url, "https://127.0.0.1:443/")
         tls_context = urlopen.call_args.kwargs["context"]
         self.assertEqual(ssl.PROTOCOL_TLS_CLIENT, tls_context.protocol)
         self.assertEqual(ssl.TLSVersion.TLSv1_2, tls_context.minimum_version)
@@ -635,7 +635,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             self.assertTrue(probe.port_matches_expected_service(8087, "Pulsar Admin API"))
 
         request = urlopen.call_args.args[0]
-        self.assertEqual("http://127.0.0.1:8087/admin/v2/clusters", request.full_url)
+        self.assertEqual(request.full_url, "http://127.0.0.1:8087/admin/v2/clusters")
 
     def test_port_matches_expected_service_recognizes_pulsar_broker_tcp(self):
         probe = HostPreflightProbe(Path.cwd())
@@ -662,7 +662,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             self.assertTrue(probe.port_matches_expected_service(9527, "Pulsar Manager UI"))
 
         request = urlopen.call_args.args[0]
-        self.assertEqual("http://127.0.0.1:9527/", request.full_url)
+        self.assertEqual(request.full_url, "http://127.0.0.1:9527/")
 
     def test_port_matches_expected_service_rejects_empty_nginx_404_for_service_access(self):
         probe = HostPreflightProbe(Path.cwd())
@@ -701,8 +701,8 @@ class TestHostPreflightProbe(unittest.TestCase):
         ) as urlopen:
             self.assertTrue(probe.port_matches_expected_service(443, "Service Access"))
 
-        self.assertEqual("http://127.0.0.1:443/", urlopen.call_args_list[0].args[0].full_url)
-        self.assertEqual("https://127.0.0.1:443/", urlopen.call_args_list[1].args[0].full_url)
+        self.assertEqual(urlopen.call_args_list[0].args[0].full_url, "http://127.0.0.1:443/")
+        self.assertEqual(urlopen.call_args_list[1].args[0].full_url, "https://127.0.0.1:443/")
         tls_context = urlopen.call_args_list[1].kwargs["context"]
         self.assertEqual(ssl.PROTOCOL_TLS_CLIENT, tls_context.protocol)
         self.assertEqual(ssl.TLSVersion.TLSv1_2, tls_context.minimum_version)

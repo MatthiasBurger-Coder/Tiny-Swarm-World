@@ -34,9 +34,9 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
 
         runtime = await probe.runtime()
 
-        self.assertEqual("wsl2", runtime.runtime)
-        self.assertEqual("nat", runtime.networking_mode)
-        self.assertEqual("172.22.1.20", runtime.wsl_ipv4)
+        self.assertEqual(runtime.runtime, "wsl2")
+        self.assertEqual(runtime.networking_mode, "nat")
+        self.assertEqual(runtime.wsl_ipv4, "172.22.1.20")
 
     async def test_incus_unavailable_skips_dependent_network_commands(self):
         probe = SubprocessNetworkProbe(
@@ -46,7 +46,7 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
         incus = await probe.incus()
 
         self.assertFalse(incus.version.ok)
-        self.assertEqual("skipped", incus.network_list.command)
+        self.assertEqual(incus.network_list.command, "skipped")
 
     async def test_runtime_detects_native_linux_and_host_address(self):
         executor = _MappingExecutor(
@@ -67,8 +67,8 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
 
         runtime = await probe.runtime()
 
-        self.assertEqual("native-linux", runtime.runtime)
-        self.assertEqual("192.168.1.25", runtime.host_ipv4)
+        self.assertEqual(runtime.runtime, "native-linux")
+        self.assertEqual(runtime.host_ipv4, "192.168.1.25")
         self.assertFalse(any("wslinfo" in command for command in executor.commands))
         self.assertFalse(any("eth0" in command for command in executor.commands))
         self.assertFalse(any("grep -Eqi" in command for command in executor.commands))
@@ -95,7 +95,7 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
 
                 self.assertEqual(report.environment.value, runtime.runtime)
                 self.assertFalse(runtime.is_wsl2)
-                self.assertEqual([], executor.commands)
+                self.assertEqual(executor.commands, [])
 
     async def test_incus_success_parses_gateway_from_network_show(self):
         probe = SubprocessNetworkProbe(
@@ -118,14 +118,14 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
         incus = await probe.incus()
 
         self.assertTrue(incus.version.ok)
-        self.assertEqual("10.85.194.1", incus.gateway_ipv4)
+        self.assertEqual(incus.gateway_ipv4, "10.85.194.1")
 
     async def test_lxc_node_uses_gateway_probe_when_gateway_is_known(self):
         probe = SubprocessNetworkProbe(executor=_DefaultOkExecutor())
 
         node = await probe.lxc_node("swarm-manager", "10.85.194.1")
 
-        self.assertEqual("swarm-manager", node.node_name)
+        self.assertEqual(node.node_name, "swarm-manager")
         self.assertTrue(node.ping_gateway.ok)
         self.assertIn("10.85.194.1", node.ping_gateway.command)
 
@@ -161,10 +161,10 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
         ):
             result = _run_shell_command("sleep 10", 5)
 
-        self.assertEqual(124, result.return_code)
+        self.assertEqual(result.return_code, 124)
         self.assertTrue(result.timed_out)
-        self.assertEqual("out", result.stdout)
-        self.assertEqual("err", result.stderr)
+        self.assertEqual(result.stdout, "out")
+        self.assertEqual(result.stderr, "err")
 
     def test_shell_command_reports_os_error_without_raising(self):
         with patch(
@@ -173,7 +173,7 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
         ):
             result = _run_shell_command("echo ok", 5)
 
-        self.assertEqual(127, result.return_code)
+        self.assertEqual(result.return_code, 127)
         self.assertIn("missing bash", result.stderr)
 
     def test_shell_command_strips_successful_stdout_and_stderr(self):
@@ -190,8 +190,8 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
             result = _run_shell_command("echo ok", 5)
 
         self.assertTrue(result.ok)
-        self.assertEqual("out", result.stdout)
-        self.assertEqual("err", result.stderr)
+        self.assertEqual(result.stdout, "out")
+        self.assertEqual(result.stderr, "err")
 
 
 class _MappingExecutor:

@@ -111,7 +111,7 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
 
         nexus_client.get_user.assert_called_once_with("admin", initial_value, "admin")
         nexus_client.change_password.assert_called_once_with("admin", initial_value, "admin", active_value)
-        self.assertEqual(3, nexus_client.can_authenticate.call_count)
+        self.assertEqual(nexus_client.can_authenticate.call_count, 3)
         updated_user = nexus_client.update_user.call_args.args[2]
         self.assertEqual(updated_user.status, "active")
 
@@ -142,7 +142,7 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
         )
         service.run()
 
-        self.assertEqual(2, nexus_client.get_user.call_count)
+        self.assertEqual(nexus_client.get_user.call_count, 2)
         nexus_client.change_password.assert_called_once_with("admin", initial_value, "admin", active_value)
 
     def test_verify_reports_active_credentials_with_safe_evidence(self):
@@ -152,8 +152,8 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
 
         result = _run_async(service.verify())
 
-        self.assertEqual("artifacts:nexus-admin-access", result.target_id)
-        self.assertEqual("active", result.evidence["access_state"])
+        self.assertEqual(result.target_id, "artifacts:nexus-admin-access")
+        self.assertEqual(result.evidence["access_state"], "active")
         self.assertNotIn("auth", str(result.evidence))
 
     def test_verify_reports_inactive_credentials_with_safe_evidence(self):
@@ -163,7 +163,7 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
 
         result = _run_async(service.verify())
 
-        self.assertEqual("inactive", result.evidence["access_state"])
+        self.assertEqual(result.evidence["access_state"], "inactive")
         self.assertNotIn("auth", str(result.evidence))
 
     def test_verify_reports_sanitized_client_exceptions(self):
@@ -174,7 +174,7 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
 
         result = _run_async(service.verify())
 
-        self.assertEqual("unknown", result.evidence["access_state"])
+        self.assertEqual(result.evidence["access_state"], "unknown")
         self.assertNotIn(leaked_value, result.message)
         self.assertNotIn("auth", str(result.evidence))
 
@@ -202,13 +202,13 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
             with self.assertRaises(NexusAdminAccessRecoveryBlocked) as raised:
                 service.run()
 
-        self.assertEqual("initial_admin_value_unavailable", raised.exception.diagnostic)
+        self.assertEqual(raised.exception.diagnostic, "initial_admin_value_unavailable")
         self.assertIn("NexusAdminAccessRecoveryBlocked", captured.output[0])
         self.assertIn("initial_admin_value_unavailable", captured.output[0])
         self.assertNotIn(sample_text("se", "cret"), captured.output[0])
         self.assertEqual(
-            [("all", "artifacts:nexus-admin-access", "Error", "failed_to_apply")],
             ui.calls,
+            [("all", "artifacts:nexus-admin-access", "Error", "failed_to_apply")],
         )
 
 

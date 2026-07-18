@@ -98,10 +98,10 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         result = await workflow.run()
 
         self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
-        self.assertEqual(["preflight", "platform init", "validation"], calls)
+        self.assertEqual(calls, ["preflight", "platform init", "validation"])
         self.assertEqual(
-            ["preflight", "platform init", "validation"],
             [phase.name for phase in result.phase_results],
+            ["preflight", "platform init", "validation"],
         )
 
     async def test_installation_plan_missing_required_phase_blocks_before_execution(self):
@@ -119,7 +119,7 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
-        self.assertEqual([], calls)
+        self.assertEqual(calls, [])
         self.assertIn("required setup workflow phases are missing", result.reason)
 
     async def test_installation_plan_preserves_downstream_not_run_after_blocked_phase(self):
@@ -137,10 +137,10 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         result = await workflow.run()
 
         self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
-        self.assertEqual(["preflight", "platform init"], calls)
+        self.assertEqual(calls, ["preflight", "platform init"])
         self.assertEqual(
-            ["completed", "blocked", "not_run"],
             [phase.status for phase in result.phase_results],
+            ["completed", "blocked", "not_run"],
         )
 
     async def test_does_not_print_progress_directly(self):
@@ -157,7 +157,7 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         with redirect_stdout(output):
             await workflow.run()
 
-        self.assertEqual("", output.getvalue())
+        self.assertEqual(output.getvalue(), "")
 
     async def test_reports_progress_for_refused_setup(self):
         progress = _RecordingProgress()
@@ -168,8 +168,8 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(SetupWorkflowStatus.REFUSED, result.status)
         self.assertEqual(
-            [("setup", "live consent", "refused", "refused")],
             progress.summary(),
+            [("setup", "live consent", "refused", "refused")],
         )
 
     async def test_reports_method_trace_for_workflow_and_phase_completion(self):
@@ -192,15 +192,15 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
         self.assertEqual(
+            trace.summary(),
             [
                 ("SetupWorkflow", "run", "entered", "pending", None),
                 ("SetupWorkflowPhase", "run", "entered", "pending", None),
                 ("SetupWorkflowPhase", "run", "returned", "completed", None),
                 ("SetupWorkflow", "run", "returned", "completed", None),
             ],
-            trace.summary(),
         )
-        self.assertEqual({"trace-setup"}, {event.correlation_id for event in trace.events})
+        self.assertEqual({event.correlation_id for event in trace.events}, {"trace-setup"})
 
     async def test_reports_method_trace_for_phase_exception_before_conversion(self):
         trace = _RecordingMethodTrace()
@@ -226,8 +226,8 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
             trace.summary(),
         )
         self.assertEqual(
-            ("SetupWorkflow", "run", "returned", "failed", None),
             trace.summary()[-1],
+            ("SetupWorkflow", "run", "returned", "failed", None),
         )
         self.assertNotIn(sensitive_assignment(), str(trace.events[-2].to_dict()))
 
@@ -241,8 +241,8 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
         self.assertEqual(
-            [("setup", "phase configuration", "blocked", "blocked")],
             progress.summary(),
+            [("setup", "phase configuration", "blocked", "blocked")],
         )
 
     async def test_reports_progress_for_each_phase_and_final_completed(self):
@@ -261,6 +261,7 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
         self.assertEqual(
+            progress.summary(),
             [
                 ("preflight", "phase progress", "started", "pending"),
                 ("preflight", "phase progress", "completed", "completed"),
@@ -268,7 +269,6 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
                 ("platform init", "phase progress", "completed", "completed"),
                 ("setup", "workflow completed", "completed", "completed"),
             ],
-            progress.summary(),
         )
 
     async def test_stops_on_blocked_phase_without_running_later_phases(self):
@@ -308,6 +308,7 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
         self.assertEqual(
+            progress.summary(),
             [
                 ("preflight", "phase progress", "started", "pending"),
                 ("preflight", "phase progress", "completed", "completed"),
@@ -316,7 +317,6 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
                 ("deployment apply", "phase progress", "not_run", "not_run"),
                 ("setup", "workflow stopped", "stopped", "blocked"),
             ],
-            progress.summary(),
         )
 
     async def test_failed_preflight_stops_before_platform_init_phase(self):
@@ -334,17 +334,17 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         result = await workflow.run()
 
         self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
-        self.assertEqual(["preflight"], calls)
-        self.assertEqual("phase 'preflight' returned failed", result.reason)
-        self.assertEqual("not_run", result.phase_results[1].status)
+        self.assertEqual(calls, ["preflight"])
+        self.assertEqual(result.reason, "phase 'preflight' returned failed")
+        self.assertEqual(result.phase_results[1].status, "not_run")
         self.assertEqual(
+            progress.summary(),
             [
                 ("preflight", "phase progress", "started", "pending"),
                 ("preflight", "phase progress", "failed", "failed"),
                 ("platform init", "phase progress", "not_run", "not_run"),
                 ("setup", "workflow stopped", "stopped", "failed"),
             ],
-            progress.summary(),
         )
 
     async def test_provider_blocked_platform_init_marks_downstream_phases_not_run(self):
@@ -363,15 +363,15 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         payload = result.to_dict()
 
         self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
-        self.assertEqual(["preflight", "platform init"], calls)
-        self.assertEqual("phase 'platform init' returned blocked", result.reason)
+        self.assertEqual(calls, ["preflight", "platform init"])
+        self.assertEqual(result.reason, "phase 'platform init' returned blocked")
         self.assertEqual(
-            ["completed", "blocked", "not_run", "not_run"],
             [phase["status"] for phase in payload["phase_results"]],
+            ["completed", "blocked", "not_run", "not_run"],
         )
         self.assertEqual(
-            "provider_selection_blocked",
             payload["phase_results"][1]["result"]["verification_results"][0]["evidence"]["reason"],
+            "provider_selection_blocked",
         )
         self.assertNotIn("multipass_legacy", repr(payload))
 
@@ -390,9 +390,9 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         payload = result.to_dict()
 
         self.assertEqual(SetupWorkflowStatus.FAILED_TO_APPLY, result.status)
-        self.assertEqual(["preflight", "platform init"], calls)
-        self.assertEqual("phase 'platform init' returned failed_to_apply", result.reason)
-        self.assertEqual("not_run", result.phase_results[2].status)
+        self.assertEqual(calls, ["preflight", "platform init"])
+        self.assertEqual(result.reason, "phase 'platform init' returned failed_to_apply")
+        self.assertEqual(result.phase_results[2].status, "not_run")
         self.assertNotIn("stdout", str(payload).lower())
         self.assertNotIn("stderr", str(payload).lower())
         self.assertNotIn("cannot connect to the provider socket", str(payload).lower())
@@ -411,12 +411,12 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("phase 'deployment apply' failed with RuntimeError", result.reason)
         self.assertNotIn("secret", result.reason)
         self.assertEqual(
+            progress.summary(),
             [
                 ("deployment apply", "phase progress", "started", "pending"),
                 ("deployment apply", "phase progress", "failed", "failed"),
                 ("setup", "workflow stopped", "stopped", "failed"),
             ],
-            progress.summary(),
         )
 
     async def test_to_dict_preserves_phase_statuses(self):
@@ -458,7 +458,7 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
 
         phase_payload = payload["phase_results"][0]["result"]
         self.assertEqual("platform init", phase_payload["workflow"])
-        self.assertEqual("platform:init:lxc-nodes", phase_payload["verification_results"][0]["target_id"])
+        self.assertEqual(phase_payload["verification_results"][0]["target_id"], "platform:init:lxc-nodes")
 
     async def test_preserves_failed_to_verify_as_distinct_terminal_status(self):
         workflow = SetupWorkflow(
@@ -517,10 +517,10 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         result = await workflow.run()
 
         self.assertEqual(SetupWorkflowStatus.FAILED_TO_APPLY, result.status)
-        self.assertEqual(["preflight", "deployment apply"], calls)
-        self.assertEqual("phase 'deployment apply' returned failed_to_apply", result.reason)
-        self.assertEqual("failed_to_apply", result.phase_results[1].status)
-        self.assertEqual("not_run", result.phase_results[2].status)
+        self.assertEqual(calls, ["preflight", "deployment apply"])
+        self.assertEqual(result.reason, "phase 'deployment apply' returned failed_to_apply")
+        self.assertEqual(result.phase_results[1].status, "failed_to_apply")
+        self.assertEqual(result.phase_results[2].status, "not_run")
 
     async def test_rejects_unknown_phase_payload_types_as_failed_status(self):
         class UnsafeResult:

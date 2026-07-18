@@ -37,18 +37,18 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         client.create_stack(StackDefinition(name="portainer", compose_content="services: {}"), 1)
 
-        self.assertEqual("https://portainer.local/api/auth", session.post_calls[0]["url"])
+        self.assertEqual(session.post_calls[0]["url"], "https://portainer.local/api/auth")
         self.assertEqual(
-            {"Username": "admin", "Password": OPERATOR_CREDENTIAL},
             session.post_calls[0]["json"],
+            {"Username": "admin", "Password": OPERATOR_CREDENTIAL},
         )
         self.assertEqual("Bearer jwt-token", session.request_calls[0]["headers"]["Authorization"])
         self.assertEqual(
-            "https://portainer.local/api/endpoints/1/docker/info",
             session.request_calls[0]["url"],
+            "https://portainer.local/api/endpoints/1/docker/info",
         )
-        self.assertEqual("portainer", session.request_calls[1]["json"]["name"])
-        self.assertEqual("swarm-cluster-id", session.request_calls[1]["json"]["SwarmID"])
+        self.assertEqual(session.request_calls[1]["json"]["name"], "portainer")
+        self.assertEqual(session.request_calls[1]["json"]["SwarmID"], "swarm-cluster-id")
 
     def test_create_stack_sends_allowlisted_stack_environment(self):
         session = _FakeSession(
@@ -69,8 +69,8 @@ class TestPortainerHttpClient(unittest.TestCase):
         )
 
         self.assertEqual(
-            [{"name": "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET", "value": "operator_defined"}],
             session.request_calls[1]["json"]["env"],
+            [{"name": "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET", "value": "operator_defined"}],
         )
 
     def test_apply_stack_creates_missing_stack_through_deployment_gateway(self):
@@ -101,16 +101,16 @@ class TestPortainerHttpClient(unittest.TestCase):
             )
         )
 
-        self.assertEqual("https://portainer.local/api/endpoints", session.request_calls[0]["url"])
-        self.assertEqual("https://portainer.local/api/stacks", session.request_calls[1]["url"])
+        self.assertEqual(session.request_calls[0]["url"], "https://portainer.local/api/endpoints")
+        self.assertEqual(session.request_calls[1]["url"], "https://portainer.local/api/stacks")
         self.assertEqual(
-            "https://portainer.local/api/endpoints/7/docker/info",
             session.request_calls[2]["url"],
+            "https://portainer.local/api/endpoints/7/docker/info",
         )
-        self.assertEqual("jenkins", session.request_calls[3]["json"]["name"])
+        self.assertEqual(session.request_calls[3]["json"]["name"], "jenkins")
         self.assertEqual(
-            [{"name": "TSW_JENKINS_IMAGE", "value": "jenkins:latest"}],
             session.request_calls[3]["json"]["env"],
+            [{"name": "TSW_JENKINS_IMAGE", "value": "jenkins:latest"}],
         )
 
     def test_apply_stack_updates_existing_stack_through_deployment_gateway(self):
@@ -140,9 +140,9 @@ class TestPortainerHttpClient(unittest.TestCase):
         )
 
         request = session.request_calls[2]
-        self.assertEqual("PUT", request["method"])
-        self.assertEqual("https://portainer.local/api/stacks/42?endpointId=7", request["url"])
-        self.assertEqual("services: {}", request["json"]["stackFileContent"])
+        self.assertEqual(request["method"], "PUT")
+        self.assertEqual(request["url"], "https://portainer.local/api/stacks/42?endpointId=7")
+        self.assertEqual(request["json"]["stackFileContent"], "services: {}")
 
     def test_stack_registered_uses_portainer_stack_lookup_inside_adapter(self):
         session = _FakeSession(
@@ -157,7 +157,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         )
 
         self.assertTrue(client.stack_registered("nexus"))
-        self.assertEqual("https://portainer.local/api/stacks", session.request_calls[0]["url"])
+        self.assertEqual(session.request_calls[0]["url"], "https://portainer.local/api/stacks")
 
     def test_create_stack_uses_extended_stack_request_timeout(self):
         session = _FakeSession(
@@ -175,9 +175,9 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         client.create_stack(StackDefinition(name="swagger", compose_content="services: {}"), 1)
 
-        self.assertEqual(11, session.post_calls[0]["timeout"])
-        self.assertEqual(11, session.request_calls[0]["timeout"])
-        self.assertEqual(181, session.request_calls[1]["timeout"])
+        self.assertEqual(session.post_calls[0]["timeout"], 11)
+        self.assertEqual(session.request_calls[0]["timeout"], 11)
+        self.assertEqual(session.request_calls[1]["timeout"], 181)
 
     def test_get_endpoint_id_by_name_uses_cached_jwt(self):
         session = _FakeSession(
@@ -199,9 +199,9 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         self.assertEqual(1, len(session.post_calls))
         self.assertEqual("GET", session.request_calls[0]["method"])
-        self.assertEqual("https://portainer.local/api/endpoints", session.request_calls[0]["url"])
+        self.assertEqual(session.request_calls[0]["url"], "https://portainer.local/api/endpoints")
         self.assertEqual("Bearer jwt-token", session.request_calls[1]["headers"]["Authorization"])
-        self.assertEqual(1, session.cookies.clear_count)
+        self.assertEqual(session.cookies.clear_count, 1)
 
     def test_api_request_reauthenticates_once_after_unauthorized_response(self):
         session = _FakeSession(
@@ -221,16 +221,16 @@ class TestPortainerHttpClient(unittest.TestCase):
             session=session,
         )
 
-        self.assertEqual(7, client.get_endpoint_id_by_name("local"))
+        self.assertEqual(client.get_endpoint_id_by_name("local"), 7)
 
-        self.assertEqual(2, len(session.post_calls))
+        self.assertEqual(len(session.post_calls), 2)
         self.assertEqual(
-            "Bearer expired-token",
             session.request_calls[0]["headers"]["Authorization"],
+            "Bearer expired-token",
         )
         self.assertEqual(
-            "Bearer fresh-token",
             session.request_calls[1]["headers"]["Authorization"],
+            "Bearer fresh-token",
         )
 
     def test_authentication_clears_cookie_auth_before_endpoint_creation(self):
@@ -249,11 +249,11 @@ class TestPortainerHttpClient(unittest.TestCase):
             session=session,
         )
 
-        self.assertEqual(7, client.ensure_local_endpoint("local"))
+        self.assertEqual(client.ensure_local_endpoint("local"), 7)
 
-        self.assertEqual(1, session.cookies.clear_count)
-        self.assertEqual("POST", session.request_calls[1]["method"])
-        self.assertEqual("Bearer jwt-token", session.request_calls[1]["headers"]["Authorization"])
+        self.assertEqual(session.cookies.clear_count, 1)
+        self.assertEqual(session.request_calls[1]["method"], "POST")
+        self.assertEqual(session.request_calls[1]["headers"]["Authorization"], "Bearer jwt-token")
 
     def test_local_endpoint_request_accepts_primary_portainer_endpoint_alias(self):
         session = _FakeSession(
@@ -267,7 +267,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             session=session,
         )
 
-        self.assertEqual(11, client.get_endpoint_id_by_name("local"))
+        self.assertEqual(client.get_endpoint_id_by_name("local"), 11)
 
     def test_local_endpoint_request_accepts_single_socket_backed_endpoint(self):
         session = _FakeSession(
@@ -286,7 +286,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             session=session,
         )
 
-        self.assertEqual(12, client.get_endpoint_id_by_name("local"))
+        self.assertEqual(client.get_endpoint_id_by_name("local"), 12)
 
     def test_ensure_local_endpoint_returns_existing_endpoint(self):
         session = _FakeSession(
@@ -300,8 +300,8 @@ class TestPortainerHttpClient(unittest.TestCase):
             session=session,
         )
 
-        self.assertEqual(7, client.ensure_local_endpoint("local"))
-        self.assertEqual(1, len(session.request_calls))
+        self.assertEqual(client.ensure_local_endpoint("local"), 7)
+        self.assertEqual(len(session.request_calls), 1)
 
     def test_ensure_local_endpoint_creates_socket_endpoint_when_missing(self):
         session = _FakeSession(
@@ -322,18 +322,18 @@ class TestPortainerHttpClient(unittest.TestCase):
             session=session,
         )
 
-        self.assertEqual(17, client.ensure_local_endpoint("local"))
+        self.assertEqual(client.ensure_local_endpoint("local"), 17)
         create_call = session.request_calls[1]
-        self.assertEqual("POST", create_call["method"])
-        self.assertEqual("https://portainer.local/api/endpoints", create_call["url"])
+        self.assertEqual(create_call["method"], "POST")
+        self.assertEqual(create_call["url"], "https://portainer.local/api/endpoints")
         self.assertEqual(
+            create_call["files"],
             {
                 "Name": (None, "local"),
                 "EndpointCreationType": (None, "1"),
                 "ContainerEngine": (None, "docker"),
                 "URL": (None, "unix:///var/run/docker.sock"),
             },
-            create_call["files"],
         )
 
     def test_ensure_local_endpoint_reports_creation_failure_without_response_body(self):
@@ -408,12 +408,12 @@ class TestPortainerHttpClient(unittest.TestCase):
         client.create_stack(StackDefinition(name="portainer", compose_content="services: {}"), 7)
 
         self.assertEqual(
-            "https://portainer.local/api/stacks/create/swarm/string?endpointId=7",
             session.request_calls[1]["url"],
+            "https://portainer.local/api/stacks/create/swarm/string?endpointId=7",
         )
-        self.assertEqual("https://portainer.local/api/stacks", session.request_calls[2]["url"])
-        self.assertEqual(7, session.request_calls[2]["json"]["endpointId"])
-        self.assertEqual("swarm-cluster-id", session.request_calls[2]["json"]["SwarmID"])
+        self.assertEqual(session.request_calls[2]["url"], "https://portainer.local/api/stacks")
+        self.assertEqual(session.request_calls[2]["json"]["endpointId"], 7)
+        self.assertEqual(session.request_calls[2]["json"]["SwarmID"], "swarm-cluster-id")
 
     def test_create_stack_requires_swarm_identity(self):
         session = _FakeSession(
@@ -431,7 +431,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             client.create_stack(StackDefinition(name="jenkins", compose_content="services: {}"), 7)
 
         self.assertIn("Swarm cluster ID", str(raised.exception))
-        self.assertEqual(1, len(session.request_calls))
+        self.assertEqual(len(session.request_calls), 1)
 
     def test_update_stack_sends_prune_payload(self):
         session = _FakeSession(
@@ -449,7 +449,7 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         request = session.request_calls[0]
         self.assertEqual("PUT", request["method"])
-        self.assertEqual("https://portainer.local/api/stacks/42?endpointId=7", request["url"])
+        self.assertEqual(request["url"], "https://portainer.local/api/stacks/42?endpointId=7")
         self.assertEqual(
             {
                 "env": [],
@@ -480,8 +480,8 @@ class TestPortainerHttpClient(unittest.TestCase):
         )
 
         self.assertEqual(
-            [{"name": "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET", "value": "operator_defined"}],
             session.request_calls[0]["json"]["env"],
+            [{"name": "TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET", "value": "operator_defined"}],
         )
 
     def test_update_stack_uses_extended_stack_request_timeout(self):
@@ -499,7 +499,7 @@ class TestPortainerHttpClient(unittest.TestCase):
 
         client.update_stack(42, StackDefinition(name="swagger", compose_content="services: {}"), 7)
 
-        self.assertEqual(181, session.request_calls[0]["timeout"])
+        self.assertEqual(session.request_calls[0]["timeout"], 181)
 
     def test_missing_jwt_blocks_api_request(self):
         session = _FakeSession(

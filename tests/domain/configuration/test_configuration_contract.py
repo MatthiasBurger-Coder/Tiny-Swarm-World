@@ -29,7 +29,7 @@ class TestConfigurationContract(unittest.TestCase):
         result = contract.validate({})
 
         self.assertFalse(result.passed)
-        self.assertEqual("TSW_EXAMPLE_PASSWORD", result.failed_findings[0].key)
+        self.assertEqual(result.failed_findings[0].key, "TSW_EXAMPLE_PASSWORD")
         self.assertEqual(ConfigurationStatus.FAILED, result.failed_findings[0].status)
         self.assertNotIn(sample_text("opaque", "-value"), repr(result.to_dict()))
 
@@ -92,7 +92,7 @@ class TestConfigurationContract(unittest.TestCase):
         result = contract.validate({})
 
         self.assertTrue(result.passed)
-        self.assertEqual("default", result.findings[0].evidence["source"])
+        self.assertEqual(result.findings[0].evidence["source"], "default")
 
     def test_invalid_defaults_are_rejected_when_contract_is_created(self):
         with self.assertRaises(ValueError):
@@ -121,10 +121,10 @@ class TestConfigurationContract(unittest.TestCase):
         self.assertEqual(ConfigurationValueKind.SECRET_VALUE, requirements["TSW_PULSAR_MANAGER_ADMIN_PASSWORD"].value_kind)
         self.assertTrue(requirements["TSW_PULSAR_MANAGER_ADMIN_PASSWORD"].required)
         self.assertEqual(ConfigurationValueKind.URL, requirements["TSW_PULSAR_ADMIN_URL"].value_kind)
-        self.assertEqual("pulsar", requirements["TSW_PULSAR_ADMIN_URL"].scope)
+        self.assertEqual(requirements["TSW_PULSAR_ADMIN_URL"].scope, "pulsar")
         self.assertFalse(requirements["TSW_PULSAR_ADMIN_URL"].required)
         self.assertEqual(ConfigurationValueKind.URL, requirements["TSW_PULSAR_PUBLIC_ADMIN_URL"].value_kind)
-        self.assertEqual("pulsar", requirements["TSW_PULSAR_PUBLIC_ADMIN_URL"].scope)
+        self.assertEqual(requirements["TSW_PULSAR_PUBLIC_ADMIN_URL"].scope, "pulsar")
         self.assertFalse(requirements["TSW_PULSAR_PUBLIC_ADMIN_URL"].required)
 
 

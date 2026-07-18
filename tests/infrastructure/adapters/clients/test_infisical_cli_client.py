@@ -25,7 +25,7 @@ class TestInfisicalCliClient(unittest.TestCase):
         ):
             client.ensure_project_environment("tiny-swarm-world", "local")
 
-        self.assertEqual(("POST", "http://localhost:17080/api/v3/auth/login"), calls[0])
+        self.assertEqual(calls[0], ("POST", "http://localhost:17080/api/v3/auth/login"))
 
     def test_retries_transient_infisical_request_timeouts(self):
         calls: list[tuple[str, str]] = []
@@ -53,7 +53,7 @@ class TestInfisicalCliClient(unittest.TestCase):
             )
 
         organization_calls = [call for call in calls if call == ("GET", "http://localhost:17080/api/v1/organization")]
-        self.assertEqual(2, len(organization_calls))
+        self.assertEqual(len(organization_calls), 2)
 
 
 class _FakeResponse:

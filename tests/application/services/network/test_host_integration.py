@@ -93,7 +93,7 @@ class TestNetworkDoctorService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Runtime: wsl1_unsupported", rendered)
         self.assertIn("RUNTIME_HOST_UNSUPPORTED", rendered)
         self.assertIn("Upgrade to WSL2", rendered)
-        self.assertEqual([], probe.non_runtime_calls)
+        self.assertEqual(probe.non_runtime_calls, [])
 
     async def test_wsl_mirrored_runtime_reports_runtime_repair_hint(self):
         report = await NetworkDoctorService(
@@ -152,7 +152,7 @@ class TestNetworkRepairService(unittest.IsolatedAsyncioTestCase):
         ).run(NetworkRepairOptions())
 
         self.assertFalse(report.succeeded)
-        self.assertEqual([], repair.calls)
+        self.assertEqual(repair.calls, [])
         self.assertIn("No repair target was selected.", report.render())
 
     async def test_unsupported_runtime_repair_blocks(self):
@@ -181,7 +181,7 @@ class TestNetworkRepairService(unittest.IsolatedAsyncioTestCase):
         ).run(NetworkRepairOptions(runtime="wsl2-nat", apply=True))
 
         self.assertTrue(report.succeeded)
-        self.assertEqual(["runtime"], repair.calls)
+        self.assertEqual(repair.calls, ["runtime"])
 
     async def test_runtime_repair_without_apply_only_reports_planned_wsl_nat_change(self):
         repair = _RecordingRepair()
@@ -193,7 +193,7 @@ class TestNetworkRepairService(unittest.IsolatedAsyncioTestCase):
         rendered = report.render()
 
         self.assertTrue(report.succeeded)
-        self.assertEqual([], repair.calls)
+        self.assertEqual(repair.calls, [])
         self.assertIn("- runtime: planned", rendered)
         self.assertIn("WSL is running in mirrored networking mode.", rendered)
         self.assertIn("./tsw network repair --runtime wsl2-nat --apply", rendered)
@@ -208,7 +208,7 @@ class TestNetworkRepairService(unittest.IsolatedAsyncioTestCase):
         rendered = report.render()
 
         self.assertTrue(report.succeeded)
-        self.assertEqual([], repair.calls)
+        self.assertEqual(repair.calls, [])
         self.assertIn("- incus: planned", rendered)
         self.assertIn("- linux-forwarding: planned", rendered)
 
@@ -220,7 +220,7 @@ class TestNetworkRepairService(unittest.IsolatedAsyncioTestCase):
         ).run(NetworkRepairOptions(linux_forwarding=True, apply=True))
 
         self.assertTrue(report.succeeded)
-        self.assertEqual(["linux-forwarding:incusbr0:swarm-manager"], repair.calls)
+        self.assertEqual(repair.calls, ["linux-forwarding:incusbr0:swarm-manager"])
         self.assertIn("- linux-forwarding: applied", report.render())
 
 

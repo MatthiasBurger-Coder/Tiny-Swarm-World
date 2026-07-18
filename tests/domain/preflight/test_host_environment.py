@@ -30,16 +30,16 @@ class TestHostEnvironmentReport(unittest.TestCase):
         self.assertIs(direct_sanitized_evidence, legacy_sanitized_evidence)
 
     def test_environment_kind_values_match_workflow_contract(self):
-        self.assertEqual("native_linux", HostEnvironmentKind.NATIVE_LINUX.value)
-        self.assertEqual("wsl2", HostEnvironmentKind.WSL2.value)
-        self.assertEqual("wsl1_unsupported", HostEnvironmentKind.WSL1_UNSUPPORTED.value)
+        self.assertEqual(HostEnvironmentKind.NATIVE_LINUX.value, "native_linux")
+        self.assertEqual(HostEnvironmentKind.WSL2.value, "wsl2")
+        self.assertEqual(HostEnvironmentKind.WSL1_UNSUPPORTED.value, "wsl1_unsupported")
         self.assertEqual(
-            "unknown_unsupported",
             HostEnvironmentKind.UNKNOWN_UNSUPPORTED.value,
+            "unknown_unsupported",
         )
         self.assertEqual(
-            "sandbox_unverified",
             HostEnvironmentKind.SANDBOX_UNVERIFIED.value,
+            "sandbox_unverified",
         )
 
     def test_native_linux_report_allows_live_setup(self):
@@ -53,8 +53,8 @@ class TestHostEnvironmentReport(unittest.TestCase):
         self.assertTrue(report.supported)
         self.assertTrue(report.allows_live_setup)
         self.assertFalse(report.static_validation_only)
-        self.assertEqual("native_linux", report.to_dict()["environment"])
-        self.assertEqual("native_linux", report.to_dict()["setup_path"])
+        self.assertEqual(report.to_dict()["environment"], "native_linux")
+        self.assertEqual(report.to_dict()["setup_path"], "native_linux")
 
     def test_sandbox_report_is_static_validation_only(self):
         report = HostEnvironmentReport(
@@ -90,7 +90,7 @@ class TestHostEnvironmentReport(unittest.TestCase):
         )
         evidence["classification"] = "changed"
 
-        self.assertEqual("wsl2", report.evidence["classification"])
+        self.assertEqual(report.evidence["classification"], "wsl2")
         with self.assertRaises(TypeError):
             report.evidence["classification"] = "changed-again"
 
@@ -158,8 +158,8 @@ class TestHostEnvironmentClassification(unittest.TestCase):
         report = classify_host_environment(_signals())
 
         self.assertEqual(HostEnvironmentKind.NATIVE_LINUX, report.environment)
-        self.assertEqual("Ubuntu 24.04 LTS", report.distribution)
-        self.assertEqual("6.8.0-generic", report.kernel_release)
+        self.assertEqual(report.distribution, "Ubuntu 24.04 LTS")
+        self.assertEqual(report.kernel_release, "6.8.0-generic")
         self.assertFalse(report.windows_interop_available)
         self.assertTrue(report.supported)
 
@@ -188,8 +188,8 @@ class TestHostEnvironmentClassification(unittest.TestCase):
         )
 
         self.assertEqual(HostEnvironmentKind.WSL2, report.environment)
-        self.assertEqual("Ubuntu-24.04", report.distribution)
-        self.assertEqual("6.1.21.2-microsoft-standard-WSL2", report.kernel_release)
+        self.assertEqual(report.distribution, "Ubuntu-24.04")
+        self.assertEqual(report.kernel_release, "6.1.21.2-microsoft-standard-WSL2")
         self.assertTrue(report.windows_interop_available)
 
     def test_confirmed_wsl2_without_interop_keeps_host_type(self):
@@ -215,7 +215,7 @@ class TestHostEnvironmentClassification(unittest.TestCase):
         )
 
         self.assertEqual(HostEnvironmentKind.UNKNOWN_UNSUPPORTED, report.environment)
-        self.assertEqual("wsl_unknown", report.evidence["classification"])
+        self.assertEqual(report.evidence["classification"], "wsl_unknown")
 
     def test_wsl_environment_without_kernel_signal_is_unsupported(self):
         report = classify_host_environment(
@@ -239,7 +239,7 @@ class TestHostEnvironmentClassification(unittest.TestCase):
         )
 
         self.assertEqual(HostEnvironmentKind.UNKNOWN_UNSUPPORTED, report.environment)
-        self.assertEqual("unknown", report.evidence["wsl_generation"])
+        self.assertEqual(report.evidence["wsl_generation"], "unknown")
 
     def test_missing_kernel_files_is_sandbox_unverified(self):
         report = classify_host_environment(
@@ -288,6 +288,7 @@ class TestHostEnvironmentClassification(unittest.TestCase):
         payload = report.to_dict()
 
         self.assertEqual(
+            set(payload),
             {
                 "allows_live_setup",
                 "distribution",
@@ -301,7 +302,6 @@ class TestHostEnvironmentClassification(unittest.TestCase):
                 "supported",
                 "windows_interop_available",
             },
-            set(payload),
         )
         self.assertNotIn(raw_proc_signal, str(payload))
 

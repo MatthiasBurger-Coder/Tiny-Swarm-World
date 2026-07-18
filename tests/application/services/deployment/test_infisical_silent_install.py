@@ -54,7 +54,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
         rendered = service.render_environment()
 
         self.assertEqual(sample_http_url("localhost", 17080), rendered["SITE_URL"])
-        self.assertEqual("enc", rendered["ENCRYPTION_KEY"])
+        self.assertEqual(rendered["ENCRYPTION_KEY"], "enc")
         self.assertIn("postgres://infisical:pg@", rendered["DB_CONNECTION_URI"])
 
     def test_redacts_secret_values(self):
@@ -67,9 +67,9 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             }
         )
 
-        self.assertEqual("<redacted>", redacted["ENCRYPTION_KEY"])
-        self.assertEqual("<redacted>", redacted["AUTH_SECRET"])
-        self.assertEqual("<redacted>", redacted["DB_CONNECTION_URI"])
+        self.assertEqual(redacted["ENCRYPTION_KEY"], "<redacted>")
+        self.assertEqual(redacted["AUTH_SECRET"], "<redacted>")
+        self.assertEqual(redacted["DB_CONNECTION_URI"], "<redacted>")
         self.assertEqual(sample_http_url("localhost", 17080), redacted["SITE_URL"])
 
     def test_builds_idempotent_bootstrap_command_and_sanitized_command(self):
@@ -94,7 +94,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             with self.assertRaises(InfisicalInstallBlocker) as raised:
                 service.run()
 
-            self.assertEqual("infisical_cli_missing", raised.exception.classification)
+            self.assertEqual(raised.exception.classification, "infisical_cli_missing")
             evidence = (Path(directory) / "evidence" / "bootstrap-result.json").read_text()
             self.assertNotIn(f"{PASSWORD_OPTION}{operator_credential()}", evidence)
             self.assertNotIn(
@@ -117,17 +117,17 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             verification = service.verify()
 
             self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-            self.assertEqual("bootstrapped", verification.evidence["bootstrap_state"])
-            self.assertEqual("admin_api_fallback", verification.evidence["bootstrap_method"])
+            self.assertEqual(verification.evidence["bootstrap_state"], "bootstrapped")
+            self.assertEqual(verification.evidence["bootstrap_method"], "admin_api_fallback")
             self.assertEqual(
-                [("admin@tiny-swarm.local", "Tiny Swarm World")],
                 bootstrap_client.calls,
+                [("admin@tiny-swarm.local", "Tiny Swarm World")],
             )
             result = json.loads(
                 (Path(directory) / "evidence" / "bootstrap-result.json").read_text()
             )
-            self.assertEqual("admin_api_fallback", result["bootstrap_method"])
-            self.assertEqual("<redacted>", result["redacted_config"]["DB_CONNECTION_URI"])
+            self.assertEqual(result["bootstrap_method"], "admin_api_fallback")
+            self.assertEqual(result["redacted_config"]["DB_CONNECTION_URI"], "<redacted>")
 
     def test_admin_api_fallback_failure_writes_redacted_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -142,9 +142,9 @@ class TestInfisicalSilentInstall(unittest.TestCase):
                 service.run()
 
             result = json.loads((Path(directory) / "evidence" / "bootstrap-result.json").read_text())
-            self.assertEqual("failed", result["status"])
-            self.assertEqual("infisical_bootstrap_api_unavailable", result["classification"])
-            self.assertEqual("502", result["diagnostic"]["bootstrap_http_status"])
+            self.assertEqual(result["status"], "failed")
+            self.assertEqual(result["classification"], "infisical_bootstrap_api_unavailable")
+            self.assertEqual(result["diagnostic"]["bootstrap_http_status"], "502")
             self.assertNotIn(operator_credential(), json.dumps(result))
 
     def test_readiness_timeout_is_classified(self):
@@ -160,8 +160,8 @@ class TestInfisicalSilentInstall(unittest.TestCase):
                 service.run()
 
             self.assertEqual(
-                "infisical_readiness_timeout",
                 raised.exception.classification,
+                "infisical_readiness_timeout",
             )
 
     def test_already_bootstrapped_result_is_verified(self):
@@ -176,11 +176,11 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             verification = service.verify()
 
             self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-            self.assertEqual("already_bootstrapped", verification.evidence["bootstrap_state"])
+            self.assertEqual(verification.evidence["bootstrap_state"], "already_bootstrapped")
             result = json.loads(
                 (Path(directory) / "evidence" / "bootstrap-result.json").read_text()
             )
-            self.assertEqual("already_bootstrapped", result["status"])
+            self.assertEqual(result["status"], "already_bootstrapped")
 
     def test_cli_bootstrap_failure_is_classified_and_redacted(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -193,12 +193,12 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             with self.assertRaises(InfisicalInstallBlocker) as raised:
                 service.run()
 
-            self.assertEqual("infisical_bootstrap_failed", raised.exception.classification)
+            self.assertEqual(raised.exception.classification, "infisical_bootstrap_failed")
             result = json.loads(
                 (Path(directory) / "evidence" / "bootstrap-result.json").read_text()
             )
-            self.assertEqual("failed", result["status"])
-            self.assertEqual("infisical_bootstrap_failed", result["classification"])
+            self.assertEqual(result["status"], "failed")
+            self.assertEqual(result["classification"], "infisical_bootstrap_failed")
             self.assertNotIn(operator_credential(), json.dumps(result))
 
 

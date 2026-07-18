@@ -38,10 +38,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("already_present", result.evidence["lifecycle_outcome"])
+        self.assertEqual(result.evidence["lifecycle_outcome"], "already_present")
         self.assertEqual(
-            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
             runner.calls,
+            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
         )
 
     async def test_verify_node_reports_missing_managed_node_without_launch(self):
@@ -54,10 +54,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
-        self.assertEqual("managed_node_missing", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "managed_node_missing")
         self.assertEqual(
-            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
             runner.calls,
+            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
         )
 
     async def test_missing_node_launches_incus_container_and_verifies_created(self):
@@ -72,8 +72,9 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("created", result.evidence["lifecycle_outcome"])
+        self.assertEqual(result.evidence["lifecycle_outcome"], "created")
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "profile", "show", "docker-swarm"), 5.0),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
@@ -102,7 +103,6 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
                 ),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -129,6 +129,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "profile", "show", "docker-swarm"), 5.0),
                 (("incus", "profile", "show", "docker-swarm-manager"), 5.0),
@@ -160,7 +161,6 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
                 ),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -189,9 +189,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("created", result.evidence["lifecycle_outcome"])
-        self.assertEqual("swarm-manager", result.evidence["node_name"])
+        self.assertEqual(result.evidence["lifecycle_outcome"], "created")
+        self.assertEqual(result.evidence["node_name"], "swarm-manager")
         self.assertEqual(
+            runner.calls,
             [
                 (("lxc", "profile", "show", "docker-swarm"), 5.0),
                 (("lxc", "profile", "show", "docker-swarm-manager"), 5.0),
@@ -226,7 +227,6 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
                 ),
                 (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -249,6 +249,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "profile", "show", "docker-swarm"), 5.0),
                 (("incus", "profile", "set", "docker-swarm", "security.nesting", "true"), 5.0),
@@ -301,7 +302,6 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
                 ),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertNotIn(
             ("incus", "profile", "show", "swarm-manager"),
@@ -329,14 +329,14 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("already_present", result.evidence["lifecycle_outcome"])
+        self.assertEqual(result.evidence["lifecycle_outcome"], "already_present")
         self.assertEqual(
+            runner.calls,
             [
                 (("lxc", "profile", "show", "docker-swarm"), 5.0),
                 (("lxc", "profile", "show", "docker-swarm-manager"), 5.0),
                 (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -350,13 +350,13 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("live_mutation_consent_missing", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "live_mutation_consent_missing")
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "profile", "show", "docker-swarm"), 5.0),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -370,13 +370,13 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("already_present", result.evidence["lifecycle_outcome"])
+        self.assertEqual(result.evidence["lifecycle_outcome"], "already_present")
         self.assertEqual(
+            runner.calls,
             [
                 (("lxc", "profile", "show", "docker-swarm"), 5.0),
                 (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -392,15 +392,15 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("started", result.evidence["lifecycle_outcome"])
+        self.assertEqual(result.evidence["lifecycle_outcome"], "started")
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "profile", "show", "docker-swarm"), 5.0),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
                 (("incus", "start", "swarm-manager"), 60.0),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -419,9 +419,9 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("provider_selection_blocked", result.evidence["classification"])
-        self.assertEqual(0, repository.load_count)
-        self.assertEqual([], runner.calls)
+        self.assertEqual(result.evidence["classification"], "provider_selection_blocked")
+        self.assertEqual(repository.load_count, 0)
+        self.assertEqual(runner.calls, [])
         self.assertEvidenceIsSummaryOnly(result)
 
     async def test_existing_unmanaged_node_blocks_before_start_or_verify_success(self):
@@ -440,17 +440,17 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("existing_node_not_managed", result.evidence["classification"])
-        self.assertEqual("managed_marker_not_true", result.evidence["mismatch_reasons"])
-        self.assertEqual("different", result.evidence["observed_managed_marker"])
-        self.assertEqual("matches", result.evidence["observed_node_marker"])
-        self.assertEqual("matches", result.evidence["observed_image_alias_marker"])
+        self.assertEqual(result.evidence["classification"], "existing_node_not_managed")
+        self.assertEqual(result.evidence["mismatch_reasons"], "managed_marker_not_true")
+        self.assertEqual(result.evidence["observed_managed_marker"], "different")
+        self.assertEqual(result.evidence["observed_node_marker"], "matches")
+        self.assertEqual(result.evidence["observed_image_alias_marker"], "matches")
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "profile", "show", "docker-swarm"), 5.0),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -463,10 +463,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("profile_invalid", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "profile_invalid")
         self.assertEqual(
-            [(("incus", "profile", "show", "docker-swarm"), 5.0)],
             runner.calls,
+            [(("incus", "profile", "show", "docker-swarm"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -491,7 +491,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
             result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("already_present", result.evidence["lifecycle_outcome"])
+        self.assertEqual(result.evidence["lifecycle_outcome"], "already_present")
 
     async def test_privileged_swarm_ingress_flag_reconciles_profile_setting(self):
         runner = _FakeRunner(
@@ -528,10 +528,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("profile_invalid", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "profile_invalid")
         self.assertEqual(
-            [(("incus", "profile", "show", "docker-swarm"), 5.0)],
             runner.calls,
+            [(("incus", "profile", "show", "docker-swarm"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -544,10 +544,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("profile_invalid", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "profile_invalid")
         self.assertEqual(
-            [(("incus", "profile", "show", "docker-swarm"), 5.0)],
             runner.calls,
+            [(("incus", "profile", "show", "docker-swarm"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -564,17 +564,17 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("profile_missing", result.evidence["classification"])
-        self.assertEqual("swarm-manager", result.evidence["node_name"])
-        self.assertEqual("docker-swarm", result.evidence["expected_profile"])
-        self.assertEqual("docker-swarm", result.evidence["resolved_profile"])
-        self.assertEqual("default", result.evidence["available_profiles"])
+        self.assertEqual(result.evidence["classification"], "profile_missing")
+        self.assertEqual(result.evidence["node_name"], "swarm-manager")
+        self.assertEqual(result.evidence["expected_profile"], "docker-swarm")
+        self.assertEqual(result.evidence["resolved_profile"], "docker-swarm")
+        self.assertEqual(result.evidence["available_profiles"], "default")
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "profile", "show", "docker-swarm"), 5.0),
                 (("incus", "profile", "list", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -587,17 +587,17 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("network_missing", result.evidence["classification"])
-        self.assertEqual("control", result.evidence["logical_network"])
-        self.assertEqual("incusbr0", result.evidence["resolved_network"])
-        self.assertEqual("default", result.evidence["available_networks"])
-        self.assertEqual("default", result.evidence["expected_storage_pool"])
+        self.assertEqual(result.evidence["classification"], "network_missing")
+        self.assertEqual(result.evidence["logical_network"], "control")
+        self.assertEqual(result.evidence["resolved_network"], "incusbr0")
+        self.assertEqual(result.evidence["available_networks"], "default")
+        self.assertEqual(result.evidence["expected_storage_pool"], "default")
         self.assertIn("resolved backend network", result.evidence["remediation_hint"])
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "network", "list", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -611,17 +611,17 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("storage_pool_missing", result.evidence["classification"])
-        self.assertEqual("incusbr0", result.evidence["available_networks"])
-        self.assertEqual("default", result.evidence["expected_storage_pool"])
-        self.assertEqual("other", result.evidence["available_storage_pools"])
+        self.assertEqual(result.evidence["classification"], "storage_pool_missing")
+        self.assertEqual(result.evidence["available_networks"], "incusbr0")
+        self.assertEqual(result.evidence["expected_storage_pool"], "default")
+        self.assertEqual(result.evidence["available_storage_pools"], "other")
         self.assertIn("expected backend storage pool", result.evidence["remediation_hint"])
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "network", "list", "--format", "json"), 5.0),
                 (("incus", "storage", "list", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -647,7 +647,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         launch_call = runner.calls[4][0]
-        self.assertEqual("launch", launch_call[1])
+        self.assertEqual(launch_call[1], "launch")
         self.assertIn("--network", launch_call)
         self.assertIn("tswbr0", launch_call)
         self.assertIn("--storage", launch_call)
@@ -682,7 +682,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         launch_call = runner.calls[4][0]
-        self.assertEqual("lxc", launch_call[0])
+        self.assertEqual(launch_call[0], "lxc")
         self.assertIn("lxdbr0", launch_call)
         self.assertIn("lxdpool", launch_call)
         self.assertNotIn("incusbr0", launch_call)
@@ -706,10 +706,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("inventory_mapping_missing", result.evidence["classification"])
-        self.assertEqual("incus", result.evidence["backend"])
+        self.assertEqual(result.evidence["classification"], "inventory_mapping_missing")
+        self.assertEqual(result.evidence["backend"], "incus")
         self.assertIn("selected backend", result.evidence["remediation_hint"])
-        self.assertEqual([], runner.calls)
+        self.assertEqual(runner.calls, [])
 
     async def test_provider_resource_resolution_blocks_unmapped_logical_network(self):
         runner = _FakeRunner()
@@ -724,11 +724,11 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("inventory_mapping_missing", result.evidence["classification"])
-        self.assertEqual("private", result.evidence["logical_network"])
-        self.assertEqual("", result.evidence["resolved_network"])
+        self.assertEqual(result.evidence["classification"], "inventory_mapping_missing")
+        self.assertEqual(result.evidence["logical_network"], "private")
+        self.assertEqual(result.evidence["resolved_network"], "")
         self.assertIn("logical-to-backend network mapping", result.evidence["remediation_hint"])
-        self.assertEqual([], runner.calls)
+        self.assertEqual(runner.calls, [])
 
     async def test_missing_provider_node_config_is_inventory_mapping_missing(self):
         runner = _FakeRunner()
@@ -740,8 +740,8 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("inventory_mapping_missing", result.evidence["classification"])
-        self.assertEqual([], runner.calls)
+        self.assertEqual(result.evidence["classification"], "inventory_mapping_missing")
+        self.assertEqual(runner.calls, [])
 
     async def test_launch_failure_maps_to_failed_to_apply_with_sanitized_diagnostic(self):
         runner = _FakeRunner(
@@ -759,18 +759,18 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
-        self.assertEqual("launch_failed", result.evidence["classification"])
-        self.assertEqual("2", result.evidence["return_code"])
+        self.assertEqual(result.evidence["classification"], "launch_failed")
+        self.assertEqual(result.evidence["return_code"], "2")
         self.assertEqual(
-            "provider_launch_failed_unclassified",
             result.evidence["failure_reason"],
+            "provider_launch_failed_unclassified",
         )
         self.assertEqual(
-            "inspect_provider_launch_error",
             result.evidence["operator_action"],
+            "inspect_provider_launch_error",
         )
-        self.assertEqual("ubuntu-24.04", result.evidence["expected_image_alias"])
-        self.assertEqual("docker-swarm", result.evidence["expected_profile"])
+        self.assertEqual(result.evidence["expected_image_alias"], "ubuntu-24.04")
+        self.assertEqual(result.evidence["expected_profile"], "docker-swarm")
         self.assertEvidenceIsSummaryOnly(result)
 
     async def test_lxd_launch_failure_reports_resource_context_and_reason_code(self):
@@ -790,14 +790,14 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
 
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
-        self.assertEqual("launch_failed", result.evidence["classification"])
-        self.assertEqual("image_unavailable", result.evidence["failure_reason"])
+        self.assertEqual(result.evidence["classification"], "launch_failed")
+        self.assertEqual(result.evidence["failure_reason"], "image_unavailable")
         self.assertEqual(
-            "verify_provider_image_remote",
             result.evidence["operator_action"],
+            "verify_provider_image_remote",
         )
-        self.assertEqual("lxdbr0", result.evidence["resolved_network"])
-        self.assertEqual("default", result.evidence["expected_storage_pool"])
+        self.assertEqual(result.evidence["resolved_network"], "lxdbr0")
+        self.assertEqual(result.evidence["expected_storage_pool"], "default")
         self.assertEvidenceIsSummaryOnly(result)
 
     async def test_configured_image_availability_check_runs_before_launch(self):
@@ -814,6 +814,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(
+            runner.calls,
             [
                 (("lxc", "profile", "show", "docker-swarm"), 5.0),
                 (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
@@ -843,7 +844,6 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
                 ),
                 (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
 
     async def test_configured_image_availability_failure_blocks_before_launch(self):
@@ -860,21 +860,21 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("image_unavailable", result.evidence["classification"])
-        self.assertEqual("ubuntu-24.04", result.evidence["expected_image_alias"])
-        self.assertEqual("ubuntu:24.04", result.evidence["provider_image_ref"])
-        self.assertEqual("image_unavailable", result.evidence["failure_reason"])
+        self.assertEqual(result.evidence["classification"], "image_unavailable")
+        self.assertEqual(result.evidence["expected_image_alias"], "ubuntu-24.04")
+        self.assertEqual(result.evidence["provider_image_ref"], "ubuntu:24.04")
+        self.assertEqual(result.evidence["failure_reason"], "image_unavailable")
         self.assertEqual(
-            "verify_provider_image_remote",
             result.evidence["operator_action"],
+            "verify_provider_image_remote",
         )
         self.assertEqual(
+            runner.calls,
             [
                 (("lxc", "profile", "show", "docker-swarm"), 5.0),
                 (("lxc", "list", "swarm-manager", "--format", "json"), 5.0),
                 (("lxc", "image", "info", "ubuntu:24.04"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -893,10 +893,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.LXD))
 
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
-        self.assertEqual("daemon_access_denied", result.evidence["failure_reason"])
+        self.assertEqual(result.evidence["failure_reason"], "daemon_access_denied")
         self.assertEqual(
-            "verify_backend_daemon_access",
             result.evidence["operator_action"],
+            "verify_backend_daemon_access",
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -912,7 +912,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
-        self.assertEqual("created_node_not_verified", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "created_node_not_verified")
         self.assertEvidenceIsSummaryOnly(result)
 
     async def test_unsafe_resource_config_blocks_before_runner_calls(self):
@@ -925,8 +925,8 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.ensure_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("unsupported_resource_config", result.evidence["classification"])
-        self.assertEqual([], runner.calls)
+        self.assertEqual(result.evidence["classification"], "unsupported_resource_config")
+        self.assertEqual(runner.calls, [])
 
     async def test_backend_mismatch_blocks_before_runner_calls(self):
         runner = _FakeRunner()
@@ -938,8 +938,8 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("node_backend_mismatch", result.evidence["classification"])
-        self.assertEqual([], runner.calls)
+        self.assertEqual(result.evidence["classification"], "node_backend_mismatch")
+        self.assertEqual(runner.calls, [])
 
     async def test_reset_managed_nodes_deletes_only_scoped_managed_nodes_and_verifies_absent(self):
         nodes = (_node_spec(), _node_spec(name="swarm-worker-1", role=NodeRole.WORKER))
@@ -954,19 +954,19 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.reset_nodes(nodes, _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("platform:reset:managed-nodes", result.target_id)
-        self.assertEqual("managed_nodes_reset", result.evidence["classification"])
-        self.assertEqual("2", result.evidence["expected_count"])
-        self.assertEqual("2", result.evidence["verified_count"])
-        self.assertEqual("true", result.evidence["applied"])
+        self.assertEqual(result.target_id, "platform:reset:managed-nodes")
+        self.assertEqual(result.evidence["classification"], "managed_nodes_reset")
+        self.assertEqual(result.evidence["expected_count"], "2")
+        self.assertEqual(result.evidence["verified_count"], "2")
+        self.assertEqual(result.evidence["applied"], "true")
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
                 (("incus", "list", "swarm-worker-1", "--format", "json"), 5.0),
                 (("incus", "delete", "swarm-manager", "--force"), 300.0),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -985,19 +985,19 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.reset_nodes((_node_spec(),), _selection(ManagedLxcBackend.LXD))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("managed_nodes_reset_blocked", result.evidence["classification"])
-        self.assertEqual("unsafe_instance_devices", result.evidence["first_failure_mismatch_reasons"])
+        self.assertEqual(result.evidence["classification"], "managed_nodes_reset_blocked")
+        self.assertEqual(result.evidence["first_failure_mismatch_reasons"], "unsafe_instance_devices")
         self.assertEqual(
-            "explicit_lxc_proxy_drift_repair_required",
             result.evidence["first_failure_repair_action"],
+            "explicit_lxc_proxy_drift_repair_required",
         )
         self.assertEqual(
-            "tsw-proxy-8080",
             result.evidence["first_failure_stale_project_proxy_devices"],
+            "tsw-proxy-8080",
         )
         self.assertEqual(
-            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
             runner.calls,
+            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1026,18 +1026,18 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("managed_nodes_reset_blocked", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "managed_nodes_reset_blocked")
         self.assertEqual(
-            "unsafe_instance_config",
             result.evidence["first_failure_mismatch_reasons"],
+            "unsafe_instance_config",
         )
         self.assertEqual(
-            "security.privileged,raw.*",
             result.evidence["first_failure_unsafe_instance_settings"],
+            "security.privileged,raw.*",
         )
         self.assertEqual(
-            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
             runner.calls,
+            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1062,12 +1062,12 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.reset_nodes((_node_spec(),), _selection(ManagedLxcBackend.LXD))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("managed_nodes_reset_blocked", result.evidence["classification"])
-        self.assertEqual("unsafe_instance_devices", result.evidence["first_failure_mismatch_reasons"])
+        self.assertEqual(result.evidence["classification"], "managed_nodes_reset_blocked")
+        self.assertEqual(result.evidence["first_failure_mismatch_reasons"], "unsafe_instance_devices")
         self.assertNotIn("first_failure_repair_action", result.evidence)
         self.assertEqual(
-            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
             runner.calls,
+            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1088,26 +1088,26 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         result = await provider.reset_nodes(nodes, _selection(ManagedLxcBackend.INCUS))
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("managed_nodes_reset_blocked", result.evidence["classification"])
-        self.assertEqual("2", result.evidence["expected_count"])
-        self.assertEqual("1", result.evidence["planned_count"])
-        self.assertEqual("1", result.evidence["blocked_count"])
-        self.assertEqual("swarm-worker-1", result.evidence["first_failure_node"])
+        self.assertEqual(result.evidence["classification"], "managed_nodes_reset_blocked")
+        self.assertEqual(result.evidence["expected_count"], "2")
+        self.assertEqual(result.evidence["planned_count"], "1")
+        self.assertEqual(result.evidence["blocked_count"], "1")
+        self.assertEqual(result.evidence["first_failure_node"], "swarm-worker-1")
         self.assertEqual(
-            "managed_marker_not_true",
             result.evidence["first_failure_mismatch_reasons"],
+            "managed_marker_not_true",
         )
         self.assertEqual(
-            "different",
             result.evidence["first_failure_observed_managed_marker"],
+            "different",
         )
         self.assertNotIn("applied", result.evidence)
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
                 (("incus", "list", "swarm-worker-1", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1129,21 +1129,21 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("platform:destroy:managed-nodes", result.target_id)
-        self.assertEqual("managed_nodes_destroy_blocked", result.evidence["classification"])
+        self.assertEqual(result.target_id, "platform:destroy:managed-nodes")
+        self.assertEqual(result.evidence["classification"], "managed_nodes_destroy_blocked")
         self.assertEqual(
-            "destroy_existing_node_not_managed",
             result.evidence["first_failure_classification"],
+            "destroy_existing_node_not_managed",
         )
-        self.assertEqual("swarm-manager", result.evidence["first_failure_node"])
+        self.assertEqual(result.evidence["first_failure_node"], "swarm-manager")
         self.assertEqual(
-            "managed_marker_not_true",
             result.evidence["first_failure_mismatch_reasons"],
+            "managed_marker_not_true",
         )
-        self.assertEqual("1", result.evidence["blocked_count"])
+        self.assertEqual(result.evidence["blocked_count"], "1")
         self.assertEqual(
-            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
             runner.calls,
+            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1157,12 +1157,12 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("managed_nodes_destroy", result.evidence["classification"])
-        self.assertEqual("1", result.evidence["verified_count"])
+        self.assertEqual(result.evidence["classification"], "managed_nodes_destroy")
+        self.assertEqual(result.evidence["verified_count"], "1")
         self.assertNotIn("applied", result.evidence)
         self.assertEqual(
-            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
             runner.calls,
+            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1176,14 +1176,14 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("managed_nodes_reset_blocked", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "managed_nodes_reset_blocked")
         self.assertEqual(
-            "live_mutation_consent_missing",
             result.evidence["first_failure_classification"],
+            "live_mutation_consent_missing",
         )
         self.assertEqual(
-            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
             runner.calls,
+            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1204,15 +1204,15 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("managed_nodes_reset", result.evidence["classification"])
-        self.assertEqual("true", result.evidence["applied"])
+        self.assertEqual(result.evidence["classification"], "managed_nodes_reset")
+        self.assertEqual(result.evidence["applied"], "true")
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
                 (("incus", "delete", "swarm-manager", "--force"), 300.0),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1231,12 +1231,12 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
                 (("incus", "delete", "swarm-manager", "--force"), 42.0),
                 (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1259,15 +1259,15 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
         self.assertEqual(
-            "managed_nodes_destroy_apply_failed",
             result.evidence["classification"],
+            "managed_nodes_destroy_apply_failed",
         )
         self.assertEqual(
-            "destroy_delete_failed",
             result.evidence["first_failure_classification"],
+            "destroy_delete_failed",
         )
-        self.assertEqual("1", result.evidence["failed_apply_count"])
-        self.assertEqual("true", result.evidence["applied"])
+        self.assertEqual(result.evidence["failed_apply_count"], "1")
+        self.assertEqual(result.evidence["applied"], "true")
         self.assertEvidenceIsSummaryOnly(result)
 
     def test_timeouts_must_be_positive(self):

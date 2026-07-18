@@ -16,7 +16,7 @@ class TestDetectHostEnvironment(unittest.TestCase):
         actual = DetectHostEnvironment(detector).run()
 
         self.assertIs(report, actual)
-        self.assertEqual(1, detector.calls)
+        self.assertEqual(detector.calls, 1)
 
     def test_preserves_unsupported_report_without_reclassification(self):
         report = _report(
