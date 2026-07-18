@@ -60,8 +60,8 @@ class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.executed)
         self.assertFalse(step.ran)
         self.assertEqual(
-            "verify-after-prepare contract is missing for artifacts prepare",
             result.reason,
+            "verify-after-prepare contract is missing for artifacts prepare",
         )
         self.assertEqual(
             VerificationStatus.BLOCKED, result.verification_results[0].status
@@ -108,8 +108,8 @@ class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.status, ArtifactWorkflowStatus.FAILED_TO_VERIFY)
         self.assertTrue(result.executed)
         self.assertEqual(
-            "verification failed for artifacts:nexus-maven-proxy-repository",
             result.reason,
+            "verification failed for artifacts:nexus-maven-proxy-repository",
         )
 
     async def test_verify_workflow_completes_with_verified_checks(self):
@@ -130,8 +130,8 @@ class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result.status, ArtifactWorkflowStatus.BLOCKED)
         self.assertEqual(
-            "verification is blocked for artifacts:nexus-docker-hosted-repository",
             result.reason,
+            "verification is blocked for artifacts:nexus-docker-hosted-repository",
         )
 
 
