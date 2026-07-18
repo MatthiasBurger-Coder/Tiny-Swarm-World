@@ -236,7 +236,7 @@ def _resolve_direct_published_ports(
 
 
 def _resolve_traefik_route_labels(
-    stack_name: str,
+    _stack_name: str,
     compose_content: str,
     routes: tuple[DesiredHttpsRoute, ...],
 ) -> str:
@@ -247,57 +247,13 @@ def _resolve_traefik_route_labels(
     if not isinstance(services, Mapping):
         return compose_content
 
-    routes_by_upstream: dict[str, list[DesiredHttpsRoute]] = {}
-    for route in routes:
-        routes_by_upstream.setdefault(route.upstream_service, []).append(route)
+    routes_by_upstream = _routes_by_upstream(routes)
     mutated = False
     for service_name, service_payload in services.items():
-        if not isinstance(service_name, str) or not isinstance(service_payload, dict):
+        if not isinstance(service_name, str):
             continue
-        service_routes = routes_by_upstream.get(service_name, [])
-        if not service_routes:
-            continue
-        networks = service_payload.setdefault("networks", [])
-        if isinstance(networks, list) and TRAEFIK_INGRESS_NETWORK_NAME not in networks:
-            networks.append(TRAEFIK_INGRESS_NETWORK_NAME)
-            mutated = True
-        deploy = service_payload.setdefault("deploy", {})
-        if not isinstance(deploy, dict):
-            continue
-        labels = deploy.setdefault("labels", [])
-        if not isinstance(labels, list):
-            continue
-        router_names = tuple(_router_name_for(route) for route in service_routes)
-        rendered_labels = list(
-            dict.fromkeys(
-                label
-                for route, router_name in zip(service_routes, router_names, strict=True)
-                for label in _traefik_labels_for_route(route, router_name)
-            )
-        )
-        retained_labels = [
-            label
-            for label in labels
-            if not (
-                isinstance(label, str)
-                and (
-                    label.startswith("traefik.enable=")
-                    or label.startswith("traefik.swarm.network=")
-                    or any(
-                        label.startswith(
-                            (
-                                f"traefik.http.routers.{router_name}.",
-                                f"traefik.http.services.{router_name}.",
-                            )
-                        )
-                        for router_name in router_names
-                    )
-                )
-            )
-        ]
-        new_labels = retained_labels + rendered_labels
-        if labels != new_labels:
-            deploy["labels"] = new_labels
+        service_routes = tuple(routes_by_upstream.get(service_name, ()))
+        if _apply_traefik_labels(service_payload, service_routes):
             mutated = True
 
     if not mutated:
@@ -311,6 +267,71 @@ def _resolve_traefik_route_labels(
                 "external": True,
             }
     return _dump_yaml_payload(payload)
+
+
+def _routes_by_upstream(
+    routes: tuple[DesiredHttpsRoute, ...],
+) -> dict[str, tuple[DesiredHttpsRoute, ...]]:
+    mapped_routes: dict[str, list[DesiredHttpsRoute]] = {}
+    for route in routes:
+        mapped_routes.setdefault(route.upstream_service, []).append(route)
+    return {key: tuple(value) for key, value in mapped_routes.items()}
+
+
+def _apply_traefik_labels(
+    service_payload: object,
+    service_routes: tuple[DesiredHttpsRoute, ...],
+) -> bool:
+    if not isinstance(service_payload, dict) or not service_routes:
+        return False
+
+    networks = service_payload.setdefault("networks", [])
+    network_added = False
+    if isinstance(networks, list) and TRAEFIK_INGRESS_NETWORK_NAME not in networks:
+        networks.append(TRAEFIK_INGRESS_NETWORK_NAME)
+        network_added = True
+
+    deploy = service_payload.setdefault("deploy", {})
+    if not isinstance(deploy, dict):
+        return network_added
+
+    labels = deploy.setdefault("labels", [])
+    if not isinstance(labels, list):
+        return network_added
+
+    router_names = tuple(_router_name_for(route) for route in service_routes)
+    rendered_labels = list(
+        dict.fromkeys(
+            label
+            for route, router_name in zip(service_routes, router_names, strict=True)
+            for label in _traefik_labels_for_route(route, router_name)
+        )
+    )
+    retained_labels = [
+        label
+        for label in labels
+        if not (
+            isinstance(label, str)
+            and (
+                label.startswith("traefik.enable=")
+                or label.startswith("traefik.swarm.network=")
+                or any(
+                    label.startswith(
+                        (
+                            f"traefik.http.routers.{router_name}.",
+                            f"traefik.http.services.{router_name}.",
+                        )
+                    )
+                    for router_name in router_names
+                )
+            )
+        )
+    ]
+    new_labels = retained_labels + rendered_labels
+    if labels != new_labels:
+        deploy["labels"] = new_labels
+        return True
+    return network_added
 
 
 def _resolve_service_access_dashboard_config(
@@ -361,7 +382,7 @@ def _dump_yaml_payload(payload: object) -> str:
 
 def _preserve_multiline_strings(value: object) -> None:
     if isinstance(value, dict):
-        for key, item in list(value.items()):
+        for key, item in value.items():
             if isinstance(item, str) and "\n" in item:
                 value[key] = LiteralScalarString(item)
             else:
