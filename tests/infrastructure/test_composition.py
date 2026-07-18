@@ -107,6 +107,7 @@ class TestComposition(unittest.TestCase):
         build_platform_services.assert_called_once_with(
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             live_consent=None,
+            allow_wsl_windows_filesystem=False,
         )
         build_artifact_services.assert_called_once_with(node_provider_request=None)
         build_deployment_services.assert_called_once_with(
@@ -215,6 +216,7 @@ class TestComposition(unittest.TestCase):
 
             service = composition.build_preflight_service(
                 node_provider_request=provider_request,
+                allow_wsl_windows_filesystem=True,
             )
 
         self.assertIs(registry, service.port_registry)
@@ -224,6 +226,28 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(
             service.host_probe.host_environment_detector,
             composition.HostEnvironmentDetector,
+        )
+        self.assertIsInstance(
+            service.project_filesystem_evaluator,
+            composition.EvaluateProjectFilesystem,
+        )
+        self.assertIsInstance(
+            service.project_filesystem_authorizer,
+            composition.AuthorizeProjectFilesystem,
+        )
+        self.assertTrue(service.allow_wsl_windows_filesystem)
+        self.assertEqual(
+            composition.default_project_paths().repository_root.as_posix(),
+            service.project_path,
+        )
+
+    def test_relative_xdg_state_home_does_not_block_preflight_construction(self):
+        with patch.dict(os.environ, {"XDG_STATE_HOME": "relative/state"}, clear=False):
+            service = composition.build_preflight_service()
+
+        self.assertIsInstance(
+            service.project_filesystem_authorizer,
+            composition.AuthorizeProjectFilesystem,
         )
 
     def test_build_host_environment_detector_has_no_constructor_io(self):
@@ -613,6 +637,7 @@ class TestComposition(unittest.TestCase):
             node_provider_request,
             ui,
             configuration_validation,
+            allow_wsl_windows_filesystem,
         ):
             calls.append("services built")
             self.assertIs(live_consent, consent)
@@ -620,6 +645,7 @@ class TestComposition(unittest.TestCase):
             self.assertEqual(composition.NodeProviderSelectionRequest(), node_provider_request)
             self.assertIs(recording_ui, ui)
             self.assertIsNotNone(configuration_validation)
+            self.assertFalse(allow_wsl_windows_filesystem)
             return _setup_lifecycle_bundle(calls, result)
 
         with patch.object(composition, "build_setup_ui", side_effect=build_setup_ui):
@@ -1572,7 +1598,8 @@ class TestComposition(unittest.TestCase):
                             return_value="trace-test",
                         ):
                             services = composition.build_setup_services(
-                                _accepted_live_consent()
+                                _accepted_live_consent(),
+                                allow_wsl_windows_filesystem=True,
                             )
 
         self.assertIsInstance(services.workflows.run, composition.SetupWorkflow)
@@ -1586,6 +1613,9 @@ class TestComposition(unittest.TestCase):
             composition.CompositeMethodTrace,
         )
         self.assertEqual("trace-test", services.workflows.run.trace_correlation_id)
+        self.assertTrue(
+            build_preflight.call_args.kwargs["allow_wsl_windows_filesystem"]
+        )
         self.assertTrue(
             all(
                 phase.method_trace is services.workflows.run.method_trace
@@ -1626,6 +1656,7 @@ class TestComposition(unittest.TestCase):
             live_consent=services.workflows.run.live_consent,
             ui=None,
             trace_correlation_id=services.workflows.run.trace_correlation_id,
+            allow_wsl_windows_filesystem=True,
         )
         build_artifacts.assert_called_once_with(node_provider_request=None, ui=None)
         build_deployment.assert_called_once_with(
@@ -1649,11 +1680,13 @@ class TestComposition(unittest.TestCase):
             live_consent: LiveConsent | None = None,
             ui: object | None = None,
             trace_correlation_id: str | None = None,
+            allow_wsl_windows_filesystem: bool = False,
         ):
             captured["service_profile"] = service_profile
             captured["live_consent"] = live_consent
             captured["ui"] = ui
             captured["trace_correlation_id"] = trace_correlation_id
+            captured["allow_wsl_windows_filesystem"] = allow_wsl_windows_filesystem
             return _platform_phase_bundle()
 
         def build_deployment(
@@ -1918,11 +1951,13 @@ class TestComposition(unittest.TestCase):
             live_consent: LiveConsent | None = None,
             ui: object | None = None,
             trace_correlation_id: str | None = None,
+            allow_wsl_windows_filesystem: bool = False,
         ):
             captured["service_profile"] = service_profile
             captured["live_consent"] = live_consent
             captured["ui"] = ui
             captured["trace_correlation_id"] = trace_correlation_id
+            captured["allow_wsl_windows_filesystem"] = allow_wsl_windows_filesystem
             return _platform_phase_bundle()
 
         with patch.object(composition, "build_preflight_service", return_value=_phase_bundle()):

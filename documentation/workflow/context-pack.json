@@ -1,39 +1,59 @@
 {
-  "workflow_id": "workflow-issue-218-fr01-host-detection-20260712",
-  "version": "workflow-issue-218-fr01-v1.0.0",
+  "workflow_id": "workflow-issue-218-fr02-filesystem-policy-20260712",
+  "version": "workflow-issue-218-fr02-v1.0.0",
   "issue": 218,
-  "fr": "FR-1",
-  "branch": "feature/workflow-issue-218-fr01-host-detection-20260712",
+  "fr": "FR-2",
+  "branch": "feature/workflow-issue-218-fr02-filesystem-policy-20260712",
   "baseline": {
     "branch": "main",
-    "commit": "d778fce69bd8f87195ad9b975a1036e3cd1a8819"
+    "commit": "81ca7efab062347a87c32e5305427236b048d741"
   },
   "process_strand": "workflow create -> workflow execute -> PR/CI/Sonar -> merge",
   "execution_profile": "FULL_PATH",
+  "execution_status": "IMPLEMENTED_LOCAL_GATES_PASS_PENDING_COMPLETION_AUDIT",
   "authoring_publication": {
-    "commit": "d161915f630241ba9bdcc6a8f339b84f4bddd137",
-    "push_target": "origin/feature/workflow-issue-218-fr01-host-detection-20260712",
+    "commit": "2af8ae7f98029c7d6efa916853cf2da85fe32167",
+    "push_target": "origin/feature/workflow-issue-218-fr02-filesystem-policy-20260712",
     "remote_ref_verified": true
   },
   "gate": {
     "decision": "READY_FOR_WORKFLOW",
-    "confidence_percent": 97,
+    "confidence_percent": 96,
     "blocking_questions": []
   },
+  "direct_requirement_ids": [
+    "FR-002",
+    "AC-002",
+    "AC-003",
+    "UT-006",
+    "UT-007",
+    "UT-008",
+    "UT-009",
+    "CLI-002",
+    "SEQ-002",
+    "DOC-005",
+    "DOD-003",
+    "FORBID-002",
+    "GOV-006"
+  ],
   "affected_areas": [
-    "host-detection",
+    "project-filesystem-domain",
+    "host-inspector-port-adapter",
+    "protected-local-evidence",
     "preflight",
+    "installer-bootstrap",
+    "cli-flag-propagation",
     "composition",
-    "cli",
     "tests",
-    "arc42",
-    "adr"
+    "documentation"
   ],
   "forbidden_areas": [
+    "automatic-repository-move-or-copy",
+    "general-project-path-evidence",
     "live-infrastructure",
     "windows-network-mutation",
-    "incus-docker-swarm-mutation",
-    "fr02-through-fr15-implementation",
+    "resource-profile-or-timeout-implementation",
+    "fr03-through-fr15-implementation",
     "react-browser-frontend",
     "java-spring",
     "kubernetes-first"
@@ -44,32 +64,38 @@
     "Senior System Architect",
     "Senior Python Automation Developer",
     "Senior Tester",
-    "Senior DevOps Engineer",
+    "Senior Security/Evidence Reviewer",
     "Senior Documentation Engineer",
     "Console/status UI Developer",
     "Issue Completion Auditor"
   ],
   "conditional_roles": {
-    "console_status_ui": "required_for_host_detect_output",
-    "react_frontend": "forbidden_not_applicable",
-    "terminal_status_dashboard": "not_applicable_immediate_result"
+    "console_status_ui": "required_for_ordered_preflight_human_and_json_output",
+    "browser_react": "forbidden_not_applicable_no_frontend_module",
+    "terminal_status_dashboard": "not_applicable_immediate_preflight_result",
+    "security_evidence": "required_for_protected_exact_path_exception"
   },
   "quality_commands": {
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_host_environment tests.application.services.platform.host.test_detect_host_environment tests.application.services.platform.test_preflight_service tests.application.services.network.test_host_integration tests.infrastructure.adapters.host.test_host_environment_detector tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.network.test_host_network_probe tests.infrastructure.test_os_types tests.infrastructure.test_composition tests.architecture.test_host_detection_boundaries tests.integration.test_host_platform_paths tests.test_installer tests.test_install_script tests.test_package_entrypoint",
+      "PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_project_filesystem tests.application.services.platform.host.test_evaluate_project_filesystem tests.application.services.platform.host.test_authorize_project_filesystem tests.application.services.platform.test_preflight_service tests.application.services.platform.test_platform_workflows tests.application.services.setup.test_setup_workflow tests.infrastructure.adapters.host.test_project_filesystem_inspector tests.infrastructure.adapters.repositories.test_project_filesystem_evidence_local_repository tests.infrastructure.test_project_paths tests.infrastructure.test_composition tests.integration.test_host_platform_paths tests.architecture.test_host_detection_boundaries tests.test_installer tests.test_install_script tests.test_package_entrypoint",
+      "CI=1 PYTHONPATH=src python3 -m unittest tests.domain.preflight.test_project_filesystem tests.application.services.platform.host.test_evaluate_project_filesystem tests.application.services.platform.host.test_authorize_project_filesystem tests.application.services.platform.test_preflight_service tests.application.services.platform.test_platform_workflows tests.application.services.setup.test_setup_workflow tests.infrastructure.adapters.host.test_project_filesystem_inspector tests.infrastructure.adapters.repositories.test_project_filesystem_evidence_local_repository tests.infrastructure.test_project_paths tests.infrastructure.test_composition tests.integration.test_host_platform_paths tests.architecture.test_host_detection_boundaries tests.test_installer tests.test_install_script tests.test_package_entrypoint",
+      "python3 tools/quality_gate.py lint",
       "python3 tools/quality_gate.py arch-lint",
       "python3 tools/quality_gate.py arch-tests",
+      "python3 tools/quality_gate.py typecheck",
       "git diff --check"
     ],
     "required": [
+      "python3 tools/quality_gate.py test",
       "python3 tools/quality_gate.py quality"
     ]
   },
   "evidence_roots": {
-    "workflow": ".codex/evidence/workflow-issue-218-fr01-host-detection-20260712",
-    "issue": ".tiny-swarm/evidence/issue-218-fr01",
+    "workflow": ".codex/evidence/workflow-issue-218-fr02-filesystem-policy-20260712",
+    "issue": ".tiny-swarm/evidence/issue-218-fr02",
     "slice_distribution": ".codex/evidence/slice-01-distribution.md",
-    "slice_consolidation": ".codex/evidence/slice-01-consolidation.md"
+    "slice_consolidation": ".codex/evidence/slice-01-consolidation.md",
+    "protected_runtime": "${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/installation/project-filesystem-decision.json"
   },
   "hashes": {
     "AGENTS.md": "bba7ddf6214a1aaad6c2bfacbae2c9ac2bbd05653c03df9ba0daff3cf1b93210",
@@ -83,9 +109,11 @@
     ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
     ".agents/skills/s3d-execution-orchestrator/SKILL.md": "54c687a580225c85aa3bca2445782064bff914f593458a63006b0793dc8233bc",
     ".agents/skills/issue-completion-auditor/SKILL.md": "6de0eb7ff298f25ee0255695c4a0057d502039c786f87ab4dc7aa1991e1f15c5",
-    "src/tiny_swarm_world/domain/host_environment.py": "93efb44e154f7547da247e2bd1744907c85f72505cf993dca97e15371fc3716c",
-    "src/tiny_swarm_world/domain/sanitized_evidence.py": "0526d5b303b516d65789afbf1807ef5af7b64890f241833e1222d8f3d3efa785",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py": "0619ff27f5d335ac8bc31f1220c4edfdc6f5d86cf60bdf4ce1f8dfd86b816027",
-    "src/tiny_swarm_world/__main__.py": "61379b3cf23d6144e15482510e8b009ab217b1139a15ca7f9b2ba715844e8af3"
+    "src/tiny_swarm_world/installer.py": "11e705c3e76dd049a14749c6960a76ae66fe12cbd7eeb792fb088b54a52161b8",
+    "src/tiny_swarm_world/application/services/platform/preflight_service.py": "ab43dac44303208510655ec284f0c017289adbc5d3b0b3bbd38623418f9ed7b5",
+    "src/tiny_swarm_world/infrastructure/composition.py": "20e4c4f5edc429f47d3be0d830b711db05d3de75e465de86a9b8e3e3519a795b",
+    "src/tiny_swarm_world/__main__.py": "3d88f2078761b9c99e5dae86e3351b6b08249ef8a6a6a64f394757d941bef523",
+    "documentation/arc42/09_decisions/adr-dedicated-wsl2-host-platform-boundary.adoc": "8b8998c6ba47f6734d5c249fc72b7b39818b6189670bc92311af586db96c5a4d",
+    "documentation/arc42/09_decisions/adr-autonomous-setup-safety.adoc": "f82783073d3e7c91fb5014901bea93eede3a9c79ab41a1213cd38b88e624575b"
   }
 }

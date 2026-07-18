@@ -6,6 +6,12 @@ from collections.abc import Mapping
 from tiny_swarm_world.application.ports.configuration import ConfigurationSourceLoadError
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
 from tiny_swarm_world.application.services.configuration import ConfigurationValidationService
+from tiny_swarm_world.application.services.platform.host.authorize_project_filesystem import (
+    AuthorizeProjectFilesystem,
+)
+from tiny_swarm_world.application.services.platform.host.evaluate_project_filesystem import (
+    EvaluateProjectFilesystem,
+)
 from tiny_swarm_world.domain.configuration import ConfigurationFinding
 from tiny_swarm_world.domain.network import PortRegistry
 from tiny_swarm_world.domain.preflight import (
@@ -21,6 +27,7 @@ from tiny_swarm_world.domain.preflight import (
     RequiredPort,
     default_preflight_configuration,
 )
+from tiny_swarm_world.domain.project_filesystem import ProjectFilesystemAssessment
 
 
 class PreflightService:
@@ -30,11 +37,19 @@ class PreflightService:
         configuration: PreflightConfiguration | None = None,
         configuration_validation: ConfigurationValidationService | None = None,
         port_registry: PortRegistry | None = None,
+        project_filesystem_evaluator: EvaluateProjectFilesystem | None = None,
+        project_filesystem_authorizer: AuthorizeProjectFilesystem | None = None,
+        project_path: str | None = None,
+        allow_wsl_windows_filesystem: bool = False,
     ):
         self.host_probe = host_probe
         self.configuration = configuration or default_preflight_configuration()
         self.configuration_validation = configuration_validation
         self.port_registry = port_registry
+        self.project_filesystem_evaluator = project_filesystem_evaluator
+        self.project_filesystem_authorizer = project_filesystem_authorizer
+        self.project_path = project_path
+        self.allow_wsl_windows_filesystem = allow_wsl_windows_filesystem
 
     async def run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
         await asyncio.sleep(0)
@@ -43,11 +58,18 @@ class PreflightService:
             self._setup_manifest_check(),
             *self._configuration_contract_checks(),
             self._host_check(host_environment),
-            self._python_check(),
-            *self._dependency_checks(),
         ]
         if live_consent is not None:
             checks.insert(0, self._live_consent_check(live_consent))
+        filesystem_assessment = self._project_filesystem_assessment(
+            host_environment,
+            live_consent,
+        )
+        if filesystem_assessment is not None:
+            checks.append(self._project_filesystem_check(filesystem_assessment))
+            if filesystem_assessment.blocked:
+                return self._result(tuple(checks))
+        checks.extend((self._python_check(), *self._dependency_checks()))
         if (
             live_consent is not None
             and live_consent.accepted
@@ -71,10 +93,68 @@ class PreflightService:
                 self._forbidden_secret_fingerprint_check(),
             )
         )
+        return self._result(tuple(checks))
+
+    def _result(self, checks: tuple[PreflightCheck, ...]) -> PreflightResult:
         return PreflightResult(
-            tuple(checks),
+            checks,
             setup_profile=self.configuration.setup_profile,
             manifest_summary=self.configuration.setup_manifest.summary(),
+        )
+
+    def _project_filesystem_assessment(
+        self,
+        host_environment: HostEnvironmentReport,
+        live_consent: LiveConsent | None,
+    ) -> ProjectFilesystemAssessment | None:
+        if self.project_filesystem_evaluator is None or self.project_path is None:
+            return None
+        service: EvaluateProjectFilesystem | AuthorizeProjectFilesystem
+        if (
+            live_consent is not None
+            and live_consent.accepted
+            and self.project_filesystem_authorizer is not None
+        ):
+            service = self.project_filesystem_authorizer
+        else:
+            service = self.project_filesystem_evaluator
+        return service.run(
+            host_environment.environment,
+            self.project_path,
+            allow_wsl_windows_filesystem=self.allow_wsl_windows_filesystem,
+        )
+
+    def _project_filesystem_check(
+        self,
+        assessment: ProjectFilesystemAssessment,
+    ) -> PreflightCheck:
+        safe = assessment.to_safe_dict()
+        evidence = {
+            "host_environment": str(safe["host_environment"]),
+            "filesystem_classification": str(safe["filesystem_classification"]),
+            "filesystem_type": str(safe["filesystem_type"]),
+            "windows_mounted": _bool_text(bool(safe["windows_mounted"])),
+            "decision": str(safe["decision"]),
+            "override_requested": _bool_text(bool(safe["override_requested"])),
+            "override_applied": _bool_text(bool(safe["override_applied"])),
+            "evidence_status": str(safe["evidence_status"]),
+        }
+        if assessment.allowed:
+            return _passed(
+                "HOST-FILESYSTEM",
+                PreflightCategory.FILESYSTEM,
+                "Project filesystem satisfies the host policy.",
+                evidence,
+            )
+        remediation = " ".join(assessment.remediation) or (
+            "Use a verified Linux-native project filesystem before live setup."
+        )
+        return _failed(
+            "HOST-FILESYSTEM",
+            PreflightCategory.FILESYSTEM,
+            "Project filesystem blocks live setup.",
+            remediation,
+            evidence,
         )
 
     def _setup_manifest_check(self) -> PreflightCheck:

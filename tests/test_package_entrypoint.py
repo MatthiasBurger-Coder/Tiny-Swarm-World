@@ -25,6 +25,9 @@ from tiny_swarm_world.application.services.setup import (
     SetupWorkflowResult,
     SetupWorkflowStatus,
 )
+from tiny_swarm_world.application.services.platform.preflight_service import (
+    PreflightService,
+)
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
     RESET_TINY_SWARM_PLATFORM_CONFIRMATION,
@@ -44,6 +47,11 @@ from tiny_swarm_world.domain.preflight import (
     PreflightSeverity,
     PreflightStatus,
     SetupPath,
+)
+from tiny_swarm_world.domain.project_filesystem import (
+    ProjectFilesystemInspection,
+    ProjectFilesystemKind,
+    assess_project_filesystem,
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -276,6 +284,12 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(NodeProviderKind.LXC_NATIVE.value, args.node_provider)
         self.assertIsNone(args.lxc_backend)
         self.assertFalse(args.json)
+        self.assertFalse(args.allow_wsl_windows_filesystem)
+
+    def test_parse_args_accepts_exact_wsl_windows_filesystem_override(self):
+        args = entrypoint.parse_args(["--allow-wsl-windows-filesystem"])
+
+        self.assertTrue(args.allow_wsl_windows_filesystem)
 
     def test_json_flag_enables_machine_readable_output(self):
         args = entrypoint.parse_args(["--json"])
@@ -490,6 +504,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             live_consent=None,
             service_profile=ServiceStackProfile.SERVICE_ACCESS.value,
             node_provider_request=None,
+            allow_wsl_windows_filesystem=False,
         )
         workflows.verify.run.assert_awaited_once_with()
         workflows.init.run.assert_not_awaited()
@@ -744,12 +759,43 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             {
                 "service_profile": ServiceStackProfile.SERVICE_ACCESS.value,
                 "node_provider_request": None,
+                "allow_wsl_windows_filesystem": False,
             },
             run_setup.call_args.kwargs,
         )
         payload = _json_payload_from_output(output.getvalue())
         self.assertEqual("setup run", payload["workflow"])
         self.assertEqual("blocked", payload["status"])
+
+    async def test_setup_run_propagates_explicit_wsl_filesystem_override(self):
+        setup_result = SetupWorkflowResult(
+            kind=SetupWorkflowKind.RUN,
+            status=SetupWorkflowStatus.BLOCKED,
+            message="setup run stopped during phase 'preflight'.",
+            reason="phase 'preflight' returned blocked",
+            executed=True,
+        )
+
+        with patch.object(
+            entrypoint,
+            "run_setup_with_terminal_status",
+            return_value=setup_result,
+        ) as run_setup:
+            with redirect_stdout(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    await entrypoint.main(
+                        [
+                            "setup",
+                            "run",
+                            "--live",
+                            "--approve-live",
+                            "--allow-wsl-windows-filesystem",
+                        ]
+                    )
+
+        self.assertTrue(
+            run_setup.call_args.kwargs["allow_wsl_windows_filesystem"]
+        )
 
     async def test_setup_run_propagates_composition_lifecycle_failure(self):
         with patch("builtins.input", return_value="y"):
@@ -858,6 +904,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         build_preflight.assert_called_once_with(
             service_profile=ServiceStackProfile.SERVICE_ACCESS.value,
             node_provider_request=None,
+            allow_wsl_windows_filesystem=False,
         )
         build_services.assert_not_called()
         preflight.run.assert_awaited_once_with(None)
@@ -876,6 +923,53 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         payload = _json_payload_from_output(output.getvalue())
         self.assertEqual("PASSED", payload["status"])
+
+    async def test_preflight_json_preserves_host_filesystem_order_without_path_leak(self):
+        project_path = "/mnt/e/private/project"
+        assessment = assess_project_filesystem(
+            HostEnvironmentKind.WSL2,
+            ProjectFilesystemInspection(
+                kind=ProjectFilesystemKind.WINDOWS_MOUNTED,
+                resolved_project_path=project_path,
+                filesystem_type="9p",
+                classification_source="test_fixture",
+            ),
+            allow_wsl_windows_filesystem=False,
+        )
+        filesystem_check = PreflightService(
+            SimpleNamespace()
+        )._project_filesystem_check(assessment)
+        result = PreflightResult(
+            (
+                PreflightCheck(
+                    check_id="HOST",
+                    category=PreflightCategory.HOST,
+                    status=PreflightStatus.PASSED,
+                    severity=PreflightSeverity.MANDATORY,
+                    message="Host environment supports this setup path.",
+                    remediation="None",
+                    evidence={"environment": "wsl2"},
+                ),
+                filesystem_check,
+            )
+        )
+        preflight = SimpleNamespace(run=AsyncMock(return_value=result))
+        outputs: list[str] = []
+
+        with patch.object(entrypoint, "build_preflight_service", return_value=preflight):
+            for _ in range(2):
+                output = io.StringIO()
+                with redirect_stdout(output), self.assertRaises(SystemExit):
+                    await entrypoint.main(["--preflight", "--json"])
+                outputs.append(output.getvalue())
+
+        self.assertEqual(outputs[0], outputs[1])
+        payload = _json_payload_from_output(outputs[0])
+        self.assertEqual(
+            ["HOST", "HOST-FILESYSTEM"],
+            [item["check_id"] for item in payload["checks"]],
+        )
+        self.assertNotIn(project_path, outputs[0])
 
     async def test_failed_preflight_exits_nonzero(self):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(False)))

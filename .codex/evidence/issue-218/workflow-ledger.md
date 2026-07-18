@@ -6,8 +6,8 @@ green.
 
 | Order | Workflow | Branch suffix | Status | Dependency |
 |---|---|---|---|---|
-| 01 | FR-1 Host detection | `fr01-host-detection-20260712` | CI_REMEDIATION_AUDIT_PASS / COMMIT_PENDING | baseline main |
-| 02 | FR-2 Filesystem policy | `fr02-filesystem-policy-20260712` | PENDING | FR-1 merged |
+| 01 | FR-1 Host detection | `fr01-host-detection-20260712` | DONE / PR #220 MERGED / MAIN GREEN | baseline main |
+| 02 | FR-2 Filesystem policy | `fr02-filesystem-policy-20260712` | LOCAL_COMPLETION_PASS / CHECKPOINT_PENDING | FR-1 merged green |
 | 03 | FR-3 Host resources | `fr03-host-resources-20260712` | PENDING | FR-2 merged |
 | 04 | FR-4 Service resource profile | `fr04-resource-profile-20260712` | PENDING | FR-3 merged |
 | 05 | FR-5 Incus limit validation | `fr05-incus-limits-20260712` | PENDING | FR-4 merged |

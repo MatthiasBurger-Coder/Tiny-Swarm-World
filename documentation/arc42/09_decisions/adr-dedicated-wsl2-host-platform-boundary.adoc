@@ -7,12 +7,14 @@ test, operations, evidence, and Console/status UI review
 
 == Implementation Status
 
-This ADR accepts the host-platform boundary required by Issue #218. FR-1 owns
-the structured host detector and dedicated setup-path decision. Filesystem,
-resource, Incus-limit, memory-pressure, network-preparation, workflow-runner,
-native-isolation, and installation-evidence consequences remain assigned to
-their later declared FR workflows until verified. Acceptance of this decision
-does not claim those later behaviors or a successful live installation.
+This ADR accepts the host-platform boundary required by Issue #218. FR-1
+implements the structured host detector and dedicated setup-path decision.
+FR-2 implements the project-filesystem gate, narrow explicit override, and
+protected local override record. Resource, Incus-limit, memory-pressure,
+network-preparation, workflow-runner, native-isolation, and final installation-
+evidence consequences remain assigned to their later declared FR workflows
+until verified. Acceptance of this decision does not claim those later
+behaviors or a successful live installation.
 
 == Context
 
@@ -84,6 +86,10 @@ The following boundary contract applies:
   atomically written, and owner-only protected. The exception does not apply to
   general `VerificationResult` evidence, progress events, logs, committed
   configuration, remote CI artifacts, or other evidence bundles.
+  The implemented FR-2 location is
+  `${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/installation/project-filesystem-decision.json`;
+  the target must itself be verified Linux-native or WSL Linux, and directory/file modes are
+  `0700`/`0600`.
 * Network preparation evidence and post-deployment HTTPS reachability evidence
   are separate states. Prepared Windows/WSL rules do not by themselves prove
   that `service-access.tsw.local` is reachable over HTTPS.

@@ -61,6 +61,22 @@ Quality scenarios:
   unsupported results include remediation and exit `1` after emission;
 * detector construction and execution run no subprocess and write no state;
   simulated native Linux and WSL2 integration paths use only temporary facts;
+* WSL project-filesystem tests cover `/mnt/c`, `/mnt/d`, `/mnt/e`, longest
+  mount-point selection, escaped mount paths, `drvfs`, DrvFS-backed `9p`/`v9fs`,
+  Linux-native mounts, unreadable mount information, unknown filesystems, and
+  false path-prefix matches without executing a shell;
+* Windows-mounted WSL2 checkouts block before Python bootstrap, dependency,
+  resource, provider, file, secret, process, or infrastructure actions unless
+  the exact filesystem override is requested; unsupported hosts and unknown
+  filesystems remain blocked even with the flag;
+* an applied override is allowlist-serialized only to a verified Linux-native or WSL Linux
+  XDG state target, atomically replaced with `0700` directory and `0600` file
+  permissions; relative, Windows-mounted, unwritable, or unverifiable targets
+  fail closed;
+* the protected schema-v1 override document is the only evidence allowed to
+  contain the resolved project path; static preflight JSON, human output,
+  progress, logs, generic evidence, committed artifacts, and CI evidence are
+  checked to remain path-free;
 * mutating setup without all required live-consent signals is refused before
   Incus, LXC container lifecycle, Docker Swarm, netplan,
   socat, compose, Portainer, Nexus, service bootstrap, image build, image

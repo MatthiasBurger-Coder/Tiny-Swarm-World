@@ -128,6 +128,41 @@ Restart Ubuntu:
 Restart the WSL distribution from your normal host workflow, then continue in
 the Linux shell.
 
+### 1.1 Place the checkout on the WSL Linux filesystem
+
+For WSL2, keep the repository below the Linux home directory, for example:
+
+```bash
+mkdir -p ~/projects
+cd ~/projects
+```
+
+A checkout on a Windows-mounted filesystem such as `/mnt/c`, `/mnt/d`, or
+`/mnt/e` blocks live installation by default. Tiny Swarm World resolves the
+repository path and classifies its longest matching `/proc/self/mountinfo`
+entry, so the policy is not tied to one drive letter. It does not move or copy
+the checkout automatically.
+
+Run static preflight to see the path-free `HOST-FILESYSTEM` decision:
+
+```bash
+tiny-swarm-world --preflight
+```
+
+Only when the Windows-mounted checkout is intentional, pass the narrow
+override explicitly:
+
+```bash
+./install.sh --allow-wsl-windows-filesystem
+```
+
+An applied live override is recorded atomically in owner-only local state at
+`${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/installation/project-filesystem-decision.json`.
+The state directory must itself be on a verified Linux filesystem; otherwise
+installation still blocks. The exact project path is confined to that protected
+document and is not included in normal preflight evidence, logs, or committed
+artifacts.
+
 ---
 
 ## 2. Enable systemd in WSL2

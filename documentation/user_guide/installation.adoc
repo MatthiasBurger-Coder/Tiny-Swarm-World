@@ -13,6 +13,8 @@ Install these tools before running project automation:
 * Git
 * Incus for the default `lxc_native` node provider
 * WSL2 with systemd, cgroup, and user-namespace support when running under WSL
+* a WSL Linux-native repository path, preferably
+  `/home/<user>/projects/Tiny-Swarm-World`, when running under WSL2
 * `socat`, when WSL port forwarding is needed
 
 Optional tools for service preparation:
@@ -49,6 +51,56 @@ export TSW_INFISICAL_IMAGE=registry.local:5000/infisical:v0.159.1
 export TSW_INFISICAL_POSTGRES_IMAGE=registry.local:5000/postgres:14.23-alpine3.23
 export TSW_INFISICAL_REDIS_IMAGE=registry.local:5000/redis:7.4.9-alpine3.21
 ----
+
+== WSL Project Filesystem Policy
+
+On WSL2, clone or place the repository on the distribution's Linux filesystem,
+for example below `/home/<user>/projects/Tiny-Swarm-World`. A checkout on a
+Windows-mounted filesystem such as `/mnt/c`, `/mnt/d`, or `/mnt/e` is supported
+only through an explicit exception and blocks live installation by default.
+Tiny Swarm World resolves symlinks and evaluates the longest matching
+`/proc/self/mountinfo` entry, including `drvfs` and WSL `9p`/`v9fs` DrvFS
+mounts. It does not hard-code one drive letter and does not move or copy the
+checkout.
+
+The non-mutating check is part of static preflight immediately after host
+classification:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+----
+
+The `HOST-FILESYSTEM` result reports only the filesystem classification,
+decision, override state, and safe remediation. It never exposes the resolved
+project path. An unreadable, contradictory, or unrecognized WSL mount table
+fails closed.
+
+When running intentionally from a Windows-mounted checkout, add the exact
+override to the installer:
+
+[source,bash]
+----
+./install.sh --allow-wsl-windows-filesystem
+----
+
+The override applies only to a confirmed WSL2 Windows-mounted repository. It
+does not permit unsupported hosts or an unknown filesystem. Before Python
+bootstrap, secret preparation, subprocess execution, or live infrastructure
+work, the installer records an applied override in:
+
+[source,text]
+----
+${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/installation/project-filesystem-decision.json
+----
+
+The evidence is an allowlisted schema-v1 JSON document, written atomically
+with directory mode `0700` and file mode `0600`. Its target must itself be on a
+verified Linux-native or WSL Linux filesystem. A relative `XDG_STATE_HOME`, a
+Windows-mounted evidence target, or permissions that cannot be enforced blocks
+installation. The exact resolved project path is permitted only in this
+protected local document; normal evidence, logs, CLI output, CI artifacts, and
+committed files remain path-free.
 
 == Python Environment
 
@@ -133,7 +185,7 @@ automation commands remain Linux/WSL commands.
 === 1. Verify The Host Shell
 
 Confirm that the shell is Linux or WSL2 and that the repository is reachable
-through the Linux path:
+through a Linux path. Under WSL2, prefer a path below the Linux home directory:
 
 [source,bash]
 ----

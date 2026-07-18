@@ -22,6 +22,7 @@ class TestInstaller(unittest.TestCase):
         self.assertFalse(options.confirm_reset)
         self.assertFalse(options.non_interactive_live_approval)
         self.assertFalse(options.headless)
+        self.assertFalse(options.allow_wsl_windows_filesystem)
 
     def test_parse_args_supports_headless_and_noninteractive_approval(self):
         options = installer.parse_args(
@@ -33,6 +34,7 @@ class TestInstaller(unittest.TestCase):
                 "fixed",
                 "--confirm-reset",
                 "--non-interactive-live-approval",
+                "--allow-wsl-windows-filesystem",
                 "--headless",
             )
         )
@@ -42,6 +44,7 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual("fixed", options.secrets_mode)
         self.assertTrue(options.confirm_reset)
         self.assertTrue(options.non_interactive_live_approval)
+        self.assertTrue(options.allow_wsl_windows_filesystem)
         self.assertTrue(options.headless)
 
     def test_detect_host_runtime_maps_typed_wsl2(self):
@@ -138,6 +141,68 @@ class TestInstaller(unittest.TestCase):
 
         ensure_python.assert_not_called()
         ensure_private_file.assert_not_called()
+
+    def test_installer_stops_blocked_wsl_filesystem_before_bootstrap_or_file_writes(self):
+        runtime = installer.HostRuntime("wsl2", "test")
+        with (
+            patch.object(installer, "detect_host_runtime", return_value=runtime),
+            patch.object(
+                installer,
+                "authorize_project_filesystem",
+                side_effect=installer.InstallerError(
+                    "Windows-mounted WSL project filesystem is blocked."
+                ),
+            ) as authorize,
+            patch.object(installer, "ensure_python_environment") as ensure_python,
+            patch.object(installer, "_ensure_private_file") as ensure_private_file,
+            patch.object(installer.subprocess, "run") as run_process,
+        ):
+            with self.assertRaises(installer.InstallerError):
+                installer.run(
+                    installer.parse_args(("--confirm-reset",)),
+                    env={},
+                    cwd=Path.cwd(),
+                )
+
+        authorize.assert_called_once_with(
+            runtime,
+            Path.cwd(),
+            allow_wsl_windows_filesystem=False,
+            env={},
+        )
+        ensure_python.assert_not_called()
+        ensure_private_file.assert_not_called()
+        run_process.assert_not_called()
+
+    def test_installer_orders_host_filesystem_before_dependency_bootstrap(self):
+        calls: list[str] = []
+        runtime = installer.HostRuntime("native_linux", "test")
+
+        def detect(_: object) -> installer.HostRuntime:
+            calls.append("host")
+            return runtime
+
+        def authorize(*args: object, **kwargs: object) -> object:
+            calls.append("filesystem")
+            raise installer.InstallerError("stop after filesystem checkpoint")
+
+        with (
+            patch.object(installer, "detect_host_runtime", side_effect=detect),
+            patch.object(installer, "authorize_project_filesystem", side_effect=authorize),
+            patch.object(
+                installer,
+                "ensure_python_environment",
+                side_effect=lambda *args, **kwargs: calls.append("bootstrap"),
+            ),
+        ):
+            with self.assertRaises(installer.InstallerError):
+                installer.run(
+                    installer.parse_args(("--confirm-reset",)),
+                    env={},
+                    cwd=Path.cwd(),
+                )
+
+        self.assertEqual(["host", "filesystem"], calls)
 
     def test_ensure_python_environment_keeps_wsl_python_when_imports_available(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -341,6 +406,7 @@ class TestInstaller(unittest.TestCase):
             confirm_reset=False,
             non_interactive_live_approval=False,
             headless=False,
+            allow_wsl_windows_filesystem=False,
         )
 
         with patch("builtins.input", side_effect=EOFError):

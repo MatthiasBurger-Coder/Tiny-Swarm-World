@@ -1,33 +1,42 @@
-# Context Pack: Issue #218 FR-1
+# Context Pack: Issue #218 FR-2
 
-- Workflow: `workflow-issue-218-fr01-host-detection-20260712`
-- Version: `workflow-issue-218-fr01-v1.0.0`
-- Branch: `feature/workflow-issue-218-fr01-host-detection-20260712`
-- Baseline: `main@d778fce69bd8f87195ad9b975a1036e3cd1a8819`
-- Process strand: `workflow create -> workflow execute -> PR/CI/Sonar -> merge`
-- Execution profile: `FULL_PATH`
+- Workflow: `workflow-issue-218-fr02-filesystem-policy-20260712`
+- Version: `workflow-issue-218-fr02-v1.0.0`
+- Branch: `feature/workflow-issue-218-fr02-filesystem-policy-20260712`
+- Baseline: `main@81ca7efab062347a87c32e5305427236b048d741`
+- Process: `workflow create -> workflow execute -> PR/CI/Sonar -> merge`
+- Profile: `FULL_PATH`
 - Authoring publication: commit
-  `d161915f630241ba9bdcc6a8f339b84f4bddd137` verified at
-  `origin/feature/workflow-issue-218-fr01-host-detection-20260712`
-- Gate: `READY_FOR_WORKFLOW` at 97 percent confidence
-- Affected areas: host detection, preflight, composition, CLI, tests, arc42/ADR
-- Forbidden areas: live infrastructure, network mutation, resources, filesystem
-  policy, timeout/heartbeat implementation, browser/React, Java/Spring, Kubernetes-first
-- Required roles: Senior Workflow Architect, Senior Requirement Engineer,
-  Senior System Architect, Senior Python Automation Developer, Senior Tester,
-  Senior DevOps, Senior Documentation Engineer, Console/status UI Developer,
-  Issue Completion Auditor
-- Conditional roles: Console/status UI required for `host detect`; browser
-  React forbidden/N/A; terminal dashboard not applicable
-- Targeted quality: focused host/preflight/installer/entrypoint tests,
-  `arch-lint`, `arch-tests`, and `git diff --check`
-- Required quality: `python3 tools/quality_gate.py quality`
-- Evidence: `.codex/evidence/slice-01-distribution.md`,
-  `.codex/evidence/slice-01-consolidation.md`, supporting evidence under
-  `.codex/evidence/workflow-issue-218-fr01-host-detection-20260712/`, and
-  ignored `.tiny-swarm/evidence/issue-218-fr01/`
-- Live validation: forbidden/not run for this workflow
+  `2af8ae7f98029c7d6efa916853cf2da85fe32167` verified at
+  `origin/feature/workflow-issue-218-fr02-filesystem-policy-20260712`
+- Gate: `LOCAL_COMPLETION_PASS_CHECKPOINT_PENDING`, 96 percent confidence
+- Slice: one serial filesystem-policy slice; no parallel write streams
+- Direct requirements: FR-002, AC-002 path portion, AC-003, UT-006..009,
+  CLI-002, SEQ-002, DOC-005, DOD-003, FORBID-002, GOV-006
+- Architecture: pure project-filesystem domain assessment, inspector/evidence
+  ports, separate evaluate/authorize services, mountinfo/XDG adapters,
+  composition-root wiring
+- CLI: existing global `--preflight` is CLI-002 equivalent; exact override is
+  `--allow-wsl-windows-filesystem`
+- Safety: WSL Windows mount blocks by default; unknown WSL mount facts fail
+  closed; override affects only that blocker; no auto move/copy
+- Evidence: exact project path only in the atomic owner-only local XDG
+  installation decision; general output and committed evidence stay path-free
+- Execution verification: expected FR-2 RED is documented; 343 focused tests
+  pass both normally and with `CI=1`; the final focused remediation suite has
+  195 passing tests; lint, architecture lint/tests, typecheck, full test, and
+  full quality pass; independent completion audit passed
+- Required quality: focused and `CI=1`, lint, arch-lint, arch-tests, typecheck,
+  test, full quality, diff check, GitHub Python 3.12, SonarCloud, merged-main
+- Live validation: `NOT_RUN`; Incus/Docker/Swarm/network/service mutation is
+  forbidden for this workflow
+- Evidence roots:
+  `.codex/evidence/workflow-issue-218-fr02-filesystem-policy-20260712/` and
+  ignored `.tiny-swarm/evidence/issue-218-fr02/`
+- Next action: complete requirement/evidence reconciliation and the independent
+  one-slice checkpoint commit; workflow create must not be called backwards
 
-This navigation aid does not replace root `AGENTS.md`, `QUALITY.md`, ADRs,
-arc42, the workflow, routing rules, or skill files. Reopen authoritative files
-when any recorded hash changes.
+This navigation aid does not replace `AGENTS.md`, `QUALITY.md`, the issue
+discipline, accepted ADRs, routing rules, skills, the complete requirement
+matrix, or the workflow. Reopen authoritative files when a recorded hash
+changes.

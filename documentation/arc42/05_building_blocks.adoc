@@ -65,6 +65,31 @@ not downgraded to native Linux. FR-1 establishes this detection seam; complete
 host-specific Native Linux/WSL2 preparation adapter bundles remain assigned to
 Issue #218 FR-14 and are not claimed here.
 
+==== Project Filesystem Policy Boundary
+
+`ProjectFilesystemInspection` and `ProjectFilesystemAssessment` are immutable
+domain facts. The pure policy distinguishes `native_linux`, `wsl_linux`,
+`windows_mounted`, and `unknown`, and produces `allowed`,
+`allowed_by_override`, or `blocked` without filesystem I/O. Its safe serializer
+excludes the resolved project path.
+
+`PortProjectFilesystemInspector` and
+`PortProjectFilesystemEvidenceRepository` are inward-facing application
+ports. `EvaluateProjectFilesystem` performs the read-only policy decision;
+`AuthorizeProjectFilesystem` persists only an applied, explicit exception and
+turns evidence failure back into a blocked assessment. The infrastructure
+inspector resolves the path and parses `/proc/self/mountinfo` in process. The
+local evidence adapter owns XDG state-path resolution, Linux-filesystem
+verification, allowlisted JSON serialization, atomic replacement, and
+owner-only permissions.
+
+The composition root wires these adapters into static preflight, accepted live
+preflight, platform init, setup, and the bootstrap-safe installer path. The
+shared Incus, Docker Swarm, Artifacts, and Deployment core receives no WSL path
+inspection responsibility. FR-2 implements only this filesystem gate; later
+resource, network, timeout, native-isolation, and final evidence work remains
+owned by its declared Issue #218 workflows.
+
 The composition root now exposes separate in-process application service
 bundles. These bundles are responsibility boundaries inside the Python
 automation process; they are not independently deployable services or

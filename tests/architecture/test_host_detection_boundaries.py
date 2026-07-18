@@ -9,7 +9,14 @@ SOURCE_ROOT = REPOSITORY_ROOT / "src" / "tiny_swarm_world"
 
 class TestHostDetectionBoundaries(unittest.TestCase):
     def test_domain_host_model_has_no_host_io_or_outward_imports(self):
-        imports = _imports(SOURCE_ROOT / "domain" / "host_environment.py")
+        imports = {
+            imported
+            for path in (
+                SOURCE_ROOT / "domain" / "host_environment.py",
+                SOURCE_ROOT / "domain" / "project_filesystem.py",
+            )
+            for imported in _imports(path)
+        }
 
         forbidden = {
             "os",
@@ -17,6 +24,23 @@ class TestHostDetectionBoundaries(unittest.TestCase):
             "platform",
             "subprocess",
             "tiny_swarm_world.application",
+            "tiny_swarm_world.infrastructure",
+        }
+        self.assertFalse(_matches_any(imports, forbidden), sorted(imports))
+
+    def test_project_filesystem_evidence_port_has_no_adapter_or_file_io_imports(self):
+        imports = _imports(
+            SOURCE_ROOT
+            / "application"
+            / "ports"
+            / "repositories"
+            / "port_project_filesystem_evidence_repository.py"
+        )
+
+        forbidden = {
+            "os",
+            "pathlib",
+            "tempfile",
             "tiny_swarm_world.infrastructure",
         }
         self.assertFalse(_matches_any(imports, forbidden), sorted(imports))

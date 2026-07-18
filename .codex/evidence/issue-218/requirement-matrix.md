@@ -9,9 +9,9 @@ Implementation may start only for the FR released by the active workflow.
 | ID | Requirement | Type | Owning workflow | Implementation evidence | Verification evidence | Status |
 |---|---|---|---|---|---|---|
 | PROC-001 | Execute FR-1 through FR-15 serially, each with an isolated workflow-create/execute branch, evidence, quality, PR, checks, and merge before the next FR. | Governance | FR-1..FR-15 | workflow ledger | per-FR PR/evidence | IN_PROGRESS |
-| OUT-001 | Keep platform deployment from Incus and Docker Swarm onward host-independent wherever possible; host-specific preparation must stay outside the shared platform/deployment core. | Required outcome / architecture | FR-7/8/10/14/15 | pending host-boundary cleanup and native isolation | static dependency audit plus native/WSL integration | OPEN |
+| OUT-001 | Keep platform deployment from Incus and Docker Swarm onward host-independent wherever possible; host-specific preparation must stay outside the shared platform/deployment core. | Required outcome / architecture | FR-2 revalidation; owned by FR-7/8/10/14/15 | FR-2 keeps filesystem policy outside shared Incus/Swarm/deployment modules; later cleanup/native isolation remain pending | FR-2 static dependency revalidation plus later native/WSL integration | IN_PROGRESS |
 | FR-001 | Reliably distinguish native Linux, WSL1, WSL2, and unsupported hosts from osrelease, proc version, WSL interop, and distro signals; return structured distribution/kernel/interop data; reject WSL1. | Functional / architecture | FR-1 | typed host model, detector port/readers, composed CLI/preflight/installer consumers | classifier, adapter, CLI, integration, targeted and full gates | VERIFIED |
-| FR-002 | Under WSL detect Windows-mounted repository paths including `/mnt/c`, `/mnt/d`, `/mnt/e`; block heavy live install by default, recommend a Linux home path, support `--allow-wsl-windows-filesystem`, and record the override. | Functional / safety | FR-2 | pending | path policy tests and evidence | OPEN |
+| FR-002 | Under WSL detect Windows-mounted repository paths including `/mnt/c`, `/mnt/d`, `/mnt/e`; block heavy live install by default, recommend a Linux home path, support `--allow-wsl-windows-filesystem`, and record the override. | Functional / safety | FR-2 | implemented by the typed policy, mountinfo inspector, authorization, protected local evidence, and ordered workflow guards | path policy, stop-order, override-evidence and full gates | VERIFIED |
 | FR-003 | Inspect actual WSL CPU and memory using `nproc`, `free -b`, `/proc/meminfo`, `memory.max`, and `memory.current`; return a structured snapshot and SUPPORTED/WARNINGS/INSUFFICIENT assessment. | Functional / scalability | FR-3 | pending | parser and assessment tests | OPEN |
 | FR-004 | Validate selected service profile against centrally configured minimum/recommended CPU, memory, and disk for all named services, dependencies, manager, and optional workers. | Functional / configuration | FR-4 | pending | below/at/above tests | OPEN |
 | FR-005 | Before any limit-bearing Incus mutation validate requested limits, visible host capacity, active managed-container limits, overcommit policy, and effective meaning; block unusable limits. | Functional / safety | FR-5 | pending | fake Incus plan tests | OPEN |
@@ -33,7 +33,7 @@ Implementation may start only for the FR released by the active workflow.
 | NFR-006 | New checks return machine-readable typed results, not free-form text alone. | Contract / quality | every FR | FR-1 immutable report and deterministic public JSON payload | schema, CLI, Mypy tests | IN_PROGRESS |
 | AC-001 | Native preflight detects native_linux, executes no Windows command, loads no WSL network adapter, and is not blocked by absent wsl.exe. | Acceptance | FR-1/FR-14 | FR-1 native detector/preflight path and mutation sentinels implemented; full isolation remains FR-14 | native simulated integration and no-process/no-file CLI tests | IN_PROGRESS |
 | AC-002 | WSL2 preflight detects wsl2, measures resources, evaluates project path, checks Windows reachability separately, and produces a structured report. | Acceptance | FR-1/2/3/7/15 | FR-1 structured WSL2 classification implemented; later resource/path/network fields remain owned by FR-2/3/7/15 | simulated WSL2 integration and real read-only WSL2 CLI | IN_PROGRESS |
-| AC-003 | A `/mnt/d` live install blocks without override, recommends `/home/<user>/projects/...`, and records an accepted override. | Acceptance | FR-2/FR-15 | pending | filesystem/evidence tests | OPEN |
+| AC-003 | A `/mnt/d` live install blocks without override, recommends `/home/<user>/projects/...`, and records an accepted override. | Acceptance | FR-2/FR-15 | FR-2 implements the blocker, recommendation, protected override decision, and static evidence contract; FR-15 retains final package acceptance | filesystem/evidence/installer/setup tests | VERIFIED |
 | AC-004 | An 8 GiB service-access host is insufficient/critical; deployment and a 10 GiB manager limit do not start; measured values are reported. | Acceptance | FR-3/4/5 | pending | insufficient fixture | OPEN |
 | AC-005 | At effective configured minimum, assessment succeeds and reports planned limits and remaining reserve. | Acceptance | FR-3/4/5 | pending | minimum fixture | OPEN |
 | AC-006 | A hung verify adapter is terminated on timeout, maps to TIMED_OUT with substep identity, and does not start platform verify. | Acceptance | FR-10/11/12 | pending | hanging fake test | OPEN |
@@ -46,10 +46,10 @@ Implementation may start only for the FR released by the active workflow.
 | UT-003 | Unit-test WSL2 detection. | Test | FR-1 | dedicated `wsl2` setup path | `test_classifies_wsl2_with_typed_host_fields` plus detector/CLI/integration cases | VERIFIED |
 | UT-004 | Unit-test missing `/proc` files. | Test | FR-1 | reader returns bounded missing facts and classifier fails closed | `test_missing_kernel_files_is_sandbox_unverified` plus detector I/O-error cases | VERIFIED |
 | UT-005 | Unit-test missing Windows interop. | Test | FR-1 | interop is independent typed boolean | `test_confirmed_wsl2_without_interop_keeps_host_type` and adapter counterpart | VERIFIED |
-| UT-006 | Unit-test `/mnt/c` detection. | Test | FR-2 | pending | named unit test | OPEN |
-| UT-007 | Unit-test `/mnt/d` detection. | Test | FR-2 | pending | named unit test | OPEN |
-| UT-008 | Unit-test `/mnt/e` detection. | Test | FR-2 | pending | named unit test | OPEN |
-| UT-009 | Unit-test native Linux filesystem detection. | Test | FR-2 | pending | named unit test | OPEN |
+| UT-006 | Unit-test `/mnt/c` detection. | Test | FR-2 | implemented in project-filesystem domain/adapter tests | named unit test | VERIFIED |
+| UT-007 | Unit-test `/mnt/d` detection. | Test | FR-2 | implemented in project-filesystem domain/adapter tests | named unit test | VERIFIED |
+| UT-008 | Unit-test `/mnt/e` detection. | Test | FR-2 | implemented in project-filesystem domain/adapter tests | named unit test | VERIFIED |
+| UT-009 | Unit-test native Linux filesystem detection. | Test | FR-2 | implemented in project-filesystem domain/adapter tests | named unit test | VERIFIED |
 | UT-010 | Unit-test resource assessment below minimum. | Test | FR-4 | pending | named unit test | OPEN |
 | UT-011 | Unit-test resource assessment at minimum. | Test | FR-4 | pending | named unit test | OPEN |
 | UT-012 | Unit-test resource assessment above recommendation. | Test | FR-4 | pending | named unit test | OPEN |
@@ -79,12 +79,12 @@ Implementation may start only for the FR released by the active workflow.
 | RT-007 | Existing platform verify continues to work. | Regression | FR-9/10/14/15 | pending | platform tests | OPEN |
 | RT-008 | Existing evidence generation continues to work. | Regression | FR-15 | pending | evidence tests | OPEN |
 | CLI-001 | Provide visible `host detect` or proven equivalent. | CLI | FR-1 | early read-only human/JSON CLI path | `test_host_detect_human_output_is_complete_and_read_only`, JSON/exit/no-mutation cases, and real WSL2 runs | VERIFIED |
-| CLI-002 | Provide visible `host preflight` or proven equivalent. | CLI | FR-2/3/4 | pending | CLI tests | OPEN |
+| CLI-002 | Provide visible `host preflight` or proven equivalent. | CLI | FR-2/3/4 | existing global `--preflight` is the governed equivalent; FR-2 adds ordered filesystem output | CLI/preflight JSON and human tests | VERIFIED |
 | CLI-003 | Provide visible `host prepare` or proven equivalent. | CLI / mutating | FR-7 | pending | consent/CLI tests | OPEN |
 | CLI-004 | Provide visible `host verify` or proven equivalent. | CLI / read-only | FR-7 | pending | non-mutation CLI tests | OPEN |
 | CLI-005 | Support `--live --approve-live --service-profile service-access` for host preflight and preserve explicit consent for mutation. | CLI / safety | FR-7/15 | pending | parser/consent tests | OPEN |
 | SEQ-001 | Detect host first. | Runtime ordering | FR-1/15 | installer typed detection precedes Python bootstrap, secret writes, and live work | `test_installer_stops_unsupported_host_before_bootstrap_or_file_writes` | VERIFIED |
-| SEQ-002 | Validate host filesystem second. | Runtime ordering | FR-2/15 | pending | setup order test | OPEN |
+| SEQ-002 | Validate host filesystem second. | Runtime ordering | FR-2/15 | implemented in installer/preflight/setup ordering guards | stop-before-bootstrap and stop-before-phase tests | VERIFIED |
 | SEQ-003 | Inspect host resources third. | Runtime ordering | FR-3/15 | pending | setup order test | OPEN |
 | SEQ-004 | Validate selected service profile fourth. | Runtime ordering | FR-4/15 | pending | setup order test | OPEN |
 | SEQ-005 | Prepare host networking before platform deployment. | Runtime ordering | FR-7/15 | pending | setup order test | OPEN |
@@ -101,13 +101,13 @@ Implementation may start only for the FR released by the active workflow.
 | DOC-002 | Document WSL prerequisites separately. | Documentation | incremental/FR-15 | pending | doc review | OPEN |
 | DOC-003 | Document native Linux prerequisites separately. | Documentation | incremental/FR-15 | pending | doc review | OPEN |
 | DOC-004 | Document resource requirements and effective threshold formula. | Documentation | FR-4/15 | pending | doc review | OPEN |
-| DOC-005 | Document project path recommendation and override. | Documentation | FR-2/15 | pending | doc review | OPEN |
+| DOC-005 | Document project path recommendation and override. | Documentation | FR-2/15 | implemented in README, installation, usage, arc42 and ADR status updates | independent documentation review | VERIFIED |
 | DOC-006 | Document network model and Windows Service Agent ownership/cleanup. | Documentation | FR-7/15 | pending | doc review | OPEN |
 | DOC-007 | Document troubleshooting, timeout, and hang diagnostics. | Documentation | FR-11/13/15 | pending | doc review | OPEN |
 | DOC-008 | Document CLI examples and explicitly state WSL2 is a dedicated supported host platform, not native Linux. | Documentation | FR-1/15 | dedicated ADR, synchronized arc42 and usage CLI section | independent architecture/console review | VERIFIED |
 | DOD-001 | WSL2 is reliably detected. | Done | FR-1/15 | independent WSL kernel plus distro/interop classification | unit, integration, CLI and actual read-only WSL2 detection | VERIFIED |
 | DOD-002 | Native Linux is handled separately. | Done | FR-1/14/15 | dedicated native result/adapter behavior; final whole-repository isolation remains FR-14 | native unit/integration and fail-closed legacy mapping | IN_PROGRESS |
-| DOD-003 | Windows-mounted project paths are evaluated. | Done | FR-2/15 | pending | acceptance audit | OPEN |
+| DOD-003 | Windows-mounted project paths are evaluated. | Done | FR-2/15 | implemented by FR-2 policy, guards, evidence and tests | acceptance/completion audit | VERIFIED |
 | DOD-004 | WSL resources are validated before Incus limits. | Done | FR-3/4/5/15 | pending | acceptance audit | OPEN |
 | DOD-005 | Memory pressure uses multiple cgroup signals. | Done | FR-6/15 | pending | acceptance audit | OPEN |
 | DOD-006 | Dedicated WSL network preparation exists. | Done | FR-7/15 | pending | acceptance audit | OPEN |
@@ -120,11 +120,11 @@ Implementation may start only for the FR released by the active workflow.
 | DOD-013 | Installation evidence is extended. | Done / evidence | FR-15 | pending | evidence audit | OPEN |
 | DOD-014 | Documentation is updated. | Done / docs | incremental/FR-15 | FR-1 ADR/arc42/usage synchronized | FR-1 independent doc review; later FR docs pending | IN_PROGRESS |
 | DOD-015 | Initial and final Three Amigos gates pass. | Done / governance | FR-1/FR-15 | initial gate evidence | final gate pending | IN_PROGRESS |
-| DOD-016 | CI and Sonar checks pass. | Done / quality | every FR/FR-15 | pending | PR checks | OPEN |
-| DOD-017 | Required PRs are created and merged only after successful gates. | Done / release | every FR | pending | GitHub evidence | OPEN |
+| DOD-016 | CI and Sonar checks pass. | Done / quality | every FR/FR-15 | FR-1 run 29201314415 and both PR #220 checks passed; later FR checks pending | per-FR PR checks | IN_PROGRESS |
+| DOD-017 | Required PRs are created and merged only after successful gates. | Done / release | every FR | FR-1 PR #220 merged after green checks; FR-2 lifecycle active | GitHub and cleanup evidence | IN_PROGRESS |
 | QG-001 | Phase 10 must run at least `pytest` plus every repository-defined quality command, or record an explicit governed verified-equivalent tooling decision where the repository's authoritative suite uses another runner. | Quality governance | FR-15 | repository currently uses unittest through `tools/quality_gate.py`; final pytest/equivalence decision pending | documented tooling decision plus final command evidence | OPEN |
 | FORBID-001 | Do not close the issue by only increasing manager resources. | Forbidden | all | enforced scope | diff/audit | IN_PROGRESS |
-| FORBID-002 | Do not hard-code only `/mnt/d` detection. | Forbidden | FR-2/8 | pending | tests/static audit | OPEN |
+| FORBID-002 | Do not hard-code only `/mnt/d` detection. | Forbidden | FR-2/8 | FR-2 uses mountinfo plus generic drive handling and false-prefix tests | tests/static audit | VERIFIED |
 | FORBID-003 | Do not disable timeouts. | Forbidden | FR-11/12 | pending | config/tests | OPEN |
 | FORBID-004 | Do not merely increase sleep durations. | Forbidden | FR-9/11/12 | pending | diff review | OPEN |
 | FORBID-005 | Do not retry hangs without diagnosis. | Forbidden | FR-13 | pending | workflow tests | OPEN |
@@ -145,7 +145,7 @@ Implementation may start only for the FR released by the active workflow.
 | GOV-003 | Before behavior changes, preserve characterization tests and inventories of WSL-as-native handling, hard-coded WSL/Windows/repository assumptions, long workflows without outer timeout, and chained or semantically bundled verify steps. | every affected FR | IN_PROGRESS |
 | GOV-004 | Host environment model before networking. | FR-1 | VERIFIED |
 | GOV-005 | Resource model. | FR-3/4/5/6 | OPEN |
-| GOV-006 | Filesystem policy without automatic move/copy. | FR-2 | OPEN |
+| GOV-006 | Filesystem policy without automatic move/copy. | FR-2 | VERIFIED |
 | GOV-007 | Dedicated WSL network adapter behind the service agent. | FR-7 | OPEN |
 | GOV-008 | Harden workflow runner and decouple verifies. | FR-9/10/11/12/13 | OPEN |
 | GOV-009 | Integrate required installer ordering and native isolation. | FR-14/15 | OPEN |

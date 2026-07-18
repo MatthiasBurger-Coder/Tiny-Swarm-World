@@ -25,6 +25,12 @@ The later
 adds one narrowly protected local-installation-evidence exception for the
 resolved project path and its filesystem decision; all other path and evidence
 restrictions below remain active.
+Issue #218 FR-2 implements that exception and the preceding fail-closed
+filesystem gate. Static and live preflight, platform init, setup, and the
+installer now stop after host classification when the repository filesystem is
+blocked. Only an applied explicit WSL Windows-filesystem exception writes the
+protected XDG document; later live readiness and consent rules remain
+unchanged.
 
 == Context
 

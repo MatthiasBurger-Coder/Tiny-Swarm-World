@@ -15,17 +15,24 @@ INSTALLER_BOOTSTRAP_SOURCE_FILES = (
     Path("installer.py"),
     Path("domain/__init__.py"),
     Path("domain/host_environment.py"),
+    Path("domain/project_filesystem.py"),
     Path("domain/sanitized_evidence.py"),
     Path("application/__init__.py"),
     Path("application/ports/__init__.py"),
     Path("application/ports/host/__init__.py"),
     Path("application/ports/host/port_host_environment_detector.py"),
+    Path("application/ports/host/port_project_filesystem_inspector.py"),
+    Path("application/ports/repositories/__init__.py"),
+    Path("application/ports/repositories/port_project_filesystem_evidence_repository.py"),
     Path("infrastructure/__init__.py"),
     Path("infrastructure/adapters/__init__.py"),
     Path("infrastructure/adapters/host/__init__.py"),
     Path("infrastructure/adapters/host/host_environment_detector.py"),
     Path("infrastructure/adapters/host/linux_host_signal_reader.py"),
+    Path("infrastructure/adapters/host/project_filesystem_inspector.py"),
     Path("infrastructure/adapters/host/wsl_host_signal_reader.py"),
+    Path("infrastructure/adapters/repositories/__init__.py"),
+    Path("infrastructure/adapters/repositories/project_filesystem_evidence_local_repository.py"),
 )
 
 
@@ -145,6 +152,30 @@ class TestInstallScript(unittest.TestCase):
                     (
                         "PYTHONPATH=src python3 -m tiny_swarm_world setup run "
                         "--live --service-profile default"
+                    ),
+                ],
+                fixture.recorded_commands(),
+            )
+
+    def test_install_forwards_explicit_wsl_filesystem_override_to_live_commands(self):
+        with _install_script_fixture(
+            extra_args=("--allow-wsl-windows-filesystem",),
+        ) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(
+                [
+                    (
+                        "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
+                        "--live --confirm RESET_TINY_SWARM_PLATFORM "
+                        "--service-profile service-access "
+                        "--allow-wsl-windows-filesystem"
+                    ),
+                    (
+                        "PYTHONPATH=src python3 -m tiny_swarm_world setup run "
+                        "--live --service-profile service-access "
+                        "--allow-wsl-windows-filesystem"
                     ),
                 ],
                 fixture.recorded_commands(),

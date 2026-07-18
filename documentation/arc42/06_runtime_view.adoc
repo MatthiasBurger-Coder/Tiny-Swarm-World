@@ -56,6 +56,32 @@ classification only; it does not prove Incus, networking, resource, or service
 readiness. Its early dispatch also avoids executable-path environment changes
 and application-log creation.
 
+=== Project Filesystem Gate Flow
+
+After supported host classification, preflight evaluates the normalized,
+resolved repository path before Python, dependency, resource, provider, or
+network checks. On native Linux the policy permits the native path without
+loading WSL mount facts. On WSL2 the inspector parses `/proc/self/mountinfo`,
+chooses the longest matching mount point, and distinguishes Linux-native mounts
+from `drvfs` and DrvFS-backed `9p`/`v9fs`. Missing, unrecognized, or
+contradictory mount facts block.
+
+Static preflight calls `EvaluateProjectFilesystem` and emits a path-free
+`HOST-FILESYSTEM` check. A Windows-mounted repository blocks by default and
+recommends `/home/<user>/projects/Tiny-Swarm-World`. The exact
+`--allow-wsl-windows-filesystem` flag changes only a confirmed WSL2
+Windows-mounted decision; it cannot release an unsupported host or unknown
+filesystem.
+
+Accepted live preflight calls `AuthorizeProjectFilesystem`. Before any later
+mutating platform or setup step, an applied exception must be written to the
+protected XDG local-state document. The installer applies the same order before
+Python bootstrap, file preparation, or process creation. Evidence-target
+classification, atomic-write, or permission failure converts the result to
+`blocked`; no later step runs. The protected document is the sole path-bearing
+evidence surface. General preflight evidence, progress, logs, and committed
+artifacts remain path-free.
+
 The composition root builds `ApplicationServices` as an aggregate of three
 service bundles:
 

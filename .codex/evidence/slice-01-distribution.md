@@ -1,100 +1,75 @@
-# Slice 01 Automatic Work Distribution
+# Slice 01 Distribution — Issue #218 FR-2
 
-- Workflow ID: `workflow-issue-218-fr01-host-detection-20260712`
-- Slice ID: `01`
-- Slice title: Dedicated host detection boundary
-- Execution profile: `FULL_PATH`
-- Chosen mode: `SEQUENTIAL`
-- Isolated workflow worktree: yes
-- Parallel stream worktrees: no
-- Live infrastructure: `NOT_RUN` and forbidden for this slice
+Date: `2026-07-12`
+Workflow: `workflow-issue-218-fr02-filesystem-policy-20260712`
+Branch: `feature/workflow-issue-218-fr02-filesystem-policy-20260712`
+Publication head: `529ae16677edefa6fe5f0543b8adadbfda586db6`
+Slice: `01` — WSL project filesystem gate
+Decision: `SERIAL_ONLY`
+Live infrastructure: `NOT_RUN`
 
-## S3 / S3D preflight
+## S3/S3D execution entry
 
-- `S3_STATUS`: PASS; workflow worktree clean at execution start.
-- `S3_BRANCH`: PASS; active local ref exactly matches the declared workflow branch.
-- `S3_SCOPE`: PASS; only Issue #218 FR-1 is released.
-- `S3_CLASSIFY`: backend + runtime + documentation + quality + architecture;
-  terminal presentation is reviewed as Console/status UI, not browser frontend.
-- Context hashes: PASS for all recorded governing and baseline source files.
-- Initial S3D metadata: PASS; one concrete slice, no dependencies/cycle, serial
-  group, 46 allowed path entries, 4 file locks, 2 contract locks, and 2
-  architecture locks.
-- Scope amendment checkpoint: PASS before the existing setup-safety ADR was
-  edited. The required narrow amendment path was added, uniqueness and metadata
-  were revalidated, and the result was
-  `S3D_SCOPE_AMENDMENT=PASS affected_files=39`.
-- Pre-implementation contract amendment: the typed result must also replace
-  fail-open legacy behavior in the existing preflight port/service and network
-  observation port/service. Their exact code and test paths were added before
-  product writes, producing 46 allowed path entries. The targeted gate now
-  includes both existing application-service suites and the dedicated host
-  boundary architecture test.
-- Final pre-product-write revalidation:
-  `S3D_PRE_IMPLEMENTATION=PASS changed=7 affected_files=46 locks=4/2/2`;
-  `git diff --check` also passed.
-- After GitHub exposed the pre-bootstrap import closure, the approved CI
-  remediation amendment produced
-  `S3D_CI_REMEDIATION_SCOPE=PASS affected_files=50 locks=4/2/2`. The added
-  paths are limited to the standard-library domain relocation, legacy shims,
-  and the existing install-script fixture.
+- dedicated local branch/ref and isolated worktree: `PASS`;
+- local/remote publication-head equality: `PASS`;
+- worktree clean before distribution: `PASS`;
+- 17 required slice metadata fields: `PASS`;
+- dependency graph/topological group: `[[01]]`, acyclic and serial;
+- 141 unique issue IDs and 45 explicit slice mappings: `PASS`;
+- context JSON and all 17 recorded hashes: `PASS`;
+- workflow-create Requirement, Architecture, and Test reviews: `PASS`;
+- product and live mutation before this distribution record: none.
 
-## Stream decision
+## Automatic stream analysis
 
-| Stream | Decision | Reviewer / execution responsibility |
-|---|---|---|
-| backend | selected, sequential | Senior Python Automation Developer; Codex integrates |
-| frontend | review only | Console/status UI Developer; browser/React N/A |
-| tests | selected, sequential with code | Senior Tester / DevOps read-only review |
-| runtime | compatibility review only | installer and network-runtime consumers; no live run |
-| documentation | selected, sequential | System Architect + Documentation review |
-| quality | selected after consolidation | targeted gates, full D8, CI and Sonar |
-| architecture | selected before implementation | accepted ADR and hexagonal boundary review |
-| security | review only | evidence redaction and no-mutation constraints |
+| Stream | Decision | Owner/reviewer | Reason |
+|---|---|---|---|
+| Python domain/application/runtime | SEQUENTIAL_WRITE | Codex / Senior Python Automation Developer | assessment, ports, services, preflight order, installer bootstrap and composition are one contract |
+| Tests | SEQUENTIAL_WRITE_THEN_INDEPENDENT_REVIEW | Codex; Senior Tester reviewer | TDD tests lock the same APIs and stop order |
+| Console/status UI | READ_ONLY_REVIEW | Console/status UI Developer | preflight human/JSON output only |
+| Documentation | SEQUENTIAL_WRITE_THEN_READ_ONLY_REVIEW | Codex; Senior Documentation Engineer reviewer | docs depend on verified behavior |
+| Quality | READ_ONLY_AFTER_CONSOLIDATION | Senior Tester / Quality Gate Orchestrator | commands must evaluate the integrated slice |
+| Architecture | READ_ONLY_REVIEW | Senior System Architect | hexagonal, bootstrap and ADR status review |
+| Security/evidence | READ_ONLY_REVIEW | Senior Security/Evidence Reviewer | exact-path isolation and private atomic evidence |
+| Browser/React frontend | NOT_APPLICABLE_FORBIDDEN | none | no verified frontend module |
 
-Real Codex subagents were used for requirement, system-architecture,
-tester/DevOps, workflow-authoring/Git, and Console/status UI read-only reviews.
-The main Codex agent remains the sole write-capable implementation and final
-integration owner for this slice.
+No parallel write stream is approved. Overlap includes the domain schema,
+preflight ordering, installer import closure, exact CLI flag, composition,
+protected schema, tests, active workflow, matrix, and documentation. Separate
+worktrees would create contract and merge-order conflicts rather than safe
+independence.
 
-## Expected touched files
+## Locks and handoff
 
-- dedicated host-boundary ADR, arc42 sections, and user CLI usage;
-- the standard-library-only `domain/host_environment.py` boundary, re-exported
-  through preflight for compatibility;
-- new `application/ports/host` and `application/services/platform/host` code;
-- new `infrastructure/adapters/host` signal readers/detector;
-- preflight, installer, OS-type, network-runtime, composition, and CLI consumers;
-- FR-1 unit, adapter, integration, CLI, composition, and architecture tests;
-- workflow, issue, slice, and ignored issue-completion evidence.
+- Write allowlist: exactly Slice-01 `affected_files`; broader `file_locks` only
+  reserve conflict surfaces and do not expand scope.
+- Contract locks: `HOST-FILESYSTEM`, safe serializer, protected schema v1,
+  override authority, stop-after-BLOCKED, host-first ordering, `python -S`.
+- Architecture locks: pure domain, application ports, infrastructure I/O,
+  composition root, separate evaluate/authorize services, no WSL mega-utility.
+- Evidence handoff: create TDD RED, implementation, six ignored issue files,
+  consolidation, specialist reviews, completion audit, quality and Git evidence.
+- Integration owner: Codex; no subagent may merge or write to this branch.
 
-## Conflict and safety analysis
+## Execution order
 
-Parallel writes are rejected because the ADR, typed report, detector port,
-composition, CLI, installer compatibility, and fixtures share one evolving
-contract. The slice also has mandatory regression-first ordering. No shared
-migration or database/schema change exists, but those conditions would block
-parallelization. Generated-file conflicts, contradictory requirements, unclear
-architecture, a Three Amigos unsafe decision, secrets ambiguity, or weakened
-safety guards also block parallel work.
+```text
+tests and TDD RED
+-> pure domain and ports/services
+-> mount/evidence adapters
+-> preflight/installer/CLI/composition integration
+-> focused green and path-leak audit
+-> docs/matrix/issue evidence
+-> independent reviews and completion audit
+-> full quality gate
+-> Slice-01 commit/PR/CI/Sonar/merge/cleanup/green main
+```
 
-No live Incus, Docker, Docker Swarm, PowerShell, Windows Firewall, portproxy,
-DNS/hosts, network, service bootstrap, reset, or deployment command is allowed.
+## Execution update
 
-## Quality gates
-
-1. Focused host/domain/application/adapter/preflight/network/OS/composition/
-   integration/installer/CLI tests.
-2. `python3 tools/quality_gate.py arch-lint`.
-3. `python3 tools/quality_gate.py arch-tests`.
-4. `git diff --check`.
-5. `python3 tools/quality_gate.py quality`.
-6. Ready PR checks including configured Sonar status before merge.
-
-## Consolidation plan
-
-Codex will implement regression-first in this worktree, incorporate or reject
-read-only specialist findings explicitly, run targeted checks before D8, write
-`.codex/evidence/slice-01-consolidation.md`, complete the ignored issue evidence
-package, obtain independent Three Amigos and issue-completion audit decisions,
-create exactly one Slice-01 checkpoint commit, push it, and own PR integration.
+- TDD RED, implementation, focused normal and `CI=1` suites, all local quality
+  gates, architecture/security review, and tester/console review are complete.
+- The slice remains serial; no live command or parallel write stream was used.
+- Next action: reconcile issue evidence, complete the Requirement and
+  Documentation review, then run the independent completion audit before the
+  checkpoint commit.
