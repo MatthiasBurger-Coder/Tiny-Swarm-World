@@ -1,7 +1,17 @@
-# Publication Handoff: SonarCloud S3415 repair
+# Workflow-authoring publication handoff
 
-Status: workflow authored; implementation and validation are pending.
+Workflow ID: `workflow-sonarcloud-remediation-20260718`
 
-- Branch: `fix/workflow-sonar-s3415-20260718`
-- Scope: only SonarCloud-reported S3415 assertion argument order corrections.
-- No pull request, merge, or branch cleanup is authorized by this handoff.
+Branch: `fix/workflow-sonarcloud-remediation-20260718`
+
+Publication state: pending commit and guarded push.
+
+Scope: workflow authoring only. This publication must not create, merge, or clean up a pull request, and it must not execute any remediation slice.
+
+Required pre-publication checks:
+
+- `git diff --check`
+- review that staged files are limited to `documentation/workflow/**`
+- verify the active branch is the workflow branch
+
+After successful publication, record the commit SHA, `origin/<branch>` target, and push result here.

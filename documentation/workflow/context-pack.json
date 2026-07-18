@@ -1,8 +1,19 @@
 {
-  "workflow_id": "workflow-sonar-s3415-20260718",
-  "branch": "fix/workflow-sonar-s3415-20260718",
-  "baseline": "e91ca5824e823fbd2ae547c23080e8847ef55ccb",
-  "scope": "SonarCloud python:S3415 assertion argument order repair",
-  "forbidden": ["src/**", "Sonar profile changes", "test exclusions", "live infrastructure"],
-  "quality": ["changed tests", "python3 tools/quality_gate.py quality", "git diff --check", "SonarCloud branch analysis"]
+  "workflow_version": "workflow-sonarcloud-remediation-v2.0.0",
+  "workflow_id": "workflow-sonarcloud-remediation-20260718",
+  "branch": "fix/workflow-sonarcloud-remediation-20260718",
+  "process_strand": "python test-quality remediation and workflow governance",
+  "execution_profile": "FULL_PATH",
+  "affected_areas": ["tests", "SonarCloud issue evidence", "workflow evidence"],
+  "forbidden_areas": ["src", "infra", "SonarCloud configuration", "quality-profile changes", "suppressions and exclusions", "live infrastructure"],
+  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester", "Issue Completion Auditor"],
+  "conditional_roles": ["Senior DevOps Engineer for remote-analysis evidence only"],
+  "quality_commands": ["git diff --check", "PYTHONPATH=src python3 -m unittest <changed module>", "python3 tools/quality_gate.py quality"],
+  "governing_file_sha256": {
+    "AGENTS.md": "bba7ddf6214a1aaad6c2bfacbae2c9ac2bbd05653c03df9ba0daff3cf1b93210",
+    "QUALITY.md": "458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6",
+    "documentation/process/issue-completion-discipline.md": "81876f6dca479a1d63a80f765baf949a951eff2e0eeafde6bac72ad750508904",
+    "documentation/arc42/10_quality_requirements.adoc": "fce78b3093c39eab653aca4a30d9e0c4fa93eb751ccbe12114db5766284a1208",
+    "documentation/arc42/11_risks_and_debt.adoc": "1292bee95d7c9cb24ef8df83c27f3df5372f1feb394bdaf4b125f8f5bbcd0b4e"
+  }
 }
