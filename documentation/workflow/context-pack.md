@@ -9,7 +9,7 @@
 - Authoring publication: commit
   `2af8ae7f98029c7d6efa916853cf2da85fe32167` verified at
   `origin/feature/workflow-issue-218-fr02-filesystem-policy-20260712`
-- Gate: `LOCAL_COMPLETION_PASS_CHECKPOINT_PENDING`, 96 percent confidence
+- Gate: `DONE_PR_221_MERGED_MAIN_GREEN_CLEANED`, 100 percent confidence
 - Slice: one serial filesystem-policy slice; no parallel write streams
 - Direct requirements: FR-002, AC-002 path portion, AC-003, UT-006..009,
   CLI-002, SEQ-002, DOC-005, DOD-003, FORBID-002, GOV-006
@@ -33,8 +33,10 @@
 - Evidence roots:
   `.codex/evidence/workflow-issue-218-fr02-filesystem-policy-20260712/` and
   ignored `.tiny-swarm/evidence/issue-218-fr02/`
-- Next action: complete requirement/evidence reconciliation and the independent
-  one-slice checkpoint commit; workflow create must not be called backwards
+- Completion: PR #221 merged as `2ce2202`; GitHub Python Quality and
+  SonarCloud passed; merged-main full quality passed with 1,495 tests and 28
+  expected skips; the workflow branch/worktree were removed and ignored issue
+  evidence was preserved. Next action: FR-3 requires its separate workflow.
 
 This navigation aid does not replace `AGENTS.md`, `QUALITY.md`, the issue
 discipline, accepted ADRs, routing rules, skills, the complete requirement

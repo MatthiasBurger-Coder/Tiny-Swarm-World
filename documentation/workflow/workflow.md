@@ -7,7 +7,7 @@ Issue: `#218 Treat WSL2 as a Dedicated Host Platform and Decouple Installation f
 Baseline Branch: `main`
 Baseline Commit: `81ca7efab062347a87c32e5305427236b048d741`
 Branch: `feature/workflow-issue-218-fr02-filesystem-policy-20260712`
-Status: `SLICE_01_LOCAL_COMPLETION_PASS_CHECKPOINT_PENDING`
+Status: `DONE / PR #221 MERGED / MAIN GREEN / CLEANED`
 Execution Profile: `FULL_PATH`
 
 ## Executive Summary
@@ -639,12 +639,15 @@ publication commit and remote ref are verified.
 
 ## Execution Checkpoint
 
-- Current phase: workflow execute Slice 01; serial distribution, expected TDD
-  RED, implementation, and required local gates are recorded.
-- Product implementation: complete; independent completion audit passed.
+- Current phase: completed.
+- Product implementation: merged through PR #221 as
+  `2ce2202929e1d10ccdd648cf20d027d941ed8007`.
+- GitHub Python Quality and SonarCloud: `PASS`.
+- Merged-main full quality gate: `PASS`, 1,495 tests with 28 expected skips.
+- Remote and local workflow branches plus the isolated worktree: removed.
+- Ignored FR-2 issue evidence: preserved in the primary worktree.
 - Live infrastructure: `NOT_RUN` and forbidden.
-- Next allowed action: reconcile requirement evidence and complete the
-  Slice-01 checkpoint commit and guarded branch push.
+- Next allowed action: begin FR-3 only through its separate workflow.
 
 ## arc42 Check Status
 
