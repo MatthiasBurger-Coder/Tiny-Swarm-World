@@ -46,6 +46,8 @@ MANAGED_MARKER = "user.tiny_swarm_world.managed"
 NODE_MARKER = "user.tiny_swarm_world.node"
 IMAGE_ALIAS_MARKER = "user.tiny_swarm_world.image_alias"
 ALLOW_PRIVILEGED_SWARM_INGRESS_ENVIRONMENT = "TSW_LXC_ALLOW_PRIVILEGED_SWARM_INGRESS"
+SECURITY_PRIVILEGED_KEY = "security.privileged"
+SECURITY_PRIVILEGED_VALUE = "true"
 
 _BACKEND_CLI = {
     ManagedLxcBackend.INCUS: "incus",
@@ -1391,9 +1393,11 @@ def _has_unsafe_instance_config(config: Mapping[str, str]) -> bool:
 
 def _unsafe_instance_config_keys(config: Mapping[str, str]) -> tuple[str, ...]:
     keys: list[str] = []
-    privileged_enabled = config.get("security.privileged", "").casefold() == "true"
+    privileged_enabled = (
+        config.get(SECURITY_PRIVILEGED_KEY, "").casefold() == SECURITY_PRIVILEGED_VALUE
+    )
     if privileged_enabled and not _allow_privileged_swarm_ingress():
-        keys.append("security.privileged")
+        keys.append(SECURITY_PRIVILEGED_KEY)
     if any(key.startswith("raw.") for key in config):
         keys.append("raw.*")
     return tuple(keys)
@@ -1533,7 +1537,7 @@ def _required_profile_settings(
 ) -> Mapping[str, str]:
     settings: dict[str, str] = {}
     if _allow_privileged_swarm_ingress() and profile.nesting_required:
-        settings["security.privileged"] = "true"
+        settings[SECURITY_PRIVILEGED_KEY] = SECURITY_PRIVILEGED_VALUE
     if profile.nesting_required:
         settings["security.nesting"] = "true"
     if profile.syscall_interception_required:

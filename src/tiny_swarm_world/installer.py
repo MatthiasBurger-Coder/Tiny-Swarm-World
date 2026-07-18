@@ -6,7 +6,6 @@ import hashlib
 import hmac
 import json
 import os
-import re
 import secrets
 import shlex
 import shutil
@@ -39,6 +38,8 @@ from tiny_swarm_world.infrastructure.adapters.repositories.project_filesystem_ev
 )
 
 RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
+_RESET_RUN_LOG_FILE = "reset-run.log"
+_SETUP_RUN_LOG_FILE = "setup-run.log"
 DEFAULT_SERVICE_PROFILE = "service-access"
 DEFAULT_INFISICAL_LOGIN_EMAIL = "admin@tiny-swarm-world.local"
 DEFAULT_SECRET_ENV_FILE = ".tiny-swarm-world/local/live-installation.env"
@@ -88,6 +89,23 @@ class InstallerPaths:
     infisical_secret_env_file: Path
     generated_secret_env_file: Path
     native_linux_venv: Path
+
+
+@dataclass(frozen=True)
+class _InstallRunContext:
+    run_id: str
+    service_profile: str
+    secrets_mode: str
+    secret_env_file: Path
+    fixed_secret_env_file: Path
+    checked_secret_keys: tuple[str, ...]
+    secrets_generated_count: int
+    host_runtime: HostRuntime
+    live_execution_mode: str
+    live_approval_source: str
+    terminal_recording_mode: str
+    cwd: Path
+    env: Mapping[str, str]
 
 
 @dataclass(frozen=True)
@@ -343,19 +361,21 @@ def run(
     terminal_mode = "headless" if options.headless else "terminal_recorder"
     _write_context(
         evidence_dir,
-        run_id=run_id,
-        service_profile=options.service_profile,
-        secrets_mode=secret_mode,
-        secret_env_file=paths.secret_env_file,
-        fixed_secret_env_file=paths.fixed_secret_env_file,
-        checked_secret_keys=tuple(entry.key for entry in required_entries),
-        secrets_generated_count=secrets_generated_count,
-        host_runtime=host_runtime,
-        live_execution_mode=live_mode,
-        live_approval_source=approval_source,
-        terminal_recording_mode=terminal_mode,
-        cwd=cwd,
-        env=install_env,
+        context=_InstallRunContext(
+            run_id=run_id,
+            service_profile=options.service_profile,
+            secrets_mode=secret_mode,
+            secret_env_file=paths.secret_env_file,
+            fixed_secret_env_file=paths.fixed_secret_env_file,
+            checked_secret_keys=tuple(entry.key for entry in required_entries),
+            secrets_generated_count=secrets_generated_count,
+            host_runtime=host_runtime,
+            live_execution_mode=live_mode,
+            live_approval_source=approval_source,
+            terminal_recording_mode=terminal_mode,
+            cwd=cwd,
+            env=install_env,
+        ),
     )
 
     _print_install_plan(cwd, options, evidence_dir, paths.secret_env_file)
@@ -424,7 +444,7 @@ def run(
     reset_exit = _run_phase(
         "fresh-install reset",
         reset_command,
-        evidence_dir / "reset-run.log",
+        evidence_dir / _RESET_RUN_LOG_FILE,
         options,
         install_env,
         cwd,
@@ -453,14 +473,14 @@ def run(
                 "finished_utc": _utc_timestamp(),
             },
         )
-        _print_tail(evidence_dir / "reset-run.log", "Last reset log lines")
-        _print_reset_failure_guidance(evidence_dir / "reset-run.log")
+        _print_tail(evidence_dir / _RESET_RUN_LOG_FILE, "Last reset log lines")
+        _print_reset_failure_guidance(evidence_dir / _RESET_RUN_LOG_FILE)
         return reset_exit
 
     setup_exit = _run_phase(
         "live setup",
         setup_command,
-        evidence_dir / "setup-run.log",
+        evidence_dir / _SETUP_RUN_LOG_FILE,
         options,
         install_env,
         cwd,
@@ -500,8 +520,8 @@ def run(
         )
         print(f"Installation failed with exit code {setup_exit}.", file=sys.stderr)
         print(f"Evidence directory: {evidence_dir.as_posix()}", file=sys.stderr)
-        _print_tail(evidence_dir / "setup-run.log", "Last log lines")
-        _print_setup_failure_guidance(evidence_dir / "setup-run.log")
+        _print_tail(evidence_dir / _SETUP_RUN_LOG_FILE, "Last log lines")
+        _print_setup_failure_guidance(evidence_dir / _SETUP_RUN_LOG_FILE)
     return setup_exit
 
 
@@ -722,6 +742,7 @@ def _windows_wsl_bridge_expected_ports(cwd: Path) -> tuple[int, ...]:
     ports: set[int] = set()
     current: dict[str, str] | None = None
     in_ports = False
+    ports_indent = 0
 
     def commit_current() -> None:
         if current is None or "external_port" not in current:
@@ -729,30 +750,35 @@ def _windows_wsl_bridge_expected_ports(cwd: Path) -> tuple[int, ...]:
         protocol = current.get("protocol", "tcp").casefold()
         if protocol != "tcp":
             return
-        ports.add(int(current["external_port"]))
+        port_value = current["external_port"].strip()
+        if not port_value.isdigit():
+            return
+        ports.add(int(port_value))
 
-    for line in _read_text(registry_path).splitlines():
-        if re.match(r"^ports:\s*$", line):
-            in_ports = True
-            continue
+    for raw_line in _read_text(registry_path).splitlines():
         if not in_ports:
+            if raw_line.strip() == "ports:":
+                in_ports = True
+                ports_indent = len(raw_line) - len(raw_line.lstrip(" "))
             continue
-        if re.match(r"^\S", line) and not re.match(r"^ports:\s*$", line):
+        indent = len(raw_line) - len(raw_line.lstrip(" "))
+        if not raw_line:
+            continue
+        if indent <= ports_indent:
             break
-        match = re.match(r"^\s*-\s+id:\s*(.+?)\s*$", line)
-        if match:
+        if raw_line.lstrip().startswith("- id:"):
             commit_current()
-            current = {"id": _clean_yaml_scalar(match.group(1))}
+            current = {"id": _clean_yaml_scalar(raw_line.lstrip()[4:].strip())}
             continue
         if current is None:
             continue
-        match = re.match(r"^\s+external_port:\s*(\d+)\s*$", line)
-        if match:
-            current["external_port"] = match.group(1)
+        if raw_line.lstrip().startswith("external_port:"):
+            _, _, value = raw_line.lstrip().partition(":")
+            current["external_port"] = _clean_yaml_scalar(value)
             continue
-        match = re.match(r"^\s+protocol:\s*(\S+)\s*$", line)
-        if match:
-            current["protocol"] = _clean_yaml_scalar(match.group(1))
+        if raw_line.lstrip().startswith("protocol:"):
+            _, _, value = raw_line.lstrip().partition(":")
+            current["protocol"] = _clean_yaml_scalar(value)
             continue
 
     commit_current()
@@ -1205,44 +1231,32 @@ def _render_fallback_install_event(event: _FallbackInstallEvent) -> tuple[str, .
 def _write_context(
     evidence_dir: Path,
     *,
-    run_id: str,
-    service_profile: str,
-    secrets_mode: str,
-    secret_env_file: Path,
-    fixed_secret_env_file: Path,
-    checked_secret_keys: Sequence[str],
-    secrets_generated_count: int,
-    host_runtime: HostRuntime,
-    live_execution_mode: str,
-    live_approval_source: str,
-    terminal_recording_mode: str,
-    cwd: Path,
-    env: Mapping[str, str],
+    context: _InstallRunContext,
 ) -> None:
     values = {
-        "run_id": run_id,
+        "run_id": context.run_id,
         "started_utc": _utc_timestamp(),
-        "repo": cwd.as_posix(),
-        "git_branch": _run_text(("git", "branch", "--show-current"), cwd=cwd),
-        "git_head": _run_text(("git", "rev-parse", "--short", "HEAD"), cwd=cwd),
-        "service_profile": service_profile,
+        "repo": context.cwd.as_posix(),
+        "git_branch": _run_text(("git", "branch", "--show-current"), cwd=context.cwd),
+        "git_head": _run_text(("git", "rev-parse", "--short", "HEAD"), cwd=context.cwd),
+        "service_profile": context.service_profile,
         "fresh_install_reset": "required",
-        "secrets_mode": secrets_mode,
-        "secret_env_file": secret_env_file.as_posix(),
-        "fixed_secret_env_file": fixed_secret_env_file.as_posix(),
-        "checked_secret_keys": ",".join(checked_secret_keys),
-        "secrets_generated_count": str(secrets_generated_count),
-        "host_runtime_type": host_runtime.name,
-        "host_runtime_detection_source": host_runtime.detection_source,
+        "secrets_mode": context.secrets_mode,
+        "secret_env_file": context.secret_env_file.as_posix(),
+        "fixed_secret_env_file": context.fixed_secret_env_file.as_posix(),
+        "checked_secret_keys": ",".join(context.checked_secret_keys),
+        "secrets_generated_count": str(context.secrets_generated_count),
+        "host_runtime_type": context.host_runtime.name,
+        "host_runtime_detection_source": context.host_runtime.detection_source,
         "selected_evidence_directory": evidence_dir.as_posix(),
-        "live_execution_mode": live_execution_mode,
-        "live_approval_source": live_approval_source,
-        "terminal_recording_mode": terminal_recording_mode,
+        "live_execution_mode": context.live_execution_mode,
+        "live_approval_source": context.live_approval_source,
+        "terminal_recording_mode": context.terminal_recording_mode,
         "platform_system": _run_text(("uname", "-s")),
         "kernel_release": _run_text(("uname", "-r")),
         "proc_osrelease": _read_text(Path("/proc/sys/kernel/osrelease")).strip(),
-        "wsl_distro_name_present": "yes" if env.get("WSL_DISTRO_NAME") else "no",
-        "wsl_interop_present": "yes" if env.get("WSL_INTEROP") else "no",
+        "wsl_distro_name_present": "yes" if context.env.get("WSL_DISTRO_NAME") else "no",
+        "wsl_interop_present": "yes" if context.env.get("WSL_INTEROP") else "no",
     }
     _append_context(evidence_dir, values, replace=True)
 

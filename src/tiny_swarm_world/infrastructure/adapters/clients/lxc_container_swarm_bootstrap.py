@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 
 from tiny_swarm_world.application.ports.node_provider import (
     PortContainerNetworkIdentity,
@@ -22,8 +23,14 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
 
 
 DEFAULT_SWARM_COMMAND_TIMEOUT_SECONDS = 120.0
-DEFAULT_SWARM_OVERLAY_ADDRESS_POOL = "10.240.0.0/16"
-DEFAULT_SWARM_OVERLAY_ADDRESS_POOL_MASK_LENGTH = "24"
+DEFAULT_SWARM_OVERLAY_ADDRESS_POOL = os.getenv(
+    "TSW_SWARM_OVERLAY_ADDRESS_POOL",
+    "10.240.0.0/16",
+)
+DEFAULT_SWARM_OVERLAY_ADDRESS_POOL_MASK_LENGTH = os.getenv(
+    "TSW_SWARM_OVERLAY_ADDRESS_POOL_MASK_LENGTH",
+    "24",
+)
 
 _BACKEND_CLI = {
     ManagedLxcBackend.INCUS: "incus",

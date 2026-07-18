@@ -312,17 +312,19 @@ class PreflightService:
         self,
         host_environment: HostEnvironmentReport,
     ) -> tuple[PreflightCheck, ...]:
+        checks: list[PreflightCheck] = []
         if host_environment.environment is not HostEnvironmentKind.WSL2:
-            return ()
+            return tuple(checks)
         if not self.configuration.windows_wsl_bridge_required:
-            return (
+            checks.append(
                 _passed(
                     "WINDOWS-WSL-BRIDGE",
                     PreflightCategory.WINDOWS_EXPOSURE,
                     "Windows exposure is disabled by operator configuration.",
                     {"required": "false"},
-                ),
+                )
             )
+            return tuple(checks)
 
         expected_ports = self._windows_bridge_expected_ports()
         status = self.host_probe.windows_wsl_bridge_status(expected_ports)
@@ -339,24 +341,23 @@ class PreflightService:
         }
         if status.state_age_seconds is not None:
             evidence["state_age_seconds"] = str(status.state_age_seconds)
-        if status.prepared:
-            return (
-                _passed(
-                    "WINDOWS-WSL-BRIDGE",
-                    PreflightCategory.WINDOWS_EXPOSURE,
-                    "Windows <-> WSL bridge is prepared.",
-                    evidence,
-                ),
+        checks.append(
+            _passed(
+                "WINDOWS-WSL-BRIDGE",
+                PreflightCategory.WINDOWS_EXPOSURE,
+                "Windows <-> WSL bridge is prepared.",
+                evidence,
             )
-        return (
-            _failed(
+            if status.prepared
+            else _failed(
                 "WINDOWS-WSL-BRIDGE",
                 PreflightCategory.WINDOWS_EXPOSURE,
                 "Windows <-> WSL bridge is not prepared.",
                 _windows_wsl_bridge_remediation(status.reason),
                 evidence,
-            ),
+            )
         )
+        return tuple(checks)
 
     def _cpu_check(self) -> PreflightCheck:
         actual = self.host_probe.cpu_count()

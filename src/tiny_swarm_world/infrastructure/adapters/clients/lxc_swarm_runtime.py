@@ -60,6 +60,10 @@ _INCUS_CHILD_PID_FAILURE = "Failed to retrieve PID of executing child process"
 DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME = "tsw_traefik_tls_cert"
 DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME = "tsw_traefik_tls_key"
 INFISICAL_DATABASE_SERVICE_NAME = "infisical_infisical-db"
+REGISTRY_RATE_LIMITED_OPERATOR_ACTION = (
+    "Configure Docker Hub authentication, an approved registry mirror, "
+    "or a provider-managed image cache."
+)
 
 
 class LxcSwarmRuntime(PortSwarmStackRuntime):
@@ -907,10 +911,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
             raise PublicImagePullRejected(
                 contract.image_ref,
                 diagnostic="registry_rate_limited",
-                operator_action=(
-                    "Configure Docker Hub authentication, an approved registry mirror, "
-                    "or a provider-managed image cache."
-                ),
+                operator_action=REGISTRY_RATE_LIMITED_OPERATOR_ACTION,
             )
         return result.returncode == 0
 
@@ -931,10 +932,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
             raise PublicImagePullRejected(
                 contract.image_ref,
                 diagnostic="registry_rate_limited",
-                operator_action=(
-                    "Configure Docker Hub authentication, an approved registry mirror, "
-                    "or a provider-managed image cache."
-                ),
+                operator_action=REGISTRY_RATE_LIMITED_OPERATOR_ACTION,
             )
         raise RuntimeError("Public container image pull failed.")
 
@@ -1129,10 +1127,7 @@ def _image_operation_operator_action(
 ) -> str:
     diagnostic = _image_operation_failure_diagnostic(operation, result)
     if diagnostic == "registry_rate_limited":
-        return (
-            "Configure Docker Hub authentication, an approved registry mirror, "
-            "or a provider-managed image cache."
-        )
+        return REGISTRY_RATE_LIMITED_OPERATOR_ACTION
     if diagnostic == "registry_unreachable":
         return (
             "Verify that the Nexus Docker hosted registry is reachable from the "
