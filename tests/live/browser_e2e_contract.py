@@ -242,7 +242,7 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
         )
 
         self.assertIs(expected_element, actual)
-        self.assertEqual([0.25], sleep_calls)
+        self.assertEqual(sleep_calls, [0.25])
 
     def test_page_text_retries_after_stale_spa_body(self) -> None:
         body = Mock(text="Projects")
@@ -258,8 +258,8 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
             sleep=sleep_calls.append,
         )
 
-        self.assertEqual(("Projects", "SonarQube"), actual)
-        self.assertEqual([0.25], sleep_calls)
+        self.assertEqual(actual, ("Projects", "SonarQube"))
+        self.assertEqual(sleep_calls, [0.25])
 
     def test_post_login_wait_rechecks_spa_landing_state(self) -> None:
         sleep_calls: list[float] = []
@@ -276,8 +276,8 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
                 sleep=sleep_calls.append,
             )
 
-        self.assertEqual(("Projects", "SonarQube"), actual)
-        self.assertEqual([0.25], sleep_calls)
+        self.assertEqual(actual, ("Projects", "SonarQube"))
+        self.assertEqual(sleep_calls, [0.25])
 
     def test_product_brand_alone_is_not_an_authenticated_landing_state(self) -> None:
         for route_name in sorted(LOGIN_REQUIRED_ROUTES):
@@ -314,10 +314,10 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
             expectation.route_name: expectation.dashboard_url
             for expectation in expectations
         }
-        self.assertEqual("https://prometheus.tsw.local", urls_by_route["prometheus"])
-        self.assertEqual("https://grafana.tsw.local", urls_by_route["grafana"])
-        self.assertEqual("https://app.tsw.local", urls_by_route["app"])
-        self.assertEqual("https://api.tsw.local", urls_by_route["api"])
+        self.assertEqual(urls_by_route["prometheus"], "https://prometheus.tsw.local")
+        self.assertEqual(urls_by_route["grafana"], "https://grafana.tsw.local")
+        self.assertEqual(urls_by_route["app"], "https://app.tsw.local")
+        self.assertEqual(urls_by_route["api"], "https://api.tsw.local")
 
     def test_disabled_routes_and_stale_files_do_not_define_suite_membership(self) -> None:
         with effective_access_model_fixture() as fixture:
@@ -360,18 +360,18 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
         )
 
         self.assertEqual(
+            summary["status_matrix"],
             {
                 "passed": ["passed-route"],
                 "failed": ["failed-route"],
                 "skipped": ["skipped-route"],
                 "missing": ["missing-route"],
             },
-            summary["status_matrix"],
         )
         route_results = cast(list[dict[str, object]], summary["route_results"])
-        self.assertEqual(4, len(route_results))
-        self.assertEqual(4, len({result["route_name"] for result in route_results}))
-        self.assertEqual("failed", summary["result"])
+        self.assertEqual(len(route_results), 4)
+        self.assertEqual(len({result["route_name"] for result in route_results}), 4)
+        self.assertEqual(summary["result"], "failed")
 
     def test_missing_route_is_explicit_and_never_successful(self) -> None:
         summary = build_suite_summary(
@@ -385,10 +385,10 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
         )
 
         route_result = cast(list[dict[str, object]], summary["route_results"])[0]
-        self.assertEqual("missing", route_result["status"])
-        self.assertEqual("missing", route_result["result"])
-        self.assertEqual("missing_route_evidence", route_result["redacted_reason"])
-        self.assertEqual("failed", summary["result"])
+        self.assertEqual(route_result["status"], "missing")
+        self.assertEqual(route_result["result"], "missing")
+        self.assertEqual(route_result["redacted_reason"], "missing_route_evidence")
+        self.assertEqual(summary["result"], "failed")
 
     def test_suite_summary_is_deterministic_and_only_skipped_is_skipped(self) -> None:
         expectations = (
@@ -404,7 +404,7 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
         second = build_suite_summary(tuple(reversed(expectations)), dict(reversed(tuple(evidence.items()))))
 
         self.assertEqual(first, second)
-        self.assertEqual("skipped", first["result"])
+        self.assertEqual(first["result"], "skipped")
 
         mixed = build_suite_summary(
             expectations,
@@ -413,7 +413,7 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
                 "swagger": {"status": "skipped"},
             },
         )
-        self.assertEqual("passed", mixed["result"])
+        self.assertEqual(mixed["result"], "passed")
 
     def test_live_e2e_evidence_target_is_local_and_ignored(self) -> None:
         _assert_evidence_target(self)
@@ -442,7 +442,7 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
             redacted_reason="live_consent_missing",
         ).to_evidence()
 
-        self.assertEqual("service-access", evidence["route_name"])
+        self.assertEqual(evidence["route_name"], "service-access")
         self.assertNotIn("password", repr(evidence).casefold())
         self.assertNotIn("secret", repr(evidence).casefold())
         self.assertNotIn("token", repr(evidence).casefold())
@@ -469,7 +469,7 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
                 )
 
         self.assertEqual(evidence_root / "service-access.json", route_path)
-        self.assertEqual("skipped", route_evidence["status"])
+        self.assertEqual(route_evidence["status"], "skipped")
         self.assertIn("service-access", suite_evidence["status_matrix"]["skipped"])
 
     def test_missing_consent_skip_does_not_replace_existing_live_pass_evidence(self) -> None:
@@ -509,9 +509,9 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
             evidence_root / "non-live-consent" / "service-access.json",
             skip_path,
         )
-        self.assertEqual("passed", live_evidence["status"])
-        self.assertEqual("passed", live_summary["result"])
-        self.assertEqual("skipped", skip_summary["result"])
+        self.assertEqual(live_evidence["status"], "passed")
+        self.assertEqual(live_summary["result"], "passed")
+        self.assertEqual(skip_summary["result"], "skipped")
 
 
 def _assert_routed_https_url(testcase: Any, url: str) -> None:

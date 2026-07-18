@@ -29,7 +29,7 @@ class TestProgressTraceLogging(unittest.TestCase):
         ):
             adapter.report(event)
 
-        self.assertEqual(3, len(handler.records))
+        self.assertEqual(len(handler.records), 3)
         for record in handler.records:
             self.assertIsNone(record.exc_info)
             message = record.getMessage()
@@ -59,7 +59,7 @@ class TestProgressTraceLogging(unittest.TestCase):
             )
         )
 
-        self.assertEqual(1, len(handler.records))
+        self.assertEqual(len(handler.records), 1)
         record = handler.records[0]
         self.assertIsNone(record.exc_info)
         message = record.getMessage()
@@ -89,10 +89,10 @@ class TestProgressTraceLogging(unittest.TestCase):
         CompositeWorkflowProgress((workflow_sink_a, workflow_sink_b)).report(workflow_event)
         CompositeMethodTrace((method_sink_a, method_sink_b)).report(method_event)
 
-        self.assertEqual([workflow_event], workflow_sink_a.events)
-        self.assertEqual([workflow_event], workflow_sink_b.events)
-        self.assertEqual([method_event], method_sink_a.events)
-        self.assertEqual([method_event], method_sink_b.events)
+        self.assertEqual(workflow_sink_a.events, [workflow_event])
+        self.assertEqual(workflow_sink_b.events, [workflow_event])
+        self.assertEqual(method_sink_a.events, [method_event])
+        self.assertEqual(method_sink_b.events, [method_event])
 
 
 class _RecordingHandler(logging.Handler):

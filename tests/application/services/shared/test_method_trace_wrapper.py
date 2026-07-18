@@ -24,14 +24,14 @@ class TestMethodTraceWrapper(unittest.TestCase):
 
         result = wrapper.wrap_sync(Target().run)(42)
 
-        self.assertEqual({"raw": 42}, result)
-        self.assertEqual(["entered", "returned"], [event.status for event in trace.events])
-        self.assertEqual({"trace-123"}, {event.correlation_id for event in trace.events})
-        self.assertEqual(1, len({event.span_id for event in trace.events}))
-        self.assertEqual({"span-parent"}, {event.parent_span_id for event in trace.events})
-        self.assertEqual(["pending", "completed"], [event.safe_result for event in trace.events])
-        self.assertEqual(["Target", "Target"], [event.class_name for event in trace.events])
-        self.assertEqual(["run", "run"], [event.method_name for event in trace.events])
+        self.assertEqual(result, {"raw": 42})
+        self.assertEqual([event.status for event in trace.events], ["entered", "returned"])
+        self.assertEqual({event.correlation_id for event in trace.events}, {"trace-123"})
+        self.assertEqual(len({event.span_id for event in trace.events}), 1)
+        self.assertEqual({event.parent_span_id for event in trace.events}, {"span-parent"})
+        self.assertEqual([event.safe_result for event in trace.events], ["pending", "completed"])
+        self.assertEqual([event.class_name for event in trace.events], ["Target", "Target"])
+        self.assertEqual([event.method_name for event in trace.events], ["run", "run"])
         self.assertNotIn("return_value", trace.events[-1].to_dict())
         self.assertNotIn("raw", trace.events[-1].to_dict())
 
@@ -48,9 +48,9 @@ class TestMethodTraceWrapper(unittest.TestCase):
             wrapper.wrap_sync(Target().run)()
 
         self.assertIs(expected, raised.exception)
-        self.assertEqual(["entered", "raised"], [event.status for event in trace.events])
-        self.assertEqual(["pending", "failed"], [event.safe_result for event in trace.events])
-        self.assertEqual("RuntimeError", trace.events[-1].exception_type)
+        self.assertEqual([event.status for event in trace.events], ["entered", "raised"])
+        self.assertEqual([event.safe_result for event in trace.events], ["pending", "failed"])
+        self.assertEqual(trace.events[-1].exception_type, "RuntimeError")
         self.assertNotIn(str(expected), str(trace.events[-1].to_dict()))
 
     def test_async_wrapper_reports_entered_and_returned(self):
@@ -70,13 +70,13 @@ class TestMethodTraceWrapper(unittest.TestCase):
 
             result = await wrapper.wrap_async(Target().run)(42)
 
-            self.assertEqual({"raw": 42}, result)
-            self.assertEqual(["entered", "returned"], [event.status for event in trace.events])
-            self.assertEqual({"trace-async"}, {event.correlation_id for event in trace.events})
-            self.assertEqual(1, len({event.span_id for event in trace.events}))
-            self.assertEqual(["pending", "completed"], [event.safe_result for event in trace.events])
-            self.assertEqual(["Target", "Target"], [event.class_name for event in trace.events])
-            self.assertEqual(["run", "run"], [event.method_name for event in trace.events])
+            self.assertEqual(result, {"raw": 42})
+            self.assertEqual([event.status for event in trace.events], ["entered", "returned"])
+            self.assertEqual({event.correlation_id for event in trace.events}, {"trace-async"})
+            self.assertEqual(len({event.span_id for event in trace.events}), 1)
+            self.assertEqual([event.safe_result for event in trace.events], ["pending", "completed"])
+            self.assertEqual([event.class_name for event in trace.events], ["Target", "Target"])
+            self.assertEqual([event.method_name for event in trace.events], ["run", "run"])
 
         asyncio.run(run_test())
 
@@ -94,8 +94,8 @@ class TestMethodTraceWrapper(unittest.TestCase):
                 await wrapper.wrap_async(Target().run)()
 
             self.assertIs(expected, raised.exception)
-            self.assertEqual(["entered", "raised"], [event.status for event in trace.events])
-            self.assertEqual("ValueError", trace.events[-1].exception_type)
+            self.assertEqual([event.status for event in trace.events], ["entered", "raised"])
+            self.assertEqual(trace.events[-1].exception_type, "ValueError")
             self.assertNotIn(str(expected), str(trace.events[-1].to_dict()))
 
         asyncio.run(run_test())
@@ -107,10 +107,10 @@ class TestMethodTraceWrapper(unittest.TestCase):
         def target():
             return "ok"
 
-        self.assertEqual("ok", wrapper.wrap_sync(target)())
-        self.assertEqual(2, len(trace.events))
-        self.assertEqual(1, len({event.correlation_id for event in trace.events}))
-        self.assertEqual(1, len({event.span_id for event in trace.events}))
+        self.assertEqual(wrapper.wrap_sync(target)(), "ok")
+        self.assertEqual(len(trace.events), 2)
+        self.assertEqual(len({event.correlation_id for event in trace.events}), 1)
+        self.assertEqual(len({event.span_id for event in trace.events}), 1)
         self.assertTrue(trace.events[0].correlation_id.startswith("trace-"))
         self.assertTrue(trace.events[0].span_id.startswith("span-"))
 

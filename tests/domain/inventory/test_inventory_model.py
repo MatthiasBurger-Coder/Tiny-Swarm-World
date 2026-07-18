@@ -224,7 +224,7 @@ class TestVerificationResult(unittest.TestCase):
         )
 
         self.assertEqual("Docker state not checked.", result.message)
-        self.assertEqual("Provider state unavailable.", result.evidence["summary"])
+        self.assertEqual(result.evidence["summary"], "Provider state unavailable.")
 
 
 class TestInventoryModels(unittest.TestCase):

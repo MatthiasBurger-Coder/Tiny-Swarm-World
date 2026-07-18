@@ -37,13 +37,13 @@ class TestRoutingEvidenceLocalRepository(unittest.TestCase):
             )
             self.assertEqual(expected_path.resolve(), repository.path)
             self.assertEqual(
-                "effective_access_model",
                 json.loads(expected_path.read_text(encoding="utf-8"))["evidence_kind"],
+                "effective_access_model",
             )
             self.assertTrue(expected_path.read_text(encoding="utf-8").endswith("\n"))
             if os.name != "nt":
-                self.assertEqual(0o600, stat.S_IMODE(expected_path.stat().st_mode))
-            self.assertEqual([], list(expected_path.parent.glob(".*.tmp")))
+                self.assertEqual(stat.S_IMODE(expected_path.stat().st_mode), 0o600)
+            self.assertEqual(list(expected_path.parent.glob(".*.tmp")), [])
 
     def test_replace_failure_preserves_old_target_and_cleans_temporary_file(self):
         with TemporaryDirectory() as temporary_directory:
@@ -61,15 +61,15 @@ class TestRoutingEvidenceLocalRepository(unittest.TestCase):
                     repository.write_effective_access_model(_evidence())
 
             self.assertEqual(
-                "previous-complete-evidence\n",
                 repository.path.read_text(encoding="utf-8"),
+                "previous-complete-evidence\n",
             )
-            self.assertEqual(1, len(replace_arguments))
+            self.assertEqual(len(replace_arguments), 1)
             source, destination = replace_arguments[0]
             self.assertEqual(repository.path.parent, source.parent)
             self.assertEqual(repository.path, destination)
             self.assertFalse(source.exists())
-            self.assertEqual([], list(repository.path.parent.glob(".*.tmp")))
+            self.assertEqual(list(repository.path.parent.glob(".*.tmp")), [])
 
     def test_default_product_evidence_tree_is_git_ignored(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -79,7 +79,7 @@ class TestRoutingEvidenceLocalRepository(unittest.TestCase):
         }
         repository = RoutingEvidenceLocalRepository(root=repository_root)
 
-        self.assertEqual(".tiny-swarm-world", repository.path.relative_to(repository_root).parts[0])
+        self.assertEqual(repository.path.relative_to(repository_root).parts[0], ".tiny-swarm-world")
         self.assertIn("/.tiny-swarm-world/", ignored_patterns)
 
 

@@ -24,15 +24,15 @@ class TestSonarqubeHttpClient(unittest.TestCase):
 
         client.change_password("admin", "admin", operator_credential())
 
-        self.assertEqual("/api/users/change_password", session.post_calls[0]["path"])
-        self.assertEqual(("admin", "admin"), session.post_calls[0]["auth"])
+        self.assertEqual(session.post_calls[0]["path"], "/api/users/change_password")
+        self.assertEqual(session.post_calls[0]["auth"], ("admin", "admin"))
         self.assertEqual(
+            session.post_calls[0]["data"],
             {
                 "login": "admin",
                 sample_text("previous", "Password"): "admin",
                 sample_text("pass", "word"): operator_credential(),
             },
-            session.post_calls[0]["data"],
         )
 
     def test_rejects_secret_bearing_base_url(self):

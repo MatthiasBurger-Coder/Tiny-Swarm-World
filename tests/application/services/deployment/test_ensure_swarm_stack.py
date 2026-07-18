@@ -23,7 +23,7 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
         await service.run()
 
         self.assertEqual(["jenkins"], repository.requested_stacks)
-        self.assertEqual([(stack_definition, {})], runtime.deployed_stacks)
+        self.assertEqual(runtime.deployed_stacks, [(stack_definition, {})])
 
     async def test_deploys_stack_with_environment_through_runtime_port(self):
         stack_definition = StackDefinition(name="service-access", compose_content="services: {}")
@@ -39,8 +39,8 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
         await service.run()
 
         self.assertEqual(
-            [(stack_definition, {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"})],
             runtime.deployed_stacks,
+            [(stack_definition, {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"})],
         )
 
     async def test_verify_confirms_stack_registration_and_expected_services(self):
@@ -58,7 +58,7 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("deployment:pulsar-stack", verification.target_id)
+        self.assertEqual(verification.target_id, "deployment:pulsar-stack")
         self.assertEqual("true", verification.evidence["stack_registered"])
 
     async def test_verify_fails_when_stack_is_missing(self):
@@ -74,7 +74,7 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
-        self.assertEqual("false", verification.evidence["stack_registered"])
+        self.assertEqual(verification.evidence["stack_registered"], "false")
 
     async def test_verify_fails_when_required_service_is_missing(self):
         service = EnsureSwarmStack(
@@ -86,7 +86,7 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
-        self.assertEqual("pulsar", verification.evidence["missing_services"])
+        self.assertEqual(verification.evidence["missing_services"], "pulsar")
 
     async def test_verify_sanitizes_runtime_failure_and_does_not_deploy(self):
         runtime = _FakeSwarmRuntime(
@@ -102,7 +102,7 @@ class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
-        self.assertEqual([], runtime.deployed_stacks)
+        self.assertEqual(runtime.deployed_stacks, [])
         self.assertNotIn("secret", str(verification.to_dict()).casefold())
 
 

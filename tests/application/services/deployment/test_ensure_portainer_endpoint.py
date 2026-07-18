@@ -11,7 +11,7 @@ class TestEnsurePortainerEndpoint(unittest.IsolatedAsyncioTestCase):
 
         await service.run()
 
-        self.assertEqual(["local"], client.ensured_endpoint_names)
+        self.assertEqual(client.ensured_endpoint_names, ["local"])
 
     async def test_verify_reports_registered_endpoint(self):
         client = _RecordingPortainerClient(endpoint_id=7)
@@ -20,9 +20,9 @@ class TestEnsurePortainerEndpoint(unittest.IsolatedAsyncioTestCase):
         result = await service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("registered", result.evidence["endpoint_state"])
-        self.assertEqual("true", result.evidence["endpoint_ready"])
-        self.assertEqual("true", result.evidence["endpoint_id_present"])
+        self.assertEqual(result.evidence["endpoint_state"], "registered")
+        self.assertEqual(result.evidence["endpoint_ready"], "true")
+        self.assertEqual(result.evidence["endpoint_id_present"], "true")
 
     async def test_verify_reports_failed_endpoint_lookup(self):
         client = _RecordingPortainerClient(endpoint_exception=RuntimeError("missing"))
@@ -36,8 +36,8 @@ class TestEnsurePortainerEndpoint(unittest.IsolatedAsyncioTestCase):
         result = await service.verify()
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
-        self.assertEqual("unknown", result.evidence["endpoint_state"])
-        self.assertEqual("false", result.evidence["endpoint_ready"])
+        self.assertEqual(result.evidence["endpoint_state"], "unknown")
+        self.assertEqual(result.evidence["endpoint_ready"], "false")
 
     async def test_run_retries_until_endpoint_registration_succeeds(self):
         client = _RetryPortainerClient(failures_before_success=2)
@@ -50,7 +50,7 @@ class TestEnsurePortainerEndpoint(unittest.IsolatedAsyncioTestCase):
 
         await service.run()
 
-        self.assertEqual(3, client.call_count)
+        self.assertEqual(client.call_count, 3)
 
 
 class _RecordingPortainerClient:

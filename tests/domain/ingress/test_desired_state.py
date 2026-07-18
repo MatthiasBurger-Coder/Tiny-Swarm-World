@@ -19,11 +19,12 @@ class TestDesiredHttpsIngress(unittest.TestCase):
             port_registry=_committed_port_registry(),
         )
 
-        self.assertEqual((80, 443), desired.public_ports)
+        self.assertEqual(desired.public_ports, (80, 443))
         self.assertTrue(desired.http_redirect_to_https)
         self.assertFalse(desired.exposed_by_default)
         self.assertFalse(desired.api_insecure)
         self.assertEqual(
+            desired.hostnames,
             (
                 "portainer.tsw.local",
                 "nexus.tsw.local",
@@ -35,7 +36,6 @@ class TestDesiredHttpsIngress(unittest.TestCase):
                 "infisical.tsw.local",
                 "service-access.tsw.local",
             ),
-            desired.hostnames,
         )
         self.assertNotIn("grafana.tsw.local", desired.hostnames)
 
@@ -50,8 +50,8 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         grafana_route = next(
             route for route in desired.routes if route.service_name == "grafana"
         )
-        self.assertEqual("grafana", grafana_route.upstream_service)
-        self.assertEqual(3000, grafana_route.upstream_port)
+        self.assertEqual(grafana_route.upstream_service, "grafana")
+        self.assertEqual(grafana_route.upstream_port, 3000)
 
     def test_conditional_route_candidates_cover_observability_app_and_api(self):
         desired = desired_https_ingress_for_profile(
@@ -61,15 +61,15 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         )
         routes = {route.service_name: route for route in desired.routes}
 
-        self.assertEqual("api.tsw.local", routes["api"].hostname)
-        self.assertEqual("tiny-swarm", routes["api"].upstream_service)
-        self.assertEqual(8081, routes["api"].upstream_port)
-        self.assertEqual("app.tsw.local", routes["app"].hostname)
-        self.assertEqual("tiny-swarm", routes["app"].upstream_service)
-        self.assertEqual(8080, routes["app"].upstream_port)
-        self.assertEqual("prometheus.tsw.local", routes["prometheus"].hostname)
-        self.assertEqual("prometheus", routes["prometheus"].upstream_service)
-        self.assertEqual(9090, routes["prometheus"].upstream_port)
+        self.assertEqual(routes["api"].hostname, "api.tsw.local")
+        self.assertEqual(routes["api"].upstream_service, "tiny-swarm")
+        self.assertEqual(routes["api"].upstream_port, 8081)
+        self.assertEqual(routes["app"].hostname, "app.tsw.local")
+        self.assertEqual(routes["app"].upstream_service, "tiny-swarm")
+        self.assertEqual(routes["app"].upstream_port, 8080)
+        self.assertEqual(routes["prometheus"].hostname, "prometheus.tsw.local")
+        self.assertEqual(routes["prometheus"].upstream_service, "prometheus")
+        self.assertEqual(routes["prometheus"].upstream_port, 9090)
         self.assertFalse(
             {"api", "app", "grafana", "prometheus"}
             & {skipped.service_name for skipped in desired.skipped_routes}
@@ -99,7 +99,7 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         )
         evidence = desired.to_dict()
 
-        self.assertEqual([80, 443], evidence["gateway_public_ingress_ports"])
+        self.assertEqual(evidence["gateway_public_ingress_ports"], [80, 443])
         self.assertIn(
             {
                 "classification": "diagnostic",
@@ -114,14 +114,14 @@ class TestDesiredHttpsIngress(unittest.TestCase):
             for link in evidence["service_access_links"]
             if link["service"] == "jenkins"
         )
-        self.assertEqual("https://jenkins.tsw.local", jenkins_link["url"])
+        self.assertEqual(jenkins_link["url"], "https://jenkins.tsw.local")
         self.assertEqual(
+            jenkins_link["credential"],
             {
                 "item_reference": "platform/jenkins",
                 "note": "Open Infisical item",
                 "username_label": "admin",
             },
-            jenkins_link["credential"],
         )
         self.assertIn(
             {
@@ -159,8 +159,8 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         )
         routes = {route.service_name: route for route in desired.routes}
 
-        self.assertEqual("jenkins.tsw.local", routes["jenkins"].hostname)
-        self.assertEqual(8080, routes["jenkins"].upstream_port)
+        self.assertEqual(routes["jenkins"].hostname, "jenkins.tsw.local")
+        self.assertEqual(routes["jenkins"].upstream_port, 8080)
         self.assertIn(
             {
                 "classification": "diagnostic",
@@ -196,14 +196,14 @@ class TestDesiredHttpsIngress(unittest.TestCase):
         )
         routes = {route.service_name: route for route in desired.routes}
 
-        self.assertEqual("service-access-dashboard", routes["service-access"].upstream_service)
-        self.assertEqual(80, routes["service-access"].upstream_port)
-        self.assertEqual("pulsar", routes["pulsar-admin-api"].upstream_service)
-        self.assertEqual(8080, routes["pulsar-admin-api"].upstream_port)
-        self.assertEqual("pulsar-manager", routes["pulsar-manager"].upstream_service)
-        self.assertEqual(9527, routes["pulsar-manager"].upstream_port)
-        self.assertEqual("swagger-nginx", routes["swagger"].upstream_service)
-        self.assertEqual(8084, routes["swagger"].upstream_port)
+        self.assertEqual(routes["service-access"].upstream_service, "service-access-dashboard")
+        self.assertEqual(routes["service-access"].upstream_port, 80)
+        self.assertEqual(routes["pulsar-admin-api"].upstream_service, "pulsar")
+        self.assertEqual(routes["pulsar-admin-api"].upstream_port, 8080)
+        self.assertEqual(routes["pulsar-manager"].upstream_service, "pulsar-manager")
+        self.assertEqual(routes["pulsar-manager"].upstream_port, 9527)
+        self.assertEqual(routes["swagger"].upstream_service, "swagger-nginx")
+        self.assertEqual(routes["swagger"].upstream_port, 8084)
 
     def test_route_rejects_local_topology_and_invalid_hostnames(self):
         with self.assertRaises(ValueError):

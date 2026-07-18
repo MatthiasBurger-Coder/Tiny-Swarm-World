@@ -40,6 +40,7 @@ class TestProjectFilesystemEvidenceLocalRepository(unittest.TestCase):
 
             payload = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(
+                set(payload),
                 {
                     "decision",
                     "filesystem_classification",
@@ -48,18 +49,17 @@ class TestProjectFilesystemEvidenceLocalRepository(unittest.TestCase):
                     "project_path",
                     "schema_version",
                 },
-                set(payload),
             )
-            self.assertEqual(1, payload["schema_version"])
-            self.assertEqual("allowed_by_override", payload["decision"])
-            self.assertEqual("/mnt/d/project", payload["project_path"])
-            self.assertEqual(0o700, stat.S_IMODE(path.parent.stat().st_mode))
-            self.assertEqual(0o600, stat.S_IMODE(path.stat().st_mode))
+            self.assertEqual(payload["schema_version"], 1)
+            self.assertEqual(payload["decision"], "allowed_by_override")
+            self.assertEqual(payload["project_path"], "/mnt/d/project")
+            self.assertEqual(stat.S_IMODE(path.parent.stat().st_mode), 0o700)
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
             self.assertEqual(
-                [(path.parent.as_posix(), HostEnvironmentKind.WSL2)],
                 inspector.calls,
+                [(path.parent.as_posix(), HostEnvironmentKind.WSL2)],
             )
-            self.assertEqual([], list(path.parent.glob(".*.tmp")))
+            self.assertEqual(list(path.parent.glob(".*.tmp")), [])
 
     def test_windows_mounted_or_unknown_evidence_target_blocks_override(self):
         for kind in (
@@ -92,8 +92,8 @@ class TestProjectFilesystemEvidenceLocalRepository(unittest.TestCase):
                 with self.assertRaises(ProjectFilesystemEvidenceError):
                     repository.write(_override_assessment())
 
-            self.assertEqual("previous-complete-evidence\n", path.read_text(encoding="utf-8"))
-            self.assertEqual([], list(path.parent.glob(".*.tmp")))
+            self.assertEqual(path.read_text(encoding="utf-8"), "previous-complete-evidence\n")
+            self.assertEqual(list(path.parent.glob(".*.tmp")), [])
 
     def test_permission_verification_failure_is_blocking(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

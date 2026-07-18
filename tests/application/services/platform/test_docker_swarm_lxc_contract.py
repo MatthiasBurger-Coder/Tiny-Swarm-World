@@ -29,7 +29,7 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
         )
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("profile_contract_valid", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "profile_contract_valid")
         self.assertEvidenceIsSummaryOnly(result)
 
     def test_invalid_profile_contract_blocks_node_creation(self):
@@ -38,7 +38,7 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
         )
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("privileged_default_forbidden", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "privileged_default_forbidden")
         self.assertEvidenceIsSummaryOnly(result)
 
     def test_swarm_node_readiness_requires_observed_active_state(self):
@@ -57,7 +57,7 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
         )
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("swarm_node_ready", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "swarm_node_ready")
         self.assertEvidenceIsSummaryOnly(result)
 
     def test_swarm_node_without_observed_state_blocks_health_claim(self):
@@ -72,7 +72,7 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
         )
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("observed_state_missing", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "observed_state_missing")
 
     def test_observed_but_inactive_swarm_node_fails_verify(self):
         result = DockerSwarmInLxcContractService().verify_swarm_node_readiness(
@@ -88,7 +88,7 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
         )
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
-        self.assertEqual("swarm_state_not_active", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "swarm_state_not_active")
         self.assertEvidenceIsSummaryOnly(result)
 
     def test_safe_container_network_plan_is_verified(self):
@@ -97,7 +97,7 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
         )
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("container_network_plan_valid", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "container_network_plan_valid")
         self.assertEvidenceIsSummaryOnly(result)
 
     def test_container_docker_readiness_maps_to_summary_verification(self):
@@ -110,7 +110,7 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
         )
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("container_docker_ready", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "container_docker_ready")
         self.assertEvidenceIsSummaryOnly(result)
 
     def test_missing_container_docker_observation_blocks_readiness_claim(self):
@@ -123,7 +123,7 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
         )
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("docker_observed_state_missing", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "docker_observed_state_missing")
         self.assertEvidenceIsSummaryOnly(result)
 
     def test_container_docker_install_failure_maps_to_failed_apply(self):
@@ -137,8 +137,8 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
         )
 
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
-        self.assertEqual("docker_install_failed", result.evidence["classification"])
-        self.assertEqual("apt_repository_unreachable", result.evidence["failure_reason"])
+        self.assertEqual(result.evidence["classification"], "docker_install_failed")
+        self.assertEqual(result.evidence["failure_reason"], "apt_repository_unreachable")
         self.assertEvidenceIsSummaryOnly(result)
 
     def test_swarm_manager_and_worker_outcomes_map_to_summary_verification(self):
@@ -160,9 +160,9 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
         )
 
         self.assertEqual(VerificationStatus.VERIFIED, manager_result.status)
-        self.assertEqual("initialized", manager_result.evidence["classification"])
+        self.assertEqual(manager_result.evidence["classification"], "initialized")
         self.assertEqual(VerificationStatus.VERIFIED, worker_result.status)
-        self.assertEqual("already_joined", worker_result.evidence["classification"])
+        self.assertEqual(worker_result.evidence["classification"], "already_joined")
         self.assertEvidenceIsSummaryOnly(manager_result)
         self.assertEvidenceIsSummaryOnly(worker_result)
 
@@ -176,7 +176,7 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
         )
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("host_address_forbidden", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "host_address_forbidden")
         self.assertEvidenceIsSummaryOnly(result)
 
     def assertEvidenceIsSummaryOnly(self, result):

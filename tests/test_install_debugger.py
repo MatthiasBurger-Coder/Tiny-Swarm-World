@@ -33,9 +33,9 @@ class TestInstallDebugger(unittest.TestCase):
             findings = install_debugger.diagnose(root)
 
         findings_by_title = {finding.title: finding for finding in findings}
-        self.assertEqual("OK", findings_by_title["install.sh Python installer entry point"].status)
-        self.assertEqual("OK", findings_by_title["install.sh source checkout Python path"].status)
-        self.assertEqual("FAIL", findings_by_title["install.sh executable"].status)
+        self.assertEqual(findings_by_title["install.sh Python installer entry point"].status, "OK")
+        self.assertEqual(findings_by_title["install.sh source checkout Python path"].status, "OK")
+        self.assertEqual(findings_by_title["install.sh executable"].status, "FAIL")
 
     def test_live_fix_permissions_repairs_install_script_and_secret_mode(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -54,7 +54,7 @@ class TestInstallDebugger(unittest.TestCase):
             secret_mode = stat.S_IMODE(secret_file.stat().st_mode)
 
         self.assertTrue(install_mode & stat.S_IXUSR)
-        self.assertEqual(0o600, secret_mode)
+        self.assertEqual(secret_mode, 0o600)
         self.assertIn("FIXED", {finding.status for finding in findings})
 
     def test_fix_permissions_requires_live_mode(self):
@@ -63,7 +63,7 @@ class TestInstallDebugger(unittest.TestCase):
 
             findings = install_debugger.diagnose(root, fix_permissions=True)
 
-        self.assertEqual("FAIL", findings[0].status)
+        self.assertEqual(findings[0].status, "FAIL")
         self.assertIn("--fix-permissions requires --live", findings[0].detail)
 
     def test_service_definition_reports_wsl_systemd_and_windows_command_issues(self):
@@ -91,8 +91,8 @@ class TestInstallDebugger(unittest.TestCase):
 
             findings = install_debugger.check_service_definitions(root, systemd_state)
 
-        self.assertEqual(1, len(findings))
-        self.assertEqual("FAIL", findings[0].status)
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].status, "FAIL")
         self.assertIn("systemd is not available", findings[0].detail)
         self.assertIn("Windows-native command", findings[0].detail)
         self.assertIn("network-online.target", findings[0].detail)

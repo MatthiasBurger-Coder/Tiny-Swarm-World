@@ -26,13 +26,13 @@ class TestConfigurationSources(unittest.TestCase):
             }
         )
 
-        self.assertEqual({"TSW_EXAMPLE": "value"}, source.load())
+        self.assertEqual(source.load(), {"TSW_EXAMPLE": "value"})
 
     def test_missing_env_file_returns_empty_mapping(self):
         with TemporaryDirectory() as temporary_directory:
             source = ShellEnvFileConfigurationSource(Path(temporary_directory) / "missing.env")
 
-            self.assertEqual({}, source.load())
+            self.assertEqual(source.load(), {})
 
     def test_shell_env_file_parses_comments_export_and_quotes(self):
         with TemporaryDirectory() as temporary_directory:
@@ -53,11 +53,11 @@ class TestConfigurationSources(unittest.TestCase):
             values = ShellEnvFileConfigurationSource(env_file).load()
 
             self.assertEqual(
+                values,
                 {
                     "TSW_EXAMPLE": "quoted value",
                     "TSW_OTHER": "plain",
                 },
-                values,
             )
 
     def test_shell_env_file_duplicate_key_fails_without_value(self):
@@ -101,7 +101,7 @@ class TestConfigurationSources(unittest.TestCase):
             )
         )
 
-        self.assertEqual({"TSW_EXAMPLE": "from-env"}, combined.load())
+        self.assertEqual(combined.load(), {"TSW_EXAMPLE": "from-env"})
 
     def test_loaded_values_validate_through_application_service_without_value_leak(self):
         with TemporaryDirectory() as temporary_directory:

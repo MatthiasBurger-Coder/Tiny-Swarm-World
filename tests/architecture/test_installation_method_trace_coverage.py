@@ -115,12 +115,12 @@ class TestInstallationMethodTraceCoverage(unittest.TestCase):
     def test_manifest_covers_all_public_runtime_methods(self):
         missing_entries = sorted(_public_runtime_methods() - _manifest_methods())
 
-        self.assertEqual([], missing_entries)
+        self.assertEqual(missing_entries, [])
 
     def test_manifest_entries_reference_existing_methods(self):
         unknown_entries = sorted(_manifest_methods() - _public_runtime_methods())
 
-        self.assertEqual([], unknown_entries)
+        self.assertEqual(unknown_entries, [])
 
     def test_manifest_entries_have_valid_status(self):
         invalid_entries = [
@@ -129,7 +129,7 @@ class TestInstallationMethodTraceCoverage(unittest.TestCase):
             if entry.status not in ALLOWED_STATUSES
         ]
 
-        self.assertEqual([], invalid_entries)
+        self.assertEqual(invalid_entries, [])
 
     def test_exemptions_use_explicit_allowed_reasons(self):
         invalid_exemptions = [
@@ -138,7 +138,7 @@ class TestInstallationMethodTraceCoverage(unittest.TestCase):
             if entry.status == EXEMPT and entry.reason not in ALLOWED_EXEMPTION_REASONS
         ]
 
-        self.assertEqual([], invalid_exemptions)
+        self.assertEqual(invalid_exemptions, [])
 
     def test_covered_entries_are_not_using_exemption_reasons(self):
         invalid_covered_entries = [
@@ -147,7 +147,7 @@ class TestInstallationMethodTraceCoverage(unittest.TestCase):
             if entry.status == COVERED and entry.reason in ALLOWED_EXEMPTION_REASONS
         ]
 
-        self.assertEqual([], invalid_covered_entries)
+        self.assertEqual(invalid_covered_entries, [])
 
 
 def _manifest_methods() -> set[str]:

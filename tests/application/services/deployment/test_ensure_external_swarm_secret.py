@@ -17,8 +17,8 @@ class TestEnsureExternalSwarmSecret(unittest.TestCase):
         service.run()
 
         self.assertEqual(
-            [("tsw_vaultwarden_admin_token", "operator-token")],
             runtime.ensured_secrets,
+            [("tsw_vaultwarden_admin_token", "operator-token")],
         )
 
     def test_rejects_empty_secret_name(self):

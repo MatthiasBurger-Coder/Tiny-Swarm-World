@@ -25,8 +25,8 @@ class TestEnsureContainerImage(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("artifacts:jenkins-image", verification.target_id)
-        self.assertEqual("127.0.0.1:13500/jenkins:latest", verification.evidence["image_ref"])
+        self.assertEqual(verification.target_id, "artifacts:jenkins-image")
+        self.assertEqual(verification.evidence["image_ref"], "127.0.0.1:13500/jenkins:latest")
         self.assertNotIn("password", str(verification.to_dict()).lower())
 
 

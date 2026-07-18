@@ -62,19 +62,19 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
         self.assertEqual(InfisicalBootstrapState.CREATED, result.state)
         self.assertTrue(result.token_returned)
         self.assertEqual(
-            "https://localhost/api/v1/admin/bootstrap",
             session.post_calls[0]["url"],
+            "https://localhost/api/v1/admin/bootstrap",
         )
         self.assertEqual(
+            session.post_calls[0]["json"],
             {
                 "email": "admin@tiny-swarm-world.local",
                 "password": "infisical-password",
                 "organization": "Tiny Swarm World",
             },
-            session.post_calls[0]["json"],
         )
         self.assertTrue(session.post_calls[0]["verify"])
-        self.assertEqual("https://localhost/api/status", session.get_calls[0]["url"])
+        self.assertEqual(session.get_calls[0]["url"], "https://localhost/api/status")
 
     def test_waits_for_infisical_api_before_bootstrap(self):
         session = _FakeSession(
@@ -104,7 +104,7 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
         )
 
         self.assertEqual(InfisicalBootstrapState.CREATED, result.state)
-        self.assertEqual(2, len(session.get_calls))
+        self.assertEqual(len(session.get_calls), 2)
 
     def test_raises_redacted_unavailable_when_infisical_api_never_ready(self):
         client = InfisicalBootstrapHttpClient(
@@ -127,7 +127,7 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
                 organization="Tiny Swarm World",
             )
 
-        self.assertEqual(502, raised.exception.status_code)
+        self.assertEqual(raised.exception.status_code, 502)
 
     def test_runs_configured_readiness_recovery_once_before_retrying(self):
         recovery_calls = []
@@ -161,8 +161,8 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
         )
 
         self.assertEqual(InfisicalBootstrapState.CREATED, result.state)
-        self.assertEqual(["called"], recovery_calls)
-        self.assertEqual(3, len(session.get_calls))
+        self.assertEqual(recovery_calls, ["called"])
+        self.assertEqual(len(session.get_calls), 3)
 
     def test_treats_conflict_as_already_initialized_for_idempotent_reruns(self):
         client = InfisicalBootstrapHttpClient(
@@ -210,7 +210,7 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
             with local_tls_warning_context(False):
                 warnings.warn("local self-signed certificate", InsecureRequestWarning)
 
-        self.assertEqual([], recorded)
+        self.assertEqual(recorded, [])
 
     def test_preserves_tls_warning_when_tls_verify_is_enabled(self):
         with warnings.catch_warnings(record=True) as recorded:
@@ -218,7 +218,7 @@ class TestInfisicalBootstrapHttpClient(unittest.TestCase):
             with local_tls_warning_context(True):
                 warnings.warn("certificate validation warning", InsecureRequestWarning)
 
-        self.assertEqual(1, len(recorded))
+        self.assertEqual(len(recorded), 1)
 
 
 class _FakeSession:

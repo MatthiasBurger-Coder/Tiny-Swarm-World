@@ -13,11 +13,11 @@ class TestLxcProxyDevicePlan(unittest.TestCase):
             gateway_node="swarm-manager",
         )
 
-        self.assertEqual("tsw-proxy-8080", plan.device_name)
-        self.assertEqual("tcp:0.0.0.0:8080", plan.listen_endpoint)
-        self.assertEqual("tcp:127.0.0.1:8080", plan.target_endpoint)
+        self.assertEqual(plan.device_name, "tsw-proxy-8080")
+        self.assertEqual(plan.listen_endpoint, "tcp:0.0.0.0:8080")
+        self.assertEqual(plan.target_endpoint, "tcp:127.0.0.1:8080")
         payload = plan.to_dict()
-        self.assertEqual("swarm-manager", payload["gateway_node"])
+        self.assertEqual(payload["gateway_node"], "swarm-manager")
         self.assertNotIn("worker", repr(payload).lower())
         self.assertNotIn("container_id", payload)
 
@@ -29,7 +29,7 @@ class TestLxcProxyDevicePlan(unittest.TestCase):
             listen_address="127.0.0.1",
         )
 
-        self.assertEqual("tcp:127.0.0.1:9000", plan.listen_endpoint)
+        self.assertEqual(plan.listen_endpoint, "tcp:127.0.0.1:9000")
 
     def test_rejects_invalid_addresses_ports_and_names(self):
         with self.assertRaises(ValueError):

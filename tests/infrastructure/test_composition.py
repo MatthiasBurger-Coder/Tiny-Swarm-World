@@ -131,7 +131,7 @@ class TestComposition(unittest.TestCase):
         verification = check.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("pulsar-admin-api=http_401", verification.evidence["endpoint_statuses"])
+        self.assertEqual(verification.evidence["endpoint_statuses"], "pulsar-admin-api=http_401")
 
     def test_endpoint_readiness_does_not_follow_https_redirects(self):
         endpoint_url = "http://localhost"
@@ -151,8 +151,8 @@ class TestComposition(unittest.TestCase):
         verification = check.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("traefik=http_301", verification.evidence["endpoint_statuses"])
-        self.assertEqual([(endpoint_url, 5, False)], session.requests)
+        self.assertEqual(verification.evidence["endpoint_statuses"], "traefik=http_301")
+        self.assertEqual(session.requests, [(endpoint_url, 5, False)])
 
     def test_endpoint_readiness_fails_after_connection_errors(self):
         contract = ServiceStackContract(
@@ -171,8 +171,8 @@ class TestComposition(unittest.TestCase):
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertEqual(
-            "pulsar-admin-api=connection_error",
             verification.evidence["endpoint_statuses"],
+            "pulsar-admin-api=connection_error",
         )
 
     def test_platform_services_contains_preflight_service(self):
@@ -192,6 +192,7 @@ class TestComposition(unittest.TestCase):
 
         self.assertIn("workflows", platform_field_names)
         self.assertEqual(
+            workflow_field_names,
             {
                 "init",
                 "reconcile",
@@ -201,7 +202,6 @@ class TestComposition(unittest.TestCase):
                 "destroy",
                 "verify",
             },
-            workflow_field_names,
         )
 
     def test_build_preflight_service_loads_port_registry(self):
@@ -220,7 +220,7 @@ class TestComposition(unittest.TestCase):
             )
 
         self.assertIs(registry, service.port_registry)
-        self.assertEqual(1, repository_class.call_count)
+        self.assertEqual(repository_class.call_count, 1)
         self.assertIn("project_paths", repository_class.call_args.kwargs)
         repository_class.return_value.load.assert_called_once_with()
         self.assertIsInstance(
@@ -395,7 +395,7 @@ class TestComposition(unittest.TestCase):
                 ) as wsl_capability_probe:
                     services = composition.build_platform_services()
 
-        self.assertEqual(1, node_config_repository_factory.call_count)
+        self.assertEqual(node_config_repository_factory.call_count, 1)
         self.assertIn("project_paths", node_config_repository_factory.call_args.kwargs)
         lxc_runner_factory.assert_called_once_with()
         self.assertIsInstance(services.preflight, PreflightService)
@@ -497,19 +497,19 @@ class TestComposition(unittest.TestCase):
             services.workflows.init.method_trace,
             services.workflows.repair_lxc_proxy_drift.method_trace,
         )
-        self.assertEqual("trace-test", services.workflows.init.trace_correlation_id)
+        self.assertEqual(services.workflows.init.trace_correlation_id, "trace-test")
         self.assertEqual(
-            "trace-test",
             services.workflows.reconcile.trace_correlation_id,
-        )
-        self.assertEqual("trace-test", services.workflows.expose.trace_correlation_id)
-        self.assertEqual(
             "trace-test",
-            services.workflows.repair_lxc_proxy_drift.trace_correlation_id,
         )
-        self.assertEqual("trace-test", services.workflows.reset.trace_correlation_id)
-        self.assertEqual("trace-test", services.workflows.destroy.trace_correlation_id)
-        self.assertEqual("trace-test", services.workflows.verify.trace_correlation_id)
+        self.assertEqual(services.workflows.expose.trace_correlation_id, "trace-test")
+        self.assertEqual(
+            services.workflows.repair_lxc_proxy_drift.trace_correlation_id,
+            "trace-test",
+        )
+        self.assertEqual(services.workflows.reset.trace_correlation_id, "trace-test")
+        self.assertEqual(services.workflows.destroy.trace_correlation_id, "trace-test")
+        self.assertEqual(services.workflows.verify.trace_correlation_id, "trace-test")
 
     def test_build_platform_services_wires_read_only_platform_verify_steps(self):
         services = composition.build_platform_services()
@@ -520,8 +520,8 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(verify_preflight, PreflightService)
         self.assertIsNot(services.preflight, verify_preflight)
         self.assertGreater(len(services.preflight.configuration.required_ports), 0)
-        self.assertEqual((), verify_preflight.configuration.required_ports)
-        self.assertEqual(8, len(verify_steps))
+        self.assertEqual(verify_preflight.configuration.required_ports, ())
+        self.assertEqual(len(verify_steps), 8)
         self.assertTrue(
             all(
                 isinstance(step, composition.NodeProviderVerifyNodeStep)
@@ -539,8 +539,8 @@ class TestComposition(unittest.TestCase):
     def test_build_platform_services_wires_reset_destroy_managed_node_steps(self):
         services = composition.build_platform_services()
 
-        self.assertEqual(1, len(services.workflows.reset.steps))
-        self.assertEqual(1, len(services.workflows.destroy.steps))
+        self.assertEqual(len(services.workflows.reset.steps), 1)
+        self.assertEqual(len(services.workflows.destroy.steps), 1)
         reset_step = services.workflows.reset.steps[0]
         destroy_step = services.workflows.destroy.steps[0]
 
@@ -665,6 +665,7 @@ class TestComposition(unittest.TestCase):
 
         self.assertIs(result, actual)
         self.assertEqual(
+            calls,
             [
                 "ui built",
                 "ui started",
@@ -673,7 +674,6 @@ class TestComposition(unittest.TestCase):
                 "ui update completed",
                 "ui awaited",
             ],
-            calls,
         )
         self.assertEqual(
             SetupWorkflowStatus.COMPLETED.value,
@@ -760,6 +760,7 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.ArtifactVerifyWorkflow)
         self.assertEqual(
+            tuple(step.verification_target_id for step in services.workflows.prepare.steps),
             (
                 "artifacts:nexus-ready",
                 "artifacts:nexus-admin-access",
@@ -782,7 +783,6 @@ class TestComposition(unittest.TestCase):
                 "artifacts:pulsar-manager-bootstrap-image",
                 "artifacts:swagger-nginx-image",
             ),
-            tuple(step.verification_target_id for step in services.workflows.prepare.steps),
         )
 
     def test_nexus_docker_proxy_remote_url_uses_lxc_registry_mirror(self):
@@ -822,8 +822,8 @@ class TestComposition(unittest.TestCase):
         proxy_configuration = getattr(proxy_step, "configuration")
 
         self.assertEqual(
-            "artifacts:nexus-docker-hub-proxy-repository",
             getattr(proxy_step, "verification_target_id"),
+            "artifacts:nexus-docker-hub-proxy-repository",
         )
         self.assertEqual(
             sample_http_url(ipv4_address(10, 0, 3, 1), 5001),
@@ -834,7 +834,7 @@ class TestComposition(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             remote_url = composition._nexus_docker_proxy_remote_url()
 
-        self.assertEqual("https://registry-1.docker.io", remote_url)
+        self.assertEqual(remote_url, "https://registry-1.docker.io")
 
     def test_build_artifact_services_uses_infisical_image_overrides(self):
         with patch.dict(
@@ -858,12 +858,12 @@ class TestComposition(unittest.TestCase):
             if hasattr(step, "contract")
         }
 
-        self.assertEqual("registry.local:5000/infisical:cached", image_refs["infisical"])
+        self.assertEqual(image_refs["infisical"], "registry.local:5000/infisical:cached")
         self.assertEqual(
-            "registry.local:5000/postgres:14-alpine",
             image_refs["infisical-postgres"],
+            "registry.local:5000/postgres:14-alpine",
         )
-        self.assertEqual("registry.local:5000/redis:7-alpine", image_refs["infisical-redis"])
+        self.assertEqual(image_refs["infisical-redis"], "registry.local:5000/redis:7-alpine")
 
     def test_build_artifact_services_keeps_docker_hub_image_refs_for_mirror_defaults(self):
         with patch.dict(
@@ -884,26 +884,26 @@ class TestComposition(unittest.TestCase):
             if hasattr(step, "contract")
         }
 
-        self.assertEqual("infisical/infisical:v0.159.1", image_refs["infisical"])
-        self.assertEqual("postgres:14.23-alpine3.23", image_refs["infisical-postgres"])
-        self.assertEqual("redis:7.4.9-alpine3.21", image_refs["infisical-redis"])
-        self.assertEqual("traefik:v3.7.4", image_refs["traefik"])
-        self.assertEqual("sonarqube:26.6.0.123539-community", image_refs["sonarqube"])
-        self.assertEqual("postgres:13.23", image_refs["sonarqube-postgres"])
-        self.assertEqual("swaggerapi/swagger-editor:v5.6.2-unprivileged", image_refs["swagger-editor"])
-        self.assertEqual("swaggerapi/swagger-ui:v5.32.6", image_refs["swagger-ui"])
-        self.assertEqual("apachepulsar/pulsar:3.0.17", image_refs["pulsar"])
-        self.assertEqual("apachepulsar/pulsar-manager:v0.4.0", image_refs["pulsar-manager"])
-        self.assertEqual("python:3.12.13-alpine3.23", image_refs["pulsar-manager-bootstrap"])
-        self.assertEqual("nginx:1.29.8-alpine", image_refs["swagger-nginx"])
+        self.assertEqual(image_refs["infisical"], "infisical/infisical:v0.159.1")
+        self.assertEqual(image_refs["infisical-postgres"], "postgres:14.23-alpine3.23")
+        self.assertEqual(image_refs["infisical-redis"], "redis:7.4.9-alpine3.21")
+        self.assertEqual(image_refs["traefik"], "traefik:v3.7.4")
+        self.assertEqual(image_refs["sonarqube"], "sonarqube:26.6.0.123539-community")
+        self.assertEqual(image_refs["sonarqube-postgres"], "postgres:13.23")
+        self.assertEqual(image_refs["swagger-editor"], "swaggerapi/swagger-editor:v5.6.2-unprivileged")
+        self.assertEqual(image_refs["swagger-ui"], "swaggerapi/swagger-ui:v5.32.6")
+        self.assertEqual(image_refs["pulsar"], "apachepulsar/pulsar:3.0.17")
+        self.assertEqual(image_refs["pulsar-manager"], "apachepulsar/pulsar-manager:v0.4.0")
+        self.assertEqual(image_refs["pulsar-manager-bootstrap"], "python:3.12.13-alpine3.23")
+        self.assertEqual(image_refs["swagger-nginx"], "nginx:1.29.8-alpine")
 
     def test_build_artifact_services_does_not_call_live_clients_during_construction(self):
         services = composition.build_lxc_artifact_services(
             backend=composition.ManagedLxcBackend.INCUS,
         )
 
-        self.assertEqual(20, len(services.workflows.prepare.steps))
-        self.assertEqual(20, len(services.workflows.verify.checks))
+        self.assertEqual(len(services.workflows.prepare.steps), 20)
+        self.assertEqual(len(services.workflows.verify.checks), 20)
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
         with patch.dict("os.environ", _required_infisical_bootstrap_env(), clear=True):
@@ -916,15 +916,16 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
         self.assertIsInstance(services.workflows.verify, composition.DeploymentVerifyWorkflow)
         self.assertEqual(
+            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
                 "deployment:portainer-local-endpoint",
                 "deployment:nexus-stack",
             ),
-            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
         )
         self.assertEqual(
+            tuple(step.verification_target_id for step in services.workflows.apply.steps),
             (
                 "deployment:traefik-stack",
                 "deployment:infisical-stack",
@@ -942,7 +943,6 @@ class TestComposition(unittest.TestCase):
                 "deployment:sonarqube-admin-access",
                 "deployment:swagger-stack",
             ),
-            tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
         self.assertTrue(
             all(
@@ -962,15 +962,15 @@ class TestComposition(unittest.TestCase):
             if hasattr(step, "service_stack") and step.service_stack.stack_name == "nexus"
         )
         self.assertEqual(
-            {"TSW_NEXUS_IMAGE": "sonatype/nexus3:3.75.1"},
             nexus_step.stack_environment,
+            {"TSW_NEXUS_IMAGE": "sonatype/nexus3:3.75.1"},
         )
         self.assertEqual(
+            jenkins_step.stack_environment,
             {
                 "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
                 "TSW_JENKINS_IMAGE": "127.0.0.1:13500/jenkins:0.2.0",
             },
-            jenkins_step.stack_environment,
         )
         traefik_step = next(
             step
@@ -978,11 +978,11 @@ class TestComposition(unittest.TestCase):
             if hasattr(step, "service_stack") and step.service_stack.stack_name == "traefik"
         )
         self.assertEqual(
+            traefik_step.stack_environment,
             {
                 "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "tsw_traefik_tls_cert",
                 "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "tsw_traefik_tls_key",
             },
-            traefik_step.stack_environment,
         )
         sonarqube_admin_step = next(
             step
@@ -993,21 +993,22 @@ class TestComposition(unittest.TestCase):
             sample_text("sonar-admin", "-value!"),
             sonarqube_admin_step.password,
         )
-        self.assertEqual("http://localhost:12000", sonarqube_admin_step.sonarqube_client.base_url)
+        self.assertEqual(sonarqube_admin_step.sonarqube_client.base_url, "http://localhost:12000")
         consumption_step = next(
             step
             for step in services.workflows.apply.steps
             if step.verification_target_id == "deployment:managed-config-consumption"
         )
         self.assertEqual(
+            consumption_step.non_stack_consumer_refs,
             {
                 "TSW_NEXUS_ADMIN_PASSWORD": "artifacts:nexus-admin-access",
                 "TSW_PORTAINER_ADMIN_PASSWORD": "deployment:portainer-admin-access",
                 "TSW_SONARQUBE_ADMIN_PASSWORD": "deployment:sonarqube-admin-access",
             },
-            consumption_step.non_stack_consumer_refs,
         )
         self.assertEqual(
+            tuple(check.verification_target_id for check in services.workflows.verify.checks),
             (
                 "deployment:portainer-service-readiness",
                 "deployment:traefik-service-readiness",
@@ -1019,17 +1020,16 @@ class TestComposition(unittest.TestCase):
                 "deployment:infisical-service-readiness",
                 "deployment:service-access-service-readiness",
             ),
-            tuple(check.verification_target_id for check in services.workflows.verify.checks),
         )
-        self.assertEqual((), services.workflows.apply.pre_apply_checks)
+        self.assertEqual(services.workflows.apply.pre_apply_checks, ())
         self.assertEqual(
+            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
             (
                 "deployment:effective-access-model-evidence",
                 "deployment:traefik-stack-assets",
                 "deployment:swagger-stack-assets",
                 "deployment:service-access-stack-assets",
             ),
-            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
         )
 
     def test_build_deployment_services_wires_service_access_dashboard_renderer_to_swarm_runtime(self):
@@ -1053,12 +1053,12 @@ class TestComposition(unittest.TestCase):
             )
 
         self.assertEqual(
+            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
             (
                 "deployment:effective-access-model-evidence",
                 "deployment:traefik-stack-assets",
                 "deployment:swagger-stack-assets",
             ),
-            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
         )
 
     def test_build_deployment_services_does_not_call_runtime_during_construction(self):
@@ -1067,22 +1067,22 @@ class TestComposition(unittest.TestCase):
                 backend=composition.ManagedLxcBackend.INCUS,
             )
 
-        self.assertEqual(1, compose_repository.call_count)
+        self.assertEqual(compose_repository.call_count, 1)
         self.assertIn("project_paths", compose_repository.call_args.kwargs)
         self.assertEqual(
             ServiceStackProfile.SERVICE_ACCESS,
             compose_repository.call_args.kwargs["service_profile"],
         )
-        self.assertEqual(4, len(services.workflows.bootstrap.steps))
-        self.assertEqual(15, len(services.workflows.apply.steps))
-        self.assertEqual(9, len(services.workflows.verify.checks))
+        self.assertEqual(len(services.workflows.bootstrap.steps), 4)
+        self.assertEqual(len(services.workflows.apply.steps), 15)
+        self.assertEqual(len(services.workflows.verify.checks), 9)
 
     def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
             services = composition.build_artifact_services_for_provider()
 
         self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
-        self.assertEqual(20, len(services.workflows.prepare.steps))
+        self.assertEqual(len(services.workflows.prepare.steps), 20)
 
     def test_default_provider_deployment_services_use_lxc_clients_when_backend_is_available(self):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/incus"):
@@ -1090,13 +1090,13 @@ class TestComposition(unittest.TestCase):
 
         self.assertIsInstance(services.workflows.bootstrap, composition.DeploymentApplyWorkflow)
         self.assertEqual(
+            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
                 "deployment:portainer-local-endpoint",
                 "deployment:nexus-stack",
             ),
-            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
         )
 
     def test_default_provider_deployment_services_fail_closed_without_lxc_backend(self):
@@ -1105,7 +1105,7 @@ class TestComposition(unittest.TestCase):
 
         result = asyncio.run(services.workflows.apply.run())
 
-        self.assertEqual("blocked", result.status.value)
+        self.assertEqual(result.status.value, "blocked")
 
     def test_build_deployment_services_uses_named_portainer_api_default(self):
         services = composition.build_lxc_deployment_services(
@@ -1121,15 +1121,16 @@ class TestComposition(unittest.TestCase):
             )
 
         self.assertEqual(
+            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
                 "deployment:portainer-local-endpoint",
                 "deployment:nexus-stack",
             ),
-            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
         )
         self.assertEqual(
+            tuple(step.verification_target_id for step in services.workflows.apply.steps),
             (
                 "deployment:traefik-stack",
                 "deployment:infisical-stack",
@@ -1147,7 +1148,6 @@ class TestComposition(unittest.TestCase):
                 "deployment:sonarqube-admin-access",
                 "deployment:swagger-stack",
             ),
-            tuple(step.verification_target_id for step in services.workflows.apply.steps),
         )
         self.assertTrue(
             all(
@@ -1157,6 +1157,7 @@ class TestComposition(unittest.TestCase):
             )
         )
         self.assertEqual(
+            tuple(check.verification_target_id for check in services.workflows.verify.checks),
             (
                 "deployment:portainer-service-readiness",
                 "deployment:traefik-service-readiness",
@@ -1168,7 +1169,6 @@ class TestComposition(unittest.TestCase):
                 "deployment:infisical-service-readiness",
                 "deployment:service-access-service-readiness",
             ),
-            tuple(check.verification_target_id for check in services.workflows.verify.checks),
         )
 
     def test_build_deployment_services_wires_service_access_infisical_environment(self):
@@ -1200,6 +1200,7 @@ class TestComposition(unittest.TestCase):
         )
 
         self.assertEqual(
+            service_access_step.stack_environment,
             {
                 "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE": (
                     "127.0.0.1:13500/service-access-dashboard:0.2.0"
@@ -1208,9 +1209,9 @@ class TestComposition(unittest.TestCase):
                     "127.0.0.1:13500/service-access-nginx:0.2.0"
                 ),
             },
-            service_access_step.stack_environment,
         )
         self.assertEqual(
+            infisical_step.stack_environment,
             {
                 "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
                 "TSW_INFISICAL_AUTH_SECRET": sample_text("auth", "-secret"),
@@ -1221,17 +1222,16 @@ class TestComposition(unittest.TestCase):
                 "TSW_INFISICAL_POSTGRES_PASSWORD": sample_text("pg", "-secret"),
                 "TSW_INFISICAL_REDIS_PASSWORD": sample_text("redis", "-secret"),
             },
-            infisical_step.stack_environment,
         )
-        self.assertEqual((), services.workflows.apply.pre_apply_checks)
+        self.assertEqual(services.workflows.apply.pre_apply_checks, ())
         self.assertEqual(
+            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
             (
                 "deployment:effective-access-model-evidence",
                 "deployment:traefik-stack-assets",
                 "deployment:swagger-stack-assets",
                 "deployment:service-access-stack-assets",
             ),
-            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
         )
 
     def test_build_deployment_services_wires_routing_evidence_from_selected_model_profile(self):
@@ -1268,8 +1268,8 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(ServiceStackProfile.DEFAULT, evidence_step.service_profile)
         self.assertEqual(
-            "deployment:effective-access-model-evidence",
             evidence_step.deployment_target_id,
+            "deployment:effective-access-model-evidence",
         )
 
     def test_routing_evidence_failure_stops_apply_before_any_stack_step(self):
@@ -1288,7 +1288,7 @@ class TestComposition(unittest.TestCase):
             with patch.object(first_stack_step, "run") as run_stack:
                 result = asyncio.run(services.workflows.apply.run())
 
-        self.assertEqual("failed_to_prepare", result.status.value)
+        self.assertEqual(result.status.value, "failed_to_prepare")
         write_evidence.assert_called_once_with()
         run_stack.assert_not_called()
 
@@ -1313,16 +1313,16 @@ class TestComposition(unittest.TestCase):
         }
 
         self.assertEqual(
-            "registry.local:5000/jenkins:0.2.0",
             environments["jenkins"]["TSW_JENKINS_IMAGE"],
+            "registry.local:5000/jenkins:0.2.0",
         )
         self.assertEqual(
-            "registry.local:5000/service-access-dashboard:0.2.0",
             environments["service-access"]["TSW_SERVICE_ACCESS_DASHBOARD_IMAGE"],
+            "registry.local:5000/service-access-dashboard:0.2.0",
         )
         self.assertEqual(
-            "registry.local:5000/service-access-nginx:0.2.0",
             environments["service-access"]["TSW_SERVICE_ACCESS_NGINX_IMAGE"],
+            "registry.local:5000/service-access-nginx:0.2.0",
         )
 
     def test_build_deployment_services_uses_operator_nexus_image_override(self):
@@ -1346,8 +1346,8 @@ class TestComposition(unittest.TestCase):
         )
 
         self.assertEqual(
-            "registry.local:5000/sonatype/nexus3:3.75.1",
             nexus_step.stack_environment["TSW_NEXUS_IMAGE"],
+            "registry.local:5000/sonatype/nexus3:3.75.1",
         )
 
     def test_build_artifact_services_uses_operator_environment_credentials(self):
@@ -1403,7 +1403,7 @@ class TestComposition(unittest.TestCase):
                 )
 
         endpoint_step = services.workflows.bootstrap.steps[2]
-        self.assertEqual(181, endpoint_step.portainer_client.stack_request_timeout_seconds)
+        self.assertEqual(endpoint_step.portainer_client.stack_request_timeout_seconds, 181)
 
     def test_build_deployment_services_can_seed_infisical_items_when_enabled(self):
         env = {
@@ -1431,8 +1431,9 @@ class TestComposition(unittest.TestCase):
             for step in services.workflows.apply.steps
             if step.verification_target_id == "deployment:infisical-items"
         )
-        self.assertEqual("deployment:infisical-silent-install", bootstrap_step.verification_target_id)
+        self.assertEqual(bootstrap_step.verification_target_id, "deployment:infisical-silent-install")
         self.assertEqual(
+            tuple(item.item_name for item in seed_step.items),
             (
                 "platform/jenkins",
                 "platform/nexus",
@@ -1441,7 +1442,6 @@ class TestComposition(unittest.TestCase):
                 "platform/pulsar-manager",
                 "platform/sonarqube",
             ),
-            tuple(item.item_name for item in seed_step.items),
         )
 
     def test_build_deployment_services_waits_for_infisical_before_silent_install(self):
@@ -1483,7 +1483,7 @@ class TestComposition(unittest.TestCase):
             for step in services.workflows.apply.steps
             if step.verification_target_id == "deployment:infisical-sync"
         )
-        self.assertEqual("fixed", sync_step.mode)
+        self.assertEqual(sync_step.mode, "fixed")
 
     def test_build_deployment_services_uses_configurable_infisical_readiness_window(self):
         env = {
@@ -1503,9 +1503,9 @@ class TestComposition(unittest.TestCase):
             for step in services.workflows.apply.steps
             if step.verification_target_id == "deployment:infisical-silent-install"
         )
-        self.assertEqual("deployment:infisical-silent-install", bootstrap_step.verification_target_id)
-        self.assertEqual(240, bootstrap_step.bootstrap_client.readiness_attempts)
-        self.assertEqual(2.5, bootstrap_step.bootstrap_client.readiness_interval_seconds)
+        self.assertEqual(bootstrap_step.verification_target_id, "deployment:infisical-silent-install")
+        self.assertEqual(bootstrap_step.bootstrap_client.readiness_attempts, 240)
+        self.assertEqual(bootstrap_step.bootstrap_client.readiness_interval_seconds, 2.5)
 
     def test_build_deployment_services_uses_extended_infisical_readiness_default(self):
         env = _required_infisical_bootstrap_env()
@@ -1521,7 +1521,7 @@ class TestComposition(unittest.TestCase):
             for step in services.workflows.apply.steps
             if step.verification_target_id == "deployment:infisical-silent-install"
         )
-        self.assertEqual("deployment:infisical-silent-install", bootstrap_step.verification_target_id)
+        self.assertEqual(bootstrap_step.verification_target_id, "deployment:infisical-silent-install")
         self.assertEqual(
             composition.DEFAULT_INFISICAL_READINESS_ATTEMPTS,
             bootstrap_step.bootstrap_client.readiness_attempts,
@@ -1612,7 +1612,7 @@ class TestComposition(unittest.TestCase):
             services.workflows.run.method_trace,
             composition.CompositeMethodTrace,
         )
-        self.assertEqual("trace-test", services.workflows.run.trace_correlation_id)
+        self.assertEqual(services.workflows.run.trace_correlation_id, "trace-test")
         self.assertTrue(
             build_preflight.call_args.kwargs["allow_wsl_windows_filesystem"]
         )
@@ -1629,6 +1629,7 @@ class TestComposition(unittest.TestCase):
             )
         )
         self.assertEqual(
+            tuple(phase.name for phase in services.workflows.run.phases),
             (
                 "preflight",
                 "platform init",
@@ -1641,9 +1642,8 @@ class TestComposition(unittest.TestCase):
                 "deployment verify",
                 "platform verify",
             ),
-            tuple(phase.name for phase in services.workflows.run.phases),
         )
-        self.assertEqual(1, build_preflight.call_count)
+        self.assertEqual(build_preflight.call_count, 1)
         self.assertEqual(
             ServiceStackProfile.SERVICE_ACCESS,
             build_preflight.call_args.args[0],
@@ -1755,8 +1755,8 @@ class TestComposition(unittest.TestCase):
             services.platform.preflight,
         )
         self.assertEqual(
-            (),
             services.platform.workflows.verify.steps[0].configuration.required_ports,
+            (),
         )
 
     def test_build_platform_services_wires_init_guard_when_live_consent_is_available(self):
@@ -1786,7 +1786,7 @@ class TestComposition(unittest.TestCase):
         self.assertIsNotNone(mirror)
         assert mirror is not None
         self.assertEqual(sample_http_url(ipv4_address(10, 0, 3, 1), 5001), mirror.mirror_url)
-        self.assertEqual(f"{ipv4_address(10, 0, 3, 1)}:5001", mirror.registry_authority)
+        self.assertEqual(mirror.registry_authority, f"{ipv4_address(10, 0, 3, 1)}:5001")
 
     def test_lxc_docker_registry_mirror_rejects_localhost_operator_value(self):
         with patch.dict(
@@ -1886,8 +1886,8 @@ class TestComposition(unittest.TestCase):
         dependency_names = {item.name for item in configuration.required_dependencies}
         self.assertIn("incus", dependency_names)
         self.assertNotIn("lxc", dependency_names)
-        self.assertEqual("lxc_native", configuration.provider_metadata.provider)
-        self.assertEqual("incus", configuration.provider_metadata.backend)
+        self.assertEqual(configuration.provider_metadata.provider, "lxc_native")
+        self.assertEqual(configuration.provider_metadata.backend, "incus")
         self.assertIn(
             "selected-backend-control-network",
             configuration.provider_metadata.network_checks,
@@ -1899,7 +1899,7 @@ class TestComposition(unittest.TestCase):
             service_stack_by_name={},
         )
 
-        self.assertEqual((), steps)
+        self.assertEqual(steps, ())
 
     def test_preflight_configuration_honors_backend_candidate_order(self):
         def which(name: str):
@@ -1920,7 +1920,7 @@ class TestComposition(unittest.TestCase):
         dependency_names = {item.name for item in configuration.required_dependencies}
         self.assertIn("incus", dependency_names)
         self.assertNotIn("lxc", dependency_names)
-        self.assertEqual("incus", configuration.provider_metadata.backend)
+        self.assertEqual(configuration.provider_metadata.backend, "incus")
 
     def test_preflight_configuration_blocks_missing_lxc_backend_candidates(self):
         request = composition.NodeProviderSelectionRequest(backend_candidates=())
@@ -1937,8 +1937,8 @@ class TestComposition(unittest.TestCase):
 
         self.assertEqual(composition.ManagedLxcBackend.INCUS, request.preferred_backend)
         self.assertEqual(
-            (composition.ManagedLxcBackend.INCUS,),
             request.backend_candidates,
+            (composition.ManagedLxcBackend.INCUS,),
         )
 
     def test_build_setup_services_wires_live_consent_into_platform_init_guard(self):
@@ -2013,12 +2013,12 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
         self.assertEqual(
-            "platform:node-provider:lxc_native",
             result.verification_results[0].target_id,
+            "platform:node-provider:lxc_native",
         )
         self.assertEqual(
-            "provider_selection_blocked",
             result.verification_results[0].evidence["reason"],
+            "provider_selection_blocked",
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
@@ -2096,6 +2096,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertTrue(result.executed)
         self.assertEqual(
+            tuple(item.target_id for item in result.verification_results),
             (
                 "platform:node:swarm-manager",
                 "platform:node:swarm-worker-1",
@@ -2103,7 +2104,6 @@ class TestComposition(unittest.TestCase):
                 "platform:init:lxc-container-runtime",
                 "platform:init:lxc-swarm-bootstrap",
             ),
-            tuple(item.target_id for item in result.verification_results),
         )
         ensure_runtime.assert_called_once()
         bootstrap_swarm.assert_called_once()
@@ -2111,10 +2111,10 @@ class TestComposition(unittest.TestCase):
             composition.DEFAULT_LXC_PLATFORM_NODES,
             ensure_runtime.call_args.args[1],
         )
-        self.assertEqual("swarm-manager", bootstrap_swarm.call_args.args[1].name)
+        self.assertEqual(bootstrap_swarm.call_args.args[1].name, "swarm-manager")
         self.assertEqual(
-            ("swarm-worker-1", "swarm-worker-2"),
             tuple(worker.name for worker in bootstrap_swarm.call_args.args[2]),
+            ("swarm-worker-1", "swarm-worker-2"),
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
@@ -2153,12 +2153,12 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
         self.assertEqual(
-            "platform:init:lxc-container-runtime",
             result.verification_results[-1].target_id,
+            "platform:init:lxc-container-runtime",
         )
         self.assertEqual(
-            "container_runtime_not_verified",
             result.verification_results[-1].evidence["classification"],
+            "container_runtime_not_verified",
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
@@ -2209,8 +2209,8 @@ class TestComposition(unittest.TestCase):
             tuple(item.target_id for item in result.verification_results),
         )
         self.assertEqual(
-            ["swarm-manager", "swarm-worker-1", "swarm-worker-2"],
             [call.args[0].name for call in ensure_node.call_args_list],
+            ["swarm-manager", "swarm-worker-1", "swarm-worker-2"],
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
@@ -2249,16 +2249,16 @@ class TestComposition(unittest.TestCase):
 
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertEqual(
-            "converged",
             result.to_dict()["outcome"]["mutation"]["result"],
+            "converged",
         )
         self.assertEqual(
-            "platform:node:swarm-worker-1",
             next(
                 item
                 for item in result.verification_results
                 if item.evidence.get("applied") == "true"
             ).target_id,
+            "platform:node:swarm-worker-1",
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
@@ -2294,19 +2294,19 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
         self.assertEqual(
-            "blocked",
             result.to_dict()["outcome"]["mutation"]["result"],
+            "blocked",
         )
         self.assertEqual(
-            "platform:node:swarm-manager",
             result.verification_results[0].target_id,
+            "platform:node:swarm-manager",
         )
         self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
 
     def test_composed_default_lxc_expose_uses_manager_gateway_and_setup_ports(self):
         services = composition.build_platform_services()
 
-        self.assertEqual(2, len(services.workflows.expose.steps))
+        self.assertEqual(len(services.workflows.expose.steps), 2)
         step = services.workflows.expose.steps[0]
         socat_step = services.workflows.expose.steps[1]
 
@@ -2314,7 +2314,7 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(socat_step, composition._WslSocatExposeStep)
         self.assertIs(step.service, services.lxc_service_exposure)
         self.assertIs(socat_step.socat_manager, services.socat_manager)
-        self.assertEqual("swarm-manager", step.service.gateway_node.name)
+        self.assertEqual(step.service.gateway_node.name, "swarm-manager")
         self.assertEqual(
             composition.DEFAULT_LXC_MANAGER_PROXY_PROFILE,
             step.service.manager_profile_name,
@@ -2323,8 +2323,8 @@ class TestComposition(unittest.TestCase):
             composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
             step.service.listen_address,
         )
-        self.assertEqual(18, len(step.service.setup_manifest.required_ports))
-        self.assertEqual("Infisical", step.service.setup_manifest.services[-1].name)
+        self.assertEqual(len(step.service.setup_manifest.required_ports), 18)
+        self.assertEqual(step.service.setup_manifest.services[-1].name, "Infisical")
 
     def test_composed_wsl_socat_expose_verifies_not_required_on_native_linux(self):
         services = composition.build_platform_services()
@@ -2334,7 +2334,7 @@ class TestComposition(unittest.TestCase):
         result = asyncio.run(socat_step.run())
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("not_required", result.evidence["classification"])
+        self.assertEqual(result.evidence["classification"], "not_required")
 
     def test_composed_wsl_socat_expose_skips_missing_optional_socat(self):
         services = composition.build_platform_services(
@@ -2347,18 +2347,18 @@ class TestComposition(unittest.TestCase):
             result = asyncio.run(socat_step.run())
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("socat_missing_skipped", result.evidence["classification"])
-        self.assertEqual("18", result.evidence["planned_forward_count"])
+        self.assertEqual(result.evidence["classification"], "socat_missing_skipped")
+        self.assertEqual(result.evidence["planned_forward_count"], "18")
 
     def test_composed_lxc_proxy_drift_repair_uses_manager_profile_scope(self):
         services = composition.build_platform_services()
 
-        self.assertEqual(1, len(services.workflows.repair_lxc_proxy_drift.steps))
+        self.assertEqual(len(services.workflows.repair_lxc_proxy_drift.steps), 1)
         step = services.workflows.repair_lxc_proxy_drift.steps[0]
 
         self.assertIsInstance(step, composition.LxcProxyDriftRepairStep)
         self.assertIs(step.service, services.lxc_proxy_drift_repair)
-        self.assertEqual("swarm-manager", step.service.gateway_node.name)
+        self.assertEqual(step.service.gateway_node.name, "swarm-manager")
         self.assertEqual(
             composition.DEFAULT_LXC_MANAGER_PROXY_PROFILE,
             step.service.manager_profile_name,
@@ -2367,7 +2367,7 @@ class TestComposition(unittest.TestCase):
             composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
             step.service.listen_address,
         )
-        self.assertEqual(18, len(step.service.setup_manifest.required_ports))
+        self.assertEqual(len(step.service.setup_manifest.required_ports), 18)
 
     def test_composed_default_lxc_expose_without_live_consent_fails_closed(self):
         with patch.object(
@@ -2380,12 +2380,12 @@ class TestComposition(unittest.TestCase):
 
         self.assertEqual(PlatformWorkflowStatus.FAILED_TO_APPLY, result.status)
         self.assertEqual(
-            "platform:expose:lxc-proxy-devices",
             result.verification_results[0].target_id,
+            "platform:expose:lxc-proxy-devices",
         )
         self.assertEqual(
-            "18",
             result.verification_results[0].evidence["lookup_failure_count"],
+            "18",
         )
 
 

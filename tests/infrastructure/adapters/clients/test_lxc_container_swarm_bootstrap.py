@@ -37,6 +37,7 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(ipv4_address(10, 10, 0, 5), address)
         self.assertEqual(
+            runner.calls[0][0],
             (
                 "lxc",
                 "exec",
@@ -46,7 +47,6 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
                 "-lc",
                 "ip -4 -o addr show dev eth0 | awk '{print $4}' | cut -d/ -f1",
             ),
-            runner.calls[0][0],
         )
 
     async def test_active_manager_is_observed_without_mutation(self):
@@ -56,8 +56,8 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
         outcome = await swarm.inspect_manager(_manager())
 
         self.assertEqual(SwarmManagerState.ACTIVE, outcome.state)
-        self.assertEqual(1, outcome.manager_count)
-        self.assertEqual(1, len(runner.calls))
+        self.assertEqual(outcome.manager_count, 1)
+        self.assertEqual(len(runner.calls), 1)
 
     async def test_manager_init_requires_live_mutation_consent(self):
         runner = _FakeRunner()
@@ -66,7 +66,7 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
         outcome = await swarm.initialize_manager(_manager(), ipv4_address(10, 10, 0, 5))
 
         self.assertEqual(SwarmManagerState.ERROR, outcome.state)
-        self.assertEqual([], runner.calls)
+        self.assertEqual(runner.calls, [])
 
     async def test_manager_init_uses_structured_argv(self):
         runner = _FakeRunner(LxcNodeCommandResult(returncode=0))
@@ -76,6 +76,7 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(SwarmManagerState.INITIALIZED, outcome.state)
         self.assertEqual(
+            runner.calls[0][0],
             (
                 "incus",
                 "exec",
@@ -91,7 +92,6 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
                 "--default-addr-pool-mask-length",
                 "24",
             ),
-            runner.calls[0][0],
         )
 
     async def test_worker_join_token_is_memory_only_outcome(self):
@@ -100,7 +100,7 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
 
         credential = await swarm.worker_join_credential(_manager())
 
-        self.assertEqual("<redacted>", str(credential))
+        self.assertEqual(str(credential), "<redacted>")
         self.assertNotIn("sensitive-token", repr(credential))
 
     async def test_worker_join_uses_token_without_persisting_it_in_outcome(self):
@@ -119,12 +119,12 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(WorkerJoinState.JOINED, outcome.state)
         self.assertTrue(outcome.verified)
-        self.assertEqual("leave", runner.calls[0][0][6])
-        self.assertEqual("--force", runner.calls[0][0][7])
+        self.assertEqual(runner.calls[0][0][6], "leave")
+        self.assertEqual(runner.calls[0][0][7], "--force")
         self.assertIn("sensitive-token", runner.calls[1][0])
         self.assertNotIn("sensitive-token", repr(outcome))
-        self.assertEqual("docker", runner.calls[2][0][4])
-        self.assertEqual("info", runner.calls[2][0][5])
+        self.assertEqual(runner.calls[2][0][4], "docker")
+        self.assertEqual(runner.calls[2][0][5], "info")
 
     async def test_worker_join_fails_when_post_join_state_is_inactive(self):
         runner = _FakeRunner(
@@ -165,7 +165,7 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(WorkerJoinState.JOINED, outcome.state)
         self.assertTrue(outcome.verified)
-        self.assertEqual(4, len(runner.calls))
+        self.assertEqual(len(runner.calls), 4)
 
 
 class _FakeRunner:

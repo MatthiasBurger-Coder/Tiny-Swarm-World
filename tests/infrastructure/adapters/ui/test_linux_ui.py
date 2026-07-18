@@ -95,6 +95,7 @@ class TestLinuxUI(unittest.TestCase):
         )
 
         self.assertEqual(
+            self.ui.status["Instance1"],
             {
                 "current_task": "setup run",
                 "current_step": "deployment verify",
@@ -104,7 +105,6 @@ class TestLinuxUI(unittest.TestCase):
                 "correlation_id": "setup-123",
                 "trace_id": "trace-456",
             },
-            self.ui.status["Instance1"],
         )
 
     def test_draw_instance_status_renders_supplied_evidence_event_only(self):
@@ -250,7 +250,7 @@ class TestLinuxUI(unittest.TestCase):
         )
 
         self.assertTrue(ui.all_instances_terminal())
-        self.assertEqual("All instances completed", ui.completion_summary())
+        self.assertEqual(ui.completion_summary(), "All instances completed")
 
     @patch("threading.Thread")
     def test_run_in_thread(self, mock_thread):

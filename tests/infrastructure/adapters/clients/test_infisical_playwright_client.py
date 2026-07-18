@@ -43,6 +43,7 @@ class TestInfisicalPlaywrightClient(unittest.TestCase):
         )
 
         self.assertEqual(
+            page.filled,
             [
                 ("First name", "Tiny"),
                 ("Last name", "Swarm"),
@@ -50,9 +51,8 @@ class TestInfisicalPlaywrightClient(unittest.TestCase):
                 ("Password", "infisical-password"),
                 ("Confirm password", "infisical-password"),
             ],
-            page.filled,
         )
-        self.assertEqual(["Continue"], page.clicked)
+        self.assertEqual(page.clicked, ["Continue"])
 
     def test_create_first_admin_skips_when_prompt_is_not_visible(self):
         page = _FakePage(set())
@@ -63,8 +63,8 @@ class TestInfisicalPlaywrightClient(unittest.TestCase):
             "infisical-password",
         )
 
-        self.assertEqual([], page.filled)
-        self.assertEqual([], page.clicked)
+        self.assertEqual(page.filled, [])
+        self.assertEqual(page.clicked, [])
 
 
 class _FakePage:

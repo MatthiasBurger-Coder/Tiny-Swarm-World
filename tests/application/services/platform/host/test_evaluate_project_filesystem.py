@@ -26,8 +26,8 @@ class TestEvaluateProjectFilesystem(unittest.TestCase):
         )
 
         self.assertEqual(
-            [("/mnt/d/project", HostEnvironmentKind.WSL2)],
             inspector.calls,
+            [("/mnt/d/project", HostEnvironmentKind.WSL2)],
         )
         self.assertEqual(ProjectFilesystemDecision.BLOCKED, assessment.decision)
 
@@ -40,7 +40,7 @@ class TestEvaluateProjectFilesystem(unittest.TestCase):
             allow_wsl_windows_filesystem=True,
         )
 
-        self.assertEqual([], inspector.calls)
+        self.assertEqual(inspector.calls, [])
         self.assertEqual(ProjectFilesystemDecision.BLOCKED, assessment.decision)
         self.assertFalse(assessment.override_applied)
 

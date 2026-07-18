@@ -19,8 +19,8 @@ class TestServiceStackContract(unittest.TestCase):
         stack_names = tuple(contract.stack_name for contract in DEFAULT_SERVICE_STACK_CONTRACTS)
 
         self.assertEqual(
-            ("portainer", "traefik", "nexus", "jenkins", "pulsar", "sonarqube", "swagger"),
             stack_names,
+            ("portainer", "traefik", "nexus", "jenkins", "pulsar", "sonarqube", "swagger"),
         )
         self.assertNotIn("service-access", stack_names)
 
@@ -29,6 +29,7 @@ class TestServiceStackContract(unittest.TestCase):
         selected_by_name = {contract.stack_name: contract for contract in selected}
 
         self.assertEqual(
+            tuple(contract.stack_name for contract in selected),
             (
                 "portainer",
                 "traefik",
@@ -40,43 +41,42 @@ class TestServiceStackContract(unittest.TestCase):
                 "infisical",
                 "service-access",
             ),
-            tuple(contract.stack_name for contract in selected),
         )
         self.assertEqual(SERVICE_ACCESS_STACK_CONTRACT, selected_by_name["service-access"])
         self.assertEqual(
-            ("service-access-dashboard", "service-access-nginx"),
             selected_by_name["service-access"].required_services,
+            ("service-access-dashboard", "service-access-nginx"),
         )
         self.assertEqual(
-            ("infisical", "infisical-db", "infisical-redis"),
             selected_by_name["infisical"].required_services,
+            ("infisical", "infisical-db", "infisical-redis"),
         )
         self.assertEqual(
-            ("pulsar", "pulsar-manager"),
             selected_by_name["pulsar"].required_services,
+            ("pulsar", "pulsar-manager"),
         )
         self.assertEqual(
-            "deployment:service-access-service-readiness",
             selected_by_name["service-access"].service_readiness_target_id,
+            "deployment:service-access-service-readiness",
         )
         self.assertEqual(
-            ("http://localhost:10000",),
             tuple(endpoint.url for endpoint in selected_by_name["service-access"].endpoints),
+            ("http://localhost:10000",),
         )
         self.assertEqual(
-            ("http://localhost:17080",),
             tuple(endpoint.url for endpoint in selected_by_name["infisical"].endpoints),
+            ("http://localhost:17080",),
         )
 
     def test_contracts_expose_phase_and_port_ids_without_readiness_claims(self):
         nexus = _contract_by_stack("nexus")
 
-        self.assertEqual("artifacts", nexus.phase_id)
+        self.assertEqual(nexus.phase_id, "artifacts")
         self.assertEqual(
-            ("nexus-http", "nexus-docker-http", "nexus-docker-https"),
             nexus.port_ids,
+            ("nexus-http", "nexus-docker-http", "nexus-docker-https"),
         )
-        self.assertEqual("deployment:nexus-service-readiness", nexus.service_readiness_target_id)
+        self.assertEqual(nexus.service_readiness_target_id, "deployment:nexus-service-readiness")
         self.assertNotEqual(nexus.stack_target_id, nexus.service_readiness_target_id)
         self.assertFalse(any(endpoint.readiness_claimed for endpoint in nexus.endpoints))
 
@@ -86,27 +86,27 @@ class TestServiceStackContract(unittest.TestCase):
             for contract in service_stack_contracts_for_profile(ServiceStackProfile.SERVICE_ACCESS)
         }
 
-        self.assertEqual(("http://localhost:10001",), _endpoint_urls(endpoints_by_stack["portainer"]))
-        self.assertEqual(("http://localhost",), _endpoint_urls(endpoints_by_stack["traefik"]))
+        self.assertEqual(_endpoint_urls(endpoints_by_stack["portainer"]), ("http://localhost:10001",))
+        self.assertEqual(_endpoint_urls(endpoints_by_stack["traefik"]), ("http://localhost",))
         self.assertEqual(
-            ("http://localhost:13081", "http://localhost:13500"),
             _endpoint_urls(endpoints_by_stack["nexus"]),
+            ("http://localhost:13081", "http://localhost:13500"),
         )
-        self.assertEqual(("http://localhost:11080",), _endpoint_urls(endpoints_by_stack["jenkins"]))
+        self.assertEqual(_endpoint_urls(endpoints_by_stack["jenkins"]), ("http://localhost:11080",))
         self.assertEqual(
-            ("http://localhost:14080", "http://localhost:14081"),
             _endpoint_urls(endpoints_by_stack["pulsar"]),
+            ("http://localhost:14080", "http://localhost:14081"),
         )
         self.assertEqual(
-            ("http://localhost:12000",),
             _endpoint_urls(endpoints_by_stack["sonarqube"]),
+            ("http://localhost:12000",),
         )
-        self.assertEqual(("http://localhost:16081",), _endpoint_urls(endpoints_by_stack["swagger"]))
+        self.assertEqual(_endpoint_urls(endpoints_by_stack["swagger"]), ("http://localhost:16081",))
         self.assertEqual(
-            ("http://localhost:10000",),
             _endpoint_urls(endpoints_by_stack["service-access"]),
+            ("http://localhost:10000",),
         )
-        self.assertEqual(("http://localhost:17080",), _endpoint_urls(endpoints_by_stack["infisical"]))
+        self.assertEqual(_endpoint_urls(endpoints_by_stack["infisical"]), ("http://localhost:17080",))
         all_endpoints = tuple(
             endpoint
             for endpoints in endpoints_by_stack.values()
@@ -121,13 +121,13 @@ class TestServiceStackContract(unittest.TestCase):
         self.assertTrue(endpoint.localhost_forwarding_required)
         self.assertFalse(endpoint.readiness_claimed)
         self.assertEqual(
+            endpoint.to_dict(),
             {
                 "localhost_forwarding_required": True,
                 "name": "portainer",
                 "readiness_claimed": False,
                 "url": "http://localhost:10001",
             },
-            endpoint.to_dict(),
         )
 
     def test_default_service_stack_contracts_have_valid_verification_targets(self):
@@ -136,6 +136,7 @@ class TestServiceStackContract(unittest.TestCase):
         }
 
         self.assertEqual(
+            readiness_targets,
             {
                 "deployment:portainer-service-readiness",
                 "deployment:traefik-service-readiness",
@@ -145,7 +146,6 @@ class TestServiceStackContract(unittest.TestCase):
                 "deployment:sonarqube-service-readiness",
                 "deployment:swagger-service-readiness",
             },
-            readiness_targets,
         )
 
     def test_portainer_managed_stack_contracts_exclude_portainer_bootstrap_cycle(self):
@@ -153,7 +153,7 @@ class TestServiceStackContract(unittest.TestCase):
             contract.stack_name for contract in DEFAULT_PORTAINER_MANAGED_SERVICE_STACK_CONTRACTS
         )
 
-        self.assertEqual(("traefik", "nexus", "jenkins", "pulsar", "sonarqube", "swagger"), stack_names)
+        self.assertEqual(stack_names, ("traefik", "nexus", "jenkins", "pulsar", "sonarqube", "swagger"))
 
     def test_selected_portainer_managed_stack_contracts_include_service_access(self):
         stack_names = tuple(
@@ -164,6 +164,7 @@ class TestServiceStackContract(unittest.TestCase):
         )
 
         self.assertEqual(
+            stack_names,
             (
                 "traefik",
                 "nexus",
@@ -174,7 +175,6 @@ class TestServiceStackContract(unittest.TestCase):
                 "infisical",
                 "service-access",
             ),
-            stack_names,
         )
         self.assertNotIn("portainer", stack_names)
 
@@ -204,7 +204,7 @@ class TestServiceStackContract(unittest.TestCase):
     def test_accepts_localhost_https_endpoint_url(self):
         endpoint = ServiceEndpoint("infisical", "http://localhost:17080")
 
-        self.assertEqual("http://localhost:17080", endpoint.url)
+        self.assertEqual(endpoint.url, "http://localhost:17080")
 
     def test_rejects_endpoint_with_credentials_or_query(self):
         with self.assertRaises(ValueError):
@@ -221,6 +221,7 @@ class TestServiceStackContract(unittest.TestCase):
         contract = ServiceStackContract("nexus", ("nexus",))
 
         self.assertEqual(
+            contract.to_dict(),
             {
                 "endpoints": [],
                 "phase_id": None,
@@ -230,7 +231,6 @@ class TestServiceStackContract(unittest.TestCase):
                 "stack_target_id": "deployment:nexus-stack",
                 "stack_name": "nexus",
             },
-            contract.to_dict(),
         )
 
 

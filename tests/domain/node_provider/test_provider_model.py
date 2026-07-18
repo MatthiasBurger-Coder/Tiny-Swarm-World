@@ -16,20 +16,20 @@ from tiny_swarm_world.domain.node_provider import (
 
 class TestProviderModel(unittest.TestCase):
     def test_provider_kind_values_match_provider_adr(self):
-        self.assertEqual("lxc_native", NodeProviderKind.LXC_NATIVE.value)
-        self.assertEqual("unsupported", NodeProviderKind.UNSUPPORTED.value)
+        self.assertEqual(NodeProviderKind.LXC_NATIVE.value, "lxc_native")
+        self.assertEqual(NodeProviderKind.UNSUPPORTED.value, "unsupported")
 
     def test_readiness_status_values_cover_provider_preflight_failures(self):
-        self.assertEqual("ready", ProviderReadinessStatus.READY.value)
-        self.assertEqual("backend_missing", ProviderReadinessStatus.BACKEND_MISSING.value)
-        self.assertEqual("backend_ambiguous", ProviderReadinessStatus.BACKEND_AMBIGUOUS.value)
-        self.assertEqual("executable_missing", ProviderReadinessStatus.EXECUTABLE_MISSING.value)
-        self.assertEqual("daemon_unavailable", ProviderReadinessStatus.DAEMON_UNAVAILABLE.value)
-        self.assertEqual("systemd_unavailable", ProviderReadinessStatus.SYSTEMD_UNAVAILABLE.value)
-        self.assertEqual("wsl_unsupported", ProviderReadinessStatus.WSL_UNSUPPORTED.value)
-        self.assertEqual("profile_missing", ProviderReadinessStatus.PROFILE_MISSING.value)
-        self.assertEqual("timeout", ProviderReadinessStatus.TIMEOUT.value)
-        self.assertEqual("unsupported", ProviderReadinessStatus.UNSUPPORTED.value)
+        self.assertEqual(ProviderReadinessStatus.READY.value, "ready")
+        self.assertEqual(ProviderReadinessStatus.BACKEND_MISSING.value, "backend_missing")
+        self.assertEqual(ProviderReadinessStatus.BACKEND_AMBIGUOUS.value, "backend_ambiguous")
+        self.assertEqual(ProviderReadinessStatus.EXECUTABLE_MISSING.value, "executable_missing")
+        self.assertEqual(ProviderReadinessStatus.DAEMON_UNAVAILABLE.value, "daemon_unavailable")
+        self.assertEqual(ProviderReadinessStatus.SYSTEMD_UNAVAILABLE.value, "systemd_unavailable")
+        self.assertEqual(ProviderReadinessStatus.WSL_UNSUPPORTED.value, "wsl_unsupported")
+        self.assertEqual(ProviderReadinessStatus.PROFILE_MISSING.value, "profile_missing")
+        self.assertEqual(ProviderReadinessStatus.TIMEOUT.value, "timeout")
+        self.assertEqual(ProviderReadinessStatus.UNSUPPORTED.value, "unsupported")
 
     def test_managed_lxc_backend_selection_distinguishes_incus_and_lxd(self):
         incus = ManagedLxcBackendSelection.for_backend(ManagedLxcBackend.INCUS)
@@ -38,7 +38,7 @@ class TestProviderModel(unittest.TestCase):
         self.assertTrue(incus.selected)
         self.assertFalse(incus.blocks_mutation)
         self.assertEqual(ManagedLxcBackend.INCUS, incus.backend)
-        self.assertEqual("incus", incus.to_dict()["backend"])
+        self.assertEqual(incus.to_dict()["backend"], "incus")
         self.assertEqual(ManagedLxcBackend.LXD, lxd.backend)
 
     def test_backend_selection_blocks_missing_ambiguous_and_unsupported_states(self):
@@ -65,8 +65,8 @@ class TestProviderModel(unittest.TestCase):
             ambiguous.status,
         )
         self.assertEqual(
-            [ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD],
             list(ambiguous.candidates),
+            [ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD],
         )
         self.assertEqual(
             ManagedLxcBackendSelectionStatus.UNSUPPORTED,
@@ -103,8 +103,8 @@ class TestProviderModel(unittest.TestCase):
 
         self.assertTrue(readiness.ready)
         self.assertFalse(readiness.blocks_mutation)
-        self.assertEqual("lxc_native", readiness.to_dict()["provider"])
-        self.assertEqual("incus", readiness.to_dict()["backend_selection"]["backend"])
+        self.assertEqual(readiness.to_dict()["provider"], "lxc_native")
+        self.assertEqual(readiness.to_dict()["backend_selection"]["backend"], "incus")
 
         with self.assertRaises(ValueError):
             ProviderReadiness(
@@ -200,7 +200,7 @@ class TestProviderModel(unittest.TestCase):
 
         self.assertFalse(selection.selected)
         self.assertTrue(selection.blocks_mutation)
-        self.assertEqual("unsupported", selection.to_dict()["status"])
+        self.assertEqual(selection.to_dict()["status"], "unsupported")
 
     def test_provider_selection_rejects_requested_selected_mismatch(self):
         cases = (
@@ -228,9 +228,9 @@ class TestProviderModel(unittest.TestCase):
             backend=ManagedLxcBackend.LXD,
         )
 
-        self.assertEqual("manager", spec.to_dict()["role"])
-        self.assertEqual("lxc_native", spec.to_dict()["provider"])
-        self.assertEqual("lxd", spec.to_dict()["backend"])
+        self.assertEqual(spec.to_dict()["role"], "manager")
+        self.assertEqual(spec.to_dict()["provider"], "lxc_native")
+        self.assertEqual(spec.to_dict()["backend"], "lxd")
 
     def test_node_spec_rejects_invalid_names_and_unsupported_backend_pairings(self):
         with self.assertRaises(ValueError):

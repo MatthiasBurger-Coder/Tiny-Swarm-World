@@ -24,6 +24,7 @@ class TestWorkflowProgressEvent(unittest.TestCase):
         )
 
         self.assertEqual(
+            event.to_dict(),
             {
                 "workflow": "setup run",
                 "phase": "preflight",
@@ -38,7 +39,6 @@ class TestWorkflowProgressEvent(unittest.TestCase):
                 "correlation_id": "setup-123",
                 "trace_id": "trace-456",
             },
-            event.to_dict(),
         )
 
     def test_event_cannot_represent_raw_payload_keys(self):

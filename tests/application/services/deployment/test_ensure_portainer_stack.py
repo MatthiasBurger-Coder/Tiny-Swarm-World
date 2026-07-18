@@ -22,7 +22,7 @@ class TestEnsurePortainerStack(unittest.IsolatedAsyncioTestCase):
 
         compose_repository.get_compose_of.assert_called_once_with("portainer")
         request = _single_applied_request(deployment_gateway)
-        self.assertEqual("portainer", request.target_stack)
+        self.assertEqual(request.target_stack, "portainer")
         self.assertEqual(stack_definition, request.stack_definition)
 
     async def test_updates_stack_when_portainer_stack_exists(self):
@@ -47,7 +47,7 @@ class TestEnsurePortainerStack(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(FileNotFoundError):
             await service.run()
 
-        self.assertEqual([], deployment_gateway.applied_requests)
+        self.assertEqual(deployment_gateway.applied_requests, [])
 
     async def test_gateway_failure_is_propagated(self):
         stack_definition = StackDefinition(name="portainer", compose_content="services: {}")
@@ -60,7 +60,7 @@ class TestEnsurePortainerStack(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(RuntimeError):
             await service.run()
 
-        self.assertEqual(1, len(deployment_gateway.applied_requests))
+        self.assertEqual(len(deployment_gateway.applied_requests), 1)
 
 
 class _FakeDeploymentGateway:

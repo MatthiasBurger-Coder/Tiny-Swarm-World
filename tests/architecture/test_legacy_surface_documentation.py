@@ -132,7 +132,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             for path in root.rglob("*")
             if path.is_file() and (path.name in forbidden_names or path.suffix.lower() in forbidden_suffixes)
         )
-        self.assertEqual([], forbidden_files)
+        self.assertEqual(forbidden_files, [])
 
         live_violations = {
             path.relative_to(REPOSITORY_ROOT).as_posix(): fragment
@@ -142,14 +142,14 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             for fragment in forbidden_fragments
             if fragment in path.read_text(encoding="utf-8").lower()
         }
-        self.assertEqual({}, live_violations)
+        self.assertEqual(live_violations, {})
 
     def test_service_access_nginx_owns_central_routes_without_request_logs(self):
         nginx_config = (
             INFRA_ROOT / "config" / "compose" / "service-access" / "nginx" / "default.conf"
         ).read_text(encoding="utf-8")
 
-        self.assertEqual(2, nginx_config.count("access_log off;"))
+        self.assertEqual(nginx_config.count("access_log off;"), 2)
         self.assertIn("listen 80;", nginx_config)
         self.assertIn("listen 8086;", nginx_config)
         self.assertNotIn("listen 443 ssl;", nginx_config)
@@ -202,7 +202,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             if path.exists()
         ]
 
-        self.assertEqual([], present_paths)
+        self.assertEqual(present_paths, [])
 
     def test_java_maven_project_surface_is_not_reintroduced(self):
         forbidden_paths = (

@@ -48,10 +48,10 @@ class TestPlatformVerifyChecks(unittest.IsolatedAsyncioTestCase):
         result = await step.run()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("container_runtime_verified", result.evidence["classification"])
-        self.assertEqual(["swarm-manager"], runtime.inspect_calls)
-        self.assertEqual(0, runtime.install_calls)
-        self.assertEqual(0, runtime.verify_calls)
+        self.assertEqual(result.evidence["classification"], "container_runtime_verified")
+        self.assertEqual(runtime.inspect_calls, ["swarm-manager"])
+        self.assertEqual(runtime.install_calls, 0)
+        self.assertEqual(runtime.verify_calls, 0)
 
     async def test_docker_verify_reports_unready_node(self):
         runtime = _DockerRuntime(
@@ -66,8 +66,8 @@ class TestPlatformVerifyChecks(unittest.IsolatedAsyncioTestCase):
         result = await step.run()
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
-        self.assertEqual("one_or_more_nodes_not_ready", result.evidence["observed"])
-        self.assertEqual("swarm-manager", result.evidence["failed_nodes"])
+        self.assertEqual(result.evidence["observed"], "one_or_more_nodes_not_ready")
+        self.assertEqual(result.evidence["failed_nodes"], "swarm-manager")
 
     async def test_swarm_verify_uses_inspect_only(self):
         swarm = _SwarmRuntime(
@@ -90,12 +90,12 @@ class TestPlatformVerifyChecks(unittest.IsolatedAsyncioTestCase):
         result = await step.run()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("swarm_membership_verified", result.evidence["classification"])
-        self.assertEqual(["swarm-manager"], swarm.manager_inspections)
-        self.assertEqual(["swarm-worker-1"], swarm.worker_inspections)
-        self.assertEqual(0, swarm.init_calls)
-        self.assertEqual(0, swarm.credential_calls)
-        self.assertEqual(0, swarm.join_calls)
+        self.assertEqual(result.evidence["classification"], "swarm_membership_verified")
+        self.assertEqual(swarm.manager_inspections, ["swarm-manager"])
+        self.assertEqual(swarm.worker_inspections, ["swarm-worker-1"])
+        self.assertEqual(swarm.init_calls, 0)
+        self.assertEqual(swarm.credential_calls, 0)
+        self.assertEqual(swarm.join_calls, 0)
 
     async def test_swarm_verify_reports_worker_not_joined(self):
         swarm = _SwarmRuntime(
@@ -118,8 +118,8 @@ class TestPlatformVerifyChecks(unittest.IsolatedAsyncioTestCase):
         result = await step.run()
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
-        self.assertEqual("one_or_more_nodes_not_joined", result.evidence["observed"])
-        self.assertEqual("swarm-worker-1", result.evidence["failed_nodes"])
+        self.assertEqual(result.evidence["observed"], "one_or_more_nodes_not_joined")
+        self.assertEqual(result.evidence["failed_nodes"], "swarm-worker-1")
 
     async def test_proxy_verify_uses_inspect_only(self):
         runtime = _ProxyRuntime(default_state=LxcProxyDeviceState.PRESENT)
@@ -138,10 +138,10 @@ class TestPlatformVerifyChecks(unittest.IsolatedAsyncioTestCase):
         result = await step.run()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
-        self.assertEqual("lxc_proxy_devices_verified", result.evidence["classification"])
-        self.assertEqual("18", result.evidence["present_count"])
-        self.assertEqual(0, runtime.create_calls)
-        self.assertEqual(0, runtime.update_calls)
+        self.assertEqual(result.evidence["classification"], "lxc_proxy_devices_verified")
+        self.assertEqual(result.evidence["present_count"], "18")
+        self.assertEqual(runtime.create_calls, 0)
+        self.assertEqual(runtime.update_calls, 0)
 
     async def test_proxy_verify_reports_missing_or_drifted_devices(self):
         runtime = _ProxyRuntime(
@@ -167,13 +167,13 @@ class TestPlatformVerifyChecks(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
         self.assertEqual(
-            "one_or_more_proxy_devices_missing_or_drifted",
             result.evidence["observed"],
+            "one_or_more_proxy_devices_missing_or_drifted",
         )
-        self.assertEqual("1", result.evidence["missing_count"])
-        self.assertEqual("1", result.evidence["drifted_count"])
-        self.assertEqual(0, runtime.create_calls)
-        self.assertEqual(0, runtime.update_calls)
+        self.assertEqual(result.evidence["missing_count"], "1")
+        self.assertEqual(result.evidence["drifted_count"], "1")
+        self.assertEqual(runtime.create_calls, 0)
+        self.assertEqual(runtime.update_calls, 0)
 
 
 class _DockerRuntime:

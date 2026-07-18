@@ -32,6 +32,7 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(readiness.ready)
         self.assertEqual(DockerEngineState.READY, readiness.engine_state)
         self.assertEqual(
+            runner.calls[0][0],
             (
                 "lxc",
                 "exec",
@@ -42,7 +43,6 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
                 "--format",
                 "{{json .ServerVersion}}",
             ),
-            runner.calls[0][0],
         )
 
     async def test_incus_install_uses_structured_exec_and_verifies_after_apply(self):
@@ -56,8 +56,8 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(DockerInstallState.INSTALLED, outcome.state)
         self.assertTrue(outcome.verified)
-        self.assertEqual("incus", runner.calls[0][0][0])
-        self.assertEqual(("incus", "exec", "swarm-manager", "--", "bash", "-lc", "<script>"), runner.redacted_calls[0][0])
+        self.assertEqual(runner.calls[0][0][0], "incus")
+        self.assertEqual(runner.redacted_calls[0][0], ("incus", "exec", "swarm-manager", "--", "bash", "-lc", "<script>"))
         self.assertNotIn("token=secret", repr(outcome))
 
     async def test_install_writes_lxc_reachable_registry_mirror_when_configured(self):
@@ -143,7 +143,7 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(DockerInstallState.FAILED, outcome.state)
         self.assertFalse(outcome.verified)
-        self.assertEqual([], runner.calls)
+        self.assertEqual(runner.calls, [])
 
     async def test_failed_inspect_classifies_missing_engine_without_raw_output(self):
         runner = _FakeRunner(
@@ -177,7 +177,7 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         outcome = await runtime.install_docker(_node())
 
         self.assertEqual(DockerInstallState.FAILED, outcome.state)
-        self.assertEqual("apt_repository_unreachable", outcome.failure_reason)
+        self.assertEqual(outcome.failure_reason, "apt_repository_unreachable")
         self.assertNotIn("archive.ubuntu.com", repr(outcome))
 
 

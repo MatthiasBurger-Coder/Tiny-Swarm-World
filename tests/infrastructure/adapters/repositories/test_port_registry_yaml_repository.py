@@ -12,16 +12,16 @@ class TestPortRegistryYamlRepository(unittest.TestCase):
     def test_loads_committed_default_port_registry(self):
         registry = PortRegistryYamlRepository().load()
 
-        self.assertEqual(11, len(registry.ranges))
-        self.assertEqual(24, len(registry.mappings))
-        self.assertEqual((80, 443), tuple(port.external_port for port in registry.preflight_ports))
+        self.assertEqual(len(registry.ranges), 11)
+        self.assertEqual(len(registry.mappings), 24)
+        self.assertEqual(tuple(port.external_port for port in registry.preflight_ports), (80, 443))
         self.assertEqual(
             PortExposureClass.PUBLIC_INGRESS,
             registry.mapping_for_port_id("traefik-http").exposure,
         )
         self.assertEqual(
-            8086,
             registry.mapping_for_port_id("service-access-legacy-http").external_port,
+            8086,
         )
 
     def test_missing_port_registry_defaults_to_empty_registry(self):
@@ -30,8 +30,8 @@ class TestPortRegistryYamlRepository(unittest.TestCase):
                 Path(temporary_directory) / "missing.yaml"
             ).load()
 
-        self.assertEqual((), registry.ranges)
-        self.assertEqual((), registry.mappings)
+        self.assertEqual(registry.ranges, ())
+        self.assertEqual(registry.mappings, ())
 
     def test_rejects_duplicate_external_ports(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

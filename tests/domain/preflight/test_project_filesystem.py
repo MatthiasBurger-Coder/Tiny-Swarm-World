@@ -93,8 +93,8 @@ class TestProjectFilesystemPolicy(unittest.TestCase):
         self.assertNotIn(path, str(assessment.to_safe_dict()))
         self.assertNotIn("project_path", assessment.to_safe_dict())
         self.assertEqual(
-            "allowed_by_override",
             assessment.to_safe_dict()["decision"],
+            "allowed_by_override",
         )
 
 

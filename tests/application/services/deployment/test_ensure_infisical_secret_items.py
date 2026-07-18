@@ -26,7 +26,7 @@ class TestEnsureInfisicalSecretItems(unittest.TestCase):
 
         asyncio.run(service.run())
 
-        self.assertEqual(["platform/nexus"], client.created_items)
+        self.assertEqual(client.created_items, ["platform/nexus"])
 
     def test_verify_reports_missing_item_names_without_secret_values(self):
         client = _FakeInfisicalClient({"platform/jenkins"})
@@ -45,7 +45,7 @@ class TestEnsureInfisicalSecretItems(unittest.TestCase):
         result = asyncio.run(service.verify())
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
-        self.assertEqual("platform/nexus", result.evidence["missing_items"])
+        self.assertEqual(result.evidence["missing_items"], "platform/nexus")
         self.assertNotIn(missing_value, str(result.evidence))
 
     def test_verify_fails_when_login_is_inactive(self):
@@ -61,7 +61,7 @@ class TestEnsureInfisicalSecretItems(unittest.TestCase):
         result = asyncio.run(service.verify())
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
-        self.assertEqual("inactive", result.evidence["access_state"])
+        self.assertEqual(result.evidence["access_state"], "inactive")
 
 
 class _FakeInfisicalClient:

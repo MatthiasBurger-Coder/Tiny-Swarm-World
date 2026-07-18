@@ -32,10 +32,10 @@ class TestFileManager(unittest.TestCase):
 
             LocalFileStorage().write_text(path, "safe-placeholder\n", private=True)
 
-            self.assertEqual("safe-placeholder\n", path.read_text(encoding="utf-8"))
-            self.assertEqual(0o600, path.stat().st_mode & 0o777)
-            self.assertEqual(0o700, path.parent.stat().st_mode & 0o777)
-            self.assertEqual([], list(path.parent.glob(f".{path.name}.*")))
+            self.assertEqual(path.read_text(encoding="utf-8"), "safe-placeholder\n")
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
+            self.assertEqual(list(path.parent.glob(f".{path.name}.*")), [])
 
     def test_local_storage_prunes_skipped_trees_before_scanning(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -67,8 +67,8 @@ class TestFileManager(unittest.TestCase):
                     skip_parts=frozenset({".git", ".tiny-swarm-world"}),
                 )
 
-            self.assertEqual([("src",)], observed_directories)
-            self.assertEqual((expected_path,), tuple(item.path for item in snapshots))
+            self.assertEqual(observed_directories, [("src",)])
+            self.assertEqual(tuple(item.path for item in snapshots), (expected_path,))
 
 
 if __name__ == "__main__":

@@ -30,8 +30,8 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ProviderReadinessStatus.BACKEND_MISSING, readiness.status)
         self.assertEqual(ManagedLxcBackendSelectionStatus.MISSING, readiness.backend_selection.status)
         self.assertTrue(readiness.blocks_mutation)
-        self.assertEqual([], runner.calls)
-        self.assertEqual("absent", readiness.backend_selection.evidence["incus_cli"])
+        self.assertEqual(runner.calls, [])
+        self.assertEqual(readiness.backend_selection.evidence["incus_cli"], "absent")
 
     async def test_ready_incus_backend_uses_version_and_info_with_timeout(self):
         runner = _FakeRunner(_ok(), _ok())
@@ -43,11 +43,11 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ProviderReadinessStatus.READY, readiness.status)
         self.assertEqual(ManagedLxcBackend.INCUS, readiness.backend_selection.backend)
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "version"), 5.0),
                 (("incus", "info"), 5.0),
             ],
-            runner.calls,
         )
         self.assertEvidenceIsSummaryOnly(readiness)
 
@@ -59,7 +59,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(ProviderReadinessStatus.BACKEND_MISSING, readiness.status)
-        self.assertEqual([], runner.calls)
+        self.assertEqual(runner.calls, [])
 
     async def test_timeout_maps_to_timeout_without_raw_output(self):
         runner = _FakeRunner(
@@ -76,7 +76,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(ProviderReadinessStatus.TIMEOUT, readiness.status)
-        self.assertEqual("timeout", readiness.evidence["classification_source"])
+        self.assertEqual(readiness.evidence["classification_source"], "timeout")
         self.assertEvidenceIsSummaryOnly(readiness)
 
     async def test_info_daemon_unavailable_maps_to_daemon_unavailable(self):
@@ -144,23 +144,23 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ProviderReadinessStatus.READY, readiness.status)
         self.assertEqual(ManagedLxcBackend.INCUS, readiness.backend_selection.backend)
         self.assertEqual(
+            runner.calls,
             [
                 (("incus", "version"), 5.0),
                 (("incus", "info"), 5.0),
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
             ],
-            runner.calls,
         )
-        self.assertEqual("candidate_order", readiness.backend_selection.evidence["selected_reason"])
-        self.assertEqual("lxd", readiness.backend_selection.evidence["skipped_candidates"])
+        self.assertEqual(readiness.backend_selection.evidence["selected_reason"], "candidate_order")
+        self.assertEqual(readiness.backend_selection.evidence["skipped_candidates"], "lxd")
         self.assertEqual(
-            "lower_priority_ready",
             readiness.backend_selection.evidence["skipped_candidate_reasons"],
+            "lower_priority_ready",
         )
         self.assertEqual(
-            (ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD),
             readiness.backend_selection.candidates,
+            (ManagedLxcBackend.INCUS, ManagedLxcBackend.LXD),
         )
 
     async def test_lxd_first_candidate_order_selects_ready_lxd_before_incus(self):
@@ -177,23 +177,23 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ProviderReadinessStatus.READY, readiness.status)
         self.assertEqual(ManagedLxcBackend.LXD, readiness.backend_selection.backend)
         self.assertEqual(
+            runner.calls,
             [
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
                 (("incus", "version"), 5.0),
                 (("incus", "info"), 5.0),
             ],
-            runner.calls,
         )
-        self.assertEqual("candidate_order", readiness.backend_selection.evidence["selected_reason"])
-        self.assertEqual("incus", readiness.backend_selection.evidence["skipped_candidates"])
+        self.assertEqual(readiness.backend_selection.evidence["selected_reason"], "candidate_order")
+        self.assertEqual(readiness.backend_selection.evidence["skipped_candidates"], "incus")
         self.assertEqual(
-            "lower_priority_ready",
             readiness.backend_selection.evidence["skipped_candidate_reasons"],
+            "lower_priority_ready",
         )
         self.assertEqual(
-            (ManagedLxcBackend.LXD, ManagedLxcBackend.INCUS),
             readiness.backend_selection.candidates,
+            (ManagedLxcBackend.LXD, ManagedLxcBackend.INCUS),
         )
 
     async def test_preferred_backend_resolves_ambiguous_availability(self):
@@ -209,13 +209,13 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(ProviderReadinessStatus.READY, readiness.status)
         self.assertEqual(ManagedLxcBackend.LXD, readiness.backend_selection.backend)
-        self.assertEqual("explicit_backend", readiness.backend_selection.evidence["selected_reason"])
+        self.assertEqual(readiness.backend_selection.evidence["selected_reason"], "explicit_backend")
         self.assertEqual(
+            runner.calls,
             [
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
             ],
-            runner.calls,
         )
 
     async def test_unavailable_first_candidate_uses_next_available_backend(self):
@@ -232,14 +232,14 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ProviderReadinessStatus.READY, readiness.status)
         self.assertEqual(ManagedLxcBackend.LXD, readiness.backend_selection.backend)
         self.assertEqual(
+            runner.calls,
             [
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
             ],
-            runner.calls,
         )
-        self.assertEqual("incus", readiness.backend_selection.evidence["skipped_candidates"])
-        self.assertEqual("cli_absent", readiness.backend_selection.evidence["skipped_candidate_reasons"])
+        self.assertEqual(readiness.backend_selection.evidence["skipped_candidates"], "incus")
+        self.assertEqual(readiness.backend_selection.evidence["skipped_candidate_reasons"], "cli_absent")
 
     async def test_wsl2_without_systemd_reports_systemd_unavailable(self):
         runner = _FakeRunner()
@@ -252,10 +252,10 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         ).provider_readiness(NodeProviderKind.LXC_NATIVE)
 
         self.assertEqual(ProviderReadinessStatus.SYSTEMD_UNAVAILABLE, readiness.status)
-        self.assertEqual("wsl2", readiness.evidence["host_kind"])
-        self.assertEqual("2", readiness.evidence["wsl_generation"])
-        self.assertEqual("absent", readiness.evidence["systemd"])
-        self.assertEqual([], runner.calls)
+        self.assertEqual(readiness.evidence["host_kind"], "wsl2")
+        self.assertEqual(readiness.evidence["wsl_generation"], "2")
+        self.assertEqual(readiness.evidence["systemd"], "absent")
+        self.assertEqual(runner.calls, [])
 
     async def test_wsl2_systemd_present_but_provider_daemon_unavailable_is_daemon_unavailable(self):
         runner = _FakeRunner(
@@ -289,8 +289,8 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         ).provider_readiness(NodeProviderKind.LXC_NATIVE)
 
         self.assertEqual(ProviderReadinessStatus.WSL_UNSUPPORTED, readiness.status)
-        self.assertEqual("unsupported", readiness.evidence["wsl_capability"])
-        self.assertEqual([], runner.calls)
+        self.assertEqual(readiness.evidence["wsl_capability"], "unsupported")
+        self.assertEqual(runner.calls, [])
 
     async def test_sandbox_host_reports_host_unsupported_without_backend_probe(self):
         runner = _FakeRunner()
@@ -307,7 +307,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         ).provider_readiness(NodeProviderKind.LXC_NATIVE)
 
         self.assertEqual(ProviderReadinessStatus.HOST_UNSUPPORTED, readiness.status)
-        self.assertEqual([], runner.calls)
+        self.assertEqual(runner.calls, [])
 
     def assertEvidenceIsSummaryOnly(self, readiness):
         rendered = repr(readiness.to_dict()).casefold()

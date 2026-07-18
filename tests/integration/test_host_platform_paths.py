@@ -50,7 +50,7 @@ class TestHostPlatformPaths(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(HostEnvironmentKind.NATIVE_LINUX, report.environment)
         self.assertEqual(PreflightStatus.PASSED, host_check.status)
         self.assertEqual(PreflightStatus.PASSED, filesystem_check.status)
-        self.assertEqual("native_linux", host_check.evidence["environment"])
+        self.assertEqual(host_check.evidence["environment"], "native_linux")
         self.assertIn('"environment": "native_linux"', cli_output)
         self.assertIn('"windows_interop_available": false', cli_output)
 
@@ -82,15 +82,15 @@ class TestHostPlatformPaths(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(HostEnvironmentKind.WSL2, report.environment)
-        self.assertEqual("Ubuntu-24.04", report.distribution)
+        self.assertEqual(report.distribution, "Ubuntu-24.04")
         self.assertEqual(
-            "6.1.21.2-microsoft-standard-WSL2",
             report.kernel_release,
+            "6.1.21.2-microsoft-standard-WSL2",
         )
         self.assertTrue(report.windows_interop_available)
         self.assertEqual(PreflightStatus.PASSED, host_check.status)
         self.assertEqual(PreflightStatus.PASSED, filesystem_check.status)
-        self.assertEqual("wsl2", host_check.evidence["environment"])
+        self.assertEqual(host_check.evidence["environment"], "wsl2")
         self.assertIn('"environment": "wsl2"', cli_output)
         self.assertNotIn(interop_value, cli_output)
 
@@ -120,7 +120,7 @@ class TestHostPlatformPaths(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(PreflightStatus.FAILED, filesystem_check.status)
-        self.assertEqual("blocked", filesystem_check.evidence["decision"])
+        self.assertEqual(filesystem_check.evidence["decision"], "blocked")
         self.assertNotIn(project_path.as_posix(), str(filesystem_check.to_dict()))
 
 

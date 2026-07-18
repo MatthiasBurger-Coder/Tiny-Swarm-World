@@ -180,7 +180,7 @@ class TestHostNetworkRepair(unittest.TestCase):
         result = repair._apply_linux_forwarding("incusbr0", "swarm-manager")
 
         self.assertFalse(result.success)
-        self.assertEqual("Failed to install forwarding persistence files.", result.message)
+        self.assertEqual(result.message, "Failed to install forwarding persistence files.")
 
     def test_windows_scripts_read_ports_from_registry(self):
         root = Path(__file__).resolve().parents[4]

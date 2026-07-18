@@ -15,4 +15,4 @@ class TestInfraResponsibilityBoundaries(unittest.TestCase):
             if (INFRA_ROOT / boundary).exists()
         ]
 
-        self.assertEqual([], reintroduced_boundaries)
+        self.assertEqual(reintroduced_boundaries, [])

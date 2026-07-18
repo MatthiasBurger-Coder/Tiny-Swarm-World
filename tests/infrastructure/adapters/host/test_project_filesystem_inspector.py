@@ -130,7 +130,7 @@ class TestProjectFilesystemInspector(unittest.TestCase):
         )
 
         self.assertEqual(ProjectFilesystemKind.NATIVE_LINUX, result.kind)
-        self.assertEqual(0, calls)
+        self.assertEqual(calls, 0)
 
 
 def _mountinfo(

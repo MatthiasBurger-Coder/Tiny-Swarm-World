@@ -95,12 +95,12 @@ class TestPlatformWorkflowTaxonomy(unittest.TestCase):
             ),
         )
 
-        self.assertEqual("no_op", no_op.to_dict()["outcome"]["mutation"]["result"])
-        self.assertEqual("verified", no_op.to_dict()["outcome"]["verification"])
-        self.assertEqual("converged", converged.to_dict()["outcome"]["mutation"]["result"])
-        self.assertEqual("verified", converged.to_dict()["outcome"]["verification"])
-        self.assertEqual("blocked", blocked.to_dict()["outcome"]["mutation"]["result"])
-        self.assertEqual("blocked", blocked.to_dict()["outcome"]["verification"])
+        self.assertEqual(no_op.to_dict()["outcome"]["mutation"]["result"], "no_op")
+        self.assertEqual(no_op.to_dict()["outcome"]["verification"], "verified")
+        self.assertEqual(converged.to_dict()["outcome"]["mutation"]["result"], "converged")
+        self.assertEqual(converged.to_dict()["outcome"]["verification"], "verified")
+        self.assertEqual(blocked.to_dict()["outcome"]["mutation"]["result"], "blocked")
+        self.assertEqual(blocked.to_dict()["outcome"]["verification"], "blocked")
 
 
 class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
@@ -117,8 +117,8 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(["init"], init_step.calls)
         self.assertEqual(["reconcile"], reconcile_step.calls)
-        self.assertEqual(["expose"], expose_step.calls)
-        self.assertEqual(["repair"], repair_step.calls)
+        self.assertEqual(expose_step.calls, ["expose"])
+        self.assertEqual(repair_step.calls, ["repair"])
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, init_result.status)
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, reconcile_result.status)
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, expose_result.status)
@@ -129,8 +129,8 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(PlatformRepairLxcProxyDriftWorkflow.semantics.destructive)
         self.assertEqual(1, len(init_step.verifications))
         self.assertEqual(1, len(reconcile_step.verifications))
-        self.assertEqual(1, len(expose_step.verifications))
-        self.assertEqual(1, len(repair_step.verifications))
+        self.assertEqual(len(expose_step.verifications), 1)
+        self.assertEqual(len(repair_step.verifications), 1)
         self.assertEqual(
             ("init",),
             tuple(item.target_id for item in init_result.verification_results),
@@ -140,12 +140,12 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             tuple(item.target_id for item in reconcile_result.verification_results),
         )
         self.assertEqual(
-            ("expose",),
             tuple(item.target_id for item in expose_result.verification_results),
+            ("expose",),
         )
         self.assertEqual(
-            ("repair",),
             tuple(item.target_id for item in repair_result.verification_results),
+            ("repair",),
         )
 
     async def test_init_reports_method_trace_for_completion(self):
@@ -158,13 +158,13 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertEqual(
+            trace.summary(),
             [
                 ("PlatformInitWorkflow", "run", "entered", "pending", None),
                 ("PlatformInitWorkflow", "run", "returned", "completed", None),
             ],
-            trace.summary(),
         )
-        self.assertEqual({"trace-platform"}, {event.correlation_id for event in trace.events})
+        self.assertEqual({event.correlation_id for event in trace.events}, {"trace-platform"})
 
     async def test_init_reports_safe_failure_trace_when_apply_exception_is_converted(self):
         trace = _RecordingMethodTrace()
@@ -176,6 +176,7 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(PlatformWorkflowStatus.FAILED_TO_APPLY, result.status)
         self.assertEqual(
+            trace.summary(),
             [
                 ("PlatformInitWorkflow", "run", "entered", "pending", None),
                 (
@@ -186,7 +187,6 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
                     None,
                 ),
             ],
-            trace.summary(),
         )
 
     async def test_verify_is_non_mutating_and_runs_configured_safe_steps(self):
@@ -254,10 +254,10 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             verify_retry_delay_seconds=0,
         ).run()
 
-        self.assertEqual(["preflight", "preflight"], verify_step.calls)
+        self.assertEqual(verify_step.calls, ["preflight", "preflight"])
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
-        self.assertEqual("2", result.verification_results[0].evidence["verify_attempt"])
+        self.assertEqual(result.verification_results[0].evidence["verify_attempt"], "2")
 
     async def test_init_pre_apply_guard_blocks_before_steps(self):
         progress = _RecordingProgress()
@@ -283,20 +283,20 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             progress=progress,
         ).run()
 
-        self.assertEqual(["preflight"], guard.calls)
-        self.assertEqual([], step.calls)
+        self.assertEqual(guard.calls, ["preflight"])
+        self.assertEqual(step.calls, [])
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
-        self.assertEqual("platform:init:preflight", result.verification_results[0].target_id)
+        self.assertEqual(result.verification_results[0].target_id, "platform:init:preflight")
         self.assertEqual(VerificationStatus.BLOCKED, result.verification_results[0].status)
-        self.assertEqual("1", result.verification_results[0].evidence["runtime_failure_count"])
+        self.assertEqual(result.verification_results[0].evidence["runtime_failure_count"], "1")
         self.assertEqual(
+            progress.summary(),
             [
                 ("pre_apply", "pre-apply guard", "started", "pending"),
                 ("pre_apply", "pre-apply guard", "blocked", "blocked"),
                 ("platform", "workflow stopped", "blocked", "blocked"),
             ],
-            progress.summary(),
         )
 
     async def test_init_provider_guard_blocks_before_any_platform_step(self):
@@ -326,21 +326,21 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             progress=progress,
         ).run()
 
-        self.assertEqual(["provider"], guard.calls)
-        self.assertEqual([], step.calls)
+        self.assertEqual(guard.calls, ["provider"])
+        self.assertEqual(step.calls, [])
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
-        self.assertEqual("platform:node-provider:lxc_native", result.verification_results[0].target_id)
-        self.assertEqual("provider_selection_blocked", result.verification_results[0].evidence["reason"])
-        self.assertEqual("lxc_native", result.verification_results[0].evidence["requested_provider"])
+        self.assertEqual(result.verification_results[0].target_id, "platform:node-provider:lxc_native")
+        self.assertEqual(result.verification_results[0].evidence["reason"], "provider_selection_blocked")
+        self.assertEqual(result.verification_results[0].evidence["requested_provider"], "lxc_native")
         self.assertNotIn("multipass_legacy", repr(result.to_dict()))
         self.assertEqual(
+            progress.summary(),
             [
                 ("pre_apply", "pre-apply guard", "started", "pending"),
                 ("pre_apply", "pre-apply guard", "blocked", "blocked"),
                 ("platform", "workflow stopped", "blocked", "blocked"),
             ],
-            progress.summary(),
         )
 
     async def test_init_pre_apply_guard_passes_before_steps(self):
@@ -354,18 +354,19 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             progress=progress,
         ).run()
 
-        self.assertEqual(["preflight"], guard.calls)
-        self.assertEqual(["init"], step.calls)
+        self.assertEqual(guard.calls, ["preflight"])
+        self.assertEqual(step.calls, ["init"])
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertEqual(
-            ("platform:init:preflight", "init"),
             tuple(item.target_id for item in result.verification_results),
+            ("platform:init:preflight", "init"),
         )
         self.assertEqual(
-            (VerificationStatus.VERIFIED, VerificationStatus.VERIFIED),
             tuple(item.status for item in result.verification_results),
+            (VerificationStatus.VERIFIED, VerificationStatus.VERIFIED),
         )
         self.assertEqual(
+            progress.summary(),
             [
                 ("pre_apply", "pre-apply guard", "started", "pending"),
                 ("pre_apply", "pre-apply guard", "verified", "verified"),
@@ -375,7 +376,6 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
                 ("verify", "verify", "verified", "verified"),
                 ("platform", "workflow completed", "completed", "completed"),
             ],
-            progress.summary(),
         )
 
     async def test_reset_refuses_missing_or_wrong_confirmation_before_running_steps(self):
@@ -423,11 +423,11 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(["reset"], destructive_step.calls)
-        self.assertEqual(["reset"], destructive_step.verifications)
+        self.assertEqual(destructive_step.verifications, ["reset"])
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertEqual(
-            ("reset",),
             tuple(item.target_id for item in result.verification_results),
+            ("reset",),
         )
 
     async def test_destroy_runs_steps_only_after_exact_confirmation(self):
@@ -438,11 +438,11 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(["destroy"], destructive_step.calls)
-        self.assertEqual(["destroy"], destructive_step.verifications)
+        self.assertEqual(destructive_step.verifications, ["destroy"])
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertEqual(
-            ("destroy",),
             tuple(item.target_id for item in result.verification_results),
+            ("destroy",),
         )
 
     async def test_destructive_workflows_run_all_steps_and_verifications_after_exact_confirmation(self):
@@ -477,8 +477,8 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
                     tuple(item.target_id for item in result.verification_results),
                 )
                 self.assertEqual(
-                    (VerificationStatus.VERIFIED, VerificationStatus.VERIFIED),
                     tuple(item.status for item in result.verification_results),
+                    (VerificationStatus.VERIFIED, VerificationStatus.VERIFIED),
                 )
 
     async def test_confirmed_reset_without_steps_is_blocked_until_policy_exists(self):
@@ -565,11 +565,11 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
 
                 self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
                 self.assertFalse(result.executed)
-                self.assertEqual([], blocked_step.calls)
-                self.assertEqual([], blocked_step.verifications)
-                self.assertEqual([], later_step.calls)
+                self.assertEqual(blocked_step.calls, [])
+                self.assertEqual(blocked_step.verifications, [])
+                self.assertEqual(later_step.calls, [])
                 self.assertEqual(VerificationStatus.BLOCKED, result.verification_results[0].status)
-                self.assertEqual("pre_apply", result.verification_results[0].evidence["phase"])
+                self.assertEqual(result.verification_results[0].evidence["phase"], "pre_apply")
 
     async def test_pre_apply_verified_step_blocks_after_apply_without_observed_verification(self):
         step = _PreApplyAction(
@@ -611,18 +611,18 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
 
         result = await PlatformInitWorkflow([step], progress=progress).run()
 
-        self.assertEqual(["platform:node:swarm-manager"], step.calls)
+        self.assertEqual(step.calls, ["platform:node:swarm-manager"])
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
-        self.assertEqual("platform:node:swarm-manager", result.verification_results[0].target_id)
+        self.assertEqual(result.verification_results[0].target_id, "platform:node:swarm-manager")
         self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
         self.assertEqual(
+            progress.summary(),
             [
                 ("apply", "apply", "started", "pending"),
                 ("apply", "apply", "completed", "completed"),
                 ("verify", "direct verification", "verified", "verified"),
                 ("platform", "workflow completed", "completed", "completed"),
             ],
-            progress.summary(),
         )
 
     async def test_blocked_verification_result_step_stops_before_later_steps(self):
@@ -647,18 +647,18 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
             progress=progress,
         ).run()
 
-        self.assertEqual(["platform:node:swarm-manager"], blocked_step.calls)
-        self.assertEqual([], later_step.calls)
+        self.assertEqual(blocked_step.calls, ["platform:node:swarm-manager"])
+        self.assertEqual(later_step.calls, [])
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
-        self.assertEqual("platform:node:swarm-manager", result.verification_results[0].target_id)
+        self.assertEqual(result.verification_results[0].target_id, "platform:node:swarm-manager")
         self.assertEqual(
+            progress.summary(),
             [
                 ("apply", "apply", "started", "pending"),
                 ("apply", "apply", "completed", "completed"),
                 ("pre_apply", "direct verification", "blocked", "blocked"),
                 ("platform", "workflow stopped", "blocked", "blocked"),
             ],
-            progress.summary(),
         )
 
     async def test_pre_apply_verified_step_completes_with_observed_verification(self):
@@ -698,12 +698,12 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([], later_step.calls)
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
         self.assertEqual(
+            progress.summary(),
             [
                 ("apply", "apply", "started", "pending"),
                 ("apply", "apply result", "failed_to_apply", "failed_to_apply"),
                 ("platform", "workflow stopped", "failed_to_apply", "failed_to_apply"),
             ],
-            progress.summary(),
         )
 
     async def test_failed_apply_result_is_not_treated_as_success(self):
@@ -716,12 +716,12 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
         self.assertEqual([], failing_step.verifications)
         self.assertEqual(
+            progress.summary(),
             [
                 ("apply", "apply", "started", "pending"),
                 ("apply", "apply result", "failed_to_apply", "failed_to_apply"),
                 ("platform", "workflow stopped", "failed_to_apply", "failed_to_apply"),
             ],
-            progress.summary(),
         )
 
     async def test_failed_verify_stops_before_later_apply_steps(self):
@@ -740,6 +740,7 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([], later_step.calls)
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.verification_results[0].status)
         self.assertEqual(
+            progress.summary(),
             [
                 ("apply", "apply", "started", "pending"),
                 ("apply", "apply", "completed", "completed"),
@@ -747,7 +748,6 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
                 ("verify", "verify", "failed_to_verify", "failed_to_verify"),
                 ("platform", "workflow stopped", "failed_to_verify", "failed_to_verify"),
             ],
-            progress.summary(),
         )
 
     async def test_reset_failed_verify_stops_before_later_destructive_step(self):
@@ -762,11 +762,12 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(PlatformWorkflowStatus.FAILED_TO_VERIFY, result.status)
         self.assertTrue(result.executed)
-        self.assertEqual(["reset-verify-fails"], failing_verify.calls)
-        self.assertEqual(["reset-verify-fails"], failing_verify.verifications)
-        self.assertEqual([], later_step.calls)
+        self.assertEqual(failing_verify.calls, ["reset-verify-fails"])
+        self.assertEqual(failing_verify.verifications, ["reset-verify-fails"])
+        self.assertEqual(later_step.calls, [])
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.verification_results[0].status)
         self.assertEqual(
+            progress.summary(),
             [
                 ("apply", "apply", "started", "pending"),
                 ("apply", "apply", "completed", "completed"),
@@ -774,7 +775,6 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
                 ("verify", "verify", "failed_to_verify", "failed_to_verify"),
                 ("platform", "workflow stopped", "failed_to_verify", "failed_to_verify"),
             ],
-            progress.summary(),
         )
 
     async def test_destroy_missing_verify_evidence_blocks_before_later_destructive_step(self):
@@ -789,11 +789,11 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertTrue(result.executed)
-        self.assertEqual(["destroy-missing-evidence"], missing_evidence.calls)
-        self.assertEqual(["destroy-missing-evidence"], missing_evidence.verifications)
-        self.assertEqual([], later_step.calls)
+        self.assertEqual(missing_evidence.calls, ["destroy-missing-evidence"])
+        self.assertEqual(missing_evidence.verifications, ["destroy-missing-evidence"])
+        self.assertEqual(later_step.calls, [])
         self.assertEqual(VerificationStatus.BLOCKED, result.verification_results[0].status)
-        self.assertEqual("Verification evidence is missing.", result.verification_results[0].message)
+        self.assertEqual(result.verification_results[0].message, "Verification evidence is missing.")
 
     async def test_reset_blocked_direct_verification_after_apply_reports_executed(self):
         blocked_step = _VerificationResultAction(
@@ -815,7 +815,7 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertTrue(result.executed)
-        self.assertEqual(["platform:reset:managed-nodes"], blocked_step.calls)
+        self.assertEqual(blocked_step.calls, ["platform:reset:managed-nodes"])
 
     async def test_lxc_aggregate_direct_verification_progress_uses_safe_counts(self):
         progress = _RecordingProgress()
@@ -842,7 +842,7 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertGreater(len(progress.events), 2)
         _, _, direct_event, *_ = progress.events
-        self.assertEqual("direct verification", direct_event.step)
+        self.assertEqual(direct_event.step, "direct verification")
         self.assertIn("result_count=2", direct_event.safe_message)
         self.assertIn("verified_count=2", direct_event.safe_message)
         self.assertIn("blocked_count=0", direct_event.safe_message)
@@ -867,6 +867,7 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(["missing-evidence"], missing_evidence.verifications)
         self.assertEqual([], later_step.calls)
         self.assertEqual(
+            progress.summary(),
             [
                 ("apply", "apply", "started", "pending"),
                 ("apply", "apply", "completed", "completed"),
@@ -874,7 +875,6 @@ class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
                 ("verify", "verify", "blocked", "blocked"),
                 ("platform", "workflow stopped", "blocked", "blocked"),
             ],
-            progress.summary(),
         )
 
     async def test_verified_steps_append_evidence_when_repository_is_configured(self):

@@ -53,10 +53,10 @@ class TestEnsureInfisicalBootstrap(unittest.TestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(
-            "created",
             result.evidence["bootstrap_state"],
+            "created",
         )
-        self.assertEqual("true", result.evidence["admin_identity_available"])
+        self.assertEqual(result.evidence["admin_identity_available"], "true")
         self.assertNotIn("infisical-password", str(result.evidence))
         self.assertNotIn("token", str(client.calls))
 
@@ -73,7 +73,7 @@ class TestEnsureInfisicalBootstrap(unittest.TestCase):
         result = service.verify()
 
         self.assertEqual(VerificationStatus.BLOCKED, result.status)
-        self.assertEqual("not_run", result.evidence["bootstrap_state"])
+        self.assertEqual(result.evidence["bootstrap_state"], "not_run")
 
     def test_run_propagates_redacted_bootstrap_unavailable(self):
         service = EnsureInfisicalBootstrap(
@@ -86,7 +86,7 @@ class TestEnsureInfisicalBootstrap(unittest.TestCase):
         with self.assertRaises(_BootstrapUnavailable) as raised:
             service.run()
 
-        self.assertEqual(502, raised.exception.status_code)
+        self.assertEqual(raised.exception.status_code, 502)
         self.assertNotIn("infisical-password", str(raised.exception))
 
 

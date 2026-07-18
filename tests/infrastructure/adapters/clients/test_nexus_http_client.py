@@ -31,12 +31,12 @@ class TestNexusHttpClient(unittest.TestCase):
         self.assertTrue(client.is_available())
         self.assertTrue(client.can_authenticate("admin", OPERATOR_CREDENTIAL))
 
-        self.assertEqual("https://nexus.local/service/rest/v1/status", session.get_calls[0]["url"])
+        self.assertEqual(session.get_calls[0]["url"], "https://nexus.local/service/rest/v1/status")
         self.assertEqual(
-            "https://nexus.local/service/rest/v1/security/users",
             session.get_calls[1]["url"],
+            "https://nexus.local/service/rest/v1/security/users",
         )
-        self.assertEqual(("admin", OPERATOR_CREDENTIAL), session.get_calls[1]["auth"])
+        self.assertEqual(session.get_calls[1]["auth"], ("admin", OPERATOR_CREDENTIAL))
 
     def test_status_and_authentication_handle_transport_failures(self):
         session = _FakeSession(
@@ -110,8 +110,8 @@ class TestNexusHttpClient(unittest.TestCase):
         self.assertTrue(client.repository_exists("admin", OPERATOR_CREDENTIAL, "docker-hosted"))
 
         self.assertEqual(
-            "https://nexus.local/service/rest/v1/repositories",
             session.get_calls[0]["url"],
+            "https://nexus.local/service/rest/v1/repositories",
         )
 
     def test_create_docker_hosted_repository_uses_repository_contract_payload(self):
@@ -122,13 +122,13 @@ class TestNexusHttpClient(unittest.TestCase):
 
         request = session.post_calls[0]
         self.assertEqual(
-            "https://nexus.local/service/rest/v1/repositories/docker/hosted",
             request["url"],
+            "https://nexus.local/service/rest/v1/repositories/docker/hosted",
         )
         self.assertEqual("docker-hosted", request["json"]["name"])
         self.assertEqual(5000, request["json"]["docker"]["httpPort"])
         self.assertTrue(request["json"]["docker"]["forceBasicAuth"])
-        self.assertEqual("ALLOW", request["json"]["storage"]["writePolicy"])
+        self.assertEqual(request["json"]["storage"]["writePolicy"], "ALLOW")
 
     def test_update_docker_hosted_repository_uses_repository_contract_payload(self):
         session = _FakeSession(put_responses=[_FakeResponse(204, {})])
@@ -138,12 +138,12 @@ class TestNexusHttpClient(unittest.TestCase):
 
         request = session.put_calls[0]
         self.assertEqual(
-            "https://nexus.local/service/rest/v1/repositories/docker/hosted/docker-hosted",
             request["url"],
+            "https://nexus.local/service/rest/v1/repositories/docker/hosted/docker-hosted",
         )
-        self.assertEqual("docker-hosted", request["json"]["name"])
-        self.assertEqual(5000, request["json"]["docker"]["httpPort"])
-        self.assertEqual("ALLOW", request["json"]["storage"]["writePolicy"])
+        self.assertEqual(request["json"]["name"], "docker-hosted")
+        self.assertEqual(request["json"]["docker"]["httpPort"], 5000)
+        self.assertEqual(request["json"]["storage"]["writePolicy"], "ALLOW")
 
     def test_create_docker_proxy_repository_uses_repository_contract_payload(self):
         session = _FakeSession(post_responses=[_FakeResponse(201, {})])
@@ -159,17 +159,17 @@ class TestNexusHttpClient(unittest.TestCase):
 
         request = session.post_calls[0]
         self.assertEqual(
-            "https://nexus.local/service/rest/v1/repositories/docker/proxy",
             request["url"],
+            "https://nexus.local/service/rest/v1/repositories/docker/proxy",
         )
-        self.assertEqual("docker-hub-proxy", request["json"]["name"])
-        self.assertEqual(5001, request["json"]["docker"]["httpPort"])
+        self.assertEqual(request["json"]["name"], "docker-hub-proxy")
+        self.assertEqual(request["json"]["docker"]["httpPort"], 5001)
         self.assertFalse(request["json"]["docker"]["forceBasicAuth"])
         self.assertEqual(
-            "https://registry-1.docker.io",
             request["json"]["proxy"]["remoteUrl"],
+            "https://registry-1.docker.io",
         )
-        self.assertEqual("HUB", request["json"]["dockerProxy"]["indexType"])
+        self.assertEqual(request["json"]["dockerProxy"]["indexType"], "HUB")
 
     def test_create_maven_proxy_repository_uses_repository_contract_payload(self):
         session = _FakeSession(post_responses=[_FakeResponse(201, {})])
@@ -184,8 +184,8 @@ class TestNexusHttpClient(unittest.TestCase):
 
         request = session.post_calls[0]
         self.assertEqual(
-            "https://nexus.local/service/rest/v1/repositories/maven/proxy",
             request["url"],
+            "https://nexus.local/service/rest/v1/repositories/maven/proxy",
         )
         self.assertEqual("maven-central", request["json"]["name"])
         self.assertEqual(

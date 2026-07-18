@@ -9,9 +9,9 @@ class TestContainerNetworkPlan(unittest.TestCase):
         plan = ContainerNetworkPlan.provider_managed_control()
 
         self.assertTrue(plan.safe_for_static_config)
-        self.assertEqual("control", plan.name)
+        self.assertEqual(plan.name, "control")
         self.assertEqual(ContainerNetworkPurpose.CONTROL, plan.purpose)
-        self.assertEqual((), plan.host_addresses)
+        self.assertEqual(plan.host_addresses, ())
         self.assertIsNone(plan.host_bridge)
         self.assertFalse(plan.firewall_mutation)
 

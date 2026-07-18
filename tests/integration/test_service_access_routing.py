@@ -33,7 +33,7 @@ class TestServiceAccessRouting(unittest.TestCase):
     def test_effective_route_evidence_is_redacted_and_lists_fallbacks(self) -> None:
         evidence = route_evidence()
 
-        self.assertEqual([80, 443], evidence["gateway_public_ingress_ports"])
+        self.assertEqual(evidence["gateway_public_ingress_ports"], [80, 443])
         self.assertIn(
             {
                 "classification": "diagnostic",
@@ -52,7 +52,7 @@ class TestServiceAccessRouting(unittest.TestCase):
             },
             evidence["diagnostic_fallback_ports"],
         )
-        self.assertEqual("traefik_host_route", evidence["service_access_preferred_url_source"])
+        self.assertEqual(evidence["service_access_preferred_url_source"], "traefik_host_route")
         assert_evidence_safe(self, evidence)
 
 

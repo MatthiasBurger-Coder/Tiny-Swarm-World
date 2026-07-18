@@ -25,9 +25,9 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(["jenkins"], compose_repository.requested_stacks)
         request = _single_applied_request(deployment_gateway)
-        self.assertEqual("jenkins", request.target_stack)
+        self.assertEqual(request.target_stack, "jenkins")
         self.assertEqual(stack_definition, request.stack_definition)
-        self.assertEqual({}, dict(request.stack_environment))
+        self.assertEqual(dict(request.stack_environment), {})
 
     async def test_updates_existing_default_service_stack(self):
         stack_definition = StackDefinition(name="pulsar", compose_content="services: {}")
@@ -42,7 +42,7 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         await service.run()
 
         request = _single_applied_request(deployment_gateway)
-        self.assertEqual("pulsar", request.target_stack)
+        self.assertEqual(request.target_stack, "pulsar")
 
     async def test_passes_stack_environment_when_creating_service_access_stack(self):
         stack_definition = StackDefinition(name="service-access", compose_content="services: {}")
@@ -58,8 +58,8 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         await service.run()
 
         self.assertEqual(
-            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
             dict(_single_applied_request(deployment_gateway).stack_environment),
+            {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
         )
 
     async def test_treats_create_timeout_as_success_when_stack_registration_is_visible(self):
@@ -81,10 +81,10 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
 
         request = _single_applied_request(deployment_gateway)
         self.assertEqual(
-            {"TSW_SWAGGER_PUBLIC_URL": "https://swagger.example.test"},
             dict(request.stack_environment),
+            {"TSW_SWAGGER_PUBLIC_URL": "https://swagger.example.test"},
         )
-        self.assertEqual(["swagger"], deployment_gateway.registration_checks)
+        self.assertEqual(deployment_gateway.registration_checks, ["swagger"])
 
     async def test_treats_update_timeout_as_success_when_stack_registration_is_visible(self):
         stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
@@ -102,7 +102,7 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
 
         await service.run()
 
-        self.assertEqual(["swagger"], deployment_gateway.registration_checks)
+        self.assertEqual(deployment_gateway.registration_checks, ["swagger"])
 
     async def test_keeps_create_timeout_when_stack_registration_is_missing(self):
         stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
@@ -134,9 +134,9 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("deployment:sonarqube-stack", verification.target_id)
-        self.assertEqual("deployment_gateway_stack", verification.evidence["registration_scope"])
-        self.assertEqual("false", verification.evidence["readiness_observed"])
+        self.assertEqual(verification.target_id, "deployment:sonarqube-stack")
+        self.assertEqual(verification.evidence["registration_scope"], "deployment_gateway_stack")
+        self.assertEqual(verification.evidence["readiness_observed"], "false")
         self.assertEqual("true", verification.evidence["stack_registered"])
         self.assertIn("service readiness remains", verification.message)
 
@@ -157,8 +157,8 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         verification = await service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual("true", verification.evidence["stack_registered"])
-        self.assertEqual("2", verification.evidence["verify_attempt"])
+        self.assertEqual(verification.evidence["stack_registered"], "true")
+        self.assertEqual(verification.evidence["verify_attempt"], "2")
 
     async def test_verify_reports_missing_stack_without_running_compose(self):
         stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
@@ -175,7 +175,7 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertEqual([], compose_repository.requested_stacks)
         self.assertEqual("false", verification.evidence["stack_registered"])
-        self.assertEqual("deployment_apply_failed", verification.evidence["classification"])
+        self.assertEqual(verification.evidence["classification"], "deployment_apply_failed")
 
     async def test_run_rejects_compose_stack_name_mismatch(self):
         stack_definition = StackDefinition(name="wrong-stack", compose_content="services: {}")
@@ -190,8 +190,8 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             await service.run()
 
-        self.assertEqual(["service-access"], compose_repository.requested_stacks)
-        self.assertEqual([], deployment_gateway.applied_requests)
+        self.assertEqual(compose_repository.requested_stacks, ["service-access"])
+        self.assertEqual(deployment_gateway.applied_requests, [])
 
     async def test_verify_sanitizes_portainer_client_failures(self):
         stack_definition = StackDefinition(name="nexus", compose_content="services: {}")
@@ -209,8 +209,8 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertIn("RuntimeError", verification.message)
-        self.assertEqual("deployment_apply_failed", verification.evidence["classification"])
-        self.assertEqual("RuntimeError", verification.evidence["exception_type"])
+        self.assertEqual(verification.evidence["classification"], "deployment_apply_failed")
+        self.assertEqual(verification.evidence["exception_type"], "RuntimeError")
         self.assertNotIn("secret", verification.message)
         self.assertNotIn("secret", str(verification.to_dict()))
 

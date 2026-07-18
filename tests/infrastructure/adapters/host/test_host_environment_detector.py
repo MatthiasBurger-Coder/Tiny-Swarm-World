@@ -20,8 +20,8 @@ class TestHostEnvironmentDetector(unittest.TestCase):
             report = _detector(root).detect()
 
         self.assertEqual(HostEnvironmentKind.NATIVE_LINUX, report.environment)
-        self.assertEqual("Ubuntu 24.04 LTS", report.distribution)
-        self.assertEqual("6.8.0-generic", report.kernel_release)
+        self.assertEqual(report.distribution, "Ubuntu 24.04 LTS")
+        self.assertEqual(report.kernel_release, "6.8.0-generic")
         self.assertFalse(report.windows_interop_available)
 
     def test_reads_wsl2_distribution_and_interop_environment_without_exposing_path(self):
@@ -43,7 +43,7 @@ class TestHostEnvironmentDetector(unittest.TestCase):
             ).detect()
 
         self.assertEqual(HostEnvironmentKind.WSL2, report.environment)
-        self.assertEqual("Ubuntu-24.04", report.distribution)
+        self.assertEqual(report.distribution, "Ubuntu-24.04")
         self.assertTrue(report.windows_interop_available)
         self.assertNotIn(interop_value, str(report.to_dict()))
 
@@ -99,7 +99,7 @@ class TestHostEnvironmentDetector(unittest.TestCase):
             report = _detector(root, {"WSL_DISTRO_NAME": "Ubuntu"}).detect()
 
         self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
-        self.assertEqual("container_marker", report.evidence["sandbox_signal"])
+        self.assertEqual(report.evidence["sandbox_signal"], "container_marker")
 
     def test_container_cgroup_marker_takes_precedence(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -119,7 +119,7 @@ class TestHostEnvironmentDetector(unittest.TestCase):
             report = _detector(root, {"CI": "true"}).detect()
 
         self.assertEqual(HostEnvironmentKind.SANDBOX_UNVERIFIED, report.environment)
-        self.assertEqual("ci_marker", report.evidence["sandbox_signal"])
+        self.assertEqual(report.evidence["sandbox_signal"], "ci_marker")
 
     def test_values_are_single_line_and_bounded(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -129,8 +129,8 @@ class TestHostEnvironmentDetector(unittest.TestCase):
 
             report = _detector(root).detect()
 
-        self.assertEqual("6.8.0-generic", report.kernel_release)
-        self.assertEqual("Ubuntu 24.04", report.distribution)
+        self.assertEqual(report.kernel_release, "6.8.0-generic")
+        self.assertEqual(report.distribution, "Ubuntu 24.04")
         self.assertLessEqual(len(report.distribution), 160)
 
     def test_detection_executes_no_subprocess_and_writes_no_files(self):

@@ -56,14 +56,15 @@ class TestInstallScript(unittest.TestCase):
             timeout=10,
         )
 
-        self.assertEqual(0, completed.returncode, completed.stderr)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
 
     def test_install_runs_reset_before_setup_and_records_evidence(self):
         with _install_script_fixture() as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(
+                fixture.recorded_commands(),
                 [
                     (
                         "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
@@ -75,11 +76,10 @@ class TestInstallScript(unittest.TestCase):
                         "--live --service-profile service-access"
                     ),
                 ],
-                fixture.recorded_commands(),
             )
             evidence_dir = fixture.single_evidence_dir()
-            self.assertEqual("0", (evidence_dir / "reset-run.exit").read_text().strip())
-            self.assertEqual("0", (evidence_dir / "setup-run.exit").read_text().strip())
+            self.assertEqual((evidence_dir / "reset-run.exit").read_text().strip(), "0")
+            self.assertEqual((evidence_dir / "setup-run.exit").read_text().strip(), "0")
             self.assertTrue((evidence_dir / "reset-run.log").is_file())
             self.assertTrue((evidence_dir / "setup-run.log").is_file())
             context = (evidence_dir / "context.txt").read_text()
@@ -102,8 +102,9 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture(reset_exit=17) as fixture:
             result = fixture.run()
 
-            self.assertEqual(17, result.returncode)
+            self.assertEqual(result.returncode, 17)
             self.assertEqual(
+                fixture.recorded_commands(),
                 [
                     (
                         "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
@@ -111,10 +112,9 @@ class TestInstallScript(unittest.TestCase):
                         "--service-profile service-access"
                     ),
                 ],
-                fixture.recorded_commands(),
             )
             evidence_dir = fixture.single_evidence_dir()
-            self.assertEqual("17", (evidence_dir / "reset-run.exit").read_text().strip())
+            self.assertEqual((evidence_dir / "reset-run.exit").read_text().strip(), "17")
             self.assertFalse((evidence_dir / "setup-run.exit").exists())
             self.assertTrue((evidence_dir / "reset-run.log").is_file())
             self.assertFalse((evidence_dir / "setup-run.log").exists())
@@ -127,11 +127,11 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture(setup_exit=23) as fixture:
             result = fixture.run()
 
-            self.assertEqual(23, result.returncode)
-            self.assertEqual(2, len(fixture.recorded_commands()))
+            self.assertEqual(result.returncode, 23)
+            self.assertEqual(len(fixture.recorded_commands()), 2)
             evidence_dir = fixture.single_evidence_dir()
-            self.assertEqual("0", (evidence_dir / "reset-run.exit").read_text().strip())
-            self.assertEqual("23", (evidence_dir / "setup-run.exit").read_text().strip())
+            self.assertEqual((evidence_dir / "reset-run.exit").read_text().strip(), "0")
+            self.assertEqual((evidence_dir / "setup-run.exit").read_text().strip(), "23")
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("reset_exit=0", context)
             self.assertIn("setup_exit=23", context)
@@ -141,8 +141,9 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture(extra_args=("--service-profile", "default")) as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(
+                fixture.recorded_commands(),
                 [
                     (
                         "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
@@ -154,7 +155,6 @@ class TestInstallScript(unittest.TestCase):
                         "--live --service-profile default"
                     ),
                 ],
-                fixture.recorded_commands(),
             )
 
     def test_install_forwards_explicit_wsl_filesystem_override_to_live_commands(self):
@@ -163,8 +163,9 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(
+                fixture.recorded_commands(),
                 [
                     (
                         "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
@@ -178,15 +179,14 @@ class TestInstallScript(unittest.TestCase):
                         "--allow-wsl-windows-filesystem"
                     ),
                 ],
-                fixture.recorded_commands(),
             )
 
     def test_install_refuses_missing_reset_confirmation_before_script_execution(self):
         with _install_script_fixture(reset_confirmation="wrong") as fixture:
             result = fixture.run()
 
-            self.assertEqual(1, result.returncode)
-            self.assertEqual([], fixture.recorded_commands())
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(fixture.recorded_commands(), [])
             self.assertIn("confirmation did not match", result.stderr)
 
     def test_install_confirm_reset_flag_skips_interactive_reset_phrase(self):
@@ -196,8 +196,8 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
-            self.assertEqual(2, len(fixture.recorded_commands()))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(len(fixture.recorded_commands()), 2)
             self.assertIn(
                 "Fresh-install reset confirmed by explicit --confirm-reset flag.",
                 result.stdout,
@@ -213,8 +213,8 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture(secret_environment=secret_environment) as fixture:
             result = fixture.run()
 
-            self.assertEqual(1, result.returncode)
-            self.assertEqual([], fixture.recorded_commands())
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(fixture.recorded_commands(), [])
             self.assertIn("TSW_INFISICAL_ENCRYPTION_KEY", result.stderr)
 
     def test_install_generates_infisical_platform_secrets(self):
@@ -230,7 +230,7 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             secret_file = fixture.root / ".tiny-swarm-world" / "local" / "live-installation.env"
             secret_content = secret_file.read_text()
             self.assertIn("TSW_INFISICAL_LOGIN_EMAIL=", secret_content)
@@ -265,7 +265,7 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             secret_content = (
                 fixture.root / ".tiny-swarm-world" / "local" / "live-installation.env"
             ).read_text()
@@ -282,15 +282,15 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture(secret_environment=secret_environment) as fixture:
             result = fixture.run()
 
-            self.assertEqual(1, result.returncode)
-            self.assertEqual([], fixture.recorded_commands())
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(fixture.recorded_commands(), [])
             self.assertIn("TSW_SONARQUBE_ADMIN_PASSWORD must be", result.stderr)
 
     def test_install_writes_default_traefik_tls_secret_names(self):
         with _install_script_fixture() as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             secret_file = fixture.root / ".tiny-swarm-world" / "local" / "live-installation.env"
             secret_content = secret_file.read_text()
             self.assertIn("TSW_TRAEFIK_TLS_CERT_SECRET_NAME=tsw_traefik_tls_cert", secret_content)
@@ -300,8 +300,8 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture() as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
-            self.assertEqual(["", ""], fixture.recorded_live_confirmations())
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(fixture.recorded_live_confirmations(), ["", ""])
 
     def test_noninteractive_live_approval_flag_passes_explicit_cli_approval(self):
         with _install_script_fixture(
@@ -309,8 +309,9 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(
+                fixture.recorded_commands(),
                 [
                     (
                         "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
@@ -322,13 +323,12 @@ class TestInstallScript(unittest.TestCase):
                         "--live --approve-live --service-profile service-access"
                     ),
                 ],
-                fixture.recorded_commands(),
             )
             evidence_dir = fixture.single_evidence_dir()
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("live_execution_mode=non_interactive", context)
             self.assertIn("live_approval_source=explicit_automation_flag", context)
-            self.assertEqual(["", ""], fixture.recorded_live_confirmations())
+            self.assertEqual(fixture.recorded_live_confirmations(), ["", ""])
 
     def test_headless_install_runs_governed_commands_without_terminal_recorder(self):
         with _install_script_fixture(
@@ -336,8 +336,9 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(
+                fixture.recorded_commands(),
                 [
                     (
                         "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
@@ -349,14 +350,13 @@ class TestInstallScript(unittest.TestCase):
                         "--live --approve-live --service-profile service-access"
                     ),
                 ],
-                fixture.recorded_commands(),
             )
             evidence_dir = fixture.single_evidence_dir()
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("terminal_recording_mode=headless", context)
             self.assertIn("live_execution_mode=non_interactive", context)
-            self.assertEqual("0", (evidence_dir / "reset-run.exit").read_text().strip())
-            self.assertEqual("0", (evidence_dir / "setup-run.exit").read_text().strip())
+            self.assertEqual((evidence_dir / "reset-run.exit").read_text().strip(), "0")
+            self.assertEqual((evidence_dir / "setup-run.exit").read_text().strip(), "0")
             self.assertIn("fake headless command", (evidence_dir / "reset-run.log").read_text())
             self.assertIn("fake headless command", (evidence_dir / "setup-run.log").read_text())
             self.assertFalse(fixture.recorded_live_confirmations())
@@ -368,10 +368,10 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(17, result.returncode)
-            self.assertEqual(1, len(fixture.recorded_commands()))
+            self.assertEqual(result.returncode, 17)
+            self.assertEqual(len(fixture.recorded_commands()), 1)
             evidence_dir = fixture.single_evidence_dir()
-            self.assertEqual("17", (evidence_dir / "reset-run.exit").read_text().strip())
+            self.assertEqual((evidence_dir / "reset-run.exit").read_text().strip(), "17")
             self.assertFalse((evidence_dir / "setup-run.exit").exists())
             self.assertFalse(fixture.recorded_live_confirmations())
 
@@ -382,7 +382,7 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             evidence_dir = fixture.single_evidence_dir()
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("terminal_recording_mode=headless", context)
@@ -405,8 +405,9 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(
+                fixture.recorded_commands(),
                 [
                     (
                         "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
@@ -418,7 +419,6 @@ class TestInstallScript(unittest.TestCase):
                         "--live --approve-live --service-profile service-access"
                     ),
                 ],
-                fixture.recorded_commands(),
             )
             context = (fixture.single_evidence_dir() / "context.txt").read_text()
             self.assertIn("secrets_mode=fixed", context)
@@ -429,8 +429,8 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture() as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
-            self.assertEqual(["0", "0"], fixture.recorded_seed_flags())
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(fixture.recorded_seed_flags(), ["0", "0"])
 
     def test_native_linux_bootstraps_missing_python_dependencies_into_local_venv(self):
         with _install_script_fixture(
@@ -439,12 +439,13 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(
                 (fixture.root / ".tiny-swarm-world" / "install-venv" / "bin" / "python").is_file()
             )
             venv_python = (fixture.root / ".tiny-swarm-world" / "install-venv" / "bin" / "python").as_posix()
             self.assertEqual(
+                fixture.recorded_commands(),
                 [
                     (
                         f"PYTHONPATH=src {venv_python} -m tiny_swarm_world platform reset "
@@ -455,7 +456,6 @@ class TestInstallScript(unittest.TestCase):
                         "--live --service-profile service-access"
                     ),
                 ],
-                fixture.recorded_commands(),
             )
 
     def test_wsl_path_keeps_python3_when_dependency_bootstrap_is_skipped(self):
@@ -468,7 +468,7 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((fixture.root / ".tiny-swarm-world" / "install-venv").exists())
             self.assertIn("PYTHONPATH=src python3 -m tiny_swarm_world", fixture.recorded_commands()[0])
             evidence_dir = fixture.single_evidence_dir("wsl2")
@@ -481,7 +481,7 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture() as native_fixture:
             native_result = native_fixture.run()
 
-            self.assertEqual(0, native_result.returncode, native_result.stderr)
+            self.assertEqual(native_result.returncode, 0, native_result.stderr)
             native_evidence_dir = native_fixture.single_evidence_dir("native_linux")
             self.assertIn(
                 ".tiny-swarm-world/evidence/installation-tests/native_linux/",
@@ -497,7 +497,7 @@ class TestInstallScript(unittest.TestCase):
         ) as wsl_fixture:
             wsl_result = wsl_fixture.run()
 
-            self.assertEqual(0, wsl_result.returncode, wsl_result.stderr)
+            self.assertEqual(wsl_result.returncode, 0, wsl_result.stderr)
             wsl_evidence_dir = wsl_fixture.single_evidence_dir("wsl2")
             self.assertIn(
                 ".tiny-swarm-world/evidence/installation-tests/wsl2/",
@@ -513,8 +513,8 @@ class TestInstallScript(unittest.TestCase):
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(1, result.returncode)
-            self.assertEqual([], fixture.recorded_commands())
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(fixture.recorded_commands(), [])
             evidence_dir = fixture.single_evidence_dir("wsl2")
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("windows_wsl_bridge_passed=no", context)

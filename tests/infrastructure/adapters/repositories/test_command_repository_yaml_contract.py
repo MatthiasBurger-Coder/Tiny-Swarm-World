@@ -103,7 +103,7 @@ class TestCommandRepositoryYamlContract(unittest.TestCase):
     def test_product_command_catalog_is_intentionally_retired(self):
         product_command_files = sorted(config_root().rglob("command_*.yaml"))
 
-        self.assertEqual([], product_command_files)
+        self.assertEqual(product_command_files, [])
 
     def test_product_runtime_change_commands_are_not_read_classified(self):
         for config_file in sorted(config_root().rglob("command_*.yaml")):
@@ -127,7 +127,7 @@ class TestCommandRepositoryYamlContract(unittest.TestCase):
                         self.assertTrue(command.evidence_policy.redact_output)
                         self.assertFalse(command.evidence_policy.store_raw_output)
 
-        self.assertEqual([], credential_output_commands)
+        self.assertEqual(credential_output_commands, [])
 
 
 def _repository_for(yaml_content: str) -> PortCommandRepositoryYaml:

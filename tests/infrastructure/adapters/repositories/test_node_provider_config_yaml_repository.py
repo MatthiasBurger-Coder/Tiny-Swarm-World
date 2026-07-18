@@ -24,21 +24,21 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
     def test_loads_committed_provider_config_with_lxc_native_default(self):
         config = NodeProviderConfigYamlRepository().load()
 
-        self.assertEqual("1", config.schema_version)
+        self.assertEqual(config.schema_version, "1")
         self.assertEqual(NodeProviderKind.LXC_NATIVE, config.default_provider)
         self.assertEqual(ManagedLxcBackend.INCUS, config.preferred_backend)
         self.assertEqual(
-            (ManagedLxcBackend.INCUS,),
             config.backend_candidates,
+            (ManagedLxcBackend.INCUS,),
         )
         self.assertEqual(
-            ("swarm-manager", "swarm-worker-1", "swarm-worker-2"),
             tuple(node.spec.name for node in config.nodes),
+            ("swarm-manager", "swarm-worker-1", "swarm-worker-2"),
         )
         self.assertEqual(NodeRole.MANAGER, config.nodes[0].spec.role)
         self.assertEqual(
-            ("docker-swarm", "docker-swarm-manager"),
             config.nodes[0].expected_profiles,
+            ("docker-swarm", "docker-swarm-manager"),
         )
 
     def test_committed_provider_config_declares_resource_resolution(self):
@@ -48,18 +48,18 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
         if config.provider_resource_resolution is None:
             raise AssertionError("provider resource resolution must be configured")
         self.assertEqual(
-            {"control": "incusbr0"},
             dict(
                 config.provider_resource_resolution.backends[
                     ManagedLxcBackend.INCUS
                 ].network_mappings
             ),
+            {"control": "incusbr0"},
         )
         self.assertEqual(
-            "default",
             config.provider_resource_resolution.backends[
                 ManagedLxcBackend.INCUS
             ].storage_pool,
+            "default",
         )
         self.assertNotIn(
             ManagedLxcBackend.LXD,
@@ -81,16 +81,16 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
         manager_config = next(node for node in config.nodes if node.spec.name == "swarm-manager")
         manager_inventory = next(vm for vm in desired_inventory.vms if vm.name == "swarm-manager")
 
-        self.assertEqual("10GiB", manager_config.resources["memory"])
-        self.assertEqual("10G", manager_inventory.memory)
+        self.assertEqual(manager_config.resources["memory"], "10GiB")
+        self.assertEqual(manager_inventory.memory, "10G")
 
     def test_committed_config_declares_incus_profiles(self):
         config = NodeProviderConfigYamlRepository().load()
         profile = config.profiles[0]
         manager_profile = config.profiles[1]
 
-        self.assertEqual("docker-swarm", profile.name)
-        self.assertEqual((ManagedLxcBackend.INCUS,), profile.backend_support)
+        self.assertEqual(profile.name, "docker-swarm")
+        self.assertEqual(profile.backend_support, (ManagedLxcBackend.INCUS,))
         self.assertFalse(profile.privileged_default)
         self.assertTrue(profile.nesting_required)
         self.assertTrue(profile.syscall_interception_required)
@@ -98,12 +98,12 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
         self.assertTrue(profile.blocks_mutation_when_missing)
         self.assertIn("docker_in_container_requires_nesting", profile.risk_labels)
         self.assertIn("privileged_profile_forbidden_default", profile.risk_labels)
-        self.assertEqual((), profile.host_mounts)
+        self.assertEqual(profile.host_mounts, ())
         self.assertFalse(profile.host_network)
-        self.assertEqual("docker-swarm-manager", manager_profile.name)
+        self.assertEqual(manager_profile.name, "docker-swarm-manager")
         self.assertIn("worker_profile_forbidden", manager_profile.risk_labels)
         self.assertFalse(manager_profile.privileged_default)
-        self.assertEqual((), manager_profile.host_mounts)
+        self.assertEqual(manager_profile.host_mounts, ())
         self.assertFalse(manager_profile.host_network)
 
     def test_committed_config_keeps_manager_proxy_profile_off_workers(self):
@@ -115,8 +115,8 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
             if node.spec.role is NodeRole.WORKER
         }
 
-        self.assertEqual(("docker-swarm",), worker_profiles["swarm-worker-1"])
-        self.assertEqual(("docker-swarm",), worker_profiles["swarm-worker-2"])
+        self.assertEqual(worker_profiles["swarm-worker-1"], ("docker-swarm",))
+        self.assertEqual(worker_profiles["swarm-worker-2"], ("docker-swarm",))
         for profiles in worker_profiles.values():
             self.assertNotIn("docker-swarm-manager", profiles)
 
