@@ -6,10 +6,12 @@
 - Authoring commit: `2af8ae7f98029c7d6efa916853cf2da85fe32167`.
 - Push target:
   `origin/feature/workflow-issue-218-fr02-filesystem-policy-20260712`.
-- Remote verification: `PASS`; the remote branch resolved to the authoring
-  commit after the guarded push.
-- Publication mode: guarded workflow-create branch publication only.
-- Pull request, merge, deletion, and cleanup: forbidden during workflow create.
-- Product implementation: not started.
-- Next action: push this publication metadata commit, verify the exact remote
-  head, then execute Slice 01 through S3/S3D.
+- FR-2 implementation commit: `f8eb29cd961590bea251c006e2a4a624aee1fab8`.
+- Pull request: [#221](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/pull/221).
+- Merge: `PASS`, squash merge `2ce2202929e1d10ccdd648cf20d027d941ed8007`.
+- GitHub Python Quality and SonarCloud: `PASS`.
+- Merged-main full quality: `PASS`, 1,495 tests and 28 expected skips.
+- Remote/local workflow branch and isolated worktree: removed after merge
+  verification; ignored issue evidence was preserved.
+- Product implementation: complete.
+- Next action: begin FR-3 through its separate workflow.
