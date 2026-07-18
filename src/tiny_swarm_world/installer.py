@@ -22,7 +22,21 @@ from tiny_swarm_world.domain.host_environment import (
     HostEnvironmentKind,
     HostEnvironmentReport,
 )
-from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector
+from tiny_swarm_world.domain.project_filesystem import (
+    ProjectFilesystemAssessment,
+    ProjectFilesystemDecision,
+    assess_project_filesystem,
+)
+from tiny_swarm_world.application.ports.repositories.port_project_filesystem_evidence_repository import (
+    ProjectFilesystemEvidenceError,
+)
+from tiny_swarm_world.infrastructure.adapters.host import (
+    HostEnvironmentDetector,
+    ProjectFilesystemInspector,
+)
+from tiny_swarm_world.infrastructure.adapters.repositories.project_filesystem_evidence_local_repository import (
+    ProjectFilesystemEvidenceLocalRepository,
+)
 
 RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
 DEFAULT_SERVICE_PROFILE = "service-access"
@@ -64,6 +78,7 @@ class InstallerOptions:
     confirm_reset: bool
     non_interactive_live_approval: bool
     headless: bool
+    allow_wsl_windows_filesystem: bool
 
 
 @dataclass(frozen=True)
@@ -176,6 +191,14 @@ def parse_args(argv: Sequence[str] | None = None) -> InstallerOptions:
         action="store_true",
         help="Disable terminal recorder/TUI presentation and capture command output directly.",
     )
+    parser.add_argument(
+        "--allow-wsl-windows-filesystem",
+        action="store_true",
+        help=(
+            "Allow a confirmed Windows-mounted WSL2 repository and record the "
+            "applied override in protected local evidence."
+        ),
+    )
     args = parser.parse_args(argv)
     if args.secrets_mode not in SECRET_MODES:
         parser.error("--secrets-mode must be one of generated, fixed, or infisical")
@@ -186,6 +209,7 @@ def parse_args(argv: Sequence[str] | None = None) -> InstallerOptions:
         confirm_reset=args.confirm_reset,
         non_interactive_live_approval=args.non_interactive_live_approval,
         headless=args.headless or os.environ.get("TSW_INSTALL_HEADLESS") == "1",
+        allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem,
     )
 
 
@@ -254,6 +278,12 @@ def run(
     _require_repository(cwd)
     paths = _paths_from_env(env, cwd)
     host_runtime = detect_host_runtime(env)
+    authorize_project_filesystem(
+        host_runtime,
+        cwd,
+        allow_wsl_windows_filesystem=options.allow_wsl_windows_filesystem,
+        env=env,
+    )
     python_bin = ensure_python_environment(host_runtime, paths, env)
     install_env = dict(env)
     secret_mode = _secret_mode(options)
@@ -381,12 +411,14 @@ def run(
     reset_command = _workflow_command(
         python_bin,
         "platform reset",
-        f"--live{approval_argument} --confirm {RESET_CONFIRMATION} --service-profile {shlex.quote(options.service_profile)}",
+        f"--live{approval_argument} --confirm {RESET_CONFIRMATION} --service-profile {shlex.quote(options.service_profile)}"
+        f"{_filesystem_override_argument(options)}",
     )
     setup_command = _workflow_command(
         python_bin,
         "setup run",
-        f"--live{approval_argument} --service-profile {shlex.quote(options.service_profile)}",
+        f"--live{approval_argument} --service-profile {shlex.quote(options.service_profile)}"
+        f"{_filesystem_override_argument(options)}",
     )
 
     reset_exit = _run_phase(
@@ -576,6 +608,48 @@ def detect_host_runtime(
     )
 
 
+def authorize_project_filesystem(
+    host_runtime: HostRuntime,
+    cwd: Path,
+    *,
+    allow_wsl_windows_filesystem: bool,
+    env: Mapping[str, str],
+) -> ProjectFilesystemAssessment:
+    host_environment = (
+        host_runtime.environment_report.environment
+        if host_runtime.environment_report is not None
+        else HostEnvironmentKind(host_runtime.name)
+    )
+    inspector = ProjectFilesystemInspector()
+    inspection = inspector.inspect(cwd.as_posix(), host_environment)
+    assessment = assess_project_filesystem(
+        host_environment,
+        inspection,
+        allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
+    )
+    if assessment.decision is ProjectFilesystemDecision.ALLOWED_BY_OVERRIDE:
+        repository = ProjectFilesystemEvidenceLocalRepository.from_environment(
+            env,
+            target_inspector=inspector,
+        )
+        recorded = assessment.mark_evidence_recorded()
+        try:
+            repository.write(recorded)
+        except ProjectFilesystemEvidenceError as error:
+            raise InstallerError(
+                "The WSL filesystem override could not be recorded in protected "
+                "Linux-native owner-only evidence."
+            ) from error
+        assessment = recorded
+    if assessment.blocked:
+        remediation = " ".join(assessment.remediation)
+        raise InstallerError(
+            "Project filesystem blocks live installation. "
+            f"{remediation}"
+        )
+    return assessment
+
+
 def _windows_wsl_bridge_guard(
     host_runtime: HostRuntime,
     env: Mapping[str, str],
@@ -635,6 +709,12 @@ def _windows_wsl_bridge_guard(
 def _windows_exposure_required(env: Mapping[str, str]) -> bool:
     value = env.get(WINDOWS_EXPOSURE_ENVIRONMENT, "").strip().casefold()
     return value not in {"0", "false", "no", "off", "disabled"}
+
+
+def _filesystem_override_argument(options: InstallerOptions) -> str:
+    if options.allow_wsl_windows_filesystem:
+        return " --allow-wsl-windows-filesystem"
+    return ""
 
 
 def _windows_wsl_bridge_expected_ports(cwd: Path) -> tuple[int, ...]:

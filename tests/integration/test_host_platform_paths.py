@@ -13,6 +13,9 @@ from tiny_swarm_world import __main__ as entrypoint
 from tiny_swarm_world.application.services.platform.preflight_service import (
     PreflightService,
 )
+from tiny_swarm_world.application.services.platform.host.evaluate_project_filesystem import (
+    EvaluateProjectFilesystem,
+)
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentKind,
     HostEnvironmentReport,
@@ -21,6 +24,9 @@ from tiny_swarm_world.domain.preflight import (
 )
 from tiny_swarm_world.infrastructure import composition
 from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector
+from tiny_swarm_world.infrastructure.adapters.host.project_filesystem_inspector import (
+    ProjectFilesystemInspector,
+)
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
 
 
@@ -37,10 +43,13 @@ class TestHostPlatformPaths(unittest.IsolatedAsyncioTestCase):
                 platform_system=lambda: "Linux",
             )
 
-            report, host_check, cli_output = await _exercise_path(root, detector)
+            report, host_check, filesystem_check, cli_output = await _exercise_path(
+                root, detector
+            )
 
         self.assertEqual(HostEnvironmentKind.NATIVE_LINUX, report.environment)
         self.assertEqual(PreflightStatus.PASSED, host_check.status)
+        self.assertEqual(PreflightStatus.PASSED, filesystem_check.status)
         self.assertEqual("native_linux", host_check.evidence["environment"])
         self.assertIn('"environment": "native_linux"', cli_output)
         self.assertIn('"windows_interop_available": false', cli_output)
@@ -68,7 +77,9 @@ class TestHostPlatformPaths(unittest.IsolatedAsyncioTestCase):
                 platform_system=lambda: "Linux",
             )
 
-            report, host_check, cli_output = await _exercise_path(root, detector)
+            report, host_check, filesystem_check, cli_output = await _exercise_path(
+                root, detector
+            )
 
         self.assertEqual(HostEnvironmentKind.WSL2, report.environment)
         self.assertEqual("Ubuntu-24.04", report.distribution)
@@ -78,15 +89,48 @@ class TestHostPlatformPaths(unittest.IsolatedAsyncioTestCase):
         )
         self.assertTrue(report.windows_interop_available)
         self.assertEqual(PreflightStatus.PASSED, host_check.status)
+        self.assertEqual(PreflightStatus.PASSED, filesystem_check.status)
         self.assertEqual("wsl2", host_check.evidence["environment"])
         self.assertIn('"environment": "wsl2"', cli_output)
         self.assertNotIn(interop_value, cli_output)
+
+    async def test_wsl2_windows_mount_is_blocked_without_path_leak(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            _write(
+                root,
+                "proc/sys/kernel/osrelease",
+                "6.1.21.2-microsoft-standard-WSL2\n",
+            )
+            detector = HostEnvironmentDetector(
+                os_root=root,
+                environment={"WSL_DISTRO_NAME": "Ubuntu-24.04"},
+                platform_system=lambda: "Linux",
+            )
+            project_path = Path("/mnt/d/private/project")
+
+            _, _, filesystem_check, _ = await _exercise_path(
+                root,
+                detector,
+                project_path=project_path,
+                mountinfo=(
+                    "36 25 0:32 / /mnt/d rw,relatime - "
+                    "9p drvfs rw,aname=drvfs"
+                ),
+            )
+
+        self.assertEqual(PreflightStatus.FAILED, filesystem_check.status)
+        self.assertEqual("blocked", filesystem_check.evidence["decision"])
+        self.assertNotIn(project_path.as_posix(), str(filesystem_check.to_dict()))
 
 
 async def _exercise_path(
     root: Path,
     detector: HostEnvironmentDetector,
-) -> tuple[HostEnvironmentReport, PreflightCheck, str]:
+    *,
+    project_path: Path | None = None,
+    mountinfo: str = "36 25 0:32 / / rw,relatime - ext4 /dev/sda rw",
+) -> tuple[HostEnvironmentReport, PreflightCheck, PreflightCheck, str]:
     service = composition.build_host_detection_service(detector)
     probe = HostPreflightProbe(
         root,
@@ -137,8 +181,17 @@ async def _exercise_path(
         patch.object(Path, "open", new=guarded_open),
     ):
         report = service.run()
-        preflight = await PreflightService(probe).run()
+        preflight = await PreflightService(
+            probe,
+            project_filesystem_evaluator=EvaluateProjectFilesystem(
+                ProjectFilesystemInspector(mountinfo_reader=lambda: mountinfo)
+            ),
+            project_path=str(project_path or root),
+        ).run()
         host_check = next(check for check in preflight.checks if check.check_id == "HOST")
+        filesystem_check = next(
+            check for check in preflight.checks if check.check_id == "HOST-FILESYSTEM"
+        )
         output = io.StringIO()
         with (
             patch.object(
@@ -150,7 +203,7 @@ async def _exercise_path(
         ):
             await entrypoint.main(["--json", "host", "detect"])
 
-    return report, host_check, output.getvalue()
+    return report, host_check, filesystem_check, output.getvalue()
 
 
 def _write(root: Path, relative_path: str, text: str) -> None:

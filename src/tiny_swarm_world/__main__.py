@@ -165,6 +165,14 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
         ),
     )
     parser.add_argument(
+        "--allow-wsl-windows-filesystem",
+        action="store_true",
+        help=(
+            "Allow a confirmed Windows-mounted WSL2 repository for live work; "
+            "the applied override is recorded in protected local evidence."
+        ),
+    )
+    parser.add_argument(
         "--node-provider",
         choices=[NodeProviderKind.LXC_NATIVE.value],
         default=NodeProviderKind.LXC_NATIVE.value,
@@ -291,6 +299,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
         live_consent,
         service_profile=args.service_profile,
         node_provider_request=node_provider_request,
+        allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem,
     )
     _emit_workflow_result(result, args)
     if _workflow_status_value(result) != PlatformWorkflowStatus.COMPLETED.value:
@@ -351,6 +360,7 @@ async def _run_preflight_command(args: Namespace) -> None:
     preflight = build_preflight_service(
         service_profile=args.service_profile,
         node_provider_request=node_provider_request,
+        allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem,
     )
     live_consent = _live_consent_from_args(args) if args.live else None
     result = await preflight.run(live_consent)
@@ -435,12 +445,14 @@ async def run_cli_workflow(
     live_consent: LiveConsent | None = None,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    allow_wsl_windows_filesystem: bool = False,
 ) -> WorkflowResult:
     if workflow.platform_kind is not None:
         services = build_application_services(
             live_consent=live_consent,
             service_profile=service_profile,
             node_provider_request=node_provider_request,
+            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
         )
         return await run_platform_workflow(
             services,
@@ -466,6 +478,7 @@ async def run_cli_workflow(
             workflow.action,
             service_profile=service_profile,
             node_provider_request=node_provider_request,
+            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
         )
     raise ValueError(f"Unsupported workflow: {workflow.name}")
 

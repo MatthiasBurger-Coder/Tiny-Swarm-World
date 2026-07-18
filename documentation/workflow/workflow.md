@@ -7,7 +7,7 @@ Issue: `#218 Treat WSL2 as a Dedicated Host Platform and Decouple Installation f
 Baseline Branch: `main`
 Baseline Commit: `81ca7efab062347a87c32e5305427236b048d741`
 Branch: `feature/workflow-issue-218-fr02-filesystem-policy-20260712`
-Status: `WORKFLOW_CREATE_PUBLISHED_EXECUTION_PENDING`
+Status: `SLICE_01_LOCAL_COMPLETION_PASS_CHECKPOINT_PENDING`
 Execution Profile: `FULL_PATH`
 
 ## Executive Summary
@@ -639,12 +639,12 @@ publication commit and remote ref are verified.
 
 ## Execution Checkpoint
 
-- Current phase: guarded workflow-create authoring commit is published and its
-  remote ref verified; publication metadata push is the final create action.
-- Product implementation: not started.
+- Current phase: workflow execute Slice 01; serial distribution, expected TDD
+  RED, implementation, and required local gates are recorded.
+- Product implementation: complete; independent completion audit passed.
 - Live infrastructure: `NOT_RUN` and forbidden.
-- Next allowed action after publication metadata remote verification: S3/S3D
-  `workflow execute` for Slice 01.
+- Next allowed action: reconcile requirement evidence and complete the
+  Slice-01 checkpoint commit and guarded branch push.
 
 ## arc42 Check Status
 

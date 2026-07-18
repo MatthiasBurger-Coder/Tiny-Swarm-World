@@ -13,6 +13,7 @@ class PreflightStatus(str, Enum):
 
 class PreflightCategory(str, Enum):
     HOST = "HOST"
+    FILESYSTEM = "FILESYSTEM"
     DEPENDENCY = "DEPENDENCY"
     RUNTIME = "RUNTIME"
     RESOURCE = "RESOURCE"

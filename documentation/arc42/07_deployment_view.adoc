@@ -207,6 +207,16 @@ non-Linux hosts, and sandbox-unverified results block before provider mutation.
 The detector does not prepare Windows networking or apply Incus settings; those
 remain separate consent-gated deployment concerns in later Issue #218 FRs.
 
+Immediately after that host gate, the shared project-filesystem policy must
+allow the repository before deployment-oriented setup can continue. WSL2
+Windows-mounted checkouts block by default. A deliberate exception requires
+`--allow-wsl-windows-filesystem` and an atomically written owner-only record at
+`${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/installation/project-filesystem-decision.json`.
+The state target must itself be verified as Linux-native or WSL Linux; a DrvFS target or an
+unverifiable mount blocks. No provider node, Docker Engine, Swarm, network, or
+stack mutation runs before this decision. The policy never moves or copies the
+repository and remains outside the shared provider/deployment implementation.
+
 For the LXC-native target, deployment must block before mutation when Incus or
 Incus readiness is absent for the selected or ordered backend candidate, WSL2
 capability is missing, or Docker-in-container profile requirements are not

@@ -37,6 +37,12 @@ from tiny_swarm_world.domain.preflight import (
     WindowsWslBridgeStatus,
     default_preflight_configuration,
 )
+from tiny_swarm_world.domain.project_filesystem import (
+    ProjectFilesystemAssessment,
+    ProjectFilesystemInspection,
+    ProjectFilesystemKind,
+    assess_project_filesystem,
+)
 
 
 class TestPreflightService(unittest.IsolatedAsyncioTestCase):
@@ -63,6 +69,107 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.passed)
         self.assertNotIn("LIVE-CONSENT", check_ids)
         self.assertNotIn("RUNTIME-MULTIPASS", check_ids)
+        self.assertFalse(any(check_id.startswith("RUNTIME-") for check_id in check_ids))
+
+    async def test_host_filesystem_block_is_immediately_after_host_and_stops_later_checks(self):
+        project_path = "/mnt/d/private/project"
+        evaluator = _ProjectFilesystemService(
+            _filesystem_assessment(
+                ProjectFilesystemKind.WINDOWS_MOUNTED,
+                project_path,
+                allow_override=False,
+            )
+        )
+
+        result = await PreflightService(
+            _fake_probe(host_environment=_wsl2_environment()),
+            project_filesystem_evaluator=evaluator,
+            project_path=project_path,
+        ).run()
+
+        check_ids = [check.check_id for check in result.checks]
+        host_index = check_ids.index("HOST")
+        self.assertEqual("HOST-FILESYSTEM", check_ids[host_index + 1])
+        self.assertEqual(PreflightStatus.FAILED, result.checks[host_index + 1].status)
+        self.assertNotIn("PYTHON", check_ids)
+        self.assertFalse(any(check_id.startswith("DEPENDENCY-") for check_id in check_ids))
+        self.assertNotIn(project_path, str(result.to_dict()))
+
+    async def test_live_preflight_authorizes_and_records_explicit_override(self):
+        project_path = "/mnt/d/private/project"
+        evaluator = _ProjectFilesystemService(
+            _filesystem_assessment(
+                ProjectFilesystemKind.WINDOWS_MOUNTED,
+                project_path,
+                allow_override=True,
+            )
+        )
+        authorizer = _ProjectFilesystemService(evaluator.assessment)
+
+        result = await PreflightService(
+            _fake_probe(host_environment=_wsl2_environment()),
+            project_filesystem_evaluator=evaluator,
+            project_filesystem_authorizer=authorizer,
+            project_path=project_path,
+            allow_wsl_windows_filesystem=True,
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        check = next(item for item in result.checks if item.check_id == "HOST-FILESYSTEM")
+        self.assertEqual(PreflightStatus.PASSED, check.status)
+        self.assertEqual("allowed_by_override", check.evidence["decision"])
+        self.assertEqual(1, len(authorizer.calls))
+        self.assertNotIn(project_path, str(result.to_dict()))
+
+    async def test_static_override_evaluates_without_authorizing_or_writing_evidence(self):
+        project_path = "/mnt/e/private/project"
+        evaluator = _ProjectFilesystemService(
+            _filesystem_assessment(
+                ProjectFilesystemKind.WINDOWS_MOUNTED,
+                project_path,
+                allow_override=True,
+            )
+        )
+        authorizer = _ProjectFilesystemService(evaluator.assessment)
+
+        result = await PreflightService(
+            _fake_probe(host_environment=_wsl2_environment()),
+            project_filesystem_evaluator=evaluator,
+            project_filesystem_authorizer=authorizer,
+            project_path=project_path,
+            allow_wsl_windows_filesystem=True,
+        ).run()
+
+        check = next(item for item in result.checks if item.check_id == "HOST-FILESYSTEM")
+        self.assertEqual(PreflightStatus.PASSED, check.status)
+        self.assertEqual("allowed_by_override", check.evidence["decision"])
+        self.assertEqual(1, len(evaluator.calls))
+        self.assertEqual([], authorizer.calls)
+        self.assertNotIn(project_path, str(result.to_dict()))
+
+    async def test_live_override_evidence_failure_blocks_before_runtime_checks(self):
+        project_path = "/mnt/d/private/project"
+        evaluator = _ProjectFilesystemService(
+            _filesystem_assessment(
+                ProjectFilesystemKind.WINDOWS_MOUNTED,
+                project_path,
+                allow_override=True,
+            )
+        )
+        blocked = evaluator.assessment.block_for_evidence_failure()
+        authorizer = _ProjectFilesystemService(blocked)
+
+        result = await PreflightService(
+            _fake_probe(host_environment=_wsl2_environment()),
+            project_filesystem_evaluator=evaluator,
+            project_filesystem_authorizer=authorizer,
+            project_path=project_path,
+            allow_wsl_windows_filesystem=True,
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        check_ids = [check.check_id for check in result.checks]
+        check = next(item for item in result.checks if item.check_id == "HOST-FILESYSTEM")
+        self.assertEqual(PreflightStatus.FAILED, check.status)
+        self.assertEqual("protected_evidence_unavailable", check.evidence["evidence_status"])
         self.assertFalse(any(check_id.startswith("RUNTIME-") for check_id in check_ids))
 
     async def test_preflight_reports_selected_provider_backend_dependency(self):
@@ -772,6 +879,42 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         failed_by_id = {check.check_id: check for check in result.failed_checks}
         self.assertIn("PYTHON", failed_by_id)
         self.assertEqual("3.11.9", failed_by_id["PYTHON"].evidence["actual"])
+
+
+class _ProjectFilesystemService:
+    def __init__(self, assessment: ProjectFilesystemAssessment) -> None:
+        self.assessment = assessment
+        self.calls: list[tuple[HostEnvironmentKind, str, bool]] = []
+
+    def run(
+        self,
+        host_environment: HostEnvironmentKind,
+        project_path: str,
+        *,
+        allow_wsl_windows_filesystem: bool,
+    ) -> ProjectFilesystemAssessment:
+        self.calls.append(
+            (host_environment, project_path, allow_wsl_windows_filesystem)
+        )
+        return self.assessment
+
+
+def _filesystem_assessment(
+    kind: ProjectFilesystemKind,
+    project_path: str,
+    *,
+    allow_override: bool,
+) -> ProjectFilesystemAssessment:
+    return assess_project_filesystem(
+        HostEnvironmentKind.WSL2,
+        ProjectFilesystemInspection(
+            kind=kind,
+            resolved_project_path=project_path,
+            filesystem_type="9p" if kind is ProjectFilesystemKind.WINDOWS_MOUNTED else "ext4",
+            classification_source="test_fixture",
+        ),
+        allow_wsl_windows_filesystem=allow_override,
+    )
 
 
 @dataclass(frozen=True)

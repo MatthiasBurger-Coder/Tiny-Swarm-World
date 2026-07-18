@@ -89,12 +89,40 @@ explicitly. Windows interop is reported as not applicable on native Linux.
 does not prove resource, filesystem, network, provider, deployment, or service
 readiness. Those checks remain separate preflight/verify stages.
 
-Static preflight remains available without live-infrastructure consent:
+== Check The Project Filesystem
+
+Static preflight evaluates the repository filesystem immediately after the
+typed host result without live-infrastructure consent:
 
 [source,bash]
 ----
 tiny-swarm-world --preflight
 ----
+
+On WSL2, `HOST-FILESYSTEM` passes for the distribution's Linux filesystem and
+blocks Windows-mounted checkouts such as `/mnt/c`, `/mnt/d`, or `/mnt/e` by
+default. The detector resolves the project path and uses mount facts rather
+than a fixed path prefix. Unknown or contradictory mount information also
+blocks. The safe result includes no project path and recommends a checkout
+below `/home/<user>/projects/Tiny-Swarm-World`.
+
+For an intentional Windows-mounted checkout, place the global override before
+the workflow command:
+
+[source,bash]
+----
+tiny-swarm-world --allow-wsl-windows-filesystem --preflight
+tiny-swarm-world --allow-wsl-windows-filesystem setup run --live
+----
+
+Static preflight shows the requested decision but writes no state. An accepted
+live preflight or installer records the applied override in the protected
+schema-v1 document below
+`${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/installation/`.
+Failure to verify the evidence target as Linux-native or WSL Linux, write it atomically, or
+enforce owner-only permissions blocks before later setup actions. The override
+does not bypass host, resource, provider, network, deployment, or service
+readiness gates.
 
 Non-mutating workflow checks can be selected explicitly:
 

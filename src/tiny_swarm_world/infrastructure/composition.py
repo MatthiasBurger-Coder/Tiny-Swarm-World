@@ -97,11 +97,18 @@ from tiny_swarm_world.application.services.platform import (
     PreflightService,
     SocatManager,
 )
-from tiny_swarm_world.application.services.platform.host import DetectHostEnvironment
+from tiny_swarm_world.application.services.platform.host import (
+    AuthorizeProjectFilesystem,
+    DetectHostEnvironment,
+    EvaluateProjectFilesystem,
+)
 from tiny_swarm_world.infrastructure.adapters.file_management.local_file_storage import (
     LocalFileStorage,
 )
-from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector
+from tiny_swarm_world.infrastructure.adapters.host import (
+    HostEnvironmentDetector,
+    ProjectFilesystemInspector,
+)
 from tiny_swarm_world.application.services.network import (
     NetworkDoctorService,
     NetworkRepairOptions,
@@ -199,6 +206,9 @@ from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_re
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.routing_evidence_local_repository import (
     RoutingEvidenceLocalRepository,
+)
+from tiny_swarm_world.infrastructure.adapters.repositories.project_filesystem_evidence_local_repository import (
+    ProjectFilesystemEvidenceLocalRepository,
 )
 from tiny_swarm_world.infrastructure.os_types import OsTypes
 from tiny_swarm_world.infrastructure.adapters.repositories.verification_evidence_local_repository import (
@@ -571,13 +581,34 @@ def build_host_detection_service(
     return DetectHostEnvironment(detector or build_host_environment_detector())
 
 
+def build_project_filesystem_inspector() -> ProjectFilesystemInspector:
+    return ProjectFilesystemInspector()
+
+
+def _build_project_filesystem_services() -> tuple[
+    EvaluateProjectFilesystem,
+    AuthorizeProjectFilesystem,
+]:
+    inspector = build_project_filesystem_inspector()
+    evidence_repository = ProjectFilesystemEvidenceLocalRepository.from_environment(
+        os.environ,
+        target_inspector=inspector,
+    )
+    return (
+        EvaluateProjectFilesystem(inspector),
+        AuthorizeProjectFilesystem(inspector, evidence_repository),
+    )
+
+
 def build_preflight_service(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
     configuration_validation: ConfigurationValidationService | None = None,
+    allow_wsl_windows_filesystem: bool = False,
 ) -> PreflightService:
     project_paths = default_project_paths()
     port_registry = PortRegistryYamlRepository(project_paths=project_paths).load()
+    evaluator, authorizer = _build_project_filesystem_services()
     return PreflightService(
         HostPreflightProbe(
             project_paths=project_paths,
@@ -586,6 +617,10 @@ def build_preflight_service(
         _preflight_configuration_for_provider(service_profile, node_provider_request),
         configuration_validation=configuration_validation,
         port_registry=port_registry,
+        project_filesystem_evaluator=evaluator,
+        project_filesystem_authorizer=authorizer,
+        project_path=project_paths.repository_root.as_posix(),
+        allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
 
 
@@ -648,9 +683,11 @@ def build_post_install_preflight_service(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
     configuration_validation: ConfigurationValidationService | None = None,
+    allow_wsl_windows_filesystem: bool = False,
 ) -> PreflightService:
     project_paths = default_project_paths()
     configuration = _preflight_configuration_for_provider(service_profile, node_provider_request)
+    evaluator, authorizer = _build_project_filesystem_services()
     return PreflightService(
         HostPreflightProbe(
             project_paths=project_paths,
@@ -658,6 +695,10 @@ def build_post_install_preflight_service(
         ),
         replace(configuration, required_ports=()),
         configuration_validation=configuration_validation,
+        project_filesystem_evaluator=evaluator,
+        project_filesystem_authorizer=authorizer,
+        project_path=project_paths.repository_root.as_posix(),
+        allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
 
 
@@ -692,6 +733,7 @@ async def run_setup_with_terminal_status(
     action: str,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
+    allow_wsl_windows_filesystem: bool = False,
 ) -> SetupWorkflowResult:
     if not live_consent.accepted:
         raise ValueError("setup run requires accepted live consent")
@@ -703,6 +745,7 @@ async def run_setup_with_terminal_status(
             live_consent,
             service_profile=service_profile,
             node_provider_request=node_provider_request,
+            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
             ui=ui,
             configuration_validation=build_configuration_validation_service(),
         )
@@ -741,6 +784,7 @@ def build_platform_services(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
     trace_correlation_id: str | None = None,
+    allow_wsl_windows_filesystem: bool = False,
 ) -> PlatformServices:
     project_paths = default_project_paths()
     node_provider_config_repository = NodeProviderConfigYamlRepository(
@@ -758,11 +802,13 @@ def build_platform_services(
         service_profile,
         provider_request,
         project_paths=project_paths,
+        allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
     post_install_preflight = _build_post_install_preflight_service_for_request(
         service_profile,
         provider_request,
         project_paths=project_paths,
+        allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
     lxc_runner = AsyncLxcNodeCommandRunner()
     lxc_node_provider = LxcNodeProvider(
@@ -1314,6 +1360,7 @@ def build_setup_services(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
     configuration_validation: ConfigurationValidationService | None = None,
+    allow_wsl_windows_filesystem: bool = False,
 ) -> SetupServices:
     project_paths = default_project_paths()
     preflight = _build_preflight_service_for_request(
@@ -1321,6 +1368,7 @@ def build_setup_services(
         node_provider_request,
         configuration_validation=configuration_validation,
         project_paths=project_paths,
+        allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
     trace_correlation_id = _new_installation_trace_correlation_id()
     platform = _build_platform_services_for_request(
@@ -1329,6 +1377,7 @@ def build_setup_services(
         node_provider_request,
         ui=ui,
         trace_correlation_id=trace_correlation_id,
+        allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
     artifacts = build_artifact_services_for_provider(
         node_provider_request=node_provider_request,
@@ -1401,6 +1450,7 @@ def build_application_services(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
+    allow_wsl_windows_filesystem: bool = False,
 ) -> ApplicationServices:
     return ApplicationServices(
         platform=_build_platform_services_for_request(
@@ -1408,6 +1458,7 @@ def build_application_services(
             live_consent,
             node_provider_request,
             ui=ui,
+            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
         ),
         artifacts=build_artifact_services_for_provider(
             node_provider_request=node_provider_request
@@ -1426,24 +1477,28 @@ def _build_platform_services_for_request(
     node_provider_request: NodeProviderSelectionRequest | None,
     ui: PortUI | None = None,
     trace_correlation_id: str | None = None,
+    allow_wsl_windows_filesystem: bool = False,
 ) -> PlatformServices:
     if node_provider_request is None:
         if ui is None and trace_correlation_id is None:
             return build_platform_services(
                 service_profile=service_profile,
                 live_consent=live_consent,
+                allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
             )
         return build_platform_services(
             service_profile=service_profile,
             live_consent=live_consent,
             ui=ui,
             trace_correlation_id=trace_correlation_id,
+            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
         )
     if ui is None and trace_correlation_id is None:
         return build_platform_services(
             service_profile=service_profile,
             live_consent=live_consent,
             node_provider_request=node_provider_request,
+            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
         )
     return build_platform_services(
         service_profile=service_profile,
@@ -1451,6 +1506,7 @@ def _build_platform_services_for_request(
         node_provider_request=node_provider_request,
         ui=ui,
         trace_correlation_id=trace_correlation_id,
+        allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
 
 
@@ -1476,11 +1532,13 @@ def _build_preflight_service_for_request(
     node_provider_request: NodeProviderSelectionRequest | None,
     configuration_validation: ConfigurationValidationService | None = None,
     project_paths: ProjectPaths | None = None,
+    allow_wsl_windows_filesystem: bool = False,
 ) -> PreflightService:
     paths = project_paths or default_project_paths()
     if node_provider_request is None:
         node_provider_request = None
     port_registry = PortRegistryYamlRepository(project_paths=paths).load()
+    evaluator, authorizer = _build_project_filesystem_services()
     return PreflightService(
         HostPreflightProbe(
             project_paths=paths,
@@ -1489,6 +1547,10 @@ def _build_preflight_service_for_request(
         _preflight_configuration_for_provider(service_profile, node_provider_request),
         configuration_validation=configuration_validation,
         port_registry=port_registry,
+        project_filesystem_evaluator=evaluator,
+        project_filesystem_authorizer=authorizer,
+        project_path=paths.repository_root.as_posix(),
+        allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
 
 
@@ -1497,9 +1559,11 @@ def _build_post_install_preflight_service_for_request(
     node_provider_request: NodeProviderSelectionRequest | None,
     configuration_validation: ConfigurationValidationService | None = None,
     project_paths: ProjectPaths | None = None,
+    allow_wsl_windows_filesystem: bool = False,
 ) -> PreflightService:
     paths = project_paths or default_project_paths()
     configuration = _preflight_configuration_for_provider(service_profile, node_provider_request)
+    evaluator, authorizer = _build_project_filesystem_services()
     return PreflightService(
         HostPreflightProbe(
             project_paths=paths,
@@ -1507,6 +1571,10 @@ def _build_post_install_preflight_service_for_request(
         ),
         replace(configuration, required_ports=()),
         configuration_validation=configuration_validation,
+        project_filesystem_evaluator=evaluator,
+        project_filesystem_authorizer=authorizer,
+        project_path=paths.repository_root.as_posix(),
+        allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
 
 

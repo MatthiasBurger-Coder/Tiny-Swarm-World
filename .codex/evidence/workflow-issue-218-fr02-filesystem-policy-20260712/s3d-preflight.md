@@ -3,7 +3,7 @@
 Date: `2026-07-12`
 Workflow: `workflow-issue-218-fr02-filesystem-policy-20260712`
 Slice: `01`
-Decision: `READY_FOR_WORKFLOW_EXECUTE_AFTER_PUBLICATION_METADATA_PUSH`
+Decision: `READY_FOR_SLICE_01_EXECUTION`
 
 ## Baseline and lifecycle
 
@@ -38,8 +38,8 @@ Product implementation remains blocked until:
 
 1. workflow authoring review passes — `PASS`;
 2. authoring commit is pushed normally — `PASS`, `2af8ae7`;
-3. publication metadata commit is pushed normally — pending this commit;
-4. the remote branch resolves to the publication head — pending this commit;
+3. publication metadata commit is pushed normally — `PASS`, `529ae16`;
+4. the remote branch resolves to the publication head — `PASS`, `529ae16`;
 5. the active workflow says execution pending — `PASS`.
 
 No PR or merge is allowed during workflow creation.
