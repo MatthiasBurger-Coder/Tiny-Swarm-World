@@ -4,9 +4,11 @@ Status: active
 
 ## Objective
 
-Reduce verified open SonarCloud issues in Tiny Swarm World through small,
-rule-specific remediation workflows. Each workflow must preserve product
-behavior, test semantics, and the project's quality and architecture guards.
+Resolve the complete, frozen baseline of 329 verified open SonarCloud issues
+through small, rule-specific remediation batches. Each batch must preserve
+product behavior, test semantics, and the project's quality and architecture
+guards; the overall EPIC is complete only when every baseline issue key has
+remote SonarCloud resolution evidence.
 
 ## Requirement authority
 
@@ -28,10 +30,15 @@ traceability authority for workflows derived from that inventory.
 
 ## Current delivery slice
 
-`workflow-sonarcloud-remediation-20260718` owns the baseline refresh and one
-pilot batch of no more than 20 unambiguous `python:S3415` findings.
+`workflow-sonarcloud-remediation-20260718` owns the complete remediation
+program: baseline refresh, eleven `python:S3415` batches of at most 20 issues,
+ten `python:S5778` batches of at most 10 issues, and one bounded batch for
+each remaining rule family. Every baseline issue key must be assigned exactly
+once; a blocked key remains explicit and prevents an EPIC DONE claim.
 
 ## Non-goals
 
 This EPIC does not authorize live infrastructure operations, product behavior
-changes, or a single bulk repair of all reported SonarCloud issues.
+changes, a blind bulk edit, suppressions, test exclusions, or quality-profile
+changes. A source or architecture change outside the manifest-listed repair
+scope stops the batch for an explicit successor workflow and review.
