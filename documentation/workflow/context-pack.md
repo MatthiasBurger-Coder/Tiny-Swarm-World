@@ -6,6 +6,8 @@ Branch: `fix/workflow-sonarcloud-remediation-20260718`
 
 Process strand: Python test-quality remediation and workflow governance.
 
+Requirement authority: `documentation/epics/sonarcloud-remediation.md`.
+
 Execution profile: `FULL_PATH`, sequential two-slice pilot.
 
 Affected areas: test assertions, SonarCloud issue evidence, workflow evidence.

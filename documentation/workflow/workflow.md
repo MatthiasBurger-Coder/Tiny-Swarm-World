@@ -6,6 +6,8 @@ Branch: `fix/workflow-sonarcloud-remediation-20260718`
 Baseline: `main@e91ca5824e823fbd2ae547c23080e8847ef55ccb`
 Status: `READY_FOR_EXECUTION`
 
+Requirement authority: [EPIC: Incremental SonarCloud remediation](../epics/sonarcloud-remediation.md).
+
 ## Executive Summary
 
 This workflow replaces the stale S3415-only mass-repair plan. It first records a reproducible SonarCloud baseline and then repairs at most 20 unambiguous `python:S3415` findings in a single pilot batch. It deliberately does not attempt a bulk repair of all open SonarCloud issues.
@@ -26,7 +28,7 @@ The verified baseline on 2026-07-18 reported 329 open issues: 214 `python:S3415`
 | Assumptions | SonarCloud public issue data remains available and the pilot contains at least one unambiguous S3415 finding. |
 | Non-goals | Fixing all 329 issues; S5778 changes; product-code refactors; SonarCloud configuration changes; exclusions/suppressions. |
 | Risks | Remote issue state can change; a location can be ambiguous; an assertion may use a custom helper with different semantics. |
-| Open questions | None for the bounded baseline-and-pilot workflow. |
+| Open questions | None. The EPIC establishes the repository-local authority for the requester-provided SonarCloud inventory. |
 | Blocking questions | A missing/inconsistent remote baseline, no safely mappable pilot candidates, or an invalid local quality gate blocks execution. |
 | Confidence level | 92% |
 | Decision | `READY_FOR_WORKFLOW` |
@@ -51,7 +53,7 @@ Allowed write scope during execution:
 
 Forbidden areas: `src/**`, `infra/**`, CI and SonarCloud configuration, quality-profile settings, suppressions, test exclusions, live infrastructure, and unrelated test cleanup.
 
-Architecture constraints: retain the existing hexagonal architecture; do not change production imports, runtime wiring, ports, adapters, or domain behavior. No ADR is required because the workflow only governs test-maintenance planning. Arc42 quality and technical-debt documentation were checked and need no update for the planned behavior.
+Architecture constraints: retain the existing hexagonal architecture; do not change production imports, runtime wiring, ports, adapters, or domain behavior. No ADR is required because the workflow only governs test-maintenance planning. The EPIC confirms that a production-code finding requires a successor workflow with architecture review. Arc42 quality and technical-debt documentation were checked and need no update for the planned behavior.
 
 ## Python Automation and Frontend Assessment
 

@@ -3,6 +3,7 @@
   "workflow_id": "workflow-sonarcloud-remediation-20260718",
   "branch": "fix/workflow-sonarcloud-remediation-20260718",
   "process_strand": "python test-quality remediation and workflow governance",
+  "requirement_authority": "documentation/epics/sonarcloud-remediation.md",
   "execution_profile": "FULL_PATH",
   "affected_areas": ["tests", "SonarCloud issue evidence", "workflow evidence"],
   "forbidden_areas": ["src", "infra", "SonarCloud configuration", "quality-profile changes", "suppressions and exclusions", "live infrastructure"],
@@ -14,6 +15,7 @@
     "QUALITY.md": "458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6",
     "documentation/process/issue-completion-discipline.md": "81876f6dca479a1d63a80f765baf949a951eff2e0eeafde6bac72ad750508904",
     "documentation/arc42/10_quality_requirements.adoc": "fce78b3093c39eab653aca4a30d9e0c4fa93eb751ccbe12114db5766284a1208",
-    "documentation/arc42/11_risks_and_debt.adoc": "1292bee95d7c9cb24ef8df83c27f3df5372f1feb394bdaf4b125f8f5bbcd0b4e"
+    "documentation/arc42/11_risks_and_debt.adoc": "1292bee95d7c9cb24ef8df83c27f3df5372f1feb394bdaf4b125f8f5bbcd0b4e",
+    "documentation/epics/sonarcloud-remediation.md": "0fe353daa7a110dffcd994bb6868739d66d0aeb031315cd6b0ddbf9ad91563ec"
   }
 }
