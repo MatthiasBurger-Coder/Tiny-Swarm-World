@@ -11,7 +11,7 @@ from tiny_swarm_world.domain.inventory import (
     VerificationStatus,
     VmObservedState,
 )
-from tiny_swarm_world.infrastructure import composition
+import tiny_swarm_world.infrastructure.composition as composition
 from tiny_swarm_world.infrastructure.adapters.repositories.desired_inventory_yaml_repository import (
     DesiredInventoryYamlRepository,
 )
@@ -65,7 +65,9 @@ expected_artifact_registries:
 
         self.assertEqual(DesiredInventory(), inventory)
 
-    def test_loads_committed_default_desired_inventory_without_host_specific_values(self):
+    def test_loads_committed_default_desired_inventory_without_host_specific_values(
+        self,
+    ):
         inventory = DesiredInventoryYamlRepository().load()
 
         self.assertEqual(
@@ -179,7 +181,9 @@ class TestObservedInventoryLocalRepository(unittest.TestCase):
 
     def test_missing_observed_inventory_defaults_to_empty_inventory(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
-            repository = ObservedInventoryLocalRepository(root=Path(temporary_directory))
+            repository = ObservedInventoryLocalRepository(
+                root=Path(temporary_directory)
+            )
 
             inventory = repository.load()
 
@@ -187,7 +191,9 @@ class TestObservedInventoryLocalRepository(unittest.TestCase):
 
     def test_rejects_contaminated_observed_inventory_before_persistence(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
-            repository = ObservedInventoryLocalRepository(root=Path(temporary_directory))
+            repository = ObservedInventoryLocalRepository(
+                root=Path(temporary_directory)
+            )
 
             with self.assertRaises(ValueError):
                 repository.save(
@@ -211,7 +217,9 @@ class TestObservedInventoryLocalRepository(unittest.TestCase):
 class TestVerificationEvidenceLocalRepository(unittest.TestCase):
     def test_appends_verification_results_without_raw_payloads(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
-            repository = VerificationEvidenceLocalRepository(root=Path(temporary_directory))
+            repository = VerificationEvidenceLocalRepository(
+                root=Path(temporary_directory)
+            )
             result = VerificationResult(
                 target_id="stack:portainer",
                 status=VerificationStatus.VERIFIED,
@@ -227,14 +235,20 @@ class TestVerificationEvidenceLocalRepository(unittest.TestCase):
 
     def test_rejects_raw_payload_before_persistence(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
-            repository = VerificationEvidenceLocalRepository(root=Path(temporary_directory))
+            repository = VerificationEvidenceLocalRepository(
+                root=Path(temporary_directory)
+            )
 
             with self.assertRaises(ValueError):
-                repository.append(VerificationResult("command:probe", evidence={"stderr": "raw"}))
+                repository.append(
+                    VerificationResult("command:probe", evidence={"stderr": "raw"})
+                )
 
     def test_rejects_sensitive_payload_values_before_persistence(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
-            repository = VerificationEvidenceLocalRepository(root=Path(temporary_directory))
+            repository = VerificationEvidenceLocalRepository(
+                root=Path(temporary_directory)
+            )
 
             with self.assertRaises(ValueError):
                 repository.append(

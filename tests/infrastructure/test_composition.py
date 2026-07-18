@@ -9,7 +9,9 @@ from unittest.mock import patch
 from tests.support.async_helpers import async_checkpoint
 from tests.support.sonar_safe_literals import ipv4_address, sample_http_url, sample_text
 
-from tiny_swarm_world.application.services.deployment.ensure_swarm_stack import EnsureSwarmStack
+from tiny_swarm_world.application.services.deployment.ensure_swarm_stack import (
+    EnsureSwarmStack,
+)
 from tiny_swarm_world.application.ports.ui.port_ui import (
     AGGREGATE_INSTANCE,
     STATUS_ERROR,
@@ -17,21 +19,27 @@ from tiny_swarm_world.application.ports.ui.port_ui import (
     PortUI,
 )
 from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
-from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
+from tiny_swarm_world.application.services.platform.preflight_service import (
+    PreflightService,
+)
 from tiny_swarm_world.application.services.setup import (
     SetupWorkflowKind,
     SetupWorkflowResult,
     SetupWorkflowStatus,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
-from tiny_swarm_world.domain.deployment import ServiceEndpoint, ServiceStackContract, ServiceStackProfile
+from tiny_swarm_world.domain.deployment import (
+    ServiceEndpoint,
+    ServiceStackContract,
+    ServiceStackProfile,
+)
 from tiny_swarm_world.domain.network import PortRegistry
 from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_ENVIRONMENT_VALUE,
     LIVE_CONSENT_PHRASE,
     LiveConsent,
 )
-from tiny_swarm_world.infrastructure import composition
+import tiny_swarm_world.infrastructure.composition as composition
 from tiny_swarm_world.infrastructure.adapters.host import (
     LinuxHostSignalReader,
     WslHostSignalReader,
@@ -76,8 +84,12 @@ class TestComposition(unittest.TestCase):
 
     def test_service_bundle_types_are_distinct_dataclasses(self):
         self.assertNotEqual(composition.PlatformServices, composition.ArtifactServices)
-        self.assertNotEqual(composition.PlatformServices, composition.DeploymentServices)
-        self.assertNotEqual(composition.ArtifactServices, composition.DeploymentServices)
+        self.assertNotEqual(
+            composition.PlatformServices, composition.DeploymentServices
+        )
+        self.assertNotEqual(
+            composition.ArtifactServices, composition.DeploymentServices
+        )
 
     def test_build_application_services_aggregates_separate_builders(self):
         platform = object()
@@ -131,7 +143,9 @@ class TestComposition(unittest.TestCase):
         verification = check.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
-        self.assertEqual(verification.evidence["endpoint_statuses"], "pulsar-admin-api=http_401")
+        self.assertEqual(
+            verification.evidence["endpoint_statuses"], "pulsar-admin-api=http_401"
+        )
 
     def test_endpoint_readiness_does_not_follow_https_redirects(self):
         endpoint_url = "http://localhost"
@@ -187,8 +201,12 @@ class TestComposition(unittest.TestCase):
         self.assertIn("lxc_swarm_bootstrap", field_names)
 
     def test_platform_services_contains_workflow_bundle(self):
-        platform_field_names = {field.name for field in fields(composition.PlatformServices)}
-        workflow_field_names = {field.name for field in fields(composition.PlatformWorkflows)}
+        platform_field_names = {
+            field.name for field in fields(composition.PlatformServices)
+        }
+        workflow_field_names = {
+            field.name for field in fields(composition.PlatformWorkflows)
+        }
 
         self.assertIn("workflows", platform_field_names)
         self.assertEqual(
@@ -211,7 +229,9 @@ class TestComposition(unittest.TestCase):
             backend_candidates=(),
         )
 
-        with patch.object(composition, "PortRegistryYamlRepository") as repository_class:
+        with patch.object(
+            composition, "PortRegistryYamlRepository"
+        ) as repository_class:
             repository_class.return_value.load.return_value = registry
 
             service = composition.build_preflight_service(
@@ -289,7 +309,9 @@ class TestComposition(unittest.TestCase):
         with patch.dict(os.environ, {"TSW_WINDOWS_EXPOSURE": "disabled"}, clear=True):
             self.assertFalse(composition._windows_wsl_bridge_required())
 
-    def test_build_configuration_validation_service_uses_env_file_and_process_environment(self):
+    def test_build_configuration_validation_service_uses_env_file_and_process_environment(
+        self,
+    ):
         with TemporaryDirectory() as temporary_directory:
             env_file = Path(temporary_directory) / "operator.env"
             env_file.write_text(
@@ -311,13 +333,19 @@ class TestComposition(unittest.TestCase):
             }
 
             with patch.dict(os.environ, environment, clear=True):
-                result = composition.build_configuration_validation_service(env_file).validate()
+                result = composition.build_configuration_validation_service(
+                    env_file
+                ).validate()
 
         self.assertTrue(result.passed)
         self.assertNotIn("file-secret", repr(result.to_dict()))
-        self.assertNotIn(environment["TSW_NEXUS_ADMIN_PASSWORD"], repr(result.to_dict()))
+        self.assertNotIn(
+            environment["TSW_NEXUS_ADMIN_PASSWORD"], repr(result.to_dict())
+        )
 
-    def test_build_configuration_validation_service_uses_install_env_file_override(self):
+    def test_build_configuration_validation_service_uses_install_env_file_override(
+        self,
+    ):
         with TemporaryDirectory() as temporary_directory:
             env_file = Path(temporary_directory) / "operator.env"
             env_file.write_text(
@@ -333,7 +361,9 @@ class TestComposition(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            with patch.dict(os.environ, {"TSW_INSTALL_ENV_FILE": str(env_file)}, clear=True):
+            with patch.dict(
+                os.environ, {"TSW_INSTALL_ENV_FILE": str(env_file)}, clear=True
+            ):
                 result = composition.build_configuration_validation_service().validate()
 
         self.assertTrue(result.passed)
@@ -365,12 +395,22 @@ class TestComposition(unittest.TestCase):
         text_file_equals.assert_called_once()
 
     def test_artifact_and_deployment_service_bundles_exist(self):
-        artifact_field_names = {field.name for field in fields(composition.ArtifactServices)}
-        artifact_workflow_names = {field.name for field in fields(composition.ArtifactWorkflows)}
-        deployment_field_names = {field.name for field in fields(composition.DeploymentServices)}
-        deployment_workflow_names = {field.name for field in fields(composition.DeploymentWorkflows)}
+        artifact_field_names = {
+            field.name for field in fields(composition.ArtifactServices)
+        }
+        artifact_workflow_names = {
+            field.name for field in fields(composition.ArtifactWorkflows)
+        }
+        deployment_field_names = {
+            field.name for field in fields(composition.DeploymentServices)
+        }
+        deployment_workflow_names = {
+            field.name for field in fields(composition.DeploymentWorkflows)
+        }
         setup_field_names = {field.name for field in fields(composition.SetupServices)}
-        setup_workflow_names = {field.name for field in fields(composition.SetupWorkflows)}
+        setup_workflow_names = {
+            field.name for field in fields(composition.SetupWorkflows)
+        }
 
         self.assertEqual({"workflows"}, artifact_field_names)
         self.assertEqual({"prepare", "verify"}, artifact_workflow_names)
@@ -439,15 +479,25 @@ class TestComposition(unittest.TestCase):
             )
 
         self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
-        self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
-        self.assertIsInstance(services.workflows.expose, composition.PlatformExposeWorkflow)
+        self.assertIsInstance(
+            services.workflows.reconcile, composition.PlatformReconcileWorkflow
+        )
+        self.assertIsInstance(
+            services.workflows.expose, composition.PlatformExposeWorkflow
+        )
         self.assertIsInstance(
             services.workflows.repair_lxc_proxy_drift,
             composition.PlatformRepairLxcProxyDriftWorkflow,
         )
-        self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
-        self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
-        self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
+        self.assertIsInstance(
+            services.workflows.reset, composition.PlatformResetWorkflow
+        )
+        self.assertIsInstance(
+            services.workflows.destroy, composition.PlatformDestroyWorkflow
+        )
+        self.assertIsInstance(
+            services.workflows.verify, composition.PlatformVerifyWorkflow
+        )
         self.assertIs(
             evidence_repository,
             services.workflows.init.verification_evidence_repository,
@@ -545,7 +595,9 @@ class TestComposition(unittest.TestCase):
         destroy_step = services.workflows.destroy.steps[0]
 
         self.assertIsInstance(reset_step, composition.NodeProviderResetManagedNodesStep)
-        self.assertIsInstance(destroy_step, composition.NodeProviderDestroyManagedNodesStep)
+        self.assertIsInstance(
+            destroy_step, composition.NodeProviderDestroyManagedNodesStep
+        )
         self.assertEqual(composition.DEFAULT_LXC_PLATFORM_NODES, reset_step.nodes)
         self.assertEqual(composition.DEFAULT_LXC_PLATFORM_NODES, destroy_step.nodes)
         self.assertIs(services.node_provider_selection, reset_step.provider_selection)
@@ -567,15 +619,25 @@ class TestComposition(unittest.TestCase):
         services = composition.build_platform_services()
 
         self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
-        self.assertIsInstance(services.workflows.reconcile, composition.PlatformReconcileWorkflow)
-        self.assertIsInstance(services.workflows.expose, composition.PlatformExposeWorkflow)
+        self.assertIsInstance(
+            services.workflows.reconcile, composition.PlatformReconcileWorkflow
+        )
+        self.assertIsInstance(
+            services.workflows.expose, composition.PlatformExposeWorkflow
+        )
         self.assertIsInstance(
             services.workflows.repair_lxc_proxy_drift,
             composition.PlatformRepairLxcProxyDriftWorkflow,
         )
-        self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
-        self.assertIsInstance(services.workflows.destroy, composition.PlatformDestroyWorkflow)
-        self.assertIsInstance(services.workflows.verify, composition.PlatformVerifyWorkflow)
+        self.assertIsInstance(
+            services.workflows.reset, composition.PlatformResetWorkflow
+        )
+        self.assertIsInstance(
+            services.workflows.destroy, composition.PlatformDestroyWorkflow
+        )
+        self.assertIsInstance(
+            services.workflows.verify, composition.PlatformVerifyWorkflow
+        )
 
     def test_build_platform_services_adds_terminal_sinks_when_ui_is_supplied(self):
         ui = _RecordingUI()
@@ -587,20 +649,22 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(progress_sink, composition.CompositeWorkflowProgress)
         self.assertIsInstance(method_trace_sink, composition.CompositeMethodTrace)
 
-        progress_sinks = cast(composition.CompositeWorkflowProgress, progress_sink).sinks
-        method_trace_sinks = cast(composition.CompositeMethodTrace, method_trace_sink).sinks
+        progress_sinks = cast(
+            composition.CompositeWorkflowProgress, progress_sink
+        ).sinks
+        method_trace_sinks = cast(
+            composition.CompositeMethodTrace, method_trace_sink
+        ).sinks
 
         self.assertTrue(
             any(
-                isinstance(sink, composition.TerminalWorkflowProgress)
-                and sink.ui is ui
+                isinstance(sink, composition.TerminalWorkflowProgress) and sink.ui is ui
                 for sink in progress_sinks
             )
         )
         self.assertTrue(
             any(
-                isinstance(sink, composition.TerminalMethodTrace)
-                and sink.ui is ui
+                isinstance(sink, composition.TerminalMethodTrace) and sink.ui is ui
                 for sink in method_trace_sinks
             )
         )
@@ -642,7 +706,9 @@ class TestComposition(unittest.TestCase):
             calls.append("services built")
             self.assertIs(live_consent, consent)
             self.assertEqual(ServiceStackProfile.SERVICE_ACCESS, service_profile)
-            self.assertEqual(composition.NodeProviderSelectionRequest(), node_provider_request)
+            self.assertEqual(
+                composition.NodeProviderSelectionRequest(), node_provider_request
+            )
             self.assertIs(recording_ui, ui)
             self.assertIsNotNone(configuration_validation)
             self.assertFalse(allow_wsl_windows_filesystem)
@@ -751,16 +817,24 @@ class TestComposition(unittest.TestCase):
         self.assertIs(result, actual)
         self.assertEqual(STATUS_ERROR, ui.aggregate_status["result"])
 
-    def test_build_artifact_services_wires_artifact_contracts_without_running_clients(self):
+    def test_build_artifact_services_wires_artifact_contracts_without_running_clients(
+        self,
+    ):
         with patch.dict(os.environ, {}, clear=True):
             services = composition.build_lxc_artifact_services(
                 backend=composition.ManagedLxcBackend.INCUS,
             )
 
-        self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
-        self.assertIsInstance(services.workflows.verify, composition.ArtifactVerifyWorkflow)
+        self.assertIsInstance(
+            services.workflows.prepare, composition.ArtifactPrepareWorkflow
+        )
+        self.assertIsInstance(
+            services.workflows.verify, composition.ArtifactVerifyWorkflow
+        )
         self.assertEqual(
-            tuple(step.verification_target_id for step in services.workflows.prepare.steps),
+            tuple(
+                step.verification_target_id for step in services.workflows.prepare.steps
+            ),
             (
                 "artifacts:nexus-ready",
                 "artifacts:nexus-admin-access",
@@ -803,7 +877,9 @@ class TestComposition(unittest.TestCase):
             remote_url,
         )
 
-    def test_build_artifact_services_sets_internal_nexus_proxy_to_lxc_registry_mirror(self):
+    def test_build_artifact_services_sets_internal_nexus_proxy_to_lxc_registry_mirror(
+        self,
+    ):
         with patch.dict(
             os.environ,
             {
@@ -830,7 +906,9 @@ class TestComposition(unittest.TestCase):
             proxy_configuration.remote_url,
         )
 
-    def test_nexus_docker_proxy_remote_url_falls_back_to_docker_hub_without_mirror(self):
+    def test_nexus_docker_proxy_remote_url_falls_back_to_docker_hub_without_mirror(
+        self,
+    ):
         with patch.dict(os.environ, {}, clear=True):
             remote_url = composition._nexus_docker_proxy_remote_url()
 
@@ -858,14 +936,20 @@ class TestComposition(unittest.TestCase):
             if hasattr(step, "contract")
         }
 
-        self.assertEqual(image_refs["infisical"], "registry.local:5000/infisical:cached")
+        self.assertEqual(
+            image_refs["infisical"], "registry.local:5000/infisical:cached"
+        )
         self.assertEqual(
             image_refs["infisical-postgres"],
             "registry.local:5000/postgres:14-alpine",
         )
-        self.assertEqual(image_refs["infisical-redis"], "registry.local:5000/redis:7-alpine")
+        self.assertEqual(
+            image_refs["infisical-redis"], "registry.local:5000/redis:7-alpine"
+        )
 
-    def test_build_artifact_services_keeps_docker_hub_image_refs_for_mirror_defaults(self):
+    def test_build_artifact_services_keeps_docker_hub_image_refs_for_mirror_defaults(
+        self,
+    ):
         with patch.dict(
             "os.environ",
             {
@@ -890,14 +974,23 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(image_refs["traefik"], "traefik:v3.7.4")
         self.assertEqual(image_refs["sonarqube"], "sonarqube:26.6.0.123539-community")
         self.assertEqual(image_refs["sonarqube-postgres"], "postgres:13.23")
-        self.assertEqual(image_refs["swagger-editor"], "swaggerapi/swagger-editor:v5.6.2-unprivileged")
+        self.assertEqual(
+            image_refs["swagger-editor"],
+            "swaggerapi/swagger-editor:v5.6.2-unprivileged",
+        )
         self.assertEqual(image_refs["swagger-ui"], "swaggerapi/swagger-ui:v5.32.6")
         self.assertEqual(image_refs["pulsar"], "apachepulsar/pulsar:3.0.17")
-        self.assertEqual(image_refs["pulsar-manager"], "apachepulsar/pulsar-manager:v0.4.0")
-        self.assertEqual(image_refs["pulsar-manager-bootstrap"], "python:3.12.13-alpine3.23")
+        self.assertEqual(
+            image_refs["pulsar-manager"], "apachepulsar/pulsar-manager:v0.4.0"
+        )
+        self.assertEqual(
+            image_refs["pulsar-manager-bootstrap"], "python:3.12.13-alpine3.23"
+        )
         self.assertEqual(image_refs["swagger-nginx"], "nginx:1.29.8-alpine")
 
-    def test_build_artifact_services_does_not_call_live_clients_during_construction(self):
+    def test_build_artifact_services_does_not_call_live_clients_during_construction(
+        self,
+    ):
         services = composition.build_lxc_artifact_services(
             backend=composition.ManagedLxcBackend.INCUS,
         )
@@ -905,18 +998,29 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(len(services.workflows.prepare.steps), 20)
         self.assertEqual(len(services.workflows.verify.checks), 20)
 
-    def test_build_deployment_services_wires_stack_contracts_without_running_runtime(self):
+    def test_build_deployment_services_wires_stack_contracts_without_running_runtime(
+        self,
+    ):
         with patch.dict("os.environ", _required_infisical_bootstrap_env(), clear=True):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
                 services = composition.build_lxc_deployment_services(
                     backend=composition.ManagedLxcBackend.INCUS,
                 )
 
-        self.assertIsInstance(services.workflows.bootstrap, composition.DeploymentApplyWorkflow)
-        self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
-        self.assertIsInstance(services.workflows.verify, composition.DeploymentVerifyWorkflow)
+        self.assertIsInstance(
+            services.workflows.bootstrap, composition.DeploymentApplyWorkflow
+        )
+        self.assertIsInstance(
+            services.workflows.apply, composition.DeploymentApplyWorkflow
+        )
+        self.assertIsInstance(
+            services.workflows.verify, composition.DeploymentVerifyWorkflow
+        )
         self.assertEqual(
-            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
+            tuple(
+                step.verification_target_id
+                for step in services.workflows.bootstrap.steps
+            ),
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
@@ -925,7 +1029,9 @@ class TestComposition(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            tuple(step.verification_target_id for step in services.workflows.apply.steps),
+            tuple(
+                step.verification_target_id for step in services.workflows.apply.steps
+            ),
             (
                 "deployment:traefik-stack",
                 "deployment:infisical-stack",
@@ -954,12 +1060,14 @@ class TestComposition(unittest.TestCase):
         jenkins_step = next(
             step
             for step in services.workflows.apply.steps
-            if hasattr(step, "service_stack") and step.service_stack.stack_name == "jenkins"
+            if hasattr(step, "service_stack")
+            and step.service_stack.stack_name == "jenkins"
         )
         nexus_step = next(
             step
             for step in services.workflows.bootstrap.steps
-            if hasattr(step, "service_stack") and step.service_stack.stack_name == "nexus"
+            if hasattr(step, "service_stack")
+            and step.service_stack.stack_name == "nexus"
         )
         self.assertEqual(
             nexus_step.stack_environment,
@@ -975,7 +1083,8 @@ class TestComposition(unittest.TestCase):
         traefik_step = next(
             step
             for step in services.workflows.apply.steps
-            if hasattr(step, "service_stack") and step.service_stack.stack_name == "traefik"
+            if hasattr(step, "service_stack")
+            and step.service_stack.stack_name == "traefik"
         )
         self.assertEqual(
             traefik_step.stack_environment,
@@ -993,7 +1102,9 @@ class TestComposition(unittest.TestCase):
             sample_text("sonar-admin", "-value!"),
             sonarqube_admin_step.password,
         )
-        self.assertEqual(sonarqube_admin_step.sonarqube_client.base_url, "http://localhost:12000")
+        self.assertEqual(
+            sonarqube_admin_step.sonarqube_client.base_url, "http://localhost:12000"
+        )
         consumption_step = next(
             step
             for step in services.workflows.apply.steps
@@ -1008,7 +1119,10 @@ class TestComposition(unittest.TestCase):
             },
         )
         self.assertEqual(
-            tuple(check.verification_target_id for check in services.workflows.verify.checks),
+            tuple(
+                check.verification_target_id
+                for check in services.workflows.verify.checks
+            ),
             (
                 "deployment:portainer-service-readiness",
                 "deployment:traefik-service-readiness",
@@ -1023,7 +1137,10 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(services.workflows.apply.pre_apply_checks, ())
         self.assertEqual(
-            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
+            tuple(
+                step.deployment_target_id
+                for step in services.workflows.apply.pre_apply_steps
+            ),
             (
                 "deployment:effective-access-model-evidence",
                 "deployment:traefik-stack-assets",
@@ -1032,8 +1149,12 @@ class TestComposition(unittest.TestCase):
             ),
         )
 
-    def test_build_deployment_services_wires_service_access_dashboard_renderer_to_swarm_runtime(self):
-        with patch.object(composition, "ComposeFileRepositoryYaml") as compose_repository:
+    def test_build_deployment_services_wires_service_access_dashboard_renderer_to_swarm_runtime(
+        self,
+    ):
+        with patch.object(
+            composition, "ComposeFileRepositoryYaml"
+        ) as compose_repository:
             with patch.object(composition, "LxcSwarmRuntime") as swarm_runtime:
                 composition.build_lxc_deployment_services(
                     backend=composition.ManagedLxcBackend.INCUS,
@@ -1045,7 +1166,9 @@ class TestComposition(unittest.TestCase):
         )
         compose_repository.return_value.render_service_access_dashboard.assert_not_called()
 
-    def test_build_deployment_services_keeps_service_access_assets_out_of_default_profile(self):
+    def test_build_deployment_services_keeps_service_access_assets_out_of_default_profile(
+        self,
+    ):
         with patch.object(composition, "ComposeFileRepositoryYaml"):
             services = composition.build_lxc_deployment_services(
                 backend=composition.ManagedLxcBackend.INCUS,
@@ -1053,7 +1176,10 @@ class TestComposition(unittest.TestCase):
             )
 
         self.assertEqual(
-            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
+            tuple(
+                step.deployment_target_id
+                for step in services.workflows.apply.pre_apply_steps
+            ),
             (
                 "deployment:effective-access-model-evidence",
                 "deployment:traefik-stack-assets",
@@ -1062,7 +1188,9 @@ class TestComposition(unittest.TestCase):
         )
 
     def test_build_deployment_services_does_not_call_runtime_during_construction(self):
-        with patch.object(composition, "ComposeFileRepositoryYaml") as compose_repository:
+        with patch.object(
+            composition, "ComposeFileRepositoryYaml"
+        ) as compose_repository:
             services = composition.build_lxc_deployment_services(
                 backend=composition.ManagedLxcBackend.INCUS,
             )
@@ -1077,20 +1205,31 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(len(services.workflows.apply.steps), 15)
         self.assertEqual(len(services.workflows.verify.checks), 9)
 
-    def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(self):
+    def test_default_provider_artifact_services_use_lxc_clients_when_backend_is_available(
+        self,
+    ):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/lxc"):
             services = composition.build_artifact_services_for_provider()
 
-        self.assertIsInstance(services.workflows.prepare, composition.ArtifactPrepareWorkflow)
+        self.assertIsInstance(
+            services.workflows.prepare, composition.ArtifactPrepareWorkflow
+        )
         self.assertEqual(len(services.workflows.prepare.steps), 20)
 
-    def test_default_provider_deployment_services_use_lxc_clients_when_backend_is_available(self):
+    def test_default_provider_deployment_services_use_lxc_clients_when_backend_is_available(
+        self,
+    ):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/incus"):
             services = composition.build_deployment_services_for_provider()
 
-        self.assertIsInstance(services.workflows.bootstrap, composition.DeploymentApplyWorkflow)
+        self.assertIsInstance(
+            services.workflows.bootstrap, composition.DeploymentApplyWorkflow
+        )
         self.assertEqual(
-            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
+            tuple(
+                step.verification_target_id
+                for step in services.workflows.bootstrap.steps
+            ),
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
@@ -1111,7 +1250,9 @@ class TestComposition(unittest.TestCase):
         services = composition.build_lxc_deployment_services(
             backend=composition.ManagedLxcBackend.INCUS,
         )
-        self.assertIsInstance(services.workflows.apply, composition.DeploymentApplyWorkflow)
+        self.assertIsInstance(
+            services.workflows.apply, composition.DeploymentApplyWorkflow
+        )
 
     def test_build_deployment_services_can_select_service_access_profile(self):
         with patch.object(composition, "ComposeFileRepositoryYaml"):
@@ -1121,7 +1262,10 @@ class TestComposition(unittest.TestCase):
             )
 
         self.assertEqual(
-            tuple(step.verification_target_id for step in services.workflows.bootstrap.steps),
+            tuple(
+                step.verification_target_id
+                for step in services.workflows.bootstrap.steps
+            ),
             (
                 "deployment:portainer-stack",
                 "deployment:portainer-admin-access",
@@ -1130,7 +1274,9 @@ class TestComposition(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            tuple(step.verification_target_id for step in services.workflows.apply.steps),
+            tuple(
+                step.verification_target_id for step in services.workflows.apply.steps
+            ),
             (
                 "deployment:traefik-stack",
                 "deployment:infisical-stack",
@@ -1157,7 +1303,10 @@ class TestComposition(unittest.TestCase):
             )
         )
         self.assertEqual(
-            tuple(check.verification_target_id for check in services.workflows.verify.checks),
+            tuple(
+                check.verification_target_id
+                for check in services.workflows.verify.checks
+            ),
             (
                 "deployment:portainer-service-readiness",
                 "deployment:traefik-service-readiness",
@@ -1216,7 +1365,9 @@ class TestComposition(unittest.TestCase):
                 "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
                 "TSW_INFISICAL_AUTH_SECRET": sample_text("auth", "-secret"),
                 "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.com",
-                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": sample_text("master", "-value"),
+                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": sample_text(
+                    "master", "-value"
+                ),
                 "TSW_INFISICAL_ADMIN_FIRST_NAME": "Tiny",
                 "TSW_INFISICAL_ADMIN_LAST_NAME": "Admin",
                 "TSW_INFISICAL_POSTGRES_PASSWORD": sample_text("pg", "-secret"),
@@ -1225,7 +1376,10 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(services.workflows.apply.pre_apply_checks, ())
         self.assertEqual(
-            tuple(step.deployment_target_id for step in services.workflows.apply.pre_apply_steps),
+            tuple(
+                step.deployment_target_id
+                for step in services.workflows.apply.pre_apply_steps
+            ),
             (
                 "deployment:effective-access-model-evidence",
                 "deployment:traefik-stack-assets",
@@ -1234,8 +1388,12 @@ class TestComposition(unittest.TestCase):
             ),
         )
 
-    def test_build_deployment_services_wires_routing_evidence_from_selected_model_profile(self):
-        with patch.object(composition, "ComposeFileRepositoryYaml") as compose_repository:
+    def test_build_deployment_services_wires_routing_evidence_from_selected_model_profile(
+        self,
+    ):
+        with patch.object(
+            composition, "ComposeFileRepositoryYaml"
+        ) as compose_repository:
             with patch.object(
                 composition,
                 "RoutingEvidenceLocalRepository",
@@ -1292,7 +1450,9 @@ class TestComposition(unittest.TestCase):
         write_evidence.assert_called_once_with()
         run_stack.assert_not_called()
 
-    def test_build_deployment_services_uses_operator_swarm_registry_endpoint_for_local_images(self):
+    def test_build_deployment_services_uses_operator_swarm_registry_endpoint_for_local_images(
+        self,
+    ):
         with patch.dict(
             "os.environ",
             {
@@ -1342,7 +1502,8 @@ class TestComposition(unittest.TestCase):
         nexus_step = next(
             step
             for step in services.workflows.bootstrap.steps
-            if hasattr(step, "service_stack") and step.service_stack.stack_name == "nexus"
+            if hasattr(step, "service_stack")
+            and step.service_stack.stack_name == "nexus"
         )
 
         self.assertEqual(
@@ -1403,7 +1564,9 @@ class TestComposition(unittest.TestCase):
                 )
 
         endpoint_step = services.workflows.bootstrap.steps[2]
-        self.assertEqual(endpoint_step.portainer_client.stack_request_timeout_seconds, 181)
+        self.assertEqual(
+            endpoint_step.portainer_client.stack_request_timeout_seconds, 181
+        )
 
     def test_build_deployment_services_can_seed_infisical_items_when_enabled(self):
         env = {
@@ -1431,7 +1594,9 @@ class TestComposition(unittest.TestCase):
             for step in services.workflows.apply.steps
             if step.verification_target_id == "deployment:infisical-items"
         )
-        self.assertEqual(bootstrap_step.verification_target_id, "deployment:infisical-silent-install")
+        self.assertEqual(
+            bootstrap_step.verification_target_id, "deployment:infisical-silent-install"
+        )
         self.assertEqual(
             tuple(item.item_name for item in seed_step.items),
             (
@@ -1453,9 +1618,15 @@ class TestComposition(unittest.TestCase):
                     service_profile=ServiceStackProfile.SERVICE_ACCESS,
                 )
 
-        target_ids = tuple(step.verification_target_id for step in services.workflows.apply.steps)
-        service_guard_index = target_ids.index("deployment:infisical-bootstrap-service-readiness")
-        access_guard_index = target_ids.index("deployment:infisical-bootstrap-access-readiness")
+        target_ids = tuple(
+            step.verification_target_id for step in services.workflows.apply.steps
+        )
+        service_guard_index = target_ids.index(
+            "deployment:infisical-bootstrap-service-readiness"
+        )
+        access_guard_index = target_ids.index(
+            "deployment:infisical-bootstrap-access-readiness"
+        )
         bootstrap_index = target_ids.index("deployment:infisical-silent-install")
 
         self.assertLess(service_guard_index, bootstrap_index)
@@ -1485,7 +1656,9 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(sync_step.mode, "fixed")
 
-    def test_build_deployment_services_uses_configurable_infisical_readiness_window(self):
+    def test_build_deployment_services_uses_configurable_infisical_readiness_window(
+        self,
+    ):
         env = {
             **_required_infisical_bootstrap_env(),
             "TSW_INFISICAL_READINESS_ATTEMPTS": "240",
@@ -1503,9 +1676,13 @@ class TestComposition(unittest.TestCase):
             for step in services.workflows.apply.steps
             if step.verification_target_id == "deployment:infisical-silent-install"
         )
-        self.assertEqual(bootstrap_step.verification_target_id, "deployment:infisical-silent-install")
+        self.assertEqual(
+            bootstrap_step.verification_target_id, "deployment:infisical-silent-install"
+        )
         self.assertEqual(bootstrap_step.bootstrap_client.readiness_attempts, 240)
-        self.assertEqual(bootstrap_step.bootstrap_client.readiness_interval_seconds, 2.5)
+        self.assertEqual(
+            bootstrap_step.bootstrap_client.readiness_interval_seconds, 2.5
+        )
 
     def test_build_deployment_services_uses_extended_infisical_readiness_default(self):
         env = _required_infisical_bootstrap_env()
@@ -1521,7 +1698,9 @@ class TestComposition(unittest.TestCase):
             for step in services.workflows.apply.steps
             if step.verification_target_id == "deployment:infisical-silent-install"
         )
-        self.assertEqual(bootstrap_step.verification_target_id, "deployment:infisical-silent-install")
+        self.assertEqual(
+            bootstrap_step.verification_target_id, "deployment:infisical-silent-install"
+        )
         self.assertEqual(
             composition.DEFAULT_INFISICAL_READINESS_ATTEMPTS,
             bootstrap_step.bootstrap_client.readiness_attempts,
@@ -1545,21 +1724,25 @@ class TestComposition(unittest.TestCase):
                         service_profile=ServiceStackProfile.SERVICE_ACCESS,
                     )
 
-    def test_build_deployment_services_rejects_enabled_infisical_seed_without_passwords(self):
+    def test_build_deployment_services_rejects_enabled_infisical_seed_without_passwords(
+        self,
+    ):
         with patch.dict(
             "os.environ",
             {
                 "TSW_SEED_INFISICAL_ITEMS": "1",
                 "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.com",
-                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": sample_text("master", "-value"),
-        "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
-        "TSW_INFISICAL_AUTH_SECRET": sample_text("auth", "-secret"),
-        "TSW_INFISICAL_POSTGRES_PASSWORD": sample_text("pg", "-secret"),
-        "TSW_INFISICAL_REDIS_PASSWORD": sample_text("redis", "-secret"),
-        "TSW_PORTAINER_ADMIN_PASSWORD": sample_text("portainer", "-value"),
-        "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
-        "TSW_POSTGRES_PASSWORD": sample_text("postgres", "-value"),
-        "TSW_SONARQUBE_POSTGRES_PASSWORD": sample_text("sonar-pg", "-value"),
+                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": sample_text(
+                    "master", "-value"
+                ),
+                "TSW_INFISICAL_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
+                "TSW_INFISICAL_AUTH_SECRET": sample_text("auth", "-secret"),
+                "TSW_INFISICAL_POSTGRES_PASSWORD": sample_text("pg", "-secret"),
+                "TSW_INFISICAL_REDIS_PASSWORD": sample_text("redis", "-secret"),
+                "TSW_PORTAINER_ADMIN_PASSWORD": sample_text("portainer", "-value"),
+                "TSW_JENKINS_ADMIN_PASSWORD": sample_text("jenkins", "-value"),
+                "TSW_POSTGRES_PASSWORD": sample_text("postgres", "-value"),
+                "TSW_SONARQUBE_POSTGRES_PASSWORD": sample_text("sonar-pg", "-value"),
             },
             clear=True,
         ):
@@ -1624,7 +1807,8 @@ class TestComposition(unittest.TestCase):
         )
         self.assertTrue(
             all(
-                phase.trace_correlation_id == services.workflows.run.trace_correlation_id
+                phase.trace_correlation_id
+                == services.workflows.run.trace_correlation_id
                 for phase in services.workflows.run.phases
             )
         )
@@ -1700,8 +1884,12 @@ class TestComposition(unittest.TestCase):
             captured["deployment_ui"] = ui
             return _deployment_phase_bundle()
 
-        with patch.object(composition, "build_preflight_service", return_value=_phase_bundle()):
-            with patch.object(composition, "build_platform_services", side_effect=build_platform):
+        with patch.object(
+            composition, "build_preflight_service", return_value=_phase_bundle()
+        ):
+            with patch.object(
+                composition, "build_platform_services", side_effect=build_platform
+            ):
                 with patch.object(
                     composition,
                     "build_artifact_services_for_provider",
@@ -1718,13 +1906,19 @@ class TestComposition(unittest.TestCase):
         method_trace_sink = services.workflows.run.method_trace
         self.assertIsInstance(progress_sink, composition.CompositeWorkflowProgress)
         self.assertIsInstance(method_trace_sink, composition.CompositeMethodTrace)
-        progress_sinks = cast(composition.CompositeWorkflowProgress, progress_sink).sinks
-        method_trace_sinks = cast(composition.CompositeMethodTrace, method_trace_sink).sinks
+        progress_sinks = cast(
+            composition.CompositeWorkflowProgress, progress_sink
+        ).sinks
+        method_trace_sinks = cast(
+            composition.CompositeMethodTrace, method_trace_sink
+        ).sinks
 
         self.assertIs(ui, captured["ui"])
         self.assertIs(ui, captured["deployment_ui"])
         self.assertIs(live_consent, captured["live_consent"])
-        self.assertEqual(ServiceStackProfile.SERVICE_ACCESS, captured["deployment_service_profile"])
+        self.assertEqual(
+            ServiceStackProfile.SERVICE_ACCESS, captured["deployment_service_profile"]
+        )
         self.assertIsNone(captured["deployment_node_provider_request"])
         self.assertEqual(
             services.workflows.run.trace_correlation_id,
@@ -1732,15 +1926,13 @@ class TestComposition(unittest.TestCase):
         )
         self.assertTrue(
             any(
-                isinstance(sink, composition.TerminalWorkflowProgress)
-                and sink.ui is ui
+                isinstance(sink, composition.TerminalWorkflowProgress) and sink.ui is ui
                 for sink in progress_sinks
             )
         )
         self.assertTrue(
             any(
-                isinstance(sink, composition.TerminalMethodTrace)
-                and sink.ui is ui
+                isinstance(sink, composition.TerminalMethodTrace) and sink.ui is ui
                 for sink in method_trace_sinks
             )
         )
@@ -1759,7 +1951,9 @@ class TestComposition(unittest.TestCase):
             (),
         )
 
-    def test_build_platform_services_wires_init_guard_when_live_consent_is_available(self):
+    def test_build_platform_services_wires_init_guard_when_live_consent_is_available(
+        self,
+    ):
         live_consent = _accepted_live_consent()
         services = composition.build_platform_services(live_consent=live_consent)
 
@@ -1773,19 +1967,27 @@ class TestComposition(unittest.TestCase):
     def test_lxc_docker_registry_mirror_configuration_uses_operator_environment(self):
         with patch.dict(
             os.environ,
-            {"TSW_LXC_DOCKER_REGISTRY_MIRROR": sample_http_url(ipv4_address(10, 0, 3, 1), 5001)},
+            {
+                "TSW_LXC_DOCKER_REGISTRY_MIRROR": sample_http_url(
+                    ipv4_address(10, 0, 3, 1), 5001
+                )
+            },
             clear=True,
         ):
             with patch.object(
                 composition.subprocess,
                 "run",
-                side_effect=AssertionError("explicit mirror configuration must not probe Docker"),
+                side_effect=AssertionError(
+                    "explicit mirror configuration must not probe Docker"
+                ),
             ):
                 mirror = composition._lxc_docker_registry_mirror_configuration()
 
         self.assertIsNotNone(mirror)
         assert mirror is not None
-        self.assertEqual(sample_http_url(ipv4_address(10, 0, 3, 1), 5001), mirror.mirror_url)
+        self.assertEqual(
+            sample_http_url(ipv4_address(10, 0, 3, 1), 5001), mirror.mirror_url
+        )
         self.assertEqual(mirror.registry_authority, f"{ipv4_address(10, 0, 3, 1)}:5001")
 
     def test_lxc_docker_registry_mirror_rejects_localhost_operator_value(self):
@@ -1797,12 +1999,16 @@ class TestComposition(unittest.TestCase):
             with self.assertRaises(ValueError):
                 composition._lxc_docker_registry_mirror_configuration()
 
-    def test_lxc_docker_registry_mirror_does_not_probe_without_operator_environment(self):
+    def test_lxc_docker_registry_mirror_does_not_probe_without_operator_environment(
+        self,
+    ):
         with patch.dict(os.environ, {}, clear=True):
             with patch.object(
                 composition.subprocess,
                 "run",
-                side_effect=AssertionError("unset mirror configuration must not probe Docker"),
+                side_effect=AssertionError(
+                    "unset mirror configuration must not probe Docker"
+                ),
             ):
                 mirror = composition._lxc_docker_registry_mirror_configuration()
 
@@ -1906,9 +2112,7 @@ class TestComposition(unittest.TestCase):
             return f"/usr/bin/{name}" if name == "incus" else None
 
         request = composition.NodeProviderSelectionRequest(
-            backend_candidates=(
-                composition.ManagedLxcBackend.INCUS,
-            )
+            backend_candidates=(composition.ManagedLxcBackend.INCUS,)
         )
 
         with patch.object(composition.shutil, "which", side_effect=which):
@@ -1960,8 +2164,12 @@ class TestComposition(unittest.TestCase):
             captured["allow_wsl_windows_filesystem"] = allow_wsl_windows_filesystem
             return _platform_phase_bundle()
 
-        with patch.object(composition, "build_preflight_service", return_value=_phase_bundle()):
-            with patch.object(composition, "build_platform_services", side_effect=build_platform):
+        with patch.object(
+            composition, "build_preflight_service", return_value=_phase_bundle()
+        ):
+            with patch.object(
+                composition, "build_platform_services", side_effect=build_platform
+            ):
                 with patch.object(
                     composition,
                     "build_artifact_services_for_provider",
@@ -1975,7 +2183,9 @@ class TestComposition(unittest.TestCase):
                         composition.build_setup_services(live_consent)
 
         self.assertIs(live_consent, captured["live_consent"])
-        self.assertEqual(ServiceStackProfile.SERVICE_ACCESS, captured["service_profile"])
+        self.assertEqual(
+            ServiceStackProfile.SERVICE_ACCESS, captured["service_profile"]
+        )
         self.assertIsNone(captured["ui"])
         self.assertTrue(
             str(captured["trace_correlation_id"]).startswith("trace-installation-")
@@ -2020,7 +2230,9 @@ class TestComposition(unittest.TestCase):
             result.verification_results[0].evidence["reason"],
             "provider_selection_blocked",
         )
-        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+        self.assertEqual(
+            tuple(result.verification_results), evidence_repository.list_all()
+        )
 
     def test_composed_default_lxc_init_runs_container_runtime_and_swarm_steps(self):
         evidence_repository = _RecordingEvidenceRepository()
@@ -2116,9 +2328,13 @@ class TestComposition(unittest.TestCase):
             tuple(worker.name for worker in bootstrap_swarm.call_args.args[2]),
             ("swarm-worker-1", "swarm-worker-2"),
         )
-        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+        self.assertEqual(
+            tuple(result.verification_results), evidence_repository.list_all()
+        )
 
-    def test_composed_default_lxc_init_without_live_consent_fails_closed_before_runtime_probe(self):
+    def test_composed_default_lxc_init_without_live_consent_fails_closed_before_runtime_probe(
+        self,
+    ):
         evidence_repository = _RecordingEvidenceRepository()
 
         async def verified_node(node, request=None):
@@ -2160,9 +2376,13 @@ class TestComposition(unittest.TestCase):
             result.verification_results[-1].evidence["classification"],
             "container_runtime_not_verified",
         )
-        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+        self.assertEqual(
+            tuple(result.verification_results), evidence_repository.list_all()
+        )
 
-    def test_composed_default_lxc_reconcile_verifies_configured_nodes_without_provider_fallback(self):
+    def test_composed_default_lxc_reconcile_verifies_configured_nodes_without_provider_fallback(
+        self,
+    ):
         evidence_repository = _RecordingEvidenceRepository()
 
         async def verified_node(node, request=None):
@@ -2212,7 +2432,9 @@ class TestComposition(unittest.TestCase):
             [call.args[0].name for call in ensure_node.call_args_list],
             ["swarm-manager", "swarm-worker-1", "swarm-worker-2"],
         )
-        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+        self.assertEqual(
+            tuple(result.verification_results), evidence_repository.list_all()
+        )
 
     def test_composed_default_lxc_reconcile_reports_converged_node_drift(self):
         evidence_repository = _RecordingEvidenceRepository()
@@ -2260,7 +2482,9 @@ class TestComposition(unittest.TestCase):
             ).target_id,
             "platform:node:swarm-worker-1",
         )
-        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+        self.assertEqual(
+            tuple(result.verification_results), evidence_repository.list_all()
+        )
 
     def test_composed_default_lxc_reconcile_blocks_before_unapproved_mutation(self):
         evidence_repository = _RecordingEvidenceRepository()
@@ -2301,7 +2525,9 @@ class TestComposition(unittest.TestCase):
             result.verification_results[0].target_id,
             "platform:node:swarm-manager",
         )
-        self.assertEqual(tuple(result.verification_results), evidence_repository.list_all())
+        self.assertEqual(
+            tuple(result.verification_results), evidence_repository.list_all()
+        )
 
     def test_composed_default_lxc_expose_uses_manager_gateway_and_setup_ports(self):
         services = composition.build_platform_services()
@@ -2387,7 +2613,6 @@ class TestComposition(unittest.TestCase):
             result.verification_results[0].evidence["lookup_failure_count"],
             "18",
         )
-
 
 
 def _blocked_contract_result(target_id: str) -> VerificationResult:

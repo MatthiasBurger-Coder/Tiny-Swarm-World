@@ -1,10 +1,12 @@
 import unittest
 
-from tiny_swarm_world.infrastructure.adapters.yaml.yaml_builder import FluentYAMLBuilder, YAMLNode
+from tiny_swarm_world.infrastructure.adapters.yaml.yaml_builder import (
+    FluentYAMLBuilder,
+    YAMLNode,
+)
 
 
 class TestFluentYAMLBuilder(unittest.TestCase):
-
     def setUp(self):
         self.builder = FluentYAMLBuilder("root")
 
@@ -118,12 +120,16 @@ class TestFluentYAMLBuilder(unittest.TestCase):
         self.builder.add_child("subchild1")  # Add 'subchild1' under 'child1'
 
         # Navigate to 'subchild1' and delete it
-        self.builder.navigate_to(["child1", "subchild1"])  # Ensure correct path is followed
+        self.builder.navigate_to(
+            ["child1", "subchild1"]
+        )  # Ensure correct path is followed
         self.builder.delete_current()  # Delete 'subchild1'
 
         # Verify that the current node is updated to 'child1' (the parent)
         current_node = self.builder.current
-        self.assertEqual(current_node.name, "child1")  # Ensure current node is back to 'child1'
+        self.assertEqual(
+            current_node.name, "child1"
+        )  # Ensure current node is back to 'child1'
 
     def test_up(self):
         """Test moving up the node hierarchy."""
@@ -190,24 +196,21 @@ class TestFluentYAMLBuilder(unittest.TestCase):
 
     def test_to_dict_with_children(self):
         """Test to_dict with multiple children."""
-        (self.builder
-         .add_child("child1")
-         .add_child("child2", "value2")
-         .up().up()
-         .add_child("child3", "value3"))
+        (
+            self.builder.add_child("child1")
+            .add_child("child2", "value2")
+            .up()
+            .up()
+            .add_child("child3", "value3")
+        )
         result = self.builder.to_dict()
-        expected = {
-            "root": {
-                "child1": {
-                    "child2": "value2"
-                },
-                "child3": "value3"
-            }
-        }
-        self.assertEqual(expected, result)
+        expected = {"root": {"child1": {"child2": "value2"}, "child3": "value3"}}
+        self.assertEqual(result, expected)
 
     def test_to_dict_with_multiple_children(self):
-        self.builder.add_child("child1", "value1", stay=True).add_child("child2", "value2")
+        self.builder.add_child("child1", "value1", stay=True).add_child(
+            "child2", "value2"
+        )
         result = self.builder.to_dict(self.builder.root)
         self.assertEqual({"root": {"child1": "value1", "child2": "value2"}}, result)
 
@@ -230,12 +233,7 @@ class TestFluentYAMLBuilder(unittest.TestCase):
         self.builder.up().up()
         self.builder.add_child("child3", "value3")
         yaml_output = self.builder.to_yaml()
-        expected_yaml = (
-            "root:\n"
-            "  child1:\n"
-            "    child2: value2\n"
-            "  child3: value3\n"
-        )
+        expected_yaml = "root:\n  child1:\n    child2: value2\n  child3: value3\n"
         self.assertEqual(expected_yaml.strip(), yaml_output.strip())
 
 

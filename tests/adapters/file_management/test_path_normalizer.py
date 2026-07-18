@@ -3,7 +3,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer import PathNormalizer
+from tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer import (
+    PathNormalizer,
+)
 
 
 class TestPathNormalizer(unittest.TestCase):
@@ -15,7 +17,9 @@ class TestPathNormalizer(unittest.TestCase):
             "tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.PathFactory"
         )
         self.mock_path_factory_class = self.path_factory_patcher.start()
-        self.addCleanup(self.path_factory_patcher.stop)  # ensures cleanup after each test
+        self.addCleanup(
+            self.path_factory_patcher.stop
+        )  # ensures cleanup after each test
 
         # Mock the strategy
         self.mock_strategy = MagicMock()
@@ -37,12 +41,11 @@ class TestPathNormalizer(unittest.TestCase):
         if os.path.exists(self.temp_dir):
             os.rmdir(self.temp_dir)
 
-
     def test_normalize_returns_normalized_path(self):
         """
         Test if normalize() correctly resolves and normalizes paths.
         """
-        normalizer = PathNormalizer(self.mock_factory_instance,self.test_path)
+        normalizer = PathNormalizer(self.mock_factory_instance, self.test_path)
 
         normalized_path = normalizer.normalize()
         expected_path = Path(self.test_path).resolve().as_posix()
@@ -64,7 +67,7 @@ class TestPathNormalizer(unittest.TestCase):
         expected_basename = "file.txt"
         normalizer = PathNormalizer(self.mock_factory_instance, self.test_path)
         basename = normalizer.basename()
-        self.assertEqual(expected_basename, basename)
+        self.assertEqual(basename, expected_basename)
 
     def test_parent_directory_returns_correct_path(self):
         """
@@ -76,8 +79,13 @@ class TestPathNormalizer(unittest.TestCase):
 
         self.assertEqual(parent_directory, expected_parent)
 
-    @patch("tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.mkdir")
-    @patch("tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.exists", return_value=False)
+    @patch(
+        "tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.mkdir"
+    )
+    @patch(
+        "tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.exists",
+        return_value=False,
+    )
     def test_ensure_directory_creates_if_not_exists(self, mock_exists, mock_mkdir):
         """
         Test that ensure_directory() calls mkdir when the directory does not exist.
@@ -88,8 +96,13 @@ class TestPathNormalizer(unittest.TestCase):
         mock_exists.assert_called_once()
         mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 
-    @patch("tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.mkdir")
-    @patch("tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.exists", return_value=True)
+    @patch(
+        "tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.mkdir"
+    )
+    @patch(
+        "tiny_swarm_world.infrastructure.adapters.file_management.path_normalizer.Path.exists",
+        return_value=True,
+    )
     def test_ensure_directory_skips_creation_if_exists(self, mock_exists, mock_mkdir):
         """
         Test that ensure_directory() does not call mkdir if directory already exists.
@@ -99,7 +112,6 @@ class TestPathNormalizer(unittest.TestCase):
 
         mock_exists.assert_called_once()
         mock_mkdir.assert_not_called()
-
 
 
 if __name__ == "__main__":

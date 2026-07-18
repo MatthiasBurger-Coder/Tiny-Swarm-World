@@ -18,8 +18,8 @@ class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
     async def test_prepare_workflow_is_explicitly_blocked(self):
         result = await ArtifactPrepareWorkflow().run()
 
-        self.assertEqual(ArtifactWorkflowKind.PREPARE, result.kind)
-        self.assertEqual(ArtifactWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(result.kind, ArtifactWorkflowKind.PREPARE)
+        self.assertEqual(result.status, ArtifactWorkflowStatus.BLOCKED)
         self.assertFalse(result.executed)
         self.assertEqual("artifacts prepare", result.workflow_name)
         self.assertIn("artifact preparation contracts", result.message)
@@ -30,8 +30,8 @@ class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
     async def test_verify_workflow_is_explicitly_blocked(self):
         result = await ArtifactVerifyWorkflow().run()
 
-        self.assertEqual(ArtifactWorkflowKind.VERIFY, result.kind)
-        self.assertEqual(ArtifactWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(result.kind, ArtifactWorkflowKind.VERIFY)
+        self.assertEqual(result.status, ArtifactWorkflowStatus.BLOCKED)
         self.assertFalse(result.executed)
         self.assertEqual("artifacts verify", result.workflow_name)
         self.assertIn("artifact verification contracts", result.message)
@@ -43,42 +43,54 @@ class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
 
         result = await ArtifactPrepareWorkflow((step,)).run()
 
-        self.assertEqual(ArtifactWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(result.status, ArtifactWorkflowStatus.COMPLETED)
         self.assertTrue(result.executed)
         self.assertTrue(step.ran)
         self.assertEqual(1, len(result.verification_results))
-        self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
+        self.assertEqual(
+            VerificationStatus.VERIFIED, result.verification_results[0].status
+        )
 
     async def test_prepare_workflow_blocks_when_verify_after_prepare_is_missing(self):
         step = _PrepareStepWithoutVerification()
 
         result = await ArtifactPrepareWorkflow((step,)).run()
 
-        self.assertEqual(ArtifactWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(result.status, ArtifactWorkflowStatus.BLOCKED)
         self.assertFalse(result.executed)
         self.assertFalse(step.ran)
-        self.assertEqual("verify-after-prepare contract is missing for artifacts prepare", result.reason)
-        self.assertEqual(VerificationStatus.BLOCKED, result.verification_results[0].status)
+        self.assertEqual(
+            "verify-after-prepare contract is missing for artifacts prepare",
+            result.reason,
+        )
+        self.assertEqual(
+            VerificationStatus.BLOCKED, result.verification_results[0].status
+        )
 
     async def test_prepare_workflow_sanitizes_prepare_failure(self):
         step = _FailingPrepareStep()
 
         result = await ArtifactPrepareWorkflow((step,)).run()
 
-        self.assertEqual(ArtifactWorkflowStatus.FAILED_TO_PREPARE, result.status)
+        self.assertEqual(result.status, ArtifactWorkflowStatus.FAILED_TO_PREPARE)
         self.assertTrue(result.executed)
         self.assertEqual("prepare failed with RuntimeError", result.reason)
         self.assertNotIn("secret", result.reason)
-        self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status)
+        self.assertEqual(
+            VerificationStatus.FAILED_TO_APPLY, result.verification_results[0].status
+        )
 
     async def test_prepare_workflow_reports_safe_diagnostic_evidence(self):
         step = _DiagnosticFailingPrepareStep()
 
         result = await ArtifactPrepareWorkflow((step,)).run()
 
-        self.assertEqual(ArtifactWorkflowStatus.FAILED_TO_PREPARE, result.status)
+        self.assertEqual(result.status, ArtifactWorkflowStatus.FAILED_TO_PREPARE)
         self.assertIn("initial_admin_value_unavailable", result.reason)
-        self.assertEqual(result.verification_results[0].evidence["diagnostic"], "initial_admin_value_unavailable")
+        self.assertEqual(
+            result.verification_results[0].evidence["diagnostic"],
+            "initial_admin_value_unavailable",
+        )
         self.assertEqual(
             result.verification_results[0].evidence["failure_class"],
             "NexusAdminAccessRecoveryBlocked",
@@ -93,26 +105,34 @@ class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
 
         result = await ArtifactPrepareWorkflow((step,)).run()
 
-        self.assertEqual(ArtifactWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertEqual(result.status, ArtifactWorkflowStatus.FAILED_TO_VERIFY)
         self.assertTrue(result.executed)
-        self.assertEqual("verification failed for artifacts:nexus-maven-proxy-repository", result.reason)
+        self.assertEqual(
+            "verification failed for artifacts:nexus-maven-proxy-repository",
+            result.reason,
+        )
 
     async def test_verify_workflow_completes_with_verified_checks(self):
         check = _VerifiedCheck("artifacts:nexus-docker-hosted-repository")
 
         result = await ArtifactVerifyWorkflow((check,)).run()
 
-        self.assertEqual(ArtifactWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(result.status, ArtifactWorkflowStatus.COMPLETED)
         self.assertFalse(result.executed)
-        self.assertEqual(VerificationStatus.VERIFIED, result.verification_results[0].status)
+        self.assertEqual(
+            VerificationStatus.VERIFIED, result.verification_results[0].status
+        )
 
     async def test_verify_workflow_reports_blocked_check(self):
         check = _BlockedCheck("artifacts:nexus-docker-hosted-repository")
 
         result = await ArtifactVerifyWorkflow((check,)).run()
 
-        self.assertEqual(ArtifactWorkflowStatus.BLOCKED, result.status)
-        self.assertEqual("verification is blocked for artifacts:nexus-docker-hosted-repository", result.reason)
+        self.assertEqual(result.status, ArtifactWorkflowStatus.BLOCKED)
+        self.assertEqual(
+            "verification is blocked for artifacts:nexus-docker-hosted-repository",
+            result.reason,
+        )
 
 
 class _VerifiedPrepareStep:
@@ -126,7 +146,9 @@ class _VerifiedPrepareStep:
 
     async def verify(self) -> VerificationResult:
         await async_checkpoint()
-        return _verification_result(self.verification_target_id, VerificationStatus.VERIFIED)
+        return _verification_result(
+            self.verification_target_id, VerificationStatus.VERIFIED
+        )
 
 
 class _PrepareStepWithoutVerification:
@@ -149,7 +171,9 @@ class _FailingPrepareStep:
 
     async def verify(self) -> VerificationResult:
         await async_checkpoint()
-        return _verification_result(self.verification_target_id, VerificationStatus.VERIFIED)
+        return _verification_result(
+            self.verification_target_id, VerificationStatus.VERIFIED
+        )
 
 
 class _DiagnosticFailingPrepareStep:
@@ -168,7 +192,9 @@ class _DiagnosticFailingPrepareStep:
 
     async def verify(self) -> VerificationResult:
         await async_checkpoint()
-        return _verification_result(self.verification_target_id, VerificationStatus.VERIFIED)
+        return _verification_result(
+            self.verification_target_id, VerificationStatus.VERIFIED
+        )
 
 
 class _FailedVerificationPrepareStep:
@@ -180,7 +206,9 @@ class _FailedVerificationPrepareStep:
 
     async def verify(self) -> VerificationResult:
         await async_checkpoint()
-        return _verification_result(self.verification_target_id, VerificationStatus.FAILED_TO_VERIFY)
+        return _verification_result(
+            self.verification_target_id, VerificationStatus.FAILED_TO_VERIFY
+        )
 
 
 class _VerifiedCheck:
@@ -189,7 +217,9 @@ class _VerifiedCheck:
 
     async def verify(self) -> VerificationResult:
         await async_checkpoint()
-        return _verification_result(self.verification_target_id, VerificationStatus.VERIFIED)
+        return _verification_result(
+            self.verification_target_id, VerificationStatus.VERIFIED
+        )
 
 
 class _BlockedCheck:
@@ -198,10 +228,14 @@ class _BlockedCheck:
 
     async def verify(self) -> VerificationResult:
         await async_checkpoint()
-        return _verification_result(self.verification_target_id, VerificationStatus.BLOCKED)
+        return _verification_result(
+            self.verification_target_id, VerificationStatus.BLOCKED
+        )
 
 
-def _verification_result(target_id: str, status: VerificationStatus) -> VerificationResult:
+def _verification_result(
+    target_id: str, status: VerificationStatus
+) -> VerificationResult:
     return VerificationResult(
         target_id=target_id,
         status=status,
