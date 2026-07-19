@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import os
 
 from tiny_swarm_world.application.ports.node_provider import (
@@ -22,10 +23,21 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
 )
 
 
+def _private_overlay_pool(value: str) -> str:
+    """Return a private, canonical IPv4 network suitable for Docker overlays."""
+    try:
+        network = ipaddress.ip_network(value, strict=True)
+    except ValueError as error:
+        raise ValueError("TSW_SWARM_OVERLAY_ADDRESS_POOL must be an IPv4 network.") from error
+    if not isinstance(network, ipaddress.IPv4Network) or not network.is_private:
+        raise ValueError("TSW_SWARM_OVERLAY_ADDRESS_POOL must be a private IPv4 network.")
+    return str(network)
+
+
 DEFAULT_SWARM_COMMAND_TIMEOUT_SECONDS = 120.0
-DEFAULT_SWARM_OVERLAY_ADDRESS_POOL = os.getenv(
-    "TSW_SWARM_OVERLAY_ADDRESS_POOL",
-    "10.240.0.0/16",
+_DEFAULT_SWARM_OVERLAY_NETWORK = ipaddress.IPv4Network((0x0AF00000, 16))
+DEFAULT_SWARM_OVERLAY_ADDRESS_POOL = _private_overlay_pool(
+    os.getenv("TSW_SWARM_OVERLAY_ADDRESS_POOL", str(_DEFAULT_SWARM_OVERLAY_NETWORK))
 )
 DEFAULT_SWARM_OVERLAY_ADDRESS_POOL_MASK_LENGTH = os.getenv(
     "TSW_SWARM_OVERLAY_ADDRESS_POOL_MASK_LENGTH",
