@@ -1,1 +1,14 @@
-{"workflow_version":"workflow-sonarcloud-remediation-v3.0.0","branch":"fix/workflow-sonarcloud-remediation-20260718","requirement_authority":"documentation/epics/sonarcloud-remediation.md","governing_file_sha256":{"AGENTS.md":"bba7ddf6214a1aaad6c2bfacbae2c9ac2bbd05653c03df9ba0daff3cf1b93210","QUALITY.md":"458e5f4d8fbdedea1c413e1ff135ec91392a4bb5a5aea20300dcac8e209414b6","documentation/process/issue-completion-discipline.md":"81876f6dca479a1d63a80f765baf949a951eff2e0eeafde6bac72ad750508904","documentation/epics/sonarcloud-remediation.md":"0569063e8c89c9a956080a10555a32aae4270f9caf372591d8e4df21083f6262"}}
+{
+  "workflow_id": "workflow-skill-agent-governance-20260720",
+  "version": "workflow-skill-agent-governance-v1.0.0",
+  "branch": "feature/workflow-skill-agent-governance-20260720",
+  "process_strand": "workflow execute",
+  "execution_profile": "FULL_PATH",
+  "affected_areas": [".agents/**", ".codex/**", "documentation/process/skills/**", "governance-only tests"],
+  "forbidden_areas": ["src/tiny_swarm_world/**", "product behavior tests", "Docker/runtime", "contracts", "persistence", "analytics", "live infrastructure"],
+  "read_only_architecture_boundary": "src/tiny_swarm_world/infrastructure/composition.py",
+  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester", "Skill Registry Conflict Auditor", "Senior Workflow Architect", "Senior Documentation Engineer"],
+  "quality_commands": ["git diff --check", "python3 tools/quality_gate.py quality"],
+  "evidence_path": ".tiny-swarm/evidence/workflow-skill-agent-governance-20260720/",
+  "arc42_status": "checked_no_update_required"
+}
