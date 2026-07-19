@@ -123,7 +123,10 @@ class TestNodeProviderConfigYamlRepository(unittest.TestCase):
     def test_provider_config_load_is_deterministic(self):
         repository = NodeProviderConfigYamlRepository()
 
-        self.assertEqual(repository.load(), repository.load())
+        first_load = repository.load()
+        second_load = repository.load()
+
+        self.assertEqual(first_load, second_load)
 
     def test_missing_provider_config_fails_closed(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
