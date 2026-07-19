@@ -21,11 +21,13 @@ it is not a skill or agent orchestrator and is excluded from all write scopes.
 
 ## Deterministic baseline
 
-The read-only `rg --files` inventory found:
+The read-only `rg --files --hidden` inventory found the following authoritative
+entrypoint counts. Only `.agents/skills/**/SKILL.md` is project-skill discovery;
+other governance Markdown files are not skill entrypoints.
 
 | Entry kind | Count |
 |---|---:|
-| Discoverable project skills (`.agents/skills/**/SKILL.md`) | 140 |
+| Discoverable project skills (`.agents/skills/**/SKILL.md`) | 132 |
 | Project roles | 17 |
 | Agent definitions/references | 34 |
 | Subagent documents | 8 |
@@ -34,9 +36,12 @@ The read-only `rg --files` inventory found:
 | Registry/audit artifacts | 8 |
 | Orchestrator documents | 7 |
 
-The canonical registry currently claims 132 discoverable project skills. This
-is a blocking registry-drift finding, not silently normalized. Slice 02 must
-reconcile the eight-entry discrepancy against repository evidence.
+The canonical registry claim of 132 discoverable project skills is confirmed.
+The earlier count of 140 was an inventory-method error caused by counting
+non-entrypoint governance documents. A separate parity finding remains: the
+Markdown registry lists 48 canonical required skills while the JSON registry
+contains 47. That documentation inconsistency remains explicit for registry
+reconciliation.
 
 ## Preliminary relationship matrix
 
@@ -52,8 +57,8 @@ reconcile the eight-entry discrepancy against repository evidence.
 
 ## Review status
 
-- Senior Requirement Engineer: baseline captured; registry drift blocks classification completion.
+- Senior Requirement Engineer: baseline captured; the 132-entrypoint count is confirmed; registry parity remains open.
 - Senior System Architect: `composition.py` boundary verified; governance/runtime separation preserved.
 - Senior Python Automation Developer: no Python product scope authorized; quality tooling is verified separately.
 - Senior Tester: quality gate is green after documented dev-tool installation; regression tests remain later-slice work.
-- Skill Registry Conflict Auditor: required reconciliation remains open.
+- Skill Registry Conflict Auditor: the 140-vs-132 conflict is resolved as a measurement error; the 48-vs-47 registry parity issue remains open.

@@ -1,13 +1,14 @@
 # Slice 01 Review
 
-Decision: `BLOCKED_FOR_SLICE_02_REVIEW`
+Decision: `PASS_WITH_REGISTRY_PARITY_FOLLOW_UP`
 
-The inventory and requirement matrix exist, but classification cannot proceed
-as complete until the canonical registry discrepancy (132 claimed versus 140
-discoverable project skill entrypoints) is resolved by the Skill Registry
-Conflict Auditor and reviewed by the Senior Workflow Architect and Senior
-System Architect. This is an explicit governance conflict, not a warning.
+The Three-Amigos review reproduced the count using the authoritative discovery
+rule `.agents/skills/**/SKILL.md`: 132 project skill entrypoints. The previous
+count of 140 included non-entrypoint governance Markdown files and is rejected
+as an inventory-method error. The registry's Markdown/JSON required-skill lists
+still differ (48 versus 47), so that parity issue is carried into Slice 02 as
+an explicit governance finding.
 
-The workflow remains safe to continue only with the next action: reconcile the
-registry against repository evidence. No product code, product behavior tests,
-runtime wiring or `composition.py` changes are authorized.
+The workflow may continue to Slice 02 for classification and metadata, with
+registry parity reconciliation as a required output. No product code, product
+behavior tests, runtime wiring or `composition.py` changes are authorized.

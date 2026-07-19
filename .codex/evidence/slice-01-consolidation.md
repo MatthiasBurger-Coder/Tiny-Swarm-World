@@ -7,9 +7,9 @@
 - Accepted findings: governance/runtime separation; serial execution; explicit external-skill boundary.
 - Rejected findings: none.
 - Files changed: `.codex/evidence/slice-01-distribution.md`, `.codex/evidence/slice-01-consolidation.md`, `.tiny-swarm/evidence/workflow-skill-agent-governance-20260720/**`.
-- Conflicts found: canonical registry reports 132 discoverable project skills while deterministic inventory reports 140.
-- Conflicts resolved: none; discrepancy remains an explicit blocking finding.
+- Conflicts found: initial heuristic reported 140 while authoritative `.agents/skills/**/SKILL.md` discovery reports 132; Markdown/JSON required-skill lists report 48 versus 47.
+- Conflicts resolved: 140-vs-132 resolved as an inventory-method error by Three-Amigos review; 48-vs-47 remains an explicit Slice-02 parity finding.
 - Tests/checks: `git diff --check`; `python3 tools/quality_gate.py quality`.
 - SonarQube: not configured or required for this governance-only evidence slice.
 - Documentation: workflow and context pack already synchronized; no Arc42 change required.
-- Final integration decision: Slice 01 evidence is recorded; Slice 02 must not start until the registry-count conflict is reviewed and resolved.
+- Final integration decision: Slice 01 evidence is corrected and reviewed; Slice 02 may start with registry parity reconciliation in scope.
