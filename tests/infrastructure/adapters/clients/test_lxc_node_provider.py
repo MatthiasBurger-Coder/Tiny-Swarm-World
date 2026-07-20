@@ -13,6 +13,7 @@ from tiny_swarm_world.domain.node_provider import (
     NodeSpec,
     ProviderSelection,
 )
+from tiny_swarm_world.domain.preflight.resources import HostResources
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeCommandResult,
     LxcNodeProvider,
@@ -28,6 +29,22 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
 
 
 class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
+    async def test_capacity_guard_blocks_before_mutation_when_host_is_insufficient(self):
+        provider = _provider(
+            _FakeRunner(),
+            config=_config(resources={"cpu": "8", "memory": "16GiB"}),
+            host_resource_inspector=_ResourceInspector(),
+        )
+
+        result = provider._host_capacity_block(
+            _node_spec(), _selection(ManagedLxcBackend.INCUS), _config(
+                resources={"cpu": "8", "memory": "16GiB"}
+            )
+        )
+
+        self.assertIsNotNone(result)
+        self.assertEqual("host_capacity_exceeded", result.evidence["classification"])
+        self.assertEqual("not_started", result.evidence["mutation"])
     async def test_verify_node_uses_read_only_lookup_for_running_managed_node(self):
         runner = _FakeRunner(_list(_node("swarm-manager", "Running")))
         provider = _provider(runner, allow_live_mutation=False)
@@ -1350,12 +1367,14 @@ def _provider(
     config: NodeProviderConfig | None = None,
     allow_live_mutation: bool = True,
     teardown_timeout_seconds: float = 300.0,
+    host_resource_inspector: object | None = None,
 ) -> LxcNodeProvider:
     return LxcNodeProvider(
         config_repository=_FakeConfigRepository(config or _config()),
         runner=runner,
         allow_live_mutation=allow_live_mutation,
         teardown_timeout_seconds=teardown_timeout_seconds,
+        host_resource_inspector=host_resource_inspector,
     )
 
 
@@ -1363,6 +1382,11 @@ def _selection(backend: ManagedLxcBackend) -> ProviderSelection:
     return ProviderSelection.from_lxc_backend_selection(
         ManagedLxcBackendSelection.for_backend(backend)
     )
+
+
+class _ResourceInspector:
+    def inspect(self) -> HostResources:
+        return HostResources(2, 4 * 1024**3, 4 * 1024**3, 0, 20 * 1024**3)
 
 
 def _node_spec(
