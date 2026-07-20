@@ -533,6 +533,20 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(payload["read_only"])
         self.assertEqual("processes", payload["commands"][0]["name"])
 
+    async def test_host_verify_prints_read_only_summary(self):
+        report = SimpleNamespace(
+            read_only=True,
+            commands=(SimpleNamespace(name="docker_services", status="UNAVAILABLE"),),
+        )
+        with patch.object(entrypoint, "build_read_only_hang_diagnostics") as build_diagnostics:
+            build_diagnostics.return_value.collect.return_value = report
+            output = io.StringIO()
+            with redirect_stdout(output):
+                await entrypoint.main(["host", "verify"])
+
+        self.assertIn("Host diagnostics (read-only)", output.getvalue())
+        self.assertIn("docker_services: UNAVAILABLE", output.getvalue())
+
     def test_lxd_backend_option_is_rejected(self):
         with redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):

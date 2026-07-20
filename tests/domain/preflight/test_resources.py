@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from tiny_swarm_world.domain.preflight.resources import (
@@ -48,6 +49,43 @@ class ResourceAssessmentTests(unittest.TestCase):
 
 
 class WslResourceInspectorTests(unittest.TestCase):
+    def _root(self, meminfo: str, *, current: str = "100", maximum: str = "max", high: str = "max", events: str = "") -> Path:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        (root / "proc").mkdir(parents=True)
+        (root / "sys/fs/cgroup").mkdir(parents=True)
+        (root / "proc/meminfo").write_text(meminfo)
+        (root / "sys/fs/cgroup/memory.current").write_text(current)
+        (root / "sys/fs/cgroup/memory.max").write_text(maximum)
+        (root / "sys/fs/cgroup/memory.high").write_text(high)
+        (root / "sys/fs/cgroup/memory.events").write_text(events)
+        return root
+
+    def test_inspect_reads_meminfo_cgroup_and_disk(self):
+        root = self._root("MemTotal: 1024 kB\n", current="22", maximum="2048")
+        with patch("tiny_swarm_world.infrastructure.adapters.host.wsl_resource_inspector.os.cpu_count", return_value=4):
+            result = WslResourceInspector(root).inspect()
+
+        self.assertEqual(4, result.cpu_threads)
+        self.assertEqual(1024 * 1024, result.memory_bytes)
+        self.assertEqual(2048, result.cgroup_memory_limit_bytes)
+        self.assertEqual(22, result.current_memory_usage_bytes)
+        self.assertGreater(result.free_disk_bytes, 0)
+
+    def test_memory_pressure_classifies_high_and_near_max(self):
+        high_root = self._root("MemTotal: 1 kB\n", current="100", maximum="1000", high="50")
+        self.assertEqual("memory_high_pressure", WslResourceInspector(high_root).memory_pressure().assessment)
+
+        near_root = self._root("MemTotal: 1 kB\n", current="96", maximum="100", high="max")
+        self.assertEqual("critical_memory_pressure", WslResourceInspector(near_root).memory_pressure().assessment)
+
+    def test_missing_and_invalid_values_are_safe(self):
+        root = self._root("MemTotal: invalid\n", current="invalid", maximum="", high="invalid")
+        report = WslResourceInspector(root).memory_pressure()
+        self.assertEqual("no_confirmed_memory_pressure", report.assessment)
+        self.assertIsNone(report.memory_max)
+
     def test_parses_cgroup_max_and_memory_events(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
