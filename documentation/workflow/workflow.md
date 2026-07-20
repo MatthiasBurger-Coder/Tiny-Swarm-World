@@ -3,7 +3,7 @@
 Version: `workflow-skill-agent-governance-v1.0.0`
 Workflow ID: `workflow-skill-agent-governance-20260720`
 Branch: `feature/workflow-skill-agent-governance-20260720`
-Status: `READY_FOR_EXECUTION`
+Status: `COMPLETED`
 Requirement authority: user request, normalized below; no EPIC was found
 
 ## Executive Summary
