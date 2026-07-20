@@ -3,7 +3,7 @@
 Version: `issue-218-v1.0.0`
 Workflow ID: `issue-218-20260720`
 Branch: `feature/workflow-issue-218-20260720`
-Status: `READY_FOR_EXECUTION`
+Status: `INCOMPLETE`
 
 ## Objective
 
