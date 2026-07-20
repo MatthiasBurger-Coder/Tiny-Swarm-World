@@ -25,6 +25,8 @@ Environment: WSL2, non-production local environment
 - TCP connectivity checks passed for ports 80, 443, 5000 and 8081.
 - Nexus and Service Access services report `1/1` replicas.
 - Read-only Docker node/service inspection completed without mutation.
+- Direct fail-closed validation was reproduced for an invalid TCP port:
+  `New-BridgeCleanupPlan` rejects `connectPort=70000` before any mutation.
 
 ## Still required
 
@@ -36,5 +38,12 @@ Environment: WSL2, non-production local environment
   blocking evidence.
 - Complete the independent Issue Completion Auditor and final acceptance
   checklist decision before closing Issue #218.
+
+## Verification limitation
+
+The Windows bridge suite is executed with Windows PowerShell Pester 3.4.0.
+Its exception assertions are not reliably selectable/executed in this
+environment, although the underlying `Assert-ValidTcpPort` and
+`New-BridgeCleanupPlan` behavior was reproduced directly and failed closed.
 
 No issue-closing claim is made by this evidence file.
