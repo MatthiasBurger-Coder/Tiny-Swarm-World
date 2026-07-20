@@ -511,6 +511,28 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Workflow: platform verify", output.getvalue())
         self.assertNotIn('{\n', output.getvalue())
 
+    async def test_host_verify_is_read_only_and_emits_json(self):
+        report = SimpleNamespace(
+            read_only=True,
+            commands=(
+                SimpleNamespace(
+                    name="processes", status="OK", timed_out=False, output="fixture"
+                ),
+            ),
+        )
+        with patch.object(
+            entrypoint, "build_read_only_hang_diagnostics"
+        ) as build_diagnostics:
+            build_diagnostics.return_value.collect.return_value = report
+            output = io.StringIO()
+            with redirect_stdout(output):
+                await entrypoint.main(["host", "verify", "--json"])
+
+        build_diagnostics.return_value.collect.assert_called_once_with()
+        payload = _json_payload_from_output(output.getvalue())
+        self.assertTrue(payload["read_only"])
+        self.assertEqual("processes", payload["commands"][0]["name"])
+
     def test_lxd_backend_option_is_rejected(self):
         with redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
