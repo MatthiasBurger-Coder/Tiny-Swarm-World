@@ -536,7 +536,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_host_verify_prints_read_only_summary(self):
         report = SimpleNamespace(
             read_only=True,
-            commands=(SimpleNamespace(name="docker_services", status="UNAVAILABLE"),),
+            commands=(SimpleNamespace(name="docker_services", status="UNAVAILABLE", timed_out=False, output=""),),
         )
         with patch.object(entrypoint, "build_read_only_hang_diagnostics") as build_diagnostics:
             build_diagnostics.return_value.collect.return_value = report
