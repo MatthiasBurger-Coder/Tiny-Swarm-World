@@ -56,7 +56,11 @@ from tiny_swarm_world.domain.preflight.resources import (
     ResourceAssessment,
     ResourceAssessmentResult,
     ResourceRequirements,
+    ResourceProfile,
+    PlannedContainerLimit,
     assess_resources,
+    default_resource_profiles,
+    validate_planned_container_limits,
     validate_container_limits,
 )
 
@@ -100,7 +104,11 @@ __all__ = [
     "ResourceAssessment",
     "ResourceAssessmentResult",
     "ResourceRequirements",
+    "ResourceProfile",
+    "PlannedContainerLimit",
     "assess_resources",
+    "default_resource_profiles",
+    "validate_planned_container_limits",
     "validate_container_limits",
     "default_preflight_configuration",
     "default_installation_plan",

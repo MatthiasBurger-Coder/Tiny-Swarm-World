@@ -86,6 +86,8 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertIn('"docker-ce=${TSW_DOCKER_ENGINE_PACKAGE_VERSION}"', script)
         self.assertIn('"containerd.io=${TSW_CONTAINERD_PACKAGE_VERSION}"', script)
         self.assertIn("apt-mark hold docker-ce docker-ce-cli containerd.io", script)
+        self.assertIn("--connect-timeout ${TSW_DOCKER_NETWORK_CONNECT_TIMEOUT_SECONDS:-10}", script)
+        self.assertIn("--max-time ${TSW_DOCKER_NETWORK_MAX_TIMEOUT_SECONDS:-60}", script)
         self.assertIn('"containerd-snapshotter": false', script)
         self.assertIn('"storage-driver": "overlay2"', script)
         self.assertIn('"registry-mirrors": [', script)
@@ -123,6 +125,8 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertIn("repository/ubuntu-security-apt-proxy", script)
         self.assertIn("TSW_DOCKER_APT_URL='http://10.0.3.1:8081/repository/docker-apt-proxy'", script)
         self.assertIn("repository/docker-apt-proxy/gpg", script)
+        self.assertIn("--connect-timeout ${TSW_DOCKER_NETWORK_CONNECT_TIMEOUT_SECONDS:-10}", script)
+        self.assertIn("--max-time ${TSW_DOCKER_NETWORK_MAX_TIMEOUT_SECONDS:-60}", script)
         self.assertIn("${TSW_DOCKER_APT_URL:-https://download.docker.com/linux/ubuntu}", script)
 
     def test_rejects_localhost_apt_mirror_for_lxc_nodes(self):

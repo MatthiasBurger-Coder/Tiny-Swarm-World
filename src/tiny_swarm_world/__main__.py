@@ -48,6 +48,7 @@ from tiny_swarm_world.infrastructure.composition import (
     build_compose_file_repository,
     build_deployment_services_for_provider,
     build_host_detection_service,
+    build_read_only_hang_diagnostics,
     build_network_doctor_service,
     build_network_repair_options,
     build_network_repair_service,
@@ -100,6 +101,8 @@ PLATFORM_WORKFLOW_ORDER = (
 
 CLI_WORKFLOWS = (
     CliWorkflow(namespace="host", action="detect", mutating=False, destructive=False),
+    CliWorkflow(namespace="host", action="preflight", mutating=False, destructive=False),
+    CliWorkflow(namespace="host", action="verify", mutating=False, destructive=False),
     *(
         CliWorkflow(
             namespace="platform",
@@ -259,7 +262,12 @@ async def main(argv: Sequence[str] | None = None) -> None:
         return
 
     if args.workflow is not None and args.workflow.namespace == "host":
-        _run_host_detect_command(args)
+        if args.workflow.action == "detect":
+            _run_host_detect_command(args)
+        elif args.workflow.action == "preflight":
+            await _run_preflight_command(args)
+        else:
+            _run_host_verify_command(args)
         return
 
     ensure_common_executable_paths()
@@ -325,6 +333,28 @@ def _run_host_detect_command(args: Namespace) -> None:
         _print_host_environment_summary(report)
     if not report.supported:
         raise SystemExit(1)
+
+
+def _run_host_verify_command(args: Namespace) -> None:
+    report = build_read_only_hang_diagnostics().collect()
+    payload = {
+        "read_only": report.read_only,
+        "commands": [
+            {
+                "name": item.name,
+                "status": item.status,
+                "timed_out": item.timed_out,
+                "output": item.output,
+            }
+            for item in report.commands
+        ],
+    }
+    if _should_emit_json(args):
+        _emit_json_payload(payload)
+        return
+    print("Host diagnostics (read-only)")
+    for item in report.commands:
+        print(f"{item.name}: {item.status}")
 
 
 def _host_detection_payload(report: HostEnvironmentReport) -> dict[str, object]:

@@ -39,7 +39,7 @@ nodes:
     image_alias: ubuntu-24.04
     resources:
       cpu: "4"
-      memory: 8GiB
+      memory: 1GiB
       disk: 10GiB
     networks:
       - control

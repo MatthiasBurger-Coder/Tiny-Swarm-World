@@ -115,13 +115,23 @@ class SubprocessNetworkRepair:
             dnsmasq_running = self.executor("pgrep -x dnsmasq >/dev/null", 5)
             commands.extend((realpath, pid_read, dnsmasq_running))
             safe_path = _inside_incus_network_dir(realpath.stdout.strip())
-            pid = pid_read.stdout.strip()
-            pid_running = self.executor(f"ps -p {shlex.quote(pid)} -o pid= >/dev/null", 5) if pid else _failed_command("missing pid")
+            pid = _parse_numeric_pid(pid_read.stdout)
+            pid_running = (
+                self.executor(f"ps -p {shlex.quote(pid)} -o pid= >/dev/null", 5)
+                if pid
+                else _failed_command("dnsmasq.pid does not contain a numeric PID")
+            )
             commands.append(pid_running)
             if not safe_path:
                 return _repair_blocked(
                     "incus",
                     "Refused to remove an Incus runtime file outside the incusbr0 directory.",
+                    commands,
+                )
+            if not pid:
+                return _repair_blocked(
+                    "incus",
+                    "Refused to remove dnsmasq.pid because it does not contain a numeric PID.",
                     commands,
                 )
             if dnsmasq_running.ok:
@@ -381,6 +391,13 @@ def _inside_incus_network_dir(path: str) -> bool:
         return False
     candidate = Path(path)
     return candidate == INCUS_DNSMASQ_PID and candidate.parent == INCUS_NETWORK_DIR
+
+
+def _parse_numeric_pid(value: str) -> str | None:
+    candidate = value.strip()
+    if candidate.isdigit() and int(candidate) > 0:
+        return candidate
+    return None
 
 
 def _repair_blocked(

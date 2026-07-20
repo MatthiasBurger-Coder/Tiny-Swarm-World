@@ -144,7 +144,9 @@ from tiny_swarm_world.domain.preflight import (
     default_installation_plan,
     default_setup_manifest,
     default_preflight_configuration,
+    default_resource_profiles,
     RequiredDependency,
+    ResourceThresholds,
 )
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
@@ -190,6 +192,9 @@ from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
 )
 from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe, LxcProviderPreflightProbe
+from tiny_swarm_world.infrastructure.adapters.host.wsl_resource_inspector import WslResourceInspector
+from tiny_swarm_world.infrastructure.adapters.host.hang_diagnostics import ReadOnlyHangDiagnostics
+from tiny_swarm_world.infrastructure.adapters.host.preflight_evidence_writer import PreflightEvidenceWriter
 from tiny_swarm_world.infrastructure.adapters.network import (
     SubprocessNetworkProbe,
     SubprocessNetworkRepair,
@@ -621,6 +626,8 @@ def build_preflight_service(
         project_filesystem_authorizer=authorizer,
         project_path=project_paths.repository_root.as_posix(),
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
+        resource_inspector=WslResourceInspector(),
+        evidence_writer=build_preflight_evidence_writer(),
     )
 
 
@@ -653,6 +660,21 @@ def build_network_doctor_service() -> NetworkDoctorService:
         ),
         port_registry,
     )
+
+
+def build_read_only_hang_diagnostics() -> ReadOnlyHangDiagnostics:
+    """Build the bounded, non-mutating workflow hang diagnostic adapter."""
+    return ReadOnlyHangDiagnostics(
+        timeout_seconds=_operator_config_float(
+            "TSW_HANG_DIAGNOSTICS_TIMEOUT_SECONDS",
+            10.0,
+            minimum=0.1,
+        )
+    )
+
+
+def build_preflight_evidence_writer() -> PreflightEvidenceWriter:
+    return PreflightEvidenceWriter(default_project_paths().repository_root)
 
 
 def build_network_repair_service() -> NetworkRepairService:
@@ -699,6 +721,8 @@ def build_post_install_preflight_service(
         project_filesystem_authorizer=authorizer,
         project_path=project_paths.repository_root.as_posix(),
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
+        resource_inspector=WslResourceInspector(),
+        evidence_writer=build_preflight_evidence_writer(),
     )
 
 
@@ -814,7 +838,8 @@ def build_platform_services(
     lxc_node_provider = LxcNodeProvider(
         config_repository=node_provider_config_repository,
         runner=lxc_runner,
-        allow_live_mutation=False if live_consent is None else live_consent.accepted
+        allow_live_mutation=False if live_consent is None else live_consent.accepted,
+        host_resource_inspector=WslResourceInspector(),
     )
     node_provider_selection = NodeProviderSelectionService(
         LxcProviderPreflightProbe(
@@ -1440,6 +1465,11 @@ def build_setup_services(
                 method_trace=method_trace,
                 trace_correlation_id=trace_correlation_id,
                 installation_plan=default_installation_plan(),
+                timeout_seconds=_operator_config_float(
+                    "TSW_SETUP_WORKFLOW_TIMEOUT_SECONDS",
+                    3600.0,
+                    minimum=1.0,
+                ),
             )
         )
     )
@@ -1618,6 +1648,22 @@ def _preflight_configuration_for_provider(
     configuration = replace(
         default_preflight_configuration(service_profile=service_profile),
         windows_wsl_bridge_required=_windows_wsl_bridge_required(),
+    )
+    profile_name = (
+        service_profile.value
+        if isinstance(service_profile, ServiceStackProfile)
+        else str(service_profile)
+    )
+    profiles = default_resource_profiles()
+    resource_profile = profiles.get(profile_name, profiles["default"])
+    configuration = replace(
+        configuration,
+        resources=ResourceThresholds(
+            minimum_cpu_count=resource_profile.minimum.cpu_threads,
+            minimum_memory_bytes=resource_profile.minimum.memory_bytes,
+            minimum_disk_free_bytes=resource_profile.minimum.free_disk_bytes,
+            disk_path=configuration.resources.disk_path,
+        ),
     )
     provider_request = node_provider_request or _default_node_provider_request()
     if provider_request.requested_provider is not NodeProviderKind.LXC_NATIVE:

@@ -86,9 +86,11 @@ owner-only permissions.
 The composition root wires these adapters into static preflight, accepted live
 preflight, platform init, setup, and the bootstrap-safe installer path. The
 shared Incus, Docker Swarm, Artifacts, and Deployment core receives no WSL path
-inspection responsibility. FR-2 implements only this filesystem gate; later
-resource, network, timeout, native-isolation, and final evidence work remains
-owned by its declared Issue #218 workflows.
+inspection responsibility. Resource assessment, Incus capacity guards,
+network repair, workflow timeout/diagnostics, native-isolation routing, and
+redacted preflight evidence are composed through separate host/preflight
+adapters. Live WSL and Windows reachability validation remains an operator
+verification step and is not implied by static tests.
 
 The composition root now exposes separate in-process application service
 bundles. These bundles are responsibility boundaries inside the Python

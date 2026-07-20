@@ -6,7 +6,9 @@ from tiny_swarm_world.domain.preflight.resources import (
     HostResources,
     ResourceAssessment,
     ResourceRequirements,
+    PlannedContainerLimit,
     assess_resources,
+    validate_planned_container_limits,
     validate_container_limits,
 )
 from tiny_swarm_world.infrastructure.adapters.host.wsl_resource_inspector import WslResourceInspector
@@ -31,6 +33,19 @@ class ResourceAssessmentTests(unittest.TestCase):
         resources = HostResources(8, 16 * 1024**3, 16 * 1024**3, 0, 0)
         self.assertFalse(validate_container_limits(resources, 4, 8 * 1024**3, 8, 10 * 1024**3))
 
+    def test_planned_container_limits_are_aggregated(self):
+        resources = HostResources(8, 16 * 1024**3, 16 * 1024**3, 0, 0)
+        planned = (
+            PlannedContainerLimit("manager", 4, 8 * 1024**3),
+            PlannedContainerLimit("worker", 4, 8 * 1024**3),
+        )
+        self.assertTrue(validate_planned_container_limits(resources, planned))
+        self.assertFalse(
+            validate_planned_container_limits(
+                resources, (*planned, PlannedContainerLimit("extra", 1, 1))
+            )
+        )
+
 
 class WslResourceInspectorTests(unittest.TestCase):
     def test_parses_cgroup_max_and_memory_events(self):
@@ -46,4 +61,3 @@ class WslResourceInspectorTests(unittest.TestCase):
             report = WslResourceInspector(root).memory_pressure()
             self.assertEqual(report.assessment, "oom_kill_detected")
             self.assertIsNone(report.memory_max)
-

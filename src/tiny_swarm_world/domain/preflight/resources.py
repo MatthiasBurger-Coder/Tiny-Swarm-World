@@ -33,6 +33,35 @@ class ResourceRequirements:
 
 
 @dataclass(frozen=True)
+class ResourceProfile:
+    name: str
+    minimum: ResourceRequirements
+    recommended: ResourceRequirements
+
+
+@dataclass(frozen=True)
+class PlannedContainerLimit:
+    name: str
+    cpu_threads: int
+    memory_bytes: int
+
+
+def default_resource_profiles() -> dict[str, ResourceProfile]:
+    return {
+        "service-access": ResourceProfile(
+            "service-access",
+            ResourceRequirements(8, 16 * 1024**3, 150 * 1024**3),
+            ResourceRequirements(12, 24 * 1024**3, 250 * 1024**3),
+        ),
+        "default": ResourceProfile(
+            "default",
+            ResourceRequirements(4, 8 * 1024**3, 60 * 1024**3),
+            ResourceRequirements(8, 16 * 1024**3, 120 * 1024**3),
+        ),
+    }
+
+
+@dataclass(frozen=True)
 class ResourceAssessmentResult:
     assessment: ResourceAssessment
     resources: HostResources
@@ -101,4 +130,18 @@ def validate_container_limits(
         active_cpu + requested_cpu <= resources.cpu_threads
         and active_memory_bytes + requested_memory_bytes
         <= resources.effective_memory_bytes
+    )
+
+
+def validate_planned_container_limits(
+    resources: HostResources,
+    planned: tuple[PlannedContainerLimit, ...],
+    *,
+    allow_overcommit: bool = False,
+) -> bool:
+    if allow_overcommit:
+        return True
+    return (
+        sum(item.cpu_threads for item in planned) <= resources.cpu_threads
+        and sum(item.memory_bytes for item in planned) <= resources.effective_memory_bytes
     )

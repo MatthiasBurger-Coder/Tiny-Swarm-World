@@ -38,6 +38,14 @@ class TestHostNetworkRepair(unittest.TestCase):
                 "/var/lib/incus/networks/incusbr0/dnsmasq.pid"
             )
         )
+
+    def test_dnsmasq_pid_parser_rejects_incus_metadata(self):
+        self.assertEqual("12345", host_network_repair._parse_numeric_pid(" 12345\n"))
+        self.assertIsNone(
+            host_network_repair._parse_numeric_pid(
+                "name: dnsmasq\nargs: --keep-in-foreground\n"
+            )
+        )
         self.assertFalse(host_network_repair._inside_incus_network_dir("/tmp/dnsmasq.pid"))
         self.assertFalse(
             host_network_repair._inside_incus_network_dir(
@@ -136,6 +144,28 @@ class TestHostNetworkRepair(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertIn("dnsmasq process is running", result.message)
 
+    def test_incus_repair_refuses_non_numeric_pid_without_process_command(self):
+        executor = _MappingExecutor(
+            {
+                "test -e /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok("test -e"),
+                "realpath -m -- /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok(
+                    "realpath",
+                    "/var/lib/incus/networks/incusbr0/dnsmasq.pid",
+                ),
+                "cat /var/lib/incus/networks/incusbr0/dnsmasq.pid": _ok(
+                    "cat", "name: dnsmasq\nargs: --keep-in-foreground"
+                ),
+                "pgrep -x dnsmasq": _failed("pgrep"),
+            }
+        )
+        repair = SubprocessNetworkRepair(executor=executor)
+
+        result = repair._apply_incus_repair()
+
+        self.assertFalse(result.success)
+        self.assertIn("does not contain a numeric PID", result.message)
+        self.assertFalse(any(command.startswith("ps -p") for command in executor.calls))
+
     def test_incus_repair_refuses_when_pid_path_is_outside_incus_network_dir(self):
         executor = _MappingExecutor(
             {
@@ -211,8 +241,10 @@ class _SequenceExecutor:
 class _MappingExecutor:
     def __init__(self, observations: dict[str, CommandObservation]) -> None:
         self.observations = observations
+        self.calls: list[str] = []
 
     def __call__(self, command: str, _timeout: int) -> CommandObservation:
+        self.calls.append(command)
         for expected, observation in self.observations.items():
             if expected in command:
                 return CommandObservation(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -35,6 +36,7 @@ class SetupWorkflowStatus(str, Enum):
     FAILED_TO_VERIFY = "failed_to_verify"
     REFUSED = "refused"
     RESOURCE_GATED = "resource_gated"
+    TIMED_OUT = "timed_out"
 
 
 RUN_SETUP_WORKFLOW_TASK = "Run setup workflow"
@@ -117,6 +119,7 @@ class SetupWorkflow:
         method_trace: PortMethodTrace | None = None,
         trace_correlation_id: str | None = None,
         installation_plan: InstallationPlan | None = None,
+        timeout_seconds: float | None = None,
     ):
         self.phases = tuple(phases)
         self.live_consent = live_consent
@@ -124,18 +127,39 @@ class SetupWorkflow:
         self.method_trace = method_trace or NullMethodTrace()
         self.trace_correlation_id = trace_correlation_id
         self.installation_plan = installation_plan
+        if timeout_seconds is not None and timeout_seconds <= 0:
+            raise ValueError("Setup workflow timeout must be positive.")
+        self.timeout_seconds = timeout_seconds
 
     async def run(self) -> SetupWorkflowResult:
-        return await MethodTraceWrapper(
+        runner = MethodTraceWrapper(
             self.method_trace,
             component="setup",
             workflow=f"setup {SetupWorkflowKind.RUN.value}",
             correlation_id=self.trace_correlation_id,
-        ).wrap_async(
-            self._run,
-            method_name="run",
-            result_classifier=_setup_trace_result,
-        )()
+        ).wrap_async(self._run, method_name="run", result_classifier=_setup_trace_result)
+        try:
+            if self.timeout_seconds is None:
+                return await runner()
+            return await asyncio.wait_for(runner(), timeout=self.timeout_seconds)
+        except asyncio.TimeoutError:
+            self._report_progress(
+                phase="setup",
+                target="setup",
+                task=RUN_SETUP_WORKFLOW_TASK,
+                step="outer timeout",
+                status=SetupWorkflowStatus.TIMED_OUT.value,
+                result=SetupWorkflowStatus.TIMED_OUT.value,
+                safe_message="Setup workflow exceeded its configured outer timeout.",
+                recovery_hint="Inspect read-only process diagnostics before retrying.",
+            )
+            return SetupWorkflowResult(
+                kind=SetupWorkflowKind.RUN,
+                status=SetupWorkflowStatus.TIMED_OUT,
+                message="setup workflow timed out.",
+                reason=f"outer timeout exceeded after {self.timeout_seconds:g} seconds",
+                executed=True,
+            )
 
     async def _run(self) -> SetupWorkflowResult:
         if self.live_consent is None or not self.live_consent.accepted:
