@@ -17,6 +17,8 @@ from tiny_swarm_world.domain.preflight.resources import HostResources
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeCommandResult,
     LxcNodeProvider,
+    _resource_cpu,
+    _resource_memory_bytes,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderConfig,
@@ -29,6 +31,27 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
 
 
 class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
+    def test_resource_limit_parsers_are_bounded_and_typed(self):
+        self.assertEqual(4, _resource_cpu("4"))
+        self.assertEqual(0, _resource_cpu("invalid"))
+        self.assertEqual(2 * 1024**3, _resource_memory_bytes("2GiB"))
+        self.assertEqual(0, _resource_memory_bytes("invalid"))
+
+    async def test_capacity_guard_allows_fitting_plan(self):
+        provider = _provider(
+            _FakeRunner(),
+            config=_config(resources={"cpu": "2", "memory": "2GiB"}),
+            host_resource_inspector=_ResourceInspector(),
+        )
+
+        result = provider._host_capacity_block(
+            _node_spec(), _selection(ManagedLxcBackend.INCUS), _config(
+                resources={"cpu": "2", "memory": "2GiB"}
+            )
+        )
+
+        self.assertIsNone(result)
+
     async def test_capacity_guard_blocks_before_mutation_when_host_is_insufficient(self):
         provider = _provider(
             _FakeRunner(),
