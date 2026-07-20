@@ -24,6 +24,11 @@ from tiny_swarm_world.domain.node_provider import (
     NodeSpec,
     ProviderSelection,
 )
+from tiny_swarm_world.domain.preflight.resources import (
+    HostResources,
+    PlannedContainerLimit,
+    validate_planned_container_limits,
+)
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     ProviderBackendResourceResolution,
     NodeProviderConfig,
@@ -125,6 +130,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         image_references: Mapping[str, str] | None = None,
         allow_live_mutation: bool = False,
         logger: Logger | None = None,
+        host_resource_inspector: object | None = None,
     ):
         if launch_timeout_seconds <= 0:
             raise ValueError("LXC launch timeout must be positive.")
@@ -143,6 +149,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             **dict(image_references or {}),
         }
         self.logger = logger or LoggerFactory.get_logger(self.__class__.__name__)
+        self.host_resource_inspector = host_resource_inspector
 
     async def verify_node(
         self,
@@ -213,6 +220,10 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         if isinstance(config_result, VerificationResult):
             return config_result
         config, node_config, profiles = config_result
+
+        capacity_block = self._host_capacity_block(node, selection, config)
+        if capacity_block is not None:
+            return capacity_block
 
         resource_result = await self._verify_provider_resources(
             node,
@@ -302,6 +313,42 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         if verification_failure is not None:
             return verification_failure
         return _verified(node, backend, "created")
+
+    def _host_capacity_block(
+        self,
+        node: NodeSpec,
+        selection: ProviderSelection,
+        config: NodeProviderConfig,
+    ) -> VerificationResult | None:
+        inspector = self.host_resource_inspector
+        inspect = getattr(inspector, "inspect", None)
+        if not callable(inspect):
+            return None
+        resources = inspect()
+        if not isinstance(resources, HostResources):
+            return None
+        planned = tuple(
+            PlannedContainerLimit(
+                item.spec.name,
+                _resource_cpu(item.resources.get("cpu")),
+                _resource_memory_bytes(item.resources.get("memory")),
+            )
+            for item in config.nodes
+        )
+        if validate_planned_container_limits(resources, planned):
+            return None
+        return _blocked(
+            node,
+            selection,
+            "host_capacity_exceeded",
+            extra_evidence={
+                "cpu_threads": str(resources.cpu_threads),
+                "effective_memory_bytes": str(resources.effective_memory_bytes),
+                "planned_cpu_threads": str(sum(item.cpu_threads for item in planned)),
+                "planned_memory_bytes": str(sum(item.memory_bytes for item in planned)),
+                "mutation": "not_started",
+            },
+        )
 
     async def _verify_provider_image_available(
         self,
@@ -1323,6 +1370,23 @@ def _image_ref(
 
 def _uses_provider_resource_resolution(config: NodeProviderConfig) -> bool:
     return "provider_resource_resolution" in config.verification_metadata.checks
+
+
+def _resource_cpu(value: str | None) -> int:
+    try:
+        return max(int(value or "0"), 0)
+    except ValueError:
+        return 0
+
+
+def _resource_memory_bytes(value: str | None) -> int:
+    if not value:
+        return 0
+    match = re.fullmatch(r"(\d+)([KMGT])i?B?", value.strip(), re.IGNORECASE)
+    if match is None:
+        return 0
+    multipliers = {"K": 1024, "M": 1024**2, "G": 1024**3, "T": 1024**4}
+    return int(match.group(1)) * multipliers[match.group(2).upper()]
 
 
 def _selected_provider_resource_resolution(

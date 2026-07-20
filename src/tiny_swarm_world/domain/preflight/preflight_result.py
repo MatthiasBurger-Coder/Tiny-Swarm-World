@@ -54,3 +54,28 @@ class PreflightResult:
             "manifest": dict(self.manifest_summary),
             "checks": [check.to_dict() for check in self.checks],
         }
+
+    def to_evidence(self) -> dict[str, object]:
+        """Return redacted, structured host-preflight evidence."""
+        host = next((check for check in self.checks if check.check_id == "HOST"), None)
+        resource = next(
+            (check for check in self.checks if check.check_id == "RESOURCE-STRUCTURED"),
+            None,
+        )
+        bridge = next(
+            (check for check in self.checks if check.check_id == "WINDOWS-WSL-BRIDGE"),
+            None,
+        )
+        return {
+            "status": self.status,
+            "host_environment": dict(host.evidence) if host else {},
+            "host_resources": dict(resource.evidence) if resource else {},
+            "resource_assessment": resource.evidence.get("assessment") if resource else "UNKNOWN",
+            "network_preparation": dict(bridge.evidence) if bridge else {},
+            "overrides": [
+                "allow-wsl-windows-filesystem"
+                for check in self.checks
+                if check.check_id == "HOST-FILESYSTEM"
+                and check.evidence.get("override_applied") == "true"
+            ],
+        }

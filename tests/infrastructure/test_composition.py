@@ -261,6 +261,31 @@ class TestComposition(unittest.TestCase):
             service.project_path,
         )
 
+    def test_build_preflight_service_wires_resource_inspection_and_evidence(self):
+        service = composition.build_preflight_service()
+
+        self.assertIsInstance(
+            service.resource_inspector, composition.WslResourceInspector
+        )
+        self.assertIsInstance(
+            service.evidence_writer, composition.PreflightEvidenceWriter
+        )
+
+    def test_build_hang_diagnostics_reads_bounded_operator_timeout(self):
+        with patch.dict(os.environ, {"TSW_HANG_DIAGNOSTICS_TIMEOUT_SECONDS": "3"}):
+            diagnostics = composition.build_read_only_hang_diagnostics()
+
+        self.assertEqual(3.0, diagnostics.timeout_seconds)
+
+    def test_preflight_profile_uses_central_resource_thresholds(self):
+        configuration = composition._preflight_configuration_for_provider(
+            ServiceStackProfile.SERVICE_ACCESS,
+            None,
+        )
+
+        self.assertEqual(8, configuration.resources.minimum_cpu_count)
+        self.assertEqual(16 * 1024**3, configuration.resources.minimum_memory_bytes)
+
     def test_relative_xdg_state_home_does_not_block_preflight_construction(self):
         with patch.dict(os.environ, {"XDG_STATE_HOME": "relative/state"}, clear=False):
             service = composition.build_preflight_service()

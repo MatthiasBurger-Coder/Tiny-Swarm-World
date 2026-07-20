@@ -56,6 +56,32 @@ class TestLiveConsent(unittest.TestCase):
 
 
 class TestPreflightResult(unittest.TestCase):
+    def test_to_evidence_extracts_resources_bridge_and_filesystem_override(self):
+        checks = tuple(
+            PreflightCheck(
+                check_id=check_id,
+                category=category,
+                status=PreflightStatus.PASSED,
+                severity=PreflightSeverity.MANDATORY,
+                message="ready",
+                remediation="none",
+                evidence=evidence,
+            )
+            for check_id, category, evidence in (
+                ("HOST", PreflightCategory.HOST, {"environment": "wsl2"}),
+                ("RESOURCE-STRUCTURED", PreflightCategory.RESOURCE, {"assessment": "supported"}),
+                ("WINDOWS-WSL-BRIDGE", PreflightCategory.WINDOWS_EXPOSURE, {"prepared": "true"}),
+                ("HOST-FILESYSTEM", PreflightCategory.FILESYSTEM, {"override_applied": "true"}),
+            )
+        )
+
+        evidence = PreflightResult(checks).to_evidence()
+
+        self.assertEqual("wsl2", evidence["host_environment"]["environment"])
+        self.assertEqual("supported", evidence["resource_assessment"])
+        self.assertEqual("true", evidence["network_preparation"]["prepared"])
+        self.assertEqual(["allow-wsl-windows-filesystem"], evidence["overrides"])
+
     def test_result_fails_when_any_check_fails(self):
         passing = PreflightCheck(
             check_id="HOST",

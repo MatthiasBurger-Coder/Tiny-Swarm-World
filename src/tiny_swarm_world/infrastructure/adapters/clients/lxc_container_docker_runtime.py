@@ -24,6 +24,8 @@ from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 DEFAULT_DOCKER_INSPECT_TIMEOUT_SECONDS = 30.0
 DEFAULT_DOCKER_INSTALL_TIMEOUT_SECONDS = 600.0
+DEFAULT_DOCKER_NETWORK_CONNECT_TIMEOUT_SECONDS = 10
+DEFAULT_DOCKER_NETWORK_MAX_TIMEOUT_SECONDS = 60
 DEFAULT_DOCKER_ENGINE_PACKAGE_VERSION = "5:28.5.2-1~ubuntu.24.04~noble"
 DEFAULT_CONTAINERD_PACKAGE_VERSION = "1.7.29-1~ubuntu.24.04~noble"
 DEFAULT_SWARM_REGISTRY_AUTHORITY = "127.0.0.1:13500"
@@ -40,7 +42,11 @@ apt-get update
 apt-get install -y ca-certificates curl
 install -m 0755 -d /etc/apt/keyrings
 if [ ! -f /etc/apt/keyrings/docker.asc ]; then
-  curl -fsSL "${TSW_DOCKER_APT_GPG_URL:-https://download.docker.com/linux/ubuntu/gpg}" -o /etc/apt/keyrings/docker.asc
+  curl --fail --silent --show-error --location \
+    --connect-timeout ${TSW_DOCKER_NETWORK_CONNECT_TIMEOUT_SECONDS:-10} \
+    --max-time ${TSW_DOCKER_NETWORK_MAX_TIMEOUT_SECONDS:-60} \
+    "${TSW_DOCKER_APT_GPG_URL:-https://download.docker.com/linux/ubuntu/gpg}" \
+    -o /etc/apt/keyrings/docker.asc
 fi
 chmod a+r /etc/apt/keyrings/docker.asc
 . /etc/os-release
@@ -323,7 +329,10 @@ def _apt_mirror_script(apt_mirror: DockerAptMirrorConfiguration | None) -> str:
         lines.extend(
             (
                 "rm -f /etc/apt/keyrings/docker.asc",
-                f"curl -fsSL {_shell_quote(apt_mirror.docker_gpg_url)} -o /etc/apt/keyrings/docker.asc",
+                "curl --fail --silent --show-error --location "
+                "--connect-timeout ${TSW_DOCKER_NETWORK_CONNECT_TIMEOUT_SECONDS:-10} "
+                "--max-time ${TSW_DOCKER_NETWORK_MAX_TIMEOUT_SECONDS:-60} "
+                f"{_shell_quote(apt_mirror.docker_gpg_url)} -o /etc/apt/keyrings/docker.asc",
             )
         )
     if apt_mirror.docker_apt_url:

@@ -13,9 +13,12 @@ from tiny_swarm_world.domain.node_provider import (
     NodeSpec,
     ProviderSelection,
 )
+from tiny_swarm_world.domain.preflight.resources import HostResources
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeCommandResult,
     LxcNodeProvider,
+    _resource_cpu,
+    _resource_memory_bytes,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderConfig,
@@ -28,6 +31,43 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
 
 
 class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
+    def test_resource_limit_parsers_are_bounded_and_typed(self):
+        self.assertEqual(4, _resource_cpu("4"))
+        self.assertEqual(0, _resource_cpu("invalid"))
+        self.assertEqual(2 * 1024**3, _resource_memory_bytes("2GiB"))
+        self.assertEqual(0, _resource_memory_bytes("invalid"))
+
+    async def test_capacity_guard_allows_fitting_plan(self):
+        provider = _provider(
+            _FakeRunner(),
+            config=_config(resources={"cpu": "2", "memory": "2GiB"}),
+            host_resource_inspector=_ResourceInspector(),
+        )
+
+        result = provider._host_capacity_block(
+            _node_spec(), _selection(ManagedLxcBackend.INCUS), _config(
+                resources={"cpu": "2", "memory": "2GiB"}
+            )
+        )
+
+        self.assertIsNone(result)
+
+    async def test_capacity_guard_blocks_before_mutation_when_host_is_insufficient(self):
+        provider = _provider(
+            _FakeRunner(),
+            config=_config(resources={"cpu": "8", "memory": "16GiB"}),
+            host_resource_inspector=_ResourceInspector(),
+        )
+
+        result = provider._host_capacity_block(
+            _node_spec(), _selection(ManagedLxcBackend.INCUS), _config(
+                resources={"cpu": "8", "memory": "16GiB"}
+            )
+        )
+
+        self.assertIsNotNone(result)
+        self.assertEqual("host_capacity_exceeded", result.evidence["classification"])
+        self.assertEqual("not_started", result.evidence["mutation"])
     async def test_verify_node_uses_read_only_lookup_for_running_managed_node(self):
         runner = _FakeRunner(_list(_node("swarm-manager", "Running")))
         provider = _provider(runner, allow_live_mutation=False)
@@ -1350,12 +1390,14 @@ def _provider(
     config: NodeProviderConfig | None = None,
     allow_live_mutation: bool = True,
     teardown_timeout_seconds: float = 300.0,
+    host_resource_inspector: object | None = None,
 ) -> LxcNodeProvider:
     return LxcNodeProvider(
         config_repository=_FakeConfigRepository(config or _config()),
         runner=runner,
         allow_live_mutation=allow_live_mutation,
         teardown_timeout_seconds=teardown_timeout_seconds,
+        host_resource_inspector=host_resource_inspector,
     )
 
 
@@ -1363,6 +1405,11 @@ def _selection(backend: ManagedLxcBackend) -> ProviderSelection:
     return ProviderSelection.from_lxc_backend_selection(
         ManagedLxcBackendSelection.for_backend(backend)
     )
+
+
+class _ResourceInspector:
+    def inspect(self) -> HostResources:
+        return HostResources(2, 4 * 1024**3, 4 * 1024**3, 0, 20 * 1024**3)
 
 
 def _node_spec(

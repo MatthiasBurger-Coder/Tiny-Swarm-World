@@ -50,6 +50,19 @@ from tiny_swarm_world.domain.preflight.setup_manifest import (
     SetupServiceRequirement,
     default_setup_manifest,
 )
+from tiny_swarm_world.domain.preflight.resources import (
+    HostResources,
+    MemoryPressureReport,
+    ResourceAssessment,
+    ResourceAssessmentResult,
+    ResourceRequirements,
+    ResourceProfile,
+    PlannedContainerLimit,
+    assess_resources,
+    default_resource_profiles,
+    validate_planned_container_limits,
+    validate_container_limits,
+)
 
 __all__ = [
     "LIVE_CONSENT_ENVIRONMENT_VARIABLE",
@@ -86,6 +99,17 @@ __all__ = [
     "SetupSecretRequirement",
     "SetupServiceRequirement",
     "WindowsWslBridgeStatus",
+    "HostResources",
+    "MemoryPressureReport",
+    "ResourceAssessment",
+    "ResourceAssessmentResult",
+    "ResourceRequirements",
+    "ResourceProfile",
+    "PlannedContainerLimit",
+    "assess_resources",
+    "default_resource_profiles",
+    "validate_planned_container_limits",
+    "validate_container_limits",
     "default_preflight_configuration",
     "default_installation_plan",
     "default_setup_manifest",

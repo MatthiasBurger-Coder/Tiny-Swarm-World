@@ -89,6 +89,19 @@ explicitly. Windows interop is reported as not applicable on native Linux.
 does not prove resource, filesystem, network, provider, deployment, or service
 readiness. Those checks remain separate preflight/verify stages.
 
+The dedicated host commands keep those stages visible:
+
+[source,bash]
+----
+tiny-swarm-world host detect
+tiny-swarm-world host preflight
+tiny-swarm-world --json host verify
+----
+
+`host preflight` runs the static host, filesystem and resource checks.
+`host verify` collects bounded, read-only process and Docker diagnostics; it
+does not repair networking, change Incus limits, or modify deployments.
+
 == Check The Project Filesystem
 
 Static preflight evaluates the repository filesystem immediately after the

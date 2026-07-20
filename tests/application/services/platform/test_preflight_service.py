@@ -43,9 +43,43 @@ from tiny_swarm_world.domain.project_filesystem import (
     ProjectFilesystemKind,
     assess_project_filesystem,
 )
+from tiny_swarm_world.domain.preflight.resources import HostResources, MemoryPressureReport
 
 
 class TestPreflightService(unittest.IsolatedAsyncioTestCase):
+    def test_wsl_resource_checks_cover_supported_and_pressure_paths(self):
+        service = PreflightService(_fake_probe())
+        service.resource_inspector = _ResourceInspector()
+        host = HostEnvironmentReport(
+            environment=HostEnvironmentKind.WSL2,
+            setup_path=SetupPath.WSL2,
+            remediation=(),
+            evidence={"classification": "wsl2"},
+        )
+
+        resource_check = service._structured_resource_check(host)
+        pressure_check = service._memory_pressure_check(host)
+
+        self.assertIsNotNone(resource_check)
+        self.assertEqual("PASSED", resource_check.status)
+        self.assertIsNotNone(pressure_check)
+        self.assertEqual("PASSED", pressure_check.status)
+
+    def test_wsl_resource_checks_reject_insufficient_and_critical_pressure(self):
+        service = PreflightService(_fake_probe())
+        service.resource_inspector = _ResourceInspector(critical=True)
+        host = HostEnvironmentReport(
+            environment=HostEnvironmentKind.WSL2,
+            setup_path=SetupPath.WSL2,
+            remediation=(),
+            evidence={"classification": "wsl2"},
+        )
+
+        resource_check = service._structured_resource_check(host)
+        pressure_check = service._memory_pressure_check(host)
+
+        self.assertEqual("FAILED", resource_check.status)
+        self.assertEqual("FAILED", pressure_check.status)
     async def test_successful_preflight_reports_passed_checks(self):
         result = await PreflightService(_fake_probe()).run(
             LiveConsent(live_flag=True, confirmed=True)
@@ -937,6 +971,28 @@ class _FakeProbeOptions:
 
 def _fake_probe(**overrides: Any) -> "_FakeProbe":
     return _FakeProbe(_FakeProbeOptions(**overrides))
+
+
+class _ResourceInspector:
+    def __init__(self, critical: bool = False) -> None:
+        self.critical = critical
+
+    def inspect(self) -> HostResources:
+        if self.critical:
+            return HostResources(1, 1, 1, 0, 1)
+        return HostResources(32, 32 * 1024**3, 32 * 1024**3, 0, 500 * 1024**3)
+
+    def memory_pressure(self) -> MemoryPressureReport:
+        return MemoryPressureReport(
+            assessment="oom_kill_detected" if self.critical else "none",
+            confidence="high",
+            memory_current=1,
+            memory_max=2,
+            memory_high=2,
+            oom_events=1 if self.critical else 0,
+            oom_kill_events=1 if self.critical else 0,
+            reclaim_events=0,
+        )
 
 
 class _FakeProbe(PortHostPreflightProbe):

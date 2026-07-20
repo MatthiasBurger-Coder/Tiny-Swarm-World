@@ -559,6 +559,24 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("phase 'unsafe' returned unsafe result payload", result.reason)
         self.assertNotIn("stdout", str(payload))
 
+    async def test_outer_timeout_returns_timed_out_without_running_later_phases(self):
+        calls: list[str] = []
+
+        async def hangs() -> object:
+            calls.append("hanging")
+            import asyncio
+            await asyncio.sleep(1)
+            return None
+
+        workflow = SetupWorkflow(
+            (SetupWorkflowPhase("hanging", hangs),),
+            live_consent=_accepted_live_consent(),
+            timeout_seconds=0.001,
+        )
+        result = await workflow.run()
+        self.assertEqual(SetupWorkflowStatus.TIMED_OUT, result.status)
+        self.assertEqual(["hanging"], calls)
+
 
 def _completed_result(name: str, calls: list[str]) -> ArtifactWorkflowResult:
     calls.append(name)

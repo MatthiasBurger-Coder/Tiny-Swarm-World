@@ -28,6 +28,12 @@ from tiny_swarm_world.domain.preflight import (
     default_preflight_configuration,
 )
 from tiny_swarm_world.domain.project_filesystem import ProjectFilesystemAssessment
+from tiny_swarm_world.domain.preflight.resources import (
+    HostResources,
+    ResourceAssessment,
+    ResourceRequirements,
+    assess_resources,
+)
 
 
 class PreflightService:
@@ -41,6 +47,8 @@ class PreflightService:
         project_filesystem_authorizer: AuthorizeProjectFilesystem | None = None,
         project_path: str | None = None,
         allow_wsl_windows_filesystem: bool = False,
+        resource_inspector: object | None = None,
+        evidence_writer: object | None = None,
     ):
         self.host_probe = host_probe
         self.configuration = configuration or default_preflight_configuration()
@@ -50,6 +58,8 @@ class PreflightService:
         self.project_filesystem_authorizer = project_filesystem_authorizer
         self.project_path = project_path
         self.allow_wsl_windows_filesystem = allow_wsl_windows_filesystem
+        self.resource_inspector = resource_inspector
+        self.evidence_writer = evidence_writer
 
     async def run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
         await asyncio.sleep(0)
@@ -59,6 +69,12 @@ class PreflightService:
             *self._configuration_contract_checks(),
             self._host_check(host_environment),
         ]
+        resource_check = self._structured_resource_check(host_environment)
+        if resource_check is not None:
+            checks.append(resource_check)
+        pressure_check = self._memory_pressure_check(host_environment)
+        if pressure_check is not None:
+            checks.append(pressure_check)
         if live_consent is not None:
             checks.insert(0, self._live_consent_check(live_consent))
         filesystem_assessment = self._project_filesystem_assessment(
@@ -95,12 +111,116 @@ class PreflightService:
         )
         return self._result(tuple(checks))
 
+    def _structured_resource_check(
+        self,
+        host_environment: HostEnvironmentReport,
+    ) -> PreflightCheck | None:
+        if self.resource_inspector is None:
+            return None
+        if host_environment.environment is not HostEnvironmentKind.WSL2:
+            return None
+        inspect = getattr(self.resource_inspector, "inspect", None)
+        if not callable(inspect):
+            return None
+        resources = inspect()
+        if not isinstance(resources, HostResources):
+            return None
+        thresholds = self.configuration.resources
+        result = assess_resources(
+            resources,
+            ResourceRequirements(
+                thresholds.minimum_cpu_count,
+                thresholds.minimum_memory_bytes,
+                thresholds.minimum_disk_free_bytes,
+            ),
+        )
+        evidence = {
+            "assessment": result.assessment.value,
+            "cpu_threads": str(resources.cpu_threads),
+            "memory_bytes": str(resources.memory_bytes),
+            "effective_memory_bytes": str(resources.effective_memory_bytes),
+            "cgroup_memory_limit_bytes": str(resources.cgroup_memory_limit_bytes or "unlimited"),
+            "current_memory_usage_bytes": str(resources.current_memory_usage_bytes),
+            "free_disk_bytes": str(resources.free_disk_bytes),
+            "remaining_memory_bytes": str(result.remaining_memory_bytes),
+        }
+        if result.assessment is ResourceAssessment.INSUFFICIENT:
+            return _failed(
+                "RESOURCE-STRUCTURED",
+                PreflightCategory.RESOURCE,
+                result.reason,
+                "Reduce the selected profile or provide more WSL capacity before live setup.",
+                evidence,
+                severity=PreflightSeverity.RESOURCE_GATED,
+            )
+        return _passed(
+            "RESOURCE-STRUCTURED",
+            PreflightCategory.RESOURCE,
+            result.reason,
+            evidence,
+            severity=PreflightSeverity.RESOURCE_GATED,
+        )
+
+    def _memory_pressure_check(
+        self,
+        host_environment: HostEnvironmentReport,
+    ) -> PreflightCheck | None:
+        if self.resource_inspector is None:
+            return None
+        if host_environment.environment is not HostEnvironmentKind.WSL2:
+            return None
+        inspect = getattr(self.resource_inspector, "memory_pressure", None)
+        if not callable(inspect):
+            return None
+        report = inspect()
+        evidence = {
+            "assessment": report.assessment,
+            "confidence": report.confidence,
+            "memory_current": str(report.memory_current),
+            "memory_max": str(report.memory_max or "unlimited"),
+            "memory_high": str(report.memory_high or "unlimited"),
+            "oom_events": str(report.oom_events),
+            "oom_kill_events": str(report.oom_kill_events),
+            "reclaim_events": str(report.reclaim_events),
+        }
+        critical = report.assessment in {
+            "oom_kill_detected",
+            "oom_event_detected",
+            "critical_memory_pressure",
+        }
+        if critical:
+            return _failed(
+                "RESOURCE-MEMORY-PRESSURE",
+                PreflightCategory.RESOURCE,
+                "WSL memory pressure requires remediation before live setup.",
+                "Reduce workload or increase WSL memory capacity, then rerun preflight.",
+                evidence,
+                severity=PreflightSeverity.RESOURCE_GATED,
+            )
+        return _passed(
+            "RESOURCE-MEMORY-PRESSURE",
+            PreflightCategory.RESOURCE,
+            "WSL memory pressure was inspected without confirmed critical pressure.",
+            evidence,
+            severity=PreflightSeverity.RESOURCE_GATED,
+        )
+
     def _result(self, checks: tuple[PreflightCheck, ...]) -> PreflightResult:
-        return PreflightResult(
+        result = PreflightResult(
             checks,
             setup_profile=self.configuration.setup_profile,
             manifest_summary=self.configuration.setup_manifest.summary(),
         )
+        writer = self.evidence_writer
+        write = getattr(writer, "write", None)
+        if callable(write):
+            try:
+                write(result.to_evidence(), f"{self.configuration.setup_manifest.evidence_root}/preflight.json")
+            except (OSError, ValueError):
+                # Evidence failure must remain observable through the caller's
+                # diagnostics; it must never turn a failed preflight into success.
+                pass
+        return result
 
     def _project_filesystem_assessment(
         self,

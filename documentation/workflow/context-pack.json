@@ -1,14 +1,14 @@
 {
-  "workflow_id": "workflow-skill-agent-governance-20260720",
-  "version": "workflow-skill-agent-governance-v1.0.0",
-  "branch": "feature/workflow-skill-agent-governance-20260720",
+  "workflow_id": "issue-218-20260720",
+  "version": "issue-218-v1.0.0",
+  "branch": "feature/workflow-issue-218-20260720",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
-  "affected_areas": [".agents/**", ".codex/**", "documentation/process/skills/**", "governance-only tests"],
-  "forbidden_areas": ["src/tiny_swarm_world/**", "product behavior tests", "Docker/runtime", "contracts", "persistence", "analytics", "live infrastructure"],
+  "affected_areas": ["src/tiny_swarm_world/domain/preflight/**", "src/tiny_swarm_world/application/**", "src/tiny_swarm_world/infrastructure/**", "tests/**", "documentation/**"],
+  "forbidden_areas": ["live infrastructure without consent", "secrets", "unrelated governance changes"],
   "read_only_architecture_boundary": "src/tiny_swarm_world/infrastructure/composition.py",
-  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester", "Skill Registry Conflict Auditor", "Senior Workflow Architect", "Senior Documentation Engineer"],
+  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester"],
   "quality_commands": ["git diff --check", "python3 tools/quality_gate.py quality"],
-  "evidence_path": ".tiny-swarm/evidence/workflow-skill-agent-governance-20260720/",
+  "evidence_path": ".tiny-swarm/evidence/issue-218/",
   "arc42_status": "checked_no_update_required"
 }
