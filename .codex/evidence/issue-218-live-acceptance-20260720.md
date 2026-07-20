@@ -42,8 +42,9 @@ Environment: WSL2, non-production local environment
 ## Verification limitation
 
 The Windows bridge suite is executed with Windows PowerShell Pester 3.4.0.
-Its exception assertions are not reliably selectable/executed in this
-environment, although the underlying `Assert-ValidTcpPort` and
-`New-BridgeCleanupPlan` behavior was reproduced directly and failed closed.
+Its fail-closed assertions now use a local Pester-3-compatible assertion helper.
+The suite passes with 40 tests passed and 0 failed. The underlying
+`Assert-ValidTcpPort` and `New-BridgeCleanupPlan` behavior also rejects invalid
+ports before mutation.
 
 No issue-closing claim is made by this evidence file.
