@@ -22,17 +22,20 @@ Auditor mode: read-only role-based review
 ## Blocking findings
 
 1. No real WSL IP-change/reconciliation cycle has been executed and evidenced.
-2. The intentionally insufficient real WSL-resource configuration scenario
-   has not been executed and captured.
-3. The required independent Three-Amigos/Issue Completion Auditor approval is
+2. The required independent Three-Amigos/Issue Completion Auditor approval is
    not available in the repository evidence.
-4. A real WSL IP-change/reconciliation cycle and elevated before/after
-   Windows repair run are still not captured. Current read-only state is
-   consistent and the 40-test Windows bridge suite is green.
+3. The real insufficient-resource scenario is now evidenced: with WSL
+   temporarily limited to 8 GB, `host preflight --json` failed closed with
+   `RESOURCE-STRUCTURED`, assessment `INSUFFICIENT`, and severity
+   `RESOURCE_GATED`; the 20 GB setting was restored afterward.
+4. The elevated repair script completed once with exit code 0, but a complete
+   elevated before/after capture is not available from the non-interactive
+   session. The current read-only firewall and portproxy state is consistent,
+   and the 40-test Windows bridge suite is green.
 
 ## Audit conclusion
 
 Implementation and live installation are substantially complete, but the
-definition of done requires the four findings above to be resolved or
+definition of done requires the remaining findings above to be resolved or
 explicitly accepted by the responsible independent reviewers. Issue #218
 remains open.

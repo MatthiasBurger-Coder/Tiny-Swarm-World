@@ -27,15 +27,22 @@ Environment: WSL2, non-production local environment
 - Read-only Docker node/service inspection completed without mutation.
 - Direct fail-closed validation was reproduced for an invalid TCP port:
   `New-BridgeCleanupPlan` rejects `connectPort=70000` before any mutation.
+- A real insufficient-resource scenario was executed by temporarily reducing
+  WSL memory from 20 GB to 8 GB. `host preflight --json` returned
+  `RESOURCE-STRUCTURED`, status `FAILED`, assessment `INSUFFICIENT`, effective
+  memory `8322224128` bytes and severity `RESOURCE_GATED`. The 20 GB setting
+  was restored and WSL was restarted successfully.
+- The elevated Windows repair script completed once with exit code 0. A
+  subsequent automatic elevation attempt could not be observed to completion
+  from the non-interactive host session, so its before/after result is not
+  treated as evidence.
 
 ## Still required
 
-- Repeat the checks after a WSL IP change and prove network preparation is
-  idempotent across that change.
+- Repeat the checks after an actual WSL IP change and prove network
+  preparation is idempotent across that change.
 - Capture explicit Windows firewall and portproxy state before and after the
-  repeat run.
-- Execute the intentionally insufficient-resource scenario and retain its
-  blocking evidence.
+  elevated repeat run.
 - Complete the independent Issue Completion Auditor and final acceptance
   checklist decision before closing Issue #218.
 
