@@ -22,14 +22,13 @@ Auditor mode: read-only role-based review
 ## Blocking findings
 
 1. No real WSL IP-change/reconciliation cycle has been executed and evidenced.
-2. The Windows bridge Pester run is not green in the available
-   Windows PowerShell/Pester 3.4.0 environment (17 passed, 23 failed in the
-   original run); direct product validation passed, but the suite cannot be
-   accepted as a complete acceptance gate.
-3. The intentionally insufficient real WSL-resource configuration scenario
+2. The intentionally insufficient real WSL-resource configuration scenario
    has not been executed and captured.
-4. The required independent Three-Amigos/Issue Completion Auditor approval is
+3. The required independent Three-Amigos/Issue Completion Auditor approval is
    not available in the repository evidence.
+4. A real WSL IP-change/reconciliation cycle and elevated before/after
+   Windows repair run are still not captured. Current read-only state is
+   consistent and the 40-test Windows bridge suite is green.
 
 ## Audit conclusion
 
