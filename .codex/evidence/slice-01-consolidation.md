@@ -1,15 +1,12 @@
 # Slice 01 Consolidation
 
-- Workflow: `workflow-skill-agent-governance-20260720`
-- Slice: `01`
-- Streams: documentation/architecture/quality/security read-only reviews
-- Stream results: inventory and requirement matrix created; composition boundary verified; quality tooling and full gate verified.
-- Accepted findings: governance/runtime separation; serial execution; explicit external-skill boundary.
-- Rejected findings: none.
-- Files changed: `.codex/evidence/slice-01-distribution.md`, `.codex/evidence/slice-01-consolidation.md`, `.tiny-swarm/evidence/workflow-skill-agent-governance-20260720/**`.
-- Conflicts found: initial heuristic reported 140 while authoritative `.agents/skills/**/SKILL.md` discovery reports 132; Markdown/JSON required-skill lists report 48 versus 47.
-- Conflicts resolved: 140-vs-132 resolved as an inventory-method error by Three-Amigos review; 48-vs-47 remains an explicit Slice-02 parity finding.
-- Tests/checks: `git diff --check`; `python3 tools/quality_gate.py quality`.
-- SonarQube: not configured or required for this governance-only evidence slice.
-- Documentation: workflow and context pack already synchronized; no Arc42 change required.
-- Final integration decision: Slice 01 evidence is corrected and reviewed; Slice 02 may start with registry parity reconciliation in scope.
+- stream results: inventory and requirement matrix created; current registry count verified as 132 project skills
+- accepted findings: all 132 project entrypoints have frontmatter and match the registry count
+- rejected findings: no claim of complete semantic classification; that belongs to Slice 02
+- files changed: `.tiny-swarm/evidence/**`, `.codex/evidence/**`
+- conflicts found: none
+- conflicts resolved: none
+- tests executed: pending targeted and full quality gates
+- SonarQube findings and fixes: not configured for this local slice
+- documentation updates: inventory evidence added; canonical registry not rewritten
+- final integration decision: Slice 01 evidence is complete; targeted registry and resolver checks pass. Full quality-gate execution remains separately limited by the 120-second command timeout.

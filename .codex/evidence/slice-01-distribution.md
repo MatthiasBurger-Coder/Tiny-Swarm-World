@@ -1,16 +1,22 @@
-# Slice 01 Distribution
+# Slice 01 Distribution Decision
 
-- Workflow: `workflow-skill-agent-governance-20260720`
-- Slice: `01` — Complete inventory and requirement matrix
-- Affected areas: `.agents/**`, `.codex/**`, `documentation/process/skills/**`, root governance files
-- Execution mode: sequential
-- Selected streams: documentation, architecture, quality, security (read-only governance checks)
-- Backend/runtime/frontend streams: not applicable
-- Real subagents: unavailable in the current execution surface
-- Fallback review: explicit role-based review by Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior Tester and Skill Registry Conflict Auditor
-- Git worktrees: not used; slice is serial and read-only until evidence is complete
-- Expected touched files: `.codex/evidence/**`, `.tiny-swarm/evidence/**`
-- Conflict risks: registry count drift, ambiguous ownership, external-library scope, shared routing rules
-- Quality gates: `git diff --check`; `python3 tools/quality_gate.py quality`
-- Consolidation plan: review inventory completeness, classify blockers, then hand off to Slice 02 only after all required reviews pass
-- Parallelization decision: rejected because all governance artifacts share source-of-truth and ownership contracts
+- workflow id: `workflow-skill-agent-governance-20260720`
+- slice id: `01`
+- slice title: Complete inventory and requirement matrix
+- affected areas: documentation, governance, architecture, quality
+- execution mode: sequential
+- selected streams: documentation, architecture, quality
+- real subagents used: no; role-based fallback review recorded in main thread
+- isolated Git worktrees: not applicable; one serial slice and one locked inventory
+- expected touched files/directories: `.tiny-swarm/evidence/**`, `.codex/evidence/**`, `documentation/process/skills/audit/**`
+- conflict risks: registry source-of-truth and governance hashes
+- quality gates: inventory completeness, reference checks, `git diff --check`, Python quality gate
+- consolidation plan: validate counts and metadata, then record slice evidence
+- parallelization decision: rejected because the inventory and registry are one shared contract
+
+## Role-based fallback review
+
+- Requirement Lead: inventory must cover every `.agents/skills/*/SKILL.md`.
+- System Architect: runtime composition and product source remain outside scope.
+- Tester: counts, metadata shape and registry integrity require executable checks.
+- Documentation Engineer: canonical registry artifacts remain synchronized.

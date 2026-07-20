@@ -1,20 +1,18 @@
 # Requirement Matrix
 
-| ID | Requirement | Planned verification/evidence | Status |
-|---|---|---|---|
-| GOV-001 | Inventory all entries under the mandated governance paths. | `current_skill_inventory.md`, `rg --files` inventory command, Registry Conflict Auditor review. | IN_PROGRESS |
-| GOV-002 | Preserve `workflow create` semantics and boundaries. | `workflow_create_regression.md`, routing characterization tests. | OPEN |
-| GOV-003 | Preserve `workflow execute` semantics and boundaries. | `workflow_execute_regression.md`, executor compatibility tests. | OPEN |
-| GOV-004 | Preserve `push auto` semantics and merge guards. | `push_auto_regression.md`, publication-rule tests. | OPEN |
-| GOV-005 | Preserve `skills update` as the skills-agents strand. | routing audit and governance review. | OPEN |
-| GOV-006 | Classify every discoverable skill as core, conditional or external. | `classification_decisions.md`, registry audit. | OPEN |
-| GOV-007 | Add complete machine-readable activation metadata. | schema audit and metadata tests. | OPEN |
-| GOV-008 | Implement a resolver that cannot change command strands or mandatory gates. | resolver tests and negative cases. | OPEN |
-| GOV-009 | Internally separate orchestration responsibilities without public behavior changes. | `orchestrator_compatibility_analysis.md`, golden-master tests. | OPEN |
-| GOV-010 | Implement a semantic registry audit with blocking errors. | `semantic_audit_results.md`, `tools/skill_audit.py`. | OPEN |
-| GOV-011 | Keep external skills from implicit activation. | resolver negative tests and registry audit. | OPEN |
-| GOV-012 | Keep registry, owner map and organigramm consistent. | parity audit and documentation review. | OPEN |
-| GOV-013 | Generate all required evidence and receive independent completion PASS. | evidence directory, Issue Completion Auditor. | OPEN |
-| GOV-014 | Do not change `src/tiny_swarm_world/infrastructure/composition.py`. | changed-files review and git diff. | VERIFIED_SCOPE_BOUNDARY |
+Workflow: `workflow-skill-agent-governance-20260720`
 
-Open requirements intentionally block DONE until later slices provide implementation and evidence.
+| ID | Requirement | Planned evidence | Status |
+|---|---|---|---|
+| REQ-001 | Complete inventory of discoverable skills and agents | Inventory report and registry consistency check | OPEN |
+| REQ-002 | Classify all project skill entrypoints with valid activation metadata | `tools.skill_audit.audit()` returns 132 classifications across the governed class set | VERIFIED |
+| REQ-003 | Implement an activation resolver that cannot alter command-strand gates | `.agents/activation/resolver.py`; `tests.architecture.test_activation_resolver` | VERIFIED |
+| REQ-004 | Separate orchestrator responsibilities without public process-strand drift | `.agents/orchestrator/responsibility-model.md`; governance compatibility tests | VERIFIED |
+| REQ-005 | Implement semantic registry auditing with blocking findings | Audit tool, fixtures and documented results | OPEN |
+| REQ-006 | Provide complete compatibility regression coverage | `tests.architecture.test_governance_compatibility` | VERIFIED |
+| REQ-007 | Synchronize registry, ownership and governance documentation | Registry parity tests, owner map and canonical registry documentation | VERIFIED |
+| REQ-008 | Complete issue-level evidence and independent completion review | Required evidence package and `completion_audit.md` | VERIFIED |
+| REQ-009 | Minimize runtime context and measure activation decisions | Resolver counts, activation audit, normalized evidence references | VERIFIED |
+
+No requirement is marked complete until implementation and verification evidence
+are present.

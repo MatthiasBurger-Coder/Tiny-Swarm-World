@@ -83,6 +83,18 @@ class TestSkillRegistryIntegrity(unittest.TestCase):
         self.assertNotIn("must use five mandatory roles", workflow_prompt.lower())
         self.assertIn("Console/status UI reviewer", workflow_prompt)
 
+    def test_registry_required_skills_have_discoverable_entrypoints(self):
+        registry = _registry()
+        discovered = {path.parent.name for path in SKILLS_ROOT.glob("*/SKILL.md")}
+        missing = sorted(set(registry["required_tiny_swarm_world_skills"]) - discovered)
+        self.assertEqual(missing, [])
+
+    def test_registry_separates_project_and_reusable_skill_counts(self):
+        counts = _registry()["counts"]
+        self.assertEqual(counts["project_skill_entrypoints"], 132)
+        self.assertEqual(counts["project_skill_entrypoints_with_valid_metadata"], 132)
+        self.assertEqual(counts["codex_skill_entrypoints"], 6)
+
 
 def _registry() -> dict[str, Any]:
     return json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
