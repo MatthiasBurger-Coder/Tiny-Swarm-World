@@ -1,3 +1,4 @@
+import asyncio
 import unittest
 from types import SimpleNamespace
 from tests.support.async_helpers import async_checkpoint
@@ -448,6 +449,26 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_VERIFY, result.status)
         self.assertNotIn("secret", result.verification_results[0].message)
+
+    async def test_verify_workflow_returns_explicit_timeout(self):
+        class SlowDeploymentCheck:
+            verification_target_id = "deployment:slow-readiness"
+
+            async def verify(self) -> VerificationResult:
+                await asyncio.sleep(60)
+                return _verification_result(
+                    self.verification_target_id,
+                    VerificationStatus.VERIFIED,
+                )
+
+        result = await DeploymentVerifyWorkflow(
+            (SlowDeploymentCheck(),),
+            timeout_seconds=0.01,
+        ).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.TIMED_OUT, result.status)
+        self.assertEqual("deployment verify", result.workflow_name)
+        self.assertIn("timeout", result.reason)
 
 
 class _VerifiedDeploymentCheck:

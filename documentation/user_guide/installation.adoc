@@ -172,6 +172,13 @@ PYTHONPATH=src python3 -m tiny_swarm_world --preflight
 PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
 ----
 
+The live `setup run` sequence performs `host prepare` and read-only `host
+verify` after preflight and before Incus initialization. To prepare the
+Windows/WSL bridge independently, use the dedicated host command and provide
+the explicit live consent flags. If WSL does not expose the canonical
+ProgramData location at `/mnt/c`, set `TSW_WINDOWS_WSL_BRIDGE_STATE_PATH` to
+the protected bridge-state file before running preflight.
+
 See `documentation/system/lxc-native-setup.adoc` for the full WSL2 and
 Incus setup notes and official references.
 
@@ -711,6 +718,16 @@ hosts, raise it before rerunning the idempotent installation:
 ----
 export TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS=300
 ./install.sh --confirm-reset
+----
+
+Installer-side Python environment bootstrap commands are also bounded. The
+default per-command limit is 900 seconds and can be lowered or raised through
+the explicit environment setting below; a timeout is reported as a timeout
+error and does not silently continue:
+
+[source,bash]
+----
+export TSW_INSTALL_SUBPROCESS_TIMEOUT_SECONDS=900
 ----
 
 `install.sh` is a fresh-install entry point. It first calls the governed

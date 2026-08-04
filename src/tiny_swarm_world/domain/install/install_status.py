@@ -8,4 +8,6 @@ class InstallStatus(StrEnum):
     RUNNING = "RUNNING"
     SUCCEEDED = "SUCCEEDED"
     FAILED = "FAILED"
+    TIMED_OUT = "TIMED_OUT"
+    INTERRUPTED = "INTERRUPTED"
     SKIPPED = "SKIPPED"

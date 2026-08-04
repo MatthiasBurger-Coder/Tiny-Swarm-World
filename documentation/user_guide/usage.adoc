@@ -95,10 +95,16 @@ The dedicated host commands keep those stages visible:
 ----
 tiny-swarm-world host detect
 tiny-swarm-world host preflight
+tiny-swarm-world --live --approve-live host prepare
 tiny-swarm-world --json host verify
 ----
 
 `host preflight` runs the static host, filesystem and resource checks.
+`host prepare` is the explicit, bounded host-preparation mutation boundary. On
+WSL2 it verifies or reconciles the registered Windows bridge through the
+dedicated infrastructure adapter; it does not perform platform deployment.
+When the repository is on a Windows-mounted WSL filesystem, add
+`--allow-wsl-windows-filesystem` and retain the emitted override evidence.
 `host verify` collects bounded, read-only process and Docker diagnostics; it
 does not repair networking, change Incus limits, or modify deployments.
 
@@ -168,6 +174,10 @@ tiny-swarm-world setup run --live
 The setup sequence includes `platform expose`, which configures the
 LXC-native manager gateway for published Swarm service ports after platform
 init/reconcile and before deployment bootstrap.
+Before any Incus or platform phase, `setup run` executes the explicit `host
+prepare` and read-only `host verify` phases. On WSL2 these phases reconcile and
+verify the Windows bridge; on native Linux they select the no-op native host
+adapter.
 
 Backend selection first honors an explicit `--lxc-backend incus` override,
 then `backend_selection.preferred_backend` in
@@ -315,6 +325,24 @@ The LXC Docker installation step writes this value into each node's
 `insecure-registries`. Localhost values such as `http://127.0.0.1:5001` are
 rejected for LXC nodes because they would point at the node itself, not at the
 WSL-hosted Nexus cache.
+
+Artifact source readiness supports the explicit modes `direct-internet`,
+`nexus`, `fallback`, and `offline` through `TSW_ARTIFACT_SOURCE_MODE`. The
+default is `direct-internet`; `fallback` probes the configured Nexus source and
+then direct sources. `offline` is not an unconditional bypass: it requires a
+checksum-verified manifest:
+
+[source,bash]
+----
+export TSW_ARTIFACT_SOURCE_MODE=offline
+export TSW_OFFLINE_ARTIFACT_MANIFEST=/home/<user>/artifact-cache/offline.json
+----
+
+The manifest must contain `contract_version: 1` and a non-empty `artifacts`
+array. Each artifact has an identifier, a local `path`, and a lowercase SHA-256
+`sha256` value. Preflight blocks when the manifest is missing, malformed, or a
+cache checksum does not match; this keeps offline installation explicit and
+reproducible.
 
 == Stack Deployment
 

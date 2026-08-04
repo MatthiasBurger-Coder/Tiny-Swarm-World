@@ -86,6 +86,11 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertIn('"docker-ce=${TSW_DOCKER_ENGINE_PACKAGE_VERSION}"', script)
         self.assertIn('"containerd.io=${TSW_CONTAINERD_PACKAGE_VERSION}"', script)
         self.assertIn("apt-mark hold docker-ce docker-ce-cli containerd.io", script)
+        self.assertIn("Acquire::http::ConnectTimeout=10", script)
+        self.assertIn("Acquire::https::ConnectTimeout=10", script)
+        self.assertIn("Acquire::http::Pipeline-Depth=0", script)
+        self.assertIn("APT_COMMAND_TIMEOUT_SECONDS=\"${TSW_DOCKER_APT_COMMAND_TIMEOUT_SECONDS:-300}\"", script)
+        self.assertIn('timeout "${APT_COMMAND_TIMEOUT_SECONDS}s" apt-get "$@"', script)
         self.assertIn("--connect-timeout ${TSW_DOCKER_NETWORK_CONNECT_TIMEOUT_SECONDS:-10}", script)
         self.assertIn("--max-time ${TSW_DOCKER_NETWORK_MAX_TIMEOUT_SECONDS:-60}", script)
         self.assertIn('"containerd-snapshotter": false', script)
@@ -97,6 +102,20 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertIn('"127.0.0.1:13500"', script)
         self.assertIn("cat > /etc/docker/daemon.json", script)
         self.assertIn("systemctl restart docker || service docker restart || true", script)
+
+    async def test_install_trusts_managed_http_registry_without_external_mirror(self):
+        runner = _FakeRunner(
+            LxcNodeCommandResult(returncode=0),
+            LxcNodeCommandResult(returncode=0, stdout="24.0.0"),
+        )
+        runtime = _runtime(runner)
+
+        await runtime.install_docker(_node())
+
+        script = runner.calls[0][0][-1]
+        self.assertNotIn('"registry-mirrors": [', script)
+        self.assertIn('"insecure-registries": [', script)
+        self.assertIn('"127.0.0.1:13500"', script)
 
     async def test_install_writes_lxc_reachable_apt_mirrors_when_configured(self):
         runner = _FakeRunner(

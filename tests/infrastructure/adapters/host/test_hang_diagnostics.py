@@ -3,6 +3,8 @@ from unittest.mock import patch
 
 from tiny_swarm_world.infrastructure.adapters.host.hang_diagnostics import (
     ReadOnlyHangDiagnostics,
+    _classify,
+    _contains_high_cpu_process,
     _run_command,
 )
 from tiny_swarm_world.domain.preflight.hang_diagnostics import HangDiagnosticCommand
@@ -22,9 +24,12 @@ class HangDiagnosticsTests(unittest.TestCase):
 
         report = ReadOnlyHangDiagnostics(runner, timeout_seconds=3).collect()
         self.assertTrue(report.read_only)
-        self.assertEqual(4, len(report.commands))
+        self.assertEqual(9, len(report.commands))
         self.assertTrue(all(call[2] == 3 for call in calls))
         self.assertEqual("processes", report.commands[0].name)
+
+        docker_logs = next(call for call in calls if call[0] == "docker_logs")
+        self.assertIn("docker logs --tail 100", docker_logs[1][2])
 
     @patch("tiny_swarm_world.infrastructure.adapters.host.hang_diagnostics.subprocess.run")
     def test_command_runner_maps_timeout(self, run):
@@ -53,3 +58,25 @@ class HangDiagnosticsTests(unittest.TestCase):
 
         self.assertEqual("FAILED", result.status)
         self.assertEqual("failure", result.output)
+
+    def test_classifies_process_wait_states_without_mutation(self):
+        cases = (
+            ("<defunct>", "exited_uncollected"),
+            ("wchan=io_schedule", "io_wait"),
+            ("wchan=sock_read", "network_wait"),
+            ("state D pipe_read", "blocked_child"),
+            ("PID PPID STAT ETIME %CPU %MEM WCHAN CMD\n1 2 S 1 90.0 1.0 run worker", "cpu_bound"),
+            ("PID PPID STAT ETIME %CPU %MEM WCHAN CMD\n1 2 S 1 invalid 1.0 run worker", "active"),
+            ("", "unknown"),
+        )
+
+        for output, expected in cases:
+            with self.subTest(expected=expected):
+                self.assertEqual(expected, _classify("processes", output))
+
+    def test_classifies_runtime_commands_and_handles_short_process_rows(self):
+        self.assertEqual("active", _classify("docker_services", "service"))
+        self.assertEqual("unknown", _classify("docker_services", ""))
+        self.assertEqual("active", _classify("other", "state"))
+        self.assertEqual("unknown", _classify("other", ""))
+        self.assertFalse(_contains_high_cpu_process("header\nshort\n1 2 S 1 invalid 1.0 run worker"))

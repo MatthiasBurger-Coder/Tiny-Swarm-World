@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import time
@@ -8,12 +9,13 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
-from tiny_swarm_world.domain.preflight import WindowsWslBridgeStatus
+from tiny_swarm_world.domain.host_environment import WindowsWslBridgeStatus
 
 
 WINDOWS_WSL_BRIDGE_STATE = Path(
     "/mnt/c/ProgramData/TinySwarmWorld/WslBridge/bridge-state.json"
 )
+WINDOWS_WSL_BRIDGE_STATE_ENVIRONMENT = "TSW_WINDOWS_WSL_BRIDGE_STATE_PATH"
 WINDOWS_WSL_BRIDGE_CONTRACT_VERSION = 2
 WINDOWS_WSL_BRIDGE_AGENT_MODES = frozenset({"windows-service"})
 WINDOWS_WSL_BRIDGE_SERVICE_NAME = "TinySwarmWorldWslBridge"
@@ -28,6 +30,16 @@ WINDOWS_WSL_BRIDGE_BUNDLE_FILES = frozenset(
 DEFAULT_WINDOWS_WSL_BRIDGE_STATE_MAX_AGE_SECONDS = 5 * 60
 DEFAULT_WINDOWS_WSL_BRIDGE_RECONCILE_RETRY_ATTEMPTS = 180
 DEFAULT_WINDOWS_WSL_BRIDGE_RECONCILE_RETRY_INTERVAL_SECONDS = 0.5
+
+
+def configured_windows_wsl_bridge_state_path(
+    environment: Mapping[str, str] | None = None,
+) -> Path:
+    """Return the configured WSL view of protected Windows bridge state."""
+
+    values = os.environ if environment is None else environment
+    configured = values.get(WINDOWS_WSL_BRIDGE_STATE_ENVIRONMENT, "").strip()
+    return Path(configured) if configured else WINDOWS_WSL_BRIDGE_STATE
 
 
 def windows_wsl_bridge_status(

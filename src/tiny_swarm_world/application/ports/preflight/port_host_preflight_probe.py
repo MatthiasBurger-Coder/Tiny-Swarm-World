@@ -39,9 +39,7 @@ class PortHostPreflightProbe(ABC):
         return WindowsWslBridgeStatus(
             prepared=False,
             reason="unsupported_probe",
-            state_path=(
-                "/mnt/c/ProgramData/TinySwarmWorld/WslBridge/bridge-state.json"
-            ),
+            state_path="configured-by-host-adapter",
             expected_ports=tuple(expected_ports),
             missing_ports=tuple(expected_ports),
         )

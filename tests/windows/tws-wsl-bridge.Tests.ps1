@@ -4,6 +4,14 @@ $runnerScript = Join-Path $repositoryRoot "tools\windows\tws-wsl-bridge-service.
 
 . $bridgeScript
 
+function Assert-TestThrows {
+    param([scriptblock]$ScriptBlock)
+
+    $threw = $false
+    try { & $ScriptBlock } catch { $threw = $true }
+    $threw | Should Be $true
+}
+
 function Set-TestBridgePaths {
     param([string]$Root)
 
@@ -102,7 +110,7 @@ Describe "Tiny Swarm World Windows bridge protected state" {
         Mock Remove-PortProxy {}
         Mock Remove-NetFirewallRule {}
 
-        { New-BridgeCleanupPlan -State $state } | Should Throw
+        Assert-TestThrows { New-BridgeCleanupPlan -State $state }
 
         Assert-MockCalled Remove-PortProxy -Times 0
         Assert-MockCalled Remove-NetFirewallRule -Times 0
@@ -144,7 +152,7 @@ Describe "Tiny Swarm World Windows bridge protected state" {
             )
         }
 
-        { New-BridgeCleanupPlan -State $state } | Should Throw
+        Assert-TestThrows { New-BridgeCleanupPlan -State $state }
     }
 
     It "does not remove a stale listener now owned by another tuple" {
@@ -168,9 +176,67 @@ Describe "Tiny Swarm World Windows bridge protected state" {
         }
         Mock Remove-PortProxy {}
 
-        { Remove-StalePortProxyMappings -Config $config -Mappings @() } | Should Throw
+        Assert-TestThrows { Remove-StalePortProxyMappings -Config $config -Mappings @() }
 
         Assert-MockCalled Remove-PortProxy -Times 0 -Scope It
+    }
+
+    It "reconciles a changed WSL IP using the protected previous tuple" {
+        $previous = [pscustomobject]@{
+            contractVersion = 2
+            serviceName = $ServiceName
+            agentMode = "windows-service"
+            listenAddress = "0.0.0.0"
+            wslIp = "172.20.0.2"
+            mappings = @([pscustomobject]@{ listenPort = 80; connectPort = 80 })
+        }
+        $config = [pscustomobject]@{ listenAddress = "0.0.0.0" }
+        Mock Get-ProtectedBridgeState { $previous }
+        Mock Get-PortProxyRecords {
+            [pscustomobject]@{
+                ListenAddress = "0.0.0.0"
+                ListenPort = 80
+                ConnectAddress = "172.20.0.2"
+                ConnectPort = 80
+            }
+        }
+        Mock Remove-PortProxy {}
+
+        Remove-StalePortProxyMappings -Config $config -Mappings @([pscustomobject]@{ ListenPort = 80; ConnectPort = 80 }) -WslIp "172.20.0.3"
+
+        Assert-MockCalled Remove-PortProxy -Times 1 -Scope It -ParameterFilter {
+            $ListenAddress -eq "0.0.0.0" -and $ListenPort -eq 80
+        }
+    }
+}
+
+Describe "Tiny Swarm World Windows bridge read-only verification" {
+    It "rejects service drift even when a port is listening" {
+        $config = [pscustomobject]@{}
+        $mappings = @([pscustomobject]@{ ListenPort = 443; Name = "HTTPS" })
+        Mock Get-WslIp { "172.25.81.206" }
+        Mock Get-BridgeHostNames { @("tsw.local") }
+        Mock Get-BridgeDiscovery {
+            [pscustomobject]@{
+                Ready = $false
+                DriftReasons = @("bridge_agent_drift")
+            }
+        }
+        Mock Test-TcpPort { $true }
+
+        Assert-TestThrows { Verify-Bridge -Config $config -Mappings $mappings }
+        Assert-MockCalled Test-TcpPort -Times 0
+    }
+}
+
+Describe "Tiny Swarm World Windows bridge hosts cleanup" {
+    BeforeEach {
+        $script:HostsPath = Join-Path $TestDrive "hosts"
+        [System.IO.File]::WriteAllText($script:HostsPath, "")
+    }
+
+    It "handles an existing empty hosts file during managed block removal" {
+        Remove-ManagedHostsBlock | Should Be ""
     }
 }
 
@@ -192,7 +258,7 @@ Describe "Tiny Swarm World Windows bridge payload transaction" {
             -ServiceWasRunning $true
         Remove-Item -LiteralPath $staged.Wrapper -Force
 
-        { Switch-BridgePayload -Transaction $transaction } | Should Throw
+        Assert-TestThrows { Switch-BridgePayload -Transaction $transaction }
         Restore-BridgePayload -Transaction $transaction
 
         Assert-TestActivePayload -Marker "old"
@@ -209,7 +275,7 @@ Describe "Tiny Swarm World Windows bridge payload transaction" {
         New-Item -ItemType Directory -Path $transaction.RollbackRoot -Force | Out-Null
         Set-Content -LiteralPath $transaction.Items[1].Backup -Value "collision" -NoNewline
 
-        { Switch-BridgePayload -Transaction $transaction } | Should Throw
+        Assert-TestThrows { Switch-BridgePayload -Transaction $transaction }
         Restore-BridgePayload -Transaction $transaction
 
         Assert-TestActivePayload -Marker "old"
@@ -243,7 +309,7 @@ Describe "Tiny Swarm World Windows bridge payload transaction" {
         Switch-BridgePayload -Transaction $transaction
         Remove-Item -LiteralPath $transaction.Items[1].Backup -Force
 
-        { Restore-BridgePayload -Transaction $transaction } | Should Throw
+        Assert-TestThrows { Restore-BridgePayload -Transaction $transaction }
 
         (Test-Path -LiteralPath $TransactionJournalPath) | Should Be $true
     }
@@ -322,7 +388,7 @@ Describe "Tiny Swarm World Windows bridge pinned-wrapper recovery validation" {
             Set-Content -LiteralPath $OutFile -Value "unexpected-wrapper" -NoNewline
         }
 
-        { Restore-BridgePinnedWrapperForRecovery -Item $item } | Should Throw
+        Assert-TestThrows { Restore-BridgePinnedWrapperForRecovery -Item $item }
 
         (Test-Path -LiteralPath $ServiceWrapperPath) | Should Be $false
         Assert-MockCalled Set-BridgeExactAcl -Times 0 -Scope It
@@ -344,7 +410,7 @@ Describe "Tiny Swarm World Windows bridge fail-closed service transitions" {
     It "fails closed when ACL hardening reports an error" {
         Mock Invoke-BridgeHandleAclHardening { throw "ACL failure" }
 
-        { Protect-BridgeServiceRoot } | Should Throw
+        Assert-TestThrows { Protect-BridgeServiceRoot }
     }
 
     It "rejects a reparse swap after handle-bound ACL hardening" {
@@ -367,7 +433,7 @@ Describe "Tiny Swarm World Windows bridge fail-closed service transitions" {
         }
         Mock Invoke-BridgeHandleAclHardening {}
 
-        { Set-BridgeExactAcl -Path (Join-Path $TestDrive "candidate") } | Should Throw
+        Assert-TestThrows { Set-BridgeExactAcl -Path (Join-Path $TestDrive "candidate") }
 
         Assert-MockCalled Invoke-BridgeHandleAclHardening -Times 1 -Scope It
     }
@@ -397,7 +463,7 @@ Describe "Tiny Swarm World Windows bridge fail-closed service transitions" {
     It "rejects a noncanonical root without the explicit Pester test boundary" {
         $script:BridgeServicePathTestRoot = ""
 
-        { Assert-BridgeServicePathSafety } | Should Throw
+        Assert-TestThrows { Assert-BridgeServicePathSafety }
     }
 
     It "does not mutate or ask for credentials when ownership is a collision" {
@@ -407,7 +473,7 @@ Describe "Tiny Swarm World Windows bridge fail-closed service transitions" {
         Mock Request-BridgeServiceCredential { throw "must not run" }
         Mock Protect-BridgeServiceRoot {}
 
-        { Install-BridgeService -ResolvedConfigPath $BridgeScriptSourcePath -ResolvedPortRegistryPath $BridgeScriptSourcePath -Config ([pscustomobject]@{}) } | Should Throw
+        Assert-TestThrows { Install-BridgeService -ResolvedConfigPath $BridgeScriptSourcePath -ResolvedPortRegistryPath $BridgeScriptSourcePath -Config ([pscustomobject]@{}) }
 
         Assert-MockCalled Protect-BridgeServiceRoot -Times 0 -Scope It
         Assert-MockCalled Request-BridgeServiceCredential -Times 0 -Scope It
@@ -420,7 +486,7 @@ Describe "Tiny Swarm World Windows bridge fail-closed service transitions" {
         Mock Request-BridgeServiceCredential { throw "cancelled" }
         Mock Protect-BridgeServiceRoot {}
 
-        { Install-BridgeService -ResolvedConfigPath $BridgeScriptSourcePath -ResolvedPortRegistryPath $BridgeScriptSourcePath -Config ([pscustomobject]@{}) } | Should Throw
+        Assert-TestThrows { Install-BridgeService -ResolvedConfigPath $BridgeScriptSourcePath -ResolvedPortRegistryPath $BridgeScriptSourcePath -Config ([pscustomobject]@{}) }
 
         Assert-MockCalled Protect-BridgeServiceRoot -Times 0 -Scope It
     }
@@ -449,7 +515,7 @@ Describe "Tiny Swarm World Windows bridge fail-closed service transitions" {
         Mock Protect-BridgeServiceRoot {}
         Mock Request-BridgeServiceCredential { throw "must not prompt" }
 
-        { Install-BridgeService -ResolvedConfigPath $BridgeScriptSourcePath -ResolvedPortRegistryPath $BridgeScriptSourcePath -Config ([pscustomobject]@{}) } | Should Throw
+        Assert-TestThrows { Install-BridgeService -ResolvedConfigPath $BridgeScriptSourcePath -ResolvedPortRegistryPath $BridgeScriptSourcePath -Config ([pscustomobject]@{}) }
 
         Assert-MockCalled Protect-BridgeServiceRoot -Times 1 -Scope It
         Assert-MockCalled Request-BridgeServiceCredential -Times 0 -Scope It
@@ -459,14 +525,14 @@ Describe "Tiny Swarm World Windows bridge fail-closed service transitions" {
         $mutex = New-Object psobject
         $mutex | Add-Member -MemberType ScriptMethod -Name WaitOne -Value { param($timeout) return $false }
 
-        { Wait-BridgeMutex -Mutex $mutex -Name "test" -Timeout ([TimeSpan]::Zero) } | Should Throw
+        Assert-TestThrows { Wait-BridgeMutex -Mutex $mutex -Name "test" -Timeout ([TimeSpan]::Zero) }
     }
 
     It "rejects runtime state when the ProgramData ACL is unsafe" {
         Mock Assert-BridgeServicePathSafety {}
         Mock Test-BridgeServiceAclHardened { $false }
 
-        { Assert-BridgeRuntimeStateAuthority } | Should Throw
+        Assert-TestThrows { Assert-BridgeRuntimeStateAuthority }
     }
 
     It "revokes only a right that the installation demonstrably granted" {
@@ -627,13 +693,13 @@ Describe "Tiny Swarm World Windows bridge verified firewall cleanup" {
         }
         Mock Remove-NetFirewallRule {}
 
-        { Invoke-BridgeCleanupPlan -Plan $plan } | Should Throw
+        Assert-TestThrows { Invoke-BridgeCleanupPlan -Plan $plan }
     }
 
     It "propagates technical firewall query failures" {
         Mock Get-NetFirewallRule { throw [InvalidOperationException]::new("CIM unavailable") }
 
-        { Get-ExactBridgeFirewallRules -RuleName "Tiny Swarm World TCP 443" } | Should Throw
+        Assert-TestThrows { Get-ExactBridgeFirewallRules -RuleName "Tiny Swarm World TCP 443" }
     }
 }
 
@@ -650,7 +716,7 @@ Describe "Tiny Swarm World Windows bridge journal reload recovery" {
             -ServiceExisted $true `
             -ServiceWasRunning $false
         Remove-Item -LiteralPath $staged.Wrapper -Force
-        { Switch-BridgePayload -Transaction $transaction } | Should Throw
+        Assert-TestThrows { Switch-BridgePayload -Transaction $transaction }
         $stoppedService = [pscustomobject]@{ Status = "Stopped" }
         Mock Assert-BridgeServicePathSafety {}
         Mock Assert-BridgePayloadPathSafety {}
@@ -701,7 +767,7 @@ Describe "Tiny Swarm World Windows bridge checksum preactivation" {
         Mock Stop-BridgeServiceChecked {}
         Mock Switch-BridgePayload {}
 
-        { Install-BridgeService -ResolvedConfigPath $sourcePath -ResolvedPortRegistryPath $sourcePath -Config ([pscustomobject]@{}) } | Should Throw
+        Assert-TestThrows { Install-BridgeService -ResolvedConfigPath $sourcePath -ResolvedPortRegistryPath $sourcePath -Config ([pscustomobject]@{}) }
 
         Assert-MockCalled Stop-BridgeServiceChecked -Times 0 -Scope It
         Assert-MockCalled Switch-BridgePayload -Times 0 -Scope It
@@ -755,7 +821,7 @@ Describe "Tiny Swarm World Windows bridge LSA provenance upgrade" {
             throw "stop after provenance capture"
         }
 
-        { Install-BridgeService -ResolvedConfigPath $sourcePath -ResolvedPortRegistryPath $sourcePath -Config ([pscustomobject]@{}) } | Should Throw
+        Assert-TestThrows { Install-BridgeService -ResolvedConfigPath $sourcePath -ResolvedPortRegistryPath $sourcePath -Config ([pscustomobject]@{}) }
 
         $script:observedPreexisting | Should Be $false
         $script:observedGranted | Should Be $true
@@ -808,7 +874,7 @@ Describe "Tiny Swarm World Windows bridge LSA provenance upgrade" {
             throw "stop after provenance capture"
         }
 
-        { Install-BridgeService -ResolvedConfigPath $sourcePath -ResolvedPortRegistryPath $sourcePath -Config ([pscustomobject]@{}) } | Should Throw
+        Assert-TestThrows { Install-BridgeService -ResolvedConfigPath $sourcePath -ResolvedPortRegistryPath $sourcePath -Config ([pscustomobject]@{}) }
 
         $script:observedPreexisting | Should Be $false
         $script:observedGranted | Should Be $true
@@ -834,7 +900,7 @@ Describe "Tiny Swarm World Windows bridge LSA provenance upgrade" {
         Mock Get-BridgeAccountSidValue { "S-1-5-21-test" }
         Mock Request-BridgeServiceCredential { throw "must not prompt" }
 
-        { Install-BridgeService -ResolvedConfigPath $sourcePath -ResolvedPortRegistryPath $sourcePath -Config ([pscustomobject]@{}) } | Should Throw
+        Assert-TestThrows { Install-BridgeService -ResolvedConfigPath $sourcePath -ResolvedPortRegistryPath $sourcePath -Config ([pscustomobject]@{}) }
 
         Assert-MockCalled Request-BridgeServiceCredential -Times 0 -Scope It
     }
@@ -898,7 +964,7 @@ Describe "Tiny Swarm World Windows bridge heartbeat rollback" {
         Mock Complete-BridgePayloadRollback {}
         Mock Complete-BridgePayloadTransaction {}
 
-        { Install-BridgeService -ResolvedConfigPath $sourcePath -ResolvedPortRegistryPath $sourcePath -Config ([pscustomobject]@{}) } | Should Throw
+        Assert-TestThrows { Install-BridgeService -ResolvedConfigPath $sourcePath -ResolvedPortRegistryPath $sourcePath -Config ([pscustomobject]@{}) }
 
         Assert-MockCalled Restore-BridgePayload -Times 1 -Scope It
         Assert-MockCalled Start-BridgeServiceRollbackChecked -Times 1 -Scope It

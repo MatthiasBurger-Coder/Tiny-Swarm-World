@@ -34,6 +34,7 @@ from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_YES_VALUES,
     LiveConsent,
     PreflightResult,
+    default_installation_plan,
     default_preflight_configuration,
 )
 from tiny_swarm_world.infrastructure.composition import (
@@ -48,6 +49,7 @@ from tiny_swarm_world.infrastructure.composition import (
     build_compose_file_repository,
     build_deployment_services_for_provider,
     build_host_detection_service,
+    build_host_preparation_service,
     build_read_only_hang_diagnostics,
     build_network_doctor_service,
     build_network_repair_options,
@@ -102,7 +104,9 @@ PLATFORM_WORKFLOW_ORDER = (
 CLI_WORKFLOWS = (
     CliWorkflow(namespace="host", action="detect", mutating=False, destructive=False),
     CliWorkflow(namespace="host", action="preflight", mutating=False, destructive=False),
+    CliWorkflow(namespace="host", action="prepare", mutating=True, destructive=False),
     CliWorkflow(namespace="host", action="verify", mutating=False, destructive=False),
+    CliWorkflow(namespace="host", action="cleanup", mutating=True, destructive=True),
     *(
         CliWorkflow(
             namespace="platform",
@@ -266,6 +270,8 @@ async def main(argv: Sequence[str] | None = None) -> None:
             _run_host_detect_command(args)
         elif args.workflow.action == "preflight":
             await _run_preflight_command(args)
+        elif args.workflow.action in {"prepare", "cleanup"}:
+            await _run_host_preparation_command(args)
         else:
             _run_host_verify_command(args)
         return
@@ -344,6 +350,7 @@ def _run_host_verify_command(args: Namespace) -> None:
                 "name": item.name,
                 "status": item.status,
                 "timed_out": item.timed_out,
+                "classification": getattr(item, "classification", "unknown"),
                 "output": item.output,
             }
             for item in report.commands
@@ -355,6 +362,44 @@ def _run_host_verify_command(args: Namespace) -> None:
     print("Host diagnostics (read-only)")
     for item in report.commands:
         print(f"{item.name}: {item.status}")
+
+
+async def _run_host_preparation_command(args: Namespace) -> None:
+    workflow = args.workflow
+    live_consent = _live_consent_for_workflow(workflow, args)
+    preflight = build_preflight_service(
+        service_profile=args.service_profile,
+        node_provider_request=_node_provider_request_from_args(args),
+        allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem,
+        include_secret_checks=False,
+        include_port_checks=False,
+    )
+    preflight_result = await preflight.run(live_consent)
+    if not preflight_result.passed:
+        if _should_emit_json(args):
+            _emit_json_payload(
+                {"preflight": preflight_result.to_dict(), "host_preparation": None}
+            )
+        else:
+            _print_preflight_summary(preflight_result, live=True)
+        raise SystemExit(1)
+
+    service = build_host_preparation_service(live_consent)
+    result = service.prepare() if workflow.action == "prepare" else service.cleanup()
+    if _should_emit_json(args):
+        _emit_json_payload(
+            {"preflight": preflight_result.to_dict(), "host_preparation": result.to_dict()}
+        )
+    else:
+        print(f"Host preparation: {result.operation}")
+        print(f"Status: {result.status.value}")
+        print(result.message)
+        if result.evidence:
+            print("Evidence:")
+            for key, value in sorted(result.evidence.items()):
+                print(f"- {key}: {value}")
+    if not result.succeeded:
+        raise SystemExit(1)
 
 
 def _host_detection_payload(report: HostEnvironmentReport) -> dict[str, object]:
@@ -724,18 +769,7 @@ def _print_setup_installation_plan(
     print("- swarm-worker-1: Docker Swarm worker")
     print("- swarm-worker-2: Docker Swarm worker")
     print("Installation phases:")
-    for phase in (
-        "preflight",
-        "platform init",
-        "platform reconcile",
-        "platform expose",
-        "deployment bootstrap",
-        "artifacts prepare",
-        "artifacts verify",
-        "deployment apply",
-        "deployment verify",
-        "platform verify",
-    ):
+    for phase in default_installation_plan().ordered_workflow_phase_names():
         print(f"- {phase}")
     print("Services:")
     stack_names = {

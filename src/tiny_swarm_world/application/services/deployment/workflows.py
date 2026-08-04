@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import logging
 import textwrap
@@ -27,6 +28,7 @@ class DeploymentWorkflowStatus(str, Enum):
     FAILED_TO_APPLY = "failed_to_apply"
     FAILED_TO_PREPARE = "failed_to_prepare"
     FAILED_TO_VERIFY = "failed_to_verify"
+    TIMED_OUT = "timed_out"
 
 
 class DeploymentApplyStep(Protocol):
@@ -231,8 +233,17 @@ class DeploymentApplyWorkflow:
 
 
 class DeploymentVerifyWorkflow:
-    def __init__(self, checks: Sequence[DeploymentVerifyCheck] = ()):
+    def __init__(
+        self,
+        checks: Sequence[DeploymentVerifyCheck] = (),
+        *,
+        timeout_seconds: float | None = None,
+    ):
+        if timeout_seconds is not None and timeout_seconds <= 0:
+            raise ValueError("Deployment verify timeout must be positive.")
         self.checks = tuple(checks)
+        self.timeout_seconds = timeout_seconds
+        self._last_verification_results: list[VerificationResult] = []
 
     async def run(self) -> DeploymentWorkflowResult:
         if not self.checks:
@@ -246,11 +257,30 @@ class DeploymentVerifyWorkflow:
                 ),
             )
 
+        self._last_verification_results = []
+        try:
+            if self.timeout_seconds is None:
+                return await self._run_checks()
+            return await asyncio.wait_for(self._run_checks(), self.timeout_seconds)
+        except asyncio.TimeoutError:
+            return DeploymentWorkflowResult(
+                kind=DeploymentWorkflowKind.VERIFY,
+                status=DeploymentWorkflowStatus.TIMED_OUT,
+                message="deployment verify timed out.",
+                reason=(
+                    f"deployment verify exceeded its configured timeout of "
+                    f"{self.timeout_seconds:g} seconds"
+                ),
+                verification_results=tuple(self._last_verification_results),
+            )
+
+    async def _run_checks(self) -> DeploymentWorkflowResult:
         verification_results: list[VerificationResult] = []
         for check in self.checks:
             target_id = _verification_target_id(check, "deployment:verify-check")
             verification = await _verify_step(check, target_id)
             verification_results.append(verification)
+            self._last_verification_results = list(verification_results)
             if verification.status == VerificationStatus.BLOCKED:
                 return DeploymentWorkflowResult(
                     kind=DeploymentWorkflowKind.VERIFY,
@@ -534,7 +564,10 @@ async def _verify_step(
             evidence={"phase": "verify"},
         )
     try:
-        verification_output = verify()
+        async_verify = getattr(step, "verify_async", None)
+        verification_output = (
+            async_verify() if callable(async_verify) else verify()
+        )
         if inspect.isawaitable(verification_output):
             verification_output = await verification_output
     except Exception as exc:

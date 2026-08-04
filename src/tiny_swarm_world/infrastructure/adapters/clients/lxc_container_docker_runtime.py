@@ -38,31 +38,53 @@ _BACKEND_CLI = {
 _DOCKER_INSTALL_SCRIPT = """
 set -eu
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y ca-certificates curl
+APT_OPTIONS=(
+  -o Acquire::Retries=3
+  -o Acquire::ForceIPv4=true
+  -o Acquire::http::ConnectTimeout=10
+  -o Acquire::https::ConnectTimeout=10
+  -o Acquire::http::Timeout=20
+  -o Acquire::https::Timeout=20
+  -o Acquire::http::Pipeline-Depth=0
+)
+APT_COMMAND_TIMEOUT_SECONDS="${TSW_DOCKER_APT_COMMAND_TIMEOUT_SECONDS:-300}"
+run_apt() {
+  timeout "${APT_COMMAND_TIMEOUT_SECONDS}s" apt-get "$@"
+}
+if ! run_apt "${APT_OPTIONS[@]}" update; then
+  echo "first_failure_reason: apt_repository_unreachable" >&2
+  exit 42
+fi
+run_apt "${APT_OPTIONS[@]}" install -y ca-certificates curl
 install -m 0755 -d /etc/apt/keyrings
 if [ ! -f /etc/apt/keyrings/docker.asc ]; then
-  curl --fail --silent --show-error --location \
+  if ! curl --ipv4 --fail --silent --show-error --location --retry 2 --retry-all-errors \
     --connect-timeout ${TSW_DOCKER_NETWORK_CONNECT_TIMEOUT_SECONDS:-10} \
     --max-time ${TSW_DOCKER_NETWORK_MAX_TIMEOUT_SECONDS:-60} \
     "${TSW_DOCKER_APT_GPG_URL:-https://download.docker.com/linux/ubuntu/gpg}" \
-    -o /etc/apt/keyrings/docker.asc
+    -o /etc/apt/keyrings/docker.asc; then
+    echo "first_failure_reason: docker_apt_gpg_unreachable" >&2
+    exit 43
+  fi
 fi
 chmod a+r /etc/apt/keyrings/docker.asc
 . /etc/os-release
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] ${TSW_DOCKER_APT_URL:-https://download.docker.com/linux/ubuntu} ${VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list
-apt-get update
+if ! run_apt "${APT_OPTIONS[@]}" update; then
+  echo "first_failure_reason: docker_apt_repository_unreachable" >&2
+  exit 44
+fi
 TSW_DOCKER_ENGINE_PACKAGE_VERSION="${TSW_DOCKER_ENGINE_PACKAGE_VERSION:-5:28.5.2-1~ubuntu.24.04~noble}"
 TSW_CONTAINERD_PACKAGE_VERSION="${TSW_CONTAINERD_PACKAGE_VERSION:-1.7.29-1~ubuntu.24.04~noble}"
-apt-get install -y \
+run_apt "${APT_OPTIONS[@]}" install -y \
   "docker-ce=${TSW_DOCKER_ENGINE_PACKAGE_VERSION}" \
   "docker-ce-cli=${TSW_DOCKER_ENGINE_PACKAGE_VERSION}" \
   "containerd.io=${TSW_CONTAINERD_PACKAGE_VERSION}" \
   docker-buildx-plugin \
   docker-compose-plugin
 apt-mark hold docker-ce docker-ce-cli containerd.io
-systemctl enable --now docker || service docker start || true
-docker info >/dev/null
+timeout 30s systemctl enable --now docker || timeout 30s service docker start || true
+timeout 30s docker info >/dev/null
 """.strip()
 
 
@@ -259,6 +281,10 @@ def _docker_install_script(
     daemon_config_payload: dict[str, object] = {
         "features": {"containerd-snapshotter": False},
         "storage-driver": "overlay2",
+        # The managed hosted registry is HTTP on the manager node.  It must
+        # remain explicitly trusted even when Docker Hub is used directly as
+        # the image-source fallback and no external mirror is configured.
+        "insecure-registries": [DEFAULT_SWARM_REGISTRY_AUTHORITY],
     }
     if registry_mirror is not None:
         daemon_config_payload.update(
@@ -329,7 +355,7 @@ def _apt_mirror_script(apt_mirror: DockerAptMirrorConfiguration | None) -> str:
         lines.extend(
             (
                 "rm -f /etc/apt/keyrings/docker.asc",
-                "curl --fail --silent --show-error --location "
+                "curl --ipv4 --fail --silent --show-error --location --retry 2 --retry-all-errors "
                 "--connect-timeout ${TSW_DOCKER_NETWORK_CONNECT_TIMEOUT_SECONDS:-10} "
                 "--max-time ${TSW_DOCKER_NETWORK_MAX_TIMEOUT_SECONDS:-60} "
                 f"{_shell_quote(apt_mirror.docker_gpg_url)} -o /etc/apt/keyrings/docker.asc",

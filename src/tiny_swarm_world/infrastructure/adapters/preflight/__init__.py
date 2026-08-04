@@ -1,13 +1,39 @@
-from tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe import (
-    HostPreflightProbe,
-    ensure_common_executable_paths,
-)
-from tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight import (
-    LxcProviderPreflightProbe,
-)
+"""Preflight adapters with lazy exports for dependency-light bootstrap checks."""
 
-__all__ = [
-    "HostPreflightProbe",
-    "LxcProviderPreflightProbe",
-    "ensure_common_executable_paths",
-]
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Any
+
+
+_EXPORTS = {
+    "HostPreflightProbe": (
+        "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe",
+        "HostPreflightProbe",
+    ),
+    "ensure_common_executable_paths": (
+        "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe",
+        "ensure_common_executable_paths",
+    ),
+    "LxcProviderPreflightProbe": (
+        "tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight",
+        "LxcProviderPreflightProbe",
+    ),
+    "HttpArtifactSourceReadiness": (
+        "tiny_swarm_world.infrastructure.adapters.preflight.artifact_source_readiness",
+        "HttpArtifactSourceReadiness",
+    ),
+}
+
+__all__ = list(_EXPORTS)
+
+
+def __getattr__(name: str) -> Any:
+    try:
+        module_name, attribute_name = _EXPORTS[name]
+    except KeyError as exc:
+        raise AttributeError(name) from exc
+    module = import_module(module_name)
+    value = getattr(module, attribute_name)
+    globals()[name] = value
+    return value

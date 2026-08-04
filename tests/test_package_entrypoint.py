@@ -6,7 +6,7 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from tiny_swarm_world import __main__ as entrypoint
 from tiny_swarm_world.application.services.artifacts import (
@@ -41,6 +41,8 @@ from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProvide
 from tiny_swarm_world.domain.preflight import (
     HostEnvironmentKind,
     HostEnvironmentReport,
+    HostPreparationResult,
+    HostPreparationStatus,
     PreflightCategory,
     PreflightCheck,
     PreflightResult,
@@ -105,6 +107,37 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(args.workflow.name, "host detect")
         self.assertFalse(args.workflow.mutating)
         self.assertTrue(args.workflow.implemented)
+
+    def test_parse_args_accepts_host_prepare_as_mutating(self):
+        args = entrypoint.parse_args(["host", "prepare"])
+
+        self.assertEqual("host prepare", args.workflow.name)
+        self.assertTrue(args.workflow.mutating)
+        self.assertFalse(args.workflow.destructive)
+
+    async def test_host_prepare_runs_preflight_before_dedicated_adapter(self):
+        output = io.StringIO()
+        preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))
+        result = HostPreparationResult(
+            "prepare",
+            "wsl2",
+            HostPreparationStatus.SUCCESS,
+            "prepared",
+            changed=True,
+            verified=True,
+        )
+        preparation = SimpleNamespace(prepare=Mock(return_value=result))
+
+        with (
+            patch.object(entrypoint, "build_preflight_service", return_value=preflight),
+            patch.object(entrypoint, "build_host_preparation_service", return_value=preparation),
+            redirect_stdout(output),
+        ):
+            await entrypoint.main(["host", "prepare", "--live", "--approve-live"])
+
+        preflight.run.assert_awaited_once()
+        preparation.prepare.assert_called_once_with()
+        self.assertIn("SUCCESS", output.getvalue())
 
     async def test_host_detect_human_output_is_complete_and_read_only(self):
         output = io.StringIO()
@@ -318,6 +351,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Managed backend: Incus", plan)
         self.assertIn("Provider readiness: checked before platform mutation", plan)
         self.assertIn("Service profile: service-access", plan)
+        self.assertIn("- host prepare", plan)
+        self.assertIn("- host verify", plan)
         self.assertIn("Traefik Ingress: stack traefik", plan)
         self.assertIn("compose service(s) traefik, published port(s) 80, 443", plan)
         self.assertIn("Service Access: stack service-access", plan)

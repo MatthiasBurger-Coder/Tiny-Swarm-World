@@ -34,6 +34,19 @@ class ResourceAssessmentTests(unittest.TestCase):
         resources = HostResources(8, 16 * 1024**3, 16 * 1024**3, 0, 0)
         self.assertFalse(validate_container_limits(resources, 4, 8 * 1024**3, 8, 10 * 1024**3))
 
+    def test_eight_gib_wsl_host_blocks_ten_gib_manager_without_mutation(self):
+        resources = HostResources(8, 8 * 1024**3, 8 * 1024**3, 0, 0)
+
+        self.assertFalse(
+            validate_container_limits(
+                resources,
+                active_cpu=0,
+                active_memory_bytes=0,
+                requested_cpu=8,
+                requested_memory_bytes=10 * 1024**3,
+            )
+        )
+
     def test_planned_container_limits_are_aggregated(self):
         resources = HostResources(8, 16 * 1024**3, 16 * 1024**3, 0, 0)
         planned = (
@@ -99,3 +112,15 @@ class WslResourceInspectorTests(unittest.TestCase):
             report = WslResourceInspector(root).memory_pressure()
             self.assertEqual(report.assessment, "oom_kill_detected")
             self.assertIsNone(report.memory_max)
+
+    def test_reads_memory_stat_and_optional_psi(self):
+        root = self._root("MemTotal: 1 kB\n", current="10", maximum="100")
+        (root / "sys/fs/cgroup/memory.stat").write_text("anon 42\nfile 7\n")
+        (root / "sys/fs/cgroup/memory.pressure").write_text(
+            "some avg10=1.25 avg60=0.50 avg300=0.10 total=3\n"
+        )
+
+        report = WslResourceInspector(root).memory_pressure()
+
+        self.assertEqual(42, report.memory_stat["anon"])
+        self.assertEqual(1.25, report.psi_some_avg10)

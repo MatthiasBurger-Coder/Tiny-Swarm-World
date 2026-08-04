@@ -29,6 +29,7 @@ class TestHostNetworkRepair(unittest.TestCase):
 
         self.assertIn('iptables -C FORWARD -i "$BRIDGE" -j ACCEPT', script)
         self.assertIn('iptables -C FORWARD -o "$BRIDGE" -m conntrack', script)
+        self.assertIn('iptables -t nat -C POSTROUTING -s "$BRIDGE_NETWORK"', script)
         self.assertIn("tsw-apply-incus-forwarding.sh", service)
         self.assertIn("RemainAfterExit=yes", service)
 

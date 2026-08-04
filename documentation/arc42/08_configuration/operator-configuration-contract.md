@@ -75,6 +75,7 @@ The default contract requires these keys before setup execution:
 | Key | Default | Kind | Purpose |
 |---|---|---|---|
 | `TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS` | `180` | positive integer | Portainer stack request timeout in seconds. |
+| `TSW_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS` | `300` | positive integer | Total timeout for read-only deployment verification. |
 | `TSW_SEED_INFISICAL_ITEMS` | `0` | boolean flag | Enables optional legacy Infisical item seeding. |
 | `TSW_SECRETS_MODE` | `generated` | enum | Selects `generated`, `fixed`, or `infisical` secret handling. |
 | `TSW_FIXED_SECRET_ENV_FILE` | `.tiny-swarm-world/local/fixed-secrets.env` | local path | Fixed-mode local secret source; ignored by Git. |

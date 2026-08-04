@@ -1789,7 +1789,8 @@ function Get-ProtectedBridgeState {
 function Remove-StalePortProxyMappings {
     param(
         $Config,
-        $Mappings
+        $Mappings,
+        [string]$WslIp = ""
     )
 
     $previous = Get-ProtectedBridgeState
@@ -1823,7 +1824,11 @@ function Remove-StalePortProxyMappings {
         Assert-ValidTcpPort -Port $port -Name "previous listenPort"
         $connectPort = [int]$mapping.connectPort
         Assert-ValidTcpPort -Port $connectPort -Name "previous connectPort"
-        if ($previousListenAddress -ne $listenAddress -or -not $desiredPorts.Contains($port)) {
+        $targetChanged = (
+            -not [string]::IsNullOrWhiteSpace($WslIp) -and
+            $previousConnectAddress -ne $WslIp
+        )
+        if ($previousListenAddress -ne $listenAddress -or -not $desiredPorts.Contains($port) -or $targetChanged) {
             $sameListener = @($records | Where-Object {
                 $_.ListenAddress -eq $previousListenAddress -and $_.ListenPort -eq $port
             })
@@ -1870,7 +1875,7 @@ function Reconcile-PortProxy {
         $Mappings
     )
 
-    Remove-StalePortProxyMappings -Config $Config -Mappings $Mappings
+    Remove-StalePortProxyMappings -Config $Config -Mappings $Mappings -WslIp $WslIp
     $listenAddress = Get-ListenAddress $Config
     $records = @(Get-PortProxyRecords)
 
@@ -2008,6 +2013,9 @@ function Remove-ManagedHostsBlock {
     }
 
     $content = Get-Content -LiteralPath $HostsPath -Raw -ErrorAction Stop
+    if ($null -eq $content) {
+        return ""
+    }
     $startEsc = [regex]::Escape($HostsStart)
     $endEsc = [regex]::Escape($HostsEnd)
     $pattern = "(?ms)^[ \t]*$startEsc.*?^[ \t]*$endEsc[ \t]*(\r?\n)?"
@@ -3655,8 +3663,15 @@ function Test-TcpPort {
 function Verify-Bridge {
     param(
         $Config,
-        $Mappings
+        $Mappings,
+        $HostNames
     )
+
+    $wslIp = Get-WslIp $Config
+    $discovery = Get-BridgeDiscovery -Config $Config -WslIp $wslIp -Mappings $Mappings -HostNames $HostNames
+    if (-not $discovery.Ready) {
+        throw "Windows bridge verification found drift: $($discovery.DriftReasons -join ', ')"
+    }
 
     $failed = @()
 
@@ -4041,7 +4056,7 @@ function Invoke-BridgeAction {
         }
 
         "verify" {
-            Verify-Bridge -Config $config -Mappings $mappings
+            Verify-Bridge -Config $config -Mappings $mappings -HostNames $hostNames
         }
 
         "status" {

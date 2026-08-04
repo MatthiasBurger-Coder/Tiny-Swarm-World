@@ -378,6 +378,7 @@ class TestInstallationPlan(unittest.TestCase):
             tuple(phase.phase_id for phase in plan.ordered_phases()),
             (
                 "preflight",
+                "host-preparation",
                 "platform",
                 "cluster",
                 "network-routing",
@@ -396,6 +397,8 @@ class TestInstallationPlan(unittest.TestCase):
             plan.ordered_workflow_phase_names(),
             (
                 "preflight",
+                "host prepare",
+                "host verify",
                 "platform init",
                 "platform reconcile",
                 "platform expose",

@@ -19,7 +19,11 @@ class PlainConsoleInstallReporter:
         self._stderr = stderr or sys.stderr
 
     def report(self, event: InstallEvent) -> None:
-        stream = self._stderr if event.status is InstallStatus.FAILED else self._stdout
+        stream = self._stderr if event.status in {
+            InstallStatus.FAILED,
+            InstallStatus.TIMED_OUT,
+            InstallStatus.INTERRUPTED,
+        } else self._stdout
         for line in render_install_event(event):
             print(line, file=stream)
 
@@ -37,7 +41,11 @@ def render_install_event(event: InstallEvent) -> tuple[str, ...]:
     if event.status is InstallStatus.STARTED:
         lines = [header, _detail_line("RUNNING", _target_message(event))]
         return tuple(lines)
-    if event.status is InstallStatus.FAILED:
+    if event.status in {
+        InstallStatus.FAILED,
+        InstallStatus.TIMED_OUT,
+        InstallStatus.INTERRUPTED,
+    }:
         return _failure_lines(event)
     if event.event_type is InstallEventType.EVIDENCE_WRITTEN:
         evidence = _path_text(event.evidence_path)
@@ -49,7 +57,7 @@ def render_install_event(event: InstallEvent) -> tuple[str, ...]:
 
 def _failure_lines(event: InstallEvent) -> tuple[str, ...]:
     target = f" on {event.target}" if event.target else ""
-    lines = [f"FAILED {event.step}{target}"]
+    lines = [f"{_status_label(event.status)} {event.step}{target}"]
     if event.reason:
         lines.extend(("", "Reason:", f"  {event.reason}"))
     evidence = _path_text(event.evidence_path)

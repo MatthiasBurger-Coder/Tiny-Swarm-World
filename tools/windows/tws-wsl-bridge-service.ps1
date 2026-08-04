@@ -21,19 +21,25 @@ $ErrorActionPreference = "Stop"
 function Invoke-BridgeReconcileProcess {
     $powerShellPath = Join-Path $env:windir "System32\WindowsPowerShell\v1.0\powershell.exe"
     try {
-        & $powerShellPath `
+        $bridgeOutput = @(& $powerShellPath `
             -NoProfile `
             -NonInteractive `
             -ExecutionPolicy Bypass `
             -File $BridgeScriptPath `
             -Action refresh `
             -ConfigPath $ConfigPath `
-            -PortRegistryPath $PortRegistryPath
+            -PortRegistryPath $PortRegistryPath 2>&1)
+        $bridgeExitCode = [int]$LASTEXITCODE
 
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Bridge reconcile exited with code $LASTEXITCODE." -ErrorAction Continue
+        foreach ($line in $bridgeOutput) {
+            Write-Host ("bridge: {0}" -f [string]$line)
         }
-        return $LASTEXITCODE
+
+        if ($bridgeExitCode -ne 0) {
+            $details = (($bridgeOutput | ForEach-Object { [string]$_ }) -join " | ")
+            Write-Error ("Bridge reconcile exited with code {0}: {1}" -f $bridgeExitCode, $details) -ErrorAction Continue
+        }
+        return $bridgeExitCode
     } catch {
         Write-Error ("Bridge reconcile failed: {0}" -f $_.Exception.Message) -ErrorAction Continue
         return 1

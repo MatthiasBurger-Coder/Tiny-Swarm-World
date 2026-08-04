@@ -101,6 +101,8 @@ from tiny_swarm_world.application.services.platform.host import (
     AuthorizeProjectFilesystem,
     DetectHostEnvironment,
     EvaluateProjectFilesystem,
+    HostPreparationAdapterFactory,
+    HostPreparationService,
 )
 from tiny_swarm_world.infrastructure.adapters.file_management.local_file_storage import (
     LocalFileStorage,
@@ -191,7 +193,11 @@ from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
     TerminalWorkflowProgress,
 )
 from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI
-from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe, LxcProviderPreflightProbe
+from tiny_swarm_world.infrastructure.adapters.preflight import (
+    HostPreflightProbe,
+    HttpArtifactSourceReadiness,
+    LxcProviderPreflightProbe,
+)
 from tiny_swarm_world.infrastructure.adapters.host.wsl_resource_inspector import WslResourceInspector
 from tiny_swarm_world.infrastructure.adapters.host.hang_diagnostics import ReadOnlyHangDiagnostics
 from tiny_swarm_world.infrastructure.adapters.host.preflight_evidence_writer import PreflightEvidenceWriter
@@ -273,6 +279,8 @@ INFISICAL_ADMIN_LAST_NAME_ENVIRONMENT = "TSW_INFISICAL_ADMIN_LAST_NAME"
 DEFAULT_INFISICAL_ORGANIZATION = "Tiny Swarm World"
 DEFAULT_INFISICAL_READINESS_ATTEMPTS = 720
 DEFAULT_INFISICAL_READINESS_INTERVAL_SECONDS = 5.0
+DEPLOYMENT_VERIFY_TIMEOUT_ENVIRONMENT = "TSW_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS"
+DEFAULT_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS = 300.0
 SWARM_REGISTRY_ENDPOINT_ENVIRONMENT = "TSW_SWARM_REGISTRY_ENDPOINT"
 DEFAULT_SWARM_REGISTRY_ENDPOINT = "127.0.0.1:13500"
 WINDOWS_EXPOSURE_ENVIRONMENT = "TSW_WINDOWS_EXPOSURE"
@@ -424,13 +432,62 @@ class EndpointReadinessCheck:
             },
         )
 
-    def run(self) -> None:
-        self._verification = self._probe_until_ready(phase="apply")
+    async def run(self) -> None:
+        self._verification = await self._probe_until_ready_async(phase="apply")
 
     def verify(self) -> VerificationResult:
         if self._verification.status is not VerificationStatus.BLOCKED:
             return self._verification
         return self._probe_until_ready(phase="verify")
+
+    async def verify_async(self) -> VerificationResult:
+        if self._verification.status is not VerificationStatus.BLOCKED:
+            return self._verification
+        return await self._probe_until_ready_async(phase="verify")
+
+    async def _probe_until_ready_async(self, *, phase: str) -> VerificationResult:
+        if not self.service_stack.endpoints:
+            return VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.BLOCKED,
+                message="Endpoint readiness has no configured endpoints.",
+                evidence=_endpoint_readiness_evidence(self.service_stack, {}, phase=phase, attempt=0),
+            )
+        last_statuses: dict[str, str] = {}
+        for attempt in range(1, self.max_attempts + 1):
+            last_statuses = {}
+            for endpoint in self.service_stack.endpoints:
+                last_statuses[endpoint.name] = await asyncio.to_thread(
+                    _endpoint_status,
+                    self.session,
+                    endpoint.url,
+                    timeout_seconds=self.timeout_seconds,
+                )
+            if all(_endpoint_status_ready(status) for status in last_statuses.values()):
+                return VerificationResult(
+                    target_id=self.verification_target_id,
+                    status=VerificationStatus.VERIFIED,
+                    message="Service endpoints are reachable.",
+                    evidence=_endpoint_readiness_evidence(
+                        self.service_stack,
+                        last_statuses,
+                        phase=phase,
+                        attempt=attempt,
+                    ),
+                )
+            if attempt < self.max_attempts:
+                await asyncio.sleep(self.wait_seconds)
+        return VerificationResult(
+            target_id=self.verification_target_id,
+            status=VerificationStatus.FAILED_TO_VERIFY,
+            message="Service endpoints did not become reachable in time.",
+            evidence=_endpoint_readiness_evidence(
+                self.service_stack,
+                last_statuses,
+                phase=phase,
+                attempt=self.max_attempts,
+            ),
+        )
 
     def _probe_until_ready(self, *, phase: str) -> VerificationResult:
         if not self.service_stack.endpoints:
@@ -586,6 +643,70 @@ def build_host_detection_service(
     return DetectHostEnvironment(detector or build_host_environment_detector())
 
 
+def build_host_preparation_service(
+    live_consent: LiveConsent | None = None,
+) -> HostPreparationService:
+    project_paths = default_project_paths()
+    bridge_root = project_paths.repository_root / "tools" / "windows"
+    script_path = Path(
+        os.getenv("TSW_WINDOWS_BRIDGE_SCRIPT_PATH", str(bridge_root / "tws-wsl-bridge.ps1"))
+    )
+    config_path = Path(
+        os.getenv("TSW_WINDOWS_BRIDGE_CONFIG_PATH", str(bridge_root / "tws-wsl-bridge.config.json"))
+    )
+    registry_path = Path(
+        os.getenv(
+            "TSW_WINDOWS_BRIDGE_PORT_REGISTRY_PATH",
+            str(project_paths.config_root / "ports.yaml"),
+        )
+    )
+    timeout_seconds = _operator_config_float(
+        "TSW_WINDOWS_BRIDGE_TIMEOUT_SECONDS",
+        120.0,
+        minimum=1.0,
+    )
+    return HostPreparationService(
+        build_host_environment_detector(),
+        HostPreparationAdapterFactory(_build_native_linux_host_preparation),
+        HostPreparationAdapterFactory(
+            lambda: _build_wsl_host_preparation(
+                script_path=script_path,
+                config_path=config_path,
+                registry_path=registry_path,
+                timeout_seconds=timeout_seconds,
+            )
+        ),
+        live_consent,
+    )
+
+
+def _build_native_linux_host_preparation():
+    from tiny_swarm_world.infrastructure.adapters.host import NativeLinuxHostPreparation
+
+    return NativeLinuxHostPreparation()
+
+
+def _build_wsl_host_preparation(
+    *,
+    script_path: Path,
+    config_path: Path,
+    registry_path: Path,
+    timeout_seconds: float,
+):
+    from tiny_swarm_world.infrastructure.adapters.host import (
+        WindowsCommandRunner,
+        WslHostPreparation,
+    )
+
+    return WslHostPreparation(
+        WindowsCommandRunner(),
+        script_path=script_path,
+        config_path=config_path,
+        port_registry_path=registry_path,
+        timeout_seconds=timeout_seconds,
+    )
+
+
 def build_project_filesystem_inspector() -> ProjectFilesystemInspector:
     return ProjectFilesystemInspector()
 
@@ -610,6 +731,8 @@ def build_preflight_service(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     configuration_validation: ConfigurationValidationService | None = None,
     allow_wsl_windows_filesystem: bool = False,
+    include_secret_checks: bool = True,
+    include_port_checks: bool = True,
 ) -> PreflightService:
     project_paths = default_project_paths()
     port_registry = PortRegistryYamlRepository(project_paths=project_paths).load()
@@ -628,6 +751,9 @@ def build_preflight_service(
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
         resource_inspector=WslResourceInspector(),
         evidence_writer=build_preflight_evidence_writer(),
+        artifact_source_readiness=HttpArtifactSourceReadiness(),
+        include_secret_checks=include_secret_checks,
+        include_port_checks=include_port_checks,
     )
 
 
@@ -1374,7 +1500,14 @@ def build_lxc_deployment_services(
                 ),
                 pre_apply_steps=tuple(pre_apply_steps),
             ),
-            verify=DeploymentVerifyWorkflow(readiness_checks),
+            verify=DeploymentVerifyWorkflow(
+                readiness_checks,
+                timeout_seconds=_operator_config_float(
+                    DEPLOYMENT_VERIFY_TIMEOUT_ENVIRONMENT,
+                    DEFAULT_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS,
+                    minimum=1.0,
+                ),
+            ),
         )
     )
 
@@ -1395,6 +1528,7 @@ def build_setup_services(
         project_paths=project_paths,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
+    host_preparation = build_host_preparation_service(live_consent)
     trace_correlation_id = _new_installation_trace_correlation_id()
     platform = _build_platform_services_for_request(
         service_profile,
@@ -1429,6 +1563,8 @@ def build_setup_services(
             run=SetupWorkflow(
                 (
                     traced_phase("preflight", lambda: preflight.run(live_consent)),
+                    traced_phase("host prepare", host_preparation.prepare),
+                    traced_phase("host verify", host_preparation.verify),
                     traced_phase("platform init", lambda: platform.workflows.init.run()),
                     traced_phase(
                         "platform reconcile",
@@ -1468,6 +1604,11 @@ def build_setup_services(
                 timeout_seconds=_operator_config_float(
                     "TSW_SETUP_WORKFLOW_TIMEOUT_SECONDS",
                     3600.0,
+                    minimum=1.0,
+                ),
+                heartbeat_interval_seconds=_operator_config_float(
+                    "TSW_SETUP_HEARTBEAT_INTERVAL_SECONDS",
+                    30.0,
                     minimum=1.0,
                 ),
             )
@@ -1581,6 +1722,9 @@ def _build_preflight_service_for_request(
         project_filesystem_authorizer=authorizer,
         project_path=paths.repository_root.as_posix(),
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
+        resource_inspector=WslResourceInspector(),
+        evidence_writer=build_preflight_evidence_writer(),
+        artifact_source_readiness=HttpArtifactSourceReadiness(),
     )
 
 

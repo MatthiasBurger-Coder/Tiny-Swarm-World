@@ -63,6 +63,15 @@ from tiny_swarm_world.domain.preflight.resources import (
     validate_planned_container_limits,
     validate_container_limits,
 )
+from tiny_swarm_world.domain.preflight.artifact_sources import (
+    ArtifactSourceAttempt,
+    ArtifactSourceReadiness,
+    ArtifactSourceStatus,
+)
+from tiny_swarm_world.domain.preflight.host_preparation import (
+    HostPreparationResult,
+    HostPreparationStatus,
+)
 
 __all__ = [
     "LIVE_CONSENT_ENVIRONMENT_VARIABLE",
@@ -114,4 +123,9 @@ __all__ = [
     "default_installation_plan",
     "default_setup_manifest",
     "classify_host_environment",
+    "ArtifactSourceAttempt",
+    "ArtifactSourceReadiness",
+    "ArtifactSourceStatus",
+    "HostPreparationResult",
+    "HostPreparationStatus",
 ]
