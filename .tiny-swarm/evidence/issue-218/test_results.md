@@ -17,7 +17,7 @@ Result: **PASS**
 - architecture lint: PASS (`3` contracts kept, `0` broken)
 - architecture tests: PASS
 - typecheck: PASS (`526` source files, no issues)
-- complete Python suite: PASS (`1576` tests, `28` skipped; 124.501 seconds)
+- complete Python suite: PASS (`1589` tests, `28` skipped; exit `0`)
 
 ## Targeted native/host regression
 
@@ -103,16 +103,19 @@ The latest test run also covers explicit `nproc`/`free -b` resource signals,
 lazy native/WSL adapter construction, static-preflight no-write behavior, and
 the configurable bridge-state path.
 
-## Release lifecycle gates still pending
+## Publication and post-merge verification
 
-- SonarCloud is a GitHub Action requiring a configured remote token/check;
-  `sonar-scanner` is not installed in WSL and neither `SONAR_TOKEN` nor
-  `SONAR_CLOUD_TOKEN` is configured. No green check is available for this
-  unmerged branch.
+- PR #233 required checks: **PASS**. GitHub Quality Gate run
+  `30949632956` and separate SonarCloud Code Analysis passed; Sonar reported
+  `82.0% Coverage on New Code`.
+- Merge commit: `4e8eff8f41c3f28dda240003f4fb24317d834a42` on `main`.
+- Post-merge main SonarCloud/Quality Gate run `30949960106`: **PASS**.
+- Post-merge main Dependency Graph run `30949963324`: **PASS**.
+- Issue #218 was closed after the independent completion audit PASS.
 - A real WSL restart did not produce a changed address; changed-IP migration is
   therefore evidenced by the controlled live adapter/Pester simulation.
 - Native Linux host-platform regression is complete; the disposable VM did not
   run a full Docker/Incus deployment because its required runtime, network and
   resource capacity were absent.
-- SonarCloud and post-merge/main verification require the remote publication
-  lifecycle and are not locally reproducible.
+The remote checks are the authoritative publication evidence; local quality
+gate and live evidence remain reproducible from the commands above.

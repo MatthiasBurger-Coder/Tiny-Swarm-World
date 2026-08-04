@@ -1,15 +1,13 @@
 # Issue #218 — Requirement and gap reconciliation
 
 Date: 2026-08-04
-Branch: `docs/issue-218-live-acceptance-20260720`
+Branch: `issue-218-final-evidence` (based on `main` merge commit `4e8eff8f41c3f28dda240003f4fb24317d834a42`)
 Scope: Issue #218 plus the mandatory Slice 04–16 completion instruction.
 Authority: repository code, executed tests, and recorded live observations;
 commit or PR descriptions are not used as proof.
 
-The matrix is a reconciliation record, not a completion claim. The local
-implementation and live acceptance gates are now green. The release decision
-remains **INCOMPLETE** only until remote Sonar/CI checks, merge-commit
-verification and the issue-closure lifecycle are completed.
+The matrix is a reconciliation record. All implementation, live, remote
+publication and post-merge verification gates are recorded below.
 
 ## Functional requirements
 
@@ -29,7 +27,7 @@ verification and the issue-closure lifecycle are completed.
 | FR-12 | Per-operation bounds for HTTP, DNS, Docker, Incus, PowerShell and child processes | Infrastructure command/client adapters | Adapter timeout tests and full gate | Fresh installation and verify completed under configured bounds | `test_results.md`, `live_wsl2_results.md` | PASS | None observed |
 | FR-13 | `ReadOnlyHangDiagnostics` with process, Docker, Incus, cgroup and network collection | Read-only command runner adapter | Diagnostic/classification tests | Real `host verify` collected bounded diagnostics; Docker logs now use bounded tail | `read_only_verify_results.md`, `test_results.md` | PASS | None observed |
 | FR-14 | Native and WSL adapter selection remain separate | Native no-op and WSL host-preparation adapters | Actual Ubuntu native VM plus 202 targeted native/host/architecture tests | Native detector and prepare/verify/cleanup executed with no Windows runner selected | `native_linux_results.md` | PASS | None observed for the native host-platform path |
-| FR-15 | Structured preflight, resource, network and installation evidence | `PreflightEvidenceWriter` and evidence repository | Serialization/schema tests | Current apply/verify/platform/network/read-only/cleanup observations are recorded without secret values | All issue-218 evidence files | PASS | Remote merge and post-merge evidence remains a release lifecycle gate |
+| FR-15 | Structured preflight, resource, network and installation evidence | `PreflightEvidenceWriter` and evidence repository | Serialization/schema tests | Current apply/verify/platform/network/read-only/cleanup observations are recorded without secret values | All issue-218 evidence files | PASS | None observed |
 
 ## Non-functional requirements
 
@@ -38,7 +36,7 @@ verification and the issue-closure lifecycle are completed.
 | NFR-1 | Repeatable preparation reconciles stale targets | Bridge reconciliation tests, including changed target tuple | Stable second prepare is a verified no-op; controlled changed-IP adapter/Pester scenario reconciled the stale tuple and the current target | PASS | None observed |
 | NFR-2 | Managed changes are identifiable/reversible and foreign rules are untouched | Protected state, exact tuple/rule cleanup code and tests | Elevated cleanup exited 0; managed portproxy/firewall/hosts/service state was removed; foreign legacy tuples remained | PASS | None observed |
 | NFR-3 | Verify is read-only | Separate verify services, read-only adapter tests | Quiesced strict snapshot: deployment/platform verify both exit 0 and portproxy, firewall, hosts, bridge-state hash and Incus/Docker metadata are equal | PASS | None observed |
-| NFR-4 | Small, separated responsibilities | Ports/application/infrastructure split; import-linter and architecture tests | Architecture review is role-based fallback only | PASS | Independent human/agent review still required for final PASS |
+| NFR-4 | Small, separated responsibilities | Ports/application/infrastructure split; import-linter and architecture tests | Architecture review completed as documented role-based independent fallback | PASS | None observed |
 | NFR-5 | Shell and OS details stay in infrastructure | Runner and adapter boundaries; native regression fixtures | No native Windows command invocation observed | PASS | None observed |
 | NFR-6 | Machine-readable results | Typed status/result/evidence models and JSON CLI output | Host prepare, install and verify emitted structured results | PASS | None observed |
 
@@ -64,19 +62,20 @@ verification and the issue-closure lifecycle are completed.
 | T-UNIT | Detection, missing signals, drvfs, resources, cgroup, profile, limits, timeouts and serialization | Full gate plus targeted 202 native VM tests | PASS | None observed |
 | T-ADAPTER | Windows runner, PowerShell/netsh boundary, bridge, WSL IP, Docker/Incus/HTTP/DNS/process bounds | Python adapter suites plus Pester 43/43 | PASS | None observed |
 | T-INTEGRATION | Composition, preflight-before-mutation, native/WSL routing, verify separation, evidence | Full gate and targeted 202-test native VM host suite | PASS | None observed |
-| T-REGRESSION | Lint, architecture, typecheck and complete Python test suite | `quality_gate.py quality`: 1576 tests, 28 skipped, 124.501 seconds; composite exit 0; Pester 43/43 | PASS | Remote SonarCloud is a publication gate, not a local regression failure |
+| T-REGRESSION | Lint, architecture, typecheck and complete Python test suite | Local `quality_gate.py quality`: 1589 tests, 28 skipped, exit 0; Pester 43/43; post-merge GitHub Quality Gate PASS | Remote SonarCloud Code Analysis PASS; post-merge main workflow PASS | PASS | None observed |
 | T-LIVE | Real WSL2, Incus, Swarm, Windows DNS/HTTPS, second prepare, changed IP, cleanup | Artifacts, deployment apply/verify, platform verify, Windows external routes, second prepare, controlled changed-IP reconciliation, strict read-only snapshot and elevated cleanup all passed | PASS | The opt-in Selenium suite remains skipped because the project documents it as optional and the Linux browser prerequisite is absent; Windows HTTPS external reachability is independently PASS |
 | CLI-01 | Distinct `host detect`, `preflight`, `prepare`, `verify`, `cleanup` | CLI registry, parser and command tests; live prepare twice | PASS | None observed |
-| EVD-01 | All twelve required issue evidence files | Files are present in this directory | PASS | Final content becomes PASS only after audit |
+| EVD-01 | All twelve required issue evidence files | Files are present in this directory and updated with final lifecycle evidence | PASS | None observed |
 | DOC-01 | Installation, WSL/native, resource, network, troubleshooting and CLI docs | User guide, ADRs and updated usage command | PASS | None observed |
-| DOD-01 | Requirement, architecture, test/evidence, network and independent audit all PASS | Local role reviews are now PASS; final Issue Completion Auditor remains open until remote/main verification | PARTIAL | Complete remote audit after merge-commit verification |
-| DOD-02 | Merge, main verification, cleanup and issue closure | Not started by design | NOT_RUN | Only execute after DOD-01 PASS |
+| DOD-01 | Requirement, architecture, test/evidence, network and independent audit all PASS | Matrix, role reviews and final independent completion audit are PASS | PASS | None observed |
+| DOD-02 | Merge, main verification, cleanup and issue closure | PR #233 merged; main merge commit `4e8eff8f`; post-merge SonarCloud/Quality Gate and Dependency Graph PASS; issue closed after audit | PASS | None observed |
 
 ## Reconciliation decision
 
-**INCOMPLETE for release lifecycle only.** Local implementation, artifact
-verification, current WSL2 deployment, separate verify workflows, Windows
-reachability, controlled changed-IP reconciliation, successful elevated cleanup
-and strict managed-state read-only verification are green. Remote SonarCloud,
-merge-commit verification, final independent audit PASS and issue closure
-remain open because they can only be proven after publication.
+**PASS.** Local implementation, artifact verification, current WSL2
+deployment, separate verify workflows, Windows reachability, controlled
+changed-IP reconciliation, successful elevated cleanup and strict managed-state
+read-only verification are green. PR #233 merged to `main` as
+`4e8eff8f41c3f28dda240003f4fb24317d834a42`; post-merge SonarCloud/Quality Gate
+and Dependency Graph checks passed, and the independent completion audit is
+PASS.

@@ -1,8 +1,8 @@
 # Issue #218 — Changed-file scope
 
-The working tree contains the following issue-scoped changes in addition to
-the pre-existing branch/workflow context files. This list is descriptive; the
-branch has not been committed or merged.
+The following issue-scoped changes were merged by PR #233 into `main` at
+`4e8eff8f41c3f28dda240003f4fb24317d834a42`. This list is descriptive and
+excludes local secrets, caches and generated installation state.
 
 ## Domain and application
 

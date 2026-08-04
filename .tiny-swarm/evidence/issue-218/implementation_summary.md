@@ -1,8 +1,8 @@
 # Issue #218 — Implementation summary
 
 Date: 2026-08-04
-Decision: **INCOMPLETE for release lifecycle; local implementation and live
-acceptance are complete**.
+Decision: **PASS — implementation, live acceptance, publication and main
+verification complete**.
 
 ## Implemented and verified locally
 
@@ -71,9 +71,11 @@ recorded nine skips because WSL lacks Selenium and a Linux Firefox driver.
 
 ## Release decision
 
-The source-level fix is covered by Pester 43/43, the full quality gate (1576
+The source-level fix is covered by Pester 43/43, the full quality gate (1589
 tests, 28 skips) and the native Linux host-platform regression on an actual
-Ubuntu 24.04.4 VM with 202 targeted tests. SonarCloud, merge-commit
-verification, final audit PASS and issue closure remain publication lifecycle
-gates. The opt-in Selenium suite is not a mandatory release gate under the
-project's documented live-test contract.
+Ubuntu 24.04.4 VM with 202 targeted tests. PR #233 merged as
+`4e8eff8f41c3f28dda240003f4fb24317d834a42`; PR checks, post-merge SonarCloud,
+post-merge Quality Gate and Dependency Graph all passed. The independent
+completion audit is PASS and Issue #218 is closed. The opt-in Selenium suite
+is not a mandatory release gate under the project's documented live-test
+contract.

@@ -95,6 +95,6 @@ Incus/Swarm was recovered; no completion claim is made for the IP-change test.
 - Windows Pester result: `.tiny-swarm-world/local/pester-issue-218.xml`
 - Host preparation second result: `.tiny-swarm-world/local/host-prepare-second.json`
 
-Final live WSL2 status: **PASS for local Issue #218 acceptance**. Remote
-Sonar/CI, merge-commit verification and issue closure are separate release
-lifecycle gates.
+Final live WSL2 status: **PASS**. The live acceptance was followed by green
+PR checks, merge to `main` at `4e8eff8f41c3f28dda240003f4fb24317d834a42`,
+green post-merge main verification and Issue #218 closure.

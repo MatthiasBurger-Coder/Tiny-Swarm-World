@@ -3,15 +3,15 @@
 Version: `issue-218-v1.1.0`
 Workflow ID: `issue-218-20260720`
 Branch: `docs/issue-218-live-acceptance-20260720`
-Status: `INCOMPLETE`
+Status: `COMPLETED`
 
 ## Current execution checkpoint — 2026-08-04
 
-Slices 04–15 have completed their local implementation, test, live WSL2,
-network, cleanup, native-regression and evidence gates. The final local audit
-is green for those scopes. Slice 16 is `READY_FOR_GUARDED_PUBLICATION`, not
-complete: the branch still requires remote CI/Sonar checks, merge-commit
-verification on `main`, final Issue Completion Audit PASS and issue closure.
+Slices 04–15 completed their implementation, test, live WSL2, network, cleanup,
+native-regression and evidence gates. Slice 16 completed guarded publication:
+PR #233 merged at `4e8eff8f41c3f28dda240003f4fb24317d834a42`, required remote
+checks and post-merge `main` verification passed, the independent Issue
+Completion Audit is PASS, and Issue #218 is closed.
 The opt-in Selenium browser contract is recorded as skipped according to its
 documented opt-in prerequisite; Windows-side external HTTPS verification is
 the passing reachability gate.

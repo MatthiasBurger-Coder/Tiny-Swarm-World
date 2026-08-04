@@ -91,7 +91,7 @@ passed for the active routes.
 
 The first option is the smallest project-compatible continuation.
 
-Network completion status: **PASS** for the local live acceptance. A real WSL
-restart did not allocate a different address; the required changed-IP behavior
-is proven by the controlled live simulation. Remote merge verification remains
-outside this network result.
+Network completion status: **PASS**. A real WSL restart did not allocate a
+different address; the required changed-IP behavior is proven by the controlled
+live simulation. The result is included in the merged main baseline and the
+post-merge verification passed.
