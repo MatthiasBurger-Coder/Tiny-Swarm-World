@@ -9,7 +9,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
-from tiny_swarm_world.domain.preflight import WindowsWslBridgeStatus
+from tiny_swarm_world.domain.host_environment import WindowsWslBridgeStatus
 
 
 WINDOWS_WSL_BRIDGE_STATE = Path(

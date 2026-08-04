@@ -26,6 +26,8 @@ INSTALLER_BOOTSTRAP_SOURCE_FILES = (
     Path("application/ports/repositories/port_project_filesystem_evidence_repository.py"),
     Path("infrastructure/__init__.py"),
     Path("infrastructure/adapters/__init__.py"),
+    Path("infrastructure/adapters/preflight/__init__.py"),
+    Path("infrastructure/adapters/preflight/windows_wsl_bridge_state.py"),
     Path("infrastructure/adapters/host/__init__.py"),
     Path("infrastructure/adapters/host/host_environment_detector.py"),
     Path("infrastructure/adapters/host/linux_host_signal_reader.py"),
@@ -585,6 +587,7 @@ class _InstallScriptFixture:
             "TSW_INSTALL_TEST_WINDOWS_WSL_BRIDGE_STATE_PATH": (
                 ".tiny-swarm-world/test-windows-wsl-bridge-state.json"
             ),
+            "TSW_TEST_REAL_PYTHON": sys.executable,
             **self.extra_environment,
         }
         return subprocess.run(
@@ -790,7 +793,7 @@ SH
           exit 0
         fi
         if [[ "${1:-}" == "-m" && "${2:-}" == "tiny_swarm_world.installer" ]]; then
-          exec /usr/bin/python3 "$@"
+          exec "${TSW_TEST_REAL_PYTHON:-/usr/bin/python3}" "$@"
         fi
         if [[ "${1:-}" == "-m" && "${2:-}" == "tiny_swarm_world" ]]; then
           printf 'PYTHONPATH=%s python3 %s\\n' "${PYTHONPATH:-}" "$*" >>"$TSW_FAKE_SCRIPT_COMMANDS"
