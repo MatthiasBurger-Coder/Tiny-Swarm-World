@@ -41,21 +41,22 @@ commit or PR description.
 | Mandatory unit tests | PASS | Full quality gate and targeted suite |
 | Mandatory adapter tests | PASS | Python adapter tests and Pester 43/43 |
 | Mandatory integration tests | PASS | Full quality gate and 202 targeted native VM host tests |
-| Mandatory regression tests | PASS | Composite quality gate: lint, architecture, typecheck and 1576-test suite (28 skipped; 124.501 seconds); Pester 43/43 |
+| Mandatory regression tests | PASS | Composite quality gate: lint, architecture, typecheck and 1589-test suite (28 skipped); Pester 43/43; post-merge main Quality Gate PASS |
 | Mandatory live tests | PASS | Real WSL2/Incus/Swarm, artifacts, deployment, platform, Windows DNS/HTTPS, second prepare, controlled changed-IP reconciliation, cleanup and strict read-only tests pass; Selenium remains an explicitly opt-in browser prerequisite, while external Windows HTTPS is PASS |
 | CLI requirements | PASS | Distinct detect/preflight/prepare/verify/cleanup paths |
 | Evidence requirements | PASS | All twelve required files are present |
 | Documentation requirements | PASS | User guide, installation, troubleshooting and ADR coverage |
 | Requirement review | PASS | Current matrix has no open implementation or live acceptance row |
-| Architecture review | PASS | Automated architecture checks; final independent review pending |
-| Test and evidence review | PASS | Full quality gate, Pester, live workflows, cleanup and strict read-only evidence are current |
+| Architecture review | PASS | Automated architecture checks and documented role-based independent review |
+| Test and evidence review | PASS | Full quality gate, Pester, live workflows, cleanup, strict read-only evidence and post-merge checks are current |
 | Network review | PASS | Stable reachability, idempotency, controlled changed-IP reconciliation, cleanup and foreign-rule preservation pass |
-| Issue Completion Audit | FAIL | Independent PASS cannot be issued while required rows fail |
-| Merge verification | FAIL | No merge attempted |
-| Issue closure | FAIL | Issue remains open by design |
+| Issue Completion Audit | PASS | Independent audit recorded PASS after all requirements, live evidence, checks and main verification were confirmed |
+| Merge verification | PASS | PR #233 merged as `4e8eff8f41c3f28dda240003f4fb24317d834a42`; post-merge SonarCloud/Quality Gate and Dependency Graph passed |
+| Issue closure | PASS | Issue #218 closed after the completion audit |
 
 ## Overall
 
-**INCOMPLETE for release lifecycle only.** All local implementation, test and
-live acceptance rows are PASS. SonarCloud, merge-commit verification and issue
-closure remain FAIL until the guarded publication lifecycle completes.
+**PASS.** All FR/NFR/AC, mandatory test, live acceptance, evidence, audit,
+merge, post-merge `main` and issue-closure rows are PASS. The opt-in Selenium
+browser suite is not a required gate and remains explicitly documented as
+not applicable in this environment.

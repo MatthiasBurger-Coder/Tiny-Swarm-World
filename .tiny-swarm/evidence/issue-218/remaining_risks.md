@@ -1,15 +1,9 @@
 # Issue #218 — Remaining risks and required continuation
 
-The local implementation and live acceptance gates are complete. The following
-release-lifecycle gates remain:
-
-1. Publish the guarded branch and obtain green required GitHub checks,
-   including SonarCloud when configured.
-2. Merge the pull request, then rerun the full quality gate, relevant WSL2
-   smoke checks, native regression and evidence-consistency checks on the
-   actual `main` merge commit.
-3. Record the merge commit and PR in the completion audit, mark the independent
-   Issue Completion Audit PASS, then close Issue #218.
+Implementation and release-lifecycle gates are complete. PR #233 was merged
+to `main` as `4e8eff8f41c3f28dda240003f4fb24317d834a42`; required PR checks,
+post-merge SonarCloud/Quality Gate, Dependency Graph and the independent audit
+passed. Issue #218 is closed.
 
 The real WSL restart retained the same IP (`172.25.81.206`); the required
 changed-IP behavior is proven by the controlled live adapter/Pester simulation,
@@ -23,3 +17,7 @@ verified from Windows.
 
 No secret values are recorded in this file. The live service uses local
 development TLS and should not be interpreted as a production PKI result.
+
+Rollback: revert merge commit `4e8eff8f41c3f28dda240003f4fb24317d834a42`
+through a reviewed GitHub pull request, then rerun the quality gate and the
+platform/network verification workflows before any live reset.
