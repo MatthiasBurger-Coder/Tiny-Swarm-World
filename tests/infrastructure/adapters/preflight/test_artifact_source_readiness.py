@@ -3,6 +3,7 @@ import json
 import socket
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 
 from tiny_swarm_world.domain.preflight import ArtifactSourceStatus
@@ -18,6 +19,15 @@ class _Response:
 
 
 class TestArtifactSourceReadiness(unittest.TestCase):
+    def test_rejects_invalid_mode_and_timeout(self):
+        with self.assertRaises(ValueError):
+            HttpArtifactSourceReadiness(environment={"TSW_ARTIFACT_SOURCE_MODE": "unknown"})
+        with self.assertRaises(ValueError):
+            HttpArtifactSourceReadiness(
+                environment={"TSW_ARTIFACT_SOURCE_MODE": "direct-internet"},
+                timeout_seconds=0,
+            )
+
     def test_direct_mode_requires_registry_apt_and_gpg_sources(self):
         calls: list[str] = []
 
@@ -146,3 +156,62 @@ class TestArtifactSourceReadiness(unittest.TestCase):
         self.assertTrue(result.ready)
         self.assertEqual("direct-internet", result.selected_source)
         self.assertEqual(4, len(result.attempts))
+
+    def test_probe_supports_getcode_and_classifies_http_errors(self):
+        class CodeResponse:
+            def getcode(self):
+                return 204
+
+            def close(self):
+                pass
+
+        calls = iter(
+            (
+                urllib.error.HTTPError("url", 401, "challenge", {}, None),
+                CodeResponse(),
+                urllib.error.HTTPError("url", 500, "server", {}, None),
+                OSError("unreachable"),
+            )
+        )
+
+        def opener(url: str, *, timeout: float):
+            response = next(calls)
+            if isinstance(response, BaseException):
+                raise response
+            return response
+
+        result = HttpArtifactSourceReadiness(
+            environment={
+                "TSW_ARTIFACT_SOURCE_MODE": "nexus",
+                "TSW_LXC_DOCKER_REGISTRY_MIRROR": "https://registry.internal:5001",
+            },
+            opener=opener,
+            timeout_seconds=1,
+        ).check()
+
+        self.assertFalse(result.ready)
+        self.assertEqual(
+            [ArtifactSourceStatus.READY, ArtifactSourceStatus.READY,
+             ArtifactSourceStatus.FAILED, ArtifactSourceStatus.FAILED],
+            [attempt.status for attempt in result.attempts],
+        )
+
+    def test_offline_mode_rejects_invalid_manifests_and_artifacts(self):
+        cases = (
+            {"contract_version": 2, "artifacts": []},
+            {"contract_version": 1, "artifacts": []},
+            {"contract_version": 1, "artifacts": ["invalid"]},
+            {"contract_version": 1, "artifacts": [{"id": "x", "path": "x", "sha256": "bad"}]},
+            {"contract_version": 1, "artifacts": [{"id": "x", "path": "missing", "sha256": "0" * 64}]},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "offline.json"
+            for payload in cases:
+                manifest.write_text(json.dumps(payload), encoding="utf-8")
+                result = HttpArtifactSourceReadiness(
+                    environment={
+                        "TSW_ARTIFACT_SOURCE_MODE": "offline",
+                        "TSW_OFFLINE_ARTIFACT_MANIFEST": str(manifest),
+                    },
+                ).check()
+                self.assertFalse(result.ready)
