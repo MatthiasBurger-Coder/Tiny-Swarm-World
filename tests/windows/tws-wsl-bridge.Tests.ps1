@@ -180,6 +180,64 @@ Describe "Tiny Swarm World Windows bridge protected state" {
 
         Assert-MockCalled Remove-PortProxy -Times 0 -Scope It
     }
+
+    It "reconciles a changed WSL IP using the protected previous tuple" {
+        $previous = [pscustomobject]@{
+            contractVersion = 2
+            serviceName = $ServiceName
+            agentMode = "windows-service"
+            listenAddress = "0.0.0.0"
+            wslIp = "172.20.0.2"
+            mappings = @([pscustomobject]@{ listenPort = 80; connectPort = 80 })
+        }
+        $config = [pscustomobject]@{ listenAddress = "0.0.0.0" }
+        Mock Get-ProtectedBridgeState { $previous }
+        Mock Get-PortProxyRecords {
+            [pscustomobject]@{
+                ListenAddress = "0.0.0.0"
+                ListenPort = 80
+                ConnectAddress = "172.20.0.2"
+                ConnectPort = 80
+            }
+        }
+        Mock Remove-PortProxy {}
+
+        Remove-StalePortProxyMappings -Config $config -Mappings @([pscustomobject]@{ ListenPort = 80; ConnectPort = 80 }) -WslIp "172.20.0.3"
+
+        Assert-MockCalled Remove-PortProxy -Times 1 -Scope It -ParameterFilter {
+            $ListenAddress -eq "0.0.0.0" -and $ListenPort -eq 80
+        }
+    }
+}
+
+Describe "Tiny Swarm World Windows bridge read-only verification" {
+    It "rejects service drift even when a port is listening" {
+        $config = [pscustomobject]@{}
+        $mappings = @([pscustomobject]@{ ListenPort = 443; Name = "HTTPS" })
+        Mock Get-WslIp { "172.25.81.206" }
+        Mock Get-BridgeHostNames { @("tsw.local") }
+        Mock Get-BridgeDiscovery {
+            [pscustomobject]@{
+                Ready = $false
+                DriftReasons = @("bridge_agent_drift")
+            }
+        }
+        Mock Test-TcpPort { $true }
+
+        Assert-TestThrows { Verify-Bridge -Config $config -Mappings $mappings }
+        Assert-MockCalled Test-TcpPort -Times 0
+    }
+}
+
+Describe "Tiny Swarm World Windows bridge hosts cleanup" {
+    BeforeEach {
+        $script:HostsPath = Join-Path $TestDrive "hosts"
+        [System.IO.File]::WriteAllText($script:HostsPath, "")
+    }
+
+    It "handles an existing empty hosts file during managed block removal" {
+        Remove-ManagedHostsBlock | Should Be ""
+    }
 }
 
 Describe "Tiny Swarm World Windows bridge payload transaction" {

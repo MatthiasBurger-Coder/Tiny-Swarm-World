@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import Mapping
 
 
 class ResourceAssessment(StrEnum):
@@ -17,6 +18,8 @@ class HostResources:
     cgroup_memory_limit_bytes: int | None
     current_memory_usage_bytes: int
     free_disk_bytes: int
+    cpu_signal: str = "unknown"
+    memory_signal: str = "unknown"
 
     @property
     def effective_memory_bytes(self) -> int:
@@ -80,6 +83,8 @@ class MemoryPressureReport:
     reclaim_events: int
     assessment: str
     confidence: str
+    memory_stat: Mapping[str, int] = field(default_factory=dict)
+    psi_some_avg10: float | None = None
 
 
 def assess_resources(

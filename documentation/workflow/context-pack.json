@@ -1,7 +1,7 @@
 {
   "workflow_id": "issue-218-20260720",
-  "version": "issue-218-v1.0.0",
-  "branch": "feature/workflow-issue-218-20260720",
+  "version": "issue-218-v1.1.0",
+  "branch": "docs/issue-218-live-acceptance-20260720",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": ["src/tiny_swarm_world/domain/preflight/**", "src/tiny_swarm_world/application/**", "src/tiny_swarm_world/infrastructure/**", "tests/**", "documentation/**"],

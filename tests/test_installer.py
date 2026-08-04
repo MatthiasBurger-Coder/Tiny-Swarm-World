@@ -285,6 +285,32 @@ class TestInstaller(unittest.TestCase):
             ],
         )
 
+    def test_installer_subprocess_timeout_is_configurable_and_positive(self):
+        self.assertEqual(
+            12.5,
+            installer._installer_subprocess_timeout_seconds(
+                {installer.INSTALLER_SUBPROCESS_TIMEOUT_ENVIRONMENT: "12.5"}
+            ),
+        )
+        with self.assertRaises(installer.InstallerError):
+            installer._installer_subprocess_timeout_seconds(
+                {installer.INSTALLER_SUBPROCESS_TIMEOUT_ENVIRONMENT: "0"}
+            )
+
+    def test_installer_subprocess_timeout_is_reported_as_installer_error(self):
+        with patch.object(
+            installer.subprocess,
+            "run",
+            side_effect=subprocess.TimeoutExpired(["python3", "-m", "pip"], 1),
+        ):
+            with self.assertRaisesRegex(installer.InstallerError, "timed out"):
+                installer._run_installer_subprocess(
+                    ["python3", "-m", "pip"],
+                    env={},
+                    check=False,
+                    timeout_seconds=1,
+                )
+
     def test_load_export_file_parses_shell_quoted_values(self):
         with tempfile.TemporaryDirectory() as tempdir:
             path = Path(tempdir) / "live.env"
@@ -593,6 +619,39 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual(installer._render_fallback_install_event(succeeded), ("  OK      done",))
         self.assertEqual(installer._render_fallback_install_event(unknown), ("  SKIPPED host",))
 
+    def test_run_phase_emits_distinct_timeout_and_terminates_process(self):
+        class Reporter:
+            def __init__(self) -> None:
+                self.events: list[object] = []
+
+            def report(self, event: object) -> None:
+                self.events.append(event)
+
+        reporter = Reporter()
+        options = installer.InstallerOptions(
+            service_profile="service-access",
+            generate_secrets=False,
+            secrets_mode="fixed",
+            confirm_reset=True,
+            non_interactive_live_approval=True,
+            headless=True,
+            allow_wsl_windows_filesystem=True,
+        )
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            log_file = Path(temporary_directory) / "phase.log"
+            exit_code = installer._run_phase(
+                "bounded phase",
+                "sleep 1",
+                log_file,
+                options,
+                {"TSW_INSTALL_PHASE_TIMEOUT_SECONDS": "0.05"},
+                Path(temporary_directory),
+                reporter,
+            )
+
+        self.assertEqual(124, exit_code)
+        self.assertEqual("TIMED_OUT", getattr(reporter.events[-1], "status").value)
+
     def test_reset_failure_guidance_explains_privileged_lxc_block(self):
         log_text = "\n".join(
             (
@@ -667,10 +726,9 @@ def _test_windows_wsl_bridge_guard(
     env: dict[str, str],
     root: Path,
 ) -> installer.WindowsWslBridgeGuardResult:
-    with patch.object(
-        installer,
-        "WINDOWS_WSL_BRIDGE_STATE_PATH",
-        Path("tools/windows/.tws-wsl-bridge.state.json"),
+    with patch.dict(
+        env,
+        {"TSW_WINDOWS_WSL_BRIDGE_STATE_PATH": "tools/windows/.tws-wsl-bridge.state.json"},
     ):
         return installer._windows_wsl_bridge_guard(host_runtime, env, root)
 

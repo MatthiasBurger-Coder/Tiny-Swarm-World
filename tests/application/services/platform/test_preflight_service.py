@@ -2,6 +2,7 @@ import unittest
 from dataclasses import dataclass, replace
 from collections.abc import Mapping, Sequence
 from typing import Any
+from unittest.mock import Mock
 from tests.support.sonar_safe_literals import token_marker
 
 from tiny_swarm_world.application.ports.configuration import ConfigurationSourceLoadError
@@ -104,6 +105,28 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("LIVE-CONSENT", check_ids)
         self.assertNotIn("RUNTIME-MULTIPASS", check_ids)
         self.assertFalse(any(check_id.startswith("RUNTIME-") for check_id in check_ids))
+
+    async def test_static_preflight_does_not_write_evidence(self):
+        writer = Mock()
+
+        result = await PreflightService(
+            _fake_probe(),
+            evidence_writer=writer,
+        ).run()
+
+        self.assertTrue(result.passed)
+        writer.write.assert_not_called()
+
+    async def test_accepted_live_preflight_writes_evidence(self):
+        writer = Mock()
+
+        result = await PreflightService(
+            _fake_probe(),
+            evidence_writer=writer,
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        self.assertTrue(result.passed)
+        writer.write.assert_called_once()
 
     async def test_host_filesystem_block_is_immediately_after_host_and_stops_later_checks(self):
         project_path = "/mnt/d/private/project"
@@ -456,6 +479,15 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("PORT-9000", check_ids)
         self.assertNotIn("SECRET-TSW_PORTAINER_ADMIN_PASSWORD", check_ids)
 
+    async def test_dedicated_host_preparation_can_skip_installation_port_gate(self):
+        result = await PreflightService(
+            _fake_probe(port_availability={80: False}),
+            include_port_checks=False,
+        ).run()
+
+        check_ids = {check.check_id for check in result.checks}
+        self.assertNotIn("PORT-80", check_ids)
+
     async def test_preflight_uses_port_registry_external_ports_when_provided(self):
         registry = PortRegistry(
             ranges=(PortRange("public-ingress", 80, 443),),
@@ -740,6 +772,20 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.passed)
         self.assertEqual(port_check.status, "PASSED")
         self.assertEqual(port_check.evidence["source"], "existing_expected_service")
+
+    async def test_occupied_port_passes_when_owned_by_prepared_wsl_bridge(self):
+        result = await PreflightService(
+            _fake_probe(
+                host_environment=_wsl2_environment(),
+                port_availability={80: False},
+                expected_service_ports={80: False},
+            ),
+            port_registry=_bridge_port_registry(),
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        port_check = next(check for check in result.checks if check.check_id == "PORT-80")
+        self.assertTrue(result.passed)
+        self.assertEqual("managed_windows_wsl_bridge", port_check.evidence["source"])
 
     async def test_occupied_unknown_port_still_fails_preflight(self):
         result = await PreflightService(

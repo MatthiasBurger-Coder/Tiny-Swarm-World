@@ -792,18 +792,108 @@ networks:
         with patch.object(
             publisher,
             "_run_manager_shell",
-            return_value=subprocess.CompletedProcess([], 0),
+            side_effect=(
+                subprocess.CompletedProcess([], 1),
+                subprocess.CompletedProcess([], 0),
+            ),
         ) as run_manager_shell:
             with patch.object(publisher, "_docker_login") as docker_login:
                 with patch.object(publisher, "_load_host_cached_image", return_value=False):
                     publisher.publish_image(contract)
 
         docker_login.assert_not_called()
-        run_manager_shell.assert_called_once_with(
+        self.assertEqual(run_manager_shell.call_args_list[0].args[0], "docker image inspect postgres:14-alpine")
+        run_manager_shell.assert_called_with(
             "docker pull postgres:14-alpine",
             check=False,
             operation="pull_public_image",
             timeout_seconds=1800,
+        )
+
+    def test_image_publisher_reuses_existing_manager_public_image(self):
+        publisher = LxcContainerImagePublisher(
+            backend=ManagedLxcBackend.LXD,
+            registry_username="admin",
+            registry_password=operator_credential(),
+        )
+        contract = ContainerImageContract(
+            "infisical/infisical",
+            "v0.159.1",
+            "infisical",
+            source="pull",
+        )
+
+        with patch.object(
+            publisher,
+            "_run_manager_shell",
+            return_value=subprocess.CompletedProcess([], 0),
+        ) as run_manager_shell:
+            with patch.object(publisher, "_load_host_cached_image") as load_host_cache:
+                publisher.publish_image(contract)
+
+        load_host_cache.assert_not_called()
+        run_manager_shell.assert_called_once_with(
+            "docker image inspect infisical/infisical:v0.159.1",
+            check=False,
+            operation="inspect_cached_public_image",
+            timeout_seconds=60,
+        )
+
+    def test_image_publisher_verifies_existing_manager_public_image_without_pull(self):
+        publisher = LxcContainerImagePublisher(
+            backend=ManagedLxcBackend.LXD,
+            registry_username="admin",
+            registry_password=operator_credential(),
+        )
+        contract = ContainerImageContract(
+            "infisical/infisical",
+            "v0.159.1",
+            "infisical",
+            source="pull",
+        )
+
+        with patch.object(
+            publisher,
+            "_run_manager_shell",
+            return_value=subprocess.CompletedProcess([], 0),
+        ) as run_manager_shell:
+            with patch.object(publisher, "_docker_login") as docker_login:
+                self.assertTrue(publisher.image_available(contract))
+
+        docker_login.assert_not_called()
+        run_manager_shell.assert_called_once_with(
+            "docker image inspect infisical/infisical:v0.159.1",
+            check=False,
+            operation="inspect_cached_public_image",
+            timeout_seconds=60,
+        )
+
+    def test_image_publisher_reuses_existing_manager_build_image(self):
+        publisher = LxcContainerImagePublisher(
+            backend=ManagedLxcBackend.LXD,
+            registry_username="admin",
+            registry_password=operator_credential(),
+        )
+        contract = ContainerImageContract(
+            "127.0.0.1:13500/jenkins",
+            "0.2.0",
+            "jenkins",
+        )
+
+        with patch.object(
+            publisher,
+            "_run_manager_shell",
+            return_value=subprocess.CompletedProcess([], 0),
+        ) as run_manager_shell:
+            with patch.object(publisher, "_transfer_context") as transfer_context:
+                publisher.publish_image(contract)
+
+        transfer_context.assert_not_called()
+        run_manager_shell.assert_called_once_with(
+            "docker image inspect 127.0.0.1:13500/jenkins:0.2.0",
+            check=False,
+            operation="inspect_cached_build_image",
+            timeout_seconds=60,
         )
 
     def test_image_publisher_treats_missing_host_docker_cache_as_cache_miss(self):
@@ -826,11 +916,18 @@ networks:
             with patch.object(
                 publisher,
                 "_run_manager_shell",
-                return_value=subprocess.CompletedProcess([], 0),
+                side_effect=(
+                    subprocess.CompletedProcess([], 1),
+                    subprocess.CompletedProcess([], 0),
+                ),
             ) as run_manager_shell:
                 publisher.publish_image(contract)
 
-        run_manager_shell.assert_called_once_with(
+        self.assertEqual(
+            run_manager_shell.call_args_list[0].args[0],
+            "docker image inspect infisical/infisical:v0.159.1",
+        )
+        run_manager_shell.assert_called_with(
             "docker pull infisical/infisical:v0.159.1",
             check=False,
             operation="pull_public_image",

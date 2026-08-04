@@ -873,7 +873,19 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
 
     def publish_image(self, contract: ContainerImageContract) -> None:
         if contract.source == "pull":
+            if self._manager_public_image_available(contract):
+                self.logger.info(
+                    "lxc_image_publisher public_cache_hit image=%s",
+                    contract.image_ref,
+                )
+                return
             self._pull_public_image(contract)
+            return
+        if self._manager_build_image_available(contract):
+            self.logger.info(
+                "lxc_image_publisher build_cache_hit image=%s",
+                contract.image_ref,
+            )
             return
         context_path = self._context_path(contract)
         remote_context_path = f"{self.remote_image_root}/{contract.build_context}"
@@ -894,9 +906,33 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
             timeout_seconds=self.timeout_seconds,
         )
 
+    def _manager_build_image_available(self, contract: ContainerImageContract) -> bool:
+        result = self._run_manager_shell(
+            f"docker image inspect {shlex.quote(contract.image_ref)}",
+            check=False,
+            operation="inspect_cached_build_image",
+            timeout_seconds=min(self.timeout_seconds, 60),
+        )
+        return result.returncode == 0
+
+    def _manager_public_image_available(self, contract: ContainerImageContract) -> bool:
+        result = self._run_manager_shell(
+            f"docker image inspect {shlex.quote(contract.image_ref)}",
+            check=False,
+            operation="inspect_cached_public_image",
+            timeout_seconds=min(self.timeout_seconds, 60),
+        )
+        return result.returncode == 0
+
     def image_available(self, contract: ContainerImageContract) -> bool:
         if contract.source == "build":
             self._docker_login()
+        elif self._manager_public_image_available(contract):
+            self.logger.info(
+                "lxc_image_publisher public_verify_cache_hit image=%s",
+                contract.image_ref,
+            )
+            return True
         elif self._load_host_cached_image(contract):
             return True
         result = self._run_manager_shell(

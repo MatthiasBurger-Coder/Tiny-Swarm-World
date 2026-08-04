@@ -11,11 +11,12 @@ import shlex
 import shutil
 import subprocess
 import sys
+import signal
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Protocol
+from typing import IO, Protocol
 
 from tiny_swarm_world.domain.host_environment import (
     HostEnvironmentKind,
@@ -48,9 +49,9 @@ DEFAULT_INFISICAL_SECRET_ENV_FILE = ".tiny-swarm/secrets/bootstrap.local.env"
 DEFAULT_GENERATED_SECRET_ENV_FILE = ".tiny-swarm/secrets/generated.local.env"
 DEFAULT_NATIVE_LINUX_VENV = ".tiny-swarm-world/install-venv"
 DEFAULT_SECRET_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
-WINDOWS_WSL_BRIDGE_STATE_PATH = Path(
-    "/mnt/c/ProgramData/TinySwarmWorld/WslBridge/bridge-state.json"
-)
+INSTALLER_SUBPROCESS_TIMEOUT_ENVIRONMENT = "TSW_INSTALL_SUBPROCESS_TIMEOUT_SECONDS"
+DEFAULT_INSTALLER_SUBPROCESS_TIMEOUT_SECONDS = 900.0
+DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS = 10.0
 WINDOWS_WSL_BRIDGE_MAX_AGE_SECONDS = 5 * 60
 WINDOWS_EXPOSURE_ENVIRONMENT = "TSW_WINDOWS_EXPOSURE"
 WINDOWS_WSL_BRIDGE_TEST_STATE_ENVIRONMENT = (
@@ -675,7 +676,11 @@ def _windows_wsl_bridge_guard(
     env: Mapping[str, str],
     cwd: Path,
 ) -> WindowsWslBridgeGuardResult:
-    configured_state_path = WINDOWS_WSL_BRIDGE_STATE_PATH
+    from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state import (
+        configured_windows_wsl_bridge_state_path,
+    )
+
+    configured_state_path = configured_windows_wsl_bridge_state_path(env)
     test_state_path = env.get(WINDOWS_WSL_BRIDGE_TEST_STATE_ENVIRONMENT, "").strip()
     if env.get("TSW_INSTALL_TEST_MODE") == "1" and test_state_path:
         configured_state_path = Path(test_state_path)
@@ -812,9 +817,9 @@ def ensure_python_environment(
         if not _python_imports_available(venv_python.as_posix(), env):
             raise InstallerError("Native Linux Python dependency bootstrap did not make required modules importable.")
         return venv_python.as_posix()
-    completed = subprocess.run(
+    completed = _run_installer_subprocess(
         [python_bin, "-m", "venv", paths.native_linux_venv.as_posix()],
-        env=dict(env),
+        env=env,
         check=False,
     )
     if completed.returncode != 0:
@@ -822,12 +827,12 @@ def ensure_python_environment(
             f"Could not create native Linux virtual environment at {paths.native_linux_venv.as_posix()}. "
             "Install python3-venv and rerun install.sh."
         )
-    subprocess.run(
+    _run_installer_subprocess(
         [venv_python.as_posix(), "-m", "pip", "install", "--upgrade", "pip"],
         env=dict(env),
         check=True,
     )
-    subprocess.run(
+    _run_installer_subprocess(
         [
             venv_python.as_posix(),
             "-m",
@@ -840,7 +845,7 @@ def ensure_python_environment(
         env=dict(env),
         check=True,
     )
-    subprocess.run(
+    _run_installer_subprocess(
         [venv_python.as_posix(), "-m", "pip", "install", "--no-deps", "-e", "."],
         env=dict(env),
         check=True,
@@ -876,13 +881,62 @@ def _python_imports_available(python_bin: str, env: Mapping[str, str]) -> bool:
     ):
         return False
     code = "import pydantic\nimport requests\nimport ruamel.yaml\nimport yaml\n"
-    return subprocess.run(
+    return _run_installer_subprocess(
         [python_bin, "-c", code],
         env=dict(env),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         check=False,
+        timeout_seconds=DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS,
     ).returncode == 0
+
+
+def _run_installer_subprocess(
+    command: Sequence[str],
+    *,
+    env: Mapping[str, str],
+    check: bool,
+    timeout_seconds: float | None = None,
+    stdout: int | IO[str] | None = None,
+    stderr: int | IO[str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    timeout = (
+        timeout_seconds
+        if timeout_seconds is not None
+        else _installer_subprocess_timeout_seconds(env)
+    )
+    try:
+        return subprocess.run(
+            list(command),
+            env=dict(env),
+            check=check,
+            timeout=timeout,
+            stdout=stdout,
+            stderr=stderr,
+        )
+    except subprocess.TimeoutExpired as exc:
+        rendered = " ".join(str(part) for part in command[:3])
+        raise InstallerError(
+            f"Installer subprocess timed out after {timeout:g}s: {rendered}"
+        ) from exc
+
+
+def _installer_subprocess_timeout_seconds(env: Mapping[str, str]) -> float:
+    raw = env.get(
+        INSTALLER_SUBPROCESS_TIMEOUT_ENVIRONMENT,
+        str(DEFAULT_INSTALLER_SUBPROCESS_TIMEOUT_SECONDS),
+    ).strip()
+    try:
+        timeout = float(raw)
+    except ValueError as exc:
+        raise InstallerError(
+            f"{INSTALLER_SUBPROCESS_TIMEOUT_ENVIRONMENT} must be a positive number."
+        ) from exc
+    if timeout <= 0:
+        raise InstallerError(
+            f"{INSTALLER_SUBPROCESS_TIMEOUT_ENVIRONMENT} must be a positive number."
+        )
+    return timeout
 
 
 def _load_export_file(path: Path) -> dict[str, str]:
@@ -1127,24 +1181,53 @@ def _run_phase(
     effective_command = command
     if env.get("TSW_INSTALL_COMMAND_GROUP"):
         effective_command = f"sg {env['TSW_INSTALL_COMMAND_GROUP']} -c {shlex.quote(command)}"
+    try:
+        timeout_seconds = float(env.get("TSW_INSTALL_PHASE_TIMEOUT_SECONDS", "3600"))
+    except ValueError as exc:
+        raise InstallerError("TSW_INSTALL_PHASE_TIMEOUT_SECONDS must be a number.") from exc
+    if timeout_seconds <= 0:
+        raise InstallerError("TSW_INSTALL_PHASE_TIMEOUT_SECONDS must be positive.")
+    timed_out = False
+    interrupted = False
     if options.headless:
         with log_file.open("w", encoding="utf-8") as output:
-            completed = subprocess.run(
+            exit_code, timed_out, interrupted = _run_bounded_process(
                 ["bash", "-lc", effective_command],
                 cwd=cwd,
-                env=dict(env),
+                env=env,
+                timeout_seconds=timeout_seconds,
                 stdout=output,
-                stderr=subprocess.STDOUT,
-                check=False,
             )
-        exit_code = completed.returncode
     else:
-        exit_code = subprocess.run(
+        exit_code, timed_out, interrupted = _run_bounded_process(
             ["script", "-q", "-e", "-c", effective_command, log_file.as_posix()],
             cwd=cwd,
-            env=dict(env),
-            check=False,
-        ).returncode
+            env=env,
+            timeout_seconds=timeout_seconds,
+        )
+    if timed_out or interrupted:
+        status = "TIMED_OUT" if timed_out else "INTERRUPTED"
+        event_type = "STEP_TIMED_OUT" if timed_out else "STEP_FAILED"
+        reporter.report(
+            _phase_event(
+                event_type,
+                status,
+                name,
+                reason=(
+                    f"{name} exceeded its bounded timeout of {timeout_seconds:g} seconds."
+                    if timed_out
+                    else f"{name} was interrupted."
+                ),
+                evidence_path=log_file,
+                suggested_commands=_suggested_checks_for_phase(
+                    name,
+                    log_text=_read_text(log_file),
+                ),
+                sequence=sequence,
+                total=total,
+            )
+        )
+        return 124 if timed_out else 130
     if exit_code == 0:
         reporter.report(
             _phase_event(
@@ -1174,6 +1257,59 @@ def _run_phase(
             )
         )
     return exit_code
+
+
+def _run_bounded_process(
+    command: Sequence[str],
+    *,
+    cwd: Path,
+    env: Mapping[str, str],
+    timeout_seconds: float,
+    stdout: int | IO[str] | None = None,
+) -> tuple[int, bool, bool]:
+    process = subprocess.Popen(
+        list(command),
+        cwd=cwd,
+        env=dict(env),
+        stdout=stdout,
+        stderr=subprocess.STDOUT if stdout is not None else None,
+        stdin=subprocess.DEVNULL,
+        shell=False,
+        start_new_session=True,
+    )
+    try:
+        process.communicate(timeout=timeout_seconds)
+        return process.returncode or 0, False, False
+    except subprocess.TimeoutExpired:
+        _terminate_process(process)
+        return process.returncode if process.returncode is not None else 124, True, False
+    except KeyboardInterrupt:
+        _terminate_process(process)
+        return process.returncode if process.returncode is not None else 130, False, True
+
+
+def _terminate_process(process: subprocess.Popen[bytes]) -> None:
+    process_group: int | None = None
+    if os.name != "nt":
+        try:
+            process_group = os.getpgid(process.pid)
+            os.killpg(process_group, signal.SIGTERM)
+        except (OSError, AttributeError):
+            process.terminate()
+    else:
+        process.terminate()
+    try:
+        process.communicate(timeout=3.0)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        if process_group is not None and os.name != "nt":
+            os.killpg(process_group, signal.SIGKILL)
+        else:
+            process.kill()
+    finally:
+        process.communicate()
 
 
 def _suggested_checks_for_phase(name: str, *, log_text: str = "") -> tuple[str, ...]:
@@ -1213,7 +1349,7 @@ def _render_fallback_install_event(event: _FallbackInstallEvent) -> tuple[str, .
     if event.status == "SUCCEEDED":
         lines = [f"  OK      {event.message or event.target}"]
         return tuple(lines)
-    if event.status == "FAILED":
+    if event.status in {"FAILED", "TIMED_OUT", "INTERRUPTED"}:
         target = f" on {event.target}" if event.target else ""
         lines = [f"FAILED {event.step}{target}"]
         if event.reason:
@@ -1477,15 +1613,30 @@ def _run_text(command: tuple[str, ...], *, cwd: Path | None = None) -> str:
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
         check=False,
+        timeout=DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS,
     ).stdout.strip()
 
 
 def _inside_git_worktree(cwd: Path) -> bool:
-    return subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False).returncode == 0
+    return subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"],
+        cwd=cwd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+        timeout=DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS,
+    ).returncode == 0
 
 
 def _git_check_ignore(cwd: Path, path: str) -> bool:
-    return subprocess.run(["git", "check-ignore", "-q", path], cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False).returncode == 0
+    return subprocess.run(
+        ["git", "check-ignore", "-q", path],
+        cwd=cwd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+        timeout=DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS,
+    ).returncode == 0
 
 
 def _utc_timestamp() -> str:

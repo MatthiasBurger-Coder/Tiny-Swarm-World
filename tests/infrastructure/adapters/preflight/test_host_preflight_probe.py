@@ -745,7 +745,31 @@ class TestHostPreflightProbe(unittest.TestCase):
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=5.0,
         )
+
+    def test_path_ignored_by_git_fails_open_when_git_is_unavailable(self):
+        probe = HostPreflightProbe(Path.cwd())
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+            side_effect=FileNotFoundError("git"),
+        ):
+            self.assertFalse(probe.path_ignored_by_git(".env"))
+
+    def test_tracked_secret_scan_falls_back_when_git_is_unavailable(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            source_file = root / "src" / "example.py"
+            source_file.parent.mkdir()
+            source_file.write_text("TOKEN = 'safe-value'\n", encoding="utf-8")
+            probe = HostPreflightProbe(root)
+
+            with patch(
+                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                side_effect=FileNotFoundError("git"),
+            ):
+                self.assertEqual((), probe.forbidden_tracked_secret_fingerprints({}))
 
     def test_forbidden_tracked_secret_fingerprints_scan_git_tracked_files(self):
         marker_value = sample_text("synthetic-test-", "to", "ken")

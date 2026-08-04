@@ -1,5 +1,10 @@
 # Issue #218 Workflow Ledger
 
+> Historical FR lifecycle ledger. The active Slice 04–16 workflow and final
+> acceptance state are maintained in `documentation/workflow/workflow.md` and
+> `.tiny-swarm/evidence/issue-218/acceptance_checklist.md`. This ledger is
+> retained for traceability and must not be read as a current DONE claim.
+
 All FR workflows are serialized. Each next branch starts only after the
 previous PR is merged, `main` is fast-forwarded, and its full gate remains
 green.

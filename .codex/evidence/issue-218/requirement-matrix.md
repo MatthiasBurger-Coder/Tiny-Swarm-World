@@ -1,5 +1,11 @@
 # Issue #218 Requirement Matrix
 
+> Historical workflow-baseline artifact. This file records the initial
+> serialized FR-1..FR-15 decomposition and is not the current completion
+> authority. The reconciled status for the active Issue #218 execution is
+> `.tiny-swarm/evidence/issue-218/requirement_matrix.md`; its current local
+> PASS rows and release-lifecycle gates are authoritative.
+
 Authority: GitHub Issue #218 plus the user's requirement that each FR runs as
 its own serialized `workflow create` and `workflow execute` lifecycle.
 

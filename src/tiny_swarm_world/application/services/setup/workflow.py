@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 import inspect
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -20,7 +21,12 @@ from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResu
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
 from tiny_swarm_world.application.services.platform.workflow.results import PlatformWorkflowResult
 from tiny_swarm_world.application.services.shared import MethodTraceWrapper
-from tiny_swarm_world.domain.preflight import InstallationPlan, LiveConsent, PreflightResult
+from tiny_swarm_world.domain.preflight import (
+    HostPreparationResult,
+    InstallationPlan,
+    LiveConsent,
+    PreflightResult,
+)
 
 
 class SetupWorkflowKind(str, Enum):
@@ -120,6 +126,7 @@ class SetupWorkflow:
         trace_correlation_id: str | None = None,
         installation_plan: InstallationPlan | None = None,
         timeout_seconds: float | None = None,
+        heartbeat_interval_seconds: float | None = None,
     ):
         self.phases = tuple(phases)
         self.live_consent = live_consent
@@ -130,6 +137,9 @@ class SetupWorkflow:
         if timeout_seconds is not None and timeout_seconds <= 0:
             raise ValueError("Setup workflow timeout must be positive.")
         self.timeout_seconds = timeout_seconds
+        if heartbeat_interval_seconds is not None and heartbeat_interval_seconds <= 0:
+            raise ValueError("Setup workflow heartbeat interval must be positive.")
+        self.heartbeat_interval_seconds = heartbeat_interval_seconds
 
     async def run(self) -> SetupWorkflowResult:
         runner = MethodTraceWrapper(
@@ -227,7 +237,7 @@ class SetupWorkflow:
                 safe_message="Setup phase started.",
             )
             try:
-                phase_output = await phase.run()
+                phase_output = await self._run_phase_with_heartbeat(phase)
             except Exception as exc:
                 failed_phase = SetupPhaseResult(
                     name=phase.name,
@@ -350,6 +360,35 @@ class SetupWorkflow:
             phase_results=tuple(phase_results),
         )
 
+    async def _run_phase_with_heartbeat(self, phase: SetupWorkflowPhase) -> object:
+        if self.heartbeat_interval_seconds is None:
+            return await phase.run()
+        phase_task = asyncio.create_task(phase.run())
+        elapsed_seconds = 0.0
+        try:
+            while True:
+                try:
+                    return await asyncio.wait_for(
+                        asyncio.shield(phase_task),
+                        timeout=self.heartbeat_interval_seconds,
+                    )
+                except asyncio.TimeoutError:
+                    elapsed_seconds += self.heartbeat_interval_seconds
+                    self._report_phase_progress(
+                        phase_name=phase.name,
+                        status="running",
+                        result="running",
+                        step="heartbeat",
+                        safe_message=(
+                            f"Setup phase heartbeat after {elapsed_seconds:g} seconds."
+                        ),
+                    )
+        finally:
+            if not phase_task.done():
+                phase_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await phase_task
+
     def _ordered_phases(self) -> tuple[SetupWorkflowPhase, ...]:
         if self.installation_plan is None:
             return self.phases
@@ -361,6 +400,7 @@ class SetupWorkflow:
         phase_name: str,
         status: str,
         result: str,
+        step: str = "phase progress",
         safe_message: str,
         recovery_hint: str | None = None,
     ) -> None:
@@ -368,7 +408,7 @@ class SetupWorkflow:
             phase=phase_name,
             target=phase_name,
             task="Run setup phase",
-            step="phase progress",
+            step=step,
             status=status,
             result=result,
             safe_message=safe_message,
@@ -445,7 +485,11 @@ def _result_to_dict(result: object) -> dict[str, object]:
         return _safe_mapping_to_dict(result)
     if isinstance(
         result,
-        ArtifactWorkflowResult | DeploymentWorkflowResult | PlatformWorkflowResult | PreflightResult,
+        ArtifactWorkflowResult
+        | DeploymentWorkflowResult
+        | HostPreparationResult
+        | PlatformWorkflowResult
+        | PreflightResult,
     ):
         return result.to_dict()
     to_dict = getattr(result, "to_dict", None)
@@ -483,7 +527,7 @@ def _reject_unsafe_payload_keys(payload: object) -> None:
 
 
 def _is_success_status(status: str) -> bool:
-    return status.lower() in {"completed", "passed", "verified"}
+    return status.lower() in {"completed", "passed", "success", "verified"}
 
 
 def _setup_status_for_phase_status(status: str) -> SetupWorkflowStatus:

@@ -34,6 +34,8 @@ from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.preflight import (
+    HostPreparationResult,
+    HostPreparationStatus,
     InstallationPhase,
     InstallationPlan,
     LIVE_CONSENT_ENVIRONMENT_VALUE,
@@ -48,6 +50,31 @@ from tiny_swarm_world.domain.preflight import (
 
 
 class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
+    async def test_host_preparation_success_result_is_serializable_and_continues(self):
+        calls: list[str] = []
+        result = await SetupWorkflow(
+            (
+                SetupWorkflowPhase(
+                    "host prepare",
+                    lambda: HostPreparationResult(
+                        "prepare",
+                        "native_linux",
+                        HostPreparationStatus.SUCCESS,
+                        "ok",
+                        verified=True,
+                    ),
+                ),
+                SetupWorkflowPhase(
+                    "platform init",
+                    lambda: _completed_result("platform init", calls),
+                ),
+            ),
+            live_consent=_accepted_live_consent(),
+        ).run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(["host prepare", "platform init"], [item.name for item in result.phase_results])
+
     async def test_blocks_when_no_phases_are_configured(self):
         result = await SetupWorkflow(live_consent=_accepted_live_consent()).run()
 
@@ -576,6 +603,29 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         result = await workflow.run()
         self.assertEqual(SetupWorkflowStatus.TIMED_OUT, result.status)
         self.assertEqual(["hanging"], calls)
+
+    async def test_long_phase_emits_bounded_heartbeat_events(self):
+        progress = _RecordingProgress()
+
+        async def slow_phase() -> object:
+            import asyncio
+
+            await asyncio.sleep(0.03)
+            return _completed_result("slow", [])
+
+        workflow = SetupWorkflow(
+            (SetupWorkflowPhase("slow", slow_phase),),
+            live_consent=_accepted_live_consent(),
+            progress=progress,
+            heartbeat_interval_seconds=0.01,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        heartbeats = [event for event in progress.events if event.step == "heartbeat"]
+        self.assertGreaterEqual(len(heartbeats), 1)
+        self.assertTrue(all(event.status == "running" for event in heartbeats))
 
 
 def _completed_result(name: str, calls: list[str]) -> ArtifactWorkflowResult:

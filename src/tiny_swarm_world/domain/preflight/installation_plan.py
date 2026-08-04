@@ -146,9 +146,15 @@ def default_installation_plan() -> InstallationPlan:
                 workflow_phase_names=("preflight",),
             ),
             InstallationPhase(
+                phase_id="host-preparation",
+                order=5,
+                depends_on=("preflight",),
+                workflow_phase_names=("host prepare", "host verify"),
+            ),
+            InstallationPhase(
                 phase_id="platform",
                 order=10,
-                depends_on=("preflight",),
+                depends_on=("host-preparation",),
                 workflow_phase_names=("platform init", "platform reconcile"),
             ),
             InstallationPhase(
@@ -228,6 +234,7 @@ def default_installation_plan() -> InstallationPlan:
         ),
         required_phase_ids=(
             "preflight",
+            "host-preparation",
             "platform",
             "cluster",
             "network-routing",

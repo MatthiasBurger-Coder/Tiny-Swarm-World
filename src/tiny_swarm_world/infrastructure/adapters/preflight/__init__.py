@@ -5,9 +5,13 @@ from tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe imp
 from tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight import (
     LxcProviderPreflightProbe,
 )
+from tiny_swarm_world.infrastructure.adapters.preflight.artifact_source_readiness import (
+    HttpArtifactSourceReadiness,
+)
 
 __all__ = [
     "HostPreflightProbe",
     "LxcProviderPreflightProbe",
     "ensure_common_executable_paths",
+    "HttpArtifactSourceReadiness",
 ]

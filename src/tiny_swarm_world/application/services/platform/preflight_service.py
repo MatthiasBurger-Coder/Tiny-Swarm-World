@@ -4,7 +4,10 @@ import asyncio
 from collections.abc import Mapping
 
 from tiny_swarm_world.application.ports.configuration import ConfigurationSourceLoadError
-from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
+from tiny_swarm_world.application.ports.preflight import (
+    PortArtifactSourceReadiness,
+    PortHostPreflightProbe,
+)
 from tiny_swarm_world.application.services.configuration import ConfigurationValidationService
 from tiny_swarm_world.application.services.platform.host.authorize_project_filesystem import (
     AuthorizeProjectFilesystem,
@@ -49,6 +52,9 @@ class PreflightService:
         allow_wsl_windows_filesystem: bool = False,
         resource_inspector: object | None = None,
         evidence_writer: object | None = None,
+        artifact_source_readiness: PortArtifactSourceReadiness | None = None,
+        include_secret_checks: bool = True,
+        include_port_checks: bool = True,
     ):
         self.host_probe = host_probe
         self.configuration = configuration or default_preflight_configuration()
@@ -60,6 +66,9 @@ class PreflightService:
         self.allow_wsl_windows_filesystem = allow_wsl_windows_filesystem
         self.resource_inspector = resource_inspector
         self.evidence_writer = evidence_writer
+        self.artifact_source_readiness = artifact_source_readiness
+        self.include_secret_checks = include_secret_checks
+        self.include_port_checks = include_port_checks
 
     async def run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
         await asyncio.sleep(0)
@@ -84,7 +93,10 @@ class PreflightService:
         if filesystem_assessment is not None:
             checks.append(self._project_filesystem_check(filesystem_assessment))
             if filesystem_assessment.blocked:
-                return self._result(tuple(checks))
+                return self._result(
+                    tuple(checks),
+                    write_evidence=_live_evidence_enabled(live_consent),
+                )
         checks.extend((self._python_check(), *self._dependency_checks()))
         if (
             live_consent is not None
@@ -93,9 +105,11 @@ class PreflightService:
         ):
             checks.extend(self._runtime_checks())
             checks.extend(self._windows_wsl_bridge_checks(host_environment))
+            if self.artifact_source_readiness is not None:
+                checks.append(self._artifact_source_check())
         secret_checks = (
             self._secret_checks()
-            if self.configuration_validation is None
+            if self.configuration_validation is None and self.include_secret_checks
             else ()
         )
         checks.extend(
@@ -103,13 +117,20 @@ class PreflightService:
                 self._cpu_check(),
                 self._memory_check(),
                 self._disk_check(),
-                *self._port_checks(),
+                *(
+                    self._port_checks(host_environment)
+                    if self.include_port_checks
+                    else ()
+                ),
                 *secret_checks,
                 *self._ignore_policy_checks(),
                 self._forbidden_secret_fingerprint_check(),
             )
         )
-        return self._result(tuple(checks))
+        return self._result(
+            tuple(checks),
+            write_evidence=_live_evidence_enabled(live_consent),
+        )
 
     def _structured_resource_check(
         self,
@@ -137,7 +158,9 @@ class PreflightService:
         evidence = {
             "assessment": result.assessment.value,
             "cpu_threads": str(resources.cpu_threads),
+            "cpu_signal": resources.cpu_signal,
             "memory_bytes": str(resources.memory_bytes),
+            "memory_signal": resources.memory_signal,
             "effective_memory_bytes": str(resources.effective_memory_bytes),
             "cgroup_memory_limit_bytes": str(resources.cgroup_memory_limit_bytes or "unlimited"),
             "current_memory_usage_bytes": str(resources.current_memory_usage_bytes),
@@ -182,6 +205,12 @@ class PreflightService:
             "oom_events": str(report.oom_events),
             "oom_kill_events": str(report.oom_kill_events),
             "reclaim_events": str(report.reclaim_events),
+            "memory_stat_keys": ",".join(sorted(report.memory_stat)),
+            "psi_some_avg10": (
+                str(report.psi_some_avg10)
+                if report.psi_some_avg10 is not None
+                else "unavailable"
+            ),
         }
         critical = report.assessment in {
             "oom_kill_detected",
@@ -205,12 +234,19 @@ class PreflightService:
             severity=PreflightSeverity.RESOURCE_GATED,
         )
 
-    def _result(self, checks: tuple[PreflightCheck, ...]) -> PreflightResult:
+    def _result(
+        self,
+        checks: tuple[PreflightCheck, ...],
+        *,
+        write_evidence: bool = False,
+    ) -> PreflightResult:
         result = PreflightResult(
             checks,
             setup_profile=self.configuration.setup_profile,
             manifest_summary=self.configuration.setup_manifest.summary(),
         )
+        if not write_evidence:
+            return result
         writer = self.evidence_writer
         write = getattr(writer, "write", None)
         if callable(write):
@@ -428,6 +464,50 @@ class PreflightService:
             )
         return tuple(checks)
 
+    def _artifact_source_check(self) -> PreflightCheck:
+        if self.artifact_source_readiness is None:
+            raise RuntimeError(
+                "Artifact source readiness is only evaluated when the production "
+                "composition has configured the artifact source adapter."
+            )
+        try:
+            readiness = self.artifact_source_readiness.check()
+        except (OSError, ValueError):
+            return _failed(
+                "ARTIFACT-SOURCES",
+                PreflightCategory.DEPENDENCY,
+                "Artifact source readiness could not be evaluated.",
+                "Correct source configuration and rerun live preflight.",
+                {"classification": "probe_error"},
+            )
+        evidence = {
+            "mode": readiness.mode,
+            "selected_source": readiness.selected_source or "",
+            "status": readiness.to_dict()["status"].__str__(),
+            "attempt_count": str(len(readiness.attempts)),
+            "source_kinds": ",".join(sorted({attempt.kind for attempt in readiness.attempts})),
+        }
+        if readiness.ready:
+            return _passed(
+                "ARTIFACT-SOURCES",
+                PreflightCategory.DEPENDENCY,
+                "Configured package and container sources are reachable.",
+                evidence,
+            )
+        remediation = (
+            "Repair the selected source or configure the documented fallback mode, "
+            "then rerun live preflight."
+        )
+        if readiness.timed_out:
+            remediation = "Increase source reachability or timeout budget, then rerun live preflight."
+        return _failed(
+            "ARTIFACT-SOURCES",
+            PreflightCategory.DEPENDENCY,
+            "Required package and container sources are not ready.",
+            remediation,
+            evidence,
+        )
+
     def _windows_wsl_bridge_checks(
         self,
         host_environment: HostEnvironmentReport,
@@ -540,8 +620,13 @@ class PreflightService:
             severity=PreflightSeverity.RESOURCE_GATED,
         )
 
-    def _port_checks(self) -> tuple[PreflightCheck, ...]:
+    def _port_checks(
+        self,
+        host_environment: HostEnvironmentReport | None = None,
+    ) -> tuple[PreflightCheck, ...]:
         checks: list[PreflightCheck] = []
+        managed_bridge_ports: frozenset[int] = frozenset()
+        managed_bridge_ports_checked = False
         for required_port in self._required_ports():
             check_id = f"PORT-{required_port.port}"
             if self.host_probe.port_available(required_port.port):
@@ -570,6 +655,26 @@ class PreflightService:
                             "port": str(required_port.port),
                             "service": required_port.service,
                             "source": "existing_expected_service",
+                        },
+                    )
+                )
+                continue
+            if not managed_bridge_ports_checked:
+                managed_bridge_ports = self._managed_windows_bridge_ports(host_environment)
+                managed_bridge_ports_checked = True
+            if required_port.port in managed_bridge_ports:
+                checks.append(
+                    _passed(
+                        check_id,
+                        PreflightCategory.PORT,
+                        (
+                            f"Port {required_port.port} for {required_port.service} "
+                            "is owned by the prepared Windows/WSL bridge."
+                        ),
+                        {
+                            "port": str(required_port.port),
+                            "service": required_port.service,
+                            "source": "managed_windows_wsl_bridge",
                         },
                     )
                 )
@@ -616,6 +721,23 @@ class PreflightService:
                 )
             )
         return tuple(checks)
+
+    def _managed_windows_bridge_ports(
+        self,
+        host_environment: HostEnvironmentReport | None,
+    ) -> frozenset[int]:
+        if host_environment is None:
+            return frozenset()
+        if host_environment.environment is not HostEnvironmentKind.WSL2:
+            return frozenset()
+        if not self.configuration.windows_wsl_bridge_required:
+            return frozenset()
+        status = self.host_probe.windows_wsl_bridge_status(
+            self._windows_bridge_expected_ports()
+        )
+        if not status.prepared:
+            return frozenset()
+        return frozenset(status.mapped_ports)
 
     def _required_ports(self) -> tuple[RequiredPort, ...]:
         if self.port_registry is None:
@@ -850,6 +972,10 @@ def _format_python_version(version: tuple[int, ...]) -> str:
 
 def _bool_text(value: bool) -> str:
     return "true" if value else "false"
+
+
+def _live_evidence_enabled(live_consent: LiveConsent | None) -> bool:
+    return live_consent is not None and live_consent.accepted
 
 
 def _csv_ints(values: tuple[int, ...]) -> str:

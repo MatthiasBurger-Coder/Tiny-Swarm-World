@@ -193,6 +193,14 @@ def default_configuration_contract() -> ConfigurationContract:
                 description="Portainer stack request timeout in seconds.",
             ),
             ConfigurationRequirement(
+                key="TSW_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS",
+                scope="deployment",
+                value_kind=ConfigurationValueKind.POSITIVE_INTEGER,
+                required=False,
+                default="300",
+                description="Total timeout for read-only deployment verification.",
+            ),
+            ConfigurationRequirement(
                 key="TSW_SEED_INFISICAL_ITEMS",
                 scope="deployment",
                 value_kind=ConfigurationValueKind.BOOLEAN_FLAG,

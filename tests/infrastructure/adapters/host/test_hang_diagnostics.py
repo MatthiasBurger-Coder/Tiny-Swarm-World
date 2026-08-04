@@ -22,9 +22,12 @@ class HangDiagnosticsTests(unittest.TestCase):
 
         report = ReadOnlyHangDiagnostics(runner, timeout_seconds=3).collect()
         self.assertTrue(report.read_only)
-        self.assertEqual(4, len(report.commands))
+        self.assertEqual(9, len(report.commands))
         self.assertTrue(all(call[2] == 3 for call in calls))
         self.assertEqual("processes", report.commands[0].name)
+
+        docker_logs = next(call for call in calls if call[0] == "docker_logs")
+        self.assertIn("docker logs --tail 100", docker_logs[1][2])
 
     @patch("tiny_swarm_world.infrastructure.adapters.host.hang_diagnostics.subprocess.run")
     def test_command_runner_maps_timeout(self, run):

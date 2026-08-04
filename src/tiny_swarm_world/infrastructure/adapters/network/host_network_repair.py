@@ -351,16 +351,24 @@ def _append_wsl2_section(output: list[str], mode: str) -> None:
 
 
 def _forwarding_script() -> str:
-    return """#!/usr/bin/env bash
+    return r"""#!/usr/bin/env bash
 set -euo pipefail
 
 BRIDGE="${1:-incusbr0}"
+BRIDGE_NETWORK="$(ip -4 -o addr show dev "$BRIDGE" | sed -n 's/.* inet \([^ ]*\).*/\1/p')"
+if [ -z "$BRIDGE_NETWORK" ]; then
+  echo "Could not determine the IPv4 network for $BRIDGE." >&2
+  exit 1
+fi
 
-iptables -C FORWARD -i "$BRIDGE" -j ACCEPT 2>/dev/null || \\
+iptables -C FORWARD -i "$BRIDGE" -j ACCEPT 2>/dev/null || \
   iptables -I FORWARD 1 -i "$BRIDGE" -j ACCEPT
 
-iptables -C FORWARD -o "$BRIDGE" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \\
+iptables -C FORWARD -o "$BRIDGE" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
   iptables -I FORWARD 1 -o "$BRIDGE" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+iptables -t nat -C POSTROUTING -s "$BRIDGE_NETWORK" ! -o "$BRIDGE" -j MASQUERADE 2>/dev/null || \
+  iptables -t nat -I POSTROUTING 1 -s "$BRIDGE_NETWORK" ! -o "$BRIDGE" -j MASQUERADE
 """
 
 
