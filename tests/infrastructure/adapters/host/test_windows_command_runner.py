@@ -143,7 +143,10 @@ class TestWindowsCommandRunner(unittest.TestCase):
         def fail_popen(command, **kwargs):
             raise OSError("powershell unavailable")
 
-        result = WindowsCommandRunner(popen=fail_popen).run(
+        result = WindowsCommandRunner(
+            path_converter=lambda path: path.as_posix(),
+            popen=fail_popen,
+        ).run(
             "verify",
             script_path=Path("bridge.ps1"),
             config_path=Path("bridge.json"),
