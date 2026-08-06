@@ -49,6 +49,10 @@ def _lint_imports_command() -> list[str]:
 
 
 COMMANDS: dict[str, list[str]] = {
+    "verification-policy": [
+        PYTHON,
+        str(REPOSITORY_ROOT / "tools" / "check_verification_policy_consistency.py"),
+    ],
     "lint": [
         PYTHON,
         "-m",
@@ -82,7 +86,14 @@ COMMANDS: dict[str, list[str]] = {
         str(REPOSITORY_ROOT),
     ],
 }
-QUALITY_GATE_ORDER = ["lint", "arch-lint", "arch-tests", "typecheck", "test"]
+QUALITY_GATE_ORDER = [
+    "verification-policy",
+    "lint",
+    "arch-lint",
+    "arch-tests",
+    "typecheck",
+    "test",
+]
 
 
 def main() -> None:
@@ -91,7 +102,15 @@ def main() -> None:
         "command",
         nargs="?",
         default="quality",
-        choices=["lint", "arch-lint", "arch-tests", "typecheck", "test", "quality"],
+        choices=[
+            "verification-policy",
+            "lint",
+            "arch-lint",
+            "arch-tests",
+            "typecheck",
+            "test",
+            "quality",
+        ],
         help="The quality command to run.",
     )
     args = parser.parse_args()
