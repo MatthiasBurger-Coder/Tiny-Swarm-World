@@ -11,6 +11,7 @@ Use this process when the user requests `workflow create`.
 - `.agents/skills/workflow-authoring/SKILL.md`
 - `.agents/orchestrator/routing-rules.md`
 - `documentation/process/branch-governance.md`
+- `documentation/process/verification-state-policy.md`
 
 ## Process
 
@@ -20,7 +21,7 @@ Use this process when the user requests `workflow create`.
 4. Create a requirement matrix for issue-driven workflows before defining
    executable slices.
 5. Generate or regenerate `documentation/workflow`.
-6. Define slices with owners, dependencies, allowed write scopes, stop conditions, quality gates from `QUALITY.md`, and required issue-completion evidence.
+6. Define slices with owners, dependencies, allowed write scopes, stop conditions, quality gates from `QUALITY.md`, and required issue-completion evidence. Classify optional live and external gates using the canonical verification-state policy; do not make live execution mandatory without a separate consent path.
 7. Add the required `## Parallel Execution` section to every executable workflow, including parallel eligibility, conflicting workflows, shared files, shared infrastructure, isolated worktree requirement, serialized live validation requirement, and merge-order constraints.
 8. Add the required `## Automatic Work Distribution Policy` section to every
    executable workflow so `workflow execute` automatically analyzes each slice

@@ -6,6 +6,12 @@ This file defines the local quality contract for Tiny Swarm World. It is the
 authoritative source for verification commands used by workflow, agent, commit,
 and push procedures.
 
+The canonical state and applicability policy is
+[`documentation/process/verification-state-policy.md`](documentation/process/verification-state-policy.md).
+It defines how local, live, browser, installation, and external quality-gate
+results are classified. A quality command passing locally does not imply live
+or external success.
+
 Root `AGENTS.md` remains authoritative for architecture, safety, operating
 model, and live-infrastructure restrictions.
 
@@ -93,6 +99,11 @@ The default quality gate must not create VMs, change networking, deploy Docker
 stacks, or bootstrap local services. Mock command execution, network calls, VM
 operations, and Docker operations unless the user explicitly requests a live
 integration run.
+
+Live and external checks are opt-in and use the states in the canonical
+verification-state policy. Missing consent, unavailable prerequisites, skipped
+browser checks, missing evidence, and inaccessible SonarQube results are
+non-success states; they must not be reported as verified or green.
 
 ## Failure Policy
 

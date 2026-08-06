@@ -129,6 +129,13 @@ inspection.
   Docker operations unless the task explicitly requests an integration run.
 - Keep Linux/WSL behavior as the baseline in tests.
 
+The canonical verification-state policy is
+`documentation/process/verification-state-policy.md`. It governs the
+distinction between default local verification, Three-Amigos applicability,
+explicit live consent, live prerequisite/result states, and external quality
+gate availability. A local quality-gate pass must not be reported as live,
+Selenium, or SonarQube success without executed evidence.
+
 ## Documentation
 
 - Keep documentation aligned with the Linux/WSL-only operating model.
@@ -265,6 +272,11 @@ unless local skill discovery rules change. Grouped `.md` files are not
 authoritative skill entrypoints.
 
 ### Workflow Execution Rules
+
+- Issue and workflow text must follow
+  `documentation/process/verification-state-policy.md`: local quality is the
+  default authority; live and external checks require applicability, explicit
+  consent or access, and state-specific evidence.
 
 - Exact `workflow execute` uses `.agents/skills/workflow-executor/SKILL.md`.
 - Issue-driven work must follow
