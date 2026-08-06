@@ -28,6 +28,7 @@
 - `.tiny-swarm/evidence/201/policy-reference-map.md`
 - `.tiny-swarm/evidence/201/blockers.md`
 - `.tiny-swarm/evidence/201/completion-report.md`
+- `.tiny-swarm/evidence/201/final-independent-review.md`
 
 ## Explicitly unchanged
 

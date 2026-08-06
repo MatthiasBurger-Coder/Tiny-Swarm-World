@@ -35,6 +35,7 @@ verification are not applicable to this governance slice.
 - Quality integration: `tools/quality_gate.py`.
 - Focused tests: `tests/tools/test_check_verification_policy_consistency.py`.
 - Committed evidence: `.tiny-swarm/evidence/201/`.
+- Final role-based review: `final-independent-review.md`.
 
 ## Corrected public issues
 

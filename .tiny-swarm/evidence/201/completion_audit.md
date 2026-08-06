@@ -18,3 +18,7 @@ Three perspectives were reviewed:
   preserves the local-first, consent-gated architecture.
 - Test / Evidence Reviewer: all quality gates, connector re-reads, phrase
   searches, checker tests, and committed evidence files are recorded.
+- Final review: delegated read-only reviewers were unavailable within the
+  execution window; the explicit role-based fallback review is committed in
+  `final-independent-review.md` and returned `PASS` for requirement,
+  architecture/documentation, and test/evidence perspectives.
