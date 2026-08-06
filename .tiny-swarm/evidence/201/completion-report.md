@@ -3,7 +3,9 @@
 Issue: [#201](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/201)
 Status: `IMPLEMENTED_IN_PR`
 Branch: `docs/issue-201-verification-policy-20260805`
-Commit: `PENDING_FINAL_COMMIT_SHA`
+Completion commit: `79c757070a7a804e0206b0945f6e2f91c309dccb`
+Metadata update: recorded in the follow-up commit that contains this final
+SHA reference.
 Pull Request: [#235](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/pull/235)
 Date: 2026-08-06
 
@@ -99,6 +101,6 @@ Three-Amigos applicability never grants live mutation consent.
 
 ## Remaining work
 
-Only the final commit SHA remains to be filled into this report after the
-completion commit is created. The PR remains open and is not described as
-merged. The private installation environment remains untracked.
+The completion/evidence commit is `79c757070a7a804e0206b0945f6e2f91c309dccb`.
+The PR remains open and is not described as merged. The private installation
+environment remains untracked.
