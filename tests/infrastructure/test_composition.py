@@ -1873,6 +1873,7 @@ class TestComposition(unittest.TestCase):
             tuple(phase.name for phase in services.workflows.run.phases),
             (
                 "preflight",
+                "artifact contract preflight",
                 "host prepare",
                 "host verify",
                 "platform init",

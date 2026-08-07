@@ -31,6 +31,7 @@ from tiny_swarm_world.application.services.artifacts import (
     NexusDockerProxyRepositoryConfiguration,
     NexusMavenProxyRepositoryConfiguration,
     WaitForNexusReady,
+    StaticArtifactContractPreflight,
 )
 from tiny_swarm_world.application.services.deployment import (
     DeploymentApplyWorkflow,
@@ -1524,12 +1525,20 @@ def build_setup_services(
     allow_wsl_windows_filesystem: bool = False,
 ) -> SetupServices:
     project_paths = default_project_paths()
+    selected_service_profile = ServiceStackProfile(service_profile)
     preflight = _build_preflight_service_for_request(
-        service_profile,
+        selected_service_profile,
         node_provider_request,
         configuration_validation=configuration_validation,
         project_paths=project_paths,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
+    )
+    artifact_contract_preflight = StaticArtifactContractPreflight(
+        compose_repository=ComposeFileRepositoryYaml(
+            project_paths=project_paths,
+            service_profile=selected_service_profile,
+        ),
+        storage=LocalFileStorage(),
     )
     host_preparation = build_host_preparation_service(live_consent)
     trace_correlation_id = _new_installation_trace_correlation_id()
@@ -1566,6 +1575,10 @@ def build_setup_services(
             run=SetupWorkflow(
                 (
                     traced_phase("preflight", lambda: preflight.run(live_consent)),
+                    traced_phase(
+                        "artifact contract preflight",
+                        artifact_contract_preflight.run,
+                    ),
                     traced_phase("host prepare", host_preparation.prepare),
                     traced_phase("host verify", host_preparation.verify),
                     traced_phase("platform init", lambda: platform.workflows.init.run()),

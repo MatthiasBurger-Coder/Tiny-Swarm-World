@@ -397,6 +397,7 @@ class TestInstallationPlan(unittest.TestCase):
             plan.ordered_workflow_phase_names(),
             (
                 "preflight",
+                "artifact contract preflight",
                 "host prepare",
                 "host verify",
                 "platform init",

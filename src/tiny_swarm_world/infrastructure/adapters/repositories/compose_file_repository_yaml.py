@@ -168,6 +168,17 @@ class ComposeFileRepositoryYaml(
             ),
         )
 
+    def get_build_context_path(self, build_context: str) -> Path:
+        context_paths = {
+            "jenkins": self.project_paths.infra_root / "config" / "compose" / "jenkins" / "image",
+            "service-access-dashboard": self.project_paths.infra_root / "config" / "compose" / "service-access" / "dashboard",
+            "service-access-nginx": self.project_paths.infra_root / "config" / "compose" / "service-access" / "nginx",
+        }
+        try:
+            return context_paths[build_context]
+        except KeyError as exc:
+            raise ValueError("unknown approved build context") from exc
+
     def _compose_paths_for(self, base_directory: Path, stack_name: str) -> list[Path]:
         if not base_directory.is_dir():
             return []

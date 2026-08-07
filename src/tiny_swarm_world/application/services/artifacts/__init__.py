@@ -34,6 +34,9 @@ from tiny_swarm_world.application.services.artifacts.workflows import (
     ArtifactWorkflowResult,
     ArtifactWorkflowStatus,
 )
+from tiny_swarm_world.application.services.artifacts.static_contract_preflight import (
+    StaticArtifactContractPreflight,
+)
 
 __all__ = [
     "ArtifactPrepareStep",
@@ -54,4 +57,5 @@ __all__ = [
     "NexusBootstrapConfiguration",
     "NexusMavenProxyRepositoryConfiguration",
     "WaitForNexusReady",
+    "StaticArtifactContractPreflight",
 ]
