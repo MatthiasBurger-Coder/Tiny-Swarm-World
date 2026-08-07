@@ -10,6 +10,7 @@ Use this process when the user requests `workflow execute`.
 - `.agents/prompts/workflow-execute.md`
 - `.agents/skills/workflow-executor/SKILL.md`
 - `.agents/orchestrator/routing-rules.md`
+- `documentation/process/verification-state-policy.md`
 - active workflow under `documentation/workflow`
 
 ## Process
@@ -38,7 +39,7 @@ Use this process when the user requests `workflow execute`.
 10. If sequential, document why sequential execution was chosen and execute the
    slice in the main workflow branch.
 11. Implement only the slice's allowed write scope.
-12. Run targeted checks first, then required gates from `QUALITY.md`.
+12. Run targeted checks first, then required gates from `QUALITY.md`. Treat live and external checks according to the canonical policy: applicability is separate from consent/access, and unavailable or skipped checks are not passes.
 13. Classify failures through the Typed Error Router before retries.
 14. Fix in-scope test, quality-gate and SonarQube findings without weakening
     gates. Stop only when the repair would be unsafe, out of scope,

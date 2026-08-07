@@ -8,6 +8,12 @@ and evidenced.
 This discipline applies to issue-driven work, `workflow execute`, slice
 execution, implementation skills, reviewer skills and completion audits.
 
+Verification applicability and result wording follow the canonical
+[`verification-state-policy.md`](verification-state-policy.md). In particular,
+the default local quality gate remains authoritative for local completion;
+live and external checks must retain explicit non-success states when consent,
+prerequisites, access, or evidence are missing.
+
 ## Mandatory Completion Loop
 
 ```text

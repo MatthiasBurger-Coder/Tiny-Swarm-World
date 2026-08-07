@@ -5,6 +5,12 @@ Workflow ID: `issue-218-20260720`
 Branch: `docs/issue-218-live-acceptance-20260720`
 Status: `COMPLETED`
 
+Verification-state policy: `documentation/process/verification-state-policy.md`
+
+This completed workflow records live and external checks using the canonical
+state policy. Its historical live acceptance evidence does not change the
+default rule that future workflows require explicit applicability and consent.
+
 ## Current execution checkpoint — 2026-08-04
 
 Slices 04–15 completed their implementation, test, live WSL2, network, cleanup,
