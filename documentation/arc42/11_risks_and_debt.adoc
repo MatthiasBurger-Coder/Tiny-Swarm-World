@@ -38,6 +38,11 @@ Remaining debt:
   artifact workflows have tested Nexus repository and setup image-publication
   contracts, but default CLI composition still needs live registry checks and
   observed-state verification hardening;
+* Issue #232 tracks the remaining artifact/image preflight gap: profile-aware
+  inventory, Compose-to-contract alignment, immutable image references,
+  build-context validation, and consent-gated registry/image readiness are
+  planned work and must not be described as implemented until its workflow
+  evidence is complete;
 * `artifacts prepare` and `deployment apply` are live-consent gated before
   service construction, but the approved live behavior behind those gates is
   still technical debt.

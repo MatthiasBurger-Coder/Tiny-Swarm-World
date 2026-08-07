@@ -1,14 +1,76 @@
 {
-  "workflow_id": "issue-218-20260720",
-  "version": "issue-218-v1.1.0",
-  "branch": "docs/issue-218-live-acceptance-20260720",
-  "process_strand": "workflow execute",
+  "workflow_id": "issue-232-20260808",
+  "workflow_version": "issue-232-v1.0.0",
+  "branch": "feature/workflow-issue-232-artifact-preflight-20260808",
+  "process_strand": "workflow-create-to-workflow-execute",
   "execution_profile": "FULL_PATH",
-  "affected_areas": ["src/tiny_swarm_world/domain/preflight/**", "src/tiny_swarm_world/application/**", "src/tiny_swarm_world/infrastructure/**", "tests/**", "documentation/**"],
-  "forbidden_areas": ["live infrastructure without consent", "secrets", "unrelated governance changes"],
-  "read_only_architecture_boundary": "src/tiny_swarm_world/infrastructure/composition.py",
-  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester"],
-  "quality_commands": ["git diff --check", "python3 tools/quality_gate.py quality"],
-  "evidence_path": ".tiny-swarm/evidence/issue-218/",
-  "arc42_status": "checked_no_update_required"
+  "status": "READY_FOR_EXECUTION",
+  "requirement_matrix": ".tiny-swarm/evidence/issue-232/requirement_matrix.md",
+  "affected_areas": [
+    "domain/artifacts",
+    "application/services/artifacts",
+    "application/ports/file_management/port_local_file_storage.py",
+    "application/ports",
+    "infrastructure/adapters/repositories",
+    "infrastructure/adapters/preflight",
+    "infrastructure/adapters/clients",
+    "infrastructure/composition.py",
+    "artifact and setup phase sequencing",
+    "Compose and service-profile configuration",
+    "tests",
+    "documentation and arc42"
+  ],
+  "forbidden_areas": [
+    "Java/Maven/Spring Boot",
+    "browser React frontend",
+    "new microservice",
+    "Issue #218 host/WSL2 boundary changes",
+    "unapproved live infrastructure mutation",
+    "credentials, tokens, raw command output and unredacted evidence"
+  ],
+  "required_roles": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Python Automation Developer",
+    "Senior Tester",
+    "Senior DevOps Engineer",
+    "Senior Documentation Engineer",
+    "Issue Completion Auditor"
+  ],
+  "conditional_roles": {
+    "Console/status UI reviewer": "NOT_APPLICABLE",
+    "Browser React reviewer": "FORBIDDEN_UNLESS_SEPARATE_FRONTEND_WORKFLOW"
+  },
+  "quality_commands": [
+    "python3 tools/quality_gate.py lint",
+    "python3 tools/quality_gate.py arch-lint",
+    "python3 tools/quality_gate.py arch-tests",
+    "python3 tools/quality_gate.py typecheck",
+    "python3 tools/quality_gate.py test",
+    "python3 tools/quality_gate.py quality",
+    "git diff --check"
+  ],
+  "verification_classification": {
+    "static_contracts": "APPLICABLE_LOCAL",
+    "compose_alignment": "APPLICABLE_LOCAL",
+    "docker_registry_nexus_readiness": "APPLICABLE_LIVE",
+    "live_artifact_acceptance": "APPLICABLE_LIVE",
+    "browser_selenium": "NOT_APPLICABLE",
+    "external_quality": "EXTERNAL_GATE_NOT_APPLICABLE_FOR_LOCAL_WORKFLOW_AUTHORING"
+  },
+  "governing_file_hashes": {
+    "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
+    "QUALITY.md": "7f8dd247fd989fbb72588a48b00846edcb2a9aa748bb1954dc22b75952efaa4c",
+    "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
+    "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
+    "documentation/process/workflow-create.md": "5df5fb70ddc25ef2d8ad2129590e780bfee610521860fb0991e57c38dab3542f",
+    "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
+    ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
+    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
+    ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
+    ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
+    "documentation/arc42/11_risks_and_debt.adoc": "5418d66d2f9e11b5d05c35af4ff3677832cd5321cffce794a87e869113747362",
+    "documentation/workflow/workflow.md": "0a44212a87a7360a6fadf7887ffb64e40826923d6d76a7c46a316d9b51ad28d9",
+    ".tiny-swarm/evidence/issue-232/requirement_matrix.md": "83ab9d5141c2d6538571a1919b3be5005c47904a548e6c64084c3524b78556bc"
+  }
 }
