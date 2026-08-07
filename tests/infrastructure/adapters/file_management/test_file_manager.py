@@ -12,6 +12,18 @@ from tiny_swarm_world.infrastructure.adapters.file_management.local_file_storage
 
 
 class TestFileManager(unittest.TestCase):
+    def test_local_storage_directory_exists_distinguishes_directories_from_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            file_path = root / "compose.yml"
+            file_path.write_text("services: {}\n", encoding="utf-8")
+
+            storage = LocalFileStorage()
+
+            self.assertTrue(storage.directory_exists(root))
+            self.assertFalse(storage.directory_exists(file_path))
+            self.assertFalse(storage.directory_exists(root / "missing"))
+
     def test_save_logs_path_without_file_contents(self):
         manager = object.__new__(FileManager)
         manager.logger = MagicMock()

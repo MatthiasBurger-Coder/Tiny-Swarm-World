@@ -13,6 +13,7 @@ from tiny_swarm_world.domain.inventory.observed_inventory import (
 )
 from tiny_swarm_world.domain.inventory.verification import (
     VerificationResult,
+    VerificationEvidenceScope,
     VerificationStatus,
 )
 
@@ -25,6 +26,7 @@ __all__ = [
     "StackObservedState",
     "SwarmObservedState",
     "VerificationResult",
+    "VerificationEvidenceScope",
     "VerificationStatus",
     "VmDesiredState",
     "VmObservedState",

@@ -9,6 +9,7 @@ from tiny_swarm_world.domain.inventory import (
     ObservedInventory,
     StackObservedState,
     SwarmObservedState,
+    VerificationEvidenceScope,
     VerificationResult,
     VerificationStatus,
     VmDesiredState,
@@ -47,9 +48,19 @@ class TestVerificationResult(unittest.TestCase):
                 "status": "verified",
                 "message": "VM exists.",
                 "evidence": {"summary": "checked"},
+                "evidence_scope": "unspecified",
             },
             result.to_dict(),
         )
+
+    def test_result_can_identify_live_evidence_scope(self):
+        result = VerificationResult(
+            target_id="docker:manager",
+            status=VerificationStatus.VERIFIED,
+            evidence_scope=VerificationEvidenceScope.LIVE,
+        )
+
+        self.assertEqual("live", result.to_dict()["evidence_scope"])
 
     def test_result_rejects_raw_command_evidence_keys(self):
         with self.assertRaises(ValueError):
