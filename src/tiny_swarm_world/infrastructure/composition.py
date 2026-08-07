@@ -207,6 +207,7 @@ from tiny_swarm_world.infrastructure.adapters.network import (
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
     ComposeFileRepositoryYaml,
+    resolve_container_image_contracts,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderConfig,
@@ -302,6 +303,8 @@ SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE
 SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_NGINX_IMAGE"
 PULSAR_IMAGE_ENVIRONMENT = "TSW_PULSAR_IMAGE"
 PULSAR_MANAGER_IMAGE_ENVIRONMENT = "TSW_PULSAR_MANAGER_IMAGE"
+PULSAR_MANAGER_BOOTSTRAP_IMAGE_ENVIRONMENT = "TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE"
+TRAEFIK_IMAGE_ENVIRONMENT = "TSW_TRAEFIK_IMAGE"
 DEFAULT_PULSAR_IMAGE = "apachepulsar/pulsar:3.0.17"
 DEFAULT_PULSAR_MANAGER_IMAGE = "apachepulsar/pulsar-manager:v0.4.0"
 TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT = "TSW_TRAEFIK_TLS_CERT_SECRET_NAME"
@@ -2265,6 +2268,10 @@ def _deployment_stack_environment(
     registry_endpoint = _swarm_registry_endpoint()
     environment = {
         "traefik": {
+            TRAEFIK_IMAGE_ENVIRONMENT: _operator_config_value(
+                TRAEFIK_IMAGE_ENVIRONMENT,
+                "traefik:v3.7.4",
+            ),
             TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT: _operator_config_value(
                 TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT,
                 DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
@@ -2295,6 +2302,10 @@ def _deployment_stack_environment(
             PULSAR_MANAGER_IMAGE_ENVIRONMENT: _operator_config_value(
                 PULSAR_MANAGER_IMAGE_ENVIRONMENT,
                 DEFAULT_PULSAR_MANAGER_IMAGE,
+            ),
+            PULSAR_MANAGER_BOOTSTRAP_IMAGE_ENVIRONMENT: _operator_config_value(
+                PULSAR_MANAGER_BOOTSTRAP_IMAGE_ENVIRONMENT,
+                "python:3.12.13-alpine3.23",
             ),
             "TSW_PULSAR_TOKEN_SECRET_KEY": _operator_secret_value("TSW_PULSAR_TOKEN_SECRET_KEY"),
             "TSW_PULSAR_ADMIN_TOKEN": _operator_secret_value("TSW_PULSAR_ADMIN_TOKEN"),
@@ -2362,28 +2373,13 @@ def _deployment_stack_environment(
 
 
 def _container_image_contracts_from_environment() -> tuple[ContainerImageContract, ...]:
-    overrides = {
-        "infisical": INFISICAL_IMAGE_ENVIRONMENT,
-        "infisical-postgres": INFISICAL_POSTGRES_IMAGE_ENVIRONMENT,
-        "infisical-redis": INFISICAL_REDIS_IMAGE_ENVIRONMENT,
-        "pulsar": PULSAR_IMAGE_ENVIRONMENT,
-        "pulsar-manager": PULSAR_MANAGER_IMAGE_ENVIRONMENT,
-    }
-    contracts = []
-    for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS:
-        env_name = overrides.get(contract.build_context)
-        image_ref = ""
-        if env_name:
-            image_ref = _operator_config_value(env_name, "").strip()
-        if image_ref:
-            image_name, tag = _split_image_ref(image_ref)
-            contracts.append(replace(contract, image_name=image_name, tag=tag))
-            continue
-        contracts.append(contract)
-    return tuple(contracts)
+    return resolve_container_image_contracts(DEFAULT_CONTAINER_IMAGE_CONTRACTS, os.environ)
 
 
 def _split_image_ref(image_ref: str) -> tuple[str, str]:
+    if "@" in image_ref:
+        image_name, digest = image_ref.rsplit("@", 1)
+        return image_name, f"@{digest}"
     if ":" not in image_ref.rsplit("/", 1)[-1]:
         return image_ref, "latest"
     image_name, tag = image_ref.rsplit(":", 1)

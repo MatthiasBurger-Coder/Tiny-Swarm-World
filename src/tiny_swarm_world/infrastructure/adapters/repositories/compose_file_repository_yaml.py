@@ -1,5 +1,6 @@
-import re
 import hashlib
+import os
+import re
 from collections.abc import Mapping
 from html import escape
 from io import StringIO
@@ -10,6 +11,12 @@ from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import LiteralScalarString
 
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import PortComposeFileRepository
+from tiny_swarm_world.domain.artifacts import (
+    ArtifactImageInventory,
+    ArtifactImageRequirement,
+    ContainerImageContract,
+    DEFAULT_CONTAINER_IMAGE_CONTRACTS,
+)
 from tiny_swarm_world.application.ports.repositories.port_effective_access_model_repository import (
     PortEffectiveAccessModelRepository,
 )
@@ -18,6 +25,7 @@ from tiny_swarm_world.domain.deployment.stack_definition import (
     StackDefinition,
 )
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
+from tiny_swarm_world.domain.deployment import service_stack_contracts_for_profile
 from tiny_swarm_world.domain.ingress import (
     DesiredHttpsIngress,
     DesiredHttpsRoute,
@@ -34,6 +42,22 @@ from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_re
 STACK_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
 TRAEFIK_INGRESS_NETWORK_NAME = "service_access_link"
 _YAML = YAML(typ="safe")
+IMAGE_OVERRIDE_ENVIRONMENT_BY_CONTEXT = {
+    "nexus": "TSW_NEXUS_IMAGE",
+    "jenkins": "TSW_JENKINS_IMAGE",
+    "service-access-dashboard": "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE",
+    "service-access-nginx": "TSW_SERVICE_ACCESS_NGINX_IMAGE",
+    "pulsar": "TSW_PULSAR_IMAGE",
+    "pulsar-manager": "TSW_PULSAR_MANAGER_IMAGE",
+    "pulsar-manager-bootstrap": "TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE",
+    "infisical": "TSW_INFISICAL_IMAGE",
+    "infisical-postgres": "TSW_INFISICAL_POSTGRES_IMAGE",
+    "infisical-redis": "TSW_INFISICAL_REDIS_IMAGE",
+    "traefik": "TSW_TRAEFIK_IMAGE",
+}
+_COMPOSE_IMAGE_VARIABLE_PATTERN = re.compile(
+    r"^\$\{(?P<name>[A-Z][A-Z0-9_]*)(?::-?(?P<default>[^}]*))?\}$"
+)
 
 
 class ComposeFileRepositoryYaml(
@@ -46,6 +70,8 @@ class ComposeFileRepositoryYaml(
         port_registry: PortRegistry | None = None,
         project_paths: ProjectPaths | None = None,
         service_profile: ServiceStackProfile | str = ServiceStackProfile.SERVICE_ACCESS,
+        image_contracts: tuple[ContainerImageContract, ...] | None = None,
+        environment: Mapping[str, str] | None = None,
     ):
         paths = project_paths or default_project_paths()
         self.project_paths = paths
@@ -56,6 +82,11 @@ class ComposeFileRepositoryYaml(
             project_paths=paths
         ).load()
         self.service_profile = ServiceStackProfile(service_profile)
+        self.environment = dict(os.environ if environment is None else environment)
+        self.image_contracts = resolve_container_image_contracts(
+            image_contracts or DEFAULT_CONTAINER_IMAGE_CONTRACTS,
+            self.environment,
+        )
         self.enabled_service_names = _enabled_service_names(paths.config_root / "services.yml")
         self.logger = LoggerFactory.get_logger(self.__class__)
 
@@ -102,10 +133,39 @@ class ComposeFileRepositoryYaml(
         return tuple(
             ComposeServiceDefinition(
                 name=service_name,
+                image_ref=_effective_compose_image_ref(
+                    service_payload.get("image", ""),
+                    self.environment,
+                ),
                 published_ports=_published_ports_from_service(service_payload),
             )
             for service_name, service_payload in services.items()
             if isinstance(service_name, str) and isinstance(service_payload, Mapping)
+        )
+
+    def get_image_inventory(self) -> ArtifactImageInventory:
+        requirements: list[ArtifactImageRequirement] = []
+        contracts_by_ref = {contract.image_ref: contract for contract in self.image_contracts}
+        for stack_contract in service_stack_contracts_for_profile(self.service_profile):
+            for service in self.get_services_of(stack_contract.stack_name):
+                contract = contracts_by_ref.get(service.image_ref)
+                requirements.append(
+                    ArtifactImageRequirement(
+                        service_name=f"{stack_contract.stack_name}:{service.name}",
+                        image_ref=service.image_ref,
+                        build_context=contract.build_context if contract else None,
+                        source=contract.source if contract else None,
+                    )
+                )
+        selected_refs = {requirement.image_ref for requirement in requirements}
+        return ArtifactImageInventory(
+            profile=self.service_profile.value,
+            requirements=tuple(requirements),
+            contracts=tuple(
+                contract
+                for contract in self.image_contracts
+                if contract.image_ref in selected_refs
+            ),
         )
 
     def _compose_paths_for(self, base_directory: Path, stack_name: str) -> list[Path]:
@@ -144,6 +204,54 @@ class ComposeFileRepositoryYaml(
             if str(exc) == "desired HTTPS ingress requires at least one route":
                 return ()
             raise
+
+
+def resolve_container_image_contracts(
+    contracts: tuple[ContainerImageContract, ...],
+    environment: Mapping[str, str],
+) -> tuple[ContainerImageContract, ...]:
+    """Apply the supported image overrides used by both Compose and artifacts."""
+
+    resolved: list[ContainerImageContract] = []
+    for contract in contracts:
+        environment_name = IMAGE_OVERRIDE_ENVIRONMENT_BY_CONTEXT.get(contract.build_context)
+        image_ref = environment.get(environment_name, "").strip() if environment_name else ""
+        if not image_ref:
+            resolved.append(contract)
+            continue
+        image_name, tag = _split_image_ref(image_ref)
+        resolved.append(
+            ContainerImageContract(
+                image_name=image_name,
+                tag=tag,
+                build_context=contract.build_context,
+                source=contract.source,
+            )
+        )
+    return tuple(resolved)
+
+
+def _effective_compose_image_ref(value: object, environment: Mapping[str, str]) -> str:
+    if not isinstance(value, str):
+        return ""
+    match = _COMPOSE_IMAGE_VARIABLE_PATTERN.fullmatch(value.strip())
+    if match is None:
+        return value.strip()
+    name = match.group("name")
+    configured = environment.get(name, "").strip()
+    if configured:
+        return configured
+    return (match.group("default") or "").strip()
+
+
+def _split_image_ref(image_ref: str) -> tuple[str, str]:
+    if "@" in image_ref:
+        image_name, digest = image_ref.rsplit("@", 1)
+        return image_name, f"@{digest}"
+    if ":" not in image_ref.rsplit("/", 1)[-1]:
+        return image_ref, "latest"
+    image_name, tag = image_ref.rsplit(":", 1)
+    return image_name, tag
 
 
 def _published_ports_from_service(service_payload: Mapping[object, object]) -> tuple[int, ...]:

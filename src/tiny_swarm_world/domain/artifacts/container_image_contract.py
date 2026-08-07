@@ -320,4 +320,28 @@ DEFAULT_CONTAINER_IMAGE_CONTRACTS = (
         build_context="swagger-nginx",
         source="pull",
     ),
+    ContainerImageContract(
+        image_name="portainer/portainer-ce",
+        tag="2.39.2",
+        build_context="portainer",
+        source="pull",
+    ),
+    ContainerImageContract(
+        image_name="portainer/agent",
+        tag="2.39.2",
+        build_context="portainer-agent",
+        source="pull",
+    ),
+    ContainerImageContract(
+        image_name="sonatype/nexus3",
+        tag="3.75.1",
+        build_context="nexus",
+        source="pull",
+    ),
+    ContainerImageContract(
+        image_name="danielgtaylor/apisprout",
+        tag="@sha256:6c07143937e57095d8478efc8ab7eab52b44e67c7673285f8c0a2bf4a7b137ad",
+        build_context="swagger-api",
+        source="pull",
+    ),
 )

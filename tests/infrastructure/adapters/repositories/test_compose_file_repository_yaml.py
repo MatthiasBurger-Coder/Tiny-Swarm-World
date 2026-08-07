@@ -134,6 +134,50 @@ services:
                 ("admin", (9090,)),
             ],
         )
+        self.assertEqual(
+            [service.image_ref for service in services],
+            ["nginx", "busybox", "nginx"],
+        )
+
+    def test_resolves_image_override_for_service_inventory_and_contracts(self):
+        repository = ComposeFileRepositoryYaml(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS,
+            environment={"TSW_NEXUS_IMAGE": "registry.local/nexus:3.76.0"},
+        )
+
+        services = repository.get_services_of("nexus")
+        inventory = repository.get_image_inventory()
+        nexus_requirement = next(
+            requirement
+            for requirement in inventory.requirements
+            if requirement.service_name == "nexus:nexus"
+        )
+
+        self.assertEqual("registry.local/nexus:3.76.0", services[0].image_ref)
+        self.assertEqual(nexus_requirement.image_ref, services[0].image_ref)
+        self.assertEqual("nexus", nexus_requirement.build_context)
+        self.assertTrue(inventory.valid)
+
+    def test_profile_inventory_selects_only_the_profile_contracts(self):
+        default_inventory = ComposeFileRepositoryYaml(
+            service_profile=ServiceStackProfile.DEFAULT,
+        ).get_image_inventory()
+        service_access_inventory = ComposeFileRepositoryYaml(
+            service_profile=ServiceStackProfile.SERVICE_ACCESS,
+        ).get_image_inventory()
+
+        self.assertTrue(default_inventory.valid)
+        self.assertFalse(
+            any(
+                requirement.service_name.startswith(("infisical:", "service-access:"))
+                for requirement in default_inventory.requirements
+            )
+        )
+        self.assertTrue(service_access_inventory.valid)
+        self.assertGreater(
+            len(service_access_inventory.requirements),
+            len(default_inventory.requirements),
+        )
 
     def test_recursively_loads_compose_content_from_matching_stack_directory(self):
         with tempfile.TemporaryDirectory() as temp_dir:
