@@ -241,8 +241,9 @@ command output, HTTP bodies or host-specific secrets.
 * Domain validation and profile-aware artifact inventory concepts.
 * Application ports and typed results for local contract inspection and live
   readiness.
-* `PortLocalFileStorage` changes only when a verified use case needs a missing
-  capability; filesystem behavior remains in its infrastructure adapter.
+* `PortLocalFileStorage` changes only when a concrete use case demonstrates
+  that an existing capability is insufficient; filesystem behavior remains in
+  its infrastructure adapter.
 * Compose/service-profile extraction and common effective-image resolution.
 * Static preflight and phase-local live readiness orchestration.
 * Composition, setup/deployment fail-closed sequencing, deterministic tests,
@@ -355,8 +356,8 @@ Done criteria:
 * focused unit tests cover valid, missing, stale, duplicate, mismatched,
   conflicting and unsafe references.
 
-Evidence: `.codex/evidence/slice-01-distribution.md`,
-`.codex/evidence/slice-01-consolidation.md`, and issue evidence references for
+Evidence: `.codex/evidence/issue-232/slice-01-distribution.md`,
+`.codex/evidence/issue-232/slice-01-consolidation.md`, and issue evidence references for
 REQ-001 through REQ-005, REQ-013, REQ-017 and REQ-018.
 
 ### Slice 02 — Application ports and local file-storage boundary
@@ -730,8 +731,10 @@ where supported and perform an explicit role-based fallback review when they
 are unavailable or not visible. Codex remains the final integration owner.
 
 Before write-capable work, each slice requires
-`.codex/evidence/slice-<number>-distribution.md`; after implementation it
-requires `.codex/evidence/slice-<number>-consolidation.md`. These files must
+`.codex/evidence/issue-232/slice-<number>-distribution.md`; after implementation it
+requires `.codex/evidence/issue-232/slice-<number>-consolidation.md`. The
+issue-specific directory prevents overwriting historical evidence from
+completed workflows. These files must
 state the selected streams, locks, owner, reviewed changes, tests and
 consolidation decision.
 
