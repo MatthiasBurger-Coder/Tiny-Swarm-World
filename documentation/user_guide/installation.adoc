@@ -168,6 +168,14 @@ requires the normal explicit live-consent contract. A local test or configured
 endpoint is not live evidence; only redacted evidence from an authorized run
 may be reported as `LIVE_VERIFIED`.
 
+During `setup run`, the executable order is: host preparation and verification,
+managed-node `platform init` and `platform reconcile`, `cluster docker`,
+`cluster swarm bootstrap`, `cluster verify`, routing exposure, and then the
+artifact and deployment phases. `platform init` does not install Docker or
+initialize Swarm; the cluster phases own those operations. If a cluster phase
+is blocked or fails, later routing, artifact, and deployment phases are marked
+`not_run`.
+
 == LXC Native Provider Baseline
 
 The default provider is `lxc_native`. Prepare Incus before a live setup run.
@@ -457,6 +465,15 @@ access model to
 This redacted file contains configured routing evidence and only credential
 labels plus Infisical item references. Its `result: generated` value does not
 prove that a route is deployed or reachable.
+
+The cluster boundary is verified before routing or deployment continues. The
+Docker phase checks every configured managed node. The Swarm bootstrap phase
+initializes the manager before any worker join and refuses a missing or
+unavailable worker credential. The cluster verification phase reads structured
+membership from the managed manager and requires all expected nodes to be
+observed as Docker `Ready` and `Active`, with the manager in `Leader` state.
+These checks are live-operation behavior; this guide does not claim that they
+have passed on a live host without matching redacted `LIVE_*` evidence.
 
 === 8. Verify The Runtime
 
@@ -798,8 +815,9 @@ The canonical classification for these live-operation surfaces is
 `documentation/system/live-operation-surfaces.adoc`.
 
 Mutating workflow-level commands such as `platform init`, `platform reconcile`,
-`platform expose`, `platform repair-lxc-proxy-drift`, `artifacts prepare`,
-`deployment apply`, and `setup run` require:
+`cluster docker`, `cluster swarm bootstrap`, `platform expose`, `platform
+repair-lxc-proxy-drift`, `artifacts prepare`, `deployment apply`, and `setup
+run` require:
 
 * `--live`;
 * answering `y` at the short live-infrastructure confirmation prompt.
