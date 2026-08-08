@@ -3,6 +3,9 @@
 Issue: [#232 Implement complete artifact and container-image installation preflight](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/232)
 Workflow: `issue-232-20260808`
 Status at workflow creation: `READY_FOR_WORKFLOW`
+Current local status: `DONE` for implementation, verification and evidence;
+live acceptance state remains `LIVE_CONSENT_MISSING` and is not reported as
+live success.
 
 This matrix is the implementation gate. It records issue requirements,
 implementation evidence and named verification evidence. `VERIFIED_LOCAL`
@@ -22,7 +25,7 @@ installation success. `OPEN` or `IN_PROGRESS` rows block `DONE`.
 | REQ-009 | Return typed machine-readable results with safe evidence and remediation; never expose credentials, tokens, command output or secret values. | security / observability | result models, adapters, evidence | Typed readiness/preflight results, live state enum and safe evidence | Redaction/schema tests; evidence package | VERIFIED_LOCAL |
 | REQ-010 | Stop setup before `artifacts prepare`, `artifacts verify` or dependent deployment when a mandatory prerequisite fails. | functional / safety | artifact/setup/deployment orchestration | Fail-closed `ArtifactReadinessGate` and setup phase stop contract | Artifact gate and setup downstream-stop tests | VERIFIED_LOCAL |
 | REQ-011 | Keep domain code free of filesystem, Docker, HTTP, YAML and command-runner concerns; use ports and infrastructure adapters for live checks. | architecture | domain, application ports, adapters, composition | Port-based application orchestration and infrastructure-only probes | Import-linter, architecture tests and role review | VERIFIED_LOCAL |
-| REQ-012 | Update artifact, installation, configuration and troubleshooting documentation. | documentation | `documentation/**`, arc42 | Scheduled for Slice 09 documentation synchronization | Pending documentation diff and review | OPEN |
+| REQ-012 | Update artifact, installation, configuration and troubleshooting documentation. | documentation | `documentation/**`, arc42 | Installation, troubleshooting, system live-operation, configuration and Arc42 sections synchronized with verified behavior | `git diff --check`; documentation review in `slice-09-consolidation.md` | VERIFIED_LOCAL |
 | REQ-013 | Static preflight reports missing, stale, duplicate or mismatched image contracts before live artifact mutation. | acceptance | static preflight | Typed issue codes, remediation and mandatory static check | Static preflight failure-mode tests | VERIFIED_LOCAL |
 | REQ-014 | Selected service profile determines required image inventory. | acceptance | service-profile/Compose mapping | Profile-filtered inventory generation | Default and non-default profile tests | VERIFIED_LOCAL |
 | REQ-015 | Compose image references and artifact contracts cannot silently diverge. | acceptance | Compose repository, contract alignment | Effective Compose image resolution uses shared contract inventory | Compose alignment tests | VERIFIED_LOCAL |
@@ -34,16 +37,18 @@ installation success. `OPEN` or `IN_PROGRESS` rows block `DONE`.
 | REQ-021 | Static checks remain non-mutating; live checks are consent-gated and use bounded timeouts. | acceptance / resilience | preflight/readiness adapters | Static port path and bounded readiness requests; setup outer consent guard; Slice 08 records missing consent without running probes | Static no-mutation, timeout and consent tests; `live_acceptance.md` | VERIFIED_LOCAL |
 | REQ-022 | Native Linux and WSL2 host-preflight behavior from Issue #218 remains unchanged. | regression / architecture | host-preflight paths and tests | No host adapter changes in Slice 06/07; prior regression suite retained | Full quality gate and host-preflight tests | VERIFIED_LOCAL |
 | REQ-023 | Unit, application, adapter, integration/simulation, architecture, type and full quality-gate checks pass. | quality-gate | `tests/**`, `QUALITY.md` commands | Full verification-policy, lint, architecture, typecheck and test gate passed after Slice 08 evidence changes | `test_results.md`; `python3 tools/quality_gate.py quality`: 1,623 tests, 28 skipped | VERIFIED_LOCAL |
-| REQ-024 | Documentation and issue-level evidence are complete. | completion / evidence | `.tiny-swarm/evidence/issue-232/**`, docs | Six-file issue evidence package is being assembled | Evidence-file audit pending Slice 09/final audit | IN_PROGRESS |
+| REQ-024 | Documentation and issue-level evidence are complete. | completion / evidence | `.tiny-swarm/evidence/issue-232/**`, docs | Six-file issue evidence package plus consent-gated live acceptance and completion audit are recorded | Evidence-file inventory; `completion_audit.md`; final quality gate | VERIFIED_LOCAL |
 
 ## Review Gate
 
-- Requirement Lead: Senior Requirement Engineer — required before execution
-  starts and before final audit.
-- System Architect Reviewer: Senior System Architect — required before
-  execution starts and before final audit.
-- Test / Evidence Reviewer: Senior Tester — required before final audit.
-- Issue Completion Auditor: independent final decision after implementation.
+- Requirement Lead: Senior Requirement Engineer — execution and final matrix
+  review recorded in `slice-09-consolidation.md`.
+- System Architect Reviewer: Senior System Architect — architecture and Arc42
+  review recorded in `slice-09-consolidation.md`.
+- Test / Evidence Reviewer: Senior Tester — quality and evidence review
+  recorded in `slice-09-consolidation.md`.
+- Issue Completion Auditor: independent final decision recorded in
+  `completion_audit.md`.
 
 No requirement may move from `PLANNED` to `VERIFIED` without implementation
 evidence and a named test, check or redacted evidence artifact. Any unresolved

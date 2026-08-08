@@ -8,10 +8,12 @@ the following product, test, documentation and evidence surfaces.
 - `documentation/workflow/workflow.md`
 - `documentation/workflow/context-pack.json`
 - `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/process/skills/audit/skill-registry.json` (governing hash
+  refreshed for the Arc42 update)
 - `.codex/evidence/issue-232/slice-01-distribution.md` through
-  `slice-08-distribution.md`
+  `slice-09-distribution.md`
 - `.codex/evidence/issue-232/slice-01-consolidation.md` through
-  `slice-08-consolidation.md`
+  `slice-09-consolidation.md`
 
 ## Application and domain
 
@@ -51,6 +53,20 @@ the following product, test, documentation and evidence surfaces.
 - `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
 - `tests/infrastructure/test_composition.py`
 
+## Documentation
+
+- `documentation/user_guide/installation.adoc`
+- `documentation/user_guide/troubleshooting.adoc`
+- `documentation/system/live-operation-surfaces.adoc`
+- `documentation/arc42/03_solution_strategy.adoc`
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/08_concepts.adoc`
+- `documentation/arc42/08_configuration/config-contract-inventory.md`
+- `documentation/arc42/08_configuration/operator-configuration-contract.md`
+- `documentation/arc42/10_quality_requirements.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+
 ## Issue evidence
 
 - `.tiny-swarm/evidence/issue-232/requirement_matrix.md`
@@ -60,3 +76,4 @@ the following product, test, documentation and evidence surfaces.
 - `.tiny-swarm/evidence/issue-232/remaining_risks.md`
 - `.tiny-swarm/evidence/issue-232/acceptance_checklist.md`
 - `.tiny-swarm/evidence/issue-232/live_acceptance.md`
+- `.tiny-swarm/evidence/issue-232/completion_audit.md`

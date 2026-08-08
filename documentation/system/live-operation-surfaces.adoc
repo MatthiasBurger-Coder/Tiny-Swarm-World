@@ -36,6 +36,24 @@ executing live infrastructure commands.
 | `./install.sh` | Supported | Local live fresh-install wrapper. It prompts for the exact destructive reset confirmation, or accepts the explicit `--confirm-reset` wrapper flag for deliberate test-system automation. It still runs `platform reset --live --confirm RESET_TINY_SWARM_PLATFORM`, stops if reset is blocked or failed, and only then runs the full guided setup profile. It defaults to `service-access`, passes the selected profile to reset and setup, and includes the image-packaged service-access dashboard `index.html`; LXC stack deployment still prepares the generated remote dashboard file before stack apply. The destructive scope is limited to the managed Tiny Swarm World local system; unrelated provider resources are not a supported cleanup target. Full runnable success still requires successful phase evidence from an explicit live run.
 |===
 
+== Artifact Preflight And Readiness Boundary
+
+The setup workflow performs a non-mutating artifact contract preflight after
+general preflight and before host/platform mutation. It derives the selected
+profile's effective Compose image inventory, checks immutable image contracts,
+duplicate/conflicting targets and repository-local build contexts, and stops
+before image or stack mutation on failure.
+
+After deployment and artifact bootstrap, the setup workflow runs the bounded
+artifact readiness gate before `artifacts prepare`. The gate checks manager
+Docker, registry and Nexus endpoints/repositories, manager storage, build
+inputs and public pull access. It returns typed, redacted evidence and stops
+`artifacts prepare`, `artifacts verify` and dependent deployment when any
+mandatory target is failed, unavailable, timed out, unknown, partial or
+degraded. Readiness is live infrastructure behavior and requires explicit
+operator consent; static checks and local quality gates do not claim live
+readiness.
+
 == Direct Live Scripts And Assets
 
 [options="header"]

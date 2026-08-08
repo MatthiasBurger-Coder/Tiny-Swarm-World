@@ -16,8 +16,16 @@ quality-gate wrapper as required by project governance.
 | Typecheck | PASS | no issues in 538 source files |
 | Full quality gate after Slice 07 state/evidence changes | PASS | 1,623 tests, 28 skipped, `OK` |
 | Slice 08 required quality-gate rerun | PASS | 1,623 tests, 28 skipped, `OK`; completed after extended wrapper timeout |
+| Slice 09 documentation consistency | PASS | `git diff --check`; documentation claims reviewed against source, tests and verification-state policy |
+| Slice 09 final quality-gate rerun | PASS | 1,623 tests, 28 skipped, `OK` |
 
-The current full quality result is the authoritative local result for Slice 07.
+The final Slice 09 full quality result is the authoritative local result for
+the completed implementation and documentation package.
+
+An intermediate Slice 09 quality run detected a stale governing hash for the
+changed Arc42 file. The registry hash was refreshed from the file content, the
+targeted registry-integrity test passed 5/5, and the final full quality run
+then passed.
 
 ## Safety classification
 

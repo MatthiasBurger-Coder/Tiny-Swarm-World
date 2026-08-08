@@ -38,8 +38,15 @@ non-success states as success:
 
 ## Open before final DONE
 
-- [ ] Complete documentation synchronization in Slice 09.
+- [x] Complete documentation synchronization in Slice 09.
 - [x] Record optional live acceptance state in Slice 08; no live success is
       inferred from local tests.
-- [ ] Complete independent `issue-completion-auditor` review and close all
-      open matrix rows.
+- [x] Complete independent `issue-completion-auditor` review and close all
+      matrix rows; the final audit remains explicit about the missing live
+      consent state.
+
+## Final local completion
+
+The issue is locally complete and evidenced. This status does not claim live
+installation, registry, Nexus, Docker, Swarm, browser or external quality
+success; the optional live state remains `LIVE_CONSENT_MISSING`.

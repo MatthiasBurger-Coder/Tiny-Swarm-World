@@ -145,6 +145,25 @@ the reset prelude before it invokes setup.
 
 The current artifact and deployment runtime flow is deliberately fail-closed:
 
+For the setup orchestrator, the artifact-specific sequence is:
+
+. `artifact contract preflight` derives the selected profile's effective
+  Compose image inventory and validates contracts, immutable references,
+  duplicate/conflicting targets, and repository-local build contexts without
+  running live infrastructure commands;
+. `deployment bootstrap` completes its required Portainer/Nexus boundary, then
+  `artifact bootstrap` prepares the required Nexus and registry artifacts;
+. `artifact readiness gate` performs seven bounded, read-only checks for
+  manager Docker, registry and Nexus endpoints/repositories, manager storage,
+  build inputs, and public pulls;
+. `artifacts prepare` runs image build/pull/push steps only when the static
+  result, bootstrap result and every mandatory readiness check pass, followed
+  by `artifacts verify` and dependent deployment phases.
+
+Any mandatory non-success stops the later phases. The direct
+`artifacts prepare` command retains its complete explicit workflow semantics;
+the bootstrap/readiness split is the setup sequencing boundary.
+
 * `artifacts prepare` requires live consent and dispatches to
   `ArtifactPrepareWorkflow`. The workflow can run configured artifact steps
   only when each step provides verify-after-prepare evidence. Missing live
@@ -423,13 +442,13 @@ Autonomous setup now has one canonical workflow-level CLI contract:
   mappings.
 
 Current implementation status remains fail-closed below the orchestrator. The
-CLI command and phase sequencing are implemented, but the repository still
-does not claim a verified end-to-end live installation of all runnable
-services. Missing setup consent, missing command-backed verification, missing
-artifact/registry live steps, missing external Swarm inputs, and missing
-observed service readiness must be reported as `refused`, `blocked`,
-`resource_gated`, `failed_to_apply`, `failed_to_prepare`, or
-`failed_to_verify`, never as success.
+CLI command, static artifact contract preflight, bounded readiness gate and
+phase sequencing are implemented and locally test-backed, but the repository
+still does not claim a verified end-to-end live installation of all runnable
+services. Missing setup consent, missing readiness prerequisites, missing
+external Swarm inputs, and missing observed service readiness must be reported
+as `refused`, `blocked`, `resource_gated`, `failed_to_apply`,
+`failed_to_prepare`, or `failed_to_verify`, never as success.
 
 The active installer entry point
 `python3 -m tiny_swarm_world.installer` implements the fresh-install flow

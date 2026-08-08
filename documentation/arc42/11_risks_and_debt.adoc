@@ -36,13 +36,11 @@ Remaining debt:
   recovery guidance remain open;
 * artifact and deployment workflows are now explicit composition contracts;
   artifact workflows have tested Nexus repository and setup image-publication
-  contracts, but default CLI composition still needs live registry checks and
-  observed-state verification hardening;
-* Issue #232 tracks the remaining artifact/image preflight gap: profile-aware
-  inventory, Compose-to-contract alignment, immutable image references,
-  build-context validation, and consent-gated registry/image readiness are
-  planned work and must not be described as implemented until its workflow
-  evidence is complete;
+  contracts, and Issue #232 now adds profile-aware static contract preflight,
+  bounded readiness gating, safe evidence and fail-closed setup sequencing;
+* Issue #232 live registry, Nexus, Docker and end-to-end installation evidence
+  remains an operator-consent-gated risk. Local quality and mocked readiness
+  tests do not establish `LIVE_VERIFIED` status;
 * `artifacts prepare` and `deployment apply` are live-consent gated before
   service construction, but the approved live behavior behind those gates is
   still technical debt.
@@ -60,9 +58,10 @@ Remaining debt:
 * setup preflight and setup manifest contracts exist, but still need live
   profile hardening for resource, credential, and readiness handoff detail;
 * command-backed verification remains incomplete for live Platform phases;
-* Artifacts readiness still needs image publication and registry observed-state
-  contracts; Deployment readiness has default stack-presence contracts but
-  still needs container and service health observed-state contracts;
+* Artifact readiness contracts now cover image publication prerequisites and
+  registry/Nexus readiness targets; authorized live observation and image
+  publication evidence remain outstanding. Deployment readiness still needs
+  container and service health observed-state contracts;
 * Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, and Swagger/NGINX service
   readiness must not be claimed until verified through tests or explicit live
   smoke evidence;

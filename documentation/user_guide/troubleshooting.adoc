@@ -103,6 +103,40 @@ Check Portainer manually before running stack upload or Nexus bootstrap:
 curl -k -s https://portainer.tsw.local
 ----
 
+== Artifact Contract Preflight Fails
+
+The artifact contract preflight runs before host, platform, image or stack
+mutation during `setup run`. It can fail when the selected service profile has
+an image without a matching contract, a contract has an implicit `latest` or
+mutable reference, image targets or build contexts conflict, or a repository-
+local build context is missing. Resolve the reported contract target or
+context and rerun the non-mutating checks before attempting live setup. A
+static failure means that `docker build`, pull, push and dependent deployment
+were not authorized by the artifact phase.
+
+The default profile is `service-access`; pass `--service-profile default` only
+when the base profile is intentionally selected. Image overrides are resolved
+once for Compose rendering and artifact preparation. Review supported
+`TSW_*_IMAGE` values in the configuration contract before changing an image
+reference, and keep tags or digests immutable.
+
+== Artifact Readiness Gate Blocks Setup
+
+After the required Nexus and registry bootstrap, the setup workflow checks the
+manager Docker daemon, registry endpoint, Nexus endpoint and repositories,
+manager storage, repository build inputs, and public pull access. The checks
+are bounded and read-only. A failed, unavailable, timed-out, unknown, partial
+or degraded target is a mandatory blocker; `artifacts prepare`,
+`artifacts verify`, and dependent deployment phases are skipped.
+
+Readiness results contain target IDs, typed status, safe remediation and a
+verification scope. They do not contain credentials, tokens, HTTP bodies,
+raw command output or secret values. The canonical live policy distinguishes
+`LIVE_CONSENT_MISSING`, `LIVE_PREREQUISITE_MISSING`,
+`LIVE_BLOCKED_BEFORE_MUTATION`, `LIVE_PARTIAL`, `LIVE_DEGRADED`, and
+`LIVE_FAILED_AFTER_MUTATION` from `LIVE_VERIFIED`. Do not treat a local quality
+pass, an endpoint configuration, or a skipped live check as live success.
+
 == Portainer Admin Initialization Returns HTTP 409
 
 `PortainerAdminInitializationRejected HTTP 409` means Portainer rejected the

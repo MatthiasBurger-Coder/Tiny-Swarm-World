@@ -141,6 +141,33 @@ If a virtual environment is active, its interpreter can be used instead:
 
 The quality gate sets `PYTHONPATH=src` automatically.
 
+== Artifact Contract And Readiness Preflight
+
+The selected service profile is the source of the required image inventory.
+The default `service-access` profile includes the management-stack images;
+use `--service-profile default` when the base profile is intentionally
+selected. During `setup run`, the artifact contract preflight runs after the
+general preflight and before host or platform mutation. It is non-mutating and
+checks the effective Compose image references against the typed image
+contracts, immutable tags or digests, duplicate/conflicting targets, and
+repository-local build contexts. Build-context inspection crosses the
+`PortLocalFileStorage` application port; filesystem details remain in the
+infrastructure adapter.
+
+After deployment bootstrap, the setup artifact path runs the required artifact
+bootstrap, then the bounded readiness gate, and only then `artifacts prepare`
+and `artifacts verify`. The readiness gate observes manager Docker, registry
+and Nexus endpoints/repositories, manager storage, build inputs, and the
+public pull prerequisite. Every observation uses a five-second timeout and one
+attempt by default. A failed, unknown, partial, degraded, or unavailable
+mandatory result stops image mutation and dependent deployment phases.
+
+Static contract checks and the default quality gate never call Docker, Incus,
+Swarm, registry or Nexus infrastructure. The readiness phase is live and
+requires the normal explicit live-consent contract. A local test or configured
+endpoint is not live evidence; only redacted evidence from an authorized run
+may be reported as `LIVE_VERIFIED`.
+
 == LXC Native Provider Baseline
 
 The default provider is `lxc_native`. Prepare Incus before a live setup run.

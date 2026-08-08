@@ -108,6 +108,28 @@ Quality scenarios:
 * optional live smoke validation is documented and invoked separately from the
   default quality gate.
 
+=== Artifact Contract And Readiness Preflight
+
+The artifact boundary has these quality scenarios:
+
+* the selected service profile determines the required image inventory and
+  every effective Compose image has exactly one immutable contract;
+* duplicate targets, conflicting image references, missing build contexts and
+  implicit `latest` references fail before image mutation;
+* `PortLocalFileStorage` exposes only the directory capability needed by the
+  static check, while filesystem, HTTP and Docker details remain in adapters;
+* setup runs the static artifact contract check before mutation, then artifact
+  bootstrap, the readiness gate, image preparation and dependent deployment in
+  that order;
+* all seven readiness targets use bounded requests and typed statuses;
+  failed, unknown, unavailable, timed-out, partial and degraded results stop
+  later mandatory phases;
+* readiness evidence is redacted and contains no credentials, tokens, raw
+  command output, HTTP bodies or secret values;
+* default tests and quality gates use mocks or static inspection and do not
+  execute Docker, registry, Nexus, Incus or Swarm commands; optional live
+  acceptance remains explicit-consent gated.
+
 === Registry And Validation Plans
 
 Quality scenarios:

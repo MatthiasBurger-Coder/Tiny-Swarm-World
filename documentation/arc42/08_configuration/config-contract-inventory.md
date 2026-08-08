@@ -117,6 +117,9 @@ logic. Defaults are listed only when visible from committed source.
 | `TSW_SWARM_REGISTRY_ENDPOINT` | implementation default | Optional | registry endpoint | `composition.py` |
 | `TSW_NEXUS_DOCKER_HUB_PROXY_REPOSITORY` | implementation default | Optional | repository name | `composition.py`, docs |
 | `TSW_NEXUS_DOCKER_HUB_PROXY_PORT` | implementation default | Optional | positive integer port | `composition.py`, docs |
+| `TSW_NEXUS_READINESS_BASE_URL` | `http://127.0.0.1:13081` | Optional | credential-free HTTP readiness base URL | artifact readiness composition |
+| `TSW_PUBLIC_PULL_READINESS_URL` | `https://registry-1.docker.io/v2/` | Optional | credential-free HTTP readiness URL | artifact readiness composition |
+| `TSW_MANAGER_STORAGE_PATH` | `/var/lib/docker` | Optional | POSIX directory path for manager storage readiness | artifact readiness composition |
 | `TSW_INFISICAL_URL` | `http://localhost:17080` | Optional | URL | `infisical_cli_client.py`, `composition.py` |
 | `REQUESTS_CA_BUNDLE` | system trust store | Optional | CA bundle path for HTTPS Infisical bootstrap verification | `requests`, `infisical_bootstrap_http_client.py` |
 | `TSW_INFISICAL_INTERNAL_URL` | implementation default | Optional | URL | `composition.py` |

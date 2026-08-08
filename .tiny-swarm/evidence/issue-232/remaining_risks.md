@@ -9,8 +9,8 @@
 - The default manager-storage readiness path is environment-configurable and
   must be confirmed against the selected Linux/WSL runtime during authorized
   live acceptance.
-- Documentation synchronization and final requirement/evidence audit remain
-  open until Slice 09.
+- Documentation synchronization and the final requirement/evidence audit are
+  complete locally; the audit decision is recorded in `completion_audit.md`.
 - External SonarQube or other remote quality status was not observed. The local
   quality gate remains the authoritative local result.
 - Historical `.codex/evidence/slice-01-distribution.md` remains untouched;
