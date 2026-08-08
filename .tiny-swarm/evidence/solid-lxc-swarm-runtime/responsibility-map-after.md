@@ -1,6 +1,6 @@
 # Issue #183 Responsibility Map — After Local Implementation
 
-Observed after workflow slices 02–06: 2026-08-08.
+Observed after workflow slices 02–07 and facade cleanup: 2026-08-09.
 
 | Extracted area | Current responsibility | Compatibility surface | Verification |
 | --- | --- | --- | --- |
@@ -21,10 +21,8 @@ Observed after workflow slices 02–06: 2026-08-08.
 
 ## Residual acceptance gaps
 
-* The legacy module still contains non-public historical `_Legacy*`
-  implementations retained during compatibility migration; the public
-  construction path uses extracted modules, but REQ-017 remains open until
-  those unreachable definitions are removed safely.
-* Live Selenium evidence is `LIVE_CONSENT_MISSING` and has no generated
-  payload.
-* SonarQube status and before/after smell comparison are unavailable.
+* The approved live Selenium suite passed all nine routed browser flows. The
+  direct urllib route probe still records TLS/routing `URLError` results and
+  should be diagnosed separately.
+* SonarCloud is observable but currently reports `ERROR`; the workflow commit
+  has no branch analysis or before/after smell comparison.

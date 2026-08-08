@@ -2,7 +2,7 @@
 
 Issue: [#183 SOLID: Split lxc_swarm_runtime.py into cohesive LXC client modules](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/183)
 Workflow: `issue-183-20260808`
-Final local audit state: `BLOCKED_EXTERNAL_AND_LIVE`
+Final audit state: `BLOCKED_EXTERNAL`
 
 ## Implemented locally
 
@@ -20,6 +20,11 @@ those packages. The legacy module retains the Swarm-port implementation and
 approved compatibility facades/aliases so existing imports and patch targets
 remain stable. No application port was changed.
 
+The SonarCloud HTTP-protocol findings present on the current baseline were
+also remediated locally through structured scheme parsing and composition of
+the intentional loopback HTTP default. A fresh SonarCloud branch analysis is
+still required to observe the resulting external gate.
+
 ## Local evidence
 
 * Slice 02: command gateway and diagnostics verified.
@@ -32,7 +37,9 @@ remain stable. No application port was changed.
 
 ## Not locally verified
 
-The issue-specific live Selenium run was not authorized and no live
-LXC-backed evidence was generated. No observable SonarQube result was
-available. The legacy module also retains non-public historical definitions
-pending a safe cleanup pass, so the thin-facade acceptance item remains open.
+The approved issue-specific live Selenium suite passed 31 tests with all nine
+routed browser results green. The legacy module now contains only the Swarm
+runtime and three public compatibility facades; no historical `_Legacy*`
+implementations remain. SonarCloud is observable but its current public
+project status is `ERROR`, and no analysis exists for this workflow commit, so
+external acceptance remains open.

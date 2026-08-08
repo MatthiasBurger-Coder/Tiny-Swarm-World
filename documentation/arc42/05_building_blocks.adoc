@@ -54,8 +54,8 @@ operation errors.
 The existing application ports remain stable. `composition.py` now wires the
 concrete Docker, service, and image adapters from the extracted packages.
 The legacy module retains the approved Swarm implementation and compatibility
-facades/aliases, while non-public historical definitions remain a documented
-cleanup gap. The approved live Selenium browser suite now verifies all nine
+facades/aliases only; the historical duplicate implementations have been
+removed. The approved live Selenium browser suite now verifies all nine
 routed service pages, including authenticated SonarQube navigation. The
 external SonarCloud gate remains red and is not claimed as accepted.
 `infrastructure/composition.py` remains the concrete-adapter wiring root.

@@ -12,10 +12,9 @@ All 28 issue requirements are present in
 for the extraction, composition, compatibility, test, and documentation
 requirements. The following remain open or blocked:
 
-* `REQ-017`: non-public historical `_Legacy*` definitions remain in the legacy
-  module, so the thin-facade criterion is not fully satisfied.
 * `REQ-025`: the observable SonarCloud quality gate is `ERROR` because New
-  Code Security Rating is `2` against a threshold of `1`.
+  Code Security Rating is `2` against a threshold of `1`; the baseline HTTP
+  findings were remediated locally, but no fresh branch analysis exists.
 * `REQ-026`: SonarCloud exposes only the `main` analysis at commit `50733ea`
   for this project; it reports `425` open code smells and provides no
   before/after comparison for workflow commit `763ae8a`.
@@ -26,12 +25,11 @@ requirements. The following remain open or blocked:
 
 * Requirement Lead: `BLOCKED` — matrix complete; external quality remains
   failing and the legacy facade requirement remains open.
-* System Architect Reviewer: `BLOCKED` — local package boundaries and
-  composition wiring fit the architecture, but residual legacy definitions
-  keep the thin-facade acceptance item open.
-* Test/Evidence Reviewer: `BLOCKED` — local quality and live Selenium browser
-  evidence pass, but SonarCloud is red and the direct HTTP route probe has
-  recorded live `URLError` failures.
+* System Architect Reviewer: `AGREE LOCALLY` — local package boundaries,
+  composition wiring, and the now-thin legacy facade fit the architecture.
+* Test/Evidence Reviewer: `BLOCKED` — local quality, facade cleanup, and live
+  Selenium browser evidence pass, but SonarCloud is red and the direct HTTP
+  route probe has recorded live `URLError` failures.
 
 ## Checks reviewed
 
@@ -40,6 +38,8 @@ requirements. The following remain open or blocked:
 * `tests.live.browser_e2e_contract`: PASS, 17 static tests.
 * Import-linter, mypy, Ruff, architecture tests, and checkpoint diff checks:
   PASS.
+* Legacy facade cleanup: PASS — only the approved runtime/facade classes
+  remain; the boundary regression now rejects any other class definitions.
 * Live Selenium: PASS — 31 tests, 0 skipped; all nine routed browser results
   passed with the configured live credentials.
 * SonarCloud: OBSERVED `ERROR`; the local SonarQube instance is reachable but
@@ -53,8 +53,8 @@ treated as context only and was not changed.
 
 ## Final decision
 
-The issue is not complete. The branch contains a locally verified extraction
-and live browser evidence, but the issue must remain `BLOCKED` until the
-residual facade cleanup is verified and the external quality requirements are
-green with a workflow-commit comparison. No DONE claim, issue closure, PR
-merge, or branch cleanup is authorized by this audit.
+The issue is not complete. The branch contains a locally verified extraction,
+thin facade, and live browser evidence, but the issue must remain `BLOCKED`
+until the external quality requirements are green with a workflow-commit
+comparison. No DONE claim, issue closure, PR merge, or branch cleanup is
+authorized by this audit.

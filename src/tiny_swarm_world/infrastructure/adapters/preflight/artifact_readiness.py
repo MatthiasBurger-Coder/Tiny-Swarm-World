@@ -104,9 +104,9 @@ class HttpEndpointReadinessProbe:
         opener: Callable[..., object] | None = None,
         probe_kind: str = "endpoint",
     ) -> None:
-        if not endpoint.startswith(("http://", "https://")):
-            raise ValueError("readiness endpoint must use http or https")
         parsed_endpoint = urlparse(endpoint)
+        if parsed_endpoint.scheme not in {"http", "https"}:
+            raise ValueError("readiness endpoint must use http or https")
         if parsed_endpoint.username or parsed_endpoint.password:
             raise ValueError("readiness endpoint must not contain credentials")
         self.endpoint = endpoint

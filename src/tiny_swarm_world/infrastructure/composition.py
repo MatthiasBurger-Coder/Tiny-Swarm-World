@@ -278,6 +278,7 @@ from tiny_swarm_world.infrastructure.composition_models import (
 DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
 DEFAULT_FIXED_SECRET_ENV_FILE = Path(".tiny-swarm-world/local/fixed-secrets.env")
+_LOCAL_READINESS_SCHEME = "http"
 DEFAULT_PORTAINER_API_URL = "http://localhost:10001"
 PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT = "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS"
 DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS = 180
@@ -1559,7 +1560,7 @@ def build_lxc_deployment_services(
 def _build_artifact_readiness_gate(project_paths: ProjectPaths) -> ArtifactReadinessGate:
     nexus_base_url = os.getenv(
         "TSW_NEXUS_READINESS_BASE_URL",
-        "http://127.0.0.1:13081",
+        f"{_LOCAL_READINESS_SCHEME}://127.0.0.1:13081",
     ).rstrip("/")
     registry_base_url = _http_readiness_base_url(_swarm_registry_endpoint())
     manager_storage_path = Path(
@@ -1603,9 +1604,10 @@ def _build_artifact_readiness_gate(project_paths: ProjectPaths) -> ArtifactReadi
 
 def _http_readiness_base_url(endpoint: str) -> str:
     normalized = endpoint.strip()
-    if normalized.startswith(("http://", "https://")):
+    parsed = urlparse(normalized)
+    if parsed.scheme in {"http", "https"}:
         return normalized.rstrip("/")
-    return f"http://{normalized.rstrip('/')}"
+    return f"{_LOCAL_READINESS_SCHEME}://{normalized.rstrip('/')}"
 
 
 def build_setup_services(

@@ -8,6 +8,7 @@
 * `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/`
 * `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/`
 * `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py`
+* `src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py`
 * `src/tiny_swarm_world/infrastructure/composition.py`
 
 ## Tests

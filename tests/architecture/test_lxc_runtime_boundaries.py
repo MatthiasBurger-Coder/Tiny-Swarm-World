@@ -42,7 +42,7 @@ class TestLxcRuntimeBoundaries(unittest.TestCase):
         class_names = {
             node.name
             for node in ast.walk(tree)
-            if isinstance(node, ast.ClassDef) and not node.name.startswith("_Legacy")
+            if isinstance(node, ast.ClassDef)
         }
 
         self.assertEqual(

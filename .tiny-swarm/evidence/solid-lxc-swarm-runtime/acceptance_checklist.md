@@ -13,8 +13,8 @@
 | Full local quality | PASS | 1,633 passed, 28 skipped; quality gate |
 | Issue-specific Selenium imports/static contract | PASS locally | 17 browser contract tests |
 | Live LXC-backed routed browser evidence | PASS | Selenium suite: 31 tests passed; all nine routed browser results passed |
-| SonarQube accepted result/no new critical-high smells | BLOCKED | SonarCloud status is `ERROR`; workflow commit has no branch analysis/comparison |
-| Thin legacy facade cleanup | OPEN | REQ-017; non-public historical definitions remain |
+| SonarQube accepted result/no new critical-high smells | BLOCKED_EXTERNAL | Local HTTP findings are remediated, but SonarCloud has no workflow-branch analysis and `main` remains `ERROR` |
+| Thin legacy facade cleanup | PASS | `lxc_swarm_runtime.py` contains only the approved runtime/facade classes |
 | Independent completion audit | BLOCKED | Audit decision below; open requirements remain |
 
 Final status: `BLOCKED`, not `DONE`.

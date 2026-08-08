@@ -36,8 +36,8 @@ diagnostics, and architecture growth prevention. The existing test suite and
 full local quality gate remain mandatory. The issue-specific browser contract
 uses the exact Selenium imports requested by the issue; live execution is
 separate, requires explicit consent, and writes redacted evidence under the
-issue-specific path. SonarQube is an external gate and is not inferred from
-local tests.
+issue-specific path. The approved live run is recorded separately. SonarQube
+is an external gate and is not inferred from local tests.
 
 ## Four-role review decision
 

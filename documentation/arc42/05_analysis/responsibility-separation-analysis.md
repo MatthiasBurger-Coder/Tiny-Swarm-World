@@ -277,5 +277,5 @@ skipped. The approved live Selenium suite also passed 31 tests with all nine
 routed browser results green. SonarCloud is observable but currently reports
 an `ERROR` gate, and the workflow commit has no branch analysis for a smell
 comparison. Issue #183 therefore remains blocked for final acceptance. The
-issue evidence responsibility map records the residual non-public legacy
-definitions retained during compatibility migration.
+issue evidence responsibility map records the thin legacy compatibility
+facade and the remaining external quality gate.
