@@ -55,14 +55,15 @@ The existing application ports remain stable. `composition.py` now wires the
 concrete Docker, service, and image adapters from the extracted packages.
 The legacy module retains the approved Swarm implementation and compatibility
 facades/aliases, while non-public historical definitions remain a documented
-cleanup gap. The live browser and external SonarQube acceptance gates are not
-claimed by local verification. `infrastructure/composition.py` remains the
-concrete-adapter wiring root.
+cleanup gap. The approved live Selenium browser suite now verifies all nine
+routed service pages, including authenticated SonarQube navigation. The
+external SonarCloud gate remains red and is not claimed as accepted.
+`infrastructure/composition.py` remains the concrete-adapter wiring root.
 This split stays inside the existing infrastructure layer and does not create
 an independently deployable service or microservice. Bounded command
 execution, timeout/retry, redaction, cleanup, and live-consent behavior remain
-unchanged and have focused regression evidence; live and external acceptance
-still require their own observable evidence.
+unchanged and have focused regression evidence. Live browser evidence is
+recorded separately; external acceptance still requires a green quality gate.
 
 ==== Dedicated Host Detection Boundary
 

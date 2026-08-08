@@ -273,7 +273,9 @@ compatibility facades/aliases so existing consumers and patch targets remain
 stable.
 
 Local verification passed the full quality gate with 1,633 tests passed and 28
-skipped. This is local evidence only: Issue #183 remains blocked for final
-acceptance until live Selenium evidence and an observable SonarQube result are
-available. The issue evidence responsibility map records the residual
-non-public legacy definitions retained during compatibility migration.
+skipped. The approved live Selenium suite also passed 31 tests with all nine
+routed browser results green. SonarCloud is observable but currently reports
+an `ERROR` gate, and the workflow commit has no branch analysis for a smell
+comparison. Issue #183 therefore remains blocked for final acceptance. The
+issue evidence responsibility map records the residual non-public legacy
+definitions retained during compatibility migration.

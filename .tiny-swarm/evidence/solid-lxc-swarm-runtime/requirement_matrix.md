@@ -2,9 +2,8 @@
 
 Issue: [#183 SOLID: Split lxc_swarm_runtime.py into cohesive LXC client modules](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/183)
 Workflow: `issue-183-20260808`
-Status at final local audit: `BLOCKED_EXTERNAL_AND_LIVE`; local implementation
-and verification are complete where marked, but live and external acceptance
-gates remain unavailable.
+Status at final audit: `BLOCKED_EXTERNAL`; local and approved live browser
+verification are complete where marked, but external acceptance is not green.
 
 | ID | Requirement from issue | Type | Files likely affected | Implementation evidence | Test/evidence verification | Status |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -28,12 +27,12 @@ gates remain unavailable.
 | REQ-018 | Ensure each extracted class has one clear reason to change. | Acceptance/architecture | All extracted modules | Responsibility map and package boundaries | Architecture review and tests | VERIFIED_LOCAL_WITH_RESIDUAL_LEGACY_CODE |
 | REQ-019 | Implement stack-specific behavior through Strategy/registry-like modules, not hard-coded growth in the runtime. | Acceptance/architecture | Swarm prerequisite modules | Registry and ordered strategies | Strategy tests and boundary review | VERIFIED_LOCAL |
 | REQ-020 | Preserve the issue-specified Selenium imports exactly. | Live test contract | `tests/live/` | Selenium `webdriver` and `By` imports retained | Static browser contract collection | VERIFIED_LOCAL |
-| REQ-021 | Use Selenium to open/reuse a live LXC-backed installation and the service-access/dashboard gateway URL. | Live E2E | `tests/live/`; live evidence | Consent-gated live harness exists; no run evidence | `LIVE_CONSENT_MISSING` | BLOCKED_LIVE |
-| REQ-022 | Locate at least one visible service link or status element with `By`, and assert the page is not blank with expected content visible. | Live E2E | `tests/live/` | Browser flow and assertions present | No `LIVE_VERIFIED` result | BLOCKED_LIVE |
-| REQ-023 | Store E2E evidence under `.tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e/`. | Evidence/live | Local evidence writer/config | Issue-specific root configured | Static root test; no live payload | VERIFIED_STATIC_LIVE_UNVERIFIED |
+| REQ-021 | Use Selenium to open/reuse a live LXC-backed installation and the service-access/dashboard gateway URL. | Live E2E | `tests/live/`; live evidence | Consent-gated live harness executed against the configured installation | Browser suite `31` tests passed | VERIFIED_LIVE |
+| REQ-022 | Locate at least one visible service link or status element with `By`, and assert the page is not blank with expected content visible. | Live E2E | `tests/live/` | Selenium route contract and authenticated flows executed | All nine routed browser results passed | VERIFIED_LIVE |
+| REQ-023 | Store E2E evidence under `.tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e/`. | Evidence/live | Local evidence writer/config | Issue-specific root configured | `e2e/suite-summary.json` and route evidence; all nine passed | VERIFIED_LIVE |
 | REQ-024 | Existing test suite and new extracted-module tests must pass. | Quality | Repository tests | Full local quality result | `1,633` passed, `28` skipped | VERIFIED_LOCAL |
-| REQ-025 | SonarQube quality gate must return an accepted passing result. | External quality | CI/SonarQube result | No observable result available | External gate not run/verified | BLOCKED_EXTERNAL |
-| REQ-026 | No new critical/high code smells may be introduced. | External quality | Extracted source and SonarQube | No before/after SonarQube comparison available | External gate not run/verified | BLOCKED_EXTERNAL |
+| REQ-025 | SonarQube quality gate must return an accepted passing result. | External quality | CI/SonarQube result | SonarCloud project status is observable, but `ERROR` on New Code Security Rating (`2`) | Public status query returned `ERROR`; workflow commit has no branch analysis | BLOCKED_EXTERNAL |
+| REQ-026 | No new critical/high code smells may be introduced. | External quality | Extracted source and SonarQube | SonarCloud main branch has `425` open code smells; no analysis for this workflow commit/before-after comparison | Branch API exposes only `main` at commit `50733ea`; no issue-specific comparison | BLOCKED_EXTERNAL |
 | REQ-027 | Three-Amigos note must cover stable ports/behavior, extraction design, and unit/integration/E2E proof, and disagreement stops implementation. | Governance | `three-amigos.md` | Three-Amigos gate records stable contracts, design, and verification plan | Review recorded with no disagreement | VERIFIED_LOCAL |
 | REQ-028 | Complete issue evidence and independent completion audit before DONE. | Governance | Evidence package | Slice 07 evidence package and independent audit | Audit result is `BLOCKED`, not PASS | BLOCKED |
 

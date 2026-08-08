@@ -4,11 +4,14 @@
    compatibility facades, but non-public `_Legacy*` historical definitions
    remain in `lxc_swarm_runtime.py` and should be removed in a separately
    verified cleanup pass.
-2. `REQ-021` and `REQ-022` are blocked by `LIVE_CONSENT_MISSING`; the static
-   Selenium contract does not prove a live LXC-backed routed page.
-3. `REQ-025` and `REQ-026` are blocked because no observable SonarQube result
-   or before/after smell comparison is available.
-4. The local quality result is not evidence of live, Selenium, or SonarQube
-   success.
+2. The live post-install HTTP probe recorded `URLError` failures for the
+   routed HTTPS hosts even though the Selenium browser suite passed all nine
+   routes; the direct probe path needs TLS/routing diagnosis.
+3. `REQ-025` is blocked because the observable SonarCloud gate is `ERROR` on
+   New Code Security Rating (`2` versus threshold `1`).
+4. `REQ-026` is blocked because the workflow commit has no SonarCloud branch
+   analysis or before/after smell comparison; the exposed `main` analysis
+   reports `425` open code smells.
+5. The local quality result is not evidence of SonarCloud acceptance.
 5. Existing provider/runtime risks remain as documented in
    `documentation/arc42/11_risks_and_debt.adoc`.
