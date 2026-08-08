@@ -35,6 +35,38 @@ from tests.support.effective_access_model_fixture import (
 
 
 class TestComposeFileRepositoryYaml(unittest.TestCase):
+    def test_committed_installation_plan_matches_domain_plan(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        yaml_plan = YAML(typ="safe").load(
+            (repository_root / "infra" / "config" / "installation-plan.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        domain_plan = default_installation_plan()
+
+        self.assertEqual(
+            set(domain_plan.required_phase_ids),
+            set(yaml_plan["required_phase_ids"]),
+        )
+        self.assertEqual(
+            set(domain_plan.required_services),
+            set(yaml_plan["required_services"]),
+        )
+        yaml_phases = {phase["id"]: phase for phase in yaml_plan["phases"]}
+        self.assertEqual(set(domain_plan.phase_ids), set(yaml_phases))
+
+        for phase in domain_plan.phases:
+            yaml_phase = yaml_phases[phase.phase_id]
+            with self.subTest(phase=phase.phase_id):
+                self.assertEqual(phase.order, yaml_phase["order"])
+                self.assertEqual(phase.required, yaml_phase["required"])
+                self.assertEqual(phase.depends_on, tuple(yaml_phase["depends_on"]))
+                self.assertEqual(phase.services, tuple(yaml_phase["services"]))
+                self.assertEqual(
+                    phase.workflow_phase_names,
+                    tuple(yaml_phase["workflow_phases"]),
+                )
+
     def test_loads_compose_content_from_matching_stack_directory(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             compose_root = Path(temp_dir) / "compose"
