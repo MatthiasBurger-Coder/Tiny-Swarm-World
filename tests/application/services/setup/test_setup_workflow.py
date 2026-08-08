@@ -221,6 +221,34 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
             },
         )
 
+    async def test_default_installation_plan_success_keeps_cluster_boundary_order(self):
+        calls: list[str] = []
+        phase_names = default_installation_plan().ordered_workflow_phase_names()
+        workflow = SetupWorkflow(
+            tuple(
+                SetupWorkflowPhase(
+                    name,
+                    lambda name=name: _completed_result(name, calls),
+                )
+                for name in phase_names
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=default_installation_plan(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(calls, list(phase_names))
+        self.assertLess(
+            calls.index("platform reconcile"),
+            calls.index("cluster docker"),
+        )
+        self.assertLess(
+            calls.index("cluster verify"),
+            calls.index("platform expose"),
+        )
+
     async def test_does_not_print_progress_directly(self):
         calls: list[str] = []
         workflow = SetupWorkflow(
