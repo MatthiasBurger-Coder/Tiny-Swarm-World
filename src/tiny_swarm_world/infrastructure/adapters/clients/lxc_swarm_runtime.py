@@ -41,6 +41,13 @@ from tiny_swarm_world.domain.nexus.nexus_user import NexusUser
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.adapters.clients.nexus_http_client import NexusHttpClient
 from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import PortainerHttpClient
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics import (
+    is_transient_manager_shell_failure,
+    safe_log_text,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.manager_shell_gateway import (
+    LxcManagerShellGateway,
+)
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
@@ -79,6 +86,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         service_access_dashboard_renderer: Callable[[], str] | None = None,
         traefik_tls_cert_secret_name: str = DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
         traefik_tls_key_secret_name: str = DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
+        shell_gateway: LxcManagerShellGateway | None = None,
     ):
         if timeout_seconds <= 0:
             raise ValueError("Swarm runtime timeout must be positive.")
@@ -96,6 +104,12 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         self.traefik_tls_cert_secret_name = traefik_tls_cert_secret_name.strip()
         self.traefik_tls_key_secret_name = traefik_tls_key_secret_name.strip()
         self.logger = LoggerFactory.get_logger(self.__class__)
+        self.shell_gateway = shell_gateway or LxcManagerShellGateway(
+            backend=backend,
+            manager_node=manager_node,
+            timeout_seconds=timeout_seconds,
+            logger=self.logger,
+        )
 
     def prepare_stack_assets(self, stack_name: str) -> None:
         remote_dir = f"{self.remote_stack_root}/{stack_name}"
@@ -356,12 +370,15 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         input_text: str | None = None,
         timeout_seconds: int | None = None,
     ) -> subprocess.CompletedProcess[str]:
-        return self._run_node_shell(
-            self.manager_node,
+        return self.shell_gateway.run_manager_shell(
             script,
             check=check,
             input_text=input_text,
             timeout_seconds=timeout_seconds,
+            # Resolve these through the legacy module at call time so existing
+            # adapter tests and integrations can still patch their seams.
+            run=subprocess.run,
+            sleep=time.sleep,
         )
 
     def _run_node_shell(
@@ -373,61 +390,17 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         input_text: str | None = None,
         timeout_seconds: int | None = None,
     ) -> subprocess.CompletedProcess[str]:
-        shell_target = "manager" if node_name == self.manager_node else "node"
-        self.logger.info(
-            "Running LXC %s shell operation node=%s script=%s",
-            shell_target,
+        return self.shell_gateway.run_node_shell(
             node_name,
-            _safe_log_text(script),
+            script,
+            check=check,
+            input_text=input_text,
+            timeout_seconds=timeout_seconds,
+            # Resolve these through the legacy module at call time so existing
+            # adapter tests and integrations can still patch their seams.
+            run=subprocess.run,
+            sleep=time.sleep,
         )
-        timeout = timeout_seconds or self.timeout_seconds
-        shell_scope = "manager_shell" if node_name == self.manager_node else "node_shell"
-        result: subprocess.CompletedProcess[str] | None = None
-        for attempt in range(1, _MANAGER_SHELL_MAX_ATTEMPTS + 1):
-            try:
-                result = subprocess.run(
-                    [_BACKEND_CLI[self.backend], "exec", node_name, "--", "sh", "-lc", script],
-                    input=input_text,
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                    shell=False,
-                    timeout=timeout,
-                )
-            except subprocess.TimeoutExpired as exc:
-                raise RuntimeError(
-                    f"LXC Swarm operation timed out on node '{node_name}'."
-                ) from exc
-            log = self.logger.warning if result.returncode != 0 else self.logger.info
-            log(
-                "lxc_swarm_runtime %s_result returncode=%s node=%s stdout=%s stderr=%s",
-                shell_scope,
-                result.returncode,
-                node_name,
-                _safe_log_text(result.stdout),
-                _safe_log_text(result.stderr),
-            )
-            if not _is_transient_manager_shell_failure(result):
-                break
-            if attempt >= _MANAGER_SHELL_MAX_ATTEMPTS:
-                break
-            delay_seconds = _MANAGER_SHELL_RETRY_DELAYS_SECONDS[
-                min(attempt - 1, len(_MANAGER_SHELL_RETRY_DELAYS_SECONDS) - 1)
-            ]
-            self.logger.warning(
-                "Retrying transient LXC node shell operation after Incus child PID failure "
-                "node=%s attempt=%s next_attempt=%s delay_seconds=%s",
-                node_name,
-                attempt,
-                attempt + 1,
-                delay_seconds,
-            )
-            time.sleep(delay_seconds)
-        if result is None:
-            raise RuntimeError("LXC node Swarm operation did not execute.")
-        if check and result.returncode != 0:
-            raise RuntimeError(f"LXC node Swarm operation failed with exit code {result.returncode}.")
-        return result
 
 
 class LxcContainerRuntime(PortContainerRuntime):
@@ -1408,30 +1381,5 @@ def _quote_remote_path(path: str) -> str:
     return shlex.quote(path)
 
 
-_SENSITIVE_LOG_ASSIGNMENT_PATTERN = re.compile(
-    r"\b([A-Za-z0-9_]*(?:PASSWORD|TOKEN|SECRET|KEY)[A-Za-z0-9_]*)="
-    r"(?:'[^']*'|\"[^\"]*\"|\S+)",
-    re.IGNORECASE,
-)
-_SENSITIVE_BEARER_PATTERN = re.compile(
-    r"(authorization:\s*bearer\s+)\S+",
-    re.IGNORECASE,
-)
-_SENSITIVE_TOKEN_PARAMETER_PATTERN = re.compile(
-    r"\b(token:)[^\s'\"]+",
-    re.IGNORECASE,
-)
-
-
-def _is_transient_manager_shell_failure(result: subprocess.CompletedProcess[str]) -> bool:
-    return result.returncode == 255 and _INCUS_CHILD_PID_FAILURE in result.stderr
-
-
-def _safe_log_text(value: str, limit: int = 500) -> str:
-    collapsed = " ".join(value.split())
-    collapsed = _SENSITIVE_LOG_ASSIGNMENT_PATTERN.sub(r"\1=***", collapsed)
-    collapsed = _SENSITIVE_BEARER_PATTERN.sub(r"\1***", collapsed)
-    collapsed = _SENSITIVE_TOKEN_PARAMETER_PATTERN.sub(r"\1***", collapsed)
-    if len(collapsed) <= limit:
-        return collapsed
-    return f"{collapsed[:limit]}..."
+_is_transient_manager_shell_failure = is_transient_manager_shell_failure
+_safe_log_text = safe_log_text
