@@ -46,6 +46,7 @@ from tiny_swarm_world.domain.preflight import (
     PreflightResult,
     PreflightSeverity,
     PreflightStatus,
+    default_installation_plan,
 )
 
 
@@ -168,6 +169,56 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             [phase.status for phase in result.phase_results],
             ["completed", "blocked", "not_run"],
+        )
+
+    async def test_cluster_failure_marks_all_downstream_installation_phases_not_run(self):
+        calls: list[str] = []
+        phase_names = default_installation_plan().ordered_workflow_phase_names()
+
+        workflow = SetupWorkflow(
+            tuple(
+                SetupWorkflowPhase(
+                    name,
+                    (
+                        (lambda name=name: _blocked_result(name, calls))
+                        if name == "cluster verify"
+                        else (lambda name=name: _completed_result(name, calls))
+                    ),
+                )
+                for name in phase_names
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=default_installation_plan(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(
+            calls,
+            list(phase_names[: phase_names.index("cluster verify") + 1]),
+        )
+        phase_statuses = {
+            phase.name: phase.status for phase in result.phase_results
+        }
+        self.assertEqual(phase_statuses["cluster verify"], "blocked")
+        self.assertEqual(
+            {
+                "platform expose",
+                "deployment bootstrap",
+                "artifact bootstrap",
+                "artifact readiness gate",
+                "artifacts prepare",
+                "artifacts verify",
+                "deployment apply",
+                "deployment verify",
+                "platform verify",
+            },
+            {
+                name
+                for name, status in phase_statuses.items()
+                if status == "not_run"
+            },
         )
 
     async def test_does_not_print_progress_directly(self):

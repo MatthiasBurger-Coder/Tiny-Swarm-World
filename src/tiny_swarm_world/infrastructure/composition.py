@@ -1690,6 +1690,18 @@ def build_setup_services(
                         lambda: platform.workflows.reconcile.run(),
                     ),
                     traced_phase(
+                        "cluster docker",
+                        lambda: platform.workflows.cluster.docker.run(),
+                    ),
+                    traced_phase(
+                        "cluster swarm bootstrap",
+                        lambda: platform.workflows.cluster.swarm_bootstrap.run(),
+                    ),
+                    traced_phase(
+                        "cluster verify",
+                        lambda: platform.workflows.cluster.verify.run(),
+                    ),
+                    traced_phase(
                         "platform expose",
                         lambda: platform.workflows.expose.run(),
                     ),

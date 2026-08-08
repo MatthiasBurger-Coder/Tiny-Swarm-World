@@ -1908,6 +1908,9 @@ class TestComposition(unittest.TestCase):
                 "host verify",
                 "platform init",
                 "platform reconcile",
+                "cluster docker",
+                "cluster swarm bootstrap",
+                "cluster verify",
                 "platform expose",
                 "deployment bootstrap",
                 "artifact bootstrap",
@@ -2817,7 +2820,22 @@ def _workflow_bundle(*names: str):
 
 
 def _platform_phase_bundle():
-    return _workflow_bundle("init", "reconcile", "expose", "verify")
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    return SimpleNamespace(
+        workflows=SimpleNamespace(
+            init=SimpleNamespace(run=AsyncMock()),
+            reconcile=SimpleNamespace(run=AsyncMock()),
+            cluster=SimpleNamespace(
+                docker=SimpleNamespace(run=AsyncMock()),
+                swarm_bootstrap=SimpleNamespace(run=AsyncMock()),
+                verify=SimpleNamespace(run=AsyncMock()),
+            ),
+            expose=SimpleNamespace(run=AsyncMock()),
+            verify=SimpleNamespace(run=AsyncMock()),
+        )
+    )
 
 
 def _artifact_phase_bundle():
