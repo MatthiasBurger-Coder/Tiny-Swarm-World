@@ -1,46 +1,45 @@
 {
-  "workflow_id": "issue-154-20260808",
-  "workflow_version": "issue-154-v1.0.0",
-  "branch": "feature/workflow-issue-154-real-cluster-phase-20260808",
+  "workflow_id": "issue-183-20260808",
+  "workflow_version": "issue-183-v1.0.0",
+  "authoring_branch": "feature/workflow-issue-183-lxc-runtime-solid-20260808",
+  "implementation_branch": "feature/split-lxc-swarm-runtime-solid",
   "process_strand": "workflow-create-to-workflow-execute",
   "execution_profile": "FULL_PATH",
   "status": "READY_FOR_EXECUTION",
-  "requirement_matrix": ".tiny-swarm/evidence/issue-154/requirement_matrix.md",
+  "issue": 183,
+  "requirement_matrix": ".tiny-swarm/evidence/solid-lxc-swarm-runtime/requirement_matrix.md",
+  "three_amigos": ".tiny-swarm/evidence/solid-lxc-swarm-runtime/three-amigos.md",
+  "responsibility_map_before": ".tiny-swarm/evidence/solid-lxc-swarm-runtime/responsibility-map-before.md",
   "affected_areas": [
-    "domain/preflight/installation_plan.py",
-    "infra/config/installation-plan.yaml",
-    "domain/node_provider Docker/Swarm DTOs",
-    "application platform Docker and Swarm services/ports",
-    "managed LXC/Incus Docker and Swarm adapters",
+    "infrastructure/adapters/clients/lxc_swarm_runtime.py",
+    "infrastructure/adapters/clients/lxc/{command,swarm,docker,services,images}",
     "infrastructure/composition.py",
-    "setup workflow phase ordering",
-    "platform/setup/plan/regression tests",
-    "Arc42 and installation documentation",
-    "issue-154 completion evidence"
+    "infrastructure/composition_lxc_runtimes.py",
+    "infrastructure adapter, architecture, composition, and live browser tests",
+    "issue evidence and Arc42 architecture documentation"
   ],
   "forbidden_areas": [
-    "Java/Maven/Spring Boot",
+    "PortLocalFileStorage without a verified Issue #183 requirement",
+    "application-port redesign",
+    "new microservice or external API contract",
     "browser React frontend",
-    "new microservice",
-    "Issue #218 host/WSL2 redesign",
-    "Issue #232 artifact/image-preflight redesign",
-    "host Docker as cluster runtime",
+    "Java/Maven/Spring Boot",
     "unapproved live infrastructure mutation",
-    "credentials, join tokens, raw command output and unredacted evidence",
-    "broad provider or composition refactor",
-    "PortLocalFileStorage changes without a verified issue-154 requirement"
+    "raw credentials, tokens, command output, HTTP payloads, or unredacted evidence"
   ],
   "required_roles": [
     "Senior Requirement Engineer",
     "Senior System Architect",
     "Senior Python Automation Developer",
     "Senior Tester",
+    "Senior Workflow Architect",
     "Senior DevOps Engineer",
     "Senior Documentation Engineer",
+    "Senior Security Sandbox Engineer",
     "Issue Completion Auditor"
   ],
   "conditional_roles": {
-    "Console/status UI reviewer": "NOT_APPLICABLE_UNLESS_PROGRESS_PRESENTATION_CHANGES",
+    "Console/status UI reviewer": "NOT_APPLICABLE",
     "Browser React reviewer": "FORBIDDEN_UNLESS_SEPARATE_FRONTEND_WORKFLOW"
   },
   "quality_commands": [
@@ -53,28 +52,28 @@
     "git diff --check"
   ],
   "verification_classification": {
-    "installation_plan_and_setup_order": "APPLICABLE_LOCAL",
-    "docker_swarm_contracts_and_adapters": "APPLICABLE_LOCAL",
-    "issue_218_host_preflight_regression": "APPLICABLE_LOCAL",
-    "issue_232_artifact_preflight_regression": "APPLICABLE_LOCAL",
-    "live_lxc_docker_swarm": "APPLICABLE_LIVE",
-    "browser_selenium": "NOT_APPLICABLE",
-    "external_quality": "EXTERNAL_GATE_NOT_APPLICABLE_FOR_LOCAL_WORKFLOW_AUTHORING"
+    "local_adapter_and_architecture_tests": "APPLICABLE_LOCAL",
+    "full_local_quality": "APPLICABLE_LOCAL",
+    "issue_specific_selenium_e2e": "APPLICABLE_LIVE",
+    "sonarqube": "APPLICABLE_EXTERNAL",
+    "live_infrastructure_during_default_gates": "NOT_APPLICABLE",
+    "browser_react": "NOT_APPLICABLE"
   },
   "governing_file_hashes": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
     "QUALITY.md": "7f8dd247fd989fbb72588a48b00846edcb2a9aa748bb1954dc22b75952efaa4c",
     "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
-    "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
     "documentation/process/workflow-create.md": "5df5fb70ddc25ef2d8ad2129590e780bfee610521860fb0991e57c38dab3542f",
+    "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     ".agents/prompts/workflow-create.md": "45c5c8e585c50b7fcb6892b5fbfb952aa29ef27c3df34f177ad579ba65542296",
+    ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
     ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
-    ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
-    "documentation/arc42/11_risks_and_debt.adoc": "c1e9e6477f749f5254ce8153a29615dbe395aeaa821d3db2bd6ecf01cb9a34b1",
-    "documentation/workflow/workflow.md": "63bfbe957cdb7174d62b0a1431277514242f2d850fe9b5e930f71d9985f72737",
-    ".tiny-swarm/evidence/issue-154/requirement_matrix.md": "05c9c9ac16055dcd427df39050fb48322c1ac8d820f937a183f5f9090ca5ce77"
+    "documentation/arc42/05_building_blocks.adoc": "17ab5eba08c0fef5a0d9e57f20be03b322ffaf92e7658fa0810509818ad3157e",
+    "documentation/arc42/11_risks_and_debt.adoc": "c3d55c559ab92d5c630ba123520fbd2b3e316630f3dd19daf8de9b0d182a350d",
+    "documentation/workflow/workflow.md": "5e553220c5e0b7f5693252d73b739effb78c0a7705a15e6e9879a6144e393dee",
+    ".tiny-swarm/evidence/solid-lxc-swarm-runtime/requirement_matrix.md": "746b97c6a2a4b9d4f67f42647ec304c875d15a2f2a0f3e244ac632824e932e76"
   }
 }

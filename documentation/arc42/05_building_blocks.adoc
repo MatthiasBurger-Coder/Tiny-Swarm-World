@@ -41,6 +41,25 @@ application responsibilities:
   adapters that delegate to concrete Docker, Swarm, and proxy-device adapters
   only after composed provider selection allows it.
 
+==== Planned Issue #183 LXC Client Decomposition
+
+Issue #183 plans a compatibility-preserving decomposition of the large
+`infrastructure/adapters/clients/lxc_swarm_runtime.py` module. This is planned
+architecture, not an implementation claim. The target packages are
+`lxc/command` for manager/node shell execution and bounded diagnostics,
+`lxc/swarm` for stack runtime, stack assets, and prerequisite strategies,
+`lxc/docker` for manager-side container inspection, `lxc/services` for
+Portainer and Nexus adapters, and `lxc/images` for image publication and its
+operation errors.
+
+The existing application ports remain stable, the legacy module remains a
+thin compatibility export surface during migration, and
+`infrastructure/composition.py` remains the concrete-adapter wiring root.
+This split stays inside the existing infrastructure layer and does not create
+an independently deployable service or microservice. Bounded command
+execution, timeout/retry, redaction, cleanup, and live-consent behavior must
+remain unchanged and require focused regression evidence during execution.
+
 ==== Dedicated Host Detection Boundary
 
 Host detection is an in-process Platform sub-boundary, not a new deployable
