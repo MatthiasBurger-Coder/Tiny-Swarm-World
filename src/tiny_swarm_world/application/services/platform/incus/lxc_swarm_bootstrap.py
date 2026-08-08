@@ -55,6 +55,21 @@ class LxcSwarmBootstrapService:
             if worker_result.status != VerificationStatus.VERIFIED:
                 if credential is None:
                     credential = await self.swarm.worker_join_credential(manager)
+                if not credential.usable:
+                    results.append(
+                        VerificationResult(
+                            target_id=f"platform:swarm-worker:{worker.name}",
+                            status=VerificationStatus.BLOCKED,
+                            message="Swarm worker join is blocked because its prerequisite is unavailable.",
+                            evidence={
+                                "phase": "pre_apply",
+                                "classification": "swarm_join_prerequisite_unavailable",
+                                "node": worker.name,
+                                "role": worker.role.value,
+                            },
+                        )
+                    )
+                    break
                 worker_outcome = await self.swarm.join_worker(
                     worker,
                     advertise_address,
@@ -71,15 +86,14 @@ class LxcSwarmBootstrapService:
         manager: NodeSpec,
         workers: tuple[NodeSpec, ...],
     ) -> tuple[VerificationResult, ...]:
-        results: list[VerificationResult] = []
-        manager_outcome = await self.swarm.inspect_manager(manager)
-        results.append(
-            self.contract_service.verify_swarm_manager_bootstrap(manager_outcome)
+        expected_nodes = (manager, *workers)
+        return tuple(
+            self.contract_service.verify_swarm_node_readiness(readiness)
+            for readiness in await self.swarm.inspect_membership(
+                manager,
+                expected_nodes,
+            )
         )
-        for worker in workers:
-            worker_outcome = await self.swarm.inspect_worker(worker)
-            results.append(self.contract_service.verify_swarm_worker_join(worker_outcome))
-        return tuple(results)
 
 
 class LxcSwarmBootstrapStep:

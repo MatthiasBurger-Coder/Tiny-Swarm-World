@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import ipaddress
+import json
 import os
 
 from tiny_swarm_world.application.ports.node_provider import (
@@ -10,9 +11,12 @@ from tiny_swarm_world.application.ports.node_provider import (
 )
 from tiny_swarm_world.domain.node_provider import (
     ManagedLxcBackend,
+    NodeRole,
     NodeSpec,
     SwarmManagerBootstrapOutcome,
     SwarmManagerState,
+    SwarmNodeReadinessEvidence,
+    SwarmNodeState,
     SwarmWorkerJoinCredential,
     SwarmWorkerJoinOutcome,
     WorkerJoinState,
@@ -104,6 +108,39 @@ class LxcContainerSwarmBootstrap(PortContainerSwarmBootstrap):
             self.timeout_seconds,
         )
         return _manager_outcome(node, result)
+
+    async def inspect_membership(
+        self,
+        manager: NodeSpec,
+        expected_nodes: tuple[NodeSpec, ...],
+    ) -> tuple[SwarmNodeReadinessEvidence, ...]:
+        result = await self.runner.run(
+            _swarm_membership_args(self.backend, manager),
+            self.timeout_seconds,
+        )
+        records = _membership_records(result)
+        observed_count = len(records)
+        manager_count = sum(
+            1
+            for record in records
+            if str(record.get("ManagerStatus", "")).strip().casefold()
+            in {"leader", "reachable"}
+        )
+        records_by_hostname = {
+            str(record.get("Hostname", "")).strip(): record
+            for record in records
+            if str(record.get("Hostname", "")).strip()
+        }
+        return tuple(
+            _membership_readiness(
+                node,
+                records_by_hostname.get(node.name),
+                expected_node_count=len(expected_nodes),
+                observed_node_count=observed_count,
+                manager_count=manager_count,
+            )
+            for node in expected_nodes
+        )
 
     async def initialize_manager(
         self,
@@ -229,6 +266,23 @@ def _swarm_state_args(
     )
 
 
+def _swarm_membership_args(
+    backend: ManagedLxcBackend,
+    manager: NodeSpec,
+) -> tuple[str, ...]:
+    return (
+        _BACKEND_CLI[backend],
+        "exec",
+        manager.name,
+        "--",
+        "docker",
+        "node",
+        "ls",
+        "--format",
+        "{{json .}}",
+    )
+
+
 def _manager_init_args(
     backend: ManagedLxcBackend,
     node: NodeSpec,
@@ -343,6 +397,62 @@ def _worker_outcome(
         node=node,
         state=WorkerJoinState.UNKNOWN,
         verified=False,
+    )
+
+
+def _membership_records(result: LxcNodeCommandResult) -> tuple[dict[str, object], ...]:
+    if result.returncode != 0 or result.timed_out:
+        return ()
+    records: list[dict[str, object]] = []
+    for line in result.stdout.splitlines():
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            return ()
+        if not isinstance(record, dict):
+            return ()
+        records.append(record)
+    return tuple(records)
+
+
+def _membership_readiness(
+    node: NodeSpec,
+    record: dict[str, object] | None,
+    *,
+    expected_node_count: int,
+    observed_node_count: int,
+    manager_count: int,
+) -> SwarmNodeReadinessEvidence:
+    if record is None:
+        return SwarmNodeReadinessEvidence(
+            node=node,
+            docker_engine_observed=False,
+            docker_engine_ready=False,
+            swarm_state_observed=False,
+            swarm_state=SwarmNodeState.UNKNOWN,
+            expected_node_count=expected_node_count,
+            observed_node_count=observed_node_count,
+            manager_count=manager_count,
+        )
+    status = str(record.get("Status", "")).strip().casefold()
+    availability = str(record.get("Availability", "")).strip().casefold()
+    manager_state = str(record.get("ManagerStatus", "")).strip().casefold() or None
+    observed_role = NodeRole.MANAGER if manager_state is not None else NodeRole.WORKER
+    return SwarmNodeReadinessEvidence(
+        node=node,
+        docker_engine_observed=True,
+        docker_engine_ready=status == "ready",
+        swarm_state_observed=True,
+        swarm_state=(
+            SwarmNodeState.ACTIVE
+            if availability == "active"
+            else SwarmNodeState.PENDING
+        ),
+        observed_role=observed_role,
+        manager_state=manager_state,
+        manager_count=manager_count,
+        expected_node_count=expected_node_count,
+        observed_node_count=observed_node_count,
     )
 
 

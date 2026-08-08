@@ -108,6 +108,25 @@ class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(VerificationStatus.BLOCKED, results[0].status)
         self.assertEqual(runtime.installed_nodes, [])
 
+    async def test_verify_docker_runtime_checks_every_expected_node(self):
+        runtime = _DockerRuntime(
+            initial=ContainerDockerReadiness(
+                node=_node(),
+                observed=True,
+                engine_state=DockerEngineState.READY,
+            ),
+        )
+
+        results = await LxcDockerInstallService(runtime).verify_docker_runtime(
+            (_node(), _worker(), _worker_2()),
+        )
+
+        self.assertEqual(len(results), 3)
+        self.assertEqual(
+            runtime.inspected_nodes,
+            ["swarm-manager", "swarm-worker-1", "swarm-worker-2"],
+        )
+
     async def test_install_step_aggregates_node_results_for_platform_workflow(self):
         runtime = _DockerRuntime(
             initial=ContainerDockerReadiness(
@@ -177,9 +196,11 @@ class _DockerRuntime:
         self.verified = verified
         self.installed_nodes: list[str] = []
         self.verify_calls = 0
+        self.inspected_nodes: list[str] = []
 
     async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
         await async_checkpoint()
+        self.inspected_nodes.append(node.name)
         return self.initial
 
     async def install_docker(self, node: NodeSpec) -> ContainerDockerInstallOutcome:
@@ -201,6 +222,22 @@ def _node() -> NodeSpec:
     return NodeSpec(
         name="swarm-manager",
         role=NodeRole.MANAGER,
+        provider=NodeProviderKind.LXC_NATIVE,
+    )
+
+
+def _worker() -> NodeSpec:
+    return NodeSpec(
+        name="swarm-worker-1",
+        role=NodeRole.WORKER,
+        provider=NodeProviderKind.LXC_NATIVE,
+    )
+
+
+def _worker_2() -> NodeSpec:
+    return NodeSpec(
+        name="swarm-worker-2",
+        role=NodeRole.WORKER,
         provider=NodeProviderKind.LXC_NATIVE,
     )
 

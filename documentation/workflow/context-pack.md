@@ -1,42 +1,45 @@
-# Workflow Context Pack: Issue #232
+# Workflow Context Pack: Issue #154
 
-This file is a navigation aid for `issue-232-20260808`. Repository source files,
-`AGENTS.md`, `QUALITY.md`, process rules, ADRs, arc42 and the active workflow
+This file is a navigation aid for `issue-154-20260808`. Root `AGENTS.md`,
+`QUALITY.md`, process rules, ADRs, Arc42, the active workflow and source files
 remain authoritative.
 
 ## Active Context
 
-- Workflow version: `issue-232-v1.0.0`
-- Workflow ID: `issue-232-20260808`
-- Branch: `feature/workflow-issue-232-artifact-preflight-20260808`
+- Workflow version: `issue-154-v1.0.0`
+- Workflow ID: `issue-154-20260808`
+- Branch: `feature/workflow-issue-154-real-cluster-phase-20260808`
 - Process strand: `workflow create` -> guarded publication -> `workflow execute`
 - Execution profile: `FULL_PATH`
 - Status: `READY_FOR_EXECUTION`
-- Requirement matrix: `.tiny-swarm/evidence/issue-232/requirement_matrix.md`
-- Issue evidence path: `.tiny-swarm/evidence/issue-232/`
-- Workflow evidence path: `.codex/evidence/`
+- Requirement matrix: `.tiny-swarm/evidence/issue-154/requirement_matrix.md`
+- Issue evidence path: `.tiny-swarm/evidence/issue-154/`
+- Workflow evidence path: `.codex/evidence/issue-154/`
 
 ## Affected Areas
 
-- Domain artifact/image contracts and profile-aware inventory.
-- Application artifact/preflight services and ports.
-- `src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py`.
-- Compose/service-profile repositories and `TSW_*_IMAGE` resolution.
-- Docker, registry and Nexus readiness adapters.
-- Composition, setup/deployment phase guards and thin CLI dispatch.
-- Artifact/Compose/configuration tests, architecture checks and issue evidence.
-- Artifact, installation, configuration, troubleshooting and arc42 documentation.
+- Installation-plan domain model and `infra/config/installation-plan.yaml`.
+- LXC-native Docker installation and Swarm bootstrap services, ports, DTOs and
+  managed-runtime adapters.
+- Platform workflow ownership and composition wiring.
+- Setup phase ordering, cluster verification and generic downstream `not_run`.
+- Platform, setup, plan and regression tests.
+- Installation/runtime Arc42 documentation and issue completion evidence.
+
+The referenced `PortLocalFileStorage` was inspected for context and is not an
+affected file unless execution discovers a concrete Issue #154 storage gap.
 
 ## Forbidden or Guarded Areas
 
 - No Java, Maven, Spring Boot, browser React or new microservice.
-- No change to the Issue #218 Platform/WSL2 host boundary.
-- No Incus, Docker Swarm, Compose deployment, registry bootstrap, service
-  bootstrap, network mutation or credential-backed command during static/local
-  verification.
-- No implicit `latest`, silent Compose/artifact divergence, raw command output,
-  tokens, credentials, host-specific absolute paths or unredacted evidence.
-- Live readiness is explicit-consent-gated, bounded and serialized.
+- No Issue #218 WSL2 host-preflight redesign.
+- No Issue #232 artifact/image-preflight redesign.
+- No host Docker as the default cluster runtime.
+- No Incus, LXC, Docker, Swarm, network or service deployment during default
+  local verification.
+- No unapproved live mutation, credentials, join tokens, raw command output or
+  unredacted evidence.
+- No broad provider or composition refactor beyond phase extraction.
 
 ## Required Roles
 
@@ -44,16 +47,20 @@ remain authoritative.
 - Senior System Architect.
 - Senior Python Automation Developer.
 - Senior Tester.
-- Senior DevOps Engineer for readiness/live adapter slices.
-- Senior Documentation Engineer for synchronization and handoff.
+- Senior DevOps Engineer for managed-runtime and optional live-validation
+  review.
+- Senior Documentation Engineer for Arc42, evidence and handoff.
 - Issue Completion Auditor for the independent final decision.
 
-Conditional role: Console/status UI reviewer is `NOT_APPLICABLE`; no terminal
-presentation or interaction changes are in the verified scope.
+Conditional roles:
+
+- Console/status UI reviewer: `NOT_APPLICABLE` unless progress presentation
+  changes.
+- Browser React reviewer: `FORBIDDEN_UNLESS_SEPARATE_FRONTEND_WORKFLOW`.
 
 ## Quality Commands
 
-Authoritative commands from `QUALITY.md`, run from Linux/WSL:
+Authoritative commands from `QUALITY.md`, run in WSL/Linux:
 
 ```bash
 python3 tools/quality_gate.py lint
@@ -65,14 +72,15 @@ python3 tools/quality_gate.py quality
 git diff --check
 ```
 
-Static checks are `APPLICABLE_LOCAL`. Docker/registry/Nexus readiness is
-`APPLICABLE_LIVE` and remains `LIVE_CONSENT_MISSING` or
-`LIVE_PREREQUISITE_MISSING` without explicit authorization and prerequisites.
-Browser checks are `NOT_APPLICABLE`; external quality state is not inferred
-from local results.
+Static plan, DTO, adapter, orchestration and regression checks are
+`APPLICABLE_LOCAL`. Live LXC/Incus/Docker/Swarm validation is
+`APPLICABLE_LIVE` and remains `LIVE_CONSENT_MISSING` without separate
+authorization. Browser checks are `NOT_APPLICABLE`; external quality is not
+inferred from local results.
 
 ## Governance Hashes
 
-The machine-readable copy, including SHA-256 hashes of the governing inputs,
-is `context-pack.json`. The pack is stale if any recorded hash changes, if
-governance files are modified, or if a scope conflict is found.
+The machine-readable copy in `context-pack.json` records SHA-256 hashes of the
+governing inputs used during authoring. The pack is stale if any recorded hash
+changes, governance files are modified, or the task scope conflicts with the
+checked baseline.

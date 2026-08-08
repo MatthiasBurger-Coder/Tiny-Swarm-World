@@ -13,6 +13,8 @@ from tiny_swarm_world.domain.node_provider import (
     NodeSpec,
     SwarmManagerBootstrapOutcome,
     SwarmManagerState,
+    SwarmNodeReadinessEvidence,
+    SwarmNodeState,
     SwarmWorkerJoinCredential,
     SwarmWorkerJoinOutcome,
     WorkerJoinState,
@@ -113,6 +115,84 @@ class TestLxcSwarmBootstrapService(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(results[-1].evidence["classification"], "swarm_join_failed")
         self.assertNotIn("sensitive-value", repr([result.to_dict() for result in results]))
 
+    async def test_worker_join_is_blocked_without_a_usable_token(self):
+        swarm = _SwarmBootstrap(
+            manager=SwarmManagerBootstrapOutcome(
+                node=_manager(),
+                state=SwarmManagerState.ACTIVE,
+                manager_count=1,
+            ),
+            worker=SwarmWorkerJoinOutcome(
+                node=_worker(),
+                state=WorkerJoinState.UNKNOWN,
+                verified=False,
+            ),
+            credential=SwarmWorkerJoinCredential("<unavailable>"),
+        )
+
+        results = await LxcSwarmBootstrapService(swarm, _NetworkIdentity()).bootstrap_swarm(
+            _manager(),
+            (_worker(),),
+        )
+
+        self.assertEqual(VerificationStatus.BLOCKED, results[-1].status)
+        self.assertEqual(
+            "swarm_join_prerequisite_unavailable",
+            results[-1].evidence["classification"],
+        )
+        self.assertEqual(swarm.join_calls, 0)
+
+    async def test_membership_verification_uses_manager_observed_structured_state(self):
+        swarm = _SwarmBootstrap(
+            manager=SwarmManagerBootstrapOutcome(
+                node=_manager(),
+                state=SwarmManagerState.ACTIVE,
+                manager_count=1,
+            ),
+            worker=SwarmWorkerJoinOutcome(
+                node=_worker(),
+                state=WorkerJoinState.ALREADY_JOINED,
+                verified=True,
+            ),
+            membership=(
+                SwarmNodeReadinessEvidence(
+                    node=_manager(),
+                    docker_engine_observed=True,
+                    docker_engine_ready=True,
+                    swarm_state_observed=True,
+                    swarm_state=SwarmNodeState.ACTIVE,
+                    observed_role=NodeRole.MANAGER,
+                    manager_state="leader",
+                    manager_count=1,
+                    expected_node_count=2,
+                    observed_node_count=2,
+                ),
+                SwarmNodeReadinessEvidence(
+                    node=_worker(),
+                    docker_engine_observed=True,
+                    docker_engine_ready=True,
+                    swarm_state_observed=True,
+                    swarm_state=SwarmNodeState.ACTIVE,
+                    observed_role=NodeRole.WORKER,
+                    manager_count=1,
+                    expected_node_count=2,
+                    observed_node_count=2,
+                ),
+            ),
+        )
+
+        results = await LxcSwarmBootstrapService(swarm, _NetworkIdentity()).verify_swarm_membership(
+            _manager(),
+            (_worker(),),
+        )
+
+        self.assertEqual(
+            [result.status for result in results],
+            [VerificationStatus.VERIFIED, VerificationStatus.VERIFIED],
+        )
+        self.assertEqual(swarm.membership_calls, 1)
+        self.assertEqual(swarm.manager_inspection_calls, 0)
+
     async def test_swarm_step_aggregates_node_results_for_platform_workflow(self):
         swarm = _SwarmBootstrap(
             manager=SwarmManagerBootstrapOutcome(
@@ -182,19 +262,35 @@ class _SwarmBootstrap:
         worker: SwarmWorkerJoinOutcome,
         initialized_manager: SwarmManagerBootstrapOutcome | None = None,
         joined_worker: SwarmWorkerJoinOutcome | None = None,
+        credential: SwarmWorkerJoinCredential | None = None,
+        membership: tuple[SwarmNodeReadinessEvidence, ...] = (),
     ) -> None:
         self.manager = manager
         self.initialized_manager = initialized_manager
         self.worker = worker
         self.joined_worker = joined_worker
+        self.credential = credential or SwarmWorkerJoinCredential("sensitive-value")
+        self.membership = membership
         self.init_calls = 0
+        self.manager_inspection_calls = 0
+        self.membership_calls = 0
         self.join_calls = 0
         self.credential_calls = 0
         self.credentials_seen: list[SwarmWorkerJoinCredential] = []
 
     async def inspect_manager(self, node: NodeSpec) -> SwarmManagerBootstrapOutcome:
         await async_checkpoint()
+        self.manager_inspection_calls += 1
         return self.manager
+
+    async def inspect_membership(
+        self,
+        manager: NodeSpec,
+        expected_nodes: tuple[NodeSpec, ...],
+    ) -> tuple[SwarmNodeReadinessEvidence, ...]:
+        await async_checkpoint()
+        self.membership_calls += 1
+        return self.membership
 
     async def initialize_manager(
         self,
@@ -210,7 +306,7 @@ class _SwarmBootstrap:
     async def worker_join_credential(self, node: NodeSpec) -> SwarmWorkerJoinCredential:
         await async_checkpoint()
         self.credential_calls += 1
-        return SwarmWorkerJoinCredential("sensitive-value")
+        return self.credential
 
     async def inspect_worker(self, node: NodeSpec) -> SwarmWorkerJoinOutcome:
         await async_checkpoint()

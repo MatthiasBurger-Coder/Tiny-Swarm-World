@@ -162,6 +162,11 @@ def default_installation_plan() -> InstallationPlan:
                 order=20,
                 depends_on=("platform",),
                 services=("docker", "swarm"),
+                workflow_phase_names=(
+                    "cluster docker",
+                    "cluster swarm bootstrap",
+                    "cluster verify",
+                ),
             ),
             InstallationPhase(
                 phase_id="network-routing",

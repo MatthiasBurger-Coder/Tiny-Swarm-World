@@ -99,6 +99,16 @@ Quality scenarios:
 * missing verification contracts return `blocked`, not success;
 * apply failures return `failed_to_apply` and stop later setup phases;
 * verification failures return `failed_to_verify` and stop later setup phases;
+* `platform init` and `platform reconcile` do not own Docker installation or
+  Swarm bootstrap; setup runs cluster-owned Docker, Swarm bootstrap, and
+  cluster verification phases after node reconciliation;
+* cluster verification observes the managed Swarm manager with structured
+  membership records and requires every expected node to be present, Docker
+  `Ready`, node `Active`, and the expected manager in the contract-defined
+  `Leader` state;
+* missing, pending, or unavailable membership evidence is not converted into
+  success, and an unavailable worker join credential blocks joining before any
+  join command is attempted;
 * resource-gated profiles are distinct from full runnable success;
 * evidence persistence rejects raw command strings, stdout, stderr,
   environment payloads, tokens, passwords, Swarm join tokens, host-specific

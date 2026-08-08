@@ -101,7 +101,10 @@ microservices:
   LXC-native provider selection, Incus readiness, managed node lifecycle,
   network setup, Docker installation, Swarm initialization, preflight checks,
   node discovery, socat management, and workflow objects for platform `init`,
-  `reconcile`, `verify`, `reset`, and `destroy` commands.
+  `reconcile`, `verify`, `reset`, and `destroy` commands. Within setup,
+  `platform init` and `platform reconcile` are limited to managed-node
+  lifecycle work; the cluster workflow bundle owns Docker installation,
+  Swarm bootstrap, and structured cluster verification.
 * `ArtifactServices` is the explicit artifacts boundary. It owns
   `artifacts prepare` and `artifacts verify` workflow contracts. The setup
   composition adds `StaticArtifactContractPreflight` before host/platform
@@ -213,7 +216,10 @@ Console/status UI contracts:
 
 * Platform owns host preflight, Incus provider readiness, node lifecycle,
   Docker installation, Docker Swarm, network, retained legacy command-template
-  naming, and resource readiness behavior.
+  naming, and resource readiness behavior. The executable setup boundary keeps
+  node lifecycle in `platform init`/`platform reconcile`, then runs the
+  cluster-owned `cluster docker`, `cluster swarm bootstrap`, and `cluster
+  verify` phases before routing or deployment.
 * Artifacts owns Nexus, registry, image publication, and repository readiness
   behavior.
 * Deployment owns Portainer, compose assets, service stack apply behavior, and

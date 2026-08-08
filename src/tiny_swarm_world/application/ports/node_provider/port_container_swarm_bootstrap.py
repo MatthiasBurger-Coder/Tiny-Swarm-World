@@ -5,12 +5,21 @@ from abc import ABC, abstractmethod
 from tiny_swarm_world.domain.node_provider import (
     NodeSpec,
     SwarmManagerBootstrapOutcome,
+    SwarmNodeReadinessEvidence,
     SwarmWorkerJoinCredential,
     SwarmWorkerJoinOutcome,
 )
 
 
 class PortContainerSwarmBootstrap(ABC):
+    @abstractmethod
+    async def inspect_membership(
+        self,
+        manager: NodeSpec,
+        expected_nodes: tuple[NodeSpec, ...],
+    ) -> tuple[SwarmNodeReadinessEvidence, ...]:
+        pass
+
     @abstractmethod
     async def inspect_manager(self, node: NodeSpec) -> SwarmManagerBootstrapOutcome:
         pass

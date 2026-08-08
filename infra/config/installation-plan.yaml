@@ -19,6 +19,7 @@ required_services:
   - swagger
 required_phase_ids:
   - preflight
+  - host-preparation
   - platform
   - cluster
   - network-routing
@@ -38,12 +39,23 @@ phases:
     services: []
     workflow_phases:
       - preflight
+      - artifact contract preflight
+
+  - id: host-preparation
+    order: 5
+    required: true
+    depends_on:
+      - preflight
+    services: []
+    workflow_phases:
+      - host prepare
+      - host verify
 
   - id: platform
     order: 10
     required: true
     depends_on:
-      - preflight
+      - host-preparation
     services: []
     workflow_phases:
       - platform init
@@ -57,7 +69,10 @@ phases:
     services:
       - docker
       - swarm
-    workflow_phases: []
+    workflow_phases:
+      - cluster docker
+      - cluster swarm bootstrap
+      - cluster verify
 
   - id: network-routing
     order: 30
@@ -87,6 +102,8 @@ phases:
     services:
       - nexus
     workflow_phases:
+      - artifact bootstrap
+      - artifact readiness gate
       - artifacts prepare
       - artifacts verify
 

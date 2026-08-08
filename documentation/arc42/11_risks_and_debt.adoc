@@ -83,9 +83,10 @@ Remaining debt:
 
 The LXC-native provider direction is accepted and partially implemented.
 Default provider selection, Incus readiness, node lifecycle adapters,
-Docker Engine setup inside managed LXC nodes, Swarm bootstrap, setup/platform
-init integration, LXC-native managed-node reconcile completion, and unsupported
-provider rejection are implemented and test-backed.
+Docker Engine setup inside managed LXC nodes, Swarm bootstrap, setup cluster
+phase integration, structured managed-manager membership verification,
+LXC-native managed-node reconcile completion, and unsupported provider
+rejection are implemented and test-backed.
 
 Remaining risks and debt:
 
@@ -99,6 +100,10 @@ Remaining risks and debt:
   provider state;
 * Docker Swarm inside Incus containers has not been live-validated by this
   repository workflow;
+* local tests verify phase ownership and structured managed-manager evidence,
+  but they do not prove that a live Incus manager reports the expected
+  `Leader` state or that all configured nodes can communicate on a real
+  overlay network;
 * WSL2 success could be overclaimed if documentation, static tests, or native
   Linux evidence are treated as WSL2 live evidence;
 * Docker Swarm inside Incus containers may require nesting, cgroup,

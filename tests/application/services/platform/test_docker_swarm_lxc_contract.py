@@ -50,6 +50,7 @@ class TestDockerSwarmInLxcContractService(unittest.TestCase):
                 swarm_state_observed=True,
                 swarm_state=SwarmNodeState.ACTIVE,
                 observed_role=NodeRole.MANAGER,
+                manager_state="leader",
                 manager_count=1,
                 expected_node_count=1,
                 observed_node_count=1,
