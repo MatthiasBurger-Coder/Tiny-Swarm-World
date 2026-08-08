@@ -53,6 +53,16 @@ class SonarqubeKernelStrategy:
         )
 
 
+class SwaggerAssetPrerequisiteStrategy:
+    """Keep an explicit registry hook for Swagger's asset-only preparation."""
+
+    def apply(self, context: StackPrerequisiteContext) -> None:
+        if context.stack_name == "swagger":
+            # Swagger has no manager-side shell prerequisite; its files are
+            # handled by StackAssetTransfer after this registry completes.
+            return
+
+
 class StackPrerequisiteRegistry:
     """Apply ordered, stack-specific prerequisite strategies."""
 
@@ -63,6 +73,7 @@ class StackPrerequisiteRegistry:
                 ExternalOverlayNetworkStrategy(),
                 TraefikTlsStrategy(),
                 SonarqubeKernelStrategy(),
+                SwaggerAssetPrerequisiteStrategy(),
             )
         )
 

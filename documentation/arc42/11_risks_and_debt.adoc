@@ -90,11 +90,12 @@ rejection are implemented and test-backed.
 
 Remaining risks and debt:
 
-* Issue #183 tracks the remaining large-class risk in
-  `lxc_swarm_runtime.py`. Its planned compatibility-preserving split must not
-  be treated as implemented until the extracted adapters, legacy exports,
-  composition wiring, architecture guards, local quality, external
-  SonarQube result, and issue-specific browser evidence are all reviewed.
+* Issue #183's local compatibility-preserving split is implemented through
+  `infrastructure/adapters/clients/lxc/` and direct composition imports. The
+  remaining debt is the non-public historical implementation retained in the
+  legacy module during compatibility migration, plus the unavailable external
+  SonarQube and live browser acceptance evidence; the issue must remain
+  blocked until those states are resolved and independently audited.
 * default artifact and deployment workflows have provider-native publication,
   stack, and observed-state contracts, but live registry, Portainer, Swarm,
   external-input, and readiness evidence still needs explicit operator

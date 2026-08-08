@@ -1,12 +1,12 @@
 # Responsibility Separation Analysis
 
-Status: analysis and planning only; pre-removal Multipass path references are
-archival and superseded by
+Status: baseline analysis plus Issue #183 local implementation update;
+pre-removal Multipass path references are archival and superseded by
 `documentation/arc42/09_decisions/adr-retire-multipass-legacy-provider.adoc`.
 
 This document records the current responsibility boundaries in Tiny Swarm World
-and identifies the files that should be owned by future bounded areas. No live
-infrastructure commands were run for this analysis.
+and identifies the files owned by bounded areas. No live infrastructure
+commands were run for this analysis or the Issue #183 local implementation.
 
 ## Safety Inspection
 
@@ -260,3 +260,20 @@ These areas need explicit classification before any cleanup:
   Dockerfiles and templates. Future artifact work should decide whether
   generated Dockerfiles are source artifacts or build outputs on a per-service
   basis.
+
+## Issue #183 Local Implementation Update
+
+The Issue #183 extraction is now present under
+`infrastructure/adapters/clients/lxc/`: command execution and diagnostics,
+Swarm stack/runtime and prerequisite strategies, Docker container inspection,
+Portainer/Nexus service clients, and image publication/errors. The composition
+root imports the extracted Docker, service, and image adapters directly. The
+legacy `lxc_swarm_runtime.py` path remains for the Swarm port and approved
+compatibility facades/aliases so existing consumers and patch targets remain
+stable.
+
+Local verification passed the full quality gate with 1,633 tests passed and 28
+skipped. This is local evidence only: Issue #183 remains blocked for final
+acceptance until live Selenium evidence and an observable SonarQube result are
+available. The issue evidence responsibility map records the residual
+non-public legacy definitions retained during compatibility migration.
