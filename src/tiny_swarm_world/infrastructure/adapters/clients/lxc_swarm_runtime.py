@@ -12,9 +12,6 @@ import requests
 from tiny_swarm_world.application.ports.clients.port_container_image_publisher import (
     PortContainerImagePublisher,
 )
-from tiny_swarm_world.application.ports.clients.port_container_runtime import (
-    PortContainerRuntime,
-)
 from tiny_swarm_world.application.ports.clients.port_deployment_gateway import (
     DeploymentStackRequest,
     PortDeploymentGateway,
@@ -44,6 +41,25 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics im
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.manager_shell_gateway import (
     LxcManagerShellGateway,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.docker.lxc_container_runtime import (
+    LxcContainerRuntime,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.images.errors import (
+    ImagePublisherOperationRejected as _ExtractedImagePublisherOperationRejected,
+    PublicImagePullRejected as _ExtractedPublicImagePullRejected,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.images.lxc_container_image_publisher import (
+    LxcContainerImagePublisher as _ExtractedLxcContainerImagePublisher,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_nexus_http_client import (
+    LxcNexusHttpClient as _ExtractedLxcNexusHttpClient,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_portainer_admin_client import (
+    LxcPortainerAdminClient as _ExtractedLxcPortainerAdminClient,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_portainer_http_client import (
+    LxcPortainerHttpClient as _ExtractedLxcPortainerHttpClient,
+)
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.stack_asset_transfer import (
     StackAssetTransfer,
 )
@@ -72,6 +88,17 @@ REGISTRY_RATE_LIMITED_OPERATOR_ACTION = (
     "Configure Docker Hub authentication, an approved registry mirror, "
     "or a provider-managed image cache."
 )
+
+__all__ = [
+    "ImagePublisherOperationRejected",
+    "LxcContainerImagePublisher",
+    "LxcContainerRuntime",
+    "LxcNexusHttpClient",
+    "LxcPortainerAdminClient",
+    "LxcPortainerHttpClient",
+    "LxcSwarmRuntime",
+    "PublicImagePullRejected",
+]
 
 
 class LxcSwarmRuntime(PortSwarmStackRuntime):
@@ -243,107 +270,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         )
 
 
-class LxcContainerRuntime(PortContainerRuntime):
-    def __init__(
-        self,
-        *,
-        backend: ManagedLxcBackend,
-        manager_node: str = "swarm-manager",
-        node_names: tuple[str, ...] = ("swarm-manager",),
-        timeout_seconds: int = 120,
-    ):
-        if timeout_seconds <= 0:
-            raise ValueError("Container runtime timeout must be positive.")
-        if not node_names:
-            raise ValueError("Container runtime node list must not be empty.")
-        self.backend = backend
-        self.manager_node = manager_node
-        self.node_names = tuple(dict.fromkeys(node_names))
-        self.timeout_seconds = timeout_seconds
-        self.logger = LoggerFactory.get_logger(self.__class__)
-
-    def find_container_names(self, name_filter: str) -> list[str]:
-        container_names: list[str] = []
-        for node_name in self.node_names:
-            result = self._run_docker(
-                ["ps", "--filter", f"name={name_filter}", "--format", "{{.Names}}"],
-                check=False,
-                node_name=node_name,
-            )
-            container_names.extend(
-                _lxc_container_ref(node_name, line.strip())
-                for line in result.stdout.splitlines()
-                if line.strip()
-            )
-        return container_names
-
-    def file_exists(self, container_name: str, file_path: str) -> bool:
-        node_name, resolved_container_name = _split_lxc_container_ref(
-            container_name,
-            self.manager_node,
-        )
-        result = self._run_docker(
-            ["exec", resolved_container_name, "test", "-f", file_path],
-            check=False,
-            node_name=node_name,
-        )
-        return result.returncode == 0
-
-    def read_file(self, container_name: str, file_path: str) -> str:
-        node_name, resolved_container_name = _split_lxc_container_ref(
-            container_name,
-            self.manager_node,
-        )
-        result = self._run_docker(
-            ["exec", resolved_container_name, "cat", file_path],
-            check=True,
-            node_name=node_name,
-        )
-        return result.stdout
-
-    def _run_docker(
-        self,
-        docker_args: list[str],
-        *,
-        check: bool,
-        node_name: str | None = None,
-    ) -> subprocess.CompletedProcess[str]:
-        operation = docker_args[0] if docker_args else "operation"
-        target_node = node_name or self.manager_node
-        self.logger.info("Running LXC Docker operation '%s' on node '%s'.", operation, target_node)
-        try:
-            result = subprocess.run(
-                [_BACKEND_CLI[self.backend], "exec", target_node, "--", "docker", *docker_args],
-                capture_output=True,
-                text=True,
-                check=False,
-                shell=False,
-                timeout=self.timeout_seconds,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError(
-                f"LXC Docker runtime operation timed out on node '{target_node}'."
-            ) from exc
-        if check and result.returncode != 0:
-            raise RuntimeError(
-                "LXC Docker runtime operation failed on node "
-                f"'{target_node}' with exit code {result.returncode}."
-            )
-        return result
-
-
-def _lxc_container_ref(node_name: str, container_name: str) -> str:
-    return f"{node_name}::{container_name}"
-
-
-def _split_lxc_container_ref(container_ref: str, default_node: str) -> tuple[str, str]:
-    node_name, separator, container_name = container_ref.partition("::")
-    if not separator:
-        return default_node, container_ref
-    return node_name, container_name
-
-
-class LxcPortainerAdminClient(PortPortainerAdminClient):
+class _LegacyLxcPortainerAdminClient(PortPortainerAdminClient):
     def __init__(
         self,
         *,
@@ -417,7 +344,7 @@ class LxcPortainerAdminClient(PortPortainerAdminClient):
         return {}
 
 
-class LxcNexusHttpClient(PortNexusClient):
+class _LegacyLxcNexusHttpClient(PortNexusClient):
     def __init__(
         self,
         *,
@@ -523,7 +450,7 @@ class LxcNexusHttpClient(PortNexusClient):
         )
 
 
-class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
+class _LegacyLxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
     def __init__(
         self,
         *,
@@ -661,7 +588,7 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         )
 
 
-class LxcContainerImagePublisher(PortContainerImagePublisher):
+class _LegacyLxcContainerImagePublisher(PortContainerImagePublisher):
     def __init__(
         self,
         *,
@@ -914,7 +841,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         return result
 
 
-class PublicImagePullRejected(RuntimeError):
+class _LegacyPublicImagePullRejected(RuntimeError):
     def __init__(self, image_ref: str, *, diagnostic: str, operator_action: str):
         super().__init__(f"Public container image pull failed for {image_ref}.")
         self.image_ref = image_ref
@@ -922,7 +849,7 @@ class PublicImagePullRejected(RuntimeError):
         self.operator_action = operator_action
 
 
-class ImagePublisherOperationRejected(RuntimeError):
+class _LegacyImagePublisherOperationRejected(RuntimeError):
     def __init__(
         self,
         *,
@@ -1070,6 +997,103 @@ def _quote_remote_path(path: str) -> str:
     """Compatibility export used by the remaining image-publisher adapter."""
 
     return _swarm_stack_runtime._quote_remote_path(path)
+
+
+class LxcPortainerAdminClient(_ExtractedLxcPortainerAdminClient):
+    """Compatibility facade retaining the legacy manager-IP patch seam."""
+
+    def __init__(
+        self,
+        *,
+        backend: ManagedLxcBackend,
+        manager_node: str = "swarm-manager",
+        port: int = 10001,
+        scheme: str = "http",
+        session: requests.Session | None = None,
+        timeout_seconds: int = 30,
+    ) -> None:
+        super().__init__(
+            backend=backend,
+            manager_node=manager_node,
+            port=port,
+            scheme=scheme,
+            session=session,
+            timeout_seconds=timeout_seconds,
+            manager_ip_resolver=lambda resolved_backend, resolved_node, resolved_timeout: _lxc_manager_ip(
+                resolved_backend,
+                resolved_node,
+                resolved_timeout,
+            ),
+        )
+
+
+class LxcNexusHttpClient(_ExtractedLxcNexusHttpClient):
+    """Compatibility facade retaining the legacy manager-IP patch seam."""
+
+    def __init__(
+        self,
+        *,
+        backend: ManagedLxcBackend,
+        manager_node: str = "swarm-manager",
+        port: int = 13081,
+        scheme: str = "http",
+        session: requests.Session | None = None,
+        timeout_seconds: int = 30,
+    ) -> None:
+        super().__init__(
+            backend=backend,
+            manager_node=manager_node,
+            port=port,
+            scheme=scheme,
+            session=session,
+            timeout_seconds=timeout_seconds,
+            manager_ip_resolver=lambda resolved_backend, resolved_node, resolved_timeout: _lxc_manager_ip(
+                resolved_backend,
+                resolved_node,
+                resolved_timeout,
+            ),
+        )
+
+
+class LxcPortainerHttpClient(_ExtractedLxcPortainerHttpClient):
+    """Compatibility facade retaining the legacy manager-IP patch seam."""
+
+    def __init__(
+        self,
+        *,
+        backend: ManagedLxcBackend,
+        username: str,
+        password: str,
+        manager_node: str = "swarm-manager",
+        port: int = 10001,
+        scheme: str = "http",
+        api_url: str | None = None,
+        session: requests.Session | None = None,
+        timeout_seconds: int = 30,
+        stack_request_timeout_seconds: int = 180,
+    ) -> None:
+        super().__init__(
+            backend=backend,
+            username=username,
+            password=password,
+            manager_node=manager_node,
+            port=port,
+            scheme=scheme,
+            api_url=api_url,
+            session=session,
+            timeout_seconds=timeout_seconds,
+            stack_request_timeout_seconds=stack_request_timeout_seconds,
+            manager_ip_resolver=lambda resolved_backend, resolved_node, resolved_timeout: _lxc_manager_ip(
+                resolved_backend,
+                resolved_node,
+                resolved_timeout,
+            ),
+        )
+
+
+LxcContainerImagePublisher = _ExtractedLxcContainerImagePublisher
+PublicImagePullRejected = _ExtractedPublicImagePullRejected
+ImagePublisherOperationRejected = _ExtractedImagePublisherOperationRejected
 
 
 _is_transient_manager_shell_failure = is_transient_manager_shell_failure

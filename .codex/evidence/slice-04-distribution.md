@@ -1,16 +1,71 @@
-# Slice 04 Distribution and S3D Decision
+# Slice 04 Distribution Decision
 
-- workflow id: `issue-218-20260720`
-- slice id: `04`
-- title: CLI, evidence, documentation and final verification
-- affected areas: CLI entrypoint, issue evidence, workflow/documentation, tests
-- execution mode: sequential
-- selected streams: documentation, tests, architecture review, quality
-- real subagents used: no visible callable subagent runtime
-- fallback role-based review: yes; Requirement Lead, System Architect, Senior Tester, Senior DevOps and Issue Completion Auditor perspectives recorded in the issue matrix and current audit
-- Git worktrees: not used; CLI/evidence/contracts overlap and must be integrated serially on the active issue branch
-- expected touched files/directories: `__main__.py`, `documentation/workflow/**`, `documentation/arc42/**`, `.tiny-swarm/evidence/issue-218/**`, `.codex/evidence/**`, `tests/**`
-- conflict risks: host-preparation contracts and final evidence are shared by every later slice; workflow/context branch metadata was stale
-- quality gates: `git diff --check`, targeted unittest, `python3 tools/quality_gate.py quality` from Linux filesystem
-- consolidation plan: keep one integration branch, update matrix before each implementation slice, run targeted tests, then full gates and independent audit
-- parallelization decision: rejected because slice 04 owns shared evidence and CLI contracts and later slices depend on its stable requirement IDs
+Workflow: `issue-183-20260808`
+Slice: `04` — Extract Docker, service clients, image publisher, and errors
+
+## Affected areas
+
+* `LxcContainerRuntime` and its Docker command behavior;
+* LXC Portainer admin/client and Nexus HTTP wrappers;
+* LXC image publisher and rejection/error types;
+* compatibility exports and the existing adapter test surface.
+
+## Execution decision
+
+* Chosen mode: `sequential`.
+* Real Codex subagents used: `No callable subagent surface is available.`
+* Fallback role-based review used: `Yes`.
+* Git worktrees used: `No`; all extracted classes and compatibility imports
+  share the legacy module and its test patches.
+* Selected streams: backend extraction, tests, architecture, and security/
+  error-mapping review.
+* Documentation and live-runtime streams: review-only.
+
+## Fallback role review
+
+* Senior Python Automation Developer: move each cohesive adapter into its
+  declared package without changing constructor or port behavior.
+* Senior System Architect: keep the LXC Docker-engine runtime distinct from
+  `LxcContainerRuntime` and preserve application ports.
+* Senior Tester: preserve subprocess, HTTP session, timeout, cleanup, status,
+  and exception-identity seams with mock-only tests.
+* Senior Security Sandbox Engineer: preserve credential redaction, safe HTTP
+  error messages, registry diagnostics, and operator-action text.
+
+## Expected touched files/directories
+
+* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/docker/`
+* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/`
+* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/`
+* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py`
+* `tests/infrastructure/adapters/clients/lxc/`
+* `.codex/evidence/slice-04-distribution.md`
+* `.codex/evidence/slice-04-consolidation.md`
+
+## Conflict risks
+
+The legacy classes share helper functions, shell seams, HTTP validation, and
+error types. Existing tests patch the old module path after construction. The
+extracted modules must use dynamic compatibility callbacks where needed and
+must not merge this LXC Docker runtime with the separate Docker-engine runtime
+adapter.
+
+## Quality gates
+
+* focused Docker, Portainer, Nexus, image-publisher, and compatibility tests;
+* `python3 tools/quality_gate.py lint`;
+* `python3 tools/quality_gate.py typecheck`;
+* `python3 tools/quality_gate.py arch-lint`;
+* `python3 tools/quality_gate.py arch-tests`;
+* `git diff --check`.
+
+## Consolidation plan
+
+Codex will inspect package ownership, compatibility exports, error identity,
+credential handling, and the distinction from the existing Docker-engine
+runtime; then run focused gates and create one Slice 04 checkpoint.
+
+## Parallelization decision
+
+Rejected because the shared legacy module and patch-based tests make these
+responsibilities unsafe to edit in parallel.
