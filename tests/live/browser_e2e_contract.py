@@ -35,7 +35,7 @@ else:
 
 
 RUN_LIVE_ENV = "TSW_RUN_POST_INSTALL_BROWSER_LIVE"
-E2E_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/solid-typed-evidence/e2e")
+E2E_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e")
 LOGIN_REQUIRED_ROUTES = frozenset(
     {
         "infisical",
@@ -537,7 +537,7 @@ def _browser_navigation_reached_expected_host(current_url: str, expected_url: st
 
 def _assert_evidence_target(testcase: Any) -> None:
     testcase.assertEqual(
-        ".tiny-swarm-world/evidence/solid-typed-evidence/e2e",
+        ".tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e",
         E2E_EVIDENCE_ROOT.as_posix(),
     )
 
