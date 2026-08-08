@@ -32,6 +32,13 @@ from tiny_swarm_world.application.services.platform import NodeProviderSelection
 
 
 @dataclass(frozen=True)
+class ClusterWorkflows:
+    docker: PlatformInitWorkflow
+    swarm_bootstrap: PlatformInitWorkflow
+    verify: PlatformVerifyWorkflow
+
+
+@dataclass(frozen=True)
 class PlatformWorkflows:
     init: PlatformInitWorkflow
     reconcile: PlatformReconcileWorkflow
@@ -40,6 +47,7 @@ class PlatformWorkflows:
     reset: PlatformResetWorkflow
     destroy: PlatformDestroyWorkflow
     verify: PlatformVerifyWorkflow
+    cluster: ClusterWorkflows
 
 
 @dataclass(frozen=True)

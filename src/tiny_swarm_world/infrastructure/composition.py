@@ -257,6 +257,7 @@ from tiny_swarm_world.infrastructure.composition_models import (
     ApplicationServices,
     ArtifactServices,
     ArtifactWorkflows,
+    ClusterWorkflows,
     DeploymentServices,
     DeploymentWorkflows,
     PlatformServices,
@@ -1068,10 +1069,6 @@ def build_platform_services(
     init_steps = _platform_init_steps(
         provider_request=provider_request,
         node_provider_selection=node_provider_selection,
-        lxc_steps=(
-            LxcDockerInstallStep(lxc_docker_install, DEFAULT_LXC_PLATFORM_NODES),
-            LxcSwarmBootstrapStep(lxc_swarm_bootstrap, DEFAULT_LXC_PLATFORM_NODES),
-        ),
     )
     workflows = PlatformWorkflows(
         init=PlatformInitWorkflow(
@@ -1150,8 +1147,6 @@ def build_platform_services(
                 post_install_preflight,
                 provider_request=provider_request,
                 node_provider_selection=node_provider_selection,
-                lxc_docker_install=lxc_docker_verify,
-                lxc_swarm_bootstrap=lxc_swarm_verify,
                 lxc_service_exposure=lxc_service_exposure_verify,
             ),
             progress=workflow_progress,
@@ -1159,6 +1154,33 @@ def build_platform_services(
             trace_correlation_id=trace_correlation_id,
             verify_retry_attempts=6,
             verify_retry_delay_seconds=10.0,
+        ),
+        cluster=ClusterWorkflows(
+            docker=PlatformInitWorkflow(
+                _cluster_docker_steps(lxc_docker_install),
+                verification_evidence_repository=verification_evidence_repository,
+                progress=workflow_progress,
+                method_trace=method_trace,
+                trace_correlation_id=trace_correlation_id,
+            ),
+            swarm_bootstrap=PlatformInitWorkflow(
+                _cluster_swarm_bootstrap_steps(lxc_swarm_bootstrap),
+                verification_evidence_repository=verification_evidence_repository,
+                progress=workflow_progress,
+                method_trace=method_trace,
+                trace_correlation_id=trace_correlation_id,
+            ),
+            verify=PlatformVerifyWorkflow(
+                _cluster_verify_steps(
+                    lxc_docker_verify,
+                    lxc_swarm_verify,
+                ),
+                progress=workflow_progress,
+                method_trace=method_trace,
+                trace_correlation_id=trace_correlation_id,
+                verify_retry_attempts=6,
+                verify_retry_delay_seconds=10.0,
+            ),
         ),
     )
 
@@ -1972,13 +1994,26 @@ def _platform_init_steps(
     *,
     provider_request: NodeProviderSelectionRequest,
     node_provider_selection: NodeProviderSelectionService,
-    lxc_steps: tuple[AsyncWorkflowStep, ...],
 ) -> tuple[AsyncWorkflowStep, ...]:
     node_steps = tuple(
         NodeProviderEnsureNodeStep(node, node_provider_selection, provider_request)
         for node in DEFAULT_LXC_PLATFORM_NODES
     )
-    return (*node_steps, *lxc_steps)
+    return node_steps
+
+
+def _cluster_docker_steps(
+    lxc_docker_install: LxcDockerInstallService,
+) -> tuple[AsyncWorkflowStep, ...]:
+    return (LxcDockerInstallStep(lxc_docker_install, DEFAULT_LXC_PLATFORM_NODES),)
+
+
+def _cluster_swarm_bootstrap_steps(
+    lxc_swarm_bootstrap: LxcSwarmBootstrapService,
+) -> tuple[AsyncWorkflowStep, ...]:
+    return (
+        LxcSwarmBootstrapStep(lxc_swarm_bootstrap, DEFAULT_LXC_PLATFORM_NODES),
+    )
 
 
 def _platform_reconcile_steps(
@@ -2020,8 +2055,6 @@ def _platform_verify_steps(
     *,
     provider_request: NodeProviderSelectionRequest,
     node_provider_selection: NodeProviderSelectionService,
-    lxc_docker_install: LxcDockerInstallService,
-    lxc_swarm_bootstrap: LxcSwarmBootstrapService,
     lxc_service_exposure: LxcServiceExposureService,
 ) -> tuple[AsyncWorkflowStep, ...]:
     node_steps = tuple(
@@ -2031,10 +2064,18 @@ def _platform_verify_steps(
     return (
         post_install_preflight,
         *node_steps,
-        LxcDockerVerifyStep(lxc_docker_install, DEFAULT_LXC_PLATFORM_NODES),
-        LxcSwarmVerifyStep(lxc_swarm_bootstrap, DEFAULT_LXC_PLATFORM_NODES),
         LxcServiceExposureVerifyStep(lxc_service_exposure),
         _portainer_endpoint_verify_step(provider_request),
+    )
+
+
+def _cluster_verify_steps(
+    lxc_docker_verify: LxcDockerInstallService,
+    lxc_swarm_verify: LxcSwarmBootstrapService,
+) -> tuple[AsyncWorkflowStep, ...]:
+    return (
+        LxcDockerVerifyStep(lxc_docker_verify, DEFAULT_LXC_PLATFORM_NODES),
+        LxcSwarmVerifyStep(lxc_swarm_verify, DEFAULT_LXC_PLATFORM_NODES),
     )
 
 

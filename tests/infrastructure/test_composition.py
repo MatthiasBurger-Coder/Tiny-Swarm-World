@@ -219,6 +219,7 @@ class TestComposition(unittest.TestCase):
                 "reset",
                 "destroy",
                 "verify",
+                "cluster",
             },
         )
 
@@ -523,6 +524,19 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(
             services.workflows.verify, composition.PlatformVerifyWorkflow
         )
+        self.assertIsInstance(services.workflows.cluster, composition.ClusterWorkflows)
+        self.assertIsInstance(
+            services.workflows.cluster.docker,
+            composition.PlatformInitWorkflow,
+        )
+        self.assertIsInstance(
+            services.workflows.cluster.swarm_bootstrap,
+            composition.PlatformInitWorkflow,
+        )
+        self.assertIsInstance(
+            services.workflows.cluster.verify,
+            composition.PlatformVerifyWorkflow,
+        )
         self.assertIs(
             evidence_repository,
             services.workflows.init.verification_evidence_repository,
@@ -596,19 +610,35 @@ class TestComposition(unittest.TestCase):
         self.assertIsNot(services.preflight, verify_preflight)
         self.assertGreater(len(services.preflight.configuration.required_ports), 0)
         self.assertEqual(verify_preflight.configuration.required_ports, ())
-        self.assertEqual(len(verify_steps), 8)
+        self.assertEqual(len(verify_steps), 6)
         self.assertTrue(
             all(
                 isinstance(step, composition.NodeProviderVerifyNodeStep)
                 for step in verify_steps[1:4]
             )
         )
-        self.assertIsInstance(verify_steps[4], composition.LxcDockerVerifyStep)
-        self.assertIsInstance(verify_steps[5], composition.LxcSwarmVerifyStep)
-        self.assertIsInstance(verify_steps[6], composition.LxcServiceExposureVerifyStep)
+        self.assertIsInstance(verify_steps[4], composition.LxcServiceExposureVerifyStep)
         self.assertEqual(
             composition.PortainerEndpointVerifyStep.verification_target_id,
-            verify_steps[7].verification_target_id,
+            verify_steps[5].verification_target_id,
+        )
+        self.assertEqual(len(services.workflows.cluster.docker.steps), 1)
+        self.assertIsInstance(
+            services.workflows.cluster.docker.steps[0], composition.LxcDockerInstallStep
+        )
+        self.assertEqual(len(services.workflows.cluster.swarm_bootstrap.steps), 1)
+        self.assertIsInstance(
+            services.workflows.cluster.swarm_bootstrap.steps[0],
+            composition.LxcSwarmBootstrapStep,
+        )
+        self.assertEqual(len(services.workflows.cluster.verify.steps), 2)
+        self.assertIsInstance(
+            services.workflows.cluster.verify.steps[0],
+            composition.LxcDockerVerifyStep,
+        )
+        self.assertIsInstance(
+            services.workflows.cluster.verify.steps[1],
+            composition.LxcSwarmVerifyStep,
         )
 
     def test_build_platform_services_wires_reset_destroy_managed_node_steps(self):
@@ -2296,7 +2326,7 @@ class TestComposition(unittest.TestCase):
             tuple(result.verification_results), evidence_repository.list_all()
         )
 
-    def test_composed_default_lxc_init_runs_container_runtime_and_swarm_steps(self):
+    def test_composed_default_lxc_cluster_workflows_run_runtime_and_swarm_steps(self):
         evidence_repository = _RecordingEvidenceRepository()
 
         async def verified_node(node, request=None):
@@ -2365,19 +2395,33 @@ class TestComposition(unittest.TestCase):
                         side_effect=verified_swarm,
                     ) as bootstrap_swarm:
                         services = composition.build_platform_services()
-                        result = asyncio.run(services.workflows.init.run())
+                        init_result = asyncio.run(services.workflows.init.run())
+                        docker_result = asyncio.run(
+                            services.workflows.cluster.docker.run()
+                        )
+                        swarm_result = asyncio.run(
+                            services.workflows.cluster.swarm_bootstrap.run()
+                        )
 
-        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
-        self.assertTrue(result.executed)
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, init_result.status)
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, docker_result.status)
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, swarm_result.status)
+        self.assertTrue(init_result.executed)
         self.assertEqual(
-            tuple(item.target_id for item in result.verification_results),
+            tuple(item.target_id for item in init_result.verification_results),
             (
                 "platform:node:swarm-manager",
                 "platform:node:swarm-worker-1",
                 "platform:node:swarm-worker-2",
-                "platform:init:lxc-container-runtime",
-                "platform:init:lxc-swarm-bootstrap",
             ),
+        )
+        self.assertEqual(
+            tuple(item.target_id for item in docker_result.verification_results),
+            ("platform:init:lxc-container-runtime",),
+        )
+        self.assertEqual(
+            tuple(item.target_id for item in swarm_result.verification_results),
+            ("platform:init:lxc-swarm-bootstrap",),
         )
         ensure_runtime.assert_called_once()
         bootstrap_swarm.assert_called_once()
@@ -2391,7 +2435,12 @@ class TestComposition(unittest.TestCase):
             ("swarm-worker-1", "swarm-worker-2"),
         )
         self.assertEqual(
-            tuple(result.verification_results), evidence_repository.list_all()
+            tuple(
+                (*init_result.verification_results,
+                 *docker_result.verification_results,
+                 *swarm_result.verification_results)
+            ),
+            evidence_repository.list_all(),
         )
 
     def test_composed_default_lxc_init_without_live_consent_fails_closed_before_runtime_probe(
@@ -2426,7 +2475,7 @@ class TestComposition(unittest.TestCase):
                     ),
                 ):
                     services = composition.build_platform_services()
-                    result = asyncio.run(services.workflows.init.run())
+                    result = asyncio.run(services.workflows.cluster.docker.run())
 
         self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
         self.assertFalse(result.executed)
