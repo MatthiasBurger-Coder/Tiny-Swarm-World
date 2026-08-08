@@ -167,14 +167,22 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runti
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_proxy_device_runtime import (
     LxcProxyDeviceRuntime,
 )
-from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
-    LxcContainerImagePublisher,
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.docker.lxc_container_runtime import (
     LxcContainerRuntime,
-    LxcNexusHttpClient,
-    LxcPortainerAdminClient,
-    LxcPortainerHttpClient,
-    LxcSwarmRuntime,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.images.lxc_container_image_publisher import (
+    LxcContainerImagePublisher,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_nexus_http_client import (
+    LxcNexusHttpClient,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_portainer_admin_client import (
+    LxcPortainerAdminClient,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_portainer_http_client import (
+    LxcPortainerHttpClient,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import LxcSwarmRuntime
 from tiny_swarm_world.infrastructure.adapters.clients.infisical_playwright_client import (
     PlaywrightInfisicalClient,
 )

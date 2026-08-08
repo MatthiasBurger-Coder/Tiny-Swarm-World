@@ -1,17 +1,51 @@
-# Issue #218 — Slice 05 consolidation
+# Slice 05 Consolidation
 
-Artifact source readiness is now explicit and bounded:
+Workflow: `issue-183-20260808`
+Slice: `05` — Migrate composition and preserve the compatibility surface
+Status: `ACCEPTED_FOR_CHECKPOINT`
 
-- `direct-internet`, `nexus`, `fallback`, and `offline` modes are supported.
-- HTTP source probes use a configured timeout and accept registry
-  authentication challenges as reachability evidence.
-- Offline mode is fail-closed and requires a versioned local manifest with
-  non-empty artifacts and matching SHA-256 checksums.
-- Missing, malformed, unreadable, or mismatched offline artifacts return a
-  structured `FAILED` result before platform mutation.
-- The composite quality gate passed after this change: 1576 tests, 28 skipped
-  in 124.501 seconds; all required local checks exited 0.
+## Distribution result
 
-The live WSL2 run used direct internet and completed successfully. A live Nexus
-cache was not required for that run and no Nexus/Docker/apt mutation was
-performed by the readiness probe itself.
+The slice remained sequential because composition, the legacy adapter module,
+and infrastructure tests share constructor and patch contracts. No callable
+Codex subagent surface was available; the documented fallback review covered
+Senior System Architect, Senior Python Automation Developer, Senior Tester,
+and Senior Documentation Engineer responsibilities.
+
+## Implemented scope
+
+* Migrated `composition.py` to import concrete Docker, image, Portainer, and
+  Nexus adapters from their extracted `lxc/` packages.
+* Preserved `LxcSwarmRuntime` as the legacy compatibility implementation for
+  the Swarm port and preserved old public service/image names through facades
+  and aliases.
+* Added `tests/architecture/test_lxc_runtime_boundaries.py` to assert concrete
+  composition ownership and restrict public class definitions in the legacy
+  module to the approved runtime/facade surface.
+* Kept `composition.py` as the dependency-wiring root; no application port or
+  provider-selection behavior changed.
+
+## Review findings
+
+* Architecture: accepted. Composition now owns concrete extracted-adapter
+  wiring, while application services still receive ports.
+* Compatibility: accepted. Composition, logging, runtime, and legacy patch
+  tests passed without broad rewrites.
+* Documentation: accepted. The existing Arc42 responsibility direction still
+  matches the package split; no new ADR is needed.
+* Live infrastructure: not run; no live consent was provided or required.
+
+## Verification evidence
+
+* Targeted composition/runtime/boundary suite: `157` tests passed.
+* Full test gate: `1,633` tests passed, `28` skipped, in `117.606` seconds.
+* `python3 tools/quality_gate.py quality`: passed in `143.9` seconds,
+  including verification-policy, Ruff, import-linter, mypy, architecture
+  tests, and the full test suite.
+* `git diff --check`: passed.
+
+## Consolidation decision
+
+No stream changes were rejected and no merge conflict occurred. The slice is
+accepted for one checkpoint commit on the active workflow branch. SonarQube,
+browser checks, and live infrastructure evidence remain unclaimed.
