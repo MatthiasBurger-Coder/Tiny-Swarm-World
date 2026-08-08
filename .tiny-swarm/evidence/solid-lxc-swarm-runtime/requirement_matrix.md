@@ -2,12 +2,12 @@
 
 Issue: [#183 SOLID: Split lxc_swarm_runtime.py into cohesive LXC client modules](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/183)
 Workflow: `issue-183-20260808`
-Status at final audit: `BLOCKED_EXTERNAL`; local and approved live browser
-verification are complete where marked, but external acceptance is not green.
+Status at final audit: `READY_FOR_MERGE`; local, approved live browser, and
+external quality verification are green where applicable.
 
 | ID | Requirement from issue | Type | Files likely affected | Implementation evidence | Test/evidence verification | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| REQ-001 | Keep public ports and observable behavior stable. | Contract | Existing application ports; extracted adapters; compatibility facade | No application-port diff; compatibility facades and extracted adapters | Full local suite `1,633` passed; composition/runtime tests | VERIFIED_LOCAL |
+| REQ-001 | Keep public ports and observable behavior stable. | Contract | Existing application ports; extracted adapters; compatibility facade | No application-port diff; compatibility facades and extracted adapters | Full local suite `1,667` passed; composition/runtime tests | VERIFIED_LOCAL |
 | REQ-002 | Extract LXC manager shell execution into a reusable command gateway/runner. | Architecture/functional | `lxc/command/`, legacy module | `manager_shell_gateway.py`, diagnostics, legacy delegation | Slice 02 focused suite `65` passed | VERIFIED_LOCAL |
 | REQ-003 | Move Swarm stack deployment logic into a cohesive Swarm runtime module. | Architecture/functional | `lxc/swarm/swarm_stack_runtime.py` | `LxcSwarmStackRuntime` | Slice 03 direct/legacy suites `71` passed | VERIFIED_LOCAL |
 | REQ-004 | Move stack asset handling into a dedicated asset-transfer module. | Architecture/functional | `lxc/swarm/stack_asset_transfer.py` | `StackAssetTransfer` | Direct asset tests and runtime regression tests | VERIFIED_LOCAL |
@@ -30,11 +30,11 @@ verification are complete where marked, but external acceptance is not green.
 | REQ-021 | Use Selenium to open/reuse a live LXC-backed installation and the service-access/dashboard gateway URL. | Live E2E | `tests/live/`; live evidence | Consent-gated live harness executed against the configured installation | Browser suite `31` tests passed | VERIFIED_LIVE |
 | REQ-022 | Locate at least one visible service link or status element with `By`, and assert the page is not blank with expected content visible. | Live E2E | `tests/live/` | Selenium route contract and authenticated flows executed | All nine routed browser results passed | VERIFIED_LIVE |
 | REQ-023 | Store E2E evidence under `.tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e/`. | Evidence/live | Local evidence writer/config | Issue-specific root configured | `e2e/suite-summary.json` and route evidence; all nine passed | VERIFIED_LIVE |
-| REQ-024 | Existing test suite and new extracted-module tests must pass. | Quality | Repository tests | Full local quality result | `1,633` passed, `28` skipped | VERIFIED_LOCAL |
-| REQ-025 | SonarQube quality gate must return an accepted passing result. | External quality | CI/SonarQube result | Baseline HTTP findings were remediated locally; SonarCloud still needs a fresh branch analysis | Public status remains `ERROR` on `main`; workflow branch has no analysis | BLOCKED_EXTERNAL |
-| REQ-026 | No new critical/high code smells may be introduced. | External quality | Extracted source and SonarQube | Local quality and boundary gates pass; external before/after comparison is still unavailable | Branch API exposes only `main` at `50733ea`; no issue-specific comparison | BLOCKED_EXTERNAL |
+| REQ-024 | Existing test suite and new extracted-module tests must pass. | Quality | Repository tests | Full local quality result | `1,667` passed, `28` skipped | VERIFIED_LOCAL |
+| REQ-025 | SonarQube quality gate must return an accepted passing result. | External quality | CI/SonarQube result | SonarCloud PR #238 branch analysis for commit `3a81bf0` | Quality Gate `OK`; New Code coverage `90.0%` (threshold `80%`) | VERIFIED_EXTERNAL |
+| REQ-026 | No new critical/high code smells may be introduced. | External quality | Extracted source and SonarQube | SonarCloud PR #238 branch analysis | `0` unresolved new issues; reliability, security, maintainability, duplication, and hotspots gates all `OK` | VERIFIED_EXTERNAL |
 | REQ-027 | Three-Amigos note must cover stable ports/behavior, extraction design, and unit/integration/E2E proof, and disagreement stops implementation. | Governance | `three-amigos.md` | Three-Amigos gate records stable contracts, design, and verification plan | Review recorded with no disagreement | VERIFIED_LOCAL |
-| REQ-028 | Complete issue evidence and independent completion audit before DONE. | Governance | Evidence package | Slice 07 evidence package and independent audit | Audit result is `BLOCKED`, not PASS | BLOCKED |
+| REQ-028 | Complete issue evidence and independent completion audit before DONE. | Governance | Evidence package | Updated evidence package and independent audit | Audit result `PASS`; PR #238 is ready for merge | VERIFIED_LOCAL |
 
 Implementation may not begin while a requirement is missing from this matrix,
 while a public-contract disagreement remains, or while the Three-Amigos gate

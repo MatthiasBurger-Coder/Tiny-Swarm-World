@@ -24,5 +24,5 @@ Observed after workflow slices 02–07 and facade cleanup: 2026-08-09.
 * The approved live Selenium suite passed all nine routed browser flows. The
   direct urllib route probe still records TLS/routing `URLError` results and
   should be diagnosed separately.
-* SonarCloud is observable but currently reports `ERROR`; the workflow commit
-  has no branch analysis or before/after smell comparison.
+* SonarCloud PR #238 reports `OK` for commit `3a81bf0`, with 90.0% New Code
+  coverage and zero unresolved new issues.
