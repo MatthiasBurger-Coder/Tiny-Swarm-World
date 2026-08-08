@@ -83,13 +83,52 @@ class ArtifactPrepareWorkflow:
         self,
         steps: Sequence[ArtifactPrepareStep] = (),
         blocked_reason: str = DEFAULT_ARTIFACT_PREPARE_BLOCK_REASON,
+        bootstrap_steps: Sequence[ArtifactPrepareStep] = (),
     ):
         self.steps = tuple(steps)
+        self.bootstrap_steps = tuple(bootstrap_steps)
+        if self.steps[: len(self.bootstrap_steps)] != self.bootstrap_steps:
+            raise ValueError("artifact bootstrap steps must be the prepare prefix")
+        self.mutation_steps = self.steps[len(self.bootstrap_steps) :]
         self.blocked_reason = blocked_reason
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self) -> ArtifactWorkflowResult:
-        if not self.steps:
+        return await self._run_steps(self.steps)
+
+    async def run_bootstrap(self) -> ArtifactWorkflowResult:
+        """Run only the required Nexus/registry bootstrap steps.
+
+        The complete ``artifacts prepare`` CLI workflow still runs every step.
+        Setup orchestration uses this explicit sub-phase so live readiness can
+        be checked before image build, pull or publication starts.
+        """
+
+        return await self._run_steps(self.bootstrap_steps)
+
+    async def run_after_bootstrap(
+        self,
+        bootstrap_result: ArtifactWorkflowResult | None,
+    ) -> ArtifactWorkflowResult:
+        """Run image mutation steps only after a successful bootstrap result."""
+
+        if (
+            bootstrap_result is None
+            or bootstrap_result.status is not ArtifactWorkflowStatus.COMPLETED
+        ):
+            return ArtifactWorkflowResult(
+                kind=ArtifactWorkflowKind.PREPARE,
+                status=ArtifactWorkflowStatus.BLOCKED,
+                message="artifacts prepare is blocked until artifact bootstrap succeeds.",
+                reason="artifact bootstrap result is missing or unsuccessful",
+            )
+        return await self._run_steps(self.mutation_steps)
+
+    async def _run_steps(
+        self,
+        steps: Sequence[ArtifactPrepareStep],
+    ) -> ArtifactWorkflowResult:
+        if not steps:
             return ArtifactWorkflowResult(
                 kind=ArtifactWorkflowKind.PREPARE,
                 status=ArtifactWorkflowStatus.BLOCKED,
@@ -98,7 +137,7 @@ class ArtifactPrepareWorkflow:
             )
 
         verification_results: list[VerificationResult] = []
-        for step in self.steps:
+        for step in steps:
             target_id = _verification_target_id(step, "artifacts:prepare-step")
             if not _step_has_verification(step):
                 blocked_verification = VerificationResult(

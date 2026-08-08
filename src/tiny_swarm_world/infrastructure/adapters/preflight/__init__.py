@@ -39,6 +39,10 @@ _EXPORTS = {
         "tiny_swarm_world.infrastructure.adapters.preflight.artifact_readiness",
         "HttpEndpointReadinessProbe",
     ),
+    "LocalDirectoryReadinessProbe": (
+        "tiny_swarm_world.infrastructure.adapters.preflight.artifact_readiness",
+        "LocalDirectoryReadinessProbe",
+    ),
 }
 
 __all__ = list(_EXPORTS)

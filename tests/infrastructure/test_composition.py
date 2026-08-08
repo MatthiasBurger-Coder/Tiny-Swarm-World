@@ -1880,6 +1880,8 @@ class TestComposition(unittest.TestCase):
                 "platform reconcile",
                 "platform expose",
                 "deployment bootstrap",
+                "artifact bootstrap",
+                "artifact readiness gate",
                 "artifacts prepare",
                 "artifacts verify",
                 "deployment apply",

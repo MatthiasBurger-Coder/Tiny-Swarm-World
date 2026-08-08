@@ -16,6 +16,15 @@ from tiny_swarm_world.domain.inventory.safe_text import (
 
 MAX_READINESS_ATTEMPTS = 3
 MAX_READINESS_TIMEOUT_SECONDS = 60.0
+ARTIFACT_READINESS_TARGETS = (
+    "docker:manager",
+    "registry:endpoint",
+    "nexus:endpoint",
+    "nexus:repositories",
+    "storage:manager",
+    "build:inputs",
+    "pull:public",
+)
 
 
 class ReadinessStatus(str, Enum):

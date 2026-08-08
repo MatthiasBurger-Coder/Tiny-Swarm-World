@@ -73,6 +73,7 @@ from tiny_swarm_world.domain.preflight.host_preparation import (
     HostPreparationStatus,
 )
 from tiny_swarm_world.domain.preflight.readiness import (
+    ARTIFACT_READINESS_TARGETS,
     MAX_READINESS_ATTEMPTS,
     MAX_READINESS_TIMEOUT_SECONDS,
     ReadinessCheckResult,
@@ -137,6 +138,7 @@ __all__ = [
     "HostPreparationStatus",
     "MAX_READINESS_ATTEMPTS",
     "MAX_READINESS_TIMEOUT_SECONDS",
+    "ARTIFACT_READINESS_TARGETS",
     "ReadinessCheckResult",
     "ReadinessProbeRequest",
     "ReadinessStatus",

@@ -51,6 +51,46 @@ class TestArtifactWorkflows(unittest.IsolatedAsyncioTestCase):
             VerificationStatus.VERIFIED, result.verification_results[0].status
         )
 
+    async def test_prepare_workflow_exposes_bootstrap_boundary_without_changing_cli_run(self):
+        bootstrap = _VerifiedPrepareStep("artifacts:nexus-bootstrap")
+        image = _VerifiedPrepareStep("artifacts:image")
+        workflow = ArtifactPrepareWorkflow(
+            (bootstrap, image),
+            bootstrap_steps=(bootstrap,),
+        )
+
+        bootstrap_result = await workflow.run_bootstrap()
+        self.assertEqual(ArtifactWorkflowStatus.COMPLETED, bootstrap_result.status)
+        self.assertTrue(bootstrap.ran)
+        self.assertFalse(image.ran)
+
+        image_result = await workflow.run_after_bootstrap(bootstrap_result)
+        self.assertEqual(ArtifactWorkflowStatus.COMPLETED, image_result.status)
+        self.assertTrue(image.ran)
+
+        direct_bootstrap = _VerifiedPrepareStep("artifacts:nexus-bootstrap")
+        direct_image = _VerifiedPrepareStep("artifacts:image")
+        direct_result = await ArtifactPrepareWorkflow(
+            (direct_bootstrap, direct_image),
+            bootstrap_steps=(direct_bootstrap,),
+        ).run()
+        self.assertEqual(ArtifactWorkflowStatus.COMPLETED, direct_result.status)
+        self.assertTrue(direct_bootstrap.ran)
+        self.assertTrue(direct_image.ran)
+
+    async def test_image_steps_are_blocked_without_successful_bootstrap(self):
+        bootstrap = _VerifiedPrepareStep("artifacts:nexus-bootstrap")
+        image = _VerifiedPrepareStep("artifacts:image")
+        workflow = ArtifactPrepareWorkflow(
+            (bootstrap, image),
+            bootstrap_steps=(bootstrap,),
+        )
+
+        result = await workflow.run_after_bootstrap(None)
+
+        self.assertEqual(ArtifactWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(image.ran)
+
     async def test_prepare_workflow_blocks_when_verify_after_prepare_is_missing(self):
         step = _PrepareStepWithoutVerification()
 

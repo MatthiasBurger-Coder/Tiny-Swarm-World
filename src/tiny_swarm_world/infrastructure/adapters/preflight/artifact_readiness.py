@@ -5,23 +5,19 @@ import subprocess
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Mapping
+from pathlib import Path
+from urllib.parse import urlparse
 
 from tiny_swarm_world.application.ports.preflight import PortLiveReadiness
 from tiny_swarm_world.domain.preflight import (
+    ARTIFACT_READINESS_TARGETS,
     ReadinessCheckResult,
     ReadinessProbeRequest,
     ReadinessStatus,
 )
 
 
-MANAGER_DOCKER_TARGET = "docker:manager"
-REGISTRY_ENDPOINT_TARGET = "registry:endpoint"
-NEXUS_ENDPOINT_TARGET = "nexus:endpoint"
-NEXUS_REPOSITORIES_TARGET = "nexus:repositories"
-MANAGER_STORAGE_TARGET = "storage:manager"
-BUILD_INPUTS_TARGET = "build:inputs"
-PUBLIC_PULL_TARGET = "pull:public"
-ARTIFACT_READINESS_TARGETS = (
+(
     MANAGER_DOCKER_TARGET,
     REGISTRY_ENDPOINT_TARGET,
     NEXUS_ENDPOINT_TARGET,
@@ -29,7 +25,7 @@ ARTIFACT_READINESS_TARGETS = (
     MANAGER_STORAGE_TARGET,
     BUILD_INPUTS_TARGET,
     PUBLIC_PULL_TARGET,
-)
+) = ARTIFACT_READINESS_TARGETS
 
 ReadinessProbe = Callable[[ReadinessProbeRequest], ReadinessCheckResult]
 
@@ -81,6 +77,13 @@ class BoundedArtifactReadinessAdapter(PortLiveReadiness):
                 "The readiness observation could not be classified safely.",
                 "Inspect the phase-local diagnostic evidence before retrying.",
             )
+        if not isinstance(result, ReadinessCheckResult):
+            return _result(
+                request,
+                ReadinessStatus.UNKNOWN,
+                "The readiness adapter returned no typed result.",
+                "Return a typed readiness result before artifact mutation.",
+            )
         if result.target_id != request.target_id:
             return _result(
                 request,
@@ -103,6 +106,9 @@ class HttpEndpointReadinessProbe:
     ) -> None:
         if not endpoint.startswith(("http://", "https://")):
             raise ValueError("readiness endpoint must use http or https")
+        parsed_endpoint = urlparse(endpoint)
+        if parsed_endpoint.username or parsed_endpoint.password:
+            raise ValueError("readiness endpoint must not contain credentials")
         self.endpoint = endpoint
         self.opener = opener or urllib.request.urlopen
         self.probe_kind = probe_kind
@@ -148,6 +154,28 @@ class DockerManagerReadinessProbe:
             "Manager Docker readiness was observed." if status is ReadinessStatus.READY else "Manager Docker readiness failed.",
             "No remediation required." if status is ReadinessStatus.READY else "Restore manager Docker readiness before artifact mutation.",
             evidence={"probe_kind": "docker_info"},
+        )
+
+
+class LocalDirectoryReadinessProbe:
+    """Read-only directory probe for local build or storage prerequisites."""
+
+    def __init__(self, path: Path, *, probe_kind: str) -> None:
+        self.path = path
+        self.probe_kind = probe_kind
+
+    def __call__(self, request: ReadinessProbeRequest) -> ReadinessCheckResult:
+        ready = self.path.is_dir()
+        return _result(
+            request,
+            ReadinessStatus.READY if ready else ReadinessStatus.FAILED,
+            "The bounded local prerequisite check passed."
+            if ready
+            else "The bounded local prerequisite check failed.",
+            "No remediation required."
+            if ready
+            else "Restore the required local directory before artifact mutation.",
+            evidence={"probe_kind": self.probe_kind},
         )
 
 
