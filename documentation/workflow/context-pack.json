@@ -1,31 +1,31 @@
 {
-  "workflow_id": "issue-183-20260808",
-  "workflow_version": "issue-183-v1.0.0",
-  "authoring_branch": "feature/workflow-issue-183-lxc-runtime-solid-20260808",
-  "implementation_branch": "feature/split-lxc-swarm-runtime-solid",
+  "workflow_id": "issue-188-20260809",
+  "workflow_version": "issue-188-v1.0.0",
+  "authoring_branch": "feature/workflow-issue-188-shared-command-runners-20260809",
+  "implementation_branch": "feature/issue-188-shared-command-runners",
   "process_strand": "workflow-create-to-workflow-execute",
   "execution_profile": "FULL_PATH",
   "status": "READY_FOR_EXECUTION",
-  "issue": 183,
-  "requirement_matrix": ".tiny-swarm/evidence/solid-lxc-swarm-runtime/requirement_matrix.md",
-  "three_amigos": ".tiny-swarm/evidence/solid-lxc-swarm-runtime/three-amigos.md",
-  "responsibility_map_before": ".tiny-swarm/evidence/solid-lxc-swarm-runtime/responsibility-map-before.md",
+  "issue": 188,
+  "requirement_matrix": ".tiny-swarm/evidence/solid-command-runner/requirement_matrix.md",
+  "three_amigos": ".tiny-swarm-world/evidence/solid-command-runner/three-amigos.md",
+  "before_inventory": ".tiny-swarm/evidence/solid-command-runner/process-spawn-inventory-before.md",
+  "after_inventory": ".tiny-swarm/evidence/solid-command-runner/process-spawn-inventory-after.md",
   "affected_areas": [
-    "infrastructure/adapters/clients/lxc_swarm_runtime.py",
-    "infrastructure/adapters/clients/lxc/{command,swarm,docker,services,images}",
+    "infrastructure/process runner",
     "infrastructure/composition.py",
-    "infrastructure/composition_lxc_runtimes.py",
-    "infrastructure adapter, architecture, composition, and live browser tests",
-    "issue evidence and Arc42 architecture documentation"
+    "Docker, LXC command, LXC Docker, LXC image, and host preflight adapters",
+    "architecture tests and issue evidence",
+    "Arc42 building blocks, concepts, quality, and risks"
   ],
   "forbidden_areas": [
-    "PortLocalFileStorage without a verified Issue #183 requirement",
-    "application-port redesign",
-    "new microservice or external API contract",
-    "browser React frontend",
+    "application/domain port redesign",
+    "Issue #183 rework",
+    "Issues #187, #189, #190, #192, #184, and #195",
+    "browser React",
     "Java/Maven/Spring Boot",
     "unapproved live infrastructure mutation",
-    "raw credentials, tokens, command output, HTTP payloads, or unredacted evidence"
+    "raw credentials, tokens, command output, or unredacted evidence"
   ],
   "required_roles": [
     "Senior Requirement Engineer",
@@ -33,12 +33,13 @@
     "Senior Python Automation Developer",
     "Senior Tester",
     "Senior Workflow Architect",
+    "Senior Security Sandbox Engineer",
     "Senior DevOps Engineer",
     "Senior Documentation Engineer",
-    "Senior Security Sandbox Engineer",
     "Issue Completion Auditor"
   ],
   "conditional_roles": {
+    "Dependency / Deadlock Validator": "REQUIRED",
     "Console/status UI reviewer": "NOT_APPLICABLE",
     "Browser React reviewer": "FORBIDDEN_UNLESS_SEPARATE_FRONTEND_WORKFLOW"
   },
@@ -52,10 +53,10 @@
     "git diff --check"
   ],
   "verification_classification": {
-    "local_adapter_and_architecture_tests": "APPLICABLE_LOCAL",
+    "local_runner_adapter_architecture_tests": "APPLICABLE_LOCAL",
     "full_local_quality": "APPLICABLE_LOCAL",
-    "issue_specific_selenium_e2e": "APPLICABLE_LIVE",
-    "sonarqube": "APPLICABLE_EXTERNAL",
+    "issue_specific_live_verification": "NOT_REQUIRED_BY_ISSUE",
+    "sonarqube": "NOT_REQUIRED_BY_ISSUE",
     "live_infrastructure_during_default_gates": "NOT_APPLICABLE",
     "browser_react": "NOT_APPLICABLE"
   },
@@ -71,9 +72,12 @@
     ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
     ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
-    "documentation/arc42/05_building_blocks.adoc": "17ab5eba08c0fef5a0d9e57f20be03b322ffaf92e7658fa0810509818ad3157e",
-    "documentation/arc42/11_risks_and_debt.adoc": "c3d55c559ab92d5c630ba123520fbd2b3e316630f3dd19daf8de9b0d182a350d",
-    "documentation/workflow/workflow.md": "5e553220c5e0b7f5693252d73b739effb78c0a7705a15e6e9879a6144e393dee",
-    ".tiny-swarm/evidence/solid-lxc-swarm-runtime/requirement_matrix.md": "746b97c6a2a4b9d4f67f42647ec304c875d15a2f2a0f3e244ac632824e932e76"
+    "documentation/arc42/05_building_blocks.adoc": "172fef095693bae325a54f45abc3774ffc3b61377f73f66025c8d59a4ccba5b8",
+    "documentation/arc42/08_concepts.adoc": "66a71541982d656719946016334371db08feae223db33526c5297ca68ebc5ae7",
+    "documentation/arc42/10_quality_requirements.adoc": "e91bfcb7b925fa727240fee02b4cc20680f26460137fb600ca4e4584f4c07fdc",
+    "documentation/arc42/11_risks_and_debt.adoc": "368483cde864b7d35a8319ebf37fe9bd37c08eeb5bb7f36d6e0e2fe835146426",
+    "documentation/workflow/workflow.md": "87e059f16c3c2153cd566fbf6bdd64995c1de9a4f2365a528676fc580f85ffe9",
+    ".tiny-swarm/evidence/solid-command-runner/requirement_matrix.md": "73727bf42fef5ed649a9826d159e8e472c339499b9102bd7103c98d8a4ce4a18",
+    ".tiny-swarm-world/evidence/solid-command-runner/three-amigos.md": "d1fabe5558bd5b4c86ec644a04fce303e4fe846114896fdfcb28667608f15a23"
   }
 }

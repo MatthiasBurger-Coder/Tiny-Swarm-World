@@ -43,6 +43,23 @@ Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
 compose, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, or Swagger/NGINX
 commands.
 
+=== Shared Infrastructure Process Execution — Issue #188 Plan
+
+Issue #188 introduces a planned infrastructure-only process runner beneath
+selected Docker, LXC, image-publisher, and host-preflight adapters. The runner
+will default to argv execution with `shell=False`, expose bounded timeout and
+cwd/environment/input behavior, support text and byte streams where required,
+and return deterministic sanitized result/failure information. It must not
+own adapter policy such as Docker fatality, Incus child-PID retry, image
+diagnostic classification, or Git preflight fallback.
+
+The planned boundary does not add an application port or domain dependency and
+does not replace the existing Issue #183 LXC manager gateway. Before execution,
+all production process-spawn sites must be inventoried and either migrated,
+explicitly allowlisted with rationale, or classified outside the runtime
+adapter scope. This section remains a plan until implementation evidence is
+recorded.
+
 === Desired Inventory, Observed State, And Evidence
 
 Tiny Swarm World separates intended state from runtime facts.

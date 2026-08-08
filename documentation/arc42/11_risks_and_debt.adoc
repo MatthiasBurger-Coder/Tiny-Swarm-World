@@ -21,6 +21,13 @@ Remaining debt:
 
 * the runner still uses shell execution for command-template infrastructure
   when a catalog is supplied;
+* Issue #188's baseline still contains direct process-spawn sites across
+  selected infrastructure adapters and compatibility/runtime helpers; its
+  planned shared runner must not silently absorb adapter policy or broaden
+  shell execution;
+* the Issue #188 before-inventory must classify every production process API
+  before migration, and its after-inventory plus architecture guard must prove
+  that any remaining exception is explicit and justified;
 * no current product command catalog exists, so any reintroduced catalog must
   restore non-vacuous command-backed verification coverage;
 * composed mutating platform workflows now block with explicit target IDs and

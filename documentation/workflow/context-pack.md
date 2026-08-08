@@ -1,81 +1,85 @@
-# Workflow Context Pack: Issue #183
+# Workflow Context Pack: Issue #188
 
-This is a navigation aid for `issue-183-20260808`; repository source files,
-process policies, ADRs, skills, roles, and the active workflow remain the
-authorities. The pack is stale if any recorded governing hash changes.
+This is a navigation aid for `issue-188-20260809`. Repository source files,
+process policies, ADRs, Arc42, skills, roles, and the active workflow remain
+authoritative. The pack is stale if a recorded governing hash changes.
 
 ## Identity
 
-* Workflow ID: `issue-183-20260808`
-* Workflow version: `issue-183-v1.0.0`
-* Authoring branch: `feature/workflow-issue-183-lxc-runtime-solid-20260808`
-* Issue implementation branch requested by #183: `feature/split-lxc-swarm-runtime-solid`
-* Process strand: `workflow-create-to-workflow-execute`
-* Execution profile: `FULL_PATH`
-* Status: `READY_FOR_EXECUTION`
+- Workflow ID: `issue-188-20260809`
+- Workflow version: `issue-188-v1.0.0`
+- Authoring branch: `feature/workflow-issue-188-shared-command-runners-20260809`
+- Implementation branch requested by Issue #188: `feature/issue-188-shared-command-runners`
+- Process strand: `workflow-create-to-workflow-execute`
+- Execution profile: `FULL_PATH`
+- Status: `READY_FOR_EXECUTION`
 
 ## Affected areas
 
-* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py`
-* new `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/{command,swarm,docker,services,images}/`
-* `src/tiny_swarm_world/infrastructure/composition.py`
-* `src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py`
-* infrastructure adapter, architecture, composition, and live browser tests
-* `.tiny-swarm/evidence/solid-lxc-swarm-runtime/`
-* planned Arc42 building-block and risk documentation
+- New infrastructure-only shared process runner package and tests.
+- `src/tiny_swarm_world/infrastructure/composition.py` wiring.
+- Docker, LXC gateway, LXC container, LXC image publisher, and host preflight
+  adapters plus nearest regression tests.
+- Production process-spawn architecture enforcement.
+- `.tiny-swarm/evidence/solid-command-runner/` and the issue-requested
+  `.tiny-swarm-world/evidence/solid-command-runner/`.
+- Planned Arc42 building-block, concept, quality, and risk notes.
 
 ## Forbidden areas
 
-* `PortLocalFileStorage` without a verified requirement
-* application-port redesign, new deployable services, REST/gRPC/Protobuf
-  contracts, Kubernetes-first work, React frontend, Java/Maven/Spring Boot
-* live Incus, Docker Swarm, networking, Portainer, Nexus, or credential-backed
-  mutation during local implementation and quality gates
-* raw credentials, tokens, command output, HTTP payloads, or unredacted browser
-  evidence
-* claims that SonarQube or Selenium succeeded without actual observable evidence
+- application/domain port redesign;
+- new LXC gateway or rework of Issue #183;
+- Issue #187, #189, #190, #192, #184, or #195 scope;
+- Java/Maven/Spring Boot and browser React;
+- live Incus/LXC, Docker, Swarm, networking, registry, service bootstrap,
+  browser, or credential-backed mutation;
+- raw credentials, tokens, environment payloads, command output, HTTP bodies,
+  or unredacted evidence;
+- claims that local checks establish live or SonarQube success.
 
 ## Required roles
 
 Senior Requirement Engineer, Senior System Architect, Senior Python Automation
-Developer, Senior Tester, Senior Workflow Architect, Senior DevOps Engineer,
-Senior Documentation Engineer, Senior Security Sandbox Engineer, and Issue
-Completion Auditor. Console/status UI is `NOT_APPLICABLE`; Browser React is
-forbidden for this repository scope.
+Developer, Senior Tester, Senior Workflow Architect, Senior Security Sandbox
+Engineer, Senior DevOps Engineer, Senior Documentation Engineer, and Issue
+Completion Auditor. Dependency/deadlock validation is required. Console/status
+UI is `NOT_APPLICABLE`; Browser React is `FORBIDDEN_UNLESS_SEPARATE_FRONTEND_WORKFLOW`.
 
 ## Required commands
 
-* `python3 tools/quality_gate.py lint`
-* `python3 tools/quality_gate.py arch-lint`
-* `python3 tools/quality_gate.py arch-tests`
-* `python3 tools/quality_gate.py typecheck`
-* `python3 tools/quality_gate.py test`
-* `python3 tools/quality_gate.py quality`
-* `git diff --check`
+- `python3 tools/quality_gate.py lint`
+- `python3 tools/quality_gate.py arch-lint`
+- `python3 tools/quality_gate.py arch-tests`
+- `python3 tools/quality_gate.py typecheck`
+- `python3 tools/quality_gate.py test`
+- `python3 tools/quality_gate.py quality`
+- `git diff --check`
 
 ## Verification classification
 
-* Local adapter, architecture, composition, and quality tests:
+- Shared runner, adapter, architecture, composition, and quality tests:
   `APPLICABLE_LOCAL`.
-* Issue-specific browser E2E: `APPLICABLE_LIVE`; explicit consent and
-  prerequisites are required, and missing consent is not success.
-* SonarQube: `APPLICABLE_EXTERNAL`; only an actual observable passing result
-  is accepted.
-* Live infrastructure mutation during default gates: `NOT_APPLICABLE`.
+- Live installation/browser verification: `NOT_REQUIRED_BY_ISSUE`; if later
+  authorized, classify through the canonical live state policy.
+- SonarQube: `NOT_REQUIRED_BY_ISSUE`; no external result is claimed.
+- Live infrastructure mutation during default gates: `NOT_APPLICABLE` and
+  forbidden without explicit authorization.
 
 ## Navigation
 
-* Active workflow: `documentation/workflow/workflow.md`
-* Requirement matrix: `.tiny-swarm/evidence/solid-lxc-swarm-runtime/requirement_matrix.md`
-* Three-Amigos note: `.tiny-swarm/evidence/solid-lxc-swarm-runtime/three-amigos.md`
-* Before map: `.tiny-swarm/evidence/solid-lxc-swarm-runtime/responsibility-map-before.md`
-* Live E2E target: `.tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e/`
-* Arc42 planned architecture: `documentation/arc42/05_building_blocks.adoc`
-* Arc42 risk note: `documentation/arc42/11_risks_and_debt.adoc`
+- Active workflow: `documentation/workflow/workflow.md`
+- Requirement matrix: `.tiny-swarm/evidence/solid-command-runner/requirement_matrix.md`
+- Three-Amigos note: `.tiny-swarm-world/evidence/solid-command-runner/three-amigos.md`
+- Before inventory: `.tiny-swarm/evidence/solid-command-runner/process-spawn-inventory-before.md`
+- After inventory target: `.tiny-swarm/evidence/solid-command-runner/process-spawn-inventory-after.md`
+- Arc42 building blocks: `documentation/arc42/05_building_blocks.adoc`
+- Arc42 concepts: `documentation/arc42/08_concepts.adoc`
+- Arc42 quality: `documentation/arc42/10_quality_requirements.adoc`
+- Arc42 risks: `documentation/arc42/11_risks_and_debt.adoc`
 
 ## Governing file hashes
 
-The hashes below are SHA-256 values captured during workflow authoring. Recheck
+Hashes are captured after workflow and Arc42 authoring validation. Recheck
 them before execution and regenerate this context pack if they change.
 
 | File | SHA-256 |
@@ -91,7 +95,10 @@ them before execution and regenerate this context pack if they change.
 | `.agents/skills/workflow-authoring/SKILL.md` | `5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5` |
 | `.agents/skills/three-amigos-requirement-gatekeeper/SKILL.md` | `76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4` |
 | `.agents/skills/execution-profile-router/SKILL.md` | `45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e` |
-| `documentation/arc42/05_building_blocks.adoc` | `17ab5eba08c0fef5a0d9e57f20be03b322ffaf92e7658fa0810509818ad3157e` |
-| `documentation/arc42/11_risks_and_debt.adoc` | `c3d55c559ab92d5c630ba123520fbd2b3e316630f3dd19daf8de9b0d182a350d` |
-| `documentation/workflow/workflow.md` | `5e553220c5e0b7f5693252d73b739effb78c0a7705a15e6e9879a6144e393dee` |
-| `.tiny-swarm/evidence/solid-lxc-swarm-runtime/requirement_matrix.md` | `746b97c6a2a4b9d4f67f42647ec304c875d15a2f2a0f3e244ac632824e932e76` |
+| `documentation/arc42/05_building_blocks.adoc` | `172fef095693bae325a54f45abc3774ffc3b61377f73f66025c8d59a4ccba5b8` |
+| `documentation/arc42/08_concepts.adoc` | `66a71541982d656719946016334371db08feae223db33526c5297ca68ebc5ae7` |
+| `documentation/arc42/10_quality_requirements.adoc` | `e91bfcb7b925fa727240fee02b4cc20680f26460137fb600ca4e4584f4c07fdc` |
+| `documentation/arc42/11_risks_and_debt.adoc` | `368483cde864b7d35a8319ebf37fe9bd37c08eeb5bb7f36d6e0e2fe835146426` |
+| `documentation/workflow/workflow.md` | `87e059f16c3c2153cd566fbf6bdd64995c1de9a4f2365a528676fc580f85ffe9` |
+| `.tiny-swarm/evidence/solid-command-runner/requirement_matrix.md` | `73727bf42fef5ed649a9826d159e8e472c339499b9102bd7103c98d8a4ce4a18` |
+| `.tiny-swarm-world/evidence/solid-command-runner/three-amigos.md` | `d1fabe5558bd5b4c86ec644a04fce303e4fe846114896fdfcb28667608f15a23` |
