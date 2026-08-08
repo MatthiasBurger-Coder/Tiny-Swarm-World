@@ -318,6 +318,28 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(3, len(result.phase_results))
         self.assertEqual("not_run", result.phase_results[2].status)
 
+    async def test_failed_artifact_readiness_gate_stops_image_and_deployment_phases(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("artifact bootstrap", lambda: _completed_result("artifact bootstrap", calls)),
+                SetupWorkflowPhase("artifact readiness gate", lambda: _failed_preflight_result(calls)),
+                SetupWorkflowPhase("artifacts prepare", lambda: _completed_result("artifacts prepare", calls)),
+                SetupWorkflowPhase("artifacts verify", lambda: _completed_result("artifacts verify", calls)),
+                SetupWorkflowPhase("deployment apply", lambda: _completed_result("deployment apply", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
+        self.assertEqual(["artifact bootstrap", "preflight"], calls)
+        self.assertEqual(
+            [phase.status for phase in result.phase_results],
+            ["completed", "failed", "not_run", "not_run", "not_run"],
+        )
+
     async def test_reports_stopped_and_downstream_not_run_progress(self):
         calls: list[str] = []
         progress = _RecordingProgress()

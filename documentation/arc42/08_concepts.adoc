@@ -101,6 +101,24 @@ explicit compatibility published ports. Runtime deployment selection still
 uses `ServiceStackContract` domain contracts. Current Apache Pulsar remains
 the messaging baseline in the selected service registry.
 
+=== Artifact Contract And Readiness Evidence
+
+Artifact installation separates deterministic contract evidence from live
+readiness evidence. The selected service profile determines the effective
+Compose image inventory. Static preflight validates one-to-one image-contract
+alignment, immutable references, duplicate/conflicting targets and
+repository-local build contexts through the application file-storage port.
+This check is non-mutating and runs before setup host/platform mutation.
+
+After artifact bootstrap, the readiness gate checks the manager Docker daemon,
+registry and Nexus endpoint/repository access, manager storage, build inputs
+and public pull access. Each target uses a bounded timeout and returns a typed
+status, target, scope, safe remediation and canonical live state. Evidence
+rejects credentials, tokens, raw output, HTTP bodies, secret values and
+host-specific sensitive details. `LIVE_VERIFIED` is reserved for an
+explicitly authorized scenario with redacted evidence; missing consent or
+prerequisites remain non-success states.
+
 === Health And Validation Evidence
 
 `infra/config/health-checks.yaml` and `infra/config/validation-plan.yaml`

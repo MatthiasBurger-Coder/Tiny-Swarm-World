@@ -22,19 +22,41 @@ class VerificationStatus(str, Enum):
     REFUSED = "refused"
 
 
+class VerificationEvidenceScope(str, Enum):
+    UNSPECIFIED = "unspecified"
+    STATIC = "static"
+    LIVE = "live"
+
+
+class LiveVerificationState(str, Enum):
+    """Canonical policy states for live or consent-gated observations."""
+
+    NOT_APPLICABLE = "LIVE_NOT_APPLICABLE"
+    CONSENT_MISSING = "LIVE_CONSENT_MISSING"
+    PREREQUISITE_MISSING = "LIVE_PREREQUISITE_MISSING"
+    BLOCKED_BEFORE_MUTATION = "LIVE_BLOCKED_BEFORE_MUTATION"
+    FAILED_AFTER_MUTATION = "LIVE_FAILED_AFTER_MUTATION"
+    PARTIAL = "LIVE_PARTIAL"
+    DEGRADED = "LIVE_DEGRADED"
+    VERIFIED = "LIVE_VERIFIED"
+
+
 @dataclass(frozen=True)
 class VerificationResult:
     target_id: str
     status: VerificationStatus = VerificationStatus.NOT_CHECKED
     message: str = ""
     evidence: Mapping[str, str] = field(default_factory=dict)
+    evidence_scope: VerificationEvidenceScope = VerificationEvidenceScope.UNSPECIFIED
 
     def __post_init__(self) -> None:
         validate_target_id(self.target_id)
         status = VerificationStatus(self.status)
+        evidence_scope = VerificationEvidenceScope(self.evidence_scope)
         validate_message_text("message", self.message)
         evidence = _validate_evidence(self.evidence)
         object.__setattr__(self, "status", status)
+        object.__setattr__(self, "evidence_scope", evidence_scope)
         object.__setattr__(self, "evidence", MappingProxyType(evidence))
 
     def to_dict(self) -> dict[str, object]:
@@ -43,6 +65,7 @@ class VerificationResult:
             "status": self.status.value,
             "message": self.message,
             "evidence": dict(self.evidence),
+            "evidence_scope": self.evidence_scope.value,
         }
 
     @classmethod
@@ -52,6 +75,9 @@ class VerificationResult:
             status=VerificationStatus(str(data.get("status", VerificationStatus.NOT_CHECKED.value))),
             message=str(data.get("message", "")),
             evidence=_string_mapping(data.get("evidence", {})),
+            evidence_scope=VerificationEvidenceScope(
+                str(data.get("evidence_scope", VerificationEvidenceScope.UNSPECIFIED.value))
+            ),
         )
 
 

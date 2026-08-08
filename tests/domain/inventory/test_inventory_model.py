@@ -9,6 +9,8 @@ from tiny_swarm_world.domain.inventory import (
     ObservedInventory,
     StackObservedState,
     SwarmObservedState,
+    VerificationEvidenceScope,
+    LiveVerificationState,
     VerificationResult,
     VerificationStatus,
     VmDesiredState,
@@ -17,6 +19,21 @@ from tiny_swarm_world.domain.inventory import (
 
 
 class TestVerificationResult(unittest.TestCase):
+    def test_live_verification_states_match_repository_policy(self):
+        self.assertEqual(
+            {
+                "LIVE_NOT_APPLICABLE",
+                "LIVE_CONSENT_MISSING",
+                "LIVE_PREREQUISITE_MISSING",
+                "LIVE_BLOCKED_BEFORE_MUTATION",
+                "LIVE_FAILED_AFTER_MUTATION",
+                "LIVE_PARTIAL",
+                "LIVE_DEGRADED",
+                "LIVE_VERIFIED",
+            },
+            {state.value for state in LiveVerificationState},
+        )
+
     def test_verification_status_values_match_workflow_contract(self):
         self.assertEqual(
             {
@@ -47,9 +64,19 @@ class TestVerificationResult(unittest.TestCase):
                 "status": "verified",
                 "message": "VM exists.",
                 "evidence": {"summary": "checked"},
+                "evidence_scope": "unspecified",
             },
             result.to_dict(),
         )
+
+    def test_result_can_identify_live_evidence_scope(self):
+        result = VerificationResult(
+            target_id="docker:manager",
+            status=VerificationStatus.VERIFIED,
+            evidence_scope=VerificationEvidenceScope.LIVE,
+        )
+
+        self.assertEqual("live", result.to_dict()["evidence_scope"])
 
     def test_result_rejects_raw_command_evidence_keys(self):
         with self.assertRaises(ValueError):

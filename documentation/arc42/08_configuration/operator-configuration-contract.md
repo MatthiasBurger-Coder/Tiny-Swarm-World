@@ -80,6 +80,10 @@ The default contract requires these keys before setup execution:
 | `TSW_SECRETS_MODE` | `generated` | enum | Selects `generated`, `fixed`, or `infisical` secret handling. |
 | `TSW_FIXED_SECRET_ENV_FILE` | `.tiny-swarm-world/local/fixed-secrets.env` | local path | Fixed-mode local secret source; ignored by Git. |
 | `TSW_LXC_DOCKER_REGISTRY_MIRROR` | unset | URL | External Docker registry or Nexus proxy reachable from managed LXC nodes; used for Docker daemon mirrors and as the internal Tiny Swarm World Nexus Docker proxy upstream. |
+| `TSW_SWARM_REGISTRY_ENDPOINT` | implementation default | endpoint | Registry endpoint used by the selected artifact and deployment contracts. |
+| `TSW_NEXUS_READINESS_BASE_URL` | `http://127.0.0.1:13081` | credential-free URL | Base URL for bounded Nexus endpoint and repository readiness observations. |
+| `TSW_PUBLIC_PULL_READINESS_URL` | `https://registry-1.docker.io/v2/` | credential-free URL | Endpoint for the bounded public-pull prerequisite check. |
+| `TSW_MANAGER_STORAGE_PATH` | `/var/lib/docker` | POSIX directory path | Manager storage directory checked by the bounded artifact readiness gate. |
 | `TSW_PULSAR_ADMIN_URL` | unset | URL | Internal Pulsar Admin API URL for local standalone mode. |
 | `TSW_PULSAR_PUBLIC_ADMIN_URL` | unset | URL | Host-accessible Pulsar Admin API URL for browser/live checks. |
 | `TSW_PULSAR_TOKEN_SECRET_KEY` | generated | secret value | Base64 encoded signing key for local Pulsar Admin API tokens. |
@@ -96,6 +100,12 @@ Swarm is available, the Tiny Swarm World Nexus stack is deployed inside the
 Swarm. Its Docker proxy repository uses the same reachable external mirror as
 its upstream. Subsequent Tiny Swarm World image references use the internal
 Swarm registry endpoint, configured by `TSW_SWARM_REGISTRY_ENDPOINT`.
+
+Artifact image overrides are validated against the selected Compose profile
+before live mutation. The readiness-only URLs and manager storage path above
+are optional bounded-check inputs; they must not contain credentials, tokens or
+secret material. Configuration is not readiness evidence: the gate must observe
+each target before the setup workflow may prepare or publish images.
 
 Pulsar runs in local standalone mode with token authentication enabled. The
 Admin API credential is a generated bearer token stored as `platform/pulsar`.

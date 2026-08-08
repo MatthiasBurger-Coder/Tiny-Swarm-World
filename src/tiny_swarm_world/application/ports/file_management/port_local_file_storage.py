@@ -43,3 +43,7 @@ class PortLocalFileStorage(ABC):
     @abstractmethod
     def exists(self, path: Path) -> bool:
         """Return whether the local path exists."""
+
+    @abstractmethod
+    def directory_exists(self, path: Path) -> bool:
+        """Return whether the local path exists and is a directory."""

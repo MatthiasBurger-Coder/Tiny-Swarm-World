@@ -881,6 +881,10 @@ class TestComposition(unittest.TestCase):
                 "artifacts:pulsar-manager-image",
                 "artifacts:pulsar-manager-bootstrap-image",
                 "artifacts:swagger-nginx-image",
+                "artifacts:portainer-image",
+                "artifacts:portainer-agent-image",
+                "artifacts:nexus-image",
+                "artifacts:swagger-api-image",
             ),
         )
 
@@ -1013,6 +1017,33 @@ class TestComposition(unittest.TestCase):
         )
         self.assertEqual(image_refs["swagger-nginx"], "nginx:1.29.8-alpine")
 
+    def test_all_supported_image_overrides_update_artifact_contracts(self):
+        overrides = {
+            "nexus": "TSW_NEXUS_IMAGE",
+            "jenkins": "TSW_JENKINS_IMAGE",
+            "service-access-dashboard": "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE",
+            "service-access-nginx": "TSW_SERVICE_ACCESS_NGINX_IMAGE",
+            "pulsar": "TSW_PULSAR_IMAGE",
+            "pulsar-manager": "TSW_PULSAR_MANAGER_IMAGE",
+            "pulsar-manager-bootstrap": "TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE",
+            "infisical": "TSW_INFISICAL_IMAGE",
+            "infisical-postgres": "TSW_INFISICAL_POSTGRES_IMAGE",
+            "infisical-redis": "TSW_INFISICAL_REDIS_IMAGE",
+            "traefik": "TSW_TRAEFIK_IMAGE",
+        }
+        environment = {
+            environment_name: f"registry.local/{context}:9.9.9"
+            for context, environment_name in overrides.items()
+        }
+
+        with patch.dict(os.environ, environment, clear=True):
+            contracts = composition._container_image_contracts_from_environment()
+
+        image_refs = {contract.build_context: contract.image_ref for contract in contracts}
+        for context in overrides:
+            with self.subTest(context=context):
+                self.assertEqual(image_refs[context], f"registry.local/{context}:9.9.9")
+
     def test_build_artifact_services_does_not_call_live_clients_during_construction(
         self,
     ):
@@ -1020,8 +1051,8 @@ class TestComposition(unittest.TestCase):
             backend=composition.ManagedLxcBackend.INCUS,
         )
 
-        self.assertEqual(len(services.workflows.prepare.steps), 20)
-        self.assertEqual(len(services.workflows.verify.checks), 20)
+        self.assertEqual(len(services.workflows.prepare.steps), 24)
+        self.assertEqual(len(services.workflows.verify.checks), 24)
 
     def test_build_deployment_services_wires_stack_contracts_without_running_runtime(
         self,
@@ -1114,6 +1145,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(
             traefik_step.stack_environment,
             {
+                "TSW_TRAEFIK_IMAGE": "traefik:v3.7.4",
                 "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "tsw_traefik_tls_cert",
                 "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "tsw_traefik_tls_key",
             },
@@ -1239,7 +1271,7 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(
             services.workflows.prepare, composition.ArtifactPrepareWorkflow
         )
-        self.assertEqual(len(services.workflows.prepare.steps), 20)
+        self.assertEqual(len(services.workflows.prepare.steps), 24)
 
     def test_default_provider_deployment_services_use_lxc_clients_when_backend_is_available(
         self,
@@ -1841,12 +1873,15 @@ class TestComposition(unittest.TestCase):
             tuple(phase.name for phase in services.workflows.run.phases),
             (
                 "preflight",
+                "artifact contract preflight",
                 "host prepare",
                 "host verify",
                 "platform init",
                 "platform reconcile",
                 "platform expose",
                 "deployment bootstrap",
+                "artifact bootstrap",
+                "artifact readiness gate",
                 "artifacts prepare",
                 "artifacts verify",
                 "deployment apply",

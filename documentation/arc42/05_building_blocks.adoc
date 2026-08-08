@@ -103,11 +103,14 @@ microservices:
   node discovery, socat management, and workflow objects for platform `init`,
   `reconcile`, `verify`, `reset`, and `destroy` commands.
 * `ArtifactServices` is the explicit artifacts boundary. It owns
-  `artifacts prepare` and `artifacts verify` workflow contracts. The default
-  composition remains fail-closed, while configured Nexus repository,
-  registry-readiness, and LXC-native image-publication contracts execute only
-  after live consent and continue only when each step exposes typed
-  verification evidence.
+  `artifacts prepare` and `artifacts verify` workflow contracts. The setup
+  composition adds `StaticArtifactContractPreflight` before host/platform
+  mutation and `ArtifactReadinessGate` after artifact bootstrap. The static
+  path uses the `PortLocalFileStorage` capability for repository-local build
+  contexts; the live path uses bounded infrastructure probes for manager
+  Docker, registry/Nexus endpoints and repositories, storage, build inputs,
+  and public pulls. Both paths return typed, redacted evidence and fail closed
+  before image publication or dependent deployment.
 * `DeploymentServices` is the explicit deployment boundary. The deployment
   service namespace now owns `EnsurePortainerStack`, `EnsureNexusStack`, and
   the generic `EnsureServiceStack` contract for the base runnable-service

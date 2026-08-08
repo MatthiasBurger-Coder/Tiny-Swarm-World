@@ -143,7 +143,7 @@ def default_installation_plan() -> InstallationPlan:
             InstallationPhase(
                 phase_id="preflight",
                 order=0,
-                workflow_phase_names=("preflight",),
+                workflow_phase_names=("preflight", "artifact contract preflight"),
             ),
             InstallationPhase(
                 phase_id="host-preparation",
@@ -182,7 +182,12 @@ def default_installation_plan() -> InstallationPlan:
                 order=50,
                 depends_on=("secrets",),
                 services=("nexus",),
-                workflow_phase_names=("artifacts prepare", "artifacts verify"),
+                workflow_phase_names=(
+                    "artifact bootstrap",
+                    "artifact readiness gate",
+                    "artifacts prepare",
+                    "artifacts verify",
+                ),
             ),
             InstallationPhase(
                 phase_id="cicd",

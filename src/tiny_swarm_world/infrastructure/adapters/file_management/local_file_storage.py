@@ -84,3 +84,6 @@ class LocalFileStorage(PortLocalFileStorage):
 
     def exists(self, path: Path) -> bool:
         return path.exists()
+
+    def directory_exists(self, path: Path) -> bool:
+        return path.is_dir()

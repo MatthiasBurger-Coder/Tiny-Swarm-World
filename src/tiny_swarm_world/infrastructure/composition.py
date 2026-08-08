@@ -22,6 +22,8 @@ from tiny_swarm_world.application.services.artifacts import (
     ArtifactVerifyCheck,
     ArtifactVerifyWorkflow,
     ArtifactWorkflowKind,
+    ArtifactReadinessGate,
+    ArtifactWorkflowResult,
     EnsureContainerImage,
     EnsureNexusAdminAccess,
     EnsureNexusDockerHostedRepository,
@@ -31,6 +33,7 @@ from tiny_swarm_world.application.services.artifacts import (
     NexusDockerProxyRepositoryConfiguration,
     NexusMavenProxyRepositoryConfiguration,
     WaitForNexusReady,
+    StaticArtifactContractPreflight,
 )
 from tiny_swarm_world.application.services.deployment import (
     DeploymentApplyWorkflow,
@@ -140,6 +143,7 @@ from tiny_swarm_world.domain.node_provider import (
     NodeSpec,
 )
 from tiny_swarm_world.domain.preflight import (
+    PreflightResult,
     LiveConsent,
     PreflightConfiguration,
     ProviderPreflightMetadata,
@@ -194,9 +198,13 @@ from tiny_swarm_world.infrastructure.adapters.ui.progress_trace_ui import (
 )
 from tiny_swarm_world.infrastructure.adapters.ui.factory_ui import FactoryUI
 from tiny_swarm_world.infrastructure.adapters.preflight import (
+    BoundedArtifactReadinessAdapter,
+    DockerManagerReadinessProbe,
     HostPreflightProbe,
     HttpArtifactSourceReadiness,
+    HttpEndpointReadinessProbe,
     LxcProviderPreflightProbe,
+    LocalDirectoryReadinessProbe,
 )
 from tiny_swarm_world.infrastructure.adapters.host.wsl_resource_inspector import WslResourceInspector
 from tiny_swarm_world.infrastructure.adapters.host.hang_diagnostics import ReadOnlyHangDiagnostics
@@ -207,6 +215,7 @@ from tiny_swarm_world.infrastructure.adapters.network import (
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
     ComposeFileRepositoryYaml,
+    resolve_container_image_contracts,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderConfig,
@@ -302,6 +311,8 @@ SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE
 SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT = "TSW_SERVICE_ACCESS_NGINX_IMAGE"
 PULSAR_IMAGE_ENVIRONMENT = "TSW_PULSAR_IMAGE"
 PULSAR_MANAGER_IMAGE_ENVIRONMENT = "TSW_PULSAR_MANAGER_IMAGE"
+PULSAR_MANAGER_BOOTSTRAP_IMAGE_ENVIRONMENT = "TSW_PULSAR_MANAGER_BOOTSTRAP_IMAGE"
+TRAEFIK_IMAGE_ENVIRONMENT = "TSW_TRAEFIK_IMAGE"
 DEFAULT_PULSAR_IMAGE = "apachepulsar/pulsar:3.0.17"
 DEFAULT_PULSAR_MANAGER_IMAGE = "apachepulsar/pulsar-manager:v0.4.0"
 TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT = "TSW_TRAEFIK_TLS_CERT_SECRET_NAME"
@@ -1261,19 +1272,22 @@ def build_lxc_artifact_services(
         EnsureContainerImage(image_publisher, contract)
         for contract in _container_image_contracts_from_environment()
     )
+    bootstrap_steps = (
+        wait_for_nexus_ready,
+        ensure_nexus_admin_access,
+        *nexus_repository_steps,
+    )
     checks = cast(
         tuple[ArtifactPrepareStep, ...],
         (
-            wait_for_nexus_ready,
-            ensure_nexus_admin_access,
-            *nexus_repository_steps,
+            *bootstrap_steps,
             *image_steps,
         ),
     )
     verify_checks = cast(tuple[ArtifactVerifyCheck, ...], checks)
     return ArtifactServices(
         workflows=ArtifactWorkflows(
-            prepare=ArtifactPrepareWorkflow(checks),
+            prepare=ArtifactPrepareWorkflow(checks, bootstrap_steps=bootstrap_steps),
             verify=ArtifactVerifyWorkflow(verify_checks),
         )
     )
@@ -1512,6 +1526,58 @@ def build_lxc_deployment_services(
     )
 
 
+def _build_artifact_readiness_gate(project_paths: ProjectPaths) -> ArtifactReadinessGate:
+    nexus_base_url = os.getenv(
+        "TSW_NEXUS_READINESS_BASE_URL",
+        "http://127.0.0.1:13081",
+    ).rstrip("/")
+    registry_base_url = _http_readiness_base_url(_swarm_registry_endpoint())
+    manager_storage_path = Path(
+        os.getenv("TSW_MANAGER_STORAGE_PATH", "/var/lib/docker")
+    )
+    return ArtifactReadinessGate(
+        BoundedArtifactReadinessAdapter(
+            {
+                "docker:manager": DockerManagerReadinessProbe(),
+                "registry:endpoint": HttpEndpointReadinessProbe(
+                    f"{registry_base_url}/v2/",
+                    probe_kind="registry_endpoint",
+                ),
+                "nexus:endpoint": HttpEndpointReadinessProbe(
+                    f"{nexus_base_url}/service/rest/v1/status",
+                    probe_kind="nexus_endpoint",
+                ),
+                "nexus:repositories": HttpEndpointReadinessProbe(
+                    f"{nexus_base_url}/service/rest/v1/repositories",
+                    probe_kind="nexus_repositories",
+                ),
+                "storage:manager": LocalDirectoryReadinessProbe(
+                    manager_storage_path,
+                    probe_kind="manager_storage",
+                ),
+                "build:inputs": LocalDirectoryReadinessProbe(
+                    project_paths.repository_root,
+                    probe_kind="build_inputs",
+                ),
+                "pull:public": HttpEndpointReadinessProbe(
+                    os.getenv(
+                        "TSW_PUBLIC_PULL_READINESS_URL",
+                        "https://registry-1.docker.io/v2/",
+                    ),
+                    probe_kind="public_pull",
+                ),
+            }
+        )
+    )
+
+
+def _http_readiness_base_url(endpoint: str) -> str:
+    normalized = endpoint.strip()
+    if normalized.startswith(("http://", "https://")):
+        return normalized.rstrip("/")
+    return f"http://{normalized.rstrip('/')}"
+
+
 def build_setup_services(
     live_consent: LiveConsent,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
@@ -1521,13 +1587,22 @@ def build_setup_services(
     allow_wsl_windows_filesystem: bool = False,
 ) -> SetupServices:
     project_paths = default_project_paths()
+    selected_service_profile = ServiceStackProfile(service_profile)
     preflight = _build_preflight_service_for_request(
-        service_profile,
+        selected_service_profile,
         node_provider_request,
         configuration_validation=configuration_validation,
         project_paths=project_paths,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
+    artifact_contract_preflight = StaticArtifactContractPreflight(
+        compose_repository=ComposeFileRepositoryYaml(
+            project_paths=project_paths,
+            service_profile=selected_service_profile,
+        ),
+        storage=LocalFileStorage(),
+    )
+    artifact_readiness_gate = _build_artifact_readiness_gate(project_paths)
     host_preparation = build_host_preparation_service(live_consent)
     trace_correlation_id = _new_installation_trace_correlation_id()
     platform = _build_platform_services_for_request(
@@ -1549,6 +1624,24 @@ def build_setup_services(
     )
     workflow_progress = _build_workflow_progress_sink(ui)
     method_trace = _build_method_trace_sink(ui)
+    static_preflight_result: PreflightResult | None = None
+    artifact_bootstrap_result: ArtifactWorkflowResult | None = None
+
+    def run_artifact_contract_preflight() -> PreflightResult:
+        nonlocal static_preflight_result
+        static_preflight_result = artifact_contract_preflight.run()
+        return static_preflight_result
+
+    async def run_artifact_bootstrap():
+        nonlocal artifact_bootstrap_result
+        artifact_bootstrap_result = await artifacts.workflows.prepare.run_bootstrap()
+        return artifact_bootstrap_result
+
+    def run_artifact_readiness_gate() -> PreflightResult:
+        return artifact_readiness_gate.run(
+            static_preflight=static_preflight_result,
+            artifact_bootstrap=artifact_bootstrap_result,
+        )
 
     def traced_phase(name: str, runner) -> SetupWorkflowPhase:
         return SetupWorkflowPhase(
@@ -1563,6 +1656,10 @@ def build_setup_services(
             run=SetupWorkflow(
                 (
                     traced_phase("preflight", lambda: preflight.run(live_consent)),
+                    traced_phase(
+                        "artifact contract preflight",
+                        run_artifact_contract_preflight,
+                    ),
                     traced_phase("host prepare", host_preparation.prepare),
                     traced_phase("host verify", host_preparation.verify),
                     traced_phase("platform init", lambda: platform.workflows.init.run()),
@@ -1578,9 +1675,13 @@ def build_setup_services(
                         "deployment bootstrap",
                         lambda: deployment.workflows.bootstrap.run(),
                     ),
+                    traced_phase("artifact bootstrap", run_artifact_bootstrap),
+                    traced_phase("artifact readiness gate", run_artifact_readiness_gate),
                     traced_phase(
                         "artifacts prepare",
-                        lambda: artifacts.workflows.prepare.run(),
+                        lambda: artifacts.workflows.prepare.run_after_bootstrap(
+                            artifact_bootstrap_result
+                        ),
                     ),
                     traced_phase(
                         "artifacts verify",
@@ -2265,6 +2366,10 @@ def _deployment_stack_environment(
     registry_endpoint = _swarm_registry_endpoint()
     environment = {
         "traefik": {
+            TRAEFIK_IMAGE_ENVIRONMENT: _operator_config_value(
+                TRAEFIK_IMAGE_ENVIRONMENT,
+                "traefik:v3.7.4",
+            ),
             TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT: _operator_config_value(
                 TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT,
                 DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
@@ -2295,6 +2400,10 @@ def _deployment_stack_environment(
             PULSAR_MANAGER_IMAGE_ENVIRONMENT: _operator_config_value(
                 PULSAR_MANAGER_IMAGE_ENVIRONMENT,
                 DEFAULT_PULSAR_MANAGER_IMAGE,
+            ),
+            PULSAR_MANAGER_BOOTSTRAP_IMAGE_ENVIRONMENT: _operator_config_value(
+                PULSAR_MANAGER_BOOTSTRAP_IMAGE_ENVIRONMENT,
+                "python:3.12.13-alpine3.23",
             ),
             "TSW_PULSAR_TOKEN_SECRET_KEY": _operator_secret_value("TSW_PULSAR_TOKEN_SECRET_KEY"),
             "TSW_PULSAR_ADMIN_TOKEN": _operator_secret_value("TSW_PULSAR_ADMIN_TOKEN"),
@@ -2362,28 +2471,13 @@ def _deployment_stack_environment(
 
 
 def _container_image_contracts_from_environment() -> tuple[ContainerImageContract, ...]:
-    overrides = {
-        "infisical": INFISICAL_IMAGE_ENVIRONMENT,
-        "infisical-postgres": INFISICAL_POSTGRES_IMAGE_ENVIRONMENT,
-        "infisical-redis": INFISICAL_REDIS_IMAGE_ENVIRONMENT,
-        "pulsar": PULSAR_IMAGE_ENVIRONMENT,
-        "pulsar-manager": PULSAR_MANAGER_IMAGE_ENVIRONMENT,
-    }
-    contracts = []
-    for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS:
-        env_name = overrides.get(contract.build_context)
-        image_ref = ""
-        if env_name:
-            image_ref = _operator_config_value(env_name, "").strip()
-        if image_ref:
-            image_name, tag = _split_image_ref(image_ref)
-            contracts.append(replace(contract, image_name=image_name, tag=tag))
-            continue
-        contracts.append(contract)
-    return tuple(contracts)
+    return resolve_container_image_contracts(DEFAULT_CONTAINER_IMAGE_CONTRACTS, os.environ)
 
 
 def _split_image_ref(image_ref: str) -> tuple[str, str]:
+    if "@" in image_ref:
+        image_name, digest = image_ref.rsplit("@", 1)
+        return image_name, f"@{digest}"
     if ":" not in image_ref.rsplit("/", 1)[-1]:
         return image_ref, "latest"
     image_name, tag = image_ref.rsplit(":", 1)
