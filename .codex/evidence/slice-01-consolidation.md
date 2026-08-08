@@ -1,7 +1,7 @@
 # Slice 01 Consolidation
 
-Workflow: `issue-183-20260808`  
-Slice: `01` — Freeze contracts, responsibility map, and execution evidence  
+Workflow: `issue-183-20260808`
+Slice: `01` — Freeze contracts, responsibility map, and execution evidence
 Execution mode: `sequential` with role-based fallback review
 
 ## Stream results

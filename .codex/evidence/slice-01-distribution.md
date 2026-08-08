@@ -1,7 +1,7 @@
 # Slice 01 Distribution Decision
 
-Workflow: `issue-183-20260808`  
-Workflow version: `issue-183-v1.0.0`  
+Workflow: `issue-183-20260808`
+Workflow version: `issue-183-v1.0.0`
 Slice: `01` — Freeze contracts, responsibility map, and execution evidence
 
 ## Affected areas
