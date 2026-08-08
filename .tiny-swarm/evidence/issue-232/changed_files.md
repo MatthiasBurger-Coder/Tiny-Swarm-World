@@ -9,9 +9,9 @@ the following product, test, documentation and evidence surfaces.
 - `documentation/workflow/context-pack.json`
 - `documentation/arc42/11_risks_and_debt.adoc`
 - `.codex/evidence/issue-232/slice-01-distribution.md` through
-  `slice-07-distribution.md`
+  `slice-08-distribution.md`
 - `.codex/evidence/issue-232/slice-01-consolidation.md` through
-  `slice-06-consolidation.md`
+  `slice-08-consolidation.md`
 
 ## Application and domain
 
@@ -59,3 +59,4 @@ the following product, test, documentation and evidence surfaces.
 - `.tiny-swarm/evidence/issue-232/test_results.md`
 - `.tiny-swarm/evidence/issue-232/remaining_risks.md`
 - `.tiny-swarm/evidence/issue-232/acceptance_checklist.md`
+- `.tiny-swarm/evidence/issue-232/live_acceptance.md`

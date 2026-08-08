@@ -1,8 +1,10 @@
 # Issue #232 implementation summary
 
 Issue #232 is implemented through the serial workflow `issue-232-20260808`.
-The current branch has completed Slices 01–07 locally; Slices 08–09 remain
-for optional live acceptance, documentation synchronization and final audit.
+The current branch has completed Slices 01–08 locally; Slice 08 recorded the
+optional live path as `LIVE_CONSENT_MISSING` because no explicit operator
+consent was available. Slice 09 remains for documentation synchronization and
+final audit.
 
 ## Implemented behavior
 
@@ -24,6 +26,7 @@ for optional live acceptance, documentation synchronization and final audit.
 ## Current completion state
 
 Local implementation verification is green through the Slice 07 full quality
-run. No live
+run. Slice 08 added no product-code mutation and recorded the live acceptance
+boundary without executing it. No live
 installation, Docker, Incus, Swarm, registry, Nexus, browser or external
 quality result is claimed by this package.

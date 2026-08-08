@@ -28,10 +28,18 @@ non-success states as success:
 - degraded observation: `LIVE_DEGRADED`;
 - redacted successful observation: `LIVE_VERIFIED`.
 
+## Optional live acceptance
+
+| Area | Evidence | Status |
+|---|---|---|
+| Applicability and consent classification | `live_acceptance.md` | `APPLICABLE_LIVE`; `LIVE_CONSENT_MISSING` |
+| Bounded seven-target scenario | `live_acceptance.md`, readiness gate tests | Defined and locally tested; live execution not authorized |
+| Mutation and claim boundary | `live_acceptance.md`, setup sequencing tests | Stopped before live probe/mutation; no live success claim |
+
 ## Open before final DONE
 
 - [ ] Complete documentation synchronization in Slice 09.
-- [ ] Decide and record optional live acceptance state in Slice 08; no live
-      success may be inferred from local tests.
+- [x] Record optional live acceptance state in Slice 08; no live success is
+      inferred from local tests.
 - [ ] Complete independent `issue-completion-auditor` review and close all
       open matrix rows.

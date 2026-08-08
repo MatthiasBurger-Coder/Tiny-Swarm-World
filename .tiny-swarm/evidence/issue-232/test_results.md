@@ -15,6 +15,7 @@ quality-gate wrapper as required by project governance.
 | Architecture tests | PASS | 18 tests, `OK` |
 | Typecheck | PASS | no issues in 538 source files |
 | Full quality gate after Slice 07 state/evidence changes | PASS | 1,623 tests, 28 skipped, `OK` |
+| Slice 08 required quality-gate rerun | PASS | 1,623 tests, 28 skipped, `OK`; completed after extended wrapper timeout |
 
 The current full quality result is the authoritative local result for Slice 07.
 
@@ -22,4 +23,6 @@ The current full quality result is the authoritative local result for Slice 07.
 
 No live infrastructure command was run. Live installation and external quality
 checks remain non-success states until separately applicable, explicitly
-authorized and backed by redacted evidence.
+authorized and backed by redacted evidence. Slice 08 therefore records
+`LIVE_CONSENT_MISSING` in `live_acceptance.md`; it produced no live process,
+exit code or runtime result.
