@@ -55,8 +55,9 @@ class TestLxcContainerImagePublisher(unittest.TestCase):
                     ContainerImageContract("example/image", "1", context)
                 )
                 self.assertIsInstance(path, Path)
+        unknown_context = ContainerImageContract("example/image", "1", "unknown")
         with self.assertRaisesRegex(ValueError, "Unknown image build context"):
-            self.publisher._context_path(ContainerImageContract("example/image", "1", "unknown"))
+            self.publisher._context_path(unknown_context)
 
     def test_publish_build_image_transfers_context_logs_in_and_pushes(self):
         contract = ContainerImageContract("example/image", "1", "jenkins")
