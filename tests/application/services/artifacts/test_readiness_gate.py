@@ -46,6 +46,10 @@ class TestArtifactReadinessGate(unittest.TestCase):
         self.assertEqual(PreflightStatus.FAILED, result.checks[0].status)
         self.assertEqual("static_preflight_missing_or_failed", result.checks[0].evidence["reason"])
         self.assertEqual([], readiness.calls)
+        self.assertEqual(
+            "LIVE_BLOCKED_BEFORE_MUTATION",
+            result.checks[0].evidence["live_state"],
+        )
 
     def test_bootstrap_failure_blocks_without_live_observations(self):
         readiness = _FakeReadiness()
@@ -62,6 +66,10 @@ class TestArtifactReadinessGate(unittest.TestCase):
 
         self.assertEqual("ARTIFACT-BOOTSTRAP", result.checks[0].check_id)
         self.assertEqual([], readiness.calls)
+        self.assertEqual(
+            "LIVE_FAILED_AFTER_MUTATION",
+            result.checks[0].evidence["live_state"],
+        )
 
     def test_unknown_readiness_fails_closed_for_every_mandatory_target(self):
         readiness = _FakeReadiness(ReadinessStatus.UNKNOWN)
@@ -78,6 +86,12 @@ class TestArtifactReadinessGate(unittest.TestCase):
         self.assertTrue(
             all(check.evidence["evidence_scope"] == "live" for check in result.checks)
         )
+        self.assertTrue(
+            all(
+                check.evidence["live_state"] == "LIVE_PREREQUISITE_MISSING"
+                for check in result.checks
+            )
+        )
 
     def test_ready_result_is_machine_readable_and_redacted(self):
         readiness = _FakeReadiness()
@@ -90,6 +104,7 @@ class TestArtifactReadinessGate(unittest.TestCase):
         payload = result.to_dict()
         self.assertEqual("PASSED", payload["status"])
         self.assertEqual("live", payload["checks"][0]["evidence"]["evidence_scope"])
+        self.assertEqual("LIVE_VERIFIED", payload["checks"][0]["evidence"]["live_state"])
         self.assertNotIn("secret", str(payload).lower())
         self.assertNotIn("token", str(payload).lower())
 

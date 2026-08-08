@@ -33,6 +33,8 @@ class ReadinessStatus(str, Enum):
     UNAVAILABLE = "unavailable"
     TIMED_OUT = "timed_out"
     UNKNOWN = "unknown"
+    PARTIAL = "partial"
+    DEGRADED = "degraded"
 
 
 @dataclass(frozen=True)

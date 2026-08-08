@@ -7,6 +7,7 @@ from tiny_swarm_world.application.services.artifacts.workflows import (
     ArtifactWorkflowResult,
     ArtifactWorkflowStatus,
 )
+from tiny_swarm_world.domain.inventory import LiveVerificationState
 from tiny_swarm_world.domain.preflight import (
     ARTIFACT_READINESS_TARGETS,
     PreflightCategory,
@@ -58,6 +59,7 @@ class ArtifactReadinessGate:
                     remediation="Resolve static artifact contract findings before live checks.",
                     evidence_scope="static",
                     reason="static_preflight_missing_or_failed",
+                    live_state=LiveVerificationState.BLOCKED_BEFORE_MUTATION,
                 ),),
             )
 
@@ -73,6 +75,7 @@ class ArtifactReadinessGate:
                     remediation="Resolve artifact bootstrap findings before live checks.",
                     evidence_scope="live",
                     reason="artifact_bootstrap_missing_or_failed",
+                    live_state=_bootstrap_live_state(artifact_bootstrap),
                 ),),
                 setup_profile=static_preflight.setup_profile,
             )
@@ -119,6 +122,7 @@ class ArtifactReadinessGate:
             remediation=result.remediation,
             evidence={
                 "evidence_scope": "live",
+                "live_state": _readiness_live_state(result.status).value,
                 "readiness_status": result.status.value,
                 **dict(result.evidence),
             },
@@ -143,6 +147,7 @@ def _failed_prerequisite_check(
     remediation: str,
     evidence_scope: str,
     reason: str,
+    live_state: LiveVerificationState,
 ) -> PreflightCheck:
     return PreflightCheck(
         check_id=check_id,
@@ -153,6 +158,25 @@ def _failed_prerequisite_check(
         remediation=remediation,
         evidence={
             "evidence_scope": evidence_scope,
+            "live_state": live_state.value,
             "reason": reason,
         },
     )
+
+
+def _bootstrap_live_state(
+    result: ArtifactWorkflowResult | None,
+) -> LiveVerificationState:
+    if result is None or not result.executed:
+        return LiveVerificationState.PREREQUISITE_MISSING
+    return LiveVerificationState.FAILED_AFTER_MUTATION
+
+
+def _readiness_live_state(status: ReadinessStatus) -> LiveVerificationState:
+    if status is ReadinessStatus.READY:
+        return LiveVerificationState.VERIFIED
+    if status is ReadinessStatus.PARTIAL:
+        return LiveVerificationState.PARTIAL
+    if status is ReadinessStatus.DEGRADED:
+        return LiveVerificationState.DEGRADED
+    return LiveVerificationState.PREREQUISITE_MISSING

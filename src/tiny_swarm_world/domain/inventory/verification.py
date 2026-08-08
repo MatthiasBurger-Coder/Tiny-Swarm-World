@@ -28,6 +28,19 @@ class VerificationEvidenceScope(str, Enum):
     LIVE = "live"
 
 
+class LiveVerificationState(str, Enum):
+    """Canonical policy states for live or consent-gated observations."""
+
+    NOT_APPLICABLE = "LIVE_NOT_APPLICABLE"
+    CONSENT_MISSING = "LIVE_CONSENT_MISSING"
+    PREREQUISITE_MISSING = "LIVE_PREREQUISITE_MISSING"
+    BLOCKED_BEFORE_MUTATION = "LIVE_BLOCKED_BEFORE_MUTATION"
+    FAILED_AFTER_MUTATION = "LIVE_FAILED_AFTER_MUTATION"
+    PARTIAL = "LIVE_PARTIAL"
+    DEGRADED = "LIVE_DEGRADED"
+    VERIFIED = "LIVE_VERIFIED"
+
+
 @dataclass(frozen=True)
 class VerificationResult:
     target_id: str

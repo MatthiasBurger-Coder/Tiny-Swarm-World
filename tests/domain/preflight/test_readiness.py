@@ -36,6 +36,8 @@ class TestReadinessContracts(unittest.TestCase):
             ReadinessStatus.UNAVAILABLE,
             ReadinessStatus.TIMED_OUT,
             ReadinessStatus.UNKNOWN,
+            ReadinessStatus.PARTIAL,
+            ReadinessStatus.DEGRADED,
         )
 
         for status in statuses:

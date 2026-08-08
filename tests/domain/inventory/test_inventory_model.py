@@ -10,6 +10,7 @@ from tiny_swarm_world.domain.inventory import (
     StackObservedState,
     SwarmObservedState,
     VerificationEvidenceScope,
+    LiveVerificationState,
     VerificationResult,
     VerificationStatus,
     VmDesiredState,
@@ -18,6 +19,21 @@ from tiny_swarm_world.domain.inventory import (
 
 
 class TestVerificationResult(unittest.TestCase):
+    def test_live_verification_states_match_repository_policy(self):
+        self.assertEqual(
+            {
+                "LIVE_NOT_APPLICABLE",
+                "LIVE_CONSENT_MISSING",
+                "LIVE_PREREQUISITE_MISSING",
+                "LIVE_BLOCKED_BEFORE_MUTATION",
+                "LIVE_FAILED_AFTER_MUTATION",
+                "LIVE_PARTIAL",
+                "LIVE_DEGRADED",
+                "LIVE_VERIFIED",
+            },
+            {state.value for state in LiveVerificationState},
+        )
+
     def test_verification_status_values_match_workflow_contract(self):
         self.assertEqual(
             {
