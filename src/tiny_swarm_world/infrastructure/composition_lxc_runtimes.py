@@ -24,6 +24,8 @@ from tiny_swarm_world.domain.node_provider import (
     NodeSpec,
     SwarmManagerBootstrapOutcome,
     SwarmManagerState,
+    SwarmNodeReadinessEvidence,
+    SwarmNodeState,
     SwarmWorkerJoinCredential,
     SwarmWorkerJoinOutcome,
     WorkerJoinState,
@@ -191,6 +193,18 @@ class ProviderSelectedLxcSwarmRuntime(
             return SwarmManagerBootstrapOutcome(node=node, state=SwarmManagerState.UNKNOWN)
         return await delegate.inspect_manager(node)
 
+    async def inspect_membership(
+        self,
+        manager: NodeSpec,
+        expected_nodes: tuple[NodeSpec, ...],
+    ) -> tuple[SwarmNodeReadinessEvidence, ...]:
+        if not self.allow_live_mutation and not self.allow_live_inspection:
+            return _unobserved_membership(expected_nodes)
+        delegate = await self._delegate()
+        if delegate is None:
+            return _unobserved_membership(expected_nodes)
+        return await delegate.inspect_membership(manager, expected_nodes)
+
     async def initialize_manager(
         self,
         node: NodeSpec,
@@ -260,6 +274,23 @@ class ProviderSelectedLxcSwarmRuntime(
             runner=self.runner,
             allow_live_mutation=self.allow_live_mutation,
         )
+
+
+def _unobserved_membership(
+    expected_nodes: tuple[NodeSpec, ...],
+) -> tuple[SwarmNodeReadinessEvidence, ...]:
+    return tuple(
+        SwarmNodeReadinessEvidence(
+            node=node,
+            docker_engine_observed=False,
+            docker_engine_ready=False,
+            swarm_state_observed=False,
+            swarm_state=SwarmNodeState.UNKNOWN,
+            expected_node_count=len(expected_nodes),
+            observed_node_count=0,
+        )
+        for node in expected_nodes
+    )
 
 
 class PrepareLxcStackAssets:

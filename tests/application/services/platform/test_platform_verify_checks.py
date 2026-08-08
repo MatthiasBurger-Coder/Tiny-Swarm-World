@@ -24,6 +24,8 @@ from tiny_swarm_world.domain.node_provider import (
     NodeSpec,
     SwarmManagerBootstrapOutcome,
     SwarmManagerState,
+    SwarmNodeReadinessEvidence,
+    SwarmNodeState,
     SwarmWorkerJoinCredential,
     SwarmWorkerJoinOutcome,
     WorkerJoinState,
@@ -91,8 +93,9 @@ class TestPlatformVerifyChecks(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(result.evidence["classification"], "swarm_membership_verified")
-        self.assertEqual(swarm.manager_inspections, ["swarm-manager"])
-        self.assertEqual(swarm.worker_inspections, ["swarm-worker-1"])
+        self.assertEqual(swarm.membership_inspections, ["swarm-manager"])
+        self.assertEqual(swarm.manager_inspections, [])
+        self.assertEqual(swarm.worker_inspections, [])
         self.assertEqual(swarm.init_calls, 0)
         self.assertEqual(swarm.credential_calls, 0)
         self.assertEqual(swarm.join_calls, 0)
@@ -218,11 +221,49 @@ class _SwarmRuntime:
     ) -> None:
         self.manager = manager
         self.worker = worker
+        self.membership_inspections: list[str] = []
         self.manager_inspections: list[str] = []
         self.worker_inspections: list[str] = []
         self.init_calls = 0
         self.credential_calls = 0
         self.join_calls = 0
+
+    async def inspect_membership(
+        self,
+        manager: NodeSpec,
+        expected_nodes: tuple[NodeSpec, ...],
+    ) -> tuple[SwarmNodeReadinessEvidence, ...]:
+        await async_checkpoint()
+        self.membership_inspections.append(manager.name)
+        return (
+            SwarmNodeReadinessEvidence(
+                node=self.manager.node,
+                docker_engine_observed=True,
+                docker_engine_ready=True,
+                swarm_state_observed=True,
+                swarm_state=SwarmNodeState.ACTIVE,
+                observed_role=NodeRole.MANAGER,
+                manager_state="leader",
+                manager_count=1,
+                expected_node_count=len(expected_nodes),
+                observed_node_count=len(expected_nodes),
+            ),
+            SwarmNodeReadinessEvidence(
+                node=self.worker.node,
+                docker_engine_observed=True,
+                docker_engine_ready=True,
+                swarm_state_observed=True,
+                swarm_state=(
+                    SwarmNodeState.ACTIVE
+                    if self.worker.verified
+                    else SwarmNodeState.PENDING
+                ),
+                observed_role=NodeRole.WORKER,
+                manager_count=1,
+                expected_node_count=len(expected_nodes),
+                observed_node_count=len(expected_nodes),
+            ),
+        )
 
     async def inspect_manager(self, node: NodeSpec) -> SwarmManagerBootstrapOutcome:
         await async_checkpoint()

@@ -238,6 +238,14 @@ class SwarmWorkerJoinCredential:
     def __str__(self) -> str:
         return "<redacted>"
 
+    @property
+    def usable(self) -> bool:
+        return self.value.strip().casefold() not in {
+            "",
+            "<unavailable>",
+            "unavailable",
+        }
+
 
 @dataclass(frozen=True)
 class SwarmWorkerJoinOutcome:
@@ -271,6 +279,7 @@ class SwarmNodeReadinessEvidence:
     swarm_state_observed: bool
     swarm_state: SwarmNodeState
     observed_role: NodeRole | None = None
+    manager_state: str | None = None
     manager_count: int | None = None
     expected_node_count: int | None = None
     observed_node_count: int | None = None
@@ -279,6 +288,13 @@ class SwarmNodeReadinessEvidence:
         object.__setattr__(self, "swarm_state", _swarm_state(self.swarm_state))
         if self.observed_role is not None:
             object.__setattr__(self, "observed_role", _node_role(self.observed_role))
+        if self.manager_state is not None:
+            normalized_manager_state = str(self.manager_state).strip().casefold()
+            object.__setattr__(
+                self,
+                "manager_state",
+                normalized_manager_state or None,
+            )
         for label, value in (
             ("manager count", self.manager_count),
             ("expected node count", self.expected_node_count),
@@ -308,6 +324,11 @@ class SwarmNodeReadinessEvidence:
             errors.append("node_role_missing")
         elif self.observed_role != self.node.role:
             errors.append("node_role_mismatch")
+        if self.node.role == NodeRole.MANAGER:
+            if self.manager_state is None:
+                errors.append("manager_state_missing")
+            elif self.manager_state != "leader":
+                errors.append("manager_leader_state_not_ready")
         if self.manager_count is not None and self.manager_count < 1:
             errors.append("manager_quorum_missing")
         if (

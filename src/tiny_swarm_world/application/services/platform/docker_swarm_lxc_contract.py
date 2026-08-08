@@ -59,6 +59,7 @@ class DockerSwarmInLxcContractService:
                     "node": readiness.node.name,
                     "role": readiness.node.role.value,
                     "swarm_state": readiness.swarm_state.value,
+                    "manager_state": readiness.manager_state or "none",
                 },
             )
         status = (
@@ -76,6 +77,7 @@ class DockerSwarmInLxcContractService:
                 "node": readiness.node.name,
                 "role": readiness.node.role.value,
                 "swarm_state": readiness.swarm_state.value,
+                "manager_state": readiness.manager_state or "none",
                 "error_count": str(len(errors)),
             },
         )

@@ -59,6 +59,65 @@ class TestLxcContainerSwarmBootstrap(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(outcome.manager_count, 1)
         self.assertEqual(len(runner.calls), 1)
 
+    async def test_manager_observes_structured_membership_for_expected_nodes(self):
+        runner = _FakeRunner(
+            LxcNodeCommandResult(
+                returncode=0,
+                stdout=(
+                    '{"Hostname":"swarm-manager","Status":"Ready",'
+                    '"Availability":"Active","ManagerStatus":"Leader"}\n'
+                    '{"Hostname":"swarm-worker-1","Status":"Ready",'
+                    '"Availability":"Active"}\n'
+                ),
+            )
+        )
+        swarm = _swarm(runner, allow_live_mutation=False)
+
+        readiness = await swarm.inspect_membership(
+            _manager(),
+            (_manager(), _worker()),
+        )
+
+        self.assertEqual(len(readiness), 2)
+        self.assertTrue(readiness[0].ready)
+        self.assertTrue(readiness[1].ready)
+        self.assertEqual(readiness[0].manager_state, "leader")
+        self.assertEqual(readiness[0].observed_node_count, 2)
+        self.assertEqual(
+            runner.calls[0][0],
+            (
+                "incus",
+                "exec",
+                "swarm-manager",
+                "--",
+                "docker",
+                "node",
+                "ls",
+                "--format",
+                "{{json .}}",
+            ),
+        )
+
+    async def test_manager_membership_rejects_missing_and_wrong_manager_state(self):
+        runner = _FakeRunner(
+            LxcNodeCommandResult(
+                returncode=0,
+                stdout=(
+                    '{"Hostname":"swarm-manager","Status":"Ready",'
+                    '"Availability":"Active","ManagerStatus":"Reachable"}\n'
+                ),
+            )
+        )
+        swarm = _swarm(runner, allow_live_mutation=False)
+
+        readiness = await swarm.inspect_membership(
+            _manager(),
+            (_manager(), _worker()),
+        )
+
+        self.assertIn("manager_leader_state_not_ready", readiness[0].readiness_errors())
+        self.assertEqual(readiness[1].readiness_errors(), ("observed_state_missing",))
+
     async def test_manager_init_requires_live_mutation_consent(self):
         runner = _FakeRunner()
         swarm = _swarm(runner, allow_live_mutation=False)
