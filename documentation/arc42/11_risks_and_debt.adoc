@@ -90,6 +90,12 @@ rejection are implemented and test-backed.
 
 Remaining risks and debt:
 
+* Issue #183's local compatibility-preserving split is implemented through
+  `infrastructure/adapters/clients/lxc/` and direct composition imports. The
+  legacy module is now a thin compatibility facade. Remaining debt is the
+  failing external SonarCloud gate and missing workflow-commit smell
+  comparison. Live browser acceptance evidence is now present, but the issue
+  must remain blocked until external quality is resolved and audited.
 * default artifact and deployment workflows have provider-native publication,
   stack, and observed-state contracts, but live registry, Portainer, Swarm,
   external-input, and readiness evidence still needs explicit operator

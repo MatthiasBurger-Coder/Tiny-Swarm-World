@@ -1,41 +1,57 @@
-# Issue #218 — Slice 04 consolidation
+# Slice 04 Consolidation
 
-Date: 2026-08-04
+Workflow: `issue-183-20260808`
+Slice: `04` — Extract Docker, service clients, image publisher, and errors
+Status: `ACCEPTED_FOR_CHECKPOINT`
 
-## Decision
+## Distribution result
 
-Slice 04 is consolidated on the issue-218 workflow branch. The requirement
-matrix was reconciled against repository code, tests, live observations, and
-the issue body. Local requirement, test/evidence and network reviews are now
-PASS; only remote/main release lifecycle gates remain.
+The slice remained sequential because the extracted adapters share the legacy
+module’s subprocess, manager-IP, HTTP, and exception compatibility seams. No
+callable Codex subagent surface was available; the documented fallback review
+covered Senior Python Automation Developer, Senior System Architect, Senior
+Tester, and Senior Security Sandbox Engineer responsibilities.
 
-## Distribution
+## Implemented scope
 
-No callable subagent runtime was visible in this execution context. The
-required specialist review was therefore performed as a role-based fallback
-in the main execution thread and recorded here:
+* Added `lxc/docker/lxc_container_runtime.py` for Docker-inside-LXC container
+  inspection and file reads.
+* Added `lxc/services/` modules for Portainer admin, Portainer deployment, and
+  Nexus HTTP adapters, plus shared manager-address helpers.
+* Added `lxc/images/` modules for image publication, typed errors, diagnostics,
+  and operator-action messages.
+* Added direct tests for the extracted Docker, service, and image modules.
+* Retained legacy public names as compatibility facades. The service facades
+  preserve the old manager-IP patch seam; image error names preserve exception
+  identity through aliases.
+* Kept the LXC Docker-engine runtime distinct from `LxcContainerRuntime`.
 
-- Requirement Engineer: FR/NFR/AC and mandatory-test matrix reviewed.
-- System Architect: application/domain/infrastructure ownership reviewed.
-- Python Automation Developer: CLI, adapter, timeout, and test impact reviewed.
-- Tester: existing test inventory and live evidence gaps reviewed.
-- Network Specialist: Windows bridge, portproxy, firewall, DNS, and IP-drift
-  evidence reviewed.
-- Issue Completion Auditor: prior audit and completion rules reviewed.
+## Review findings
 
-The streams remain serial because they touch shared contracts, composition,
-CLI dispatch, Windows bridge state, and one live WSL2 environment. The final
-independent read-only Network Specialist review returned PASS after the
-controlled changed-IP simulation, elevated cleanup and strict snapshot.
+* Architecture: accepted. New adapters remain infrastructure-owned and
+  application ports are unchanged.
+* Compatibility: accepted. Existing runtime/logging tests passed, including
+  subprocess patching, manager-IP overrides, HTTP delegation, and image error
+  behavior.
+* Security/error mapping: accepted. Credentials and raw registry payloads are
+  not included in exception strings; typed diagnostics and operator actions
+  remain stable.
+* Documentation: no Arc42 change was required for this extraction-only slice.
+* Live infrastructure: not run; no live consent was provided or required.
 
-## Evidence
+## Verification evidence
 
-- `.tiny-swarm/evidence/issue-218/requirement_matrix.md`
-- `.codex/evidence/issue-218-completion-audit-20260720.md`
-- `.codex/evidence/issue-218-live-acceptance-20260720.md`
-- `git diff --check` passed for the consolidated workflow and matrix changes.
+* Direct extracted-module unittest discovery: `14` tests passed.
+* Legacy runtime and logging compatibility suite: `60` tests passed.
+* `python3 tools/quality_gate.py lint`: passed.
+* `python3 tools/quality_gate.py typecheck`: passed; existing annotation notes
+  only.
+* `python3 tools/quality_gate.py arch-lint`: passed, 3 contracts kept.
+* `python3 tools/quality_gate.py arch-tests`: passed, 18 tests.
+* `git diff --check`: passed.
 
-## Next slice
+## Consolidation decision
 
-Slice 05 implements explicit, bounded repository/package/image source
-readiness before any platform mutation.
+No stream changes were rejected and no merge conflict occurred. The slice is
+accepted for one checkpoint commit on the active workflow branch. SonarQube,
+browser checks, and live infrastructure evidence remain unclaimed.

@@ -1,605 +1,679 @@
-# Workflow: Issue #154 Real Docker Swarm Cluster Installation Phase
+# Workflow: Issue #183 SOLID LXC Swarm Runtime Decomposition
 
-Version: `issue-154-v1.0.0`
-Workflow ID: `issue-154-20260808`
-Branch: `feature/workflow-issue-154-real-cluster-phase-20260808`
+Version: `issue-183-v1.0.0`
+Workflow ID: `issue-183-20260808`
+Authoring branch: `feature/workflow-issue-183-lxc-runtime-solid-20260808`
+Implementation branch requested by issue: `feature/split-lxc-swarm-runtime-solid`
 Status: `READY_FOR_EXECUTION`
 Execution profile: `FULL_PATH`
-Issue: [#154 Installer: Extract and enforce the real Docker Swarm cluster phase](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/154)
+Issue: [#183 SOLID: Split lxc_swarm_runtime.py into cohesive LXC client modules](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/183)
 
-This workflow is an implementation and verification plan. It does not claim
-that Issue #154 is implemented, that a managed LXC/Incus cluster is reachable,
-or that live Docker Swarm installation has been verified.
+This is an implementation and verification plan. It does not claim that the
+runtime has been split, that SonarQube has an accepted external result, or that
+live Selenium evidence exists. The referenced `PortLocalFileStorage` port was inspected for context;
+Issue #183 does not authorize changing it.
 
 ## Executive Summary
 
-Issue #154 closes the remaining installation-order gap for the default
-`lxc_native` provider. The repository already contains Docker-in-LXC
-installation, Swarm bootstrap, typed runtime outcomes, host preparation,
-artifact preflight, generic fail-closed setup execution and safe phase-result
-reporting. The gap is ownership: Docker and Swarm work is still appended to
-`platform init`, while the declarative `cluster` installation phase has no
-executable workflow phases.
+Issue #183 addresses a large infrastructure adapter module that currently
+combines manager shell execution, Swarm stack deployment, stack assets and
+prerequisites, container inspection, Portainer and Nexus clients, image
+publication, and migration-lock recovery. The workflow extracts those
+responsibilities into cohesive packages while keeping the old module as a
+compatibility export surface until all consumers migrate.
 
-The workflow extracts the existing Docker and Swarm responsibilities into
-explicit cluster-owned phases, aligns the domain and YAML installation plans,
-hardens cluster verification against structured state observed from the
-managed Swarm environment, and proves that downstream routing, artifact and
-deployment phases remain `not_run` after a cluster failure. It resolves the
-logical service-phase representation without redesigning deployment.
+The change remains inside the existing Python hexagonal modular monolith. It
+does not create a microservice, alter application ports, change external
+runtime behavior, or broaden the Linux/WSL-only Docker Swarm operating model.
+Local verification is deterministic and mocked. The issue-required Selenium
+E2E and SonarQube checks are separate live/external gates and must retain their
+explicit verification states until actual redacted evidence is available.
 
-Default verification is local, deterministic and mocked. No Incus, Docker,
-Docker Swarm, networking, service deployment or credential-backed live
-operation is authorized by this workflow creation.
+## Target Picture
+
+```text
+application ports (stable)
+        |
+        v
+infrastructure/adapters/clients/lxc/
+  command/       manager shell gateway and bounded diagnostics
+  swarm/         stack runtime, assets, prerequisite registry/strategies
+  docker/        LXC container runtime adapter
+  services/      Portainer admin/client and Nexus HTTP adapters
+  images/        image publisher and image-operation errors
+        |
+        v
+lxc_swarm_runtime.py compatibility exports -> existing composition/tests
+```
+
+The old module is reduced to compatibility exports or a thin facade. New
+responsibility-specific code owns one reason to change, and composition moves
+to the concrete packages gradually so each step remains importable and
+testable.
 
 ## Requirement Clarification Gate
 
 ### Original Request
 
-`Workflow create issue #154` with the referenced
+`workflow create issue #183` with the referenced
 `src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py`.
 
 ### Interpreted Intent
 
-Create a complete, executable workflow for GitHub Issue #154. Inspect the
-referenced local-storage port as repository context, but keep it out of scope
-unless an implementation slice proves that the cluster phase requires a
-missing storage capability. The issue itself is the authoritative requirement
-source.
+Create a complete executable workflow for GitHub Issue #183. Inspect the
+referenced local-storage port as repository context, but scope implementation
+to the cohesive decomposition of
+`src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py`
+and its verified consumers, tests, architecture evidence, and required
+quality/live validation.
 
 ### Change Type
 
-Functional installation-phase extraction, application orchestration and
-provider-runtime contract hardening, installation-plan synchronization,
-regression testing, evidence and documentation.
+Architecture-preserving Python infrastructure refactor with compatibility
+exports, composition migration, regression tests, architecture guards,
+documentation synchronization, external quality verification, and an
+operator-consent-gated browser E2E evidence path.
 
 ### Affected Process Strand
 
-`workflow create` -> guarded workflow publication -> later `workflow execute`.
-Implementation slices are serial because composition, setup phase names,
-installation-plan contracts and cluster verification results are shared.
+`workflow create` -> guarded workflow publication -> later `workflow execute`
+on the issue implementation branch. Issue completion remains controlled by
+the requirement matrix, evidence package, Three-Amigos perspectives, local
+quality gates, external SonarQube evidence, and the Issue Completion Auditor.
 
 ### Affected Architecture Area
 
-The existing hexagonal path across `domain/preflight`, `domain/node_provider`,
-application platform workflows and ports, managed LXC/Incus adapters,
-`infrastructure/composition.py`, setup orchestration, focused tests and
-installation/runtime Arc42 documentation.
-
-The referenced `PortLocalFileStorage` is an inspected application port, not a
-planned change, because Issue #154 does not describe filesystem behavior or an
-artifact-preflight requirement.
+Infrastructure client adapters and composition wiring under the existing
+hexagonal boundary. The change touches deployment, artifacts, and platform
+adapter implementations but does not move application responsibilities or
+introduce a deployable service boundary.
 
 ### Explicit Requirements
 
-The complete stable requirement matrix is at
-`.tiny-swarm/evidence/issue-154/requirement_matrix.md`. It covers every issue
-slice, acceptance criterion, named file, test expectation, architecture
-constraint and completion-evidence expectation. Implementation may not begin
-until the matrix is reviewed by the Requirement Lead, System Architect
-Reviewer and Test/Evidence Reviewer.
+The complete requirement matrix is maintained at
+`.tiny-swarm/evidence/solid-lxc-swarm-runtime/requirement_matrix.md`.
+Implementation may not begin until the Requirement Lead, System Architect,
+Python Automation Developer, and Senior Tester have reviewed the matrix and
+the Three-Amigos note at
+`.tiny-swarm/evidence/solid-lxc-swarm-runtime/three-amigos.md`.
 
-The core requirements are to:
+The workflow must:
 
-* make `cluster` a real executable phase for the default `lxc_native` provider;
-* keep `platform init` and `platform reconcile` responsible for the LXC/Incus
-  node layer only;
-* execute Docker work, Swarm manager bootstrap, worker joining and cluster
-  verification in cluster-owned phases;
-* require a valid worker token, manager-before-worker ordering, every expected
-  node, Docker readiness, Swarm membership, `Ready` and `Active` state, and the
-  contract-defined manager/leader state;
-* align `InstallationPlan` and `infra/config/installation-plan.yaml` with the
-  actual setup sequence and gate `network-routing` on cluster verification;
-* make `cicd`, `quality`, `messaging`, `control`, `docs` and `validation`
-  consistently represent executable boundaries or declarative metadata;
-* preserve Issue #218 host-preflight and Issue #232 artifact-preflight behavior;
-* add deterministic focused tests and pass the repository quality gate.
+* keep all public application ports and observable runtime behavior stable;
+* extract manager shell execution into a reusable command gateway/runner;
+* extract Swarm stack deployment into `lxc/swarm/swarm_stack_runtime.py`;
+* extract stack asset transfer into `lxc/swarm/stack_asset_transfer.py`;
+* extract stack prerequisite handling into a registry with Strategy-style
+  handlers for Traefik, SonarQube, and Swagger;
+* extract `LxcContainerRuntime` into an LXC Docker runtime module;
+* extract Portainer admin/client and Nexus HTTP wrappers into `lxc/services/`;
+* extract image publishing and its rejection/error types into `lxc/images/`;
+* preserve compatibility imports from the old module path and update
+  composition imports gradually;
+* avoid application-port changes unless a verified blocker proves one is
+  necessary;
+* add focused tests for every extracted module and architecture tests that
+  prevent unrelated growth in the compatibility module;
+* store before/after responsibility maps in the issue evidence directory;
+* add or extend a Selenium test using the issue-specified imports and store
+  redacted E2E evidence under
+  `.tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e/`;
+* pass the existing and new test suites, obtain an observable accepted
+  SonarQube result, and introduce no new critical/high code smells.
 
 ### Implicit Requirements
 
-* Reuse existing Docker/Swarm services, ports, DTOs and generic setup stop
-  behavior; do not duplicate implementation.
-* Verify the managed LXC/Incus Swarm environment, never the host Docker daemon.
-* Prefer structured DTO/state parsing over fragile substring parsing.
-* Keep phase names stable across plan, YAML, composition, setup and tests.
-* Keep verification read-only, live mutation consent-gated and evidence safe.
-* Preserve the Linux/WSL-only and Docker Swarm-first operating model.
+* Preserve the existing `PortSwarmStackRuntime`, `PortContainerRuntime`,
+  `PortContainerImagePublisher`, `PortPortainerAdminClient`,
+  `PortPortainerClient`, `PortDeploymentGateway`, and `PortNexusClient`
+  contracts.
+* Keep infrastructure technology details in infrastructure adapters and keep
+  application services dependent on ports rather than concrete adapters.
+* Keep `infrastructure/composition.py` as the wiring root and keep
+  `__main__.py` thin.
+* Preserve bounded timeouts, retries, cleanup, redacted diagnostics, and
+  operator-action messages while moving code.
+* Preserve the distinction between the existing LXC Docker-engine runtime and
+  the extracted container-runtime adapter; do not merge them accidentally.
+* Keep local tests free of Incus, Docker Swarm, Portainer, Nexus, credential,
+  or browser side effects.
+* Treat live browser evidence and SonarQube status as stateful evidence, not as
+  implied by static tests or configuration.
 
 ### Assumptions
 
-* The GitHub issue is the requirement source; no matching EPIC was found under
-  `documentation/epics`.
-* Issue #218 and Issue #232 behavior on the current branch is the regression
-  baseline, not new implementation scope.
-* Existing `SwarmNodeReadinessEvidence` and related DTOs are the starting point
-  for structured verification; exact fields must be confirmed before changes.
-* Logical service entries will use executable names only for actual setup
-  boundaries and metadata for services that do not own executable phases. The
-  terminal validation mapping must remain explicit and ordered.
-* Live validation is optional and serialized; it is not needed for local
-  workflow approval.
+* The GitHub issue is the authoritative requirement source; no relevant EPIC
+  exists under `documentation/epics`.
+* Existing responsibility decisions in
+  `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
+  and `command-runner-responsibility.adoc` remain authoritative.
+* Compatibility exports may remain in the legacy module until all verified
+  imports migrate; removing that surface is not assumed.
+* Existing browser infrastructure can be extended with an issue-specific,
+  ignored evidence root without changing the default consent-gated behavior.
+* The issue-required implementation branch name is available or can be
+  created during `workflow execute` after this workflow branch is published.
 
 ### Non-Goals
 
-* No Issue #218 WSL2 host-preflight redesign or Issue #232 artifact/image
-  preflight redesign.
-* No reimplementation of generic fail-closed or `not_run` reporting.
-* No LXD/Incus host installation, central port allocation or Traefik redesign.
-* No Kubernetes, new microservice, REST/gRPC contract or browser React work.
-* No broad SOLID refactor of `lxc_swarm_runtime.py`, `lxc_node_provider.py` or
-  `composition.py` beyond the minimum extraction and wiring.
-* No live infrastructure mutation during local tests or quality gates.
-* No `PortLocalFileStorage` change without a verified Issue #154 requirement.
+* No change to `PortLocalFileStorage` without a separately verified requirement.
+* No new REST, gRPC, Protobuf, event, or microservice contract.
+* No application-service redesign, provider migration, Kubernetes-first work,
+  Java/Maven/Spring Boot structure, or browser React frontend.
+* No broad refactor of `composition.py` beyond import/wiring migration required
+  by the extracted adapters.
+* No behavior changes to stack deployment, image publication, Portainer/Nexus
+  interactions, lock recovery, timeout/retry policy, or diagnostics.
+* No live Incus, Docker, Swarm, Portainer, Nexus, or credential-backed command
+  during local implementation or the default quality gate.
+* No claim of SonarQube success or live Selenium success without observable
+  result evidence.
 
 ### Risks
 
-* Moving steps can change provider lifecycle, consent boundaries or final
-  platform verification ownership.
-* The domain plan includes `host-preparation`, while the YAML currently omits
-  it and goes directly from `preflight` to `platform`.
-* Current Swarm adapters expose local manager/worker state but may not yet
-  expose the manager-observed node table needed for `Ready`, `Active` and
-  manager/leader checks.
-* The adapter can return a placeholder for an unavailable token; accepting it
-  would violate the issue.
-* Duplicate stop logic could diverge from the existing generic setup contract.
-* Shared composition/setup tests make parallel execution unsafe.
+* Moving private helpers can change quoting, retry, timeout, cleanup, logging,
+  redaction, or exception identity even when public method names remain stable.
+* The old module is imported by composition, provider-selected composition,
+  repository tests, logging tests, and a large adapter test module; incomplete
+  compatibility exports can fail far from the changed package.
+* Portainer and Nexus adapters mix HTTP behavior with LXC manager address
+  discovery; extraction must preserve the existing fallback and error mapping.
+* Image publishing transfers bytes and build contexts; a gateway split must not
+  leak secrets, alter tar contents, or bypass registry safeguards.
+* The requested live E2E path depends on an authorized live installation,
+  browser prerequisites, routed HTTPS, and safe credentials.
+* SonarQube availability may be external to the local WSL environment; an
+  unavailable result is a blocker for issue completion, not a passing result.
 
 ### Open Questions
 
-1. Which existing structured port/DTO contract is authoritative for manager-
-   observed `Ready`, `Active` and manager/leader state?
-2. Does the existing cluster contract call the required manager state `leader`,
-   or define an equivalent state that must be preserved?
-3. Should final `platform verify` retain only node/exposure/Portainer checks
-   after cluster checks move earlier, or reuse one read-only result?
+1. Which command-gateway name and constructor shape best preserve the current
+   manager/node shell semantics without creating a new application port?
+2. Should the prerequisite registry use a typed strategy protocol or a small
+   callable registry while keeping stack-specific behavior out of the main
+   runtime class?
+3. Should the issue-specific E2E evidence root be selected by a test-only
+   environment variable or by a dedicated issue test wrapper?
+4. Which existing CI/SonarQube result is the authoritative observable result
+   for this branch, and how will the exact status be linked in evidence?
 
-These are implementation decisions constrained by repository evidence. If the
-evidence cannot resolve one, the affected slice is `BLOCKED` and escalates to
-the System Architect; no behavior may be guessed.
+These are bounded implementation details. They may be resolved from existing
+code and test contracts during the named slices. If repository evidence cannot
+resolve one without changing public behavior or governance, stop the affected
+slice and escalate to the System Architect; do not guess.
 
 ### Blocking Questions
 
-None. The issue supplies a clear goal, target sequence, acceptance criteria,
-non-goals, architecture constraints, tests and quality command.
+None for workflow authoring. The issue goal, target package map, compatibility
+rule, acceptance criteria, evidence paths, and quality expectations are clear.
+The open questions above are execution decisions, not blockers to defining the
+workflow.
 
 ### Confidence and Decision
 
-Confidence: `96%`. Decision: `READY_FOR_WORKFLOW`.
+Confidence: `94%`. Decision: `READY_FOR_WORKFLOW`.
 
-The mandatory Four-Role Three-Amigos review is represented by Senior
-Requirement Engineer, Senior System Architect, Senior Python Automation
-Developer and Senior Tester. Console/status UI review is `NOT_APPLICABLE` and
-Browser React review is forbidden for this scope.
+Mandatory roles are represented by Senior Requirement Engineer, Senior System
+Architect, Senior Python Automation Developer, and Senior Tester. Senior
+DevOps and Senior Documentation Engineer are required for external quality,
+live-validation, and documentation synchronization. Console/status UI review
+is `NOT_APPLICABLE`; Browser React review is forbidden for this repository
+scope.
 
 ## Verified Baseline
 
-* `lxc_docker_install.py` contains `LxcDockerInstallService`,
-  `LxcDockerInstallStep` and `LxcDockerVerifyStep`.
-* `lxc_swarm_bootstrap.py` contains `LxcSwarmBootstrapService`,
-  `LxcSwarmBootstrapStep` and `LxcSwarmVerifyStep`.
-* `infrastructure/composition.py` currently appends Docker-install and
-  Swarm-bootstrap steps to `_platform_init_steps`, and includes Docker/Swarm
-  verification in `_platform_verify_steps`.
-* The setup phase tuple currently has no `cluster docker`, `cluster swarm
-  bootstrap` or `cluster verify` phases; `platform expose` follows platform
-  reconcile directly.
-* `domain/preflight/installation_plan.py` declares `cluster` with Docker and
-  Swarm services but no workflow phase names. Its default plan includes
-  `host-preparation` and orders cluster before network routing.
-* `infra/config/installation-plan.yaml` has an empty cluster workflow list and
-  omits the domain default's host-preparation phase.
-* `SetupWorkflow` already orders from `InstallationPlan`, stops on a
-  non-success result and returns later phases as `not_run`.
-* Existing typed models include `ContainerDockerReadiness`,
-  `SwarmManagerBootstrapOutcome`, `SwarmWorkerJoinOutcome` and
-  `SwarmNodeReadinessEvidence`; existing ports keep command details out of the
-  application layer.
-* Focused platform, setup and plan tests already cover portions of Docker
-  readiness, manager-before-worker bootstrap, missing results and fail-closed
-  execution. The remaining gaps are enumerated in the matrix.
-* Arc42 building-block, runtime, quality and risk sections were checked, and
-  `QUALITY.md` defines the authoritative local gates.
-
-## Target Picture
-
-```text
-preflight -> artifact contract preflight -> host prepare -> host verify
-  -> platform init/reconcile (managed node layer)
-  -> cluster docker (Docker in every expected node)
-  -> cluster swarm bootstrap (manager, valid token, workers)
-  -> cluster verify (managed structured membership, Ready/Active/leader)
-  -> network-routing/platform expose
-  -> secrets/artifacts/deployment
-  -> final platform verification
-```
-
-The plan and executable setup workflow must express the same boundaries. Any
-non-success cluster subphase must leave every later executable phase `not_run`
-through the existing generic setup contract.
+* `lxc_swarm_runtime.py` is approximately 1,437 lines and contains
+  `LxcSwarmRuntime`, `LxcContainerRuntime`, `LxcPortainerAdminClient`,
+  `LxcNexusHttpClient`, `LxcPortainerHttpClient`, and
+  `LxcContainerImagePublisher`, plus image-operation exception types and
+  shared parsing/quoting/diagnostic helpers.
+* `LxcSwarmRuntime` owns manager/node shell execution, stack deployment,
+  service listing, external secret handling, Infisical migration-lock recovery,
+  network/secret prerequisites, published-port reconciliation, asset transfer,
+  and dashboard rendering.
+* `LxcContainerRuntime` provides container name lookup and file inspection
+  through manager-side Docker commands.
+* Portainer and Nexus adapters resolve the managed manager address and wrap
+  existing HTTP clients; the Portainer adapter implements both Portainer and
+  deployment gateway ports.
+* `LxcContainerImagePublisher` owns public/build-image availability checks,
+  context transfer, registry login, manager-side build/push/load operations,
+  and image-operation diagnostics.
+* `composition.py` and `composition_lxc_runtimes.py` import the legacy module
+  directly. Tests also patch its module-level `subprocess`, `time`, and helper
+  names, so compatibility planning must include patch targets.
+* `tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py` is
+  approximately 1,418 lines and covers all mixed responsibilities. Existing
+  logging, composition, and repository tests import the legacy classes.
+* The existing architecture tests enforce inward dependency direction but do
+  not yet guard the responsibility surface or growth of this legacy module.
+* Existing browser E2E infrastructure already uses
+  `from selenium import webdriver` and
+  `from selenium.webdriver.common.by import By`, and records redacted local
+  evidence under an ignored path; the issue-specific path still needs a
+  verified extension.
+* `QUALITY.md` and `tools/quality_gate.py` define the authoritative local
+  commands. The configured external SonarQube workflow is not evidence until
+  its actual result is observed.
 
 ## Scope and Architecture Constraints
 
 ### In Scope
 
-Cluster-owned Docker and Swarm phases, structured managed-cluster verification,
-existing port/DTO extensions when necessary, composition/setup/plan parity,
-logical phase synchronization, deterministic tests, evidence and documentation.
+The extracted `lxc/` package structure, compatibility facade/exports,
+composition import migration, focused unit and architecture tests, before/after
+responsibility evidence, issue-specific browser E2E evidence routing, Arc42
+planned-architecture synchronization, local quality gates, external SonarQube
+status review, and the final issue-completion audit.
 
 ### Hexagonal Constraints
 
-Domain code remains free of shell, filesystem, Docker, Incus, YAML, HTTP,
-logging and dependency-injection concerns. Application services orchestrate
-ports and typed outcomes. Infrastructure owns command construction, parsing,
-timeouts and redaction. `infrastructure/composition.py` remains the wiring
-root, and no new deployable service or cross-service contract is introduced.
+The extracted modules remain infrastructure adapters implementing existing
+application ports. Domain and application code must not import infrastructure.
+Application services must not gain shell, filesystem, HTTP, Docker, YAML, or
+logging details. `composition.py` remains the concrete-adapter wiring root.
+Compatibility imports may point inward from the legacy infrastructure module,
+but new application code must not depend on the legacy facade.
 
 ### Safety and Resilience Constraints
 
-Local tests use mocks/fakes and do not execute Incus, Docker or Swarm.
-Verification is read-only; mutation stays behind existing live consent.
-Timeouts/retries remain bounded. Missing, invalid or unobservable state is a
-non-success result. Tokens, credentials, raw stdout/stderr and sensitive host
-data never enter result or evidence payloads.
+Preserve the current manager/node backend selection, bounded subprocess
+timeouts, retry delays, shell quoting, failure classification, bounded log
+text, redacted exception/evidence content, and live-consent boundaries. Any
+changed retry or timeout semantics require an explicit requirement mapping and
+new deterministic tests. Live validation is serialized and opt-in.
 
 ## Python Automation Assessment
 
-This is a Python automation change across domain models, application ports and
-services, infrastructure adapters, YAML configuration and tests. Senior Python
-Automation Developer owns implementation, with System Architect and Tester
-review. The referenced local-storage port is not an implementation target
-unless a verified cluster requirement appears.
+This is a Python infrastructure-adapter refactor. Use the Senior Python
+Automation Developer for extraction and composition wiring, with focused
+`unittest` coverage and type-safe imports. Use existing `requests`, YAML,
+subprocess, tar, path, and logging dependencies; do not add a framework or
+new runtime dependency merely to support the split.
 
 ## Frontend Assessment
 
-`NOT_APPLICABLE`. No browser, React or terminal presentation behavior is in
-scope. Unexpected progress/UI impact stops the affected slice for review.
+Browser React review is `NOT_APPLICABLE` and forbidden because the repository
+has no verified React frontend module or frontend quality gate. The Selenium
+requirement is a live test/evidence concern only. Console/status UI review is
+`NOT_APPLICABLE` because no terminal presentation or progress behavior is in
+scope.
 
 ## Verification-State Classification
 
-| Check | Applicability | State/rule |
-|---|---|---|
-| Plan structure and setup ordering | `APPLICABLE_LOCAL` | Static and mocked tests are authoritative. |
-| Docker/Swarm contracts and adapters | `APPLICABLE_LOCAL` | Unit tests use fakes; no live commands. |
-| Issue #218 host-preflight regression | `APPLICABLE_LOCAL` | Existing host tests remain in the gate. |
-| Issue #232 artifact/readiness regression | `APPLICABLE_LOCAL` | Existing artifact tests remain in the gate. |
-| Live LXC/Incus/Docker/Swarm verification | `APPLICABLE_LIVE` | `LIVE_CONSENT_MISSING` until separately authorized. |
-| Browser/Selenium verification | `NOT_APPLICABLE` | No browser behavior changes. |
-| External quality result | `EXTERNAL_GATE_NOT_APPLICABLE` for authoring | Local results are not external success. |
+| Check | Classification | Workflow rule |
+| --- | --- | --- |
+| focused adapter and architecture tests | `APPLICABLE_LOCAL` | Run with mocks/fakes and temporary files. |
+| full Python quality gate | `APPLICABLE_LOCAL` | Required before implementation commit. |
+| SonarQube quality result | `APPLICABLE_EXTERNAL` | Actual observable passing result required; unavailable is non-success. |
+| issue-specific Selenium E2E | `APPLICABLE_LIVE` | Requires explicit live consent, prerequisites, and redacted evidence. |
+| live Incus/Docker/Swarm mutation | `NOT_APPLICABLE` to local workflow | Never run during default local gates. |
+| browser React checks | `NOT_APPLICABLE` | No frontend module is in scope. |
+
+During workflow authoring, no implementation, live, or external gate is
+executed. Later `workflow execute` must record `LIVE_CONSENT_MISSING`,
+`LIVE_PREREQUISITE_MISSING`, `LIVE_FAILED_AFTER_MUTATION`, or
+`LIVE_VERIFIED` as applicable, and `EXTERNAL_GATE_UNAVAILABLE`,
+`EXTERNAL_GATE_FAILED`, or `EXTERNAL_GATE_VERIFIED` for SonarQube.
 
 ## Ordered Slices
 
-### Slice 01 — Extract Docker and Swarm ownership from platform phases
+### Slice 01 — Freeze contracts, responsibility map, and execution evidence
 
 ```yaml
 slice_id: "01"
 profile: "FULL_PATH"
-owner: "Senior Python Automation Developer"
-secondary_reviewers: ["Senior System Architect", "Senior Tester", "Senior Requirement Engineer"]
-affected_files: ["src/tiny_swarm_world/infrastructure/composition.py", "src/tiny_swarm_world/application/services/platform/incus/lxc_docker_install.py", "src/tiny_swarm_world/application/services/platform/incus/lxc_swarm_bootstrap.py", "src/tiny_swarm_world/application/services/platform/workflow/**", "tests/application/services/platform/test_lxc_docker_install.py", "tests/application/services/platform/test_lxc_swarm_bootstrap.py", "tests/infrastructure/test_composition.py"]
-affected_modules: ["platform node lifecycle", "cluster Docker phase", "cluster Swarm bootstrap phase", "platform verification ownership"]
-affected_contracts: ["SetupWorkflowPhase names", "PlatformWorkflowResult", "Docker install/verify results", "Swarm bootstrap/verify results"]
+owner: "Senior Requirement Engineer"
+secondary_reviewers: ["Senior System Architect", "Senior Python Automation Developer", "Senior Tester"]
+affected_files:
+  - ".tiny-swarm/evidence/solid-lxc-swarm-runtime/requirement_matrix.md"
+  - ".tiny-swarm/evidence/solid-lxc-swarm-runtime/three-amigos.md"
+  - ".tiny-swarm/evidence/solid-lxc-swarm-runtime/responsibility-map-before.md"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py"
+affected_modules: ["infrastructure.adapters.clients.lxc_swarm_runtime", "issue evidence"]
+affected_contracts: ["existing application ports", "legacy compatibility import surface"]
 dependencies: []
 parallel_group: "serial"
-file_locks: ["composition root", "platform workflow assembly", "Docker/Swarm step ownership"]
-contract_locks: ["cluster phase names", "platform versus cluster result ownership"]
-architecture_locks: ["application ports", "infrastructure-only command execution", "no duplicate Docker/Swarm services"]
+file_locks: ["src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py", ".tiny-swarm/evidence/solid-lxc-swarm-runtime/"]
+contract_locks: ["public adapter constructors and methods", "exception identity and messages"]
+architecture_locks: ["hexagonal dependency direction", "in-process responsibility boundaries"]
 quality_gates:
-  targeted: ["python3 tools/quality_gate.py test", "python3 tools/quality_gate.py typecheck", "python3 tools/quality_gate.py arch-tests"]
-  required: ["python3 tools/quality_gate.py quality"]
+  targeted: ["git diff --check"]
+  required: ["requirement matrix review", "Three-Amigos agreement"]
 documentation:
-  arc42: "check building-block/runtime ownership; update after verified implementation in Slice 06"
-  adr: "none unless new architecture ownership is required"
-stop_conditions: ["platform init still owns Docker/Swarm", "logic is duplicated", "phase names are unstable", "host Docker becomes runtime", "application code executes shell"]
+  arc42: "documentation/arc42/05_building_blocks.adoc"
+  adr: "No new ADR; existing responsibility and command-runner decisions remain authoritative."
+stop_conditions: ["missing issue requirement", "public-contract disagreement", "unclear ownership"]
 ```
 
-Purpose: move existing Docker installation and Swarm bootstrap out of
-`platform init` into explicit cluster-owned phases such as `cluster docker`,
-`cluster swarm bootstrap` and `cluster verify`.
+Done criteria: every issue bullet and acceptance criterion has a stable
+requirement ID; the three required perspectives agree on stable behavior and
+scope; the current class/helper responsibility map is stored; no application
+port or live behavior change is silently assumed.
 
-Prerequisites: baseline and matrix review. Reuse existing services, ports and
-typed results. Allowed writes are the listed platform/composition modules and
-focused tests; host preparation, artifacts, deployment, network topology and
-local storage are forbidden.
-
-Done criteria: platform init/reconcile own only managed node operations;
-Docker and Swarm are assembled once under cluster ownership; final platform
-verification ownership is explicit; focused ownership tests pass.
-
-Requirement mapping: `REQ-001`–`REQ-009`, `REQ-022`, `REQ-025`. Verify with the
-targeted gates in the YAML block and static inspection of the assembled phase
-list.
-
-### Slice 02 — Align domain/YAML plan and logical service phases
+### Slice 02 — Extract the LXC command gateway and shared diagnostics
 
 ```yaml
 slice_id: "02"
 profile: "FULL_PATH"
-owner: "Senior System Architect"
-secondary_reviewers: ["Senior Python Automation Developer", "Senior Tester", "Senior Requirement Engineer"]
-affected_files: ["src/tiny_swarm_world/domain/preflight/installation_plan.py", "infra/config/installation-plan.yaml", "tests/domain/preflight/test_preflight_result.py", "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py", "tests/application/services/setup/test_setup_workflow.py"]
-affected_modules: ["installation dependency graph", "domain/YAML plan parity", "logical service-phase metadata"]
-affected_contracts: ["InstallationPhase.workflow_phase_names", "InstallationPlan.ordered_workflow_phase_names", "platform -> cluster -> network-routing"]
+owner: "Senior Python Automation Developer"
+secondary_reviewers: ["Senior System Architect", "Senior Tester"]
+affected_files:
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/__init__.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/manager_shell_gateway.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/diagnostics.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py"
+  - "tests/infrastructure/adapters/clients/lxc/command/"
+affected_modules: ["lxc.command", "legacy compatibility facade"]
+affected_contracts: ["manager shell execution semantics", "bounded logs", "retry and timeout behavior"]
 dependencies: ["01"]
 parallel_group: "serial"
-file_locks: ["domain installation plan", "installation-plan.yaml", "plan parity tests"]
-contract_locks: ["cluster executable mapping", "host-preparation mapping", "logical phase representation"]
-architecture_locks: ["declarative plan versus executable setup boundary"]
+file_locks: ["src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py", "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/", "tests/infrastructure/adapters/clients/lxc/command/"]
+contract_locks: ["manager/node shell invocation", "backend CLI mapping"]
+architecture_locks: ["infrastructure-only shell execution", "no new application port"]
 quality_gates:
-  targeted: ["python3 tools/quality_gate.py test", "python3 tools/quality_gate.py typecheck", "python3 tools/quality_gate.py arch-tests"]
-  required: ["python3 tools/quality_gate.py quality"]
+  targeted: ["python3 tools/quality_gate.py lint", "python3 tools/quality_gate.py typecheck", "focused command-gateway unittest"]
+  required: ["python3 tools/quality_gate.py arch-lint", "python3 tools/quality_gate.py arch-tests"]
 documentation:
-  arc42: "check runtime/configuration views; synchronize in Slice 06"
-  adr: "none unless plan ownership changes beyond issue scope"
-stop_conditions: ["domain/YAML disagree", "cluster is metadata-only", "routing can bypass cluster verify", "logical phases imply nonexistent execution", "service ordering changes"]
+  arc42: "documentation/arc42/05_building_blocks.adoc"
+  adr: "No new ADR unless the gateway changes the accepted command-runner responsibility."
+stop_conditions: ["changed quoting", "unbounded output", "changed retry/timeout semantics", "raw secret logging"]
 ```
 
-Purpose: make `cluster` own executable phase names and make both plan sources
-match the setup workflow. Reconcile the observed YAML omission of
-`host-preparation` with the domain default. Use the dependency-metadata model
-for logical service entries that do not own executable setup phases; keep any
-terminal validation mapping only when confirmed as an actual setup phase and
-make its ownership explicit.
+Done criteria: manager and node operations use the extracted gateway; the
+legacy path exports compatible names; failure diagnostics remain bounded and
+redacted; focused tests cover success, failure, retry, timeout, backend choice,
+and exception propagation without invoking Incus or Docker.
 
-Allowed writes are the two plan sources and plan/setup tests. Done criteria:
-stable cluster names, `platform -> cluster -> network-routing`, no misleading
-logical-phase graph, unchanged service ordering and plan parity.
-
-Requirement mapping: `REQ-010`–`REQ-014`, `REQ-018`, `REQ-020`, `REQ-023`,
-`REQ-024`, `REQ-026`, `REQ-027`. Verify with targeted `test`, `typecheck`,
-`arch-tests`, then the full `quality` gate.
-
-### Slice 03 — Harden structured managed-cluster verification
+### Slice 03 — Extract Swarm stack runtime, assets, and prerequisite strategies
 
 ```yaml
 slice_id: "03"
 profile: "FULL_PATH"
 owner: "Senior Python Automation Developer"
 secondary_reviewers: ["Senior System Architect", "Senior Tester", "Senior DevOps Engineer"]
-affected_files: ["src/tiny_swarm_world/domain/node_provider/docker_swarm_lxc.py", "src/tiny_swarm_world/application/ports/node_provider/port_container_swarm_bootstrap.py", "src/tiny_swarm_world/application/services/platform/incus/lxc_docker_install.py", "src/tiny_swarm_world/application/services/platform/incus/lxc_swarm_bootstrap.py", "src/tiny_swarm_world/application/services/platform/docker_swarm_lxc_contract.py", "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_swarm_bootstrap.py", "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_docker_runtime.py", "tests/application/services/platform/test_lxc_docker_install.py", "tests/application/services/platform/test_lxc_swarm_bootstrap.py", "tests/domain/node_provider/**", "tests/infrastructure/adapters/clients/**"]
-affected_modules: ["Docker readiness", "Swarm bootstrap", "join-token validation", "manager-observed node table", "structured verification"]
-affected_contracts: ["ContainerDockerReadiness", "SwarmManagerBootstrapOutcome", "SwarmWorkerJoinOutcome", "SwarmNodeReadinessEvidence", "PortContainerSwarmBootstrap"]
-dependencies: ["01", "02"]
+affected_files:
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/__init__.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/swarm_stack_runtime.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_asset_transfer.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_prerequisite_registry.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py"
+  - "tests/infrastructure/adapters/clients/lxc/swarm/"
+affected_modules: ["lxc.swarm", "PortSwarmStackRuntime implementation"]
+affected_contracts: ["stack deployment", "service readiness listing", "external secrets", "migration-lock recovery"]
+dependencies: ["02"]
 parallel_group: "serial"
-file_locks: ["node-provider DTOs", "Swarm port/adapter", "cluster verification service"]
-contract_locks: ["Ready/Active state", "manager/leader state", "expected-node completeness", "valid join token"]
-architecture_locks: ["managed LXC/Incus runtime", "structured parsing", "safe evidence"]
+file_locks: ["src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/", "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py", "tests/infrastructure/adapters/clients/lxc/swarm/"]
+contract_locks: ["PortSwarmStackRuntime", "stack asset contents", "prerequisite ordering"]
+architecture_locks: ["deployment behavior remains infrastructure-owned", "strategy registry does not become a service"]
 quality_gates:
-  targeted: ["python3 tools/quality_gate.py test", "python3 tools/quality_gate.py typecheck", "python3 tools/quality_gate.py arch-lint", "python3 tools/quality_gate.py arch-tests"]
-  required: ["python3 tools/quality_gate.py quality"]
+  targeted: ["focused Swarm runtime, asset, and prerequisite unittests", "python3 tools/quality_gate.py lint", "python3 tools/quality_gate.py typecheck"]
+  required: ["python3 tools/quality_gate.py arch-lint", "python3 tools/quality_gate.py arch-tests"]
 documentation:
-  arc42: "check resilience/runtime/risk sections; synchronize after verification"
-  adr: "required only if existing contracts cannot express ownership"
-stop_conditions: ["host Docker is queried", "placeholder token accepted", "manager/worker ordering bypassed", "missing node succeeds", "fragile parsing replaces available structured state", "token/raw output enters evidence"]
+  arc42: "documentation/arc42/05_building_blocks.adoc; documentation/arc42/11_risks_and_debt.adoc"
+  adr: "No new ADR; preserve existing deployment and command-runner decisions."
+stop_conditions: ["stack behavior drift", "strategy hard-codes unrelated stacks", "asset or secret leakage", "live command in unit tests"]
 ```
 
-Purpose: satisfy the managed structured contract for cluster Docker, Swarm
-bootstrap and cluster verification. Characterize current DTOs first; extend a
-port/DTO only when needed for expected-node count, `Ready`, `Active`,
-manager/leader or valid-token state.
+Done criteria: `LxcSwarmRuntime` behavior is supplied by the extracted swarm
+modules; Traefik, SonarQube, and Swagger prerequisite handling is registry/
+strategy-based; asset transfer, port reconciliation, secrets, service status,
+dashboard rendering, lock recovery, and error behavior retain focused tests.
 
-Done criteria: Docker is ready in every expected node; manager initialization
-precedes workers; unavailable token blocks joins; manager-observed structured
-membership fails for missing/unready/inactive/uninitialized/wrong-manager
-states; results are typed, bounded and redacted. Allowed writes are the listed
-domain, application, adapter and focused test paths; no provider-wide refactor.
-
-Requirement mapping: `REQ-003`–`REQ-009`, `REQ-013`–`REQ-020`, `REQ-025`,
-`REQ-028`. Verify with targeted `test`, `typecheck`, `arch-lint`,
-`arch-tests`, then `quality`; normal tests use fakes only.
-
-### Slice 04 — Wire setup boundaries and downstream `not_run`
+### Slice 04 — Extract Docker, service clients, image publisher, and errors
 
 ```yaml
 slice_id: "04"
 profile: "FULL_PATH"
 owner: "Senior Python Automation Developer"
-secondary_reviewers: ["Senior Tester", "Senior System Architect", "Senior Requirement Engineer"]
-affected_files: ["src/tiny_swarm_world/infrastructure/composition.py", "src/tiny_swarm_world/application/services/setup/workflow.py", "tests/application/services/setup/test_setup_workflow.py", "tests/infrastructure/test_composition.py"]
-affected_modules: ["SetupWorkflow phase assembly", "cluster-to-network boundary", "artifact/deployment downstream guard"]
-affected_contracts: ["SetupWorkflow phase status", "not_run propagation", "cluster verification gate"]
-dependencies: ["03"]
+secondary_reviewers: ["Senior System Architect", "Senior Tester", "Senior Security Sandbox Engineer"]
+affected_files:
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/docker/__init__.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/docker/lxc_container_runtime.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/__init__.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_admin_client.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_nexus_http_client.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/__init__.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/lxc_container_image_publisher.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/errors.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py"
+  - "tests/infrastructure/adapters/clients/lxc/docker/"
+  - "tests/infrastructure/adapters/clients/lxc/services/"
+  - "tests/infrastructure/adapters/clients/lxc/images/"
+affected_modules: ["lxc.docker", "lxc.services", "lxc.images"]
+affected_contracts: ["PortContainerRuntime", "Portainer ports", "PortDeploymentGateway", "PortNexusClient", "PortContainerImagePublisher"]
+dependencies: ["02"]
 parallel_group: "serial"
-file_locks: ["setup phase tuple", "composition root", "downstream stop tests"]
-contract_locks: ["cluster verify success boundary", "not_run order"]
-architecture_locks: ["composition wiring", "generic fail-closed reuse"]
+file_locks: ["src/tiny_swarm_world/infrastructure/adapters/clients/lxc/", "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py", "tests/infrastructure/adapters/clients/lxc/"]
+contract_locks: ["public constructors", "HTTP status/error mapping", "image rejection diagnostics"]
+architecture_locks: ["existing application ports unchanged", "no cross-responsibility imports from application"]
 quality_gates:
-  targeted: ["python3 tools/quality_gate.py test", "python3 tools/quality_gate.py typecheck", "python3 tools/quality_gate.py arch-tests"]
-  required: ["python3 tools/quality_gate.py quality"]
+  targeted: ["focused Docker, Portainer, Nexus, and image-publisher unittests", "python3 tools/quality_gate.py lint", "python3 tools/quality_gate.py typecheck"]
+  required: ["python3 tools/quality_gate.py arch-lint", "python3 tools/quality_gate.py arch-tests"]
 documentation:
-  arc42: "record verified sequence in Slice 06"
-  adr: "none unless existing workflows cannot express the boundary"
-stop_conditions: ["routing starts after cluster failure", "artifact/deployment runs after failure", "not_run logic is duplicated", "cluster phases are not after reconcile"]
+  arc42: "documentation/arc42/05_building_blocks.adoc; documentation/arc42/05_analysis/responsibility-separation-analysis.md"
+  adr: "No new ADR; this is a compatibility-preserving implementation of accepted responsibility direction."
+stop_conditions: ["application port change", "credential/raw response leakage", "merging LXC Docker-engine and container-runtime responsibilities", "changed error identity"]
 ```
 
-Purpose: assemble the real setup sequence and prove that cluster verification
-controls all later executable work. Reuse `SetupWorkflow` and
-`InstallationPlan.arrange_workflow_phases`; do not add a second stop mechanism.
+Done criteria: each extracted class has one clear reason to change; the
+Portainer dual-port behavior, Nexus HTTP mapping, image availability/publish
+paths, context transfer, rate-limit diagnostics, and exception types are
+covered by focused deterministic tests; no credentials or raw HTTP/command
+payloads enter logs or evidence.
 
-Done criteria: Docker follows reconcile, Swarm follows Docker success, cluster
-verify precedes expose, and cluster failure marks expose, deployment bootstrap,
-artifact bootstrap/readiness/prepare/verify, deployment apply/verify and final
-platform verify as `not_run`. Success permits the next phase.
-
-Requirement mapping: `REQ-002`, `REQ-005`, `REQ-007`, `REQ-012`, `REQ-021`,
-`REQ-022`, `REQ-028`, `REQ-039`, `REQ-040`. Verify with targeted `test`,
-`typecheck`, `arch-tests`, then `quality`.
-
-### Slice 05 — Regression coverage for #218, #232 and #154
+### Slice 05 — Migrate composition and preserve the compatibility surface
 
 ```yaml
 slice_id: "05"
 profile: "FULL_PATH"
-owner: "Senior Tester"
-secondary_reviewers: ["Senior Python Automation Developer", "Senior System Architect", "Senior Requirement Engineer"]
-affected_files: ["tests/application/services/setup/test_setup_workflow.py", "tests/application/services/platform/test_lxc_docker_install.py", "tests/application/services/platform/test_lxc_swarm_bootstrap.py", "tests/domain/preflight/test_preflight_result.py", "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py", "tests/application/services/platform/host/test_prepare_host.py", "tests/application/services/platform/test_preflight_service.py", "tests/application/services/artifacts/test_static_contract_preflight.py", "tests/application/services/artifacts/test_artifact_workflows.py", "tests/infrastructure/test_composition.py"]
-affected_modules: ["ordering regression", "cluster failure matrix", "Issue #218 host-preflight", "Issue #232 artifact/readiness"]
-affected_contracts: ["Issue #154 acceptance tests", "prior issue regression baseline"]
-dependencies: ["04"]
+owner: "Senior System Architect"
+secondary_reviewers: ["Senior Python Automation Developer", "Senior Tester", "Senior Documentation Engineer"]
+affected_files:
+  - "src/tiny_swarm_world/infrastructure/composition.py"
+  - "src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py"
+  - "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py"
+  - "tests/infrastructure/test_composition.py"
+  - "tests/infrastructure/test_lxc_runtime_logging.py"
+  - "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py"
+  - "tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py"
+  - "tests/architecture/test_lxc_runtime_boundaries.py"
+affected_modules: ["composition root", "legacy compatibility facade", "architecture tests"]
+affected_contracts: ["composition bundle construction", "legacy import and patch paths", "provider-selected LXC runtime"]
+dependencies: ["03", "04"]
 parallel_group: "serial"
-file_locks: ["shared setup tests", "platform tests", "plan tests", "host/artifact regression tests"]
-contract_locks: ["acceptance evidence", "regression baseline"]
-architecture_locks: ["deterministic fakes", "no live default gate"]
+file_locks: ["src/tiny_swarm_world/infrastructure/composition.py", "src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py", "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py", "tests/infrastructure/", "tests/architecture/test_lxc_runtime_boundaries.py"]
+contract_locks: ["composition constructor arguments", "compatibility imports", "test patch targets"]
+architecture_locks: ["composition remains wiring root", "legacy module cannot grow unrelated classes"]
 quality_gates:
-  targeted: ["python3 tools/quality_gate.py test", "python3 tools/quality_gate.py typecheck", "python3 tools/quality_gate.py arch-tests"]
+  targeted: ["PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition tests.infrastructure.test_lxc_runtime_logging tests.infrastructure.adapters.clients.test_lxc_swarm_runtime", "python3 tools/quality_gate.py arch-tests"]
   required: ["python3 tools/quality_gate.py quality"]
 documentation:
-  arc42: "no update unless a verified behavior/documentation mismatch appears"
-  adr: "none"
-stop_conditions: ["tests invoke live infrastructure", "#218 or #232 regresses", "acceptance row has no named verification", "safety assertions are weakened"]
+  arc42: "documentation/arc42/05_building_blocks.adoc"
+  adr: "No new ADR; architecture guard must reference existing decisions."
+stop_conditions: ["composition behavior drift", "broken legacy patch path", "new mixed responsibility in facade", "architecture test weakened"]
 ```
 
-Purpose: implement the issue's focused checklist: phase ownership, ordering,
-manager-before-worker, missing token, expected nodes, `Ready`, `Active`,
-manager state, routing gate, downstream `not_run`, plan parity and logical
-phase consistency. Preserve the #218 host and #232 artifact/readiness suites.
+Done criteria: composition imports concrete extracted modules, the old import
+path continues to expose the issue-approved compatibility symbols, existing
+tests pass without broad patch rewrites, and architecture tests reject new
+unrelated classes/imports in the legacy module.
 
-Allowed writes are tests/fixtures in the listed paths; product fixes belong to
-their owning preceding slice. Requirement mapping: all matrix rows, with
-primary ownership of `REQ-030`–`REQ-045`. Verify with targeted `test`,
-`typecheck`, `arch-tests`, then `quality`.
-
-### Slice 06 — Documentation, evidence, quality and independent audit
+### Slice 06 — Extend issue-specific browser evidence and validate live boundaries
 
 ```yaml
 slice_id: "06"
 profile: "FULL_PATH"
-owner: "Senior Documentation Engineer"
-secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester", "Issue Completion Auditor"]
-affected_files: ["documentation/arc42/05_building_blocks.adoc", "documentation/arc42/06_runtime_view.adoc", "documentation/arc42/10_quality_requirements.adoc", "documentation/arc42/11_risks_and_debt.adoc", "documentation/user_guide/installation.adoc", ".tiny-swarm/evidence/issue-154/**", ".codex/evidence/issue-154/**"]
-affected_modules: ["installation sequence docs", "Arc42 synchronization", "issue completion evidence"]
-affected_contracts: ["planned-versus-implemented docs", "requirement matrix", "completion evidence package"]
+owner: "Senior Tester"
+secondary_reviewers: ["Senior DevOps Engineer", "Senior Python Automation Developer", "Senior Security Sandbox Engineer"]
+affected_files:
+  - "tests/live/browser_e2e_contract.py"
+  - "tests/live/test_post_install_browser_live.py"
+  - ".tiny-swarm/evidence/solid-lxc-swarm-runtime/e2e/"
+affected_modules: ["live browser evidence harness"]
+affected_contracts: ["Selenium import contract", "routed service-access browser behavior", "redacted evidence schema"]
 dependencies: ["05"]
-parallel_group: "serial"
-file_locks: ["Arc42/installation docs", "issue evidence", "distribution/consolidation evidence"]
-contract_locks: ["documented sequence", "requirement-to-evidence mapping", "completion status"]
-architecture_locks: ["Arc42 synchronization", "independent completion authority"]
+parallel_group: "serialized-live"
+file_locks: ["tests/live/browser_e2e_contract.py", "tests/live/test_post_install_browser_live.py", ".tiny-swarm/evidence/solid-lxc-swarm-runtime/e2e/"]
+contract_locks: ["from selenium import webdriver", "from selenium.webdriver.common.by import By", "live evidence status semantics"]
+architecture_locks: ["live checks remain outside default local quality", "no credential persistence"]
 quality_gates:
-  targeted: ["git diff --check", "python3 tools/quality_gate.py test"]
-  required: ["python3 tools/quality_gate.py quality"]
+  targeted: ["PYTHONPATH=src python3 -m unittest tests.live.browser_e2e_contract"]
+  required: ["authorized issue-specific Selenium run only when live consent and prerequisites exist"]
 documentation:
-  arc42: "update only sections whose verified sequence/ownership changed"
-  adr: "review existing LXC-native, consent and setup-safety ADRs; create none without a decision"
-stop_conditions: ["docs claim live success without LIVE_VERIFIED evidence", "required evidence missing", "full gate fails", "implementer is sole completion authority", "Arc42 contradicts source/tests"]
+  arc42: "documentation/arc42/07_deployment_view.adoc; documentation/arc42/11_risks_and_debt.adoc"
+  adr: "No new ADR; use existing explicit live-consent and evidence policies."
+stop_conditions: ["missing explicit live consent", "missing browser/runtime prerequisite", "raw credential or page payload in evidence", "failed mutation without recovery evidence"]
 ```
 
-Purpose: update only documentation affected by verified behavior, complete
-`.tiny-swarm/evidence/issue-154/` and hand off to the independent auditor.
-Execution must produce `requirement_matrix.md`, `implementation_summary.md`,
-`changed_files.md`, `test_results.md`, `remaining_risks.md` and
-`acceptance_checklist.md`. Per-slice distribution and consolidation records
-belong under `.codex/evidence/issue-154/`. Optional live runs must record the
-exact `LIVE_*` state; missing consent is never `LIVE_VERIFIED`.
+Done criteria: static tests prove the exact Selenium imports and evidence
+contract; the live run opens the routed dashboard, finds a visible service link
+or status using `By`, proves the page is not blank, and writes redacted
+evidence under the issue path. If live prerequisites or consent are absent, the
+recorded state is non-success and the issue remains open.
 
-Requirement mapping: `REQ-046`–`REQ-050` and final evidence for all earlier
-rows. Verify with `git diff --check`, focused tests and full `quality`.
+### Slice 07 — Full quality, external gate, documentation, and completion audit
+
+```yaml
+slice_id: "07"
+profile: "FULL_PATH"
+owner: "Issue Completion Auditor"
+secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester", "Senior DevOps Engineer", "Senior Documentation Engineer"]
+affected_files:
+  - "documentation/arc42/05_building_blocks.adoc"
+  - "documentation/arc42/05_analysis/responsibility-separation-analysis.md"
+  - ".tiny-swarm/evidence/solid-lxc-swarm-runtime/responsibility-map-after.md"
+  - ".tiny-swarm/evidence/solid-lxc-swarm-runtime/implementation_summary.md"
+  - ".tiny-swarm/evidence/solid-lxc-swarm-runtime/changed_files.md"
+  - ".tiny-swarm/evidence/solid-lxc-swarm-runtime/test_results.md"
+  - ".tiny-swarm/evidence/solid-lxc-swarm-runtime/remaining_risks.md"
+  - ".tiny-swarm/evidence/solid-lxc-swarm-runtime/acceptance_checklist.md"
+  - ".tiny-swarm/evidence/solid-lxc-swarm-runtime/issue-completion-audit.md"
+affected_modules: ["Arc42 architecture documentation", "issue evidence", "quality publication"]
+affected_contracts: ["requirement-to-evidence traceability", "SonarQube result", "issue completion decision"]
+dependencies: ["06"]
+parallel_group: "serial"
+file_locks: ["documentation/arc42/", ".tiny-swarm/evidence/solid-lxc-swarm-runtime/"]
+contract_locks: ["issue acceptance criteria", "verification-state policy", "completion status"]
+architecture_locks: ["planned versus implemented wording", "no stale responsibility map"]
+quality_gates:
+  targeted: ["git diff --check"]
+  required: ["python3 tools/quality_gate.py quality", "observable SonarQube result", "Issue Completion Auditor decision"]
+documentation:
+  arc42: "documentation/arc42/05_building_blocks.adoc; documentation/arc42/05_analysis/responsibility-separation-analysis.md; documentation/arc42/11_risks_and_debt.adoc"
+  adr: "Confirm no new ADR was required; do not rewrite existing ADR history."
+stop_conditions: ["open requirement", "missing evidence", "unavailable required external gate", "Arc42 describes planned behavior as implemented"]
+```
+
+Done criteria: the full local quality gate and required focused checks pass;
+external SonarQube status is observable and satisfies the issue without new
+critical/high smells; live evidence is `LIVE_VERIFIED` or the issue is
+explicitly `BLOCKED`; every requirement maps to implementation and verification
+evidence; the independent auditor decides `PASS` before any DONE claim.
 
 ## Dependency Graph
 
 ```text
-01 ownership -> 02 plan/YAML -> 03 structured verification
-  -> 04 setup boundary -> 05 regression coverage -> 06 docs/evidence/audit
+01 contract/evidence baseline
+ |\
+ | +--> 02 command gateway
+ |          |\
+ |          +--> 03 swarm extraction --+
+ |          +--> 04 docker/services/images -+--> 05 composition and guards
+ |                                           |
+ +-------------------------------------------+--> 06 live browser evidence
+                                                   |
+                                                   +--> 07 quality/docs/audit
 ```
 
-The graph is acyclic. Slices 01–05 share composition, setup, plan and DTO
-contracts, so they are serial. Slice 06 cannot claim completion before all
-implementation and regression evidence exists.
+All executable slices are ordered because the legacy module, composition root,
+compatibility imports, and shared tests are common locks. The graph is acyclic.
 
 ## Parallel Execution
 
-- Can this workflow run in parallel? `No` for implementation; shared
-  composition, setup phase names, plans, DTOs, tests and evidence overlap.
-- Conflicting workflows: any workflow changing `composition.py`, setup phase
-  sequencing, `InstallationPlan`, `installation-plan.yaml`, LXC Docker/Swarm
-  adapters or shared setup tests. #218 and #232 are completed baselines.
-- Shared files: composition, installation plans, platform DTO/port/adapter
-  modules, setup/platform tests and issue evidence.
-- Shared infrastructure: repository tree, Incus/LXC provider, Docker/Swarm,
-  network state and shared evidence directories.
-- Requires isolated worktree: `Yes` for every write-capable slice/stream.
-- Requires serialized live validation: `Yes`; live provider state is shared and
-  consent-gated.
-- Merge-order constraints: `01 -> 02 -> 03 -> 04 -> 05 -> 06`; stream workers
-  never merge directly to the workflow branch.
-
-Read-only role reviews may be concurrent only with disjoint scopes. The current
-Three-Amigos decision is not safely parallelizable.
+- Can this workflow run in parallel? `No` for implementation slices; only read-only specialist review may be parallelized before Slice 01 is consolidated.
+- Conflicting workflows: any workflow changing `lxc_swarm_runtime.py`, `composition.py`, `composition_lxc_runtimes.py`, the LXC client test tree, shared browser evidence helpers, or the same Arc42 sections.
+- Shared files: the legacy runtime module, composition modules, existing mixed test module, live browser contract, Arc42 building-block and risk sections, and issue evidence directory.
+- Shared infrastructure: Python environment, WSL/Linux quality tools, optional Incus/Docker Swarm installation, routed service-access endpoint, browser driver, and SonarQube result access.
+- Requires isolated worktree: `Yes`; every later execution stream must use a dedicated worktree.
+- Requires serialized live validation: `Yes`; live Incus/Swarm/browser validation is serialized unless isolated infrastructure is independently provisioned.
+- Merge-order constraints: 01 -> 02 -> (03 and 04 in dependency order because they share the facade) -> 05 -> 06 -> 07; no stream worker may merge directly to the workflow or implementation branch.
 
 ## Automatic Work Distribution Policy
 
-`workflow execute` must analyze every slice for safe specialist decomposition
-before implementation, use real Codex subagents where supported, and perform
-explicit role-based fallback review when unavailable. Codex remains final
-integration owner.
+`workflow execute` must automatically analyze every executable slice for safe
+specialist stream decomposition before implementation. It uses real Codex
+subagents where supported and performs explicit role-based fallback review when
+subagents are unavailable or not visible. Before implementation it must create
+`.codex/evidence/slice-<number>-distribution.md`; after an implemented slice it
+must create `.codex/evidence/slice-<number>-consolidation.md`. Codex remains the
+final integration owner for consolidation, tests, evidence, PR readiness, and
+merge readiness.
 
-Before write-capable work require
-`.codex/evidence/issue-154/slice-<number>-distribution.md`; after
-implementation require
-`.codex/evidence/issue-154/slice-<number>-consolidation.md`. These issue-scoped
-paths preserve historical evidence while fulfilling the distribution and
-consolidation contract.
+Stream map:
 
-Stream map: backend -> Senior Python Automation Developer; frontend ->
-`NOT_APPLICABLE`; tests -> Senior Tester; runtime/live -> Senior DevOps
-Engineer, serialized and consent-gated; documentation -> Senior Documentation
-Engineer; quality -> quality-gate skills and Senior Tester; architecture ->
-Senior System Architect; security/evidence -> Senior Security Sandbox Engineer
-and repository security skills.
+* backend: Senior Python Automation Developer for infrastructure adapters and
+  composition;
+* frontend: not applicable; terminal/status review only if verified progress or
+  presentation files enter scope;
+* tests: Senior Tester for unit, architecture, browser-contract, and evidence
+  checks;
+* runtime: Senior DevOps Engineer for live Incus/Docker/Swarm/browser and
+  external SonarQube prerequisites;
+* documentation: Senior Documentation Engineer for Arc42 and evidence wording;
+* quality: quality-gate skills and Senior Tester;
+* architecture: Senior System Architect for boundaries, compatibility, and
+  ADR/Arc42 alignment;
+* security: Senior Security Sandbox Engineer for credentials, redaction,
+  subprocess, HTTP, archive, and evidence safety.
 
-Do not parallelize overlapping files/contracts/package structures, contradictory
-requirements, mandatory ordering, shared migrations, strict schema sequencing,
-generated-file conflicts, an unsafe Three-Amigos decision, unclear secret
-handling or any guard-weakening change.
+Do not parallelize overlapping files, unclear architecture, contradictory
+requirements, mandatory ordering, shared migrations, strict database/schema
+sequencing, generated-file conflicts, unclear secrets handling, weakened
+safety guards, or a Three-Amigos decision that says the slice is not safely
+parallelizable. This workflow has shared-file and mandatory-ordering conflicts
+by default.
 
 ## Git Worktree Execution Rule
 
-Every slice requires an isolated Git worktree for write-capable specialist
-execution. Stream branches use:
-
-`feature/workflow-issue-154-real-cluster-phase-20260808-slice-<number>-<stream>`
-
-Workers must verify the branch belongs to this workflow and must not modify
-`main`, `master`, `develop` or another shared branch. Workers do not merge or
-publish directly; Codex consolidates after evidence, tests and lock checks.
+Every implementation slice requires its own isolated Git worktree. Stream
+branches must use the form
+`<workflow-branch>-slice-<number>-<stream>`. Workers must verify that their
+branch belongs to this workflow and must stop before writing on `main`,
+`master`, `develop`, or another shared branch. Workers may not merge directly
+to the main workflow or implementation branch; Codex consolidates accepted
+results only after distribution evidence, targeted tests, required quality
+gates, and consolidation evidence exist.
 
 ## Role and Ownership Map
 
-| Responsibility | Owner | Review/handoff |
-|---|---|---|
-| Workflow creation and ordering | Senior Workflow Architect | Root Architect if blocked |
-| Issue decomposition and drift | Senior Requirement Engineer | Matrix sign-off |
-| Hexagonal boundaries, phase ownership, Arc42 | Senior System Architect | Architecture tests/ADR escalation |
-| Python domain/application/adapter work | Senior Python Automation Developer | Architect and Tester |
-| Docker/Incus/Swarm runtime/live review | Senior DevOps Engineer | Python, Architect, live-evidence review |
-| Regression tests and quality evidence | Senior Tester | Requirement and Architect review |
-| Documentation and evidence | Senior Documentation Engineer | Requirement and Architect review |
-| Final completion decision | Issue Completion Auditor | Independent of implementer |
-
-Mandatory workflow-create roles are Senior Requirement Engineer, Senior System
-Architect, Senior Python Automation Developer and Senior Tester. Console/status
-UI is `NOT_APPLICABLE`; Browser React review is forbidden.
+| Role | Responsibility |
+| --- | --- |
+| Senior Requirement Engineer | Issue extraction, requirement matrix, EPIC drift check, acceptance traceability. |
+| Senior System Architect | Hexagonal boundaries, package responsibilities, compatibility facade, Arc42/ADR review. |
+| Senior Python Automation Developer | Python adapter extraction, gateway behavior, composition wiring, deterministic implementation. |
+| Senior Tester | Focused unit tests, architecture guards, browser contract, quality evidence. |
+| Senior Workflow Architect | Slice ordering, locks, worktree policy, workflow regeneration and handoff. |
+| Senior DevOps Engineer | External SonarQube status, live prerequisite and runtime safety review. |
+| Senior Documentation Engineer | Arc42 synchronization and planned-versus-implemented wording. |
+| Senior Security Sandbox Engineer | Credential, shell, HTTP, archive, log and evidence redaction review. |
+| Issue Completion Auditor | Independent final PASS/INCOMPLETE/BLOCKED/REJECTED decision. |
 
 ## Issue Completion Discipline
 
-- Requirement matrix path: `.tiny-swarm/evidence/issue-154/requirement_matrix.md`
-- Required evidence path: `.tiny-swarm/evidence/issue-154/`
-- Required evidence files: `requirement_matrix.md`, `implementation_summary.md`,
-  `changed_files.md`, `test_results.md`, `remaining_risks.md`,
-  `acceptance_checklist.md`
-- Requirement Lead review: Senior Requirement Engineer signs final traceability.
-- System Architect Reviewer review: Senior System Architect signs phase
-  ownership, runtime source-of-truth, architecture and Arc42.
-- Test / Evidence Reviewer review: Senior Tester signs named verification for
-  every row and gate integrity.
-- Issue Completion Auditor review: independent auditor decides `PASS`,
-  `INCOMPLETE`, `BLOCKED` or `REJECTED`.
-- DONE blocking rule: any open, partial or unverified requirement forces
-  `INCOMPLETE`, `BLOCKED` or `FAILED`.
+- Requirement matrix path: `.tiny-swarm/evidence/solid-lxc-swarm-runtime/requirement_matrix.md`
+- Required evidence path: `.tiny-swarm/evidence/solid-lxc-swarm-runtime/`
+- Required evidence files: `requirement_matrix.md`, `implementation_summary.md`, `changed_files.md`, `test_results.md`, `remaining_risks.md`, `acceptance_checklist.md`, `three-amigos.md`, `responsibility-map-before.md`, `responsibility-map-after.md`, and `issue-completion-audit.md`; live E2E evidence belongs under `e2e/`.
+- Requirement Lead review: Senior Requirement Engineer before implementation and again before completion.
+- System Architect Reviewer review: Senior System Architect before extraction and after composition migration.
+- Test / Evidence Reviewer review: Senior Tester after focused tests, full quality, and live/external evidence classification.
+- Issue Completion Auditor review: required after all evidence is assembled; the implementer cannot approve its own completion.
+- DONE blocking rule: any open, partially implemented, unverified, unavailable-required, or unevidenced requirement forces `INCOMPLETE`, `BLOCKED`, or `FAILED`; it must never be reported as `DONE`.
 
 ## Quality-Gate Expectations
 
-Use WSL/Linux and the commands authorized by `QUALITY.md`:
+Use only commands authorized by `QUALITY.md`:
 
 ```bash
 python3 tools/quality_gate.py lint
@@ -611,95 +685,119 @@ python3 tools/quality_gate.py quality
 git diff --check
 ```
 
-Run focused gates first and the full gate before execution completion. The
-workflow-create branch changes governance artifacts and the requirement
-matrix, so its publication gate is `git diff --check`; any skipped full Python
-gate must be recorded. Local quality is never live or external success.
+The full local quality gate is the default authority for local completion. It
+does not prove live LXC/Swarm behavior, browser reachability, Selenium success,
+or SonarQube status. SonarQube must be reported as
+`EXTERNAL_GATE_VERIFIED` only from an observable actual result; otherwise the
+issue remains blocked or incomplete according to the evidence.
 
 ## Documentation Synchronization Points
 
-Arc42 building-block, runtime, quality and risk sections were checked during
-authoring. Slice 06 updates only claims supported by verified source, tests and
-evidence, and explains the before/after executable sequence. Existing #218 and
-#232 documentation is out of scope except for terminology/no-regression checks.
-No ADR is created unless implementation reveals a decision not covered by the
-existing LXC-native, setup-safety or consent ADRs.
+* Slice 01 records the before responsibility map and verifies existing ADR
+  authority.
+* Slice 03 updates the planned LXC Swarm adapter decomposition and residual
+  runtime risk wording.
+* Slice 04 synchronizes the responsibility-separation analysis without
+  claiming a new microservice.
+* Slice 06 documents the issue-specific live browser evidence state without
+  treating static browser tests as live success.
+* Slice 07 records the after map, final risks, evidence links, and Arc42
+  implemented-versus-planned status.
 
 ## Stop Conditions and Escalation
 
-Stop and report `BLOCKED` if a required symbol, file, DTO field, command
-contract or quality command cannot be verified; plan/YAML/setup/Arc42 disagree;
-managed structured state ownership is unresolved; host Docker is queried;
-invalid/missing state succeeds; live side effects or secrets enter local tests
-or evidence; locks overlap; #218/#232 regress; required gates fail; a matrix
-row lacks evidence; or docs would present planned behavior as implemented.
+Stop and report rather than guess when:
 
-Route architecture/ownership/DTO questions to Senior System Architect,
-requirements to Senior Requirement Engineer, tests/gates to Senior Tester and
-quality owner, locks to the execution orchestrator and final completeness to
-the independent Issue Completion Auditor.
+* the issue or public port contract cannot be read completely;
+* the legacy facade cannot preserve compatibility imports or test patch paths;
+* an extracted responsibility would require an application-port change;
+* package ownership, architecture direction, or ADR applicability is unclear;
+* shell quoting, timeout, retry, cleanup, redaction, archive, HTTP, or error
+  semantics cannot be proven unchanged;
+* local quality commands fail and the responsible failure is not repaired;
+* live consent, browser prerequisites, or evidence redaction is missing;
+* SonarQube status is unavailable or fails;
+* required issue evidence is missing or a requirement cannot map to a check;
+* Arc42 would need to describe planned behavior as implemented;
+* continuing would require live infrastructure mutation without explicit
+  operator approval.
+
+Typed failures route through the repository policy: architecture failures to
+the System Architect, build/type/lint failures to the Python owner and
+quality-gate owner, test failures to Senior Tester, documentation failures to
+Senior Documentation Engineer, lock conflicts to execution orchestration, and
+unknown failures to Root Architect escalation.
 
 ## Commit and Push Plan
 
-Workflow creation uses guarded publication:
+Workflow authoring output is committed only on
+`feature/workflow-issue-183-lxc-runtime-solid-20260808` after workflow,
+context-pack, evidence, Arc42, and `git diff --check` validation. Publication
+pushes only `HEAD` to
+`origin/feature/workflow-issue-183-lxc-runtime-solid-20260808`. It must not
+create or merge a PR, delete branches, clean up the branch, force-push, or push
+to `main`. `push auto` is not part of this workflow-create publication.
 
-1. Verify status and the dedicated workflow branch.
-2. Stage only `documentation/workflow/**` and
-   `.tiny-swarm/evidence/issue-154/requirement_matrix.md`.
-3. Run `git diff --cached --check` and review the staged diff.
-4. Create one Issue #154 workflow-authoring commit.
-5. Push only `HEAD` to
-   `origin/feature/workflow-issue-154-real-cluster-phase-20260808`.
-6. Record SHA, branch, target and verification in the handoff.
-
-This is guarded branch publication, not `push auto`: no PR merge, branch
-deletion, force-push or cleanup is permitted. Later `workflow execute` uses
-the declared branch and slice-scoped commits.
+Later implementation commits must be one commit per slice on the verified
+implementation branch and follow the active workflow executor's guarded
+commit/push/merge policy only after the local, external, live, and audit
+requirements are satisfied.
 
 ## Definition of Done
 
 ### Workflow-authoring completion
 
-The dedicated branch is active; workflow/context-pack artifacts are complete;
-the requirement matrix covers every issue requirement; Arc42 was checked;
-`git diff --check` passes; and the workflow branch is guarded-published.
+* dedicated workflow branch exists and is active;
+* `documentation/workflow/workflow.md` is complete and validated;
+* context pack is present and hashes governing inputs;
+* issue requirement matrix and Three-Amigos gate note exist;
+* Arc42 architecture documentation is checked/updated;
+* slice metadata, dependencies, locks, stop conditions, evidence paths, and
+  quality commands are explicit;
+* workflow branch is committed and guarded-pushed.
 
 ### Issue-execution completion
 
-All matrix rows are implemented, verified and evidenced; cluster phases are
-explicit and plan-parity is green; structured managed-cluster verification is
-fail-closed; downstream phases are `not_run` after failure; #218/#232 regressions
-remain green; full quality passes; six issue evidence files exist; and the
-three review perspectives plus independent auditor have decided completion.
+* all requirements are implemented without silent scope reduction;
+* compatibility and public port behavior are regression-tested;
+* local quality is green;
+* SonarQube has an observable acceptable result and no new critical/high smells;
+* required live browser evidence is `LIVE_VERIFIED`, or the issue is explicitly
+  reported as blocked with exact missing evidence;
+* required evidence files exist and are internally consistent;
+* Issue Completion Auditor returns `PASS`.
 
 ## Handoff to workflow execute
 
-The workflow is ready for a later exact `workflow execute` on
-`feature/workflow-issue-154-real-cluster-phase-20260808`. The executor must
-read this workflow/context pack, verify branch/locks/matrix and S3/S3D preflight,
-create per-slice distribution evidence, execute serially in isolated worktrees,
-run targeted then required gates, consolidate after evidence and route failures
-through the Typed Error Router. No live installation is implied.
+The authoring branch is
+`feature/workflow-issue-183-lxc-runtime-solid-20260808`. After its guarded
+publication, workflow execution must verify or create the issue-requested
+implementation branch `feature/split-lxc-swarm-runtime-solid`, confirm the
+active branch and local ref, and use isolated slice worktrees for any parallel
+stream. It must run Slice 01 first, then follow the dependency graph; it must
+not call `workflow create` backwards.
+
+Before implementation, the executor must re-check the current issue, active
+workflow, branch ownership, requirement matrix, Three-Amigos note, Arc42
+baseline, and all locks. No live infrastructure command is authorized by this
+workflow creation. Live Slice 06 requires a separate explicit consent path.
 
 ## Arc42 Check Status
 
-Checked: `documentation/arc42/05_building_blocks.adoc` for responsibility;
-`06_runtime_view.adoc` for sequence; `10_quality_requirements.adoc` for safety,
-evidence and ordering; and `11_risks_and_debt.adoc` for LXC-native/setup risks.
-
-No Arc42 file is changed during workflow authoring because planned behavior is
-not implementation evidence. Slice 06 owns post-implementation synchronization
-only. No matching EPIC was found; the issue is the traceability source and the
-gap is recorded rather than silently filled.
+`documentation/arc42/05_building_blocks.adoc` and
+`documentation/arc42/11_risks_and_debt.adoc` were reviewed. The planned
+Issue #183 decomposition is recorded as planned architecture only; existing
+responsibility and command-runner ADRs remain authoritative, no new ADR is
+required, and no implementation claim is made by this workflow.
 
 ## Workflow Handoff Record
 
-- Workflow ID: `issue-154-20260808`
-- Branch: `feature/workflow-issue-154-real-cluster-phase-20260808`
-- Branch verified before artifact creation: `yes`
-- Requirement decision: `READY_FOR_WORKFLOW`
-- Execution profile: `FULL_PATH`
-- Parallelization: `not safely parallelizable`
-- Live validation: `APPLICABLE_LIVE`, consent not granted during authoring
-- External quality: not claimed
-- Publication: guarded commit and push required by process
+* Workflow ID: `issue-183-20260808`
+* Workflow version: `issue-183-v1.0.0`
+* Authoring branch: `feature/workflow-issue-183-lxc-runtime-solid-20260808`
+* Implementation branch: `feature/split-lxc-swarm-runtime-solid` (issue-requested; verify at execution)
+* Requirement matrix: `.tiny-swarm/evidence/solid-lxc-swarm-runtime/requirement_matrix.md`
+* Three-Amigos note: `.tiny-swarm/evidence/solid-lxc-swarm-runtime/three-amigos.md`
+* Live E2E evidence target: `.tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e/`
+* External gate: SonarQube actual result required; no result claimed during authoring.
+* Publication: guarded commit and push of workflow branch only; PR merge and cleanup are out of scope.
