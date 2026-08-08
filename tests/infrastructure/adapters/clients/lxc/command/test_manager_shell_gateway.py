@@ -74,3 +74,9 @@ class TestLxcManagerShellGateway(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "exit code 17"):
             self.gateway.run_node_shell("swarm-worker-1", "false", run=run)
+
+    def test_run_node_shell_rejects_timeout(self):
+        run = Mock(side_effect=subprocess.TimeoutExpired("incus", 30))
+
+        with self.assertRaisesRegex(RuntimeError, "timed out"):
+            self.gateway.run_node_shell("swarm-worker-1", "true", run=run)
