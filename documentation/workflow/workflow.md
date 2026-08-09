@@ -185,12 +185,22 @@ stop_conditions: [missing evidence, unverified requirement, failed local gate, i
 `workflow execute` must analyze every slice for safe backend, frontend, tests,
 runtime, documentation, quality, architecture and security streams; use real
 Codex subagents where supported; otherwise record explicit role-based fallback
-review. It must create `.codex/evidence/slice-<number>-distribution.md` before
-implementation and `.codex/evidence/slice-<number>-consolidation.md` after an
-implemented slice. Overlapping files/contracts, unclear architecture,
+review. Because the global slice evidence names are occupied by historical
+workflows, this workflow uses `.codex/evidence/issue-189-20260809/` and must
+create `slice-<number>-distribution.md` there before implementation and
+`slice-<number>-consolidation.md` there after an implemented slice. Overlapping files/contracts, unclear architecture,
 contradictory requirements, mandatory ordering, generated-file conflicts,
 unclear secrets or weakened safety guards are not parallelizable. Codex is the
 final integration owner.
+
+## Execution Evidence Paths
+
+- S189-01 distribution: `.codex/evidence/issue-189-20260809/slice-01-distribution.md`.
+- S189-01 consolidation: `.codex/evidence/issue-189-20260809/slice-01-consolidation.md`.
+- S189-02 distribution: `.codex/evidence/issue-189-20260809/slice-02-distribution.md`.
+- S189-02 consolidation: `.codex/evidence/issue-189-20260809/slice-02-consolidation.md`.
+- S189-03 distribution: `.codex/evidence/issue-189-20260809/slice-03-distribution.md`.
+- S189-03 consolidation: `.codex/evidence/issue-189-20260809/slice-03-consolidation.md`.
 
 ## Git Worktree Execution Rule
 

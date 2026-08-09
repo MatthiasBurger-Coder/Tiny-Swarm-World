@@ -18,9 +18,12 @@ The current branch was the chain authoring branch, not the active #188 branch.
 - Updated the chain index so only #189 is `ACTIVE_EXECUTION`; later issues
   remain serialized and promotion-gated.
 - Preserved the chain authoring branch as provenance.
+- Kept historical global slice evidence immutable and assigned #189 the
+  workflow-specific path `.codex/evidence/issue-189-20260809/`.
 
 ## Safety boundary
 
 No product implementation, live infrastructure command, deployment, merge or
-pull-request operation was performed by this promotion. S3/S3D preflight is
-required before the first write-capable slice.
+pull-request operation was performed by this promotion. S3/S3D preflight has
+passed for `S189-01`; its distribution decision is recorded separately before
+the first implementation slice.
