@@ -43,22 +43,21 @@ Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
 compose, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, or Swagger/NGINX
 commands.
 
-=== Shared Infrastructure Process Execution — Issue #188 Plan
+=== Shared Infrastructure Process Execution — Issue #188 Implemented
 
-Issue #188 introduces a planned infrastructure-only process runner beneath
-selected Docker, LXC, image-publisher, and host-preflight adapters. The runner
-will default to argv execution with `shell=False`, expose bounded timeout and
-cwd/environment/input behavior, support text and byte streams where required,
-and return deterministic sanitized result/failure information. It must not
+Issue #188 provides an infrastructure-only process runner beneath selected
+Docker, LXC, image-publisher, and host-preflight adapters. The runner defaults
+to argv execution with `shell=False`, exposes bounded timeout and
+cwd/environment/input behavior, supports text and byte streams where required,
+and returns deterministic sanitized result/failure information. It does not
 own adapter policy such as Docker fatality, Incus child-PID retry, image
 diagnostic classification, or Git preflight fallback.
 
-The planned boundary does not add an application port or domain dependency and
-does not replace the existing Issue #183 LXC manager gateway. Before execution,
-all production process-spawn sites must be inventoried and either migrated,
-explicitly allowlisted with rationale, or classified outside the runtime
-adapter scope. This section remains a plan until implementation evidence is
-recorded.
+The boundary does not add an application port or domain dependency and does not
+replace the existing Issue #183 LXC manager gateway. The S01 before-inventory,
+S03–S07 migration evidence, and S08 after-inventory/static guard classify the
+remaining production process sites as migrated, intentional compatibility or
+provider/host/service boundaries, or tooling outside runtime scope.
 
 === Desired Inventory, Observed State, And Evidence
 

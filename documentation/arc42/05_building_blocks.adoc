@@ -65,20 +65,23 @@ execution, timeout/retry, redaction, cleanup, and live-consent behavior remain
 unchanged and have focused regression evidence. Live browser evidence is
 recorded separately; external acceptance still requires a green quality gate.
 
-==== Issue #188 Shared Process Runner — Planned Workflow
+==== Issue #188 Shared Process Runner — Implemented Boundary
 
-Issue #188 plans a reusable, infrastructure-only process-runner boundary for
-the remaining direct process execution in the Docker, LXC command, LXC Docker,
-LXC image, and host-preflight adapters. The planned runner owns bounded argv
+Issue #188 implements a reusable, infrastructure-only process-runner boundary
+for the remaining direct process execution in the Docker, LXC command, LXC
+Docker, LXC image, and host-preflight adapters. The runner owns bounded argv
 execution, text/byte input and output, deterministic process results,
 launch/timeout mapping, and safe diagnostics. Adapter-specific Docker, LXC
 retry, image-publisher, and Git fail-soft policy remains in the owning
-adapters. The composition root remains responsible for concrete runner
-wiring.
+adapters. The composition root creates and supplies the concrete runner.
 
-This is planned architecture only during workflow authoring. It does not
-replace the implemented Issue #183 gateway, change application/domain ports,
-create a deployable service, or authorize live infrastructure operations.
+The implementation is contained in `infrastructure/process/` and is consumed
+by the five selected adapter targets. Existing Issue #183 gateway behavior and
+direct-construction compatibility seams remain intact. The boundary does not
+change application/domain ports, create a deployable service, or authorize
+live infrastructure operations. Remaining direct process sites are explicit
+legacy, host/network, provider, service, or tooling boundaries covered by the
+Issue #188 static allowlist and after-inventory.
 
 ==== Dedicated Host Detection Boundary
 

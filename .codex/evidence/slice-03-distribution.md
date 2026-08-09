@@ -28,6 +28,5 @@
 - `python3 tools/quality_gate.py typecheck`.
 - `git diff --check`.
 
-The repository-wide quality gate retains the pre-existing Arc42 governing-hash
-exception recorded in S02 until that independent governance artifact is
-reconciled.
+The final repository-wide quality gate is recorded in S08 and is green after
+the Arc42 governing hash was synchronized.

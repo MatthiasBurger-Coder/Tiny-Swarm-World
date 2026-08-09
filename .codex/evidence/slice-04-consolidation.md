@@ -22,5 +22,5 @@ remain unchanged.
 - No live Incus/LXC command executed.
 - External/browser/SonarQube checks: not required and not run.
 
-The repository-wide quality gate remains subject to the independent stale
-Arc42 governing-hash failure recorded in S02.
+The final repository-wide quality gate is recorded in S08 and is green after
+the Arc42 governing hash was synchronized.

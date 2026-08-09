@@ -3,7 +3,7 @@
 - Workflow: `issue-188-20260809` / `issue-188-v1.0.0`
 - Slice: `S02` — Implement the reusable infrastructure process runner
 - Branch: `feature/issue-188-shared-command-runners`
-- Decision: `IMPLEMENTED_WITH_BASELINE_GATE_EXCEPTION`
+- Decision: `IMPLEMENTED`
 - Real subagents: not available; fallback role review was performed
 
 ## Initial blocker and accepted resolution
@@ -84,12 +84,10 @@ workflow slice can carry its own focused regression evidence.
   (`69` tests).
 - `python3 tools/quality_gate.py lint`: **PASS**.
 - `python3 tools/quality_gate.py typecheck`: **PASS**.
-- Full `python3 tools/quality_gate.py quality`: **NOT GREEN** because the
-  pre-existing `tests.architecture.test_skill_registry_integrity` check reports
-  a stale hash for `documentation/arc42/08_concepts.adoc`, which was changed by
-  the workflow-create commit before this implementation. Verification-policy,
-  lint, arch-lint, arch-tests, typecheck, and the remaining `1,673` discovered
-  tests passed in that run.
+- The initial S02 `python3 tools/quality_gate.py quality` run found a stale
+  governing hash for the Arc42 file changed during workflow authoring. S08
+  synchronized the canonical registry hash; the final full quality gate then
+  passed with 1,678 tests and 28 skips.
 - `git diff --check`: **PASS**.
 - Live infrastructure, browser, and SonarQube checks: **NOT REQUIRED / NOT
   RUN**.
