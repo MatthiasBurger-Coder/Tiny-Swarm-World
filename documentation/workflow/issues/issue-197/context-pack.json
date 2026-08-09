@@ -1,0 +1,23 @@
+{
+  "workflow_id": "issue-197-20260809",
+  "workflow_version": "issue-197-v1.0.0",
+  "issue": 197,
+  "branch": "feature/workflow-issue-chain-163-156-197-152-144-146-147-148-145-151-153-20260809",
+  "baseline_commit": "b8c64eaa50839fcbf4581ca819286ad13ee88300",
+  "execution_profile": "FULL_PATH",
+  "process_strand": "workflow-create-to-workflow-execute",
+  "affected_areas": ["composition root", "infrastructure network adapter", "LiveConsent", "mocked subprocess tests"],
+  "forbidden_areas": ["domain imports", "application subprocess behavior", "live mutation in tests", "weakened safety guards"],
+  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester"],
+  "conditional_roles": ["Senior Workflow Architect", "Senior Documentation Engineer", "Issue Completion Auditor"],
+  "quality_commands": ["git diff --check", "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition", "python3 tools/quality_gate.py quality"],
+  "source_issue": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/197",
+  "governing_hashes": {
+    "AGENTS.md": "BC0E6E0C09AC3D61A450A7FE16C3E4DE9E6FBB8BDC688AAD58F10A3D18B31041",
+    "QUALITY.md": "7F8DD247FD989FBB72588A48B00846EDCB2A9AA748BB1954DC22B75952EFAA4C",
+    "documentation/process/issue-completion-discipline.md": "3DB2D080B7CFBBC3737907A61C67CE6A361485C8993CF4A20C1C5FE2DC743BC3",
+    "documentation/arc42/07_deployment_view.adoc": "BF9784434D6C1EF4165E1C6758958B57CD1C8D7DF0DA20F285447EB0BA965F6D",
+    "documentation/arc42/11_risks_and_debt.adoc": "C9174C01ABB7505A10058D2110ABDC217B17F8B589B3AFBB84F9FB86AC46CBB6"
+  }
+}
+
