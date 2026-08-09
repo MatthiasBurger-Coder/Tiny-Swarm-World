@@ -54,6 +54,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.models import (
     ObservedNode,
     TeardownNodePlan,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.evidence import EvidenceBuilder
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.safety import (
     IMAGE_ALIAS_MARKER,
     MANAGED_MARKER,
@@ -1258,20 +1259,21 @@ def _launch_failure_evidence(
     image_references: Mapping[str, str],
 ) -> dict[str, str]:
     provider_image_ref = _image_ref(node_config.image_alias, image_references, backend)
-    evidence = {
-        "failure_reason": _classify_provider_failure(result),
-        "operator_action": _operator_action_for_provider_failure(result),
-        "expected_image_alias": node_config.image_alias,
-        "expected_profile": node_config.profile,
-        "expected_profiles": ",".join(node_config.expected_profiles),
-        "provider_image_ref": provider_image_ref,
-    }
+    builder = (
+        EvidenceBuilder()
+        .add("failure_reason", _classify_provider_failure(result))
+        .add("operator_action", _operator_action_for_provider_failure(result))
+        .add("expected_image_alias", node_config.image_alias)
+        .add("expected_profile", node_config.profile)
+        .add("expected_profiles", ",".join(node_config.expected_profiles))
+        .add("provider_image_ref", provider_image_ref)
+    )
     backend_resource_resolution = _selected_provider_resource_resolution(config, backend)
     if backend_resource_resolution is not None:
         if node_config.networks and node_config.networks[0] in backend_resource_resolution.network_mappings:
-            evidence["resolved_network"] = _resolved_network(node_config, backend_resource_resolution)
-        evidence["expected_storage_pool"] = backend_resource_resolution.storage_pool
-    return evidence
+            builder.add("resolved_network", _resolved_network(node_config, backend_resource_resolution))
+        builder.add("expected_storage_pool", backend_resource_resolution.storage_pool)
+    return builder.build()
 
 
 def _classify_provider_failure(result: LxcNodeCommandResult) -> str:
@@ -1589,26 +1591,21 @@ def _evidence(
     selection_status: str | None = None,
     applied: bool = False,
 ) -> dict[str, str]:
-    evidence = {
-        "phase": phase,
-        "classification": classification,
-        "provider": NodeProviderKind.LXC_NATIVE.value,
-        "node": node.name,
-        "node_name": node.name,
-    }
-    if backend is not None:
-        evidence["backend"] = backend.value
-    if lifecycle_outcome is not None:
-        evidence["lifecycle_outcome"] = lifecycle_outcome
-    if return_code is not None:
-        evidence["return_code"] = str(return_code)
-    if timed_out:
-        evidence["timed_out"] = "true"
-    if selection_status is not None:
-        evidence["selection_status"] = selection_status
-    if applied:
-        evidence["applied"] = "true"
-    return evidence
+    return (
+        EvidenceBuilder()
+        .add("phase", phase)
+        .add("classification", classification)
+        .add("provider", NodeProviderKind.LXC_NATIVE.value)
+        .add("node", node.name)
+        .add("node_name", node.name)
+        .add("backend", backend.value if backend is not None else None)
+        .add("lifecycle_outcome", lifecycle_outcome)
+        .add("return_code", return_code)
+        .add("timed_out", timed_out if timed_out else None)
+        .add("selection_status", selection_status)
+        .add("applied", applied if applied else None)
+        .build()
+    )
 
 
 def _target_id(node: NodeSpec) -> str:
@@ -1663,20 +1660,21 @@ def _teardown_summary_evidence(
     failed_apply_count = _status_count(results, VerificationStatus.FAILED_TO_APPLY)
     failed_verify_count = _status_count(results, VerificationStatus.FAILED_TO_VERIFY)
     applied = _any_teardown_applied(results)
-    evidence = {
-        "phase": _teardown_summary_phase(status, applied),
-        "classification": _teardown_summary_classification(operation, status),
-        "provider": NodeProviderKind.LXC_NATIVE.value,
-        "expected_count": str(len(results) if expected_count is None else expected_count),
-        "verified_count": str(verified_count),
-        "blocked_count": str(blocked_count),
-        "failed_apply_count": str(failed_apply_count),
-        "failed_verify_count": str(failed_verify_count),
-    }
+    builder = (
+        EvidenceBuilder()
+        .add("phase", _teardown_summary_phase(status, applied))
+        .add("classification", _teardown_summary_classification(operation, status))
+        .add("provider", NodeProviderKind.LXC_NATIVE.value)
+        .add("expected_count", len(results) if expected_count is None else expected_count)
+        .add("verified_count", verified_count)
+        .add("blocked_count", blocked_count)
+        .add("failed_apply_count", failed_apply_count)
+        .add("failed_verify_count", failed_verify_count)
+    )
     if planned_count:
-        evidence["planned_count"] = str(planned_count)
+        builder.add("planned_count", planned_count)
     if applied:
-        evidence["applied"] = "true"
+        builder.add("applied", applied)
     first_failure = next(
         (result for result in results if result.status != VerificationStatus.VERIFIED),
         None,
@@ -1684,12 +1682,12 @@ def _teardown_summary_evidence(
     if first_failure is not None:
         first_classification = first_failure.evidence.get("classification")
         if first_classification is not None:
-            evidence["first_failure_classification"] = first_classification
+            builder.add("first_failure_classification", first_classification)
         for key in _FIRST_FAILURE_SAFE_EVIDENCE_KEYS:
             value = first_failure.evidence.get(key)
             if value is not None:
-                evidence[f"first_failure_{key}"] = value
-    return evidence
+                builder.add(f"first_failure_{key}", value)
+    return builder.build()
 
 
 _FIRST_FAILURE_SAFE_EVIDENCE_KEYS = (
@@ -1712,32 +1710,42 @@ def _managed_node_mismatch_evidence(
     observed_node: _ObservedNode,
     node_config: NodeProviderNodeConfig,
 ) -> dict[str, str]:
-    evidence = {
-        "expected_image_alias": node_config.image_alias,
-        "expected_profile": node_config.profile,
-        "expected_profiles": ",".join(node_config.expected_profiles),
-        "mismatch_reasons": ",".join(observed_node.mismatch_reasons(node_config)),
-        "observed_image_alias_marker": _marker_state(
-            observed_node.config.get(IMAGE_ALIAS_MARKER),
-            expected=node_config.image_alias,
-        ),
-        "observed_managed_marker": _marker_state(
-            observed_node.config.get(MANAGED_MARKER),
-            expected="true",
-        ),
-        "observed_node_marker": _marker_state(
-            observed_node.config.get(NODE_MARKER),
-            expected=node_config.spec.name,
-        ),
-    }
+    builder = (
+        EvidenceBuilder()
+        .add("expected_image_alias", node_config.image_alias)
+        .add("expected_profile", node_config.profile)
+        .add("expected_profiles", ",".join(node_config.expected_profiles))
+        .add("mismatch_reasons", ",".join(observed_node.mismatch_reasons(node_config)))
+        .add(
+            "observed_image_alias_marker",
+            _marker_state(
+                observed_node.config.get(IMAGE_ALIAS_MARKER),
+                expected=node_config.image_alias,
+            ),
+        )
+        .add(
+            "observed_managed_marker",
+            _marker_state(
+                observed_node.config.get(MANAGED_MARKER),
+                expected="true",
+            ),
+        )
+        .add(
+            "observed_node_marker",
+            _marker_state(
+                observed_node.config.get(NODE_MARKER),
+                expected=node_config.spec.name,
+            ),
+        )
+    )
     stale_project_proxy_devices = _safe_project_proxy_device_names(observed_node.devices)
     if stale_project_proxy_devices:
-        evidence["repair_action"] = "explicit_lxc_proxy_drift_repair_required"
-        evidence["stale_project_proxy_devices"] = ",".join(stale_project_proxy_devices)
+        builder.add("repair_action", "explicit_lxc_proxy_drift_repair_required")
+        builder.add("stale_project_proxy_devices", ",".join(stale_project_proxy_devices))
     unsafe_config_keys = _unsafe_instance_config_keys(observed_node.config)
     if unsafe_config_keys:
-        evidence["unsafe_instance_settings"] = ",".join(unsafe_config_keys)
-    return evidence
+        builder.add("unsafe_instance_settings", ",".join(unsafe_config_keys))
+    return builder.build()
 
 
 def _safe_project_proxy_device_names(

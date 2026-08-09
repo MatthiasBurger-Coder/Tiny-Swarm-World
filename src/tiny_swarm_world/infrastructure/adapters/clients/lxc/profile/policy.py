@@ -14,6 +14,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.safety import (
     has_unsafe_instance_config,
     has_unsafe_instance_devices,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.evidence import EvidenceBuilder
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderProfileRequirement,
 )
@@ -103,8 +104,10 @@ def profile_evidence(
     expected_profile: str,
     available_profiles: Sequence[str],
 ) -> dict[str, str]:
-    return {
-        "expected_profile": expected_profile,
-        "resolved_profile": expected_profile,
-        "available_profiles": ",".join(available_profiles),
-    }
+    return (
+        EvidenceBuilder()
+        .add("expected_profile", expected_profile)
+        .add("resolved_profile", expected_profile)
+        .add("available_profiles", ",".join(available_profiles))
+        .build()
+    )

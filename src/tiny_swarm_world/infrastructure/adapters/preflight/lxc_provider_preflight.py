@@ -26,6 +26,7 @@ from tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe imp
     HostPreflightProbe,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.evidence import EvidenceBuilder
 
 
 DEFAULT_LXC_PROVIDER_TIMEOUT_SECONDS = 5.0
@@ -120,7 +121,7 @@ class LxcProviderPreflightProbe(PortNodeProviderReadiness):
                 provider=provider,
                 status=ProviderReadinessStatus.UNSUPPORTED,
                 remediation=("Use the LXC-native readiness probe only for lxc_native.",),
-                evidence={"requested_provider": provider.value},
+                evidence=EvidenceBuilder().add("requested_provider", provider.value).build(),
             )
 
         host_environment = self.host_environment_provider()
@@ -249,7 +250,12 @@ def _host_blocked_readiness(
     remediation: str,
     extra_evidence: dict[str, str],
 ) -> ProviderReadiness:
-    evidence = {"host_kind": host_environment.environment.value, **extra_evidence}
+    evidence = (
+        EvidenceBuilder()
+        .add("host_kind", host_environment.environment.value)
+        .extend(extra_evidence)
+        .build()
+    )
     return ProviderReadiness(
         provider=NodeProviderKind.LXC_NATIVE,
         status=status,
@@ -274,7 +280,7 @@ def _backend_missing_readiness(
             evidence=_backend_presence_evidence(host_environment, backend_candidates, ()),
         ),
         remediation=("Install Incus and make the selected CLI available.",),
-        evidence={"host_kind": host_environment.environment.value},
+        evidence=EvidenceBuilder().add("host_kind", host_environment.environment.value).build(),
     )
 
 
@@ -288,16 +294,18 @@ def _ready_readiness(
     selected_reason: str = "only_ready_backend",
 ) -> ProviderReadiness:
     ordered_candidates = candidates or (backend,)
-    evidence = {
-        "host_kind": host_environment.environment.value,
-        "backend": backend.value,
-        "version_probe": "passed",
-        "info_probe": "passed",
-        "selected_backend": backend.value,
-        "selected_reason": selected_reason,
-        "skipped_candidates": ",".join(item.value for item in skipped),
-        "skipped_candidate_reasons": ",".join(skip_reasons),
-    }
+    evidence = (
+        EvidenceBuilder()
+        .add("host_kind", host_environment.environment.value)
+        .add("backend", backend.value)
+        .add("version_probe", "passed")
+        .add("info_probe", "passed")
+        .add("selected_backend", backend.value)
+        .add("selected_reason", selected_reason)
+        .add("skipped_candidates", ",".join(item.value for item in skipped))
+        .add("skipped_candidate_reasons", ",".join(skip_reasons))
+        .build()
+    )
     return ProviderReadiness(
         provider=NodeProviderKind.LXC_NATIVE,
         status=ProviderReadinessStatus.READY,
@@ -319,15 +327,17 @@ def _failure_readiness(
 ) -> ProviderReadiness:
     status = _failure_status(result)
     remediation = _failure_remediation(status, backend)
-    evidence = {
-        "host_kind": host_environment.environment.value,
-        "backend": backend.value,
-        "probe": probe_name,
-        "return_code": str(result.returncode),
-        "classification": status.value,
-    }
+    builder = (
+        EvidenceBuilder()
+        .add("host_kind", host_environment.environment.value)
+        .add("backend", backend.value)
+        .add("probe", probe_name)
+        .add("return_code", result.returncode)
+        .add("classification", status.value)
+    )
     if result.timed_out:
-        evidence["classification_source"] = "timeout"
+        builder.add("classification_source", "timeout")
+    evidence = builder.build()
     return ProviderReadiness(
         provider=NodeProviderKind.LXC_NATIVE,
         status=status,
@@ -378,10 +388,10 @@ def _backend_presence_evidence(
     available_backends: tuple[ManagedLxcBackend, ...],
 ) -> dict[str, str]:
     available = set(available_backends)
-    evidence = {"host_kind": host_environment.environment.value}
+    builder = EvidenceBuilder().add("host_kind", host_environment.environment.value)
     for backend in candidates:
-        evidence[f"{backend.value}_cli"] = "present" if backend in available else "absent"
-    return evidence
+        builder.add(f"{backend.value}_cli", "present" if backend in available else "absent")
+    return builder.build()
 
 
 def _normalized_backend_candidates(
