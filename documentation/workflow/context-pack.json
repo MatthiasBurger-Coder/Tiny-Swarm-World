@@ -1,53 +1,15 @@
 {
-  "workflow_id": "issue-189-20260809",
-  "workflow_version": "issue-189-v1.0.0",
+  "workflow_id": "issue-184-20260809",
+  "workflow_version": "issue-184-v1.0.0",
   "set_id": "solid-refactor-chain-20260809",
-  "status": "COMPLETED_LOCAL_AUDITED",
-  "branch": "feature/centralize-lxc-shared-utilities-solid",
-  "workflow_authoring_source_branch": "feature/workflow-solid-refactor-chain-20260809",
-  "implementation_branch": "feature/centralize-lxc-shared-utilities-solid",
-  "promotion_source": "documentation/workflow/issues/issue-189/workflow.md",
-  "completion_audit": ".tiny-swarm/evidence/solid-lxc-shared-utilities/issue-completion-audit.md",
-  "successor_promotion_target": "#184",
+  "branch": "feature/split-lxc-node-provider-solid",
   "execution_profile": "FULL_PATH",
   "process_strand": "workflow-create-to-workflow-execute",
-  "affected_areas": [
-    "lxc command mapping",
-    "shared infrastructure utilities",
-    "composition",
-    "architecture tests",
-    "issue evidence"
-  ],
-  "forbidden_areas": [
-    "domain/application redesign",
-    "browser React",
-    "live infrastructure mutation",
-    "unrelated issues"
-  ],
-  "required_roles": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester"
-  ],
-  "conditional_roles": [
-    "Senior Documentation Engineer",
-    "Senior Security Sandbox Engineer",
-    "Senior Execution Orchestrator"
-  ],
-  "quality_commands": [
-    "python3 tools/quality_gate.py quality",
-    "python3 tools/quality_gate.py lint",
-    "python3 tools/quality_gate.py typecheck",
-    "python3 tools/quality_gate.py test",
-    "python3 tools/quality_gate.py arch-lint",
-    "python3 tools/quality_gate.py arch-tests",
-    "git diff --check"
-  ],
-  "requirement_matrix": ".tiny-swarm/evidence/solid-lxc-shared-utilities/requirement_matrix.md",
-  "issue_required_evidence": ".tiny-swarm-world/evidence/solid-lxc-shared-utilities/",
-  "chain_position": 1,
-  "successor": 184,
+  "affected_areas": ["lxc node provider", "lxc command/node/profile/resource modules", "evidence compatibility", "architecture tests"],
+  "forbidden_areas": ["public port redesign", "live infrastructure", "browser React", "unrelated issue scopes"],
+  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester"],
+  "conditional_roles": ["Senior Documentation Engineer", "Senior Security Sandbox Engineer", "Senior Execution Orchestrator"],
+  "quality_commands": ["python3 tools/quality_gate.py quality", "python3 tools/quality_gate.py lint", "python3 tools/quality_gate.py typecheck", "python3 tools/quality_gate.py test", "python3 tools/quality_gate.py arch-lint", "python3 tools/quality_gate.py arch-tests", "git diff --check"],
   "governing_file_hashes": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
     "QUALITY.md": "7f8dd247fd989fbb72588a48b00846edcb2a9aa748bb1954dc22b75952efaa4c",
@@ -57,8 +19,9 @@
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/workflow/workflow.md": "6b7bb3ba6a87b48e4faaec9999acd621a4e2815d46b465f3692ced7786de8d2d",
-    "documentation/arc42/11_risks_and_debt.adoc": "8075dba0663a347b0250dbdebfceb82160588793ef53eb1554138f0f93b639ab"
+    "documentation/workflow/workflow.md": "11E53CF372D4565E12B261C973D58E7AD431A89F2849CF9A34A3BE3777B346B2",
+    "documentation/arc42/11_risks_and_debt.adoc": "31e64165c5d1e7feea4d2fed323cc099a857ccc235a294728809c3c25a66217e"
   },
-  "staleness_note": "Hashes record the governing files and the promoted active workflow used for this execution."
+  "staleness_note": "These hashes record the governing files used during authoring; the pack is not a replacement for them."
 }
+
