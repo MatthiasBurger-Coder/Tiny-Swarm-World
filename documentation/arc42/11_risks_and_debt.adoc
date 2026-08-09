@@ -222,7 +222,8 @@ before adding code. The chain keeps the following ownership order:
   dispatch locally and passed its compatibility and audit gates;
 * #192 verifies LXC Portainer/Nexus wrapper ownership and compatibility locally
   and passed its compatibility and audit gates; and
-* #186 audits and, only if necessary, completes explicit composition bindings.
+* #186 audited the claimed global DI scope, verified explicit composition
+  bindings, added a regression guard and completed with a bounded no-op;
 
 The current read-only baseline scan found no `infra_core_container`,
 `infra_core_di_*`, DI decorator package or `infrastructure/dependency_injection`
