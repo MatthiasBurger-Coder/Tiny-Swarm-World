@@ -4,7 +4,7 @@ Workflow set ID: `solid-refactor-chain-20260809`
 
 Authoring branch: `feature/workflow-solid-refactor-chain-20260809`
 
-Status: `COMPLETED_LOCAL_AUDITED` — Issues #189 and #184 complete; #191 is next promotion target
+Status: `EXECUTING_LOCAL` — Issues #189 and #184 complete; #191 is active
 
 Execution order requested by the user:
 
@@ -52,7 +52,7 @@ change. No implementation is authorized by this authoring step.
 |---:|---:|---|---|---|---|---|
 | 01 | #189 | [issue-189/workflow.md](issues/issue-189/workflow.md) | `feature/centralize-lxc-shared-utilities-solid` | COMPLETED_LOCAL_AUDITED | none | matching EPIC traceability gap recorded; audit PASS |
 | 02 | #184 | [issue-184/workflow.md](issues/issue-184/workflow.md) | `feature/split-lxc-node-provider-solid` | COMPLETED_LOCAL_AUDITED | #189 | audit PASS; #191 next |
-| 03 | #191 | [issue-191/workflow.md](issues/issue-191/workflow.md) | `feature/typed-verification-evidence-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #184 | unknown evidence consumers stop execution |
+| 03 | #191 | [issue-191/workflow.md](issues/issue-191/workflow.md) | `feature/typed-verification-evidence-solid` | EXECUTING_LOCAL | #184 | unknown evidence consumers stop execution |
 | 04 | #187 | [issue-187/workflow.md](issues/issue-187/workflow.md) | `feature/preflight-service-probe-registry-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #191 | ambiguous fingerprint behavior |
 | 05 | #190 | [issue-190/workflow.md](issues/issue-190/workflow.md) | `feature/stack-prerequisite-strategies-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #187 | current partial registry requires residual inventory |
 | 06 | #192 | [issue-192/workflow.md](issues/issue-192/workflow.md) | `feature/separate-lxc-service-wrappers-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #190 | URL/API precedence ambiguity |

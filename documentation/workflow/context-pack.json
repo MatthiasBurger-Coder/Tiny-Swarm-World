@@ -1,12 +1,12 @@
 {
-  "workflow_id": "issue-184-20260809",
-  "workflow_version": "issue-184-v1.0.0",
+  "workflow_id": "issue-191-20260809",
+  "workflow_version": "issue-191-v1.0.0",
   "set_id": "solid-refactor-chain-20260809",
-  "branch": "feature/split-lxc-node-provider-solid",
+  "branch": "feature/typed-verification-evidence-solid",
   "execution_profile": "FULL_PATH",
   "process_strand": "workflow-create-to-workflow-execute",
-  "affected_areas": ["lxc node provider", "lxc command/node/profile/resource modules", "evidence compatibility", "architecture tests"],
-  "forbidden_areas": ["public port redesign", "live infrastructure", "browser React", "unrelated issue scopes"],
+  "affected_areas": ["verification evidence", "lifecycle/preflight/deployment producers", "schema compatibility", "architecture tests"],
+  "forbidden_areas": ["evidence key renaming", "live/browser execution", "browser React", "unrelated scopes"],
   "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester"],
   "conditional_roles": ["Senior Documentation Engineer", "Senior Security Sandbox Engineer", "Senior Execution Orchestrator"],
   "quality_commands": ["python3 tools/quality_gate.py quality", "python3 tools/quality_gate.py lint", "python3 tools/quality_gate.py typecheck", "python3 tools/quality_gate.py test", "python3 tools/quality_gate.py arch-lint", "python3 tools/quality_gate.py arch-tests", "git diff --check"],
@@ -19,7 +19,7 @@
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/workflow/workflow.md": "716C88324C9B1E702623E92E34295A89A8729EF2E0773A5960968D85A9A52B3D",
+    "documentation/workflow/workflow.md": "1738B5227A8C8F52EA9ED4558005FC14EBEE0BC740835F3F89270B41C93F9901",
     "documentation/arc42/11_risks_and_debt.adoc": "5E0EE0B509F24F76ACBA86ED2CBC780396C0DEBAABD1FF6EC5CB3B3A6F3CB688"
   },
   "staleness_note": "These hashes record the governing files used during authoring; the pack is not a replacement for them."

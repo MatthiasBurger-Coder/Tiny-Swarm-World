@@ -1,18 +1,17 @@
-# Context Pack — Issue #184
+# Context Pack — Issue #191
 
-- Workflow: `issue-184-20260809`; chain order 02.
+- Workflow: `issue-191-20260809`; chain order 03.
 - Authoring branch: `feature/workflow-solid-refactor-chain-20260809`.
-- Active workflow branch: `feature/split-lxc-node-provider-solid`.
-- Status: `COMPLETED_LOCAL_AUDITED`.
+- Active workflow branch: `feature/typed-verification-evidence-solid`.
+- Status: `EXECUTING_LOCAL`.
 - Execution profile: `FULL_PATH`.
-- Affected areas: LXC node provider command/node/profile/resource/evidence
-  boundaries, compatibility imports, architecture tests.
-- Forbidden areas: public port redesign, live LXC/Swarm mutation, React/browser
-  product work, #191 typed contract changes before its workflow.
+- Affected areas: serialized evidence keys/classifications, lifecycle,
+  preflight/deployment producers, compatibility and architecture tests.
+- Forbidden areas: evidence key renaming, live infrastructure/browser runs,
+  React, service extraction and unrelated scope.
 - Required roles: Senior Requirement Engineer, Senior System Architect, Senior
   Python Automation Developer, Senior Tester.
 - Conditional roles: Senior Documentation Engineer, Senior Security Sandbox
   Engineer, Senior Execution Orchestrator.
-- Quality commands: `python3 tools/quality_gate.py quality`, targeted Python
-  gates and `git diff --check`.
-- Completion audit: `PASS`; next serialized promotion target: `#191`.
+- Quality commands: full `python3 tools/quality_gate.py quality`, targeted
+  Python/architecture gates and `git diff --check`.
