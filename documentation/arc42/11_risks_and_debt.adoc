@@ -220,7 +220,8 @@ before adding code. The chain keeps the following ownership order:
   and passed its compatibility and audit gates;
 * #190 completes residual stack prerequisite and asset-transfer strategy
   dispatch locally and passed its compatibility and audit gates;
-* #192 verifies LXC Portainer/Nexus wrapper ownership and compatibility; and
+* #192 verifies LXC Portainer/Nexus wrapper ownership and compatibility locally
+  and passed its compatibility and audit gates; and
 * #186 audits and, only if necessary, completes explicit composition bindings.
 
 The current read-only baseline scan found no `infra_core_container`,

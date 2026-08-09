@@ -48,9 +48,9 @@
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/workflow/workflow.md": "8358F3F4AB80E42E9C00FC7929694BC6D8C71172F0E6355CE51341F84F9EB08C",
+    "documentation/workflow/workflow.md": "22315B83796E401DF6F09AA421CB6B30497E9B818A12D98AACFDE87EDEF15225",
     "documentation/arc42/11_risks_and_debt.adoc": "399CF086C4143A705403430AB082C6F438716416D5674447983AD95745DE1C97"
   },
   "staleness_note": "These hashes record the governing files used during authoring; the pack is not a replacement for them.",
-  "status": "EXECUTING_LOCAL"
+  "status": "COMPLETED_LOCAL_AUDITED"
 }
