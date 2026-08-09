@@ -28,26 +28,35 @@ class StackPrerequisiteContext:
 
 
 class StackPrerequisiteStrategy(Protocol):
+    def supports(self, context: StackPrerequisiteContext) -> bool:
+        """Return whether this strategy owns the requested context."""
+
     def apply(self, context: StackPrerequisiteContext) -> None:
-        """Apply this strategy when it matches the requested stack."""
+        """Apply the strategy after the registry has selected it."""
 
 
 class ExternalOverlayNetworkStrategy:
+    def supports(self, context: StackPrerequisiteContext) -> bool:
+        return True
+
     def apply(self, context: StackPrerequisiteContext) -> None:
         for network_name in _external_overlay_network_names(context.stack_definition):
             context.ensure_external_overlay_network(network_name)
 
 
 class TraefikTlsStrategy:
+    def supports(self, context: StackPrerequisiteContext) -> bool:
+        return context.stack_name == "traefik"
+
     def apply(self, context: StackPrerequisiteContext) -> None:
-        if context.stack_name == "traefik":
-            context.ensure_traefik_tls_secrets()
+        context.ensure_traefik_tls_secrets()
 
 
 class SonarqubeKernelStrategy:
+    def supports(self, context: StackPrerequisiteContext) -> bool:
+        return context.stack_name == "sonarqube"
+
     def apply(self, context: StackPrerequisiteContext) -> None:
-        if context.stack_name != "sonarqube":
-            return
         context.run_manager_shell(
             "sysctl -w vm.max_map_count=524288 fs.file-max=131072 >/dev/null"
         )
@@ -56,11 +65,13 @@ class SonarqubeKernelStrategy:
 class SwaggerAssetPrerequisiteStrategy:
     """Keep an explicit registry hook for Swagger's asset-only preparation."""
 
+    def supports(self, context: StackPrerequisiteContext) -> bool:
+        return context.stack_name == "swagger"
+
     def apply(self, context: StackPrerequisiteContext) -> None:
-        if context.stack_name == "swagger":
-            # Swagger has no manager-side shell prerequisite; its files are
-            # handled by StackAssetTransfer after this registry completes.
-            return
+        # Swagger has no manager-side shell prerequisite; its files are
+        # handled by StackAssetTransfer after this registry completes.
+        return None
 
 
 class StackPrerequisiteRegistry:
@@ -94,7 +105,8 @@ class StackPrerequisiteRegistry:
             run_manager_shell=run_manager_shell,
         )
         for strategy in self.strategies:
-            strategy.apply(context)
+            if strategy.supports(context):
+                strategy.apply(context)
 
     def ensure_external_overlay_network(
         self,

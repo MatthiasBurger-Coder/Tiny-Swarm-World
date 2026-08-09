@@ -122,3 +122,23 @@ class TestLxcRuntimeBoundaries(unittest.TestCase):
                 for node in ast.walk(method)
             )
         )
+
+    def test_lxc_swarm_runtime_does_not_select_asset_behavior_by_stack_name(self):
+        source_path = (
+            Path(__file__).parents[2]
+            / "src"
+            / "tiny_swarm_world"
+            / "infrastructure"
+            / "adapters"
+            / "clients"
+            / "lxc_swarm_runtime.py"
+        )
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        stack_name_comparisons = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Compare)
+            and any(isinstance(name, ast.Name) and name.id == "stack_name" for name in ast.walk(node))
+        ]
+
+        self.assertEqual([], stack_name_comparisons)
