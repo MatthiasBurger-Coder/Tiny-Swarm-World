@@ -6,6 +6,7 @@ import re
 from collections.abc import Mapping
 
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.evidence import EvidenceBuilder
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderConfig,
     NodeProviderNodeConfig,
@@ -88,25 +89,31 @@ def resource_resolution_evidence(
         and node_config.networks[0] in backend_resolution.network_mappings
         else ""
     )
-    return {
-        "expected_profile": node_config.profile,
-        "available_profiles": "",
-        "backend": backend.value,
-        "logical_network": ",".join(node_config.networks),
-        "resolved_network": resolved,
-        "available_networks": ",".join(available_networks),
-        "expected_storage_pool": (
-            backend_resolution.storage_pool if backend_resolution is not None else ""
-        ),
-        "available_storage_pools": ",".join(available_storage_pools),
-        "remediation_hint": resource_resolution_remediation_hint(
-            node_config,
-            provider_resource_resolution,
-            backend=backend,
-            available_networks=available_networks,
-            available_storage_pools=available_storage_pools,
-        ),
-    }
+    return (
+        EvidenceBuilder()
+        .add("expected_profile", node_config.profile)
+        .add("available_profiles", "")
+        .add("backend", backend.value)
+        .add("logical_network", ",".join(node_config.networks))
+        .add("resolved_network", resolved)
+        .add("available_networks", ",".join(available_networks))
+        .add(
+            "expected_storage_pool",
+            backend_resolution.storage_pool if backend_resolution is not None else "",
+        )
+        .add("available_storage_pools", ",".join(available_storage_pools))
+        .add(
+            "remediation_hint",
+            resource_resolution_remediation_hint(
+                node_config,
+                provider_resource_resolution,
+                backend=backend,
+                available_networks=available_networks,
+                available_storage_pools=available_storage_pools,
+            ),
+        )
+        .build()
+    )
 
 
 def resource_resolution_remediation_hint(
