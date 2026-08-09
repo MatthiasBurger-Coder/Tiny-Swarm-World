@@ -4,7 +4,7 @@ Workflow set ID: `solid-refactor-chain-20260809`
 
 Authoring branch: `feature/workflow-solid-refactor-chain-20260809`
 
-Status: `EXECUTING_LOCAL` — Issues #189, #184, #191, #187, #190 and #192 complete; #186 is active
+Status: `COMPLETED_LOCAL_AUDITED` — Issues #189, #184, #191, #187, #190, #192 and #186 complete
 
 Execution order requested by the user:
 
@@ -12,10 +12,9 @@ Execution order requested by the user:
 #189 -> #184 -> #191 -> #187 -> #190 -> #192 -> #186
 ```
 
-This is an indexed multi-issue workflow set. Issue #192 is locally complete
-and #186 is the currently promoted workflow in
-`documentation/workflow/workflow.md`; all earlier issues are locally complete
-and audited.
+This is an indexed multi-issue workflow set. All seven issues are locally
+complete and audited; #186 is the final promoted workflow in
+`documentation/workflow/workflow.md`.
 
 ## Three-Amigos decision
 
@@ -56,11 +55,11 @@ change. No implementation is authorized by this authoring step.
 | 04 | #187 | [issue-187/workflow.md](issues/issue-187/workflow.md) | `feature/preflight-service-probe-registry-solid` | COMPLETED_LOCAL_AUDITED | #191 | audit PASS; #190 next |
 | 05 | #190 | [issue-190/workflow.md](issues/issue-190/workflow.md) | `feature/stack-prerequisite-strategies-solid` | COMPLETED_LOCAL_AUDITED | #187 | audit PASS; #192 next |
 | 06 | #192 | [issue-192/workflow.md](issues/issue-192/workflow.md) | `feature/separate-lxc-service-wrappers-solid` | COMPLETED_LOCAL_AUDITED | #190 | audit PASS; #186 next |
-| 07 | #186 | [issue-186/workflow.md](issues/issue-186/workflow.md) | `feature/replace-global-di-service-locator-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #192 | global runtime resolution, if discovered |
+| 07 | #186 | [issue-186/workflow.md](issues/issue-186/workflow.md) | `feature/replace-global-di-service-locator-solid` | COMPLETED_LOCAL_AUDITED | #192 | bounded no-op verified; audit PASS; chain complete |
 
 No issues were excluded. Every issue has an issue-local workflow and context
-pack. #189, #184, #191, #187, #190 and #192 are locally audited complete; #186
-is the final serialized workflow.
+pack. All seven issues are locally audited complete; #186 is the final
+serialized workflow.
 
 ## Dependency graph
 
@@ -100,7 +99,7 @@ the indexed order. No parallel execution group is declared for the chain.
   `documentation/workflow/workflow.md`, executed and independently audited
   locally; their context packs and issue evidence record the completion states.
 - The promotion preserves the chain dependency and declared implementation
-  branch; #186 is the final explicit promotion target.
+  branch; #186 is complete and closes the indexed workflow set.
 
 ## Excluded from this authoring set
 
