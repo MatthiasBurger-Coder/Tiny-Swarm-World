@@ -1,21 +1,23 @@
 {
-  "workflow_id": "issue-190-20260809",
-  "workflow_version": "issue-190-v1.0.0",
+  "workflow_id": "issue-192-20260809",
+  "workflow_version": "issue-192-v1.0.0",
   "set_id": "solid-refactor-chain-20260809",
-  "branch": "feature/stack-prerequisite-strategies-solid",
+  "branch": "feature/separate-lxc-service-wrappers-solid",
   "execution_profile": "FULL_PATH",
   "process_strand": "workflow-create-to-workflow-execute",
   "affected_areas": [
-    "LXC Swarm prerequisite registry",
-    "asset transfer",
-    "generic runtime dispatch",
-    "command-generation tests"
+    "LXC Portainer/Nexus wrappers",
+    "manager IP and URL resolution",
+    "compatibility facade",
+    "composition",
+    "security tests"
   ],
   "forbidden_areas": [
-    "new deployment topology",
-    "live Swarm mutation",
+    "new HTTP API",
+    "live service access",
     "browser React",
-    "duplicate #238 extraction"
+    "deployment topology",
+    "unrelated DI/stack work"
   ],
   "required_roles": [
     "Senior Requirement Engineer",
@@ -46,7 +48,7 @@
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/workflow/workflow.md": "E88BA3DF3A494F0DE12C99347D269B19F0D343D53E66D307679EE8C00F219362",
+    "documentation/workflow/workflow.md": "22315B83796E401DF6F09AA421CB6B30497E9B818A12D98AACFDE87EDEF15225",
     "documentation/arc42/11_risks_and_debt.adoc": "399CF086C4143A705403430AB082C6F438716416D5674447983AD95745DE1C97"
   },
   "staleness_note": "These hashes record the governing files used during authoring; the pack is not a replacement for them.",

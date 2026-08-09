@@ -142,3 +142,24 @@ class TestLxcRuntimeBoundaries(unittest.TestCase):
         ]
 
         self.assertEqual([], stack_name_comparisons)
+
+    def test_lxc_swarm_runtime_contains_no_http_request_policy(self):
+        source_path = (
+            Path(__file__).parents[2]
+            / "src"
+            / "tiny_swarm_world"
+            / "infrastructure"
+            / "adapters"
+            / "clients"
+            / "lxc_swarm_runtime.py"
+        )
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        http_calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"delete", "get", "post", "put", "request"}
+        ]
+
+        self.assertEqual([], http_calls)
