@@ -2,11 +2,13 @@
   "workflow_id": "issue-189-20260809",
   "workflow_version": "issue-189-v1.0.0",
   "set_id": "solid-refactor-chain-20260809",
-  "status": "ACTIVE_EXECUTION",
+  "status": "COMPLETED_LOCAL_AUDITED",
   "branch": "feature/centralize-lxc-shared-utilities-solid",
   "workflow_authoring_source_branch": "feature/workflow-solid-refactor-chain-20260809",
   "implementation_branch": "feature/centralize-lxc-shared-utilities-solid",
   "promotion_source": "documentation/workflow/issues/issue-189/workflow.md",
+  "completion_audit": ".tiny-swarm/evidence/solid-lxc-shared-utilities/issue-completion-audit.md",
+  "successor_promotion_target": "#184",
   "execution_profile": "FULL_PATH",
   "process_strand": "workflow-create-to-workflow-execute",
   "affected_areas": [
@@ -55,8 +57,8 @@
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/workflow/workflow.md": "deccf00291fca620802e3e941589bd49a6ce909c4c38e63b1d55be3c420b97da",
-    "documentation/arc42/11_risks_and_debt.adoc": "31e64165c5d1e7feea4d2fed323cc099a857ccc235a294728809c3c25a66217e"
+    "documentation/workflow/workflow.md": "6b7bb3ba6a87b48e4faaec9999acd621a4e2815d46b465f3692ced7786de8d2d",
+    "documentation/arc42/11_risks_and_debt.adoc": "8075dba0663a347b0250dbdebfceb82160588793ef53eb1554138f0f93b639ab"
   },
   "staleness_note": "Hashes record the governing files and the promoted active workflow used for this execution."
 }

@@ -2,7 +2,7 @@
 
 - Workflow: `issue-189-20260809`
 - Workflow set: `solid-refactor-chain-20260809`
-- Status: `ACTIVE_EXECUTION`
+- Status: `COMPLETED_LOCAL_AUDITED`
 - Active workflow branch: `feature/centralize-lxc-shared-utilities-solid`
 - Workflow authoring source branch: `feature/workflow-solid-refactor-chain-20260809`
 - Implementation branch: `feature/centralize-lxc-shared-utilities-solid`
@@ -20,9 +20,9 @@
   `typecheck`, `test`, `arch-lint`, `arch-tests`; docs `git diff --check`.
 - Requirement matrix: `.tiny-swarm/evidence/solid-lxc-shared-utilities/requirement_matrix.md`
 - Issue-required evidence: `.tiny-swarm-world/evidence/solid-lxc-shared-utilities/`
-- Chain position: #189 is first; #184 remains blocked until #189 completion and
-  independent issue-completion audit.
+- Chain position: #189 is first and complete; #184 is the next serialized
+  promotion target after the independent issue-completion audit.
 
-The indexed workflow has been promoted to the active root location. No
-implementation slice has been executed as part of promotion; S3/S3D preflight
-remains the execution gate.
+The indexed workflow was promoted to the active root location, executed and
+audited locally. Issue #189 is complete with `PASS`; #184 remains the next
+serialized promotion target. No live/browser/external success is claimed.

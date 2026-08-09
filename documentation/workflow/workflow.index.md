@@ -4,7 +4,7 @@ Workflow set ID: `solid-refactor-chain-20260809`
 
 Authoring branch: `feature/workflow-solid-refactor-chain-20260809`
 
-Status: `ACTIVE_EXECUTION` — Issue #189 promoted
+Status: `COMPLETED_LOCAL_AUDITED` — Issue #189 complete; #184 is next promotion target
 
 Execution order requested by the user:
 
@@ -51,7 +51,7 @@ change. No implementation is authorized by this authoring step.
 
 | Order | Issue | Workflow | Execution branch | Status | Depends on | Blockers |
 |---:|---:|---|---|---|---|---|
-| 01 | #189 | [issue-189/workflow.md](issues/issue-189/workflow.md) | `feature/centralize-lxc-shared-utilities-solid` | ACTIVE_EXECUTION | none | matching EPIC traceability gap |
+| 01 | #189 | [issue-189/workflow.md](issues/issue-189/workflow.md) | `feature/centralize-lxc-shared-utilities-solid` | COMPLETED_LOCAL_AUDITED | none | matching EPIC traceability gap recorded; audit PASS |
 | 02 | #184 | [issue-184/workflow.md](issues/issue-184/workflow.md) | `feature/split-lxc-node-provider-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #189 | evidence/public outcome compatibility |
 | 03 | #191 | [issue-191/workflow.md](issues/issue-191/workflow.md) | `feature/typed-verification-evidence-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #184 | unknown evidence consumers stop execution |
 | 04 | #187 | [issue-187/workflow.md](issues/issue-187/workflow.md) | `feature/preflight-service-probe-registry-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #191 | ambiguous fingerprint behavior |
@@ -60,7 +60,7 @@ change. No implementation is authorized by this authoring step.
 | 07 | #186 | [issue-186/workflow.md](issues/issue-186/workflow.md) | `feature/replace-global-di-service-locator-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #192 | global runtime resolution, if discovered |
 
 No issues were excluded. Every issue has an issue-local workflow and context
-pack. Only #189 is currently promoted; the remaining six workflows require
+pack. #189 is locally audited complete; the remaining six workflows require
 promotion after the indexed predecessor chain advances.
 
 ## Dependency graph
@@ -97,10 +97,10 @@ the indexed order. No parallel execution group is declared for the chain.
 - This is guarded workflow-create publication, not `push auto`.
 - No pull request merge, branch deletion, force-push or cleanup is part of
   workflow creation.
-- Issue #189 has been promoted to `documentation/workflow/workflow.md` and its
-  context pack to `documentation/workflow/context-pack.md`.
+- Issue #189 was promoted to `documentation/workflow/workflow.md`, executed and
+  independently audited locally; its context pack records the completion state.
 - The promotion preserves the chain dependency and declared implementation
-  branch; later issues remain indexed-only.
+  branch; #184 remains indexed-only until the next explicit promotion.
 
 ## Excluded from this authoring set
 
