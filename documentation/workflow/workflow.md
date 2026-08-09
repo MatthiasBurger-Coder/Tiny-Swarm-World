@@ -228,8 +228,8 @@ promote #187 as the next serialized target.
 - Decision: `PASS` — locally complete and independently audited.
 - Requirement matrix: all `REQ-191-001` through `REQ-191-006` are
   `VERIFIED_LOCAL`.
-- Local quality: `python3 tools/quality_gate.py quality` passed with `1685`
-  tests passed and `28` skipped.
+- Local quality: `python3 tools/quality_gate.py quality` is `VERIFIED_LOCAL`.
+- Test execution counts: `1685` completed cases; `28` intentionally skipped.
 - Live, browser and external quality-system checks: not run and not claimed.
 - Handoff: Issue #187, `feature/preflight-service-probe-registry-solid`.
 
