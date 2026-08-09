@@ -18,16 +18,17 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeCommandResult,
     LxcNodeCommandRunner,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics import (
+    command_failed,
+    safe_log_text,
+)
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 DEFAULT_LXC_PROXY_DEVICE_TIMEOUT_SECONDS = 30.0
 _YAML = YAML(typ="safe")
 
-_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
-}
 _MISSING_DEVICE_MARKERS = (
     "not found",
     "does not exist",
@@ -241,7 +242,7 @@ def _device_get_args(
     key: str,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "profile",
         "device",
         "get",
@@ -257,7 +258,7 @@ def _device_add_args(
     plan: LxcProxyDevicePlan,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "profile",
         "device",
         "add",
@@ -277,7 +278,7 @@ def _device_set_args(
     value: str,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "profile",
         "device",
         "set",
@@ -293,7 +294,7 @@ def _instance_device_show_args(
     node: NodeSpec,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "config",
         "device",
         "show",
@@ -307,7 +308,7 @@ def _instance_device_remove_args(
     device_name: str,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "config",
         "device",
         "remove",
@@ -354,7 +355,7 @@ def _is_proxy_device(device: Mapping[str, object]) -> bool:
 
 
 def _command_failed(result: LxcNodeCommandResult) -> bool:
-    return result.timed_out or result.returncode != 0
+    return command_failed(result)
 
 
 def _command_missing_device(result: LxcNodeCommandResult) -> bool:
@@ -369,7 +370,4 @@ def _combined_output(result: LxcNodeCommandResult) -> str:
 
 
 def _safe_log_text(value: str, limit: int = 400) -> str:
-    collapsed = " ".join(value.split())
-    if len(collapsed) <= limit:
-        return collapsed
-    return f"{collapsed[:limit]}..."
+    return safe_log_text(value, limit=limit)

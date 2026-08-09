@@ -2,12 +2,18 @@ import subprocess
 import unittest
 
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics import (
+    command_failed,
     is_transient_manager_shell_failure,
     safe_log_text,
 )
 
 
 class TestLxcCommandDiagnostics(unittest.TestCase):
+    def test_command_failed_supports_timeout_and_process_results(self):
+        self.assertTrue(command_failed(type("TimedOut", (), {"returncode": 0, "timed_out": True})()))
+        self.assertTrue(command_failed(type("Failed", (), {"returncode": 1, "timed_out": False})()))
+        self.assertFalse(command_failed(type("Succeeded", (), {"returncode": 0, "timed_out": False})()))
+
     def test_safe_log_text_redacts_secrets_and_bounds_output(self):
         value = (
             "TSW_TOKEN=header.payload.signature Authorization: Bearer bearer-value "

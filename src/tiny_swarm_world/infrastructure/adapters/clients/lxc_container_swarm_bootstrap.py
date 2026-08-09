@@ -25,6 +25,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeCommandResult,
     LxcNodeCommandRunner,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
 
 
 def _private_overlay_pool(value: str) -> str:
@@ -47,12 +48,6 @@ DEFAULT_SWARM_OVERLAY_ADDRESS_POOL_MASK_LENGTH = os.getenv(
     "TSW_SWARM_OVERLAY_ADDRESS_POOL_MASK_LENGTH",
     "24",
 )
-
-_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
-}
-
 
 class LxcContainerNetworkIdentity(PortContainerNetworkIdentity):
     def __init__(
@@ -240,7 +235,7 @@ def _hostname_ip_args(
     node: NodeSpec,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "exec",
         node.name,
         "--",
@@ -255,7 +250,7 @@ def _swarm_state_args(
     node: NodeSpec,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "exec",
         node.name,
         "--",
@@ -271,7 +266,7 @@ def _swarm_membership_args(
     manager: NodeSpec,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "exec",
         manager.name,
         "--",
@@ -289,7 +284,7 @@ def _manager_init_args(
     advertise_address: str,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "exec",
         node.name,
         "--",
@@ -310,7 +305,7 @@ def _worker_token_args(
     node: NodeSpec,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "exec",
         node.name,
         "--",
@@ -329,7 +324,7 @@ def _worker_join_args(
     token: str,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "exec",
         node.name,
         "--",
@@ -347,7 +342,7 @@ def _worker_leave_args(
     node: NodeSpec,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "exec",
         node.name,
         "--",

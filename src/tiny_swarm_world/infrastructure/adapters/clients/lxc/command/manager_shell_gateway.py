@@ -8,6 +8,7 @@ from collections.abc import Callable
 from logging import Logger
 
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics import (
     is_transient_manager_shell_failure,
     safe_log_text,
@@ -19,10 +20,6 @@ from tiny_swarm_world.infrastructure.process import (
 )
 
 
-_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
-}
 _MAX_ATTEMPTS = 3
 _RETRY_DELAYS_SECONDS = (0.5, 1.0)
 
@@ -121,7 +118,7 @@ class LxcManagerShellGateway:
         timeout: int,
     ) -> subprocess.CompletedProcess[str]:
         try:
-            command = [_BACKEND_CLI[self.backend], "exec", node_name, "--", "sh", "-lc", script]
+            command = [backend_cli(self.backend), "exec", node_name, "--", "sh", "-lc", script]
             if runner is None:
                 return self.process_runner.run_text(
                     command,

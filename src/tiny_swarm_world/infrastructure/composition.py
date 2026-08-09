@@ -155,6 +155,7 @@ from tiny_swarm_world.domain.preflight import (
     ResourceThresholds,
 )
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     AsyncLxcNodeCommandRunner,
     LxcNodeProvider,
@@ -344,9 +345,7 @@ DEFAULT_LXC_PLATFORM_NODES = (
     NodeSpec("swarm-worker-2", NodeRole.WORKER, NodeProviderKind.LXC_NATIVE),
 )
 LXC_BACKEND_REQUIRED_REASON = "lxc_backend_required"
-_LXC_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-}
+_LXC_SUPPORTED_BACKENDS = frozenset((ManagedLxcBackend.INCUS,))
 LXC_BACKEND_REQUIRED_MESSAGE = (
     "LXC-native workflows require an available or explicitly selected Incus backend."
 )
@@ -1342,8 +1341,8 @@ def build_deployment_services_for_provider(
 ) -> DeploymentServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
-    backend_cli = None if backend is None else _LXC_BACKEND_CLI.get(backend)
-    if backend is not None and backend_cli is not None and shutil.which(backend_cli):
+    backend_executable = None if backend is None else backend_cli(backend)
+    if backend is not None and backend in _LXC_SUPPORTED_BACKENDS and backend_executable is not None and shutil.which(backend_executable):
         return build_lxc_deployment_services(
             service_profile=service_profile,
             backend=backend,
@@ -1917,12 +1916,13 @@ def _lxc_backend_for_provider_request(
     if provider_request.requested_provider != NodeProviderKind.LXC_NATIVE:
         return None
     if provider_request.preferred_backend is not None:
-        if provider_request.preferred_backend in _LXC_BACKEND_CLI:
+        if provider_request.preferred_backend in _LXC_SUPPORTED_BACKENDS:
             return provider_request.preferred_backend
         return None
     for backend in provider_request.backend_candidates:
-        cli = _LXC_BACKEND_CLI.get(backend)
-        if cli is not None and shutil.which(cli):
+        if backend not in _LXC_SUPPORTED_BACKENDS:
+            continue
+        if shutil.which(backend_cli(backend)):
             return backend
     return None
 
@@ -1984,18 +1984,18 @@ def _preflight_configuration_for_provider(
                 "LXC-native preflight requires at least one managed backend candidate."
             )
         provider_dependencies = tuple(
-            RequiredDependency(_LXC_BACKEND_CLI[candidate])
+            RequiredDependency(backend_cli(candidate))
             for candidate in provider_request.backend_candidates
         )
         backend_label = "auto"
         provider_checks = tuple(
-            f"backend-cli:{_LXC_BACKEND_CLI[candidate]}"
+            f"backend-cli:{backend_cli(candidate)}"
             for candidate in provider_request.backend_candidates
         )
     else:
-        provider_dependencies = (RequiredDependency(_LXC_BACKEND_CLI[backend]),)
+        provider_dependencies = (RequiredDependency(backend_cli(backend)),)
         backend_label = backend.value
-        provider_checks = (f"backend-cli:{_LXC_BACKEND_CLI[backend]}",)
+        provider_checks = (f"backend-cli:{backend_cli(backend)}",)
     return replace(
         configuration,
         required_dependencies=(

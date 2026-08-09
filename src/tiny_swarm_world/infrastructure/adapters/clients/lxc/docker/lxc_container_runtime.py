@@ -6,6 +6,7 @@ import subprocess
 
 from tiny_swarm_world.application.ports.clients.port_container_runtime import PortContainerRuntime
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.process import (
     ProcessLaunchError,
@@ -13,12 +14,6 @@ from tiny_swarm_world.infrastructure.process import (
     ProcessTimeoutError,
     SubprocessProcessRunner,
 )
-
-
-_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
-}
 
 
 class LxcContainerRuntime(PortContainerRuntime):
@@ -95,7 +90,7 @@ class LxcContainerRuntime(PortContainerRuntime):
         self.logger.info("Running LXC Docker operation '%s' on node '%s'.", operation, target_node)
         try:
             result = self.process_runner.run_text(
-                [_BACKEND_CLI[self.backend], "exec", target_node, "--", "docker", *docker_args],
+                [backend_cli(self.backend), "exec", target_node, "--", "docker", *docker_args],
                 capture_output=True,
                 check=False,
                 shell=False,

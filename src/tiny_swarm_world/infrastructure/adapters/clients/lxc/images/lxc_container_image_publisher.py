@@ -21,6 +21,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.images.errors import (
     image_operation_failure_diagnostic,
     image_operation_operator_action,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swarm_stack_runtime import (
     _quote_remote_path,
 )
@@ -32,12 +33,6 @@ from tiny_swarm_world.infrastructure.process import (
     ProcessTimeoutError,
     SubprocessProcessRunner,
 )
-
-
-_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
-}
 
 
 class LxcContainerImagePublisher(PortContainerImagePublisher):
@@ -185,7 +180,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         command = (
             "set -o pipefail; "
             f"docker save {shlex.quote(contract.image_ref)} | "
-            f"{shlex.quote(_BACKEND_CLI[self.backend])} exec {shlex.quote(self.manager_node)} -- docker load"
+            f"{shlex.quote(backend_cli(self.backend))} exec {shlex.quote(self.manager_node)} -- docker load"
         )
         load_result = self.process_runner.run_text(
             ["bash", "-lc", command],
@@ -245,7 +240,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         self.logger.info("Running LXC manager image operation.")
         try:
             result = self.process_runner.run_text(
-                [_BACKEND_CLI[self.backend], "exec", self.manager_node, "--", "sh", "-lc", script],
+                [backend_cli(self.backend), "exec", self.manager_node, "--", "sh", "-lc", script],
                 input=input_text,
                 capture_output=True,
                 check=False,
@@ -286,7 +281,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
     ) -> subprocess.CompletedProcess[bytes]:
         try:
             result = self.process_runner.run_bytes(
-                [_BACKEND_CLI[self.backend], "exec", self.manager_node, "--", "sh", "-lc", script],
+                [backend_cli(self.backend), "exec", self.manager_node, "--", "sh", "-lc", script],
                 input=input_bytes,
                 capture_output=True,
                 check=False,

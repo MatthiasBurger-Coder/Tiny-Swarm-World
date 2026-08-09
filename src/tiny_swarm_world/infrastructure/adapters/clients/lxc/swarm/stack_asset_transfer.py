@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-import shlex
 import subprocess
 from collections.abc import Callable
 
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swarm_stack_runtime import (
+    _quote_remote_path,
+)
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
 
 
-REMOTE_WORKDIR_PREFIX = "$PWD/"
 ManagerShell = Callable[..., subprocess.CompletedProcess[str]]
 
 
@@ -81,9 +82,3 @@ class StackAssetTransfer:
             f"cat > {_quote_remote_path(remote_dir + '/nginx/default.conf')}"
         )
         self._run_manager_shell(script, input_text=nginx_config.read_text(encoding="utf-8"))
-
-
-def _quote_remote_path(path: str) -> str:
-    if path.startswith(REMOTE_WORKDIR_PREFIX):
-        return f"{REMOTE_WORKDIR_PREFIX}{shlex.quote(path.removeprefix(REMOTE_WORKDIR_PREFIX))}"
-    return shlex.quote(path)

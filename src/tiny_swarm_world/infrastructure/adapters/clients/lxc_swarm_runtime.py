@@ -31,6 +31,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.images.lxc_container_i
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_nexus_http_client import (
     LxcNexusHttpClient as _ExtractedLxcNexusHttpClient,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.common import lxc_manager_ip
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_portainer_admin_client import (
     LxcPortainerAdminClient as _ExtractedLxcPortainerAdminClient,
 )
@@ -52,13 +53,6 @@ from tiny_swarm_world.infrastructure.process import ProcessRunner
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 
-_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
-}
-_MANAGER_SHELL_MAX_ATTEMPTS = 3
-_MANAGER_SHELL_RETRY_DELAYS_SECONDS = (0.5, 1.0)
-_INCUS_CHILD_PID_FAILURE = "Failed to retrieve PID of executing child process"
 DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME = "tsw_traefik_tls_cert"
 DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME = "tsw_traefik_tls_key"
 INFISICAL_DATABASE_SERVICE_NAME = "infisical_infisical-db"
@@ -251,43 +245,13 @@ def _lxc_manager_ip(
     manager_node: str,
     timeout_seconds: int,
 ) -> str:
-    result: subprocess.CompletedProcess[str] | None = None
-    for attempt in range(1, _MANAGER_SHELL_MAX_ATTEMPTS + 1):
-        try:
-            result = subprocess.run(
-                [
-                    _BACKEND_CLI[backend],
-                    "exec",
-                    manager_node,
-                    "--",
-                    "sh",
-                    "-lc",
-                    "ip -4 -o addr show dev eth0 | awk '{print $4}' | cut -d/ -f1",
-                ],
-                capture_output=True,
-                text=True,
-                check=False,
-                shell=False,
-                timeout=timeout_seconds,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError("LXC manager IP lookup timed out.") from exc
-        if not _is_transient_manager_shell_failure(result):
-            break
-        if attempt >= _MANAGER_SHELL_MAX_ATTEMPTS:
-            break
-        delay_seconds = _MANAGER_SHELL_RETRY_DELAYS_SECONDS[
-            min(attempt - 1, len(_MANAGER_SHELL_RETRY_DELAYS_SECONDS) - 1)
-        ]
-        time.sleep(delay_seconds)
-    if result is None:
-        raise RuntimeError("LXC manager IP lookup did not execute.")
-    if result.returncode != 0:
-        raise RuntimeError("LXC manager IP lookup failed.")
-    addresses = [part for part in result.stdout.split() if "." in part]
-    if not addresses:
-        raise RuntimeError("LXC manager IP lookup returned no IPv4 address.")
-    return addresses[0]
+    return lxc_manager_ip(
+        backend,
+        manager_node,
+        timeout_seconds,
+        run=subprocess.run,
+        sleep=time.sleep,
+    )
 
 
 def _validate_local_http_scheme(scheme: str) -> str:

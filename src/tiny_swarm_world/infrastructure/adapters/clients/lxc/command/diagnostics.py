@@ -40,6 +40,12 @@ def safe_log_text(value: str, limit: int = 500) -> str:
     return f"{collapsed[:limit]}..."
 
 
+def command_failed(result: object) -> bool:
+    """Return whether a command result represents a timeout or failure."""
+
+    return bool(getattr(result, "timed_out", False)) or getattr(result, "returncode", 0) != 0
+
+
 # Compatibility aliases for adapters that still use the old private names.
 _is_transient_manager_shell_failure = is_transient_manager_shell_failure
 _safe_log_text = safe_log_text

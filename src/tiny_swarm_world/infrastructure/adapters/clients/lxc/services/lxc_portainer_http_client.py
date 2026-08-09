@@ -20,16 +20,11 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.common import
     local_service_url,
     validate_local_http_scheme,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swarm_stack_runtime import (
     _external_overlay_network_names,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import PortainerHttpClient
-
-
-_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
-}
 
 
 class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
@@ -139,7 +134,7 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
     ) -> subprocess.CompletedProcess[str]:
         try:
             result = subprocess.run(
-                [_BACKEND_CLI[self.backend], "exec", self.manager_node, "--", "sh", "-lc", script],
+                [backend_cli(self.backend), "exec", self.manager_node, "--", "sh", "-lc", script],
                 capture_output=True,
                 text=True,
                 check=False,
