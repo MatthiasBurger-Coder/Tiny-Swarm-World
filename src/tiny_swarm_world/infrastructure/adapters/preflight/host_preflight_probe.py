@@ -7,7 +7,6 @@ import re
 import shutil
 import socket
 import ssl
-import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -27,7 +26,9 @@ from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state
 )
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 from tiny_swarm_world.infrastructure.process import (
+    ProcessLaunchError,
     ProcessRunner,
+    ProcessTimeoutError,
     SubprocessProcessRunner,
 )
 
@@ -168,15 +169,13 @@ class HostPreflightProbe(PortHostPreflightProbe):
 
     def path_ignored_by_git(self, path: str) -> bool:
         try:
-            completed = subprocess.run(
+            completed = self.process_runner.run_text(
                 ["git", "check-ignore", "-q", "--", path],
                 cwd=self.root,
                 check=False,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
                 timeout=5.0,
             )
-        except (OSError, subprocess.TimeoutExpired):
+        except (ProcessLaunchError, ProcessTimeoutError):
             # Git is an optional inspection aid on a prepared host.  A missing
             # or unresponsive executable must not make native preflight hang;
             # the caller treats the path as not ignored and continues with the
@@ -212,16 +211,13 @@ class HostPreflightProbe(PortHostPreflightProbe):
     def _tracked_text_files(self) -> tuple[Path, ...]:
         suffixes = {".py", ".sh", ".yaml", ".yml", ".json", ".md", ".adoc"}
         try:
-            completed = subprocess.run(
+            completed = self.process_runner.run_text(
                 ["git", "ls-files", "--", "src", "infra"],
                 cwd=self.root,
                 check=False,
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
                 timeout=5.0,
             )
-        except (OSError, subprocess.TimeoutExpired):
+        except (ProcessLaunchError, ProcessTimeoutError):
             completed = None
         if completed is not None and completed.returncode == 0:
             return tuple(

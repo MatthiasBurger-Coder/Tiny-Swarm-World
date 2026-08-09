@@ -1,61 +1,34 @@
-# Slice 07 Distribution Decision
+# Issue #188 — S07 Distribution Decision
 
-Workflow: `issue-183-20260808`
-Slice: `07` — Full quality, external gate, documentation, and completion audit
+- Workflow: `issue-188-20260809` / `issue-188-v1.0.0`
+- Slice: `S07` — Migrate `HostPreflightProbe` Git probes
+- Execution mode: `sequential`
+- Real subagents: not available; no parallel stream created
+- Owner roles: Senior Python Automation Developer, Senior System Architect,
+  Senior Tester
 
-## Execution decision
+## Scope
 
-* Chosen mode: `sequential`.
-* Real Codex subagents used: `No callable subagent surface is available.`
-* Fallback role-based review used: `Yes`.
-* Git worktrees used: `No`; final evidence, Arc42, requirement matrix, and
-  audit files are shared locks.
-* Selected streams: Issue Completion Auditor, Senior Requirement Engineer,
-  Senior System Architect, Senior Tester, Senior DevOps Engineer, and Senior
-  Documentation Engineer responsibilities.
-* External/live streams: evidence-state review only. No live infrastructure or
-  external SonarQube mutation/access is authorized by this request.
+- Route `git check-ignore` and `git ls-files` through the shared runner.
+- Preserve fail-soft behavior when Git is missing/unresponsive and preserve
+  tracked-file filesystem fallback scanning.
+- Do not introduce service-fingerprint strategy changes or live mutation.
 
-## Fallback role review
+## Safety and locks
 
-* Issue Completion Auditor: map every requirement to implementation and
-  verification evidence; prevent a DONE claim with open requirements.
-* Senior Requirement Engineer: update the requirement matrix with observed
-  states and explicit blockers.
-* Senior System Architect: validate Arc42 wording, responsibility maps, and
-  compatibility boundaries.
-* Senior Tester: record local quality and static browser evidence exactly.
-* Senior DevOps Engineer: record external SonarQube/live prerequisite states
-  without inventing results.
-* Senior Documentation Engineer: keep planned versus implemented language
-  synchronized across issue evidence and Arc42.
+- No live Git repository mutation, infrastructure command, or credential use.
+- No application/domain port change.
+- The runner remains an infrastructure dependency and does not own preflight
+  policy.
 
-## Expected touched files/directories
+## Verification plan
 
-* `.tiny-swarm/evidence/solid-lxc-swarm-runtime/`
-* `documentation/arc42/05_building_blocks.adoc`
-* `documentation/arc42/05_analysis/responsibility-separation-analysis.md`
-* `documentation/arc42/11_risks_and_debt.adoc`
-* `.codex/evidence/slice-07-distribution.md`
-* `.codex/evidence/slice-07-consolidation.md`
+- Focused HostPreflightProbe tests, including Git unavailable and fallback
+  behavior.
+- `python3 tools/quality_gate.py lint`.
+- `python3 tools/quality_gate.py typecheck`.
+- `git diff --check`.
 
-## Stop conditions
-
-The final issue state must be `BLOCKED` or incomplete when live evidence is
-not `LIVE_VERIFIED`, external SonarQube evidence is unavailable, or any
-requirement remains open. Local quality passes must not be relabeled as live,
-Selenium, or SonarQube success.
-
-## Quality gates
-
-* `git diff --check`;
-* `python3 tools/quality_gate.py quality`;
-* inspect requirement matrix and issue evidence completeness;
-* independent issue-completion-auditor decision.
-
-## Consolidation plan
-
-Codex will rerun the local quality gate only as needed, update traceability and
-remaining-risk evidence, record unavailable external/live gates, perform the
-independent auditor review, and create one final checkpoint without claiming
-DONE or merging the workflow branch.
+The repository-wide quality gate retains the pre-existing Arc42 governing-hash
+exception recorded in S02 until that independent governance artifact is
+reconciled.
