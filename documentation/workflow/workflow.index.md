@@ -4,7 +4,7 @@ Workflow set ID: `solid-refactor-chain-20260809`
 
 Authoring branch: `feature/workflow-solid-refactor-chain-20260809`
 
-Status: `READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS`
+Status: `ACTIVE_EXECUTION` — Issue #189 promoted
 
 Execution order requested by the user:
 
@@ -12,11 +12,11 @@ Execution order requested by the user:
 #189 -> #184 -> #191 -> #187 -> #190 -> #192 -> #186
 ```
 
-This is an indexed multi-issue workflow set. The existing active
-`documentation/workflow/workflow.md` for Issue #188 is preserved. An indexed
-issue workflow is not executable until it is promoted to the active workflow
-location or the workflow executor is explicitly extended to accept an indexed
-path.
+This is an indexed multi-issue workflow set. Issue #189 is promoted to the
+active `documentation/workflow/workflow.md` and its execution branch is
+`feature/centralize-lxc-shared-utilities-solid`. Issues #184 through #186
+remain indexed and are not executable until their predecessor is complete and
+the next issue is explicitly promoted.
 
 ## Three-Amigos decision
 
@@ -51,7 +51,7 @@ change. No implementation is authorized by this authoring step.
 
 | Order | Issue | Workflow | Execution branch | Status | Depends on | Blockers |
 |---:|---:|---|---|---|---|---|
-| 01 | #189 | [issue-189/workflow.md](issues/issue-189/workflow.md) | `feature/centralize-lxc-shared-utilities-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | none | matching EPIC traceability gap |
+| 01 | #189 | [issue-189/workflow.md](issues/issue-189/workflow.md) | `feature/centralize-lxc-shared-utilities-solid` | ACTIVE_EXECUTION | none | matching EPIC traceability gap |
 | 02 | #184 | [issue-184/workflow.md](issues/issue-184/workflow.md) | `feature/split-lxc-node-provider-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #189 | evidence/public outcome compatibility |
 | 03 | #191 | [issue-191/workflow.md](issues/issue-191/workflow.md) | `feature/typed-verification-evidence-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #184 | unknown evidence consumers stop execution |
 | 04 | #187 | [issue-187/workflow.md](issues/issue-187/workflow.md) | `feature/preflight-service-probe-registry-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #191 | ambiguous fingerprint behavior |
@@ -60,7 +60,8 @@ change. No implementation is authorized by this authoring step.
 | 07 | #186 | [issue-186/workflow.md](issues/issue-186/workflow.md) | `feature/replace-global-di-service-locator-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #192 | global runtime resolution, if discovered |
 
 No issues were excluded. Every issue has an issue-local workflow and context
-pack. All seven workflows require promotion before `workflow execute`.
+pack. Only #189 is currently promoted; the remaining six workflows require
+promotion after the indexed predecessor chain advances.
 
 ## Dependency graph
 
@@ -96,13 +97,13 @@ the indexed order. No parallel execution group is declared for the chain.
 - This is guarded workflow-create publication, not `push auto`.
 - No pull request merge, branch deletion, force-push or cleanup is part of
   workflow creation.
-- Before execution, promote exactly one issue-local workflow to
-  `documentation/workflow/workflow.md`, or extend the executor through a
-  separate governance change that accepts the indexed path.
-- The promotion must preserve the chain dependency and the declared
-  implementation branch.
+- Issue #189 has been promoted to `documentation/workflow/workflow.md` and its
+  context pack to `documentation/workflow/context-pack.md`.
+- The promotion preserves the chain dependency and declared implementation
+  branch; later issues remain indexed-only.
 
 ## Excluded from this authoring set
 
-None. The existing Issue #188 active workflow is not part of this chain and is
-preserved as the currently active workflow.
+None. Issue #188 is not part of this chain; its prior active-root status is
+preserved in the promotion evidence and replaced only by the explicitly
+requested first-chain promotion.

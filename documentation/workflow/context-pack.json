@@ -1,83 +1,62 @@
 {
-  "workflow_id": "issue-188-20260809",
-  "workflow_version": "issue-188-v1.0.0",
-  "authoring_branch": "feature/workflow-issue-188-shared-command-runners-20260809",
-  "implementation_branch": "feature/issue-188-shared-command-runners",
-  "process_strand": "workflow-create-to-workflow-execute",
+  "workflow_id": "issue-189-20260809",
+  "workflow_version": "issue-189-v1.0.0",
+  "set_id": "solid-refactor-chain-20260809",
+  "status": "ACTIVE_EXECUTION",
+  "branch": "feature/centralize-lxc-shared-utilities-solid",
+  "workflow_authoring_source_branch": "feature/workflow-solid-refactor-chain-20260809",
+  "implementation_branch": "feature/centralize-lxc-shared-utilities-solid",
+  "promotion_source": "documentation/workflow/issues/issue-189/workflow.md",
   "execution_profile": "FULL_PATH",
-  "status": "READY_FOR_EXECUTION",
-  "issue": 188,
-  "requirement_matrix": ".tiny-swarm/evidence/solid-command-runner/requirement_matrix.md",
-  "three_amigos": ".tiny-swarm-world/evidence/solid-command-runner/three-amigos.md",
-  "before_inventory": ".tiny-swarm/evidence/solid-command-runner/process-spawn-inventory-before.md",
-  "after_inventory": ".tiny-swarm/evidence/solid-command-runner/process-spawn-inventory-after.md",
+  "process_strand": "workflow-create-to-workflow-execute",
   "affected_areas": [
-    "infrastructure/process runner",
-    "infrastructure/composition.py",
-    "Docker, LXC command, LXC Docker, LXC image, and host preflight adapters",
-    "architecture tests and issue evidence",
-    "Arc42 building blocks, concepts, quality, and risks"
+    "lxc command mapping",
+    "shared infrastructure utilities",
+    "composition",
+    "architecture tests",
+    "issue evidence"
   ],
   "forbidden_areas": [
-    "application/domain port redesign",
-    "Issue #183 rework",
-    "Issues #187, #189, #190, #192, #184, and #195",
+    "domain/application redesign",
     "browser React",
-    "Java/Maven/Spring Boot",
-    "unapproved live infrastructure mutation",
-    "raw credentials, tokens, command output, or unredacted evidence"
+    "live infrastructure mutation",
+    "unrelated issues"
   ],
   "required_roles": [
     "Senior Requirement Engineer",
     "Senior System Architect",
     "Senior Python Automation Developer",
-    "Senior Tester",
-    "Senior Workflow Architect",
-    "Senior Security Sandbox Engineer",
-    "Senior DevOps Engineer",
-    "Senior Documentation Engineer",
-    "Issue Completion Auditor"
+    "Senior Tester"
   ],
-  "conditional_roles": {
-    "Dependency / Deadlock Validator": "REQUIRED",
-    "Console/status UI reviewer": "NOT_APPLICABLE",
-    "Browser React reviewer": "FORBIDDEN_UNLESS_SEPARATE_FRONTEND_WORKFLOW"
-  },
+  "conditional_roles": [
+    "Senior Documentation Engineer",
+    "Senior Security Sandbox Engineer",
+    "Senior Execution Orchestrator"
+  ],
   "quality_commands": [
+    "python3 tools/quality_gate.py quality",
     "python3 tools/quality_gate.py lint",
-    "python3 tools/quality_gate.py arch-lint",
-    "python3 tools/quality_gate.py arch-tests",
     "python3 tools/quality_gate.py typecheck",
     "python3 tools/quality_gate.py test",
-    "python3 tools/quality_gate.py quality",
+    "python3 tools/quality_gate.py arch-lint",
+    "python3 tools/quality_gate.py arch-tests",
     "git diff --check"
   ],
-  "verification_classification": {
-    "local_runner_adapter_architecture_tests": "APPLICABLE_LOCAL",
-    "full_local_quality": "APPLICABLE_LOCAL",
-    "issue_specific_live_verification": "NOT_REQUIRED_BY_ISSUE",
-    "sonarqube": "NOT_REQUIRED_BY_ISSUE",
-    "live_infrastructure_during_default_gates": "NOT_APPLICABLE",
-    "browser_react": "NOT_APPLICABLE"
-  },
+  "requirement_matrix": ".tiny-swarm/evidence/solid-lxc-shared-utilities/requirement_matrix.md",
+  "issue_required_evidence": ".tiny-swarm-world/evidence/solid-lxc-shared-utilities/",
+  "chain_position": 1,
+  "successor": 184,
   "governing_file_hashes": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
     "QUALITY.md": "7f8dd247fd989fbb72588a48b00846edcb2a9aa748bb1954dc22b75952efaa4c",
     "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
     "documentation/process/workflow-create.md": "5df5fb70ddc25ef2d8ad2129590e780bfee610521860fb0991e57c38dab3542f",
-    "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
-    ".agents/prompts/workflow-create.md": "45c5c8e585c50b7fcb6892b5fbfb952aa29ef27c3df34f177ad579ba65542296",
-    ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
-    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
-    ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
-    "documentation/arc42/05_building_blocks.adoc": "172fef095693bae325a54f45abc3774ffc3b61377f73f66025c8d59a4ccba5b8",
-    "documentation/arc42/08_concepts.adoc": "66a71541982d656719946016334371db08feae223db33526c5297ca68ebc5ae7",
-    "documentation/arc42/10_quality_requirements.adoc": "e91bfcb7b925fa727240fee02b4cc20680f26460137fb600ca4e4584f4c07fdc",
-    "documentation/arc42/11_risks_and_debt.adoc": "368483cde864b7d35a8319ebf37fe9bd37c08eeb5bb7f36d6e0e2fe835146426",
-    "documentation/workflow/workflow.md": "d6c2adcf12a6ed0c48181cd5e661892202e7cf11dc67657aba8e592455ed2c92",
-    ".tiny-swarm/evidence/solid-command-runner/requirement_matrix.md": "73727bf42fef5ed649a9826d159e8e472c339499b9102bd7103c98d8a4ce4a18",
-    ".tiny-swarm-world/evidence/solid-command-runner/three-amigos.md": "d1fabe5558bd5b4c86ec644a04fce303e4fe846114896fdfcb28667608f15a23"
-  }
+    ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
+    "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
+    "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
+    "documentation/workflow/workflow.md": "11a0a4200b9d0f38cbbaea77b998ad3b84c9db5fbbccd1a977572206754ec930",
+    "documentation/arc42/11_risks_and_debt.adoc": "31e64165c5d1e7feea4d2fed323cc099a857ccc235a294728809c3c25a66217e"
+  },
+  "staleness_note": "Hashes record the governing files and the promoted active workflow used for this execution."
 }
