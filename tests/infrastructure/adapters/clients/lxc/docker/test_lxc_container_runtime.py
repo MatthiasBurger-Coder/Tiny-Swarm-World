@@ -21,8 +21,7 @@ class TestLxcContainerRuntime(unittest.TestCase):
             node_names=("swarm-worker-1",),
         )
         with patch(
-            "tiny_swarm_world.infrastructure.adapters.clients.lxc.docker."
-            "lxc_container_runtime.subprocess.run",
+            "tiny_swarm_world.infrastructure.process.runner.subprocess.run",
             return_value=subprocess.CompletedProcess([], 0, stdout="nexus.1\n"),
         ) as run:
             self.assertEqual(runtime.find_container_names("nexus"), ["swarm-worker-1::nexus.1"])
@@ -32,8 +31,7 @@ class TestLxcContainerRuntime(unittest.TestCase):
     def test_file_exists_and_read_file_support_node_qualified_references(self):
         runtime = LxcContainerRuntime(backend=ManagedLxcBackend.INCUS)
         with patch(
-            "tiny_swarm_world.infrastructure.adapters.clients.lxc.docker."
-            "lxc_container_runtime.subprocess.run",
+            "tiny_swarm_world.infrastructure.process.runner.subprocess.run",
             side_effect=(
                 subprocess.CompletedProcess([], 0, stdout="", stderr=""),
                 subprocess.CompletedProcess([], 0, stdout="contents", stderr=""),
@@ -47,16 +45,14 @@ class TestLxcContainerRuntime(unittest.TestCase):
     def test_checked_docker_operation_rejects_failure_and_timeout(self):
         runtime = LxcContainerRuntime(backend=ManagedLxcBackend.LXD)
         with patch(
-            "tiny_swarm_world.infrastructure.adapters.clients.lxc.docker."
-            "lxc_container_runtime.subprocess.run",
+            "tiny_swarm_world.infrastructure.process.runner.subprocess.run",
             return_value=subprocess.CompletedProcess([], 17, stdout="", stderr="failure"),
         ):
             with self.assertRaisesRegex(RuntimeError, "exit code 17"):
                 runtime.read_file("app", "/tmp/config")
 
         with patch(
-            "tiny_swarm_world.infrastructure.adapters.clients.lxc.docker."
-            "lxc_container_runtime.subprocess.run",
+            "tiny_swarm_world.infrastructure.process.runner.subprocess.run",
             side_effect=subprocess.TimeoutExpired("lxc", 120),
         ):
             with self.assertRaisesRegex(RuntimeError, "timed out"):
