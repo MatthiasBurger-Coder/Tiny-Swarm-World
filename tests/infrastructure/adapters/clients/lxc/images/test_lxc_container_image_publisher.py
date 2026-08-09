@@ -199,7 +199,7 @@ class TestLxcContainerImagePublisher(unittest.TestCase):
 
 def patch_run(*, return_value=None, side_effect=None):
     return patch(
-        "tiny_swarm_world.infrastructure.adapters.clients.lxc.images.lxc_container_image_publisher.subprocess.run",
+        "tiny_swarm_world.infrastructure.process.runner.subprocess.run",
         return_value=return_value,
         side_effect=side_effect,
     )

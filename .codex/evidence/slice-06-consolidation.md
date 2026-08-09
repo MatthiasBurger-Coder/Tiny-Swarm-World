@@ -1,42 +1,25 @@
-# Slice 06 Consolidation
+# Issue #188 — S06 Consolidation
 
-Workflow: `issue-183-20260808`
-Slice: `06` — Extend the issue-specific browser evidence contract
-Status: `ACCEPTED_STATIC_ONLY`
+- Workflow: `issue-188-20260809` / `issue-188-v1.0.0`
+- Slice: `S06` — Migrate image-publisher process execution
+- Status: `ACCEPTED_FOR_CHECKPOINT`
+- Execution: sequential; no callable subagent surface was available
 
-## Distribution result
+## Result
 
-The browser slice was serialized and stopped at the live boundary. No callable
-Codex subagent surface was available; the documented fallback review covered
-Senior Tester, Senior DevOps Engineer, Senior Python Automation Developer, and
-Senior Security Sandbox Engineer responsibilities.
+`LxcContainerImagePublisher` now uses the shared runner for host inspection,
+cache loading, manager text commands, and manager byte transfer. Image policy,
+typed diagnostics, operator actions, registry-rate-limit handling, and secret
+boundaries remain adapter-owned.
 
-## Implemented scope
+## Verification
 
-* Redirected the static browser-contract and post-install live harness
-  evidence roots to `.tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e`.
-* Updated the existing issue-target assertion from the prior evidence scope to
-  Issue #183.
-* Preserved Selenium imports, routed HTTPS checks, consent gating, and
-  redacted evidence behavior.
+- Focused image-publisher tests: **PASS** (`8` tests).
+- `python3 tools/quality_gate.py lint`: **PASS**.
+- `python3 tools/quality_gate.py typecheck`: **PASS**.
+- `git diff --check`: **PASS**.
+- No live Docker/Incus/LXC/registry command executed.
+- External/browser/SonarQube checks: not required and not run.
 
-## Live boundary result
-
-* State: `LIVE_CONSENT_MISSING`.
-* No `TSW_RUN_POST_INSTALL_BROWSER_LIVE=1` execution was authorized.
-* No Selenium driver, Incus, Docker, Swarm, Portainer, Nexus, or credential
-  operation was started.
-* No live evidence payload was generated or claimed.
-
-## Verification evidence
-
-* `PYTHONPATH=src python3 -m unittest tests.live.browser_e2e_contract`: `17`
-  tests passed.
-* `git diff --check`: passed.
-* Live Selenium result: not run, blocked by missing explicit consent and live
-  prerequisites.
-
-## Consolidation decision
-
-The static contract is accepted for a checkpoint. The live acceptance portion
-remains open and must not be reported as passed or complete.
+The repository-wide quality gate remains subject to the independent stale
+Arc42 governing-hash failure recorded in S02.
