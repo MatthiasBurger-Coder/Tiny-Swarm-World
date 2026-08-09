@@ -4,7 +4,7 @@ Workflow set ID: `solid-refactor-chain-20260809`
 
 Authoring branch: `feature/workflow-solid-refactor-chain-20260809`
 
-Status: `EXECUTING_LOCAL` — Issues #189, #184, #191, #187 and #190 complete; #192 is next
+Status: `EXECUTING_LOCAL` — Issues #189, #184, #191, #187 and #190 complete; #192 is active
 
 Execution order requested by the user:
 
@@ -12,7 +12,7 @@ Execution order requested by the user:
 #189 -> #184 -> #191 -> #187 -> #190 -> #192 -> #186
 ```
 
-This is an indexed multi-issue workflow set. Issue #190 is currently promoted
+This is an indexed multi-issue workflow set. Issue #192 is currently promoted
 to the active `documentation/workflow/workflow.md` on its execution branch;
 #189, #184, #191, #187 and #190 are locally complete, while #192 and #186
 remain indexed and require serialized execution after each predecessor.
@@ -55,7 +55,7 @@ change. No implementation is authorized by this authoring step.
 | 03 | #191 | [issue-191/workflow.md](issues/issue-191/workflow.md) | `feature/typed-verification-evidence-solid` | COMPLETED_LOCAL_AUDITED | #184 | audit PASS; #187 next |
 | 04 | #187 | [issue-187/workflow.md](issues/issue-187/workflow.md) | `feature/preflight-service-probe-registry-solid` | COMPLETED_LOCAL_AUDITED | #191 | audit PASS; #190 next |
 | 05 | #190 | [issue-190/workflow.md](issues/issue-190/workflow.md) | `feature/stack-prerequisite-strategies-solid` | COMPLETED_LOCAL_AUDITED | #187 | audit PASS; #192 next |
-| 06 | #192 | [issue-192/workflow.md](issues/issue-192/workflow.md) | `feature/separate-lxc-service-wrappers-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #190 | URL/API precedence ambiguity |
+| 06 | #192 | [issue-192/workflow.md](issues/issue-192/workflow.md) | `feature/separate-lxc-service-wrappers-solid` | EXECUTING_LOCAL | #190 | URL/API precedence resolved by S192-01 inventory |
 | 07 | #186 | [issue-186/workflow.md](issues/issue-186/workflow.md) | `feature/replace-global-di-service-locator-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #192 | global runtime resolution, if discovered |
 
 No issues were excluded. Every issue has an issue-local workflow and context

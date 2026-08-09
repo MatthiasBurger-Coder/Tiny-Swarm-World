@@ -1,19 +1,17 @@
-# Context Pack — Issue #190
+# Context Pack — Issue #192
 
-- Workflow: `issue-190-20260809`; chain order 05.
+- Workflow: `issue-192-20260809`; chain order 06.
 - Authoring branch: `feature/workflow-solid-refactor-chain-20260809`.
-- Active workflow branch: `feature/stack-prerequisite-strategies-solid`.
-- Status: `COMPLETED_LOCAL_AUDITED`.
+- Active workflow branch: `feature/separate-lxc-service-wrappers-solid`.
+- Status: `EXECUTING_LOCAL`.
 - Execution profile: `FULL_PATH`.
-- Affected areas: LXC Swarm prerequisite registry, asset transfer, generic
-  runtime dispatch, command-generation regression and evidence.
-- Forbidden areas: new deployment topology, live Swarm mutation, browser React,
-  duplicate #238 extraction and unrelated stacks.
+- Affected areas: LXC Portainer/Nexus wrappers, manager-IP resolver, local URL
+  precedence, compatibility facade, composition and security tests.
+- Forbidden areas: new HTTP API, live service access, browser React, deployment
+  topology and unrelated DI/stack work.
 - Required roles: Senior Requirement Engineer, Senior System Architect, Senior
   Python Automation Developer, Senior Tester.
 - Conditional roles: Senior Documentation Engineer, Senior Security Sandbox
   Engineer, Senior Execution Orchestrator.
-- Quality commands: full local quality gate, targeted Python/architecture gates,
-  and `git diff --check`.
-- Completion: all requirements are `VERIFIED_LOCAL`; audit decision is `PASS`;
-  Issue #192 is the next serialized handoff.
+- Quality commands: full local quality, targeted Python/architecture gates and
+  `git diff --check`.
