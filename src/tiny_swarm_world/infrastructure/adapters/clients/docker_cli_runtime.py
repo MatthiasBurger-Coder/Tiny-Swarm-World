@@ -2,13 +2,23 @@ import subprocess
 
 from tiny_swarm_world.application.ports.clients.port_container_runtime import PortContainerRuntime
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+from tiny_swarm_world.infrastructure.process import (
+    ProcessRunner,
+    SubprocessProcessRunner,
+)
 
 
 class DockerCliRuntime(PortContainerRuntime):
-    def __init__(self, timeout_seconds: int = 30):
+    def __init__(
+        self,
+        timeout_seconds: int = 30,
+        *,
+        process_runner: ProcessRunner | None = None,
+    ):
         if timeout_seconds <= 0:
             raise ValueError("Docker runtime timeout must be positive.")
         self.timeout_seconds = timeout_seconds
+        self.process_runner = process_runner or SubprocessProcessRunner()
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def find_container_names(self, name_filter: str) -> list[str]:

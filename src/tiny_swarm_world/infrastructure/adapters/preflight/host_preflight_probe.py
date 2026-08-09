@@ -26,6 +26,10 @@ from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state
     windows_wsl_bridge_status,
 )
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
+from tiny_swarm_world.infrastructure.process import (
+    ProcessRunner,
+    SubprocessProcessRunner,
+)
 
 
 SECRET_TOKEN_PATTERN = re.compile(r"\w[\w-]{2,}", re.ASCII)
@@ -45,6 +49,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
         host_environment_detector: PortHostEnvironmentDetector | None = None,
         windows_wsl_bridge_state_max_age_seconds: int = DEFAULT_WINDOWS_WSL_BRIDGE_STATE_MAX_AGE_SECONDS,
         windows_wsl_bridge_state_path: Path | None = None,
+        process_runner: ProcessRunner | None = None,
     ):
         self.root = root or (project_paths or default_project_paths()).repository_root
         self.os_root = os_root or Path("/")
@@ -64,6 +69,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
         self.windows_wsl_bridge_state_path = (
             windows_wsl_bridge_state_path or configured_windows_wsl_bridge_state_path()
         )
+        self.process_runner = process_runner or SubprocessProcessRunner()
 
     def is_linux_or_wsl(self) -> bool:
         return self.host_environment_report().platform_family == "linux"

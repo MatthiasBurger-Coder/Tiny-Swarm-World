@@ -26,6 +26,10 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swarm_stack_runt
 )
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
+from tiny_swarm_world.infrastructure.process import (
+    ProcessRunner,
+    SubprocessProcessRunner,
+)
 
 
 _BACKEND_CLI = {
@@ -47,6 +51,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         remote_image_root: str = "$PWD/.tiny-swarm-world/images",
         timeout_seconds: int = 1800,
         project_paths: ProjectPaths | None = None,
+        process_runner: ProcessRunner | None = None,
     ) -> None:
         if timeout_seconds <= 0:
             raise ValueError("Image publisher timeout must be positive.")
@@ -57,6 +62,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         self.remote_image_root = remote_image_root.rstrip("/")
         self.timeout_seconds = timeout_seconds
         self.project_paths = project_paths or default_project_paths()
+        self.process_runner = process_runner or SubprocessProcessRunner()
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def publish_image(self, contract: ContainerImageContract) -> None:

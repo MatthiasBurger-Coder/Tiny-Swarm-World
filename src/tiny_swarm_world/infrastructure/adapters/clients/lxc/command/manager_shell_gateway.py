@@ -12,6 +12,10 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics im
     is_transient_manager_shell_failure,
     safe_log_text,
 )
+from tiny_swarm_world.infrastructure.process import (
+    ProcessRunner,
+    SubprocessProcessRunner,
+)
 
 
 _BACKEND_CLI = {
@@ -35,11 +39,13 @@ class LxcManagerShellGateway:
         manager_node: str,
         timeout_seconds: int,
         logger: Logger,
+        process_runner: ProcessRunner | None = None,
     ) -> None:
         self.backend = backend
         self.manager_node = manager_node
         self.timeout_seconds = timeout_seconds
         self.logger = logger
+        self.process_runner = process_runner or SubprocessProcessRunner()
 
     def run_manager_shell(
         self,
@@ -76,7 +82,6 @@ class LxcManagerShellGateway:
     ) -> subprocess.CompletedProcess[str]:
         """Run a command on an LXC node with bounded retry behavior."""
 
-        runner = run or subprocess.run
         sleeper = sleep or time.sleep
         shell_target = "manager" if node_name == self.manager_node else "node"
         self.logger.info(
@@ -90,7 +95,7 @@ class LxcManagerShellGateway:
         result: subprocess.CompletedProcess[str] | None = None
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             result = self._run_once(
-                runner,
+                run,
                 node_name,
                 script,
                 input_text=input_text,
@@ -107,7 +112,7 @@ class LxcManagerShellGateway:
 
     def _run_once(
         self,
-        runner: CommandRunner,
+        runner: CommandRunner | None,
         node_name: str,
         script: str,
         *,
@@ -115,8 +120,19 @@ class LxcManagerShellGateway:
         timeout: int,
     ) -> subprocess.CompletedProcess[str]:
         try:
+            command = [_BACKEND_CLI[self.backend], "exec", node_name, "--", "sh", "-lc", script]
+            if runner is None:
+                return subprocess.run(
+                    command,
+                    input=input_text,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    shell=False,
+                    timeout=timeout,
+                )
             return runner(
-                [_BACKEND_CLI[self.backend], "exec", node_name, "--", "sh", "-lc", script],
+                command,
                 input=input_text,
                 capture_output=True,
                 text=True,

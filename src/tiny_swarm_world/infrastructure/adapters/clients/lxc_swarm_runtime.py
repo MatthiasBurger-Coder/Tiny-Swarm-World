@@ -48,6 +48,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swarm_stack_runt
     LxcSwarmStackRuntime,
 )
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+from tiny_swarm_world.infrastructure.process import ProcessRunner
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 
 
@@ -87,6 +88,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         traefik_tls_cert_secret_name: str = DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
         traefik_tls_key_secret_name: str = DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
         shell_gateway: LxcManagerShellGateway | None = None,
+        process_runner: ProcessRunner | None = None,
     ):
         if timeout_seconds <= 0:
             raise ValueError("Swarm runtime timeout must be positive.")
@@ -104,11 +106,13 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         self.traefik_tls_cert_secret_name = traefik_tls_cert_secret_name.strip()
         self.traefik_tls_key_secret_name = traefik_tls_key_secret_name.strip()
         self.logger = LoggerFactory.get_logger(self.__class__)
+        self.process_runner = process_runner
         self.shell_gateway = shell_gateway or LxcManagerShellGateway(
             backend=backend,
             manager_node=manager_node,
             timeout_seconds=timeout_seconds,
             logger=self.logger,
+            process_runner=process_runner,
         )
         self._stack_asset_transfer = StackAssetTransfer(
             project_paths=self.project_paths,
@@ -214,9 +218,9 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             check=check,
             input_text=input_text,
             timeout_seconds=timeout_seconds,
-            # Resolve these through the legacy module at call time so existing
-            # adapter tests and integrations can still patch their seams.
-            run=subprocess.run,
+            # Preserve the legacy module patch seam only for direct, uncomposed
+            # construction. Composition injects the shared runner instead.
+            run=subprocess.run if self.process_runner is None else None,
             sleep=time.sleep,
         )
 
@@ -235,9 +239,9 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             check=check,
             input_text=input_text,
             timeout_seconds=timeout_seconds,
-            # Resolve these through the legacy module at call time so existing
-            # adapter tests and integrations can still patch their seams.
-            run=subprocess.run,
+            # Preserve the legacy module patch seam only for direct, uncomposed
+            # construction. Composition injects the shared runner instead.
+            run=subprocess.run if self.process_runner is None else None,
             sleep=time.sleep,
         )
 
