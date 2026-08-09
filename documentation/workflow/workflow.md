@@ -848,6 +848,8 @@ documentation remain authoritative. No ADR is required at authoring time.
 - Local quality authority: `python3 tools/quality_gate.py quality`.
 - Live/external gates: not unconditional; no success claimed during authoring.
 - Publication target: `origin/feature/workflow-issue-188-shared-command-runners-20260809`.
-- Publication commit SHA and push verification: recorded in the final guarded
-  publication handoff and the user-facing completion report after the branch
-  is committed and pushed.
+- Authoring commit SHA: `54ae7fe55312693a4739014620491b50ea62df84`.
+- Guarded publication verification: `PASS`; remote ref
+  `refs/heads/feature/workflow-issue-188-shared-command-runners-20260809`
+  resolves to the authoring commit above. No PR merge, branch deletion, or
+  cleanup was performed.
