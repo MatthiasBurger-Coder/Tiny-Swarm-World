@@ -23,6 +23,32 @@ that destructive command patterns are reset/destroy only. Desired inventory
 tests must load the committed host-neutral baseline and reject host-specific or
 secret-bearing fields.
 
+=== Shared Process Runner — Issue #188 Verified Quality Scenarios
+
+The implemented Issue #188 runner and migrations prove through focused tests
+and static review:
+
+* argv execution uses `shell=False` by default and preserves required cwd,
+  environment, input, text, and byte semantics;
+* return code, stdout, stderr, process-launch failure, and timeout outcomes
+  are deterministic and sanitized;
+* Docker, LXC gateway, LXC container, image-publisher, and Git preflight
+  adapters retain their existing policy and error behavior;
+* image cache transfer does not corrupt byte streams or convert a failed load
+  into success;
+* unavailable Git remains bounded and fail-soft;
+* architecture tests reject new direct process spawning in production
+  infrastructure adapters except documented runner or compatibility
+  boundaries, while test and tooling usage remains scoped explicitly;
+* default quality gates use mocks/static inspection and do not invoke live
+  Docker, Incus/LXC, Swarm, network, registry, or service bootstrap commands.
+
+The focused runner, adapter, architecture, lint, type checks, and full local
+quality command are recorded in the Issue #188 evidence package. The governing
+hash for the final `documentation/arc42/08_concepts.adoc` content is
+synchronized in the canonical skill registry. These local results do not
+represent live or external verification.
+
 === Verify After Apply
 
 Mutating workflows must not silently continue after applying a change.

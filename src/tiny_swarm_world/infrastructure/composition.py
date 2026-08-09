@@ -250,6 +250,7 @@ from tiny_swarm_world.infrastructure.logging.progress_trace_logging import (
     LoggingWorkflowProgress,
 )
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
+from tiny_swarm_world.infrastructure.process import ProcessRunner, SubprocessProcessRunner
 from tiny_swarm_world.infrastructure.composition_blocked_workflows import (
     BlockedArtifactWorkflow,
     BlockedDeploymentWorkflow,
@@ -762,6 +763,7 @@ def build_preflight_service(
         HostPreflightProbe(
             project_paths=project_paths,
             host_environment_detector=build_host_environment_detector(),
+            process_runner=build_process_runner(),
         ),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
         configuration_validation=configuration_validation,
@@ -824,6 +826,11 @@ def build_preflight_evidence_writer() -> PreflightEvidenceWriter:
     return PreflightEvidenceWriter(default_project_paths().repository_root)
 
 
+def build_process_runner() -> ProcessRunner:
+    """Build the shared bounded infrastructure process runner."""
+    return SubprocessProcessRunner()
+
+
 def build_network_repair_service() -> NetworkRepairService:
     return NetworkRepairService(
         SubprocessNetworkProbe(
@@ -861,6 +868,7 @@ def build_post_install_preflight_service(
         HostPreflightProbe(
             project_paths=project_paths,
             host_environment_detector=build_host_environment_detector(),
+            process_runner=build_process_runner(),
         ),
         replace(configuration, required_ports=()),
         configuration_validation=configuration_validation,
@@ -1241,14 +1249,17 @@ def build_lxc_artifact_services(
     ui: PortUI | None = None,
 ) -> ArtifactServices:
     project_paths = default_project_paths()
+    process_runner = build_process_runner()
     nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD")
     nexus_client = LxcNexusHttpClient(backend=backend)
     container_runtime = LxcContainerRuntime(
         backend=backend,
+        process_runner=process_runner,
         node_names=tuple(node.name for node in DEFAULT_LXC_PLATFORM_NODES),
     )
     image_publisher = LxcContainerImagePublisher(
         backend=backend,
+        process_runner=process_runner,
         registry_username="admin",
         registry_password=nexus_admin_password,
         project_paths=project_paths,
@@ -1396,6 +1407,7 @@ def build_lxc_deployment_services(
     )
     swarm_runtime = LxcSwarmRuntime(
         backend=backend,
+        process_runner=build_process_runner(),
         project_paths=project_paths,
         service_access_dashboard_renderer=compose_repository.render_service_access_dashboard,
         traefik_tls_cert_secret_name=traefik_tls_cert_secret_name,
@@ -1859,6 +1871,7 @@ def _build_preflight_service_for_request(
         HostPreflightProbe(
             project_paths=paths,
             host_environment_detector=build_host_environment_detector(),
+            process_runner=build_process_runner(),
         ),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
         configuration_validation=configuration_validation,
@@ -1887,6 +1900,7 @@ def _build_post_install_preflight_service_for_request(
         HostPreflightProbe(
             project_paths=paths,
             host_environment_detector=build_host_environment_detector(),
+            process_runner=build_process_runner(),
         ),
         replace(configuration, required_ports=()),
         configuration_validation=configuration_validation,

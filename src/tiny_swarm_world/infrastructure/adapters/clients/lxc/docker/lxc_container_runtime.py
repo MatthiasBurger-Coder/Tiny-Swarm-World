@@ -7,6 +7,12 @@ import subprocess
 from tiny_swarm_world.application.ports.clients.port_container_runtime import PortContainerRuntime
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+from tiny_swarm_world.infrastructure.process import (
+    ProcessLaunchError,
+    ProcessRunner,
+    ProcessTimeoutError,
+    SubprocessProcessRunner,
+)
 
 
 _BACKEND_CLI = {
@@ -25,6 +31,7 @@ class LxcContainerRuntime(PortContainerRuntime):
         manager_node: str = "swarm-manager",
         node_names: tuple[str, ...] = ("swarm-manager",),
         timeout_seconds: int = 120,
+        process_runner: ProcessRunner | None = None,
     ) -> None:
         if timeout_seconds <= 0:
             raise ValueError("Container runtime timeout must be positive.")
@@ -34,6 +41,7 @@ class LxcContainerRuntime(PortContainerRuntime):
         self.manager_node = manager_node
         self.node_names = tuple(dict.fromkeys(node_names))
         self.timeout_seconds = timeout_seconds
+        self.process_runner = process_runner or SubprocessProcessRunner()
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def find_container_names(self, name_filter: str) -> list[str]:
@@ -86,17 +94,20 @@ class LxcContainerRuntime(PortContainerRuntime):
         target_node = node_name or self.manager_node
         self.logger.info("Running LXC Docker operation '%s' on node '%s'.", operation, target_node)
         try:
-            result = subprocess.run(
+            result = self.process_runner.run_text(
                 [_BACKEND_CLI[self.backend], "exec", target_node, "--", "docker", *docker_args],
                 capture_output=True,
-                text=True,
                 check=False,
                 shell=False,
                 timeout=self.timeout_seconds,
             )
-        except subprocess.TimeoutExpired as exc:
+        except ProcessTimeoutError as exc:
             raise RuntimeError(
                 f"LXC Docker runtime operation timed out on node '{target_node}'."
+            ) from exc
+        except ProcessLaunchError as exc:
+            raise RuntimeError(
+                f"LXC Docker runtime operation could not start on node '{target_node}'."
             ) from exc
         if check and result.returncode != 0:
             raise RuntimeError(

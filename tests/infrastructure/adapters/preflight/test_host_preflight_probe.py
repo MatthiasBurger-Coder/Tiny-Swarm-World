@@ -734,7 +734,7 @@ class TestHostPreflightProbe(unittest.TestCase):
         )
 
         with patch(
-            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+            "tiny_swarm_world.infrastructure.process.runner.subprocess.run",
             return_value=completed,
         ) as run:
             self.assertTrue(probe.path_ignored_by_git(".env"))
@@ -742,9 +742,12 @@ class TestHostPreflightProbe(unittest.TestCase):
         run.assert_called_once_with(
             ["git", "check-ignore", "-q", "--", ".env"],
             cwd=Path.cwd(),
+            env=None,
+            input=None,
+            capture_output=True,
+            text=True,
             check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            shell=False,
             timeout=5.0,
         )
 
@@ -752,7 +755,7 @@ class TestHostPreflightProbe(unittest.TestCase):
         probe = HostPreflightProbe(Path.cwd())
 
         with patch(
-            "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+            "tiny_swarm_world.infrastructure.process.runner.subprocess.run",
             side_effect=FileNotFoundError("git"),
         ):
             self.assertFalse(probe.path_ignored_by_git(".env"))
@@ -766,7 +769,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             probe = HostPreflightProbe(root)
 
             with patch(
-                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                "tiny_swarm_world.infrastructure.process.runner.subprocess.run",
                 side_effect=FileNotFoundError("git"),
             ):
                 self.assertEqual((), probe.forbidden_tracked_secret_fingerprints({}))
@@ -786,7 +789,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             )
 
             with patch(
-                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                "tiny_swarm_world.infrastructure.process.runner.subprocess.run",
                 return_value=completed,
             ):
                 found = probe.forbidden_tracked_secret_fingerprints(
@@ -812,7 +815,7 @@ class TestHostPreflightProbe(unittest.TestCase):
             )
 
             with patch(
-                "tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe.subprocess.run",
+                "tiny_swarm_world.infrastructure.process.runner.subprocess.run",
                 return_value=completed,
             ):
                 found = probe.forbidden_tracked_secret_fingerprints(

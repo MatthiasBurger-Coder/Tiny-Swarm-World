@@ -14,7 +14,7 @@ class TestDockerCliRuntime(unittest.TestCase):
             stdout="nexus-1\nnexus-2\n",
             stderr="",
         )
-        with patch("tiny_swarm_world.infrastructure.adapters.clients.docker_cli_runtime.subprocess.run") as run:
+        with patch("tiny_swarm_world.infrastructure.process.runner.subprocess.run") as run:
             run.return_value = completed_process
             runtime = DockerCliRuntime(timeout_seconds=7)
 
@@ -37,7 +37,7 @@ class TestDockerCliRuntime(unittest.TestCase):
             stdout="",
             stderr="not found",
         )
-        with patch("tiny_swarm_world.infrastructure.adapters.clients.docker_cli_runtime.subprocess.run") as run:
+        with patch("tiny_swarm_world.infrastructure.process.runner.subprocess.run") as run:
             run.return_value = completed_process
             runtime = DockerCliRuntime()
 
@@ -50,7 +50,7 @@ class TestDockerCliRuntime(unittest.TestCase):
             stdout="",
             stderr=sensitive_assignment(),
         )
-        with patch("tiny_swarm_world.infrastructure.adapters.clients.docker_cli_runtime.subprocess.run") as run:
+        with patch("tiny_swarm_world.infrastructure.process.runner.subprocess.run") as run:
             run.return_value = completed_process
             runtime = DockerCliRuntime()
 
@@ -63,7 +63,7 @@ class TestDockerCliRuntime(unittest.TestCase):
         self.assertNotIn("docker exec", message)
 
     def test_timeout_failure_is_sanitized(self):
-        with patch("tiny_swarm_world.infrastructure.adapters.clients.docker_cli_runtime.subprocess.run") as run:
+        with patch("tiny_swarm_world.infrastructure.process.runner.subprocess.run") as run:
             run.side_effect = subprocess.TimeoutExpired(cmd=["docker", "ps"], timeout=1)
             runtime = DockerCliRuntime(timeout_seconds=1)
 

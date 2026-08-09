@@ -26,6 +26,12 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swarm_stack_runt
 )
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
+from tiny_swarm_world.infrastructure.process import (
+    ProcessLaunchError,
+    ProcessRunner,
+    ProcessTimeoutError,
+    SubprocessProcessRunner,
+)
 
 
 _BACKEND_CLI = {
@@ -47,6 +53,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         remote_image_root: str = "$PWD/.tiny-swarm-world/images",
         timeout_seconds: int = 1800,
         project_paths: ProjectPaths | None = None,
+        process_runner: ProcessRunner | None = None,
     ) -> None:
         if timeout_seconds <= 0:
             raise ValueError("Image publisher timeout must be positive.")
@@ -57,6 +64,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         self.remote_image_root = remote_image_root.rstrip("/")
         self.timeout_seconds = timeout_seconds
         self.project_paths = project_paths or default_project_paths()
+        self.process_runner = process_runner or SubprocessProcessRunner()
         self.logger = LoggerFactory.get_logger(self.__class__)
 
     def publish_image(self, contract: ContainerImageContract) -> None:
@@ -162,15 +170,14 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
 
     def _load_host_cached_image(self, contract: ContainerImageContract) -> bool:
         try:
-            inspect_result = subprocess.run(
+            inspect_result = self.process_runner.run_text(
                 ["docker", "image", "inspect", contract.image_ref],
                 capture_output=True,
-                text=True,
                 check=False,
                 shell=False,
                 timeout=120,
             )
-        except FileNotFoundError:
+        except ProcessLaunchError:
             return False
         if inspect_result.returncode != 0:
             return False
@@ -180,10 +187,9 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
             f"docker save {shlex.quote(contract.image_ref)} | "
             f"{shlex.quote(_BACKEND_CLI[self.backend])} exec {shlex.quote(self.manager_node)} -- docker load"
         )
-        load_result = subprocess.run(
+        load_result = self.process_runner.run_text(
             ["bash", "-lc", command],
             capture_output=True,
-            text=True,
             check=False,
             shell=False,
             timeout=self.timeout_seconds,
@@ -238,19 +244,26 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
     ) -> subprocess.CompletedProcess[str]:
         self.logger.info("Running LXC manager image operation.")
         try:
-            result = subprocess.run(
+            result = self.process_runner.run_text(
                 [_BACKEND_CLI[self.backend], "exec", self.manager_node, "--", "sh", "-lc", script],
                 input=input_text,
                 capture_output=True,
-                text=True,
                 check=False,
                 shell=False,
                 timeout=timeout_seconds,
             )
-        except subprocess.TimeoutExpired as exc:
+        except ProcessTimeoutError as exc:
             raise ImagePublisherOperationRejected(
                 operation=operation,
                 diagnostic="operation_timeout",
+                operator_action=(
+                    "Inspect the manager node Docker daemon and retry the artifact prepare phase."
+                ),
+            ) from exc
+        except ProcessLaunchError as exc:
+            raise ImagePublisherOperationRejected(
+                operation=operation,
+                diagnostic="operation_unavailable",
                 operator_action=(
                     "Inspect the manager node Docker daemon and retry the artifact prepare phase."
                 ),
@@ -272,7 +285,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
         timeout_seconds: int,
     ) -> subprocess.CompletedProcess[bytes]:
         try:
-            result = subprocess.run(
+            result = self.process_runner.run_bytes(
                 [_BACKEND_CLI[self.backend], "exec", self.manager_node, "--", "sh", "-lc", script],
                 input=input_bytes,
                 capture_output=True,
@@ -280,8 +293,10 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
                 shell=False,
                 timeout=timeout_seconds,
             )
-        except subprocess.TimeoutExpired as exc:
+        except ProcessTimeoutError as exc:
             raise RuntimeError("LXC manager image transfer timed out.") from exc
+        except ProcessLaunchError as exc:
+            raise RuntimeError("LXC manager image transfer could not start.") from exc
         if result.returncode != 0:
             raise RuntimeError(
                 f"LXC manager image transfer failed with exit code {result.returncode}."

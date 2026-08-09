@@ -7,7 +7,6 @@ import re
 import shutil
 import socket
 import ssl
-import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -26,6 +25,12 @@ from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state
     windows_wsl_bridge_status,
 )
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
+from tiny_swarm_world.infrastructure.process import (
+    ProcessLaunchError,
+    ProcessRunner,
+    ProcessTimeoutError,
+    SubprocessProcessRunner,
+)
 
 
 SECRET_TOKEN_PATTERN = re.compile(r"\w[\w-]{2,}", re.ASCII)
@@ -45,6 +50,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
         host_environment_detector: PortHostEnvironmentDetector | None = None,
         windows_wsl_bridge_state_max_age_seconds: int = DEFAULT_WINDOWS_WSL_BRIDGE_STATE_MAX_AGE_SECONDS,
         windows_wsl_bridge_state_path: Path | None = None,
+        process_runner: ProcessRunner | None = None,
     ):
         self.root = root or (project_paths or default_project_paths()).repository_root
         self.os_root = os_root or Path("/")
@@ -64,6 +70,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
         self.windows_wsl_bridge_state_path = (
             windows_wsl_bridge_state_path or configured_windows_wsl_bridge_state_path()
         )
+        self.process_runner = process_runner or SubprocessProcessRunner()
 
     def is_linux_or_wsl(self) -> bool:
         return self.host_environment_report().platform_family == "linux"
@@ -162,15 +169,13 @@ class HostPreflightProbe(PortHostPreflightProbe):
 
     def path_ignored_by_git(self, path: str) -> bool:
         try:
-            completed = subprocess.run(
+            completed = self.process_runner.run_text(
                 ["git", "check-ignore", "-q", "--", path],
                 cwd=self.root,
                 check=False,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
                 timeout=5.0,
             )
-        except (OSError, subprocess.TimeoutExpired):
+        except (ProcessLaunchError, ProcessTimeoutError):
             # Git is an optional inspection aid on a prepared host.  A missing
             # or unresponsive executable must not make native preflight hang;
             # the caller treats the path as not ignored and continues with the
@@ -206,16 +211,13 @@ class HostPreflightProbe(PortHostPreflightProbe):
     def _tracked_text_files(self) -> tuple[Path, ...]:
         suffixes = {".py", ".sh", ".yaml", ".yml", ".json", ".md", ".adoc"}
         try:
-            completed = subprocess.run(
+            completed = self.process_runner.run_text(
                 ["git", "ls-files", "--", "src", "infra"],
                 cwd=self.root,
                 check=False,
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
                 timeout=5.0,
             )
-        except (OSError, subprocess.TimeoutExpired):
+        except (ProcessLaunchError, ProcessTimeoutError):
             completed = None
         if completed is not None and completed.returncode == 0:
             return tuple(
