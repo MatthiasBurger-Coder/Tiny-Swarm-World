@@ -56,7 +56,7 @@ change. No implementation is authorized by this authoring step.
 | 04 | #187 | [issue-187/workflow.md](issues/issue-187/workflow.md) | `feature/preflight-service-probe-registry-solid` | COMPLETED_LOCAL_AUDITED | #191 | audit PASS; #190 next |
 | 05 | #190 | [issue-190/workflow.md](issues/issue-190/workflow.md) | `feature/stack-prerequisite-strategies-solid` | COMPLETED_LOCAL_AUDITED | #187 | audit PASS; #192 next |
 | 06 | #192 | [issue-192/workflow.md](issues/issue-192/workflow.md) | `feature/separate-lxc-service-wrappers-solid` | COMPLETED_LOCAL_AUDITED | #190 | audit PASS; #186 next |
-| 07 | #186 | [issue-186/workflow.md](issues/issue-186/workflow.md) | `feature/replace-global-di-service-locator-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #192 | global runtime resolution, if discovered |
+| 07 | #186 | [issue-186/workflow.md](issues/issue-186/workflow.md) | `feature/replace-global-di-service-locator-solid` | EXECUTING_LOCAL | #192 | repository-wide DI audit and bounded no-op decision |
 
 No issues were excluded. Every issue has an issue-local workflow and context
 pack. #189, #184, #191, #187, #190 and #192 are locally audited complete; #186

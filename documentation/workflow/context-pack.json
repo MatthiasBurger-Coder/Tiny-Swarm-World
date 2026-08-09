@@ -1,23 +1,23 @@
 {
-  "workflow_id": "issue-192-20260809",
-  "workflow_version": "issue-192-v1.0.0",
+  "workflow_id": "issue-186-20260809",
+  "workflow_version": "issue-186-v1.0.0",
   "set_id": "solid-refactor-chain-20260809",
-  "branch": "feature/separate-lxc-service-wrappers-solid",
+  "branch": "feature/replace-global-di-service-locator-solid",
   "execution_profile": "FULL_PATH",
   "process_strand": "workflow-create-to-workflow-execute",
   "affected_areas": [
-    "LXC Portainer/Nexus wrappers",
-    "manager IP and URL resolution",
-    "compatibility facade",
-    "composition",
-    "security tests"
+    "composition root",
+    "explicit adapter construction",
+    "DI symbol audit",
+    "architecture guard",
+    "issue evidence"
   ],
   "forbidden_areas": [
-    "new HTTP API",
-    "live service access",
-    "browser React",
-    "deployment topology",
-    "unrelated DI/stack work"
+    "invented container",
+    "service-level global resolve",
+    "broad composition rewrite",
+    "live infrastructure",
+    "browser React"
   ],
   "required_roles": [
     "Senior Requirement Engineer",
@@ -48,9 +48,9 @@
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/workflow/workflow.md": "22315B83796E401DF6F09AA421CB6B30497E9B818A12D98AACFDE87EDEF15225",
-    "documentation/arc42/11_risks_and_debt.adoc": "399CF086C4143A705403430AB082C6F438716416D5674447983AD95745DE1C97"
+    "documentation/workflow/workflow.md": "2FDB756AEB45E9E55A9580BFC0B5E1CC131A66CEBFDEFCE9D81D30AFFCFE4291",
+    "documentation/arc42/11_risks_and_debt.adoc": "19C2299D60628A18DDD64EA374D71E3A77A87F51A18246B3179F2B3D976EA388"
   },
   "staleness_note": "These hashes record the governing files used during authoring; the pack is not a replacement for them.",
-  "status": "COMPLETED_LOCAL_AUDITED"
+  "status": "EXECUTING_LOCAL"
 }
