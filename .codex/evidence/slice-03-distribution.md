@@ -1,72 +1,33 @@
-# Slice 03 Distribution Decision
+# Issue #188 — S03 Distribution Decision
 
-Workflow: `issue-183-20260808`
-Slice: `03` — Extract the Swarm stack runtime, assets, and prerequisite strategies
+- Workflow: `issue-188-20260809` / `issue-188-v1.0.0`
+- Slice: `S03` — Migrate Docker runtime process calls
+- Execution mode: `sequential`
+- Real subagents: not available; no parallel stream created
+- Owner roles: Senior Python Automation Developer, Senior Tester, Senior
+  Security Sandbox Engineer
 
-## Affected areas
+## Scope
 
-* `LxcSwarmRuntime` stack deployment, service status, secrets, migration-lock,
-  port reconciliation, dashboard, prerequisite, and asset-transfer behavior;
-* new `lxc/swarm/` infrastructure package;
-* focused Swarm runtime, asset, and prerequisite tests.
+- Migrate `DockerCliRuntime` to its injected `ProcessRunner`.
+- Preserve argv execution, `shell=False`, timeout, result parsing, and
+  adapter-owned sanitized error behavior.
+- Update only the Docker runtime regression seam and focused evidence.
 
-## Execution decision
+## Safety and locks
 
-* Chosen mode: `sequential`.
-* Real Codex subagents used: `No callable subagent surface is available.`
-* Fallback role-based review used: `Yes`.
-* Git worktrees used: `No`; the legacy runtime and shared compatibility tests
-  are locked for this slice.
-* Selected streams: backend extraction, tests, architecture, and runtime
-  safety review.
-* Documentation stream: review-only; no Arc42 change is required until the
-  extracted responsibilities are verified at consolidation.
+- No live Docker, Swarm, Incus, registry, or credential-backed command.
+- No application port, domain rule, or composition contract change.
+- The shared runner contract and composition wiring are locked by completed
+  S02; this slice consumes that contract.
 
-## Fallback role review
+## Verification plan
 
-* Senior Python Automation Developer: extract Swarm behavior into focused
-  infrastructure collaborators while retaining legacy exports and delegation.
-* Senior System Architect: preserve `PortSwarmStackRuntime`, keep strategy
-  registration infrastructure-owned, and avoid application-service changes.
-* Senior Tester: preserve stack ordering, asset contents, port reconciliation,
-  secret handling, service status, dashboard, and migration-lock seams without
-  live commands.
-* Senior DevOps Engineer: inspect deployment and prerequisite command safety;
-  no Incus, Docker, Swarm, registry, or credential-backed command is allowed.
+- Docker runtime focused unittest suite.
+- `python3 tools/quality_gate.py lint`.
+- `python3 tools/quality_gate.py typecheck`.
+- `git diff --check`.
 
-## Expected touched files/directories
-
-* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/`
-* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py`
-* `tests/infrastructure/adapters/clients/lxc/swarm/`
-* `.codex/evidence/slice-03-distribution.md`
-* `.codex/evidence/slice-03-consolidation.md`
-
-## Conflict risks
-
-The legacy runtime contains multiple responsibilities and its tests patch
-private methods directly. Extraction must preserve those methods as stable
-compatibility seams while moving implementation behind collaborators. Asset
-transfer and prerequisite ordering share the shell gateway and must remain
-serial. No stream may change application ports or introduce live execution.
-
-## Quality gates
-
-* focused Swarm runtime, asset, and prerequisite unittest suite;
-* `python3 tools/quality_gate.py lint`;
-* `python3 tools/quality_gate.py typecheck`;
-* `python3 tools/quality_gate.py arch-lint`;
-* `python3 tools/quality_gate.py arch-tests`;
-* `git diff --check`.
-
-## Consolidation plan
-
-Codex will inspect extracted ownership and compatibility exports, run focused
-and architecture checks, record findings, and create one Slice 03 checkpoint
-commit before Slice 04.
-
-## Parallelization decision
-
-Rejected because stack deployment, prerequisite ordering, asset transfer, and
-the legacy compatibility module share files, collaborators, and behavior
-contracts.
+The repository-wide quality gate retains the pre-existing Arc42 governing-hash
+exception recorded in S02 until that independent governance artifact is
+reconciled.

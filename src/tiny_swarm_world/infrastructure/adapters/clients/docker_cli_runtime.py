@@ -3,7 +3,9 @@ import subprocess
 from tiny_swarm_world.application.ports.clients.port_container_runtime import PortContainerRuntime
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.infrastructure.process import (
+    ProcessLaunchError,
     ProcessRunner,
+    ProcessTimeoutError,
     SubprocessProcessRunner,
 )
 
@@ -40,16 +42,17 @@ class DockerCliRuntime(PortContainerRuntime):
         operation = command[1] if len(command) > 1 else "operation"
         self.logger.info("Running Docker runtime operation '%s'.", operation)
         try:
-            result = subprocess.run(
+            result = self.process_runner.run_text(
                 command,
                 capture_output=True,
-                text=True,
                 check=False,
                 shell=False,
                 timeout=self.timeout_seconds,
             )
-        except subprocess.TimeoutExpired as exc:
+        except ProcessTimeoutError as exc:
             raise RuntimeError("Docker runtime operation timed out.") from exc
+        except ProcessLaunchError as exc:
+            raise RuntimeError("Docker runtime operation could not start.") from exc
         if check and result.returncode != 0:
             raise RuntimeError(f"Docker runtime operation failed with exit code {result.returncode}.")
         return result

@@ -30,7 +30,7 @@ class TestSubprocessProcessRunner(unittest.TestCase):
         )
 
         self.assertEqual(result.stdout, "result")
-        self.assertEqual(run.call_args.args[0], ("tool", "inspect"))
+        self.assertEqual(run.call_args.args[0], ["tool", "inspect"])
         self.assertEqual(run.call_args.kwargs["cwd"], "/tmp/workspace")
         self.assertEqual(run.call_args.kwargs["env"], {"SAFE": "value"})
         self.assertEqual(run.call_args.kwargs["input"], "payload")

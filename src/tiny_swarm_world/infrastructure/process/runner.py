@@ -141,15 +141,14 @@ class SubprocessProcessRunner:
         capture_output: bool,
         text: bool,
     ) -> subprocess.CompletedProcess[Any]:
-        argv = tuple(args)
-        if not argv:
+        if not args:
             raise ValueError("Process argv must not be empty.")
         effective_timeout = self.default_timeout_seconds if timeout is None else timeout
         if not math.isfinite(effective_timeout) or effective_timeout <= 0:
             raise ValueError("Process timeout must be finite and positive.")
         try:
             result = subprocess.run(
-                argv,
+                args,
                 cwd=cwd,
                 env=dict(env) if env is not None else None,
                 input=input,

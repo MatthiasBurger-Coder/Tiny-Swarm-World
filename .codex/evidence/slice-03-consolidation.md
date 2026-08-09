@@ -1,64 +1,26 @@
-# Slice 03 Consolidation
+# Issue #188 — S03 Consolidation
 
-Workflow: `issue-183-20260808`
-Slice: `03` — Extract the Swarm stack runtime, assets, and prerequisite strategies
-Status: `ACCEPTED_FOR_CHECKPOINT`
+- Workflow: `issue-188-20260809` / `issue-188-v1.0.0`
+- Slice: `S03` — Migrate Docker runtime process calls
+- Status: `ACCEPTED_FOR_CHECKPOINT`
+- Execution: sequential; no callable subagent surface was available
 
-## Distribution result
+## Result
 
-The slice remained sequential because the Swarm behavior, compatibility seams,
-and existing tests share the legacy runtime file. No callable Codex subagent
-surface was available; the documented fallback review covered Senior Python
-Automation Developer, Senior System Architect, Senior Tester, and Senior
-DevOps Engineer responsibilities.
+`DockerCliRuntime` now invokes the injected shared `ProcessRunner` for Docker
+argv execution. The adapter still owns its policy: it preserves bounded
+timeouts, `shell=False`, result checking, and sanitized timeout/launch/failure
+messages. Existing direct construction remains compatible through the concrete
+infrastructure default.
 
-## Implemented scope
+## Verification
 
-* Added `lxc/swarm/swarm_stack_runtime.py` for stack deployment, stack/service
-  status, external secrets, Infisical migration-lock recovery, published-port
-  reconciliation, and extracted parsing helpers.
-* Added `lxc/swarm/stack_asset_transfer.py` for Traefik, service-access, and
-  Swagger asset transfer.
-* Added `lxc/swarm/stack_prerequisite_registry.py` with ordered external-network,
-  Traefik TLS, and SonarQube kernel prerequisite strategies.
-* Added package exports and direct tests for all three extracted modules.
-* Changed `LxcSwarmRuntime` to delegate Swarm behavior through injected dynamic
-  compatibility callbacks. Existing private methods remain available so tests
-  and integrations can patch the old seams.
-* Preserved the existing application port and command behavior; no live
-  command was executed.
+- Focused Docker runtime tests: **PASS** (`5` tests).
+- `python3 tools/quality_gate.py lint`: **PASS**.
+- `python3 tools/quality_gate.py typecheck`: **PASS**.
+- `git diff --check`: **PASS**.
+- No live Docker command executed.
+- External/browser/SonarQube checks: not required and not run.
 
-## Review findings
-
-* Architecture: accepted. Extracted classes remain infrastructure-owned and
-  the prerequisite registry is an adapter collaborator, not an application
-  service.
-* Compatibility: accepted. A first test run found that secret checks bypassed
-  a legacy-patched method; a dynamic `external_secret_exists` callback fixed
-  that regression before consolidation.
-* Deployment/runtime safety: accepted. Commands remain mock-driven in tests;
-  ordering, bounded shell callbacks, asset content, secret handling, service
-  status, ports, and migration-lock behavior retain coverage.
-* Documentation: no Arc42 change was required because the accepted
-  responsibility direction is now implemented but the broader extraction is
-  not complete.
-* Live infrastructure: not run; no live consent was provided or needed for
-  this local extraction.
-
-## Verification evidence
-
-* Direct Swarm module unittest discovery: `6` tests passed.
-* Legacy/runtime compatibility and command diagnostics suite: `65` tests
-  passed.
-* `python3 tools/quality_gate.py lint`: passed.
-* `python3 tools/quality_gate.py typecheck`: passed; existing annotation notes
-  only.
-* `python3 tools/quality_gate.py arch-lint`: passed, 3 contracts kept.
-* `python3 tools/quality_gate.py arch-tests`: passed, 18 tests.
-* `git diff --check`: passed.
-
-## Consolidation decision
-
-No stream changes were rejected and no merge conflict occurred. The slice is
-accepted for one checkpoint commit on the active workflow branch. SonarQube,
-browser checks, and live infrastructure evidence remain unclaimed.
+The repository-wide quality gate remains subject to the independent stale
+Arc42 governing-hash failure recorded in S02.
