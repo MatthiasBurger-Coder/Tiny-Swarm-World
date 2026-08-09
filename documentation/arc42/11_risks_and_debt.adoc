@@ -214,7 +214,8 @@ before adding code. The chain keeps the following ownership order:
   boundary locally and passed its S189-03 audit;
 * #184 decomposes node-provider lifecycle responsibilities while reusing that
   boundary and passed its S184-03 audit;
-* #191 freezes typed, serialized verification-evidence construction;
+* #191 froze typed, serialized verification-evidence construction locally and
+  passed its compatibility and audit gates;
 * #187 isolates HostPreflightProbe service matching behind a registry;
 * #190 completes residual stack prerequisite and asset-transfer strategy
   dispatch;

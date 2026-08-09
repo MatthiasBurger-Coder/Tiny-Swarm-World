@@ -4,7 +4,7 @@ Workflow ID: `issue-191-20260809`
 
 Workflow version: `issue-191-v1.0.0`
 
-Status: `EXECUTING_LOCAL`
+Status: `COMPLETED_LOCAL_AUDITED`
 
 Authoring branch: `feature/workflow-solid-refactor-chain-20260809`
 
@@ -220,9 +220,21 @@ Arc42 may record the typed evidence boundary only after verification. Stop on
 an unknown consumer, schema drift, unsafe evidence, failed gate or missing
 decision. Done requires schema-compatible output, complete inventory,
 focused/regression/architecture tests, required evidence, full local quality,
-and an independent auditor PASS. Promote only after #184 is complete.
+and an independent auditor PASS. These conditions are satisfied locally;
+promote #187 as the next serialized target.
+
+## Completion Record
+
+- Decision: `PASS` — locally complete and independently audited.
+- Requirement matrix: all `REQ-191-001` through `REQ-191-006` are
+  `VERIFIED_LOCAL`.
+- Local quality: `python3 tools/quality_gate.py quality` passed with `1685`
+  tests passed and `28` skipped.
+- Live, browser and external quality-system checks: not run and not claimed.
+- Handoff: Issue #187, `feature/preflight-service-probe-registry-solid`.
 
 ## Arc42 Check Status
 
-Current Arc42 evidence-safety and quality sections were reviewed. This workflow
-describes planned typed construction and does not claim a changed schema.
+Current Arc42 evidence-safety and quality sections were reviewed. The typed
+construction boundary is verified locally and preserves the existing schema;
+no live or external result is claimed.

@@ -3,6 +3,7 @@
   "workflow_version": "issue-191-v1.0.0",
   "set_id": "solid-refactor-chain-20260809",
   "branch": "feature/typed-verification-evidence-solid",
+  "status": "COMPLETED_LOCAL_AUDITED",
   "execution_profile": "FULL_PATH",
   "process_strand": "workflow-create-to-workflow-execute",
   "affected_areas": ["verification evidence", "lifecycle/preflight/deployment producers", "schema compatibility", "architecture tests"],
@@ -19,8 +20,8 @@
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/workflow/workflow.md": "1738B5227A8C8F52EA9ED4558005FC14EBEE0BC740835F3F89270B41C93F9901",
-    "documentation/arc42/11_risks_and_debt.adoc": "5E0EE0B509F24F76ACBA86ED2CBC780396C0DEBAABD1FF6EC5CB3B3A6F3CB688"
+    "documentation/workflow/workflow.md": "762827BD410A16D5C9A51D4F4D7D64D391E6685C6C36FC69E8AF3F69423850EA",
+    "documentation/arc42/11_risks_and_debt.adoc": "06D9483FC8E32B6D2991C6E8F05A43C605E65C1DB93527066AF4866269CD3267"
   },
   "staleness_note": "These hashes record the governing files used during authoring; the pack is not a replacement for them."
 }
