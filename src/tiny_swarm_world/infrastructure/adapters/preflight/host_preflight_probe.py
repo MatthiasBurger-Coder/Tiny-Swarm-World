@@ -24,6 +24,10 @@ from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state
     current_wsl_ipv4,
     windows_wsl_bridge_status,
 )
+from tiny_swarm_world.infrastructure.adapters.preflight.service_probes.registry import (
+    ServiceProbeRegistry,
+    default_service_probe_registry,
+)
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 from tiny_swarm_world.infrastructure.process import (
     ProcessLaunchError,
@@ -51,6 +55,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
         windows_wsl_bridge_state_max_age_seconds: int = DEFAULT_WINDOWS_WSL_BRIDGE_STATE_MAX_AGE_SECONDS,
         windows_wsl_bridge_state_path: Path | None = None,
         process_runner: ProcessRunner | None = None,
+        service_probe_registry: ServiceProbeRegistry | None = None,
     ):
         self.root = root or (project_paths or default_project_paths()).repository_root
         self.os_root = os_root or Path("/")
@@ -71,6 +76,13 @@ class HostPreflightProbe(PortHostPreflightProbe):
             windows_wsl_bridge_state_path or configured_windows_wsl_bridge_state_path()
         )
         self.process_runner = process_runner or SubprocessProcessRunner()
+        self.service_probe_registry = service_probe_registry or default_service_probe_registry(
+            http_probe=_http_service_available,
+            service_access_probe=_service_access_available,
+            tcp_probe=_tcp_connects,
+            api_status_path=API_STATUS_PATH,
+            service_access_text=SERVICE_ACCESS_TEXT,
+        )
 
     def is_linux_or_wsl(self) -> bool:
         return self.host_environment_report().platform_family == "linux"
@@ -117,52 +129,7 @@ class HostPreflightProbe(PortHostPreflightProbe):
         return True
 
     def port_matches_expected_service(self, port: int, service: str) -> bool:
-        service_name = service.casefold()
-        if "portainer" in service_name:
-            return _http_service_available(port, (API_STATUS_PATH, "/api/system/status"), ("version",))
-        if "docker registry" in service_name:
-            return _http_service_available(port, ("/v2/",), ())
-        if "nexus" in service_name:
-            return _http_service_available(
-                port,
-                ("/service/rest/v1/status", "/"),
-                ("nexus", "status", "available"),
-            )
-        if "jenkins" in service_name:
-            return _http_service_available(port, ("/login", "/"), ("jenkins",))
-        if "pulsar admin" in service_name:
-            return _http_service_available(port, ("/admin/v2/clusters",), ("standalone", "clusters"))
-        if "pulsar manager" in service_name:
-            return _http_service_available(port, ("/",), ("pulsar", "manager"))
-        if "pulsar broker" in service_name:
-            return _tcp_connects(port)
-        if "sonarqube" in service_name:
-            return _http_service_available(port, ("/api/system/status", "/"), ("sonar", "status"))
-        if "swagger api" in service_name:
-            return _http_service_available(port, ("/",), ("access-control-allow-origin: *",))
-        if "swagger" in service_name:
-            return _http_service_available(port, ("/",), ("swagger", "openapi"))
-        if "traefik http ingress" in service_name:
-            return _http_service_available(port, ("/",), ("traefik",))
-        if "traefik https ingress" in service_name:
-            return _http_service_available(
-                port,
-                ("/",),
-                ("traefik",),
-                scheme="https",
-            )
-        if SERVICE_ACCESS_TEXT in service_name:
-            return _service_access_available(port)
-        if "infisical https" in service_name:
-            return _http_service_available(
-                port,
-                ("/", API_STATUS_PATH),
-                ("infisical", "content-security-policy"),
-                scheme="https",
-            )
-        if "infisical" in service_name:
-            return _http_service_available(port, ("/", API_STATUS_PATH), ("infisical",))
-        return False
+        return self.service_probe_registry.matches(port, service)
 
     def secret_available(self, name: str) -> bool:
         return bool(os.environ.get(name))
