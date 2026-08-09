@@ -95,3 +95,30 @@ class TestLxcRuntimeBoundaries(unittest.TestCase):
         self.assertNotIn("LxcNodeCommandResult", class_names)
         self.assertNotIn("AsyncLxcNodeCommandRunner", class_names)
         self.assertIn("LxcNodeProvider", class_names)
+
+    def test_host_preflight_delegates_service_matching_to_registry(self):
+        source_path = (
+            Path(__file__).parents[2]
+            / "src"
+            / "tiny_swarm_world"
+            / "infrastructure"
+            / "adapters"
+            / "preflight"
+            / "host_preflight_probe.py"
+        )
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        method = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "port_matches_expected_service"
+        )
+
+        self.assertFalse(any(isinstance(node, ast.If) for node in ast.walk(method)))
+        self.assertTrue(
+            any(
+                isinstance(node, ast.Attribute)
+                and node.attr == "service_probe_registry"
+                for node in ast.walk(method)
+            )
+        )

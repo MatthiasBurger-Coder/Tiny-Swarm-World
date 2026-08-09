@@ -1,19 +1,19 @@
-# Context Pack — Issue #191
+# Context Pack — Issue #187
 
-- Workflow: `issue-191-20260809`; chain order 03.
+- Workflow: `issue-187-20260809`; chain order 04.
 - Authoring branch: `feature/workflow-solid-refactor-chain-20260809`.
-- Active workflow branch: `feature/typed-verification-evidence-solid`.
+- Active workflow branch: `feature/preflight-service-probe-registry-solid`.
 - Status: `COMPLETED_LOCAL_AUDITED`.
 - Execution profile: `FULL_PATH`.
-- Affected areas: serialized evidence keys/classifications, lifecycle,
-  preflight/deployment producers, compatibility and architecture tests.
-- Forbidden areas: evidence key renaming, live infrastructure/browser runs,
-  React, service extraction and unrelated scope.
+- Affected areas: HostPreflightProbe service matching, probe strategies,
+  registry, deterministic tests and evidence.
+- Forbidden areas: host detection redesign, live service checks without consent,
+  browser React and unrelated stack/evidence changes.
 - Required roles: Senior Requirement Engineer, Senior System Architect, Senior
   Python Automation Developer, Senior Tester.
 - Conditional roles: Senior Documentation Engineer, Senior Security Sandbox
   Engineer, Senior Execution Orchestrator.
-- Quality commands: full `python3 tools/quality_gate.py quality`, targeted
-  Python/architecture gates and `git diff --check`.
+- Quality commands: `python3 tools/quality_gate.py quality` plus targeted gates
+  and `git diff --check`.
 - Completion: all requirements are `VERIFIED_LOCAL`; audit decision is `PASS`;
-  Issue #187 is the next serialized handoff.
+  Issue #190 is the next serialized handoff.
