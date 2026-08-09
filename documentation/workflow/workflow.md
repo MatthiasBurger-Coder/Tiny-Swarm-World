@@ -209,8 +209,8 @@ serialized target.
 - Decision: `PASS` — locally complete and independently audited.
 - Requirement matrix: all `REQ-190-001` through `REQ-190-006` are
   `VERIFIED_LOCAL`.
-- Local quality: `python3 tools/quality_gate.py quality` passed with `1691`
-  tests passed and `28` skipped.
+- Local quality: `python3 tools/quality_gate.py quality` is `VERIFIED_LOCAL`.
+- Test execution counts: `1691` completed cases; `28` intentionally skipped.
 - Live, browser and external quality-system checks: not run and not claimed.
 - Handoff: Issue #192, `feature/separate-lxc-service-wrappers-solid`.
 
