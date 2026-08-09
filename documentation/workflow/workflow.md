@@ -110,7 +110,8 @@ stop_conditions: [unknown consumer, ambiguous stable value, circular-import risk
 ### Slice 02 — Shared resolver/utilities and consumer migration
 
 Purpose: add the authoritative resolver and only the utilities justified by
-Slice 01; migrate LXC consumers while preserving adapter policy and imports.
+Slice 01; migrate every verified backend-mapping consumer while preserving
+adapter policy, preflight ownership and compatibility imports.
 
 Prerequisites: `S189-01` READY with no blocking contract question.
 
@@ -119,14 +120,14 @@ slice_id: S189-02
 profile: FULL_PATH
 owner: Senior Python Automation Developer
 secondary_reviewers: [Senior System Architect, Senior Tester, Senior Security Sandbox Engineer]
-affected_files: [src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/**, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py, src/tiny_swarm_world/infrastructure/composition.py, tests/infrastructure/adapters/clients/lxc/**, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py]
-affected_modules: [infrastructure.adapters.clients.lxc, infrastructure.composition]
+affected_files: [src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/**, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_docker_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_swarm_bootstrap.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/docker/lxc_container_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/lxc_container_image_publisher.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/common.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py, src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py, src/tiny_swarm_world/infrastructure/composition.py, tests/infrastructure/adapters/clients/lxc/**, tests/infrastructure/adapters/clients/test_lxc_node_provider.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/infrastructure/adapters/clients/test_lxc_container_docker_runtime.py, tests/infrastructure/adapters/clients/test_lxc_container_swarm_bootstrap.py, tests/infrastructure/adapters/clients/test_lxc_proxy_device_runtime.py, tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py, tests/infrastructure/test_composition.py, tests/infrastructure/test_lxc_runtime_logging.py, tests/architecture/**]
+affected_modules: [infrastructure.adapters.clients.lxc, infrastructure.adapters.clients, infrastructure.adapters.preflight, infrastructure.composition]
 affected_contracts: [ManagedLxcBackend, LXC command diagnostics, manager IP resolution]
 dependencies: [S189-01]
 parallel_group: SERIAL-CHAIN
-file_locks: [src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/**, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py, src/tiny_swarm_world/infrastructure/composition.py, tests/infrastructure/adapters/clients/lxc/**, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py]
+file_locks: [src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/**, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_docker_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_swarm_bootstrap.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/docker/lxc_container_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/lxc_container_image_publisher.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/common.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py, src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py, src/tiny_swarm_world/infrastructure/composition.py, tests/infrastructure/adapters/clients/lxc/**, tests/infrastructure/adapters/clients/test_lxc_node_provider.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/infrastructure/adapters/clients/test_lxc_container_docker_runtime.py, tests/infrastructure/adapters/clients/test_lxc_container_swarm_bootstrap.py, tests/infrastructure/adapters/clients/test_lxc_proxy_device_runtime.py, tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py, tests/infrastructure/test_composition.py, tests/infrastructure/test_lxc_runtime_logging.py, tests/architecture/**]
 contract_locks: [lxc-backend-cli-resolution, lxc-shared-utility-boundary]
-architecture_locks: [infrastructure-only-lxc-utilities, composition-root-wiring]
+architecture_locks: [infrastructure-only-lxc-utilities, composition-root-wiring, preflight-provider-readiness-boundary, legacy-lxc-client-compatibility]
 quality_gates:
   targeted: [python3 tools/quality_gate.py lint, python3 tools/quality_gate.py typecheck, python3 tools/quality_gate.py test, python3 tools/quality_gate.py arch-lint, python3 tools/quality_gate.py arch-tests]
   required: [python3 tools/quality_gate.py quality]
