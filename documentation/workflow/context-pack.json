@@ -1,21 +1,21 @@
 {
-  "workflow_id": "issue-187-20260809",
-  "workflow_version": "issue-187-v1.0.0",
+  "workflow_id": "issue-190-20260809",
+  "workflow_version": "issue-190-v1.0.0",
   "set_id": "solid-refactor-chain-20260809",
-  "branch": "feature/preflight-service-probe-registry-solid",
+  "branch": "feature/stack-prerequisite-strategies-solid",
   "execution_profile": "FULL_PATH",
   "process_strand": "workflow-create-to-workflow-execute",
   "affected_areas": [
-    "HostPreflightProbe",
-    "service probe registry",
-    "port/fingerprint compatibility",
-    "preflight tests"
+    "LXC Swarm prerequisite registry",
+    "asset transfer",
+    "generic runtime dispatch",
+    "command-generation tests"
   ],
   "forbidden_areas": [
-    "host detection redesign",
-    "live service mutation/checks",
+    "new deployment topology",
+    "live Swarm mutation",
     "browser React",
-    "unrelated scopes"
+    "duplicate #238 extraction"
   ],
   "required_roles": [
     "Senior Requirement Engineer",
@@ -46,8 +46,8 @@
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/workflow/workflow.md": "9E7695D9246193476677A8D87894FE7F51B0A93A1D9560B404F97E5B53E9E5F9",
-    "documentation/arc42/11_risks_and_debt.adoc": "FD96BF0F3317CF9ECD6851DC8BE04F9CCB491D90CF425028A714804348501480"
+    "documentation/workflow/workflow.md": "E88BA3DF3A494F0DE12C99347D269B19F0D343D53E66D307679EE8C00F219362",
+    "documentation/arc42/11_risks_and_debt.adoc": "399CF086C4143A705403430AB082C6F438716416D5674447983AD95745DE1C97"
   },
   "staleness_note": "These hashes record the governing files used during authoring; the pack is not a replacement for them.",
   "status": "COMPLETED_LOCAL_AUDITED"

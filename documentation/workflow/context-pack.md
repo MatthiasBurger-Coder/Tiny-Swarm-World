@@ -1,19 +1,19 @@
-# Context Pack — Issue #187
+# Context Pack — Issue #190
 
-- Workflow: `issue-187-20260809`; chain order 04.
+- Workflow: `issue-190-20260809`; chain order 05.
 - Authoring branch: `feature/workflow-solid-refactor-chain-20260809`.
-- Active workflow branch: `feature/preflight-service-probe-registry-solid`.
+- Active workflow branch: `feature/stack-prerequisite-strategies-solid`.
 - Status: `COMPLETED_LOCAL_AUDITED`.
 - Execution profile: `FULL_PATH`.
-- Affected areas: HostPreflightProbe service matching, probe strategies,
-  registry, deterministic tests and evidence.
-- Forbidden areas: host detection redesign, live service checks without consent,
-  browser React and unrelated stack/evidence changes.
+- Affected areas: LXC Swarm prerequisite registry, asset transfer, generic
+  runtime dispatch, command-generation regression and evidence.
+- Forbidden areas: new deployment topology, live Swarm mutation, browser React,
+  duplicate #238 extraction and unrelated stacks.
 - Required roles: Senior Requirement Engineer, Senior System Architect, Senior
   Python Automation Developer, Senior Tester.
 - Conditional roles: Senior Documentation Engineer, Senior Security Sandbox
   Engineer, Senior Execution Orchestrator.
-- Quality commands: `python3 tools/quality_gate.py quality` plus targeted gates
+- Quality commands: full local quality gate, targeted Python/architecture gates,
   and `git diff --check`.
 - Completion: all requirements are `VERIFIED_LOCAL`; audit decision is `PASS`;
-  Issue #190 is the next serialized handoff.
+  Issue #192 is the next serialized handoff.
