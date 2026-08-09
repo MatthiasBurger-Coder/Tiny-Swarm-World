@@ -4,7 +4,7 @@ Workflow set ID: `solid-refactor-chain-20260809`
 
 Authoring branch: `feature/workflow-solid-refactor-chain-20260809`
 
-Status: `EXECUTING_LOCAL` — Issues #189, #184, #191 and #187 complete; #190 is active
+Status: `EXECUTING_LOCAL` — Issues #189, #184, #191, #187 and #190 complete; #192 is next
 
 Execution order requested by the user:
 
@@ -14,8 +14,8 @@ Execution order requested by the user:
 
 This is an indexed multi-issue workflow set. Issue #190 is currently promoted
 to the active `documentation/workflow/workflow.md` on its execution branch;
-#189, #184, #191 and #187 are locally complete, while #190 through #186 remain
-indexed and require serialized execution after each predecessor.
+#189, #184, #191, #187 and #190 are locally complete, while #192 and #186
+remain indexed and require serialized execution after each predecessor.
 
 ## Three-Amigos decision
 
@@ -54,13 +54,14 @@ change. No implementation is authorized by this authoring step.
 | 02 | #184 | [issue-184/workflow.md](issues/issue-184/workflow.md) | `feature/split-lxc-node-provider-solid` | COMPLETED_LOCAL_AUDITED | #189 | audit PASS; #191 next |
 | 03 | #191 | [issue-191/workflow.md](issues/issue-191/workflow.md) | `feature/typed-verification-evidence-solid` | COMPLETED_LOCAL_AUDITED | #184 | audit PASS; #187 next |
 | 04 | #187 | [issue-187/workflow.md](issues/issue-187/workflow.md) | `feature/preflight-service-probe-registry-solid` | COMPLETED_LOCAL_AUDITED | #191 | audit PASS; #190 next |
-| 05 | #190 | [issue-190/workflow.md](issues/issue-190/workflow.md) | `feature/stack-prerequisite-strategies-solid` | EXECUTING_LOCAL | #187 | current partial registry requires residual inventory |
+| 05 | #190 | [issue-190/workflow.md](issues/issue-190/workflow.md) | `feature/stack-prerequisite-strategies-solid` | COMPLETED_LOCAL_AUDITED | #187 | audit PASS; #192 next |
 | 06 | #192 | [issue-192/workflow.md](issues/issue-192/workflow.md) | `feature/separate-lxc-service-wrappers-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #190 | URL/API precedence ambiguity |
 | 07 | #186 | [issue-186/workflow.md](issues/issue-186/workflow.md) | `feature/replace-global-di-service-locator-solid` | READY_FOR_EXECUTION_WITH_ACCEPTED_ASSUMPTIONS | #192 | global runtime resolution, if discovered |
 
 No issues were excluded. Every issue has an issue-local workflow and context
-pack. #189, #184, #191 and #187 are locally audited complete; the remaining
-three workflows require promotion after the indexed predecessor chain advances.
+pack. #189, #184, #191, #187 and #190 are locally audited complete; the
+remaining two workflows require promotion after the indexed predecessor chain
+advances.
 
 ## Dependency graph
 
@@ -96,11 +97,11 @@ the indexed order. No parallel execution group is declared for the chain.
 - This is guarded workflow-create publication, not `push auto`.
 - No pull request merge, branch deletion, force-push or cleanup is part of
   workflow creation.
-- Issues #189, #184, #191 and #187 were promoted to
+- Issues #189, #184, #191, #187 and #190 were promoted to
   `documentation/workflow/workflow.md`, executed and independently audited
   locally; their context packs and issue evidence record the completion states.
 - The promotion preserves the chain dependency and declared implementation
-  branch; #190 is the next explicit promotion target.
+  branch; #192 is the next explicit promotion target.
 
 ## Excluded from this authoring set
 
