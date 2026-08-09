@@ -25,20 +25,16 @@ from tiny_swarm_world.domain.preflight import (
 from tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe import (
     HostPreflightProbe,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
 
 
 DEFAULT_LXC_PROVIDER_TIMEOUT_SECONDS = 5.0
 COMMON_LXC_EXECUTABLE_DIRECTORIES = (Path("/snap/bin"),)
 
-_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
-}
-_READINESS_COMMANDS = {
-    ManagedLxcBackend.INCUS: (("incus", "version"), ("incus", "info")),
-    ManagedLxcBackend.LXD: (("lxc", "version"), ("lxc", "info")),
-}
 
+def _readiness_commands(backend: ManagedLxcBackend) -> tuple[tuple[str, tuple[str, str]], ...]:
+    cli = backend_cli(backend)
+    return (("version", (cli, "version")), ("info", (cli, "info")))
 
 @dataclass(frozen=True)
 class LxcProviderProbeResult:
@@ -144,7 +140,7 @@ class LxcProviderPreflightProbe(PortNodeProviderReadiness):
         available_backends = tuple(
             backend
             for backend in ordered_candidates
-            if self.executable_available(_BACKEND_CLI[backend])
+            if self.executable_available(backend_cli(backend))
         )
         if not available_backends:
             return _backend_missing_readiness(host_environment, ordered_candidates)
@@ -182,10 +178,7 @@ class LxcProviderPreflightProbe(PortNodeProviderReadiness):
         backend: ManagedLxcBackend,
         host_environment: HostEnvironmentReport,
     ) -> _BackendProbeReadiness:
-        for probe_name, args in (
-            ("version", _READINESS_COMMANDS[backend][0]),
-            ("info", _READINESS_COMMANDS[backend][1]),
-        ):
+        for probe_name, args in _readiness_commands(backend):
             result = await self.runner.run(args, self.timeout_seconds)
             if result.returncode == 0 and not result.timed_out:
                 continue

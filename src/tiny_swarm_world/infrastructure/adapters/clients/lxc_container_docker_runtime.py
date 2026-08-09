@@ -19,6 +19,11 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
     LxcNodeCommandResult,
     LxcNodeCommandRunner,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics import (
+    command_failed,
+    safe_log_text,
+)
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
@@ -29,11 +34,6 @@ DEFAULT_DOCKER_NETWORK_MAX_TIMEOUT_SECONDS = 60
 DEFAULT_DOCKER_ENGINE_PACKAGE_VERSION = "5:28.5.2-1~ubuntu.24.04~noble"
 DEFAULT_CONTAINERD_PACKAGE_VERSION = "1.7.29-1~ubuntu.24.04~noble"
 DEFAULT_SWARM_REGISTRY_AUTHORITY = "127.0.0.1:13500"
-
-_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
-}
 
 _DOCKER_INSTALL_SCRIPT = """
 set -eu
@@ -246,7 +246,7 @@ def _docker_info_args(
     node: NodeSpec,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "exec",
         node.name,
         "--",
@@ -264,7 +264,7 @@ def _docker_install_args(
     apt_mirror: DockerAptMirrorConfiguration | None = None,
 ) -> tuple[str, ...]:
     return (
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "exec",
         node.name,
         "--",
@@ -440,14 +440,11 @@ def _combined_output(result: LxcNodeCommandResult) -> str:
 
 
 def _command_failed(result: LxcNodeCommandResult) -> bool:
-    return result.timed_out or result.returncode != 0
+    return command_failed(result)
 
 
 def _safe_log_text(value: str, limit: int = 400) -> str:
-    collapsed = " ".join(value.split())
-    if len(collapsed) <= limit:
-        return collapsed
-    return f"{collapsed[:limit]}..."
+    return safe_log_text(value, limit=limit)
 
 
 def redact_argv_for_test(args: Sequence[str]) -> tuple[str, ...]:

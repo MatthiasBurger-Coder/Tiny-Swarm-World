@@ -1,11 +1,31 @@
 import ast
 from pathlib import Path
+import re
 import unittest
 
 import tiny_swarm_world.infrastructure.composition as composition
 
 
 class TestLxcRuntimeBoundaries(unittest.TestCase):
+    def test_backend_cli_mapping_has_one_infrastructure_source(self):
+        infrastructure_root = (
+            Path(__file__).parents[2]
+            / "src"
+            / "tiny_swarm_world"
+            / "infrastructure"
+        )
+        mapping_sources = []
+        local_mapping_definitions = []
+        for source_path in infrastructure_root.rglob("*.py"):
+            source = source_path.read_text(encoding="utf-8")
+            if re.search(r"ManagedLxcBackend\.INCUS:\s*[\"']incus[\"']", source):
+                mapping_sources.append(source_path.relative_to(infrastructure_root).as_posix())
+            if re.search(r"^_\w*BACKEND_CLI\s*=", source, re.MULTILINE):
+                local_mapping_definitions.append(source_path.relative_to(infrastructure_root).as_posix())
+
+        self.assertEqual(mapping_sources, ["adapters/clients/lxc/command/backend_cli.py"])
+        self.assertEqual(local_mapping_definitions, [])
+
     def test_composition_uses_extracted_concrete_modules(self):
         self.assertEqual(
             composition.LxcContainerRuntime.__module__,

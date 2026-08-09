@@ -7,15 +7,12 @@ import time
 from collections.abc import Callable
 
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics import (
     is_transient_manager_shell_failure,
 )
 
 
-_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
-}
 _MAX_ATTEMPTS = 3
 _RETRY_DELAYS_SECONDS = (0.5, 1.0)
 
@@ -46,7 +43,7 @@ def lxc_manager_ip(
         try:
             result = runner(
                 [
-                    _BACKEND_CLI[backend],
+                    backend_cli(backend),
                     "exec",
                     manager_node,
                     "--",

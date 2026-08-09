@@ -36,6 +36,11 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
     NodeProviderProfileRequirement,
     ProviderResourceResolution,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics import (
+    command_failed,
+    safe_log_text,
+)
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
@@ -54,10 +59,6 @@ ALLOW_PRIVILEGED_SWARM_INGRESS_ENVIRONMENT = "TSW_LXC_ALLOW_PRIVILEGED_SWARM_ING
 SECURITY_PRIVILEGED_KEY = "security.privileged"
 SECURITY_PRIVILEGED_VALUE = "true"
 
-_BACKEND_CLI = {
-    ManagedLxcBackend.INCUS: "incus",
-    ManagedLxcBackend.LXD: "lxc",
-}
 _RESOURCE_KEYS = frozenset(("cpu", "memory", "disk"))
 _CPU_PATTERN = re.compile(r"^[1-9]\d*$")
 _SIZE_PATTERN = re.compile(r"^[1-9]\d*[KMGT]i?B?$")
@@ -1257,26 +1258,26 @@ def _profile_show_args(
     backend: ManagedLxcBackend,
     profile_name: str,
 ) -> tuple[str, ...]:
-    return (_BACKEND_CLI[backend], "profile", "show", profile_name)
+    return (backend_cli(backend), "profile", "show", profile_name)
 
 
 def _profile_list_args(backend: ManagedLxcBackend) -> tuple[str, ...]:
-    return (_BACKEND_CLI[backend], "profile", "list", "--format", "json")
+    return (backend_cli(backend), "profile", "list", "--format", "json")
 
 
 def _network_list_args(backend: ManagedLxcBackend) -> tuple[str, ...]:
-    return (_BACKEND_CLI[backend], "network", "list", "--format", "json")
+    return (backend_cli(backend), "network", "list", "--format", "json")
 
 
 def _storage_pool_list_args(backend: ManagedLxcBackend) -> tuple[str, ...]:
-    return (_BACKEND_CLI[backend], "storage", "list", "--format", "json")
+    return (backend_cli(backend), "storage", "list", "--format", "json")
 
 
 def _profile_create_args(
     backend: ManagedLxcBackend,
     profile_name: str,
 ) -> tuple[str, ...]:
-    return (_BACKEND_CLI[backend], "profile", "create", profile_name)
+    return (backend_cli(backend), "profile", "create", profile_name)
 
 
 def _profile_set_args(
@@ -1285,35 +1286,35 @@ def _profile_set_args(
     key: str,
     value: str,
 ) -> tuple[str, ...]:
-    return (_BACKEND_CLI[backend], "profile", "set", profile_name, key, value)
+    return (backend_cli(backend), "profile", "set", profile_name, key, value)
 
 
 def _list_args(
     backend: ManagedLxcBackend,
     node_name: str,
 ) -> tuple[str, ...]:
-    return (_BACKEND_CLI[backend], "list", node_name, "--format", "json")
+    return (backend_cli(backend), "list", node_name, "--format", "json")
 
 
 def _start_args(
     backend: ManagedLxcBackend,
     node_name: str,
 ) -> tuple[str, ...]:
-    return (_BACKEND_CLI[backend], "start", node_name)
+    return (backend_cli(backend), "start", node_name)
 
 
 def _image_info_args(
     backend: ManagedLxcBackend,
     image_ref: str,
 ) -> tuple[str, ...]:
-    return (_BACKEND_CLI[backend], "image", "info", image_ref)
+    return (backend_cli(backend), "image", "info", image_ref)
 
 
 def _delete_args(
     backend: ManagedLxcBackend,
     node_name: str,
 ) -> tuple[str, ...]:
-    return (_BACKEND_CLI[backend], "delete", node_name, "--force")
+    return (backend_cli(backend), "delete", node_name, "--force")
 
 
 def _launch_args(
@@ -1324,7 +1325,7 @@ def _launch_args(
     provider_resource_resolution: ProviderBackendResourceResolution | None = None,
 ) -> tuple[str, ...]:
     args: list[str] = [
-        _BACKEND_CLI[backend],
+        backend_cli(backend),
         "launch",
         _image_ref(node_config.image_alias, image_references, backend),
         node_config.spec.name,
@@ -1825,7 +1826,7 @@ def _operator_action_for_provider_failure(result: LxcNodeCommandResult) -> str:
 
 
 def _command_failed(result: LxcNodeCommandResult) -> bool:
-    return result.timed_out or result.returncode != 0
+    return command_failed(result)
 
 
 def _result_indicates_existing_node(result: LxcNodeCommandResult) -> bool:
@@ -2252,7 +2253,4 @@ def _safe_process_text(value: bytes | str | None) -> str:
 
 
 def _safe_log_text(value: str, limit: int = 400) -> str:
-    collapsed = " ".join(value.split())
-    if len(collapsed) <= limit:
-        return collapsed
-    return f"{collapsed[:limit]}..."
+    return safe_log_text(value, limit=limit)
