@@ -14,6 +14,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics im
 )
 from tiny_swarm_world.infrastructure.process import (
     ProcessRunner,
+    ProcessTimeoutError,
     SubprocessProcessRunner,
 )
 
@@ -122,11 +123,10 @@ class LxcManagerShellGateway:
         try:
             command = [_BACKEND_CLI[self.backend], "exec", node_name, "--", "sh", "-lc", script]
             if runner is None:
-                return subprocess.run(
+                return self.process_runner.run_text(
                     command,
                     input=input_text,
                     capture_output=True,
-                    text=True,
                     check=False,
                     shell=False,
                     timeout=timeout,
@@ -140,7 +140,7 @@ class LxcManagerShellGateway:
                 shell=False,
                 timeout=timeout,
             )
-        except subprocess.TimeoutExpired as exc:
+        except (ProcessTimeoutError, subprocess.TimeoutExpired) as exc:
             raise RuntimeError(
                 f"LXC Swarm operation timed out on node '{node_name}'."
             ) from exc

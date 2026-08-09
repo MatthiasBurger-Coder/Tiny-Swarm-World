@@ -42,6 +42,31 @@ class TestLxcManagerShellGateway(unittest.TestCase):
             timeout=30,
         )
 
+    def test_run_manager_shell_uses_injected_process_runner_by_default(self):
+        process_runner = Mock()
+        process_runner.run_text.return_value = subprocess.CompletedProcess(
+            [], 0, stdout="ok", stderr=""
+        )
+        gateway = LxcManagerShellGateway(
+            backend=ManagedLxcBackend.INCUS,
+            manager_node="swarm-manager",
+            timeout_seconds=30,
+            logger=self.logger,
+            process_runner=process_runner,
+        )
+
+        result = gateway.run_manager_shell("printf ok")
+
+        self.assertEqual(result.returncode, 0)
+        process_runner.run_text.assert_called_once_with(
+            ["incus", "exec", "swarm-manager", "--", "sh", "-lc", "printf ok"],
+            input=None,
+            capture_output=True,
+            check=False,
+            shell=False,
+            timeout=30,
+        )
+
     def test_run_node_shell_retries_transient_failure(self):
         transient = subprocess.CompletedProcess(
             [],
