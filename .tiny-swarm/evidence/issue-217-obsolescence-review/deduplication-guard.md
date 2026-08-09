@@ -29,7 +29,13 @@ with the returned state and timestamp.
 
 ## Current state
 
-No action key has been used remotely in this execution. No candidate issue was
-closed, reopened, relabeled or rewritten before this guard was recorded. The
-closed duplicate relationship #159/#160 is preserved.
+Before S217-06 mutation, no action key was present remotely. The four guarded
+actions were then applied exactly once and post-read successfully:
 
+- candidate keys for #156, #163 and #197 each produced one `KEEP_OPEN` comment;
+- the #217 review-complete key produced one canonical summary comment;
+- all four issues remained open and no issue was closed, reopened, relabeled or
+  body-rewritten;
+- the closed duplicate relationship #159/#160 is preserved.
+
+The post-action ids and timestamps are recorded in `issue-actions.md`.

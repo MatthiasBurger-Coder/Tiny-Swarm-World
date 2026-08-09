@@ -56,7 +56,7 @@
     ".agents/skills/resilience-engineering/SKILL.md": "72c515e5562ba7f7187af99e688d435409c628d1351cd68705d872f48df79a70",
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     "documentation/arc42/11_risks_and_debt.adoc": "c9174c01abb7505a10058d2110abdc217b17f8b589b3afbb84f9fb86ac46cbb6",
-    "documentation/workflow/workflow.md": "eebe470e831c8554b747d68d1e9fc468e4791a6548d00d096447454115bce614"
+    "documentation/workflow/workflow.md": "dfa5730f35fbbf5e1188e1f0c4e0b27521820f3a247d2bc805d7e06d9928ec78"
   },
   "staleness_note": "Hashes record the governing files used during authoring; this context pack does not replace them. Revalidate before workflow execution when any hash changes."
 }

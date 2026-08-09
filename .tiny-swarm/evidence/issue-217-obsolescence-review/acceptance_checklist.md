@@ -10,10 +10,10 @@
 | #163 three literals, test intent, test result and Sonar state traced | #163 review/test evidence | `VERIFIED_LOCAL` with external Sonar `UNVERIFIED` |
 | #197 ownership, consent and six behavior cases traced | #197 review/test evidence | `VERIFIED_LOCAL` with residual cases `UNVERIFIED`/`BLOCKED` |
 | Scope and live-command safety preserved | distribution and test evidence | `VERIFIED_LOCAL` |
-| Duplicate-work guard and action compare-and-set policy recorded | `deduplication-guard.md` | `VERIFIED_LOCAL`; remote actions pending |
+| Duplicate-work guard and action compare-and-set policy recorded | `deduplication-guard.md` | `VERIFIED_LOCAL`; four actions applied once and post-read |
 | Full repository quality gate | Required by S217-05 | `PASS` — 1,697 tests, 28 skipped; verification policy, lint, architecture lint/tests and typecheck passed |
-| Final issue actions and post-action snapshots | S217-06 | `PENDING` |
+| Final issue actions and post-action snapshots | `issue-actions.md` | `PASS` — #156/#163/#197 each received one `KEEP_OPEN` comment; #217 received one canonical summary; all post-states re-read |
 
-The workflow must not claim final `DONE` while guarded actions or the
-post-action audit remain pending, or while an external state is described as
-passed without observable evidence.
+The workflow must not claim final `DONE` until the Issue Completion Auditor has
+reviewed this corrected package. External Sonar state remains `UNVERIFIED` and
+must not be described as passed.

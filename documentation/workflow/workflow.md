@@ -4,7 +4,7 @@ Workflow ID: `issue-217-20260809`
 
 Workflow version: `issue-217-v1.0.0`
 
-Status: `READY_FOR_EXECUTION`
+Status: `EXECUTING`
 
 Authoring branch: `feature/workflow-review-obsolete-issues-20260809`
 

@@ -39,3 +39,19 @@ The full Python quality gate is not a successful workflow-authoring result for
 this documentation/evidence-only diff under `QUALITY.md`; the timeout is
 explicitly recorded and does not authorize a live, browser or external quality
 claim. The verification-policy consistency check and `git diff --check` passed.
+
+## Execution revalidation (separate from authoring result)
+
+The authoring result above remains historical and is not overwritten. During
+`workflow execute`, after the documentation policy finding was corrected, the
+full WSL gate was run again on the evidence-only execution branch:
+
+```text
+python3 tools/quality_gate.py quality
+```
+
+Execution result: `PASS` — verification-policy consistency, lint, architecture
+lint/tests, typecheck and the full unittest suite passed; 1,697 tests ran with
+28 skips. This later execution result is recorded in `test_results.md` and
+`slice-05-consolidation.md`; it does not retroactively change the authoring
+attempt's original timeout classification.
