@@ -55,7 +55,7 @@
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/workflow/workflow.md": "0b733dd02788d793d003565730ecdcbb08bc769a5e103507e31aafb85abda515",
+    "documentation/workflow/workflow.md": "97e4ecb5c44539f1baa72925ec429fe0d0d56ae1b51fd53ed1ee0917355858ea",
     "documentation/arc42/11_risks_and_debt.adoc": "31e64165c5d1e7feea4d2fed323cc099a857ccc235a294728809c3c25a66217e"
   },
   "staleness_note": "Hashes record the governing files and the promoted active workflow used for this execution."

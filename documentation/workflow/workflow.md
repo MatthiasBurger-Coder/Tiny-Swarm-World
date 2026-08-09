@@ -162,7 +162,7 @@ quality_gates:
 documentation:
   arc42: update only verified planned/implemented status
   adr: review existing LXC ADRs; no invented decision
-stop_conditions: [missing evidence, unverified requirement, failed local gate, inaccessible external result claimed green]
+stop_conditions: [missing evidence, unverified requirement, failed local gate, external result not observable]
 ```
 
 ## Parallel Execution
