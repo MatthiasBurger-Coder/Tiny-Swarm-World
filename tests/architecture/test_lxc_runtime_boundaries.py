@@ -74,3 +74,24 @@ class TestLxcRuntimeBoundaries(unittest.TestCase):
                 "LxcPortainerHttpClient",
             },
         )
+
+    def test_node_provider_legacy_module_keeps_command_types_as_compatibility_imports(self):
+        source_path = (
+            Path(__file__).parents[2]
+            / "src"
+            / "tiny_swarm_world"
+            / "infrastructure"
+            / "adapters"
+            / "clients"
+            / "lxc_node_provider.py"
+        )
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        class_names = {
+            node.name
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ClassDef)
+        }
+
+        self.assertNotIn("LxcNodeCommandResult", class_names)
+        self.assertNotIn("AsyncLxcNodeCommandRunner", class_names)
+        self.assertIn("LxcNodeProvider", class_names)

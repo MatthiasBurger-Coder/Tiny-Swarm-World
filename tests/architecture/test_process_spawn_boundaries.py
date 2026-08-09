@@ -34,7 +34,7 @@ ALLOWED_DIRECT_PROCESS_BOUNDARIES = {
     "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py": {
         "subprocess.run",
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py": {
+    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/node_command.py": {
         "asyncio.create_subprocess_exec",
     },
     "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/common.py": {

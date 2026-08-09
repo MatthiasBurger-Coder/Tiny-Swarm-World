@@ -1,17 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 import json
-import os
-import re
 from collections.abc import Mapping, Sequence
-from contextlib import suppress
-from dataclasses import dataclass
 from logging import Logger
 from typing import Literal, Protocol
-
-from ruamel.yaml import YAML
-from ruamel.yaml.error import YAMLError
 
 from tiny_swarm_world.application.ports.node_provider import (
     PortManagedNodeTeardown,
@@ -30,18 +22,71 @@ from tiny_swarm_world.domain.preflight.resources import (
     validate_planned_container_limits,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
-    ProviderBackendResourceResolution,
     NodeProviderConfig,
     NodeProviderNodeConfig,
     NodeProviderProfileRequirement,
-    ProviderResourceResolution,
 )
-from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics import (
     command_failed,
     safe_log_text,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.node_command import (
+    AsyncLxcNodeCommandRunner,
+    LxcNodeCommandResult,
+    LxcNodeCommandRunner,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.args import (
+    delete_args,
+    image_info_args,
+    image_ref,
+    launch_args,
+    list_args,
+    network_list_args,
+    profile_create_args,
+    profile_list_args,
+    profile_set_args,
+    profile_show_args,
+    start_args,
+    storage_pool_list_args,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.models import (
+    NodeLookup,
+    ObservedNode,
+    TeardownNodePlan,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.safety import (
+    IMAGE_ALIAS_MARKER,
+    MANAGED_MARKER,
+    NODE_MARKER,
+    safe_project_proxy_device,
+    unsafe_instance_config_keys,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.policy import (
+    missing_profile_settings,
+    profile_allows_project_proxy_devices,
+    profile_evidence,
+    profile_output_safe,
+    required_profile_settings,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.resource.resolution import (
+    resource_cpu,
+    resource_memory_bytes,
+    resource_resolution_evidence,
+    resource_resolution_remediation_hint,
+    resources_supported,
+    resolved_network,
+    selected_provider_resource_resolution,
+    uses_provider_resource_resolution,
+)
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+
+
+__all__ = [
+    "AsyncLxcNodeCommandRunner",
+    "LxcNodeCommandResult",
+    "LxcNodeCommandRunner",
+    "LxcNodeProvider",
+]
 
 
 DEFAULT_LXC_LAUNCH_TIMEOUT_SECONDS = 300.0
@@ -52,71 +97,12 @@ DEFAULT_LXC_IMAGE_REFERENCES = {
     "lxd:ubuntu-24.04": "ubuntu:24.04",
     "ubuntu-24.04": "ubuntu:24.04",
 }
-MANAGED_MARKER = "user.tiny_swarm_world.managed"
-NODE_MARKER = "user.tiny_swarm_world.node"
-IMAGE_ALIAS_MARKER = "user.tiny_swarm_world.image_alias"
-ALLOW_PRIVILEGED_SWARM_INGRESS_ENVIRONMENT = "TSW_LXC_ALLOW_PRIVILEGED_SWARM_INGRESS"
-SECURITY_PRIVILEGED_KEY = "security.privileged"
-SECURITY_PRIVILEGED_VALUE = "true"
-
-_RESOURCE_KEYS = frozenset(("cpu", "memory", "disk"))
-_CPU_PATTERN = re.compile(r"^[1-9]\d*$")
-_SIZE_PATTERN = re.compile(r"^[1-9]\d*[KMGT]i?B?$")
-_YAML = YAML(typ="safe")
-
-
-@dataclass(frozen=True)
-class LxcNodeCommandResult:
-    returncode: int
-    stdout: str = ""
-    stderr: str = ""
-    timed_out: bool = False
-
-
-class LxcNodeCommandRunner(Protocol):
-    async def run(
-        self,
-        args: Sequence[str],
-        timeout_seconds: float,
-    ) -> LxcNodeCommandResult:
-        # Protocol declaration; concrete runners execute the provider command.
-        pass
 
 
 class NodeProviderConfigRepository(Protocol):
     def load(self) -> NodeProviderConfig:
         # Protocol declaration; concrete repositories load provider configuration.
         pass
-
-
-class AsyncLxcNodeCommandRunner:
-    async def run(
-        self,
-        args: Sequence[str],
-        timeout_seconds: float,
-    ) -> LxcNodeCommandResult:
-        process = await asyncio.create_subprocess_exec(
-            *args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        try:
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
-                timeout=timeout_seconds,
-            )
-        except asyncio.TimeoutError:
-            with suppress(ProcessLookupError):
-                process.kill()
-            with suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(process.wait(), timeout=1.0)
-            return LxcNodeCommandResult(returncode=124, timed_out=True)
-
-        return LxcNodeCommandResult(
-            returncode=process.returncode if process.returncode is not None else -1,
-            stdout=_safe_process_text(stdout),
-            stderr=_safe_process_text(stderr),
-        )
 
 
 class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
@@ -1049,68 +1035,9 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         )
 
 
-@dataclass(frozen=True)
-class _TeardownNodePlan:
-    node: NodeSpec
-    backend: ManagedLxcBackend
-    config: NodeProviderConfig
-
-
-@dataclass(frozen=True)
-class _ObservedNode:
-    name: str
-    status: str
-    instance_type: str
-    profiles: tuple[str, ...]
-    config: Mapping[str, str]
-    devices: Mapping[str, Mapping[str, str]]
-
-    @property
-    def running(self) -> bool:
-        return self.status.casefold() == "running"
-
-    def matches_expected(self, node_config: NodeProviderNodeConfig) -> bool:
-        return not self.mismatch_reasons(node_config)
-
-    def mismatch_reasons(
-        self,
-        node_config: NodeProviderNodeConfig,
-    ) -> tuple[str, ...]:
-        reasons: list[str] = []
-        if self.instance_type.casefold() != "container":
-            reasons.append("instance_type_not_container")
-        if any(profile not in self.profiles for profile in node_config.expected_profiles):
-            reasons.append("expected_profile_missing")
-        if self.config.get(MANAGED_MARKER) != "true":
-            if MANAGED_MARKER in self.config:
-                reasons.append("managed_marker_not_true")
-            else:
-                reasons.append("managed_marker_missing")
-        if self.config.get(NODE_MARKER) != node_config.spec.name:
-            reasons.append("node_marker_mismatch")
-        if self.config.get(IMAGE_ALIAS_MARKER) != node_config.image_alias:
-            reasons.append("image_alias_marker_mismatch")
-        if _has_unsafe_instance_config(self.config):
-            reasons.append("unsafe_instance_config")
-        if _has_unsafe_instance_devices(self.devices):
-            reasons.append("unsafe_instance_devices")
-        return tuple(reasons)
-
-
-@dataclass(frozen=True)
-class _NodeLookup:
-    returncode: int
-    node: _ObservedNode | None = None
-    timed_out: bool = False
-    parse_failed: bool = False
-
-    @property
-    def failed(self) -> bool:
-        return self.timed_out or self.parse_failed or self.returncode != 0
-
-    @classmethod
-    def failed_result(cls, result: LxcNodeCommandResult) -> _NodeLookup:
-        return cls(returncode=result.returncode, timed_out=result.timed_out)
+_TeardownNodePlan = TeardownNodePlan
+_ObservedNode = ObservedNode
+_NodeLookup = NodeLookup
 
 
 def _selected_backend(
@@ -1241,169 +1168,24 @@ def _node_spec_mismatches(node_config: NodeProviderNodeConfig, node: NodeSpec) -
     )
 
 
-def _resources_supported(resources: Mapping[str, str]) -> bool:
-    if set(resources) - _RESOURCE_KEYS:
-        return False
-    cpu = resources.get("cpu")
-    memory = resources.get("memory")
-    disk = resources.get("disk")
-    return (
-        (cpu is None or _CPU_PATTERN.fullmatch(cpu) is not None)
-        and (memory is None or _SIZE_PATTERN.fullmatch(memory) is not None)
-        and (disk is None or _SIZE_PATTERN.fullmatch(disk) is not None)
-    )
-
-
-def _profile_show_args(
-    backend: ManagedLxcBackend,
-    profile_name: str,
-) -> tuple[str, ...]:
-    return (backend_cli(backend), "profile", "show", profile_name)
-
-
-def _profile_list_args(backend: ManagedLxcBackend) -> tuple[str, ...]:
-    return (backend_cli(backend), "profile", "list", "--format", "json")
-
-
-def _network_list_args(backend: ManagedLxcBackend) -> tuple[str, ...]:
-    return (backend_cli(backend), "network", "list", "--format", "json")
-
-
-def _storage_pool_list_args(backend: ManagedLxcBackend) -> tuple[str, ...]:
-    return (backend_cli(backend), "storage", "list", "--format", "json")
-
-
-def _profile_create_args(
-    backend: ManagedLxcBackend,
-    profile_name: str,
-) -> tuple[str, ...]:
-    return (backend_cli(backend), "profile", "create", profile_name)
-
-
-def _profile_set_args(
-    backend: ManagedLxcBackend,
-    profile_name: str,
-    key: str,
-    value: str,
-) -> tuple[str, ...]:
-    return (backend_cli(backend), "profile", "set", profile_name, key, value)
-
-
-def _list_args(
-    backend: ManagedLxcBackend,
-    node_name: str,
-) -> tuple[str, ...]:
-    return (backend_cli(backend), "list", node_name, "--format", "json")
-
-
-def _start_args(
-    backend: ManagedLxcBackend,
-    node_name: str,
-) -> tuple[str, ...]:
-    return (backend_cli(backend), "start", node_name)
-
-
-def _image_info_args(
-    backend: ManagedLxcBackend,
-    image_ref: str,
-) -> tuple[str, ...]:
-    return (backend_cli(backend), "image", "info", image_ref)
-
-
-def _delete_args(
-    backend: ManagedLxcBackend,
-    node_name: str,
-) -> tuple[str, ...]:
-    return (backend_cli(backend), "delete", node_name, "--force")
-
-
-def _launch_args(
-    backend: ManagedLxcBackend,
-    node_config: NodeProviderNodeConfig,
-    image_references: Mapping[str, str],
-    *,
-    provider_resource_resolution: ProviderBackendResourceResolution | None = None,
-) -> tuple[str, ...]:
-    args: list[str] = [
-        backend_cli(backend),
-        "launch",
-        _image_ref(node_config.image_alias, image_references, backend),
-        node_config.spec.name,
-    ]
-    if provider_resource_resolution is not None:
-        args.extend(("--network", _resolved_network(node_config, provider_resource_resolution)))
-        args.extend(("--storage", provider_resource_resolution.storage_pool))
-    for profile_name in node_config.expected_profiles:
-        args.extend(("--profile", profile_name))
-    args.extend(
-        (
-            "-c",
-            f"{MANAGED_MARKER}=true",
-            "-c",
-            f"{NODE_MARKER}={node_config.spec.name}",
-            "-c",
-            f"{IMAGE_ALIAS_MARKER}={node_config.image_alias}",
-        )
-    )
-    cpu = node_config.resources.get("cpu")
-    if cpu is not None:
-        args.extend(("-c", f"limits.cpu={cpu}"))
-    memory = node_config.resources.get("memory")
-    if memory is not None:
-        args.extend(("-c", f"limits.memory={memory}"))
-    disk = node_config.resources.get("disk")
-    if disk is not None:
-        args.extend(("-d", f"root,size={disk}"))
-    return tuple(args)
-
-
-def _image_ref(
-    image_alias: str,
-    image_references: Mapping[str, str],
-    backend: ManagedLxcBackend | None = None,
-) -> str:
-    if backend is not None:
-        backend_key = f"{backend.value}:{image_alias}"
-        if backend_key in image_references:
-            return image_references[backend_key]
-    return image_references.get(image_alias, image_alias)
-
-
-def _uses_provider_resource_resolution(config: NodeProviderConfig) -> bool:
-    return "provider_resource_resolution" in config.verification_metadata.checks
-
-
-def _resource_cpu(value: str | None) -> int:
-    try:
-        return max(int(value or "0"), 0)
-    except ValueError:
-        return 0
-
-
-def _resource_memory_bytes(value: str | None) -> int:
-    if not value:
-        return 0
-    match = re.fullmatch(r"(\d+)([KMGT])i?B?", value.strip(), re.IGNORECASE)
-    if match is None:
-        return 0
-    multipliers = {"K": 1024, "M": 1024**2, "G": 1024**3, "T": 1024**4}
-    return int(match.group(1)) * multipliers[match.group(2).upper()]
-
-
-def _selected_provider_resource_resolution(
-    config: NodeProviderConfig,
-    backend: ManagedLxcBackend,
-) -> ProviderBackendResourceResolution | None:
-    if config.provider_resource_resolution is None:
-        return None
-    return config.provider_resource_resolution.for_backend(backend)
-
-
-def _resolved_network(
-    node_config: NodeProviderNodeConfig,
-    provider_resource_resolution: ProviderBackendResourceResolution,
-) -> str:
-    return provider_resource_resolution.network_mappings[node_config.networks[0]]
+_resources_supported = resources_supported
+_profile_show_args = profile_show_args
+_profile_list_args = profile_list_args
+_network_list_args = network_list_args
+_storage_pool_list_args = storage_pool_list_args
+_profile_create_args = profile_create_args
+_profile_set_args = profile_set_args
+_list_args = list_args
+_start_args = start_args
+_image_info_args = image_info_args
+_delete_args = delete_args
+_launch_args = launch_args
+_image_ref = image_ref
+_uses_provider_resource_resolution = uses_provider_resource_resolution
+_resource_cpu = resource_cpu
+_resource_memory_bytes = resource_memory_bytes
+_selected_provider_resource_resolution = selected_provider_resource_resolution
+_resolved_network = resolved_network
 
 
 def _name_list_from_json(result: LxcNodeCommandResult) -> tuple[str, ...]:
@@ -1452,253 +1234,19 @@ def _device_mapping(value: object) -> Mapping[str, Mapping[str, str]]:
     return devices
 
 
-def _has_unsafe_instance_config(config: Mapping[str, str]) -> bool:
-    return bool(_unsafe_instance_config_keys(config))
+_safe_project_proxy_device = safe_project_proxy_device
+_unsafe_instance_config_keys = unsafe_instance_config_keys
 
 
-def _unsafe_instance_config_keys(config: Mapping[str, str]) -> tuple[str, ...]:
-    keys: list[str] = []
-    privileged_enabled = (
-        config.get(SECURITY_PRIVILEGED_KEY, "").casefold() == SECURITY_PRIVILEGED_VALUE
-    )
-    if privileged_enabled and not _allow_privileged_swarm_ingress():
-        keys.append(SECURITY_PRIVILEGED_KEY)
-    if any(key.startswith("raw.") for key in config):
-        keys.append("raw.*")
-    return tuple(keys)
+_profile_output_safe = profile_output_safe
+_profile_allows_project_proxy_devices = profile_allows_project_proxy_devices
+_missing_profile_settings = missing_profile_settings
+_required_profile_settings = required_profile_settings
+_profile_evidence = profile_evidence
 
 
-def _has_unsafe_instance_devices(
-    devices: Mapping[str, Mapping[str, str]],
-    *,
-    allow_project_proxy_devices: bool = False,
-) -> bool:
-    return any(
-        _unsafe_instance_device(
-            name,
-            device,
-            allow_project_proxy_devices=allow_project_proxy_devices,
-        )
-        for name, device in devices.items()
-    )
-
-
-def _unsafe_instance_device(
-    name: str,
-    device: Mapping[str, str],
-    *,
-    allow_project_proxy_devices: bool,
-) -> bool:
-    device_type = device.get("type", "").casefold()
-    if device_type == "disk":
-        return "source" in device
-    if device_type == "nic":
-        return _unsafe_network_device(device)
-    if allow_project_proxy_devices and _safe_project_proxy_device(name, device):
-        return False
-    return bool(device_type)
-
-
-def _safe_project_proxy_device(name: str, device: Mapping[str, str]) -> bool:
-    name_match = _PROJECT_PROXY_DEVICE_NAME_PATTERN.fullmatch(name)
-    if name_match is None:
-        return False
-    return (
-        device.get("type", "").casefold() == "proxy"
-        and set(device) <= {"type", "listen", "connect"}
-        and _safe_proxy_endpoint_pair(
-            device.get("listen", ""),
-            device.get("connect", ""),
-            expected_port=int(name_match.group("port")),
-        )
-    )
-
-
-_PROJECT_PROXY_DEVICE_NAME_PATTERN = re.compile(r"^tsw-proxy-(?P<port>[1-9]\d{0,4})$")
-
-
-def _safe_proxy_endpoint_pair(listen: str, connect: str, *, expected_port: int) -> bool:
-    listen_endpoint = _parse_tcp_proxy_endpoint(listen)
-    connect_endpoint = _parse_tcp_proxy_endpoint(connect)
-    if listen_endpoint is None or connect_endpoint is None:
-        return False
-    listen_host, listen_port = listen_endpoint
-    connect_host, connect_port = connect_endpoint
-    return (
-        listen_host in {"0.0.0.0", "127.0.0.1"}
-        and connect_host == "127.0.0.1"
-        and listen_port == connect_port
-        and listen_port == expected_port
-        and 1 <= listen_port <= 65535
-    )
-
-
-def _parse_tcp_proxy_endpoint(value: str) -> tuple[str, int] | None:
-    prefix, separator, port_text = value.rpartition(":")
-    if not separator or not port_text.isdigit():
-        return None
-    scheme, scheme_separator, host = prefix.partition(":")
-    if scheme != "tcp" or scheme_separator != ":":
-        return None
-    port = int(port_text)
-    return host, port
-
-
-def _unsafe_network_device(device: Mapping[str, str]) -> bool:
-    return (
-        "parent" in device
-        or "network" not in device
-        or device.get("nictype", "").casefold() in {"macvlan", "physical", "sriov"}
-    )
-
-
-def _profile_output_safe(
-    output: str,
-    profile_name: str,
-    *,
-    allow_project_proxy_devices: bool = False,
-) -> bool:
-    try:
-        data = _YAML.load(output) or {}
-    except YAMLError:
-        return False
-    if not isinstance(data, Mapping):
-        return False
-    name = data.get("name")
-    if name is not None and str(name) != profile_name:
-        return False
-    config = _string_mapping(data.get("config", {}))
-    devices = _device_mapping(data.get("devices", {}))
-    return not _has_unsafe_instance_config(config) and not _has_unsafe_instance_devices(
-        devices,
-        allow_project_proxy_devices=allow_project_proxy_devices,
-    )
-
-
-def _profile_allows_project_proxy_devices(profile: NodeProviderProfileRequirement) -> bool:
-    return "manager_proxy_profile_requires_profile_reconciliation" in profile.risk_labels
-
-
-def _missing_profile_settings(
-    output: str,
-    profile: NodeProviderProfileRequirement,
-) -> Mapping[str, str]:
-    try:
-        data = _YAML.load(output) or {}
-    except YAMLError:
-        return _required_profile_settings(profile)
-    if not isinstance(data, Mapping):
-        return _required_profile_settings(profile)
-    config = _string_mapping(data.get("config", {}))
-    return {
-        key: value
-        for key, value in _required_profile_settings(profile).items()
-        if config.get(key) != value
-    }
-
-
-def _required_profile_settings(
-    profile: NodeProviderProfileRequirement,
-) -> Mapping[str, str]:
-    settings: dict[str, str] = {}
-    if _allow_privileged_swarm_ingress() and profile.nesting_required:
-        settings[SECURITY_PRIVILEGED_KEY] = SECURITY_PRIVILEGED_VALUE
-    if profile.nesting_required:
-        settings["security.nesting"] = "true"
-    if profile.syscall_interception_required:
-        settings["security.syscalls.intercept.mknod"] = "true"
-        settings["security.syscalls.intercept.setxattr"] = "true"
-    return settings
-
-
-def _allow_privileged_swarm_ingress() -> bool:
-    return os.getenv(ALLOW_PRIVILEGED_SWARM_INGRESS_ENVIRONMENT, "").strip().casefold() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
-
-
-def _profile_evidence(
-    expected_profile: str,
-    available_profiles: Sequence[str],
-) -> dict[str, str]:
-    return {
-        "expected_profile": expected_profile,
-        "resolved_profile": expected_profile,
-        "available_profiles": ",".join(available_profiles),
-    }
-
-
-def _resource_resolution_evidence(
-    node_config: NodeProviderNodeConfig,
-    provider_resource_resolution: ProviderResourceResolution | None,
-    *,
-    backend: ManagedLxcBackend,
-    available_networks: Sequence[str] = (),
-    available_storage_pools: Sequence[str] = (),
-) -> dict[str, str]:
-    logical_network = ",".join(node_config.networks)
-    backend_resource_resolution = (
-        provider_resource_resolution.for_backend(backend)
-        if provider_resource_resolution is not None
-        else None
-    )
-    resolved_network = (
-        _resolved_network(node_config, backend_resource_resolution)
-        if backend_resource_resolution is not None
-        and node_config.networks
-        and node_config.networks[0] in backend_resource_resolution.network_mappings
-        else ""
-    )
-    expected_storage_pool = (
-        backend_resource_resolution.storage_pool
-        if backend_resource_resolution is not None
-        else ""
-    )
-    return {
-        "expected_profile": node_config.profile,
-        "available_profiles": "",
-        "backend": backend.value,
-        "logical_network": logical_network,
-        "resolved_network": resolved_network,
-        "available_networks": ",".join(available_networks),
-        "expected_storage_pool": expected_storage_pool,
-        "available_storage_pools": ",".join(available_storage_pools),
-        "remediation_hint": _resource_resolution_remediation_hint(
-            node_config,
-            provider_resource_resolution,
-            backend=backend,
-            available_networks=available_networks,
-            available_storage_pools=available_storage_pools,
-        ),
-    }
-
-
-def _resource_resolution_remediation_hint(
-    node_config: NodeProviderNodeConfig,
-    provider_resource_resolution: ProviderResourceResolution | None,
-    *,
-    backend: ManagedLxcBackend,
-    available_networks: Sequence[str],
-    available_storage_pools: Sequence[str],
-) -> str:
-    if provider_resource_resolution is None:
-        return "Configure provider resource resolution for the LXC-native node inventory."
-    backend_resource_resolution = provider_resource_resolution.for_backend(backend)
-    if backend_resource_resolution is None:
-        return "Configure provider resource resolution for the selected backend."
-    if not node_config.networks:
-        return "Configure at least one logical network for the LXC-native node."
-    if node_config.networks[0] not in backend_resource_resolution.network_mappings:
-        return "Add an explicit logical-to-backend network mapping for the inventory network."
-    resolved_network = _resolved_network(node_config, backend_resource_resolution)
-    if resolved_network not in available_networks:
-        return "Create or configure the resolved backend network before platform mutation."
-    if backend_resource_resolution.storage_pool not in available_storage_pools:
-        return "Create or configure the expected backend storage pool before platform mutation."
-    return "Provider resource resolution is satisfied."
+_resource_resolution_evidence = resource_resolution_evidence
+_resource_resolution_remediation_hint = resource_resolution_remediation_hint
 
 
 def _launch_failure_evidence(
@@ -2242,14 +1790,6 @@ def _teardown_summary_classification(
     if status == VerificationStatus.BLOCKED:
         return f"managed_nodes_{operation}_blocked"
     return f"managed_nodes_{operation}_verify_failed"
-
-
-def _safe_process_text(value: bytes | str | None) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, bytes):
-        return value.decode("utf-8", errors="ignore")
-    return value
 
 
 def _safe_log_text(value: str, limit: int = 400) -> str:

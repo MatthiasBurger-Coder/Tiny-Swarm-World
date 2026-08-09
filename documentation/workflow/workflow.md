@@ -1,269 +1,245 @@
-# Workflow: Issue #189 — Centralize LXC Backend CLI Mapping and Shared Utilities
+# Workflow: Issue #184 — Split `LxcNodeProvider` Responsibilities
 
-Workflow ID: `issue-189-20260809`
+Workflow ID: `issue-184-20260809`
 
-Workflow version: `issue-189-v1.0.0`
+Workflow version: `issue-184-v1.0.0`
 
 Status: `COMPLETED_LOCAL_AUDITED`
 
-Workflow set: `solid-refactor-chain-20260809`
+Authoring branch: `feature/workflow-solid-refactor-chain-20260809`
 
-Authoring branch: `feature/centralize-lxc-shared-utilities-solid`
+Implementation branch: `feature/split-lxc-node-provider-solid`
 
-Workflow authoring source branch: `feature/workflow-solid-refactor-chain-20260809`
-
-Execution branch: `feature/centralize-lxc-shared-utilities-solid`
-
-Implementation branch: `feature/centralize-lxc-shared-utilities-solid`
-
-Promotion: Issue #189 promoted from the indexed workflow set for execution.
+Chain position: 02 of 07; predecessor: #189; successor: #191.
 
 Completion audit: `PASS` — local implementation, evidence and independent
 role-based audit completed; live/browser/external gates were not claimed.
 
-Chain position: 01 of 07; predecessor: none; successor: #184.
-
 ## Executive Summary
 
-Create one dependency-safe LXC backend CLI resolver and centralize only the
-shared command, diagnostics, manager-IP, path/quote and structured parsing
-utilities that have multiple verified consumers. Preserve Incus/LXD command
-values, adapter-owned failure policy, safe diagnostics, compatibility imports
-and the existing hexagonal boundary. This is a refactor plan only.
+Decompose the verified responsibilities of `lxc_node_provider.py` into
+dependency-safe command, node, profile and resource modules while keeping
+`LxcNodeProvider` as lifecycle orchestration. Preserve public lifecycle
+outcomes, serialized evidence classifications, compatibility imports and the
+#189 backend resolver. This workflow does not authorize implementation during
+authoring.
 
 ## Requirement Clarification Record
 
-- Original Request: `workflow create` for `#189 -> #184 -> #191 -> #187 -> #190 -> #192 -> #186`.
-- Interpreted Intent: execute the first promoted indexed issue workflow; do not execute later chain issues before #189 completion.
-- Change Type: issue-driven Python infrastructure refactor and architecture guard with evidence and regression gates.
+- Original Request: workflow creation for the ordered seven-issue chain.
+- Interpreted Intent: author the second indexed workflow, executed only after
+  the #189 contract is complete and audited.
+- Change Type: Python infrastructure architecture refactor with compatibility
+  and evidence regression gates.
 - Affected Process Strand: `workflow-create-to-workflow-execute`.
-- Affected Architecture Area: LXC command utilities, infrastructure adapters, diagnostics and composition wiring.
-- Explicit Requirements: [Issue #189 requirement matrix](../../.tiny-swarm/evidence/solid-lxc-shared-utilities/requirement_matrix.md).
-- Implicit Requirements: no domain/application imports, no circular imports, stable `ManagedLxcBackend` mapping, redacted diagnostics, explicit evidence, and no live infrastructure mutation in default verification.
-- Assumptions: issue text is the source because no matching EPIC exists; #238's current LXC package is the implementation baseline; existing shared utilities are retained when behavior is already correct.
-- Non-Goals: node-provider decomposition (#184), typed evidence builders (#191), preflight registry (#187), stack strategies (#190), service wrappers (#192), DI redesign (#186), Java/Maven/Spring, React and live deployment.
-- Risks: centralization could blur ownership, change shell quoting, duplicate the #238 service boundary or expose raw output.
-- Open Questions: exact utility placement and which JSON/YAML helper is truly shared; Slice 01 resolves these from verified consumers.
-- Blocking Questions: none for authoring; any unknown consumer or circular dependency blocks execution.
+- Affected Architecture Area: LXC node lifecycle adapter, command runner,
+  profile/resource policy, teardown and verification evidence.
+- Explicit Requirements: [Issue #184 matrix](../../../.tiny-swarm/evidence/solid-lxc-node-provider/requirement_matrix.md).
+- Implicit Requirements: preserve verify/ensure/reset/destroy semantics,
+  bounded async execution, no circular dependencies, and no public port drift.
+- Assumptions: #189 supplies the sole backend mapping; existing evidence
+  consumers are discovered in Slice 01; compatibility shims remain until
+  consumers are migrated and tested.
+- Non-Goals: new provider behavior, public application-port redesign, typed
+  evidence contract redesign (#191), live LXC lifecycle, browser React or
+  microservice extraction.
+- Risks: extraction can change evidence shape, async timeout behavior, import
+  seams or ownership of profile safety policy.
+- Open Questions: exact split between node lifecycle evidence and #191 typed
+  builders; Slice 01 must freeze the boundary.
+- Blocking Questions: none for authoring; unclear evidence schema blocks
+  execution as required by the issue.
 - Confidence Level: 85%.
 - Decision: `PROCEED_WITH_ACCEPTED_ASSUMPTIONS`.
 
 ## Verified Baseline and Target Picture
 
-Baseline commit: `004fd6c3f0a01b9bcf2bcb011b88e43a069399f9` on clean `main` before
-authoring. Current LXC code still contains `_BACKEND_CLI` in
-`lxc_node_provider.py` and `lxc_swarm_runtime.py`; #238 already introduced
-`lxc/command/`, `lxc/services/` and `lxc/swarm/` packages. The target is one
-authoritative backend resolver with small shared utilities and no high-level
-runtime imports.
+Baseline commit: `004fd6c3f0a01b9bcf2bcb011b88e43a069399f9`. The current module
+contains `LxcNodeCommandResult`, async command execution, lifecycle methods,
+`_ObservedNode`, profile/resource helpers and broad evidence builders. The
+target package keeps the facade orchestration-only and moves mechanics into
+`clients/lxc/{command,node,profile,resource}/`, preserving old imports.
 
 ## Scope and Architecture Constraints
 
-In scope: backend resolver, verified shared utility extraction, consumer
-migration, focused tests, an architecture/static duplicate guard, before/after
-inventory, and planned-vs-implemented Arc42 synchronization.
+In scope: responsibility inventory, command/node/profile/resource/teardown and
+evidence extraction, compatibility exports, focused tests, architecture guard,
+issue evidence and Arc42 planning status. The infrastructure adapter may
+depend on application ports and domain value objects but never the reverse.
+The composition root remains the concrete wiring owner. No live provider or
+Swarm mutation is permitted in default verification.
 
-The resolver and utilities remain in infrastructure. `composition.py` may wire
-them, but application and domain packages remain unaware of LXC CLI mechanics.
-Adapter policy, retries, failure classification and public application-port
-behavior remain at their owning adapters. No live Incus/LXD/Docker/Swarm or
-service command is permitted in default checks.
+## Assessments
 
-## Python, Frontend, Test and Resilience Assessment
-
-This is Python infrastructure work; use typed protocols/value objects where
-useful and preserve Python 3.12 compatibility. Frontend and Console/status UI
-impact are `NOT_APPLICABLE`; browser React review is forbidden. Tests use
-fakes/mocks and must cover Incus/LXD mapping, diagnostics, path handling,
-manager-IP failure and import boundaries. Timeouts, retries and redaction stay
-bounded and adapter-owned. Optional live/browser and external checks are
-classified per verification-state policy and are never implied by a local pass.
+Python infrastructure impact is `FULL_PATH`; use async protocols and typed
+models without import-time side effects. Frontend/Console UI impact is
+`NOT_APPLICABLE`; browser React review is forbidden. Tests must cover
+verify/ensure/reset/destroy, evidence compatibility, timeout/failure mapping,
+profile safety, resource resolution and old import paths. Existing retries,
+live-consent guards and sanitized diagnostics remain bounded and adapter-owned.
 
 ## Ordered Slices
 
-### Slice 01 — Consumer inventory and Three-Amigos contract
-
-Purpose: inventory duplicate mappings/utilities and freeze ownership before
-source edits. Create the issue-required Three-Amigos note during execution.
-
-Prerequisites: indexed workflow promoted and #188 active baseline unchanged.
+### Slice 01 — Responsibility and public-outcome inventory
 
 ```yaml
-slice_id: S189-01
+slice_id: S184-01
 profile: FULL_PATH
 owner: Senior Requirement Engineer
 secondary_reviewers: [Senior System Architect, Senior Python Automation Developer, Senior Tester]
-affected_files: [.tiny-swarm/evidence/solid-lxc-shared-utilities/requirement_matrix.md, .tiny-swarm-world/evidence/solid-lxc-shared-utilities/three-amigos.md, .tiny-swarm-world/evidence/solid-lxc-shared-utilities/duplicate-inventory-before.md]
-affected_modules: [infrastructure.adapters.clients.lxc.command, infrastructure.adapters.clients.lxc.services]
-affected_contracts: [ManagedLxcBackend CLI mapping, safe diagnostics]
+affected_files: [.tiny-swarm/evidence/solid-lxc-node-provider/requirement_matrix.md, .tiny-swarm-world/evidence/solid-lxc-node-provider/three-amigos.md, .tiny-swarm-world/evidence/solid-lxc-node-provider/responsibility-map-before.md]
+affected_modules: [lxc_node_provider lifecycle, command, profile, resource and evidence responsibilities]
+affected_contracts: [verify/ensure/reset/destroy outcomes, serialized evidence classifications]
 dependencies: []
 parallel_group: SERIAL-CHAIN
-file_locks: [.tiny-swarm/evidence/solid-lxc-shared-utilities/**, .tiny-swarm-world/evidence/solid-lxc-shared-utilities/**]
-contract_locks: [lxc-backend-cli-resolution, lxc-shared-utility-boundary]
-architecture_locks: [infrastructure-only-lxc-utilities]
+file_locks: [.tiny-swarm/evidence/solid-lxc-node-provider/**, .tiny-swarm-world/evidence/solid-lxc-node-provider/**]
+contract_locks: [lxc-node-public-outcomes, evidence-schema-compatibility]
+architecture_locks: [lxc-node-orchestration-boundary, issue-189-backend-resolver]
 quality_gates:
   targeted: [git diff --check]
   required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: reviewed; planned only
-  adr: none unless a new public boundary is discovered
-stop_conditions: [unknown consumer, ambiguous stable value, circular-import risk, incomplete matrix]
+  adr: none unless evidence/public boundary is changed
+stop_conditions: [unclear evidence schema, missing consumer, #189 contract not audited, cyclic split]
 ```
 
-### Slice 02 — Shared resolver/utilities and consumer migration
+Purpose: create the issue-required Three-Amigos note and map every current
+responsibility to extracted, retained or explicitly deferred ownership before
+source edits.
 
-Purpose: add the authoritative resolver and only the utilities justified by
-Slice 01; migrate every verified backend-mapping consumer while preserving
-adapter policy, preflight ownership and compatibility imports.
-
-Prerequisites: `S189-01` READY with no blocking contract question.
+### Slice 02 — Extract modules and preserve compatibility
 
 ```yaml
-slice_id: S189-02
+slice_id: S184-02
 profile: FULL_PATH
 owner: Senior Python Automation Developer
 secondary_reviewers: [Senior System Architect, Senior Tester, Senior Security Sandbox Engineer]
-affected_files: [src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/**, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_docker_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_swarm_bootstrap.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/docker/lxc_container_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/lxc_container_image_publisher.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/common.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/swarm_stack_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_asset_transfer.py, src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py, src/tiny_swarm_world/infrastructure/composition.py, tests/infrastructure/adapters/clients/lxc/**, tests/infrastructure/adapters/clients/test_lxc_node_provider.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/infrastructure/adapters/clients/test_lxc_container_docker_runtime.py, tests/infrastructure/adapters/clients/test_lxc_container_swarm_bootstrap.py, tests/infrastructure/adapters/clients/test_lxc_proxy_device_runtime.py, tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py, tests/infrastructure/test_composition.py, tests/infrastructure/test_lxc_runtime_logging.py, tests/architecture/**]
-affected_modules: [infrastructure.adapters.clients.lxc, infrastructure.adapters.clients, infrastructure.adapters.preflight, infrastructure.composition]
-affected_contracts: [ManagedLxcBackend, LXC command diagnostics, manager IP resolution]
-dependencies: [S189-01]
+affected_files: [src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/**, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/node/**, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/profile/**, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/resource/**, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py, tests/infrastructure/adapters/clients/lxc/**, tests/infrastructure/adapters/clients/test_lxc_node_provider.py]
+affected_modules: [infrastructure.adapters.clients.lxc.node_provider and extracted modules]
+affected_contracts: [LxcNodeCommandRunner, PortNodeLifecycle, PortManagedNodeTeardown, evidence dictionaries]
+dependencies: [S184-01]
 parallel_group: SERIAL-CHAIN
-file_locks: [src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/**, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_docker_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_swarm_bootstrap.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/docker/lxc_container_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/lxc_container_image_publisher.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/common.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/swarm_stack_runtime.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_asset_transfer.py, src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py, src/tiny_swarm_world/infrastructure/composition.py, tests/infrastructure/adapters/clients/lxc/**, tests/infrastructure/adapters/clients/test_lxc_node_provider.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/infrastructure/adapters/clients/test_lxc_container_docker_runtime.py, tests/infrastructure/adapters/clients/test_lxc_container_swarm_bootstrap.py, tests/infrastructure/adapters/clients/test_lxc_proxy_device_runtime.py, tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py, tests/infrastructure/test_composition.py, tests/infrastructure/test_lxc_runtime_logging.py, tests/architecture/**]
-contract_locks: [lxc-backend-cli-resolution, lxc-shared-utility-boundary]
-architecture_locks: [infrastructure-only-lxc-utilities, composition-root-wiring, preflight-provider-readiness-boundary, legacy-lxc-client-compatibility]
+file_locks: [src/tiny_swarm_world/infrastructure/adapters/clients/lxc/**, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py, tests/infrastructure/adapters/clients/lxc/**, tests/infrastructure/adapters/clients/test_lxc_node_provider.py]
+contract_locks: [lxc-node-public-outcomes, evidence-schema-compatibility, issue-189-backend-resolver]
+architecture_locks: [lxc-node-orchestration-boundary]
 quality_gates:
   targeted: [python3 tools/quality_gate.py lint, python3 tools/quality_gate.py typecheck, python3 tools/quality_gate.py test, python3 tools/quality_gate.py arch-lint, python3 tools/quality_gate.py arch-tests]
   required: [python3 tools/quality_gate.py quality]
 documentation:
-  arc42: planned boundary only until evidence
-  adr: required only for a new public cross-layer contract
-stop_conditions: [duplicate mapping remains, public behavior drift, raw secret diagnostics, domain/application import]
+  arc42: planned boundary until evidence proves implementation
+  adr: none unless public contract changes
+stop_conditions: [behavior drift, old import break, direct policy leak, unbounded async command, duplicate backend map]
 ```
 
-### Slice 03 — Regression, architecture guard and audit handoff
-
-Purpose: prove no command drift, record the after-inventory, synchronize Arc42
-planned status, and hand off to the issue completion auditor before #184.
-
-Prerequisites: `S189-02` implementation and focused tests pass.
+### Slice 03 — Regression, architecture and completion audit
 
 ```yaml
-slice_id: S189-03
+slice_id: S184-03
 profile: FULL_PATH
 owner: Senior Tester
 secondary_reviewers: [Senior System Architect, Senior Requirement Engineer, Senior Documentation Engineer]
-affected_files: [tests/architecture/**, tests/infrastructure/adapters/clients/lxc/**, .tiny-swarm-world/evidence/solid-lxc-shared-utilities/**, documentation/arc42/**]
-affected_modules: [architecture validation, LXC evidence, Arc42 quality/risk documentation]
-affected_contracts: [issue acceptance, evidence package, local quality gate]
-dependencies: [S189-02]
+affected_files: [tests/architecture/**, tests/infrastructure/adapters/clients/lxc/**, .tiny-swarm-world/evidence/solid-lxc-node-provider/**, documentation/arc42/**]
+affected_modules: [LXC lifecycle architecture and evidence verification]
+affected_contracts: [public lifecycle behavior, compatibility imports, evidence schema]
+dependencies: [S184-02]
 parallel_group: SERIAL-CHAIN
-file_locks: [tests/architecture/**, tests/infrastructure/adapters/clients/lxc/**, .tiny-swarm-world/evidence/solid-lxc-shared-utilities/**, documentation/arc42/**]
-contract_locks: [lxc-backend-cli-resolution]
-architecture_locks: [lxc-duplicate-mapping-guard]
+file_locks: [tests/architecture/**, tests/infrastructure/adapters/clients/lxc/**, .tiny-swarm-world/evidence/solid-lxc-node-provider/**, documentation/arc42/**]
+contract_locks: [lxc-node-public-outcomes, evidence-schema-compatibility]
+architecture_locks: [lxc-node-orchestration-boundary]
 quality_gates:
   targeted: [git diff --check, python3 tools/quality_gate.py arch-tests, python3 tools/quality_gate.py test]
   required: [python3 tools/quality_gate.py quality]
 documentation:
-  arc42: update only verified planned/implemented status
-  adr: review existing LXC ADRs; no invented decision
-stop_conditions: [missing evidence, unverified requirement, failed local gate, external result not observable]
+  arc42: synchronize only verified responsibility status
+  adr: review LXC-native provider ADR; no invented decision
+stop_conditions: [missing regression evidence, open matrix row, failed quality gate, external success claimed without result]
 ```
+
+## Slice Dependency Graph
+
+```text
+S184-01 -> S184-02 -> S184-03
+```
+
+Cross-workflow prerequisite: #189 must be audited and complete before S184-01
+can freeze the command boundary.
 
 ## Parallel Execution
 
-- Can this workflow run in parallel? No; it locks shared LXC command and
-  composition surfaces and is the first chain dependency.
-- Conflicting workflows: #184, #192 and any workflow touching LXC command
-  utilities or composition.
-- Shared files: `lxc_node_provider.py`, `lxc_swarm_runtime.py`, composition and
-  LXC tests.
-- Shared infrastructure: none may be mutated by local verification.
-- Requires isolated worktree: yes, for this workflow and every future stream.
-- Requires serialized live validation: yes; live validation is optional and
-  serialized if separately authorized.
-- Merge-order constraints: complete #189 before #184; preserve its resolver
-  contract.
+- Can this workflow run in parallel? No; it shares the LXC command package and
+  `lxc_node_provider.py` with #189/#191 and must follow the chain.
+- Conflicting workflows: #189, #191, #192 and any LXC node-provider change.
+- Shared files: `lxc_node_provider.py`, `lxc/command/**`, LXC tests and evidence.
+- Shared infrastructure: none in local quality checks.
+- Requires isolated worktree: yes.
+- Requires serialized live validation: yes, if separately authorized.
+- Merge-order constraints: #189 first; #184 before #191.
 
 ## Automatic Work Distribution Policy
 
-`workflow execute` must analyze every slice for safe backend, frontend, tests,
-runtime, documentation, quality, architecture and security streams; use real
-Codex subagents where supported; otherwise record explicit role-based fallback
-review. Because the global slice evidence names are occupied by historical
-workflows, this workflow uses `.codex/evidence/issue-189-20260809/` and must
-create `slice-<number>-distribution.md` there before implementation and
-`slice-<number>-consolidation.md` there after an implemented slice. Overlapping files/contracts, unclear architecture,
-contradictory requirements, mandatory ordering, generated-file conflicts,
-unclear secrets or weakened safety guards are not parallelizable. Codex is the
-final integration owner.
+`workflow execute` must analyze backend, frontend, tests, runtime, documentation,
+quality, architecture and security streams for every slice, use real Codex
+subagents where available, or record role-based fallback. Distribution evidence
+`.codex/evidence/issue-184-20260809/slice-<number>-distribution.md` is required
+before edits and consolidation evidence
+`.codex/evidence/issue-184-20260809/slice-<number>-consolidation.md` after
+implementation. Historical global slice evidence is preserved. Overlapping files, unclear architecture, contradictory
+requirements, mandatory ordering, generated conflicts, unclear secrets and
+weakened guards forbid parallelization. Codex integrates and decides final
+acceptance.
 
 ## Execution Evidence Paths
 
-- S189-01 distribution: `.codex/evidence/issue-189-20260809/slice-01-distribution.md`.
-- S189-01 consolidation: `.codex/evidence/issue-189-20260809/slice-01-consolidation.md`.
-- S189-02 distribution: `.codex/evidence/issue-189-20260809/slice-02-distribution.md`.
-- S189-02 consolidation: `.codex/evidence/issue-189-20260809/slice-02-consolidation.md`.
-- S189-03 distribution: `.codex/evidence/issue-189-20260809/slice-03-distribution.md`.
-- S189-03 consolidation: `.codex/evidence/issue-189-20260809/slice-03-consolidation.md`.
+- S184-01 distribution: `.codex/evidence/issue-184-20260809/slice-01-distribution.md`.
+- S184-01 consolidation: `.codex/evidence/issue-184-20260809/slice-01-consolidation.md`.
+- S184-02 distribution: `.codex/evidence/issue-184-20260809/slice-02-distribution.md`.
+- S184-02 consolidation: `.codex/evidence/issue-184-20260809/slice-02-consolidation.md`.
+- S184-03 distribution: `.codex/evidence/issue-184-20260809/slice-03-distribution.md`.
+- S184-03 consolidation: `.codex/evidence/issue-184-20260809/slice-03-consolidation.md`.
 
 ## Git Worktree Execution Rule
 
-Every execution uses an isolated worktree. Any approved stream branch must be
-named `<workflow-branch>-slice-<number>-<stream>`. Workers verify the branch
-before edits, never modify `main` or the authoring branch directly, and never
-merge. Codex consolidates only after distribution, tests and evidence pass.
+Use an isolated worktree and stream branches named
+`<workflow-branch>-slice-<number>-<stream>`. Workers verify branch ownership,
+do not edit shared branches or merge, and remain within declared locks.
 
 ## Role and Ownership Map
 
-| Responsibility | Owner |
-|---|---|
-| requirement matrix and drift | Senior Requirement Engineer |
-| boundary and import safety | Senior System Architect |
-| Python implementation | Senior Python Automation Developer |
-| tests and quality gates | Senior Tester |
-| Arc42 and handoff docs | Senior Documentation Engineer |
-| lock/order validation | Senior Execution Orchestrator |
+Requirement: Senior Requirement Engineer. Architecture: Senior System
+Architect. Implementation: Senior Python Automation Developer. Tests/evidence:
+Senior Tester. Docs: Senior Documentation Engineer. Lock/order validation:
+Senior Execution Orchestrator.
 
 ## Issue Completion Discipline
 
-- Requirement matrix path: `.tiny-swarm/evidence/solid-lxc-shared-utilities/requirement_matrix.md`.
-- Required evidence path: `.tiny-swarm/evidence/solid-lxc-shared-utilities/`.
-- Required evidence files: `requirement_matrix.md`, `implementation_summary.md`, `changed_files.md`, `test_results.md`, `remaining_risks.md`, `acceptance_checklist.md`, plus issue-required Three-Amigos and inventory files under `.tiny-swarm-world/evidence/solid-lxc-shared-utilities/`.
-- Requirement Lead review: required after S189-01 and before audit.
-- System Architect Reviewer review: required after S189-02.
-- Test / Evidence Reviewer review: required after S189-03.
-- Issue Completion Auditor review: required before #184 is promoted.
-- DONE blocking rule: any open or unverified requirement forces `INCOMPLETE`,
-  `BLOCKED` or `FAILED`; skipped live/external evidence cannot be called green.
+- Requirement matrix path: `.tiny-swarm/evidence/solid-lxc-node-provider/requirement_matrix.md`.
+- Required evidence path: `.tiny-swarm/evidence/solid-lxc-node-provider/`.
+- Required evidence files: `requirement_matrix.md`, `implementation_summary.md`, `changed_files.md`, `test_results.md`, `remaining_risks.md`, `acceptance_checklist.md`, plus the issue-required Three-Amigos, responsibility and E2E/live-state files where applicable.
+- Requirement Lead review: after S184-01.
+- System Architect Reviewer review: after S184-02.
+- Test / Evidence Reviewer review: after S184-03.
+- Issue Completion Auditor review: before #191 promotion.
+- DONE blocking rule: open or unverified requirements force `INCOMPLETE`,
+  `BLOCKED` or `FAILED`; no skipped live/browser/external check is success.
 
 ## Quality-Gate Expectations
 
-Use only commands in `QUALITY.md`: targeted gates during implementation,
-`python3 tools/quality_gate.py quality` before completion, and `git diff --check`
-for authoring/docs. Sonar or browser checks are external/live state checks,
-not implied by local quality.
+Use only `QUALITY.md` commands. The full local gate is
+`python3 tools/quality_gate.py quality`; docs use `git diff --check`. Live
+LXC/browser and Sonar states must use the canonical policy.
 
-## Documentation Synchronization, Stop Conditions and Definition of Done
+## Documentation, Stop Conditions, Definition of Done and Handoff
 
-Update Arc42 only to reflect verified planned or implemented responsibility.
-Stop on a missing consumer, behavior drift, circular dependency, ambiguous
-evidence, failed required gate, unverified external result, or need for an
-unrecorded architecture decision.
-
-The workflow is complete when all matrix rows have implementation and
-verification evidence, the issue-required evidence exists, local quality is
-green, the auditor records PASS, and the handoff explicitly declares #184
-unblocked. No live success claim is required.
-
-## Handoff to `workflow execute`
-
-This workflow was promoted from the indexed set on
-`feature/centralize-lxc-shared-utilities-solid`. S189-03 completed the local
-audit and hands off an unblocked resolver contract to #184. Promote #184
-through the serialized chain process before its execution; do not call
-`workflow create` backwards.
+Arc42 receives only verified status updates. Stop for unclear evidence schema,
+behavior drift, import cycles, failed required gates, missing evidence or an
+architecture decision not present in the repository. Done requires every
+matrix row, compatibility test, lifecycle regression, architecture check,
+evidence file and auditor PASS. Issue #184 is complete locally and hands off
+the audited boundary to #191.
 
 ## Arc42 Check Status
 
-Existing LXC-native and process-runner ADR/Arc42 material was reviewed. This
-workflow adds a planned chain note only; no architecture decision is invented.
+Existing LXC-native provider architecture and #238 responsibility split were
+reviewed. The command, node, profile and resource responsibility split is
+implemented locally and independently audited; no live result is claimed.
