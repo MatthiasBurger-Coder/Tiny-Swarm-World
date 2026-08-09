@@ -12,9 +12,17 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics im
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.manager_shell_gateway import (
     LxcManagerShellGateway,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.node_command import (
+    AsyncLxcNodeCommandRunner,
+    LxcNodeCommandResult,
+    LxcNodeCommandRunner,
+)
 
 __all__ = [
     "BACKEND_CLI",
+    "AsyncLxcNodeCommandRunner",
+    "LxcNodeCommandResult",
+    "LxcNodeCommandRunner",
     "LxcManagerShellGateway",
     "backend_cli",
     "command_failed",
