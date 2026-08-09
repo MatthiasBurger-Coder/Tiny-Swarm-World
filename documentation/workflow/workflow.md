@@ -178,12 +178,22 @@ can freeze the command boundary.
 `workflow execute` must analyze backend, frontend, tests, runtime, documentation,
 quality, architecture and security streams for every slice, use real Codex
 subagents where available, or record role-based fallback. Distribution evidence
-`.codex/evidence/slice-<number>-distribution.md` is required before edits and
-consolidation evidence `.codex/evidence/slice-<number>-consolidation.md` after
-implementation. Overlapping files, unclear architecture, contradictory
+`.codex/evidence/issue-184-20260809/slice-<number>-distribution.md` is required
+before edits and consolidation evidence
+`.codex/evidence/issue-184-20260809/slice-<number>-consolidation.md` after
+implementation. Historical global slice evidence is preserved. Overlapping files, unclear architecture, contradictory
 requirements, mandatory ordering, generated conflicts, unclear secrets and
 weakened guards forbid parallelization. Codex integrates and decides final
 acceptance.
+
+## Execution Evidence Paths
+
+- S184-01 distribution: `.codex/evidence/issue-184-20260809/slice-01-distribution.md`.
+- S184-01 consolidation: `.codex/evidence/issue-184-20260809/slice-01-consolidation.md`.
+- S184-02 distribution: `.codex/evidence/issue-184-20260809/slice-02-distribution.md`.
+- S184-02 consolidation: `.codex/evidence/issue-184-20260809/slice-02-consolidation.md`.
+- S184-03 distribution: `.codex/evidence/issue-184-20260809/slice-03-distribution.md`.
+- S184-03 consolidation: `.codex/evidence/issue-184-20260809/slice-03-consolidation.md`.
 
 ## Git Worktree Execution Rule
 
