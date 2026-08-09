@@ -203,8 +203,8 @@ target.
 - Decision: `PASS` — locally complete and independently audited.
 - Requirement matrix: all `REQ-187-001` through `REQ-187-007` are
   `VERIFIED_LOCAL`.
-- Local quality: `python3 tools/quality_gate.py quality` passed with `1689`
-  tests passed and `28` skipped.
+- Local quality: `python3 tools/quality_gate.py quality` is `VERIFIED_LOCAL`.
+- Test execution counts: `1689` completed cases; `28` intentionally skipped.
 - Live, browser and external quality-system checks: not run and not claimed.
 - Handoff: Issue #190, `feature/stack-prerequisite-strategies-solid`.
 
