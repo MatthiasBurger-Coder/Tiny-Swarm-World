@@ -1,22 +1,22 @@
 {
-  "workflow_id": "issue-186-20260809",
-  "workflow_version": "issue-186-v1.0.0",
-  "set_id": "solid-refactor-chain-20260809",
-  "branch": "feature/replace-global-di-service-locator-solid",
+  "workflow_id": "issue-217-20260809",
+  "workflow_version": "issue-217-v1.0.0",
+  "branch": "feature/workflow-review-obsolete-issues-20260809",
+  "implementation_branch": "requirements/review-obsolete-issues-156-163-197-20260809",
   "execution_profile": "FULL_PATH",
   "process_strand": "workflow-create-to-workflow-execute",
   "affected_areas": [
-    "composition root",
-    "explicit adapter construction",
-    "DI symbol audit",
-    "architecture guard",
-    "issue evidence"
+    "issue #217 requirements governance",
+    "Issue #156 direct published-port and effective-access evidence",
+    "Issue #163 test-fixture Sonar findings",
+    "Issue #197 composition/Socat responsibility evidence",
+    "duplicate-work prevention and guarded GitHub issue actions"
   ],
   "forbidden_areas": [
-    "invented container",
-    "service-level global resolve",
-    "broad composition rewrite",
-    "live infrastructure",
+    "product implementation during workflow creation",
+    "unrelated backlog cleanup",
+    "live Docker/LXC/Incus/Swarm/network/Selenium actions",
+    "unverified Sonar success",
     "browser React"
   ],
   "required_roles": [
@@ -26,31 +26,37 @@
     "Senior Tester"
   ],
   "conditional_roles": [
+    "Senior Workflow Architect",
     "Senior Documentation Engineer",
     "Senior Security Sandbox Engineer",
-    "Senior Execution Orchestrator"
+    "Senior Execution Orchestrator",
+    "Senior DevOps Engineer"
   ],
   "quality_commands": [
-    "python3 tools/quality_gate.py quality",
-    "python3 tools/quality_gate.py lint",
-    "python3 tools/quality_gate.py typecheck",
-    "python3 tools/quality_gate.py test",
-    "python3 tools/quality_gate.py arch-lint",
-    "python3 tools/quality_gate.py arch-tests",
-    "git diff --check"
+    "git diff --check",
+    "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml",
+    "PYTHONPATH=src python3 -m unittest tests.integration.test_optional_service_routing",
+    "PYTHONPATH=src python3 -m unittest tests.domain.network.test_port_forwarding_plan",
+    "PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition",
+    "python3 tools/quality_gate.py quality"
   ],
+  "evidence_root": ".tiny-swarm/evidence/issue-217-obsolescence-review/",
   "governing_file_hashes": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
     "QUALITY.md": "7f8dd247fd989fbb72588a48b00846edcb2a9aa748bb1954dc22b75952efaa4c",
     "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
     "documentation/process/workflow-create.md": "5df5fb70ddc25ef2d8ad2129590e780bfee610521860fb0991e57c38dab3542f",
-    ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
-    ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
-    "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/workflow/workflow.md": "443C0D62B8A77F5AB28ED35BDA4B8A1BE6BEB0FFDC38440D1D32EDC00B9D973C",
-    "documentation/arc42/11_risks_and_debt.adoc": "C9174C01ABB7505A10058D2110ABDC217B17F8B589B3AFBB84F9FB86AC46CBB6"
+    "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
+    ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
+    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
+    ".agents/skills/requirement-engineering/SKILL.md": "c1a96bc652dc8800abe9dc6f4b7aff79418ed5350acda6cf920ca7dd27b75a26",
+    ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
+    ".agents/skills/engineering-governance/SKILL.md": "923c23fa4328d0c2365bfdb52a577c7316101f5e0964cea879d61bb06ee27634",
+    ".agents/skills/resilience-engineering/SKILL.md": "72c515e5562ba7f7187af99e688d435409c628d1351cd68705d872f48df79a70",
+    ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
+    "documentation/arc42/11_risks_and_debt.adoc": "c9174c01abb7505a10058d2110abdc217b17f8b589b3afbb84f9fb86ac46cbb6",
+    "documentation/workflow/workflow.md": "eebe470e831c8554b747d68d1e9fc468e4791a6548d00d096447454115bce614"
   },
-  "staleness_note": "These hashes record the governing files used during authoring; the pack is not a replacement for them.",
-  "status": "COMPLETED_LOCAL_AUDITED"
+  "staleness_note": "Hashes record the governing files used during authoring; this context pack does not replace them. Revalidate before workflow execution when any hash changes."
 }
