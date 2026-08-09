@@ -1,55 +1,67 @@
-# Slice 02 Consolidation
+# Issue #188 — S02 Consolidation
 
-Workflow: `issue-183-20260808`
-Slice: `02` — Extract the LXC command gateway and shared diagnostics
-Status: `ACCEPTED_FOR_CHECKPOINT`
+- Workflow: `issue-188-20260809` / `issue-188-v1.0.0`
+- Slice: `S02` — Implement the reusable infrastructure process runner
+- Branch: `feature/issue-188-shared-command-runners`
+- Decision: `ORCHESTRATION_BLOCKER`
+- Real subagents: not available; fallback role review was performed
 
-## Distribution result
+## Blocker
 
-The slice remained sequential because the legacy runtime module and its test
-patch seams are shared. No callable Codex subagent surface was available, so
-the documented fallback review was performed by the main execution thread for
-the Senior Python Automation Developer, Senior System Architect, Senior Tester,
-and Senior Security Sandbox Engineer responsibilities.
+The checked workflow requires S02 to wire the concrete shared runner through
+`infrastructure/composition.py`, but the verified baseline target adapters do
+not accept a runner dependency:
 
-## Implemented scope
+- `DockerCliRuntime.__init__` has only `timeout_seconds`.
+- `LxcManagerShellGateway` has no runner constructor dependency; its legacy
+  call seam is passed at operation time from `LxcSwarmRuntime`.
+- `LxcContainerRuntime.__init__` has no runner dependency.
+- `LxcContainerImagePublisher.__init__` has no runner dependency.
+- `HostPreflightProbe.__init__` has no runner dependency.
 
-* Added `lxc/command/diagnostics.py` for bounded, redacted command logging and
-  transient Incus child-PID failure detection.
-* Added `lxc/command/manager_shell_gateway.py` for Incus/LXD manager and node
-  shell execution, timeout handling, retries, and failure reporting.
-* Added the command package exports.
-* Kept `LxcSwarmRuntime._run_manager_shell`, `_run_node_shell`,
-  `_safe_log_text`, and `_is_transient_manager_shell_failure` as compatibility
-  seams. Legacy subprocess/time patch paths are resolved at operation time.
-* Added focused gateway and diagnostics tests.
+The S02 allowed files and locks are limited to:
 
-## Review findings
+- `src/tiny_swarm_world/infrastructure/process/**`
+- `src/tiny_swarm_world/infrastructure/composition.py`
+- `tests/infrastructure/process/**`
+- `tests/infrastructure/test_composition.py`
 
-* Architecture: accepted. The gateway remains infrastructure-only and no
-  application port or domain dependency changed.
-* Compatibility: accepted. Existing runtime, logging, retry, timeout, and
-  backend-selection tests passed.
-* Security/diagnostics: accepted. Assignment, bearer, and token parameter
-  redaction plus bounded output remain covered.
-* Documentation: no product documentation change was required for this
-  internal extraction slice.
-* Live infrastructure: not run; no live consent was provided or required for
-  this local extraction.
+Changing the five adapter constructors or the legacy `LxcSwarmRuntime` seam is
+therefore required for explicit dependency injection but is outside S02's
+declared write scope. Deferring composition changes to S03–S07 is also outside
+those slices' declared file locks because composition is not listed there.
 
-## Verification evidence
+## Fallback role review
 
-* Focused unittest suite: `65` tests passed.
-* `python3 tools/quality_gate.py lint`: passed.
-* `python3 tools/quality_gate.py typecheck`: passed; existing annotation notes
-  only.
-* `python3 tools/quality_gate.py arch-lint`: passed, 3 contracts kept.
-* `python3 tools/quality_gate.py arch-tests`: passed, 18 tests.
-* `git diff --check`: passed.
+- Senior Python Automation Developer: confirmed that a runner factory alone
+  would not wire the adapters and that adapter-local global lookup would violate
+  the explicit-dependency and infrastructure-boundary requirements.
+- Senior System Architect: confirmed that importing composition from adapters
+  or introducing a global runner would be an architecture shortcut.
+- Senior Tester: confirmed that constructor changes require focused composition
+  and adapter regression coverage and must not be hidden in S02.
+- Senior Security Sandbox Engineer: confirmed no source or live process change
+  was made while the dependency boundary is unresolved.
+- Senior Execution Orchestrator: classified this as a checked-workflow scope /
+  lock inconsistency requiring workflow-authority direction before write work.
 
-## Consolidation decision
+## Checks executed
 
-No stream changes were rejected and no merge conflict occurred. The slice is
-accepted for one checkpoint commit on the active workflow branch. SonarQube,
-browser checks, and live infrastructure evidence are outside this slice and
-remain unclaimed.
+- S3 branch/status/local-ref check — PASS.
+- S3D metadata/dependency/topology check — PASS for the graph; S02 remains
+  blocked by its internal scope/lock inconsistency.
+- Constructor and composition call-site inspection — PASS; blocker reproduced
+  from source symbols listed above.
+- `git diff --check` — PASS.
+- Python quality gates — NOT RUN; no Python source or test changes were made.
+- Live/external/browser/SonarQube checks — NOT REQUIRED and NOT RUN.
+
+## Required resolution
+
+Resume only after one of these is explicitly authorized in the checked
+workflow: (1) amend S02's write scope/locks to include the minimal adapter
+constructor and legacy-seam wiring, or (2) define a verified alternative
+composition mechanism that preserves explicit dependency injection and does
+not introduce global lookup or an adapter-to-composition dependency.
+
+No `workflow create` call was made, and no product implementation was started.

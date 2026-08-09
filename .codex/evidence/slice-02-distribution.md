@@ -1,69 +1,35 @@
-# Slice 02 Distribution Decision
+# Issue #188 — S02 Distribution Decision
 
-Workflow: `issue-183-20260808`
-Slice: `02` — Extract the LXC command gateway and shared diagnostics
-
-## Affected areas
-
-* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py`
-  manager/node shell methods and diagnostic helpers;
-* new `infrastructure/adapters/clients/lxc/command/` package;
-* focused command-gateway tests.
-
-## Execution decision
-
-* Chosen mode: `sequential`.
-* Real Codex subagents used: `No callable subagent surface is available.`
-* Fallback role-based review used: `Yes`.
-* Git worktrees used: `No`; shared legacy-module and test locks require the
-  checked workflow branch and serialized execution.
-* Selected streams: backend, tests, architecture, security/diagnostics.
-* Documentation and runtime streams: review-only; no live command is allowed.
-
-## Fallback role review
-
-* Senior Python Automation Developer: extract only reusable shell execution
-  and diagnostics; preserve the old runtime delegation methods and patch
-  compatibility.
-* Senior System Architect: keep the gateway in infrastructure, preserve
-  existing application ports, and avoid introducing a new service boundary.
-* Senior Tester: preserve subprocess/time patch behavior, bounded output,
-  retry, timeout, failure, and backend-selection test coverage.
-* Senior Security Sandbox Engineer: retain redaction of assignments, bearer
-  values, token parameters, and bounded diagnostic output.
-
-## Expected touched files/directories
-
-* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/__init__.py`
-* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/diagnostics.py`
-* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/manager_shell_gateway.py`
-* `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py`
-* `.codex/evidence/slice-02-distribution.md`
-* `.codex/evidence/slice-02-consolidation.md`
-
-## Conflict risks
-
-The legacy test suite patches `subprocess.run` and `time.sleep` through the old
-module path after runtime construction. The compatibility delegation must
-resolve those callables at operation time. No parallel stream may touch these
-files.
-
-## Quality gates
-
-* focused command-gateway unittest;
-* `python3 tools/quality_gate.py lint`;
-* `python3 tools/quality_gate.py typecheck`;
-* `python3 tools/quality_gate.py arch-lint`;
-* `python3 tools/quality_gate.py arch-tests`;
-* `git diff --check`.
-
-## Consolidation plan
-
-Codex will run the focused legacy/runtime and new gateway tests, inspect the
-diff for compatibility and redaction, write consolidation evidence, and create
-one Slice 02 checkpoint commit before Slice 03.
-
-## Parallelization decision
-
-Rejected because the gateway changes the shared legacy module and its existing
-patch/test surface. Sequential fallback review is required.
+- Workflow ID: `issue-188-20260809`
+- Workflow version: `issue-188-v1.0.0`
+- Slice ID: `S02`
+- Slice title: Implement the reusable infrastructure process runner
+- Affected areas: backend/infrastructure process execution, composition root,
+  tests, architecture, resilience, security
+- Chosen execution mode: `sequential`
+- Selected streams: Senior Python Automation Developer, Senior System
+  Architect, Senior Tester, Senior Security Sandbox Engineer, Senior DevOps
+  Engineer
+- Real subagents used: `no`; no callable subagent tool is exposed
+- Fallback role-based review used: `yes`
+- Git worktrees used: implementation worktree only; no parallel streams
+- Expected touched files/directories: `src/tiny_swarm_world/infrastructure/process/**`,
+  `src/tiny_swarm_world/infrastructure/composition.py`,
+  `tests/infrastructure/process/**`, `tests/infrastructure/test_composition.py`
+- File locks: shared process package, composition root, runner tests, and
+  composition tests
+- Contract locks: `shared-process-runner-contract`
+- Architecture locks: `infrastructure-only-process-boundary`,
+  `composition-root-wiring`
+- Conflict risks: the workflow says composition must supply the runner, but
+  the current target adapter constructors do not yet accept a runner and S02's
+  declared file locks exclude those adapters. This must be resolved from the
+  checked workflow before any product source write.
+- Quality gates: targeted lint, typecheck, test, arch-lint, arch-tests; required
+  `python3 tools/quality_gate.py quality`; `git diff --check`
+- Consolidation plan: review the contract and constructor/composition wiring
+  against S02's exact allowed files, then record either an accepted minimal
+  implementation or a typed governance blocker. No workflow rewrite is
+  permitted during execution.
+- Parallelization decision: rejected because S02 is the serial contract gate,
+  and the shared contract/composition locks are prerequisites for S03–S07.
