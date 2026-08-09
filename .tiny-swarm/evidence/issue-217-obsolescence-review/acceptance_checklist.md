@@ -13,7 +13,7 @@
 | Duplicate-work guard and action compare-and-set policy recorded | `deduplication-guard.md` | `VERIFIED_LOCAL`; four actions applied once and post-read |
 | Full repository quality gate | Required by S217-05 | `PASS` — 1,697 tests, 28 skipped; verification policy, lint, architecture lint/tests and typecheck passed |
 | Final issue actions and post-action snapshots | `issue-actions.md` | `PASS` — #156/#163/#197 each received one `KEEP_OPEN` comment; #217 received one canonical summary; all post-states re-read |
+| Issue Completion Auditor review | `issue-completion-auditor.md` | `PASS` — corrected package rechecked by explicit main-thread fallback; candidate residuals remain intentionally `KEEP_OPEN` |
 
-The workflow must not claim final `DONE` until the Issue Completion Auditor has
-reviewed this corrected package. External Sonar state remains `UNVERIFIED` and
-must not be described as passed.
+The workflow is complete as a governance review. Candidate implementation work
+is not claimed complete, and external Sonar state remains `UNVERIFIED`.

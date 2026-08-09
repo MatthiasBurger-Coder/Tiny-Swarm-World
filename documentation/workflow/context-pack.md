@@ -1,8 +1,8 @@
 # Context Pack — Issue #217
 
 - Workflow: `issue-217-20260809` (`issue-217-v1.0.0`).
-- Authoring branch: `feature/workflow-review-obsolete-issues-20260809`.
-- Implementation branch: `requirements/review-obsolete-issues-156-163-197-20260809`.
+- Publication/authoring branch: `feature/workflow-review-obsolete-issues-20260809`.
+- Active execution branch: `requirements/review-obsolete-issues-156-163-197-20260809`.
 - Execution profile: `FULL_PATH`.
 - Process strand: `workflow-create-to-workflow-execute`.
 - Scope: evidence-backed current-main review of Issues #156, #163 and #197,

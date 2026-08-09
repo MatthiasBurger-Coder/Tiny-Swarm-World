@@ -2,7 +2,7 @@
 
 - Workflow: `issue-217-20260809` / `issue-217-v1.0.0`
 - Slice: `S217-06`
-- Status: `PASS_TO_ISSUE_COMPLETION_AUDITOR`
+- Status: `PASS`
 
 ## Remote actions
 
@@ -30,6 +30,5 @@ The returned comment ids and timestamps are recorded in `issue-actions.md`.
 The active SonarCloud remediation EPIC is explicitly linked to #163 as a
 related but not completed inventory-derived concern. #156 and #197 remain
 issue-body-authoritative without a matching EPIC. The workflow status is
-`EXECUTING` on the declared implementation branch; the only remaining gate is
-the final Issue Completion Auditor review.
-
+`COMPLETED` on the declared implementation branch. The candidate issues remain
+open by evidence-backed decision.

@@ -25,6 +25,7 @@ namespace plus the existing requirement matrix.
 - `.tiny-swarm/evidence/issue-217-obsolescence-review/workflow-authoring-validation.md`
 - `documentation/workflow/workflow.md` (execution status transition)
 - `documentation/workflow/context-pack.json` (synchronized workflow hash)
+- `documentation/workflow/context-pack.md` (publication versus execution branch clarification)
 
 ## Explicitly unchanged
 

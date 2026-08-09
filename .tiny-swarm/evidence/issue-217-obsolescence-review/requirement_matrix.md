@@ -1,7 +1,7 @@
 # Requirement Matrix — Issue #217
 
-Status: `EXECUTION_REVIEWED`; candidate decisions are recorded, but final
-quality verification and guarded issue actions remain pending.
+Status: `COMPLETED_WITH_OPEN_CANDIDATES`; the review workflow is complete while
+the three candidate issues remain open for residual implementation work.
 
 Source of truth: GitHub Issue #217 and the current bodies/comments of Issues
 #156, #163 and #197, reviewed against the `main` baseline.
@@ -18,7 +18,7 @@ Source of truth: GitHub Issue #217 and the current bodies/comments of Issues
 | REQ-217-008 | Keep scope limited to review and backlog decisions; do not implement unrelated refactors or run live Docker, LXC, Incus, Swarm, networking or Selenium checks without explicit consent. | Scope / safety | Workflow scope and command/evidence log | Diff scope and command safety preserved | VERIFIED_LOCAL |
 | REQ-217-009 | Apply the correct issue action only after evidence: close completed/superseded issues with the correct reason, rewrite reduced-scope issues to residual work, and remove stale evidence/criteria from issues that remain open. | External coordination / functional | `issue-actions.md`, final issue snapshots | Four guarded evidence actions applied once; post-states re-read; no candidate qualified for closure | VERIFIED_LOCAL |
 | REQ-217-010 | Prevent duplicate work by preserving supersession/duplicate relationships, using one canonical decision record, and refusing to repeat or overwrite an issue action after the remote state has changed. | Resilience / idempotency | `deduplication-guard.md`, issue action log | Stable keys, conflict policy, single application and post-state reads recorded; #159/#160 preserved | VERIFIED_LOCAL |
-| REQ-217-011 | Create the required issue-completion evidence package and block `DONE` when any requirement is open, unverified, or dependent on unavailable external evidence. | Quality / evidence governance | `.tiny-swarm/evidence/issue-217-obsolescence-review/` | Candidate package, final action records and auditor review are required | PENDING_AUDITOR_REVIEW |
+| REQ-217-011 | Create the required issue-completion evidence package and block `DONE` when any requirement is open, unverified, or dependent on unavailable external evidence. | Quality / evidence governance | `.tiny-swarm/evidence/issue-217-obsolescence-review/` | Candidate package, final action records and explicit auditor fallback review are complete; external Sonar remains classified `UNVERIFIED` | VERIFIED_LOCAL |
 
 ## Traceability note
 
