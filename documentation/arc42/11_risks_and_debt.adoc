@@ -216,7 +216,8 @@ before adding code. The chain keeps the following ownership order:
   boundary and passed its S184-03 audit;
 * #191 froze typed, serialized verification-evidence construction locally and
   passed its compatibility and audit gates;
-* #187 isolates HostPreflightProbe service matching behind a registry;
+* #187 isolates HostPreflightProbe service matching behind a registry locally
+  and passed its compatibility and audit gates;
 * #190 completes residual stack prerequisite and asset-transfer strategy
   dispatch;
 * #192 verifies LXC Portainer/Nexus wrapper ownership and compatibility; and

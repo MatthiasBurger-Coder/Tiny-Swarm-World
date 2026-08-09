@@ -4,7 +4,7 @@ Workflow ID: `issue-187-20260809`
 
 Workflow version: `issue-187-v1.0.0`
 
-Status: `EXECUTING_LOCAL`
+Status: `COMPLETED_LOCAL_AUDITED`
 
 Authoring branch: `feature/workflow-solid-refactor-chain-20260809`
 
@@ -156,6 +156,15 @@ before implementation and consolidation evidence after implementation under
 generated conflicts, unclear secrets and weakened guards forbid parallel work.
 Codex remains final integration owner.
 
+## Execution Evidence Paths
+
+- S187-01 distribution: `.codex/evidence/issue-187-20260809/slice-01-distribution.md`.
+- S187-01 consolidation: `.codex/evidence/issue-187-20260809/slice-01-consolidation.md`.
+- S187-02 distribution: `.codex/evidence/issue-187-20260809/slice-02-distribution.md`.
+- S187-02 consolidation: `.codex/evidence/issue-187-20260809/slice-02-consolidation.md`.
+- S187-03 distribution: `.codex/evidence/issue-187-20260809/slice-03-distribution.md`.
+- S187-03 consolidation: `.codex/evidence/issue-187-20260809/slice-03-consolidation.md`.
+
 ## Git Worktree Execution Rule
 
 Use isolated worktrees and `<workflow-branch>-slice-<number>-<stream>` branches.
@@ -186,9 +195,21 @@ Arc42 updates are planned/implemented status only. Stop on ambiguous service
 behavior, method signature drift, incomplete evidence, failed gates or
 unobservable external/live results. Done requires all named service tests,
 unsupported-name behavior, architecture guard, evidence and auditor PASS.
-Promote after #191 is complete.
+These conditions are satisfied locally; promote #190 as the next serialized
+target.
+
+## Completion Record
+
+- Decision: `PASS` — locally complete and independently audited.
+- Requirement matrix: all `REQ-187-001` through `REQ-187-007` are
+  `VERIFIED_LOCAL`.
+- Local quality: `python3 tools/quality_gate.py quality` passed with `1689`
+  tests passed and `28` skipped.
+- Live, browser and external quality-system checks: not run and not claimed.
+- Handoff: Issue #190, `feature/stack-prerequisite-strategies-solid`.
 
 ## Arc42 Check Status
 
-Current preflight and quality documentation was reviewed. This plan does not
-claim a registry implementation or live host verification.
+Current preflight and quality documentation was reviewed. The registry
+implementation is verified locally; no live host or external result is
+claimed.
