@@ -15,4 +15,3 @@
   Engineer, Senior Execution Orchestrator.
 - Quality commands: `python3 tools/quality_gate.py quality`, targeted Python
   gates and `git diff --check`.
-

@@ -230,4 +230,3 @@ indexed path is intentionally selected for execution.
 Existing LXC-native provider architecture and #238 responsibility split were
 reviewed. This plan records a residual decomposition target; it does not claim
 that #184 is implemented.
-
