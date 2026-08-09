@@ -19,8 +19,8 @@
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/workflow/workflow.md": "11E53CF372D4565E12B261C973D58E7AD431A89F2849CF9A34A3BE3777B346B2",
-    "documentation/arc42/11_risks_and_debt.adoc": "31e64165c5d1e7feea4d2fed323cc099a857ccc235a294728809c3c25a66217e"
+    "documentation/workflow/workflow.md": "716C88324C9B1E702623E92E34295A89A8729EF2E0773A5960968D85A9A52B3D",
+    "documentation/arc42/11_risks_and_debt.adoc": "5E0EE0B509F24F76ACBA86ED2CBC780396C0DEBAABD1FF6EC5CB3B3A6F3CB688"
   },
   "staleness_note": "These hashes record the governing files used during authoring; the pack is not a replacement for them."
 }

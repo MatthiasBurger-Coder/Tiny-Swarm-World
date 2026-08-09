@@ -4,13 +4,16 @@ Workflow ID: `issue-184-20260809`
 
 Workflow version: `issue-184-v1.0.0`
 
-Status: `EXECUTING_LOCAL`
+Status: `COMPLETED_LOCAL_AUDITED`
 
 Authoring branch: `feature/workflow-solid-refactor-chain-20260809`
 
 Implementation branch: `feature/split-lxc-node-provider-solid`
 
 Chain position: 02 of 07; predecessor: #189; successor: #191.
+
+Completion audit: `PASS` — local implementation, evidence and independent
+role-based audit completed; live/browser/external gates were not claimed.
 
 ## Executive Summary
 
@@ -232,11 +235,11 @@ Arc42 receives only verified status updates. Stop for unclear evidence schema,
 behavior drift, import cycles, failed required gates, missing evidence or an
 architecture decision not present in the repository. Done requires every
 matrix row, compatibility test, lifecycle regression, architecture check,
-evidence file and auditor PASS. Promote only after #189 is complete and the
-indexed path is intentionally selected for execution.
+evidence file and auditor PASS. Issue #184 is complete locally and hands off
+the audited boundary to #191.
 
 ## Arc42 Check Status
 
 Existing LXC-native provider architecture and #238 responsibility split were
-reviewed. This plan records a residual decomposition target; it does not claim
-that #184 is implemented.
+reviewed. The command, node, profile and resource responsibility split is
+implemented locally and independently audited; no live result is claimed.
