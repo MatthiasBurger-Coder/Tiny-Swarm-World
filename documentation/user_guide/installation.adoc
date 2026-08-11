@@ -242,6 +242,33 @@ the protected bridge-state file before running preflight.
 See `documentation/system/lxc-native-setup.adoc` for the full WSL2 and
 Incus setup notes and official references.
 
+== Ready-For-Install Checklist
+
+Complete this checklist from the same Linux/WSL shell that will run
+`./install.sh`. The first items are static/read-only checks. The optional
+temporary-container smoke is a small live provider check and requires explicit
+operator approval; it is not part of the repository quality gate.
+
+* [ ] The shell is native Linux or WSL2 with the required systemd/cgroup/user-
+  namespace capabilities.
+* [ ] The repository is on a Linux-native path when running under WSL2, or the
+  explicit filesystem override is intentionally approved.
+* [ ] Incus is installed and initialized by the host operator; the current user
+  runs `incus version` and `incus info` without `sudo`.
+* [ ] The selected Incus storage pool, network bridge, and required profile
+  state are available to that same user.
+* [ ] Python dependencies are installed and `python3 tools/quality_gate.py
+  quality` is green when local development verification is required.
+* [ ] `PYTHONPATH=src python3 -m tiny_swarm_world --preflight` passes its static
+  checks before any live consent is supplied.
+* [ ] Required local secrets/configuration are present in ignored files and no
+  secret values are copied into commands, logs, or documentation.
+
+The detailed optional smoke appears in the Incus baseline below. After this
+checklist, continue with the ordered runtime path: host preparation and
+verification, managed LXC nodes, Docker Engine inside those nodes, Swarm
+bootstrap, routing, artifacts, deployment, and final verification.
+
 == Runtime Environment Green Path
 
 Use this checklist when preparing a new developer workstation for the default
@@ -295,7 +322,7 @@ Then run the local quality gate before live infrastructure work:
 .venv/bin/python tools/quality_gate.py quality
 ----
 
-=== 3. Verify Incus Baseline
+=== 3. Verify Incus Baseline And Optional Smoke
 
 The default provider is Incus-backed `lxc_native`. Verify the daemon and create
 one temporary container before running Tiny Swarm World automation:
@@ -308,6 +335,10 @@ incus launch images:ubuntu/24.04 test-incus
 incus exec test-incus -- cat /etc/os-release
 incus delete test-incus --force
 ----
+
+Run the temporary-container block only when a live provider smoke is approved.
+If `incus launch` succeeds but a later command fails, delete the named
+`test-incus` container before retrying. Do not use broad container cleanup.
 
 The normal project setup creates and owns the managed nodes. Do not manually
 create `swarm-manager`, `swarm-worker-1`, or `swarm-worker-2` unless a

@@ -69,6 +69,10 @@ group membership, reopen the Linux/WSL shell and verify `incus version` and
 `incus info` without `sudo`. Use the canonical prerequisite and smoke checklist
 in `documentation/user_guide/installation.adoc` before starting a live run.
 
+The ready-for-install checklist is the single operator entry point for the
+preflight, optional temporary-container smoke, and handoff to the ordered
+installation path. Do not use this handbook as a second command catalogue.
+
 === Complete The Required Windows Prework For WSL2
 
 When running Tiny Swarm World in WSL2 with the default Windows exposure, prepare

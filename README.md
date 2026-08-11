@@ -701,7 +701,11 @@ Do not commit local runtime artifacts or secret-bearing files.
 
 # Minimal Preinstall Smoke Test
 
-Run this from the repository root after creating `.venv`.
+The canonical ready-for-install checklist and optional Incus smoke are in
+[`documentation/user_guide/installation.adoc`](documentation/user_guide/installation.adoc#ready-for-install-checklist).
+Use that path before live setup. The short smoke below is optional live
+provider validation, not a quality-gate command; run it only with explicit
+operator approval.
 
 ```bash
 set -e
@@ -725,6 +729,10 @@ python -c "import pydantic; print('pydantic ok')"
 
 echo "Preinstall OK"
 ```
+
+The smoke creates only the named temporary `tsw-smoke-test` container and
+deletes it explicitly. Do not replace the final delete with broad Incus
+cleanup.
 
 ---
 
