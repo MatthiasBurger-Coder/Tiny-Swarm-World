@@ -1,10 +1,13 @@
 import asyncio
 import logging
-import time
 
 from tiny_swarm_world.application.ports.clients.port_container_runtime import PortContainerRuntime
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
 from tiny_swarm_world.application.ports.ui.port_ui import AGGREGATE_INSTANCE, PortUI
+from tiny_swarm_world.application.services.shared import (
+    ReadinessRetry,
+    wait_for_readiness_retry,
+)
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
@@ -41,9 +44,9 @@ class EnsureNexusAdminAccess:
         self.ui = ui
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def run(self) -> None:
+    async def run(self) -> None:
         try:
-            self._run()
+            await self._run()
         except Exception as exc:
             safe_error = _safe_exception_summary(exc)
             self.logger.error(
@@ -59,19 +62,19 @@ class EnsureNexusAdminAccess:
                 )
             raise
 
-    def _run(self) -> None:
+    async def _run(self) -> None:
         if self.nexus_client.can_authenticate(self.admin_username, self.admin_password):
             self.logger.info("Nexus admin credentials are already active.")
             return
 
-        container_name = self._resolve_container_name()
-        initial_password = self._read_initial_password(container_name)
+        container_name = await self._resolve_container_name()
+        initial_password = await self._read_initial_password(container_name)
 
         last_exception: Exception | None = None
         for attempt in range(1, self.max_attempts + 1):
             try:
                 self._rotate_admin_password(initial_password)
-                if self._can_authenticate_with_retry(self.admin_password):
+                if await self._can_authenticate_with_retry(self.admin_password):
                     return
                 last_exception = None
             except RuntimeError as exc:
@@ -82,7 +85,7 @@ class EnsureNexusAdminAccess:
                     "Nexus admin access rotation is not ready yet. "
                     f"Waiting {self.wait_seconds} seconds before attempt {attempt + 1}."
                 )
-                time.sleep(self.wait_seconds)
+                await self._wait_for_retry(attempt)
 
         raise NexusAdminAccessRecoveryBlocked(
             "Nexus admin password rotation completed without producing valid credentials.",
@@ -115,7 +118,7 @@ class EnsureNexusAdminAccess:
             self.admin_password,
         )
 
-    def _can_authenticate_with_retry(self, password: str) -> bool:
+    async def _can_authenticate_with_retry(self, password: str) -> bool:
         for attempt in range(1, self.max_attempts + 1):
             if self.nexus_client.can_authenticate(self.admin_username, password):
                 return True
@@ -124,10 +127,10 @@ class EnsureNexusAdminAccess:
                     "Nexus admin credentials are not active yet. "
                     f"Waiting {self.wait_seconds} seconds before attempt {attempt + 1}."
                 )
-                time.sleep(self.wait_seconds)
+                await self._wait_for_retry(attempt)
         return False
 
-    def _resolve_container_name(self) -> str:
+    async def _resolve_container_name(self) -> str:
         for attempt in range(1, self.max_attempts + 1):
             container_names = self.container_runtime.find_container_names(self.container_name_filter)
             if container_names:
@@ -140,7 +143,7 @@ class EnsureNexusAdminAccess:
                     f"No Nexus container matched '{self.container_name_filter}'. "
                     f"Waiting {self.wait_seconds} seconds before attempt {attempt + 1}."
                 )
-                time.sleep(self.wait_seconds)
+                await self._wait_for_retry(attempt)
 
         raise NexusAdminAccessRecoveryBlocked(
             f"No container found for filter '{self.container_name_filter}'.",
@@ -148,7 +151,7 @@ class EnsureNexusAdminAccess:
             operator_action="Verify the Nexus stack service is running before rerunning setup.",
         )
 
-    def _read_initial_password(self, container_name: str) -> str:
+    async def _read_initial_password(self, container_name: str) -> str:
         for attempt in range(1, self.max_attempts + 1):
             if self.container_runtime.file_exists(container_name, self.initial_password_path):
                 password = self.container_runtime.read_file(container_name, self.initial_password_path).strip()
@@ -161,7 +164,7 @@ class EnsureNexusAdminAccess:
                     f"Initial password file '{self.initial_password_path}' is not available yet. "
                     f"Waiting {self.wait_seconds} seconds before attempt {attempt + 1}."
                 )
-                time.sleep(self.wait_seconds)
+                await self._wait_for_retry(attempt)
 
         raise NexusAdminAccessRecoveryBlocked(
             f"Could not read Nexus admin password from '{self.initial_password_path}'.",
@@ -170,6 +173,15 @@ class EnsureNexusAdminAccess:
                 "Check configured Nexus admin access value or reset existing Nexus "
                 "state before rerunning setup."
             ),
+        )
+
+    async def _wait_for_retry(self, attempt: int) -> None:
+        await wait_for_readiness_retry(
+            ReadinessRetry(
+                attempt=attempt,
+                max_attempts=self.max_attempts,
+                wait_seconds=self.wait_seconds,
+            )
         )
 
     async def verify(self) -> VerificationResult:

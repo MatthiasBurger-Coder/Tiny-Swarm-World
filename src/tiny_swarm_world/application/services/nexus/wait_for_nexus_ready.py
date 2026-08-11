@@ -1,8 +1,11 @@
 import asyncio
 import logging
-import time
 
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
+from tiny_swarm_world.application.services.shared import (
+    ReadinessRetry,
+    wait_for_readiness_retry,
+)
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
@@ -15,7 +18,7 @@ class WaitForNexusReady:
         self.wait_seconds = wait_seconds
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def run(self) -> None:
+    async def run(self) -> None:
         last_exception: Exception | None = None
         for attempt in range(1, self.max_attempts + 1):
             try:
@@ -30,7 +33,13 @@ class WaitForNexusReady:
                 self.logger.info(
                     f"Nexus is not ready yet. Waiting {self.wait_seconds} seconds before attempt {attempt + 1}."
                 )
-                time.sleep(self.wait_seconds)
+                await wait_for_readiness_retry(
+                    ReadinessRetry(
+                        attempt=attempt,
+                        max_attempts=self.max_attempts,
+                        wait_seconds=self.wait_seconds,
+                    )
+                )
 
         error = TimeoutError(
             f"Nexus did not become ready after {self.max_attempts} attempts with {self.wait_seconds} seconds delay."

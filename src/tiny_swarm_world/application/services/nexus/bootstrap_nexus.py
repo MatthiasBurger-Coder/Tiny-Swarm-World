@@ -1,3 +1,4 @@
+import inspect
 import logging
 
 
@@ -17,11 +18,17 @@ class BootstrapNexus:
         self.enable_anonymous_access = enable_anonymous_access
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def run(self) -> None:
+    async def run(self) -> None:
         self.logger.info("Starting Nexus bootstrap.")
-        self.ensure_nexus_stack.run()
-        self.wait_for_nexus_ready.run()
-        self.ensure_nexus_admin_access.run()
+        await self._run_step(self.ensure_nexus_stack)
+        await self._run_step(self.wait_for_nexus_ready)
+        await self._run_step(self.ensure_nexus_admin_access)
         if self.enable_anonymous_access:
-            self.enable_nexus_anonymous_access.run()
+            await self._run_step(self.enable_nexus_anonymous_access)
         self.logger.info("Nexus bootstrap finished.")
+
+    @staticmethod
+    async def _run_step(step) -> None:
+        result = step.run()
+        if inspect.isawaitable(result):
+            await result
