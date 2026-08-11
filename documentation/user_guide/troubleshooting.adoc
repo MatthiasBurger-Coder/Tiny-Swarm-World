@@ -37,6 +37,12 @@ Run the gate from the repository root, not from a source or test subdirectory.
 
 The default node provider is `lxc_native` through Incus. Check the
 selected backend from the same Linux/WSL shell that will run Tiny Swarm World.
+Incus/LXD is a host prerequisite: Tiny Swarm World does not install or
+initialize it, repair its daemon, create its storage/network/profile state, or
+change host group membership. The current user must run the provider client
+without `sudo` from that same shell. Use the canonical prerequisite checklist
+in `documentation/user_guide/installation.adoc` before applying a recovery
+action.
 
 For Incus:
 

@@ -82,9 +82,20 @@ Required:
 - systemd enabled when running under WSL2
 - Python 3.12 or newer
 - Git
-- Incus installed and initialized
-- `incus` client access for the current user
+- Incus/LXD host management is a hard prerequisite for the default `lxc_native`
+  provider; the supported managed backend is Incus
+- Incus/LXD must already be installed and initialized by the host operator
+- `incus`/`lxc` client access for the current user, without `sudo`, from the
+  same Linux/WSL shell that will run `./install.sh`
 - Enough disk space for LXC images, Docker images, and service data
+
+Tiny Swarm World does not install or initialize Incus/LXD, create the host
+daemon, repair host storage or networks, create provider profiles, or change
+group membership automatically. If a host group or socket permission was
+changed, open a new Linux/WSL shell and verify `incus version` and `incus info`
+without `sudo` before continuing. The detailed checklist lives in
+`documentation/user_guide/installation.adoc`; provider-specific smoke and
+boundary notes live in `documentation/system/lxc-native-setup.adoc`.
 
 Recommended:
 
