@@ -794,6 +794,17 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(maximum_active, 2)
         self.assertEqual(set(calls), {"preflight", "alpha", "beta", "gamma", "validation"})
+        self.assertEqual(
+            [group.group_id for group in result.phase_group_results],
+            ["preflight", "workers", "validation"],
+        )
+        worker_group = result.phase_group_results[1]
+        self.assertEqual(worker_group.maximum_concurrency, 2)
+        self.assertGreaterEqual(worker_group.duration_seconds, 0.0)
+        self.assertEqual(
+            result.to_dict()["phase_group_results"][1]["phase_names"],
+            ["alpha", "beta", "gamma"],
+        )
 
     async def test_failed_group_member_keeps_independent_result_and_blocks_dependents(self):
         calls: list[str] = []
@@ -853,6 +864,8 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(statuses["validation"], "not_run")
         self.assertIn("dependency group", str(result.phase_results[-1].result))
         self.assertEqual(set(calls), {"preflight", "alpha", "beta"})
+        self.assertEqual(result.phase_group_results[1].status, "blocked")
+        self.assertGreaterEqual(result.phase_group_results[1].duration_seconds, 0.0)
 
 
 def _completed_result(name: str, calls: list[str]) -> ArtifactWorkflowResult:

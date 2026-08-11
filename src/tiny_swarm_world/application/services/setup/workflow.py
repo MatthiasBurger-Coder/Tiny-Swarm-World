@@ -108,6 +108,24 @@ class SetupPhaseResult:
 
 
 @dataclass(frozen=True)
+class SetupPhaseGroupResult:
+    group_id: str
+    phase_names: tuple[str, ...]
+    status: str
+    maximum_concurrency: int
+    duration_seconds: float
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "duration_seconds": self.duration_seconds,
+            "group_id": self.group_id,
+            "maximum_concurrency": self.maximum_concurrency,
+            "phase_names": list(self.phase_names),
+            "status": self.status,
+        }
+
+
+@dataclass(frozen=True)
 class SetupWorkflowResult:
     kind: SetupWorkflowKind
     status: SetupWorkflowStatus
@@ -115,6 +133,7 @@ class SetupWorkflowResult:
     reason: str
     executed: bool = False
     phase_results: tuple[SetupPhaseResult, ...] = ()
+    phase_group_results: tuple[SetupPhaseGroupResult, ...] = ()
 
     @property
     def workflow_name(self) -> str:
@@ -124,6 +143,9 @@ class SetupWorkflowResult:
         return {
             "executed": self.executed,
             "message": self.message,
+            "phase_group_results": [
+                group.to_dict() for group in self.phase_group_results
+            ],
             "phase_results": [phase.to_dict() for phase in self.phase_results],
             "reason": self.reason,
             "status": self.status.value,
@@ -249,8 +271,10 @@ class SetupWorkflow:
 
         phase_groups = self._ordered_phase_groups()
         phase_results: list[SetupPhaseResult] = []
+        phase_group_results: list[SetupPhaseGroupResult] = []
         for group_index, group in enumerate(phase_groups):
-            executions = await self._run_phase_group(group)
+            executions, group_result = await self._run_phase_group(group)
+            phase_group_results.append(group_result)
             phase_results.extend(execution.phase_result for execution in executions)
             failed_execution = next(
                 (
@@ -285,6 +309,7 @@ class SetupWorkflow:
                 ),
                 executed=True,
                 phase_results=(*phase_results, *not_run_phase_results),
+                phase_group_results=tuple(phase_group_results),
             )
 
         self._report_progress(
@@ -303,6 +328,7 @@ class SetupWorkflow:
             reason="preflight, platform, artifacts, deployment, and verification phases completed",
             executed=True,
             phase_results=tuple(phase_results),
+            phase_group_results=tuple(phase_group_results),
         )
 
     async def _run_phase_with_heartbeat(self, phase: SetupWorkflowPhase) -> object:
@@ -337,7 +363,18 @@ class SetupWorkflow:
     async def _run_phase_group(
         self,
         group: "_SetupPhaseGroup",
-    ) -> tuple[_SetupPhaseExecution, ...]:
+    ) -> tuple[tuple[_SetupPhaseExecution, ...], SetupPhaseGroupResult]:
+        started_at = asyncio.get_running_loop().time()
+        if len(group.phases) > 1:
+            self._report_progress(
+                phase="setup",
+                target=group.group_id,
+                task="Run setup phase group",
+                step="phase group started",
+                status="running",
+                result="pending",
+                safe_message="Setup phase group started.",
+            )
         for phase in group.phases:
             self._report_phase_progress(
                 phase_name=phase.name,
@@ -367,7 +404,42 @@ class SetupWorkflow:
                     else None
                 ),
             )
-        return executions
+        failed_execution = next(
+            (
+                execution
+                for execution in executions
+                if not _is_success_status(execution.phase_result.status)
+            ),
+            None,
+        )
+        group_status = (
+            "completed"
+            if failed_execution is None
+            else _setup_status_for_phase_status(
+                failed_execution.phase_result.status
+            ).value
+        )
+        group_result = SetupPhaseGroupResult(
+            group_id=group.group_id,
+            phase_names=tuple(phase.name for phase in group.phases),
+            status=group_status,
+            maximum_concurrency=group.maximum_concurrency,
+            duration_seconds=max(
+                0.0,
+                asyncio.get_running_loop().time() - started_at,
+            ),
+        )
+        if len(group.phases) > 1:
+            self._report_progress(
+                phase="setup",
+                target=group.group_id,
+                task="Run setup phase group",
+                step="phase group completed",
+                status=group_status,
+                result=group_status,
+                safe_message="Setup phase group completed.",
+            )
+        return executions, group_result
 
     async def _execute_phase(self, phase: SetupWorkflowPhase) -> _SetupPhaseExecution:
         try:

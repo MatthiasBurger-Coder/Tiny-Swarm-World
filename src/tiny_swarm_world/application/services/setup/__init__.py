@@ -1,5 +1,6 @@
 from tiny_swarm_world.application.services.setup.workflow import (
     SetupPhase,
+    SetupPhaseGroupResult,
     SetupPhaseResult,
     SetupWorkflow,
     SetupWorkflowKind,
@@ -10,6 +11,7 @@ from tiny_swarm_world.application.services.setup.workflow import (
 
 __all__ = [
     "SetupPhase",
+    "SetupPhaseGroupResult",
     "SetupPhaseResult",
     "SetupWorkflow",
     "SetupWorkflowKind",
