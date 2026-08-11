@@ -1,4 +1,5 @@
 import json
+import asyncio
 import importlib.util
 import sys
 import tempfile
@@ -92,7 +93,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             )
 
             with self.assertRaises(InfisicalInstallBlocker) as raised:
-                service.run()
+                asyncio.run(service.run())
 
             self.assertEqual(raised.exception.classification, "infisical_cli_missing")
             evidence = (Path(directory) / "evidence" / "bootstrap-result.json").read_text()
@@ -113,7 +114,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
                 secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
             )
 
-            service.run()
+            asyncio.run(service.run())
             verification = service.verify()
 
             self.assertEqual(VerificationStatus.VERIFIED, verification.status)
@@ -139,7 +140,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             )
 
             with self.assertRaises(_BootstrapUnavailable):
-                service.run()
+                asyncio.run(service.run())
 
             result = json.loads((Path(directory) / "evidence" / "bootstrap-result.json").read_text())
             self.assertEqual(result["status"], "failed")
@@ -157,7 +158,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             )
 
             with self.assertRaises(InfisicalInstallBlocker) as raised:
-                service.run()
+                asyncio.run(service.run())
 
             self.assertEqual(
                 raised.exception.classification,
@@ -172,7 +173,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
                 secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
             )
 
-            service.run()
+            asyncio.run(service.run())
             verification = service.verify()
 
             self.assertEqual(VerificationStatus.VERIFIED, verification.status)
@@ -191,7 +192,7 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             )
 
             with self.assertRaises(InfisicalInstallBlocker) as raised:
-                service.run()
+                asyncio.run(service.run())
 
             self.assertEqual(raised.exception.classification, "infisical_bootstrap_failed")
             result = json.loads(

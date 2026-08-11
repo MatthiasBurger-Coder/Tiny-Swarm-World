@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -130,7 +131,7 @@ class EnsureInfisicalSilentInstall:
             for part in self.bootstrap_command()
         )
 
-    def run(self) -> None:
+    async def run(self) -> None:
         self.config.validate()
         self.storage.ensure_directory(self.config.evidence_dir, private=True)
         self.storage.ensure_directory(self.config.secret_file.parent, private=True)
@@ -144,11 +145,12 @@ class EnsureInfisicalSilentInstall:
             )
 
         if self.cli.is_available():
-            self._run_cli_bootstrap()
+            await asyncio.to_thread(self._run_cli_bootstrap)
         elif self.bootstrap_client is not None:
             self._bootstrap_method = "admin_api_fallback"
             try:
-                bootstrap_result = self.bootstrap_client.bootstrap_instance(
+                bootstrap_result = await asyncio.to_thread(
+                    self.bootstrap_client.bootstrap_instance,
                     email=self.config.admin_email,
                     password=self.config.admin_password,
                     organization=self.config.organization,

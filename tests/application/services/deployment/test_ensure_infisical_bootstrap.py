@@ -1,3 +1,4 @@
+import asyncio
 import importlib.util
 import unittest
 from pathlib import Path
@@ -48,7 +49,7 @@ class TestEnsureInfisicalBootstrap(unittest.TestCase):
             "Tiny Swarm World",
         )
 
-        service.run()
+        asyncio.run(service.run())
         result = service.verify()
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
@@ -84,7 +85,7 @@ class TestEnsureInfisicalBootstrap(unittest.TestCase):
         )
 
         with self.assertRaises(_BootstrapUnavailable) as raised:
-            service.run()
+            asyncio.run(service.run())
 
         self.assertEqual(raised.exception.status_code, 502)
         self.assertNotIn("infisical-password", str(raised.exception))
