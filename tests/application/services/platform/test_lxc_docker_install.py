@@ -19,6 +19,24 @@ from tiny_swarm_world.domain.node_provider import (
 
 
 class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
+    async def test_node_lifecycles_are_bounded_by_configured_concurrency(self):
+        runtime = _ConcurrencyRuntime()
+        service = LxcDockerInstallService(runtime, max_concurrency=2)
+
+        results = await service.ensure_docker_installed(
+            (_node(), _worker(), _worker_2()),
+        )
+
+        self.assertEqual(
+            [result.evidence["node"] for result in results],
+            ["swarm-manager", "swarm-worker-1", "swarm-worker-2"],
+        )
+        self.assertEqual(runtime.max_active, 2)
+
+    def test_node_concurrency_must_be_positive(self):
+        with self.assertRaises(ValueError):
+            LxcDockerInstallService(_ConcurrencyRuntime(), max_concurrency=0)
+
     async def test_already_ready_node_does_not_run_install(self):
         runtime = _DockerRuntime(
             initial=ContainerDockerReadiness(
@@ -216,6 +234,32 @@ class _DockerRuntime:
         if self.verified is None:
             raise AssertionError("verify_docker was not expected")
         return self.verified
+
+
+class _ConcurrencyRuntime:
+    def __init__(self) -> None:
+        self.active = 0
+        self.max_active = 0
+
+    async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        await self._checkpoint()
+        return ContainerDockerReadiness(
+            node=node,
+            observed=True,
+            engine_state=DockerEngineState.READY,
+        )
+
+    async def install_docker(self, node: NodeSpec) -> ContainerDockerInstallOutcome:
+        raise AssertionError(f"install_docker was not expected for {node.name}")
+
+    async def verify_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        raise AssertionError(f"verify_docker was not expected for {node.name}")
+
+    async def _checkpoint(self) -> None:
+        self.active += 1
+        self.max_active = max(self.max_active, self.active)
+        await async_checkpoint()
+        self.active -= 1
 
 
 def _node() -> NodeSpec:

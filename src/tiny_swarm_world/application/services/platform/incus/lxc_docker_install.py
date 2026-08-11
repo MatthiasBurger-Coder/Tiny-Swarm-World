@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from tiny_swarm_world.application.ports.node_provider import PortContainerDockerRuntime
 from tiny_swarm_world.application.services.platform.docker_swarm_lxc_contract import (
     DockerSwarmInLxcContractService,
@@ -13,18 +15,26 @@ class LxcDockerInstallService:
         self,
         runtime: PortContainerDockerRuntime,
         contract_service: DockerSwarmInLxcContractService | None = None,
+        max_concurrency: int = 2,
     ) -> None:
+        if max_concurrency < 1:
+            raise ValueError("LXC Docker node concurrency must be positive.")
         self.runtime = runtime
         self.contract_service = contract_service or DockerSwarmInLxcContractService()
+        self.max_concurrency = max_concurrency
 
     async def ensure_docker_installed(
         self,
         nodes: tuple[NodeSpec, ...],
     ) -> tuple[VerificationResult, ...]:
-        results: list[VerificationResult] = []
-        for node in nodes:
-            results.extend(await self._ensure_node_docker_installed(node))
-        return tuple(results)
+        semaphore = asyncio.Semaphore(self.max_concurrency)
+
+        async def run_node(node: NodeSpec) -> tuple[VerificationResult, ...]:
+            async with semaphore:
+                return await self._ensure_node_docker_installed(node)
+
+        per_node_results = await asyncio.gather(*(run_node(node) for node in nodes))
+        return tuple(result for node_results in per_node_results for result in node_results)
 
     async def _ensure_node_docker_installed(
         self,
