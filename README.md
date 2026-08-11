@@ -252,126 +252,16 @@ source ~/.bashrc
 
 ---
 
-## 4. Install And Initialize Incus
+## 4. Prepare And Verify Incus
 
-Install Incus using the package source recommended for your Linux distribution,
-then initialize the local daemon before running Tiny Swarm World. For a WSL2
-developer setup, use a simple `dir` storage backend first.
+Incus/LXD installation, initialization, storage, network, profile, and
+permission recovery are host responsibilities. The supported default managed
+backend is Incus, and Tiny Swarm World does not perform those host mutations.
 
-Verify the selected backend from the same shell that will run setup:
-
-```bash
-incus version
-incus info
-```
-
-Expected project defaults:
-
-```text
-bridge: incusbr0
-storage pool: default
-```
-
----
-
-## 5. Verify Incus Profile And Storage
-
-Run:
-
-```bash
-incus storage list
-incus network list
-incus profile show default
-```
-
-The important default profile parts are:
-
-```yaml
-root:
-  path: /
-  pool: default
-  type: disk
-```
-
-and:
-
-```yaml
-eth0:
-  name: eth0
-  network: incusbr0
-  type: nic
-```
-
----
-
-## 6. Fix Missing Incus Root Device
-
-If this error appears:
-
-```text
-Failed instance creation: Failed creating instance record:
-Failed initialising instance: Failed getting root disk:
-No root device could be found
-```
-
-then the default profile has no root disk device.
-
-Check:
-
-```bash
-incus storage list
-incus profile show default
-```
-
-If the storage pool `default` exists, add the root disk:
-
-```bash
-incus profile device add default root disk path=/ pool=default
-```
-
-If the network device is missing, add it:
-
-```bash
-incus profile device add default eth0 nic name=eth0 network=incusbr0
-```
-
-Verify again:
-
-```bash
-incus profile show default
-```
-
----
-
-## 7. Test Incus Container Creation
-
-Create a temporary test container:
-
-```bash
-incus launch images:ubuntu/24.04 test-incus
-incus list
-```
-
-Open a shell inside the container:
-
-```bash
-incus exec test-incus -- bash
-```
-
-Inside the container:
-
-```bash
-cat /etc/os-release
-exit
-```
-
-Delete the test container:
-
-```bash
-incus delete test-incus --force
-```
-
-If this succeeds, the Incus baseline is ready.
+Use the canonical [ready-for-install checklist and optional smoke](documentation/user_guide/installation.adoc#ready-for-install-checklist)
+from the same Linux/WSL shell that will run `./install.sh`. It includes the
+no-`sudo` daemon check, profile/storage verification, bounded temporary
+container smoke, static preflight, and the handoff to live setup.
 
 ---
 
@@ -701,38 +591,11 @@ Do not commit local runtime artifacts or secret-bearing files.
 
 # Minimal Preinstall Smoke Test
 
-The canonical ready-for-install checklist and optional Incus smoke are in
-[`documentation/user_guide/installation.adoc`](documentation/user_guide/installation.adoc#ready-for-install-checklist).
-Use that path before live setup. The short smoke below is optional live
-provider validation, not a quality-gate command; run it only with explicit
-operator approval.
-
-```bash
-set -e
-
-echo "[1] systemd"
-test "$(ps -p 1 -o comm=)" = "systemd"
-
-echo "[2] incus"
-incus version >/dev/null
-incus storage list >/dev/null
-incus profile show default | grep -q "root:"
-
-echo "[4] test container"
-incus launch images:ubuntu/24.04 tsw-smoke-test
-incus exec tsw-smoke-test -- true
-incus delete tsw-smoke-test --force
-
-echo "[5] python"
-source .venv/bin/activate
-python -c "import pydantic; print('pydantic ok')"
-
-echo "Preinstall OK"
-```
-
-The smoke creates only the named temporary `tsw-smoke-test` container and
-deletes it explicitly. Do not replace the final delete with broad Incus
-cleanup.
+Use the [canonical ready-for-install checklist and optional Incus smoke](documentation/user_guide/installation.adoc#ready-for-install-checklist)
+from the Linux/WSL shell. The smoke is optional live provider validation, not a
+quality-gate command, and its named temporary container must be deleted
+explicitly. The README remains an entry point; the installation guide owns the
+command sequence.
 
 ---
 
