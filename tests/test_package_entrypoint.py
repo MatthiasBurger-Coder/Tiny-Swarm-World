@@ -2,6 +2,7 @@ import asyncio
 import ast
 import io
 import json
+import os
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -329,6 +330,28 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         args = entrypoint.parse_args(["--json"])
 
         self.assertTrue(args.json)
+
+    def test_debug_json_environment_is_explicit_opt_in(self):
+        args = entrypoint.parse_args([])
+
+        with patch.dict(os.environ, {"TSW_DEBUG_JSON": "true"}):
+            self.assertTrue(entrypoint._should_emit_json(args))
+        with patch.dict(os.environ, {"TSW_DEBUG_JSON": "false"}):
+            self.assertFalse(entrypoint._should_emit_json(args))
+
+    async def test_debug_json_environment_emits_structured_result_without_flag(self):
+        services, workflows = _application_services_with_platform_workflows()
+        output = io.StringIO()
+
+        with patch.dict(os.environ, {"TSW_DEBUG_JSON": "true"}):
+            with patch.object(entrypoint, "build_application_services", return_value=services):
+                with redirect_stdout(output):
+                    await entrypoint.main(["platform", "verify"])
+
+        workflows.verify.run.assert_awaited_once_with()
+        payload = _json_payload_from_output(output.getvalue())
+        self.assertEqual("platform verify", payload["workflow"])
+        self.assertNotIn("Workflow: platform verify", output.getvalue())
 
     def test_lxc_backend_option_is_forwarded_as_provider_preference(self):
         args = entrypoint.parse_args(["--lxc-backend", "incus"])
