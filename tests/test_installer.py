@@ -409,6 +409,22 @@ class TestInstaller(unittest.TestCase):
                 {"TSW_EXAMPLE": "second"},
             )
 
+    def test_snapshot_with_exports_preserves_appended_values_and_duplicates(self):
+        snapshot = installer._ExportFileSnapshot({"TSW_EXISTING": "old"}, ())
+
+        updated = installer._snapshot_with_exports(
+            snapshot,
+            {"TSW_EXISTING": "new", "TSW_ADDED": "value"},
+        )
+
+        self.assertEqual(
+            updated,
+            installer._ExportFileSnapshot(
+                {"TSW_EXISTING": "new", "TSW_ADDED": "value"},
+                ("TSW_EXISTING",),
+            ),
+        )
+
     def test_git_ignore_probe_batches_worktree_and_ignore_decision(self):
         completed = subprocess.CompletedProcess(
             ["git", "check-ignore"],
